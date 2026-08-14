@@ -2,3 +2,5 @@
 !Directwerk/http/http-client.env.json
 Directwerk/http/http-client.private.env.json
 Directwerk/http/http-client.secrets.json
+node_modules
+/node_modules
