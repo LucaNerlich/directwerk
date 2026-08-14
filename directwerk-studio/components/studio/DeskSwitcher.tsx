@@ -1,0 +1,53 @@
+'use client'
+
+import Link from 'next/link'
+import {usePathname} from 'next/navigation'
+
+import {deskHome, hasDesk, resolveActiveDesk} from '@/lib/api/client'
+import type {SiteConfig} from '@/lib/api/types'
+
+function tabClassName(active: boolean): string {
+    return [
+        'flex items-center justify-center rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring',
+        active
+            ? 'bg-background text-foreground shadow-xs font-semibold'
+            : 'text-muted-foreground hover:text-foreground',
+    ]
+        .filter((part) => part.length > 0)
+        .join(' ')
+}
+
+/**
+ * Switcher toggle between Write desk and Podcast desk for hybrid tenants.
+ * Only rendered when both desks are available in site configuration.
+ */
+export default function DeskSwitcher({config}: {config: SiteConfig}): React.JSX.Element | null {
+    const pathname = usePathname()
+    if (!hasDesk(config, 'WRITE') || !hasDesk(config, 'PODCAST')) {
+        return null
+    }
+
+    const activeDesk = resolveActiveDesk(pathname, config)
+
+    return (
+        <nav
+            aria-label="Desks"
+            className="grid grid-cols-2 gap-1 rounded-lg bg-muted p-1 text-xs font-medium"
+        >
+            <Link
+                aria-current={activeDesk === 'WRITE' ? 'page' : undefined}
+                className={tabClassName(activeDesk === 'WRITE')}
+                href={deskHome('WRITE')}
+            >
+                Schreiben
+            </Link>
+            <Link
+                aria-current={activeDesk === 'PODCAST' ? 'page' : undefined}
+                className={tabClassName(activeDesk === 'PODCAST')}
+                href={deskHome('PODCAST')}
+            >
+                Podcast
+            </Link>
+        </nav>
+    )
+}
