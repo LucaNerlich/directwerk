@@ -11,7 +11,7 @@ import {
     SidebarMenuItem,
 } from '@directwerk/ui/components/sidebar'
 
-import {hasDesk, hasModule} from '@/lib/api/client'
+import {hasModule, resolveActiveDesk} from '@/lib/api/client'
 import {isTenantAdminRole} from '@/lib/api/tenantApi'
 import type {SiteConfig} from '@/lib/api/types'
 import {useOptionalMe} from '@/lib/auth/MeProvider'
@@ -84,8 +84,9 @@ function NavigationGroup({
 export default function SideNav({config}: {config: SiteConfig}) {
     const pathname = usePathname()
     const me = useOptionalMe()
-    const showWrite = hasDesk(config, 'WRITE')
-    const showPodcast = hasDesk(config, 'PODCAST')
+    const activeDesk = resolveActiveDesk(pathname, config)
+    const showWrite = activeDesk === 'WRITE'
+    const showPodcast = activeDesk === 'PODCAST'
     const showSubscription = hasModule(config, 'SUBSCRIPTION')
     const showMedia =
         hasModule(config, 'DIGITAL_CONTENT') || hasModule(config, 'PODCAST')

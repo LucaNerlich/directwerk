@@ -121,6 +121,11 @@ erDiagram
 
 ## Two studio desks
 
+The studio navigation is **desk-scoped**: creators work in focused workspaces rather than a flat, mixed menu.
+A visible **`DeskSwitcher`** toggle at the top of the sidebar allows hybrid creators (`hasDesk('WRITE') && hasDesk('PODCAST')`) to switch between the Write desk (`/write/articles`) and Podcast desk (`/podcast`). Single-desk tenants stay focused in their primary desk without switcher noise.
+
+Shared publication rails (Medien `/media`, Organisation `/manage/categories`, Abos `/manage/*`, Team `/team`, Einstellungen `/settings/*`) persist across desks, while desk-specific authoring and setup groups render only for the active desk. The top-level **Studio** entry (`/`) serves as the overview and desk chooser for hybrid tenants.
+
 ### 1. Podcast desk (Episodes) — podcast tenants
 
 **Mental model:** “I’m shipping a Folge.”
@@ -318,7 +323,7 @@ No Media-library-first requirement; library is for reuse.
 
 | Item | Status |
 |------|--------|
-| Nav | Module-gated Write + Podcast desks; Kategorien only with `DIGITAL_CONTENT` |
+| Nav | Desk-scoped nav (active desk groups only), `DeskSwitcher` for hybrid creators, module-gated rails |
 | Editors | Shared TipTap `ShowNotesEditor` (H2/H3, lists, links, paste cleanup) + draft autosave |
 | Copy | DE-first: *Beitrag* vs *Folge*; content-creation flow under `/podcast` |
 | Components | Status badge, access policy, editor layout, EmptyState/PageHeader lists, media grid |

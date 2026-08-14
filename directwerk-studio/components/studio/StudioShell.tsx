@@ -3,6 +3,7 @@ import type {ReactNode} from 'react'
 import BrandTheme from '@directwerk/ui/components/brand-theme'
 import AppShell from '@directwerk/ui/components/layout/app-shell'
 
+import DeskSwitcher from '@/components/studio/DeskSwitcher'
 import LogoutButton from '@/components/studio/LogoutButton'
 import SideNav from '@/components/studio/SideNav'
 import {SiteConfigProvider} from '@/lib/site/SiteConfigProvider'
@@ -23,13 +24,16 @@ export default function StudioShell({
             >
                 <AppShell
                     brand={
-                        <div className="min-w-0">
-                            <p className="truncate text-sm font-semibold">
-                                {config.tenant.name}
-                            </p>
-                            <p className="text-xs text-muted-foreground">
-                                Directwerk Studio
-                            </p>
+                        <div className="flex flex-col gap-3 min-w-0">
+                            <div className="min-w-0">
+                                <p className="truncate text-sm font-semibold">
+                                    {config.tenant.name}
+                                </p>
+                                <p className="text-xs text-muted-foreground">
+                                    Directwerk Studio
+                                </p>
+                            </div>
+                            <DeskSwitcher config={config} />
                         </div>
                     }
                     navigation={<SideNav config={config} />}

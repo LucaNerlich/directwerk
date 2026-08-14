@@ -268,7 +268,7 @@ projects/directwerk-studio/
         formats/page.tsx
         categories/page.tsx
   components/
-    studio/       StudioShell, SideNav, ModuleGate, AuthGuard
+    studio/       StudioShell, SideNav, DeskSwitcher, ModuleGate, AuthGuard
     publication/  PublicationStatusBadge, PublicationWorkflowActions, SchedulePicker, AccessPolicySelect
     editors/      ShowNotesEditor, MarkdownEditor, SlugField
     media/        MediaLibrary, MediaPickerModal, UploadDropzone, UploadProgress
@@ -375,6 +375,8 @@ feeds `enabledModules[]` to `<ModuleGate>` and `<SideNav>`.
 | Component | Purpose |
 |-----------|---------|
 | `StudioShell` | Sidebar, top bar, branding CSS variables |
+| `DeskSwitcher` | Write desk ↔ Podcast desk toggle for hybrid creators |
+| `SideNav` | Desk-scoped sidebar navigation (active desk authoring + shared rails) |
 | `ModuleGate` | Renders children only when module in `enabledModules[]` |
 | `PublicationStatusBadge` | `DRAFT` / `SCHEDULED` / `PUBLISHED` / `ARCHIVED` |
 | `PublicationWorkflowActions` | Publish, schedule, unpublish buttons |

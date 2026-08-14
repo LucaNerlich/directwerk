@@ -1,13 +1,15 @@
 import {cleanup, render, screen} from '@testing-library/react'
 import type {ReactNode} from 'react'
-import {afterEach, describe, expect, it, vi} from 'vitest'
+import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest'
 
 import SideNav from '@/components/studio/SideNav'
 import type {Me, SiteConfig} from '@/lib/api/types'
 import {MeProvider} from '@/lib/auth/MeProvider'
 
+let currentPathname = '/'
+
 vi.mock('next/navigation', () => ({
-    usePathname: () => '/',
+    usePathname: () => currentPathname,
     useRouter: () => ({replace: vi.fn()}),
 }))
 vi.mock('next/link', () => ({
@@ -15,6 +17,10 @@ vi.mock('next/link', () => ({
         <a href={href}>{children}</a>
     ),
 }))
+
+beforeEach(() => {
+    currentPathname = '/'
+})
 
 afterEach(cleanup)
 
@@ -232,5 +238,98 @@ describe('SideNav', () => {
         expect(screen.queryByRole('link', {name: 'Domains'})).not.toBeInTheDocument()
         expect(screen.queryByRole('link', {name: 'Mitglieder'})).not.toBeInTheDocument()
         expect(screen.queryByRole('link', {name: 'Abonnenten'})).not.toBeInTheDocument()
+    })
+
+    describe('desk-scoped navigation', () => {
+        const hybridConfig = config({
+            enabledModules: ['DIGITAL_CONTENT', 'PODCAST'],
+            studioDesks: ['WRITE', 'PODCAST'],
+            studioHome: 'OVERVIEW',
+        })
+
+        it('shows only Write desk groups and shared items when on /write/*', () => {
+            currentPathname = '/write/articles'
+            renderNavigation(<SideNav config={hybridConfig} />)
+
+            expect(screen.getByRole('link', {name: 'Studio'})).toHaveAttribute('href', '/')
+            expect(screen.getByRole('link', {name: 'Beiträge'})).toHaveAttribute(
+                'href',
+                '/write/articles',
+            )
+            expect(screen.getByRole('link', {name: 'Bonusdateien'})).toHaveAttribute(
+                'href',
+                '/write/bonus',
+            )
+            expect(screen.getByRole('link', {name: 'Bibliothek'})).toHaveAttribute(
+                'href',
+                '/media',
+            )
+            expect(screen.getByRole('link', {name: 'Kategorien'})).toHaveAttribute(
+                'href',
+                '/manage/categories',
+            )
+
+            expect(screen.queryByRole('link', {name: 'Start'})).not.toBeInTheDocument()
+            expect(screen.queryByRole('link', {name: 'Folgen'})).not.toBeInTheDocument()
+            expect(screen.queryByRole('link', {name: 'Sendungen'})).not.toBeInTheDocument()
+            expect(screen.queryByRole('link', {name: 'Formate'})).not.toBeInTheDocument()
+            expect(screen.queryByRole('link', {name: 'Feeds'})).not.toBeInTheDocument()
+        })
+
+        it('shows only Podcast desk groups and shared items when on /podcast/*', () => {
+            currentPathname = '/podcast/episodes'
+            renderNavigation(<SideNav config={hybridConfig} />)
+
+            expect(screen.getByRole('link', {name: 'Studio'})).toHaveAttribute('href', '/')
+            expect(screen.getByRole('link', {name: 'Start'})).toHaveAttribute(
+                'href',
+                '/podcast',
+            )
+            expect(screen.getByRole('link', {name: 'Folgen'})).toHaveAttribute(
+                'href',
+                '/podcast/episodes',
+            )
+            expect(screen.getByRole('link', {name: 'Sendungen'})).toHaveAttribute(
+                'href',
+                '/podcast/series',
+            )
+            expect(screen.getByRole('link', {name: 'Formate'})).toHaveAttribute(
+                'href',
+                '/podcast/formats',
+            )
+            expect(screen.getByRole('link', {name: 'Feeds'})).toHaveAttribute(
+                'href',
+                '/podcast/feeds',
+            )
+            expect(screen.getByRole('link', {name: 'Bibliothek'})).toHaveAttribute(
+                'href',
+                '/media',
+            )
+
+            expect(screen.queryByRole('link', {name: 'Beiträge'})).not.toBeInTheDocument()
+            expect(screen.queryByRole('link', {name: 'Bonusdateien'})).not.toBeInTheDocument()
+        })
+
+        it('shows only shared groups and Studio when hybrid tenant is on /', () => {
+            currentPathname = '/'
+            renderNavigation(<SideNav config={hybridConfig} />)
+
+            expect(screen.getByRole('link', {name: 'Studio'})).toHaveAttribute('href', '/')
+            expect(screen.getByRole('link', {name: 'Bibliothek'})).toHaveAttribute(
+                'href',
+                '/media',
+            )
+            expect(screen.getByRole('link', {name: 'Kategorien'})).toHaveAttribute(
+                'href',
+                '/manage/categories',
+            )
+
+            expect(screen.queryByRole('link', {name: 'Beiträge'})).not.toBeInTheDocument()
+            expect(screen.queryByRole('link', {name: 'Bonusdateien'})).not.toBeInTheDocument()
+            expect(screen.queryByRole('link', {name: 'Start'})).not.toBeInTheDocument()
+            expect(screen.queryByRole('link', {name: 'Folgen'})).not.toBeInTheDocument()
+            expect(screen.queryByRole('link', {name: 'Sendungen'})).not.toBeInTheDocument()
+            expect(screen.queryByRole('link', {name: 'Formate'})).not.toBeInTheDocument()
+        })
     })
 })
