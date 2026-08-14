@@ -1,0 +1,41 @@
+meta {
+  name: 2 - Stripe Onboard
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/api/v1/tenant/stripe/onboard
+  body: json
+  auth: inherit
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "returnUrl": "http://localhost:3003/settings/stripe?onboard=return",
+    "refreshUrl": "http://localhost:3003/settings/stripe?onboard=refresh"
+  }
+}
+
+tests {
+  test("returns Account Link or Stripe not configured", function() {
+    expect([200, 403, 501]).to.include(res.getStatus());
+    if (res.getStatus() === 501) {
+      expect(res.body.errors[0].code).to.equal("STRIPE_NOT_IMPLEMENTED");
+    }
+    if (res.getStatus() === 200) {
+      expect(res.body.data.url).to.be.a("string");
+    }
+  });
+}
+
+docs {
+  POST /api/v1/tenant/stripe/onboard — TenantStripeController.
+  Optional returnUrl/refreshUrl (HTTPS or loopback; host must be tenant, studio, or localhost).
+  200 {url} when STRIPE_SECRET_KEY is set; 501 STRIPE_NOT_IMPLEMENTED without keys;
+  403 if STRIPE_BILLING is off.
+}

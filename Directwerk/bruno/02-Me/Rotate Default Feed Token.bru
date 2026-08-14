@@ -1,0 +1,25 @@
+meta {
+  name: Rotate Default Feed Token
+  type: http
+  seq: 7
+}
+
+post {
+  url: {{baseUrl}}/api/v1/me/feeds/default/rotate-token
+  body: none
+  auth: inherit
+}
+
+script:post-response {
+  if (res.getStatus() === 200) { bru.setVar("subscriberFeedUrl", res.body.data.url); }
+}
+
+tests {
+  test("returns expected status", function() {
+    expect(res.getStatus() === 200 || res.getStatus() === 403).to.equal(true);
+  });
+}
+
+docs {
+  Invalidates the previous feed URL/token.
+}

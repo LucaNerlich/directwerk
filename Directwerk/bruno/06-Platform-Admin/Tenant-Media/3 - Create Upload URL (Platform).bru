@@ -1,0 +1,40 @@
+meta {
+  name: 3 - Create Upload URL (Platform)
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{baseUrl}}/api/v1/platform/tenants/{{tenantAId}}/media/upload-url
+  body: json
+  auth: inherit
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "filename": "platform-harness-cover.jpg",
+    "mimeType": "image/jpeg",
+    "sizeBytes": 1024,
+    "assetType": "IMAGE",
+    "intendedVisibility": "PUBLIC",
+    "scope": "TENANT_PUBLIC"
+  }
+}
+
+vars:post-response {
+  platformMediaAssetId: res.body.data && res.body.data.assetId
+}
+
+tests {
+  test("returns expected status", function() {
+    expect(res.getStatus() === 201 || res.getStatus() === 503).to.equal(true);
+  });
+}
+
+docs {
+  503 when directwerk.storage.enabled=false. Requires an actual PUT to uploadUrl before confirm will succeed.
+}

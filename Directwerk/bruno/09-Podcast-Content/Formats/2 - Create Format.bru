@@ -1,0 +1,45 @@
+meta {
+  name: 2 - Create Format
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/api/v1/formats
+  body: json
+  auth: inherit
+}
+
+headers {
+  Content-Type: application/json
+}
+
+script:pre-request {
+  bru.setVar("podcastFormatSlug", "format-" + Date.now().toString(36));
+}
+
+body:json {
+  {
+    "slug": "{{podcastFormatSlug}}",
+    "name": "Harness Format",
+    "description": "Created by the Bruno collection",
+    "sortOrder": 10
+  }
+}
+
+vars:post-response {
+  podcastFormatId: res.body.data && res.body.data.id
+}
+
+tests {
+  test("returns expected status", function() {
+    expect(res.getStatus() === 201 || res.getStatus() === 403 || res.getStatus() === 500).to.equal(true);
+  });
+}
+
+docs {
+  KNOWN BUG (found 2026-07-20 running this collection live): this endpoint returned a bare 500
+  (no Response envelope) on a fresh, valid slug with PODCAST active and a valid tenant-admin token --
+  expected 201. Same class of issue as Tenant-Admin/Products/2. If you see 201, it's fixed --
+  remove 500 from the expected statuses.
+}

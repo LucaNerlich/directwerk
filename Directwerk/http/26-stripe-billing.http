@@ -1,0 +1,119 @@
+### Directwerk — Stripe Connect, dashboard, checkout, portal, webhook
+### Prerequisites: 02-oauth2.http (tenantAAccessToken, subscriberAccessToken)
+
+### @name stripeStatus
+GET {{baseUrl}}/api/v1/tenant/stripe/status
+Host: {{tenantAHost}}
+Authorization: Bearer {{tenantAAccessToken}}
+Accept: application/json
+
+> {%
+    client.test("GET /tenant/stripe/status", function() {
+        client.assert(response.status === 200, "Expected 200");
+        client.assert(typeof response.body.data.status === "string", "Expected status");
+        client.assert(typeof response.body.data.chargesEnabled === "boolean", "Expected chargesEnabled");
+    });
+%}
+
+###
+
+### @name billingDashboard
+GET {{baseUrl}}/api/v1/tenant/billing/dashboard
+Host: {{tenantAHost}}
+Authorization: Bearer {{tenantAAccessToken}}
+Accept: application/json
+
+> {%
+    client.test("GET /tenant/billing/dashboard", function() {
+        client.assert(response.status === 200, "Expected 200");
+        client.assert(Array.isArray(response.body.data.memberships), "Expected memberships");
+        client.assert(typeof response.body.data.stats.activeSubscriptions === "number", "Expected stats");
+        client.assert(typeof response.body.data.stats.pastDueSubscriptions === "number", "Expected pastDue");
+        client.assert(typeof response.body.data.stats.incompleteSubscriptions === "number", "Expected incomplete");
+        client.assert(typeof response.body.data.stats.totalMemberships === "number", "Expected totalMemberships");
+    });
+%}
+
+###
+
+### @name stripeOnboard
+POST {{baseUrl}}/api/v1/tenant/stripe/onboard
+Host: {{tenantAHost}}
+Authorization: Bearer {{tenantAAccessToken}}
+Content-Type: application/json
+Accept: application/json
+
+{
+  "returnUrl": "http://localhost:3000/settings/stripe?onboard=return",
+  "refreshUrl": "http://localhost:3000/settings/stripe?onboard=refresh"
+}
+
+> {%
+    client.test("POST /tenant/stripe/onboard", function() {
+        client.assert(response.status === 200 || response.status === 501 || response.status === 403, "Expected 200/501/403");
+        if (response.status === 501) {
+            client.assert(response.body.errors[0].code === "STRIPE_NOT_IMPLEMENTED", "Expected STRIPE_NOT_IMPLEMENTED");
+        }
+    });
+%}
+
+###
+
+### @name createPortalSession
+POST {{baseUrl}}/api/v1/me/billing/portal
+Host: {{tenantAHost}}
+Authorization: Bearer {{subscriberAccessToken}}
+Content-Type: application/json
+Accept: application/json
+
+{}
+
+> {%
+    client.test("POST /me/billing/portal", function() {
+        client.assert(response.status === 201 || response.status === 409 || response.status === 501, "Expected 201/409/501");
+    });
+%}
+
+###
+
+### charge.refunded (signed, live): full refund of a one-time PaymentIntent cancels
+### the matching STRIPE row without externalSubscriptionId. Recurring invoice
+### refunds must not auto-cancel. Unsigned payloads below only probe signature.
+
+### @name stripeWebhookMissingSignature
+POST {{baseUrl}}/api/v1/webhooks/stripe
+Content-Type: application/json
+Accept: application/json
+
+{
+  "id": "evt_test",
+  "type": "checkout.session.completed"
+}
+
+> {%
+    client.test("POST /webhooks/stripe unsigned", function() {
+        client.assert(response.status === 400 || response.status === 501, "Expected 400/501");
+    });
+%}
+
+###
+
+### @name stripeWebhookInvalidSignature
+POST {{baseUrl}}/api/v1/webhooks/stripe
+Content-Type: application/json
+Accept: application/json
+Stripe-Signature: t=1,v1=deadbeef
+
+{
+  "id": "evt_test_invalid_sig",
+  "type": "checkout.session.completed"
+}
+
+> {%
+    client.test("POST /webhooks/stripe invalid signature", function() {
+        client.assert(response.status === 400 || response.status === 501, "Expected 400/501");
+        if (response.status === 400) {
+            client.assert(response.body.errors[0].code === "STRIPE_SIGNATURE_INVALID", "Expected STRIPE_SIGNATURE_INVALID");
+        }
+    });
+%}

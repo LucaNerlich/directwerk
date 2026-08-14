@@ -1,0 +1,31 @@
+meta {
+  name: 5 - Replace Article Categories
+  type: http
+  seq: 5
+}
+
+put {
+  url: {{baseUrl}}/api/v1/articles/{{articleId}}/categories
+  body: json
+  auth: inherit
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "categoryIds": [{{podcastCategoryId}}]
+  }
+}
+
+tests {
+  test("returns expected status", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+}
+
+docs {
+  Optional — requires podcastCategoryId from 09-Podcast-Content/Categories/2 - Create Category.
+}

@@ -1,0 +1,65 @@
+### Directwerk — Tenant admin subscriber feed management (TenantSubscriberFeedController)
+### Prerequisites:
+###   02-oauth2.http / 03-auth.http (tenantAdminAccessToken)
+###   Subscriber with default feed created (see 22-private-rss.http listMeFeeds)
+###   PODCAST_RSS + SUBSCRIPTION enabled on tenant A.
+###
+### Covers: list tenant subscriber feeds, enable/disable a subscriber feed.
+
+### @name listTenantSubscriberFeeds
+GET {{baseUrl}}/api/v1/tenant/subscriber-feeds
+Host: {{tenantAHost}}
+Authorization: Bearer {{tenantAAccessToken}}
+Accept: application/json
+
+> {%
+    client.test("List tenant subscriber feeds", function() {
+        client.assert(response.status === 200, "Expected 200");
+        client.assert(Array.isArray(response.body.data), "Expected an array of feeds");
+        client.assert(
+            typeof response.body.data[0].userEmail === "string",
+            "Expected userEmail on each feed"
+        );
+        client.global.set("subscriberFeedId", response.body.data[0].id);
+    });
+%}
+
+###
+
+### @name disableSubscriberFeed
+PUT {{baseUrl}}/api/v1/tenant/subscriber-feeds/{{subscriberFeedId}}/enabled
+Host: {{tenantAHost}}
+Authorization: Bearer {{tenantAAccessToken}}
+Accept: application/json
+Content-Type: application/json
+
+{
+    "enabled": false
+}
+
+> {%
+    client.test("Disable subscriber feed", function() {
+        client.assert(response.status === 200, "Expected 200");
+        client.assert(response.body.data.enabled === false, "Expected feed disabled");
+    });
+%}
+
+###
+
+### @name enableSubscriberFeed
+PUT {{baseUrl}}/api/v1/tenant/subscriber-feeds/{{subscriberFeedId}}/enabled
+Host: {{tenantAHost}}
+Authorization: Bearer {{tenantAAccessToken}}
+Accept: application/json
+Content-Type: application/json
+
+{
+    "enabled": true
+}
+
+> {%
+    client.test("Enable subscriber feed", function() {
+        client.assert(response.status === 200, "Expected 200");
+        client.assert(response.body.data.enabled === true, "Expected feed enabled");
+    });
+%}

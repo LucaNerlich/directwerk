@@ -1,0 +1,32 @@
+meta {
+  name: 6 - Publish Article
+  type: http
+  seq: 6
+}
+
+post {
+  url: {{baseUrl}}/api/v1/articles/{{articleId}}/publish
+  body: json
+  auth: inherit
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "notifySubscribers": false
+  }
+}
+
+tests {
+  test("returns expected status", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+}
+
+docs {
+  400 ARTICLE_VALIDATION_FAILED if title or body is missing after sanitization.
+  Set notifySubscribers true to enqueue EMAIL_NOTIFY fan-out (first publish only; subscribers must opt in).
+}

@@ -1,0 +1,21 @@
+meta {
+  name: 2 - Get Article
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/api/v1/articles/{{articleId}}
+  body: none
+  auth: inherit
+}
+
+tests {
+  test("returns expected status", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+}
+
+docs {
+  Requires a prior Create Article Draft run (captures articleId) or a known article id.
+}

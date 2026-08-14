@@ -1,0 +1,46 @@
+meta {
+  name: Create Article Draft
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{baseUrl}}/api/v1/articles
+  body: json
+  auth: inherit
+}
+
+headers {
+  Content-Type: application/json
+}
+
+script:pre-request {
+  bru.setVar("articleSlug", "article-" + Date.now().toString(36));
+}
+
+body:json {
+  {
+    "slug": "{{articleSlug}}",
+    "title": "Bruno test article",
+    "body": "<p>Hello from the newsletter desk.</p>",
+    "excerpt": "Created from Bruno for newsletter desk testing.",
+    "accessPolicy": "FREE",
+    "categoryIds": []
+  }
+}
+
+vars:post-response {
+  articleId: res.getStatus() === 201 ? res.body.data.id : undefined
+  articleSlug: res.getStatus() === 201 ? res.body.data.slug : undefined
+}
+
+tests {
+  test("returns expected status", function() {
+    expect(res.getStatus() === 201 || res.getStatus() === 403).to.equal(true);
+  });
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

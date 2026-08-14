@@ -1,0 +1,21 @@
+meta {
+  name: 4 - Suspend Tenant C
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{baseUrl}}/api/v1/platform/tenants/{{tenantCId}}/suspend
+  body: none
+  auth: inherit
+}
+
+tests {
+  test("returns expected status", function() {
+    expect(res.getStatus() === 200 || res.getStatus() === 400 || res.getStatus() === 404).to.equal(true);
+  });
+}
+
+docs {
+  400/404 if Create Tenant above hit its known 500 case and tenantCId never got captured.
+}

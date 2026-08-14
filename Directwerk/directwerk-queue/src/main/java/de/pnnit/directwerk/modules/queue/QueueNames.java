@@ -1,0 +1,14 @@
+package de.pnnit.directwerk.modules.queue;
+
+/**
+ * Canonical queue names used across Directwerk modules.
+ */
+public final class QueueNames {
+
+    public static final String EMAIL = "email";
+    public static final String WEBHOOK = "webhook";
+    public static final String CONTENT_NOTIFY = "content-notify";
+
+    private QueueNames() {
+    }
+}

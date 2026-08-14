@@ -1,0 +1,27 @@
+'use client'
+
+import {createContext, useContext, type ReactNode} from 'react'
+
+import type {SiteConfig} from '@/lib/api/types'
+
+const SiteConfigContext = createContext<SiteConfig | null>(null)
+
+export function SiteConfigProvider({
+    config,
+    children,
+}: {
+    config: SiteConfig
+    children: ReactNode
+}) {
+    return (
+        <SiteConfigContext.Provider value={config}>{children}</SiteConfigContext.Provider>
+    )
+}
+
+export function useSiteConfig(): SiteConfig {
+    const config = useContext(SiteConfigContext)
+    if (!config) {
+        throw new Error('SiteConfigProvider is missing')
+    }
+    return config
+}

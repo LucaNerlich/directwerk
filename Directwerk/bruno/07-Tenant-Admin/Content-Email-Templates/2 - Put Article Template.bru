@@ -1,0 +1,28 @@
+meta {
+  name: 2 - Put Article Template
+  type: http
+  seq: 2
+}
+
+put {
+  url: {{baseUrl}}/api/v1/tenant/content-email-templates/ARTICLE
+  body: json
+  auth: inherit
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "subjectTemplate": "New post: {{title}}",
+    "bodyHtml": "<p>Hi {{recipientName}},</p><p>{{siteTitle}} published <strong>{{title}}</strong>.</p><p>{{excerpt}}</p><p><a href=\"{{contentUrl}}\">Read now</a></p><p><a href=\"{{preferencesUrl}}\">Manage preferences</a></p>"
+  }
+}
+
+tests {
+  test("returns expected status", function() {
+    expect(res.getStatus() === 200 || res.getStatus() === 403).to.equal(true);
+  });
+}

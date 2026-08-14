@@ -1,0 +1,80 @@
+# Full stack (app + Postgres + Mailpit):
+#   docker compose --profile stack up -d --build
+#   docker compose --profile stack down
+#
+# Infra only (host bootRun / Spring docker.compose):
+#   docker compose up -d
+#   docker compose down
+#
+# Plain `down` without --profile stack leaves the app container running and
+# prints: Network directwerk_default Resource is still in use.
+# Or set COMPOSE_PROFILES=stack in .env so profile flags are optional.
+services:
+    postgres:
+        image: 'postgres:19beta2-alpine'
+        environment:
+            - 'POSTGRES_DB=mydatabase'
+            - 'POSTGRES_PASSWORD=${SPRING_DATASOURCE_PASSWORD:?Set SPRING_DATASOURCE_PASSWORD in .env}'
+            - 'POSTGRES_USER=myuser'
+        ports:
+            - '${DIRECTWERK_POSTGRES_PORT:-5433}:5432'
+        volumes:
+            # PG 18+ images expect the volume at /var/lib/postgresql (not …/data).
+            # Persist across `compose down` / rebuild. Wipe with `compose down -v`.
+            - postgres_data:/var/lib/postgresql
+        healthcheck:
+            test: ['CMD-SHELL', 'pg_isready -U myuser -d mydatabase']
+            interval: 5s
+            timeout: 5s
+            retries: 10
+            start_period: 10s
+
+    mailpit:
+        image: 'axllent/mailpit'
+        ports:
+            - '127.0.0.1:${DIRECTWERK_MAILPIT_SMTP_PORT:-1025}:1025'
+            - '127.0.0.1:${DIRECTWERK_MAILPIT_UI_PORT:-8025}:8025'
+        volumes:
+            - mailpit_data:/data
+        environment:
+            MP_DATABASE: /data/mailpit.db
+            MP_SMTP_AUTH_ACCEPT_ANY: 1
+            MP_SMTP_AUTH_ALLOW_INSECURE: 1
+
+    directwerk:
+        profiles: [stack]
+        build:
+            context: .
+            dockerfile: Dockerfile
+        ports:
+            - '${DIRECTWERK_APP_PORT:-8080}:8080'
+        # Stop the API before Postgres/Mailpit (depends_on reverse order) and give it
+        # enough time to leave Quartz/Hikari cleanly without waiting on dead infra.
+        stop_grace_period: 15s
+        stop_signal: SIGTERM
+        env_file:
+            - .env
+        environment:
+            SPRING_PROFILES_ACTIVE: docker
+            SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/mydatabase
+            SPRING_DATASOURCE_USERNAME: myuser
+            DIRECTWERK_MAIL_HOST: mailpit
+            DIRECTWERK_MAIL_PORT: 1025
+            DIRECTWERK_MAIL_SMTP_AUTH: 'false'
+            DIRECTWERK_MAIL_SMTP_STARTTLS: 'false'
+            DIRECTWERK_ISSUER: http://localhost:${DIRECTWERK_APP_PORT:-8080}
+        depends_on:
+            postgres:
+                condition: service_healthy
+            mailpit:
+                condition: service_started
+        healthcheck:
+            test: ['CMD', 'curl', '-fsS', 'http://127.0.0.1:8080/actuator/health']
+            interval: 30s
+            timeout: 5s
+            retries: 5
+            start_period: 90s
+
+volumes:
+    postgres_data:
+    mailpit_data:

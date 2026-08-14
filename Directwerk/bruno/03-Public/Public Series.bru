@@ -1,0 +1,17 @@
+meta {
+  name: Public Series
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{baseUrl}}/api/v1/public/series
+  body: none
+  auth: none
+}
+
+tests {
+  test("returns expected status", function() {
+    expect(res.getStatus() === 200).to.equal(true);
+  });
+}

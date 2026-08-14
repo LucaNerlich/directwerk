@@ -1,0 +1,21 @@
+meta {
+  name: 2 - List Jobs
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/api/v1/platform/queue/jobs
+  body: none
+  auth: inherit
+}
+
+params:query {
+  limit: 20
+}
+
+tests {
+  test("returns expected status", function() {
+    expect(res.getStatus() === 200).to.equal(true);
+  });
+}

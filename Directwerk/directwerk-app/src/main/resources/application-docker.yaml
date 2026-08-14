@@ -1,0 +1,70 @@
+# Profile for running the app inside Docker Compose (profile: stack).
+# Infrastructure services are reached via Compose service names (postgres, mailpit).
+# Local Compose stack also applies db/seed/alpha_dev_seed.sql + DevDataInitializer
+# (same alpha tenants/users as the host `local` profile).
+spring:
+    docker:
+        compose:
+            enabled: false
+    lifecycle:
+        # Keep below Compose stop_grace_period so SIGTERM exits before Docker SIGKILL.
+        timeout-per-shutdown-phase: 8s
+    datasource:
+        url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://postgres:5432/mydatabase}
+        username: ${SPRING_DATASOURCE_USERNAME:myuser}
+        password: ${SPRING_DATASOURCE_PASSWORD}
+        hikari:
+            # Fail fast if infra is already gone during teardown.
+            connection-timeout: 3000
+            validation-timeout: 1000
+    jpa:
+        show-sql: false
+    flyway:
+        clean-disabled: true
+        validate-on-migrate: true
+    quartz:
+        wait-for-jobs-to-complete-on-shutdown: false
+        properties:
+            org.quartz.scheduler.instanceName: DirectwerkScheduler
+            org.quartz.scheduler.instanceId: AUTO
+            org.quartz.scheduler.interruptJobsOnShutdown: 'true'
+            org.quartz.scheduler.interruptJobsOnShutdownWithWait: 'false'
+            org.quartz.jobStore.driverDelegateClass: org.quartz.impl.jdbcjobstore.PostgreSQLDelegate
+            org.quartz.jobStore.tablePrefix: QRTZ_
+            org.quartz.jobStore.isClustered: true
+            org.quartz.jobStore.clusterCheckinInterval: 10000
+            org.quartz.threadPool.threadCount: 5
+    mail:
+        properties:
+            mail:
+                smtp:
+                    # Avoid long hangs if Mailpit is already stopped during compose down.
+                    connectiontimeout: 2000
+                    timeout: 2000
+                    writetimeout: 2000
+
+server:
+    shutdown: graceful
+
+logging:
+    level:
+        org.springframework.security: INFO
+        de.pnnit.directwerk: INFO
+
+directwerk:
+    security:
+        issuer: ${DIRECTWERK_ISSUER}
+        platform-client-secret: ${DIRECTWERK_PLATFORM_CLIENT_SECRET}
+        tenant-client-secret: ${DIRECTWERK_TENANT_CLIENT_SECRET}
+        allow-token-domain-verification: ${DIRECTWERK_ALLOW_TOKEN_DOMAIN_VERIFICATION:true}
+    account:
+        email-verification-required: ${DIRECTWERK_ACCOUNT_EMAIL_VERIFICATION_REQUIRED:false}
+        expose-dev-tokens: ${DIRECTWERK_ACCOUNT_EXPOSE_DEV_TOKENS:true}
+    dev:
+        seed-password: ${DIRECTWERK_DEV_SEED_PASSWORD:}
+        platform-admin-email: ${DIRECTWERK_DEV_PLATFORM_ADMIN_EMAIL:platform-admin@publish.local}
+        platform-admin-password: ${DIRECTWERK_DEV_PLATFORM_ADMIN_PASSWORD:}
+    email:
+        from-address: ${DIRECTWERK_EMAIL_FROM}
+        studio-base-url: ${DIRECTWERK_EMAIL_STUDIO_BASE_URL}
+        admin-base-url: ${DIRECTWERK_EMAIL_ADMIN_BASE_URL}

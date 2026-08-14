@@ -1,0 +1,127 @@
+import {cleanup, render, screen, waitFor} from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
+import {afterEach, describe, expect, it, vi} from 'vitest'
+
+import EpisodeEditor from '@/components/podcast/EpisodeEditor'
+
+// `useRouter()` in Next.js returns a stable/memoized object across re-renders.
+// The load effect depends on `router` (see EpisodeEditor.tsx), so the mock must
+// return the same object reference on every call, or an unstable mock would
+// re-trigger that effect on every render and reset in-progress tag selections.
+const mockRouter = {replace: vi.fn()}
+vi.mock('next/navigation', () => ({useRouter: () => mockRouter}))
+vi.mock('@/lib/tenant/getClientTenantHost', () => ({getClientTenantHost: () => 'tenant.test'}))
+vi.mock('@/lib/site/SiteConfigProvider', () => ({
+    useSiteConfig: () => ({
+        enabledModules: ['DIGITAL_CONTENT'],
+        publicRssUrl: 'https://demo.example/feeds/demo/podcast.xml',
+        emailNotifyAvailable: false,
+    }),
+}))
+
+const draftEpisode = {
+    id: 1,
+    slug: 'ep-1',
+    title: 'Episode',
+    status: 'DRAFT',
+    accessPolicy: 'FREE',
+    publishedAt: null,
+    seriesId: 1,
+    seriesSlug: 'show',
+    description: 'Shownotes',
+    episodeNumber: null,
+    audioAssetId: 10,
+    enclosureEnabled: true,
+    requiredLevelSortOrder: null,
+    scheduledAt: null,
+    formats: [] as Array<{id: number; slug: string; name: string}>,
+    categories: [] as Array<{id: number; slug: string; name: string}>,
+}
+
+const replaceEpisodeFormats = vi.fn().mockResolvedValue({
+    ...draftEpisode,
+    formats: [{id: 1, slug: 'interview', name: 'Interview'}],
+})
+const replaceEpisodeCategories = vi.fn().mockResolvedValue({
+    ...draftEpisode,
+    formats: [{id: 1, slug: 'interview', name: 'Interview'}],
+})
+const updateEpisode = vi.fn().mockResolvedValue(draftEpisode)
+const publishEpisode = vi.fn().mockResolvedValue({
+    ...draftEpisode,
+    status: 'PUBLISHED',
+    formats: [{id: 1, slug: 'interview', name: 'Interview'}],
+})
+
+vi.mock('@/lib/api/tenantApi', () => ({
+    listSeries: vi.fn().mockResolvedValue([
+        {id: 1, slug: 'show', title: 'Show', status: 'PUBLISHED', rssUrl: 'https://demo.example/feeds/demo/show.xml'},
+    ]),
+    getEpisode: vi.fn().mockImplementation(async () => ({...draftEpisode})),
+    listFormats: vi.fn().mockResolvedValue([
+        {id: 1, slug: 'interview', name: 'Interview', active: true, description: null, requiredLevelSortOrder: null, sortOrder: 0},
+    ]),
+    listCategories: vi.fn().mockResolvedValue([]),
+    listMedia: vi.fn().mockResolvedValue([]),
+    getMedia: vi.fn().mockResolvedValue({
+        id: 10,
+        status: 'READY',
+        assetType: 'AUDIO',
+        mimeType: 'audio/mpeg',
+        originalFilename: 'folge.mp3',
+        sizeBytes: 1024,
+    }),
+    getMediaPreviewUrl: vi.fn().mockResolvedValue('https://cdn.example/preview.mp3'),
+    replaceEpisodeFormats: (...args: unknown[]) => replaceEpisodeFormats(...args),
+    replaceEpisodeCategories: (...args: unknown[]) => replaceEpisodeCategories(...args),
+    updateEpisode: (...args: unknown[]) => updateEpisode(...args),
+    publishEpisode: (...args: unknown[]) => publishEpisode(...args),
+    suggestSlug: (title: string) => title.toLowerCase(),
+}))
+
+afterEach(() => {
+    cleanup()
+    vi.clearAllMocks()
+})
+
+describe('EpisodeEditor tagging', () => {
+    it('renders Mindest-Stufe label and explanatory hint', async () => {
+        render(<EpisodeEditor episodeId={1} />)
+
+        await waitFor(() =>
+            expect(
+                screen.getByText(/Niedrigste Stufe \(Sortierzahl unter Abos → Produkte\), die Zugriff erhält/),
+            ).toBeInTheDocument(),
+        )
+        expect(
+            screen.getByText(/Zugriff hat, wessen höchste Stufe ≥ Mindest-Stufe ist/),
+        ).toBeInTheDocument()
+    })
+
+    it('saves selected formats and categories', async () => {
+        const user = userEvent.setup()
+        render(<EpisodeEditor episodeId={1} />)
+
+        await waitFor(() => expect(screen.getByLabelText('Interview')).toBeInTheDocument())
+        await user.click(screen.getByLabelText('Interview'))
+        await user.click(screen.getByRole('button', {name: /Formate.*Kategorien speichern/}))
+
+        await waitFor(() => expect(replaceEpisodeFormats).toHaveBeenCalledWith('tenant.test', 1, [1]))
+        expect(replaceEpisodeCategories).toHaveBeenCalledWith('tenant.test', 1, [])
+    })
+
+    it('persists formats when publishing', async () => {
+        const user = userEvent.setup()
+        render(<EpisodeEditor episodeId={1} />)
+
+        await waitFor(() => expect(screen.getByLabelText('Interview')).toBeInTheDocument())
+        await user.click(screen.getByLabelText('Interview'))
+        await waitFor(() =>
+            expect(screen.getByRole('button', {name: 'Veröffentlichen'})).toBeEnabled(),
+        )
+        await user.click(screen.getByRole('button', {name: 'Veröffentlichen'}))
+
+        await waitFor(() => expect(replaceEpisodeFormats).toHaveBeenCalledWith('tenant.test', 1, [1]))
+        expect(publishEpisode).toHaveBeenCalledWith('tenant.test', 1, {notifySubscribers: false})
+    })
+})

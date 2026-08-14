@@ -1,0 +1,121 @@
+### Directwerk — PlatformTenantController
+### Prerequisites: 02-oauth2.http (platformAccessToken)
+
+### @name listTenants
+GET {{baseUrl}}/api/v1/platform/tenants
+Authorization: Bearer {{platformAccessToken}}
+Accept: application/json
+
+> {%
+    client.test("List tenants", function() {
+        client.assert(response.status === 200, "Expected 200");
+        client.assert(Array.isArray(response.body.data.content), "Expected data.content");
+        const tenants = response.body.data.content;
+        const tenantA = tenants.find(t => t.slug === "alpha-show-a");
+        const tenantB = tenants.find(t => t.slug === "alpha-show-b");
+        if (tenantA) client.global.set("tenantAId", tenantA.id);
+        if (tenantB) client.global.set("tenantBId", tenantB.id);
+    });
+%}
+
+###
+
+### @name createTenantWithAdmin
+POST {{baseUrl}}/api/v1/platform/tenants
+Authorization: Bearer {{platformAccessToken}}
+Content-Type: application/json
+Accept: application/json
+
+{
+  "name": "Alpha Show C",
+  "slug": "alpha-show-c",
+  "primaryDomain": "alpha-c.localhost",
+  "modulePreset": "FREE_PODCAST",
+  "adminEmail": "admin-c@alpha-show.local",
+  "adminName": "Tenant C Admin"
+}
+
+> {%
+    client.test("Create tenant with first admin", function() {
+        client.assert(response.status === 201 || response.status === 409,
+            "Expected 201 or 409");
+        if (response.status === 201) {
+            client.global.set("tenantCId", response.body.data.id);
+            const invite = response.body.data.adminInvitation;
+            if (invite && invite.inviteToken) {
+                client.global.set("inviteToken", invite.inviteToken);
+            }
+        }
+    });
+%}
+
+###
+
+### @name getTenantA
+GET {{baseUrl}}/api/v1/platform/tenants/{{tenantAId}}
+Authorization: Bearer {{platformAccessToken}}
+Accept: application/json
+
+> {%
+    client.test("Get tenant A", function() {
+        client.assert(response.status === 200, "Expected 200");
+        client.assert(response.body.data.slug === "alpha-show-a", "Expected alpha-show-a");
+    });
+%}
+
+###
+
+### @name updateTenantC
+PATCH {{baseUrl}}/api/v1/platform/tenants/{{tenantCId}}
+Authorization: Bearer {{platformAccessToken}}
+Content-Type: application/json
+Accept: application/json
+
+{
+  "name": "Alpha Show C Renamed"
+}
+
+> {%
+    client.test("Update tenant", function() {
+        client.assert(response.status === 200 || response.status === 404,
+            "Expected 200 when tenantCId set");
+        if (response.status === 200) {
+            client.assert(response.body.data.name === "Alpha Show C Renamed", "Expected renamed name");
+            client.assert(response.body.data.slug === "alpha-show-c", "Expected unchanged slug");
+        }
+    });
+%}
+
+###
+
+### @name suspendTenantC
+POST {{baseUrl}}/api/v1/platform/tenants/{{tenantCId}}/suspend
+Authorization: Bearer {{platformAccessToken}}
+Accept: application/json
+
+> {%
+    client.test("Suspend tenant", function() {
+        client.assert(response.status === 200 || response.status === 404,
+            "Expected 200 when tenantCId set");
+        if (response.status === 200) {
+            client.assert(response.body.data.status === "SUSPENDED", "Expected SUSPENDED");
+        }
+    });
+%}
+
+###
+
+### @name reactivateTenantC
+POST {{baseUrl}}/api/v1/platform/tenants/{{tenantCId}}/reactivate
+Authorization: Bearer {{platformAccessToken}}
+Accept: application/json
+
+> {%
+    client.test("Reactivate tenant", function() {
+        client.assert(response.status === 200 || response.status === 404,
+            "Expected 200 when tenantCId set");
+        if (response.status === 200) {
+            client.assert(response.body.data.status === "ACTIVE", "Expected ACTIVE");
+        }
+    });
+%}

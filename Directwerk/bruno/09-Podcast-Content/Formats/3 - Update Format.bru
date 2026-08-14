@@ -1,0 +1,30 @@
+meta {
+  name: 3 - Update Format
+  type: http
+  seq: 3
+}
+
+put {
+  url: {{baseUrl}}/api/v1/formats/{{podcastFormatId}}
+  body: json
+  auth: inherit
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "slug": "{{podcastFormatSlug}}",
+    "name": "Harness Format Updated",
+    "sortOrder": 10,
+    "active": true
+  }
+}
+
+tests {
+  test("returns expected status", function() {
+    expect(res.getStatus() === 200).to.equal(true);
+  });
+}

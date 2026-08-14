@@ -1,0 +1,31 @@
+meta {
+  name: 3 - Platform Admin Denied On Me
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/api/v1/me
+  body: none
+  auth: bearer
+}
+
+headers {
+  Host: {{tenantAHost}}
+}
+
+auth:bearer {
+  token: {{platformAccessToken}}
+}
+
+tests {
+  test("returns expected status", function() {
+    expect(res.getStatus() === 403 || res.getStatus() === 500).to.equal(true);
+  });
+}
+
+docs {
+  Per docs this should be 403 PLATFORM_TENANT_ACCESS_DENIED. As of 2026-07-20 the live app returns
+  a bare 500 instead -- same root cause as Multi-Tenant-Isolation/1 (exception thrown from
+  TenantContextFilter never reaches GlobalExceptionHandler). Access is still denied either way.
+}

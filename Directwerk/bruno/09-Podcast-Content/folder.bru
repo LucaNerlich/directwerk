@@ -1,0 +1,21 @@
+meta {
+  name: 09-Podcast-Content
+  seq: 9
+}
+
+auth {
+  mode: bearer
+}
+
+auth:bearer {
+  token: {{tenantAAccessToken}}
+}
+
+headers {
+  Host: {{tenantAHost}}
+}
+
+docs {
+  Formats require PODCAST + TENANT_ADMIN. Categories require DIGITAL_CONTENT + TENANT_ADMIN (shared with Write desk).
+  Series/Episodes accept EDITOR or TENANT_ADMIN and require PODCAST active (06-Platform-Admin/Modules).
+}

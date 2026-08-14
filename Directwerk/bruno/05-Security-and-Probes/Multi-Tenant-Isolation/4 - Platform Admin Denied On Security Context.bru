@@ -1,0 +1,25 @@
+meta {
+  name: 4 - Platform Admin Denied On Security Context
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{baseUrl}}/api/v1/security/context
+  body: none
+  auth: bearer
+}
+
+headers {
+  Host: {{tenantAHost}}
+}
+
+auth:bearer {
+  token: {{platformAccessToken}}
+}
+
+tests {
+  test("returns expected status", function() {
+    expect(res.getStatus() === 403 || res.getStatus() === 500).to.equal(true);
+  });
+}

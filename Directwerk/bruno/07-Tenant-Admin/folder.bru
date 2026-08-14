@@ -1,0 +1,21 @@
+meta {
+  name: 07-Tenant-Admin
+  seq: 7
+}
+
+auth {
+  mode: bearer
+}
+
+auth:bearer {
+  token: {{tenantAAccessToken}}
+}
+
+headers {
+  Host: {{tenantAHost}}
+}
+
+docs {
+  Requires TENANT_ADMIN role -- 01-Auth-and-Tokens/3 (Tenant A Admin Login).
+  Stripe/ + Products/ cover Connect status, onboard, billing dashboard, priced products, and sync-stripe.
+}

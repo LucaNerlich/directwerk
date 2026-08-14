@@ -1,0 +1,31 @@
+meta {
+  name: 8 - Sync Stripe
+  type: http
+  seq: 8
+}
+
+post {
+  url: {{baseUrl}}/api/v1/tenant/products/{{vipProductId}}/sync-stripe
+  body: json
+  auth: inherit
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {}
+}
+
+tests {
+  test("syncs or reports Stripe not ready", function() {
+    expect([200, 409, 501]).to.include(res.getStatus());
+  });
+}
+
+docs {
+  Creates/updates the Stripe Product+Price on the connected account.
+  Without platform keys: 501 STRIPE_NOT_IMPLEMENTED.
+  Without a chargeable Connect account: 409 STRIPE_NOT_CONNECTED.
+}

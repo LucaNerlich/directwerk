@@ -1,0 +1,37 @@
+meta {
+  name: 1 - Stripe Webhook Missing Signature
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/api/v1/webhooks/stripe
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "id": "evt_test",
+    "type": "checkout.session.completed"
+  }
+}
+
+tests {
+  test("rejects unsigned webhook", function() {
+    expect([400, 501]).to.include(res.getStatus());
+  });
+}
+
+docs {
+  POST /api/v1/webhooks/stripe — StripeWebhookController (no JWT).
+  Missing Stripe-Signature: 400 STRIPE_SIGNATURE_INVALID when the webhook secret is configured,
+  501 STRIPE_NOT_IMPLEMENTED when it is not.
+  Live events include checkout.session.completed, subscription/invoice updates, and
+  charge.refunded. A full refund of a one-time PaymentIntent cancels local access;
+  recurring invoice refunds do not.
+}

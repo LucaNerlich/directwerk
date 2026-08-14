@@ -1,0 +1,9 @@
+dependencies {
+    api project(':directwerk-common')
+    api 'org.springframework.boot:spring-boot-starter-jdbc'
+    api 'org.springframework.boot:spring-boot-starter-quartz'
+    api 'org.springframework:spring-context'
+    api 'tools.jackson.core:jackson-databind'
+
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+}

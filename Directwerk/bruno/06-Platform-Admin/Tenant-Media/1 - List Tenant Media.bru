@@ -1,0 +1,21 @@
+meta {
+  name: 1 - List Tenant Media
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/api/v1/platform/tenants/{{tenantAId}}/media
+  body: none
+  auth: inherit
+}
+
+params:query {
+  limit: 50
+}
+
+tests {
+  test("returns expected status", function() {
+    expect(res.getStatus() === 200).to.equal(true);
+  });
+}

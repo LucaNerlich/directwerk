@@ -1,0 +1,31 @@
+meta {
+  name: 2 - Update Branding
+  type: http
+  seq: 2
+}
+
+put {
+  url: {{baseUrl}}/api/v1/tenant/branding
+  body: json
+  auth: inherit
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "siteTitle": "Alpha Show A",
+    "primaryColor": "#112233",
+    "secondaryColor": "#445566",
+    "logoUrl": "https://cdn.example.com/alpha-a/logo.png"
+  }
+}
+
+tests {
+  test("returns expected status", function() {
+    expect(res.getStatus() === 200).to.equal(true);
+    expect(res.body.data.siteTitle).to.equal("Alpha Show A");
+  });
+}

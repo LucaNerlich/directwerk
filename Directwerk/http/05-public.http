@@ -1,0 +1,60 @@
+### Directwerk — PublicSiteConfigController + PublicSubscriptionProductController
+### No auth — tenant from Host
+
+### @name siteConfigTenantA
+GET {{baseUrl}}/api/v1/public/site-config
+Host: {{tenantAHost}}
+Accept: application/json
+
+> {%
+    client.test("Site config tenant A", function() {
+        client.assert(response.status === 200, "Expected 200");
+        client.assert(response.body.data.tenant.slug === client.global.get("tenantASlug"), "Expected tenant A slug");
+        client.assert(Array.isArray(response.body.data.enabledModules), "Expected enabledModules");
+    });
+%}
+
+###
+
+### @name siteConfigTenantB
+GET {{baseUrl}}/api/v1/public/site-config
+Host: {{tenantBHost}}
+Accept: application/json
+
+> {%
+    client.test("Site config tenant B", function() {
+        client.assert(response.status === 200, "Expected 200");
+        client.assert(response.body.data.tenant.slug === client.global.get("tenantBSlug"), "Expected tenant B slug");
+    });
+%}
+
+###
+
+### @name siteConfigUnknownHost
+GET {{baseUrl}}/api/v1/public/site-config
+Host: unknown-tenant.localhost
+Accept: application/json
+
+> {%
+    client.test("Unknown host 404", function() {
+        client.assert(response.status === 404, "Expected 404");
+    });
+%}
+
+###
+
+### @name publicProductsTenantA
+GET {{baseUrl}}/api/v1/public/products
+Host: {{tenantAHost}}
+Accept: application/json
+
+> {%
+    client.test("Public products tenant A", function() {
+        client.assert(response.status === 200, "Expected 200");
+        client.assert(Array.isArray(response.body.data), "Expected products array");
+        if (response.body.data.length > 0) {
+            client.assert(typeof response.body.data[0].currency === "string", "Expected currency");
+            client.assert(typeof response.body.data[0].billingInterval === "string", "Expected billingInterval");
+        }
+    });
+%}

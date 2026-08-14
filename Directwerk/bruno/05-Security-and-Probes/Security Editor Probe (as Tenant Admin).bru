@@ -1,0 +1,25 @@
+meta {
+  name: Security Editor Probe (as Tenant Admin)
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{baseUrl}}/api/v1/security/editor
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{tenantAAccessToken}}
+}
+
+tests {
+  test("returns expected status", function() {
+    expect(res.getStatus() === 200).to.equal(true);
+  });
+}
+
+docs {
+  hasAnyRole('EDITOR','TENANT_ADMIN') -- TENANT_ADMIN is allowed too.
+}

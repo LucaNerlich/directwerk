@@ -1,0 +1,42 @@
+meta {
+  name: 1 - Platform Admin Login
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/oauth2/token
+  body: formUrlEncoded
+  auth: basic
+}
+
+headers {
+  Content-Type: application/x-www-form-urlencoded
+}
+
+auth:basic {
+  username: {{platformClientId}}
+  password: {{platformClientSecret}}
+}
+
+body:form-urlencoded {
+  grant_type: password
+  username: {{platformAdminEmail}}
+  password: {{platformAdminPassword}}
+  client_id: {{platformClientId}}
+}
+
+script:post-response {
+  bru.setVar("platformAccessToken", res.body.access_token);
+  bru.setVar("platformRefreshToken", res.body.refresh_token);
+}
+
+tests {
+  test("returns expected status", function() {
+    expect(res.getStatus() === 200).to.equal(true);
+  });
+}
+
+docs {
+  No Host header -- platform admin is tenant-free. Populates platformAccessToken, used by the whole 06-Platform-Admin folder.
+}

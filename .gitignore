@@ -1,0 +1,4 @@
+# JetBrains HTTP Client — dev-only credentials (see docs/poc-alpha-setup.md)
+!Directwerk/http/http-client.env.json
+Directwerk/http/http-client.private.env.json
+Directwerk/http/http-client.secrets.json

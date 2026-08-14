@@ -1,0 +1,75 @@
+meta {
+  name: Private Subscriber Feed (PODCAST_RSS off)
+  type: http
+  seq: 10
+}
+
+get {
+  url: {{subscriberFeedUrl}}
+  body: none
+  auth: none
+}
+
+headers {
+  Accept: application/rss+xml
+}
+
+script:pre-request {
+  function platformRequest(opts) {
+    return new Promise((resolve, reject) => {
+      bru.sendRequest(opts, (err, resp) => {
+        if (err) return reject(err);
+        resolve(resp);
+      });
+    });
+  }
+  const baseUrl = bru.getEnvVar("baseUrl");
+  const tenantAId = bru.getVar("tenantAId") || bru.getEnvVar("tenantAId");
+  const token = bru.getVar("platformAccessToken") || bru.getEnvVar("platformAccessToken");
+  await platformRequest({
+    url: baseUrl + "/api/v1/platform/tenants/" + tenantAId + "/modules/PODCAST_RSS",
+    method: "DELETE",
+    headers: {
+      Authorization: "Bearer " + token,
+      Accept: "application/json"
+    }
+  });
+}
+
+script:post-response {
+  function platformRequest(opts) {
+    return new Promise((resolve, reject) => {
+      bru.sendRequest(opts, (err, resp) => {
+        if (err) return reject(err);
+        resolve(resp);
+      });
+    });
+  }
+  const baseUrl = bru.getEnvVar("baseUrl");
+  const tenantAId = bru.getVar("tenantAId") || bru.getEnvVar("tenantAId");
+  const token = bru.getVar("platformAccessToken") || bru.getEnvVar("platformAccessToken");
+  try {
+    await platformRequest({
+      url: baseUrl + "/api/v1/platform/tenants/" + tenantAId + "/modules/PODCAST_RSS/activate",
+      method: "POST",
+      headers: {
+        Authorization: "Bearer " + token,
+        Accept: "application/json"
+      }
+    });
+  } catch (error) {
+    console.error("Failed to restore PODCAST_RSS after private feed gate check", error);
+    throw error;
+  }
+}
+
+tests {
+  test("returns FEATURE_NOT_ENABLED", function() {
+    expect(res.getStatus()).to.equal(403);
+    expect(res.body.errors[0].code).to.equal("FEATURE_NOT_ENABLED");
+  });
+}
+
+docs {
+  Requires subscriberFeedUrl from 02-Me. Restores PODCAST_RSS in post-response even when the assertion fails.
+}

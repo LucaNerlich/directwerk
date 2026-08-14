@@ -1,0 +1,17 @@
+meta {
+  name: 3 - Activate Module (PODCAST on Tenant A)
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{baseUrl}}/api/v1/platform/tenants/{{tenantAId}}/modules/PODCAST/activate
+  body: none
+  auth: inherit
+}
+
+tests {
+  test("returns expected status", function() {
+    expect(res.getStatus() === 200).to.equal(true);
+  });
+}

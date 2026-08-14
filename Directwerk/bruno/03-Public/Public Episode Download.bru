@@ -1,0 +1,25 @@
+meta {
+  name: Public Episode Download
+  type: http
+  seq: 11
+}
+
+get {
+  url: {{baseUrl}}/api/v1/public/episodes/{{podcastEpisodeSlug}}/download
+  body: none
+  auth: none
+}
+
+headers {
+  Accept: */*
+}
+
+tests {
+  test("returns expected status", function() {
+    expect(res.getStatus() === 302 || res.getStatus() === 403 || res.getStatus() === 404).to.equal(true);
+  });
+}
+
+docs {
+  Only works for FREE, published, READY episodes.
+}

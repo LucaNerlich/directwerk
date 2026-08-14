@@ -1,0 +1,42 @@
+meta {
+  name: 8 - Tenant B Admin Login
+  type: http
+  seq: 8
+}
+
+post {
+  url: {{baseUrl}}/oauth2/token
+  body: formUrlEncoded
+  auth: basic
+}
+
+auth:basic {
+  username: {{oauthClientId}}
+  password: {{oauthClientSecret}}
+}
+
+headers {
+  Content-Type: application/x-www-form-urlencoded
+  Host: {{tenantBHost}}
+}
+
+body:form-urlencoded {
+  grant_type: password
+  username: {{tenantBAdminEmail}}
+  password: {{seedPassword}}
+  client_id: {{oauthClientId}}
+}
+
+script:post-response {
+  bru.setVar("tenantBAccessToken", res.body.access_token);
+}
+
+tests {
+  test("returns expected status", function() {
+    expect(res.getStatus() === 200).to.equal(true);
+  });
+}
+
+docs {
+  Tenant B only has DIGITAL_CONTENT enabled by default. Used for cross-tenant isolation checks (05-Security-and-Probes).
+}

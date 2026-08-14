@@ -1,0 +1,22 @@
+meta {
+  name: 11-Articles
+  seq: 11
+}
+
+auth {
+  mode: bearer
+}
+
+auth:bearer {
+  token: {{editorAccessToken}}
+}
+
+headers {
+  Host: {{tenantAHost}}
+}
+
+docs {
+  Write desk (directwerk-newsletter) — full article draft → publish/schedule/unpublish/archive workflow.
+  Requires DIGITAL_CONTENT module and EDITOR or TENANT_ADMIN. Run 01-Auth-and-Tokens (editor login) first.
+  Optional: 09-Podcast-Content/Categories for replace-categories requests.
+}

@@ -1,0 +1,179 @@
+package de.pnnit.directwerk.modules.podcast.service;
+
+import de.pnnit.directwerk.modules.core.entity.Tenant;
+import de.pnnit.directwerk.modules.core.util.PublicUrlBuilder;
+import de.pnnit.directwerk.modules.digital.entity.AccessPolicy;
+import de.pnnit.directwerk.modules.digital.entity.AssetStatus;
+import de.pnnit.directwerk.modules.digital.entity.AssetType;
+import de.pnnit.directwerk.modules.digital.entity.AssetVisibility;
+import de.pnnit.directwerk.modules.digital.entity.MediaAsset;
+import de.pnnit.directwerk.modules.podcast.entity.Episode;
+import de.pnnit.directwerk.modules.podcast.entity.PodcastSeries;
+import de.pnnit.directwerk.modules.podcast.feed.SubscriberFeed;
+import java.util.List;
+import java.util.Optional;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+@Service
+@RequiredArgsConstructor
+public class RssFeedService {
+
+    private final PublicPodcastQueryService publicPodcastQueryService;
+    private final SubscriberEpisodeService subscriberEpisodeService;
+    private final RssXmlBuilder rssXmlBuilder;
+    private final EpisodeDownloadAnalyticsService episodeDownloadAnalyticsService;
+
+    /**
+     * Builds a public RSS feed containing eligible free episodes for a tenant or series.
+     *
+     * @param tenant      the tenant whose episodes are included
+     * @param seriesOrNull the series to scope the feed to, or {@code null} for all series
+     * @param scheme      the URL scheme used for feed and enclosure URLs
+     * @param host        the URL host used for feed and enclosure URLs
+     * @param port        the URL port used for feed and enclosure URLs
+     * @return the generated RSS feed XML
+     */
+    @Transactional(readOnly = true)
+    public String buildPublicFeed(Tenant tenant, PodcastSeries seriesOrNull, String scheme, String host, int port) {
+        Long seriesId = seriesOrNull != null ? seriesOrNull.getId() : null;
+        String originBaseUrl = PublicUrlBuilder.baseUrl(scheme, host, port);
+        List<RssXmlBuilder.RssEpisode> episodes = publicPodcastQueryService
+                .listPublishedEpisodes(tenant.getId(), seriesId)
+                .stream()
+                .filter(episode -> episode.getAccessPolicy() == AccessPolicy.FREE)
+                .filter(Episode::isEnclosureEnabled)
+                .map(episode -> toPublicRssEpisode(episode, tenant, scheme, host, port))
+                .flatMap(Optional::stream)
+                .toList();
+        return rssXmlBuilder.buildPublicFeed(tenant, seriesOrNull, episodes, originBaseUrl);
+    }
+
+    /**
+     * Builds a private RSS feed containing entitled episodes with enabled enclosures.
+     *
+     * @param tenant the tenant whose episodes belong in the feed
+     * @param feed the subscriber feed used to determine eligibility and feed access
+     * @param scheme the URL scheme for enclosure and feed links
+     * @param host the URL host for enclosure and feed links
+     * @param port the URL port for enclosure and feed links
+     * @return the generated RSS feed XML
+     * @throws SubscriberFeedNotFoundException if the subscriber feed is disabled
+     */
+    @Transactional(readOnly = true)
+    public String buildPrivateFeed(Tenant tenant, SubscriberFeed feed, String scheme, String host, int port) {
+        if (!feed.isEnabled()) {
+            throw new de.pnnit.directwerk.modules.podcast.feed.SubscriberFeedNotFoundException();
+        }
+        String originBaseUrl = PublicUrlBuilder.baseUrl(scheme, host, port);
+        List<RssXmlBuilder.RssEpisode> episodes = subscriberEpisodeService
+                .listEntitledEpisodes(tenant.getId(), feed.getUser().getId())
+                .stream()
+                .filter(Episode::isEnclosureEnabled)
+                .map(episode -> toPrivateRssEpisode(episode, tenant, feed.getFeedToken(), scheme, host, port))
+                .flatMap(Optional::stream)
+                .toList();
+        return rssXmlBuilder.buildPublicFeed(tenant, null, episodes, originBaseUrl);
+    }
+
+    /**
+     * Converts an eligible public episode into an RSS enclosure representation.
+     *
+     * @param episode the episode to convert
+     * @param tenant  the tenant that owns the episode
+     * @param scheme  the URL scheme for the enclosure
+     * @param host    the URL host for the enclosure
+     * @param port    the URL port for the enclosure
+     * @return an RSS episode representation, or an empty optional when the episode's audio asset is unavailable or ineligible
+     */
+    private Optional<RssXmlBuilder.RssEpisode> toPublicRssEpisode(
+            Episode episode,
+            Tenant tenant,
+            String scheme,
+            String host,
+            int port
+    ) {
+        MediaAsset asset = episode.getAudioAsset();
+        if (!isReadyAudio(asset) || !isPublicCdnEligible(asset, tenant.getSlug())) {
+            return Optional.empty();
+        }
+        // Always use the stable public enclosure proxy (Umami + CDN redirect); never embed CDN/S3.
+        String url = episodeDownloadAnalyticsService.publicRssEnclosureUrl(
+                tenant.getId(),
+                scheme,
+                host,
+                port,
+                tenant.getSlug(),
+                episode.getSlug()
+        );
+        return Optional.of(toRssEpisode(episode, asset, url));
+    }
+
+    /**
+     * Converts an entitled episode into a private RSS enclosure representation.
+     *
+     * @param episode   the episode to convert
+     * @param tenant    the tenant that owns the episode
+     * @param feedToken the subscriber feed token used for private enclosure access
+     * @param scheme    the URL scheme
+     * @param host      the URL host
+     * @param port      the URL port
+     * @return the RSS episode representation when the episode has ready audio; otherwise, an empty optional
+     */
+    private Optional<RssXmlBuilder.RssEpisode> toPrivateRssEpisode(
+            Episode episode,
+            Tenant tenant,
+            String feedToken,
+            String scheme,
+            String host,
+            int port
+    ) {
+        MediaAsset asset = episode.getAudioAsset();
+        if (!isReadyAudio(asset)) {
+            return Optional.empty();
+        }
+        if (episode.getAccessPolicy() == AccessPolicy.FREE) {
+            return toPublicRssEpisode(episode, tenant, scheme, host, port);
+        }
+        String url = episodeDownloadAnalyticsService.privateRssEnclosureUrl(
+                tenant.getId(),
+                scheme,
+                host,
+                port,
+                tenant.getSlug(),
+                feedToken,
+                episode.getSlug()
+        );
+        return Optional.of(toRssEpisode(episode, asset, url));
+    }
+
+    private static boolean isReadyAudio(MediaAsset asset) {
+        return asset != null
+                && asset.getStatus() == AssetStatus.READY
+                && asset.getAssetType() == AssetType.AUDIO;
+    }
+
+    /**
+     * In-memory public-CDN eligibility matching {@code EpisodeMediaService.publicCdnUrl}
+     * without per-episode asset reloads: PUBLIC visibility and tenant {@code /public/} key.
+     */
+    private static boolean isPublicCdnEligible(MediaAsset asset, String tenantSlug) {
+        if (asset.getVisibility() != AssetVisibility.PUBLIC || asset.getS3Key() == null) {
+            return false;
+        }
+        String normalized = asset.getS3Key().startsWith("/")
+                ? asset.getS3Key().substring(1)
+                : asset.getS3Key();
+        return normalized.startsWith(tenantSlug + "/public/");
+    }
+
+    private static RssXmlBuilder.RssEpisode toRssEpisode(Episode episode, MediaAsset asset, String url) {
+        return new RssXmlBuilder.RssEpisode(
+                episode,
+                url,
+                asset.getSizeBytes(),
+                asset.getMimeType()
+        );
+    }
+}

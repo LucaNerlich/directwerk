@@ -1,0 +1,32 @@
+meta {
+  name: 4 - Set Subscriber Feed Enabled
+  type: http
+  seq: 4
+}
+
+put {
+  url: {{baseUrl}}/api/v1/tenant/subscriber-feeds/{{subscriberFeedId}}/enabled
+  body: json
+  auth: inherit
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "enabled": false
+  }
+}
+
+tests {
+  test("toggles subscriber feed enabled", function() {
+    expect(res.getStatus()).to.equal(200);
+    expect(typeof res.body.data.enabled).to.equal("boolean");
+  });
+}
+
+docs {
+  Requires subscriberFeedId from "3 - List Subscriber Feeds". Set "enabled": true to re-enable.
+}

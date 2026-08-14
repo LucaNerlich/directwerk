@@ -1,0 +1,25 @@
+meta {
+  name: Stream Episode
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{baseUrl}}/api/v1/me/episodes/{{podcastEpisodeSlug}}/stream
+  body: none
+  auth: inherit
+}
+
+headers {
+  Accept: */*
+}
+
+tests {
+  test("returns expected status", function() {
+    expect(res.getStatus() === 302 || res.getStatus() === 400 || res.getStatus() === 403 || res.getStatus() === 404).to.equal(true);
+  });
+}
+
+docs {
+  302 redirect to signed/CDN audio URL when the episode is published READY and entitled. Set podcastEpisodeSlug from 09-Podcast-Content/Episodes first.
+}

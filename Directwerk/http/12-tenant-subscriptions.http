@@ -1,0 +1,64 @@
+### Directwerk — TenantSubscriptionController + TenantSubscriberController
+### Prerequisites: 02-oauth2 / 03-auth (tenantAAccessToken, subscriberAccessToken, supporterProductId)
+
+### @name listSubscribers
+GET {{baseUrl}}/api/v1/tenant/subscribers
+Host: {{tenantAHost}}
+Authorization: Bearer {{tenantAAccessToken}}
+Accept: application/json
+
+> {%
+    client.test("GET /tenant/subscribers", function() {
+        client.assert(response.status === 200, "Expected 200");
+        client.assert(Array.isArray(response.body.data), "Expected subscribers array");
+        if (response.body.data.length > 0 && response.body.data[0].subscriptions.length > 0) {
+            client.assert(
+                Object.prototype.hasOwnProperty.call(
+                    response.body.data[0].subscriptions[0],
+                    "externalSubscriptionId"
+                ),
+                "Expected externalSubscriptionId on subscription items"
+            );
+        }
+    });
+%}
+
+###
+
+### @name grantSubscription
+POST {{baseUrl}}/api/v1/tenant/subscriptions
+Host: {{tenantAHost}}
+Authorization: Bearer {{tenantAAccessToken}}
+Content-Type: application/json
+Accept: application/json
+
+{
+  "email": "{{subscriberEmail}}",
+  "productId": {{supporterProductId}}
+}
+
+> {%
+    client.test("Grant subscription", function() {
+        client.assert(response.status === 201, "Expected 201, got " + response.status);
+        client.assert(response.body.data.status === "ACTIVE", "Expected ACTIVE");
+        client.global.set("subscriberSubscriptionId", response.body.data.id);
+    });
+%}
+
+###
+
+### @name revokeSubscription
+### Stripe-sourced rows also cancel in Stripe when keys + Connect exist (502 STRIPE_REQUEST_FAILED otherwise).
+DELETE {{baseUrl}}/api/v1/tenant/subscriptions/{{subscriberSubscriptionId}}
+Host: {{tenantAHost}}
+Authorization: Bearer {{tenantAAccessToken}}
+Accept: application/json
+
+> {%
+    client.test("Revoke subscription", function() {
+        client.assert(response.status === 200 || response.status === 502, "Expected 200/502");
+        if (response.status === 200) {
+            client.assert(response.body.data.status === "CANCELED", "Expected CANCELED");
+        }
+    });
+%}

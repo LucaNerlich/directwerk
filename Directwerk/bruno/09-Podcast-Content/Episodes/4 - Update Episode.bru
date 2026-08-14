@@ -1,0 +1,29 @@
+meta {
+  name: 4 - Update Episode
+  type: http
+  seq: 4
+}
+
+put {
+  url: {{baseUrl}}/api/v1/episodes/{{podcastEpisodeId}}
+  body: json
+  auth: inherit
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "title": "Harness Episode Updated",
+    "description": "<p>Updated show notes.</p>",
+    "accessPolicy": "FREE"
+  }
+}
+
+tests {
+  test("returns expected status", function() {
+    expect(res.getStatus() === 200 || res.getStatus() === 400).to.equal(true);
+  });
+}

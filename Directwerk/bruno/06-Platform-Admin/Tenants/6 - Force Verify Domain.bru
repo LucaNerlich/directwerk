@@ -1,0 +1,21 @@
+meta {
+  name: 6 - Force Verify Domain
+  type: http
+  seq: 6
+}
+
+post {
+  url: {{baseUrl}}/api/v1/platform/tenants/{{tenantAId}}/domains/{{newDomainHost}}/verify
+  body: none
+  auth: inherit
+}
+
+tests {
+  test("returns expected status", function() {
+    expect(res.getStatus() === 200 || res.getStatus() === 400 || res.getStatus() === 404).to.equal(true);
+  });
+}
+
+docs {
+  newDomainHost is captured by 07-Tenant-Admin/Domains/2 - Add Domain. Platform override of the normal DNS/token verification flow.
+}

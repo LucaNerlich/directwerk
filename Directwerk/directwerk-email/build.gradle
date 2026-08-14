@@ -1,0 +1,10 @@
+dependencies {
+    api project(':directwerk-queue')
+    api project(':directwerk-common')
+    api project(':directwerk-core')
+    api 'org.springframework.boot:spring-boot-starter-data-jpa'
+    api 'org.springframework.boot:spring-boot-starter-mail'
+    api 'org.springframework.boot:spring-boot-starter-quartz'
+    api 'org.springframework:spring-web'
+    api 'tools.jackson.core:jackson-databind'
+}

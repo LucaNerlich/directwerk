@@ -1,0 +1,43 @@
+meta {
+  name: 7 - Tenant A Subscriber Login
+  type: http
+  seq: 7
+}
+
+post {
+  url: {{baseUrl}}/oauth2/token
+  body: formUrlEncoded
+  auth: basic
+}
+
+auth:basic {
+  username: {{oauthClientId}}
+  password: {{oauthClientSecret}}
+}
+
+headers {
+  Content-Type: application/x-www-form-urlencoded
+  Host: {{tenantAHost}}
+}
+
+body:form-urlencoded {
+  grant_type: password
+  username: {{subscriberEmail}}
+  password: {{seedPassword}}
+  client_id: {{oauthClientId}}
+}
+
+script:post-response {
+  bru.setVar("subscriberAccessToken", res.body.access_token);
+  bru.setVar("subscriberRefreshToken", res.body.refresh_token);
+}
+
+tests {
+  test("returns expected status", function() {
+    expect(res.getStatus() === 200).to.equal(true);
+  });
+}
+
+docs {
+  Run request 5 (Register) then 6 (local) or 13 (dev/cloud, manual token) first on a fresh database -- an unverified account fails this with a bare invalid_grant that looks like a bad password. Populates subscriberAccessToken, used by 02-Me and private RSS.
+}

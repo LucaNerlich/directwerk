@@ -1,0 +1,17 @@
+meta {
+  name: 6 - Delete Media
+  type: http
+  seq: 6
+}
+
+delete {
+  url: {{baseUrl}}/api/v1/media/{{mediaAssetId}}
+  body: none
+  auth: inherit
+}
+
+tests {
+  test("returns expected status", function() {
+    expect(res.getStatus() === 200 || res.getStatus() === 404).to.equal(true);
+  });
+}

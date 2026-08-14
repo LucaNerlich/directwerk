@@ -1,0 +1,21 @@
+meta {
+  name: Security Context (Tenant Admin)
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/api/v1/security/context
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{tenantAAccessToken}}
+}
+
+tests {
+  test("returns expected status", function() {
+    expect(res.getStatus() === 200).to.equal(true);
+  });
+}

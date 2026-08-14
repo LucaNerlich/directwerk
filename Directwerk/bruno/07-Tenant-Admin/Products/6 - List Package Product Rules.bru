@@ -1,0 +1,21 @@
+meta {
+  name: 6 - List Package Product Rules
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{baseUrl}}/api/v1/tenant/products/{{packageProductId}}/rules
+  body: none
+  auth: inherit
+}
+
+tests {
+  test("returns expected status", function() {
+    expect(res.getStatus() === 200 || res.getStatus() === 404).to.equal(true);
+  });
+}
+
+docs {
+  404 if Products/5 - Create Package Product above hit its known 500 case and packageProductId never got captured.
+}

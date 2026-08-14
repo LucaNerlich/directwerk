@@ -1,0 +1,88 @@
+### Directwerk — MediaController (Phase 2c / 2d)
+### Prerequisites: 02-oauth2.http (tenantAAccessToken), DIGITAL_CONTENT active,
+###                directwerk.storage.enabled=true with reachable S3/Bunny credentials.
+###
+### Flow: upload-url → client PUT to uploadUrl → confirm → preview-url
+### Note: the PUT to S3 is done outside this client (curl / studio). For harness smoke without
+### a real upload, expect confirm to fail with UPLOAD_VALIDATION_FAILED until staging exists.
+
+### @name createUploadUrl
+POST {{baseUrl}}/api/v1/media/upload-url
+Authorization: Bearer {{tenantAAccessToken}}
+Host: {{tenantAHost}}
+Content-Type: application/json
+Accept: application/json
+
+{
+  "filename": "harness-cover.jpg",
+  "mimeType": "image/jpeg",
+  "sizeBytes": 1024,
+  "assetType": "IMAGE",
+  "intendedVisibility": "PUBLIC",
+  "scope": "TENANT_PUBLIC"
+}
+
+> {%
+    client.test("Create upload URL", function() {
+        client.assert(response.status === 201 || response.status === 503, "Expected 201 or 503 when storage off");
+        if (response.status === 201) {
+            client.assert(response.body.data.assetId, "Expected assetId");
+            client.assert(response.body.data.uploadUrl, "Expected uploadUrl");
+            client.global.set("mediaAssetId", response.body.data.assetId);
+        }
+    });
+%}
+
+###
+
+### @name listMedia
+GET {{baseUrl}}/api/v1/media?limit=20
+Authorization: Bearer {{tenantAAccessToken}}
+Host: {{tenantAHost}}
+Accept: application/json
+
+> {%
+    client.test("List media", function() {
+        client.assert(response.status === 200 || response.status === 503, "Expected 200/503");
+        if (response.status === 200) {
+            client.assert(Array.isArray(response.body.data), "Expected data array");
+        }
+    });
+%}
+
+###
+
+### @name confirmUpload
+POST {{baseUrl}}/api/v1/media/{{mediaAssetId}}/confirm
+Authorization: Bearer {{tenantAAccessToken}}
+Host: {{tenantAHost}}
+Accept: application/json
+
+> {%
+    client.test("Confirm upload (requires prior S3 PUT)", function() {
+        client.assert(
+            response.status === 200 || response.status === 400 || response.status === 503,
+            "Expected 200 after PUT, 400 if staging missing, or 503 if storage off"
+        );
+    });
+%}
+
+###
+
+### @name previewUrl
+GET {{baseUrl}}/api/v1/media/{{mediaAssetId}}/preview-url?previewDraft=true
+Authorization: Bearer {{tenantAAccessToken}}
+Host: {{tenantAHost}}
+Accept: application/json
+
+> {%
+    client.test("Preview URL", function() {
+        client.assert(
+            response.status === 200 || response.status === 400 || response.status === 404 || response.status === 503,
+            "Expected preview response"
+        );
+        if (response.status === 200) {
+            client.assert(response.body.data.url, "Expected url");
+        }
+    });
+%}

@@ -1,0 +1,64 @@
+### Directwerk — PlatformTenantUserController
+### Prerequisites: 02-oauth2.http, 06-platform-tenants.http (tenantAId)
+
+### @name listTenantAUsers
+GET {{baseUrl}}/api/v1/platform/tenants/{{tenantAId}}/users
+Authorization: Bearer {{platformAccessToken}}
+Accept: application/json
+
+> {%
+    client.test("List tenant users (platform)", function() {
+        client.assert(response.status === 200, "Expected 200");
+        client.assert(Array.isArray(response.body.data.content), "Expected content array");
+        const users = response.body.data.content;
+        const editor = users.find(u => u.email === "editor@alpha-show.local");
+        client.assert(editor, "Expected to find editor@alpha-show.local");
+        if (editor) client.global.set("editorUserId", editor.userId);
+    });
+%}
+
+###
+
+### @name inviteTenantAdminViaPlatform
+POST {{baseUrl}}/api/v1/platform/tenants/{{tenantAId}}/users/invite
+Authorization: Bearer {{platformAccessToken}}
+Content-Type: application/json
+Accept: application/json
+
+{
+  "email": "new-admin@alpha-show.local",
+  "name": "New Tenant Admin",
+  "role": "TENANT_ADMIN"
+}
+
+> {%
+    client.test("Platform invites tenant admin", function() {
+        client.assert(response.status === 201 || response.status === 409,
+            "Expected 201 or 409");
+        if (response.status === 201) {
+            client.assert(response.body.data.role === "TENANT_ADMIN", "Expected TENANT_ADMIN");
+            if (response.body.data.inviteToken) {
+                client.global.set("inviteToken", response.body.data.inviteToken);
+            }
+        }
+    });
+%}
+
+###
+
+### @name updateTenantAUserRole
+PATCH {{baseUrl}}/api/v1/platform/tenants/{{tenantAId}}/users/{{editorUserId}}
+Authorization: Bearer {{platformAccessToken}}
+Content-Type: application/json
+Accept: application/json
+
+{
+  "role": "TENANT_ADMIN"
+}
+
+> {%
+    client.test("Update tenant user role", function() {
+        client.assert(response.status === 200, "Expected 200");
+        client.assert(response.body.data.roles[0] === "TENANT_ADMIN", "Expected TENANT_ADMIN");
+    });
+%}

@@ -1,0 +1,35 @@
+meta {
+  name: 1 - List Subscribers
+  type: http
+  seq: 10
+}
+
+get {
+  url: {{baseUrl}}/api/v1/tenant/subscribers
+  body: none
+  auth: inherit
+}
+
+tests {
+  test("returns expected status", function() {
+    expect(res.getStatus() === 200).to.equal(true);
+  });
+  test("subscription items expose period and Stripe ids", function() {
+    expect(res.body.data).to.be.an("array");
+    res.body.data.forEach(function(row) {
+      expect(row.subscriptions).to.be.an("array");
+      row.subscriptions.forEach(function(item) {
+        expect(item).to.have.property("source");
+        expect(item).to.have.property("startedAt");
+        expect(item).to.have.property("endsAt");
+        expect(item).to.have.property("externalSubscriptionId");
+      });
+    });
+  });
+}
+
+docs {
+  Lists tenant members with ROLE_SUBSCRIBER plus any users who have subscription rows.
+  Each subscriptions[] item includes status, source, startedAt, endsAt, and
+  externalSubscriptionId (Stripe subscription id, or null for grants / one-time).
+}

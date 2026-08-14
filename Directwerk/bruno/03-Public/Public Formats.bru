@@ -1,0 +1,17 @@
+meta {
+  name: Public Formats
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{baseUrl}}/api/v1/public/formats
+  body: none
+  auth: none
+}
+
+tests {
+  test("returns expected status", function() {
+    expect(res.getStatus() === 200).to.equal(true);
+  });
+}

@@ -1,0 +1,17 @@
+meta {
+  name: 12 - Archive Episode
+  type: http
+  seq: 12
+}
+
+post {
+  url: {{baseUrl}}/api/v1/episodes/{{podcastEpisodeId}}/archive
+  body: none
+  auth: inherit
+}
+
+tests {
+  test("returns expected status", function() {
+    expect(res.getStatus() === 200 || res.getStatus() === 400 || res.getStatus() === 404).to.equal(true);
+  });
+}

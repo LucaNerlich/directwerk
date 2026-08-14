@@ -1,0 +1,61 @@
+### Directwerk — PlatformAdminController
+### Prerequisites: 02-oauth2.http (platformAccessToken)
+### Accept invite via 03-auth.http using inviteToken
+
+### @name listPlatformAdmins
+GET {{baseUrl}}/api/v1/platform/admins
+Authorization: Bearer {{platformAccessToken}}
+Accept: application/json
+
+> {%
+    client.test("List platform admins", function() {
+        client.assert(response.status === 200, "Expected 200");
+        client.assert(Array.isArray(response.body.data), "Expected admin array");
+        client.assert(response.body.data.some(a => a.email === client.global.get("platformAdminEmail")),
+            "Expected seeded platform admin");
+    });
+%}
+
+###
+
+### @name invitePlatformAdmin
+POST {{baseUrl}}/api/v1/platform/admins/invite
+Authorization: Bearer {{platformAccessToken}}
+Content-Type: application/json
+Accept: application/json
+
+{
+  "email": "second-admin@publish.local",
+  "name": "Second Platform Admin"
+}
+
+> {%
+    client.test("Invite platform admin", function() {
+        client.assert(response.status === 201, "Expected 201");
+        client.assert(response.body.data.email === "second-admin@publish.local", "Expected email");
+        if (response.body.data.inviteToken) {
+            client.global.set("inviteToken", response.body.data.inviteToken);
+        }
+        client.global.set("secondAdminUserId", response.body.data.userId);
+    });
+%}
+
+###
+
+### @name revokePlatformAdmin
+DELETE {{baseUrl}}/api/v1/platform/admins/{{secondAdminUserId}}
+Authorization: Bearer {{platformAccessToken}}
+Accept: application/json
+
+> {%
+    client.test("Revoke platform admin", function() {
+        client.assert(
+            [200, 404, 409].includes(response.status),
+            "Expected 200 (revoked), 404 (PLATFORM_ADMIN_NOT_FOUND), or 409 (CANNOT_REVOKE_SELF / CANNOT_REVOKE_LAST_ADMIN)"
+        );
+        if (response.status === 200) {
+            client.assert(response.body.data.userId === client.global.get("secondAdminUserId"),
+                "Expected the revoked admin's userId to match secondAdminUserId");
+        }
+    });
+%}

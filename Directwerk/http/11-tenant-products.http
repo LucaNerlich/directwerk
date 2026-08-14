@@ -1,0 +1,104 @@
+### Directwerk — TenantSubscriptionProductController
+### Prerequisites: 02-oauth2.http (tenantAAccessToken)
+
+### @name listTenantProducts
+GET {{baseUrl}}/api/v1/tenant/products
+Host: {{tenantAHost}}
+Authorization: Bearer {{tenantAAccessToken}}
+Accept: application/json
+
+> {%
+    client.test("List tenant products", function() {
+        client.assert(response.status === 200, "Expected 200");
+        client.assert(Array.isArray(response.body.data), "Expected products array");
+        const supporter = response.body.data.find(p => p.slug === "supporter");
+        if (supporter) client.global.set("supporterProductId", supporter.id);
+    });
+%}
+
+###
+
+### @name createProduct
+< {%
+  client.global.set("vipProductSlug", "vip-" + Date.now().toString(36));
+%}
+POST {{baseUrl}}/api/v1/tenant/products
+Host: {{tenantAHost}}
+Authorization: Bearer {{tenantAAccessToken}}
+Content-Type: application/json
+Accept: application/json
+
+{
+  "slug": "{{vipProductSlug}}",
+  "title": "VIP",
+  "sortOrder": 3,
+  "priceCents": 1490,
+  "currency": "EUR",
+  "billingInterval": "MONTH"
+}
+
+> {%
+    client.test("Create product", function() {
+        client.assert(response.status === 201, "Expected 201");
+        client.global.set("vipProductId", response.body.data.id);
+    });
+%}
+
+###
+
+### @name updateProduct
+PUT {{baseUrl}}/api/v1/tenant/products/{{vipProductId}}
+Host: {{tenantAHost}}
+Authorization: Bearer {{tenantAAccessToken}}
+Content-Type: application/json
+Accept: application/json
+
+{
+  "title": "VIP Lounge",
+  "sortOrder": 3,
+  "active": true,
+  "description": "Monatliches VIP-Abo",
+  "priceCents": 1490,
+  "currency": "EUR",
+  "billingInterval": "MONTH"
+}
+
+> {%
+    client.test("Update product", function() {
+        client.assert(response.status === 200, "Expected 200");
+        client.assert(response.body.data.title === "VIP Lounge", "Expected updated title");
+        client.assert(response.body.data.currency === "EUR", "Expected currency");
+    });
+%}
+
+###
+
+### @name syncProductStripe
+POST {{baseUrl}}/api/v1/tenant/products/{{vipProductId}}/sync-stripe
+Host: {{tenantAHost}}
+Authorization: Bearer {{tenantAAccessToken}}
+Content-Type: application/json
+Accept: application/json
+
+{}
+
+> {%
+    client.test("Sync product Stripe", function() {
+        client.assert(response.status === 200 || response.status === 409 || response.status === 501, "Expected 200/409/501");
+    });
+%}
+
+###
+
+### @name deactivateProduct
+DELETE {{baseUrl}}/api/v1/tenant/products/{{vipProductId}}
+Host: {{tenantAHost}}
+Authorization: Bearer {{tenantAAccessToken}}
+Accept: application/json
+
+> {%
+    client.test("Deactivate product", function() {
+        client.assert(response.status === 200, "Expected 200");
+        client.assert(response.body.data.active === false, "Expected inactive");
+    });
+%}

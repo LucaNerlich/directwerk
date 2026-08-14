@@ -1,0 +1,29 @@
+meta {
+  name: Security Platform Probe
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/api/v1/security/platform
+  body: none
+  auth: bearer
+}
+
+headers {
+  ~Host: {{tenantAHost}}
+}
+
+auth:bearer {
+  token: {{platformAccessToken}}
+}
+
+tests {
+  test("returns expected status", function() {
+    expect(res.getStatus() === 200).to.equal(true);
+  });
+}
+
+docs {
+  No Host needed -- /api/v1/security/platform clears tenant context like /api/v1/platform/**.
+}

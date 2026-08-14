@@ -1,0 +1,31 @@
+meta {
+  name: 7 - Attach Audio
+  type: http
+  seq: 7
+}
+
+post {
+  url: {{baseUrl}}/api/v1/episodes/{{podcastEpisodeId}}/audio
+  body: json
+  auth: inherit
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "audioAssetId": {{mediaAssetId}}
+  }
+}
+
+tests {
+  test("returns expected status", function() {
+    expect(res.getStatus() === 200 || res.getStatus() === 400 || res.getStatus() === 404).to.equal(true);
+  });
+}
+
+docs {
+  mediaAssetId from 08-Media/1 - Create Upload URL. Needs a READY audio asset (real S3 PUT + confirm) before Publish will succeed.
+}

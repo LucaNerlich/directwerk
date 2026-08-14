@@ -1,0 +1,32 @@
+meta {
+  name: 8 - Opt In Email Notifications
+  type: http
+  seq: 8
+}
+
+patch {
+  url: {{baseUrl}}/api/v1/me/notification-preferences
+  body: json
+  auth: inherit
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "emailNotificationsEnabled": true
+  }
+}
+
+tests {
+  test("returns expected status", function() {
+    expect(res.getStatus() === 200).to.equal(true);
+    expect(res.body.data.emailNotificationsEnabled).to.equal(true);
+  });
+}
+
+docs {
+  Required before a subscriber receives content publish emails (EMAIL_NOTIFY module).
+}

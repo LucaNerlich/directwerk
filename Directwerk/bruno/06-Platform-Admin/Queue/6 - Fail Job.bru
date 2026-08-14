@@ -1,0 +1,33 @@
+meta {
+  name: 6 - Fail Job
+  type: http
+  seq: 6
+}
+
+post {
+  url: {{baseUrl}}/api/v1/platform/queue/jobs/{{queueJobId}}/fail
+  body: json
+  auth: inherit
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "worker": "bruno-worker",
+    "error": "harness test failure",
+    "retryDelaySeconds": 30
+  }
+}
+
+tests {
+  test("returns expected status", function() {
+    expect(res.getStatus() === 200 || res.getStatus() === 404 || res.getStatus() === 409).to.equal(true);
+  });
+}
+
+docs {
+  409 if the job isn't in a failable state (e.g. already claimed/completed by a previous run).
+}

@@ -1,0 +1,27 @@
+meta {
+  name: List My Feeds
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{baseUrl}}/api/v1/me/feeds
+  body: none
+  auth: inherit
+}
+
+script:post-response {
+  if (res.getStatus() === 200 && Array.isArray(res.body.data) && res.body.data.length > 0) {
+    bru.setVar("subscriberFeedUrl", res.body.data[0].url);
+  }
+}
+
+tests {
+  test("returns expected status", function() {
+    expect(res.getStatus() === 200 || res.getStatus() === 403).to.equal(true);
+  });
+}
+
+docs {
+  Auto-creates the subscriber's default private feed. The feed url embeds a capability secret token, so it's captured via setVar rather than a plain var.
+}

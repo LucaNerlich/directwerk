@@ -1,0 +1,36 @@
+meta {
+  name: 7 - Replace Package Product Rules
+  type: http
+  seq: 7
+}
+
+put {
+  url: {{baseUrl}}/api/v1/tenant/products/{{packageProductId}}/rules
+  body: json
+  auth: inherit
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "rules": [
+      {
+        "scopeType": "FORMAT",
+        "scopeId": {{podcastFormatId}}
+      }
+    ]
+  }
+}
+
+tests {
+  test("returns expected status", function() {
+    expect(res.getStatus() === 200 || res.getStatus() === 400 || res.getStatus() === 404).to.equal(true);
+  });
+}
+
+docs {
+  podcastFormatId comes from 09-Podcast-Content/Formats/2 - Create Format. After this, 02-Me/Get My Access (as the subscriber) should list this package once they hold a subscription to it.
+}

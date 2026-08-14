@@ -1,0 +1,34 @@
+spring:
+    docker:
+        compose:
+            enabled: false
+    jpa:
+        show-sql: false
+        hibernate:
+            ddl-auto: validate
+    flyway:
+        clean-disabled: true
+        validate-on-migrate: true
+    quartz:
+        wait-for-jobs-to-complete-on-shutdown: true
+        properties:
+            org.quartz.scheduler.instanceName: DirectwerkScheduler
+            org.quartz.scheduler.instanceId: AUTO
+            org.quartz.jobStore.driverDelegateClass: org.quartz.impl.jdbcjobstore.PostgreSQLDelegate
+            org.quartz.jobStore.tablePrefix: QRTZ_
+            org.quartz.jobStore.isClustered: true
+            org.quartz.jobStore.clusterCheckinInterval: 10000
+            org.quartz.threadPool.threadCount: 5
+
+logging:
+    level:
+        org.springframework.security: WARN
+        de.pnnit.directwerk: INFO
+
+directwerk:
+    security:
+        issuer: ${DIRECTWERK_ISSUER}
+        platform-client-secret: ${DIRECTWERK_PLATFORM_CLIENT_SECRET}
+        tenant-client-secret: ${DIRECTWERK_TENANT_CLIENT_SECRET}
+        jwt-private-key: ${DIRECTWERK_JWT_PRIVATE_KEY}
+        jwt-public-key: ${DIRECTWERK_JWT_PUBLIC_KEY}

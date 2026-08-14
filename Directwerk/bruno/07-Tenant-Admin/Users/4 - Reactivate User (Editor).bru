@@ -1,0 +1,17 @@
+meta {
+  name: 4 - Reactivate User (Editor)
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{baseUrl}}/api/v1/tenant/users/{{editorUserId}}/reactivate
+  body: none
+  auth: inherit
+}
+
+tests {
+  test("returns expected status", function() {
+    expect(res.getStatus() === 200 || res.getStatus() === 404).to.equal(true);
+  });
+}

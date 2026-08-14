@@ -1,0 +1,33 @@
+meta {
+  name: 2 - Invite Tenant Admin (via Platform)
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/api/v1/platform/tenants/{{tenantAId}}/users/invite
+  body: json
+  auth: inherit
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "email": "new-admin@alpha-show.local",
+    "name": "New Tenant Admin",
+    "role": "TENANT_ADMIN"
+  }
+}
+
+script:post-response {
+  bru.setVar("inviteToken", res.body.data && res.body.data.inviteToken);
+}
+
+tests {
+  test("returns expected status", function() {
+    expect(res.getStatus() === 201 || res.getStatus() === 409).to.equal(true);
+  });
+}

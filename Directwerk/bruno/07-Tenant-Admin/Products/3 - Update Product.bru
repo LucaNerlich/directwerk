@@ -1,0 +1,43 @@
+meta {
+  name: 3 - Update Product
+  type: http
+  seq: 3
+}
+
+put {
+  url: {{baseUrl}}/api/v1/tenant/products/{{vipProductId}}
+  body: json
+  auth: inherit
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "title": "VIP Lounge",
+    "sortOrder": 3,
+    "active": true,
+    "description": "Monatliches VIP-Abo",
+    "priceCents": 1490,
+    "currency": "EUR",
+    "billingInterval": "MONTH"
+  }
+}
+
+tests {
+  test("returns expected status", function() {
+    expect(res.getStatus() === 200 || res.getStatus() === 404).to.equal(true);
+    if (res.getStatus() === 200) {
+      expect(res.body.data.title).to.equal("VIP Lounge");
+      expect(res.body.data.priceCents).to.equal(1490);
+      expect(res.body.data.currency).to.equal("EUR");
+      expect(res.body.data.billingInterval).to.equal("MONTH");
+    }
+  });
+}
+
+docs {
+  404 if Products/2 - Create Product (LEVEL) hit its known 500 case above and vipProductId never got captured.
+}

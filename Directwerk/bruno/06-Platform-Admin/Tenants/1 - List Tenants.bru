@@ -1,0 +1,22 @@
+meta {
+  name: 1 - List Tenants
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/api/v1/platform/tenants
+  body: none
+  auth: inherit
+}
+
+vars:post-response {
+  tenantAId: (res.body.data.content.find(t => t.slug === "alpha-show-a") || {}).id
+  tenantBId: (res.body.data.content.find(t => t.slug === "alpha-show-b") || {}).id
+}
+
+tests {
+  test("returns expected status", function() {
+    expect(res.getStatus() === 200).to.equal(true);
+  });
+}

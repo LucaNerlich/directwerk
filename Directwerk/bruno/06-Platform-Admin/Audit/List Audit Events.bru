@@ -1,0 +1,21 @@
+meta {
+  name: List Audit Events
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/api/v1/platform/audit
+  body: none
+  auth: inherit
+}
+
+params:query {
+  limit: 20
+}
+
+tests {
+  test("returns expected status", function() {
+    expect(res.getStatus() === 200).to.equal(true);
+  });
+}

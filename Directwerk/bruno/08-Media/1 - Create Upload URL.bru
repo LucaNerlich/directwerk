@@ -1,0 +1,36 @@
+meta {
+  name: 1 - Create Upload URL
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/api/v1/media/upload-url
+  body: json
+  auth: inherit
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "filename": "harness-cover.jpg",
+    "mimeType": "image/jpeg",
+    "sizeBytes": 1024,
+    "assetType": "IMAGE",
+    "intendedVisibility": "PUBLIC",
+    "scope": "TENANT_PUBLIC"
+  }
+}
+
+vars:post-response {
+  mediaAssetId: res.body.data && res.body.data.assetId
+}
+
+tests {
+  test("returns expected status", function() {
+    expect(res.getStatus() === 201 || res.getStatus() === 503).to.equal(true);
+  });
+}

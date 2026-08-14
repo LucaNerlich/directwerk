@@ -1,0 +1,9 @@
+dependencies {
+    api project(':directwerk-common')
+    api 'org.springframework.boot:spring-boot-starter-data-jpa'
+    api 'org.springframework.boot:spring-boot-starter-aspectj'
+    api 'org.springframework.boot:spring-boot-starter-security'
+    api 'org.springframework:spring-context-support'
+    implementation 'com.fasterxml.jackson.core:jackson-annotations'
+    implementation 'tools.jackson.core:jackson-databind'
+}

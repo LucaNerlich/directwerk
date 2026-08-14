@@ -1,0 +1,91 @@
+'use client'
+
+import Form from 'next/form'
+import Link from 'next/link'
+import {useActionState} from 'react'
+
+import {Alert, AlertDescription} from '@publish/ui/components/alert'
+import AuthCard from '@publish/ui/components/auth-card'
+import {Button} from '@publish/ui/components/button'
+import {Input} from '@publish/ui/components/input'
+import {Label} from '@publish/ui/components/label'
+
+import {forgotPassword} from '@/lib/api/client'
+import {parseForgotPasswordInput} from '@/lib/api/validation'
+
+interface ForgotPasswordState {
+    error: string | null
+    success: boolean
+    resetHref: string | null
+}
+
+const INITIAL_STATE: ForgotPasswordState = {
+    error: null,
+    success: false,
+    resetHref: null,
+}
+
+export default function ForgotPasswordPage() {
+    const [state, formAction, isPending] = useActionState(
+        async (_previousState: ForgotPasswordState, formData: FormData) => {
+            const input = parseForgotPasswordInput({
+                email: formData.get('email'),
+            })
+            if (input === null) {
+                return {
+                    error: 'Enter a valid email address.',
+                    success: false,
+                    resetHref: null,
+                }
+            }
+
+            try {
+                const result = await forgotPassword(input)
+                return {
+                    error: null,
+                    success: true,
+                    resetHref:
+                        result.devResetToken === null
+                            ? null
+                            : `/reset-password?token=${encodeURIComponent(result.devResetToken)}`,
+                }
+            } catch (error) {
+                return {
+                    error:
+                        error instanceof Error
+                            ? error.message
+                            : 'Could not start the password reset. Please try again.',
+                    success: false,
+                    resetHref: null,
+                }
+            }
+        },
+        INITIAL_STATE,
+    )
+
+    return (
+        <AuthCard title="Forgot password" description="Enter your email and we will send a reset link if the account exists." footer={<Link className="underline" href="/login">Back to login</Link>}>
+            <Form action={formAction} className="space-y-4">
+                <div className="space-y-2">
+                    <Label htmlFor="email">Email</Label>
+                    <Input id="email" name="email" type="email" autoComplete="email" maxLength={254} required />
+                </div>
+                <Button className="w-full" type="submit" disabled={isPending || state.success}>
+                    {isPending ? 'Sending…' : 'Send reset email'}
+                </Button>
+            </Form>
+            {state.error !== null ? <Alert variant="destructive"><AlertDescription>{state.error}</AlertDescription></Alert> : null}
+            {state.success && (
+                <Alert role="status"><AlertDescription>
+                    If that email is registered, a reset link is on its way.
+                    {state.resetHref !== null && (
+                        <>
+                            {' '}
+                            <Link className="underline" href={state.resetHref}>Open reset link (dev)</Link>
+                        </>
+                    )}
+                </AlertDescription></Alert>
+            )}
+        </AuthCard>
+    )
+}

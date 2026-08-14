@@ -1,0 +1,178 @@
+### Directwerk — Podcast content (Phase 3)
+### Prerequisites: 02-oauth2.http (tenantAAccessToken), PODCAST active for tenant A.
+### Publish may return EPISODE_VALIDATION_FAILED until a READY audio asset is attached.
+
+### @name createPodcastFormat
+< {%
+  client.global.set("podcastFormatSlug", "format-" + Date.now().toString(36));
+%}
+POST {{baseUrl}}/api/v1/formats
+Host: {{tenantAHost}}
+Authorization: Bearer {{tenantAAccessToken}}
+Content-Type: application/json
+Accept: application/json
+
+{
+  "slug": "{{podcastFormatSlug}}",
+  "name": "Harness Format",
+  "description": "Created by the HTTP harness",
+  "sortOrder": 10
+}
+
+> {%
+    client.test("Create podcast format", function() {
+        client.assert(response.status === 201 || response.status === 403, "Expected 201 or 403 when PODCAST is off");
+        if (response.status === 201) {
+            client.global.set("podcastFormatId", response.body.data.id);
+        }
+    });
+%}
+
+###
+
+### @name createPodcastSeries
+< {%
+  client.global.set("podcastSeriesSlug", "series-" + Date.now().toString(36));
+%}
+POST {{baseUrl}}/api/v1/series
+Host: {{tenantAHost}}
+Authorization: Bearer {{tenantAAccessToken}}
+Content-Type: application/json
+Accept: application/json
+
+{
+  "slug": "{{podcastSeriesSlug}}",
+  "title": "Harness Podcast",
+  "description": "<p>Podcast created by the HTTP harness.</p>",
+  "language": "de",
+  "itunesCategory": "News"
+}
+
+> {%
+    client.test("Create podcast series", function() {
+        client.assert(response.status === 201 || response.status === 403, "Expected 201 or 403 when PODCAST is off");
+        if (response.status === 201) {
+            client.global.set("podcastSeriesId", response.body.data.id);
+        }
+    });
+%}
+
+###
+
+### @name createPodcastEpisodeDraft
+< {%
+  client.global.set("podcastEpisodeSlug", "episode-" + Date.now().toString(36));
+%}
+POST {{baseUrl}}/api/v1/episodes
+Host: {{tenantAHost}}
+Authorization: Bearer {{tenantAAccessToken}}
+Content-Type: application/json
+Accept: application/json
+
+{
+  "seriesId": {{podcastSeriesId}},
+  "episodeNumber": 1,
+  "slug": "{{podcastEpisodeSlug}}",
+  "title": "Harness Episode",
+  "description": "<p>Show notes with <strong>allowed HTML</strong>.</p>",
+  "accessPolicy": "FREE",
+  "formatIds": [{{podcastFormatId}}]
+}
+
+> {%
+    client.test("Create podcast episode draft", function() {
+        client.assert(response.status === 201 || response.status === 400 || response.status === 403, "Expected draft response");
+        if (response.status === 201) {
+            client.global.set("podcastEpisodeId", response.body.data.id);
+        }
+    });
+%}
+
+###
+
+### @name publishPodcastEpisode
+POST {{baseUrl}}/api/v1/episodes/{{podcastEpisodeId}}/publish
+Host: {{tenantAHost}}
+Authorization: Bearer {{tenantAAccessToken}}
+Content-Type: application/json
+Accept: application/json
+
+{
+  "notifySubscribers": false
+}
+
+> {%
+    client.test("Publish podcast episode", function() {
+        client.assert(
+            response.status === 200 || response.status === 400 || response.status === 403 || response.status === 404,
+            "Expected publish success or soft failure without READY audio/PODCAST"
+        );
+    });
+%}
+
+###
+
+### @name createPodcastEpisodeDraftForNotify
+< {%
+  client.global.set("podcastEpisodeNotifySlug", "episode-notify-" + Date.now().toString(36));
+%}
+POST {{baseUrl}}/api/v1/episodes
+Host: {{tenantAHost}}
+Authorization: Bearer {{tenantAAccessToken}}
+Content-Type: application/json
+Accept: application/json
+
+{
+  "seriesId": {{podcastSeriesId}},
+  "episodeNumber": 2,
+  "slug": "{{podcastEpisodeNotifySlug}}",
+  "title": "Harness Episode with Notification",
+  "description": "<p>Episode to test notify-on-publish flow.</p>",
+  "accessPolicy": "FREE",
+  "formatIds": [{{podcastFormatId}}]
+}
+
+> {%
+    client.test("Create episode draft for notify test", function() {
+        client.assert(response.status === 201 || response.status === 400 || response.status === 403, "Expected draft response");
+        if (response.status === 201) {
+            client.global.set("podcastEpisodeNotifyId", response.body.data.id);
+        }
+    });
+%}
+
+###
+
+### @name publishPodcastEpisodeNotifySubscribers
+POST {{baseUrl}}/api/v1/episodes/{{podcastEpisodeNotifyId}}/publish
+Host: {{tenantAHost}}
+Authorization: Bearer {{tenantAAccessToken}}
+Content-Type: application/json
+Accept: application/json
+
+{
+  "notifySubscribers": true
+}
+
+> {%
+    client.test("Publish episode with subscriber notification", function() {
+        client.assert(
+            response.status === 200 || response.status === 400 || response.status === 403 || response.status === 404,
+            "Expected publish response"
+        );
+    });
+%}
+
+###
+
+### @name listPublicPodcastEpisodes
+GET {{baseUrl}}/api/v1/public/episodes
+Host: {{tenantAHost}}
+Accept: application/json
+
+> {%
+    client.test("List public podcast episodes", function() {
+        client.assert(response.status === 200, "Expected 200");
+        client.assert(Array.isArray(response.body.data), "Expected public episodes array");
+    });
+%}

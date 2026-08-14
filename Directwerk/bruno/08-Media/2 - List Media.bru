@@ -1,0 +1,21 @@
+meta {
+  name: 2 - List Media
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/api/v1/media
+  body: none
+  auth: inherit
+}
+
+params:query {
+  limit: 20
+}
+
+tests {
+  test("returns expected status", function() {
+    expect(res.getStatus() === 200 || res.getStatus() === 503).to.equal(true);
+  });
+}

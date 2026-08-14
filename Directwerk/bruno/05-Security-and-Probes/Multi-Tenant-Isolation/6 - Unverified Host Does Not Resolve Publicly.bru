@@ -1,0 +1,21 @@
+meta {
+  name: 6 - Unverified Host Does Not Resolve Publicly
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{baseUrl}}/api/v1/public/site-config
+  body: none
+  auth: none
+}
+
+headers {
+  Host: {{isolationUnverifiedHost}}
+}
+
+tests {
+  test("returns expected status", function() {
+    expect(res.getStatus() === 404).to.equal(true);
+  });
+}

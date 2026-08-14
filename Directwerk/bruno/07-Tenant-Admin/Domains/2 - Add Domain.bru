@@ -1,0 +1,36 @@
+meta {
+  name: 2 - Add Domain
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/api/v1/tenant/domains
+  body: json
+  auth: inherit
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "host": "podcast.alpha-show-a.local",
+    "isPrimary": false
+  }
+}
+
+vars:post-response {
+  newDomainHost: res.body.data && res.body.data.host
+}
+
+tests {
+  test("returns expected status", function() {
+    expect(res.getStatus() === 201 || res.getStatus() === 409 || res.getStatus() === 500).to.equal(true);
+  });
+}
+
+docs {
+  409/500 on re-run once the host already exists -- that's expected.
+}

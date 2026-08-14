@@ -1,0 +1,17 @@
+meta {
+  name: 5 - Delete Media (Platform)
+  type: http
+  seq: 5
+}
+
+delete {
+  url: {{baseUrl}}/api/v1/platform/tenants/{{tenantAId}}/media/{{platformMediaAssetId}}
+  body: none
+  auth: inherit
+}
+
+tests {
+  test("returns expected status", function() {
+    expect(res.getStatus() === 200 || res.getStatus() === 404 || res.getStatus() === 503).to.equal(true);
+  });
+}

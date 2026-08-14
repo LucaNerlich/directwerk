@@ -1,0 +1,21 @@
+meta {
+  name: 6 - Reactivate Module (PODCAST on Tenant A)
+  type: http
+  seq: 6
+}
+
+post {
+  url: {{baseUrl}}/api/v1/platform/tenants/{{tenantAId}}/modules/PODCAST/activate
+  body: none
+  auth: inherit
+}
+
+tests {
+  test("returns expected status", function() {
+    expect(res.getStatus() === 200).to.equal(true);
+  });
+}
+
+docs {
+  Restores PODCAST after request 5's deactivate demo -- 09-Podcast-Content and 02-Me's episode endpoints assume this is active.
+}

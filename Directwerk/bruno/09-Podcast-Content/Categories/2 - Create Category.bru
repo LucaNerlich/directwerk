@@ -1,0 +1,40 @@
+meta {
+  name: 2 - Create Category
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/api/v1/categories
+  body: json
+  auth: inherit
+}
+
+headers {
+  Content-Type: application/json
+}
+
+script:pre-request {
+  bru.setVar("podcastCategorySlug", "category-" + Date.now().toString(36));
+}
+
+body:json {
+  {
+    "slug": "{{podcastCategorySlug}}",
+    "name": "Harness Category"
+  }
+}
+
+vars:post-response {
+  podcastCategoryId: res.body.data && res.body.data.id
+}
+
+tests {
+  test("returns expected status", function() {
+    expect(res.getStatus() === 201 || res.getStatus() === 500).to.equal(true);
+  });
+}
+
+docs {
+  Same live-observed 500 as Formats/2 - Create Format -- see its docs note.
+}

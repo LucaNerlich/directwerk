@@ -1,0 +1,24 @@
+meta {
+  name: 3 - Revoke Platform Admin
+  type: http
+  seq: 3
+}
+
+delete {
+  url: {{baseUrl}}/api/v1/platform/admins/{{secondAdminUserId}}
+  body: none
+  auth: inherit
+}
+
+tests {
+  test("returns expected status", function() {
+    expect(res.getStatus() === 200 || res.getStatus() === 404 || res.getStatus() === 409).to.equal(true);
+  });
+}
+
+docs {
+  Revokes a second platform admin's access (requires secondAdminUserId captured by a prior
+  "Invite Platform Admin" run against a different email than the bootstrap admin).
+  409 CANNOT_REVOKE_SELF if you target your own logged-in user id.
+  409 CANNOT_REVOKE_LAST_ADMIN if only one platform admin remains.
+}

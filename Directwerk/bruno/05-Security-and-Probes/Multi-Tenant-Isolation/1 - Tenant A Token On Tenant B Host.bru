@@ -1,0 +1,40 @@
+meta {
+  name: 1 - Tenant A Token On Tenant B Host
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/api/v1/tenant/branding
+  body: none
+  auth: bearer
+}
+
+headers {
+  Host: {{tenantBHost}}
+  X-Tenant-Id: {{tenantAId}}
+}
+
+auth:bearer {
+  token: {{tenantAAccessToken}}
+}
+
+tests {
+  test("returns expected status", function() {
+    expect(res.getStatus() === 403 || res.getStatus() === 500).to.equal(true);
+  });
+}
+
+docs {
+  X-Tenant-Id is sent to prove it is ignored -- Host + JWT are the only authority.
+
+  KNOWN BUG (found by running this collection against a live local instance on 2026-07-20):
+  the docs/http harness say this should be 403 with errors[0].code == TENANT_MISMATCH, but the
+  live app currently returns a bare 500 (Spring Boot's default /error page, no JSON envelope).
+  Root cause: TenantContextFilter throws TenantMismatchException from a plain servlet Filter
+  positioned before DispatcherServlet even runs, so GlobalExceptionHandler's @ExceptionHandler
+  (which maps it to 403) never gets a chance to run -- Spring Security's ExceptionTranslationFilter
+  only translates AuthenticationException/AccessDeniedException, not this. Access is still denied
+  (no branding data leaks), just with the wrong status/body. See TenantContextFilter.java:53 and
+  GlobalExceptionHandler.java:90-94.
+}

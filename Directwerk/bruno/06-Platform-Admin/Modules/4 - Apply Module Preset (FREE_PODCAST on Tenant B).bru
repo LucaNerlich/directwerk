@@ -1,0 +1,17 @@
+meta {
+  name: 4 - Apply Module Preset (FREE_PODCAST on Tenant B)
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{baseUrl}}/api/v1/platform/tenants/{{tenantBId}}/modules/preset/FREE_PODCAST
+  body: none
+  auth: inherit
+}
+
+tests {
+  test("returns expected status", function() {
+    expect(res.getStatus() === 200).to.equal(true);
+  });
+}

@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Verify your email</title>
+</head>
+<body style="font-family: Arial, sans-serif; line-height: 1.5; color: #1f2937;">
+    <p>Hi {{recipientName}},</p>
+    <p>Please verify your email address to activate your account.</p>
+    <p>
+        <a href="{{verifyUrl}}" style="display: inline-block; padding: 10px 16px; background: #2563eb; color: #ffffff; text-decoration: none; border-radius: 4px;">
+            Verify email
+        </a>
+    </p>
+    <p>This link expires in {{expiresIn}}.</p>
+    <p>If you did not create an account, you can ignore this email.</p>
+</body>
+</html>

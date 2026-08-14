@@ -1,0 +1,70 @@
+spring:
+    datasource:
+        url: jdbc:h2:mem:directwerk;MODE=PostgreSQL;DB_CLOSE_DELAY=-1;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH
+        username: sa
+        password:
+        driver-class-name: org.h2.Driver
+    jpa:
+        hibernate:
+            ddl-auto: create-drop
+    flyway:
+        enabled: false
+    docker:
+        compose:
+            enabled: false
+    quartz:
+        auto-startup: false
+        job-store-type: memory
+    mail:
+        host: localhost
+        port: 1025
+
+directwerk:
+    security:
+        issuer: http://localhost:8080
+        audience: publish-api
+        platform-client-id: publish-platform-admin
+        tenant-client-id: publish-tenant-frontend
+        platform-client-secret: ${DIRECTWERK_PLATFORM_CLIENT_SECRET:}
+        tenant-client-secret: ${DIRECTWERK_TENANT_CLIENT_SECRET:}
+        authorization-store: memory
+    email:
+        enabled: false
+        from-address: noreply@publish.local
+        from-name: Directwerk
+        studio-base-url: http://localhost:3000
+        admin-base-url: http://localhost:3001
+        accept-invite-path: /accept-invite
+        reset-password-path: /reset-password
+        verify-email-path: /verify-email
+        delivery-retention-days: 7
+    queue:
+        enabled: false
+        poll-interval-ms: 5000
+        claim-limit: 10
+        list-limit: 100
+        lease-seconds: 60
+        max-lease-seconds: 86400
+        default-max-attempts: 5
+        retry-delay-seconds: 30
+        max-retry-delay-seconds: 604800
+        json-byte-limit: 100000
+        worker-id: test-worker
+        retention-days: 7
+        cleanup-interval-ms: 3600000
+        cleanup-batch-size: 1000
+    storage:
+        enabled: false
+        provider: hetzner
+        region: eu-central-1
+        bucket: directwerk-test
+        endpoint: https://nbg1.your-objectstorage.com
+        force-path-style: false
+        access-key:
+        secret-key:
+        public-cdn-base-url: https://cdn.example.test
+        presign-upload-ttl: 15m
+        presign-download-ttl-api: 1h
+        presign-download-ttl-rss: 24h
+        staging-lifecycle-hours: 24
+

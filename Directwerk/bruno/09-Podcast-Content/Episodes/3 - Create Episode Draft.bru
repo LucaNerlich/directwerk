@@ -1,0 +1,41 @@
+meta {
+  name: 3 - Create Episode Draft
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{baseUrl}}/api/v1/episodes
+  body: json
+  auth: inherit
+}
+
+headers {
+  Content-Type: application/json
+}
+
+script:pre-request {
+  bru.setVar("podcastEpisodeSlug", "episode-" + Date.now().toString(36));
+}
+
+body:json {
+  {
+    "seriesId": {{podcastSeriesId}},
+    "episodeNumber": 1,
+    "slug": "{{podcastEpisodeSlug}}",
+    "title": "Harness Episode",
+    "description": "<p>Show notes with <strong>allowed HTML</strong>.</p>",
+    "accessPolicy": "FREE",
+    "formatIds": [{{podcastFormatId}}]
+  }
+}
+
+vars:post-response {
+  podcastEpisodeId: res.body.data && res.body.data.id
+}
+
+tests {
+  test("returns expected status", function() {
+    expect(res.getStatus() === 201 || res.getStatus() === 400 || res.getStatus() === 403).to.equal(true);
+  });
+}

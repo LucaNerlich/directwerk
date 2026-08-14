@@ -1,0 +1,38 @@
+meta {
+  name: 3 - Billing Dashboard
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/api/v1/tenant/billing/dashboard
+  body: none
+  auth: inherit
+}
+
+tests {
+  test("returns dashboard stats and memberships", function() {
+    expect(res.getStatus() === 200).to.equal(true);
+    expect(res.body.data.stripe).to.be.an("object");
+    expect(res.body.data.stripe).to.have.property("status");
+    expect(res.body.data.stats).to.be.an("object");
+    expect(res.body.data.stats).to.have.property("activeSubscriptions");
+    expect(res.body.data.stats).to.have.property("activePaidSubscriptions");
+    expect(res.body.data.stats).to.have.property("activeGrantSubscriptions");
+    expect(res.body.data.stats).to.have.property("uniqueActiveMembers");
+    expect(res.body.data.stats).to.have.property("newThisMonth");
+    expect(res.body.data.stats).to.have.property("canceledThisMonth");
+    expect(res.body.data.stats).to.have.property("pastDueSubscriptions");
+    expect(res.body.data.stats).to.have.property("incompleteSubscriptions");
+    expect(res.body.data.stats).to.have.property("totalMemberships");
+    expect(res.body.data.stats).to.have.property("estimatedMonthlyCents");
+    expect(res.body.data.stats).to.have.property("currency");
+    expect(res.body.data.memberships).to.be.an("array");
+  });
+}
+
+docs {
+  GET /api/v1/tenant/billing/dashboard — TenantBillingDashboardController.
+  Stripe snapshot, membership counts (including past-due/incomplete), estimated monthly value,
+  up to 100 memberships. TENANT_ADMIN + SUBSCRIPTION module.
+}

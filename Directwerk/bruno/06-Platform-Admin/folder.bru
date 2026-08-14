@@ -1,0 +1,16 @@
+meta {
+  name: 06-Platform-Admin
+  seq: 6
+}
+
+auth {
+  mode: bearer
+}
+
+auth:bearer {
+  token: {{platformAccessToken}}
+}
+
+docs {
+  No Host header anywhere in this folder -- platform admin is tenant-free (TenantContext cleared).
+}

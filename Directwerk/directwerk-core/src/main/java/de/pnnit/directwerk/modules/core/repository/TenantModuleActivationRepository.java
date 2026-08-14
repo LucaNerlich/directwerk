@@ -1,0 +1,15 @@
+package de.pnnit.directwerk.modules.core.repository;
+
+import de.pnnit.directwerk.modules.core.entity.TenantModuleActivation;
+import java.util.List;
+import java.util.Optional;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+
+@Repository
+public interface TenantModuleActivationRepository extends JpaRepository<TenantModuleActivation, Long> {
+
+    List<TenantModuleActivation> findByTenantIdAndActiveTrue(Long tenantId);
+
+    Optional<TenantModuleActivation> findByTenantIdAndModuleKey(Long tenantId, String moduleKey);
+}

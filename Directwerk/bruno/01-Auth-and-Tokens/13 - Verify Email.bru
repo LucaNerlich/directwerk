@@ -1,0 +1,37 @@
+meta {
+  name: 13 - Verify Email
+  type: http
+  seq: 13
+}
+
+post {
+  url: {{baseUrl}}/api/v1/auth/verify-email
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "token": "{{emailVerificationToken}}"
+  }
+}
+
+tests {
+  test("returns expected status", function() {
+    expect(res.getStatus() === 200 || res.getStatus() === 400).to.equal(true);
+  });
+}
+
+docs {
+  Manual/dev-cloud path -- fill in emailVerificationToken yourself. Directwerk always requires
+  verification before a self-registered subscriber can log in (there's no profile that skips it);
+  on local, prefer 6 - Auto-Verify Email (Mailpit, local only) instead of doing this by hand. Against
+  a deployed environment, check the real inbox for the 'Verify your email address' message, copy the
+  token out of its verification link's ?token= query param, paste it into emailVerificationToken
+  below, then run this request. We deliberately do not automate this step outside local dev -- email
+  ownership verification is a security control, not busywork to script around.
+}

@@ -1,0 +1,46 @@
+### Directwerk API — HTTP client index
+###
+### Setup
+### 1. Start API: ./gradlew :directwerk-app:bootRun  (SPRING_PROFILES_ACTIVE=local via .env)
+### 2. Copy http-client.private.env.example.json → http-client.private.env.json
+### 3. Set platformAdminPassword, seedPassword, and client secrets to match Directwerk/.env
+### 4. Select the "dev" environment in the HTTP Client gutter
+###
+### Run files in order for full local validation.
+### Do not run 21-public-rss.http and 22-private-rss.http concurrently against the same
+### tenant (both toggle PODCAST_RSS); serialize them via this index order or CI.
+###
+### | File | Controller / source |
+### |------|---------------------|
+### | 01-health.http | Actuator |
+### | 02-oauth2.http | POST /oauth2/token |
+### | 03-auth.http | AuthController |
+### | 04-me.http | MeController |
+### | 05-public.http | PublicSiteConfigController, PublicSubscriptionProductController |
+### | 06-platform-tenants.http | PlatformTenantController |
+### | 07-platform-modules.http | PlatformModuleController |
+### | 08-platform-admins.http | PlatformAdminController |
+### | 09-platform-tenant-users.http | PlatformTenantUserController |
+### | 10-tenant-admin.http | TenantAdminController |
+### | 11-tenant-products.http | TenantSubscriptionProductController |
+### | 12-tenant-subscriptions.http | TenantSubscriptionController, TenantSubscriberController |
+### | 13-module-probes.http | ModuleProbeController |
+### | 14-security-probes.http | SecurityProbeController |
+### | 15-multi-tenant-isolation.http | TenantContextFilter + domain verification |
+### | 16-platform-audit.http | PlatformAuditController |
+### | 17-media-upload.http | MediaController (2c/2d) |
+### | 18-platform-tenant-media.http | PlatformTenantMediaController |
+### | 19-podcast-content.http | Podcast content controllers (Phase 3) |
+### | 20-episode-stream.http | MeEpisodeController, PublicEpisodeDownloadController |
+### | 21-public-rss.http | RssFeedController public feeds/enclosures + FEATURE_NOT_ENABLED |
+### | 22-private-rss.http | MeFeed + private feed/enclosure + FEATURE_NOT_ENABLED (after 21) |
+### | 23-entitlements.http | Product access rules and subscriber entitlements |
+### | 24-articles.http | ArticleController + PublicArticleController (Write desk) |
+### | 25-tenant-subscriber-feeds.http | TenantSubscriberFeedController (list/enable/disable) |
+### | 26-stripe-billing.http | Stripe Connect, checkout, portal, dashboard, webhook |
+###
+### Controllers live under de.pnnit.directwerk.controller.*
+
+### @name healthSmoke
+GET {{baseUrl}}/actuator/health
+Accept: application/json

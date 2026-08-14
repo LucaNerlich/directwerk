@@ -1,0 +1,31 @@
+@import '@publish/ui/theme.css';
+@source '../**/*.{ts,tsx}';
+@source '../../packages/ui/src/**/*.{ts,tsx}';
+
+@layer base {
+    body {
+        @apply min-w-0;
+    }
+
+    h1,
+    h2,
+    h3,
+    p {
+        margin-top: 0;
+    }
+
+    [role='alert'] {
+        @apply text-destructive;
+    }
+}
+
+@layer utilities {
+    .editor-surface {
+        @apply min-h-56 rounded-lg border bg-background px-4 py-3 outline-none focus-visible:ring-2 focus-visible:ring-ring/50;
+    }
+
+    .editor-surface:empty::before {
+        content: attr(data-placeholder);
+        @apply text-muted-foreground;
+    }
+}

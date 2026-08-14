@@ -1,0 +1,17 @@
+meta {
+  name: 8 - Cancel Scheduled Publish
+  type: http
+  seq: 8
+}
+
+post {
+  url: {{baseUrl}}/api/v1/articles/{{articleId}}/cancel-schedule
+  body: none
+  auth: inherit
+}
+
+tests {
+  test("returns expected status", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+}

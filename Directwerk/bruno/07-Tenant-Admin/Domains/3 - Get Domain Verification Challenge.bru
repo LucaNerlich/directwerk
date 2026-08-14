@@ -1,0 +1,25 @@
+meta {
+  name: 3 - Get Domain Verification Challenge
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/api/v1/tenant/domains/{{newDomainHost}}/verification
+  body: none
+  auth: inherit
+}
+
+script:post-response {
+  bru.setVar("domainVerifyToken", res.body.data && res.body.data.token);
+}
+
+tests {
+  test("returns expected status", function() {
+    expect(res.getStatus() === 200 || res.getStatus() === 400).to.equal(true);
+  });
+}
+
+docs {
+  400 if Add Domain above hit its known 409/500 re-run case and newDomainHost never got (re)captured.
+}

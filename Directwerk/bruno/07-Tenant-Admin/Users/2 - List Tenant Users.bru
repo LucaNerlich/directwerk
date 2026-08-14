@@ -1,0 +1,26 @@
+meta {
+  name: 2 - List Tenant Users
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/api/v1/tenant/users
+  body: none
+  auth: inherit
+}
+
+vars:post-response {
+  editorUserId: (res.body.data.find(u => u.email === bru.getEnvVar("editorEmail")) || {}).userId
+}
+
+tests {
+  test("returns expected status", function() {
+    expect(res.getStatus() === 200).to.equal(true);
+  });
+}
+
+docs {
+  Captures editorUserId (a safe, non-admin target) for the Deactivate/Reactivate User requests below.
+  Each user includes userId, email, name, roles[], and status (ACTIVE | INVITED | DISABLED).
+}

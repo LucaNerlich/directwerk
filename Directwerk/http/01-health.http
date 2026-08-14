@@ -1,0 +1,26 @@
+### Directwerk — Health & OpenAPI
+### Prerequisites: API running with --spring.profiles.active=local
+
+### @name healthCheck
+GET {{baseUrl}}/actuator/health
+Accept: application/json
+
+> {%
+    client.test("Health is UP", function() {
+        client.assert(response.status === 200, "Expected 200");
+        client.assert(response.body.status === "UP", "Expected UP");
+    });
+%}
+
+###
+
+### @name openApiDocs
+GET {{baseUrl}}/v3/api-docs
+Accept: application/json
+
+> {%
+    client.test("OpenAPI docs available", function() {
+        client.assert(response.status === 200, "Expected 200");
+        client.assert(response.body.openapi, "Expected openapi field");
+    });
+%}

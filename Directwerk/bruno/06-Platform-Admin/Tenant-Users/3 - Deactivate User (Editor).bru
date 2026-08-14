@@ -1,0 +1,26 @@
+meta {
+  name: 3 - Deactivate User (Editor)
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{baseUrl}}/api/v1/platform/tenants/{{tenantAId}}/users/{{editorUserId}}/deactivate
+  body: none
+  auth: inherit
+}
+
+tests {
+  test("returns expected status", function() {
+    expect(res.getStatus() === 200 || res.getStatus() === 404 || res.getStatus() === 409).to.equal(true);
+  });
+}
+
+docs {
+  Deactivates editor@alpha-show.local's membership in tenant A -- they immediately lose access
+  (checked on every /api/v1/tenant/**, /api/v1/me*, /api/v1/probes/**, /api/v1/security/** request,
+  even with an already-issued, unexpired JWT). 404 TENANT_MEMBERSHIP_NOT_FOUND if run before request 1
+  above captures editorUserId. 409 CANNOT_DEACTIVATE_SELF / CANNOT_DEACTIVATE_LAST_ADMIN don't apply
+  to the seeded editor (not an admin, not you) -- those guards only bite if you swap editorUserId for
+  an admin's id.
+}

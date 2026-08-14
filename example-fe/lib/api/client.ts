@@ -1,0 +1,500 @@
+import {AUTH_REQUIRED} from '@/lib/api/errors'
+import {
+    parseAccessEnvelope,
+    parseMediaListEnvelope,
+    parseMeEnvelope,
+    parsePreviewUrlEnvelope,
+    parsePublicArticleEnvelope,
+    parsePublicArticleListEnvelope,
+    parsePublicCategoryListEnvelope,
+    parsePublicEpisodeListEnvelope,
+    parsePublicFormatListEnvelope,
+    parsePublicProductListEnvelope,
+    parsePublicSeriesListEnvelope,
+    parseCheckoutSessionEnvelope,
+    parseSiteConfigEnvelope,
+    parseSubscriberDownloadListEnvelope,
+    parseSubscriberFeedEnvelope,
+    parseSubscriberFeedListEnvelope,
+    parseSubscriptionListEnvelope,
+    parseTokenResponse,
+} from '@/lib/api/responseValidation'
+import type {
+    Access,
+    ApiEnvelope,
+    MediaAsset,
+    Me,
+    PublicArticle,
+    PublicCategory,
+    PublicEpisode,
+    PublicFormat,
+    PublicProduct,
+    PublicSeries,
+    SiteConfig,
+    SubscriberDownload,
+    SubscriberFeed,
+    SubscriptionSummary,
+    TokenResponse,
+} from '@/lib/api/types'
+import type {
+    AcceptInviteInput,
+    ForgotPasswordInput,
+    LoginInput,
+    RegisterInput,
+    ResetPasswordInput,
+} from '@/lib/api/validation'
+import {clearTokens} from '@/lib/auth/tokenStore'
+import {getValidAccessToken, refreshAccessToken} from '@/lib/auth/session'
+import type {TenantHost} from '@/lib/tenants'
+
+function errorMessage(value: unknown, status: number): string {
+    if (
+        typeof value === 'object' &&
+        value !== null &&
+        'error' in value &&
+        typeof value.error === 'string' &&
+        value.error.length <= 255
+    ) {
+        return value.error
+    }
+
+    if (
+        typeof value === 'object' &&
+        value !== null &&
+        'errors' in value &&
+        Array.isArray(value.errors) &&
+        value.errors.length > 0
+    ) {
+        const first = value.errors[0]
+        if (
+            typeof first === 'object' &&
+            first !== null &&
+            'message' in first &&
+            typeof first.message === 'string' &&
+            first.message.length > 0 &&
+            first.message.length <= 255
+        ) {
+            return first.message
+        }
+    }
+
+    return `Request failed with status ${status}.`
+}
+
+async function parseJsonResponse(response: Response): Promise<unknown> {
+    const contentType = response.headers.get('content-type') ?? ''
+    if (!contentType.toLowerCase().includes('application/json')) {
+        throw new Error('The server returned an invalid response.')
+    }
+
+    return response.json()
+}
+
+async function request(
+    path: string,
+    tenantHost: TenantHost | null,
+    init?: RequestInit,
+): Promise<unknown> {
+    const response = await fetch(path, {
+        ...init,
+        headers: {
+            Accept: 'application/json',
+            ...(tenantHost === null ? {} : {'X-Tenant-Host': tenantHost}),
+            ...init?.headers,
+        },
+    })
+    const value = await parseJsonResponse(response)
+    if (!response.ok) {
+        throw new Error(errorMessage(value, response.status))
+    }
+
+    return value
+}
+
+async function authenticatedRequest(
+    path: string,
+    tenantHost: TenantHost,
+    init?: RequestInit,
+    retried = false,
+): Promise<unknown> {
+    let accessToken: string
+    try {
+        accessToken = await getValidAccessToken()
+    } catch (error: unknown) {
+        if (error instanceof Error && error.message === AUTH_REQUIRED) {
+            throw error
+        }
+        throw new Error(AUTH_REQUIRED)
+    }
+
+    const response = await fetch(path, {
+        ...init,
+        headers: {
+            Accept: 'application/json',
+            'X-Tenant-Host': tenantHost,
+            Authorization: `Bearer ${accessToken}`,
+            ...init?.headers,
+        },
+    })
+
+    if (response.status === 401 && !retried) {
+        try {
+            accessToken = await refreshAccessToken()
+        } catch (error: unknown) {
+            if (error instanceof Error && error.message === AUTH_REQUIRED) {
+                throw error
+            }
+            clearTokens()
+            throw new Error(AUTH_REQUIRED)
+        }
+
+        return authenticatedRequest(path, tenantHost, init, true)
+    }
+
+    const value = await parseJsonResponse(response)
+    if (response.status === 401) {
+        clearTokens()
+        throw new Error(AUTH_REQUIRED)
+    }
+
+    if (!response.ok) {
+        throw new Error(errorMessage(value, response.status))
+    }
+
+    return value
+}
+
+async function postJson(
+    path: string,
+    tenantHost: TenantHost | null,
+    body: unknown,
+): Promise<unknown> {
+    return request(path, tenantHost, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(body),
+    })
+}
+
+export async function register(
+    tenantHost: TenantHost,
+    input: RegisterInput,
+): Promise<void> {
+    await postJson('/api/auth/register', tenantHost, input)
+}
+
+export async function acceptInvite(input: AcceptInviteInput): Promise<void> {
+    await postJson('/api/auth/accept-invite', null, input)
+}
+
+export async function forgotPassword(
+    input: ForgotPasswordInput,
+): Promise<{devResetToken: string | null}> {
+    const value = await postJson('/api/auth/forgot-password', null, input)
+
+    if (
+        typeof value === 'object' &&
+        value !== null &&
+        'data' in value &&
+        typeof value.data === 'object' &&
+        value.data !== null &&
+        'devResetToken' in value.data &&
+        typeof value.data.devResetToken === 'string' &&
+        value.data.devResetToken.length > 0 &&
+        value.data.devResetToken.length <= 512
+    ) {
+        return {devResetToken: value.data.devResetToken}
+    }
+
+    return {devResetToken: null}
+}
+
+export async function resetPassword(input: ResetPasswordInput): Promise<void> {
+    await postJson('/api/auth/reset-password', null, input)
+}
+
+export async function login(
+    tenantHost: TenantHost,
+    input: LoginInput,
+): Promise<TokenResponse> {
+    const value = await postJson('/api/auth/login', tenantHost, input)
+    const tokens = parseTokenResponse(value)
+    if (tokens === null) {
+        throw new Error('The server returned an invalid token response.')
+    }
+
+    return tokens
+}
+
+export async function getSiteConfig(
+    tenantHost: TenantHost,
+): Promise<ApiEnvelope<SiteConfig>> {
+    const parsed = parseSiteConfigEnvelope(
+        await request('/api/proxy/public/site-config', tenantHost),
+    )
+    if (parsed === null) {
+        throw new Error('The server returned an invalid site configuration.')
+    }
+
+    return parsed
+}
+
+export async function getMe(tenantHost: TenantHost): Promise<ApiEnvelope<Me>> {
+    const parsed = parseMeEnvelope(
+        await authenticatedRequest('/api/proxy/me', tenantHost),
+    )
+    if (parsed === null) {
+        throw new Error('The server returned an invalid account response.')
+    }
+
+    return parsed
+}
+
+export async function getAccess(
+    tenantHost: TenantHost,
+): Promise<ApiEnvelope<Access>> {
+    const parsed = parseAccessEnvelope(
+        await authenticatedRequest('/api/proxy/me/access', tenantHost),
+    )
+    if (parsed === null) {
+        throw new Error('The server returned an invalid access response.')
+    }
+
+    return parsed
+}
+
+export async function fetchImages(
+    tenantHost: TenantHost,
+): Promise<ApiEnvelope<MediaAsset[]>> {
+    const parsed = parseMediaListEnvelope(
+        await authenticatedRequest('/api/media', tenantHost),
+    )
+    if (parsed === null) {
+        throw new Error('The server returned an invalid media response.')
+    }
+
+    return parsed
+}
+
+export async function fetchImagePreviewUrl(
+    tenantHost: TenantHost,
+    id: number,
+): Promise<string | null> {
+    const value = await authenticatedRequest(
+        `/api/proxy/media/${id}/preview-url`,
+        tenantHost,
+    )
+    return parsePreviewUrlEnvelope(value)
+}
+
+export async function listPublicArticles(
+    tenantHost: TenantHost,
+): Promise<PublicArticle[]> {
+    const parsed = parsePublicArticleListEnvelope(
+        await request('/api/proxy/public/articles', tenantHost),
+    )
+    if (parsed === null) {
+        throw new Error('The server returned an invalid article list.')
+    }
+
+    return parsed.data
+}
+
+export async function getPublicArticle(
+    tenantHost: TenantHost,
+    slug: string,
+): Promise<PublicArticle> {
+    const parsed = parsePublicArticleEnvelope(
+        await request(`/api/proxy/public/articles/${encodeURIComponent(slug)}`, tenantHost),
+    )
+    if (parsed === null) {
+        throw new Error('The server returned an invalid article.')
+    }
+
+    return parsed.data
+}
+
+export async function listPublicSeries(
+    tenantHost: TenantHost,
+): Promise<PublicSeries[]> {
+    const parsed = parsePublicSeriesListEnvelope(
+        await request('/api/proxy/public/series', tenantHost),
+    )
+    if (parsed === null) {
+        throw new Error('The server returned an invalid series list.')
+    }
+
+    return parsed.data
+}
+
+export async function listPublicEpisodes(
+    tenantHost: TenantHost,
+): Promise<PublicEpisode[]> {
+    const parsed = parsePublicEpisodeListEnvelope(
+        await request('/api/proxy/public/episodes', tenantHost),
+    )
+    if (parsed === null) {
+        throw new Error('The server returned an invalid episode list.')
+    }
+
+    return parsed.data
+}
+
+/** Entitled (or publisher) episode list — includes playable audio URLs for PAID content. */
+export async function listMyEpisodes(
+    tenantHost: TenantHost,
+): Promise<PublicEpisode[]> {
+    const parsed = parsePublicEpisodeListEnvelope(
+        await authenticatedRequest('/api/proxy/me/episodes', tenantHost),
+    )
+    if (parsed === null) {
+        throw new Error('The server returned an invalid episode list.')
+    }
+
+    return parsed.data
+}
+
+/** Private subscriber RSS feeds the signed-in user can use in a podcast app. */
+export async function listMyFeeds(
+    tenantHost: TenantHost,
+): Promise<SubscriberFeed[]> {
+    const parsed = parseSubscriberFeedListEnvelope(
+        await authenticatedRequest('/api/proxy/me/feeds', tenantHost),
+    )
+    if (parsed === null) {
+        throw new Error('The server returned an invalid feed list.')
+    }
+
+    return parsed.data
+}
+
+export async function listPublicFormats(
+    tenantHost: TenantHost,
+): Promise<PublicFormat[]> {
+    const parsed = parsePublicFormatListEnvelope(
+        await request('/api/proxy/public/formats', tenantHost),
+    )
+    if (parsed === null) {
+        throw new Error('The server returned an invalid format list.')
+    }
+
+    return parsed.data
+}
+
+export async function listPublicCategories(
+    tenantHost: TenantHost,
+): Promise<PublicCategory[]> {
+    const parsed = parsePublicCategoryListEnvelope(
+        await request('/api/proxy/public/categories', tenantHost),
+    )
+    if (parsed === null) {
+        throw new Error('The server returned an invalid category list.')
+    }
+
+    return parsed.data
+}
+
+export async function listPublicProducts(
+    tenantHost: TenantHost,
+): Promise<PublicProduct[]> {
+    const parsed = parsePublicProductListEnvelope(
+        await request('/api/proxy/public/products', tenantHost),
+    )
+    if (parsed === null) {
+        throw new Error('The server returned an invalid product list.')
+    }
+
+    return parsed.data
+}
+
+export async function listMySubscriptions(
+    tenantHost: TenantHost,
+): Promise<SubscriptionSummary[]> {
+    const parsed = parseSubscriptionListEnvelope(
+        await authenticatedRequest('/api/proxy/me/subscriptions', tenantHost),
+    )
+    if (parsed === null) {
+        throw new Error('The server returned an invalid subscription list.')
+    }
+
+    return parsed.data
+}
+
+export async function rotateDefaultFeedToken(
+    tenantHost: TenantHost,
+): Promise<SubscriberFeed> {
+    const parsed = parseSubscriberFeedEnvelope(
+        await authenticatedRequest('/api/proxy/me/feeds/default/rotate-token', tenantHost, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({}),
+        }),
+    )
+    if (parsed === null) {
+        throw new Error('The server returned an invalid feed response.')
+    }
+
+    return parsed.data
+}
+
+export async function setDefaultFeedEnabled(
+    tenantHost: TenantHost,
+    enabled: boolean,
+): Promise<SubscriberFeed> {
+    const parsed = parseSubscriberFeedEnvelope(
+        await authenticatedRequest('/api/proxy/me/feeds/default/enabled', tenantHost, {
+            method: 'PUT',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({enabled}),
+        }),
+    )
+    if (parsed === null) {
+        throw new Error('The server returned an invalid feed response.')
+    }
+
+    return parsed.data
+}
+
+export async function createCheckoutSession(
+    tenantHost: TenantHost,
+    productSlug: string,
+): Promise<string | null> {
+    const value = await authenticatedRequest(
+        '/api/proxy/me/billing/checkout-sessions',
+        tenantHost,
+        {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({productSlug}),
+        },
+    )
+    return parseCheckoutSessionEnvelope(value)
+}
+
+export async function createPortalSession(
+    tenantHost: TenantHost,
+    returnUrl: string,
+): Promise<string | null> {
+    const value = await authenticatedRequest(
+        '/api/proxy/me/billing/portal',
+        tenantHost,
+        {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({returnUrl}),
+        },
+    )
+    return parseCheckoutSessionEnvelope(value)
+}
+
+export async function listMyDownloads(
+    tenantHost: TenantHost,
+): Promise<SubscriberDownload[]> {
+    const parsed = parseSubscriberDownloadListEnvelope(
+        await authenticatedRequest('/api/proxy/me/downloads', tenantHost),
+    )
+    if (parsed === null) {
+        throw new Error('The server returned an invalid download list.')
+    }
+    return parsed.data
+}

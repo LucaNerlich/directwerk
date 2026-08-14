@@ -1,0 +1,17 @@
+meta {
+  name: 3 - Get Tenant A
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/api/v1/platform/tenants/{{tenantAId}}
+  body: none
+  auth: inherit
+}
+
+tests {
+  test("returns expected status", function() {
+    expect(res.getStatus() === 200).to.equal(true);
+  });
+}

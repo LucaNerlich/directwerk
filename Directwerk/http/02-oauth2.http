@@ -1,0 +1,73 @@
+### Directwerk — OAuth2 password + refresh
+### Prerequisites: DevDataInitializer seed users
+### Captures: platformAccessToken, tenantAAccessToken, subscriberAccessToken
+
+### @name platformLogin
+POST {{baseUrl}}/oauth2/token
+Content-Type: application/x-www-form-urlencoded
+Authorization: Basic {{platformClientId}} {{platformClientSecret}}
+
+grant_type=password&username={{platformAdminEmail}}&password={{platformAdminPassword}}&client_id={{platformClientId}}
+
+> {%
+    client.test("Platform admin login", function() {
+        client.assert(response.status === 200, "Expected 200, got " + response.status);
+        client.assert(response.body.access_token, "Expected access_token");
+    });
+    client.global.set("platformAccessToken", response.body.access_token);
+    client.global.set("platformRefreshToken", response.body.refresh_token);
+%}
+
+###
+
+### @name platformTokenRefresh
+POST {{baseUrl}}/oauth2/token
+Content-Type: application/x-www-form-urlencoded
+Authorization: Basic {{platformClientId}} {{platformClientSecret}}
+
+grant_type=refresh_token&refresh_token={{platformRefreshToken}}&client_id={{platformClientId}}
+
+> {%
+    client.test("Platform refresh", function() {
+        client.assert(response.status === 200, "Expected 200");
+        client.assert(response.body.access_token, "Expected access_token");
+    });
+    client.global.set("platformAccessToken", response.body.access_token);
+%}
+
+###
+
+### @name tenantAAdminLogin
+POST {{baseUrl}}/oauth2/token
+Content-Type: application/x-www-form-urlencoded
+Authorization: Basic {{oauthClientId}} {{oauthClientSecret}}
+Host: {{tenantAHost}}
+
+grant_type=password&username={{tenantAAdminEmail}}&password={{seedPassword}}&client_id={{oauthClientId}}
+
+> {%
+    client.test("Tenant A admin login", function() {
+        client.assert(response.status === 200, "Expected 200, got " + response.status);
+    });
+    client.global.set("tenantAAccessToken", response.body.access_token);
+%}
+
+###
+
+### @name tenantASubscriberLogin
+POST {{baseUrl}}/oauth2/token
+Content-Type: application/x-www-form-urlencoded
+Authorization: Basic {{oauthClientId}} {{oauthClientSecret}}
+Host: {{tenantAHost}}
+
+grant_type=password&username={{subscriberEmail}}&password={{seedPassword}}&client_id={{oauthClientId}}
+
+> {%
+    client.test("Subscriber login (register via 03-auth first if needed)", function() {
+        client.assert(response.status === 200 || response.status === 400,
+            "Expected 200 or 400 before register");
+        if (response.status === 200) {
+            client.global.set("subscriberAccessToken", response.body.access_token);
+        }
+    });
+%}

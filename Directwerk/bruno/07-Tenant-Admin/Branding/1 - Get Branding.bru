@@ -1,0 +1,22 @@
+meta {
+  name: 1 - Get Branding
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/api/v1/tenant/branding
+  body: none
+  auth: inherit
+}
+
+tests {
+  test("returns expected status", function() {
+    expect(res.getStatus() === 200).to.equal(true);
+    expect(res.body.data).to.have.property("siteTitle");
+    expect(res.body.data).to.have.property("primaryColor");
+    expect(res.body.data).to.have.property("secondaryColor");
+    expect(res.body.data).to.have.property("logoUrl");
+    expect(res.body.data).to.have.property("umamiWebsiteId");
+  });
+}

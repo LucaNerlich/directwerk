@@ -1,0 +1,33 @@
+meta {
+  name: 1 - Invite Tenant User (Editor)
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/api/v1/tenant/users/invite
+  body: json
+  auth: inherit
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "email": "new-editor@alpha-show.local",
+    "name": "New Editor",
+    "role": "EDITOR"
+  }
+}
+
+script:post-response {
+  bru.setVar("inviteToken", res.body.data && res.body.data.inviteToken);
+}
+
+tests {
+  test("returns expected status", function() {
+    expect(res.getStatus() === 201 || res.getStatus() === 409).to.equal(true);
+  });
+}

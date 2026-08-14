@@ -1,0 +1,21 @@
+meta {
+  name: 5 - Get Preview URL
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{baseUrl}}/api/v1/media/{{mediaAssetId}}/preview-url
+  body: none
+  auth: inherit
+}
+
+params:query {
+  previewDraft: true
+}
+
+tests {
+  test("returns expected status", function() {
+    expect(res.getStatus() === 200 || res.getStatus() === 400 || res.getStatus() === 404 || res.getStatus() === 503).to.equal(true);
+  });
+}

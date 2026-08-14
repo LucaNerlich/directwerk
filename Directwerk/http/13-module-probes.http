@@ -1,0 +1,30 @@
+### Directwerk — ModuleProbeController
+### Prerequisites: 07-platform-modules.http (PODCAST on tenant A), tenant admin or editor token
+
+### @name digitalProbe
+GET {{baseUrl}}/api/v1/probes/digital
+Host: {{tenantAHost}}
+Authorization: Bearer {{tenantAAccessToken}}
+Accept: application/json
+
+> {%
+    client.test("DIGITAL_CONTENT probe", function() {
+        client.assert(response.status === 200, "Expected 200");
+        client.assert(response.body.data.module === "DIGITAL_CONTENT", "Expected DIGITAL_CONTENT");
+    });
+%}
+
+###
+
+### @name podcastProbe
+GET {{baseUrl}}/api/v1/probes/podcast
+Host: {{tenantAHost}}
+Authorization: Bearer {{tenantAAccessToken}}
+Accept: application/json
+
+> {%
+    client.test("PODCAST probe", function() {
+        client.assert(response.status === 200, "Expected 200");
+        client.assert(response.body.data.module === "PODCAST", "Expected PODCAST");
+    });
+%}

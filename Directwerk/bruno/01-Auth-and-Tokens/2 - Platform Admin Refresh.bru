@@ -1,0 +1,36 @@
+meta {
+  name: 2 - Platform Admin Refresh
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/oauth2/token
+  body: formUrlEncoded
+  auth: basic
+}
+
+auth:basic {
+  username: {{platformClientId}}
+  password: {{platformClientSecret}}
+}
+
+headers {
+  Content-Type: application/x-www-form-urlencoded
+}
+
+body:form-urlencoded {
+  grant_type: refresh_token
+  refresh_token: {{platformRefreshToken}}
+  client_id: {{platformClientId}}
+}
+
+script:post-response {
+  bru.setVar("platformAccessToken", res.body.access_token);
+}
+
+tests {
+  test("returns expected status", function() {
+    expect(res.getStatus() === 200).to.equal(true);
+  });
+}

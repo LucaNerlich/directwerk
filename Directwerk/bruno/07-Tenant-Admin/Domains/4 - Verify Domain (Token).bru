@@ -1,0 +1,31 @@
+meta {
+  name: 4 - Verify Domain (Token)
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{baseUrl}}/api/v1/tenant/domains/{{newDomainHost}}/verify
+  body: json
+  auth: inherit
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "token": "{{domainVerifyToken}}"
+  }
+}
+
+tests {
+  test("returns expected status", function() {
+    expect(res.getStatus() === 200 || res.getStatus() === 400).to.equal(true);
+  });
+}
+
+docs {
+  200 requires directwerk.security.allow-token-domain-verification=true (local profile); 400 if that's off or the real DNS TXT record isn't present -- this endpoint falls back to a genuine DNS check otherwise.
+}

@@ -1,0 +1,23 @@
+meta {
+  name: 02-Me
+  seq: 2
+}
+
+auth {
+  mode: bearer
+}
+
+auth:bearer {
+  token: {{subscriberAccessToken}}
+}
+
+headers {
+  Host: {{tenantAHost}}
+}
+
+docs {
+  Requires 01-Auth-and-Tokens/6 (Tenant A Subscriber Login) to have run.
+  Includes notification preference opt-in for EMAIL_NOTIFY content emails
+  and MeBillingController checkout + Customer Portal (201 when Stripe is live,
+  409/501 when Connect or platform keys are missing).
+}

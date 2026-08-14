@@ -1,0 +1,27 @@
+meta {
+  name: 6 - Replace Episode Categories
+  type: http
+  seq: 6
+}
+
+put {
+  url: {{baseUrl}}/api/v1/episodes/{{podcastEpisodeId}}/categories
+  body: json
+  auth: inherit
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "categoryIds": [{{podcastCategoryId}}]
+  }
+}
+
+tests {
+  test("returns expected status", function() {
+    expect(res.getStatus() === 200).to.equal(true);
+  });
+}

@@ -1,0 +1,31 @@
+meta {
+  name: 0 - Clear All Tokens (utility)
+  type: http
+  seq: 0
+}
+
+get {
+  url: {{baseUrl}}/actuator/health
+  body: none
+  auth: none
+}
+
+script:pre-request {
+  bru.deleteVar("platformAccessToken");
+  bru.deleteVar("platformRefreshToken");
+  bru.deleteVar("tenantAAccessToken");
+  bru.deleteVar("tenantARefreshToken");
+  bru.deleteVar("editorAccessToken");
+  bru.deleteVar("subscriberAccessToken");
+  bru.deleteVar("subscriberRefreshToken");
+  bru.deleteVar("tenantBAccessToken");
+  bru.deleteVar("inviteToken");
+  bru.deleteVar("passwordResetToken");
+  bru.deleteVar("emailVerificationToken");
+}
+
+docs {
+  Not a real API call -- clears every runtime token variable this collection sets (via bru.deleteVar()),
+  then pings /actuator/health as a harmless request. Run this to force a clean re-login, or before
+  switching between local/dev environments.
+}

@@ -1,0 +1,104 @@
+### Directwerk — AuthController
+### Prerequisites: 02-oauth2.http (platformAccessToken for create-tenant invite flows)
+### Captures: invite tokens, subscriberAccessToken, passwordResetToken
+
+### @name registerSubscriber
+POST {{baseUrl}}/api/v1/auth/register
+Host: {{tenantAHost}}
+Content-Type: application/json
+Accept: application/json
+
+{
+  "email": "{{subscriberEmail}}",
+  "password": "{{seedPassword}}",
+  "name": "Test Subscriber"
+}
+
+> {%
+    client.test("Register subscriber", function() {
+        client.assert(response.status === 201 || response.status === 409,
+            "Expected 201 or 409, got " + response.status);
+    });
+%}
+
+###
+
+### @name subscriberLoginAfterRegister
+POST {{baseUrl}}/oauth2/token
+Content-Type: application/x-www-form-urlencoded
+Authorization: Basic {{oauthClientId}} {{oauthClientSecret}}
+Host: {{tenantAHost}}
+
+grant_type=password&username={{subscriberEmail}}&password={{seedPassword}}&client_id={{oauthClientId}}
+
+> {%
+    client.test("Subscriber login after register", function() {
+        client.assert(response.status === 200, "Expected 200");
+    });
+    client.global.set("subscriberAccessToken", response.body.access_token);
+%}
+
+###
+
+### @name acceptInvite
+# Set inviteToken from 06/08/09/10 invite responses (local expose-dev-tokens)
+POST {{baseUrl}}/api/v1/auth/accept-invite
+Content-Type: application/json
+Accept: application/json
+
+{
+  "token": "{{inviteToken}}",
+  "password": "{{seedPassword}}",
+  "name": "Invited User"
+}
+
+> {%
+    client.test("Accept invite", function() {
+        client.assert(response.status === 200 || response.status === 400,
+            "Expected 200 when inviteToken set, else 400");
+        if (response.status === 200) {
+            client.assert(response.body.data.email, "Expected email");
+        }
+    });
+%}
+
+###
+
+### @name forgotPassword
+POST {{baseUrl}}/api/v1/auth/forgot-password
+Host: {{tenantAHost}}
+Content-Type: application/json
+Accept: application/json
+
+{
+  "email": "{{subscriberEmail}}"
+}
+
+> {%
+    client.test("Forgot password", function() {
+        client.assert(response.status === 202, "Expected 202");
+        if (response.body.data && response.body.data.devResetToken) {
+            client.global.set("passwordResetToken", response.body.data.devResetToken);
+        }
+    });
+%}
+
+###
+
+### @name resetPassword
+POST {{baseUrl}}/api/v1/auth/reset-password
+Host: {{tenantAHost}}
+Content-Type: application/json
+Accept: application/json
+
+{
+  "token": "{{passwordResetToken}}",
+  "newPassword": "{{seedPassword}}"
+}
+
+> {%
+    client.test("Reset password", function() {
+        client.assert(response.status === 200 || response.status === 400,
+            "Expected 200 when passwordResetToken set, else 400");
+    });
+%}

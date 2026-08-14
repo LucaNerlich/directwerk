@@ -1,0 +1,17 @@
+meta {
+  name: 1 - List Episodes
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/api/v1/episodes
+  body: none
+  auth: inherit
+}
+
+tests {
+  test("returns expected status", function() {
+    expect(res.getStatus() === 200).to.equal(true);
+  });
+}

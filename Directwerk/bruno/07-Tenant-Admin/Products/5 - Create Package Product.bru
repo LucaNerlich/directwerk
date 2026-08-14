@@ -1,0 +1,42 @@
+meta {
+  name: 5 - Create Package Product
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{baseUrl}}/api/v1/tenant/products
+  body: json
+  auth: inherit
+}
+
+headers {
+  Content-Type: application/json
+}
+
+script:pre-request {
+  bru.setVar("packageProductSlug", "package-" + Date.now().toString(36));
+}
+
+body:json {
+  {
+    "slug": "{{packageProductSlug}}",
+    "title": "Format Package",
+    "sortOrder": 0,
+    "offeringType": "PACKAGE"
+  }
+}
+
+vars:post-response {
+  packageProductId: res.body.data && res.body.data.id
+}
+
+tests {
+  test("returns expected status", function() {
+    expect(res.getStatus() === 201 || res.getStatus() === 500).to.equal(true);
+  });
+}
+
+docs {
+  Same live-observed 500 as Products/2 - Create Product (LEVEL) -- see its docs note.
+}

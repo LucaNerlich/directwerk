@@ -1,0 +1,21 @@
+meta {
+  name: 7 - Get Notification Preferences
+  type: http
+  seq: 7
+}
+
+get {
+  url: {{baseUrl}}/api/v1/me/notification-preferences
+  body: none
+  auth: inherit
+}
+
+tests {
+  test("returns expected status", function() {
+    expect(res.getStatus() === 200).to.equal(true);
+  });
+}
+
+docs {
+  Default emailNotificationsEnabled is false until the subscriber opts in.
+}

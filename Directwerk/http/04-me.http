@@ -1,0 +1,107 @@
+### Directwerk — MeController
+### Prerequisites: 02-oauth2.http / 03-auth.http (tenantAAccessToken, subscriberAccessToken)
+
+### @name getMeSubscriber
+GET {{baseUrl}}/api/v1/me
+Host: {{tenantAHost}}
+Authorization: Bearer {{subscriberAccessToken}}
+Accept: application/json
+
+> {%
+    client.test("GET /me subscriber", function() {
+        client.assert(response.status === 200, "Expected 200");
+        client.assert(response.body.data.email === client.global.get("subscriberEmail"), "Expected subscriber email");
+        client.assert(response.body.data.roles.includes("SUBSCRIBER"), "Expected SUBSCRIBER");
+    });
+%}
+
+###
+
+### @name getMeAccess
+GET {{baseUrl}}/api/v1/me/access
+Host: {{tenantAHost}}
+Authorization: Bearer {{subscriberAccessToken}}
+Accept: application/json
+
+> {%
+    client.test("GET /me/access", function() {
+        client.assert(response.status === 200, "Expected 200");
+        client.assert(Array.isArray(response.body.data.activeLevels), "Expected activeLevels");
+        client.assert(Array.isArray(response.body.data.roles), "Expected roles");
+    });
+%}
+
+###
+
+### @name getNotificationPreferences
+GET {{baseUrl}}/api/v1/me/notification-preferences
+Host: {{tenantAHost}}
+Authorization: Bearer {{subscriberAccessToken}}
+Accept: application/json
+
+> {%
+    client.test("GET /me/notification-preferences", function() {
+        client.assert(response.status === 200, "Expected 200");
+        client.assert(typeof response.body.data.emailNotificationsEnabled === "boolean", "Expected boolean field");
+    });
+%}
+
+###
+
+### @name optInEmailNotifications
+PATCH {{baseUrl}}/api/v1/me/notification-preferences
+Host: {{tenantAHost}}
+Authorization: Bearer {{subscriberAccessToken}}
+Content-Type: application/json
+Accept: application/json
+
+{
+  "emailNotificationsEnabled": true
+}
+
+> {%
+    client.test("PATCH /me/notification-preferences opt-in", function() {
+        client.assert(response.status === 200, "Expected 200");
+        client.assert(response.body.data.emailNotificationsEnabled === true, "Expected opt-in");
+    });
+%}
+
+###
+
+### @name createCheckoutSession
+POST {{baseUrl}}/api/v1/me/billing/checkout-sessions
+Host: {{tenantAHost}}
+Authorization: Bearer {{subscriberAccessToken}}
+Content-Type: application/json
+Accept: application/json
+
+{
+  "productSlug": "supporter",
+  "successUrl": "http://localhost:3001/checkout/success",
+  "cancelUrl": "http://localhost:3001/checkout/cancel"
+}
+
+> {%
+    client.test("POST /me/billing/checkout-sessions", function() {
+        client.assert(response.status === 501 || response.status === 201 || response.status === 409, "Expected 501/201/409");
+        if (response.status === 501) {
+            client.assert(response.body.errors[0].code === "STRIPE_NOT_IMPLEMENTED", "Expected STRIPE_NOT_IMPLEMENTED");
+        }
+        if (response.status === 201) {
+            client.assert(typeof response.body.data.url === "string", "Expected checkout URL");
+        }
+    });
+%}
+
+###
+
+### @name platformMeForbidden
+GET {{baseUrl}}/api/v1/me
+Authorization: Bearer {{platformAccessToken}}
+Accept: application/json
+
+> {%
+    client.test("Platform token cannot use tenant /me", function() {
+        client.assert(response.status === 403, "Expected 403");
+    });
+%}

@@ -1,0 +1,87 @@
+### Directwerk — Entitlements and package rules (Phase 4b)
+### Prerequisites: 02-oauth2.http (tenantAAccessToken), 19-podcast-content.http (podcastFormatId).
+
+### @name createPackageProduct
+< {%
+  client.global.set("packageProductSlug", "package-" + Date.now().toString(36));
+%}
+POST {{baseUrl}}/api/v1/tenant/products
+Host: {{tenantAHost}}
+Authorization: Bearer {{tenantAAccessToken}}
+Content-Type: application/json
+Accept: application/json
+
+{
+  "slug": "{{packageProductSlug}}",
+  "title": "Format Package",
+  "sortOrder": 0,
+  "offeringType": "PACKAGE"
+}
+
+> {%
+    client.test("Create PACKAGE product", function() {
+        client.assert(response.status === 201 || response.status === 403, "Expected 201 or module gate 403");
+        if (response.status === 201) {
+            client.global.set("packageProductId", response.body.data.id);
+        }
+    });
+%}
+
+###
+
+### @name replacePackageRules
+PUT {{baseUrl}}/api/v1/tenant/products/{{packageProductId}}/rules
+Host: {{tenantAHost}}
+Authorization: Bearer {{tenantAAccessToken}}
+Content-Type: application/json
+Accept: application/json
+
+{
+  "rules": [
+    {
+      "scopeType": "FORMAT",
+      "scopeId": {{podcastFormatId}}
+    }
+  ]
+}
+
+> {%
+    client.test("Replace package rules", function() {
+        client.assert(
+            response.status === 200 || response.status === 400 || response.status === 403 || response.status === 404,
+            "Expected rules response or soft failure"
+        );
+    });
+%}
+
+###
+
+### @name getMeAccessWithPackages
+GET {{baseUrl}}/api/v1/me/access
+Host: {{tenantAHost}}
+Authorization: Bearer {{subscriberAccessToken}}
+Accept: application/json
+
+> {%
+    client.test("GET /me/access includes packages", function() {
+        client.assert(response.status === 200, "Expected 200");
+        client.assert(Array.isArray(response.body.data.activePackages), "Expected activePackages");
+    });
+%}
+
+###
+
+### @name listMeSubscriptions
+GET {{baseUrl}}/api/v1/me/subscriptions
+Host: {{tenantAHost}}
+Authorization: Bearer {{subscriberAccessToken}}
+Accept: application/json
+
+> {%
+    client.test("GET /me/subscriptions", function() {
+        client.assert(response.status === 200 || response.status === 403, "Expected 200 or module gate 403");
+        if (response.status === 200) {
+            client.assert(Array.isArray(response.body.data), "Expected subscriptions array");
+        }
+    });
+%}

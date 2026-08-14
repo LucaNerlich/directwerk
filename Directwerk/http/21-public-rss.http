@@ -1,0 +1,205 @@
+### Directwerk — Public RSS (RssFeedController)
+### Prerequisites:
+###   02-oauth2.http (platformAccessToken), 06-platform-tenants.http (tenantAId)
+###   Host tenant resolved. Happy-path expects PODCAST_RSS active for tenant A.
+###
+### Ordering: ensure PODCAST_RSS enabled, then baseline RSS checks, then module-off gates.
+### Serialization: run http/21 then http/22 via the 00-index order (or equivalent CI/runner
+### sequential job). Do not run them concurrently against the same tenant — there is no
+### client.global mutual exclusion. Each off-check restores PODCAST_RSS immediately afterward.
+
+### @name ensurePodcastRssEnabledBeforePublicGate
+POST {{baseUrl}}/api/v1/platform/tenants/{{tenantAId}}/modules/PODCAST_RSS/activate
+Authorization: Bearer {{platformAccessToken}}
+Accept: application/json
+
+> {%
+    client.test("Ensure PODCAST_RSS on before public RSS checks", function() {
+        client.assert(response.status === 200, "Expected 200");
+        client.assert(response.body.data.enabledModules.includes("PODCAST_RSS"), "Expected PODCAST_RSS on");
+    });
+%}
+
+###
+
+### @name publicPodcastRss
+GET {{baseUrl}}/feeds/{{tenantASlug}}/podcast.xml
+Host: {{tenantAHost}}
+Accept: application/rss+xml
+
+> {%
+    client.test("Public podcast RSS", function() {
+        client.assert(response.status === 200 || response.status === 302 || response.status === 403 || response.status === 404, "Expected RSS redirect, XML, or gated 404/403");
+        if (response.status === 200) {
+            client.assert(response.body.includes("<rss"), "Expected RSS XML");
+        }
+        if (response.status === 302) {
+            client.assert(!!response.headers.location || !!response.headers.Location, "Expected Location for RSS redirect");
+        }
+        if (response.status === 403) {
+            client.assert(response.body.errors[0].code === "FEATURE_NOT_ENABLED", "Expected FEATURE_NOT_ENABLED");
+        }
+    });
+%}
+
+###
+
+### @name publicSeriesRss
+GET {{baseUrl}}/feeds/{{tenantASlug}}/{{podcastSeriesSlug}}.xml
+Host: {{tenantAHost}}
+Accept: application/rss+xml
+
+> {%
+    client.test("Public series RSS", function() {
+        client.assert(response.status === 200 || response.status === 302 || response.status === 403 || response.status === 404, "Expected RSS redirect, XML, or soft failure");
+        if (response.status === 403) {
+            client.assert(response.body.errors[0].code === "FEATURE_NOT_ENABLED", "Expected FEATURE_NOT_ENABLED");
+        }
+    });
+%}
+
+###
+
+### @name publicEnclosure
+GET {{baseUrl}}/feeds/{{tenantASlug}}/e/{{podcastEpisodeSlug}}.mp3
+Host: {{tenantAHost}}
+Accept: */*
+
+> {%
+    client.test("Public enclosure proxy", function() {
+        client.assert(
+            response.status === 302 || response.status === 403 || response.status === 404,
+            "Expected redirect or soft failure without FREE published READY audio/module"
+        );
+        if (response.status === 403) {
+            client.assert(response.body.errors[0].code === "FEATURE_NOT_ENABLED", "Expected FEATURE_NOT_ENABLED");
+        }
+    });
+%}
+
+###
+
+### @name deactivatePodcastRssForPublicPodcastOff
+DELETE {{baseUrl}}/api/v1/platform/tenants/{{tenantAId}}/modules/PODCAST_RSS
+Authorization: Bearer {{platformAccessToken}}
+Accept: application/json
+
+> {%
+    client.test("Deactivate PODCAST_RSS for public podcast feed", function() {
+        client.assert(response.status === 200, "Expected 200");
+        client.assert(!response.body.data.enabledModules.includes("PODCAST_RSS"), "Expected PODCAST_RSS off");
+    });
+%}
+
+###
+
+### @name publicPodcastRssModuleOff
+GET {{baseUrl}}/feeds/{{tenantASlug}}/podcast.xml
+Host: {{tenantAHost}}
+Accept: application/rss+xml
+
+> {%
+    client.test("Public podcast RSS without PODCAST_RSS", function() {
+        client.assert(response.status === 403, "Expected 403");
+        client.assert(response.body.errors[0].code === "FEATURE_NOT_ENABLED", "Expected FEATURE_NOT_ENABLED");
+    });
+%}
+
+###
+
+### @name restorePodcastRssAfterPublicPodcastOff
+POST {{baseUrl}}/api/v1/platform/tenants/{{tenantAId}}/modules/PODCAST_RSS/activate
+Authorization: Bearer {{platformAccessToken}}
+Accept: application/json
+
+> {%
+    client.test("Restore PODCAST_RSS after public podcast gate", function() {
+        client.assert(response.status === 200, "Expected 200");
+        client.assert(response.body.data.enabledModules.includes("PODCAST_RSS"), "Expected PODCAST_RSS on");
+    });
+%}
+
+###
+
+### @name deactivatePodcastRssForPublicSeriesOff
+DELETE {{baseUrl}}/api/v1/platform/tenants/{{tenantAId}}/modules/PODCAST_RSS
+Authorization: Bearer {{platformAccessToken}}
+Accept: application/json
+
+> {%
+    client.test("Deactivate PODCAST_RSS for public series feed", function() {
+        client.assert(response.status === 200, "Expected 200");
+        client.assert(!response.body.data.enabledModules.includes("PODCAST_RSS"), "Expected PODCAST_RSS off");
+    });
+%}
+
+###
+
+### @name publicSeriesRssModuleOff
+GET {{baseUrl}}/feeds/{{tenantASlug}}/missing-series.xml
+Host: {{tenantAHost}}
+Accept: application/rss+xml
+
+> {%
+    client.test("Public series RSS without PODCAST_RSS", function() {
+        client.assert(response.status === 403, "Expected 403");
+        client.assert(response.body.errors[0].code === "FEATURE_NOT_ENABLED", "Expected FEATURE_NOT_ENABLED");
+    });
+%}
+
+###
+
+### @name restorePodcastRssAfterPublicSeriesOff
+POST {{baseUrl}}/api/v1/platform/tenants/{{tenantAId}}/modules/PODCAST_RSS/activate
+Authorization: Bearer {{platformAccessToken}}
+Accept: application/json
+
+> {%
+    client.test("Restore PODCAST_RSS after public series gate", function() {
+        client.assert(response.status === 200, "Expected 200");
+        client.assert(response.body.data.enabledModules.includes("PODCAST_RSS"), "Expected PODCAST_RSS on");
+    });
+%}
+
+###
+
+### @name deactivatePodcastRssForPublicEnclosureOff
+DELETE {{baseUrl}}/api/v1/platform/tenants/{{tenantAId}}/modules/PODCAST_RSS
+Authorization: Bearer {{platformAccessToken}}
+Accept: application/json
+
+> {%
+    client.test("Deactivate PODCAST_RSS for public enclosure", function() {
+        client.assert(response.status === 200, "Expected 200");
+        client.assert(!response.body.data.enabledModules.includes("PODCAST_RSS"), "Expected PODCAST_RSS off");
+    });
+%}
+
+###
+
+### @name publicEnclosureModuleOff
+GET {{baseUrl}}/feeds/{{tenantASlug}}/e/missing-episode.mp3
+Host: {{tenantAHost}}
+Accept: */*
+
+> {%
+    client.test("Public enclosure without PODCAST_RSS", function() {
+        client.assert(response.status === 403, "Expected 403");
+        client.assert(response.body.errors[0].code === "FEATURE_NOT_ENABLED", "Expected FEATURE_NOT_ENABLED");
+    });
+%}
+
+###
+
+### @name restorePodcastRssAfterPublicEnclosureOff
+POST {{baseUrl}}/api/v1/platform/tenants/{{tenantAId}}/modules/PODCAST_RSS/activate
+Authorization: Bearer {{platformAccessToken}}
+Accept: application/json
+
+> {%
+    client.test("Restore PODCAST_RSS after public enclosure gate", function() {
+        client.assert(response.status === 200, "Expected 200");
+        client.assert(response.body.data.enabledModules.includes("PODCAST_RSS"), "Expected PODCAST_RSS on");
+    });
+%}
+

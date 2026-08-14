@@ -1,0 +1,31 @@
+meta {
+  name: 8b - Publish Episode (Notify Subscribers)
+  type: http
+  seq: 81
+}
+
+post {
+  url: {{baseUrl}}/api/v1/episodes/{{podcastEpisodeId}}/publish
+  body: json
+  auth: inherit
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "notifySubscribers": true
+  }
+}
+
+tests {
+  test("returns expected status", function() {
+    expect(res.getStatus() === 200 || res.getStatus() === 400 || res.getStatus() === 403 || res.getStatus() === 404).to.equal(true);
+  });
+}
+
+docs {
+  Requires EMAIL_NOTIFY module. Run 02-Me/8 and 06-Platform-Admin/Modules/7 first.
+}

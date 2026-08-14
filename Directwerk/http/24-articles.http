@@ -1,0 +1,271 @@
+### Directwerk — Newsletter desk articles (Phase 3b)
+### Prerequisites: 02-oauth2.http (tenantAAccessToken), DIGITAL_CONTENT active for tenant A.
+
+### @name createArticleDraft
+< {%
+  client.global.set("articleSlug", "article-" + Date.now().toString(36));
+%}
+POST {{baseUrl}}/api/v1/articles
+Host: {{tenantAHost}}
+Authorization: Bearer {{tenantAAccessToken}}
+Content-Type: application/json
+Accept: application/json
+
+{
+  "slug": "{{articleSlug}}",
+  "title": "Harness Article",
+  "body": "<p>Newsletter desk content from the HTTP harness.</p>",
+  "excerpt": "Created by 24-articles.http",
+  "accessPolicy": "FREE",
+  "categoryIds": []
+}
+
+> {%
+    client.test("Create article draft", function() {
+        client.assert(response.status === 201 || response.status === 403, "Expected 201 or 403 when DIGITAL_CONTENT is off");
+        if (response.status === 201) {
+            client.global.set("articleId", response.body.data.id);
+            client.global.set("articleSlug", response.body.data.slug);
+        }
+        // On 403, articleId/articleSlug remain unset; dependent requests will fail
+    });
+%}
+
+###
+
+### @name listArticles
+GET {{baseUrl}}/api/v1/articles
+Host: {{tenantAHost}}
+Authorization: Bearer {{tenantAAccessToken}}
+Accept: application/json
+
+> {%
+    client.test("List articles", function() {
+        client.assert(response.status === 200 || response.status === 403, "Expected 200 or 403");
+    });
+%}
+
+###
+
+### @name getArticle
+GET {{baseUrl}}/api/v1/articles/{{articleId}}
+Host: {{tenantAHost}}
+Authorization: Bearer {{tenantAAccessToken}}
+Accept: application/json
+
+> {%
+    client.test("Get article", function() {
+        client.assert(response.status === 200 || response.status === 403 || response.status === 404, "Expected article response");
+    });
+%}
+
+###
+
+### @name updateArticleDraft
+PUT {{baseUrl}}/api/v1/articles/{{articleId}}
+Host: {{tenantAHost}}
+Authorization: Bearer {{tenantAAccessToken}}
+Content-Type: application/json
+Accept: application/json
+
+{
+  "title": "Harness Article (updated)",
+  "excerpt": "Patched via 24-articles.http"
+}
+
+> {%
+    client.test("Update article draft", function() {
+        client.assert(response.status === 200 || response.status === 403 || response.status === 404, "Expected update response");
+    });
+%}
+
+###
+
+### @name replaceArticleCategories
+PUT {{baseUrl}}/api/v1/articles/{{articleId}}/categories
+Host: {{tenantAHost}}
+Authorization: Bearer {{tenantAAccessToken}}
+Content-Type: application/json
+Accept: application/json
+
+{
+  "categoryIds": []
+}
+
+> {%
+    client.test("Replace article categories", function() {
+        client.assert(response.status === 200 || response.status === 403 || response.status === 404, "Expected categories response");
+    });
+%}
+
+###
+
+### @name scheduleArticle
+POST {{baseUrl}}/api/v1/articles/{{articleId}}/schedule
+Host: {{tenantAHost}}
+Authorization: Bearer {{tenantAAccessToken}}
+Content-Type: application/json
+Accept: application/json
+
+{
+  "scheduledAt": "2030-01-01T12:00:00Z",
+  "notifySubscribers": false
+}
+
+> {%
+    client.test("Schedule article", function() {
+        client.assert(response.status === 200, "Expected 200 for valid schedule on DRAFT");
+    });
+%}
+
+###
+
+### @name cancelArticleSchedule
+POST {{baseUrl}}/api/v1/articles/{{articleId}}/cancel-schedule
+Host: {{tenantAHost}}
+Authorization: Bearer {{tenantAAccessToken}}
+Accept: application/json
+
+> {%
+    client.test("Cancel article schedule", function() {
+        client.assert(response.status === 200, "Expected 200 for successful cancellation");
+    });
+%}
+
+###
+
+### @name publishArticle
+POST {{baseUrl}}/api/v1/articles/{{articleId}}/publish
+Host: {{tenantAHost}}
+Authorization: Bearer {{tenantAAccessToken}}
+Content-Type: application/json
+Accept: application/json
+
+{
+  "notifySubscribers": false
+}
+
+> {%
+    client.test("Publish article", function() {
+        client.assert(response.status === 200, "Expected 200 for valid publish");
+    });
+%}
+
+###
+
+### @name createArticleDraftForNotify
+< {%
+  client.global.set("articleNotifySlug", "article-notify-" + Date.now().toString(36));
+%}
+POST {{baseUrl}}/api/v1/articles
+Host: {{tenantAHost}}
+Authorization: Bearer {{tenantAAccessToken}}
+Content-Type: application/json
+Accept: application/json
+
+{
+  "slug": "{{articleNotifySlug}}",
+  "title": "Harness Article with Notification",
+  "body": "<p>Article to test notify-on-publish flow.</p>",
+  "excerpt": "Created for notification test",
+  "accessPolicy": "FREE",
+  "categoryIds": []
+}
+
+> {%
+    client.test("Create article draft for notify test", function() {
+        client.assert(response.status === 201 || response.status === 403, "Expected 201 or 403 when DIGITAL_CONTENT is off");
+        if (response.status === 201) {
+            client.global.set("articleNotifyId", response.body.data.id);
+        }
+    });
+%}
+
+###
+
+### @name publishArticleNotifySubscribers
+POST {{baseUrl}}/api/v1/articles/{{articleNotifyId}}/publish
+Host: {{tenantAHost}}
+Authorization: Bearer {{tenantAAccessToken}}
+Content-Type: application/json
+Accept: application/json
+
+{
+  "notifySubscribers": true
+}
+
+> {%
+    client.test("Publish article with subscriber notification", function() {
+        client.assert(response.status === 200, "Expected 200 after notification draft setup");
+    });
+%}
+
+###
+
+### @name listPublicArticles
+GET {{baseUrl}}/api/v1/public/articles
+Host: {{tenantAHost}}
+Accept: application/json
+
+> {%
+    client.test("List public articles", function() {
+        client.assert(response.status === 200, "Expected 200");
+        client.assert(Array.isArray(response.body.data), "Expected public articles array");
+    });
+%}
+
+###
+
+### @name getPublicArticleBySlug
+GET {{baseUrl}}/api/v1/public/articles/{{articleSlug}}
+Host: {{tenantAHost}}
+Accept: application/json
+
+> {%
+    client.test("Get public article by slug", function() {
+        client.assert(response.status === 200, "Expected 200 for published article");
+    });
+%}
+
+###
+
+### @name unpublishArticle
+POST {{baseUrl}}/api/v1/articles/{{articleId}}/unpublish
+Host: {{tenantAHost}}
+Authorization: Bearer {{tenantAAccessToken}}
+Accept: application/json
+
+> {%
+    client.test("Unpublish article", function() {
+        client.assert(response.status === 200, "Expected 200 for valid unpublish");
+    });
+%}
+
+###
+
+### @name archiveArticle
+POST {{baseUrl}}/api/v1/articles/{{articleNotifyId}}/archive
+Host: {{tenantAHost}}
+Authorization: Bearer {{tenantAAccessToken}}
+Accept: application/json
+
+> {%
+    client.test("Archive article", function() {
+        client.assert(response.status === 200, "Expected 200 for archiving published notify article");
+    });
+%}
+
+###
+
+### @name unarchiveArticle
+POST {{baseUrl}}/api/v1/articles/{{articleNotifyId}}/unarchive
+Host: {{tenantAHost}}
+Authorization: Bearer {{tenantAAccessToken}}
+Accept: application/json
+
+> {%
+    client.test("Unarchive article", function() {
+        client.assert(response.status === 200, "Expected 200 for restoring archived article to draft");
+        client.assert(response.body.data.status === "DRAFT", "Expected DRAFT after unarchive");
+    });
+%}

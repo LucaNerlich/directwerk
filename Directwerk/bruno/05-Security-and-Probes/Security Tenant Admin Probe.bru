@@ -1,0 +1,21 @@
+meta {
+  name: Security Tenant Admin Probe
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/api/v1/security/tenant-admin
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{tenantAAccessToken}}
+}
+
+tests {
+  test("returns expected status", function() {
+    expect(res.getStatus() === 200).to.equal(true);
+  });
+}

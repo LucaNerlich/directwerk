@@ -1,0 +1,30 @@
+meta {
+  name: 4 - Claim Jobs
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{baseUrl}}/api/v1/platform/queue/jobs/claim
+  body: json
+  auth: inherit
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "queue": "email",
+    "worker": "bruno-worker",
+    "limit": 5,
+    "leaseSeconds": 60
+  }
+}
+
+tests {
+  test("returns expected status", function() {
+    expect(res.getStatus() === 200).to.equal(true);
+  });
+}

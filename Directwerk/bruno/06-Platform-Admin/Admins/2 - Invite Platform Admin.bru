@@ -1,0 +1,33 @@
+meta {
+  name: 2 - Invite Platform Admin
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/api/v1/platform/admins/invite
+  body: json
+  auth: inherit
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "email": "second-admin@publish.local",
+    "name": "Second Platform Admin"
+  }
+}
+
+script:post-response {
+  bru.setVar("inviteToken", res.body.data && res.body.data.inviteToken);
+  bru.setVar("secondAdminUserId", res.body.data && res.body.data.userId);
+}
+
+tests {
+  test("returns expected status", function() {
+    expect(res.getStatus() === 201).to.equal(true);
+  });
+}

@@ -1,0 +1,96 @@
+### Directwerk — Platform tenant media (ops / publish-admin Storage)
+### Prerequisites: 01-platform-auth.http (platformAccessToken), tenantAId from 06-platform-tenants.http
+### Optional: assets created via 17-media-upload.http or platform upload below
+### Storage must be enabled (DIRECTWERK_STORAGE_ENABLED=true) for upload-url / confirm.
+
+### @name listTenantMedia
+GET {{baseUrl}}/api/v1/platform/tenants/{{tenantAId}}/media?limit=50
+Authorization: Bearer {{platformAccessToken}}
+Accept: application/json
+
+> {%
+    client.test("List tenant media", function() {
+        client.assert(response.status === 200, "Expected 200");
+        client.assert(Array.isArray(response.body.data.content), "Expected content array");
+    });
+%}
+
+###
+
+### @name listTenantMediaFiltered
+GET {{baseUrl}}/api/v1/platform/tenants/{{tenantAId}}/media?assetType=IMAGE&status=READY&limit=20
+Authorization: Bearer {{platformAccessToken}}
+Accept: application/json
+
+> {%
+    client.test("List tenant media filtered", function() {
+        client.assert(response.status === 200, "Expected 200");
+        client.assert(Array.isArray(response.body.data.content), "Expected content array");
+    });
+%}
+
+###
+
+### @name platformCreateUploadUrl
+POST {{baseUrl}}/api/v1/platform/tenants/{{tenantAId}}/media/upload-url
+Authorization: Bearer {{platformAccessToken}}
+Content-Type: application/json
+Accept: application/json
+
+{
+  "filename": "platform-harness-cover.jpg",
+  "mimeType": "image/jpeg",
+  "sizeBytes": 1024,
+  "assetType": "IMAGE",
+  "intendedVisibility": "PUBLIC",
+  "scope": "TENANT_PUBLIC"
+}
+
+> {%
+    client.test("Platform create upload URL", function() {
+        client.assert(response.status === 201 || response.status === 503, "Expected 201 or 503 when storage off");
+        if (response.status === 201) {
+            client.assert(response.body.data.assetId, "Expected assetId");
+            client.assert(response.body.data.uploadUrl, "Expected uploadUrl");
+            client.global.set("platformMediaAssetId", response.body.data.assetId);
+        }
+    });
+%}
+
+###
+
+### @name platformConfirmUpload
+POST {{baseUrl}}/api/v1/platform/tenants/{{tenantAId}}/media/{{platformMediaAssetId}}/confirm
+Authorization: Bearer {{platformAccessToken}}
+Accept: application/json
+
+> {%
+    client.test("Platform confirm upload", function() {
+        client.assert(
+            response.status === 200 || response.status === 400 || response.status === 503,
+            "Expected 200 after PUT, or 400/503 without staging object / storage off"
+        );
+    });
+%}
+
+###
+
+### @name platformDeleteMedia
+DELETE {{baseUrl}}/api/v1/platform/tenants/{{tenantAId}}/media/{{platformMediaAssetId}}
+Authorization: Bearer {{platformAccessToken}}
+Accept: application/json
+
+> {%
+    client.test("Platform delete media", function() {
+        client.assert(
+            response.status === 200 || response.status === 404 || response.status === 503,
+            "Expected 200 queued, 404 if already archived, or 503 when storage off"
+        );
+        if (response.status === 200) {
+            client.assert(
+                response.body.data.status === "PENDING_DELETE",
+                "Expected PENDING_DELETE (queued)"
+            );
+        }
+    });
+%}

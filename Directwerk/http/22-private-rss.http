@@ -1,0 +1,204 @@
+### Directwerk — Private subscriber RSS (MeFeedController + RssFeedController private routes)
+### Prerequisites:
+###   02-oauth2.http / 03-auth.http (subscriberAccessToken, platformAccessToken)
+###   06-platform-tenants.http (tenantAId)
+###   Active subscription for subscriber; PODCAST_RSS + SUBSCRIPTION on tenant A.
+###
+### Ordering: ensure PODCAST_RSS enabled, initialize subscriberFeedUrl/privateEnclosureUrl
+### (setup requires HTTP 200 + valid URLs), then baseline RSS, then module-off gates.
+### Serialization: run after http/21 via 00-index order (or equivalent CI/runner sequential job).
+### Do not run concurrently with 21 against the same tenant.
+### Each off-check restores PODCAST_RSS immediately afterward.
+
+### @name ensurePodcastRssEnabledBeforePrivateGate
+POST {{baseUrl}}/api/v1/platform/tenants/{{tenantAId}}/modules/PODCAST_RSS/activate
+Authorization: Bearer {{platformAccessToken}}
+Accept: application/json
+
+> {%
+    client.test("Ensure PODCAST_RSS on before private RSS checks", function() {
+        client.assert(response.status === 200, "Expected 200");
+        client.assert(response.body.data.enabledModules.includes("PODCAST_RSS"), "Expected PODCAST_RSS on");
+    });
+%}
+
+###
+
+### @name listMeFeeds
+GET {{baseUrl}}/api/v1/me/feeds
+Host: {{tenantAHost}}
+Authorization: Bearer {{subscriberAccessToken}}
+Accept: application/json
+
+> {%
+    client.test("List subscriber feeds", function() {
+        client.assert(response.status === 200, "Expected 200 — PODCAST_RSS must be enabled for setup");
+        client.assert(Array.isArray(response.body.data) && response.body.data.length > 0, "Expected at least one feed");
+        const feedUrl = response.body.data[0].url;
+        client.assert(
+            typeof feedUrl === "string" && feedUrl.includes("/feeds/") && feedUrl.endsWith(".xml"),
+            "Expected a valid private feed URL"
+        );
+        client.global.set("subscriberFeedUrl", feedUrl);
+    });
+%}
+
+###
+
+### @name rotateDefaultFeedToken
+POST {{baseUrl}}/api/v1/me/feeds/default/rotate-token
+Host: {{tenantAHost}}
+Authorization: Bearer {{subscriberAccessToken}}
+Accept: application/json
+
+> {%
+    client.test("Rotate default feed token", function() {
+        client.assert(response.status === 200, "Expected 200 — PODCAST_RSS must be enabled for setup");
+        const feedUrl = response.body.data && response.body.data.url;
+        client.assert(
+            typeof feedUrl === "string" && feedUrl.includes("/feeds/") && feedUrl.endsWith(".xml"),
+            "Expected a valid private feed URL"
+        );
+        client.global.set("subscriberFeedUrl", feedUrl);
+        const episodeSlug = client.global.get("podcastEpisodeSlug") || "missing-episode";
+        const privateEnclosureUrl = feedUrl.replace(/\.xml$/, "/e/" + episodeSlug + ".mp3");
+        client.assert(
+            privateEnclosureUrl.includes("/e/") && privateEnclosureUrl.endsWith(".mp3"),
+            "Expected a valid private enclosure URL"
+        );
+        client.global.set("privateEnclosureUrl", privateEnclosureUrl);
+    });
+%}
+
+###
+
+### @name privateSubscriberFeed
+GET {{subscriberFeedUrl}}
+Host: {{tenantAHost}}
+Accept: application/rss+xml
+
+> {%
+    client.test("Private subscriber RSS", function() {
+        client.assert(response.status === 200 || response.status === 302 || response.status === 403 || response.status === 404, "Expected RSS redirect, XML, or soft failure");
+        if (response.status === 200) {
+            client.assert(response.body.includes("<rss"), "Expected RSS XML");
+        }
+        if (response.status === 403) {
+            client.assert(response.body.errors[0].code === "FEATURE_NOT_ENABLED", "Expected FEATURE_NOT_ENABLED");
+        }
+    });
+%}
+
+###
+
+### @name privateEnclosure
+GET {{privateEnclosureUrl}}
+Host: {{tenantAHost}}
+Accept: */*
+
+> {%
+    client.test("Private enclosure proxy", function() {
+        client.assert(
+            response.status === 302 || response.status === 403 || response.status === 404,
+            "Expected redirect or soft failure without token/audio/module"
+        );
+        if (response.status === 403) {
+            client.assert(response.body.errors[0].code === "FEATURE_NOT_ENABLED", "Expected FEATURE_NOT_ENABLED");
+        }
+    });
+%}
+
+###
+
+### @name deactivatePodcastRssForPrivateFeedOff
+DELETE {{baseUrl}}/api/v1/platform/tenants/{{tenantAId}}/modules/PODCAST_RSS
+Authorization: Bearer {{platformAccessToken}}
+Accept: application/json
+
+> {%
+    client.test("Deactivate PODCAST_RSS for private feed", function() {
+        client.assert(response.status === 200, "Expected 200");
+        client.assert(!response.body.data.enabledModules.includes("PODCAST_RSS"), "Expected PODCAST_RSS off");
+    });
+%}
+
+###
+
+### @name privateSubscriberFeedModuleOff
+GET {{subscriberFeedUrl}}
+Host: {{tenantAHost}}
+Accept: application/rss+xml
+
+> {%
+    client.test("Private subscriber RSS without PODCAST_RSS", function() {
+        const feedUrl = client.global.get("subscriberFeedUrl");
+        client.assert(
+            typeof feedUrl === "string" && feedUrl.includes("/feeds/") && feedUrl.endsWith(".xml"),
+            "subscriberFeedUrl must be initialized before gate checks"
+        );
+        client.assert(response.status === 403, "Expected 403");
+        client.assert(response.body.errors[0].code === "FEATURE_NOT_ENABLED", "Expected FEATURE_NOT_ENABLED");
+    });
+%}
+
+###
+
+### @name restorePodcastRssAfterPrivateFeedOff
+POST {{baseUrl}}/api/v1/platform/tenants/{{tenantAId}}/modules/PODCAST_RSS/activate
+Authorization: Bearer {{platformAccessToken}}
+Accept: application/json
+
+> {%
+    client.test("Restore PODCAST_RSS after private feed gate", function() {
+        client.assert(response.status === 200, "Expected 200");
+        client.assert(response.body.data.enabledModules.includes("PODCAST_RSS"), "Expected PODCAST_RSS on");
+    });
+%}
+
+###
+
+### @name deactivatePodcastRssForPrivateEnclosureOff
+DELETE {{baseUrl}}/api/v1/platform/tenants/{{tenantAId}}/modules/PODCAST_RSS
+Authorization: Bearer {{platformAccessToken}}
+Accept: application/json
+
+> {%
+    client.test("Deactivate PODCAST_RSS for private enclosure", function() {
+        client.assert(response.status === 200, "Expected 200");
+        client.assert(!response.body.data.enabledModules.includes("PODCAST_RSS"), "Expected PODCAST_RSS off");
+    });
+%}
+
+###
+
+### @name privateEnclosureModuleOff
+GET {{privateEnclosureUrl}}
+Host: {{tenantAHost}}
+Accept: */*
+
+> {%
+    client.test("Private enclosure without PODCAST_RSS", function() {
+        const enclosureUrl = client.global.get("privateEnclosureUrl");
+        client.assert(
+            typeof enclosureUrl === "string" && enclosureUrl.includes("/e/") && enclosureUrl.endsWith(".mp3"),
+            "privateEnclosureUrl must be initialized before gate checks"
+        );
+        client.assert(response.status === 403, "Expected 403");
+        client.assert(response.body.errors[0].code === "FEATURE_NOT_ENABLED", "Expected FEATURE_NOT_ENABLED");
+    });
+%}
+
+###
+
+### @name restorePodcastRssAfterPrivateEnclosureOff
+POST {{baseUrl}}/api/v1/platform/tenants/{{tenantAId}}/modules/PODCAST_RSS/activate
+Authorization: Bearer {{platformAccessToken}}
+Accept: application/json
+
+> {%
+    client.test("Restore PODCAST_RSS after private enclosure gate", function() {
+        client.assert(response.status === 200, "Expected 200");
+        client.assert(response.body.data.enabledModules.includes("PODCAST_RSS"), "Expected PODCAST_RSS on");
+    });
+%}
+

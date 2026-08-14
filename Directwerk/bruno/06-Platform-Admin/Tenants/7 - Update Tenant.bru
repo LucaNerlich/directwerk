@@ -1,0 +1,32 @@
+meta {
+  name: 7 - Update Tenant
+  type: http
+  seq: 7
+}
+
+patch {
+  url: {{baseUrl}}/api/v1/platform/tenants/{{tenantCId}}
+  body: json
+  auth: inherit
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "name": "Alpha Show C Renamed"
+  }
+}
+
+tests {
+  test("returns expected status", function() {
+    expect(res.getStatus() === 200 || res.getStatus() === 404 || res.getStatus() === 409).to.equal(true);
+  });
+}
+
+docs {
+  Renames tenant C (captured as tenantCId by 2 - Create Tenant). Both name and slug are optional --
+  omitting slug leaves it unchanged. 409 TENANT_SLUG_EXISTS if slug collides with another tenant.
+}

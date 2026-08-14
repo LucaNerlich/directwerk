@@ -1,0 +1,42 @@
+meta {
+  name: 2 - Stripe Webhook Invalid Signature
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/api/v1/webhooks/stripe
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+  Stripe-Signature: t=1,v1=deadbeef
+}
+
+body:json {
+  {
+    "id": "evt_test_invalid_sig",
+    "type": "checkout.session.completed"
+  }
+}
+
+tests {
+  test("rejects a bad Stripe-Signature", function() {
+    expect([400, 501]).to.include(res.getStatus());
+    if (res.getStatus() === 400) {
+      expect(res.body.errors[0].code).to.equal("STRIPE_SIGNATURE_INVALID");
+    }
+    if (res.getStatus() === 501) {
+      expect(res.body.errors[0].code).to.equal("STRIPE_NOT_IMPLEMENTED");
+    }
+  });
+}
+
+docs {
+  POST /api/v1/webhooks/stripe — StripeWebhookController.
+  No JWT. Tenant is resolved from the Connect account id in the event, never Host.
+  A present but invalid Stripe-Signature is 400 STRIPE_SIGNATURE_INVALID when the
+  webhook secret is configured; 501 without STRIPE_WEBHOOK_SECRET.
+}

@@ -1,0 +1,17 @@
+meta {
+  name: 4 - Deactivate Category
+  type: http
+  seq: 4
+}
+
+delete {
+  url: {{baseUrl}}/api/v1/categories/{{podcastCategoryId}}
+  body: none
+  auth: inherit
+}
+
+tests {
+  test("returns expected status", function() {
+    expect(res.getStatus() === 200).to.equal(true);
+  });
+}

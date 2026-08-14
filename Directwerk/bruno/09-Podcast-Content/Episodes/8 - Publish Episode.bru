@@ -1,0 +1,32 @@
+meta {
+  name: 8 - Publish Episode
+  type: http
+  seq: 8
+}
+
+post {
+  url: {{baseUrl}}/api/v1/episodes/{{podcastEpisodeId}}/publish
+  body: json
+  auth: inherit
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "notifySubscribers": false
+  }
+}
+
+tests {
+  test("returns expected status", function() {
+    expect(res.getStatus() === 200 || res.getStatus() === 400 || res.getStatus() === 403 || res.getStatus() === 404).to.equal(true);
+  });
+}
+
+docs {
+  400 EPISODE_VALIDATION_FAILED until a READY audio asset is attached.
+  Set notifySubscribers true to enqueue EMAIL_NOTIFY fan-out (first publish only).
+}

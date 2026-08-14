@@ -1,0 +1,145 @@
+spring:
+    application:
+        name: Directwerk
+    quartz:
+        job-store-type: jdbc
+        overwrite-existing-jobs: true
+        # Do not block JVM exit on in-flight queue/email jobs (Compose down / SIGTERM).
+        wait-for-jobs-to-complete-on-shutdown: false
+        jdbc:
+            initialize-schema: never
+    mail:
+        host: ${DIRECTWERK_MAIL_HOST:localhost}
+        port: ${DIRECTWERK_MAIL_PORT:1025}
+        username: ${DIRECTWERK_MAIL_USERNAME:}
+        password: ${DIRECTWERK_MAIL_PASSWORD:}
+        properties:
+            mail:
+                smtp:
+                    auth: ${DIRECTWERK_MAIL_SMTP_AUTH:false}
+                    connectiontimeout: ${DIRECTWERK_MAIL_SMTP_CONNECTIONTIMEOUT:5000}
+                    timeout: ${DIRECTWERK_MAIL_SMTP_TIMEOUT:5000}
+                    writetimeout: ${DIRECTWERK_MAIL_SMTP_WRITETIMEOUT:5000}
+                    starttls:
+                        enable: ${DIRECTWERK_MAIL_SMTP_STARTTLS:true}
+    jpa:
+        open-in-view: false
+        hibernate:
+            ddl-auto: validate
+        properties:
+            hibernate:
+                jdbc:
+                    time_zone: UTC
+    flyway:
+        enabled: true
+        locations: classpath:db/migration
+        baseline-on-migrate: true
+        baseline-version: 0
+        validate-on-migrate: true
+        clean-disabled: true
+        # Local/docker used to apply R__alpha_dev_seed via Flyway. Ignore leftover
+        # history rows so startup and flywayMigrate do not fail validation.
+        ignore-migration-patterns:
+            - repeatable:missing
+            - '*:future'
+        # V18/V22/V24 mix DML/DDL with CREATE INDEX CONCURRENTLY in one script.
+        mixed: true
+        # Required for CREATE/DROP INDEX CONCURRENTLY (V14+). Transactional advisory
+        # locks leave an open xact that blocks concurrent index builds forever.
+        postgresql:
+            transactional-lock: false
+
+server:
+    port: 8080
+    # Set to "framework" only when the app is exclusively reachable via trusted reverse proxies
+    # that overwrite Host / Forwarded headers. Leave "none" for direct local access.
+    forward-headers-strategy: ${DIRECTWERK_FORWARD_HEADERS_STRATEGY:none}
+
+management:
+    endpoints:
+        web:
+            exposure:
+                include: health,info
+
+directwerk:
+    security:
+        issuer: ${DIRECTWERK_ISSUER:}
+        audience: publish-api
+        platform-client-id: ${DIRECTWERK_PLATFORM_CLIENT_ID:publish-platform-admin}
+        tenant-client-id: ${DIRECTWERK_TENANT_CLIENT_ID:publish-tenant-frontend}
+        platform-client-secret: ${DIRECTWERK_PLATFORM_CLIENT_SECRET:}
+        tenant-client-secret: ${DIRECTWERK_TENANT_CLIENT_SECRET:}
+        jwt-private-key: ${DIRECTWERK_JWT_PRIVATE_KEY:}
+        jwt-public-key: ${DIRECTWERK_JWT_PUBLIC_KEY:}
+        authorization-store: ${DIRECTWERK_OAUTH2_AUTHORIZATION_STORE:jdbc}
+        allow-token-domain-verification: ${DIRECTWERK_ALLOW_TOKEN_DOMAIN_VERIFICATION:false}
+    dev:
+        seed-password: ${DIRECTWERK_DEV_SEED_PASSWORD:}
+        platform-admin-email: ${DIRECTWERK_DEV_PLATFORM_ADMIN_EMAIL:}
+        platform-admin-password: ${DIRECTWERK_DEV_PLATFORM_ADMIN_PASSWORD:}
+    account:
+        email-verification-required: ${DIRECTWERK_ACCOUNT_EMAIL_VERIFICATION_REQUIRED:true}
+        expose-dev-tokens: ${DIRECTWERK_ACCOUNT_EXPOSE_DEV_TOKENS:false}
+    bootstrap:
+        platform-admin-email: ${DIRECTWERK_BOOTSTRAP_PLATFORM_ADMIN_EMAIL:}
+        platform-admin-password: ${DIRECTWERK_BOOTSTRAP_PLATFORM_ADMIN_PASSWORD:}
+    email:
+        enabled: ${DIRECTWERK_EMAIL_ENABLED:true}
+        provider: ${DIRECTWERK_EMAIL_PROVIDER:smtp}
+        from-address: ${DIRECTWERK_EMAIL_FROM:}
+        from-name: ${DIRECTWERK_EMAIL_FROM_NAME:Directwerk}
+        studio-base-url: ${DIRECTWERK_EMAIL_STUDIO_BASE_URL:}
+        admin-base-url: ${DIRECTWERK_EMAIL_ADMIN_BASE_URL:}
+        accept-invite-path: ${DIRECTWERK_EMAIL_ACCEPT_INVITE_PATH:/accept-invite}
+        reset-password-path: ${DIRECTWERK_EMAIL_RESET_PASSWORD_PATH:/reset-password}
+        verify-email-path: ${DIRECTWERK_EMAIL_VERIFY_EMAIL_PATH:/verify-email}
+        delivery-retention-days: ${DIRECTWERK_EMAIL_DELIVERY_RETENTION_DAYS:7}
+    queue:
+        enabled: ${DIRECTWERK_QUEUE_ENABLED:true}
+        poll-interval-ms: ${DIRECTWERK_QUEUE_POLL_INTERVAL_MS:5000}
+        claim-limit: ${DIRECTWERK_QUEUE_CLAIM_LIMIT:10}
+        list-limit: ${DIRECTWERK_QUEUE_LIST_LIMIT:100}
+        lease-seconds: ${DIRECTWERK_QUEUE_LEASE_SECONDS:60}
+        max-lease-seconds: ${DIRECTWERK_QUEUE_MAX_LEASE_SECONDS:86400}
+        default-max-attempts: ${DIRECTWERK_QUEUE_DEFAULT_MAX_ATTEMPTS:5}
+        retry-delay-seconds: ${DIRECTWERK_QUEUE_RETRY_DELAY_SECONDS:30}
+        max-retry-delay-seconds: ${DIRECTWERK_QUEUE_MAX_RETRY_DELAY_SECONDS:604800}
+        json-byte-limit: ${DIRECTWERK_QUEUE_JSON_BYTE_LIMIT:100000}
+        worker-id: ${DIRECTWERK_QUEUE_WORKER_ID:}
+        retention-days: ${DIRECTWERK_QUEUE_RETENTION_DAYS:7}
+        cleanup-interval-ms: ${DIRECTWERK_QUEUE_CLEANUP_INTERVAL_MS:3600000}
+        cleanup-batch-size: ${DIRECTWERK_QUEUE_CLEANUP_BATCH_SIZE:1000}
+    analytics:
+        enabled: ${DIRECTWERK_ANALYTICS_ENABLED:false}
+        umami-host-url: ${DIRECTWERK_ANALYTICS_UMAMI_HOST_URL:}
+        user-agent: ${DIRECTWERK_ANALYTICS_USER_AGENT:Directwerk/1.0}
+    storage:
+        enabled: ${DIRECTWERK_STORAGE_ENABLED:false}
+        provider: ${DIRECTWERK_STORAGE_PROVIDER:hetzner}
+        region: ${DIRECTWERK_STORAGE_REGION:eu-central-1}
+        bucket: ${DIRECTWERK_STORAGE_BUCKET:directwerk-dev}
+        public-bucket: ${DIRECTWERK_STORAGE_PUBLIC_BUCKET:}
+        endpoint: ${DIRECTWERK_STORAGE_ENDPOINT:https://nbg1.your-objectstorage.com}
+        force-path-style: ${DIRECTWERK_STORAGE_FORCE_PATH_STYLE:false}
+        access-key: ${DIRECTWERK_STORAGE_ACCESS_KEY:${S3_ACCESS_KEY:}}
+        secret-key: ${DIRECTWERK_STORAGE_SECRET_KEY:${S3_SECRET_KEY:}}
+        public-cdn-base-url: ${DIRECTWERK_STORAGE_PUBLIC_CDN_BASE_URL:${S3_PUBLIC_CDN_BASE_URL:https://directwerk-dev.nbg1.your-objectstorage.com}}
+        private-cdn-base-url: ${DIRECTWERK_STORAGE_PRIVATE_CDN_BASE_URL:}
+        cdn-token-auth-key: ${DIRECTWERK_STORAGE_CDN_TOKEN_AUTH_KEY:}
+        presign-upload-ttl: ${DIRECTWERK_STORAGE_PRESIGN_UPLOAD_TTL:15m}
+        presign-download-ttl-api: ${DIRECTWERK_STORAGE_PRESIGN_DOWNLOAD_TTL_API:1h}
+        presign-download-ttl-rss: ${DIRECTWERK_STORAGE_PRESIGN_DOWNLOAD_TTL_RSS:24h}
+        staging-lifecycle-hours: ${DIRECTWERK_STORAGE_STAGING_LIFECYCLE_HOURS:24}
+        cdn-purge-api-key: ${DIRECTWERK_STORAGE_CDN_PURGE_API_KEY:}
+        cdn-purge-api-base-url: ${DIRECTWERK_STORAGE_CDN_PURGE_API_BASE_URL:https://api.bunny.net}
+    stripe:
+        secret-key: ${STRIPE_SECRET_KEY:}
+        publishable-key: ${STRIPE_PUBLISHABLE_KEY:}
+        webhook-secret: ${STRIPE_WEBHOOK_SECRET:}
+        connect-client-id: ${STRIPE_CONNECT_CLIENT_ID:}
+
+springdoc:
+    api-docs:
+        path: /v3/api-docs
+    swagger-ui:
+        path: /swagger-ui.html

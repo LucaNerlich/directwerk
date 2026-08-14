@@ -1,0 +1,21 @@
+meta {
+  name: Security Editor Probe (as Editor)
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{baseUrl}}/api/v1/security/editor
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{editorAccessToken}}
+}
+
+tests {
+  test("returns expected status", function() {
+    expect(res.getStatus() === 200).to.equal(true);
+  });
+}

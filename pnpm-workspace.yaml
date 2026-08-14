@@ -1,0 +1,7 @@
+packages:
+    - 'homepage'
+    - 'publish-admin'
+    - 'example-fe'
+    - 'publish-studio'
+    - 'publish-web'
+    - 'packages/*'

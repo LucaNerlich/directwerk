@@ -1,0 +1,29 @@
+meta {
+  name: 7 - Get Verification Challenge
+  type: http
+  seq: 7
+}
+
+get {
+  url: {{baseUrl}}/api/v1/tenant/domains/{{isolationUnverifiedHost}}/verification
+  body: none
+  auth: bearer
+}
+
+headers {
+  Host: {{tenantAHost}}
+}
+
+auth:bearer {
+  token: {{tenantAAccessToken}}
+}
+
+script:post-response {
+  bru.setVar("isolationVerifyToken", res.body.data && res.body.data.token);
+}
+
+tests {
+  test("returns expected status", function() {
+    expect(res.getStatus() === 200).to.equal(true);
+  });
+}

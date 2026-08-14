@@ -1,0 +1,21 @@
+meta {
+  name: Site Config (Unknown Host)
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/api/v1/public/site-config
+  body: none
+  auth: none
+}
+
+headers {
+  Host: unknown-tenant.localhost
+}
+
+tests {
+  test("returns expected status", function() {
+    expect(res.getStatus() === 404).to.equal(true);
+  });
+}

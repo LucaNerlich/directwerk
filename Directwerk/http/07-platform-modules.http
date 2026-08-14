@@ -1,0 +1,83 @@
+### Directwerk — PlatformModuleController
+### Prerequisites: 02-oauth2.http, 06-platform-tenants.http (tenantAId, tenantBId)
+
+### @name listAllModules
+GET {{baseUrl}}/api/v1/platform/modules
+Authorization: Bearer {{platformAccessToken}}
+Accept: application/json
+
+> {%
+    client.test("List modules", function() {
+        client.assert(response.status === 200, "Expected 200");
+        client.assert(Array.isArray(response.body.data), "Expected module array");
+        client.assert(response.body.data.some(m => m.moduleKey === "DIGITAL_CONTENT"), "Expected DIGITAL_CONTENT");
+    });
+%}
+
+###
+
+### @name getTenantAModules
+GET {{baseUrl}}/api/v1/platform/tenants/{{tenantAId}}/modules
+Authorization: Bearer {{platformAccessToken}}
+Accept: application/json
+
+> {%
+    client.test("Tenant A modules", function() {
+        client.assert(response.status === 200, "Expected 200");
+        client.assert(Array.isArray(response.body.data.enabledModules), "Expected enabledModules");
+    });
+%}
+
+###
+
+### @name activatePodcastModule
+POST {{baseUrl}}/api/v1/platform/tenants/{{tenantAId}}/modules/PODCAST/activate
+Authorization: Bearer {{platformAccessToken}}
+Accept: application/json
+
+> {%
+    client.test("Activate PODCAST", function() {
+        client.assert(response.status === 200, "Expected 200");
+        client.assert(response.body.data.enabledModules.includes("PODCAST"), "Expected PODCAST");
+    });
+%}
+
+###
+
+### @name applyFreePodcastPreset
+POST {{baseUrl}}/api/v1/platform/tenants/{{tenantBId}}/modules/preset/FREE_PODCAST
+Authorization: Bearer {{platformAccessToken}}
+Accept: application/json
+
+> {%
+    client.test("Apply FREE_PODCAST preset", function() {
+        client.assert(response.status === 200, "Expected 200");
+    });
+%}
+
+###
+
+### @name deactivatePodcastModule
+DELETE {{baseUrl}}/api/v1/platform/tenants/{{tenantAId}}/modules/PODCAST
+Authorization: Bearer {{platformAccessToken}}
+Accept: application/json
+
+> {%
+    client.test("Deactivate PODCAST", function() {
+        client.assert(response.status === 200, "Expected 200");
+        client.assert(!response.body.data.enabledModules.includes("PODCAST"), "Expected PODCAST off");
+    });
+%}
+
+###
+
+### @name reactivatePodcastForProbes
+POST {{baseUrl}}/api/v1/platform/tenants/{{tenantAId}}/modules/PODCAST/activate
+Authorization: Bearer {{platformAccessToken}}
+Accept: application/json
+
+> {%
+    client.test("Re-activate PODCAST", function() {
+        client.assert(response.status === 200, "Expected 200");
+    });
+%}

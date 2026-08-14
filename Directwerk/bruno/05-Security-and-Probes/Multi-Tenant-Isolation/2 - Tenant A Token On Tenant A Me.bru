@@ -1,0 +1,25 @@
+meta {
+  name: 2 - Tenant A Token On Tenant A Me
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/api/v1/me
+  body: none
+  auth: bearer
+}
+
+headers {
+  Host: {{tenantAHost}}
+}
+
+auth:bearer {
+  token: {{tenantAAccessToken}}
+}
+
+tests {
+  test("returns expected status", function() {
+    expect(res.getStatus() === 200).to.equal(true);
+  });
+}

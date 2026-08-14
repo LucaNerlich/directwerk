@@ -1,0 +1,17 @@
+meta {
+  name: 2 - Get Episode
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/api/v1/episodes/{{podcastEpisodeId}}
+  body: none
+  auth: inherit
+}
+
+tests {
+  test("returns expected status", function() {
+    expect(res.getStatus() === 200 || res.getStatus() === 404).to.equal(true);
+  });
+}

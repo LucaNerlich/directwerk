@@ -1,0 +1,30 @@
+meta {
+  name: 4 - Update Article
+  type: http
+  seq: 4
+}
+
+put {
+  url: {{baseUrl}}/api/v1/articles/{{articleId}}
+  body: json
+  auth: inherit
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "title": "Hello world (updated)",
+    "body": "<p>Updated body with <strong>HTML</strong>.</p>",
+    "excerpt": "Short teaser for cards and email.",
+    "accessPolicy": "FREE"
+  }
+}
+
+tests {
+  test("returns expected status", function() {
+    expect(res.getStatus() === 200 || res.getStatus() === 404).to.equal(true);
+  });
+}

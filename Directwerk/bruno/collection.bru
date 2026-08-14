@@ -1,0 +1,20 @@
+headers {
+  Accept: application/json
+}
+
+docs {
+  Directwerk API collection. Mirrors ../http/*.http (JetBrains HTTP Client harness) -- 
+  generated from the actual controller source, cross-checked against the harness.
+
+  Setup:
+  1. Start the API: docker compose up -d && ./gradlew :directwerk-app:bootRun (from Directwerk/)
+  2. Select the "local" environment in Bruno.
+  3. Open the environment and fill in the secret vars (client secrets, dev seed passwords) from your .env.
+     Secrets are declared (vars:secret) but never written to these committed .bru files.
+  4. Run 01-Auth-and-Tokens requests top to bottom to populate access tokens as runtime variables.
+  5. Other folders use auth: inherit and pick up the token their folder.bru declares:
+     platformAccessToken (Platform Admin), tenantAAccessToken (Tenant Admin/Media/Podcast Content),
+     subscriberAccessToken (Me/private RSS). Re-run the matching login under 01 if a token expires
+     (access token TTL 15 min) or use the refresh requests.
+  6. Folders are numbered in the same dependency order as the http/ harness they were generated from.
+}

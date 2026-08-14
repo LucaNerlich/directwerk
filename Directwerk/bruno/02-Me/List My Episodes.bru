@@ -1,0 +1,21 @@
+meta {
+  name: List My Episodes
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{baseUrl}}/api/v1/me/episodes
+  body: none
+  auth: inherit
+}
+
+tests {
+  test("returns expected status", function() {
+    expect(res.getStatus() === 200 || res.getStatus() === 403).to.equal(true);
+  });
+}
+
+docs {
+  403 if PODCAST module is off for the tenant.
+}

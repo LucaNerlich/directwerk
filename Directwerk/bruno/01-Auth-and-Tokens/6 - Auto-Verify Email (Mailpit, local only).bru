@@ -1,0 +1,71 @@
+meta {
+  name: 6 - Auto-Verify Email (Mailpit, local only)
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{mailpitUrl}}/api/v1/messages
+  body: none
+  auth: none
+}
+
+script:pre-request {
+  if (!bru.getEnvVar("mailpitUrl")) {
+    throw new Error("mailpitUrl is not set for this environment -- this request only works locally against the Mailpit container from docker-compose. Against dev/cloud, use 13 - Verify Email instead and copy the token from your real inbox.");
+  }
+}
+
+script:post-response {
+  function mailpitRequest(opts) {
+    return new Promise((resolve, reject) => {
+      bru.sendRequest(opts, (err, resp) => {
+        if (err) return reject(err);
+        resolve(resp);
+      });
+    });
+  }
+  
+  const mailpitUrl = bru.getEnvVar("mailpitUrl");
+  const baseUrl = bru.getEnvVar("baseUrl");
+  const targetEmail = bru.getEnvVar("subscriberEmail");
+  
+  if (!mailpitUrl) {
+    throw new Error("mailpitUrl is not set for this environment -- this request only works locally against the Mailpit container from docker-compose. Against dev/cloud, use 13 - Verify Email instead and copy the token from your real inbox.");
+  }
+  
+  const candidates = (res.body.messages || []).filter(m =>
+    m.Subject && m.Subject.toLowerCase().includes("verify") &&
+    m.To && m.To.some(t => t.Address && t.Address.toLowerCase() === targetEmail.toLowerCase())
+  );
+  candidates.sort((a, b) => new Date(b.Created) - new Date(a.Created));
+  
+  if (candidates.length === 0) {
+    throw new Error("No 'Verify your email address' message found in Mailpit for " + targetEmail + ". Run request 5 (Register) first.");
+  }
+  
+  const detail = await mailpitRequest({ url: mailpitUrl + "/api/v1/message/" + candidates[0].ID, method: "GET" });
+  const match = /token=([^"&\s]+)/.exec((detail.data && detail.data.HTML) || "");
+  if (!match) {
+    throw new Error("Could not find a verification token in the Mailpit email HTML.");
+  }
+  
+  const verifyRes = await mailpitRequest({
+    url: baseUrl + "/api/v1/auth/verify-email",
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    data: { token: match[1] },
+  });
+  bru.setVar("subscriberEmailVerifyStatus", verifyRes.status + " " + JSON.stringify(verifyRes.data));
+}
+
+docs {
+  Local-only convenience. Directwerk always requires email verification before a self-registered
+  subscriber can log in (PENDING_VERIFICATION status blocks the OAuth2 password grant with a bare
+  invalid_grant -- easy to mistake for a credentials problem). This reads the real verification
+  email back out of Mailpit (part of the docker-compose stack) and calls verify-email with the real
+  token -- it is not a bypass of verification, just automating what you'd otherwise copy-paste from
+  the same email by hand. Deliberately does NOT run against dev/cloud (mailpitUrl is only defined
+  in the local environment) -- use 13 - Verify Email there instead, with a token you copy yourself
+  from your real inbox.
+}

@@ -1,0 +1,28 @@
+meta {
+  name: 4 - Put Episode Template
+  type: http
+  seq: 4
+}
+
+put {
+  url: {{baseUrl}}/api/v1/tenant/content-email-templates/EPISODE
+  body: json
+  auth: inherit
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "subjectTemplate": "New episode: {{title}}",
+    "bodyHtml": "<p>Hi {{recipientName}},</p><p>{{siteTitle}} published <strong>{{title}}</strong>.</p><p>{{excerpt}}</p><p><a href=\"{{contentUrl}}\">Listen now</a></p><p><a href=\"{{preferencesUrl}}\">Manage preferences</a></p>"
+  }
+}
+
+tests {
+  test("returns expected status", function() {
+    expect(res.getStatus() === 200 || res.getStatus() === 403).to.equal(true);
+  });
+}

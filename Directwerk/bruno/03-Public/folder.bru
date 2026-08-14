@@ -1,0 +1,13 @@
+meta {
+  name: 03-Public
+  seq: 3
+}
+
+headers {
+  Host: {{tenantAHost}}
+}
+
+docs {
+  No auth anywhere in this folder -- tenant is resolved purely from the Host header.
+  Includes public podcast endpoints and public article list/detail (PublicArticleController).
+}

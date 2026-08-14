@@ -1,0 +1,36 @@
+meta {
+  name: 7 - Schedule Article
+  type: http
+  seq: 7
+}
+
+post {
+  url: {{baseUrl}}/api/v1/articles/{{articleId}}/schedule
+  body: json
+  auth: inherit
+}
+
+headers {
+  Content-Type: application/json
+}
+
+script:pre-request {
+  bru.setVar("scheduledAt", new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString());
+}
+
+body:json {
+  {
+    "scheduledAt": "{{scheduledAt}}",
+    "notifySubscribers": false
+  }
+}
+
+tests {
+  test("returns expected status", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+}
+
+docs {
+  Article must be DRAFT. Run on a fresh draft or after Unpublish.
+}

@@ -1,0 +1,13 @@
+meta {
+  name: Stripe
+  seq: 20
+}
+
+auth {
+  mode: inherit
+}
+
+docs {
+  TenantStripeController + TenantBillingDashboardController.
+  Status and dashboard work without platform keys; onboard needs STRIPE_SECRET_KEY.
+}

@@ -1,0 +1,50 @@
+### Directwerk — Subscriber episode stream (Phase 2e)
+### Prerequisites: 02-oauth2.http / 03-auth.http (subscriberAccessToken), 19-podcast-content.http (podcastEpisodeSlug).
+
+### @name listMeEpisodes
+GET {{baseUrl}}/api/v1/me/episodes
+Host: {{tenantAHost}}
+Authorization: Bearer {{subscriberAccessToken}}
+Accept: application/json
+
+> {%
+    client.test("List subscriber episodes", function() {
+        client.assert(response.status === 200 || response.status === 403, "Expected 200 or module gate 403");
+        if (response.status === 200) {
+            client.assert(Array.isArray(response.body.data), "Expected episodes array");
+        }
+    });
+%}
+
+###
+
+### @name streamMeEpisode
+GET {{baseUrl}}/api/v1/me/episodes/{{podcastEpisodeSlug}}/stream
+Host: {{tenantAHost}}
+Authorization: Bearer {{subscriberAccessToken}}
+Accept: */*
+
+> {%
+    client.test("Stream subscriber episode", function() {
+        client.assert(
+            response.status === 302 || response.status === 400 || response.status === 403 || response.status === 404,
+            "Expected redirect or soft failure without published READY audio/modules"
+        );
+    });
+%}
+
+###
+
+### @name publicEpisodeDownload
+GET {{baseUrl}}/api/v1/public/episodes/{{podcastEpisodeSlug}}/download
+Host: {{tenantAHost}}
+Accept: */*
+
+> {%
+    client.test("Public episode download tracking redirect", function() {
+        client.assert(
+            response.status === 302 || response.status === 403 || response.status === 404,
+            "Expected redirect or soft failure without public FREE published READY audio/module"
+        );
+    });
+%}

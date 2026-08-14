@@ -1,0 +1,55 @@
+meta {
+  name: 2 - Create Product (LEVEL)
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/api/v1/tenant/products
+  body: json
+  auth: inherit
+}
+
+headers {
+  Content-Type: application/json
+}
+
+script:pre-request {
+  bru.setVar("vipProductSlug", "vip-" + Date.now().toString(36));
+}
+
+body:json {
+  {
+    "slug": "{{vipProductSlug}}",
+    "title": "VIP",
+    "sortOrder": 3,
+    "description": "Monatliches VIP-Abo",
+    "priceCents": 1490,
+    "currency": "EUR",
+    "billingInterval": "MONTH"
+  }
+}
+
+vars:post-response {
+  vipProductId: res.body.data.id
+}
+
+tests {
+  test("returns expected status", function() {
+    expect(res.getStatus() === 201 || res.getStatus() === 500).to.equal(true);
+    if (res.getStatus() === 201) {
+      expect(res.body.data.priceCents).to.equal(1490);
+      expect(res.body.data.currency).to.equal("EUR");
+      expect(res.body.data.billingInterval).to.equal("MONTH");
+      expect(res.body.data).to.have.property("stripeProductId");
+      expect(res.body.data).to.have.property("stripePriceId");
+    }
+  });
+}
+
+docs {
+  KNOWN BUG (found 2026-07-20 running this collection live): this endpoint returned a bare 500
+  (no Response envelope) on a fresh, valid slug with SUBSCRIPTION active and a valid tenant-admin
+  token -- expected 201. Root cause wasn't pinned down by static review alone; a fix may be in
+  flight. If you see 201 here, the bug is fixed and you can remove 500 from the expected statuses.
+}

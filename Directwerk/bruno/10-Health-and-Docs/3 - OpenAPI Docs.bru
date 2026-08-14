@@ -1,0 +1,21 @@
+meta {
+  name: 3 - OpenAPI Docs
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/v3/api-docs
+  body: none
+  auth: none
+}
+
+tests {
+  test("returns expected status", function() {
+    expect(res.getStatus() === 200).to.equal(true);
+  });
+}
+
+docs {
+  Disabled in the prod profile.
+}

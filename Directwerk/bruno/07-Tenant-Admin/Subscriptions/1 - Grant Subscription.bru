@@ -1,0 +1,36 @@
+meta {
+  name: 1 - Grant Subscription
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/api/v1/tenant/subscriptions
+  body: json
+  auth: inherit
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "email": "{{subscriberEmail}}",
+    "productId": {{supporterProductId}}
+  }
+}
+
+vars:post-response {
+  subscriberSubscriptionId: res.body.data && res.body.data.id
+}
+
+tests {
+  test("returns expected status", function() {
+    expect(res.getStatus() === 201 || res.getStatus() === 400 || res.getStatus() === 404).to.equal(true);
+  });
+}
+
+docs {
+  404/400 if no 'supporter' product is seeded -- swap {{supporterProductId}} for {{vipProductId}} or {{packageProductId}} to grant one of the products created above instead.
+}

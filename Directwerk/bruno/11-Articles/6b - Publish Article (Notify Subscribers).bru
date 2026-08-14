@@ -1,0 +1,32 @@
+meta {
+  name: 6b - Publish Article (Notify Subscribers)
+  type: http
+  seq: 61
+}
+
+post {
+  url: {{baseUrl}}/api/v1/articles/{{articleId}}/publish
+  body: json
+  auth: inherit
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "notifySubscribers": true
+  }
+}
+
+tests {
+  test("returns expected status", function() {
+    expect(res.getStatus() === 200 || res.getStatus() === 403).to.equal(true);
+  });
+}
+
+docs {
+  Requires EMAIL_NOTIFY module. Run 02-Me/8 (subscriber opt-in) and 06-Platform-Admin/Modules/7 first.
+  Sends only on first publish (email_notified_at guard).
+}

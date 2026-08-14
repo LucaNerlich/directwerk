@@ -1,0 +1,138 @@
+### Directwerk — Multi-tenant isolation
+### Prerequisites:
+###   02-oauth2.http (tenantAAccessToken, tenantBAccessToken if available)
+###   06-platform-tenants.http (tenants seeded with verified primary domains)
+###
+### Asserts Host ↔ SecurityContext principal tenant mismatch, platform denial,
+### multi-membership host selection, and unverified-domain routing.
+### Client tenant headers are intentionally ignored / unsupported.
+
+### @name tenantATokenOnTenantBHost
+GET {{baseUrl}}/api/v1/tenant/branding
+Host: {{tenantBHost}}
+Authorization: Bearer {{tenantAAccessToken}}
+X-Tenant-Id: {{tenantAId}}
+Accept: application/json
+
+> {%
+    client.test("TENANT_MISMATCH when SecurityContext tenant differs from Host (header ignored)", function() {
+        client.assert(response.status === 403, "Expected 403");
+        client.assert(response.body.errors[0].code === "TENANT_MISMATCH", "Expected TENANT_MISMATCH");
+    });
+%}
+
+###
+
+### @name tenantATokenOnTenantAMe
+GET {{baseUrl}}/api/v1/me
+Host: {{tenantAHost}}
+Authorization: Bearer {{tenantAAccessToken}}
+Accept: application/json
+
+> {%
+    client.test("Tenant A token works on tenant A host", function() {
+        client.assert(response.status === 200, "Expected 200");
+        client.assert(response.body.data.tenantId != null, "Expected tenantId from SecurityContext");
+    });
+%}
+
+###
+
+### @name platformAdminDeniedOnMe
+GET {{baseUrl}}/api/v1/me
+Host: {{tenantAHost}}
+Authorization: Bearer {{platformAccessToken}}
+Accept: application/json
+
+> {%
+    client.test("Platform admin cannot use /me on tenant host", function() {
+        client.assert(response.status === 403, "Expected 403");
+        client.assert(response.body.errors[0].code === "PLATFORM_TENANT_ACCESS_DENIED", "Expected PLATFORM_TENANT_ACCESS_DENIED");
+    });
+%}
+
+###
+
+### @name platformAdminDeniedOnSecurityContext
+GET {{baseUrl}}/api/v1/security/context
+Host: {{tenantAHost}}
+Authorization: Bearer {{platformAccessToken}}
+Accept: application/json
+
+> {%
+    client.test("Platform admin cannot bind tenant context on /security/context", function() {
+        client.assert(response.status === 403, "Expected 403");
+        client.assert(response.body.errors[0].code === "PLATFORM_TENANT_ACCESS_DENIED", "Expected PLATFORM_TENANT_ACCESS_DENIED");
+    });
+%}
+
+###
+
+### @name addUnverifiedDomain
+POST {{baseUrl}}/api/v1/tenant/domains
+Host: {{tenantAHost}}
+Authorization: Bearer {{tenantAAccessToken}}
+Content-Type: application/json
+Accept: application/json
+
+{
+  "host": "unverified-{{$timestamp}}.alpha-show-a.local",
+  "isPrimary": false
+}
+
+> {%
+    client.test("Add unverified domain", function() {
+        client.assert(response.status === 201, "Expected 201 for unique domain");
+        client.assert(response.body.data.verified === false, "Domain must start unverified");
+        client.global.set("isolationUnverifiedHost", response.body.data.host);
+    });
+%}
+
+###
+
+### @name unverifiedHostDoesNotResolvePublicly
+GET {{baseUrl}}/api/v1/public/site-config
+Host: {{isolationUnverifiedHost}}
+Accept: application/json
+
+> {%
+    client.test("Unverified host does not bind tenant context", function() {
+        client.assert(response.status === 404, "Expected TENANT_NOT_FOUND");
+    });
+%}
+
+###
+
+### @name getVerificationChallenge
+GET {{baseUrl}}/api/v1/tenant/domains/{{isolationUnverifiedHost}}/verification
+Host: {{tenantAHost}}
+Authorization: Bearer {{tenantAAccessToken}}
+Accept: application/json
+
+> {%
+    client.test("Verification challenge issued", function() {
+        client.assert(response.status === 200, "Expected 200");
+        client.assert(!!response.body.data.token, "Expected verification token");
+        client.global.set("isolationVerifyToken", response.body.data.token);
+    });
+%}
+
+###
+
+### @name verifyDomainWithToken
+POST {{baseUrl}}/api/v1/tenant/domains/{{isolationUnverifiedHost}}/verify
+Host: {{tenantAHost}}
+Authorization: Bearer {{tenantAAccessToken}}
+Content-Type: application/json
+Accept: application/json
+
+{
+  "token": "{{isolationVerifyToken}}"
+}
+
+> {%
+    client.test("Token verification (local allow-token mode)", function() {
+        client.assert(response.status === 200, "Expected 200");
+        client.assert(response.body.data.verified === true, "Expected verified");
+    });
+%}

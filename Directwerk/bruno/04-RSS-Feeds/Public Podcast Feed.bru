@@ -1,0 +1,29 @@
+meta {
+  name: Public Podcast Feed
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/feeds/{{tenantASlug}}/podcast.xml
+  body: none
+  auth: none
+}
+
+headers {
+  Accept: application/rss+xml
+}
+
+tests {
+  test("returns expected status", function() {
+    const status = res.getStatus();
+    expect(status === 200 || status === 302 || status === 403 || status === 404).to.equal(true);
+    if (status === 403) {
+      expect(res.body.errors[0].code).to.equal("FEATURE_NOT_ENABLED");
+    }
+  });
+}
+
+docs {
+  Requires PODCAST_RSS active for the tenant.
+}

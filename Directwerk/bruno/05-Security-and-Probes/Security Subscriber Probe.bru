@@ -1,0 +1,21 @@
+meta {
+  name: Security Subscriber Probe
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{baseUrl}}/api/v1/security/subscriber
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{subscriberAccessToken}}
+}
+
+tests {
+  test("returns expected status", function() {
+    expect(res.getStatus() === 200).to.equal(true);
+  });
+}

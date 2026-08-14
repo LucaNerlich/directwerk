@@ -1,0 +1,32 @@
+meta {
+  name: 4 - Update Series
+  type: http
+  seq: 4
+}
+
+put {
+  url: {{baseUrl}}/api/v1/series/{{podcastSeriesId}}
+  body: json
+  auth: inherit
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "slug": "{{podcastSeriesSlug}}",
+    "title": "Harness Podcast Updated",
+    "description": "<p>Updated show notes.</p>",
+    "language": "de",
+    "itunesCategory": "News",
+    "status": "DRAFT"
+  }
+}
+
+tests {
+  test("returns expected status", function() {
+    expect(res.getStatus() === 200 || res.getStatus() === 409).to.equal(true);
+  });
+}

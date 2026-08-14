@@ -1,0 +1,17 @@
+meta {
+  name: 3 - Get Job
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/api/v1/platform/queue/jobs/{{queueJobId}}
+  body: none
+  auth: inherit
+}
+
+tests {
+  test("returns expected status", function() {
+    expect(res.getStatus() === 200 || res.getStatus() === 404).to.equal(true);
+  });
+}

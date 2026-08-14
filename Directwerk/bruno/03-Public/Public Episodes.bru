@@ -1,0 +1,25 @@
+meta {
+  name: Public Episodes
+  type: http
+  seq: 10
+}
+
+get {
+  url: {{baseUrl}}/api/v1/public/episodes
+  body: none
+  auth: none
+}
+
+params:query {
+  ~seriesId: {{podcastSeriesId}}
+}
+
+tests {
+  test("returns expected status", function() {
+    expect(res.getStatus() === 200).to.equal(true);
+  });
+}
+
+docs {
+  seriesId query param is optional; enable it to filter to one series.
+}

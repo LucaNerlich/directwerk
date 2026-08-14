@@ -1,0 +1,20 @@
+meta {
+  name: 08-Media
+  seq: 8
+}
+
+auth {
+  mode: bearer
+}
+
+auth:bearer {
+  token: {{tenantAAccessToken}}
+}
+
+headers {
+  Host: {{tenantAHost}}
+}
+
+docs {
+  Requires EDITOR or TENANT_ADMIN + DIGITAL_CONTENT module. Flow: upload-url -> client PUT to uploadUrl (outside Bruno) -> confirm -> preview-url. Without a real PUT, confirm returns 400 UPLOAD_VALIDATION_FAILED, which is expected.
+}

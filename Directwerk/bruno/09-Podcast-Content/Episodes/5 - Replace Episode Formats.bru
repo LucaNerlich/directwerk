@@ -1,0 +1,27 @@
+meta {
+  name: 5 - Replace Episode Formats
+  type: http
+  seq: 5
+}
+
+put {
+  url: {{baseUrl}}/api/v1/episodes/{{podcastEpisodeId}}/formats
+  body: json
+  auth: inherit
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "formatIds": [{{podcastFormatId}}]
+  }
+}
+
+tests {
+  test("returns expected status", function() {
+    expect(res.getStatus() === 200).to.equal(true);
+  });
+}

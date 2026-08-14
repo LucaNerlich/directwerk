@@ -1,0 +1,21 @@
+meta {
+  name: 7 - Activate Module (EMAIL_NOTIFY on Tenant A)
+  type: http
+  seq: 7
+}
+
+post {
+  url: {{baseUrl}}/api/v1/platform/tenants/{{tenantAId}}/modules/EMAIL_NOTIFY/activate
+  body: none
+  auth: inherit
+}
+
+tests {
+  test("returns expected status", function() {
+    expect(res.getStatus() === 200 || res.getStatus() === 409).to.equal(true);
+  });
+}
+
+docs {
+  Requires DIGITAL_CONTENT and SUBSCRIPTION active on tenant A. Needed for publish notifySubscribers emails.
+}

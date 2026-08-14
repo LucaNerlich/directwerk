@@ -1,0 +1,41 @@
+meta {
+  name: 5 - Add Unverified Domain
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{baseUrl}}/api/v1/tenant/domains
+  body: json
+  auth: bearer
+}
+
+headers {
+  Host: {{tenantAHost}}
+  Content-Type: application/json
+}
+
+auth:bearer {
+  token: {{tenantAAccessToken}}
+}
+
+script:pre-request {
+  bru.setVar("isolationTimestamp", Date.now());
+}
+
+body:json {
+  {
+    "host": "unverified-{{isolationTimestamp}}.alpha-show-a.local",
+    "isPrimary": false
+  }
+}
+
+vars:post-response {
+  isolationUnverifiedHost: res.body.data && res.body.data.host
+}
+
+tests {
+  test("returns expected status", function() {
+    expect(res.getStatus() === 201).to.equal(true);
+  });
+}

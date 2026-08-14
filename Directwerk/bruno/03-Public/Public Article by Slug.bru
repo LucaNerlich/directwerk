@@ -1,0 +1,26 @@
+meta {
+  name: Public Article by Slug
+  type: http
+  seq: 9
+}
+
+get {
+  url: {{baseUrl}}/api/v1/public/articles/{{articleSlug}}
+  body: none
+  auth: none
+}
+
+tests {
+  test("returns expected status", function() {
+    expect(res.getStatus() === 200 || res.getStatus() === 404).to.equal(true);
+  });
+}
+
+docs {
+  Requires articleSlug from 11-Articles/3 - Create Article Draft (after publish) or a known published slug.
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

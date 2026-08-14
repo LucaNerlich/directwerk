@@ -1,0 +1,32 @@
+meta {
+  name: 9 - Schedule Episode
+  type: http
+  seq: 9
+}
+
+post {
+  url: {{baseUrl}}/api/v1/episodes/{{podcastEpisodeId}}/schedule
+  body: json
+  auth: inherit
+}
+
+headers {
+  Content-Type: application/json
+}
+
+script:pre-request {
+  bru.setVar("scheduledAt", new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString());
+}
+
+body:json {
+  {
+    "scheduledAt": "{{scheduledAt}}",
+    "notifySubscribers": false
+  }
+}
+
+tests {
+  test("returns expected status", function() {
+    expect(res.getStatus() === 200 || res.getStatus() === 400 || res.getStatus() === 404).to.equal(true);
+  });
+}

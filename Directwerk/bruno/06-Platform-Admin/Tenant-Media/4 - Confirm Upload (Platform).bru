@@ -1,0 +1,17 @@
+meta {
+  name: 4 - Confirm Upload (Platform)
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{baseUrl}}/api/v1/platform/tenants/{{tenantAId}}/media/{{platformMediaAssetId}}/confirm
+  body: none
+  auth: inherit
+}
+
+tests {
+  test("returns expected status", function() {
+    expect(res.getStatus() === 200 || res.getStatus() === 400 || res.getStatus() === 503).to.equal(true);
+  });
+}

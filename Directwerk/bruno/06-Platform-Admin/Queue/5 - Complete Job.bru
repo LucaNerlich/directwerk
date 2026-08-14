@@ -1,0 +1,27 @@
+meta {
+  name: 5 - Complete Job
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{baseUrl}}/api/v1/platform/queue/jobs/{{queueJobId}}/complete
+  body: json
+  auth: inherit
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "worker": "bruno-worker"
+  }
+}
+
+tests {
+  test("returns expected status", function() {
+    expect(res.getStatus() === 200 || res.getStatus() === 404).to.equal(true);
+  });
+}

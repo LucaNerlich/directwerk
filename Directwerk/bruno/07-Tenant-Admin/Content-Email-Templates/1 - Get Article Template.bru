@@ -1,0 +1,21 @@
+meta {
+  name: 1 - Get Article Template
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/api/v1/tenant/content-email-templates/ARTICLE
+  body: none
+  auth: inherit
+}
+
+tests {
+  test("returns expected status", function() {
+    expect(res.getStatus() === 200 || res.getStatus() === 403).to.equal(true);
+  });
+}
+
+docs {
+  Returns null data when no tenant override exists (classpath default is used).
+}

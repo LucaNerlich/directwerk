@@ -1,0 +1,27 @@
+meta {
+  name: 3 - List Subscriber Feeds
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/api/v1/tenant/subscriber-feeds
+  body: none
+  auth: inherit
+}
+
+headers {
+  Accept: application/json
+}
+
+tests {
+  test("returns tenant subscriber feeds", function() {
+    expect(res.getStatus()).to.equal(200);
+    expect(Array.isArray(res.body.data)).to.equal(true);
+    expect(typeof res.body.data[0].userEmail).to.equal("string");
+  });
+}
+
+vars:post-response {
+  subscriberFeedId: res.body.data && res.body.data[0] && res.body.data[0].id
+}

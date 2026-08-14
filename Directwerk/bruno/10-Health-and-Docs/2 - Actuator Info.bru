@@ -1,0 +1,17 @@
+meta {
+  name: 2 - Actuator Info
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/actuator/info
+  body: none
+  auth: none
+}
+
+tests {
+  test("returns expected status", function() {
+    expect(res.getStatus() === 200).to.equal(true);
+  });
+}

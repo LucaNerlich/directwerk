@@ -1,0 +1,17 @@
+meta {
+  name: 4 - Deactivate Format
+  type: http
+  seq: 4
+}
+
+delete {
+  url: {{baseUrl}}/api/v1/formats/{{podcastFormatId}}
+  body: none
+  auth: inherit
+}
+
+tests {
+  test("returns expected status", function() {
+    expect(res.getStatus() === 200).to.equal(true);
+  });
+}

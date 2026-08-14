@@ -1,0 +1,88 @@
+### Directwerk — SecurityProbeController
+### Prerequisites: 02-oauth2.http (platform / tenant / subscriber tokens)
+
+### @name securityContext
+GET {{baseUrl}}/api/v1/security/context
+Host: {{tenantAHost}}
+Authorization: Bearer {{tenantAAccessToken}}
+Accept: application/json
+
+> {%
+    client.test("Security context", function() {
+        client.assert(response.status === 200, "Expected 200");
+        client.assert(response.body.data.email, "Expected email");
+        client.assert(Array.isArray(response.body.data.roles), "Expected roles");
+    });
+%}
+
+###
+
+### @name platformProbe
+GET {{baseUrl}}/api/v1/security/platform
+Authorization: Bearer {{platformAccessToken}}
+Accept: application/json
+
+> {%
+    client.test("Platform probe", function() {
+        client.assert(response.status === 200, "Expected 200");
+        client.assert(response.body.data.role === "PLATFORM_ADMIN", "Expected PLATFORM_ADMIN");
+    });
+%}
+
+###
+
+### @name tenantAdminProbe
+GET {{baseUrl}}/api/v1/security/tenant-admin
+Host: {{tenantAHost}}
+Authorization: Bearer {{tenantAAccessToken}}
+Accept: application/json
+
+> {%
+    client.test("Tenant admin probe", function() {
+        client.assert(response.status === 200, "Expected 200");
+        client.assert(response.body.data.role === "TENANT_ADMIN", "Expected TENANT_ADMIN");
+    });
+%}
+
+###
+
+### @name editorProbeAsAdmin
+GET {{baseUrl}}/api/v1/security/editor
+Host: {{tenantAHost}}
+Authorization: Bearer {{tenantAAccessToken}}
+Accept: application/json
+
+> {%
+    client.test("Editor probe allows TENANT_ADMIN", function() {
+        client.assert(response.status === 200, "Expected 200");
+    });
+%}
+
+###
+
+### @name subscriberProbe
+GET {{baseUrl}}/api/v1/security/subscriber
+Host: {{tenantAHost}}
+Authorization: Bearer {{subscriberAccessToken}}
+Accept: application/json
+
+> {%
+    client.test("Subscriber probe", function() {
+        client.assert(response.status === 200, "Expected 200");
+        client.assert(response.body.data.role === "SUBSCRIBER", "Expected SUBSCRIBER");
+    });
+%}
+
+###
+
+### @name subscriberDeniedPlatformProbe
+GET {{baseUrl}}/api/v1/security/platform
+Host: {{tenantAHost}}
+Authorization: Bearer {{subscriberAccessToken}}
+Accept: application/json
+
+> {%
+    client.test("Subscriber denied platform probe", function() {
+        client.assert(response.status === 403, "Expected 403");
+    });
+%}

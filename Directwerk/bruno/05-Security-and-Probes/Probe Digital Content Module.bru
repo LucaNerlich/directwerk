@@ -1,0 +1,21 @@
+meta {
+  name: Probe Digital Content Module
+  type: http
+  seq: 8
+}
+
+get {
+  url: {{baseUrl}}/api/v1/probes/digital
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{tenantAAccessToken}}
+}
+
+tests {
+  test("returns expected status", function() {
+    expect(res.getStatus() === 200).to.equal(true);
+  });
+}

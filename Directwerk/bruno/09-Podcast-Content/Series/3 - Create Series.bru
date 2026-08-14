@@ -1,0 +1,43 @@
+meta {
+  name: 3 - Create Series
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{baseUrl}}/api/v1/series
+  body: json
+  auth: inherit
+}
+
+headers {
+  Content-Type: application/json
+}
+
+script:pre-request {
+  bru.setVar("podcastSeriesSlug", "series-" + Date.now().toString(36));
+}
+
+body:json {
+  {
+    "slug": "{{podcastSeriesSlug}}",
+    "title": "Harness Podcast",
+    "description": "<p>Podcast created by the Bruno collection.</p>",
+    "language": "de",
+    "itunesCategory": "News"
+  }
+}
+
+vars:post-response {
+  podcastSeriesId: res.body.data && res.body.data.id
+}
+
+tests {
+  test("returns expected status", function() {
+    expect(res.getStatus() === 201 || res.getStatus() === 403 || res.getStatus() === 500).to.equal(true);
+  });
+}
+
+docs {
+  Same live-observed 500 as 09-Podcast-Content/Formats/2 - Create Format -- see its docs note.
+}

@@ -1,0 +1,37 @@
+meta {
+  name: 9 - Tenant A Token Refresh
+  type: http
+  seq: 9
+}
+
+post {
+  url: {{baseUrl}}/oauth2/token
+  body: formUrlEncoded
+  auth: basic
+}
+
+auth:basic {
+  username: {{oauthClientId}}
+  password: {{oauthClientSecret}}
+}
+
+headers {
+  Content-Type: application/x-www-form-urlencoded
+  Host: {{tenantAHost}}
+}
+
+body:form-urlencoded {
+  grant_type: refresh_token
+  refresh_token: {{tenantARefreshToken}}
+  client_id: {{oauthClientId}}
+}
+
+script:post-response {
+  bru.setVar("tenantAAccessToken", res.body.access_token);
+}
+
+tests {
+  test("returns expected status", function() {
+    expect(res.getStatus() === 200).to.equal(true);
+  });
+}

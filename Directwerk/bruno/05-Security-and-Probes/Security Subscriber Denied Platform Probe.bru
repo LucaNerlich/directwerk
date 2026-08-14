@@ -1,0 +1,21 @@
+meta {
+  name: Security Subscriber Denied Platform Probe
+  type: http
+  seq: 7
+}
+
+get {
+  url: {{baseUrl}}/api/v1/security/platform
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{subscriberAccessToken}}
+}
+
+tests {
+  test("returns expected status", function() {
+    expect(res.getStatus() === 403).to.equal(true);
+  });
+}

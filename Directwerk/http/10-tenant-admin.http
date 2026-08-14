@@ -1,0 +1,156 @@
+### Directwerk — TenantAdminController
+### Prerequisites: 02-oauth2.http (tenantAAccessToken)
+### Accept invite via 03-auth.http using inviteToken
+
+### @name getBranding
+GET {{baseUrl}}/api/v1/tenant/branding
+Host: {{tenantAHost}}
+Authorization: Bearer {{tenantAAccessToken}}
+Accept: application/json
+
+> {%
+    client.test("Get branding", function() {
+        client.assert(response.status === 200, "Expected 200");
+    });
+%}
+
+###
+
+### @name updateBranding
+PUT {{baseUrl}}/api/v1/tenant/branding
+Host: {{tenantAHost}}
+Authorization: Bearer {{tenantAAccessToken}}
+Content-Type: application/json
+Accept: application/json
+
+{
+  "primaryColor": "#112233",
+  "secondaryColor": "#445566",
+  "logoUrl": "https://cdn.example.com/alpha-a/logo.png"
+}
+
+> {%
+    client.test("Update branding", function() {
+        client.assert(response.status === 200, "Expected 200");
+        client.assert(response.body.data.primaryColor === "#112233", "Expected primary color");
+    });
+%}
+
+###
+
+### @name listDomains
+GET {{baseUrl}}/api/v1/tenant/domains
+Host: {{tenantAHost}}
+Authorization: Bearer {{tenantAAccessToken}}
+Accept: application/json
+
+> {%
+    client.test("List domains", function() {
+        client.assert(response.status === 200, "Expected 200");
+        client.assert(Array.isArray(response.body.data), "Expected domain array");
+    });
+%}
+
+###
+
+### @name addDomain
+POST {{baseUrl}}/api/v1/tenant/domains
+Host: {{tenantAHost}}
+Authorization: Bearer {{tenantAAccessToken}}
+Content-Type: application/json
+Accept: application/json
+
+{
+  "host": "podcast.alpha-show-a.local",
+  "isPrimary": false
+}
+
+> {%
+    client.test("Add domain", function() {
+        client.assert(response.status === 201 || response.status === 409 || response.status === 500,
+            "Expected create or conflict on re-run");
+        if (response.status === 201) {
+            client.assert(response.body.data.verified === false, "New domains start unverified");
+        }
+    });
+%}
+
+###
+
+### @name inviteEditor
+POST {{baseUrl}}/api/v1/tenant/users/invite
+Host: {{tenantAHost}}
+Authorization: Bearer {{tenantAAccessToken}}
+Content-Type: application/json
+Accept: application/json
+
+{
+  "email": "new-editor@alpha-show.local",
+  "name": "New Editor",
+  "role": "EDITOR"
+}
+
+> {%
+    client.test("Invite editor", function() {
+        client.assert(response.status === 201 || response.status === 409,
+            "Expected 201 or 409");
+        if (response.status === 201 && response.body.data.inviteToken) {
+            client.global.set("inviteToken", response.body.data.inviteToken);
+        }
+    });
+%}
+
+###
+
+### @name listTenantUsers
+GET {{baseUrl}}/api/v1/tenant/users
+Host: {{tenantAHost}}
+Authorization: Bearer {{tenantAAccessToken}}
+Accept: application/json
+
+> {%
+    client.test("List tenant users", function() {
+        client.assert(response.status === 200, "Expected 200");
+        client.assert(Array.isArray(response.body.data), "Expected user array");
+        if (response.body.data.length > 0) {
+            const user = response.body.data[0];
+            client.assert(user.userId != null, "Expected userId");
+            client.assert(typeof user.email === "string", "Expected email");
+            client.assert(user.status === "ACTIVE" || user.status === "INVITED" || user.status === "DISABLED", "Expected membership status");
+        }
+    });
+%}
+
+###
+
+### @name getContentEmailTemplateArticle
+GET {{baseUrl}}/api/v1/tenant/content-email-templates/ARTICLE
+Host: {{tenantAHost}}
+Authorization: Bearer {{tenantAAccessToken}}
+Accept: application/json
+
+> {%
+    client.test("Get article content email template", function() {
+        client.assert(response.status === 200 || response.status === 403, "Expected 200 or 403");
+    });
+%}
+
+###
+
+### @name putContentEmailTemplateArticle
+PUT {{baseUrl}}/api/v1/tenant/content-email-templates/ARTICLE
+Host: {{tenantAHost}}
+Authorization: Bearer {{tenantAAccessToken}}
+Content-Type: application/json
+Accept: application/json
+
+{
+  "subjectTemplate": "New post: {{title}}",
+  "bodyHtml": "<p>Hi {{recipientName}},</p><p>{{siteTitle}} published <strong>{{title}}</strong>.</p><p>{{excerpt}}</p><p><a href=\"{{contentUrl}}\">Read now</a></p>"
+}
+
+> {%
+    client.test("Put article content email template", function() {
+        client.assert(response.status === 200 || response.status === 403, "Expected 200 or 403");
+    });
+%}

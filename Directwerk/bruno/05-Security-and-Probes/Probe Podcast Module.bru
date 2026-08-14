@@ -1,0 +1,21 @@
+meta {
+  name: Probe Podcast Module
+  type: http
+  seq: 9
+}
+
+get {
+  url: {{baseUrl}}/api/v1/probes/podcast
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{tenantAAccessToken}}
+}
+
+tests {
+  test("returns expected status", function() {
+    expect(res.getStatus() === 200).to.equal(true);
+  });
+}

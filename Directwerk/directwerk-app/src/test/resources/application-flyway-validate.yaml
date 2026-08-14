@@ -1,0 +1,67 @@
+spring:
+    docker:
+        compose:
+            enabled: false
+    jpa:
+        hibernate:
+            ddl-auto: validate
+    flyway:
+        enabled: true
+        locations: classpath:db/migration
+        baseline-on-migrate: true
+        baseline-version: 0
+        validate-on-migrate: true
+        clean-disabled: true
+    quartz:
+        auto-startup: false
+        job-store-type: jdbc
+        jdbc:
+            initialize-schema: never
+        properties:
+            org.quartz.scheduler.instanceName: DirectwerkScheduler
+            org.quartz.scheduler.instanceId: AUTO
+            org.quartz.jobStore.driverDelegateClass: org.quartz.impl.jdbcjobstore.PostgreSQLDelegate
+            org.quartz.jobStore.tablePrefix: QRTZ_
+            org.quartz.jobStore.isClustered: true
+            org.quartz.jobStore.clusterCheckinInterval: 10000
+            org.quartz.threadPool.threadCount: 2
+
+directwerk:
+    security:
+        issuer: http://localhost:8080
+        audience: publish-api
+        platform-client-id: publish-platform-admin
+        tenant-client-id: publish-tenant-frontend
+        platform-client-secret: ${DIRECTWERK_PLATFORM_CLIENT_SECRET:}
+        tenant-client-secret: ${DIRECTWERK_TENANT_CLIENT_SECRET:}
+        authorization-store: jdbc
+    queue:
+        enabled: false
+        poll-interval-ms: 5000
+        claim-limit: 10
+        list-limit: 100
+        lease-seconds: 60
+        max-lease-seconds: 86400
+        default-max-attempts: 5
+        retry-delay-seconds: 30
+        max-retry-delay-seconds: 604800
+        json-byte-limit: 100000
+        worker-id: flyway-validate-worker
+        retention-days: 7
+        cleanup-interval-ms: 3600000
+        cleanup-batch-size: 1000
+    storage:
+        enabled: false
+        provider: hetzner
+        region: eu-central-1
+        bucket: directwerk-test
+        endpoint: https://nbg1.your-objectstorage.com
+        force-path-style: false
+        access-key:
+        secret-key:
+        public-cdn-base-url: https://cdn.example.test
+        presign-upload-ttl: 15m
+        presign-download-ttl-api: 1h
+        presign-download-ttl-rss: 24h
+        staging-lifecycle-hours: 24
+

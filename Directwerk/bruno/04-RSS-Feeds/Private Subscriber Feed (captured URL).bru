@@ -1,0 +1,37 @@
+meta {
+  name: Private Subscriber Feed (captured URL)
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{subscriberFeedUrl}}
+  body: none
+  auth: none
+}
+
+headers {
+  Accept: application/rss+xml
+}
+
+script:pre-request {
+  const feedUrl = bru.getVar("subscriberFeedUrl") || bru.getEnvVar("subscriberFeedUrl");
+  const episodeSlug = bru.getVar("podcastEpisodeSlug") || "missing-episode";
+  if (feedUrl && typeof feedUrl === "string" && feedUrl.endsWith(".xml")) {
+    bru.setVar("privateEnclosureUrl", feedUrl.replace(/\.xml$/, "/e/" + episodeSlug + ".mp3"));
+  }
+}
+
+tests {
+  test("returns expected status", function() {
+    const status = res.getStatus();
+    expect(status === 200 || status === 302 || status === 403 || status === 404).to.equal(true);
+    if (status === 403) {
+      expect(res.body.errors[0].code).to.equal("FEATURE_NOT_ENABLED");
+    }
+  });
+}
+
+docs {
+  Uses the absolute url captured by 02-Me/List My Feeds or Rotate Default Feed Token -- the token in the path is the capability secret, so no bearer auth is needed. Requires PODCAST_RSS + SUBSCRIPTION active and an ACTIVE subscription.
+}

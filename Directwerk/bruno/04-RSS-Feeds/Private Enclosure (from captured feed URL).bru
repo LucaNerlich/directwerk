@@ -1,0 +1,30 @@
+meta {
+  name: Private Enclosure (from captured feed URL)
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{privateEnclosureUrl}}
+  body: none
+  auth: none
+}
+
+headers {
+  Accept: */*
+}
+
+tests {
+  test("returns expected status", function() {
+    const status = res.getStatus();
+    expect(status === 302 || status === 403 || status === 404).to.equal(true);
+    if (status === 403) {
+      expect(res.body.errors[0].code).to.equal("FEATURE_NOT_ENABLED");
+    }
+  });
+}
+
+docs {
+  Derived from subscriberFeedUrl by replacing .xml with /e/{podcastEpisodeSlug}.mp3.
+  Requires PODCAST + PODCAST_RSS + SUBSCRIPTION.
+}
