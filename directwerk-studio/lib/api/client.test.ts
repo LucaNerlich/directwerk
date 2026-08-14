@@ -1,6 +1,6 @@
 import {describe, expect, it} from 'vitest'
 
-import {defaultHomePath, hasDesk, hasModule, resolveActiveDesk} from '@/lib/api/client'
+import {defaultHomePath, deskHome, hasDesk, hasModule, resolveActiveDesk} from '@/lib/api/client'
 import type {SiteConfig} from '@/lib/api/types'
 
 const sampleConfig: SiteConfig = {
@@ -28,6 +28,11 @@ describe('site helpers', () => {
         expect(defaultHomePath('WRITE_DESK')).toBe('/write/articles')
         expect(defaultHomePath('PODCAST_DESK')).toBe('/podcast')
         expect(defaultHomePath('OVERVIEW')).toBe('/')
+    })
+
+    it('maps desks to their home paths', () => {
+        expect(deskHome('WRITE')).toBe('/write/articles')
+        expect(deskHome('PODCAST')).toBe('/podcast')
     })
 
     it('resolves active desk from pathname and config', () => {

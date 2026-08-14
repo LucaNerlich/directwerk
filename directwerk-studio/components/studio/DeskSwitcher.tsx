@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import {usePathname} from 'next/navigation'
 
-import {hasDesk, resolveActiveDesk} from '@/lib/api/client'
+import {deskHome, hasDesk, resolveActiveDesk} from '@/lib/api/client'
 import type {SiteConfig} from '@/lib/api/types'
 
 function tabClassName(active: boolean): string {
@@ -37,14 +37,14 @@ export default function DeskSwitcher({config}: {config: SiteConfig}): React.JSX.
             <Link
                 aria-current={activeDesk === 'WRITE' ? 'page' : undefined}
                 className={tabClassName(activeDesk === 'WRITE')}
-                href="/write/articles"
+                href={deskHome('WRITE')}
             >
                 Schreiben
             </Link>
             <Link
                 aria-current={activeDesk === 'PODCAST' ? 'page' : undefined}
                 className={tabClassName(activeDesk === 'PODCAST')}
-                href="/podcast"
+                href={deskHome('PODCAST')}
             >
                 Podcast
             </Link>

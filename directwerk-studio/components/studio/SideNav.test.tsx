@@ -331,5 +331,29 @@ describe('SideNav', () => {
             expect(screen.queryByRole('link', {name: 'Sendungen'})).not.toBeInTheDocument()
             expect(screen.queryByRole('link', {name: 'Formate'})).not.toBeInTheDocument()
         })
+
+        it('keeps the Write desk groups for a single-desk tenant on a shared route', () => {
+            currentPathname = '/media'
+            renderNavigation(
+                <SideNav
+                    config={config({
+                        enabledModules: ['DIGITAL_CONTENT'],
+                        studioDesks: ['WRITE'],
+                        studioHome: 'WRITE_DESK',
+                    })}
+                />,
+            )
+
+            expect(screen.getByRole('link', {name: 'Beiträge'})).toHaveAttribute(
+                'href',
+                '/write/articles',
+            )
+            expect(screen.getByRole('link', {name: 'Bonusdateien'})).toHaveAttribute(
+                'href',
+                '/write/bonus',
+            )
+            expect(screen.queryByRole('link', {name: 'Start'})).not.toBeInTheDocument()
+            expect(screen.queryByRole('link', {name: 'Folgen'})).not.toBeInTheDocument()
+        })
     })
 })

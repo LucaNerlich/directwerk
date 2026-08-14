@@ -24,12 +24,21 @@ export function resolveActiveDesk(
     return null
 }
 
+export function deskHome(desk: SiteConfig['studioDesks'][number]): string {
+    switch (desk) {
+        case 'WRITE':
+            return '/write/articles'
+        case 'PODCAST':
+            return '/podcast'
+    }
+}
+
 export function defaultHomePath(home: SiteConfig['studioHome']): string {
     switch (home) {
         case 'WRITE_DESK':
-            return '/write/articles'
+            return deskHome('WRITE')
         case 'PODCAST_DESK':
-            return '/podcast'
+            return deskHome('PODCAST')
         default:
             return '/'
     }
