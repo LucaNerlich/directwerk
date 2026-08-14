@@ -1,7 +1,7 @@
 packages:
     - 'homepage'
-    - 'publish-admin'
+    - 'directwerk-admin'
     - 'example-fe'
-    - 'publish-studio'
-    - 'publish-web'
+    - 'directwerk-studio'
+    - 'directwerk-web'
     - 'packages/*'

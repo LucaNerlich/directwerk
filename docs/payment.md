@@ -8,10 +8,8 @@ and the entitlement model in [`content-subscriptions-and-entitlements.md`](conte
 |---|---|
 | **Status** | Live Connect + checkout + webhooks + studio payment dashboard. Without `STRIPE_*` env keys, money paths still return **501** `STRIPE_NOT_IMPLEMENTED` |
 | **Module** | `STRIPE_BILLING` (depends on `SUBSCRIPTION`; seeded in Flyway `V3`) |
-| **Audience** | Stripe implementation agent / backend + studio + publish-web |
-| **Related** | `README.md` Payments, `poc-alpha-setup.md` Phase H, `publish-studio-implementation.md` Integrations, Bruno `02-Me` + `07-Tenant-Admin/Stripe` |
-
-**Publish** is the repo codename; **Directwerk** is the product name.
+| **Audience** | Stripe implementation agent / backend + studio + directwerk-web |
+| **Related** | `README.md` Payments, `poc-alpha-setup.md` Phase H, `directwerk-studio-implementation.md` Integrations, Bruno `02-Me` + `07-Tenant-Admin/Stripe` |
 
 ---
 
@@ -21,14 +19,14 @@ and the entitlement model in [`content-subscriptions-and-entitlements.md`](conte
 
 - LEVEL / PACKAGE products, access rules, MANUAL grant/revoke
 - `EntitlementService` derives access from `Subscription` rows with `status = ACTIVE`
-- Public product catalog, studio products/grants/subscribers UI, publish-web pricing page
+- Public product catalog, studio products/grants/subscribers UI, directwerk-web pricing page
 - Live Stripe Connect, prices, Checkout, Customer Portal, signed webhooks
 - Studio **Abos → Zahlungen**: Stripe status, membership stats (including past-due), filterable list, revoke (cancels Stripe when connected)
 
 **What does not work / later**
 
 - Studio promo-code management (Checkout already allows Stripe Dashboard codes)
-- Application fees, email notify, DigitalPublication, custom feeds, publish-admin, analytics
+- Application fees, email notify, DigitalPublication, custom feeds, directwerk-admin, analytics
 - Without platform `STRIPE_*` keys, money paths still return **501** `STRIPE_NOT_IMPLEMENTED`
 
 ---
@@ -78,7 +76,7 @@ See [`content-subscriptions-and-entitlements.md`](content-subscriptions-and-enti
 | | `POST /api/v1/tenant/stripe/onboard` | **501** `STRIPE_NOT_IMPLEMENTED` |
 | `MeBillingController` | `POST /api/v1/me/billing/checkout-sessions` | Body: `{ "productSlug" }` → **501** |
 | Studio UI | `/settings/stripe` | Shows stub status; onboard button expects failure |
-| publish-web | `/pricing` | CTA calls checkout stub; surfaces 501 message |
+| directwerk-web | `/pricing` | CTA calls checkout stub; surfaces 501 message |
 | Bruno | `07-Tenant-Admin/Stripe/*`, `02-Me/9 - Create Checkout Session` | Asserts stub behaviour |
 | http | `Directwerk/http/04-me.http` | Checkout stub assertion |
 
@@ -117,7 +115,7 @@ See [`content-subscriptions-and-entitlements.md`](content-subscriptions-and-enti
 | Subscription statuses include `PAST_DUE` / `INCOMPLETE` | Add to enum + migrations when wiring invoices |
 | `SubscriptionSource.STEADY` | Code has `IMPORT`; Patreon/Steady sync is a separate phase |
 
-**Recommendation:** Prefer the **stub paths already used by publish-web/studio** (`/me/billing/*`, `/tenant/stripe/*`, `/tenant/products`) and update README/OpenAPI to match, rather than introducing a second parallel surface.
+**Recommendation:** Prefer the **stub paths already used by directwerk-web/studio** (`/me/billing/*`, `/tenant/stripe/*`, `/tenant/products`) and update README/OpenAPI to match, rather than introducing a second parallel surface.
 
 ---
 
@@ -145,7 +143,7 @@ STRIPE_CONNECT_CLIENT_ID=
 # STRIPE_CONNECT_WEBHOOK_SECRET=  # if Connect uses a separate endpoint
 ```
 
-**Never** put secret keys in publish-studio / publish-web client bundles. Server-only via `@ConfigurationProperties`.
+**Never** put secret keys in directwerk-studio / directwerk-web client bundles. Server-only via `@ConfigurationProperties`.
 
 ---
 
@@ -200,7 +198,7 @@ Rules:
   - metadata: `tenant_id`, `user_id`, `product_id` (and slug)
   - `success_url` / `cancel_url` (body or server-derived from tenant primary domain)
   - Create on **connected account**
-- [ ] publish-web: success/cancel pages; show money on pricing
+- [ ] directwerk-web: success/cancel pages; show money on pricing
 - [ ] Rate-limit checkout; never trust client for entitlement
 
 ### D. Webhooks (source of truth)
@@ -304,7 +302,7 @@ Until step **4** is production-ready, keep checkout returning 501 in non-dev env
 
 ## Frontend work
 
-### publish-studio
+### directwerk-studio
 
 | Area | Work |
 |------|------|
@@ -313,7 +311,7 @@ Until step **4** is production-ready, keep checkout returning 501 in non-dev env
 | Subscribers | Show `source`, Stripe external id, period end, link to Customer in Dashboard (optional) |
 | Integrations (future) | Hub for Stripe / Patreon / Steady status |
 
-### publish-web
+### directwerk-web
 
 | Area | Work |
 |------|------|
@@ -399,7 +397,7 @@ Gradle: add official Stripe Java SDK; pin version in BOM/catalog if used.
 | [`../README.md`](../README.md#payments-and-billing) | Original product design (Connect, checkout sequence, webhooks) |
 | [`content-subscriptions-and-entitlements.md`](content-subscriptions-and-entitlements.md) | LEVEL/PACKAGE access rules (must keep working) |
 | [`poc-alpha-setup.md`](poc-alpha-setup.md) | Phase H checklist |
-| [`publish-studio-implementation.md`](publish-studio-implementation.md) | Studio integrations / sync-stripe UI notes |
+| [`directwerk-studio-implementation.md`](directwerk-studio-implementation.md) | Studio integrations / sync-stripe UI notes |
 | [`user-backend-implementation.md`](user-backend-implementation.md) | `/api/v1/webhooks/**` signature filter pattern |
 | [`../Directwerk/bruno/README.md`](../Directwerk/bruno/README.md) | Bruno maintenance rule |
 | [`../AGENTS.md`](../AGENTS.md) | API-first + Bruno/http lockstep |

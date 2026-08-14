@@ -121,7 +121,7 @@ class TransactionalEmailServiceTest {
         verify(emailSender).send(messageCaptor.capture());
         OutboundEmail sent = messageCaptor.getValue();
         assertThat(sent.to()).isEqualTo("user@example.com");
-        assertThat(sent.fromAddress()).isEqualTo("noreply@publish.local");
+        assertThat(sent.fromAddress()).isEqualTo("noreply@directwerk.local");
         assertThat(sent.subject()).isEqualTo("Reset your password");
         assertThat(sent.htmlBody()).contains("http://localhost:3000/reset-password?token=reset-token");
         assertThat(sent.template()).isEqualTo("PASSWORD_RESET");
@@ -153,7 +153,7 @@ class TransactionalEmailServiceTest {
         return new DirectwerkProperties.Email(
                 true,
                 "smtp",
-                "noreply@publish.local",
+                "noreply@directwerk.local",
                 "Directwerk",
                 "http://localhost:3000",
                 "http://localhost:3001",

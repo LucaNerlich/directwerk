@@ -24,7 +24,7 @@ class EmailLinkBuilderTest {
         when(directwerkConfig.email()).thenReturn(new DirectwerkProperties.Email(
                 true,
                 "smtp",
-                "noreply@publish.local",
+                "noreply@directwerk.local",
                 "Directwerk",
                 "http://localhost:3000/",
                 "http://localhost:3001",

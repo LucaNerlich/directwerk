@@ -1,5 +1,5 @@
-import {Button} from '@publish/ui/components/button'
-import {Card, CardContent} from '@publish/ui/components/card'
+import {Button} from '@directwerk/ui/components/button'
+import {Card, CardContent} from '@directwerk/ui/components/card'
 
 export default function Home() {
     return (

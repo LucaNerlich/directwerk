@@ -118,7 +118,7 @@ class StateValidatingOAuth2AuthorizationServiceTest {
 
     private static OAuth2Authorization authorization(String principalName, DirectwerkUserPrincipal principal) {
         RegisteredClient client = RegisteredClient.withId("client-id")
-                .clientId("publish-tenant-frontend")
+                .clientId("directwerk-tenant-frontend")
                 .clientAuthenticationMethod(ClientAuthenticationMethod.CLIENT_SECRET_BASIC)
                 .authorizationGrantType(AuthorizationGrantType.REFRESH_TOKEN)
                 .build();

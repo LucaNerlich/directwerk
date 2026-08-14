@@ -20,7 +20,7 @@ importers:
 
   example-fe:
     dependencies:
-      '@publish/ui':
+      '@directwerk/ui':
         specifier: workspace:*
         version: link:../packages/ui
       next:
@@ -81,7 +81,7 @@ importers:
 
   homepage:
     dependencies:
-      '@publish/ui':
+      '@directwerk/ui':
         specifier: workspace:*
         version: link:../packages/ui
       next:
@@ -216,9 +216,9 @@ importers:
         specifier: ^4.1.10
         version: 4.1.10(@types/node@22.20.1)(jsdom@26.1.0)(vite@8.2.1(@types/node@22.20.1)(jiti@2.7.0))
 
-  publish-admin:
+  directwerk-admin:
     dependencies:
-      '@publish/ui':
+      '@directwerk/ui':
         specifier: workspace:*
         version: link:../packages/ui
       next:
@@ -271,9 +271,9 @@ importers:
         specifier: ^4.1.10
         version: 4.1.10(@types/node@22.20.1)(jsdom@26.1.0)(vite@8.2.1(@types/node@22.20.1)(jiti@2.7.0))
 
-  publish-studio:
+  directwerk-studio:
     dependencies:
-      '@publish/ui':
+      '@directwerk/ui':
         specifier: workspace:*
         version: link:../packages/ui
       '@tiptap/extension-link':
@@ -341,9 +341,9 @@ importers:
         specifier: ^4.1.10
         version: 4.1.10(@types/node@22.20.1)(jsdom@26.1.0)(vite@8.2.1(@types/node@22.20.1)(jiti@2.7.0))
 
-  publish-web:
+  directwerk-web:
     dependencies:
-      '@publish/ui':
+      '@directwerk/ui':
         specifier: workspace:*
         version: link:../packages/ui
       next:

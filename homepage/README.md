@@ -7,7 +7,7 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
 First, run the development server from the homepage directory:
 
 ```bash
-cd projects/publish/homepage
+cd projects/directwerk/homepage
 pnpm dev
 ```
 

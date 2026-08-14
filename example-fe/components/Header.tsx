@@ -5,8 +5,8 @@ import {usePathname, useRouter} from 'next/navigation'
 import type {ReactNode} from 'react'
 import {useSyncExternalStore} from 'react'
 
-import {Button, buttonVariants} from '@publish/ui/components/button'
-import SiteShell from '@publish/ui/components/layout/site-shell'
+import {Button, buttonVariants} from '@directwerk/ui/components/button'
+import SiteShell from '@directwerk/ui/components/layout/site-shell'
 
 import {
     clearTokens,

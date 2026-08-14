@@ -18,7 +18,7 @@ class ProdSecurityPropertiesValidatorTest {
     void rejectsMissingProductionSecrets() {
         when(directwerkConfig.security()).thenReturn(new DirectwerkProperties.Security(
                 "https://api.example.com",
-                "publish-api",
+                "directwerk-api",
                 "platform-client",
                 "tenant-client",
                 "",
@@ -45,7 +45,7 @@ class ProdSecurityPropertiesValidatorTest {
     void rejectsExposeDevTokensInProduction() {
         when(directwerkConfig.security()).thenReturn(new DirectwerkProperties.Security(
                 "https://api.example.com",
-                "publish-api",
+                "directwerk-api",
                 "platform-client",
                 "tenant-client",
                 "platform-secret",

@@ -46,12 +46,12 @@ directwerk:
         allow-token-domain-verification: true
     dev:
         seed-password: ${DIRECTWERK_DEV_SEED_PASSWORD}
-        platform-admin-email: ${DIRECTWERK_DEV_PLATFORM_ADMIN_EMAIL:platform-admin@publish.local}
+        platform-admin-email: ${DIRECTWERK_DEV_PLATFORM_ADMIN_EMAIL:platform-admin@directwerk.local}
         platform-admin-password: ${DIRECTWERK_DEV_PLATFORM_ADMIN_PASSWORD}
     account:
         email-verification-required: false
         expose-dev-tokens: true
     email:
-        from-address: ${DIRECTWERK_EMAIL_FROM:noreply@publish.local}
+        from-address: ${DIRECTWERK_EMAIL_FROM:noreply@directwerk.local}
         studio-base-url: ${DIRECTWERK_EMAIL_STUDIO_BASE_URL:http://localhost:3000}
         admin-base-url: ${DIRECTWERK_EMAIL_ADMIN_BASE_URL:http://localhost:3001}

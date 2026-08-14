@@ -82,8 +82,8 @@
         * [Subscriber Identity](#subscriber-identity)
         * [Auth Flows](#auth-flows)
         * [Protected Route Policy](#protected-route-policy)
-    * [Reference Frontend (publish-web)](#reference-frontend-publish-web)
-    * [Reference Frontend (publish-studio)](#reference-frontend-publish-studio)
+    * [Reference Frontend (directwerk-web)](#reference-frontend-directwerk-web)
+    * [Reference Frontend (directwerk-studio)](#reference-frontend-directwerk-studio)
     * [Platform Superadmin Dashboard](#platform-superadmin-dashboard)
         * [Scope and Separation](#scope-and-separation)
         * [Dashboard Areas](#dashboard-areas)
@@ -123,13 +123,13 @@ product strategy, and UI — read them before coding a slice.
 | [`docs/poc-alpha-setup.md`](docs/poc-alpha-setup.md) | **Alpha POC blueprint** — vertical slices, auth, tenancy, module gates, HTTP harness | Implementation planning |
 | [`docs/asset-storage.md`](docs/asset-storage.md) | S3 layout (Hetzner/Bunny EU), upload/confirm, `AssetAccessService`, group entitlements | Phase 2+; alpha storage foundation |
 | [`docs/content-subscriptions-and-entitlements.md`](docs/content-subscriptions-and-entitlements.md) | **Operator guide** — FREE/PAID, LEVEL vs PACKAGE, grants, public vs private RSS | Creating public vs entitled content |
-| [`docs/publish-studio.md`](docs/publish-studio.md) | Creator dashboard — audience, journeys, three-app model | Product / frontend planning |
-| [`docs/publish-studio-implementation.md`](docs/publish-studio-implementation.md) | Studio implementation — screens, API mappings, scaffold, auth | Building `publish-studio` |
+| [`docs/directwerk-studio.md`](docs/directwerk-studio.md) | Creator dashboard — audience, journeys, three-app model | Product / frontend planning |
+| [`docs/directwerk-studio-implementation.md`](docs/directwerk-studio-implementation.md) | Studio implementation — screens, API mappings, scaffold, auth | Building `directwerk-studio` |
 | [`docs/content-creation-implementation.md`](docs/content-creation-implementation.md) | Content backend — libraries, services, workflow engine | Backend + content editors |
 | [`docs/content-platform-strategy.md`](docs/content-platform-strategy.md) | Publication platform vs CMS; blog/newsletter scope | Product scope for articles/email |
 | [`docs/publication-desks-model.md`](docs/publication-desks-model.md) | Shared Publication rails + Writing vs Podcast desks | Studio UX / domain split |
 | [`docs/ghost-positioning.md`](docs/ghost-positioning.md) | Competitive positioning vs Ghost | Sales, prioritization |
-| [`docs/product-naming.md`](docs/product-naming.md) | Public product name strategy (Publish = codename) | Before marketing / rename |
+| [`docs/product-naming.md`](docs/product-naming.md) | Public product name strategy and naming history | Before public marketing |
 | [`Directwerk/http/`](Directwerk/http/) | JetBrains HTTP Client manual API tests | After the API runs locally |
 | [`Directwerk/bruno/`](Directwerk/bruno/) | Bruno API collection (full REST surface) — **update on/after every controller or API change** | Manual API testing; keep in sync with controllers |
 | [`AGENTS.md`](AGENTS.md) | Agent-oriented summary — commands, security, domain model | AI assistants / quick reference |
@@ -145,32 +145,32 @@ subscriptions, billing (post-MVP). See [MVP implementation phases](#mvp-implemen
 
 ### Intro
 
-**Publish** is an API-first, multi-tenant whitelabel platform for podcast creators and digital
+**Directwerk** is an API-first, multi-tenant whitelabel platform for podcast creators and digital
 publishers who want to own their stack — content, subscribers, and distribution — instead of
 renting it from Patreon, Steady, or a closed CMS.
 
 **Primary audience:** non-technical German creators (podcasters, newsletter writers) who create
-content in **`publish-studio`**, publish to their domain, and reach audiences via **`publish-web`**,
+content in **`directwerk-studio`**, publish to their domain, and reach audiences via **`directwerk-web`**,
 RSS, and subscriber email — without APIs or external tools. Agencies and custom frontends integrate
 via the same REST contract.
 
 Creators onboard as **tenants** with their own domain and branding. End users register, subscribe
 to tenant-defined products, and consume podcasts via RSS in their own podcatcher — or through the
-subscriber portal on `publish-web`. We handle auth, entitlements, asset storage, and billing
+subscriber portal on `directwerk-web`. We handle auth, entitlements, asset storage, and billing
 plumbing; tenants own the brand and (optionally) customize the public site.
 
-**The product is the backend** — multi-tenant platform, REST API, **`publish-studio`** (content
-management), **`publish-admin`** (platform ops), plus database, jobs, cache, S3, and CDN. Per tenant,
-the **end-customer frontend** is optional: we build it on commission (e.g. `publish-web`) or the
-customer brings their own — both connect to the same API. Non-technical creators use **`publish-studio`**
+**The product is the backend** — multi-tenant platform, REST API, **`directwerk-studio`** (content
+management), **`directwerk-admin`** (platform ops), plus database, jobs, cache, S3, and CDN. Per tenant,
+the **end-customer frontend** is optional: we build it on commission (e.g. `directwerk-web`) or the
+customer brings their own — both connect to the same API. Non-technical creators use **`directwerk-studio`**
 out of the box; audiences reach content via the tenant frontend, RSS, or email.
 
 ```mermaid
 flowchart TB
     subgraph backend [Product — Backend]
         API[Spring Boot REST API]
-        Studio[publish-studio Content]
-        Admin[publish-admin Platform]
+        Studio[directwerk-studio Content]
+        Admin[directwerk-admin Platform]
         Infra[(PostgreSQL Jobs Cache)]
         S3[(S3 CDN)]
         API --> Infra
@@ -181,7 +181,7 @@ flowchart TB
 
     subgraph frontends [Per tenant — optional]
         CustomFE[Customer frontend BYO]
-        Commission[Commissioned frontend e.g. publish-web]
+        Commission[Commissioned frontend e.g. directwerk-web]
     end
 
     Creator[Creator] --> Studio
@@ -197,12 +197,12 @@ flowchart TB
 > Fully **multi-tenant / whitelabel** — with optional per-customer frontends.
 >
 > **The product is the backend:**
-> - **Studio** — creator content management (`publish-studio`)
-> - **Admin dashboard** — platform operations (`publish-admin`)
+> - **Studio** — creator content management (`directwerk-studio`)
+> - **Admin dashboard** — platform operations (`directwerk-admin`)
 > - **Infrastructure** — database, jobs, cache, S3 asset storage, CDN
 > - **API** — REST for everything (content, entitlements, billing, feeds)
 >
-> **End-customer frontend:** Per tenant, either **built for them** (e.g. `publish-web`) or **they
+> **End-customer frontend:** Per tenant, either **built for them** (e.g. `directwerk-web`) or **they
 > bring their own** — both integrate via the same API contract.
 
 | Layer | What we ship | Who uses it |
@@ -243,9 +243,9 @@ Tenants activate these via the module system as they grow — not required for M
 | **Patreon migration** | `PATREON_SYNC` | Import members, dual-run sync, shadow-user claim |
 | **Steady migration** | `STEADY_SYNC` | Same for Steady publishers |
 | **Digital bonus files** | `DIGITAL_CONTENT` + `SUBSCRIPTION` | PDFs, ebooks behind package rules |
-| **Platform superadmin UI** | `publish-admin` | Full ops console (MVP: minimal tenant/module CRUD) |
-| **Reference creator dashboard** | `publish-studio` | Default publisher back-office for non-technical creators |
-| **Reference whitelabel UI** | `publish-web` | Default public site + subscriber portal — agencies may replace |
+| **Platform superadmin UI** | `directwerk-admin` | Full ops console (MVP: minimal tenant/module CRUD) |
+| **Reference creator dashboard** | `directwerk-studio` | Default publisher back-office for non-technical creators |
+| **Reference whitelabel UI** | `directwerk-web` | Default public site + subscriber portal — agencies may replace |
 | **Articles, video, ebooks** | `DIGITAL_CONTENT` extensions | Additional publication types |
 | **One-time purchases** | `STRIPE_BILLING` | Single episode / file sales |
 | **Platform SaaS billing** | Post-MVP | Tenants pay us; modules tied to platform plan |
@@ -264,8 +264,8 @@ S3-compatible object storage · Stripe Connect · Patreon/Steady API sync
 | PostgreSQL | **19 (beta)** | Dev: `postgres:19beta1-alpine`; production TBD at GA |
 | Java | **21** | Spring Boot 4.1 supports JDK 17–26; we target 21 |
 
-**Reference frontends:** Next.js 16 — `publish-studio` (creator dashboard), `publish-web` (public +
-subscriber site), `publish-admin` (platform ops)
+**Reference frontends:** Next.js 16 — `directwerk-studio` (creator dashboard), `directwerk-web` (public +
+subscriber site), `directwerk-admin` (platform ops)
 
 **Package:** `de.pnnit.directwerk`
 
@@ -275,7 +275,7 @@ RSS, and real LEVEL/PACKAGE entitlements are implemented — see
 [`docs/poc-alpha-setup.md`](docs/poc-alpha-setup.md) and
 [`docs/phase-2e-4-4b-implementation.md`](docs/phase-2e-4-4b-implementation.md) for what's shipped vs.
 open. Still design-only: feed builder, Stripe/Patreon/Steady billing, `EMAIL_NOTIFY`, articles, and the
-`publish-admin`/`publish-web` reference frontends. Full doc index: [Documentation](#documentation).
+`directwerk-admin`/`directwerk-web` reference frontends. Full doc index: [Documentation](#documentation).
 
 ### MVP Scope
 
@@ -337,9 +337,9 @@ flowchart TB
 | Subscription products | No | Phase 4b/8 |
 | Feed builder | No | Phase 7 |
 | Stripe / Patreon / Steady | No | Phase 6/8 |
-| `publish-admin` dashboard | Minimal API (alpha) | Full audit, health views |
-| `publish-studio` creator dashboard | Studio v0–v2 with podcast publish | Subscribers, products, articles |
-| `publish-web` public + subscriber site | Bundled default for creators (may trail Studio v2 slightly) | Feed builder UI, full portal |
+| `directwerk-admin` dashboard | Minimal API (alpha) | Full audit, health views |
+| `directwerk-studio` creator dashboard | Studio v0–v2 with podcast publish | Subscribers, products, articles |
+| `directwerk-web` public + subscriber site | Bundled default for creators (may trail Studio v2 slightly) | Feed builder UI, full portal |
 
 #### Alpha POC (before MVP content)
 
@@ -351,7 +351,7 @@ storage **plumbing** in one runnable backend — **no** podcast CRUD, upload end
 | Multi-tenant isolation (`Host` + JWT, row-level guards) | Full upload/confirm pipeline (Phase 2c) |
 | Module catalog, presets, dependency/cascade rules | Podcast series/episodes (Phase 3) |
 | Spring Security (OAuth2 AS + RS, all five roles) | Real entitlements LEVEL/PACKAGE (Phase 4b) |
-| `MediaAsset` schema + S3 beans + `AssetAccessApi` stub | `publish-studio` / `publish-web` UI |
+| `MediaAsset` schema + S3 beans + `AssetAccessApi` stub | `directwerk-studio` / `directwerk-web` UI |
 | Platform + tenant admin API surface | Private signed URLs, RSS feeds |
 
 Alpha success = all [`http/*.http`](http/) scenarios green against local dev seed.
@@ -365,15 +365,15 @@ Alpha success = all [`http/*.http`](http/) scenarios green against local dev see
 4. **Studio v0** — Settings + team UI (can parallel Phase 2 once alpha API is green)
 5. **Phase 4** — Public + private RSS feeds
 6. **Phase 4b** — Subscription products, `EntitlementService`, subscriber `/me/*` APIs
-7. **Phase 5** — `publish-admin` superadmin UI (alpha ships platform API only)
+7. **Phase 5** — `directwerk-admin` superadmin UI (alpha ships platform API only)
 8. **Phase 6** — Patreon/Steady onboarding + dual-run sync
 9. **Phase 7** — Feed builder
 10. **Phase 8** — Stripe Connect billing
-11. **Phase 9** — `publish-web` default tenant site + subscriber portal
+11. **Phase 9** — `directwerk-web` default tenant site + subscriber portal
 12. **Post-MVP** — Articles, `EMAIL_NOTIFY`, analytics, `CMS_SYNC` integrator tier
 
-Phases 4–8 are **post-MVP** for a podcast-only creator loop; **Studio v2 + publish-web** are the
-creator-facing MVP per [`docs/publish-studio.md`](docs/publish-studio.md).
+Phases 4–8 are **post-MVP** for a podcast-only creator loop; **Studio v2 + directwerk-web** are the
+creator-facing MVP per [`docs/directwerk-studio.md`](docs/directwerk-studio.md).
 
 #### MVP success criteria
 
@@ -411,7 +411,7 @@ Items below are **post-MVP** or explicitly out of scope for the initial release.
 - Built-in email marketing (integrate via webhooks later)
 - Mobile native apps (podcast apps consume RSS)
 - Replacing Patreon/Steady community features (comments, DMs, polls)
-- Shipping a mandatory bundled UI for every tenant — API is sufficient for agencies; **`publish-studio` + `publish-web` are the default** for non-technical creators
+- Shipping a mandatory bundled UI for every tenant — API is sufficient for agencies; **`directwerk-studio` + `directwerk-web` are the default** for non-technical creators
 - Course booking / slot management (belongs in [`projects/courses/`](../courses/))
 
 ### Open Decisions
@@ -420,11 +420,11 @@ Record decisions here before implementation begins.
 
 | # | Decision | Recommended | Alternative | Chosen |
 |---|----------|-------------|-------------|--------|
-| 1 | Project placement | New `projects/publish/` | Extend `projects/courses/` | TBD |
+| 1 | Project placement | New `projects/directwerk/` | Extend `projects/courses/` | TBD |
 | 2 | Tenant payouts | Stripe Connect | Platform Stripe account + manual settlement | TBD |
-| 3 | Tenant-facing UI | **`publish-studio` + `publish-web` bundled default**; API for agencies/custom frontends | API-only; customer builds everything | **Bundled default** |
-| 4 | Superadmin dashboard | **Separate app** (`projects/publish-admin/`) | Section inside publish-web | **Separate app** |
-| 5 | Publisher admin for tenants | **`publish-studio`** (default); API for integrators | Customer builds via API only | **`publish-studio`** |
+| 3 | Tenant-facing UI | **`directwerk-studio` + `directwerk-web` bundled default**; API for agencies/custom frontends | API-only; customer builds everything | **Bundled default** |
+| 4 | Superadmin dashboard | **Separate app** (`projects/directwerk-admin/`) | Section inside directwerk-web | **Separate app** |
+| 5 | Publisher admin for tenants | **`directwerk-studio`** (default); API for integrators | Customer builds via API only | **`directwerk-studio`** |
 | 6 | Premium distribution | **Per-subscriber private feed URL** (token) + public free-only feed | Signed enclosure URLs in public feed | **Private feeds** |
 | 7 | Patreon/Steady during migration | **Dual-run sync** — OAuth + webhook membership sync while billing transitions | Big-bang cutover with CSV import only | TBD |
 | 8 | Format vs category | **Format** = episode content type (Interview, Bonus); **Category** = optional second axis (Season, Topic) | Single tagging dimension only | TBD |
@@ -534,11 +534,11 @@ flowchart TB
 
 | Component | Role | Required? |
 |-----------|------|-----------|
-| **Spring Boot API** (`projects/publish/`) | **Core backend** — business logic, feeds, billing, entitlements, jobs, cache | Yes |
-| **`publish-studio`** | Creator content management — part of the backend product | Yes (shipped with platform) |
-| **`publish-admin`** | Platform superadmin operations | Yes (for platform team) |
+| **Spring Boot API** (`projects/directwerk/`) | **Core backend** — business logic, feeds, billing, entitlements, jobs, cache | Yes |
+| **`directwerk-studio`** | Creator content management — part of the backend product | Yes (shipped with platform) |
+| **`directwerk-admin`** | Platform superadmin operations | Yes (for platform team) |
 | **PostgreSQL, S3, CDN** | Database, asset storage, public media delivery | Yes |
-| **End-customer frontend** | Per tenant: commissioned (`publish-web`) or customer-built (BYO) | Optional per tenant |
+| **End-customer frontend** | Per tenant: commissioned (`directwerk-web`) or customer-built (BYO) | Optional per tenant |
 | **Podcast apps** | Consume RSS feeds directly — no custom UI needed | External |
 
 ### Request Flows
@@ -580,7 +580,7 @@ discovers their show.
 |-------|------|
 | **You** (end user) | Listener / subscriber |
 | **Project X frontend** | Customer-built site at `projectx.de` — calls `/api/v1/` on the platform |
-| **Publish API** | Spring Boot monolith — auth, content, billing, RSS, entitlements |
+| **Directwerk API** | Spring Boot monolith — auth, content, billing, RSS, entitlements |
 | **Your podcatcher** | Apple Podcasts, Overcast, etc. — consumes RSS URLs |
 
 #### Journey (step by step)
@@ -753,35 +753,35 @@ subscription checks, module gating — must be fully operable via HTTP without a
 | Consumer | Auth | Typical use |
 |----------|------|-------------|
 | **Customer publisher frontend** | OAuth2 JWT (`TENANT_ADMIN`, `EDITOR`) | Episode editor, format manager, release workflow |
-| **`publish-studio`** (default) | Same as above | Primary creator dashboard — see [`docs/publish-studio.md`](docs/publish-studio.md) |
+| **`directwerk-studio`** (default) | Same as above | Primary creator dashboard — see [`docs/directwerk-studio.md`](docs/directwerk-studio.md) |
 | **Customer subscriber frontend** | OAuth2 JWT (`SUBSCRIBER`) | Feed builder, feed URL display, account |
 | **Customer marketing site** | None + `Host` | `GET /api/v1/public/*` for show info, free episodes, pricing |
 | **Podcast apps** | Feed token in URL | `GET /feeds/...` — RSS only |
 | **Patreon / Steady / Stripe** | Webhook signatures | Inbound membership and payment events |
-| **Reference `publish-web`** | Same as above | Our optional implementation |
+| **Reference `directwerk-web`** | Same as above | Our optional implementation |
 
 ### Reference Frontends
 
-`projects/publish-studio/`, `projects/publish-web/`, and `projects/publish-admin/` are **not** the
+`projects/directwerk-studio/`, `projects/directwerk-web/`, and `projects/directwerk-admin/` are **not** the
 API contract — they prove it works and ship the **default creator experience**. See
-[`docs/publish-studio.md`](docs/publish-studio.md) for the creator dashboard in detail.
+[`docs/directwerk-studio.md`](docs/directwerk-studio.md) for the creator dashboard in detail.
 
 | App | Purpose | When to build |
 |-----|---------|---------------|
-| `publish-studio` | **Creator dashboard** — create, publish, manage members (primary audience) | MVP Studio v0–v2 |
-| `publish-web` | **Public site + subscriber portal** — marketing, pricing, feeds, checkout | MVP / Phase 9 |
-| `publish-admin` | Internal platform operations | Once for our team |
+| `directwerk-studio` | **Creator dashboard** — create, publish, manage members (primary audience) | MVP Studio v0–v2 |
+| `directwerk-web` | **Public site + subscriber portal** — marketing, pricing, feeds, checkout | MVP / Phase 9 |
+| `directwerk-admin` | Internal platform operations | Once for our team |
 
-**Default tenant onboarding:** Deploy `publish-studio` + `publish-web` on the tenant domain.
+**Default tenant onboarding:** Deploy `directwerk-studio` + `directwerk-web` on the tenant domain.
 Creators use studio; audiences use the public site and subscriber portal.
 
 **Per-customer frontend workflow (agencies):**
 
-1. Customer (or we on their behalf) builds a frontend against `/api/v1/` — replaces `publish-web`
+1. Customer (or we on their behalf) builds a frontend against `/api/v1/` — replaces `directwerk-web`
 2. Frontend uses `GET /api/v1/public/site-config` for branding and `enabledModules`
-3. OAuth2 for publisher (`publish-studio` or custom) and subscriber flows
+3. OAuth2 for publisher (`directwerk-studio` or custom) and subscriber flows
 4. Deploy on tenant's domain; Traefik routes `/api` and `/feeds` to Spring Boot
-5. Custom UI, custom UX — API contract stays stable. **`publish-studio` can still be the publisher UI.**
+5. Custom UI, custom UX — API contract stays stable. **`directwerk-studio` can still be the publisher UI.**
 
 ### Tenant Integration
 
@@ -800,7 +800,7 @@ customer domain is registered.
 
 **Rate limits:** Documented per API key / per tenant; return `429` with `Retry-After`.
 
-**No private/undocumented endpoints** — if `publish-web` uses it, it's in OpenAPI and available to customers.
+**No private/undocumented endpoints** — if `directwerk-web` uses it, it's in OpenAPI and available to customers.
 
 ---
 
@@ -1177,7 +1177,7 @@ Cross-module calls go through public service interfaces in `modules/{name}/api/`
 }
 ```
 
-Next.js (`projects/publish-web/`) uses `enabledModules` to:
+Next.js (`projects/directwerk-web/`) uses `enabledModules` to:
 
 - Show/hide nav items (Feed Builder, Pricing, Integrations)
 - Guard routes (`/account/feeds` requires `FEED_BUILDER`)
@@ -2282,20 +2282,20 @@ Tenant isolation: `TenantContext` from JWT `tenant_id` claim + `Host` cross-chec
 
 ---
 
-## Reference Frontend (publish-web)
+## Reference Frontend (directwerk-web)
 
 **Not the API contract** — default **public site and subscriber portal** for non-technical creators.
 Agencies may replace with a custom frontend against the same API.
 
-**Planned location:** `projects/publish-web/` (Phase 9 — after core API; may ship earlier for MVP demo)
+**Planned location:** `projects/directwerk-web/` (Phase 9 — after core API; may ship earlier for MVP demo)
 
 | Area | Pages |
 |------|-------|
 | **Public** | Show landing, free episode list, article archive (post-MVP), product pricing, register/login |
 | **Subscriber portal** | Access dashboard (`/me/access`), feed URLs, **feed builder**, subscription management |
 
-Publisher back-office lives in **`publish-studio`** — not `publish-web`. See
-[Reference Frontend (publish-studio)](#reference-frontend-publish-studio).
+Publisher back-office lives in **`directwerk-studio`** — not `directwerk-web`. See
+[Reference Frontend (directwerk-studio)](#reference-frontend-directwerk-studio).
 
 | Concern | Approach |
 |---------|----------|
@@ -2303,24 +2303,24 @@ Publisher back-office lives in **`publish-studio`** — not `publish-web`. See
 | Tenant resolution | Middleware reads `Host` → `GET /api/v1/public/site-config` |
 | Feed builder UI | Thin client over `/api/v1/me/feeds` |
 | Styling | CSS Modules; customer frontends may use any stack |
-| Deploy | Bundled with `publish-studio` on tenant domain by default |
+| Deploy | Bundled with `directwerk-studio` on tenant domain by default |
 
 Reference static-site patterns: [`projects/complete/pilates/src/site/identity.ts`](../complete/pilates/src/site/identity.ts)
 (branding loaded from `site-config` API instead of hardcoded).
 
 **When to skip:** Agency provides their own public/subscriber frontend — API-only deployment is
-valid. **`publish-studio` can remain the creator dashboard.**
+valid. **`directwerk-studio` can remain the creator dashboard.**
 
 ---
 
-## Reference Frontend (publish-studio)
+## Reference Frontend (directwerk-studio)
 
 **Default creator app** for non-technical tenants. Full product overview:
-[`docs/publish-studio.md`](docs/publish-studio.md). Implementation guide (screens, scaffold, auth):
-[`docs/publish-studio-implementation.md`](docs/publish-studio-implementation.md). Content backend
+[`docs/directwerk-studio.md`](docs/directwerk-studio.md). Implementation guide (screens, scaffold, auth):
+[`docs/directwerk-studio-implementation.md`](docs/directwerk-studio-implementation.md). Content backend
 (libraries, workflow): [`docs/content-creation-implementation.md`](docs/content-creation-implementation.md).
 
-**Planned location:** `projects/publish-studio/` (dedicated app) or `/studio/**` in `publish-web`
+**Planned location:** `projects/directwerk-studio/` (dedicated app) or `/studio/**` in `directwerk-web`
 
 | Area | Screens |
 |------|---------|
@@ -2351,9 +2351,9 @@ tenants, module assignments, tenant admins, and platform health — separate fro
 
 | App | Path | Audience | Tenant resolution |
 |-----|------|----------|-------------------|
-| `projects/publish-admin/` | `https://admin.{platform-domain}.de` | Platform superadmins | **None** — platform-scoped only |
-| `projects/publish-studio/` | `https://studio.{tenant-domain}.de` | Publishers, editors | Host-based |
-| `projects/publish-web/` | `https://{tenant-domain}.de` | Subscribers, guests | Host-based |
+| `projects/directwerk-admin/` | `https://admin.{platform-domain}.de` | Platform superadmins | **None** — platform-scoped only |
+| `projects/directwerk-studio/` | `https://studio.{tenant-domain}.de` | Publishers, editors | Host-based |
+| `projects/directwerk-web/` | `https://{tenant-domain}.de` | Subscribers, guests | Host-based |
 
 **Why a separate app?**
 
@@ -2365,7 +2365,7 @@ tenants, module assignments, tenant admins, and platform health — separate fro
 ```mermaid
 flowchart LR
     Superadmin[SuperadminBrowser]
-    AdminApp[publish-admin Next.js]
+    AdminApp[directwerk-admin Next.js]
     API[SpringBoot /api/v1/platform]
     DB[(PostgreSQL)]
 
@@ -2537,15 +2537,15 @@ Superadmin accounts are **never** created via public registration — invite-onl
 
 | Concern | Value |
 |---------|-------|
-| Project | `projects/publish-admin/` |
+| Project | `projects/directwerk-admin/` |
 | Stack | Next.js 16, React 19, TypeScript, CSS Modules (no Tailwind) |
 | Host | `admin.{platform-domain}.de` (single fixed domain) |
 | API target | `https://api.{platform-domain}.de/api/v1/platform` |
-| Coolify | Separate app from `publish-web` and Spring API |
+| Coolify | Separate app from `directwerk-web` and Spring API |
 | Env | `NEXT_PUBLIC_PLATFORM_API_URL`, no tenant env vars |
 
 ```
-projects/publish-admin/
+projects/directwerk-admin/
   app/
     (auth)/login/
     (dashboard)/
@@ -2624,7 +2624,7 @@ See [Flyway](#flyway) for full integration guide, configuration, development wor
 ### Quick start
 
 ```sh
-cd projects/publish/Directwerk
+cd projects/directwerk/Directwerk
 cp .env.example .env          # set DB password + OAuth / seed secrets
 docker compose up -d          # Postgres :5433, Mailpit SMTP :1025 / UI :8025
 ./gradlew :directwerk-app:bootRun
@@ -2636,8 +2636,8 @@ docker compose up -d          # Postgres :5433, Mailpit SMTP :1025 / UI :8025
 | `http://localhost:8080/swagger-ui.html` | OpenAPI UI |
 | `http://127.0.0.1:8025` | Mailpit (captured email) |
 
-Frontends: `example-fe` (:3000), `publish-admin` (:3001), `publish-studio` (:3003), and
-`publish-web` (:3004). HTTP harness: [`Directwerk/http/`](Directwerk/http/).
+Frontends: `example-fe` (:3000), `directwerk-admin` (:3001), `directwerk-studio` (:3003), and
+`directwerk-web` (:3004). HTTP harness: [`Directwerk/http/`](Directwerk/http/).
 
 Object storage (when implementing uploads) uses Hetzner or Bunny.net (EU) — not a local container.
 See [`docs/asset-storage.md`](docs/asset-storage.md). Stripe webhook forwarding (when billing ships):
@@ -2663,16 +2663,16 @@ Target topology: **Docker on Hetzner Cloud via Coolify** (same as other monorepo
 | PostgreSQL | Managed or Coolify database service (not Compose) |
 | SMTP | Mailgun (or equivalent) — not Mailpit |
 | S3 | Hetzner Object Storage or Bunny.net Storage (EU) — when media ships |
-| Next.js | Separate Coolify apps (`publish-admin` / studio / web) |
+| Next.js | Separate Coolify apps (`directwerk-admin` / studio / web) |
 | Traefik | TLS via Let's Encrypt; per-tenant `Host()` rules |
 
 ### Routing example
 
 | Host / Path | Target |
 |-------------|--------|
-| `admin.{platform}.de` | `publish-admin` (superadmin dashboard) |
+| `admin.{platform}.de` | `directwerk-admin` (superadmin dashboard) |
 | `api.{platform}.de` | Spring Boot API |
-| `client-a.de`, etc. | `publish-web` (whitelabel) |
+| `client-a.de`, etc. | `directwerk-web` (whitelabel) |
 | `api.{platform}.de/api/v1/platform/*` | Spring Boot (platform routes) |
 | `*/feeds/*` on tenant domains | Spring Boot |
 
@@ -2693,7 +2693,7 @@ publish:
   runs-on: ubuntu-latest
   defaults:
     run:
-      working-directory: projects/publish
+      working-directory: projects/directwerk
   services:
     postgres:
       image: postgres:19beta1-alpine
@@ -2712,7 +2712,7 @@ publish:
     - run: ./gradlew test build
 ```
 
-Path filter: `projects/publish/**`
+Path filter: `projects/directwerk/**`
 
 ---
 
@@ -2785,7 +2785,7 @@ Path filter: `projects/publish/**`
 - [x] `TenantContext`, `TenantResolver`, Hibernate `tenantFilter` + write guard (see `Directwerk/docs/multi-tenancy.md`)
 - [ ] Global exception handler + `Response` wrapper (+ structured error `code` field)
 - [ ] **OpenAPI 3 + Swagger UI — treat as product deliverable**
-- [ ] **Integration guide stub in `docs/publish-api-integration.md`**
+- [ ] **Integration guide stub in `docs/directwerk-api-integration.md`**
 - [ ] Platform admin API for module activate/deactivate
 - [x] `Directwerk/compose.yaml` (Postgres + Mailpit), `Dockerfile`, [`docs/build-and-deploy.md`](Directwerk/docs/build-and-deploy.md), `AGENTS.md`
 - [ ] Actuator health endpoint
@@ -2829,7 +2829,7 @@ Path filter: `projects/publish/**`
 
 ### Phase 5 — Platform superadmin dashboard
 
-- [ ] `projects/publish-admin/` Next.js scaffold (fixed domain, no tenant middleware)
+- [ ] `projects/directwerk-admin/` Next.js scaffold (fixed domain, no tenant middleware)
 - [ ] Superadmin login (PLATFORM_ADMIN JWT)
 - [ ] Tenant list + create + detail views
 - [ ] Module management UI (toggles, presets, dependency hints, cascade confirm)
@@ -2869,7 +2869,7 @@ Path filter: `projects/publish/**`
 
 ### Phase 9 — Reference frontend (optional)
 
-- [ ] `projects/publish-web/` — optional reference; **customer-built frontends are the primary model**
+- [ ] `projects/directwerk-web/` — optional reference; **customer-built frontends are the primary model**
 - [ ] Demonstrate Project X journey: register, catalog, checkout, portal, feed builder
 - [ ] Per-customer fork/customize as needed
 
@@ -2898,7 +2898,7 @@ Path filter: `projects/publish/**`
 ## Flyway
 
 [Flyway](https://documentation.red-gate.com/flyway/) manages all PostgreSQL schema changes for
-`projects/publish/`. **Flyway owns the schema; Hibernate only validates against it.**
+`projects/directwerk/`. **Flyway owns the schema; Hibernate only validates against it.**
 
 Stack: Flyway 12+ (version from Spring Boot 4.1.0 BOM) · PostgreSQL 19 (beta) ·
 `spring-boot-starter-flyway`
@@ -3141,7 +3141,7 @@ flowchart LR
 **Reset local database** (dev only — `clean-disabled: false` on profile `local`):
 
 ```sh
-cd projects/publish/Directwerk
+cd projects/directwerk/Directwerk
 set -a && source .env && set +a
 ./gradlew :directwerk-app:flywayClean :directwerk-app:flywayMigrate
 # or: docker compose down -v && docker compose up -d
@@ -3256,9 +3256,9 @@ Reference: [`projects/courses/README.md`](../courses/README.md) — Flyway Integ
 | [`projects/strapi/cffc-v3`](../strapi/cffc-v3) | Reference Stripe `payment-data` naming; do not port Strapi |
 | [`projects/strapi/cffc-v5`](../strapi/cffc-v5) | S3 upload configuration reference |
 | [`projects/complete/pilates`](../complete/pilates/), [`projects/cffc`](../cffc/) | Whitelabel UI conventions (`identity`, CSS modules, SEO) |
-| [`projects/publish-admin/`](../publish-admin/) | Platform superadmin dashboard (not yet created) |
-| [`projects/publish-studio/`](../publish-studio/) | Default creator dashboard — see [`docs/publish-studio.md`](docs/publish-studio.md) |
-| [`projects/publish-web/`](../publish-web/) | Default public site + subscriber portal — agencies may replace |
+| [`projects/directwerk-admin/`](../directwerk-admin/) | Platform superadmin dashboard (not yet created) |
+| [`projects/directwerk-studio/`](../directwerk-studio/) | Default creator dashboard — see [`docs/directwerk-studio.md`](docs/directwerk-studio.md) |
+| [`projects/directwerk-web/`](../directwerk-web/) | Default public site + subscriber portal — agencies may replace |
 | [`docs/ghost-positioning.md`](docs/ghost-positioning.md) | Competitive positioning vs Ghost — not a feature-parity target |
 | Root [`AGENTS.md`](../../AGENTS.md) | Monorepo conventions; independent subproject build |
 

@@ -64,9 +64,9 @@ management:
 directwerk:
     security:
         issuer: ${DIRECTWERK_ISSUER:}
-        audience: publish-api
-        platform-client-id: ${DIRECTWERK_PLATFORM_CLIENT_ID:publish-platform-admin}
-        tenant-client-id: ${DIRECTWERK_TENANT_CLIENT_ID:publish-tenant-frontend}
+        audience: directwerk-api
+        platform-client-id: ${DIRECTWERK_PLATFORM_CLIENT_ID:directwerk-platform-admin}
+        tenant-client-id: ${DIRECTWERK_TENANT_CLIENT_ID:directwerk-tenant-frontend}
         platform-client-secret: ${DIRECTWERK_PLATFORM_CLIENT_SECRET:}
         tenant-client-secret: ${DIRECTWERK_TENANT_CLIENT_SECRET:}
         jwt-private-key: ${DIRECTWERK_JWT_PRIVATE_KEY:}

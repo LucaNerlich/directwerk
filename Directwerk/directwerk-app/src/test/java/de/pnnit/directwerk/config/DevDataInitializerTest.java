@@ -34,7 +34,7 @@ class DevDataInitializerTest {
             null,
             new DirectwerkProperties.Dev(
                     "tenant-seed-password",
-                    "custom-platform-admin@publish.local",
+                    "custom-platform-admin@directwerk.local",
                     "platform-admin-password"
             ),
             null,
@@ -80,7 +80,7 @@ class DevDataInitializerTest {
     @Test
     void seedsPlatformAdminWithDedicatedEmailAndPassword() throws Exception {
         stubExistingTenantUsersWithPasswords();
-        when(userRepository.findByEmailIgnoreCase("custom-platform-admin@publish.local"))
+        when(userRepository.findByEmailIgnoreCase("custom-platform-admin@directwerk.local"))
                 .thenReturn(Optional.empty());
         when(userRepository.save(any(User.class))).thenAnswer(invocation -> {
             User user = invocation.getArgument(0);
@@ -98,7 +98,7 @@ class DevDataInitializerTest {
         ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
         verify(userRepository, atLeastOnce()).save(userCaptor.capture());
         User savedPlatformAdmin = userCaptor.getAllValues().stream()
-                .filter(user -> "custom-platform-admin@publish.local".equals(user.getEmail()))
+                .filter(user -> "custom-platform-admin@directwerk.local".equals(user.getEmail()))
                 .findFirst()
                 .orElseThrow();
         assertThat(savedPlatformAdmin.getPasswordHash()).isEqualTo("encoded-platform-password");
@@ -110,8 +110,8 @@ class DevDataInitializerTest {
 
     @Test
     void seedsTenantUsersWithSharedSeedPassword() throws Exception {
-        User platformAdminUser = existingUser(1L, "custom-platform-admin@publish.local", "existing-platform-hash");
-        when(userRepository.findByEmailIgnoreCase("custom-platform-admin@publish.local"))
+        User platformAdminUser = existingUser(1L, "custom-platform-admin@directwerk.local", "existing-platform-hash");
+        when(userRepository.findByEmailIgnoreCase("custom-platform-admin@directwerk.local"))
                 .thenReturn(Optional.of(platformAdminUser));
         when(platformAdminRepository.findByUserId(1L)).thenReturn(Optional.of(new PlatformAdmin()));
         when(userRepository.findByEmailIgnoreCase("admin-a@alpha-show.local")).thenReturn(Optional.empty());
@@ -137,10 +137,10 @@ class DevDataInitializerTest {
         stubExistingTenantUsersWithPasswords();
         User platformAdminUser = existingUser(
                 1L,
-                "custom-platform-admin@publish.local",
+                "custom-platform-admin@directwerk.local",
                 "existing-hash"
         );
-        when(userRepository.findByEmailIgnoreCase("custom-platform-admin@publish.local"))
+        when(userRepository.findByEmailIgnoreCase("custom-platform-admin@directwerk.local"))
                 .thenReturn(Optional.of(platformAdminUser));
         when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(platformAdminRepository.findByUserId(1L)).thenReturn(Optional.of(new PlatformAdmin()));
@@ -156,7 +156,7 @@ class DevDataInitializerTest {
         stubExistingTenantUsersWithPasswords();
         DirectwerkConfig blankPasswordConfig = new DirectwerkConfig(new DirectwerkProperties(
                 null,
-                new DirectwerkProperties.Dev("tenant-seed-password", "custom-platform-admin@publish.local", "  "),
+                new DirectwerkProperties.Dev("tenant-seed-password", "custom-platform-admin@directwerk.local", "  "),
                 null,
                 null,
                 null,
@@ -172,8 +172,8 @@ class DevDataInitializerTest {
                 passwordEncoder,
                 blankPasswordConfig
         );
-        User platformAdminUser = existingUser(1L, "custom-platform-admin@publish.local", null);
-        when(userRepository.findByEmailIgnoreCase("custom-platform-admin@publish.local"))
+        User platformAdminUser = existingUser(1L, "custom-platform-admin@directwerk.local", null);
+        when(userRepository.findByEmailIgnoreCase("custom-platform-admin@directwerk.local"))
                 .thenReturn(Optional.of(platformAdminUser));
         when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(platformAdminRepository.findByUserId(1L)).thenReturn(Optional.of(new PlatformAdmin()));

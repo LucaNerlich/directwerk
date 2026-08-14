@@ -28,7 +28,7 @@ directwerk-subscription
 
 ## Commands
 
-From `projects/publish/Directwerk/`:
+From `projects/directwerk/Directwerk/`:
 
 ```sh
 # Run locally (starts Compose deps when profile=local)

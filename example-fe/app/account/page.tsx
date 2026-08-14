@@ -5,10 +5,10 @@ import Link from 'next/link'
 import {useRouter} from 'next/navigation'
 import {useActionState, useEffect, useState} from 'react'
 
-import {Alert, AlertDescription} from '@publish/ui/components/alert'
-import {Button} from '@publish/ui/components/button'
-import PageHeader from '@publish/ui/components/page-header'
-import {Table, TableBody, TableCell, TableHead, TableHeader, TableRow} from '@publish/ui/components/table'
+import {Alert, AlertDescription} from '@directwerk/ui/components/alert'
+import {Button} from '@directwerk/ui/components/button'
+import PageHeader from '@directwerk/ui/components/page-header'
+import {Table, TableBody, TableCell, TableHead, TableHeader, TableRow} from '@directwerk/ui/components/table'
 
 import {
     createPortalSession,

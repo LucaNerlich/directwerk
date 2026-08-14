@@ -4,9 +4,9 @@ import Link from 'next/link'
 import {useEffect, useState, useSyncExternalStore} from 'react'
 import useSWR from 'swr'
 
-import {Alert, AlertDescription} from '@publish/ui/components/alert'
-import {Button} from '@publish/ui/components/button'
-import PageHeader from '@publish/ui/components/page-header'
+import {Alert, AlertDescription} from '@directwerk/ui/components/alert'
+import {Button} from '@directwerk/ui/components/button'
+import PageHeader from '@directwerk/ui/components/page-header'
 
 import {
     getSiteConfig,

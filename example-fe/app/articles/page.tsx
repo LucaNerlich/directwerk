@@ -3,11 +3,11 @@
 import Link from 'next/link'
 import {useEffect, useState} from 'react'
 
-import {Alert, AlertDescription} from '@publish/ui/components/alert'
-import {Badge} from '@publish/ui/components/badge'
-import {Card, CardContent, CardHeader, CardTitle} from '@publish/ui/components/card'
-import EmptyState from '@publish/ui/components/empty-state'
-import PageHeader from '@publish/ui/components/page-header'
+import {Alert, AlertDescription} from '@directwerk/ui/components/alert'
+import {Badge} from '@directwerk/ui/components/badge'
+import {Card, CardContent, CardHeader, CardTitle} from '@directwerk/ui/components/card'
+import EmptyState from '@directwerk/ui/components/empty-state'
+import PageHeader from '@directwerk/ui/components/page-header'
 
 import {listPublicArticles} from '@/lib/api/client'
 import type {PublicArticle} from '@/lib/api/types'
@@ -58,7 +58,7 @@ export default function ArticlesPage() {
             {isLoading && <p className="text-muted-foreground">Loading…</p>}
             {errorMessage !== null && <Alert variant="destructive"><AlertDescription>{errorMessage}</AlertDescription></Alert>}
             {!isLoading && errorMessage === null && articles.length === 0 && (
-                <EmptyState title="No published articles" description="Publish one in publish-studio to see it here." />
+                <EmptyState title="No published articles" description="Publish one in directwerk-studio to see it here." />
             )}
             {articles.length > 0 && (
                 <div className="grid gap-5 sm:grid-cols-2">

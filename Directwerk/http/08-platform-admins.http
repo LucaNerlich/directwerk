@@ -25,14 +25,14 @@ Content-Type: application/json
 Accept: application/json
 
 {
-  "email": "second-admin@publish.local",
+  "email": "second-admin@directwerk.local",
   "name": "Second Platform Admin"
 }
 
 > {%
     client.test("Invite platform admin", function() {
         client.assert(response.status === 201, "Expected 201");
-        client.assert(response.body.data.email === "second-admin@publish.local", "Expected email");
+        client.assert(response.body.data.email === "second-admin@directwerk.local", "Expected email");
         if (response.body.data.inviteToken) {
             client.global.set("inviteToken", response.body.data.inviteToken);
         }

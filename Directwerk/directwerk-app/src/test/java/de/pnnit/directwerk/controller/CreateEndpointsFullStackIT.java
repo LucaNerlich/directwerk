@@ -226,7 +226,7 @@ class CreateEndpointsFullStackIT {
         Instant now = Instant.now();
         JwtClaimsSet claims = JwtClaimsSet.builder()
                 .issuer("http://localhost:8080")
-                .audience(List.of("publish-api"))
+                .audience(List.of("directwerk-api"))
                 .subject(String.valueOf(userId))
                 .issuedAt(now)
                 .expiresAt(now.plusSeconds(300))

@@ -4,8 +4,8 @@ import Link from 'next/link'
 import {useRouter} from 'next/navigation'
 import {useEffect, useState} from 'react'
 
-import {buttonVariants} from '@publish/ui/components/button'
-import PageHeader from '@publish/ui/components/page-header'
+import {buttonVariants} from '@directwerk/ui/components/button'
+import PageHeader from '@directwerk/ui/components/page-header'
 
 import {getAccess, listMySubscriptions} from '@/lib/api/client'
 import {AUTH_REQUIRED} from '@/lib/api/errors'

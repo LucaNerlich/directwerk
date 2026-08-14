@@ -4,8 +4,8 @@ import Link from 'next/link'
 import {useParams} from 'next/navigation'
 import {useEffect, useState, useSyncExternalStore} from 'react'
 
-import {Alert, AlertDescription} from '@publish/ui/components/alert'
-import PageHeader from '@publish/ui/components/page-header'
+import {Alert, AlertDescription} from '@directwerk/ui/components/alert'
+import PageHeader from '@directwerk/ui/components/page-header'
 
 import {listMyEpisodes, listPublicEpisodes} from '@/lib/api/client'
 import {AUTH_REQUIRED} from '@/lib/api/errors'

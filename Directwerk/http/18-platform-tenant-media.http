@@ -1,4 +1,4 @@
-### Directwerk — Platform tenant media (ops / publish-admin Storage)
+### Directwerk — Platform tenant media (ops / directwerk-admin Storage)
 ### Prerequisites: 01-platform-auth.http (platformAccessToken), tenantAId from 06-platform-tenants.http
 ### Optional: assets created via 17-media-upload.http or platform upload below
 ### Storage must be enabled (DIRECTWERK_STORAGE_ENABLED=true) for upload-url / confirm.

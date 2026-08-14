@@ -22,7 +22,7 @@ import org.junit.jupiter.api.Test;
 
 /**
  * Validates the IntelliJ HTTP Client fixtures under {@code Directwerk/http/} and their reference
- * from {@code projects/publish/AGENTS.md}.
+ * from {@code projects/directwerk/AGENTS.md}.
  *
  * <p>This PR renumbered/renamed the manual API test scripts (e.g. {@code 06-tenant-admin.http} ->
  * {@code 10-tenant-admin.http}), replaced {@code http-client.secrets.example.json} with
@@ -68,7 +68,7 @@ class HttpClientFixturesTest {
     private static Path resolveHttpDir() {
         List<Path> candidates = List.of(
                 Paths.get("http"),
-                Paths.get("projects/publish/Directwerk/http"),
+                Paths.get("projects/directwerk/Directwerk/http"),
                 Paths.get("Directwerk/http")
         );
         for (Path candidate : candidates) {

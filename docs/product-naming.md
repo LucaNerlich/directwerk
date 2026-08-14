@@ -1,21 +1,22 @@
 # Directwerk — Product Naming Strategy
 
-Companion to [`README.md`](../README.md). **Publish** remains the internal codename for
-folders and packages. **Directwerk** is the chosen public product name — an international
-spelling of the Direktwerk idea (*direct* + *Werk*): craft/infrastructure for publishing
-straight to your audience.
+Companion to [`README.md`](../README.md). **Directwerk** is the chosen public product name —
+an international spelling of the Direktwerk idea (*direct* + *Werk*): craft/infrastructure for
+publishing straight to your audience. **Publish** was the internal codename used before the
+rename below; it no longer appears in repo folders, packages, or identifiers.
 
 | Document | Purpose |
 |----------|---------|
 | [`README.md`](../README.md) | Full platform design |
 | [`content-platform-strategy.md`](content-platform-strategy.md) | Product scope — publication platform, not CMS |
-| [`publish-studio.md`](publish-studio.md) | Creator dashboard — primary non-technical UX |
+| [`directwerk-studio.md`](directwerk-studio.md) | Creator dashboard — primary non-technical UX |
 | [`ghost-positioning.md`](ghost-positioning.md) | Competitive positioning |
 | **This document** | Public product name — criteria, decision, rename map |
 
-**Status (2026-07):** Public name **chosen: Directwerk**. Repo folders and Java package remain
-`publish` until a display-only or full rename sprint. Domain + trademark clearance still required
-before public launch.
+**Status (2026-08):** Public name **chosen: Directwerk**. Full technical rename executed
+2026-08-14 — repo folders, npm packages, Java package (`de.pnnit.directwerk`), and OAuth/email
+identifiers all use `directwerk`. Domain + trademark clearance still required before public
+launch.
 
 ---
 
@@ -145,22 +146,18 @@ Full parked / rejected tables kept below for reference.
 
 ## Product name vs technical identifiers
 
-Do **not** block implementation on rename. Standard pattern:
+| Layer | Value |
+|-------|-------|
+| **Marketing / legal** | Directwerk |
+| **Repo folders** | `projects/directwerk/` |
+| **Java package** | `de.pnnit.directwerk` |
+| **Reference apps** | `directwerk-web`, `directwerk-studio`, `directwerk-admin` |
+| **API Host** | `api.directwerk.de` (or chosen TLD) — still TODO, see [Validation checklist](#validation-checklist-before-public-launch) |
+| **OpenAPI `title`** | Directwerk API |
+| **Docs** | “Directwerk platform” |
 
-| Layer | Until rename | After rename (Directwerk) |
-|-------|--------------|---------------------------|
-| **Marketing / legal** | Publish | Directwerk / product site |
-| **Repo folders** | `projects/publish/` | Optional: `projects/directwerk/` (large diff) or keep path |
-| **Java package** | `de.pnnit.publish` | `de.pnnit.directwerk` (or keep package, change display name only) |
-| **Reference apps** | `publish-web`, `publish-studio`, `publish-admin` | `directwerk-web` or tenant-neutral `studio`/`admin` |
-| **API Host** | `api.publish.example` | `api.directwerk.de` (or chosen TLD) |
-| **OpenAPI `title`** | Publish API | Directwerk API |
-| **Docs** | “Publish platform” | “Directwerk platform” with note “formerly Publish” |
-
-**Minimal rename (recommended first):** change **display name**, domains, and docs only — keep
-`projects/publish/` and `de.pnnit.publish` until post-MVP to avoid churn during alpha.
-
-**Full rename:** schedule dedicated sprint — see [Rename impact](#rename-impact-checklist).
+Full technical rename (see [Rename impact](#rename-impact-checklist)) is done — no remaining
+`publish` identifiers in code, configs, or docs.
 
 ---
 
@@ -185,21 +182,17 @@ Recorded in [`README.md` § Open Decisions](../README.md#open-decisions).
 
 ## Rename impact checklist (full technical rename)
 
-When codename changes beyond display strings:
+Executed 2026-08-14:
 
-| Area | Files / systems |
-|------|-----------------|
-| Monorepo | `projects/publish/` → rename; CI paths in `.github/workflows/projects-ci.yml` |
-| Gradle | `settings.gradle.kts`, `rootProject.name`, artifact coordinates |
-| Java | `de.pnnit.publish` package refactor (IDE) |
-| Docker / Coolify | Image names, env vars, service labels |
-| HTTP tests | `http-client.env.json`, folder paths |
-| Deployment | `deployment/` scripts referencing publish |
-| Cross-project refs | `AGENTS.md`, root docs, `publish-web` if exists |
-| Database | No change required (tenant-scoped, not product-named) |
-
-Estimate: **display-only rename** ≈ 1 doc PR; **full package rename** ≈ large mechanical refactor —
-defer until alpha backend compiles.
+| Area | Files / systems | Status |
+|------|-----------------|--------|
+| Monorepo | `publish-admin`/`publish-studio`/`publish-web` → `directwerk-admin`/`directwerk-studio`/`directwerk-web` | Done |
+| npm packages | `@publish/ui` → `@directwerk/ui`; root workspace `directwerk-apps` | Done |
+| Gradle / Java | `settings.gradle`, `de.pnnit.directwerk` package | Already on `directwerk` before this pass |
+| OAuth / email identifiers | `publish-platform-admin`, `publish-tenant-frontend`, `publish-api` audience/scope, `publish.local` example domain → `directwerk-*` / `directwerk.local` | Done |
+| HTTP tests / Bruno | `http-client.env.json`, `bruno/environments/*` | Done |
+| Cross-project refs | `AGENTS.md`, `README.md`, all `docs/*.md` | Done |
+| Database | No change required (tenant-scoped, not product-named) | N/A |
 
 ---
 
@@ -225,7 +218,7 @@ Avoid claiming “Substack killer” in trademark-sensitive regions — use **al
 | **Options** | Directwerk (chosen) · Eigenplatz (backup) |
 | **Recommended** | **Directwerk** |
 | **Chosen** | **Directwerk** |
-| **Next step** | Domain + DPMA/EUIPO + lawyer review before public marketing; display-name rollout in docs when ready |
+| **Next step** | Domain + DPMA/EUIPO + lawyer review before public marketing |
 
 ---
 
@@ -237,4 +230,4 @@ Avoid claiming “Substack killer” in trademark-sensitive regions — use **al
 
 ---
 
-*Last updated: 2026-07-17*
+*Last updated: 2026-08-14*

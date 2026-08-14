@@ -3,7 +3,7 @@
 ## Project Overview
 
 Multi-tenant **API-first** podcast SaaS. **Primary audience:** non-technical creators who use
-**`publish-studio`** (dashboard) and **`publish-web`** (public site) on their domain. The REST API
+**`directwerk-studio`** (dashboard) and **`directwerk-web`** (public site) on their domain. The REST API
 is the contract; agencies may build custom frontends against the same endpoints.
 
 See [`README.md`](README.md) for the full design specification. **How to run / deploy the API:**
@@ -12,9 +12,9 @@ Mailpit, host `bootRun`, Docker image, Coolify/prod). Companion docs: [`docs/poc
 [`Directwerk/docs/jobs-and-email.md`](Directwerk/docs/jobs-and-email.md),
 [`Directwerk/docs/multi-tenancy.md`](Directwerk/docs/multi-tenancy.md),
 [`docs/user-backend-implementation.md`](docs/user-backend-implementation.md),
-[`docs/publish-studio-implementation.md`](docs/publish-studio-implementation.md),
-[`docs/publish-admin-implementation.md`](docs/publish-admin-implementation.md),
-[`docs/publish-studio.md`](docs/publish-studio.md),
+[`docs/directwerk-studio-implementation.md`](docs/directwerk-studio-implementation.md),
+[`docs/directwerk-admin-implementation.md`](docs/directwerk-admin-implementation.md),
+[`docs/directwerk-studio.md`](docs/directwerk-studio.md),
 [`docs/content-creation-implementation.md`](docs/content-creation-implementation.md),
 [`docs/content-platform-strategy.md`](docs/content-platform-strategy.md),
 [`docs/content-subscriptions-and-entitlements.md`](docs/content-subscriptions-and-entitlements.md),
@@ -22,7 +22,7 @@ Mailpit, host `bootRun`, Docker image, Coolify/prod). Companion docs: [`docs/poc
 [`docs/phase-2e-4-4b-implementation.md`](docs/phase-2e-4-4b-implementation.md),
 [`docs/product-naming.md`](docs/product-naming.md), [`docs/asset-storage.md`](docs/asset-storage.md).
 Manual API tests: [`Directwerk/http/`](Directwerk/http/). The retained API demo UI is
-`example-fe`; product UIs are `publish-admin`, `publish-studio`, and `publish-web`.
+`example-fe`; product UIs are `directwerk-admin`, `directwerk-studio`, and `directwerk-web`.
 
 **Stack**: Java 21 · Spring Boot 4.1.0 · Gradle 9.x · Flyway 12+ · PostgreSQL 19 (beta) · Hetzner/Bunny S3 (EU) · Stripe Connect · Patreon/Steady API
 
@@ -31,9 +31,9 @@ presign). See [`docs/asset-storage.md`](docs/asset-storage.md). Podcast Phase 3 
 [`Directwerk/directwerk-podcast/README.md`](Directwerk/directwerk-podcast/README.md).
 
 **Reference frontends (default bundled apps for creators):**
-- `projects/publish-studio/` — **creator dashboard** (see [`docs/publish-studio.md`](docs/publish-studio.md))
-- `projects/publish-web/` — public site + subscriber portal (Phase 9)
-- `projects/publish-admin/` — platform superadmin dashboard (Phase 5)
+- `projects/directwerk-studio/` — **creator dashboard** (see [`docs/directwerk-studio.md`](docs/directwerk-studio.md))
+- `projects/directwerk-web/` — public site + subscriber portal (Phase 9)
+- `projects/directwerk-admin/` — platform superadmin dashboard (Phase 5)
 
 **Deployment**: Docker via Coolify on Hetzner Cloud — see [`Directwerk/docs/build-and-deploy.md`](Directwerk/docs/build-and-deploy.md)
 
@@ -41,11 +41,11 @@ presign). See [`docs/asset-storage.md`](docs/asset-storage.md). Podcast Phase 3 
 
 ## Build / Dev / Test Commands
 
-All Directwerk commands run from `projects/publish/Directwerk/` (not the parent `publish/` folder).
+All Directwerk commands run from `projects/directwerk/Directwerk/` (not the parent `directwerk/` folder).
 Full detail: [`Directwerk/docs/build-and-deploy.md`](Directwerk/docs/build-and-deploy.md).
 
 ```sh
-cd projects/publish/Directwerk
+cd projects/directwerk/Directwerk
 cp .env.example .env                    # set secrets once
 docker compose up -d                    # Postgres :5433 + Mailpit :1025 / UI :8025
 ./gradlew :directwerk-app:bootRun       # profile=local from .env
@@ -66,7 +66,7 @@ docker compose --profile stack up --build
 - Health: `http://localhost:8080/actuator/health`
 - Swagger: `http://localhost:8080/swagger-ui.html`
 - Mailpit UI: `http://127.0.0.1:8025`
-- Publish admin / example FE: `http://localhost:3001` / `http://localhost:3000`
+- Directwerk admin / example FE: `http://localhost:3001` / `http://localhost:3000`
 
 ## Domain Model (summary)
 
@@ -88,7 +88,7 @@ Multi-tenancy: verified `Host` → `TenantContext`, JWT `tenant_id` cross-check,
 
 1. Every feature must have REST endpoints — no UI-only workflows
 2. OpenAPI spec is a product deliverable; keep in sync with code
-3. Reference frontends (`publish-web`) call the same public API customers use — no private shortcuts
+3. Reference frontends (`directwerk-web`) call the same public API customers use — no private shortcuts
 4. Use structured error `code` fields for integrators
 5. **Bruno + http stay in lockstep with controllers** — update
    [`Directwerk/bruno/`](Directwerk/bruno/) **and** [`Directwerk/http/`](Directwerk/http/) in the
@@ -102,11 +102,11 @@ Follow [`projects/courses/AGENTS.md`](../courses/AGENTS.md) Java conventions.
 ### Next.js UI
 
 The five Next.js apps in this directory use Tailwind CSS v4 and the shared
-shadcn-based `@publish/ui` package in `packages/ui`. This is a publish-scoped
+shadcn-based `@directwerk/ui` package in `packages/ui`. This is a directwerk-scoped
 exception to the monorepo's general “no Tailwind” convention; do not extend it
 to unrelated projects without an explicit migration.
 
-- Import shared primitives directly from `@publish/ui/components/*`; no barrels.
+- Import shared primitives directly from `@directwerk/ui/components/*`; no barrels.
 - Keep domain logic in the app and reusable presentation in `packages/ui`.
 - Use semantic theme tokens and `BrandTheme` for tenant primary colors.
 - Follow [`docs/ui-system.md`](docs/ui-system.md) for responsive and accessibility

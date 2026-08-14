@@ -3,8 +3,8 @@
 import Link from 'next/link'
 import {useEffect, useState, useSyncExternalStore} from 'react'
 
-import {Alert, AlertDescription} from '@publish/ui/components/alert'
-import PageHeader from '@publish/ui/components/page-header'
+import {Alert, AlertDescription} from '@directwerk/ui/components/alert'
+import PageHeader from '@directwerk/ui/components/page-header'
 
 import {
     getSiteConfig,
@@ -170,7 +170,7 @@ export default function EpisodesPage() {
                                 No published episodes yet
                                 {isAuthenticated
                                     ? ' (or none you are entitled to).'
-                                    : '. Create a show, attach audio, and publish in publish-studio.'}
+                                    : '. Create a show, attach audio, and publish in directwerk-studio.'}
                             </p>
                         ) : (
                             <ul className="space-y-4">

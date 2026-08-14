@@ -82,8 +82,8 @@ Operator setup todos below. See [Architecture](#recommended-architecture) and
 ```mermaid
 flowchart TB
     subgraph clients [Clients]
-        Studio[publish-studio]
-        Web[publish-web]
+        Studio[directwerk-studio]
+        Web[directwerk-web]
         RSS[Podcast apps / RSS]
     end
 
@@ -229,7 +229,7 @@ See [Implementation guide: DNS (optional)](#implementation-guide-dns-optional).
 storing multiple variants in S3.
 
 **Why defer:** Adds cost and URL signing complexity. MVP can serve original images from CDN; add
-Optimizer when publish-studio ships responsive image pickers.
+Optimizer when directwerk-studio ships responsive image pickers.
 
 **If adopted:** Enable on the public Pull Zone; use Optimizer URL parameters in
 `S3PublicUrlBuilder` for `asset_type = IMAGE` only.
@@ -344,7 +344,7 @@ access control.
 | ACLs, object tagging, versioning | Tenant isolation via key prefix + `AssetAccessService` |
 | SSE / SSE-C encryption | **Not provided** — sensitive media requires application-side encryption or a provider with documented at-rest encryption guarantee; EU region choice addresses residency separately |
 | `Cache-Control` on `PutObject` | Pull Zone cache rules for `public/` paths |
-| CORS on S3 | **Not supported on the storage endpoint** — [Bunny docs](https://docs.bunny.net/storage/s3#known-limitations): CORS “must be handled at the CDN level”. Browser PUTs to `*-s3.storage.bunnycdn.com` fail; use an API/server proxy (`publish-admin` does) or non-browser clients (curl/SDK) |
+| CORS on S3 | **Not supported on the storage endpoint** — [Bunny docs](https://docs.bunny.net/storage/s3#known-limitations): CORS “must be handled at the CDN level”. Browser PUTs to `*-s3.storage.bunnycdn.com` fail; use an API/server proxy (`directwerk-admin` does) or non-browser clients (curl/SDK) |
 | Cross-zone `CopyObject` | Copy within same storage zone only |
 
 ### S3 error codes

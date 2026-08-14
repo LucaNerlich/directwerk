@@ -16,7 +16,7 @@ class NoneEmailSenderTest {
         assertThat(sender.isReady()).isFalse();
         assertThatCode(() -> sender.send(new OutboundEmail(
                 "user@example.com",
-                "noreply@publish.local",
+                "noreply@directwerk.local",
                 "Directwerk",
                 "Subject",
                 "<p>body</p>",

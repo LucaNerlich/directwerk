@@ -4,9 +4,9 @@ import Link from 'next/link'
 import {useParams} from 'next/navigation'
 import useSWR from 'swr'
 
-import {Alert, AlertDescription} from '@publish/ui/components/alert'
-import {Badge} from '@publish/ui/components/badge'
-import PageHeader from '@publish/ui/components/page-header'
+import {Alert, AlertDescription} from '@directwerk/ui/components/alert'
+import {Badge} from '@directwerk/ui/components/badge'
+import PageHeader from '@directwerk/ui/components/page-header'
 
 import {getPublicArticle} from '@/lib/api/client'
 import type {PublicArticle} from '@/lib/api/types'

@@ -1,4 +1,4 @@
-@import '@publish/ui/theme.css';
+@import '@directwerk/ui/theme.css';
 @source '../**/*.{ts,tsx}';
 
 body {

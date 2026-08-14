@@ -2,8 +2,7 @@
 
 Companion to [`README.md`](../README.md) (full design),
 [`poc-alpha-setup.md`](poc-alpha-setup.md) (alpha bootstrap), and
-[`product-naming.md`](product-naming.md) (public product name). **Publish** is the internal
-codename for repo folders; **Directwerk** is the public product name.
+[`product-naming.md`](product-naming.md) (public product name history).
 
 | | |
 |---|---|

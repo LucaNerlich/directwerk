@@ -35,7 +35,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * Platform ops view of a tenant's media assets (publish-admin Storage page).
+ * Platform ops view of a tenant's media assets (directwerk-admin Storage page).
  * Upload/confirm run under {@link TenantContext} for the path tenant so Hibernate
  * filters and {@code UploadService} key prefixes stay tenant-scoped.
  * <p>

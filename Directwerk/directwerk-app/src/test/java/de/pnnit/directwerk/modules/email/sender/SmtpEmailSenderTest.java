@@ -43,7 +43,7 @@ class SmtpEmailSenderTest {
 
         smtpEmailSender.send(new OutboundEmail(
                 "user@example.com",
-                "noreply@publish.local",
+                "noreply@directwerk.local",
                 "Directwerk",
                 "Reset your password",
                 "<p>http://localhost:3000/reset-password?token=reset-token</p>",
@@ -70,7 +70,7 @@ class SmtpEmailSenderTest {
 
         assertThatThrownBy(() -> smtpEmailSender.send(new OutboundEmail(
                 "user@example.com",
-                "noreply@publish.local",
+                "noreply@directwerk.local",
                 "Directwerk",
                 "Reset your password",
                 "<p>body</p>",

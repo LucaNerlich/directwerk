@@ -297,7 +297,7 @@ skip `EntitlementApi`.
 ### Goal
 
 Replace fail-closed content access with union of ACTIVE **LEVEL** and **PACKAGE** products.
-Expose subscriber list APIs that Studio v3 and `publish-web` will consume.
+Expose subscriber list APIs that Studio v3 and `directwerk-web` will consume.
 
 ### Schema
 
@@ -474,7 +474,7 @@ Not part of this backend plan, but unblocked by it:
 |----------|-------|
 | Studio v2 (podcast UI) | Phase 3 API — already available |
 | Studio v3 (products / subscribers) | Phase 4b rules + subscription APIs |
-| `publish-web` catalog | Public podcast API (done) + stream (2e) + RSS link (4a) |
+| `directwerk-web` catalog | Public podcast API (done) + stream (2e) + RSS link (4a) |
 | Podcatchers | Phase 4a/4c feed URLs |
 
 ---

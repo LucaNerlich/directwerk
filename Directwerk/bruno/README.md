@@ -22,7 +22,7 @@ change as the controller, alongside [`../http/*.http`](../http/00-index.http).
    into these committed `.bru` files, and persisted across restarts so you only type them once.
 6. If your `.env` sets a custom `DIRECTWERK_DEV_PLATFORM_ADMIN_EMAIL`, update `platformAdminEmail` in the
    environment to match (the collection default is the documented default,
-   `platform-admin@publish.local`).
+   `platform-admin@directwerk.local`).
 
 ## Running it
 

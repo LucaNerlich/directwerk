@@ -1,14 +1,14 @@
-# Publish — Publication Model & Two Studio Desks
+# Directwerk — Publication Model & Two Studio Desks
 
 Companion to [`content-platform-strategy.md`](content-platform-strategy.md),
-[`publish-studio.md`](publish-studio.md), and [`README.md`](../README.md) § Publication Types.
+[`directwerk-studio.md`](directwerk-studio.md), and [`README.md`](../README.md) § Publication Types.
 
 **Purpose:** Resolve the “are we a CMS / Substack / podcast host?” fog into one concrete domain
-shape: **typed publications on shared rails**, with **two creator desks** in `publish-studio`.
+shape: **typed publications on shared rails**, with **two creator desks** in `directwerk-studio`.
 
 **Status (2026-08):** Usable MVP — articles and episodes on shared publication rails, module presets
-(`WRITER`, `PODCAST`, `FULL`), `studioHome`/`studioDesks` in site-config, and both `publish-studio`
-desks plus the `publish-web` subscriber loop.
+(`WRITER`, `PODCAST`, `FULL`), `studioHome`/`studioDesks` in site-config, and both `directwerk-studio`
+desks plus the `directwerk-web` subscriber loop.
 
 ---
 
@@ -289,7 +289,7 @@ Newsletter remains a **checkbox on publish**, not a third desk.
 1. Land on Write desk (empty state: “Ersten Beitrag schreiben”)  
 2. Title + body + FREE/PAID  
 3. Publish → optional notify  
-4. Post visible on `publish-web`; paid body gated on `/me/articles/{slug}`  
+4. Post visible on `directwerk-web`; paid body gated on `/me/articles/{slug}`  
 
 ### Podcaster — first public episode in one session
 
@@ -314,7 +314,7 @@ No Media-library-first requirement; library is for reuse.
 | Entitlements | Already publication-agnostic via LEVEL/PACKAGE — `ARTICLE` scopes supported |
 | Overview API | Optional cross-type “drafts awaiting publish” read model later |
 
-### Studio (`projects/publish/publish-studio/` — usable MVP)
+### Studio (`projects/directwerk/directwerk-studio/` — usable MVP)
 
 | Item | Status |
 |------|--------|
@@ -356,7 +356,7 @@ delivery channels for the same newsletter/article publication.)*
 | Doc | Update note |
 |-----|-------------|
 | [`content-platform-strategy.md`](content-platform-strategy.md) | Strategy; this doc is the concrete desk/model split |
-| [`publish-studio.md`](publish-studio.md) | Creator journeys — desks map to Content → Podcasts / Articles |
-| [`publish-studio-implementation.md`](publish-studio-implementation.md) | Screen specs should reference Write vs Podcast desk |
+| [`directwerk-studio.md`](directwerk-studio.md) | Creator journeys — desks map to Content → Podcasts / Articles |
+| [`directwerk-studio-implementation.md`](directwerk-studio-implementation.md) | Screen specs should reference Write vs Podcast desk |
 | [`ghost-positioning.md`](ghost-positioning.md) | Still valid: not rebuilding Ghost Admin |
 | [`README.md`](../README.md) § Publication Types | Keep type list; pattern described here |

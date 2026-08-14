@@ -1,12 +1,12 @@
 # Directwerk UI system
 
-All Next.js apps in `projects/publish` use the shared `@publish/ui` package.
+All Next.js apps in `projects/directwerk` use the shared `@directwerk/ui` package.
 It is based on shadcn/ui, Base UI, Tailwind CSS v4, and a common neutral,
 editorial visual language.
 
 ## Principles
 
-- Prefer shared components from `@publish/ui/components/*`.
+- Prefer shared components from `@directwerk/ui/components/*`.
 - Keep business and data-fetching logic inside the owning app.
 - Use semantic theme tokens (`bg-background`, `text-muted-foreground`,
   `border-border`) instead of hard-coded colors.
@@ -21,14 +21,14 @@ editorial visual language.
 Each app imports the shared theme from its `app/globals.css`:
 
 ```css
-@import '@publish/ui/theme.css';
+@import '@directwerk/ui/theme.css';
 @source '../**/*.{ts,tsx}';
 ```
 
 Each Next.js config includes:
 
 ```ts
-transpilePackages: ['@publish/ui']
+transpilePackages: ['@directwerk/ui']
 ```
 
 Add new shadcn components from `packages/ui`:
@@ -49,7 +49,7 @@ pnpm dlx shadcn@latest add component-name
 Use direct imports to preserve bundle splitting:
 
 ```tsx
-import {Button} from '@publish/ui/components/button'
+import {Button} from '@directwerk/ui/components/button'
 ```
 
 Do not create a package barrel file.
@@ -60,4 +60,4 @@ Do not create a package barrel file.
 2. Replace native controls with shared components where behavior is unchanged.
 3. Preserve accessible names and existing test semantics.
 4. Verify keyboard focus, narrow-screen layout, loading, errors, and empty data.
-5. Run `pnpm test`, `pnpm typecheck`, and `pnpm build` from `projects/publish`.
+5. Run `pnpm test`, `pnpm typecheck`, and `pnpm build` from `projects/directwerk`.

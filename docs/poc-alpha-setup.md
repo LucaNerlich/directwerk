@@ -1,4 +1,4 @@
-# Publish — Alpha / Proof-of-Concept Setup
+# Directwerk — Alpha / Proof-of-Concept Setup
 
 Companion to [`README.md`](../README.md) (full platform design spec). This document defines the
 **alpha POC slice**: the smallest runnable backend that proves the four MVP pillars end-to-end
@@ -8,13 +8,13 @@ before podcast content, RSS, billing, or reference frontends ship.
 |----------|---------|
 | [`README.md`](../README.md) | Full product design — entities, phases, post-MVP addons |
 | [`user-backend-implementation.md`](user-backend-implementation.md) | Spring Security / user account step-by-step guide |
-| [`publish-studio-implementation.md`](publish-studio-implementation.md) | Studio implementation — screens, scaffold, auth, checklist |
-| [`publish-admin-implementation.md`](publish-admin-implementation.md) | Platform admin dashboard step-by-step guide |
+| [`directwerk-studio-implementation.md`](directwerk-studio-implementation.md) | Studio implementation — screens, scaffold, auth, checklist |
+| [`directwerk-admin-implementation.md`](directwerk-admin-implementation.md) | Platform admin dashboard step-by-step guide |
 | [`asset-storage.md`](asset-storage.md) | S3 layout, upload/retrieve flows, `AssetAccessService`, EU providers |
 | [`phase-2e-4-4b-implementation.md`](phase-2e-4-4b-implementation.md) | **Next backend plan** — stream (2e), RSS (4), entitlements (4b) |
 | [`content-platform-strategy.md`](content-platform-strategy.md) | Blog/newsletter scope — publication platform, not a CMS |
 | [`product-naming.md`](product-naming.md) | Public product name strategy |
-| [`publish-studio.md`](publish-studio.md) | Creator dashboard — primary non-technical UX |
+| [`directwerk-studio.md`](directwerk-studio.md) | Creator dashboard — primary non-technical UX |
 | **This document** | Alpha implementation blueprint + manual API test harness |
 
 ---
@@ -31,7 +31,7 @@ flowchart LR
     A --> C[Phase C Media 2c]
     C --> D[Phase D Podcast 3]
     B --> D
-    D --> E[Phase E publish-web]
+    D --> E[Phase E directwerk-web]
     D --> F[Phase F RSS 4]
     F --> G[Phase G Entitlements 4b]
     G --> H[Phase H Billing 6-8]
@@ -66,10 +66,10 @@ flowchart LR
 
 | Step | What to do | Doc reference |
 |------|------------|---------------|
-| B.1 | Create `projects/publish-studio/` — Next.js 16, login on tenant domain, OAuth2 token storage | [`publish-studio-implementation.md` § Frontend](publish-studio-implementation.md#frontend-architecture) |
-| B.2 | Bootstrap from `GET /api/v1/public/site-config` — theme + `ModuleGate` nav | [`publish-studio.md`](publish-studio.md) |
-| B.3 | Settings: branding editor, domain list/add | [`publish-studio-implementation.md` § Settings](publish-studio-implementation.md#10-settings) |
-| B.4 | Team: list, invite editor, role patch | [`publish-studio-implementation.md` § Team](publish-studio-implementation.md#2-audience--team) |
+| B.1 | Create `projects/directwerk-studio/` — Next.js 16, login on tenant domain, OAuth2 token storage | [`directwerk-studio-implementation.md` § Frontend](directwerk-studio-implementation.md#frontend-architecture) |
+| B.2 | Bootstrap from `GET /api/v1/public/site-config` — theme + `ModuleGate` nav | [`directwerk-studio.md`](directwerk-studio.md) |
+| B.3 | Settings: branding editor, domain list/add | [`directwerk-studio-implementation.md` § Settings](directwerk-studio-implementation.md#10-settings) |
+| B.4 | Team: list, invite editor, role patch | [`directwerk-studio-implementation.md` § Team](directwerk-studio-implementation.md#2-audience--team) |
 
 **Verify:** Tenant admin completes flows without HTTP client.
 
@@ -88,7 +88,7 @@ flowchart LR
 |------|------------|---------------|
 | C.1 | [x] `UploadService` — upload-url, confirm, promote `staging/` → `public\|private/` | [`asset-storage.md` § Upload flow](asset-storage.md#upload-flow) |
 | C.2 | [x] `MediaController` — list, preview-url (signed for private) | [`content-creation-implementation.md` § 4.2](content-creation-implementation.md#42-rest-endpoints-publisher) |
-| C.3 | [ ] Studio v1: `UploadDropzone`, media library grid, `MediaPickerModal` | [`content-creation-implementation.md` § 5](content-creation-implementation.md#5-frontend-implementation-publish-studio) |
+| C.3 | [ ] Studio v1: `UploadDropzone`, media library grid, `MediaPickerModal` | [`content-creation-implementation.md` § 5](content-creation-implementation.md#5-frontend-implementation-directwerk-studio) |
 | C.4 | [x] Add `17-media-upload.http` to harness | [`http/`](../Directwerk/http/) |
 
 **Verify (API done):** Upload MP3 → confirm → `GET` preview returns URL; cross-tenant denied
@@ -107,14 +107,14 @@ flowchart LR
 | D.1 | [x] Flyway `V28__create_podcast_content.sql` — series, episodes, formats, categories | [`Directwerk/directwerk-podcast/README.md`](../Directwerk/directwerk-podcast/README.md) |
 | D.2 | [x] CRUD controllers + `PublicationWorkflowService` + `HtmlSanitizer` | [`content-creation-implementation.md` § 4.1](content-creation-implementation.md#41-core-services) |
 | D.3 | [x] Publish / schedule endpoints; asset promotion on publish | [`asset-storage.md`](asset-storage.md) |
-| D.4 | [ ] Studio v2: series list, episode editor (TipTap show notes), workflow actions, taxonomy | [`publish-studio-implementation.md` § Podcasts](publish-studio-implementation.md#7-content--podcasts) |
+| D.4 | [ ] Studio v2: series list, episode editor (TipTap show notes), workflow actions, taxonomy | [`directwerk-studio-implementation.md` § Podcasts](directwerk-studio-implementation.md#7-content--podcasts) |
 | D.5 | [x] Add `19-podcast-content.http` | [`Directwerk/http/`](../Directwerk/http/) |
 
-**Verify:** [MVP success in publish-studio.md](publish-studio.md#mvp-success-creator-can-complete-without-api-knowledge).
+**Verify:** [MVP success in directwerk-studio.md](directwerk-studio.md#mvp-success-creator-can-complete-without-api-knowledge).
 
 ---
 
-### Phase E — Default public site (`publish-web`)
+### Phase E — Default public site (`directwerk-web`)
 
 **Goal:** Visitors see published episodes on tenant domain; subscribers can register/login.
 
@@ -122,7 +122,7 @@ flowchart LR
 
 | Step | What to do | Doc reference |
 |------|------------|---------------|
-| E.1 | Scaffold `projects/publish-web/` — `site-config` branding, episode list/detail | [README § publish-web](../README.md#reference-frontend-publish-web) |
+| E.1 | Scaffold `projects/directwerk-web/` — `site-config` branding, episode list/detail | [README § directwerk-web](../README.md#reference-frontend-directwerk-web) |
 | E.2 | Register/login flows via same OAuth2 client | README Auth API |
 | E.3 | Subscriber portal shell (`/me/*`) — stub until Phase G | README Subscriber API |
 
@@ -166,7 +166,7 @@ See [`asset-storage.md` § Group entitlements](asset-storage.md#group-entitlemen
 |------|------------|
 | H.1 | `STRIPE_BILLING` — Connect onboard, checkout, webhooks |
 | H.2 | `PATREON_SYNC` / `STEADY_SYNC` — OAuth, shadow users, entitlement mapping |
-| H.3 | `publish-admin` minimal UI for platform ops (Phase 5) |
+| H.3 | `directwerk-admin` minimal UI for platform ops (Phase 5) |
 
 ---
 
@@ -189,7 +189,7 @@ See [`asset-storage.md` § Group entitlements](asset-storage.md#group-entitlemen
 4. **A.6–A.7** — modules + platform/tenant APIs
 5. **A.8–A.10** — S3 plumbing + full HTTP harness
 
-Do **not** start `publish-studio` or podcast CRUD until **Phase A** checklist is complete.
+Do **not** start `directwerk-studio` or podcast CRUD until **Phase A** checklist is complete.
 
 ---
 
@@ -203,9 +203,9 @@ Do **not** start `publish-studio` or podcast CRUD until **Phase A** checklist is
 6. **JetBrains HTTP Client** — [`../http/`](../http/) files to exercise every alpha flow locally
 
 **Alpha explicitly defers:** Full upload/confirm pipeline, podcast CRUD, real entitlements (LEVEL /
-PACKAGE), private signed URLs, RSS feeds, subscriptions, Stripe/Patreon/Steady, `publish-admin` UI,
-`publish-web` UI, and `publish-studio` tenant dashboard (see
-[`publish-studio-implementation.md`](publish-studio-implementation.md) — alpha ships **API only**; Studio v0 targets
+PACKAGE), private signed URLs, RSS feeds, subscriptions, Stripe/Patreon/Steady, `directwerk-admin` UI,
+`directwerk-web` UI, and `directwerk-studio` tenant dashboard (see
+[`directwerk-studio-implementation.md`](directwerk-studio-implementation.md) — alpha ships **API only**; Studio v0 targets
 the same `/api/v1/tenant/*` routes once alpha is green).
 
 Full storage behaviour is specified in [`asset-storage.md`](asset-storage.md). Alpha ends with the
@@ -216,7 +216,7 @@ Full storage behaviour is specified in [`asset-storage.md`](asset-storage.md). A
 | Addition | What alpha adopts now | What stays deferred |
 |----------|----------------------|---------------------|
 | [`asset-storage.md`](asset-storage.md) — Hetzner/Bunny EU S3, no MinIO | Dev bucket wiring, `MediaAsset` schema, `AssetAccessApi` fail-closed stub | Upload/confirm (2c), signed private URLs (2d–2e), [group entitlements](asset-storage.md#group-entitlements-level-vs-package) (Phase 4b) |
-| [`publish-studio-implementation.md`](publish-studio-implementation.md) — publisher back-office | API routes that Studio v0 will consume (`/tenant/branding`, `/tenant/domains`, `/tenant/users`) | Any Next.js UI in `publish-studio/` |
+| [`directwerk-studio-implementation.md`](directwerk-studio-implementation.md) — publisher back-office | API routes that Studio v0 will consume (`/tenant/branding`, `/tenant/domains`, `/tenant/users`) | Any Next.js UI in `directwerk-studio/` |
 | Modular architecture (#197) | Vertical slices (`api` / `internal` / `web`), `ModuleGateApi` + `ModuleActivationApi` split | Extracting modules to separate deployables |
 | README module catalog + presets | Full `feature_modules` seed, dependency graph, onboarding presets (`FREE_PODCAST`, etc.) | Billing modules beyond activation toggles |
 
@@ -480,7 +480,7 @@ See [Key layout and asset scopes](asset-storage.md#key-layout-and-asset-scopes).
 > alpha sketch; prefer the Directwerk guide.
 
 ```sh
-cd projects/publish/Directwerk
+cd projects/directwerk/Directwerk
 cp .env.example .env
 docker compose up -d
 ./gradlew :directwerk-app:bootRun
@@ -528,7 +528,7 @@ Platform admin login uses the API host directly (`localhost:8080`) — no tenant
 
 | Entity | Value |
 |--------|-------|
-| Platform admin | `platform-admin@publish.local` / `ChangeMe-Platform-Admin!` |
+| Platform admin | `platform-admin@directwerk.local` / `ChangeMe-Platform-Admin!` |
 | Tenant A admin (pre-invited) | `admin-a@alpha-show.local` / `ChangeMe-Tenant-Admin!` |
 | Tenant B admin | `admin-b@alpha-show.local` / `ChangeMe-Tenant-Admin!` |
 | Tenant A editor (pre-invited) | `editor@alpha-show.local` / `ChangeMe-Editor!` |
@@ -844,7 +844,7 @@ See [`../Directwerk/docs/multi-tenancy.md`](../Directwerk/docs/multi-tenancy.md)
 | POST | `/api/v1/platform/admins/invite` | `PLATFORM_ADMIN` | Invite platform admin |
 
 Tenant admin routes above are the **Studio v0** backend surface per
-[`publish-studio-implementation.md` § Phased delivery](publish-studio-implementation.md#phased-delivery).
+[`directwerk-studio-implementation.md` § Phased delivery](directwerk-studio-implementation.md#phased-delivery).
 
 ---
 
@@ -1001,8 +1001,8 @@ Register two first-party clients in `AuthorizationServerConfig`:
 
 | client_id | Use | Grant types |
 |-----------|-----|-------------|
-| `publish-tenant-frontend` | Tenant-domain logins | `password`, `refresh_token` |
-| `publish-platform-admin` | Superadmin dashboard / HTTP tests | `password`, `refresh_token` |
+| `directwerk-tenant-frontend` | Tenant-domain logins | `password`, `refresh_token` |
+| `directwerk-platform-admin` | Superadmin dashboard / HTTP tests | `password`, `refresh_token` |
 
 JWT access token claims:
 
@@ -1013,7 +1013,7 @@ JWT access token claims:
   "tenant_id": 1,
   "roles": ["TENANT_ADMIN", "EDITOR"],
   "iss": "http://localhost:8080",
-  "aud": "publish-api"
+  "aud": "directwerk-api"
 }
 ```
 
@@ -1159,7 +1159,7 @@ per [`asset-storage.md` § Error codes](asset-storage.md#error-codes).
 
 ## Publisher dashboard (deferred)
 
-Alpha proves the **backend contract** that [`publish-studio-implementation.md`](publish-studio-implementation.md)
+Alpha proves the **backend contract** that [`directwerk-studio-implementation.md`](directwerk-studio-implementation.md)
 will consume. No UI ships in alpha — all flows run through [`../http/`](../http/).
 
 | Dashboard phase | Backend in alpha? | Key routes |
@@ -1169,7 +1169,7 @@ will consume. No UI ships in alpha — all flows run through [`../http/`](../htt
 | Studio v2 — Podcast content | No | Phase 3 series/episodes |
 | Studio v3 — Subscribers + products | No | Phase 4b/6/8 `SUBSCRIPTION`, billing integrations |
 
-When implementing `publish-studio/`, follow publish-studio-implementation rules: **same REST API** as
+When implementing `directwerk-studio/`, follow directwerk-studio-implementation rules: **same REST API** as
 customer-built frontends, OAuth2 JWT on tenant domain, `site-config.enabledModules[]` for nav gating.
 
 ---
@@ -1201,7 +1201,7 @@ Credentials and tenant hosts are defined in [`http-client.env.json`](../http/htt
 
 ### Running tests
 
-1. Open `projects/publish/http/` as a folder in IntelliJ IDEA or WebStorm
+1. Open `projects/directwerk/http/` as a folder in IntelliJ IDEA or WebStorm
 2. Select environment **`dev`** in the HTTP Client gutter
 3. Run [`01-platform-auth.http`](../http/01-platform-auth.http) first — subsequent files use
    `{{platformAccessToken}}`, `{{tenantAAccessToken}}`, etc. captured via `client.global.set`
@@ -1221,13 +1221,13 @@ Scripts use `> {% client.global.set("...", ...); %}` response handlers to chain 
 
 ## Implementation checklist (alpha)
 
-Status refreshed **2026-07-19** against `projects/publish/Directwerk/`. Package layout uses **Gradle
+Status refreshed **2026-07-19** against `projects/directwerk/Directwerk/`. Package layout uses **Gradle
 modules** (`directwerk-core`, `directwerk-digital`, `directwerk-subscription`, …) rather than the
 original `{module}/api|internal|web` folders — behaviour matches; paths differ.
 
 ### Bootstrap
 
-- [x] Gradle 9 + Spring Boot 4.1.0 project under `projects/publish/Directwerk/`
+- [x] Gradle 9 + Spring Boot 4.1.0 project under `projects/directwerk/Directwerk/`
 - [x] Compose Postgres (+ Mailpit) — no MinIO; Hetzner/Bunny via `directwerk.storage.*` / `S3_*`
 - [x] `.env.example` documents storage / `S3_*` vars (see [`asset-storage.md`](asset-storage.md))
 - [x] Flyway migrations + local seed (`R__alpha_dev_seed.sql`); `media_assets` = **V25**

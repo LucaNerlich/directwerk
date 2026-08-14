@@ -1,5 +1,5 @@
 {
-    "name": "directwerk-publish-apps",
+    "name": "directwerk-apps",
     "private": true,
     "scripts": {
         "build": "pnpm -r --if-present build",

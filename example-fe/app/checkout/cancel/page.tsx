@@ -1,7 +1,7 @@
 import Link from 'next/link'
 
-import {buttonVariants} from '@publish/ui/components/button'
-import PageHeader from '@publish/ui/components/page-header'
+import {buttonVariants} from '@directwerk/ui/components/button'
+import PageHeader from '@directwerk/ui/components/page-header'
 
 export default function CheckoutCancelPage(): React.JSX.Element {
     return (

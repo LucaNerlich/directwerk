@@ -8,9 +8,7 @@ LEVEL/PACKAGE products, formats/categories, grants, and where content appears (A
 | **Status** | Implemented (API); most studio/admin UI still missing |
 | **Engine** | `EntitlementService` (`directwerk-subscription`) |
 | **Harnesses** | `Directwerk/http/11-tenant-products.http`, `12-tenant-subscriptions.http`, `19-podcast-content.http`, `23-entitlements.http`, `21-public-rss.http`, `22-private-rss.http` |
-| **Related** | [`asset-storage.md`](asset-storage.md) (bytes/CDN), [`README.md`](../README.md) (product vision), modules UI in `publish-admin` |
-
-**Publish** is the repo codename; **Directwerk** is the product name.
+| **Related** | [`asset-storage.md`](asset-storage.md) (bytes/CDN), [`README.md`](../README.md) (product vision), modules UI in `directwerk-admin` |
 
 ---
 
@@ -61,7 +59,7 @@ Entitlements are **derived** from active subscriptions (union). Multiple LEVEL +
 Presets that include `SUBSCRIPTION`: `WRITER`, `PODCAST`, `FULL`, `PATREON_MIGRATOR`, `PRO`, `ENTERPRISE`.  
 `FREE_PODCAST` has podcast + RSS but **no** subscription/entitlements.
 
-Assign modules in **publish-admin** → tenant detail → Modules (platform admin), or via platform modules API.
+Assign modules in **directwerk-admin** → tenant detail → Modules (platform admin), or via platform modules API.
 
 Module off on public surfaces → **403** `FEATURE_NOT_ENABLED` (not a fake empty catalog / tenant-not-found).
 
@@ -320,11 +318,11 @@ Slug pattern: `^[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,62}[a-zA-Z0-9])?$`.
 
 | Surface | What exists | What’s missing |
 |---------|-------------|----------------|
-| **publish-studio** | Episode/article FREE/PAID select; **Manage → Produkte / Freischaltungen** (LEVEL/PACKAGE, PACKAGE rules, manual grant/revoke) when `SUBSCRIPTION` is on | Episode `requiredLevelSortOrder` editor; formats/categories CRUD; subscription inventory list (no GET API); Stripe checkout |
-| **publish-admin** | Tenant modules assign/unassign; create/suspend/reactivate tenants; **dual-session** tenant login + products/rules/grants on tenant detail (POC escape hatch; needs `TENANT_OAUTH_*`) | Platform impersonation; domains on `TenantView`; shared component library with studio |
+| **directwerk-studio** | Episode/article FREE/PAID select; **Manage → Produkte / Freischaltungen** (LEVEL/PACKAGE, PACKAGE rules, manual grant/revoke) when `SUBSCRIPTION` is on | Episode `requiredLevelSortOrder` editor; formats/categories CRUD; subscription inventory list (no GET API); Stripe checkout |
+| **directwerk-admin** | Tenant modules assign/unassign; create/suspend/reactivate tenants; **dual-session** tenant login + products/rules/grants on tenant detail (POC escape hatch; needs `TENANT_OAUTH_*`) | Platform impersonation; domains on `TenantView`; shared component library with studio |
 | **example-fe** | Public catalog, `/me/feeds`, me clients | Checkout/shop for products |
 
-Studio Manage is the intended creator path. The `publish-admin` tenant products UI is a dual-auth POC — platform JWT still never calls `/api/v1/tenant/*`.
+Studio Manage is the intended creator path. The `directwerk-admin` tenant products UI is a dual-auth POC — platform JWT still never calls `/api/v1/tenant/*`.
 
 ---
 

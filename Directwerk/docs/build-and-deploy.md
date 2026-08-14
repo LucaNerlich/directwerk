@@ -2,7 +2,7 @@
 
 This is the authoritative guide for building, running, and deploying the Directwerk Spring Boot API.
 
-The project is a Gradle multi-module build under `projects/publish/Directwerk/`. Only `directwerk-app` produces the runnable fat JAR (`directwerk-app.jar`). Other modules are libraries on the classpath.
+The project is a Gradle multi-module build under `projects/directwerk/Directwerk/`. Only `directwerk-app` produces the runnable fat JAR (`directwerk-app.jar`). Other modules are libraries on the classpath.
 
 Related docs:
 
@@ -17,7 +17,7 @@ Related docs:
 |------|-------------|
 | **Java 21** | Host `./gradlew` builds, tests, and `bootRun` |
 | **Docker** + **Compose v2** | Local Postgres + Mailpit (recommended); full container stack; image builds |
-| **pnpm 10** (optional) | Example Next.js apps under `projects/publish/example-*` |
+| **pnpm 10** (optional) | Example Next.js apps under `projects/directwerk/example-*` |
 | **`.env` file** | Copy from [`.env.example`](../.env.example); never commit `.env` |
 
 ## Project layout (build-relevant)
@@ -45,9 +45,9 @@ Frontends (separate Node apps, not in this Gradle build):
 | App | Port | Role |
 |-----|------|------|
 | [`example-fe`](../../example-fe) | 3000 | Subscriber / tenant demo |
-| [`publish-admin`](../../publish-admin) | 3001 | Platform admin (tenants, invites, job queue UI) |
-| [`publish-studio`](../../publish-studio) | 3003 | Creator studio |
-| [`publish-web`](../../publish-web) | 3004 | Public site and subscriber portal |
+| [`directwerk-admin`](../../directwerk-admin) | 3001 | Platform admin (tenants, invites, job queue UI) |
+| [`directwerk-studio`](../../directwerk-studio) | 3003 | Creator studio |
+| [`directwerk-web`](../../directwerk-web) | 3004 | Public site and subscriber portal |
 
 ---
 
@@ -58,7 +58,7 @@ Preferred workflow for day-to-day API work: Compose for infrastructure, Gradle f
 ### 1.1 Configure environment
 
 ```sh
-cd projects/publish/Directwerk
+cd projects/directwerk/Directwerk
 cp .env.example .env
 ```
 
@@ -132,7 +132,7 @@ Created on first `local` startup (passwords from `.env`):
 
 | Email | Role | Password env |
 |-------|------|--------------|
-| `platform-admin@publish.local` (or `DIRECTWERK_DEV_PLATFORM_ADMIN_EMAIL`) | Platform admin | `DIRECTWERK_DEV_PLATFORM_ADMIN_PASSWORD` |
+| `platform-admin@directwerk.local` (or `DIRECTWERK_DEV_PLATFORM_ADMIN_EMAIL`) | Platform admin | `DIRECTWERK_DEV_PLATFORM_ADMIN_PASSWORD` |
 | `admin-a@alpha-show.local` | Tenant A admin | `DIRECTWERK_DEV_SEED_PASSWORD` |
 | `admin-b@alpha-show.local` | Tenant B admin | `DIRECTWERK_DEV_SEED_PASSWORD` |
 | `editor@alpha-show.local` | Tenant A editor | `DIRECTWERK_DEV_SEED_PASSWORD` |
@@ -153,9 +153,9 @@ Local profile disables required email verification and may expose invite/reset t
 
 ### 1.5 Verify email + background jobs
 
-1. Trigger an invite or password-reset flow (HTTP harness, Swagger, or `publish-admin`).
+1. Trigger an invite or password-reset flow (HTTP harness, Swagger, or `directwerk-admin`).
 2. Open Mailpit UI → message appears with rendered HTML.
-3. In `publish-admin`, open **Jobs** and filter queue `email` to see queued / completed jobs.
+3. In `directwerk-admin`, open **Jobs** and filter queue `email` to see queued / completed jobs.
 
 Architecture notes: [jobs-and-email.md](jobs-and-email.md).
 
@@ -165,7 +165,7 @@ With the API running on `:8080`:
 
 ```sh
 # Platform admin (port 3001)
-cd ../publish-admin
+cd ../directwerk-admin
 cp .env.local.example .env.local
 # set OAuth secret = DIRECTWERK_PLATFORM_CLIENT_SECRET
 pnpm install && pnpm dev
@@ -173,7 +173,7 @@ pnpm install && pnpm dev
 # Subscriber / tenant frontend (port 3000)
 cd ../example-fe
 cp .env.local.example .env.local
-# set OAUTH_CLIENT_ID=publish-tenant-frontend
+# set OAUTH_CLIENT_ID=directwerk-tenant-frontend
 # set OAUTH_CLIENT_SECRET=DIRECTWERK_TENANT_CLIENT_SECRET
 pnpm install && pnpm dev
 ```
@@ -227,10 +227,10 @@ Local default keeps `server.forward-headers-strategy=none`. Details: [multi-tena
 
 ## 2. Build the Docker image
 
-Build context is **`projects/publish/Directwerk/`** (the directory containing `Dockerfile`).
+Build context is **`projects/directwerk/Directwerk/`** (the directory containing `Dockerfile`).
 
 ```sh
-cd projects/publish/Directwerk
+cd projects/directwerk/Directwerk
 docker build -t directwerk:local .
 ```
 
@@ -253,7 +253,7 @@ docker push registry.example.com/directwerk:$(git rev-parse --short HEAD)
 Run **Postgres + Mailpit + Directwerk** entirely in containers with the Compose `stack` profile:
 
 ```sh
-cd projects/publish/Directwerk
+cd projects/directwerk/Directwerk
 cp .env.example .env   # secrets required — see below
 docker compose --profile stack up --build
 ```
@@ -290,7 +290,7 @@ The app container forces Spring profile **`docker`** (`application-docker.yaml`)
 SPRING_DATASOURCE_PASSWORD=your-local-db-password
 DIRECTWERK_PLATFORM_CLIENT_SECRET=your-platform-client-secret
 DIRECTWERK_TENANT_CLIENT_SECRET=your-tenant-client-secret
-DIRECTWERK_EMAIL_FROM=noreply@publish.local
+DIRECTWERK_EMAIL_FROM=noreply@directwerk.local
 DIRECTWERK_EMAIL_STUDIO_BASE_URL=http://localhost:3000
 DIRECTWERK_EMAIL_ADMIN_BASE_URL=http://localhost:3001
 DIRECTWERK_DEV_SEED_PASSWORD=ChangeMe-Dev-Seed!
@@ -407,7 +407,7 @@ docker run --rm -p 8080:8080 \
 This monorepo deploys other services via [Coolify](https://coolify.io) on Hetzner Cloud (see repo `deployment/`). For Directwerk:
 
 1. Create a **Dockerfile** application in Coolify.
-2. Set **build context** to `projects/publish/Directwerk`.
+2. Set **build context** to `projects/directwerk/Directwerk`.
 3. Set **Dockerfile** to `Dockerfile`.
 4. Configure the environment variables above as Coolify secrets.
 5. Attach managed **PostgreSQL 18+**; point `SPRING_DATASOURCE_*` at it.
@@ -466,11 +466,11 @@ Startup runs Flyway (and may seed local data). Cold databases can take up to ~90
 1. Confirm Mailpit is up: `docker compose ps` and open [http://127.0.0.1:8025](http://127.0.0.1:8025).
 2. Confirm `DIRECTWERK_MAIL_HOST=localhost` and port `1025` (or Compose service name `mailpit` inside the `stack` profile).
 3. Confirm `DIRECTWERK_EMAIL_ENABLED=true`.
-4. Check the jobs table / `publish-admin` Jobs page — failed sends show on the `email` queue.
+4. Check the jobs table / `directwerk-admin` Jobs page — failed sends show on the `email` queue.
 
 ### Build fails in Docker
 
-Build context must be `projects/publish/Directwerk` (not the monorepo root). The Dockerfile copies every Gradle subproject listed in `settings.gradle`.
+Build context must be `projects/directwerk/Directwerk` (not the monorepo root). The Dockerfile copies every Gradle subproject listed in `settings.gradle`.
 
 ### Port already in use
 

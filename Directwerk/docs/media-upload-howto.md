@@ -85,7 +85,7 @@ sign `Content-Length` — browsers cannot set that header reliably.
 **Bunny note:** Per [Bunny S3 known limitations](https://docs.bunny.net/storage/s3#known-limitations),
 CORS must be handled at the CDN level — the storage S3 endpoint does **not** emit CORS headers.
 Browser PUTs to `https://{region}-s3.storage.bunnycdn.com/...` fail with no Spring logs.
-publish-admin therefore proxies the PUT through
+directwerk-admin therefore proxies the PUT through
 `POST /api/tenants/{id}/media/upload`. For curl/harness tests, PUT from the
 same machine as usual.
 

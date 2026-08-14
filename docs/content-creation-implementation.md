@@ -1,13 +1,13 @@
-# Publish — Content Creation Implementation Guide
+# Directwerk — Content Creation Implementation Guide
 
 Companion to the product and studio specs. This document is the **engineering blueprint** for how
-authors create and manage content in **`publish-studio`**: data model, API contracts, backend services,
+authors create and manage content in **`directwerk-studio`**: data model, API contracts, backend services,
 frontend structure, **recommended libraries**, and phased delivery.
 
 | Document | Purpose |
 |----------|---------|
-| [`publish-studio.md`](publish-studio.md) | What studio is — audience, journeys, three-app model |
-| [`publish-studio-implementation.md`](publish-studio-implementation.md) | Studio app — screens, scaffold, auth, checklist |
+| [`directwerk-studio.md`](directwerk-studio.md) | What studio is — audience, journeys, three-app model |
+| [`directwerk-studio-implementation.md`](directwerk-studio-implementation.md) | Studio app — screens, scaffold, auth, checklist |
 | [`content-platform-strategy.md`](content-platform-strategy.md) | Publication platform vs CMS — scope boundaries |
 | [`asset-storage.md`](asset-storage.md) | S3 upload/confirm, visibility, signed URLs |
 | [`poc-alpha-setup.md`](poc-alpha-setup.md) | Alpha backend slice (tenancy, auth, modules) |
@@ -23,7 +23,7 @@ monorepo conventions and security advisories at implementation time.
 
 ### We are building
 
-A **self-service publisher dashboard** (`publish-studio`) on fixed **publication types**:
+A **self-service publisher dashboard** (`directwerk-studio`) on fixed **publication types**:
 
 | Type | MVP | Authoring surface |
 |------|-----|-------------------|
@@ -40,7 +40,7 @@ A **self-service publisher dashboard** (`publish-studio`) on fixed **publication
 |------------------|--------------|
 | Block / drag-and-drop layout editor | Scope creep; competes with Ghost/Notion |
 | Arbitrary page tree | Headless JSON per publication type only |
-| Theme designer in studio | `publish-web` + `site-config` branding |
+| Theme designer in studio | `directwerk-web` + `site-config` branding |
 | Plugin / shortcode system | Integrator concern |
 | Native email template designer | ESP owns templates; we send variables |
 | Version history beyond draft/published | Post-MVP at earliest |
@@ -54,7 +54,7 @@ authoring product. See [`content-platform-strategy.md`](content-platform-strateg
 
 ```mermaid
 flowchart TB
-    subgraph studio [publish-studio Next.js]
+    subgraph studio [directwerk-studio Next.js]
         Editors[Content editors]
         MediaUI[Media library]
         WorkflowUI[Publish / schedule UI]
@@ -90,7 +90,7 @@ flowchart TB
 
 1. Studio calls **only** `/api/v1/` — same contract agencies use.
 2. **Server-side** validation and sanitization — never trust the editor alone.
-3. **OAuth2 JWT** on tenant domain (`publish-tenant-frontend` client).
+3. **OAuth2 JWT** on tenant domain (`directwerk-tenant-frontend` client).
 4. Nav gated by `GET /api/v1/public/site-config` → `enabledModules[]`.
 5. Upload bytes go **direct to S3** via pre-signed PUT — API never proxies file bodies.
 
@@ -360,10 +360,10 @@ delivery must be reliable.
 
 ---
 
-## 5. Frontend implementation (`publish-studio`)
+## 5. Frontend implementation (`directwerk-studio`)
 
 Studio app structure, auth, API client, page routes, and screen-by-screen spec:
-[`publish-studio-implementation.md`](publish-studio-implementation.md).
+[`directwerk-studio-implementation.md`](directwerk-studio-implementation.md).
 
 This section covers **content-specific** editor configuration and shared publication components.
 
@@ -651,7 +651,7 @@ Extend [`http/`](../http/) with `11-media-upload.http`, `12-episodes.http`, `13-
 
 ## 10. Library summary (copy-paste starters)
 
-### `projects/publish-studio/package.json` (recommended)
+### `projects/directwerk-studio/package.json` (recommended)
 
 ```json
 {
@@ -680,7 +680,7 @@ Extend [`http/`](../http/) with `11-media-upload.http`, `12-episodes.http`, `13-
 }
 ```
 
-### `projects/publish/build.gradle.kts` (additions)
+### `projects/directwerk/build.gradle.kts` (additions)
 
 ```kotlin
 dependencies {
@@ -700,8 +700,8 @@ Documented integrator paths — not MVP:
 | Tier | Authoring | Integration |
 |------|-----------|-------------|
 | B | External Markdown | `POST /api/v1/articles` via script |
-| C | Strapi admin | Webhook → Publish sync worker |
-| D | Ghost blog | Hybrid; Publish owns podcast + entitlements |
+| C | Strapi admin | Webhook → Directwerk sync worker |
+| D | Ghost blog | Hybrid; Directwerk owns podcast + entitlements |
 
 See [`content-platform-strategy.md` § Editorial workflow options](content-platform-strategy.md#editorial-workflow-options).
 
@@ -715,14 +715,14 @@ See [`content-platform-strategy.md` § Editorial workflow options](content-platf
 | 2 | Episode autosave interval | 15s / 30s / on blur | 30s debounce + on blur |
 | 3 | Require format on publish? | Yes / optional | Yes when tenant has ≥1 format |
 | 4 | TipTap vs textarea for show notes | TipTap / Markdown | TipTap minimal (non-technical audience) |
-| 5 | `publish-studio` standalone vs `/studio` in publish-web | Separate deploy / shared | Separate app when customer wants studio without marketing site |
+| 5 | `directwerk-studio` standalone vs `/studio` in directwerk-web | Separate deploy / shared | Separate app when customer wants studio without marketing site |
 
 ---
 
 ## Related reading
 
-- Creator product overview: [`publish-studio.md`](publish-studio.md)
-- Implementation guide: [`publish-studio-implementation.md`](publish-studio-implementation.md)
+- Creator product overview: [`directwerk-studio.md`](directwerk-studio.md)
+- Implementation guide: [`directwerk-studio-implementation.md`](directwerk-studio-implementation.md)
 - Scope boundaries: [`content-platform-strategy.md`](content-platform-strategy.md)
 - Upload and S3: [`asset-storage.md`](asset-storage.md)
 - Alpha backend: [`poc-alpha-setup.md`](poc-alpha-setup.md)

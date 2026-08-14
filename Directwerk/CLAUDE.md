@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-`Directwerk` is a Gradle multi-module Java project: a multi-tenant podcast SaaS backend (Spring Boot 4.1.0, Java 21). It is one part of the `publish` monorepo; the Next.js frontends (`publish-admin`, `publish-studio`, `publish-web`, and the retained `example-fe` harness) live as siblings and talk to this backend over HTTP.
+`Directwerk` is a Gradle multi-module Java project: a multi-tenant podcast SaaS backend (Spring Boot 4.1.0, Java 21). It is one part of the `publish` monorepo; the Next.js frontends (`directwerk-admin`, `directwerk-studio`, `directwerk-web`, and the retained `example-fe` harness) live as siblings and talk to this backend over HTTP.
 
 All commands below run from this directory (`Directwerk/`).
 

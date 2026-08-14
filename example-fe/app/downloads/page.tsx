@@ -4,9 +4,9 @@ import Link from 'next/link'
 import {useRouter} from 'next/navigation'
 import {useEffect, useState} from 'react'
 
-import {Alert, AlertDescription} from '@publish/ui/components/alert'
-import EmptyState from '@publish/ui/components/empty-state'
-import PageHeader from '@publish/ui/components/page-header'
+import {Alert, AlertDescription} from '@directwerk/ui/components/alert'
+import EmptyState from '@directwerk/ui/components/empty-state'
+import PageHeader from '@directwerk/ui/components/page-header'
 
 import {listMyDownloads} from '@/lib/api/client'
 import {AUTH_REQUIRED} from '@/lib/api/errors'

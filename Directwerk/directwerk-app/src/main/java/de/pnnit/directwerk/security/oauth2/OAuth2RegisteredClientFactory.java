@@ -50,7 +50,7 @@ public class OAuth2RegisteredClientFactory {
                 .clientAuthenticationMethod(ClientAuthenticationMethod.CLIENT_SECRET_BASIC)
                 .authorizationGrantType(PasswordGrantAuthenticationToken.PASSWORD_GRANT_TYPE)
                 .authorizationGrantType(AuthorizationGrantType.REFRESH_TOKEN)
-                .scope("publish-api")
+                .scope("directwerk-api")
                 .tokenSettings(TokenSettings.builder()
                         .accessTokenTimeToLive(Duration.ofMinutes(15))
                         .refreshTokenTimeToLive(Duration.ofDays(7))

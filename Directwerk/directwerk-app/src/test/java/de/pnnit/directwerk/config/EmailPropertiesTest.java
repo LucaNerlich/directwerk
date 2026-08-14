@@ -11,7 +11,7 @@ class EmailPropertiesTest {
         DirectwerkProperties.Email email = new DirectwerkProperties.Email(
                 true,
                 " ",
-                "noreply@publish.local",
+                "noreply@directwerk.local",
                 "Directwerk",
                 "http://localhost:3000",
                 "http://localhost:3001",
@@ -29,7 +29,7 @@ class EmailPropertiesTest {
         DirectwerkProperties.Email email = new DirectwerkProperties.Email(
                 true,
                 "NONE",
-                "noreply@publish.local",
+                "noreply@directwerk.local",
                 "Directwerk",
                 "http://localhost:3000",
                 "http://localhost:3001",

@@ -2,18 +2,18 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Make `example-admin` and `publish-studio` fully exercise the Directwerk API for tenant management and content management (articles + podcasts, including tying podcasts to formats/categories), fix a real RSS/feed URL bug (missing port locally), and apply a light shared UI consistency pass across both apps.
+**Goal:** Make `example-admin` and `directwerk-studio` fully exercise the Directwerk API for tenant management and content management (articles + podcasts, including tying podcasts to formats/categories), fix a real RSS/feed URL bug (missing port locally), and apply a light shared UI consistency pass across both apps.
 
 **Architecture:** Backend changes are additive (new endpoint methods, a new shared URL-building utility, widened method signatures to thread scheme/host/port instead of hostname-only) — no schema/route renames. Frontend changes follow each app's existing patterns exactly: studio's client-fetch + `tenantApi.ts` + CSS-Modules pattern (new forms use `next/form` + `useActionState`, per explicit user direction), admin's `lib/api/client.ts` proxy + `next/form` + `useActionState` pattern (already used by `InviteTenantUserForm`).
 
-**Tech Stack:** Java 21, Spring Boot 4.1.0 (Directwerk, Gradle multi-module), Next.js 16 + React 19 (example-admin, publish-studio), Vitest, plain CSS + CSS Modules (no Tailwind/component library in either frontend).
+**Tech Stack:** Java 21, Spring Boot 4.1.0 (Directwerk, Gradle multi-module), Next.js 16 + React 19 (example-admin, directwerk-studio), Vitest, plain CSS + CSS Modules (no Tailwind/component library in either frontend).
 
 ## Global Constraints
 
 - Every backend controller change (new endpoint, changed request/response shape) MUST be paired with a matching Bruno collection update in `Directwerk/bruno/` in the same task/commit (AGENTS.md rule #5, reaffirmed by the user as a standing rule for this project).
 - No new frontend dependencies (no Tailwind, no component library, no state library) — match each app's existing plain-CSS/CSS-Modules, hand-rolled-fetch style.
 - New forms in both frontends use `next/form` (`<Form>`) + React's `useActionState`, with the mutation itself going through the existing Next.js API-route proxy (`/api/proxy/[...path]` in each app) — per explicit user direction, this supersedes the older plain-`onSubmit`-handler style used by some existing components (`ProductEditor`, `SeriesEditor`), which are left as-is (not retroactively refactored — out of scope).
-- All UI copy in `publish-studio` is German, matching every existing component (`ArticleEditor`, `SeriesEditor`, `ProductEditor`, `SideNav`, etc.). All UI copy in `example-admin` is English, matching every existing component (`InviteTenantUserForm`, `TenantModulesPanel`, `PlatformAdminsPage`).
+- All UI copy in `directwerk-studio` is German, matching every existing component (`ArticleEditor`, `SeriesEditor`, `ProductEditor`, `SideNav`, etc.). All UI copy in `example-admin` is English, matching every existing component (`InviteTenantUserForm`, `TenantModulesPanel`, `PlatformAdminsPage`).
 - `directwerk-common` has no dependency on Servlet API or any other module — the new `PublicUrlBuilder` utility must be pure string formatting (scheme/host/port already resolved by the caller), not take `HttpServletRequest`.
 - Follow each module's existing package conventions exactly: new Directwerk exceptions go in `de.pnnit.directwerk.modules.core.service` (unqualified `RuntimeException` subclasses, one class per file, mapped in `GlobalExceptionHandler` by exact class), matching `CannotDeactivateSelfException`/`CannotDeactivateLastAdminException`.
 - Run `./gradlew :directwerk-app:test` after every Directwerk backend task (most integration/controller tests live there even for lower-module code, per `Directwerk/CLAUDE.md`). Run `pnpm test` (Vitest) in whichever frontend a task touches.
@@ -1636,21 +1636,21 @@ git commit -m "feat(directwerk-app): add DELETE endpoint to revoke a platform ad
 
 ---
 
-## Phase 4 — publish-studio: types + API client for taxonomy and tagging
+## Phase 4 — directwerk-studio: types + API client for taxonomy and tagging
 
 ### Task 10: Extend `types.ts` (Format detail fields, Episode/Article tags, Series `rssUrl`) + `responseValidation.ts` parsers
 
 **Files:**
-- Modify: `publish-studio/lib/api/types.ts`
-- Modify: `publish-studio/lib/api/responseValidation.ts`
-- Create: `publish-studio/lib/api/responseValidation.tags.test.ts`
+- Modify: `directwerk-studio/lib/api/types.ts`
+- Modify: `directwerk-studio/lib/api/responseValidation.ts`
+- Create: `directwerk-studio/lib/api/responseValidation.tags.test.ts`
 
 **Interfaces:**
 - Produces: `FormatTag`, `CategoryTag` types (`{id: number; slug: string; name: string}`), `EpisodeDetail.formats: FormatTag[]`, `EpisodeDetail.categories: CategoryTag[]`, `ArticleDetail.categories: CategoryTag[]`, `SeriesDetail.rssUrl: string | null`, `FormatSummary` extended with `description: string | null`, `requiredLevelSortOrder: number | null`, `sortOrder: number`. `parseFormatEnvelope`, `parseCategoryEnvelope` (single-item envelope parsers). Consumed by Task 11 (`tenantApi.ts`) and Tasks 13-17 (studio components).
 
 - [ ] **Step 1: Write the failing test**
 
-Create `publish-studio/lib/api/responseValidation.tags.test.ts`:
+Create `directwerk-studio/lib/api/responseValidation.tags.test.ts`:
 
 ```ts
 import {describe, expect, it} from 'vitest'
@@ -1769,7 +1769,7 @@ describe('tag and rssUrl parsing', () => {
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `pnpm --dir publish-studio test -- responseValidation.tags`
+Run: `pnpm --dir directwerk-studio test -- responseValidation.tags`
 Expected: FAIL (module doesn't export `parseFormatEnvelope`/`parseCategoryEnvelope` yet; `formats`/`categories`/`rssUrl` are stripped/undefined)
 
 - [ ] **Step 3: Update `types.ts`**
@@ -2000,19 +2000,19 @@ export function parseCategoryEnvelope(value: unknown): ApiEnvelope<CategorySumma
 
 - [ ] **Step 5: Run test to verify it passes**
 
-Run: `pnpm --dir publish-studio test -- responseValidation.tags`
+Run: `pnpm --dir directwerk-studio test -- responseValidation.tags`
 Expected: PASS (6 tests)
 
 - [ ] **Step 6: Run the full studio test suite to catch any other callers broken by the widened types**
 
-Run: `pnpm --dir publish-studio test`
+Run: `pnpm --dir directwerk-studio test`
 Expected: PASS. If any existing test constructs an `EpisodeDetail`/`ArticleDetail`/`SeriesDetail`/`FormatSummary` fixture object literal (TypeScript will fail to compile it once new required fields are missing), add the new fields to that fixture (e.g. `formats: []`, `categories: []`, `rssUrl: null`, `description: null`, `requiredLevelSortOrder: null`, `sortOrder: 0`) rather than making the new fields optional — every real API response always includes them.
 
 - [ ] **Step 7: Commit**
 
 ```bash
-git add publish-studio/lib/api/types.ts publish-studio/lib/api/responseValidation.ts publish-studio/lib/api/responseValidation.tags.test.ts
-git commit -m "feat(publish-studio): add types/parsers for format/category tags, series rssUrl, format detail fields"
+git add directwerk-studio/lib/api/types.ts directwerk-studio/lib/api/responseValidation.ts directwerk-studio/lib/api/responseValidation.tags.test.ts
+git commit -m "feat(directwerk-studio): add types/parsers for format/category tags, series rssUrl, format detail fields"
 ```
 
 ---
@@ -2020,7 +2020,7 @@ git commit -m "feat(publish-studio): add types/parsers for format/category tags,
 ### Task 11: `tenantApi.ts` — format/category CRUD + episode/article tagging functions
 
 **Files:**
-- Modify: `publish-studio/lib/api/tenantApi.ts`
+- Modify: `directwerk-studio/lib/api/tenantApi.ts`
 
 **Interfaces:**
 - Consumes: `parseFormatEnvelope`, `parseCategoryEnvelope` (Task 10), existing `parseFormatListEnvelope`/`parseCategoryListEnvelope`/`parseEpisodeEnvelope`/`parseArticleEnvelope`.
@@ -2203,26 +2203,26 @@ export async function replaceArticleCategories(
 
 - [ ] **Step 3: Run the studio test suite**
 
-Run: `pnpm --dir publish-studio test`
-Expected: PASS (this task adds no new tests of its own — it's exercised by Tasks 13-17's component tests — but must not break existing ones; `pnpm --dir publish-studio build` or `tsc --noEmit` should also be run to confirm the new functions type-check)
+Run: `pnpm --dir directwerk-studio test`
+Expected: PASS (this task adds no new tests of its own — it's exercised by Tasks 13-17's component tests — but must not break existing ones; `pnpm --dir directwerk-studio build` or `tsc --noEmit` should also be run to confirm the new functions type-check)
 
 - [ ] **Step 4: Commit**
 
 ```bash
-git add publish-studio/lib/api/tenantApi.ts
-git commit -m "feat(publish-studio): add tenantApi functions for format/category CRUD and content tagging"
+git add directwerk-studio/lib/api/tenantApi.ts
+git commit -m "feat(directwerk-studio): add tenantApi functions for format/category CRUD and content tagging"
 ```
 
 ---
 
-## Phase 5 — publish-studio: Format & Category management pages
+## Phase 5 — directwerk-studio: Format & Category management pages
 
 ### Task 12: `FormatListClient` + `/manage/formats` route
 
 **Files:**
-- Create: `publish-studio/components/manage/FormatListClient.tsx`
-- Create: `publish-studio/app/(studio)/manage/formats/page.tsx`
-- Create: `publish-studio/components/manage/FormatListClient.test.tsx`
+- Create: `directwerk-studio/components/manage/FormatListClient.tsx`
+- Create: `directwerk-studio/app/(studio)/manage/formats/page.tsx`
+- Create: `directwerk-studio/components/manage/FormatListClient.test.tsx`
 
 **Interfaces:**
 - Consumes: `listFormats` (existing, `tenantApi.ts`), `FormatSummary` (Task 10).
@@ -2230,7 +2230,7 @@ git commit -m "feat(publish-studio): add tenantApi functions for format/category
 
 - [ ] **Step 1: Write the failing test**
 
-Create `publish-studio/components/manage/FormatListClient.test.tsx` (mirror whatever mocking style `ProductListClient`'s own test file uses if one exists — search `find publish-studio/components/manage -name "*.test.tsx"` first; if `ProductListClient.test.tsx` exists, copy its mocking setup for `getClientTenantHost`/`next/navigation`/`tenantApi` exactly, swapping `listProducts`→`listFormats` and `SubscriptionProduct`→`FormatSummary`). If no such test file exists for `ProductListClient`, write a minimal one:
+Create `directwerk-studio/components/manage/FormatListClient.test.tsx` (mirror whatever mocking style `ProductListClient`'s own test file uses if one exists — search `find directwerk-studio/components/manage -name "*.test.tsx"` first; if `ProductListClient.test.tsx` exists, copy its mocking setup for `getClientTenantHost`/`next/navigation`/`tenantApi` exactly, swapping `listProducts`→`listFormats` and `SubscriptionProduct`→`FormatSummary`). If no such test file exists for `ProductListClient`, write a minimal one:
 
 ```tsx
 import {render, screen, waitFor} from '@testing-library/react'
@@ -2260,7 +2260,7 @@ describe('FormatListClient', () => {
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `pnpm --dir publish-studio test -- FormatListClient`
+Run: `pnpm --dir directwerk-studio test -- FormatListClient`
 Expected: FAIL (component doesn't exist)
 
 - [ ] **Step 3: Create `FormatListClient.tsx`**
@@ -2352,7 +2352,7 @@ export default function FormatListClient(): React.JSX.Element {
 
 - [ ] **Step 4: Create the route**
 
-`publish-studio/app/(studio)/manage/formats/page.tsx`:
+`directwerk-studio/app/(studio)/manage/formats/page.tsx`:
 
 ```tsx
 import FormatListClient from '@/components/manage/FormatListClient'
@@ -2364,14 +2364,14 @@ export default function FormatsPage(): React.JSX.Element {
 
 - [ ] **Step 5: Run test to verify it passes**
 
-Run: `pnpm --dir publish-studio test -- FormatListClient`
+Run: `pnpm --dir directwerk-studio test -- FormatListClient`
 Expected: PASS
 
 - [ ] **Step 6: Commit**
 
 ```bash
-git add publish-studio/components/manage/FormatListClient.tsx publish-studio/components/manage/FormatListClient.test.tsx "publish-studio/app/(studio)/manage/formats/page.tsx"
-git commit -m "feat(publish-studio): add Format list page"
+git add directwerk-studio/components/manage/FormatListClient.tsx directwerk-studio/components/manage/FormatListClient.test.tsx "directwerk-studio/app/(studio)/manage/formats/page.tsx"
+git commit -m "feat(directwerk-studio): add Format list page"
 ```
 
 ---
@@ -2379,17 +2379,17 @@ git commit -m "feat(publish-studio): add Format list page"
 ### Task 13: `FormatEditor` (create/edit/deactivate, `next/form` + `useActionState`) + routes
 
 **Files:**
-- Create: `publish-studio/components/manage/FormatEditor.tsx`
-- Create: `publish-studio/app/(studio)/manage/formats/new/page.tsx`
-- Create: `publish-studio/app/(studio)/manage/formats/[formatId]/page.tsx`
-- Create: `publish-studio/components/manage/FormatEditor.test.tsx`
+- Create: `directwerk-studio/components/manage/FormatEditor.tsx`
+- Create: `directwerk-studio/app/(studio)/manage/formats/new/page.tsx`
+- Create: `directwerk-studio/app/(studio)/manage/formats/[formatId]/page.tsx`
+- Create: `directwerk-studio/components/manage/FormatEditor.test.tsx`
 
 **Interfaces:**
 - Consumes: `createFormat`, `updateFormat`, `deactivateFormat`, `listFormats`, `suggestSlug` (Task 11), `FormatSummary` (Task 10).
 
 - [ ] **Step 1: Write the failing test**
 
-Create `publish-studio/components/manage/FormatEditor.test.tsx`:
+Create `directwerk-studio/components/manage/FormatEditor.test.tsx`:
 
 ```tsx
 import {render, screen, waitFor} from '@testing-library/react'
@@ -2442,7 +2442,7 @@ describe('FormatEditor', () => {
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `pnpm --dir publish-studio test -- FormatEditor`
+Run: `pnpm --dir directwerk-studio test -- FormatEditor`
 Expected: FAIL (component doesn't exist)
 
 - [ ] **Step 3: Create `FormatEditor.tsx`**
@@ -2721,7 +2721,7 @@ export default function FormatEditor({formatId}: FormatEditorProps): React.JSX.E
 
 - [ ] **Step 4: Create the routes**
 
-`publish-studio/app/(studio)/manage/formats/new/page.tsx`:
+`directwerk-studio/app/(studio)/manage/formats/new/page.tsx`:
 
 ```tsx
 import FormatEditor from '@/components/manage/FormatEditor'
@@ -2731,7 +2731,7 @@ export default function NewFormatPage(): React.JSX.Element {
 }
 ```
 
-`publish-studio/app/(studio)/manage/formats/[formatId]/page.tsx`:
+`directwerk-studio/app/(studio)/manage/formats/[formatId]/page.tsx`:
 
 ```tsx
 import FormatEditor from '@/components/manage/FormatEditor'
@@ -2756,14 +2756,14 @@ export default async function FormatPage({
 
 - [ ] **Step 5: Run test to verify it passes**
 
-Run: `pnpm --dir publish-studio test -- FormatEditor`
+Run: `pnpm --dir directwerk-studio test -- FormatEditor`
 Expected: PASS
 
 - [ ] **Step 6: Commit**
 
 ```bash
-git add publish-studio/components/manage/FormatEditor.tsx publish-studio/components/manage/FormatEditor.test.tsx "publish-studio/app/(studio)/manage/formats/new/page.tsx" "publish-studio/app/(studio)/manage/formats/[formatId]/page.tsx"
-git commit -m "feat(publish-studio): add Format create/edit/deactivate page"
+git add directwerk-studio/components/manage/FormatEditor.tsx directwerk-studio/components/manage/FormatEditor.test.tsx "directwerk-studio/app/(studio)/manage/formats/new/page.tsx" "directwerk-studio/app/(studio)/manage/formats/[formatId]/page.tsx"
+git commit -m "feat(directwerk-studio): add Format create/edit/deactivate page"
 ```
 
 ---
@@ -2771,9 +2771,9 @@ git commit -m "feat(publish-studio): add Format create/edit/deactivate page"
 ### Task 14: `CategoryListClient` + `/manage/categories` route
 
 **Files:**
-- Create: `publish-studio/components/manage/CategoryListClient.tsx`
-- Create: `publish-studio/app/(studio)/manage/categories/page.tsx`
-- Create: `publish-studio/components/manage/CategoryListClient.test.tsx`
+- Create: `directwerk-studio/components/manage/CategoryListClient.tsx`
+- Create: `directwerk-studio/app/(studio)/manage/categories/page.tsx`
+- Create: `directwerk-studio/components/manage/CategoryListClient.test.tsx`
 
 **Interfaces:**
 - Consumes: `listCategories` (existing), `CategorySummary` (existing).
@@ -2781,7 +2781,7 @@ git commit -m "feat(publish-studio): add Format create/edit/deactivate page"
 
 - [ ] **Step 1: Write the failing test**
 
-Create `publish-studio/components/manage/CategoryListClient.test.tsx` (same structure as Task 12's `FormatListClient.test.tsx`, swapping in categories):
+Create `directwerk-studio/components/manage/CategoryListClient.test.tsx` (same structure as Task 12's `FormatListClient.test.tsx`, swapping in categories):
 
 ```tsx
 import {render, screen, waitFor} from '@testing-library/react'
@@ -2811,7 +2811,7 @@ describe('CategoryListClient', () => {
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `pnpm --dir publish-studio test -- CategoryListClient`
+Run: `pnpm --dir directwerk-studio test -- CategoryListClient`
 Expected: FAIL
 
 - [ ] **Step 3: Create `CategoryListClient.tsx`**
@@ -2906,7 +2906,7 @@ export default function CategoryListClient(): React.JSX.Element {
 
 - [ ] **Step 4: Create the route**
 
-`publish-studio/app/(studio)/manage/categories/page.tsx`:
+`directwerk-studio/app/(studio)/manage/categories/page.tsx`:
 
 ```tsx
 import CategoryListClient from '@/components/manage/CategoryListClient'
@@ -2918,14 +2918,14 @@ export default function CategoriesPage(): React.JSX.Element {
 
 - [ ] **Step 5: Run test to verify it passes**
 
-Run: `pnpm --dir publish-studio test -- CategoryListClient`
+Run: `pnpm --dir directwerk-studio test -- CategoryListClient`
 Expected: PASS
 
 - [ ] **Step 6: Commit**
 
 ```bash
-git add publish-studio/components/manage/CategoryListClient.tsx publish-studio/components/manage/CategoryListClient.test.tsx "publish-studio/app/(studio)/manage/categories/page.tsx"
-git commit -m "feat(publish-studio): add Category list page"
+git add directwerk-studio/components/manage/CategoryListClient.tsx directwerk-studio/components/manage/CategoryListClient.test.tsx "directwerk-studio/app/(studio)/manage/categories/page.tsx"
+git commit -m "feat(directwerk-studio): add Category list page"
 ```
 
 ---
@@ -2933,17 +2933,17 @@ git commit -m "feat(publish-studio): add Category list page"
 ### Task 15: `CategoryEditor` (create/edit/deactivate, `next/form` + `useActionState`) + routes
 
 **Files:**
-- Create: `publish-studio/components/manage/CategoryEditor.tsx`
-- Create: `publish-studio/app/(studio)/manage/categories/new/page.tsx`
-- Create: `publish-studio/app/(studio)/manage/categories/[categoryId]/page.tsx`
-- Create: `publish-studio/components/manage/CategoryEditor.test.tsx`
+- Create: `directwerk-studio/components/manage/CategoryEditor.tsx`
+- Create: `directwerk-studio/app/(studio)/manage/categories/new/page.tsx`
+- Create: `directwerk-studio/app/(studio)/manage/categories/[categoryId]/page.tsx`
+- Create: `directwerk-studio/components/manage/CategoryEditor.test.tsx`
 
 **Interfaces:**
 - Consumes: `createCategory`, `updateCategory`, `deactivateCategory`, `listCategories`, `suggestSlug` (Task 11), `CategorySummary` (existing).
 
 - [ ] **Step 1: Write the failing test**
 
-Create `publish-studio/components/manage/CategoryEditor.test.tsx` (mirror `FormatEditor.test.tsx` from Task 13, swapping in category fields):
+Create `directwerk-studio/components/manage/CategoryEditor.test.tsx` (mirror `FormatEditor.test.tsx` from Task 13, swapping in category fields):
 
 ```tsx
 import {render, screen, waitFor} from '@testing-library/react'
@@ -2994,7 +2994,7 @@ describe('CategoryEditor', () => {
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `pnpm --dir publish-studio test -- CategoryEditor`
+Run: `pnpm --dir directwerk-studio test -- CategoryEditor`
 Expected: FAIL
 
 - [ ] **Step 3: Create `CategoryEditor.tsx`**
@@ -3247,7 +3247,7 @@ export default function CategoryEditor({categoryId}: CategoryEditorProps): React
 
 - [ ] **Step 4: Create the routes**
 
-`publish-studio/app/(studio)/manage/categories/new/page.tsx`:
+`directwerk-studio/app/(studio)/manage/categories/new/page.tsx`:
 
 ```tsx
 import CategoryEditor from '@/components/manage/CategoryEditor'
@@ -3257,7 +3257,7 @@ export default function NewCategoryPage(): React.JSX.Element {
 }
 ```
 
-`publish-studio/app/(studio)/manage/categories/[categoryId]/page.tsx`:
+`directwerk-studio/app/(studio)/manage/categories/[categoryId]/page.tsx`:
 
 ```tsx
 import CategoryEditor from '@/components/manage/CategoryEditor'
@@ -3282,14 +3282,14 @@ export default async function CategoryPage({
 
 - [ ] **Step 5: Run test to verify it passes**
 
-Run: `pnpm --dir publish-studio test -- CategoryEditor`
+Run: `pnpm --dir directwerk-studio test -- CategoryEditor`
 Expected: PASS
 
 - [ ] **Step 6: Commit**
 
 ```bash
-git add publish-studio/components/manage/CategoryEditor.tsx publish-studio/components/manage/CategoryEditor.test.tsx "publish-studio/app/(studio)/manage/categories/new/page.tsx" "publish-studio/app/(studio)/manage/categories/[categoryId]/page.tsx"
-git commit -m "feat(publish-studio): add Category create/edit/deactivate page"
+git add directwerk-studio/components/manage/CategoryEditor.tsx directwerk-studio/components/manage/CategoryEditor.test.tsx "directwerk-studio/app/(studio)/manage/categories/new/page.tsx" "directwerk-studio/app/(studio)/manage/categories/[categoryId]/page.tsx"
+git commit -m "feat(directwerk-studio): add Category create/edit/deactivate page"
 ```
 
 ---
@@ -3297,14 +3297,14 @@ git commit -m "feat(publish-studio): add Category create/edit/deactivate page"
 ### Task 16: Add Formate/Kategorien links to `SideNav`
 
 **Files:**
-- Modify: `publish-studio/components/studio/SideNav.tsx:59-90`
+- Modify: `directwerk-studio/components/studio/SideNav.tsx:59-90`
 
 **Interfaces:**
 - Consumes: `hasModule` (existing, `lib/api/client.ts`).
 
 - [ ] **Step 1: Write the failing test**
 
-Find or create `publish-studio/components/studio/SideNav.test.tsx` (search first: `find publish-studio/components/studio -name "SideNav*"`). If a test file already exists, add a case; otherwise create one:
+Find or create `directwerk-studio/components/studio/SideNav.test.tsx` (search first: `find directwerk-studio/components/studio -name "SideNav*"`). If a test file already exists, add a case; otherwise create one:
 
 ```tsx
 import {render, screen} from '@testing-library/react'
@@ -3342,7 +3342,7 @@ describe('SideNav', () => {
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `pnpm --dir publish-studio test -- SideNav`
+Run: `pnpm --dir directwerk-studio test -- SideNav`
 Expected: FAIL (no such links yet)
 
 - [ ] **Step 3: Update `SideNav.tsx`**
@@ -3400,25 +3400,25 @@ Replace the `Verwaltung` section (lines 59-90):
 
 - [ ] **Step 4: Run test to verify it passes**
 
-Run: `pnpm --dir publish-studio test -- SideNav`
+Run: `pnpm --dir directwerk-studio test -- SideNav`
 Expected: PASS
 
 - [ ] **Step 5: Commit**
 
 ```bash
-git add publish-studio/components/studio/SideNav.tsx publish-studio/components/studio/SideNav.test.tsx
-git commit -m "feat(publish-studio): add Formate/Kategorien links to Verwaltung nav"
+git add directwerk-studio/components/studio/SideNav.tsx directwerk-studio/components/studio/SideNav.test.tsx
+git commit -m "feat(directwerk-studio): add Formate/Kategorien links to Verwaltung nav"
 ```
 
 ---
 
-## Phase 6 — publish-studio: tag episodes/articles, Series fields, RSS visibility
+## Phase 6 — directwerk-studio: tag episodes/articles, Series fields, RSS visibility
 
 ### Task 17: `EpisodeEditor` — Format & Category tagging
 
 **Files:**
-- Modify: `publish-studio/components/podcast/EpisodeEditor.tsx`
-- Test: `publish-studio/components/podcast/EpisodeEditor.test.tsx` if it exists (search first: `find publish-studio/components/podcast -name "EpisodeEditor.test*"`); otherwise create one with just the new test case.
+- Modify: `directwerk-studio/components/podcast/EpisodeEditor.tsx`
+- Test: `directwerk-studio/components/podcast/EpisodeEditor.test.tsx` if it exists (search first: `find directwerk-studio/components/podcast -name "EpisodeEditor.test*"`); otherwise create one with just the new test case.
 
 **Interfaces:**
 - Consumes: `replaceEpisodeFormats`, `replaceEpisodeCategories` (Task 11), `listFormats`, `listCategories` (existing), `FormatSummary`, `CategorySummary` (existing/Task 10).
@@ -3489,7 +3489,7 @@ describe('EpisodeEditor tagging', () => {
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `pnpm --dir publish-studio test -- EpisodeEditor`
+Run: `pnpm --dir directwerk-studio test -- EpisodeEditor`
 Expected: FAIL (no Format/Category checkboxes rendered yet)
 
 - [ ] **Step 3: Update imports (lines 9-30)**
@@ -3658,14 +3658,14 @@ The `sidebarExtra` prop currently passes a single `<div className={styles.audio}
 
 - [ ] **Step 8: Run test to verify it passes**
 
-Run: `pnpm --dir publish-studio test -- EpisodeEditor`
+Run: `pnpm --dir directwerk-studio test -- EpisodeEditor`
 Expected: PASS
 
 - [ ] **Step 9: Commit**
 
 ```bash
-git add publish-studio/components/podcast/EpisodeEditor.tsx publish-studio/components/podcast/EpisodeEditor.test.tsx
-git commit -m "feat(publish-studio): add Format/Category tagging to Episode editor"
+git add directwerk-studio/components/podcast/EpisodeEditor.tsx directwerk-studio/components/podcast/EpisodeEditor.test.tsx
+git commit -m "feat(directwerk-studio): add Format/Category tagging to Episode editor"
 ```
 
 ---
@@ -3673,8 +3673,8 @@ git commit -m "feat(publish-studio): add Format/Category tagging to Episode edit
 ### Task 18: `ArticleEditor` — Category tagging
 
 **Files:**
-- Modify: `publish-studio/components/write/ArticleEditor.tsx`
-- Test: `publish-studio/components/write/ArticleEditor.test.tsx` if it exists (search first); otherwise create one with just the new case.
+- Modify: `directwerk-studio/components/write/ArticleEditor.tsx`
+- Test: `directwerk-studio/components/write/ArticleEditor.test.tsx` if it exists (search first); otherwise create one with just the new case.
 
 **Interfaces:**
 - Consumes: `replaceArticleCategories` (Task 11), `listCategories` (existing), `CategorySummary` (existing).
@@ -3685,7 +3685,7 @@ Read `ArticleEditor.test.tsx` if it exists and extend its mocks; otherwise creat
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `pnpm --dir publish-studio test -- ArticleEditor`
+Run: `pnpm --dir directwerk-studio test -- ArticleEditor`
 Expected: FAIL
 
 - [ ] **Step 3: Update imports**
@@ -3801,14 +3801,14 @@ The existing `load` function only fetches `getArticle` when `articleId !== undef
 
 - [ ] **Step 8: Run test to verify it passes**
 
-Run: `pnpm --dir publish-studio test -- ArticleEditor`
+Run: `pnpm --dir directwerk-studio test -- ArticleEditor`
 Expected: PASS
 
 - [ ] **Step 9: Commit**
 
 ```bash
-git add publish-studio/components/write/ArticleEditor.tsx publish-studio/components/write/ArticleEditor.test.tsx
-git commit -m "feat(publish-studio): add Category tagging to Article editor"
+git add directwerk-studio/components/write/ArticleEditor.tsx directwerk-studio/components/write/ArticleEditor.test.tsx
+git commit -m "feat(directwerk-studio): add Category tagging to Article editor"
 ```
 
 ---
@@ -3816,9 +3816,9 @@ git commit -m "feat(publish-studio): add Category tagging to Article editor"
 ### Task 19: `SeriesEditor` — cover asset upload, default access level, RSS URL display
 
 **Files:**
-- Modify: `publish-studio/lib/api/types.ts` (`CreateSeriesInput`, `UpdateSeriesInput`)
-- Modify: `publish-studio/components/podcast/SeriesEditor.tsx`
-- Test: `publish-studio/components/podcast/SeriesEditor.test.tsx` if it exists (search first); otherwise create one with just the new case.
+- Modify: `directwerk-studio/lib/api/types.ts` (`CreateSeriesInput`, `UpdateSeriesInput`)
+- Modify: `directwerk-studio/components/podcast/SeriesEditor.tsx`
+- Test: `directwerk-studio/components/podcast/SeriesEditor.test.tsx` if it exists (search first); otherwise create one with just the new case.
 
 **Interfaces:**
 - Consumes: `uploadMediaFile` (existing, `lib/media/upload`), `getMediaPreviewUrl` (existing, `tenantApi.ts`).
@@ -3864,7 +3864,7 @@ describe('SeriesEditor RSS URL', () => {
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `pnpm --dir publish-studio test -- SeriesEditor`
+Run: `pnpm --dir directwerk-studio test -- SeriesEditor`
 Expected: FAIL
 
 - [ ] **Step 3: Update `types.ts`**
@@ -4034,14 +4034,14 @@ Add after the existing "iTunes-Kategorie" `<label>` block and before the `{!isNe
 
 - [ ] **Step 11: Run test to verify it passes**
 
-Run: `pnpm --dir publish-studio test -- SeriesEditor`
+Run: `pnpm --dir directwerk-studio test -- SeriesEditor`
 Expected: PASS
 
 - [ ] **Step 12: Commit**
 
 ```bash
-git add publish-studio/lib/api/types.ts publish-studio/components/podcast/SeriesEditor.tsx publish-studio/components/podcast/SeriesEditor.test.tsx
-git commit -m "feat(publish-studio): add cover upload, default access level, and RSS URL display to Series editor"
+git add directwerk-studio/lib/api/types.ts directwerk-studio/components/podcast/SeriesEditor.tsx directwerk-studio/components/podcast/SeriesEditor.test.tsx
+git commit -m "feat(directwerk-studio): add cover upload, default access level, and RSS URL display to Series editor"
 ```
 
 ---
@@ -4049,7 +4049,7 @@ git commit -m "feat(publish-studio): add cover upload, default access level, and
 ### Task 20: `SideNav` — tenant-wide RSS feed link
 
 **Files:**
-- Modify: `publish-studio/components/studio/SideNav.tsx:39-57`
+- Modify: `directwerk-studio/components/studio/SideNav.tsx:39-57`
 
 **Interfaces:**
 - Consumes: `config.publicRssUrl` (existing `SiteConfig` field — already fetched, no new API call needed).
@@ -4070,7 +4070,7 @@ it('shows the tenant-wide RSS feed link in the Podcast section', () => {
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `pnpm --dir publish-studio test -- SideNav`
+Run: `pnpm --dir directwerk-studio test -- SideNav`
 Expected: FAIL
 
 - [ ] **Step 3: Update `SideNav.tsx`**
@@ -4113,19 +4113,19 @@ Replace the `showPodcast` block (lines 39-57):
 
 - [ ] **Step 4: Run test to verify it passes**
 
-Run: `pnpm --dir publish-studio test -- SideNav`
+Run: `pnpm --dir directwerk-studio test -- SideNav`
 Expected: PASS
 
 - [ ] **Step 5: Run the full studio test suite**
 
-Run: `pnpm --dir publish-studio test`
+Run: `pnpm --dir directwerk-studio test`
 Expected: PASS (confirms Phase 6 introduced no regressions)
 
 - [ ] **Step 6: Commit**
 
 ```bash
-git add publish-studio/components/studio/SideNav.tsx publish-studio/components/studio/SideNav.test.tsx
-git commit -m "feat(publish-studio): show tenant-wide RSS feed link in nav"
+git add directwerk-studio/components/studio/SideNav.tsx directwerk-studio/components/studio/SideNav.test.tsx
+git commit -m "feat(directwerk-studio): show tenant-wide RSS feed link in nav"
 ```
 
 ---
@@ -4938,7 +4938,7 @@ git commit -m "feat(example-admin): add domain force-verify form; allow dotted h
 
 ## Phase 8 — Cross-app UI consistency pass
 
-Both apps' existing CSS Modules already depend on specific custom-property names defined in each app's own `globals.css` — confirmed by reading every `.module.css` file in both apps: `example-admin/components/Header.module.css` depends on `--spacing-base`/`--border-width`/`--border-style`; `publish-studio`'s `DeskList.module.css`/`SideNav.module.css`/`PublicationEditorLayout.module.css`/`PublicationWorkflowActions.module.css`/`ShowNotesEditor.module.css`/`SeriesSelect.module.css`/`AccessPolicySelect.module.css`/`page.module.css`/`login.module.css` all depend on `--muted`/`--border`/`--brand-primary`/`--foreground`/`--surface-muted`. Renaming any of these would require touching every dependent file — out of scope ("no unrelated refactoring"). Instead: **`example-admin` adopts `publish-studio`'s existing token names and values as new additions** (admin doesn't currently define any color tokens, only spacing/border ones, so there's no name collision), and **both apps get the same new base-element styles** (buttons, inputs, focus states, a responsive breakpoint) written independently against each app's own token names. Net effect: same palette, same spacing rhythm, same form/button/table look — without renaming anything an existing component relies on.
+Both apps' existing CSS Modules already depend on specific custom-property names defined in each app's own `globals.css` — confirmed by reading every `.module.css` file in both apps: `example-admin/components/Header.module.css` depends on `--spacing-base`/`--border-width`/`--border-style`; `directwerk-studio`'s `DeskList.module.css`/`SideNav.module.css`/`PublicationEditorLayout.module.css`/`PublicationWorkflowActions.module.css`/`ShowNotesEditor.module.css`/`SeriesSelect.module.css`/`AccessPolicySelect.module.css`/`page.module.css`/`login.module.css` all depend on `--muted`/`--border`/`--brand-primary`/`--foreground`/`--surface-muted`. Renaming any of these would require touching every dependent file — out of scope ("no unrelated refactoring"). Instead: **`example-admin` adopts `directwerk-studio`'s existing token names and values as new additions** (admin doesn't currently define any color tokens, only spacing/border ones, so there's no name collision), and **both apps get the same new base-element styles** (buttons, inputs, focus states, a responsive breakpoint) written independently against each app's own token names. Net effect: same palette, same spacing rhythm, same form/button/table look — without renaming anything an existing component relies on.
 
 ### Task 26: `example-admin/app/globals.css` — adopt shared tokens + base element styles
 
@@ -5070,10 +5070,10 @@ git commit -m "style(example-admin): adopt shared design tokens and base element
 
 ---
 
-### Task 27: `publish-studio/app/globals.css` — matching base element styles
+### Task 27: `directwerk-studio/app/globals.css` — matching base element styles
 
 **Files:**
-- Modify: `publish-studio/app/globals.css`
+- Modify: `directwerk-studio/app/globals.css`
 
 **Interfaces:**
 - Consumes: existing `--foreground`, `--muted`, `--border`, `--surface-muted`, `--brand-primary` tokens (unchanged values — Task 26 copied these exact names/values into `example-admin`).
@@ -5158,18 +5158,18 @@ th {
 
 - [ ] **Step 2: Manually verify in the browser**
 
-Run: `pnpm --dir publish-studio dev` and visually check the write/podcast/manage sections (including the new Format/Category pages from Phase 5) — forms, buttons, and tables should look consistent with `example-admin` and the layout should not break at a narrow viewport width.
+Run: `pnpm --dir directwerk-studio dev` and visually check the write/podcast/manage sections (including the new Format/Category pages from Phase 5) — forms, buttons, and tables should look consistent with `example-admin` and the layout should not break at a narrow viewport width.
 
-- [ ] **Step 3: Run the full publish-studio test suite**
+- [ ] **Step 3: Run the full directwerk-studio test suite**
 
-Run: `pnpm --dir publish-studio test`
+Run: `pnpm --dir directwerk-studio test`
 Expected: PASS
 
 - [ ] **Step 4: Commit**
 
 ```bash
-git add publish-studio/app/globals.css
-git commit -m "style(publish-studio): add base element styles matching example-admin"
+git add directwerk-studio/app/globals.css
+git commit -m "style(directwerk-studio): add base element styles matching example-admin"
 ```
 
 ---
@@ -5182,7 +5182,7 @@ git commit -m "style(publish-studio): add base element styles matching example-a
 - Phase 2 (tenant management): PATCH tenant → Task 7. PATCH user role → Task 8. DELETE admin → Task 9. Frontend wiring → Tasks 21-25. ✓
 - Phase 3 (UI consistency) → Tasks 26-27. ✓
 - Standing Bruno rule → satisfied in every backend task (7, 8, 9) plus the response-shape note in Task 6. ✓
-- Out-of-scope items (DigitalPublication, CustomFeed, publish-web, Tailwind/component library) — none of the 27 tasks touch any of these. ✓
+- Out-of-scope items (DigitalPublication, CustomFeed, directwerk-web, Tailwind/component library) — none of the 27 tasks touch any of these. ✓
 
 **Placeholder scan:** no `TBD`/`TODO`/"implement later" strings; every step has literal code. The few spots that say "match this file's existing X" (Tasks 2-9's test additions, where the exact fixture/mock shape of a pre-existing test file can't be known without reading it at execution time) are deliberate — they point at a concrete file to read, not an unresolved question, consistent with how a real engineer would extend an existing test suite.
 

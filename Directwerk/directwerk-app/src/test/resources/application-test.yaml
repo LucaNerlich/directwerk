@@ -22,15 +22,15 @@ spring:
 directwerk:
     security:
         issuer: http://localhost:8080
-        audience: publish-api
-        platform-client-id: publish-platform-admin
-        tenant-client-id: publish-tenant-frontend
+        audience: directwerk-api
+        platform-client-id: directwerk-platform-admin
+        tenant-client-id: directwerk-tenant-frontend
         platform-client-secret: ${DIRECTWERK_PLATFORM_CLIENT_SECRET:}
         tenant-client-secret: ${DIRECTWERK_TENANT_CLIENT_SECRET:}
         authorization-store: memory
     email:
         enabled: false
-        from-address: noreply@publish.local
+        from-address: noreply@directwerk.local
         from-name: Directwerk
         studio-base-url: http://localhost:3000
         admin-base-url: http://localhost:3001

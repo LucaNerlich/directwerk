@@ -5,7 +5,7 @@ Status: Approved
 
 ## Goal
 
-`example-admin` and `publish-studio` (referred to as `example-studio` in AGENTS.md) should let a
+`example-admin` and `directwerk-studio` (referred to as `example-studio` in AGENTS.md) should let a
 user fully exercise the Directwerk API for tenant management and content management (articles +
 podcasts, including tying podcasts to formats/categories), using mostly-existing backend endpoints
 plus a small number of net-new ones where the API itself is genuinely incomplete.
@@ -20,7 +20,7 @@ plus a small number of net-new ones where the API itself is genuinely incomplete
 - Series editor is missing `coverAssetId` and `defaultRequiredLevelSortOrder`, both backend-supported.
 - Tenant creation/list/get/suspend/reactivate + module management are fully wired in example-admin.
   Missing: tenant edit, user role change, admin revoke (none of these exist on the backend either,
-  despite being described in `docs/publish-admin-implementation.md`). Also missing: UI for
+  despite being described in `docs/directwerk-admin-implementation.md`). Also missing: UI for
   already-existing backend operations (user deactivate/reactivate, domain force-verify).
 - RSS/feed URL generation has a real bug: every call site builds URLs as
   `"https://" + request.getServerName()`, and `getServerName()` never includes the port (servlet
@@ -35,7 +35,7 @@ plus a small number of net-new ones where the API itself is genuinely incomplete
 
 ## Scope
 
-### Phase 1 — publish-studio: content taxonomy + RSS
+### Phase 1 — directwerk-studio: content taxonomy + RSS
 
 1. **Taxonomy management.** Add `(studio)/manage/formats` and `(studio)/manage/categories` pages
    (alongside existing `manage/products`, `manage/grants`) with list/create/edit/deactivate, backed
@@ -57,7 +57,7 @@ plus a small number of net-new ones where the API itself is genuinely incomplete
    detail), with copy-to-clipboard, gated behind `PODCAST_RSS`.
 6. **Explicitly out of scope:** the subscriber-facing private feed / `CustomFeed` builder
    (filter-by-format-or-category feed) — genuinely unbuilt (documented "Phase 7, still open" in
-   `directwerk-podcast/README.md`), and belongs to `publish-web`, not studio/admin.
+   `directwerk-podcast/README.md`), and belongs to `directwerk-web`, not studio/admin.
 
 ### Phase 2 — example-admin: tenant management completeness
 
@@ -94,6 +94,6 @@ paired with a matching Bruno collection update in `Directwerk/bruno/` in the sam
 
 - `DigitalPublication` / downloadable-files content type — unbuilt (design docs only, per prior
   survey), not requested by the user.
-- Subscriber-facing `CustomFeed` builder — unbuilt, belongs to `publish-web`.
-- Any change to `publish-web` itself.
+- Subscriber-facing `CustomFeed` builder — unbuilt, belongs to `directwerk-web`.
+- Any change to `directwerk-web` itself.
 - Introducing Tailwind, a component library, or a shared monorepo package.

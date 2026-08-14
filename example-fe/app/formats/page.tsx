@@ -2,8 +2,8 @@
 
 import {useEffect, useState} from 'react'
 
-import {Alert, AlertDescription} from '@publish/ui/components/alert'
-import PageHeader from '@publish/ui/components/page-header'
+import {Alert, AlertDescription} from '@directwerk/ui/components/alert'
+import PageHeader from '@directwerk/ui/components/page-header'
 
 import {listPublicCategories, listPublicFormats} from '@/lib/api/client'
 import type {PublicCategory, PublicFormat} from '@/lib/api/types'

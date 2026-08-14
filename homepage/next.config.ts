@@ -2,7 +2,7 @@ import type { NextConfig } from 'next'
 
 const nextConfig: NextConfig = {
     reactCompiler: true,
-    transpilePackages: ['@publish/ui'],
+    transpilePackages: ['@directwerk/ui'],
     async headers() {
         return [
             {

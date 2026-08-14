@@ -227,7 +227,7 @@ reference). Remaining open items:
 | ~~Private subscriber RSS (Phase 4c)~~ | Shipped — `MeFeedController`, `SubscriberFeedService` |
 | Subscriber feed builder | Phase 7 — still open |
 | `EMAIL_NOTIFY` send on publish | Post-MVP — still open (`notifySubscribers` may validate module only) |
-| Studio UI | `publish-studio` — still open |
+| Studio UI | `directwerk-studio` — still open |
 
 ### Decisions locked
 

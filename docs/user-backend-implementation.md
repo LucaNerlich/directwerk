@@ -1,19 +1,19 @@
-# Publish — User Backend & Spring Security Implementation Guide
+# Directwerk — User Backend & Spring Security Implementation Guide
 
 Companion to [`README.md`](../README.md) and [`poc-alpha-setup.md`](poc-alpha-setup.md). This document
 is the **step-by-step engineering guide** for implementing user accounts, authentication, authorization,
-and account management in the Spring Boot backend (`projects/publish/`).
+and account management in the Spring Boot backend (`projects/directwerk/`).
 
 | Document | Purpose |
 |----------|---------|
 | [`README.md`](../README.md) § Authentication and Authorization | Product-level auth design |
 | [`poc-alpha-setup.md`](poc-alpha-setup.md) § Spring Security | Alpha scope and checklist |
 | **This document** | **How to implement** the user/security backend |
-| [`publish-studio-implementation.md`](publish-studio-implementation.md) | Creator dashboard consuming this API |
-| [`publish-admin-implementation.md`](publish-admin-implementation.md) | Platform admin dashboard consuming this API |
+| [`directwerk-studio-implementation.md`](directwerk-studio-implementation.md) | Creator dashboard consuming this API |
+| [`directwerk-admin-implementation.md`](directwerk-admin-implementation.md) | Platform admin dashboard consuming this API |
 | [`Directwerk/http/`](../Directwerk/http/) | Executable acceptance criteria (controller-mapped harness) |
 
-**Status (2026-07):** Implemented in `projects/publish/Directwerk/`. Controllers live under
+**Status (2026-07):** Implemented in `projects/directwerk/Directwerk/`. Controllers live under
 `de.pnnit.directwerk.controller.*` (auth under `controller/auth/`). Public self-registration
 creates `SUBSCRIBER` via `POST /api/v1/auth/register` (tenant from `Host`). Invited users set a
 password via `POST /api/v1/auth/accept-invite`. Local profile exposes `inviteToken` /
@@ -47,9 +47,9 @@ password via `POST /api/v1/auth/accept-invite`. Local profile exposes `inviteTok
 ```mermaid
 flowchart TB
     subgraph clients [First-party clients]
-        Studio[publish-studio]
-        Admin[publish-admin]
-        Web[publish-web]
+        Studio[directwerk-studio]
+        Admin[directwerk-admin]
+        Web[directwerk-web]
     end
 
     subgraph spring [Spring Boot monolith]
@@ -214,8 +214,8 @@ implementation("org.springframework.boot:spring-boot-starter-security")
 
 | `client_id` | Grant types | Audience |
 |-------------|-------------|----------|
-| `publish-tenant-frontend` | `password`, `refresh_token` | `publish-studio`, `publish-web` |
-| `publish-platform-admin` | `password`, `refresh_token` | `publish-admin`, HTTP tests |
+| `directwerk-tenant-frontend` | `password`, `refresh_token` | `directwerk-studio`, `directwerk-web` |
+| `directwerk-platform-admin` | `password`, `refresh_token` | `directwerk-admin`, HTTP tests |
 
 Dev secrets: [`Directwerk/http/http-client.env.json`](../Directwerk/http/http-client.env.json)
 (+ private env example alongside it).
@@ -231,19 +231,19 @@ Dev secrets: [`Directwerk/http/http-client.env.json`](../Directwerk/http/http-cl
   "tenant_id": 1,
   "roles": ["TENANT_ADMIN", "EDITOR"],
   "iss": "http://localhost:8080",
-  "aud": "publish-api"
+  "aud": "directwerk-api"
 }
 ```
 
-**Platform admin token** (`publish-admin`):
+**Platform admin token** (`directwerk-admin`):
 
 ```json
 {
   "sub": "1",
-  "email": "platform-admin@publish.local",
+  "email": "platform-admin@directwerk.local",
   "roles": ["PLATFORM_ADMIN"],
   "iss": "http://localhost:8080",
-  "aud": "publish-api"
+  "aud": "directwerk-api"
 }
 ```
 
@@ -566,7 +566,7 @@ spring:
 
 app:
   security:
-    jwt-audience: publish-api
+    jwt-audience: directwerk-api
     access-token-ttl: 15m
     refresh-token-ttl: 7d
 ```
@@ -655,7 +655,7 @@ Execute in this order within Phase A (alpha backend):
 | 13 | `platform_audit_events` writes | Manual DB check (post-alpha wiring) |
 | 14 | Full HTTP harness green | All `Directwerk/http/*.http` |
 
-**Do not start `publish-studio` or `publish-admin` until steps 1–14 pass.**
+**Do not start `directwerk-studio` or `directwerk-admin` until steps 1–14 pass.**
 
 ---
 
@@ -708,8 +708,8 @@ Execute in this order within Phase A (alpha backend):
 ## 13. Related reading
 
 - Alpha blueprint: [`poc-alpha-setup.md`](poc-alpha-setup.md)
-- Studio frontend auth client: [`publish-studio-implementation.md` § Auth](publish-studio-implementation.md#4-authentication)
-- Admin frontend auth: [`publish-admin-implementation.md` § Auth](publish-admin-implementation.md#4-authentication)
+- Studio frontend auth client: [`directwerk-studio-implementation.md` § Auth](directwerk-studio-implementation.md#4-authentication)
+- Admin frontend auth: [`directwerk-admin-implementation.md` § Auth](directwerk-admin-implementation.md#4-authentication)
 - Product auth design: [`README.md` § Authentication and Authorization](../README.md#authentication-and-authorization)
 
 ---

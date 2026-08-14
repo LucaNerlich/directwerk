@@ -59,8 +59,8 @@ class OAuth2AuthorizationStoreIntegrationTest {
 
     @Test
     void jdbcStorePersistsRegisteredClientsAfterBootstrap() {
-        RegisteredClient tenantClient = registeredClientRepository.findByClientId("publish-tenant-frontend");
-        RegisteredClient platformClient = registeredClientRepository.findByClientId("publish-platform-admin");
+        RegisteredClient tenantClient = registeredClientRepository.findByClientId("directwerk-tenant-frontend");
+        RegisteredClient platformClient = registeredClientRepository.findByClientId("directwerk-platform-admin");
 
         assertThat(tenantClient).isNotNull();
         assertThat(tenantClient.getId()).isEqualTo(OAuth2RegisteredClientFactory.TENANT_INTERNAL_ID);
@@ -77,7 +77,7 @@ class OAuth2AuthorizationStoreIntegrationTest {
 
     @Test
     void jdbcStorePersistsAuthorizationWithTokens() {
-        RegisteredClient registeredClient = registeredClientRepository.findByClientId("publish-tenant-frontend");
+        RegisteredClient registeredClient = registeredClientRepository.findByClientId("directwerk-tenant-frontend");
         assertThat(registeredClient).isNotNull();
 
         Instant issuedAt = Instant.parse("2026-07-18T10:00:00Z");
@@ -115,7 +115,7 @@ class OAuth2AuthorizationStoreIntegrationTest {
 
     @Test
     void jdbcStoreRoundTripsAuthenticationAttributeWithDirectwerkUserPrincipal() {
-        RegisteredClient registeredClient = registeredClientRepository.findByClientId("publish-tenant-frontend");
+        RegisteredClient registeredClient = registeredClientRepository.findByClientId("directwerk-tenant-frontend");
         assertThat(registeredClient).isNotNull();
 
         Instant issuedAt = Instant.parse("2026-07-18T10:00:00Z");
@@ -170,7 +170,7 @@ class OAuth2AuthorizationStoreIntegrationTest {
 
     @Test
     void jdbcStoreRoundTripsAccessTokenClaimsWithLongTenantIdAndImmutableAud() {
-        RegisteredClient registeredClient = registeredClientRepository.findByClientId("publish-tenant-frontend");
+        RegisteredClient registeredClient = registeredClientRepository.findByClientId("directwerk-tenant-frontend");
         assertThat(registeredClient).isNotNull();
 
         Instant issuedAt = Instant.parse("2026-07-18T10:00:00Z");
@@ -186,7 +186,7 @@ class OAuth2AuthorizationStoreIntegrationTest {
         claims.put("sub", "user@example.com");
         claims.put("tenant_id", 10L);
         // Mimic JwtEncoder / List.of audience + roles (ImmutableCollections$ListN / SetN).
-        claims.put("aud", List.of("publish-tenant-frontend"));
+        claims.put("aud", List.of("directwerk-tenant-frontend"));
         claims.put("roles", Set.of("EDITOR"));
 
         OAuth2Authorization authorization = OAuth2Authorization.withRegisteredClient(registeredClient)
@@ -208,7 +208,7 @@ class OAuth2AuthorizationStoreIntegrationTest {
         Map<String, Object> loadedClaims = loaded.getAccessToken().getClaims();
         assertThat(loadedClaims).isNotNull();
         assertThat(loadedClaims.get("tenant_id")).isEqualTo(10L);
-        assertThat(loadedClaims.get("aud")).asList().containsExactly("publish-tenant-frontend");
+        assertThat(loadedClaims.get("aud")).asList().containsExactly("directwerk-tenant-frontend");
         assertThat(loadedClaims.get("roles")).asInstanceOf(org.assertj.core.api.InstanceOfAssertFactories.ITERABLE)
                 .containsExactly("EDITOR");
     }

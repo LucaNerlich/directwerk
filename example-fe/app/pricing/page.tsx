@@ -4,10 +4,10 @@ import Link from 'next/link'
 import {useRouter} from 'next/navigation'
 import {useEffect, useState, useSyncExternalStore} from 'react'
 
-import {Alert, AlertDescription} from '@publish/ui/components/alert'
-import {Button} from '@publish/ui/components/button'
-import EmptyState from '@publish/ui/components/empty-state'
-import PageHeader from '@publish/ui/components/page-header'
+import {Alert, AlertDescription} from '@directwerk/ui/components/alert'
+import {Button} from '@directwerk/ui/components/button'
+import EmptyState from '@directwerk/ui/components/empty-state'
+import PageHeader from '@directwerk/ui/components/page-header'
 
 import {createCheckoutSession, listPublicProducts} from '@/lib/api/client'
 import {formatMoney} from '@/lib/format/money'
@@ -132,7 +132,7 @@ export default function PricingPage(): React.JSX.Element {
             {!isLoading && errorMessage === null && products.length === 0 ? (
                 <EmptyState
                     title="No products yet"
-                    description="Create LEVEL or PACKAGE products in publish-studio under Abos."
+                    description="Create LEVEL or PACKAGE products in directwerk-studio under Abos."
                 />
             ) : null}
             {!isLoading && products.length > 0 ? (
