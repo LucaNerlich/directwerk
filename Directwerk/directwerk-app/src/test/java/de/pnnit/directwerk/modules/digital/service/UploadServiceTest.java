@@ -184,12 +184,50 @@ class UploadServiceTest {
 
         assertThat(result.status()).isEqualTo("READY");
         assertThat(result.s3Key()).startsWith("alpha-show-a/private/audio/");
+        assertThat(result.s3Key()).matches(
+                "alpha-show-a/private/audio/[0-9a-f-]{36}_episode\\.mp3"
+        );
         verify(s3Client).copyObject(any(CopyObjectRequest.class));
         verify(stagingCleanupService).deleteStagingKeyAndFolder(
                 "directwerk-dev",
                 "alpha-show-a/staging/sess/episode.mp3"
         );
         verify(mediaDeleteJobProducer, never()).enqueueStagingCleanup(any());
+    }
+
+    @Test
+    void confirmUploadAppendsSanitizedFilenameStem() {
+        when(directwerkConfig.isStorageEnabled()).thenReturn(true);
+        when(directwerkConfig.storage()).thenReturn(storageProps());
+        when(tenantLookupService.requireTenant(10L)).thenReturn(tenant);
+
+        MediaAsset pending = new MediaAsset();
+        pending.setId(55L);
+        pending.setTenant(tenant);
+        pending.setS3Key("alpha-show-a/staging/sess/episode_42.mp3");
+        pending.setVisibility(AssetVisibility.PRIVATE);
+        pending.setScope(AssetScope.CONTENT);
+        pending.setAssetType(AssetType.AUDIO);
+        pending.setStatus(AssetStatus.PENDING);
+        pending.setMimeType("audio/mpeg");
+        pending.setSizeBytes(2048L);
+        pending.setOriginalFilename("episode 42.mp3");
+        when(mediaAssetRepository.findById(55L)).thenReturn(Optional.of(pending));
+        when(mediaAssetRepository.saveAndFlush(any(MediaAsset.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(s3Client.headObject(any(HeadObjectRequest.class))).thenReturn(
+                HeadObjectResponse.builder()
+                        .contentLength(2048L)
+                        .contentType("audio/mpeg")
+                        .eTag("\"abc\"")
+                        .build()
+        );
+
+        UploadApi.ConfirmUploadResult result = uploadService.confirmUpload(new UploadApi.ConfirmUploadCommand(55L));
+
+        assertThat(result.status()).isEqualTo("READY");
+        assertThat(result.s3Key()).matches(
+                "alpha-show-a/private/audio/[0-9a-f-]{36}_episode_42\\.mp3"
+        );
     }
 
     @Test

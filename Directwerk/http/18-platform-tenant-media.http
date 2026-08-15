@@ -2,6 +2,7 @@
 ### Prerequisites: 01-platform-auth.http (platformAccessToken), tenantAId from 06-platform-tenants.http
 ### Optional: assets created via 17-media-upload.http or platform upload below
 ### Storage must be enabled (DIRECTWERK_STORAGE_ENABLED=true) for upload-url / confirm.
+### Final key after confirm: {tenant}/{public|private}/{type}/{uuid}_{sanitizedFilename}.{ext}
 
 ### @name listTenantMedia
 GET {{baseUrl}}/api/v1/platform/tenants/{{tenantAId}}/media?limit=50
@@ -70,6 +71,13 @@ Accept: application/json
             response.status === 200 || response.status === 400 || response.status === 503,
             "Expected 200 after PUT, or 400/503 without staging object / storage off"
         );
+        if (response.status === 200) {
+            // Final key: {tenant}/public|private/{type}/{uuid}_{sanitizedFilename}.{ext}
+            client.assert(
+                /\/images\/[0-9a-f-]{36}_platform-harness-cover\.jpg$/.test(response.body.data.s3Key),
+                "Expected final key ending in uuid_platform-harness-cover.jpg, got " + response.body.data.s3Key
+            );
+        }
     });
 %}
 

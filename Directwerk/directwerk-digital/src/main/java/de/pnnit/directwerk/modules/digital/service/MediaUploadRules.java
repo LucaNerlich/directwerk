@@ -13,6 +13,7 @@ import java.util.regex.Pattern;
 public final class MediaUploadRules {
 
     private static final Pattern UNSAFE_FILENAME = Pattern.compile("[^a-zA-Z0-9._-]+");
+    private static final int MAX_FILENAME_STEM_LENGTH = 100;
     private static final long MB = 1024L * 1024L;
 
     private static final Map<AssetType, Set<String>> ALLOWED_MIME = Map.of(
@@ -76,6 +77,21 @@ public final class MediaUploadRules {
             throw new UploadValidationException("UPLOAD_VALIDATION_FAILED", "filename is invalid");
         }
         return cleaned;
+    }
+
+    /**
+     * Sanitizes the filename and returns only its stem (without the extension), capped to
+     * {@value #MAX_FILENAME_STEM_LENGTH} characters so the final object key stays URL-safe and
+     * well under the 512-byte {@code s3_key} column and S3's 1024-byte key limit.
+     */
+    public static String sanitizeFilenameStem(String filename) {
+        String sanitized = sanitizeFilename(filename);
+        int dot = sanitized.lastIndexOf('.');
+        String stem = dot > 0 ? sanitized.substring(0, dot) : sanitized;
+        if (stem.length() > MAX_FILENAME_STEM_LENGTH) {
+            stem = stem.substring(0, MAX_FILENAME_STEM_LENGTH);
+        }
+        return stem;
     }
 
     public static String typeFolder(AssetType assetType) {

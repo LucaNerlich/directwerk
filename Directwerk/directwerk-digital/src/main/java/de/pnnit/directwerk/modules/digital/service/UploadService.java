@@ -243,10 +243,10 @@ public class UploadService implements UploadApi {
     private static String buildFinalKey(String tenantSlug, MediaAsset asset) {
         String visibilityFolder = asset.getVisibility() == AssetVisibility.PUBLIC ? "public" : "private";
         String typeFolder = MediaUploadRules.typeFolder(asset.getAssetType());
-        String ext = MediaUploadRules.fileExtension(
-                asset.getOriginalFilename() != null ? asset.getOriginalFilename() : "file.bin"
-        );
-        String objectName = UUID.randomUUID() + "." + ext;
+        String filename = asset.getOriginalFilename() != null ? asset.getOriginalFilename() : "file.bin";
+        String ext = MediaUploadRules.fileExtension(filename);
+        String stem = MediaUploadRules.sanitizeFilenameStem(filename);
+        String objectName = UUID.randomUUID() + "_" + stem + "." + ext;
         if (asset.getScope() == AssetScope.USER && asset.getOwnerUserId() != null) {
             return TenantAssetKeys.privateKey(
                     tenantSlug,
