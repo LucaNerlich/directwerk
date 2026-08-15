@@ -130,6 +130,7 @@ directwerk:
         presign-download-ttl-api: ${DIRECTWERK_STORAGE_PRESIGN_DOWNLOAD_TTL_API:1h}
         presign-download-ttl-rss: ${DIRECTWERK_STORAGE_PRESIGN_DOWNLOAD_TTL_RSS:24h}
         staging-lifecycle-hours: ${DIRECTWERK_STORAGE_STAGING_LIFECYCLE_HOURS:24}
+        staging-cleanup-interval-ms: ${DIRECTWERK_STORAGE_STAGING_CLEANUP_INTERVAL_MS:3600000}
         cdn-purge-api-key: ${DIRECTWERK_STORAGE_CDN_PURGE_API_KEY:}
         cdn-purge-api-base-url: ${DIRECTWERK_STORAGE_CDN_PURGE_API_BASE_URL:https://api.bunny.net}
     stripe:

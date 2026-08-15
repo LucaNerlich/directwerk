@@ -3,6 +3,7 @@ package de.pnnit.directwerk.modules.digital.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -25,6 +26,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.TransactionStatus;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
 import software.amazon.awssdk.services.s3.model.ListObjectsV2Request;
@@ -48,6 +51,12 @@ class StagingCleanupServiceTest {
     @Mock
     private MediaAssetRepository mediaAssetRepository;
 
+    @Mock
+    private PlatformTransactionManager transactionManager;
+
+    @Mock
+    private TransactionStatus transactionStatus;
+
     private StagingCleanupService stagingCleanupService;
     private Tenant tenant;
 
@@ -57,8 +66,10 @@ class StagingCleanupServiceTest {
                 s3Client,
                 directwerkConfig,
                 tenantRepository,
-                mediaAssetRepository
+                mediaAssetRepository,
+                transactionManager
         );
+        lenient().when(transactionManager.getTransaction(any())).thenReturn(transactionStatus);
         tenant = new Tenant();
         tenant.setId(10L);
         tenant.setSlug("alpha-show-a");
@@ -156,6 +167,55 @@ class StagingCleanupServiceTest {
         verify(mediaAssetRepository, never()).archivePendingByS3Key(10L, "alpha-show-a/staging/sess/");
     }
 
+    @Test
+    void cleanupExpiredStagingPaginatesTruncatedListings() {
+        when(directwerkConfig.isStorageEnabled()).thenReturn(true);
+        when(directwerkConfig.storage()).thenReturn(storageProps());
+        when(tenantRepository.findAll()).thenReturn(List.of(tenant));
+
+        Instant old = Instant.now().minus(48, ChronoUnit.HOURS);
+        when(s3Client.listObjectsV2(any(ListObjectsV2Request.class))).thenReturn(
+                ListObjectsV2Response.builder()
+                        .isTruncated(true)
+                        .nextContinuationToken("token-1")
+                        .contents(S3Object.builder().key("alpha-show-a/staging/sess/page1.mp3").lastModified(old).build())
+                        .build(),
+                ListObjectsV2Response.builder()
+                        .isTruncated(false)
+                        .contents(S3Object.builder().key("alpha-show-a/staging/sess/page2.mp3").lastModified(old).build())
+                        .build()
+        );
+
+        stagingCleanupService.cleanupExpiredStaging();
+
+        ArgumentCaptor<ListObjectsV2Request> captor = ArgumentCaptor.forClass(ListObjectsV2Request.class);
+        verify(s3Client, times(2)).listObjectsV2(captor.capture());
+        assertThat(captor.getAllValues().get(1).continuationToken()).isEqualTo("token-1");
+        verify(mediaAssetRepository).archivePendingByS3Key(10L, "alpha-show-a/staging/sess/page1.mp3");
+        verify(mediaAssetRepository).archivePendingByS3Key(10L, "alpha-show-a/staging/sess/page2.mp3");
+    }
+
+    @Test
+    void cleanupExpiredStagingContinuesAfterTenantFailure() {
+        when(directwerkConfig.isStorageEnabled()).thenReturn(true);
+        when(directwerkConfig.storage()).thenReturn(storageProps());
+
+        Tenant broken = new Tenant();
+        broken.setId(1L);
+        broken.setSlug("broken-tenant");
+        when(tenantRepository.findAll()).thenReturn(List.of(broken, tenant));
+
+        when(s3Client.listObjectsV2(any(ListObjectsV2Request.class)))
+                .thenThrow(S3Exception.builder().statusCode(503).message("unavailable").build());
+
+        stagingCleanupService.cleanupExpiredStaging();
+
+        ArgumentCaptor<ListObjectsV2Request> captor = ArgumentCaptor.forClass(ListObjectsV2Request.class);
+        verify(s3Client, times(2)).listObjectsV2(captor.capture());
+        List<String> prefixes = captor.getAllValues().stream().map(ListObjectsV2Request::prefix).toList();
+        assertThat(prefixes).containsExactlyInAnyOrder("broken-tenant/staging/", "alpha-show-a/staging/");
+    }
+
     private static DirectwerkProperties.Storage storageProps() {
         return new DirectwerkProperties.Storage(
                 true,
@@ -174,6 +234,7 @@ class StagingCleanupServiceTest {
                 Duration.ofHours(1),
                 Duration.ofHours(24),
                 24,
+                3600000L,
                 null,
                 null
         );

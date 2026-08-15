@@ -100,6 +100,7 @@ class MediaStagingCleanupJobHandlerTest {
                 Duration.ofHours(1),
                 Duration.ofHours(24),
                 24,
+                3600000L,
                 null,
                 null
         );

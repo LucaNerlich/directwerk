@@ -819,6 +819,7 @@ directwerk:
     presign-download-ttl-api: 1h
     presign-download-ttl-rss: 24h
     staging-lifecycle-hours: 24
+    staging-cleanup-interval-ms: 3600000
 ```
 
 ### Hetzner client bean
@@ -938,7 +939,7 @@ keys by prefix either. Staging cleanup is therefore **application-side**, not a 
 ### Staging cleanup job
 
 A recurring Quartz job (`MediaStagingCleanupJob`) calls `StagingCleanupService.cleanupExpiredStaging()`
-on an interval derived from `directwerk.queue.cleanup-interval-ms` (minimum 60s). It lists
+on an interval derived from `directwerk.storage.staging-cleanup-interval-ms` (minimum 60s). It lists
 `{tenant}/staging/` per tenant (`ListObjectsV2`), deletes every expired object including Bunny folder
 markers, and tombstones any still-`PENDING` `MediaAsset` whose staging object was purged as `ARCHIVED`.
 

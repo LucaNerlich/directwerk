@@ -35,7 +35,7 @@ public class MediaQuartzConfig {
     Trigger mediaStagingCleanupTrigger(
             @Qualifier("mediaStagingCleanupJobDetail") JobDetail mediaStagingCleanupJobDetail,
             DirectwerkConfig directwerkConfig) {
-        long intervalMs = Math.max(60_000L, directwerkConfig.queue().cleanupIntervalMs());
+        long intervalMs = Math.max(60_000L, directwerkConfig.storage().stagingCleanupIntervalMs());
         return TriggerBuilder.newTrigger()
                 .forJob(mediaStagingCleanupJobDetail)
                 .withIdentity(STAGING_CLEANUP_TRIGGER_IDENTITY)

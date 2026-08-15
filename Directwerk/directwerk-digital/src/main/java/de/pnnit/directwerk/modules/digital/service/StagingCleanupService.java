@@ -6,16 +6,16 @@ import de.pnnit.directwerk.modules.core.entity.Tenant;
 import de.pnnit.directwerk.modules.core.repository.TenantRepository;
 import de.pnnit.directwerk.modules.digital.exception.StorageNotConfiguredException;
 import de.pnnit.directwerk.modules.digital.repository.MediaAssetRepository;
-import de.pnnit.directwerk.multitenancy.TenantContext;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-import software.amazon.awssdk.core.exception.SdkException;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
 import software.amazon.awssdk.services.s3.model.ListObjectsV2Request;
@@ -42,6 +42,7 @@ public class StagingCleanupService {
     private final DirectwerkConfig directwerkConfig;
     private final TenantRepository tenantRepository;
     private final MediaAssetRepository mediaAssetRepository;
+    private final PlatformTransactionManager transactionManager;
 
     /**
      * Deletes a staging object and the folder markers of its parent session directory.
@@ -65,21 +66,19 @@ public class StagingCleanupService {
     /**
      * Purges expired staging objects across all tenants.
      * <p>
-     * Runs inside a tenant context per tenant so {@code MediaAsset} rows for deleted staging files
-     * are tombstoned as {@link de.pnnit.directwerk.modules.digital.entity.AssetStatus#ARCHIVED}.
+     * S3 listing/deletion runs without a database transaction; each tenant's archive updates commit
+     * in their own transaction so a failure for one tenant never abandons or undoes another's work.
      */
-    @Transactional
     public void cleanupExpiredStaging() {
         DirectwerkProperties.Storage storage = requireStorage();
         long cutoffMillis = Instant.now()
                 .minus(storage.stagingLifecycleHours(), ChronoUnit.HOURS)
                 .toEpochMilli();
 
-        List<Tenant> tenants = tenantRepository.findAll();
-        for (Tenant tenant : tenants) {
+        for (Tenant tenant : tenantRepository.findAll()) {
             try {
-                TenantContext.runWithTenant(tenant.getId(), () -> cleanupTenantStaging(storage, tenant, cutoffMillis));
-            } catch (SdkException ex) {
+                cleanupTenantStaging(storage, tenant, cutoffMillis);
+            } catch (Exception ex) {
                 log.warn("Staging cleanup failed for tenant {} — will retry on next sweep", tenant.getSlug(), ex);
             }
         }
@@ -90,32 +89,46 @@ public class StagingCleanupService {
             Tenant tenant,
             long cutoffMillis
     ) {
+        List<String> deletedFileKeys = new ArrayList<>();
         String prefix = tenant.getSlug() + "/staging/";
-        ListObjectsV2Request.Builder request = ListObjectsV2Request.builder()
-                .bucket(storage.bucket())
-                .prefix(prefix);
-        ListObjectsV2Response response;
+        String continuationToken = null;
         do {
-            response = s3Client.listObjectsV2(request.build());
+            ListObjectsV2Request.Builder request = ListObjectsV2Request.builder()
+                    .bucket(storage.bucket())
+                    .prefix(prefix);
+            if (continuationToken != null) {
+                request.continuationToken(continuationToken);
+            }
+            ListObjectsV2Response response = s3Client.listObjectsV2(request.build());
             for (S3Object object : response.contents()) {
                 if (object.lastModified() == null || object.lastModified().toEpochMilli() >= cutoffMillis) {
                     continue;
                 }
                 deleteObjectQuietly(storage.bucket(), object.key());
-                archivePendingAsset(tenant, object.key());
+                if (!object.key().endsWith("/")) {
+                    deletedFileKeys.add(object.key());
+                }
             }
-            request.continuationToken(response.nextContinuationToken());
-        } while (response.isTruncated());
+            continuationToken = response.isTruncated() ? response.nextContinuationToken() : null;
+        } while (continuationToken != null);
+
+        archivePendingAssets(tenant, deletedFileKeys);
     }
 
-    private void archivePendingAsset(Tenant tenant, String key) {
-        if (key.endsWith("/")) {
+    private void archivePendingAssets(Tenant tenant, List<String> keys) {
+        if (keys.isEmpty()) {
             return;
         }
-        int archived = mediaAssetRepository.archivePendingByS3Key(tenant.getId(), key);
-        if (archived > 0) {
-            log.info("Archived PENDING media asset for expired staging object tenant={} key={}",
-                    tenant.getSlug(), key);
+        Integer archived = new TransactionTemplate(transactionManager).execute(status -> {
+            int total = 0;
+            for (String key : keys) {
+                total += mediaAssetRepository.archivePendingByS3Key(tenant.getId(), key);
+            }
+            return total;
+        });
+        if (archived != null && archived > 0) {
+            log.info("Archived {} PENDING media asset(s) for expired staging objects tenant={}",
+                    archived, tenant.getSlug());
         }
     }
 
