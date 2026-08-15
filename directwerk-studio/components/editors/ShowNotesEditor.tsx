@@ -8,6 +8,16 @@ import StarterKit from '@tiptap/starter-kit'
 import {useEffect} from 'react'
 
 
+const SAFE_LINK_PROTOCOLS = new Set(['https:', 'http:', 'mailto:', 'tel:'])
+
+function isSafeLinkHref(value: string): boolean {
+    try {
+        return SAFE_LINK_PROTOCOLS.has(new URL(value).protocol)
+    } catch {
+        return false
+    }
+}
+
 export default function ShowNotesEditor({
     value,
     onChange,
@@ -48,6 +58,8 @@ export default function ShowNotesEditor({
             transformPastedHTML(html) {
                 return html
                     .replace(/\s(?:style|class|id)="[^"]*"/gi, '')
+                    .replace(/\son[a-z0-9-]+\s*=\s*("[^"]*"|'[^']*')/gi, '')
+                    .replace(/href\s*=\s*("|')\s*(?:javascript|data):[^"']*\1/gi, '')
                     .replace(/<(script|style|iframe)[\s\S]*?<\/\1>/gi, '')
             },
         },
@@ -144,6 +156,10 @@ export default function ShowNotesEditor({
                         const trimmed = href.trim()
                         if (trimmed.length === 0) {
                             editor.chain().focus().unsetLink().run()
+                            return
+                        }
+                        if (!isSafeLinkHref(trimmed)) {
+                            window.alert('Bitte eine gültige URL (https://, http://, mailto: oder tel:) eingeben.')
                             return
                         }
                         editor.chain().focus().setLink({href: trimmed}).run()
