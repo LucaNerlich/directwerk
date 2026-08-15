@@ -1,5 +1,6 @@
 import {
     buildPlatformApiPath,
+    jsonError,
     parseBearerAuthorization,
     safeUpstreamResponse,
 } from '@/lib/directwerk'
@@ -17,7 +18,7 @@ async function proxy(request: Request, context: RouteContext): Promise<Response>
     )
 
     if (!authorization) {
-        return Response.json({error: 'Authentication required.'}, {status: 401})
+        return jsonError('Authentication required.', 401)
     }
 
     const {path} = await context.params
@@ -25,7 +26,7 @@ async function proxy(request: Request, context: RouteContext): Promise<Response>
     try {
         buildPlatformApiPath(path)
     } catch {
-        return Response.json({error: 'Invalid platform API path.'}, {status: 400})
+        return jsonError('Invalid platform API path.', 400)
     }
 
     if (request.method !== 'GET' && request.method !== 'HEAD') {
@@ -35,23 +36,17 @@ async function proxy(request: Request, context: RouteContext): Promise<Response>
 
         if (!isBodylessDelete) {
             if (!request.headers.get('content-type')?.includes('application/json')) {
-                return Response.json(
-                    {error: 'Content-Type must be application/json.'},
-                    {status: 415}
-                )
+                return jsonError('Content-Type must be application/json.', 415)
             }
 
             if (body.length > MAX_PROXY_BODY_SIZE) {
-                return Response.json(
-                    {error: 'Request body is too large.'},
-                    {status: 413}
-                )
+                return jsonError('Request body is too large.', 413)
             }
 
             try {
                 JSON.parse(body)
             } catch {
-                return Response.json({error: 'Invalid JSON request.'}, {status: 400})
+                return jsonError('Invalid JSON request.', 400)
             }
         }
     }
@@ -65,10 +60,7 @@ async function proxy(request: Request, context: RouteContext): Promise<Response>
         const upstream = await fetch(upstreamRequest.url, upstreamRequest.init)
         return safeUpstreamResponse(upstream, request.method)
     } catch {
-        return Response.json(
-            {error: 'Directwerk service is unavailable.'},
-            {status: 502}
-        )
+        return jsonError('Directwerk service is unavailable.', 502)
     }
 }
 

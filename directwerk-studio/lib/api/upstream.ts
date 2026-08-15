@@ -1,7 +1,10 @@
 import {NextResponse} from 'next/server'
 
 const JSON_CONTENT_TYPE = 'application/json'
-const NO_STORE_HEADERS = {'Cache-Control': 'no-store'}
+const NO_STORE_HEADERS = {
+    'Cache-Control': 'no-store',
+    Pragma: 'no-cache',
+}
 
 export function jsonError(
     message: string,

@@ -318,9 +318,13 @@ export function createPlatformApiRequest(
     }
 }
 
-const NO_STORE_HEADERS = {
+export const NO_STORE_HEADERS = {
     'Cache-Control': 'no-store',
     Pragma: 'no-cache',
+}
+
+export function jsonError(message: string, status: number): Response {
+    return Response.json({error: message}, {status, headers: NO_STORE_HEADERS})
 }
 
 export async function safeUpstreamResponse(

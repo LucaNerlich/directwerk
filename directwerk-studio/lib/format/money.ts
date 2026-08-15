@@ -1,5 +1,12 @@
 import type {BillingInterval} from '@/lib/api/types'
 
+function formatCurrencyCents(priceCents: number, currency: string): string {
+    return new Intl.NumberFormat('de-DE', {
+        style: 'currency',
+        currency,
+    }).format(priceCents / 100)
+}
+
 export function formatMoney(
     priceCents: number | null | undefined,
     currency: string | null | undefined,
@@ -11,15 +18,9 @@ export function formatMoney(
     const code = currency && currency.length === 3 ? currency : 'EUR'
     let amount: string
     try {
-        amount = new Intl.NumberFormat('de-DE', {
-            style: 'currency',
-            currency: code,
-        }).format(priceCents / 100)
+        amount = formatCurrencyCents(priceCents, code)
     } catch {
-        amount = new Intl.NumberFormat('de-DE', {
-            style: 'currency',
-            currency: 'EUR',
-        }).format(priceCents / 100)
+        amount = formatCurrencyCents(priceCents, 'EUR')
     }
     if (interval === 'MONTH') {
         return `${amount} / Monat`
