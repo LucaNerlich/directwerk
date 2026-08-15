@@ -35,6 +35,14 @@ public class EmailJobHandler implements JobHandler {
     }
 
     @Override
+    public boolean requiresTenant() {
+        // The email queue carries both tenant-scoped jobs (invitation, verification,
+        // content notification) and platform-scoped jobs (platform admin invitation,
+        // password reset) that legitimately run with a null tenant.
+        return false;
+    }
+
+    @Override
     public void handle(QueueJob job) {
         EmailJobPayload payload = objectMapper.convertValue(job.payload(), EmailJobPayload.class);
         if (payload == null || !StringUtils.hasText(payload.template()) || !StringUtils.hasText(payload.to())) {

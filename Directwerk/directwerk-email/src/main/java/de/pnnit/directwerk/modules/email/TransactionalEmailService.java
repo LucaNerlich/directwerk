@@ -65,9 +65,13 @@ public class TransactionalEmailService {
     }
 
     private void send(UUID jobId, Long tenantId, String to, EmailTemplate template, Map<String, String> variables) {
-        if (!directwerkConfig.isEmailEnabled() || !emailSender.isReady()) {
+        if (!directwerkConfig.isEmailEnabled()) {
             log.debug("Email delivery disabled; skipping template={}", template.name());
             return;
+        }
+        if (!emailSender.isReady()) {
+            throw new EmailDeliveryException(
+                    "Email sender is not ready (provider=" + emailSender.providerId() + "); template=" + template.name());
         }
         if (!emailDeliveryGuard.tryClaimDelivery(jobId)) {
             log.info("Skipping duplicate email delivery for job={} template={}", jobId, template.name());

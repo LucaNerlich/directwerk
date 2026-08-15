@@ -66,17 +66,18 @@ class TransactionalEmailServiceTest {
     }
 
     @Test
-    void sendFromPayloadSkipsDeliveryWhenSenderNotReady() {
+    void sendFromPayloadFailsWhenSenderNotReady() {
         when(directwerkConfig.isEmailEnabled()).thenReturn(true);
         when(emailSender.isReady()).thenReturn(false);
+        when(emailSender.providerId()).thenReturn("smtp");
 
-        transactionalEmailService.sendFromPayload(
+        assertThatThrownBy(() -> transactionalEmailService.sendFromPayload(
                 JOB_ID,
                 null,
                 "user@example.com",
                 EmailTemplate.PASSWORD_RESET,
                 Map.of("resetUrl", "http://localhost/reset", "expiresIn", "1 hour")
-        );
+        )).isInstanceOf(EmailDeliveryException.class).hasMessageContaining("not ready");
 
         verify(emailSender, never()).send(any());
     }
