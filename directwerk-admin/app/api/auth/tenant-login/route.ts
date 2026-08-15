@@ -2,6 +2,7 @@ import {safeUpstreamResponse} from '@/lib/directwerk'
 import {requestTenantToken} from '@/lib/directwerkServer'
 import {readBoundedRequestBody} from '@/lib/http/readBoundedRequestBody'
 import {parseTenantHost} from '@/lib/tenant/parseTenantHost'
+import {TENANT_REFRESH_COOKIE, sealRefreshToken} from '@/lib/auth/cookies'
 import {validateLoginInput} from '@/lib/validation'
 
 const MAX_LOGIN_BODY_SIZE = 16 * 1024
@@ -46,13 +47,16 @@ export async function POST(request: Request): Promise<Response> {
         }
 
         const upstream = await requestTenantToken(validation.data, tenantHost)
-        const response = await safeUpstreamResponse(upstream)
-        const headers = new Headers(response.headers)
+        const sealed = await sealRefreshToken(
+            await safeUpstreamResponse(upstream),
+            TENANT_REFRESH_COOKIE
+        )
+        const headers = new Headers(sealed.headers)
         headers.set('Cache-Control', 'no-store')
         headers.set('Pragma', 'no-cache')
-        return new Response(response.body, {
-            status: response.status,
-            statusText: response.statusText,
+        return new Response(sealed.body, {
+            status: sealed.status,
+            statusText: sealed.statusText,
             headers,
         })
     } catch {

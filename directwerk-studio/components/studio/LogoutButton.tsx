@@ -15,6 +15,7 @@ export default function LogoutButton() {
             className="w-full justify-start"
             variant="outline"
             onClick={() => {
+                void fetch('/api/auth/logout', {method: 'POST', cache: 'no-store'})
                 clearTokens()
                 router.push('/login')
             }}

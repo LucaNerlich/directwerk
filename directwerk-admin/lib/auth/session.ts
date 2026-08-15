@@ -4,7 +4,6 @@ import {AUTH_REQUIRED} from '@/lib/api/errors'
 import {
     clearTokens as clearTokensBase,
     getAccessToken,
-    getRefreshToken,
     isAccessTokenExpired,
     storeTokens,
 } from '@/lib/auth/tokenStore'
@@ -30,27 +29,26 @@ function isOAuthTokenResponse(value: unknown): value is OAuthTokenResponse {
         token.access_token.length <= 8192 &&
         typeof token.token_type === 'string' &&
         token.token_type.toLowerCase() === 'bearer' &&
-        (token.refresh_token === undefined ||
-            (typeof token.refresh_token === 'string' &&
-                token.refresh_token.length <= 8192)) &&
         (token.expires_in === undefined ||
             (typeof token.expires_in === 'number' &&
                 Number.isFinite(token.expires_in)))
     )
 }
 
-async function postRefresh(refreshToken: string, sessionGeneration: number): Promise<string> {
+async function postRefresh(sessionGeneration: number): Promise<string> {
     const abortController = new AbortController()
     const timeoutId = setTimeout(() => abortController.abort(), 10000)
 
     try {
+        // The refresh token lives in an httpOnly cookie; the refresh route reads
+        // it server-side so the credential is never exposed to client JS.
         const response = await fetch('/api/auth/refresh', {
             method: 'POST',
             headers: {
                 Accept: 'application/json',
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify({refresh_token: refreshToken}),
+            body: '{}',
             signal: abortController.signal,
         })
 
@@ -81,18 +79,12 @@ async function postRefresh(refreshToken: string, sessionGeneration: number): Pro
 }
 
 export async function refreshAccessToken(): Promise<string> {
-    const refreshToken = getRefreshToken()
-    if (refreshToken === null) {
-        clearTokens()
-        throw new Error(AUTH_REQUIRED)
-    }
-
     if (refreshInFlight !== null) {
         return refreshInFlight
     }
 
     const sessionGeneration = currentSessionGeneration
-    refreshInFlight = postRefresh(refreshToken, sessionGeneration).finally(() => {
+    refreshInFlight = postRefresh(sessionGeneration).finally(() => {
         refreshInFlight = null
     })
 

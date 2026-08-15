@@ -3,7 +3,6 @@
 import type {OAuthTokenResponse} from '@/lib/api/types'
 
 const ACCESS_TOKEN_KEY = 'publish_admin_tenant_access'
-const REFRESH_TOKEN_KEY = 'publish_admin_tenant_refresh'
 const ACCESS_EXPIRES_AT_KEY = 'publish_admin_tenant_access_expires_at'
 const TENANT_HOST_KEY = 'publish_admin_tenant_host'
 
@@ -11,19 +10,12 @@ const DEFAULT_ACCESS_TTL_SECONDS = 900
 const REFRESH_BUFFER_MS = 60_000
 
 let accessTokenCache: string | null | undefined
-let refreshTokenCache: string | null | undefined
 let expiresAtCache: number | null | undefined
 let tenantHostCache: string | null | undefined
 
 function initializeAccessCache(): void {
     if (accessTokenCache === undefined) {
         accessTokenCache = sessionStorage.getItem(ACCESS_TOKEN_KEY)
-    }
-}
-
-function initializeRefreshCache(): void {
-    if (refreshTokenCache === undefined) {
-        refreshTokenCache = sessionStorage.getItem(REFRESH_TOKEN_KEY)
     }
 }
 
@@ -59,11 +51,6 @@ export function getTenantAccessToken(): string | null {
     return accessTokenCache ?? null
 }
 
-export function getTenantRefreshToken(): string | null {
-    initializeRefreshCache()
-    return refreshTokenCache ?? null
-}
-
 export function getTenantSessionHost(): string | null {
     initializeTenantHostCache()
     return tenantHostCache ?? null
@@ -92,23 +79,13 @@ export function storeTenantTokens(
     accessTokenCache = tokens.access_token
     expiresAtCache = expiresAt
     tenantHostCache = tenantHost
-
-    if (tokens.refresh_token) {
-        sessionStorage.setItem(REFRESH_TOKEN_KEY, tokens.refresh_token)
-        refreshTokenCache = tokens.refresh_token
-    } else {
-        sessionStorage.removeItem(REFRESH_TOKEN_KEY)
-        refreshTokenCache = null
-    }
 }
 
 export function clearTenantTokens(): void {
     sessionStorage.removeItem(ACCESS_TOKEN_KEY)
-    sessionStorage.removeItem(REFRESH_TOKEN_KEY)
     sessionStorage.removeItem(ACCESS_EXPIRES_AT_KEY)
     sessionStorage.removeItem(TENANT_HOST_KEY)
     accessTokenCache = null
-    refreshTokenCache = null
     expiresAtCache = null
     tenantHostCache = null
 }

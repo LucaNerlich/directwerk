@@ -53,6 +53,9 @@ export async function putStreamToStorage(
         })
         upstreamRequest.on('close', () => {
             clearTimeout(timeout)
+            settle(() =>
+                reject(new Error('Upstream connection closed before completing the upload')),
+            )
         })
 
         const reader = body.getReader()

@@ -289,5 +289,9 @@ async function platformRequest<T>(
         throw new Error(REQUEST_FAILED)
     }
 
+    if (response.status === 204 || response.status === 205) {
+        return null as T
+    }
+
     return parseApiEnvelope<T>(await response.json())
 }

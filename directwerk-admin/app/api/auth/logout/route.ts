@@ -1,0 +1,16 @@
+import {
+    PLATFORM_REFRESH_COOKIE,
+    TENANT_REFRESH_COOKIE,
+    serializeClearCookie,
+} from '@/lib/auth/cookies'
+
+/**
+ * Clears the httpOnly refresh cookies so a logged-out admin cannot be silently
+ * re-authenticated by the persisted refresh token.
+ */
+export async function POST(): Promise<Response> {
+    const headers = new Headers()
+    headers.append('Set-Cookie', serializeClearCookie(PLATFORM_REFRESH_COOKIE))
+    headers.append('Set-Cookie', serializeClearCookie(TENANT_REFRESH_COOKIE))
+    return new Response(null, {status: 204, headers})
+}

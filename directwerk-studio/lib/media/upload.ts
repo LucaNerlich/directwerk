@@ -2,6 +2,7 @@
 
 import {AUTH_REQUIRED} from '@/lib/api/errors'
 import type {MediaAsset} from '@/lib/api/types'
+import {confirmUpload} from '@/lib/api/tenantApi'
 import {getValidAccessToken} from '@/lib/auth/session'
 import {clearTokens} from '@/lib/auth/tokenStore'
 import {exceedsMediaLimit, mediaLimitLabel} from '@/lib/media/limits'
@@ -129,6 +130,20 @@ export async function uploadMediaFile(
             }
 
             if (status === 401) {
+                // A long upload can outlive the access-token TTL. The BFF returns
+                // `retryConfirm` when the file reached S3 but the confirm call needs
+                // a fresh token — retry the confirm instead of logging the user out.
+                if (
+                    typeof value === 'object' &&
+                    value !== null &&
+                    (value as {retryConfirm?: unknown}).retryConfirm === true &&
+                    typeof (value as {assetId?: unknown}).assetId === 'number'
+                ) {
+                    confirmUpload(tenantHost, (value as {assetId: number}).assetId)
+                        .then(resolve)
+                        .catch(reject)
+                    return
+                }
                 clearTokens()
                 reject(new Error(AUTH_REQUIRED))
                 return

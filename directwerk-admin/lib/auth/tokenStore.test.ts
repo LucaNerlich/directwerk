@@ -4,7 +4,6 @@ import {
     clearTokens,
     getAccessToken,
     getAccessTokenExpiresAt,
-    getRefreshToken,
     isAccessTokenExpired,
     storeTokens,
 } from './tokenStore'
@@ -32,7 +31,7 @@ afterEach(() => {
 })
 
 describe('tokenStore', () => {
-    it('stores access, refresh, and expiry metadata', () => {
+    it('stores access and expiry metadata but not the refresh token', () => {
         storeTokens({
             access_token: 'access-token',
             refresh_token: 'refresh-token',
@@ -41,9 +40,9 @@ describe('tokenStore', () => {
         })
 
         expect(getAccessToken()).toBe('access-token')
-        expect(getRefreshToken()).toBe('refresh-token')
         expect(getAccessTokenExpiresAt()).toBeTypeOf('number')
         expect(isAccessTokenExpired()).toBe(false)
+        expect(storage.has('publish_admin_refresh')).toBe(false)
     })
 
     it('clears all stored credentials', () => {
@@ -57,7 +56,6 @@ describe('tokenStore', () => {
         clearTokens()
 
         expect(getAccessToken()).toBeNull()
-        expect(getRefreshToken()).toBeNull()
         expect(getAccessTokenExpiresAt()).toBeNull()
     })
 
