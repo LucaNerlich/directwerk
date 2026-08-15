@@ -38,6 +38,12 @@ const draftEpisode = {
     categories: [] as Array<{id: number; slug: string; name: string}>,
 }
 
+const getEpisode = vi.fn().mockImplementation(async () => ({...draftEpisode}))
+const listPublicLevels = vi.fn().mockResolvedValue([
+    {id: 1, slug: 'fan', title: 'Fan', sortOrder: 10},
+    {id: 2, slug: 'supporter', title: 'Supporter', sortOrder: 20},
+])
+
 const replaceEpisodeFormats = vi.fn().mockResolvedValue({
     ...draftEpisode,
     formats: [{id: 1, slug: 'interview', name: 'Interview'}],
@@ -57,7 +63,8 @@ vi.mock('@/lib/api/tenantApi', () => ({
     listSeries: vi.fn().mockResolvedValue([
         {id: 1, slug: 'show', title: 'Show', status: 'PUBLISHED', rssUrl: 'https://demo.example/feeds/demo/show.xml'},
     ]),
-    getEpisode: vi.fn().mockImplementation(async () => ({...draftEpisode})),
+    getEpisode: (...args: unknown[]) => getEpisode(...args),
+    listPublicLevels: (...args: unknown[]) => listPublicLevels(...args),
     listFormats: vi.fn().mockResolvedValue([
         {id: 1, slug: 'interview', name: 'Interview', active: true, description: null, requiredLevelSortOrder: null, sortOrder: 0},
     ]),
@@ -85,17 +92,38 @@ afterEach(() => {
 })
 
 describe('EpisodeEditor tagging', () => {
-    it('renders Mindest-Stufe label and explanatory hint', async () => {
+    it('renders Mindest-Stufe as a dropdown with an explanatory hint', async () => {
         render(<EpisodeEditor episodeId={1} />)
 
         await waitFor(() =>
             expect(
-                screen.getByText(/Niedrigste Stufe \(Sortierzahl unter Abos → Produkte\), die Zugriff erhält/),
+                screen.getByText(/Niedrigste Stufe, die Zugriff erhält/),
             ).toBeInTheDocument(),
         )
         expect(
             screen.getByText(/Zugriff hat, wessen höchste Stufe ≥ Mindest-Stufe ist/),
         ).toBeInTheDocument()
+        expect(screen.getByRole('combobox')).toBeInTheDocument()
+    })
+
+    it('disables Mindest-Stufe for free episodes', async () => {
+        render(<EpisodeEditor episodeId={1} />)
+
+        await waitFor(() => expect(screen.getByRole('combobox')).toBeDisabled())
+        expect(
+            screen.getByText(/Nur relevant für kostenpflichtige Inhalte/),
+        ).toBeInTheDocument()
+    })
+
+    it('offers the level catalog when the episode is paid', async () => {
+        getEpisode.mockResolvedValueOnce({...draftEpisode, accessPolicy: 'PAID'})
+        render(<EpisodeEditor episodeId={1} />)
+
+        expect(
+            await screen.findByRole('option', {name: 'Öffentlich / Keine Mindeststufe'}),
+        ).toBeInTheDocument()
+        expect(screen.getByRole('option', {name: 'Fan (10)'})).toBeInTheDocument()
+        expect(screen.getByRole('option', {name: 'Supporter (20)'})).toBeInTheDocument()
     })
 
     it('saves selected formats and categories', async () => {

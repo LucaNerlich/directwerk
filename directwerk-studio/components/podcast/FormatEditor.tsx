@@ -4,6 +4,8 @@ import {Button} from '@directwerk/ui/components/button'
 import {Textarea} from '@directwerk/ui/components/textarea'
 import {Input} from '@directwerk/ui/components/input'
 
+import LevelSelect from '@/components/studio/LevelSelect'
+
 import Link from 'next/link'
 import Form from 'next/form'
 import {useRouter} from 'next/navigation'
@@ -55,6 +57,7 @@ export default function FormatEditor({formatId}: FormatEditorProps): React.JSX.E
     const router = useRouter()
     const isNew = formatId === undefined
     const [format, setFormat] = useState<FormatSummary | null>(null)
+    const [requiredLevelSortOrder, setRequiredLevelSortOrder] = useState<number | null>(null)
     const [loadError, setLoadError] = useState<string | null>(null)
     const [isLoading, setIsLoading] = useState(!isNew)
     const [isDeactivating, setIsDeactivating] = useState(false)
@@ -80,6 +83,7 @@ export default function FormatEditor({formatId}: FormatEditorProps): React.JSX.E
                     return
                 }
                 setFormat(found)
+                setRequiredLevelSortOrder(found.requiredLevelSortOrder)
                 setIsLoading(false)
             })
             .catch((error: unknown) => {
@@ -249,20 +253,23 @@ export default function FormatEditor({formatId}: FormatEditorProps): React.JSX.E
                 <p>
                     <label htmlFor="format-required-level">Mindest-Stufe</label>
                     <br />
-                    <Input
-                        defaultValue={format?.requiredLevelSortOrder ?? ''}
+                    <LevelSelect
                         id="format-required-level"
-                        min={0}
+                        onChange={setRequiredLevelSortOrder}
+                        value={requiredLevelSortOrder}
+                    />
+                    <input
                         name="requiredLevelSortOrder"
-                        type="number"
+                        type="hidden"
+                        value={requiredLevelSortOrder ?? ''}
                     />
                     <span className="mt-1 block text-sm text-muted-foreground">
-                        Niedrigste Stufe (Sortierzahl), die auf Folgen dieses Formats zugreifen darf.
-                        Zugriff hat, wessen höchste Stufe ≥ Mindest-Stufe ist. Leer = jede aktive Stufe.
+                        Niedrigste Stufe, die auf Folgen dieses Formats zugreifen darf.
+                        Zugriff hat, wessen höchste Stufe ≥ Mindest-Stufe ist. „Öffentlich“ = jede aktive Stufe.
                     </span>
                 </p>
                 <p>
-                    <label htmlFor="format-sort-order">Sortierung</label>
+                    <label htmlFor="format-sort-order">Anzeigereihenfolge in der Formatauswahl</label>
                     <br />
                     <Input
                         defaultValue={format?.sortOrder ?? ''}
@@ -272,7 +279,8 @@ export default function FormatEditor({formatId}: FormatEditorProps): React.JSX.E
                         type="number"
                     />
                     <span className="mt-1 block text-sm text-muted-foreground">
-                        Reihenfolge in der Formate-Auswahl — hat nichts mit Zugriff zu tun.
+                        Legt fest, an welcher Position dieses Format in der Format-Auswahl beim
+                        Erstellen einer Folge erscheint — hat nichts mit Zugriff zu tun.
                     </span>
                 </p>
                 <p>

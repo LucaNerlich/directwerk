@@ -1,0 +1,30 @@
+meta {
+  name: Public Levels
+  type: http
+  seq: 12
+}
+
+get {
+  url: {{baseUrl}}/api/v1/public/levels
+  body: none
+  auth: none
+}
+
+tests {
+  test("returns expected status", function() {
+    expect(res.getStatus() === 200).to.equal(true);
+    expect(res.body.data).to.be.an("array");
+    if (res.body.data.length > 0) {
+      expect(res.body.data[0]).to.have.property("id");
+      expect(res.body.data[0]).to.have.property("slug");
+      expect(res.body.data[0]).to.have.property("title");
+      expect(res.body.data[0]).to.have.property("sortOrder");
+    }
+  });
+}
+
+docs {
+  GET /api/v1/public/levels — PublicLevelController.
+  Active LEVEL products (excludes PACKAGE) with id, slug, title, sortOrder.
+  Sorted by sortOrder ASC. Empty array if the SUBSCRIPTION module is off for the tenant.
+}

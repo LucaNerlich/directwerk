@@ -8,6 +8,7 @@ import {useCallback, useEffect, useRef, useState} from 'react'
 
 import MediaLibraryPicker from '@/components/media/MediaLibraryPicker'
 import PublicationEditorLayout from '@/components/publication/PublicationEditorLayout'
+import LevelSelect from '@/components/studio/LevelSelect'
 import {AUTH_REQUIRED} from '@/lib/api/errors'
 import {
     archiveArticle,
@@ -49,6 +50,7 @@ export default function ArticleEditor({articleId}: {articleId?: number}) {
     const [excerpt, setExcerpt] = useState('')
     const [accessPolicy, setAccessPolicy] = useState<AccessPolicy>('FREE')
     const [heroAssetId, setHeroAssetId] = useState<number | null>(null)
+    const [requiredLevelSortOrder, setRequiredLevelSortOrder] = useState<number | null>(null)
     const [heroPreviewUrl, setHeroPreviewUrl] = useState<string | null>(null)
     const [isUploadingHero, setIsUploadingHero] = useState(false)
     const [notifySubscribers, setNotifySubscribers] = useState(false)
@@ -92,6 +94,7 @@ export default function ArticleEditor({articleId}: {articleId?: number}) {
                 setExcerpt(loaded.excerpt ?? '')
                 setAccessPolicy(loaded.accessPolicy)
                 setHeroAssetId(loaded.heroAssetId)
+                setRequiredLevelSortOrder(loaded.requiredLevelSortOrder)
                 setScheduledAt(toDatetimeLocalValue(loaded.scheduledAt))
                 setSelectedCategoryIds(new Set(loaded.categories.map((tag) => tag.id)))
             } catch (error) {
@@ -184,6 +187,7 @@ export default function ArticleEditor({articleId}: {articleId?: number}) {
                 excerpt: excerpt.trim() || undefined,
                 accessPolicy,
                 heroAssetId: heroAssetId ?? undefined,
+                requiredLevelSortOrder: requiredLevelSortOrder ?? undefined,
             }
             const hint = options?.autosave === true ? 'Automatisch gespeichert' : 'Gespeichert'
 
@@ -215,6 +219,7 @@ export default function ArticleEditor({articleId}: {articleId?: number}) {
         handleAuthError,
         heroAssetId,
         loadError,
+        requiredLevelSortOrder,
         slug,
         title,
     ])
@@ -412,6 +417,24 @@ export default function ArticleEditor({articleId}: {articleId?: number}) {
             }}
             sidebarExtra={
                 <>
+                    <label className="grid gap-2 text-sm font-medium">
+                        <span>Mindest-Stufe</span>
+                        <LevelSelect
+                            disabled={accessPolicy === 'FREE'}
+                            onChange={(value) => {
+                                setRequiredLevelSortOrder(value)
+                                markDirty()
+                            }}
+                            value={requiredLevelSortOrder}
+                        />
+                        <span className="font-normal text-muted-foreground">
+                            Niedrigste Stufe, die Zugriff erhält. Zugriff hat, wessen höchste
+                            Stufe ≥ Mindest-Stufe ist. „Öffentlich“ = jede aktive Stufe reicht.
+                            {accessPolicy === 'FREE'
+                                ? ' Nur relevant für kostenpflichtige Beiträge.'
+                                : ''}
+                        </span>
+                    </label>
                     <div>
                         <p>Titelbild</p>
                         {heroPreviewUrl !== null ? (
