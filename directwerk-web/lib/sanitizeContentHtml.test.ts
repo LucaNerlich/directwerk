@@ -30,4 +30,10 @@ describe('sanitizeContentHtml', () => {
             sanitizeContentHtml('<p><a href="javascript:alert(1)">bad</a></p>'),
         ).toBe('<p><a>bad</a></p>')
     })
+
+    it('preserves tel: links', () => {
+        expect(
+            sanitizeContentHtml('<p><a href="tel:+491234567890">call</a></p>'),
+        ).toBe('<p><a href="tel:+491234567890">call</a></p>')
+    })
 })

@@ -6,7 +6,7 @@ const CONTENT_HTML_OPTIONS: sanitizeHtml.IOptions = {
     allowedAttributes: {
         a: ['href'],
     },
-    allowedSchemes: ['http', 'https', 'mailto'],
+    allowedSchemes: ['http', 'https', 'mailto', 'tel'],
     allowProtocolRelative: false,
 }
 

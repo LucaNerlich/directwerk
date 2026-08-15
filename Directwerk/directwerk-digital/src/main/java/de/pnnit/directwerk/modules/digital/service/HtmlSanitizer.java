@@ -9,7 +9,7 @@ public class HtmlSanitizer {
 
     private static final PolicyFactory POLICY = new HtmlPolicyBuilder()
             .allowElements("p", "br", "strong", "em", "a", "ul", "ol", "li", "h2", "h3")
-            .allowUrlProtocols("https", "http", "mailto")
+            .allowUrlProtocols("https", "http", "mailto", "tel")
             .allowAttributes("href").onElements("a")
             .toFactory();
 

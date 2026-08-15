@@ -29,4 +29,13 @@ class HtmlSanitizerTest {
         assertThat(sanitized).isEqualTo("<p>bad</p>");
         assertThat(sanitized).doesNotContain("javascript");
     }
+
+    @Test
+    void preservesTelLinks() {
+        String sanitized = htmlSanitizer.sanitize("<p><a href=\"tel:+491234567890\">call</a></p>");
+
+        assertThat(sanitized).contains("tel:");
+        assertThat(sanitized).contains("call");
+        assertThat(sanitized).doesNotContain("javascript");
+    }
 }
