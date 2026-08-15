@@ -89,10 +89,10 @@ public class StagingCleanupService {
             Tenant tenant,
             long cutoffMillis
     ) {
-        List<String> deletedFileKeys = new ArrayList<>();
         String prefix = tenant.getSlug() + "/staging/";
         String continuationToken = null;
         do {
+            List<String> deletedFileKeys = new ArrayList<>();
             ListObjectsV2Request.Builder request = ListObjectsV2Request.builder()
                     .bucket(storage.bucket())
                     .prefix(prefix);
@@ -110,9 +110,8 @@ public class StagingCleanupService {
                 }
             }
             continuationToken = response.isTruncated() ? response.nextContinuationToken() : null;
+            archivePendingAssets(tenant, deletedFileKeys);
         } while (continuationToken != null);
-
-        archivePendingAssets(tenant, deletedFileKeys);
     }
 
     private void archivePendingAssets(Tenant tenant, List<String> keys) {

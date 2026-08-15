@@ -196,6 +196,28 @@ class StagingCleanupServiceTest {
     }
 
     @Test
+    void cleanupExpiredStagingArchivesEachPageBeforeTheNextListCall() {
+        when(directwerkConfig.isStorageEnabled()).thenReturn(true);
+        when(directwerkConfig.storage()).thenReturn(storageProps());
+        when(tenantRepository.findAll()).thenReturn(List.of(tenant));
+
+        Instant old = Instant.now().minus(48, ChronoUnit.HOURS);
+        when(s3Client.listObjectsV2(any(ListObjectsV2Request.class)))
+                .thenReturn(
+                        ListObjectsV2Response.builder()
+                                .isTruncated(true)
+                                .nextContinuationToken("token-1")
+                                .contents(S3Object.builder().key("alpha-show-a/staging/sess/page1.mp3").lastModified(old).build())
+                                .build())
+                .thenThrow(S3Exception.builder().statusCode(503).message("unavailable").build());
+
+        stagingCleanupService.cleanupExpiredStaging();
+
+        verify(mediaAssetRepository).archivePendingByS3Key(10L, "alpha-show-a/staging/sess/page1.mp3");
+        verify(s3Client, times(2)).listObjectsV2(any(ListObjectsV2Request.class));
+    }
+
+    @Test
     void cleanupExpiredStagingContinuesAfterTenantFailure() {
         when(directwerkConfig.isStorageEnabled()).thenReturn(true);
         when(directwerkConfig.storage()).thenReturn(storageProps());
