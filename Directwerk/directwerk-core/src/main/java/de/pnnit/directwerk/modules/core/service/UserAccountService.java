@@ -57,7 +57,7 @@ public class UserAccountService {
                 throw new IllegalStateException("User membership cannot be activated");
             }
 
-            verifyAccountOwnership(user, password, existingMembership);
+            verifyAccountOwnership(user, password);
             if (existingMembership.isPresent()) {
                 if (directwerkConfig.isEmailVerificationRequired()) {
                     // When email verification is enabled, preserve INVITED status
@@ -119,11 +119,8 @@ public class UserAccountService {
         emailVerificationService.issueVerificationEmail(user, membership, tenant);
     }
 
-    private void verifyAccountOwnership(User user, String password, Optional<TenantMembership> membership) {
+    private void verifyAccountOwnership(User user, String password) {
         if (isAuthenticatedAs(user)) {
-            return;
-        }
-        if (membership.map(existing -> existing.getStatus() == MembershipStatus.INVITED).orElse(false)) {
             return;
         }
         if (StringUtils.hasText(user.getPasswordHash()) && passwordEncoder.matches(password, user.getPasswordHash())) {
