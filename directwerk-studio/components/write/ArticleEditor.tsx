@@ -57,6 +57,7 @@ export default function ArticleEditor({articleId}: {articleId?: number}) {
     const [uploadProgress, setUploadProgress] = useState<{file: File; progress: number} | null>(
         null,
     )
+    const mountedRef = useRef(true)
     const [notifySubscribers, setNotifySubscribers] = useState(false)
     const [scheduledAt, setScheduledAt] = useState('')
     const [isSaving, setIsSaving] = useState(false)
@@ -72,6 +73,7 @@ export default function ArticleEditor({articleId}: {articleId?: number}) {
     const [saveHint, setSaveHint] = useState<string | null>(null)
 
     useEffect(() => {
+        mountedRef.current = true
         if (articleId === undefined) {
             setIsLoading(false)
             return
@@ -121,6 +123,7 @@ export default function ArticleEditor({articleId}: {articleId?: number}) {
 
         return () => {
             active = false
+            mountedRef.current = false
         }
     }, [articleId])
 
@@ -320,7 +323,9 @@ export default function ArticleEditor({articleId}: {articleId?: number}) {
                     assetType: 'IMAGE',
                     visibility: 'PUBLIC',
                     onProgress: (percent) => {
-                        setUploadProgress({file, progress: percent})
+                        if (mountedRef.current) {
+                            setUploadProgress({file, progress: percent})
+                        }
                     },
                 })
                 setHeroAssetId(asset.id)
@@ -328,8 +333,10 @@ export default function ArticleEditor({articleId}: {articleId?: number}) {
             } catch (error) {
                 handleAuthError(error)
             } finally {
-                setIsUploadingHero(false)
-                setUploadProgress(null)
+                if (mountedRef.current) {
+                    setIsUploadingHero(false)
+                    setUploadProgress(null)
+                }
             }
         },
         [handleAuthError, markDirty],

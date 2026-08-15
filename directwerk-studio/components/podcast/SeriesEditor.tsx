@@ -9,7 +9,7 @@ import {Input} from '@directwerk/ui/components/input'
 
 import Link from 'next/link'
 import {useRouter} from 'next/navigation'
-import {useCallback, useEffect, useState, type FormEvent} from 'react'
+import {useCallback, useEffect, useRef, useState, type FormEvent} from 'react'
 
 import MediaLibraryPicker from '@/components/media/MediaLibraryPicker'
 import UploadProgress from '@/components/media/UploadProgress'
@@ -52,6 +52,7 @@ export default function SeriesEditor({seriesId}: SeriesEditorProps): React.JSX.E
     const [uploadProgress, setUploadProgress] = useState<{file: File; progress: number} | null>(
         null,
     )
+    const mountedRef = useRef(true)
     const [defaultRequiredLevelSortOrder, setDefaultRequiredLevelSortOrder] = useState<number | null>(null)
     const [rssUrl, setRssUrl] = useState<string | null>(null)
     const [publishOnCreate, setPublishOnCreate] = useState(false)
@@ -61,6 +62,7 @@ export default function SeriesEditor({seriesId}: SeriesEditorProps): React.JSX.E
     const [loadError, setLoadError] = useState(false)
 
     useEffect(() => {
+        mountedRef.current = true
         if (seriesId === undefined) {
             setIsLoading(false)
             return
@@ -109,6 +111,7 @@ export default function SeriesEditor({seriesId}: SeriesEditorProps): React.JSX.E
 
         return () => {
             active = false
+            mountedRef.current = false
         }
     }, [router, seriesId])
 
@@ -171,15 +174,19 @@ export default function SeriesEditor({seriesId}: SeriesEditorProps): React.JSX.E
                 assetType: 'IMAGE',
                 visibility: 'PUBLIC',
                 onProgress: (percent) => {
-                    setUploadProgress({file, progress: percent})
+                    if (mountedRef.current) {
+                        setUploadProgress({file, progress: percent})
+                    }
                 },
             })
             setCoverAssetId(asset.id)
         } catch (error) {
             handleAuthError(error)
         } finally {
-            setIsUploadingCover(false)
-            setUploadProgress(null)
+            if (mountedRef.current) {
+                setIsUploadingCover(false)
+                setUploadProgress(null)
+            }
         }
     }
 

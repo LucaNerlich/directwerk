@@ -3,6 +3,8 @@ import { cn } from "#lib/utils"
 function Progress({
   value,
   className,
+  "aria-label": ariaLabel,
+  "aria-labelledby": ariaLabelledBy,
   ...props
 }: React.ComponentProps<"div"> & { value: number }) {
   const clamped = Math.min(100, Math.max(0, value))
@@ -10,6 +12,8 @@ function Progress({
     <div
       data-slot="progress"
       role="progressbar"
+      aria-label={ariaLabel}
+      aria-labelledby={ariaLabelledBy}
       aria-valuemin={0}
       aria-valuemax={100}
       aria-valuenow={Math.round(clamped)}

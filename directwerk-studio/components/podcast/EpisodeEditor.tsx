@@ -8,7 +8,7 @@ import {Input} from '@directwerk/ui/components/input'
 
 import Link from 'next/link'
 import {useRouter} from 'next/navigation'
-import {useCallback, useEffect, useEffectEvent, useState} from 'react'
+import {useCallback, useEffect, useEffectEvent, useRef, useState} from 'react'
 
 import MediaLibraryPicker from '@/components/media/MediaLibraryPicker'
 import UploadProgress from '@/components/media/UploadProgress'
@@ -86,6 +86,7 @@ export default function EpisodeEditor({episodeId}: {episodeId?: number}): React.
     )
     const [isLoading, setIsLoading] = useState(true)
     const [errorMessage, setErrorMessage] = useState<string | null>(null)
+    const mountedRef = useRef(true)
     const [audioPreviewUrl, setAudioPreviewUrl] = useState<string | null>(null)
     const [audioPreviewError, setAudioPreviewError] = useState<string | null>(null)
     const [audioReady, setAudioReady] = useState(false)
@@ -161,6 +162,7 @@ export default function EpisodeEditor({episodeId}: {episodeId?: number}): React.
     }, [audioAssetId])
 
     useEffect(() => {
+        mountedRef.current = true
         let active = true
 
         async function load(): Promise<void> {
@@ -224,6 +226,7 @@ export default function EpisodeEditor({episodeId}: {episodeId?: number}): React.
 
         return () => {
             active = false
+            mountedRef.current = false
         }
     }, [episodeId, router])
 
@@ -387,7 +390,9 @@ export default function EpisodeEditor({episodeId}: {episodeId?: number}): React.
                     visibility: 'PRIVATE',
                     episodeId: saved.id,
                     onProgress: (percent) => {
-                        setUploadProgress({file, progress: percent})
+                        if (mountedRef.current) {
+                            setUploadProgress({file, progress: percent})
+                        }
                     },
                 })
                 const updated = await attachEpisodeAudio(host, saved.id, asset.id)
@@ -395,8 +400,10 @@ export default function EpisodeEditor({episodeId}: {episodeId?: number}): React.
             } catch (error) {
                 handleAuthError(error)
             } finally {
-                setIsUploading(false)
-                setUploadProgress(null)
+                if (mountedRef.current) {
+                    setIsUploading(false)
+                    setUploadProgress(null)
+                }
             }
         },
         [handleAuthError, save],

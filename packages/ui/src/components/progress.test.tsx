@@ -17,4 +17,20 @@ describe('Progress', () => {
         render(<Progress value={140} />)
         expect(screen.getByRole('progressbar')).toHaveAttribute('aria-valuenow', '100')
     })
+
+    it('forwards aria-label to the progressbar', () => {
+        render(<Progress value={42} aria-label="Upload progress" />)
+        expect(screen.getByRole('progressbar')).toHaveAttribute(
+            'aria-label',
+            'Upload progress',
+        )
+    })
+
+    it('forwards aria-labelledby to the progressbar', () => {
+        render(<Progress value={42} aria-labelledby="file-name" />)
+        expect(screen.getByRole('progressbar')).toHaveAttribute(
+            'aria-labelledby',
+            'file-name',
+        )
+    })
 })
