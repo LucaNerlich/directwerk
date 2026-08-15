@@ -110,7 +110,7 @@ class UserAccountServiceTest {
     }
 
     @Test
-    void registerActivatesExistingInvitedMembership() {
+    void registerCannotActivateInvitedMembershipWithoutOwnershipProof() {
         Tenant tenant = tenant(1L);
         User invitedUser = user(10L, "editor@example.com", null);
         TenantMembership invitedMembership = membership(100L, invitedUser, tenant, MembershipStatus.INVITED, Role.EDITOR);
@@ -118,14 +118,38 @@ class UserAccountServiceTest {
         when(tenantRepository.findById(1L)).thenReturn(Optional.of(tenant));
         when(userRepository.findByEmailIgnoreCase("editor@example.com")).thenReturn(Optional.of(invitedUser));
         when(tenantMembershipRepository.findByUserIdAndTenantId(10L, 1L)).thenReturn(Optional.of(invitedMembership));
-        when(passwordEncoder.encode("new-password")).thenReturn("encoded-password");
+
+        assertThatThrownBy(() -> userAccountService.register(
+                "editor@example.com",
+                "new-password",
+                "Editor",
+                tenant.getId()
+        )).isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Account ownership verification failed");
+
+        assertThat(invitedMembership.getStatus()).isEqualTo(MembershipStatus.INVITED);
+        verify(tenantMembershipRepository, never()).save(any());
+        verify(userRepository, never()).save(any());
+    }
+
+    @Test
+    void registerActivatesInvitedMembershipWithCorrectExistingPassword() {
+        Tenant tenant = tenant(1L);
+        User invitedUser = user(10L, "editor@example.com", "hash");
+        TenantMembership invitedMembership = membership(100L, invitedUser, tenant, MembershipStatus.INVITED, Role.EDITOR);
+
+        when(tenantRepository.findById(1L)).thenReturn(Optional.of(tenant));
+        when(userRepository.findByEmailIgnoreCase("editor@example.com")).thenReturn(Optional.of(invitedUser));
+        when(tenantMembershipRepository.findByUserIdAndTenantId(10L, 1L)).thenReturn(Optional.of(invitedMembership));
+        when(passwordEncoder.matches("correct-password", "hash")).thenReturn(true);
+        when(passwordEncoder.encode("correct-password")).thenReturn("encoded-password");
         when(directwerkConfig.isEmailVerificationRequired()).thenReturn(false);
         when(userRepository.save(invitedUser)).thenReturn(invitedUser);
         when(tenantMembershipRepository.save(invitedMembership)).thenReturn(invitedMembership);
 
         User registered = userAccountService.register(
                 "editor@example.com",
-                "new-password",
+                "correct-password",
                 "Editor",
                 tenant.getId()
         );
