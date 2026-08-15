@@ -7,7 +7,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import de.pnnit.directwerk.modules.core.entity.Tenant;
-import de.pnnit.directwerk.modules.subscription.entity.ProcessedWebhookEvent;
 import de.pnnit.directwerk.modules.subscription.entity.SubscriptionProduct;
 import de.pnnit.directwerk.modules.subscription.entity.SubscriptionStatus;
 import de.pnnit.directwerk.modules.subscription.entity.TenantStripeAccount;
@@ -78,7 +77,8 @@ class StripeWebhookServiceTest {
                 false
         );
         when(stripeOperations.parseWebhook("{}", "t=1,v1=sig")).thenReturn(payload);
-        when(processedWebhookEventRepository.existsByEventId("evt_1")).thenReturn(false);
+        when(processedWebhookEventRepository.insertIfAbsent("evt_1", "checkout.session.completed", "acct_1"))
+                .thenReturn(1);
         TenantStripeAccount account = account(7L, "acct_1");
         when(stripeConnectService.findByStripeAccountId("acct_1")).thenReturn(account);
         SubscriptionProduct product = new SubscriptionProduct();
@@ -98,7 +98,6 @@ class StripeWebhookServiceTest {
                 "pi_1"
         );
         verify(eventPublisher).publishEvent(new StripeMembershipActivatedEvent(7L, 3L));
-        verify(processedWebhookEventRepository).save(any(ProcessedWebhookEvent.class));
     }
 
     @Test
@@ -120,14 +119,15 @@ class StripeWebhookServiceTest {
                 false
         );
         when(stripeOperations.parseWebhook("{}", "sig")).thenReturn(payload);
-        when(processedWebhookEventRepository.existsByEventId("evt_dup")).thenReturn(true);
+        when(processedWebhookEventRepository.insertIfAbsent("evt_dup", "checkout.session.completed", "acct_1"))
+                .thenReturn(0);
 
         service.handle("{}", "sig");
 
         verify(subscriptionService, never()).upsertStripeSubscription(
                 any(), any(), any(), any(), any(), any(), any(), any()
         );
-        verify(processedWebhookEventRepository, never()).save(any());
+        verify(subscriptionService, never()).syncStripeSubscriptionByExternalId(any(), any(), any(), any());
     }
 
     @Test
@@ -149,7 +149,8 @@ class StripeWebhookServiceTest {
                 false
         );
         when(stripeOperations.parseWebhook("{}", "sig")).thenReturn(payload);
-        when(processedWebhookEventRepository.existsByEventId("evt_fail")).thenReturn(false);
+        when(processedWebhookEventRepository.insertIfAbsent("evt_fail", "invoice.payment_failed", "acct_1"))
+                .thenReturn(1);
         when(stripeConnectService.findByStripeAccountId("acct_1")).thenReturn(account(7L, "acct_1"));
 
         service.handle("{}", "sig");
@@ -163,8 +164,36 @@ class StripeWebhookServiceTest {
     }
 
     @Test
-    void fullRefundCancelsOneTimeGrant() {
+    void invoicePaidOnlyReactivatesOverdueSubscriptions() {
         StripeOperations.StripeWebhookPayload payload = new StripeOperations.StripeWebhookPayload(
+                "evt_invoice",
+                "invoice.paid",
+                "acct_1",
+                "cus_1",
+                "sub_9",
+                null,
+                null,
+                null,
+                true,
+                true,
+                true,
+                Map.of(),
+                null,
+                false
+        );
+        when(stripeOperations.parseWebhook("{}", "sig")).thenReturn(payload);
+        when(processedWebhookEventRepository.insertIfAbsent("evt_invoice", "invoice.paid", "acct_1"))
+                .thenReturn(1);
+        when(stripeConnectService.findByStripeAccountId("acct_1")).thenReturn(account(7L, "acct_1"));
+
+        service.handle("{}", "sig");
+
+        verify(subscriptionService).markInvoicePaid(7L, "sub_9");
+        verify(subscriptionService, never()).syncStripeSubscriptionByExternalId(any(), any(), any(), any());
+    }
+
+    @Test
+    void fullRefundCancelsOneTimeGrant() {        StripeOperations.StripeWebhookPayload payload = new StripeOperations.StripeWebhookPayload(
                 "evt_ref",
                 "charge.refunded",
                 "acct_1",
@@ -181,7 +210,8 @@ class StripeWebhookServiceTest {
                 true
         );
         when(stripeOperations.parseWebhook("{}", "sig")).thenReturn(payload);
-        when(processedWebhookEventRepository.existsByEventId("evt_ref")).thenReturn(false);
+        when(processedWebhookEventRepository.insertIfAbsent("evt_ref", "charge.refunded", "acct_1"))
+                .thenReturn(1);
         when(stripeConnectService.findByStripeAccountId("acct_1")).thenReturn(account(7L, "acct_1"));
 
         service.handle("{}", "sig");
@@ -208,7 +238,8 @@ class StripeWebhookServiceTest {
                 false
         );
         when(stripeOperations.parseWebhook("{}", "sig")).thenReturn(payload);
-        when(processedWebhookEventRepository.existsByEventId("evt_partial")).thenReturn(false);
+        when(processedWebhookEventRepository.insertIfAbsent("evt_partial", "charge.refunded", "acct_1"))
+                .thenReturn(1);
         when(stripeConnectService.findByStripeAccountId("acct_1")).thenReturn(account(7L, "acct_1"));
 
         service.handle("{}", "sig");

@@ -3,10 +3,12 @@ package de.pnnit.directwerk.modules.core.service;
 import de.pnnit.directwerk.modules.core.entity.InvitationToken;
 import de.pnnit.directwerk.modules.core.entity.InvitationType;
 import de.pnnit.directwerk.modules.core.entity.MembershipStatus;
+import de.pnnit.directwerk.modules.core.entity.PlatformAdmin;
 import de.pnnit.directwerk.modules.core.entity.TenantMembership;
 import de.pnnit.directwerk.modules.core.entity.User;
 import de.pnnit.directwerk.modules.core.entity.UserStatus;
 import de.pnnit.directwerk.modules.core.repository.InvitationTokenRepository;
+import de.pnnit.directwerk.modules.core.repository.PlatformAdminRepository;
 import de.pnnit.directwerk.modules.core.repository.TenantMembershipRepository;
 import de.pnnit.directwerk.modules.core.repository.UserRepository;
 import de.pnnit.directwerk.modules.core.util.PasswordPolicy;
@@ -26,6 +28,7 @@ public class InvitationAcceptanceService {
     private final InvitationTokenRepository invitationTokenRepository;
     private final UserRepository userRepository;
     private final TenantMembershipRepository tenantMembershipRepository;
+    private final PlatformAdminRepository platformAdminRepository;
     private final PasswordEncoder passwordEncoder;
     private final Clock clock;
 
@@ -69,6 +72,14 @@ public class InvitationAcceptanceService {
             }
             membership.setStatus(MembershipStatus.ACTIVE);
             tenantMembershipRepository.save(membership);
+        }
+
+        if (token.getType() == InvitationType.PLATFORM_ADMIN) {
+            platformAdminRepository.findByUserId(user.getId()).orElseGet(() -> {
+                PlatformAdmin admin = new PlatformAdmin();
+                admin.setUser(user);
+                return platformAdminRepository.save(admin);
+            });
         }
 
         token.setUsedAt(clock.instant());

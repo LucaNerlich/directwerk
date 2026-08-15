@@ -68,7 +68,6 @@ class PlatformAdminManagementServiceTest {
 
         when(userProvisioningService.findOrCreatePendingUser("admin@example.com", "Admin")).thenReturn(user);
         when(platformAdminRepository.findByUserId(10L)).thenReturn(Optional.empty());
-        when(platformAdminRepository.save(any(PlatformAdmin.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(invitationTokenService.issue(any(User.class), any(), any(InvitationType.class)))
                 .thenReturn("platform-invite-token");
 
@@ -89,7 +88,7 @@ class PlatformAdminManagementServiceTest {
     }
 
     @Test
-    void inviteAdminGrantsActiveUserWithoutInvitationFlow() {
+    void inviteAdminRequiresAcceptanceForActiveUser() {
         User user = new User();
         user.setId(10L);
         user.setEmail("existing@example.com");
@@ -99,18 +98,23 @@ class PlatformAdminManagementServiceTest {
         when(userProvisioningService.findOrCreatePendingUser("existing@example.com", "Existing Admin"))
                 .thenReturn(user);
         when(platformAdminRepository.findByUserId(10L)).thenReturn(Optional.empty());
-        when(platformAdminRepository.save(any(PlatformAdmin.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(invitationTokenService.issue(any(User.class), any(), any(InvitationType.class)))
+                .thenReturn("platform-invite-token");
 
         PlatformAdminManagementService.PlatformAdminInvitation result =
                 service.inviteAdmin("existing@example.com", "Existing Admin");
 
         assertThat(user.getStatus()).isEqualTo(UserStatus.ACTIVE);
         assertThat(result.status()).isEqualTo("ACTIVE");
-        assertThat(result.inviteToken()).isNull();
+        assertThat(result.inviteToken()).isEqualTo("platform-invite-token");
         verify(userRepository, never()).save(user);
-        verify(invitationTokenService, never()).issue(any(), any(), any());
-        verify(transactionalEmailNotifier, never()).sendPlatformAdminInvitation(any(), any(), any(), any());
-        verify(platformAdminRepository).save(any(PlatformAdmin.class));
+        verify(platformAdminRepository, never()).save(any());
+        verify(transactionalEmailNotifier).sendPlatformAdminInvitation(
+                "existing@example.com",
+                "Existing Admin",
+                "platform-invite-token",
+                InvitationTokenService.tokenLifetime()
+        );
     }
 
     @Test

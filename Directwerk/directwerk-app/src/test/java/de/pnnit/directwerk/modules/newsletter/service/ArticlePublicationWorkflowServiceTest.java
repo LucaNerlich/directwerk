@@ -135,6 +135,18 @@ class ArticlePublicationWorkflowServiceTest {
     }
 
     @Test
+    void publishScheduledArticleSkipsWhenNoLongerScheduled() {
+        Article article = draftArticle();
+        article.setStatus(ArticleStatus.DRAFT);
+        when(articleService.requireArticle(10L, 7L)).thenReturn(article);
+
+        articlePublicationWorkflowService.publishScheduledArticle(10L, 7L);
+
+        assertThat(article.getStatus()).isEqualTo(ArticleStatus.DRAFT);
+        verify(articleRepository, org.mockito.Mockito.never()).save(any());
+    }
+
+    @Test
     void unarchiveRestoresDraftAndClearsPublishedAt() {
         Article article = draftArticle();
         article.setStatus(ArticleStatus.ARCHIVED);

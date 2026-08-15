@@ -3,6 +3,7 @@ package de.pnnit.directwerk.modules.digital.service;
 import de.pnnit.directwerk.config.DirectwerkConfig;
 import de.pnnit.directwerk.config.DirectwerkProperties;
 import de.pnnit.directwerk.modules.core.util.TenantAssetKeys;
+import de.pnnit.directwerk.modules.digital.api.CdnPurgeClient;
 import de.pnnit.directwerk.modules.digital.api.EpisodeMediaApi;
 import de.pnnit.directwerk.modules.digital.entity.AssetScope;
 import de.pnnit.directwerk.modules.digital.entity.AssetStatus;
@@ -36,6 +37,7 @@ public class EpisodeMediaService implements EpisodeMediaApi {
     private final MediaAssetRepository mediaAssetRepository;
     private final ObjectProvider<S3Client> s3ClientProvider;
     private final ObjectProvider<S3PublicUrlBuilder> publicUrlBuilderProvider;
+    private final ObjectProvider<CdnPurgeClient> cdnPurgeClientProvider;
     private final DirectwerkConfig directwerkConfig;
     private final PlatformTransactionManager transactionManager;
 
@@ -140,6 +142,19 @@ public class EpisodeMediaService implements EpisodeMediaApi {
                         .build());
             } catch (RuntimeException ex) {
                 log.warn("Failed to delete stale public S3 object for asset {} after demoting to private", assetId, ex);
+            }
+        }
+
+        // The public pull zone caches {tenant}/public/** at the CDN edge; deleting the origin object
+        // alone leaves the previously-public audio reachable until cache TTL expiry. Purge the old
+        // public URL so un-publishing/paywalling revokes public access immediately.
+        CdnPurgeClient cdnPurgeClient = cdnPurgeClientProvider.getIfAvailable();
+        S3PublicUrlBuilder publicUrlBuilder = publicUrlBuilderProvider.getIfAvailable();
+        if (cdnPurgeClient != null && publicUrlBuilder != null) {
+            try {
+                cdnPurgeClient.purgeUrl(publicUrlBuilder.cdnUrl(publicKey));
+            } catch (RuntimeException ex) {
+                log.warn("Failed to purge public CDN cache for asset {} after demoting to private", assetId, ex);
             }
         }
 

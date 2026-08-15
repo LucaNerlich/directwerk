@@ -147,6 +147,11 @@ public class ArticlePublicationWorkflowService {
     @RequiresModule(DigitalContentModule.KEY)
     public void publishScheduledArticle(Long tenantId, Long articleId) {
         Article article = articleService.requireArticle(tenantId, articleId);
+        if (article.getStatus() != ArticleStatus.SCHEDULED) {
+            log.info("Skipping scheduled publish for article={} tenant={} — status is no longer SCHEDULED ({})",
+                    articleId, tenantId, article.getStatus());
+            return;
+        }
         publishInternal(tenantId, article, article.isNotifySubscribersOnPublish());
     }
 

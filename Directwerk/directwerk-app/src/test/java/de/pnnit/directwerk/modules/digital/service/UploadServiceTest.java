@@ -3,6 +3,7 @@ package de.pnnit.directwerk.modules.digital.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -31,6 +32,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.SimpleTransactionStatus;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.CopyObjectRequest;
 import software.amazon.awssdk.services.s3.model.HeadObjectRequest;
@@ -65,6 +68,9 @@ class UploadServiceTest {
     private MediaDeleteJobProducer mediaDeleteJobProducer;
 
     @Mock
+    private PlatformTransactionManager transactionManager;
+
+    @Mock
     private PresignedPutObjectRequest presignedPut;
 
     private UploadService uploadService;
@@ -79,8 +85,11 @@ class UploadServiceTest {
                 tenantLookupService,
                 directwerkConfig,
                 stagingCleanupService,
-                mediaDeleteJobProducer
+                mediaDeleteJobProducer,
+                transactionManager
         );
+        lenient().when(transactionManager.getTransaction(org.mockito.ArgumentMatchers.any()))
+                .thenReturn(new SimpleTransactionStatus());
         tenant = new Tenant();
         tenant.setId(10L);
         tenant.setSlug("alpha-show-a");
@@ -171,6 +180,7 @@ class UploadServiceTest {
         pending.setSizeBytes(2048L);
         pending.setOriginalFilename("episode.mp3");
         when(mediaAssetRepository.findById(55L)).thenReturn(Optional.of(pending));
+        when(mediaAssetRepository.findByIdForUpdate(55L)).thenReturn(Optional.of(pending));
         when(mediaAssetRepository.saveAndFlush(any(MediaAsset.class))).thenAnswer(inv -> inv.getArgument(0));
         when(s3Client.headObject(any(HeadObjectRequest.class))).thenReturn(
                 HeadObjectResponse.builder()
@@ -213,6 +223,7 @@ class UploadServiceTest {
         pending.setSizeBytes(2048L);
         pending.setOriginalFilename("episode 42.mp3");
         when(mediaAssetRepository.findById(55L)).thenReturn(Optional.of(pending));
+        when(mediaAssetRepository.findByIdForUpdate(55L)).thenReturn(Optional.of(pending));
         when(mediaAssetRepository.saveAndFlush(any(MediaAsset.class))).thenAnswer(inv -> inv.getArgument(0));
         when(s3Client.headObject(any(HeadObjectRequest.class))).thenReturn(
                 HeadObjectResponse.builder()
@@ -248,6 +259,7 @@ class UploadServiceTest {
         pending.setSizeBytes(2048L);
         pending.setOriginalFilename("episode.mp3");
         when(mediaAssetRepository.findById(55L)).thenReturn(Optional.of(pending));
+        when(mediaAssetRepository.findByIdForUpdate(55L)).thenReturn(Optional.of(pending));
         when(mediaAssetRepository.saveAndFlush(any(MediaAsset.class))).thenAnswer(inv -> inv.getArgument(0));
         when(s3Client.headObject(any(HeadObjectRequest.class))).thenReturn(
                 HeadObjectResponse.builder()

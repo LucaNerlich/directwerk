@@ -150,6 +150,27 @@ class TransactionalEmailServiceTest {
         verify(emailDeliveryGuard).releaseClaim(JOB_ID);
     }
 
+    @Test
+    void sendFromPayloadReleasesClaimOnAnyRuntimeException() {
+        when(directwerkConfig.isEmailEnabled()).thenReturn(true);
+        when(emailSender.isReady()).thenReturn(true);
+        when(emailDeliveryGuard.tryClaimDelivery(JOB_ID)).thenReturn(true);
+        when(directwerkConfig.email()).thenReturn(sampleEmailConfig());
+        doThrow(new IllegalStateException("render failed"))
+                .when(emailSender)
+                .send(any());
+
+        assertThatThrownBy(() -> transactionalEmailService.sendFromPayload(
+                JOB_ID,
+                null,
+                "user@example.com",
+                EmailTemplate.PASSWORD_RESET,
+                Map.of("resetUrl", "http://localhost/reset", "expiresIn", "1 hour")
+        )).isInstanceOf(IllegalStateException.class).hasMessageContaining("render failed");
+
+        verify(emailDeliveryGuard).releaseClaim(JOB_ID);
+    }
+
     private static DirectwerkProperties.Email sampleEmailConfig() {
         return new DirectwerkProperties.Email(
                 true,

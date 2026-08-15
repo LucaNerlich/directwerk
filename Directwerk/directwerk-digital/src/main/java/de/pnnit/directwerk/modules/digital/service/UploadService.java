@@ -28,7 +28,9 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 import software.amazon.awssdk.core.exception.SdkException;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.CopyObjectRequest;
@@ -63,6 +65,7 @@ public class UploadService implements UploadApi {
     private final DirectwerkConfig directwerkConfig;
     private final StagingCleanupService stagingCleanupService;
     private final MediaDeleteJobProducer mediaDeleteJobProducer;
+    private final PlatformTransactionManager transactionManager;
 
     @Override
     @Transactional
@@ -139,7 +142,6 @@ public class UploadService implements UploadApi {
     }
 
     @Override
-    @Transactional
     public ConfirmUploadResult confirmUpload(ConfirmUploadCommand command) {
         DirectwerkProperties.Storage storage = requireStorage();
         Long tenantId = TenantContext.requireTenantId();
@@ -203,25 +205,38 @@ public class UploadService implements UploadApi {
                 .destinationKey(finalKey)
                 .build());
 
+        MediaAsset confirmed = new TransactionTemplate(transactionManager).execute(status -> {
+            MediaAsset locked = mediaAssetRepository.findByIdForUpdate(command.mediaAssetId())
+                    .orElseThrow(() -> new MediaAssetNotFoundException(command.mediaAssetId()));
+            if (!tenantId.equals(locked.getTenant().getId())) {
+                throw new MediaAssetNotFoundException(command.mediaAssetId());
+            }
+            if (locked.getStatus() != AssetStatus.PENDING) {
+                throw new UploadValidationException(
+                        "UPLOAD_VALIDATION_FAILED",
+                        "Asset is not PENDING (status=" + locked.getStatus() + ")"
+                );
+            }
+            if (head.contentLength() != null) {
+                locked.setSizeBytes(head.contentLength());
+            }
+            if (head.eTag() != null) {
+                locked.setChecksumSha256(head.eTag().replace("\"", ""));
+            }
+            locked.setS3Key(finalKey);
+            locked.setStatus(AssetStatus.READY);
+            return mediaAssetRepository.saveAndFlush(locked);
+        });
+
         cleanupStagingObject(storage.bucket(), stagingKey);
 
-        if (head.contentLength() != null) {
-            asset.setSizeBytes(head.contentLength());
-        }
-        if (head.eTag() != null) {
-            asset.setChecksumSha256(head.eTag().replace("\"", ""));
-        }
-        asset.setS3Key(finalKey);
-        asset.setStatus(AssetStatus.READY);
-        mediaAssetRepository.saveAndFlush(asset);
-
         return new ConfirmUploadResult(
-                asset.getId(),
-                asset.getS3Key(),
-                asset.getStatus().name(),
-                asset.getVisibility(),
-                asset.getSizeBytes(),
-                asset.getMimeType()
+                confirmed.getId(),
+                confirmed.getS3Key(),
+                confirmed.getStatus().name(),
+                confirmed.getVisibility(),
+                confirmed.getSizeBytes(),
+                confirmed.getMimeType()
         );
     }
 

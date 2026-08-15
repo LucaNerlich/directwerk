@@ -91,7 +91,9 @@ public class TransactionalEmailService {
                     Map.of()
             ));
             log.info("Sent email template={} job={} provider={}", template.name(), jobId, emailSender.providerId());
-        } catch (EmailDeliveryException ex) {
+        } catch (RuntimeException ex) {
+            // Release the durable claim on any failure (rendering, transport, DB) so the job can be
+            // retried instead of being permanently dropped by the duplicate-delivery guard.
             emailDeliveryGuard.releaseClaim(jobId);
             log.error("Failed to send email template={} job={}", template.name(), jobId, ex);
             throw ex;

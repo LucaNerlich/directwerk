@@ -280,6 +280,20 @@ class PublicationWorkflowServiceTest {
                 .isInstanceOf(InvalidPublicationTransitionException.class);
     }
 
+    @Test
+    void publishScheduledEpisodeSkipsWhenNoLongerScheduled() {
+        Episode episode = draftEpisode();
+        episode.setStatus(EpisodeStatus.DRAFT);
+
+        when(episodeService.requireEpisode(10L, 55L)).thenReturn(episode);
+
+        publicationWorkflowService.publishScheduledEpisode(10L, 55L);
+
+        assertThat(episode.getStatus()).isEqualTo(EpisodeStatus.DRAFT);
+        verify(episodeMediaApi, never()).requireReadyAudio(any());
+        verify(episodeRepository, never()).save(any());
+    }
+
     private static Episode draftEpisode() {
         Tenant tenant = new Tenant();
         tenant.setId(10L);

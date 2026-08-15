@@ -221,8 +221,13 @@ public class StripeSdkOperations implements StripeOperations {
     public void cancelSubscription(String accountId, String subscriptionId) {
         requireConfigured();
         try {
+            // Cancel immediately (DELETE) so a subsequent `customer.subscription.deleted` event
+            // confirms the revocation instead of a cancel-at-period-end `updated` event
+            // reactivating a locally-revoked subscription. invoice_now finalizes any proration.
             Subscription.retrieve(subscriptionId, connectedOptions(accountId))
-                    .cancel((Map<String, Object>) null, connectedOptions(accountId));
+                    .cancel(com.stripe.param.SubscriptionCancelParams.builder()
+                            .setInvoiceNow(true)
+                            .build(), connectedOptions(accountId));
         } catch (StripeException ex) {
             throw wrap(ex);
         }
