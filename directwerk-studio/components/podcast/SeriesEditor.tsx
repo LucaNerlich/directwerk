@@ -12,6 +12,7 @@ import {useRouter} from 'next/navigation'
 import {useCallback, useEffect, useState, type FormEvent} from 'react'
 
 import MediaLibraryPicker from '@/components/media/MediaLibraryPicker'
+import UploadProgress from '@/components/media/UploadProgress'
 import PublicationStatusBadge from '@/components/publication/PublicationStatusBadge'
 import PublishedLinksPanel from '@/components/publication/PublishedLinksPanel'
 import {AUTH_REQUIRED} from '@/lib/api/errors'
@@ -48,6 +49,9 @@ export default function SeriesEditor({seriesId}: SeriesEditorProps): React.JSX.E
     const [coverAssetId, setCoverAssetId] = useState<number | null>(null)
     const [coverPreviewUrl, setCoverPreviewUrl] = useState<string | null>(null)
     const [isUploadingCover, setIsUploadingCover] = useState(false)
+    const [uploadProgress, setUploadProgress] = useState<{file: File; progress: number} | null>(
+        null,
+    )
     const [defaultRequiredLevelSortOrder, setDefaultRequiredLevelSortOrder] = useState<number | null>(null)
     const [rssUrl, setRssUrl] = useState<string | null>(null)
     const [publishOnCreate, setPublishOnCreate] = useState(false)
@@ -161,16 +165,21 @@ export default function SeriesEditor({seriesId}: SeriesEditorProps): React.JSX.E
         }
         setIsUploadingCover(true)
         setErrorMessage(null)
+        setUploadProgress({file, progress: 0})
         try {
             const asset = await uploadMediaFile(getClientTenantHost(), file, {
                 assetType: 'IMAGE',
                 visibility: 'PUBLIC',
+                onProgress: (percent) => {
+                    setUploadProgress({file, progress: percent})
+                },
             })
             setCoverAssetId(asset.id)
         } catch (error) {
             handleAuthError(error)
         } finally {
             setIsUploadingCover(false)
+            setUploadProgress(null)
         }
     }
 
@@ -385,7 +394,12 @@ export default function SeriesEditor({seriesId}: SeriesEditorProps): React.JSX.E
                         }}
                         selectedId={coverAssetId}
                     />
-                    {isUploadingCover ? <p>Lädt hoch…</p> : null}
+                    {uploadProgress !== null ? (
+                        <UploadProgress
+                            file={uploadProgress.file}
+                            progress={uploadProgress.progress}
+                        />
+                    ) : null}
                 </div>
                 <label className="grid gap-2 text-sm font-medium">
                     <span>Mindest-Stufe für Folgen (Standard)</span>

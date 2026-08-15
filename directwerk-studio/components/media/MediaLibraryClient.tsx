@@ -1,6 +1,7 @@
 'use client'
 
 import SelectControl from '@/components/studio/SelectControl'
+import UploadProgress from '@/components/media/UploadProgress'
 
 import {Button} from '@directwerk/ui/components/button'
 import EmptyState from '@directwerk/ui/components/empty-state'
@@ -66,6 +67,9 @@ export default function MediaLibraryClient(): React.JSX.Element {
     const [isBusy, setIsBusy] = useState(false)
     const [isDragging, setIsDragging] = useState(false)
     const [typeFilter, setTypeFilter] = useState('')
+    const [uploadProgress, setUploadProgress] = useState<{file: File; progress: number} | null>(
+        null,
+    )
 
     async function reload(): Promise<void> {
         const result = await listMedia(getClientTenantHost())
@@ -120,11 +124,17 @@ export default function MediaLibraryClient(): React.JSX.Element {
         setIsBusy(true)
         setErrorMessage(null)
         setStatusMessage(null)
+        setUploadProgress({file, progress: 0})
 
         try {
             await uploadMediaFile(getClientTenantHost(), file, {
                 assetType,
                 visibility: 'PRIVATE',
+                onProgress: (percent) => {
+                    if (mountedRef.current) {
+                        setUploadProgress({file, progress: percent})
+                    }
+                },
             })
             if (!mountedRef.current) {
                 return
@@ -148,6 +158,7 @@ export default function MediaLibraryClient(): React.JSX.Element {
         } finally {
             if (mountedRef.current) {
                 setIsBusy(false)
+                setUploadProgress(null)
             }
         }
     }
@@ -260,6 +271,13 @@ export default function MediaLibraryClient(): React.JSX.Element {
                     Audio, Bilder, Video oder PDF/DOC. Alternativ über „Datei hochladen“.
                 </p>
             </div>
+
+            {uploadProgress !== null ? (
+                <UploadProgress
+                    file={uploadProgress.file}
+                    progress={uploadProgress.progress}
+                />
+            ) : null}
 
             <label className="grid gap-2 text-sm font-medium" htmlFor="typeFilter">
                 Typ filtern

@@ -11,6 +11,7 @@ import {useRouter} from 'next/navigation'
 import {useCallback, useEffect, useEffectEvent, useState} from 'react'
 
 import MediaLibraryPicker from '@/components/media/MediaLibraryPicker'
+import UploadProgress from '@/components/media/UploadProgress'
 import PublicationEditorLayout from '@/components/publication/PublicationEditorLayout'
 import PublishedLinksPanel from '@/components/publication/PublishedLinksPanel'
 import {hasModule} from '@/lib/api/client'
@@ -80,6 +81,9 @@ export default function EpisodeEditor({episodeId}: {episodeId?: number}): React.
     const [scheduledAt, setScheduledAt] = useState('')
     const [isSaving, setIsSaving] = useState(false)
     const [isUploading, setIsUploading] = useState(false)
+    const [uploadProgress, setUploadProgress] = useState<{file: File; progress: number} | null>(
+        null,
+    )
     const [isLoading, setIsLoading] = useState(true)
     const [errorMessage, setErrorMessage] = useState<string | null>(null)
     const [audioPreviewUrl, setAudioPreviewUrl] = useState<string | null>(null)
@@ -375,12 +379,16 @@ export default function EpisodeEditor({episodeId}: {episodeId?: number}): React.
 
             setIsUploading(true)
             setErrorMessage(null)
+            setUploadProgress({file, progress: 0})
             try {
                 const host = getClientTenantHost()
                 const asset = await uploadMediaFile(host, file, {
                     assetType: 'AUDIO',
                     visibility: 'PRIVATE',
                     episodeId: saved.id,
+                    onProgress: (percent) => {
+                        setUploadProgress({file, progress: percent})
+                    },
                 })
                 const updated = await attachEpisodeAudio(host, saved.id, asset.id)
                 setEpisode(updated)
@@ -388,6 +396,7 @@ export default function EpisodeEditor({episodeId}: {episodeId?: number}): React.
                 handleAuthError(error)
             } finally {
                 setIsUploading(false)
+                setUploadProgress(null)
             }
         },
         [handleAuthError, save],
@@ -737,7 +746,13 @@ export default function EpisodeEditor({episodeId}: {episodeId?: number}): React.
                                     selectedId={audioAssetId}
                                 />
                             ) : null}
-                            {isUploading ? <p className="text-xs text-muted-foreground">Upload läuft…</p> : null}
+                            {isUploading && uploadProgress === null ? <p className="text-xs text-muted-foreground">Upload läuft…</p> : null}
+                            {uploadProgress !== null ? (
+                                <UploadProgress
+                                    file={uploadProgress.file}
+                                    progress={uploadProgress.progress}
+                                />
+                            ) : null}
                         </div>
                         {episode !== null ? (
                             <div className="grid gap-2">
