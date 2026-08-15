@@ -19,7 +19,7 @@ as an alternative.
 
 ```text
 Bucket: directwerk-{env}   (or dual: directwerk-{env}-public / -private)
-Key:    {tenant_slug}/{public|private|staging}/{type}/{uuid}_{sanitizedFilename}.{ext}
+Key:    {tenant_slug}/{public|private|staging}/{type}/{uuid}_{sanitizedFilenameStem}.{ext}
 
 Public  → CDN URL (immutable, cacheable)
 Private → ModuleGate → AssetAccessService → presignGet (1h API / 24h RSS)
@@ -162,10 +162,10 @@ Storage is split on **three axes**:
 
 | Scope | Key pattern | Entitlement check |
 |-------|-------------|-------------------|
-| `TENANT_PUBLIC` | `{tenant}/public/{type}/{uuid}_{sanitizedFilename}.{ext}` | None — CDN URL |
-| `CONTENT` | `{tenant}/private/{type}/{uuid}_{sanitizedFilename}.{ext}` | `EntitlementService.hasAccess(userId, episodeId \| publicationId)` |
-| `USER` | `{tenant}/private/user/{user_id}/{uuid}_{sanitizedFilename}.{ext}` | `principal.userId == asset.ownerUserId` **plus** any content link |
-| `SYSTEM` | `{tenant}/private/system/{purpose}/{uuid}_{sanitizedFilename}.{ext}` | Role-based (`EDITOR+`), not subscriber |
+| `TENANT_PUBLIC` | `{tenant}/public/{type}/{uuid}_{sanitizedFilenameStem}.{ext}` | None — CDN URL |
+| `CONTENT` | `{tenant}/private/{type}/{uuid}_{sanitizedFilenameStem}.{ext}` | `EntitlementService.hasAccess(userId, episodeId \| publicationId)` |
+| `USER` | `{tenant}/private/user/{user_id}/{uuid}_{sanitizedFilenameStem}.{ext}` | `principal.userId == asset.ownerUserId` **plus** any content link |
+| `SYSTEM` | `{tenant}/private/system/{purpose}/{uuid}_{sanitizedFilenameStem}.{ext}` | Role-based (`EDITOR+`), not subscriber |
 
 **Critical:** A user with access to **one** `CONTENT`-scoped episode must receive a signed URL
 **only for that episode’s `MediaAsset`**, never a listing or prefix grant under
@@ -644,7 +644,7 @@ episodes in that category.
 
 | Anti-pattern | Correct approach |
 |--------------|------------------|
-| S3 prefix `{tenant}/private/category/{id}/*` shared by subscribers | Keep all paid audio under `private/audio/{uuid}_{sanitizedFilename}.mp3`; category lives on `Episode` |
+| S3 prefix `{tenant}/private/category/{id}/*` shared by subscribers | Keep all paid audio under `private/audio/{uuid}_{sanitizedFilenameStem}.mp3`; category lives on `Episode` |
 | One long-lived signed URL for “all Season 3” | Presign per episode per request |
 | Skip `hasAccess` because user “has a subscription” | Always evaluate rules against **this** episode |
 | Cache signed URLs across episodes in RSS | Regenerate per enclosure on each feed build |
@@ -766,7 +766,7 @@ On episode publish (`access_policy = FREE`), `AssetPromotionService` moves audio
 
 | Consumer | Response |
 |----------|----------|
-| `GET /api/v1/public/episodes` | `audioUrl: "https://cdn.example.com/alpha-show-a/public/audio/{uuid}_{sanitizedFilename}.mp3"` |
+| `GET /api/v1/public/episodes` | `audioUrl: "https://cdn.example.com/alpha-show-a/public/audio/{uuid}_{sanitizedFilenameStem}.mp3"` |
 | Public RSS | Permanent CDN URL in `<enclosure url="...">` |
 | Website | Direct CDN URL from `site-config` / episode payload |
 
