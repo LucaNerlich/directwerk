@@ -1,5 +1,6 @@
 import {safeUpstreamResponse} from '@/lib/directwerk'
 import {requestTenantToken} from '@/lib/directwerkServer'
+import {readBoundedRequestBody} from '@/lib/http/readBoundedRequestBody'
 import {parseTenantHost} from '@/lib/tenant/parseTenantHost'
 import {validateLoginInput} from '@/lib/validation'
 
@@ -27,17 +28,14 @@ export async function POST(request: Request): Promise<Response> {
     }
 
     try {
-        const bodyText = await request.text()
-        if (bodyText.length > MAX_LOGIN_BODY_SIZE) {
-            return Response.json(
-                {error: 'Request body is too large.'},
-                {status: 413}
-            )
+        const bounded = await readBoundedRequestBody(request, MAX_LOGIN_BODY_SIZE)
+        if (!bounded.ok) {
+            return Response.json({error: bounded.error}, {status: bounded.status})
         }
 
         let input: unknown
         try {
-            input = JSON.parse(bodyText)
+            input = JSON.parse(bounded.text)
         } catch {
             return Response.json({error: 'Invalid JSON request.'}, {status: 400})
         }

@@ -201,8 +201,10 @@ async function authenticatedRequest(
 
     const value = await parseJsonResponse(response)
     if (response.status === 401) {
-        clearTokens()
-        throw new Error(AUTH_REQUIRED)
+        // Reached only when the token was already refreshed once and the retry
+        // still returned 401 — that is an authorization (not authentication)
+        // failure. Surface the error instead of logging the user out.
+        throw new Error(errorMessage(value, response.status))
     }
 
     if (!response.ok) {

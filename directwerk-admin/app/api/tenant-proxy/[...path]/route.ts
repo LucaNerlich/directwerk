@@ -1,5 +1,7 @@
 import {
+    buildSafePlatformQueryString,
     buildTenantApiPath,
+    jsonError,
     parseBearerAuthorization,
     safeUpstreamResponse,
 } from '@/lib/directwerk'
@@ -18,15 +20,12 @@ async function proxy(request: Request, context: RouteContext): Promise<Response>
         request.headers.get('authorization')
     )
     if (!authorization) {
-        return Response.json({error: 'Authentication required.'}, {status: 401})
+        return jsonError('Authentication required.', 401)
     }
 
     const tenantHost = parseTenantHost(request.headers.get('x-tenant-host'))
     if (tenantHost === null) {
-        return Response.json(
-            {error: 'A valid tenant host is required.'},
-            {status: 400}
-        )
+        return jsonError('A valid tenant host is required.', 400)
     }
 
     const {path} = await context.params
@@ -35,17 +34,23 @@ async function proxy(request: Request, context: RouteContext): Promise<Response>
     try {
         apiPath = buildTenantApiPath(path)
     } catch {
-        return Response.json({error: 'Invalid tenant API path.'}, {status: 400})
+        return jsonError('Invalid tenant API path.', 400)
+    }
+
+    let queryString = ''
+    try {
+        queryString = buildSafePlatformQueryString(
+            new URL(request.url).searchParams
+        )
+    } catch {
+        return jsonError('Invalid tenant API query.', 400)
     }
 
     let body: string | undefined
     if (request.method !== 'GET' && request.method !== 'HEAD') {
         const contentLength = request.headers.get('content-length')
         if (contentLength && Number(contentLength) > MAX_PROXY_BODY_SIZE) {
-            return Response.json(
-                {error: 'Request body is too large.'},
-                {status: 413}
-            )
+            return jsonError('Request body is too large.', 413)
         }
 
         const bounded = await readBoundedRequestBody(
@@ -53,10 +58,7 @@ async function proxy(request: Request, context: RouteContext): Promise<Response>
             MAX_PROXY_BODY_SIZE
         )
         if (!bounded.ok) {
-            return Response.json(
-                {error: bounded.error},
-                {status: bounded.status}
-            )
+            return jsonError(bounded.error, bounded.status)
         }
 
         body = bounded.text
@@ -65,16 +67,13 @@ async function proxy(request: Request, context: RouteContext): Promise<Response>
 
         if (!isBodylessDelete) {
             if (!request.headers.get('content-type')?.includes('application/json')) {
-                return Response.json(
-                    {error: 'Content-Type must be application/json.'},
-                    {status: 415}
-                )
+                return jsonError('Content-Type must be application/json.', 415)
             }
 
             try {
                 JSON.parse(body)
             } catch {
-                return Response.json({error: 'Invalid JSON request.'}, {status: 400})
+                return jsonError('Invalid JSON request.', 400)
             }
         } else {
             body = undefined
@@ -83,18 +82,15 @@ async function proxy(request: Request, context: RouteContext): Promise<Response>
 
     try {
         const upstream = await requestTenantApi(
-            apiPath,
+            `${apiPath}${queryString}`,
             tenantHost,
-            request.method as 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE',
+            request.method as 'GET' | 'HEAD' | 'POST' | 'PUT' | 'PATCH' | 'DELETE',
             authorization,
             body
         )
         return safeUpstreamResponse(upstream, request.method)
     } catch {
-        return Response.json(
-            {error: 'Directwerk service is unavailable.'},
-            {status: 502}
-        )
+        return jsonError('Directwerk service is unavailable.', 502)
     }
 }
 

@@ -9,6 +9,9 @@ import {resolveTenantHost} from '@/lib/tenant/resolveTenantHost'
  */
 export async function getTenantHost(): Promise<string> {
     const headerStore = await headers()
-    const rawHost = headerStore.get('x-forwarded-host') ?? headerStore.get('host')
+    // Prefer the canonical `host` (the request's routed host, protected by TLS/SNI)
+    // over `x-forwarded-host`, which a client can spoof when the reverse proxy
+    // forwards it through unmodified.
+    const rawHost = headerStore.get('host') ?? headerStore.get('x-forwarded-host')
     return resolveTenantHost(rawHost)
 }

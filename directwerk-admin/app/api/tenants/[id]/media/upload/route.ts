@@ -1,5 +1,7 @@
 import {
     buildPlatformApiPath,
+    jsonError,
+    NO_STORE_HEADERS,
     parseBearerAuthorization,
     safeUpstreamResponse,
 } from '@/lib/directwerk'
@@ -60,7 +62,7 @@ function isTimeoutError(error: unknown): boolean {
 function timeoutResponse(): Response {
     return Response.json(
         {error: 'Upstream request timed out.', code: 'TIMEOUT'},
-        {status: 504}
+        {status: 504, headers: NO_STORE_HEADERS}
     )
 }
 
@@ -76,26 +78,18 @@ async function readFormDataWithByteLimit(
     if (contentLengthHeader !== null) {
         const contentLength = Number(contentLengthHeader)
         if (!Number.isSafeInteger(contentLength) || contentLength < 0) {
-            return Response.json(
-                {error: 'Invalid Content-Length.'},
-                {status: 400}
-            )
+            return jsonError('Invalid Content-Length.', 400)
         }
         if (contentLength > maxBytes) {
-            return Response.json(
-                {
-                    error: `Request exceeds ${maxBytes} byte upload limit.`,
-                },
-                {status: 413}
+            return jsonError(
+                `Request exceeds ${maxBytes} byte upload limit.`,
+                413
             )
         }
     }
 
     if (!request.body) {
-        return Response.json(
-            {error: 'Expected multipart form data.'},
-            {status: 400}
-        )
+        return jsonError('Expected multipart form data.', 400)
     }
 
     let totalBytes = 0
@@ -125,17 +119,12 @@ async function readFormDataWithByteLimit(
             (error instanceof DOMException && error.message === 'BODY_TOO_LARGE') ||
             (error instanceof Error && error.message.includes('BODY_TOO_LARGE'))
         ) {
-            return Response.json(
-                {
-                    error: `Request exceeds ${maxBytes} byte upload limit.`,
-                },
-                {status: 413}
+            return jsonError(
+                `Request exceeds ${maxBytes} byte upload limit.`,
+                413
             )
         }
-        return Response.json(
-            {error: 'Expected multipart form data.'},
-            {status: 400}
-        )
+        return jsonError('Expected multipart form data.', 400)
     }
 }
 
@@ -154,12 +143,12 @@ export async function POST(
     )
 
     if (!authorization) {
-        return Response.json({error: 'Authentication required.'}, {status: 401})
+        return jsonError('Authentication required.', 401)
     }
 
     const {id: tenantId} = await context.params
     if (!/^\d+$/.test(tenantId)) {
-        return Response.json({error: 'Invalid tenant identifier.'}, {status: 400})
+        return jsonError('Invalid tenant identifier.', 400)
     }
 
     const formDataOrError = await readFormDataWithByteLimit(
@@ -173,25 +162,25 @@ export async function POST(
 
     const fileEntry = formData.get('file')
     if (!(fileEntry instanceof File) || fileEntry.size === 0) {
-        return Response.json({error: 'Choose a non-empty file to upload.'}, {status: 400})
+        return jsonError('Choose a non-empty file to upload.', 400)
     }
     if (fileEntry.size > MAX_UPLOAD_BYTES) {
-        return Response.json(
-            {error: `File exceeds ${MAX_UPLOAD_BYTES} byte test-upload limit.`},
-            {status: 413}
+        return jsonError(
+            `File exceeds ${MAX_UPLOAD_BYTES} byte test-upload limit.`,
+            413
         )
     }
 
     const visibilityRaw = String(formData.get('visibility') ?? 'PUBLIC').trim()
     if (!ASSET_VISIBILITIES.has(visibilityRaw)) {
-        return Response.json({error: 'Choose a valid visibility.'}, {status: 400})
+        return jsonError('Choose a valid visibility.', 400)
     }
 
     const mimeType = fileEntry.type || 'application/octet-stream'
     const assetTypeRaw = String(formData.get('assetType') ?? '').trim()
     const assetType = assetTypeRaw || inferAssetType(mimeType)
     if (!ASSET_TYPES.has(assetType)) {
-        return Response.json({error: 'Choose a valid asset type.'}, {status: 400})
+        return jsonError('Choose a valid asset type.', 400)
     }
 
     const uploadUrlBody = {
@@ -206,7 +195,7 @@ export async function POST(
     try {
         buildPlatformApiPath(['tenants', tenantId, 'media', 'upload-url'])
     } catch {
-        return Response.json({error: 'Invalid platform API path.'}, {status: 400})
+        return jsonError('Invalid platform API path.', 400)
     }
 
     try {
@@ -242,7 +231,7 @@ export async function POST(
         ) {
             return Response.json(
                 {error: 'Invalid upload-url response from Directwerk.'},
-                {status: 502}
+                {status: 502, headers: NO_STORE_HEADERS}
             )
         }
 
@@ -265,7 +254,7 @@ export async function POST(
                 {
                     error: `Object storage rejected the upload (HTTP ${putResponse.status}).`,
                 },
-                {status: 502}
+                {status: 502, headers: NO_STORE_HEADERS}
             )
         }
 
@@ -296,7 +285,7 @@ export async function POST(
                     assetId: uploadData.assetId,
                     retryConfirm: true,
                 },
-                {status: failure.status}
+                {status: failure.status, headers: NO_STORE_HEADERS}
             )
         }
 
@@ -305,9 +294,6 @@ export async function POST(
         if (isTimeoutError(error)) {
             return timeoutResponse()
         }
-        return Response.json(
-            {error: 'Directwerk or object storage is unavailable.'},
-            {status: 502}
-        )
+        return jsonError('Directwerk or object storage is unavailable.', 502)
     }
 }

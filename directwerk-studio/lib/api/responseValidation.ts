@@ -1503,7 +1503,15 @@ export function parseStripeOnboardEnvelope(value: unknown): string | null {
         return null
     }
     const url = value.data.url
-    if (!isBoundedString(url, 4096)) {
+    if (!isBoundedString(url, 4096) || url.length === 0) {
+        return null
+    }
+    try {
+        const parsed = new URL(url)
+        if (parsed.protocol !== 'https:') {
+            return null
+        }
+    } catch {
         return null
     }
     return url

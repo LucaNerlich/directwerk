@@ -6,7 +6,7 @@ import {request as httpsRequest} from 'node:https'
 const MAX_RESPONSE_BYTES = 1_048_576
 const REQUEST_TIMEOUT_MS = 10_000
 
-type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'
+type HttpMethod = 'GET' | 'HEAD' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'
 
 interface TenantHostRequest {
     targetUrl: URL

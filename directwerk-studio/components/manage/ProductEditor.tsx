@@ -153,7 +153,7 @@ export default function ProductEditor({
                 sortOrder: nextSortOrder,
                 active,
                 description: description.trim(),
-                priceCents: priceCents ?? 0,
+                priceCents,
                 currency: currency.trim().toUpperCase() || 'EUR',
                 billingInterval,
             })
