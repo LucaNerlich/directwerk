@@ -8,6 +8,7 @@ import java.util.Optional;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -33,4 +34,18 @@ public interface MediaAssetRepository extends JpaRepository<MediaAsset, Long> {
             @Param("status") AssetStatus status,
             Pageable pageable
     );
+
+    /**
+     * Tombstones a {@code PENDING} asset whose staging object was purged. Explicitly scoped by
+     * tenant because Hibernate filters do not apply to bulk updates.
+     */
+    @Modifying
+    @Query("""
+            update MediaAsset m
+            set m.status = de.pnnit.directwerk.modules.digital.entity.AssetStatus.ARCHIVED
+            where m.tenant.id = :tenantId
+              and m.s3Key = :s3Key
+              and m.status = de.pnnit.directwerk.modules.digital.entity.AssetStatus.PENDING
+            """)
+    int archivePendingByS3Key(@Param("tenantId") Long tenantId, @Param("s3Key") String s3Key);
 }

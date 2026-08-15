@@ -130,7 +130,7 @@ One bucket (e.g. `directwerk-prod`) with tenant and visibility prefixes:
   {tenant_slug}/
     public/          # world-readable via CDN
     private/         # never directly listable; signed GET only
-    staging/         # upload scratch; lifecycle expire 24h
+    staging/         # upload scratch; purged app-side after staging-lifecycle-hours
     user/            # optional per-user private subtree (see below)
 ```
 
@@ -692,6 +692,7 @@ sequenceDiagram
     Editor->>API: POST /api/v1/media/{id}/confirm
     API->>S3: HEAD checksum size mime
     API->>S3: CopyObject staging to private or public prefix
+    API->>S3: DeleteObject staging file + session folder marker
     API->>DB: READY update s3_key visibility
     API-->>Editor: 200 asset metadata no signed GET
 ```
@@ -747,7 +748,11 @@ On `POST /api/v1/media/{id}/confirm`:
 
 1. `HEAD` staging object — verify exists, size, checksum SHA-256
 2. `CopyObject` → final key under `public/` or `private/` based on `intendedVisibility` and publish rules
-3. `DeleteObject` staging
+3. `DeleteObject` staging file **and** its session folder marker (`{tenant}/staging/{session}/`). Bunny creates
+   explicit folder objects for key prefixes, so deleting the file alone leaves an empty directory behind.
+   `StagingCleanupService.deleteStagingKeyAndFolder` removes the file plus the folder marker with and
+   without a trailing slash. If S3 is unavailable, a `MEDIA_STAGING_CLEANUP` queue job retries the delete
+   later instead of rolling back the confirm.
 4. Update `MediaAsset.s3_key`, `status = READY`
 
 On episode publish (`access_policy = FREE`), `AssetPromotionService` moves audio from
@@ -921,11 +926,29 @@ Bucket policy (private bucket): deny `s3:GetObject` for `Principal: *`.
 
 ## Lifecycle rules
 
+Bunny.net Storage does **not** support S3 bucket lifecycle policies, and Hetzner does not expire
+keys by prefix either. Staging cleanup is therefore **application-side**, not a bucket rule:
+
 | Prefix | Rule |
 |--------|------|
-| `{tenant}/staging/` | Expire objects after 24h |
+| `{tenant}/staging/` | App purges objects (files **and** folder markers) older than `directwerk.storage.staging-lifecycle-hours` (default 24h) |
 | `{tenant}/private/` | No auto-expire; delete via app on asset archive |
-| Incomplete multipart uploads | Abort after 7 days |
+| Incomplete multipart uploads | Abort after 7 days (provider/ops-level, post-MVP) |
+
+### Staging cleanup job
+
+A recurring Quartz job (`MediaStagingCleanupJob`) calls `StagingCleanupService.cleanupExpiredStaging()`
+on an interval derived from `directwerk.queue.cleanup-interval-ms` (minimum 60s). It lists
+`{tenant}/staging/` per tenant (`ListObjectsV2`), deletes every expired object including Bunny folder
+markers, and tombstones any still-`PENDING` `MediaAsset` whose staging object was purged as `ARCHIVED`.
+
+`staging-lifecycle-hours` therefore has two uses:
+
+1. **Inline cleanup:** a successful confirm deletes the staging file and its session folder immediately.
+2. **Background sweep:** abandoned staging objects (failed uploads, never-confirmed assets) are removed
+   by the Quartz job once they are older than the configured hours.
+
+Both are idempotent — missing objects (`NoSuchKey` / HTTP 404) are ignored.
 
 ---
 

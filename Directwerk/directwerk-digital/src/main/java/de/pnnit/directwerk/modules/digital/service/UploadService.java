@@ -14,6 +14,7 @@ import de.pnnit.directwerk.modules.digital.exception.MediaAssetNotFoundException
 import de.pnnit.directwerk.modules.digital.exception.StorageNotConfiguredException;
 import de.pnnit.directwerk.modules.digital.exception.UploadValidationException;
 import de.pnnit.directwerk.modules.digital.repository.MediaAssetRepository;
+import de.pnnit.directwerk.modules.digital.job.MediaDeleteJobProducer;
 import de.pnnit.directwerk.modules.core.entity.Tenant;
 import de.pnnit.directwerk.config.DirectwerkConfig;
 import de.pnnit.directwerk.config.DirectwerkProperties;
@@ -24,12 +25,13 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import software.amazon.awssdk.core.exception.SdkException;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.CopyObjectRequest;
-import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
 import software.amazon.awssdk.services.s3.model.HeadObjectRequest;
 import software.amazon.awssdk.services.s3.model.HeadObjectResponse;
 import software.amazon.awssdk.services.s3.model.NoSuchKeyException;
@@ -50,6 +52,7 @@ import software.amazon.awssdk.services.s3.presigner.model.PutObjectPresignReques
 @Service
 @ConditionalOnProperty(prefix = "directwerk.storage", name = "enabled", havingValue = "true")
 @RequiredArgsConstructor
+@Slf4j
 @RequiresModule(DigitalContentModule.KEY)
 public class UploadService implements UploadApi {
 
@@ -58,6 +61,8 @@ public class UploadService implements UploadApi {
     private final MediaAssetRepository mediaAssetRepository;
     private final TenantLookupService tenantLookupService;
     private final DirectwerkConfig directwerkConfig;
+    private final StagingCleanupService stagingCleanupService;
+    private final MediaDeleteJobProducer mediaDeleteJobProducer;
 
     @Override
     @Transactional
@@ -197,10 +202,8 @@ public class UploadService implements UploadApi {
                 .destinationBucket(storage.bucket())
                 .destinationKey(finalKey)
                 .build());
-        s3Client.deleteObject(DeleteObjectRequest.builder()
-                .bucket(storage.bucket())
-                .key(stagingKey)
-                .build());
+
+        cleanupStagingObject(storage.bucket(), stagingKey);
 
         if (head.contentLength() != null) {
             asset.setSizeBytes(head.contentLength());
@@ -220,6 +223,21 @@ public class UploadService implements UploadApi {
                 asset.getSizeBytes(),
                 asset.getMimeType()
         );
+    }
+
+    /**
+     * Best-effort removal of the staging object and its session folder after a successful copy.
+     * <p>
+     * If S3 is temporarily unavailable the asset is already durably copied to its final key, so the
+     * confirm must not roll back — a {@code MEDIA_STAGING_CLEANUP} job retries the delete later.
+     */
+    private void cleanupStagingObject(String bucket, String stagingKey) {
+        try {
+            stagingCleanupService.deleteStagingKeyAndFolder(bucket, stagingKey);
+        } catch (SdkException ex) {
+            log.warn("Staging cleanup deferred after copy — S3 unavailable for key {}", stagingKey, ex);
+            mediaDeleteJobProducer.enqueueStagingCleanup(stagingKey);
+        }
     }
 
     private static String buildFinalKey(String tenantSlug, MediaAsset asset) {

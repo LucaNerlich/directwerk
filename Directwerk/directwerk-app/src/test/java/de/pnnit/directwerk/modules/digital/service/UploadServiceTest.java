@@ -3,6 +3,7 @@ package de.pnnit.directwerk.modules.digital.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -17,6 +18,7 @@ import de.pnnit.directwerk.modules.digital.entity.AssetType;
 import de.pnnit.directwerk.modules.digital.entity.AssetVisibility;
 import de.pnnit.directwerk.modules.digital.entity.MediaAsset;
 import de.pnnit.directwerk.modules.digital.exception.UploadValidationException;
+import de.pnnit.directwerk.modules.digital.job.MediaDeleteJobProducer;
 import de.pnnit.directwerk.modules.digital.repository.MediaAssetRepository;
 import de.pnnit.directwerk.multitenancy.TenantContext;
 import java.net.URI;
@@ -31,9 +33,9 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.CopyObjectRequest;
-import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
 import software.amazon.awssdk.services.s3.model.HeadObjectRequest;
 import software.amazon.awssdk.services.s3.model.HeadObjectResponse;
+import software.amazon.awssdk.services.s3.model.S3Exception;
 import software.amazon.awssdk.services.s3.presigner.S3Presigner;
 import software.amazon.awssdk.services.s3.presigner.model.PresignedPutObjectRequest;
 import software.amazon.awssdk.services.s3.presigner.model.PutObjectPresignRequest;
@@ -57,6 +59,12 @@ class UploadServiceTest {
     private DirectwerkConfig directwerkConfig;
 
     @Mock
+    private StagingCleanupService stagingCleanupService;
+
+    @Mock
+    private MediaDeleteJobProducer mediaDeleteJobProducer;
+
+    @Mock
     private PresignedPutObjectRequest presignedPut;
 
     private UploadService uploadService;
@@ -69,7 +77,9 @@ class UploadServiceTest {
                 s3Presigner,
                 mediaAssetRepository,
                 tenantLookupService,
-                directwerkConfig
+                directwerkConfig,
+                stagingCleanupService,
+                mediaDeleteJobProducer
         );
         tenant = new Tenant();
         tenant.setId(10L);
@@ -175,7 +185,51 @@ class UploadServiceTest {
         assertThat(result.status()).isEqualTo("READY");
         assertThat(result.s3Key()).startsWith("alpha-show-a/private/audio/");
         verify(s3Client).copyObject(any(CopyObjectRequest.class));
-        verify(s3Client).deleteObject(any(DeleteObjectRequest.class));
+        verify(stagingCleanupService).deleteStagingKeyAndFolder(
+                "directwerk-dev",
+                "alpha-show-a/staging/sess/episode.mp3"
+        );
+        verify(mediaDeleteJobProducer, never()).enqueueStagingCleanup(any());
+    }
+
+    @Test
+    void confirmUploadEnqueuesCleanupWhenS3DeleteFails() {
+        when(directwerkConfig.isStorageEnabled()).thenReturn(true);
+        when(directwerkConfig.storage()).thenReturn(storageProps());
+        when(tenantLookupService.requireTenant(10L)).thenReturn(tenant);
+
+        MediaAsset pending = new MediaAsset();
+        pending.setId(55L);
+        pending.setTenant(tenant);
+        pending.setS3Key("alpha-show-a/staging/sess/episode.mp3");
+        pending.setVisibility(AssetVisibility.PRIVATE);
+        pending.setScope(AssetScope.CONTENT);
+        pending.setAssetType(AssetType.AUDIO);
+        pending.setStatus(AssetStatus.PENDING);
+        pending.setMimeType("audio/mpeg");
+        pending.setSizeBytes(2048L);
+        pending.setOriginalFilename("episode.mp3");
+        when(mediaAssetRepository.findById(55L)).thenReturn(Optional.of(pending));
+        when(mediaAssetRepository.saveAndFlush(any(MediaAsset.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(s3Client.headObject(any(HeadObjectRequest.class))).thenReturn(
+                HeadObjectResponse.builder()
+                        .contentLength(2048L)
+                        .contentType("audio/mpeg")
+                        .eTag("\"abc\"")
+                        .build()
+        );
+        S3Exception s3Unavailable = (S3Exception) S3Exception.builder()
+                .statusCode(503)
+                .message("Service Unavailable")
+                .build();
+        org.mockito.Mockito.doThrow(s3Unavailable)
+                .when(stagingCleanupService)
+                .deleteStagingKeyAndFolder("directwerk-dev", "alpha-show-a/staging/sess/episode.mp3");
+
+        UploadApi.ConfirmUploadResult result = uploadService.confirmUpload(new UploadApi.ConfirmUploadCommand(55L));
+
+        assertThat(result.status()).isEqualTo("READY");
+        verify(mediaDeleteJobProducer).enqueueStagingCleanup("alpha-show-a/staging/sess/episode.mp3");
     }
 
     private static DirectwerkProperties.Storage storageProps() {
