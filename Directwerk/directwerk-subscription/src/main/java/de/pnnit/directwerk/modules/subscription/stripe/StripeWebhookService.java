@@ -121,7 +121,12 @@ public class StripeWebhookService {
             log.warn("Ignoring checkout.session.completed for unknown product");
             return;
         }
-        SubscriptionStatus status = mapStripeStatus(event.stripeSubscriptionStatus());
+        // A completed checkout means payment succeeded; the session does not carry a
+        // subscription status, so default to ACTIVE rather than mapping a null status.
+        SubscriptionStatus status =
+                event.stripeSubscriptionStatus() == null || event.stripeSubscriptionStatus().isBlank()
+                        ? SubscriptionStatus.ACTIVE
+                        : mapStripeStatus(event.stripeSubscriptionStatus());
         if (event.subscriptionId() == null || event.subscriptionId().isBlank()) {
             status = SubscriptionStatus.ACTIVE;
         }
@@ -220,14 +225,15 @@ public class StripeWebhookService {
 
     private static SubscriptionStatus mapStripeStatus(String stripeStatus) {
         if (stripeStatus == null || stripeStatus.isBlank()) {
-            return SubscriptionStatus.ACTIVE;
+            return SubscriptionStatus.PAST_DUE;
         }
         return switch (stripeStatus) {
             case "active", "trialing" -> SubscriptionStatus.ACTIVE;
-            case "past_due", "unpaid" -> SubscriptionStatus.PAST_DUE;
+            case "past_due", "unpaid", "paused" -> SubscriptionStatus.PAST_DUE;
             case "incomplete", "incomplete_expired" -> SubscriptionStatus.INCOMPLETE;
             case "canceled" -> SubscriptionStatus.CANCELED;
-            default -> SubscriptionStatus.ACTIVE;
+            // Fail closed: unknown statuses never grant entitlements.
+            default -> SubscriptionStatus.PAST_DUE;
         };
     }
 

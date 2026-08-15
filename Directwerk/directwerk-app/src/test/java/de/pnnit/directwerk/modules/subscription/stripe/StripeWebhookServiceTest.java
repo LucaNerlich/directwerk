@@ -164,8 +164,73 @@ class StripeWebhookServiceTest {
     }
 
     @Test
-    void invoicePaidOnlyReactivatesOverdueSubscriptions() {
+    void pausedSubscriptionStatusMapsToPastDue() {
         StripeOperations.StripeWebhookPayload payload = new StripeOperations.StripeWebhookPayload(
+                "evt_paused",
+                "customer.subscription.updated",
+                "acct_1",
+                "cus_1",
+                "sub_9",
+                null,
+                null,
+                "paused",
+                true,
+                true,
+                true,
+                Map.of(),
+                null,
+                false
+        );
+        when(stripeOperations.parseWebhook("{}", "sig")).thenReturn(payload);
+        when(processedWebhookEventRepository.insertIfAbsent("evt_paused", "customer.subscription.updated", "acct_1"))
+                .thenReturn(1);
+        when(stripeConnectService.findByStripeAccountId("acct_1")).thenReturn(account(7L, "acct_1"));
+
+        service.handle("{}", "sig");
+
+        verify(subscriptionService).syncStripeSubscriptionByExternalId(
+                eq(7L),
+                eq("sub_9"),
+                eq(SubscriptionStatus.PAST_DUE),
+                eq(null)
+        );
+    }
+
+    @Test
+    void unknownSubscriptionStatusFailsClosedToPastDue() {
+        StripeOperations.StripeWebhookPayload payload = new StripeOperations.StripeWebhookPayload(
+                "evt_unknown",
+                "customer.subscription.updated",
+                "acct_1",
+                "cus_1",
+                "sub_9",
+                null,
+                null,
+                "some_future_status",
+                true,
+                true,
+                true,
+                Map.of(),
+                null,
+                false
+        );
+        when(stripeOperations.parseWebhook("{}", "sig")).thenReturn(payload);
+        when(processedWebhookEventRepository.insertIfAbsent("evt_unknown", "customer.subscription.updated", "acct_1"))
+                .thenReturn(1);
+        when(stripeConnectService.findByStripeAccountId("acct_1")).thenReturn(account(7L, "acct_1"));
+
+        service.handle("{}", "sig");
+
+        verify(subscriptionService).syncStripeSubscriptionByExternalId(
+                eq(7L),
+                eq("sub_9"),
+                eq(SubscriptionStatus.PAST_DUE),
+                eq(null)
+        );
+    }
+
+    @Test
+    void invoicePaidOnlyReactivatesOverdueSubscriptions() {        StripeOperations.StripeWebhookPayload payload = new StripeOperations.StripeWebhookPayload(
                 "evt_invoice",
                 "invoice.paid",
                 "acct_1",
