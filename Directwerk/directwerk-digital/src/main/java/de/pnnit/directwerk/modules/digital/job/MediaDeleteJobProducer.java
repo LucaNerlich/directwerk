@@ -10,7 +10,7 @@ import org.springframework.util.StringUtils;
 import tools.jackson.databind.ObjectMapper;
 
 /**
- * Typed producer for media S3 delete and CDN purge jobs.
+ * Typed producer for media S3 delete, CDN purge, and staging cleanup jobs.
  */
 @Service
 @ConditionalOnProperty(prefix = "directwerk.storage", name = "enabled", havingValue = "true")
@@ -44,6 +44,24 @@ public class MediaDeleteJobProducer {
                 null,
                 null,
                 new JobEnqueueMetadata(tenantId, "media-s3-delete-" + mediaAssetId, null)
+        );
+    }
+
+    public QueueJob enqueueStagingCleanup(String stagingKey) {
+        if (!StringUtils.hasText(stagingKey)) {
+            throw new IllegalArgumentException("stagingKey is required for media staging cleanup jobs");
+        }
+        Long tenantId = TenantContext.requireTenantId();
+        MediaStagingCleanupJobPayload payload = new MediaStagingCleanupJobPayload(stagingKey.trim());
+        // No correlation id: each staging key is distinct and must be deleted independently, so
+        // coalescing QUEUED jobs by correlation would drop keys.
+        return queueService.enqueue(
+                MediaJobQueueNames.MEDIA_STAGING_CLEANUP,
+                objectMapper.valueToTree(payload),
+                0,
+                null,
+                null,
+                new JobEnqueueMetadata(tenantId, null, null)
         );
     }
 

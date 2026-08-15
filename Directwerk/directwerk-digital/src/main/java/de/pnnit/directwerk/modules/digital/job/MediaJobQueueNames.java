@@ -7,6 +7,7 @@ public final class MediaJobQueueNames {
 
     public static final String MEDIA_S3_DELETE = "media-s3-delete";
     public static final String MEDIA_CDN_PURGE = "media-cdn-purge";
+    public static final String MEDIA_STAGING_CLEANUP = "media-staging-cleanup";
 
     private MediaJobQueueNames() {
     }

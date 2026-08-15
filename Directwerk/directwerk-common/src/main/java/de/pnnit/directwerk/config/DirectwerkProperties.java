@@ -166,6 +166,8 @@ public record DirectwerkProperties(
             Duration presignDownloadTtlApi,
             Duration presignDownloadTtlRss,
             @Positive long stagingLifecycleHours,
+            /** Interval between app-side staging sweep runs (Bunny has no bucket lifecycle rules). */
+            @Positive long stagingCleanupIntervalMs,
             /** Optional Bunny account AccessKey for CDN Purge URL API; blank disables purge. */
             String cdnPurgeApiKey,
             /** Bunny Core API base (default {@code https://api.bunny.net}); override for tests. */

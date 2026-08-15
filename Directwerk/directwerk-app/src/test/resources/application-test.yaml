@@ -67,4 +67,5 @@ directwerk:
         presign-download-ttl-api: 1h
         presign-download-ttl-rss: 24h
         staging-lifecycle-hours: 24
+        staging-cleanup-interval-ms: 3600000
 
