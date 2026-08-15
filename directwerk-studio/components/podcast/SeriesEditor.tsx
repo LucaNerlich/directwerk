@@ -24,6 +24,7 @@ import {
     updateSeries,
 } from '@/lib/api/tenantApi'
 import type {SeriesStatus} from '@/lib/api/types'
+import {mediaLimitLabel} from '@/lib/media/limits'
 import {uploadMediaFile} from '@/lib/media/upload'
 import {getClientTenantHost} from '@/lib/tenant/getClientTenantHost'
 
@@ -391,6 +392,9 @@ export default function SeriesEditor({seriesId}: SeriesEditorProps): React.JSX.E
                         }}
                         type="file"
                     />
+                    <span className="text-xs font-normal text-muted-foreground">
+                        Max. {mediaLimitLabel('IMAGE')}.
+                    </span>
                     <MediaLibraryPicker
                         assetType="IMAGE"
                         disabled={isUploadingCover || isSaving}

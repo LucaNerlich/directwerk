@@ -29,6 +29,7 @@ import {
 import type {AccessPolicy, ArticleDetail, CategorySummary} from '@/lib/api/types'
 import {fromDatetimeLocalValue, toDatetimeLocalValue} from '@/lib/datetime'
 import {useDraftAutosave} from '@/lib/editor/useDraftAutosave'
+import {mediaLimitLabel} from '@/lib/media/limits'
 import {uploadMediaFile} from '@/lib/media/upload'
 import {useSiteConfig} from '@/lib/site/SiteConfigProvider'
 import {getClientTenantHost} from '@/lib/tenant/getClientTenantHost'
@@ -472,6 +473,9 @@ export default function ArticleEditor({articleId}: {articleId?: number}) {
                                 }}
                                 type="file"
                             />
+                            <span className="text-xs text-muted-foreground">
+                                Max. {mediaLimitLabel('IMAGE')}.
+                            </span>
                         </label>
                         {uploadProgress !== null ? (
                             <UploadProgress

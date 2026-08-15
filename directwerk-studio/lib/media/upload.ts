@@ -4,6 +4,8 @@ import {AUTH_REQUIRED} from '@/lib/api/errors'
 import type {MediaAsset} from '@/lib/api/types'
 import {getValidAccessToken} from '@/lib/auth/session'
 import {clearTokens} from '@/lib/auth/tokenStore'
+import {exceedsMediaLimit, mediaLimitLabel} from '@/lib/media/limits'
+import type {MediaAssetType} from '@/lib/media/limits'
 
 function errorMessage(value: unknown, status: number): string {
     if (
@@ -54,31 +56,30 @@ function parseAssetBody(body: unknown): MediaAsset {
     }
 }
 
-interface StreamEvent {
-    type: 'progress' | 'result' | 'error'
-    percent?: number
-    status?: number
-    body?: unknown
-}
-
 /**
- * Upload a media file via the studio BFF (upload-url → S3 PUT → confirm).
- * Browser cannot PUT Bunny S3 directly (no storage CORS).
+ * Upload a media file via the studio BFF (upload-url → stream to S3 → confirm).
  *
- * Uses XMLHttpRequest so we can observe upload progress for the browser → BFF
- * leg, while the BFF streams NDJSON progress events for the S3 leg. The two
- * legs are combined into a single 0–100 progress value.
+ * The raw file bytes are sent as the request body and streamed straight through
+ * to object storage, so `onProgress` reflects the end-to-end upload (the BFF
+ * applies backpressure and never buffers the file in memory).
  */
 export async function uploadMediaFile(
     tenantHost: string,
     file: File,
     options?: {
-        assetType?: 'AUDIO' | 'IMAGE' | 'VIDEO' | 'DOCUMENT'
+        assetType?: MediaAssetType
         visibility?: 'PUBLIC' | 'PRIVATE'
         episodeId?: number
         onProgress?: (percent: number) => void
     },
 ): Promise<MediaAsset> {
+    const assetType = options?.assetType
+    if (assetType !== undefined && exceedsMediaLimit(assetType, file.size)) {
+        throw new Error(
+            `Datei zu groß (max. ${mediaLimitLabel(assetType)} für ${assetType}).`,
+        )
+    }
+
     let accessToken: string
     try {
         accessToken = await getValidAccessToken()
@@ -87,123 +88,26 @@ export async function uploadMediaFile(
         throw new Error(AUTH_REQUIRED)
     }
 
-    const body = new FormData()
-    body.set('file', file)
-    body.set('visibility', options?.visibility ?? 'PRIVATE')
-    if (options?.assetType !== undefined) {
-        body.set('assetType', options.assetType)
-    }
-    if (options?.episodeId !== undefined) {
-        body.set('episodeId', String(options.episodeId))
-    }
-
     return new Promise<MediaAsset>((resolve, reject) => {
         const xhr = new XMLHttpRequest()
         xhr.open('POST', '/api/media/upload')
         xhr.setRequestHeader('Authorization', `Bearer ${accessToken}`)
         xhr.setRequestHeader('X-Tenant-Host', tenantHost)
-
-        const onProgress = options?.onProgress
-        let settled = false
-        let leg1Percent = 0
-        let leg2Percent = 0
-
-        const reportProgress = (): void => {
-            onProgress?.(Math.min(100, Math.round(leg1Percent * 0.5 + leg2Percent * 0.5)))
+        xhr.setRequestHeader('X-Filename', encodeURIComponent(file.name))
+        xhr.setRequestHeader('Content-Type', file.type || 'application/octet-stream')
+        xhr.setRequestHeader('X-Visibility', options?.visibility ?? 'PRIVATE')
+        if (assetType !== undefined) {
+            xhr.setRequestHeader('X-Asset-Type', assetType)
+        }
+        if (options?.episodeId !== undefined) {
+            xhr.setRequestHeader('X-Episode-Id', String(options.episodeId))
         }
 
+        const onProgress = options?.onProgress
         if (onProgress !== undefined) {
             xhr.upload.onprogress = (event) => {
                 if (event.lengthComputable && event.total > 0) {
-                    leg1Percent = (event.loaded / event.total) * 100
-                    reportProgress()
-                }
-            }
-        }
-
-        const resolveAsset = (value: unknown): void => {
-            if (settled) {
-                return
-            }
-            settled = true
-            try {
-                resolve(parseAssetBody(value))
-            } catch (error) {
-                reject(error)
-            }
-        }
-
-        const rejectEvent = (status: number, value: unknown): void => {
-            if (settled) {
-                return
-            }
-            settled = true
-            if (status === 401) {
-                clearTokens()
-                reject(new Error(AUTH_REQUIRED))
-                return
-            }
-            reject(new Error(errorMessage(value, status)))
-        }
-
-        let buffer = ''
-        let processedLength = 0
-
-        const handleProgressLine = (line: string): void => {
-            if (line.length === 0) {
-                return
-            }
-            let event: StreamEvent
-            try {
-                event = JSON.parse(line) as StreamEvent
-            } catch {
-                return
-            }
-            if (event.type === 'progress' && typeof event.percent === 'number') {
-                leg2Percent = event.percent
-                reportProgress()
-            }
-        }
-
-        const handleFinalLines = (chunk: string): void => {
-            buffer += chunk
-            const lines = buffer.split('\n')
-            buffer = ''
-            for (const line of lines) {
-                if (line.length === 0) {
-                    continue
-                }
-                let event: StreamEvent
-                try {
-                    event = JSON.parse(line) as StreamEvent
-                } catch {
-                    continue
-                }
-                if (event.type === 'progress' && typeof event.percent === 'number') {
-                    leg2Percent = event.percent
-                    reportProgress()
-                } else if (event.type === 'result') {
-                    resolveAsset(event.body)
-                } else if (event.type === 'error') {
-                    rejectEvent(
-                        typeof event.status === 'number' ? event.status : 502,
-                        event.body,
-                    )
-                }
-            }
-        }
-
-        xhr.onprogress = () => {
-            if (xhr.readyState === 3) {
-                const text = xhr.responseText
-                const chunk = text.slice(processedLength)
-                processedLength = text.length
-
-                buffer += chunk
-                const lines = buffer.split('\n')
-                buffer = lines.pop() ?? ''
-                for (const line of lines) {
-                    handleProgressLine(line)
+                    onProgress(Math.min(100, Math.round((event.loaded / event.total) * 100)))
                 }
             }
         }
@@ -211,16 +115,6 @@ export async function uploadMediaFile(
         xhr.onload = () => {
             const status = xhr.status
             const contentType = xhr.getResponseHeader('content-type') ?? ''
-
-            if (contentType.toLowerCase().includes('application/x-ndjson')) {
-                const text = xhr.responseText
-                handleFinalLines(text.slice(processedLength))
-                if (!settled) {
-                    reject(new Error('Der Server hat eine ungültige Upload-Antwort gesendet.'))
-                }
-                return
-            }
-
             if (!contentType.toLowerCase().includes('application/json')) {
                 reject(new Error('Der Server hat eine ungültige Upload-Antwort gesendet.'))
                 return
@@ -244,7 +138,11 @@ export async function uploadMediaFile(
                 return
             }
 
-            resolveAsset(value)
+            try {
+                resolve(parseAssetBody(value))
+            } catch (error) {
+                reject(error)
+            }
         }
 
         xhr.onerror = () => {
@@ -257,6 +155,6 @@ export async function uploadMediaFile(
             reject(new Error('Upload abgebrochen.'))
         }
 
-        xhr.send(body)
+        xhr.send(file)
     })
 }

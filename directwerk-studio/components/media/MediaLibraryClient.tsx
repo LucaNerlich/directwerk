@@ -13,6 +13,7 @@ import {useRouter} from 'next/navigation'
 import {AUTH_REQUIRED} from '@/lib/api/errors'
 import {deleteMedia, listMedia} from '@/lib/api/tenantApi'
 import type {MediaAsset} from '@/lib/api/types'
+import {MEDIA_TYPE_LIMITS} from '@/lib/media/limits'
 import {uploadMediaFile} from '@/lib/media/upload'
 import {getClientTenantHost} from '@/lib/tenant/getClientTenantHost'
 
@@ -269,6 +270,10 @@ export default function MediaLibraryClient(): React.JSX.Element {
                 </p>
                 <p className="mt-1 text-muted-foreground">
                     Audio, Bilder, Video oder PDF/DOC. Alternativ über „Datei hochladen“.
+                </p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                    Audio bis {MEDIA_TYPE_LIMITS.AUDIO.label} · Video bis {MEDIA_TYPE_LIMITS.VIDEO.label}
+                    {' · '}Bilder bis {MEDIA_TYPE_LIMITS.IMAGE.label} · Dokumente bis {MEDIA_TYPE_LIMITS.DOCUMENT.label}
                 </p>
             </div>
 

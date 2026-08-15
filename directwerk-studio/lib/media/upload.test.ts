@@ -8,6 +8,20 @@ vi.mock('@/lib/auth/session', () => ({
 vi.mock('@/lib/auth/tokenStore', () => ({
     clearTokens: vi.fn(),
 }))
+vi.mock('@/lib/media/limits', () => {
+    const limits = {
+        AUDIO: {maxBytes: 100, label: '100 B'},
+        IMAGE: {maxBytes: 100, label: '100 B'},
+        VIDEO: {maxBytes: 100, label: '100 B'},
+        DOCUMENT: {maxBytes: 100, label: '100 B'},
+    } as const
+    type LimitType = keyof typeof limits
+    return {
+        MEDIA_TYPE_LIMITS: limits,
+        mediaLimitLabel: (type: LimitType) => limits[type].label,
+        exceedsMediaLimit: (type: LimitType, size: number) => size > limits[type].maxBytes,
+    }
+})
 
 interface ProgressEventLike {
     lengthComputable: boolean
@@ -20,12 +34,10 @@ class MockXMLHttpRequest {
 
     upload: {onprogress: ((event: ProgressEventLike) => void) | null} = {onprogress: null}
     onload: (() => void) | null = null
-    onprogress: (() => void) | null = null
     onerror: (() => void) | null = null
     ontimeout: (() => void) | null = null
     onabort: (() => void) | null = null
 
-    readyState = 0
     status = 0
     responseText = ''
 
@@ -62,7 +74,7 @@ describe('uploadMediaFile', () => {
         vi.unstubAllGlobals()
     })
 
-    it('reports combined progress across both legs and resolves with the asset', async () => {
+    it('sets metadata headers, reports progress, and resolves with the asset', async () => {
         const onProgress = vi.fn()
         const file = new File(['x'.repeat(64)], 'folge.mp3', {type: 'audio/mpeg'})
 
@@ -78,44 +90,33 @@ describe('uploadMediaFile', () => {
         const xhr = MockXMLHttpRequest.instances[0]
         expect(xhr.getRequestHeader('authorization')).toBe('Bearer token')
         expect(xhr.getRequestHeader('x-tenant-host')).toBe('tenant.test')
+        expect(xhr.getRequestHeader('x-filename')).toBe(encodeURIComponent('folge.mp3'))
+        expect(xhr.getRequestHeader('content-type')).toBe('audio/mpeg')
+        expect(xhr.getRequestHeader('x-visibility')).toBe('PRIVATE')
+        expect(xhr.getRequestHeader('x-asset-type')).toBe('AUDIO')
+        expect(xhr.getRequestHeader('x-episode-id')).toBeNull()
 
-        // Leg 1: browser → BFF upload progress (maps to 0–50 %).
         xhr.upload.onprogress?.({lengthComputable: true, loaded: 50, total: 100})
-        expect(onProgress).toHaveBeenLastCalledWith(25)
+        expect(onProgress).toHaveBeenLastCalledWith(50)
 
         xhr.upload.onprogress?.({lengthComputable: false, loaded: 60, total: 100})
         expect(onProgress).toHaveBeenCalledTimes(1)
 
         xhr.upload.onprogress?.({lengthComputable: true, loaded: 100, total: 100})
-        expect(onProgress).toHaveBeenLastCalledWith(50)
-
-        // Leg 2: BFF → S3 progress streamed back as NDJSON (maps to 50–100 %).
-        xhr.readyState = 3
-        xhr.responseText = '{"type":"progress","percent":50}\n'
-        xhr.onprogress?.()
-        expect(onProgress).toHaveBeenLastCalledWith(75)
-
-        xhr.responseText += '{"type":"progress","percent":100}\n'
-        xhr.onprogress?.()
         expect(onProgress).toHaveBeenLastCalledWith(100)
 
-        // Final result event.
-        xhr.readyState = 4
-        xhr.setResponseHeader('content-type', 'application/x-ndjson; charset=utf-8')
-        xhr.responseText += `${JSON.stringify({
-            type: 'result',
-            status: 200,
-            body: {
-                data: {
-                    id: 8,
-                    status: 'READY',
-                    assetType: 'AUDIO',
-                    mimeType: 'audio/mpeg',
-                    originalFilename: 'folge.mp3',
-                    sizeBytes: 64,
-                },
+        xhr.status = 200
+        xhr.setResponseHeader('content-type', 'application/json')
+        xhr.responseText = JSON.stringify({
+            data: {
+                id: 8,
+                status: 'READY',
+                assetType: 'AUDIO',
+                mimeType: 'audio/mpeg',
+                originalFilename: 'folge.mp3',
+                sizeBytes: 64,
             },
-        })}\n`
+        })
         xhr.onload?.()
 
         await expect(promise).resolves.toEqual({
@@ -128,7 +129,17 @@ describe('uploadMediaFile', () => {
         })
     })
 
-    it('rejects with AUTH_REQUIRED when the stream reports a 401', async () => {
+    it('rejects files over the per-type limit before creating a request', async () => {
+        const file = new File(['x'.repeat(200)], 'big.mp3', {type: 'audio/mpeg'})
+
+        await expect(
+            uploadMediaFile('tenant.test', file, {assetType: 'AUDIO'}),
+        ).rejects.toThrow('Datei zu groß')
+
+        expect(MockXMLHttpRequest.instances.length).toBe(0)
+    })
+
+    it('rejects with AUTH_REQUIRED when the server responds 401', async () => {
         const file = new File(['x'.repeat(8)], 'folge.mp3', {type: 'audio/mpeg'})
 
         const promise = uploadMediaFile('tenant.test', file)
@@ -138,13 +149,9 @@ describe('uploadMediaFile', () => {
         })
         const xhr = MockXMLHttpRequest.instances[0]
 
-        xhr.readyState = 4
-        xhr.setResponseHeader('content-type', 'application/x-ndjson; charset=utf-8')
-        xhr.responseText = `${JSON.stringify({
-            type: 'error',
-            status: 401,
-            body: {error: 'unauthorized'},
-        })}\n`
+        xhr.status = 401
+        xhr.setResponseHeader('content-type', 'application/json')
+        xhr.responseText = JSON.stringify({error: 'unauthorized'})
         xhr.onload?.()
 
         await expect(promise).rejects.toThrow('AUTH_REQUIRED')

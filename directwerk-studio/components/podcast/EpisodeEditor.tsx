@@ -39,6 +39,7 @@ import {
 } from '@/lib/api/tenantApi'
 import type {AccessPolicy, CategorySummary, EpisodeDetail, FormatSummary, SeriesSummary} from '@/lib/api/types'
 import {fromDatetimeLocalValue, toDatetimeLocalValue} from '@/lib/datetime'
+import {mediaLimitLabel} from '@/lib/media/limits'
 import {uploadMediaFile} from '@/lib/media/upload'
 import {episodePublishBlockReason} from '@/lib/podcast/episodePreflight'
 import {publicEpisodePageUrl} from '@/lib/podcast/publicUrls'
@@ -740,6 +741,9 @@ export default function EpisodeEditor({episodeId}: {episodeId?: number}): React.
                                         event.target.value = ''
                                     }}
                                 />
+                                <span className="text-xs font-normal text-muted-foreground">
+                                    Max. {mediaLimitLabel('AUDIO')}.
+                                </span>
                             </label>
                             {hasDigitalContent ? (
                                 <MediaLibraryPicker
