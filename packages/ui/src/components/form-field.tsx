@@ -19,9 +19,17 @@ export default function FormField({
     className?: string
 }): React.JSX.Element {
     const messageId = `${htmlFor}-message`
+    const hasMessage = error !== undefined || hint !== undefined
     const control = isValidElement(children)
         ? cloneElement(children as ReactElement<Record<string, unknown>>, {
-              'aria-describedby': messageId,
+              'aria-describedby': hasMessage
+                  ? [
+                        (children.props as {'aria-describedby'?: string})['aria-describedby'],
+                        messageId,
+                    ]
+                        .filter(Boolean)
+                        .join(' ') || undefined
+                  : undefined,
               ...(error !== undefined ? {'aria-invalid': true} : {}),
           })
         : children

@@ -9,13 +9,8 @@ import {
  * re-authenticated by the persisted refresh token.
  */
 export async function POST(): Promise<Response> {
-    return new Response(null, {
-        status: 204,
-        headers: {
-            'Set-Cookie': [
-                serializeClearCookie(PLATFORM_REFRESH_COOKIE),
-                serializeClearCookie(TENANT_REFRESH_COOKIE),
-            ].join(', '),
-        },
-    })
+    const headers = new Headers()
+    headers.append('Set-Cookie', serializeClearCookie(PLATFORM_REFRESH_COOKIE))
+    headers.append('Set-Cookie', serializeClearCookie(TENANT_REFRESH_COOKIE))
+    return new Response(null, {status: 204, headers})
 }

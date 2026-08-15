@@ -21,8 +21,8 @@ function relativeLuminance(hex: string): number {
 }
 
 function foregroundFor(hex: string): string {
-    // WCAG relative luminance; dark text passes AA on L > ~0.179, white below.
-    return relativeLuminance(hex) > 0.179 ? '#171717' : '#ffffff'
+    // WCAG relative luminance; #171717 needs L >= ~0.214 for AA contrast.
+    return relativeLuminance(hex) > 0.214 ? '#171717' : '#ffffff'
 }
 
 export default function BrandTheme({
