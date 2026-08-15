@@ -9,10 +9,18 @@ export function formatMoney(
         return 'Kein Preis'
     }
     const code = currency && currency.length === 3 ? currency : 'EUR'
-    const amount = new Intl.NumberFormat('de-DE', {
-        style: 'currency',
-        currency: code,
-    }).format(priceCents / 100)
+    let amount: string
+    try {
+        amount = new Intl.NumberFormat('de-DE', {
+            style: 'currency',
+            currency: code,
+        }).format(priceCents / 100)
+    } catch {
+        amount = new Intl.NumberFormat('de-DE', {
+            style: 'currency',
+            currency: 'EUR',
+        }).format(priceCents / 100)
+    }
     if (interval === 'MONTH') {
         return `${amount} / Monat`
     }

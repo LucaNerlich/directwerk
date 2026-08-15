@@ -115,7 +115,7 @@ export async function requestTenantRefresh(
 export async function requestTenantApi(
     path: string,
     tenantHost: string,
-    method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE',
+    method: 'GET' | 'HEAD' | 'POST' | 'PUT' | 'PATCH' | 'DELETE',
     authorization: string,
     body?: string
 ): Promise<Response> {

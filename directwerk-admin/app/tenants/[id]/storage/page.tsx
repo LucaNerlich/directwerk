@@ -95,22 +95,30 @@ function resolveCdnUrl(
     asset: MediaAsset,
     publicCdnBaseUrl: string | null
 ): string | null {
+    let candidate: string | null = null
+
     if (typeof asset.cdnUrl === 'string' && asset.cdnUrl.length > 0) {
-        return asset.cdnUrl
+        candidate = asset.cdnUrl
+    } else if (
+        asset.visibility === 'PUBLIC' &&
+        asset.status === 'READY' &&
+        asset.s3Key.includes('/public/') &&
+        publicCdnBaseUrl
+    ) {
+        const base = publicCdnBaseUrl.replace(/\/+$/, '')
+        const key = asset.s3Key.replace(/^\/+/, '')
+        candidate = `${base}/${key}`
     }
 
-    if (
-        asset.visibility !== 'PUBLIC' ||
-        asset.status !== 'READY' ||
-        !asset.s3Key.includes('/public/') ||
-        !publicCdnBaseUrl
-    ) {
+    if (candidate === null) {
         return null
     }
 
-    const base = publicCdnBaseUrl.replace(/\/+$/, '')
-    const key = asset.s3Key.replace(/^\/+/, '')
-    return `${base}/${key}`
+    try {
+        return new URL(candidate).protocol === 'https:' ? candidate : null
+    } catch {
+        return null
+    }
 }
 
 export default function TenantStoragePage({params}: TenantStoragePageProps) {

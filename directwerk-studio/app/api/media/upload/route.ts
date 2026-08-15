@@ -229,7 +229,7 @@ export async function POST(request: Request): Promise<Response> {
                     assetId: uploadData.assetId,
                     retryConfirm: true,
                 },
-                {status: failure.status},
+                {status: failure.status, headers: {'Cache-Control': 'no-store'}},
             )
         }
 

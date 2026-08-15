@@ -63,7 +63,7 @@ async function proxy(request: Request, context: RouteContext): Promise<Response>
             authorization
         )
         const upstream = await fetch(upstreamRequest.url, upstreamRequest.init)
-        return safeUpstreamResponse(upstream)
+        return safeUpstreamResponse(upstream, request.method)
     } catch {
         return Response.json(
             {error: 'Directwerk service is unavailable.'},

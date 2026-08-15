@@ -318,6 +318,11 @@ export function createPlatformApiRequest(
     }
 }
 
+const NO_STORE_HEADERS = {
+    'Cache-Control': 'no-store',
+    Pragma: 'no-cache',
+}
+
 export async function safeUpstreamResponse(
     upstream: Response,
     method?: string
@@ -330,7 +335,10 @@ export async function safeUpstreamResponse(
 
         return Response.json(
             {error: message},
-            {status: normalizeUpstreamStatus(upstream.status)}
+            {
+                status: normalizeUpstreamStatus(upstream.status),
+                headers: NO_STORE_HEADERS,
+            }
         )
     }
 
@@ -339,25 +347,31 @@ export async function safeUpstreamResponse(
         upstream.status === 204 ||
         upstream.status === 205
     ) {
+        const headers = new Headers(upstream.headers)
+        headers.set('Cache-Control', 'no-store')
+        headers.set('Pragma', 'no-cache')
         return new Response(null, {
             status: upstream.status,
-            headers: upstream.headers,
+            headers,
         })
     }
 
     if (!upstream.headers.get('content-type')?.includes('application/json')) {
         return Response.json(
             {error: 'Invalid response from Directwerk.'},
-            {status: 502}
+            {status: 502, headers: NO_STORE_HEADERS}
         )
     }
 
     try {
-        return Response.json(await upstream.json(), {status: upstream.status})
+        return Response.json(await upstream.json(), {
+            status: upstream.status,
+            headers: NO_STORE_HEADERS,
+        })
     } catch {
         return Response.json(
             {error: 'Invalid response from Directwerk.'},
-            {status: 502}
+            {status: 502, headers: NO_STORE_HEADERS}
         )
     }
 }

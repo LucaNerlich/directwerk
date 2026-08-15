@@ -1,4 +1,5 @@
 import {
+    buildSafePlatformQueryString,
     buildTenantApiPath,
     parseBearerAuthorization,
     safeUpstreamResponse,
@@ -36,6 +37,20 @@ async function proxy(request: Request, context: RouteContext): Promise<Response>
         apiPath = buildTenantApiPath(path)
     } catch {
         return Response.json({error: 'Invalid tenant API path.'}, {status: 400})
+    }
+
+    let queryString = ''
+    if (request.method === 'GET' || request.method === 'HEAD') {
+        try {
+            queryString = buildSafePlatformQueryString(
+                new URL(request.url).searchParams
+            )
+        } catch {
+            return Response.json(
+                {error: 'Invalid tenant API query.'},
+                {status: 400}
+            )
+        }
     }
 
     let body: string | undefined
@@ -83,9 +98,9 @@ async function proxy(request: Request, context: RouteContext): Promise<Response>
 
     try {
         const upstream = await requestTenantApi(
-            apiPath,
+            `${apiPath}${queryString}`,
             tenantHost,
-            request.method as 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE',
+            request.method as 'GET' | 'HEAD' | 'POST' | 'PUT' | 'PATCH' | 'DELETE',
             authorization,
             body
         )
