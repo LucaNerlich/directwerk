@@ -37,6 +37,7 @@ Accept: application/json
 ###
 
 ### @name listMedia
+### Default list excludes tombstoned assets (ARCHIVED, PENDING_DELETE); pass ?status=ARCHIVED to inspect.
 GET {{baseUrl}}/api/v1/media?limit=20
 Authorization: Bearer {{tenantAAccessToken}}
 Host: {{tenantAHost}}

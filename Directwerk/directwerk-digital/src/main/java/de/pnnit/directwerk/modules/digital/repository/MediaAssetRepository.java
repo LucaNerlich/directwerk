@@ -26,7 +26,13 @@ public interface MediaAssetRepository extends JpaRepository<MediaAsset, Long> {
     @Query("""
             select m from MediaAsset m
             where (:assetType is null or m.assetType = :assetType)
-              and (:status is null or m.status = :status)
+              and (
+                    (:status is not null and m.status = :status)
+                    or (:status is null and m.status not in (
+                        de.pnnit.directwerk.modules.digital.entity.AssetStatus.ARCHIVED,
+                        de.pnnit.directwerk.modules.digital.entity.AssetStatus.PENDING_DELETE
+                    ))
+                  )
             order by m.id desc
             """)
     List<MediaAsset> findFiltered(
