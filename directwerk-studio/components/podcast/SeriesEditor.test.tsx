@@ -18,6 +18,10 @@ vi.mock('@/lib/api/tenantApi', () => ({
     }),
     createSeries: vi.fn(),
     updateSeries: vi.fn(),
+    listPublicLevels: vi.fn().mockResolvedValue([
+        {id: 1, slug: 'fan', title: 'Fan', sortOrder: 10},
+        {id: 2, slug: 'supporter', title: 'Supporter', sortOrder: 20},
+    ]),
     getMediaPreviewUrl: vi.fn(),
     listMedia: vi.fn().mockResolvedValue([]),
     suggestSlug: (title: string) => title.toLowerCase(),
@@ -32,11 +36,21 @@ describe('SeriesEditor RSS URL', () => {
             expect(screen.getByLabelText(/Mindest-Stufe für Folgen \(Standard\)/)).toBeInTheDocument(),
         )
         expect(
-            screen.getByText(/Standard-Mindest-Stufe \(Sortierzahl\) für neue Folgen dieser Sendung/),
+            screen.getByText(/Standard-Mindest-Stufe für neue Folgen dieser Sendung/),
         ).toBeInTheDocument()
         expect(
             screen.getByText(/Zugriff hat, wessen höchste Stufe ≥ Mindest-Stufe ist/),
         ).toBeInTheDocument()
+    })
+
+    it('offers the level catalog in the Mindest-Stufe dropdown', async () => {
+        render(<SeriesEditor seriesId={1} />)
+
+        expect(
+            await screen.findByRole('option', {name: 'Öffentlich / Keine Mindeststufe'}),
+        ).toBeInTheDocument()
+        expect(screen.getByRole('option', {name: 'Fan (10)'})).toBeInTheDocument()
+        expect(screen.getByRole('option', {name: 'Supporter (20)'})).toBeInTheDocument()
     })
 
     it('shows the series RSS feed URL when present', async () => {

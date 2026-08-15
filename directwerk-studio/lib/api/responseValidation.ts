@@ -17,6 +17,7 @@ import type {
     FormatSummary,
     FormatTag,
     InviteTenantUserResponse,
+    LevelSummary,
     Me,
     MediaAsset,
     MembershipStatus,
@@ -769,6 +770,46 @@ export function parseProductEnvelope(
     value: unknown,
 ): ApiEnvelope<SubscriptionProduct> | null {
     return envelope(value, parseSubscriptionProduct)
+}
+
+export function parseLevelSummary(value: unknown): LevelSummary | null {
+    if (
+        !isRecord(value) ||
+        !isPositiveSafeInteger(value.id) ||
+        !isBoundedString(value.slug) ||
+        !isBoundedString(value.title) ||
+        !isNonNegativeSafeInteger(value.sortOrder)
+    ) {
+        return null
+    }
+
+    return {
+        id: value.id,
+        slug: value.slug,
+        title: value.title,
+        sortOrder: value.sortOrder,
+    }
+}
+
+export function parseLevelListEnvelope(
+    value: unknown,
+): ApiEnvelope<LevelSummary[]> | null {
+    return envelope(value, (data) => {
+        if (!Array.isArray(data) || data.length > 500) {
+            return null
+        }
+
+        const parsed: LevelSummary[] = []
+        for (const item of data) {
+            const level = parseLevelSummary(item)
+            if (level === null) {
+                return null
+            }
+            parsed.push(level)
+        }
+
+        return parsed
+    })
 }
 
 export function parseProductAccessRule(value: unknown): ProductAccessRule | null {

@@ -16,6 +16,7 @@ import {
     parseFormatEnvelope,
     parseFormatListEnvelope,
     parseInviteTenantUserEnvelope,
+    parseLevelListEnvelope,
     parseMeEnvelope,
     parseMediaAssetEnvelope,
     parseMediaListEnvelope,
@@ -55,6 +56,7 @@ import type {
     GrantSubscriptionInput,
     InviteTenantUserInput,
     InviteTenantUserResponse,
+    LevelSummary,
     Me,
     MediaAsset,
     ProductAccessRule,
@@ -1087,6 +1089,25 @@ export async function listProducts(
     )
     if (parsed === null) {
         throw new Error('Der Server hat eine ungültige Produktliste gesendet.')
+    }
+
+    return parsed.data
+}
+
+/**
+ * Lists the tenant's active LEVEL subscription products without authentication.
+ *
+ * @param tenantHost - The tenant's host identifier
+ * @returns The tenant's active level summaries, sorted by sortOrder ascending
+ */
+export async function listPublicLevels(
+    tenantHost: string,
+): Promise<LevelSummary[]> {
+    const parsed = parseLevelListEnvelope(
+        await request('/api/proxy/public/levels', tenantHost),
+    )
+    if (parsed === null) {
+        throw new Error('Der Server hat eine ungültige Stufenliste gesendet.')
     }
 
     return parsed.data

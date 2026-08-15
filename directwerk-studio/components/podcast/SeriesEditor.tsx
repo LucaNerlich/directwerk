@@ -1,6 +1,7 @@
 'use client'
 
 import SelectControl from '@/components/studio/SelectControl'
+import LevelSelect from '@/components/studio/LevelSelect'
 
 import {Button} from '@directwerk/ui/components/button'
 import {Textarea} from '@directwerk/ui/components/textarea'
@@ -47,7 +48,7 @@ export default function SeriesEditor({seriesId}: SeriesEditorProps): React.JSX.E
     const [coverAssetId, setCoverAssetId] = useState<number | null>(null)
     const [coverPreviewUrl, setCoverPreviewUrl] = useState<string | null>(null)
     const [isUploadingCover, setIsUploadingCover] = useState(false)
-    const [defaultRequiredLevelSortOrder, setDefaultRequiredLevelSortOrder] = useState('')
+    const [defaultRequiredLevelSortOrder, setDefaultRequiredLevelSortOrder] = useState<number | null>(null)
     const [rssUrl, setRssUrl] = useState<string | null>(null)
     const [publishOnCreate, setPublishOnCreate] = useState(false)
     const [errorMessage, setErrorMessage] = useState<string | null>(null)
@@ -77,11 +78,7 @@ export default function SeriesEditor({seriesId}: SeriesEditorProps): React.JSX.E
                 setItunesCategory(loaded.itunesCategory ?? '')
                 setStatus(loaded.status)
                 setCoverAssetId(loaded.coverAssetId)
-                setDefaultRequiredLevelSortOrder(
-                    loaded.defaultRequiredLevelSortOrder !== null
-                        ? String(loaded.defaultRequiredLevelSortOrder)
-                        : '',
-                )
+                setDefaultRequiredLevelSortOrder(loaded.defaultRequiredLevelSortOrder)
                 setRssUrl(loaded.rssUrl)
             } catch (error) {
                 if (!active) {
@@ -186,10 +183,7 @@ export default function SeriesEditor({seriesId}: SeriesEditorProps): React.JSX.E
             language: language.trim() || 'de',
             itunesCategory: itunesCategory.trim() || undefined,
             coverAssetId: coverAssetId ?? undefined,
-            defaultRequiredLevelSortOrder:
-                defaultRequiredLevelSortOrder.trim().length > 0
-                    ? Number.parseInt(defaultRequiredLevelSortOrder, 10)
-                    : undefined,
+            defaultRequiredLevelSortOrder: defaultRequiredLevelSortOrder ?? undefined,
             status: nextStatus,
         }
     }
@@ -212,11 +206,7 @@ export default function SeriesEditor({seriesId}: SeriesEditorProps): React.JSX.E
         setItunesCategory(updated.itunesCategory ?? '')
         setStatus(updated.status)
         setCoverAssetId(updated.coverAssetId)
-        setDefaultRequiredLevelSortOrder(
-            updated.defaultRequiredLevelSortOrder !== null
-                ? String(updated.defaultRequiredLevelSortOrder)
-                : '',
-        )
+        setDefaultRequiredLevelSortOrder(updated.defaultRequiredLevelSortOrder)
         setRssUrl(updated.rssUrl)
     }
 
@@ -257,10 +247,7 @@ export default function SeriesEditor({seriesId}: SeriesEditorProps): React.JSX.E
                     language: language.trim() || 'de',
                     itunesCategory: itunesCategory.trim() || undefined,
                     coverAssetId: coverAssetId ?? undefined,
-                    defaultRequiredLevelSortOrder:
-                        defaultRequiredLevelSortOrder.trim().length > 0
-                            ? Number.parseInt(defaultRequiredLevelSortOrder, 10)
-                            : undefined,
+                    defaultRequiredLevelSortOrder: defaultRequiredLevelSortOrder ?? undefined,
                 })
                 if (publishOnCreate) {
                     await updateSeries(host, created.id, {
@@ -402,15 +389,14 @@ export default function SeriesEditor({seriesId}: SeriesEditorProps): React.JSX.E
                 </div>
                 <label className="grid gap-2 text-sm font-medium">
                     <span>Mindest-Stufe für Folgen (Standard)</span>
-                    <Input
-                        className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50"
-                        min={0}
-                        onChange={(event) => setDefaultRequiredLevelSortOrder(event.target.value)}
-                        type="number"
+                    <LevelSelect
+                        onChange={(value) => setDefaultRequiredLevelSortOrder(value)}
                         value={defaultRequiredLevelSortOrder}
                     />
                     <span className="font-normal text-muted-foreground">
-                        Standard-Mindest-Stufe (Sortierzahl) für neue Folgen dieser Sendung. Zugriff hat, wessen höchste Stufe ≥ Mindest-Stufe ist. Leer = jede aktive Stufe.
+                        Standard-Mindest-Stufe für neue Folgen dieser Sendung. Zugriff hat,
+                        wessen höchste Stufe ≥ Mindest-Stufe ist. „Öffentlich“ = jede aktive
+                        Stufe.
                     </span>
                 </label>
                 {rssUrl !== null ? (

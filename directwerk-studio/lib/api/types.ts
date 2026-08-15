@@ -221,6 +221,13 @@ export interface MediaAsset {
     createdAt?: string | null
 }
 
+export interface LevelSummary {
+    id: number
+    slug: string
+    title: string
+    sortOrder: number
+}
+
 export type OfferingType = 'LEVEL' | 'PACKAGE'
 
 export type BillingInterval = 'MONTH' | 'YEAR' | 'ONE_TIME'

@@ -22,6 +22,10 @@ vi.mock('@/lib/api/tenantApi', () => ({
     updateFormat: vi.fn(),
     deactivateFormat: vi.fn(),
     listFormats: vi.fn().mockResolvedValue([]),
+    listPublicLevels: vi.fn().mockResolvedValue([
+        {id: 1, slug: 'fan', title: 'Fan', sortOrder: 10},
+        {id: 2, slug: 'supporter', title: 'Supporter', sortOrder: 20},
+    ]),
     suggestSlug: (title: string) => title.toLowerCase(),
 }))
 
@@ -30,13 +34,25 @@ describe('FormatEditor', () => {
         render(<FormatEditor />)
 
         expect(screen.getByLabelText('Mindest-Stufe')).toBeInTheDocument()
-        expect(screen.getByLabelText('Sortierung')).toBeInTheDocument()
         expect(
-            screen.getByText(/Niedrigste Stufe \(Sortierzahl\), die auf Folgen dieses Formats zugreifen darf/),
+            screen.getByLabelText('Anzeigereihenfolge in der Formatauswahl'),
         ).toBeInTheDocument()
         expect(
-            screen.getByText(/Reihenfolge in der Formate-Auswahl — hat nichts mit Zugriff zu tun/),
+            screen.getByText(/Niedrigste Stufe, die auf Folgen dieses Formats zugreifen darf/),
         ).toBeInTheDocument()
+        expect(
+            screen.getByText(/erscheint — hat nichts mit Zugriff zu tun/),
+        ).toBeInTheDocument()
+    })
+
+    it('offers the level catalog in the Mindest-Stufe dropdown', async () => {
+        render(<FormatEditor />)
+
+        expect(
+            await screen.findByRole('option', {name: 'Öffentlich / Keine Mindeststufe'}),
+        ).toBeInTheDocument()
+        expect(screen.getByRole('option', {name: 'Fan (10)'})).toBeInTheDocument()
+        expect(screen.getByRole('option', {name: 'Supporter (20)'})).toBeInTheDocument()
     })
 
     it('creates a new format and redirects to its detail page', async () => {

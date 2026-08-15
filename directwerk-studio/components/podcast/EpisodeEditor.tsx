@@ -1,6 +1,7 @@
 'use client'
 
 import SelectControl from '@/components/studio/SelectControl'
+import LevelSelect from '@/components/studio/LevelSelect'
 
 import {Button} from '@directwerk/ui/components/button'
 import {Input} from '@directwerk/ui/components/input'
@@ -74,7 +75,7 @@ export default function EpisodeEditor({episodeId}: {episodeId?: number}): React.
     const [body, setBody] = useState('')
     const [accessPolicy, setAccessPolicy] = useState<AccessPolicy>('FREE')
     const [episodeNumber, setEpisodeNumber] = useState('')
-    const [requiredLevelSortOrder, setRequiredLevelSortOrder] = useState('')
+    const [requiredLevelSortOrder, setRequiredLevelSortOrder] = useState<number | null>(null)
     const [notifySubscribers, setNotifySubscribers] = useState(false)
     const [scheduledAt, setScheduledAt] = useState('')
     const [isSaving, setIsSaving] = useState(false)
@@ -190,11 +191,7 @@ export default function EpisodeEditor({episodeId}: {episodeId?: number}): React.
                             ? String(loadedEpisode.episodeNumber)
                             : '',
                     )
-                    setRequiredLevelSortOrder(
-                        loadedEpisode.requiredLevelSortOrder !== null
-                            ? String(loadedEpisode.requiredLevelSortOrder)
-                            : '',
-                    )
+                    setRequiredLevelSortOrder(loadedEpisode.requiredLevelSortOrder)
                     setScheduledAt(toDatetimeLocalValue(loadedEpisode.scheduledAt))
                     setSelectedFormatIds(new Set(loadedEpisode.formats.map((tag) => tag.id)))
                     setSelectedCategoryIds(new Set(loadedEpisode.categories.map((tag) => tag.id)))
@@ -251,7 +248,7 @@ export default function EpisodeEditor({episodeId}: {episodeId?: number}): React.
             description: body,
             accessPolicy,
             episodeNumber: optionalMinInt(episodeNumber, 1),
-            requiredLevelSortOrder: optionalMinInt(requiredLevelSortOrder, 0),
+            requiredLevelSortOrder: requiredLevelSortOrder ?? undefined,
         }
     }, [accessPolicy, body, episodeNumber, requiredLevelSortOrder, slug, title])
 
@@ -355,9 +352,7 @@ export default function EpisodeEditor({episodeId}: {episodeId?: number}): React.
                 if (next.episodeNumber !== null) {
                     setEpisodeNumber(String(next.episodeNumber))
                 }
-                if (next.requiredLevelSortOrder !== null) {
-                    setRequiredLevelSortOrder(String(next.requiredLevelSortOrder))
-                }
+                setRequiredLevelSortOrder(next.requiredLevelSortOrder)
             } catch (error) {
                 handleAuthError(error)
             } finally {
@@ -653,18 +648,21 @@ export default function EpisodeEditor({episodeId}: {episodeId?: number}): React.
                         </label>
                         <label className="grid gap-2 text-sm font-medium">
                             <span>Mindest-Stufe</span>
-                            <Input
-                                min={0}
-                                onChange={(event) => {
-                                    setRequiredLevelSortOrder(event.target.value)
+                            <LevelSelect
+                                disabled={accessPolicy === 'FREE'}
+                                onChange={(value) => {
+                                    setRequiredLevelSortOrder(value)
                                     markDirty()
                                 }}
-                                type="number"
                                 value={requiredLevelSortOrder}
                             />
                             <span className="font-normal text-muted-foreground">
-                                Niedrigste Stufe (Sortierzahl unter Abos → Produkte), die Zugriff erhält.
-                                Zugriff hat, wessen höchste Stufe ≥ Mindest-Stufe ist. Leer oder 0: jede aktive Stufe reicht.
+                                Niedrigste Stufe, die Zugriff erhält. Zugriff hat, wessen
+                                höchste Stufe ≥ Mindest-Stufe ist. „Öffentlich“ = jede aktive
+                                Stufe reicht.
+                                {accessPolicy === 'FREE'
+                                    ? ' Nur relevant für kostenpflichtige Inhalte.'
+                                    : ''}
                             </span>
                         </label>
                         {episode !== null ? (
