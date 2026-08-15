@@ -111,7 +111,11 @@ export async function POST(request: Request): Promise<Response> {
         return jsonError('A valid filename is required.', 400)
     }
 
-    const sizeBytes = parseSizeBytes(request.headers.get('content-length'))
+    const contentLengthHeader = request.headers.get('content-length')
+    if (contentLengthHeader === '0') {
+        return jsonError('File must not be empty.', 400)
+    }
+    const sizeBytes = parseSizeBytes(contentLengthHeader)
     if (sizeBytes === null) {
         return jsonError('A valid Content-Length is required.', 411)
     }
@@ -153,45 +157,45 @@ export async function POST(request: Request): Promise<Response> {
         ...(episodeId === undefined ? {} : {episodeId}),
     }
 
-    const uploadUrlUpstream = await directwerkFetch({
-        path: '/api/v1/media/upload-url',
-        tenantHost,
-        method: 'POST',
-        bearerToken,
-        body: JSON.stringify(uploadUrlBody),
-        contentType: 'application/json',
-    })
-
-    if (!uploadUrlUpstream.ok) {
-        return toClientResponse(uploadUrlUpstream)
-    }
-
-    const uploadUrlPayload: unknown = await uploadUrlUpstream.json()
-    const uploadData = readEnvelopeData(uploadUrlPayload) as {
-        assetId?: number
-        uploadUrl?: string
-        headers?: Record<string, string>
-    } | null
-
-    if (
-        uploadData === null ||
-        typeof uploadData.assetId !== 'number' ||
-        typeof uploadData.uploadUrl !== 'string' ||
-        !isAllowedUploadUrl(uploadData.uploadUrl)
-    ) {
-        return jsonError('Invalid upload-url response from Directwerk.', 502)
-    }
-
-    const putHeaders = new Headers(uploadData.headers ?? {})
-    if (!putHeaders.has('Content-Type')) {
-        putHeaders.set('Content-Type', mimeType)
-    }
-    const headersObject: Record<string, string> = {}
-    putHeaders.forEach((value, key) => {
-        headersObject[key] = value
-    })
-
     try {
+        const uploadUrlUpstream = await directwerkFetch({
+            path: '/api/v1/media/upload-url',
+            tenantHost,
+            method: 'POST',
+            bearerToken,
+            body: JSON.stringify(uploadUrlBody),
+            contentType: 'application/json',
+        })
+
+        if (!uploadUrlUpstream.ok) {
+            return toClientResponse(uploadUrlUpstream)
+        }
+
+        const uploadUrlPayload: unknown = await uploadUrlUpstream.json()
+        const uploadData = readEnvelopeData(uploadUrlPayload) as {
+            assetId?: number
+            uploadUrl?: string
+            headers?: Record<string, string>
+        } | null
+
+        if (
+            uploadData === null ||
+            typeof uploadData.assetId !== 'number' ||
+            typeof uploadData.uploadUrl !== 'string' ||
+            !isAllowedUploadUrl(uploadData.uploadUrl)
+        ) {
+            return jsonError('Invalid upload-url response from Directwerk.', 502)
+        }
+
+        const putHeaders = new Headers(uploadData.headers ?? {})
+        if (!putHeaders.has('Content-Type')) {
+            putHeaders.set('Content-Type', mimeType)
+        }
+        const headersObject: Record<string, string> = {}
+        putHeaders.forEach((value, key) => {
+            headersObject[key] = value
+        })
+
         const putResult = await putStreamToStorage(
             uploadData.uploadUrl,
             headersObject,
@@ -205,35 +209,35 @@ export async function POST(request: Request): Promise<Response> {
                 502,
             )
         }
+
+        const confirmUpstream = await directwerkFetch({
+            path: `/api/v1/media/${uploadData.assetId}/confirm`,
+            tenantHost,
+            method: 'POST',
+            bearerToken,
+        })
+
+        if (!confirmUpstream.ok) {
+            const failure = await toClientResponse(confirmUpstream)
+            const failureText = await failure.text()
+            const failureJson = parseJsonText(failureText)
+            return Response.json(
+                {
+                    ...(typeof failureJson === 'object' && failureJson !== null
+                        ? failureJson
+                        : {error: 'Directwerk confirm failed.'}),
+                    assetId: uploadData.assetId,
+                    retryConfirm: true,
+                },
+                {status: failure.status},
+            )
+        }
+
+        return toClientResponse(confirmUpstream)
     } catch (error: unknown) {
         if (isTimeoutError(error)) {
             return jsonError('Upstream request timed out.', 504)
         }
         return jsonError('Directwerk or object storage is unavailable.', 502)
     }
-
-    const confirmUpstream = await directwerkFetch({
-        path: `/api/v1/media/${uploadData.assetId}/confirm`,
-        tenantHost,
-        method: 'POST',
-        bearerToken,
-    })
-
-    if (!confirmUpstream.ok) {
-        const failure = await toClientResponse(confirmUpstream)
-        const failureText = await failure.text()
-        const failureJson = parseJsonText(failureText)
-        return Response.json(
-            {
-                ...(typeof failureJson === 'object' && failureJson !== null
-                    ? failureJson
-                    : {error: 'Directwerk confirm failed.'}),
-                assetId: uploadData.assetId,
-                retryConfirm: true,
-            },
-            {status: failure.status},
-        )
-    }
-
-    return toClientResponse(confirmUpstream)
 }

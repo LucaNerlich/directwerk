@@ -148,9 +148,6 @@ export async function uploadMediaFile(
         xhr.onerror = () => {
             reject(new Error('Upload fehlgeschlagen. Bitte erneut versuchen.'))
         }
-        xhr.ontimeout = () => {
-            reject(new Error('Upload fehlgeschlagen (Zeitüberschreitung).'))
-        }
         xhr.onabort = () => {
             reject(new Error('Upload abgebrochen.'))
         }

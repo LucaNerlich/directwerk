@@ -36,6 +36,7 @@ export async function putStreamToStorage(
             {method: 'PUT', headers},
             (response) => {
                 response.resume()
+                clearTimeout(timeout)
                 settle(() => resolve({status: response.statusCode ?? 0}))
             },
         )
