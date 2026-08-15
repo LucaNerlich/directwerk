@@ -134,6 +134,54 @@ class TenantMembershipGuardFilterTest {
         verify(chain).doFilter(request, response);
     }
 
+    @Test
+    void rejectsSubscriberOnEditorContentPath() throws Exception {
+        authenticate(1L, RoleConstants.SUBSCRIBER);
+        TenantContext.setTenantId(1L);
+        when(membershipRepository.findByUserIdAndTenantId(5L, 1L))
+                .thenReturn(Optional.of(activeMembership(Role.SUBSCRIBER)));
+
+        HttpServletRequest request = mock(HttpServletRequest.class);
+        when(request.getRequestURI()).thenReturn("/api/v1/media/upload");
+        FilterChain chain = mock(FilterChain.class);
+
+        assertThatThrownBy(() -> filter.doFilter(request, new MockHttpServletResponse(), chain))
+                .isInstanceOf(TenantMismatchException.class);
+    }
+
+    @Test
+    void allowsActiveEditorOnContentPath() throws Exception {
+        authenticate(1L, RoleConstants.EDITOR);
+        TenantContext.setTenantId(1L);
+        when(membershipRepository.findByUserIdAndTenantId(5L, 1L))
+                .thenReturn(Optional.of(activeMembership(Role.EDITOR)));
+
+        HttpServletRequest request = mock(HttpServletRequest.class);
+        when(request.getRequestURI()).thenReturn("/api/v1/media/upload");
+        FilterChain chain = mock(FilterChain.class);
+        MockHttpServletResponse response = new MockHttpServletResponse();
+
+        filter.doFilter(request, response, chain);
+        verify(chain).doFilter(request, response);
+    }
+
+    @Test
+    void rejectsDeactivatedEditorOnContentPath() throws Exception {
+        authenticate(1L, RoleConstants.EDITOR);
+        TenantContext.setTenantId(1L);
+        TenantMembership membership = new TenantMembership();
+        membership.setStatus(MembershipStatus.DISABLED);
+        membership.setRoles(EnumSet.of(Role.EDITOR));
+        when(membershipRepository.findByUserIdAndTenantId(5L, 1L)).thenReturn(Optional.of(membership));
+
+        HttpServletRequest request = mock(HttpServletRequest.class);
+        when(request.getRequestURI()).thenReturn("/api/v1/episodes/1");
+        FilterChain chain = mock(FilterChain.class);
+
+        assertThatThrownBy(() -> filter.doFilter(request, new MockHttpServletResponse(), chain))
+                .isInstanceOf(TenantMismatchException.class);
+    }
+
     private static TenantMembership activeMembership(Role role) {
         TenantMembership membership = new TenantMembership();
         membership.setStatus(MembershipStatus.ACTIVE);

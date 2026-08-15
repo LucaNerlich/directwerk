@@ -1,6 +1,5 @@
 package de.pnnit.directwerk.modules.subscription.stripe;
 
-import de.pnnit.directwerk.modules.subscription.entity.ProcessedWebhookEvent;
 import de.pnnit.directwerk.modules.subscription.entity.SubscriptionProduct;
 import de.pnnit.directwerk.modules.subscription.entity.SubscriptionStatus;
 import de.pnnit.directwerk.modules.subscription.entity.TenantStripeAccount;
@@ -9,7 +8,6 @@ import de.pnnit.directwerk.modules.subscription.repository.ProcessedWebhookEvent
 import de.pnnit.directwerk.modules.subscription.repository.SubscriptionProductRepository;
 import de.pnnit.directwerk.modules.subscription.service.SubscriptionService;
 import de.pnnit.directwerk.multitenancy.TenantContext;
-import java.time.Instant;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationEventPublisher;
@@ -50,18 +48,18 @@ public class StripeWebhookService {
             throw new StripeSignatureException("Stripe-Signature header is required");
         }
         StripeOperations.StripeWebhookPayload event = stripeOperations.parseWebhook(payload, signature);
-        if (processedWebhookEventRepository.existsByEventId(event.eventId())) {
+        // Insert-first idempotency: the unique event_id constraint is enforced before any money
+        // side effects, so a concurrent duplicate (Stripe retry after a timed-out first response)
+        // aborts here instead of double-applying the event.
+        if (processedWebhookEventRepository.insertIfAbsent(
+                event.eventId(),
+                event.type(),
+                event.connectedAccountId()) == 0) {
             return;
         }
         Long previousTenantId = TenantContext.getTenantId();
         try {
             applyEvent(event);
-            ProcessedWebhookEvent processed = new ProcessedWebhookEvent();
-            processed.setEventId(event.eventId());
-            processed.setEventType(event.type());
-            processed.setStripeAccountId(event.connectedAccountId());
-            processed.setProcessedAt(Instant.now());
-            processedWebhookEventRepository.save(processed);
         } finally {
             if (previousTenantId == null) {
                 TenantContext.clear();
@@ -94,7 +92,8 @@ public class StripeWebhookService {
 
         switch (event.type()) {
             case "checkout.session.completed" -> applyCheckoutCompleted(tenantId, event);
-            case "customer.subscription.updated", "invoice.paid" -> applySubscriptionSync(tenantId, event);
+            case "customer.subscription.updated" -> applySubscriptionSync(tenantId, event);
+            case "invoice.paid" -> applyInvoicePaid(tenantId, event);
             case "customer.subscription.deleted" -> applySubscriptionCanceled(tenantId, event);
             case "invoice.payment_failed" -> applyPaymentFailed(tenantId, event);
             case "charge.refunded" -> applyChargeRefunded(tenantId, event);
@@ -181,6 +180,15 @@ public class StripeWebhookService {
                 SubscriptionStatus.CANCELED,
                 event.currentPeriodEnd()
         );
+    }
+
+    private void applyInvoicePaid(Long tenantId, StripeOperations.StripeWebhookPayload event) {
+        if (event.subscriptionId() == null || event.subscriptionId().isBlank()) {
+            return;
+        }
+        // An invoice.paid event confirms a payment; it must not force ACTIVE or wipe the stored
+        // period end. Only subscriptions that were overdue/incomplete are moved back to ACTIVE.
+        subscriptionService.markInvoicePaid(tenantId, event.subscriptionId());
     }
 
     private void applyChargeRefunded(Long tenantId, StripeOperations.StripeWebhookPayload event) {

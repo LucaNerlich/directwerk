@@ -8,9 +8,12 @@ import java.util.Optional;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+
+import jakarta.persistence.LockModeType;
 
 public interface MediaAssetRepository extends JpaRepository<MediaAsset, Long> {
 
@@ -21,6 +24,15 @@ public interface MediaAssetRepository extends JpaRepository<MediaAsset, Long> {
     @EntityGraph(attributePaths = "tenant")
     @Override
     Optional<MediaAsset> findById(Long id);
+
+    /**
+     * Re-selects the asset with a pessimistic write lock so concurrent confirm/delete transitions
+     * cannot both pass a status check (confirmUpload TOCTOU).
+     */
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @EntityGraph(attributePaths = "tenant")
+    @Query("select m from MediaAsset m where m.id = :id")
+    Optional<MediaAsset> findByIdForUpdate(@Param("id") Long id);
 
     @EntityGraph(attributePaths = "tenant")
     @Query("""

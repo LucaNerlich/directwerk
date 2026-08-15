@@ -180,7 +180,35 @@ public class SubscriptionService {
         subscriptionRepository.findByTenantIdAndExternalSubscriptionId(tenantId, externalSubscriptionId)
                 .ifPresent(subscription -> {
                     subscription.setStatus(status);
-                    subscription.setEndsAt(endsAt);
+                    if (endsAt != null) {
+                        subscription.setEndsAt(endsAt);
+                    }
+                    subscriptionRepository.save(subscription);
+                    eventPublisher.publishEvent(new TenantEntitlementsChangedEvent(tenantId));
+                });
+    }
+
+    /**
+     * Confirms payment for a recurring Stripe subscription without forcing {@code ACTIVE} or
+     * dropping the stored period end. Only overdue/incomplete rows are moved back to active;
+     * canceled or expired rows are never reactivated by an {@code invoice.paid} delivered
+     * out-of-order.
+     */
+    @Transactional
+    public void markInvoicePaid(Long tenantId, String externalSubscriptionId) {
+        if (externalSubscriptionId == null || externalSubscriptionId.isBlank()) {
+            return;
+        }
+        subscriptionRepository.findByTenantIdAndExternalSubscriptionId(tenantId, externalSubscriptionId)
+                .ifPresent(subscription -> {
+                    if (subscription.getSource() != SubscriptionSource.STRIPE) {
+                        return;
+                    }
+                    if (subscription.getStatus() != SubscriptionStatus.PAST_DUE
+                            && subscription.getStatus() != SubscriptionStatus.INCOMPLETE) {
+                        return;
+                    }
+                    subscription.setStatus(SubscriptionStatus.ACTIVE);
                     subscriptionRepository.save(subscription);
                     eventPublisher.publishEvent(new TenantEntitlementsChangedEvent(tenantId));
                 });

@@ -78,7 +78,27 @@ public class TenantMembershipGuardFilter extends OncePerRequestFilter {
                 || path.startsWith("/api/v1/probes/")
                 || path.startsWith("/api/v1/me/")
                 || "/api/v1/me".equals(path)
-                || path.startsWith("/api/v1/security/");
+                || path.startsWith("/api/v1/security/")
+                || isEditorContentPath(path);
+    }
+
+    /**
+     * Editor/tenant-admin content management routes. These rely on {@code @PreAuthorize} for their
+     * role check, but that only consults the (still-valid) JWT claims — a deactivated or demoted
+     * editor would otherwise keep access until the token expires. Re-validating the DB membership
+     * here closes that window.
+     */
+    private static boolean isEditorContentPath(String path) {
+        return isUnder(path, "/api/v1/media")
+                || isUnder(path, "/api/v1/series")
+                || isUnder(path, "/api/v1/episodes")
+                || isUnder(path, "/api/v1/articles")
+                || isUnder(path, "/api/v1/formats")
+                || isUnder(path, "/api/v1/categories");
+    }
+
+    private static boolean isUnder(String path, String base) {
+        return path.equals(base) || path.startsWith(base + "/");
     }
 
     /**
@@ -93,7 +113,7 @@ public class TenantMembershipGuardFilter extends OncePerRequestFilter {
         if (path.startsWith("/api/v1/tenant/")) {
             return roles.contains(Role.TENANT_ADMIN);
         }
-        if (path.startsWith("/api/v1/probes/")) {
+        if (path.startsWith("/api/v1/probes/") || isEditorContentPath(path)) {
             return roles.contains(Role.TENANT_ADMIN) || roles.contains(Role.EDITOR);
         }
         return true;

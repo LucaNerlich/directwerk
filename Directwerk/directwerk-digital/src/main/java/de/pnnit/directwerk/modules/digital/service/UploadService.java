@@ -145,7 +145,7 @@ public class UploadService implements UploadApi {
         Long tenantId = TenantContext.requireTenantId();
         Tenant tenant = tenantLookupService.requireTenant(tenantId);
 
-        MediaAsset asset = mediaAssetRepository.findById(command.mediaAssetId())
+        MediaAsset asset = mediaAssetRepository.findByIdForUpdate(command.mediaAssetId())
                 .orElseThrow(() -> new MediaAssetNotFoundException(command.mediaAssetId()));
         if (!tenantId.equals(asset.getTenant().getId())) {
             throw new MediaAssetNotFoundException(command.mediaAssetId());

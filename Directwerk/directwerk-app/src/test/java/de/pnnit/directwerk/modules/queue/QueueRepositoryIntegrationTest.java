@@ -60,6 +60,8 @@ class QueueRepositoryIntegrationTest {
     @BeforeEach
     void clearJobs() {
         queueRepository.clear();
+        jdbcTemplate.update("INSERT INTO tenants (id, slug, name) VALUES (10, 'tenant-10', 'Tenant 10') ON CONFLICT (id) DO NOTHING");
+        jdbcTemplate.update("INSERT INTO tenants (id, slug, name) VALUES (20, 'tenant-20', 'Tenant 20') ON CONFLICT (id) DO NOTHING");
     }
 
     @Test
@@ -246,10 +248,10 @@ class QueueRepositoryIntegrationTest {
     void enqueueWithSameCorrelationIdDoesNotCreateASecondQueuedJob() {
         ObjectNode payload = objectMapper.createObjectNode().put("tenantId", 10);
         QueueJob first = queueRepository.enqueue(
-                "mail", payload, 0, Instant.now(), 3, null, "rss-feed-refresh-10", null
+                "mail", payload, 0, Instant.now(), 3, 10L, "rss-feed-refresh-10", null
         );
         QueueJob second = queueRepository.enqueue(
-                "mail", payload, 0, Instant.now(), 3, null, "rss-feed-refresh-10", null
+                "mail", payload, 0, Instant.now(), 3, 10L, "rss-feed-refresh-10", null
         );
 
         assertThat(second.id()).isEqualTo(first.id());
@@ -261,16 +263,34 @@ class QueueRepositoryIntegrationTest {
     }
 
     @Test
+    void enqueueWithSameCorrelationIdDifferentTenantsCreatesSeparateJobs() {
+        ObjectNode payload = objectMapper.createObjectNode().put("tenantId", 10);
+        QueueJob first = queueRepository.enqueue(
+                "mail", payload, 0, Instant.now(), 3, 10L, "rss-feed-refresh", null
+        );
+        QueueJob second = queueRepository.enqueue(
+                "mail", payload, 0, Instant.now(), 3, 20L, "rss-feed-refresh", null
+        );
+
+        assertThat(second.id()).isNotEqualTo(first.id());
+        assertThat(jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM jobs WHERE correlation_id = ?",
+                Integer.class,
+                "rss-feed-refresh"
+        )).isEqualTo(2);
+    }
+
+    @Test
     void enqueueAllowsAFollowUpWhileAMatchingJobIsProcessing() {
         ObjectNode payload = objectMapper.createObjectNode().put("tenantId", 10);
         QueueJob first = queueRepository.enqueue(
-                "mail", payload, 0, Instant.now(), 3, null, "rss-feed-refresh-10", null
+                "mail", payload, 0, Instant.now(), 3, 10L, "rss-feed-refresh-10", null
         );
         List<QueueJob> claimed = queueRepository.claim("mail", "worker-1", 1, Duration.ofSeconds(60));
         assertThat(claimed).extracting(QueueJob::id).containsExactly(first.id());
 
         QueueJob followUp = queueRepository.enqueue(
-                "mail", payload, 0, Instant.now(), 3, null, "rss-feed-refresh-10", null
+                "mail", payload, 0, Instant.now(), 3, 10L, "rss-feed-refresh-10", null
         );
 
         assertThat(followUp.id()).isNotEqualTo(first.id());
@@ -280,6 +300,39 @@ class QueueRepositoryIntegrationTest {
                 Integer.class,
                 "rss-feed-refresh-10"
         )).isEqualTo(2);
+    }
+
+    @Test
+    void concurrentEnqueuesWithSameCorrelationIdCoalesceToOneJob() throws Exception {
+        ObjectNode payload = objectMapper.createObjectNode().put("tenantId", 10);
+        int workers = 8;
+        ExecutorService executor = Executors.newFixedThreadPool(workers);
+        try {
+            CountDownLatch start = new CountDownLatch(1);
+            List<Future<QueueJob>> futures = new ArrayList<>();
+            for (int i = 0; i < workers; i++) {
+                futures.add(executor.submit(() -> {
+                    start.await(5, TimeUnit.SECONDS);
+                    return queueRepository.enqueue(
+                            "mail", payload, 0, Instant.now(), 3, 10L, "rss-feed-refresh-10", null
+                    );
+                }));
+            }
+            start.countDown();
+
+            Set<UUID> ids = new java.util.HashSet<>();
+            for (Future<QueueJob> future : futures) {
+                ids.add(future.get(10, TimeUnit.SECONDS).id());
+            }
+            assertThat(ids).hasSize(1);
+            assertThat(jdbcTemplate.queryForObject(
+                    "SELECT COUNT(*) FROM jobs WHERE correlation_id = ?",
+                    Integer.class,
+                    "rss-feed-refresh-10"
+            )).isEqualTo(1);
+        } finally {
+            executor.shutdownNow();
+        }
     }
 
     private void ageJob(UUID id, Instant updatedAt) {

@@ -10,10 +10,12 @@ import static org.mockito.Mockito.when;
 import de.pnnit.directwerk.modules.core.entity.InvitationToken;
 import de.pnnit.directwerk.modules.core.entity.InvitationType;
 import de.pnnit.directwerk.modules.core.entity.MembershipStatus;
+import de.pnnit.directwerk.modules.core.entity.PlatformAdmin;
 import de.pnnit.directwerk.modules.core.entity.TenantMembership;
 import de.pnnit.directwerk.modules.core.entity.User;
 import de.pnnit.directwerk.modules.core.entity.UserStatus;
 import de.pnnit.directwerk.modules.core.repository.InvitationTokenRepository;
+import de.pnnit.directwerk.modules.core.repository.PlatformAdminRepository;
 import de.pnnit.directwerk.modules.core.repository.TenantMembershipRepository;
 import de.pnnit.directwerk.modules.core.repository.UserRepository;
 import java.time.Clock;
@@ -42,6 +44,9 @@ class InvitationAcceptanceServiceTest {
     private TenantMembershipRepository tenantMembershipRepository;
 
     @Mock
+    private PlatformAdminRepository platformAdminRepository;
+
+    @Mock
     private PasswordEncoder passwordEncoder;
 
     private InvitationAcceptanceService service;
@@ -52,6 +57,7 @@ class InvitationAcceptanceServiceTest {
                 invitationTokenRepository,
                 userRepository,
                 tenantMembershipRepository,
+                platformAdminRepository,
                 passwordEncoder,
                 Clock.fixed(NOW, ZoneOffset.UTC)
         );
@@ -86,12 +92,15 @@ class InvitationAcceptanceServiceTest {
         when(invitationTokenRepository.findByTokenHash(InvitationTokenService.hashToken("platform-token")))
                 .thenReturn(Optional.of(token));
         when(passwordEncoder.encode("secure-password")).thenReturn("encoded");
+        when(platformAdminRepository.findByUserId(10L)).thenReturn(Optional.empty());
+        when(platformAdminRepository.save(any(PlatformAdmin.class))).thenAnswer(inv -> inv.getArgument(0));
 
         service.accept("platform-token", "secure-password", null);
 
         assertThat(user.getStatus()).isEqualTo(UserStatus.ACTIVE);
         assertThat(token.getUsedAt()).isEqualTo(NOW);
         verify(tenantMembershipRepository, never()).save(any());
+        verify(platformAdminRepository).save(any(PlatformAdmin.class));
     }
 
     @Test

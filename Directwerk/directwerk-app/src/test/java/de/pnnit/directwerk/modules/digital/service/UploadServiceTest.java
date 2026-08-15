@@ -170,7 +170,7 @@ class UploadServiceTest {
         pending.setMimeType("audio/mpeg");
         pending.setSizeBytes(2048L);
         pending.setOriginalFilename("episode.mp3");
-        when(mediaAssetRepository.findById(55L)).thenReturn(Optional.of(pending));
+        when(mediaAssetRepository.findByIdForUpdate(55L)).thenReturn(Optional.of(pending));
         when(mediaAssetRepository.saveAndFlush(any(MediaAsset.class))).thenAnswer(inv -> inv.getArgument(0));
         when(s3Client.headObject(any(HeadObjectRequest.class))).thenReturn(
                 HeadObjectResponse.builder()
@@ -212,7 +212,7 @@ class UploadServiceTest {
         pending.setMimeType("audio/mpeg");
         pending.setSizeBytes(2048L);
         pending.setOriginalFilename("episode 42.mp3");
-        when(mediaAssetRepository.findById(55L)).thenReturn(Optional.of(pending));
+        when(mediaAssetRepository.findByIdForUpdate(55L)).thenReturn(Optional.of(pending));
         when(mediaAssetRepository.saveAndFlush(any(MediaAsset.class))).thenAnswer(inv -> inv.getArgument(0));
         when(s3Client.headObject(any(HeadObjectRequest.class))).thenReturn(
                 HeadObjectResponse.builder()
@@ -247,7 +247,7 @@ class UploadServiceTest {
         pending.setMimeType("audio/mpeg");
         pending.setSizeBytes(2048L);
         pending.setOriginalFilename("episode.mp3");
-        when(mediaAssetRepository.findById(55L)).thenReturn(Optional.of(pending));
+        when(mediaAssetRepository.findByIdForUpdate(55L)).thenReturn(Optional.of(pending));
         when(mediaAssetRepository.saveAndFlush(any(MediaAsset.class))).thenAnswer(inv -> inv.getArgument(0));
         when(s3Client.headObject(any(HeadObjectRequest.class))).thenReturn(
                 HeadObjectResponse.builder()

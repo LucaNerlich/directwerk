@@ -11,7 +11,6 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 import org.springframework.util.StringUtils;
@@ -64,26 +63,29 @@ public class QueueRepository {
             String correlationId,
             JsonNode metadata
     ) {
-        if (correlationId != null) {
-            Optional<QueueJob> queued = findQueued(queue, correlationId);
-            if (queued.isPresent()) {
-                return queued.get();
-            }
+        if (correlationId == null) {
+            return insert(queue, payload, priority, availableAt, maxAttempts, tenantId, null, metadata);
         }
-        try {
-            return insert(queue, payload, priority, availableAt, maxAttempts, tenantId, correlationId, metadata);
-        } catch (DataIntegrityViolationException ex) {
-            if (correlationId == null) {
-                throw ex;
-            }
-            return findQueued(queue, correlationId).orElseThrow(() -> ex);
+        // Atomic dedup scoped by tenant: the partial unique index coalesces QUEUED jobs with the same
+        // (queue, correlation, tenant). ON CONFLICT DO NOTHING never raises a statement error, so a
+        // concurrent duplicate does not abort the transaction — we simply fall back to the
+        // already-queued row in a fresh statement.
+        Optional<QueueJob> inserted = insertIfAbsent(
+                queue, payload, priority, availableAt, maxAttempts, tenantId, correlationId, metadata
+        );
+        if (inserted.isPresent()) {
+            return inserted.get();
         }
+        return findQueued(queue, tenantId, correlationId)
+                .orElseThrow(() -> new IllegalStateException(
+                        "Enqueue coalesced by correlation id but no QUEUED job found: queue=" + queue
+                                + " correlation=" + correlationId));
     }
 
     /**
-     * Returns the queued job for {@code queue} + {@code correlationId}, if any.
+     * Returns the queued job for {@code queue} + {@code correlationId} + {@code tenantId}, if any.
      */
-    public Optional<QueueJob> findQueued(String queue, String correlationId) {
+    public Optional<QueueJob> findQueued(String queue, Long tenantId, String correlationId) {
         if (correlationId == null) {
             return Optional.empty();
         }
@@ -92,9 +94,42 @@ public class QueueRepository {
                 FROM jobs
                 WHERE queue_name = ?
                   AND correlation_id = ?
+                  AND tenant_id = ?
                   AND status = 'QUEUED'
                 LIMIT 1
-                """.formatted(COLUMNS), this::mapJob, queue, correlationId).stream().findFirst();
+                """.formatted(COLUMNS), this::mapJob, queue, correlationId, tenantId).stream().findFirst();
+    }
+
+    private Optional<QueueJob> insertIfAbsent(
+            String queue,
+            JsonNode payload,
+            int priority,
+            Instant availableAt,
+            int maxAttempts,
+            Long tenantId,
+            String correlationId,
+            JsonNode metadata
+    ) {
+        return jdbcTemplate.query("""
+                INSERT INTO jobs(
+                    queue_name, payload, priority, available_at, max_attempts,
+                    tenant_id, correlation_id, metadata
+                )
+                VALUES (?, ?::jsonb, ?, COALESCE(CAST(? AS timestamptz), clock_timestamp()), ?,
+                        ?, ?, ?::jsonb)
+                ON CONFLICT (queue_name, correlation_id, tenant_id)
+                    WHERE status = 'QUEUED' AND correlation_id IS NOT NULL
+                DO NOTHING
+                RETURNING %s
+                """.formatted(COLUMNS), this::mapJob,
+                queue,
+                payload.toString(),
+                priority,
+                availableAt == null ? null : OffsetDateTime.ofInstant(availableAt, ZoneOffset.UTC),
+                maxAttempts,
+                tenantId,
+                correlationId,
+                metadata == null ? null : metadata.toString()).stream().findFirst();
     }
 
     private QueueJob insert(

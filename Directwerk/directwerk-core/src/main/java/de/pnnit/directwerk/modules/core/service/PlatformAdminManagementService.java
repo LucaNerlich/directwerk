@@ -61,27 +61,20 @@ public class PlatformAdminManagementService {
         String normalizedEmail = EmailNormalizer.normalize(email);
         User user = userProvisioningService.findOrCreatePendingUser(normalizedEmail, name);
 
-        PlatformAdmin admin = platformAdminRepository.findByUserId(user.getId()).orElseGet(() -> {
-            PlatformAdmin created = new PlatformAdmin();
-            created.setUser(user);
-            return platformAdminRepository.save(created);
-        });
-
-        // Already-active users receive admin access immediately — no re-verification / invite flow.
-        if (user.getStatus() == UserStatus.ACTIVE) {
-            PlatformAdminView view = new PlatformAdminView(
-                    admin.getUser().getId(),
-                    admin.getUser().getEmail(),
-                    admin.getUser().getName()
-            );
-            return new PlatformAdminInvitation(view, user.getStatus().name(), null);
+        if (platformAdminRepository.findByUserId(user.getId()).isPresent()) {
+            return new PlatformAdminInvitation(view(user), user.getStatus().name(), null);
         }
 
-        user.setStatus(UserStatus.PENDING_VERIFICATION);
-        if (StringUtils.hasText(name)) {
-            user.setName(name.trim());
+        // Never promote solely on an email match. The PlatformAdmin row is created only when the
+        // invitee accepts the PLATFORM_ADMIN token, so an already-ACTIVE user (e.g. a tenant
+        // subscriber) cannot be granted platform admin without their consent.
+        if (user.getStatus() != UserStatus.ACTIVE) {
+            user.setStatus(UserStatus.PENDING_VERIFICATION);
+            if (StringUtils.hasText(name)) {
+                user.setName(name.trim());
+            }
+            userRepository.save(user);
         }
-        userRepository.save(user);
 
         String inviteToken = invitationTokenService.issue(user, null, InvitationType.PLATFORM_ADMIN);
         transactionalEmailNotifier.sendPlatformAdminInvitation(
@@ -90,12 +83,11 @@ public class PlatformAdminManagementService {
                 inviteToken,
                 InvitationTokenService.tokenLifetime()
         );
-        PlatformAdminView view = new PlatformAdminView(
-                admin.getUser().getId(),
-                admin.getUser().getEmail(),
-                admin.getUser().getName()
-        );
-        return new PlatformAdminInvitation(view, user.getStatus().name(), inviteToken);
+        return new PlatformAdminInvitation(view(user), user.getStatus().name(), inviteToken);
+    }
+
+    private static PlatformAdminView view(User user) {
+        return new PlatformAdminView(user.getId(), user.getEmail(), user.getName());
     }
 
     /**
