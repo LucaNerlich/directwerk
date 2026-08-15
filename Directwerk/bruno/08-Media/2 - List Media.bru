@@ -10,6 +10,10 @@ get {
   auth: inherit
 }
 
+docs {
+  Default list excludes tombstoned assets (ARCHIVED, PENDING_DELETE). Pass ?status=ARCHIVED to inspect deleted rows.
+}
+
 params:query {
   limit: 20
 }

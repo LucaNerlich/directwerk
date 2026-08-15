@@ -2,11 +2,9 @@ import {parseJsonText} from '@/lib/api/validation'
 import {readBearerToken} from '@/lib/api/proxy'
 import {jsonError, toClientResponse} from '@/lib/api/upstream'
 import {directwerkFetch} from '@/lib/directwerk'
+import {putStreamToStorage} from '@/lib/server/storagePut'
 import {parseTenantHost} from '@/lib/tenant/parseTenantHost'
 
-const MAX_UPLOAD_BYTES = 500 * 1024 * 1024
-const MAX_REQUEST_BYTES = MAX_UPLOAD_BYTES + 64 * 1024
-const UPSTREAM_TIMEOUT_MS = 30_000
 const STORAGE_PUT_TIMEOUT_MS = 120_000
 const ASSET_TYPES = new Set(['AUDIO', 'IMAGE', 'VIDEO', 'DOCUMENT'])
 const ASSET_VISIBILITIES = new Set(['PUBLIC', 'PRIVATE'])
@@ -58,62 +56,40 @@ function isTimeoutError(error: unknown): boolean {
     )
 }
 
-async function readFormDataWithByteLimit(
-    request: Request,
-    maxBytes: number,
-): Promise<FormData | Response> {
-    const contentLengthHeader = request.headers.get('content-length')
-    if (contentLengthHeader !== null) {
-        const contentLength = Number(contentLengthHeader)
-        if (!Number.isSafeInteger(contentLength) || contentLength < 0) {
-            return jsonError('Invalid Content-Length.', 400)
-        }
-        if (contentLength > maxBytes) {
-            return jsonError(`Request exceeds ${maxBytes} byte upload limit.`, 413)
-        }
+function parseFilename(value: string | null): string | null {
+    if (value === null || value.length === 0 || value.length > 1024) {
+        return null
     }
-
-    if (!request.body) {
-        return jsonError('Expected multipart form data.', 400)
-    }
-
-    let totalBytes = 0
-    const limitedBody = request.body.pipeThrough(
-        new TransformStream<Uint8Array, Uint8Array>({
-            transform(chunk, controller) {
-                totalBytes += chunk.byteLength
-                if (totalBytes > maxBytes) {
-                    controller.error(new DOMException('BODY_TOO_LARGE', 'AbortError'))
-                    return
-                }
-                controller.enqueue(chunk)
-            },
-        }),
-    )
-
     try {
-        const limitedRequest = new Request(request.url, {
-            method: request.method,
-            headers: request.headers,
-            body: limitedBody,
-            duplex: 'half',
-        } as RequestInit)
-        return await limitedRequest.formData()
-    } catch (error: unknown) {
-        if (
-            (error instanceof DOMException && error.message === 'BODY_TOO_LARGE') ||
-            (error instanceof Error && error.message.includes('BODY_TOO_LARGE'))
-        ) {
-            return jsonError(`Request exceeds ${maxBytes} byte upload limit.`, 413)
+        const decoded = decodeURIComponent(value)
+        if (decoded.length === 0 || decoded.length > 255 || decoded.includes('\u0000')) {
+            return null
         }
-        return jsonError('Expected multipart form data.', 400)
+        return decoded
+    } catch {
+        return null
     }
+}
+
+function parseSizeBytes(value: string | null): number | null {
+    if (value === null) {
+        return null
+    }
+    const parsed = Number(value)
+    if (!Number.isSafeInteger(parsed) || parsed <= 0) {
+        return null
+    }
+    return parsed
 }
 
 /**
  * Tenant media upload for studio.
- * Bunny S3 has no CORS; browser cannot PUT the presigned URL.
- * Flow: upload-url → Node PUT to S3 → confirm (caller's Bearer).
+ *
+ * The browser sends the raw file bytes as the request body (no multipart) with
+ * metadata in headers, so the BFF can stream the body straight through to the
+ * presigned object-storage URL without buffering the file in memory.
+ *
+ * Flow: upload-url → stream request body to S3 → confirm (caller's Bearer).
  */
 export async function POST(request: Request): Promise<Response> {
     const tenantHost = parseTenantHost(request.headers.get('x-tenant-host'))
@@ -126,33 +102,42 @@ export async function POST(request: Request): Promise<Response> {
         return jsonError('A valid bearer token is required.', 401)
     }
 
-    const formDataOrError = await readFormDataWithByteLimit(request, MAX_REQUEST_BYTES)
-    if (formDataOrError instanceof Response) {
-        return formDataOrError
-    }
-    const formData = formDataOrError
-
-    const fileEntry = formData.get('file')
-    if (!(fileEntry instanceof File) || fileEntry.size === 0) {
-        return jsonError('Choose a non-empty file to upload.', 400)
-    }
-    if (fileEntry.size > MAX_UPLOAD_BYTES) {
-        return jsonError(`File exceeds ${MAX_UPLOAD_BYTES} byte upload limit.`, 413)
+    if (!request.body) {
+        return jsonError('Expected a request body.', 400)
     }
 
-    const visibilityRaw = String(formData.get('visibility') ?? 'PRIVATE').trim()
-    if (!ASSET_VISIBILITIES.has(visibilityRaw)) {
-        return jsonError('Choose a valid visibility.', 400)
+    const filename = parseFilename(request.headers.get('x-filename'))
+    if (filename === null) {
+        return jsonError('A valid filename is required.', 400)
     }
 
-    const mimeType = fileEntry.type || 'application/octet-stream'
-    const assetTypeRaw = String(formData.get('assetType') ?? '').trim()
+    const contentLengthHeader = request.headers.get('content-length')
+    if (contentLengthHeader === '0') {
+        return jsonError('File must not be empty.', 400)
+    }
+    const sizeBytes = parseSizeBytes(contentLengthHeader)
+    if (sizeBytes === null) {
+        return jsonError('A valid Content-Length is required.', 411)
+    }
+
+    const mimeType =
+        (request.headers.get('content-type') ?? '')
+            .split(';')[0]
+            .trim()
+            .toLowerCase() || 'application/octet-stream'
+
+    const assetTypeRaw = (request.headers.get('x-asset-type') ?? '').trim()
     const assetType = assetTypeRaw || inferAssetType(mimeType)
     if (!ASSET_TYPES.has(assetType)) {
         return jsonError('Choose a valid asset type.', 400)
     }
 
-    const episodeIdRaw = String(formData.get('episodeId') ?? '').trim()
+    const visibilityRaw = String(request.headers.get('x-visibility') ?? 'PRIVATE').trim()
+    if (!ASSET_VISIBILITIES.has(visibilityRaw)) {
+        return jsonError('Choose a valid visibility.', 400)
+    }
+
+    const episodeIdRaw = (request.headers.get('x-episode-id') ?? '').trim()
     let episodeId: number | undefined
     if (episodeIdRaw.length > 0) {
         const parsed = Number(episodeIdRaw)
@@ -163,9 +148,9 @@ export async function POST(request: Request): Promise<Response> {
     }
 
     const uploadUrlBody = {
-        filename: fileEntry.name,
+        filename,
         mimeType,
-        sizeBytes: fileEntry.size,
+        sizeBytes,
         assetType,
         intendedVisibility: visibilityRaw,
         scope: visibilityRaw === 'PUBLIC' ? 'TENANT_PUBLIC' : 'CONTENT',
@@ -206,20 +191,21 @@ export async function POST(request: Request): Promise<Response> {
         if (!putHeaders.has('Content-Type')) {
             putHeaders.set('Content-Type', mimeType)
         }
+        const headersObject: Record<string, string> = {}
+        putHeaders.forEach((value, key) => {
+            headersObject[key] = value
+        })
 
-        const putResponse = await fetch(uploadData.uploadUrl, {
-            method: 'PUT',
-            headers: putHeaders,
-            body: fileEntry.stream(),
-            cache: 'no-store',
-            redirect: 'manual',
-            signal: AbortSignal.timeout(STORAGE_PUT_TIMEOUT_MS),
-            duplex: 'half',
-        } as RequestInit)
+        const putResult = await putStreamToStorage(
+            uploadData.uploadUrl,
+            headersObject,
+            request.body,
+            STORAGE_PUT_TIMEOUT_MS,
+        )
 
-        if (!putResponse.ok) {
+        if (putResult.status < 200 || putResult.status >= 300) {
             return jsonError(
-                `Object storage rejected the upload (HTTP ${putResponse.status}).`,
+                `Object storage rejected the upload (HTTP ${putResult.status}).`,
                 502,
             )
         }

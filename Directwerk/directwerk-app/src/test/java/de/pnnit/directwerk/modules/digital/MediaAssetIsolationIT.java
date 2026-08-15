@@ -203,6 +203,35 @@ class MediaAssetIsolationIT {
         }
     }
 
+    @Test
+    void listExcludesTombstonedAssetsByDefault() {
+        Tenant tenant = saveTenant("list-" + suffix());
+
+        transactionTemplate.executeWithoutResult(status -> {
+            TenantContext.setTenantId(tenant.getId());
+            mediaAssetRepository.saveAndFlush(
+                    assetWithStatus(tenant, tenant.getSlug() + "/public/images/ready.jpg", AssetStatus.READY));
+            mediaAssetRepository.saveAndFlush(
+                    assetWithStatus(tenant, tenant.getSlug() + "/public/images/gone.jpg", AssetStatus.ARCHIVED));
+            mediaAssetRepository.saveAndFlush(
+                    assetWithStatus(tenant, tenant.getSlug() + "/public/images/deleting.jpg", AssetStatus.PENDING_DELETE));
+        });
+        TenantContext.clear();
+
+        try {
+            TenantContext.setTenantId(tenant.getId());
+            assertThat(mediaAssetQueryApi.list(null, null, 50))
+                    .extracting(MediaAsset::getStatus)
+                    .containsOnly(AssetStatus.READY);
+
+            assertThat(mediaAssetQueryApi.list(null, AssetStatus.ARCHIVED, 50))
+                    .extracting(MediaAsset::getStatus)
+                    .containsOnly(AssetStatus.ARCHIVED);
+        } finally {
+            TenantContext.clear();
+        }
+    }
+
     private void activateDigitalContent(Tenant tenant) {
         transactionTemplate.executeWithoutResult(status -> {
             TenantContext.setTenantId(tenant.getId());
@@ -227,13 +256,17 @@ class MediaAssetIsolationIT {
     }
 
     private static MediaAsset publicAsset(Tenant tenant, String s3Key) {
+        return assetWithStatus(tenant, s3Key, AssetStatus.READY);
+    }
+
+    private static MediaAsset assetWithStatus(Tenant tenant, String s3Key, AssetStatus status) {
         MediaAsset asset = new MediaAsset();
         asset.setTenant(tenant);
         asset.setS3Key(s3Key);
         asset.setVisibility(AssetVisibility.PUBLIC);
         asset.setScope(AssetScope.TENANT_PUBLIC);
         asset.setAssetType(AssetType.IMAGE);
-        asset.setStatus(AssetStatus.READY);
+        asset.setStatus(status);
         return asset;
     }
 

@@ -4,6 +4,7 @@ import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest'
 import MediaLibraryClient from '@/components/media/MediaLibraryClient'
 import {listMedia} from '@/lib/api/tenantApi'
 import {uploadMediaFile} from '@/lib/media/upload'
+import type {MediaAsset} from '@/lib/api/types'
 
 vi.mock('next/navigation', () => ({useRouter: () => ({replace: vi.fn()})}))
 vi.mock('@/lib/tenant/getClientTenantHost', () => ({getClientTenantHost: () => 'tenant.test'}))
@@ -77,11 +78,63 @@ describe('MediaLibraryClient', () => {
             expect(uploadMediaFile).toHaveBeenCalledWith(
                 'tenant.test',
                 file,
-                {assetType: 'AUDIO', visibility: 'PRIVATE'},
+                expect.objectContaining({assetType: 'AUDIO', visibility: 'PRIVATE'}),
             ),
         )
         await waitFor(() =>
             expect(screen.getByRole('status')).toHaveTextContent('Hochgeladen: folge.mp3'),
         )
+    })
+
+    it('shows an upload progress bar that reaches 100 %', async () => {
+        vi.mocked(listMedia).mockResolvedValue([])
+
+        let onProgress: ((percent: number) => void) | undefined
+        let resolveUpload: ((asset: MediaAsset) => void) | undefined
+        vi.mocked(uploadMediaFile).mockImplementation(
+            (_host, _file, options) => {
+                onProgress = options?.onProgress
+                onProgress?.(0)
+                onProgress?.(50)
+                return new Promise<MediaAsset>((resolve) => {
+                    resolveUpload = resolve
+                })
+            },
+        )
+
+        render(<MediaLibraryClient />)
+
+        await waitFor(() =>
+            expect(screen.getByText('Noch keine Medien')).toBeInTheDocument(),
+        )
+
+        const dropzone = screen.getByText('Datei hierher ziehen').parentElement
+        expect(dropzone).not.toBeNull()
+        const file = new File(['audio'], 'folge.mp3', {type: 'audio/mpeg'})
+        fireEvent.drop(dropzone as HTMLElement, {
+            dataTransfer: {files: [file]},
+        })
+
+        const progressbar = await screen.findByRole('progressbar')
+        expect(progressbar).toHaveAttribute('aria-valuenow', '50')
+
+        onProgress?.(100)
+        await waitFor(() =>
+            expect(progressbar).toHaveAttribute('aria-valuenow', '100'),
+        )
+
+        resolveUpload?.({
+            id: 8,
+            status: 'READY',
+            assetType: 'AUDIO',
+            mimeType: 'audio/mpeg',
+            originalFilename: 'folge.mp3',
+            sizeBytes: 1024,
+        })
+
+        await waitFor(() =>
+            expect(screen.getByRole('status')).toHaveTextContent('Hochgeladen: folge.mp3'),
+        )
+        expect(screen.queryByRole('progressbar')).not.toBeInTheDocument()
     })
 })

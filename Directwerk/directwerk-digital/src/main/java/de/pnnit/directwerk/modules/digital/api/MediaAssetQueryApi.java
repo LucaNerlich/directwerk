@@ -13,6 +13,11 @@ public interface MediaAssetQueryApi {
 
     Optional<MediaAsset> findById(Long assetId);
 
+    /**
+     * Lists assets filtered by {@code assetType} and {@code status}. When {@code status} is
+     * {@code null}, tombstoned rows ({@code ARCHIVED}, {@code PENDING_DELETE}) are excluded —
+     * deleted assets are not surfaced to callers unless explicitly requested by status.
+     */
     List<MediaAsset> list(AssetType assetType, AssetStatus status, int limit);
 
     /**

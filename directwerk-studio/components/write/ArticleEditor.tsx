@@ -7,6 +7,7 @@ import {useRouter} from 'next/navigation'
 import {useCallback, useEffect, useRef, useState} from 'react'
 
 import MediaLibraryPicker from '@/components/media/MediaLibraryPicker'
+import UploadProgress from '@/components/media/UploadProgress'
 import PublicationEditorLayout from '@/components/publication/PublicationEditorLayout'
 import LevelSelect from '@/components/studio/LevelSelect'
 import {AUTH_REQUIRED} from '@/lib/api/errors'
@@ -28,6 +29,7 @@ import {
 import type {AccessPolicy, ArticleDetail, CategorySummary} from '@/lib/api/types'
 import {fromDatetimeLocalValue, toDatetimeLocalValue} from '@/lib/datetime'
 import {useDraftAutosave} from '@/lib/editor/useDraftAutosave'
+import {mediaLimitLabel} from '@/lib/media/limits'
 import {uploadMediaFile} from '@/lib/media/upload'
 import {useSiteConfig} from '@/lib/site/SiteConfigProvider'
 import {getClientTenantHost} from '@/lib/tenant/getClientTenantHost'
@@ -53,6 +55,10 @@ export default function ArticleEditor({articleId}: {articleId?: number}) {
     const [requiredLevelSortOrder, setRequiredLevelSortOrder] = useState<number | null>(null)
     const [heroPreviewUrl, setHeroPreviewUrl] = useState<string | null>(null)
     const [isUploadingHero, setIsUploadingHero] = useState(false)
+    const [uploadProgress, setUploadProgress] = useState<{file: File; progress: number} | null>(
+        null,
+    )
+    const mountedRef = useRef(true)
     const [notifySubscribers, setNotifySubscribers] = useState(false)
     const [scheduledAt, setScheduledAt] = useState('')
     const [isSaving, setIsSaving] = useState(false)
@@ -68,6 +74,7 @@ export default function ArticleEditor({articleId}: {articleId?: number}) {
     const [saveHint, setSaveHint] = useState<string | null>(null)
 
     useEffect(() => {
+        mountedRef.current = true
         if (articleId === undefined) {
             setIsLoading(false)
             return
@@ -117,6 +124,7 @@ export default function ArticleEditor({articleId}: {articleId?: number}) {
 
         return () => {
             active = false
+            mountedRef.current = false
         }
     }, [articleId])
 
@@ -310,17 +318,26 @@ export default function ArticleEditor({articleId}: {articleId?: number}) {
             }
             setIsUploadingHero(true)
             setErrorMessage(null)
+            setUploadProgress({file, progress: 0})
             try {
                 const asset = await uploadMediaFile(getClientTenantHost(), file, {
                     assetType: 'IMAGE',
                     visibility: 'PUBLIC',
+                    onProgress: (percent) => {
+                        if (mountedRef.current) {
+                            setUploadProgress({file, progress: percent})
+                        }
+                    },
                 })
                 setHeroAssetId(asset.id)
                 markDirty()
             } catch (error) {
                 handleAuthError(error)
             } finally {
-                setIsUploadingHero(false)
+                if (mountedRef.current) {
+                    setIsUploadingHero(false)
+                    setUploadProgress(null)
+                }
             }
         },
         [handleAuthError, markDirty],
@@ -456,7 +473,16 @@ export default function ArticleEditor({articleId}: {articleId?: number}) {
                                 }}
                                 type="file"
                             />
+                            <span className="text-xs text-muted-foreground">
+                                Max. {mediaLimitLabel('IMAGE')}.
+                            </span>
                         </label>
+                        {uploadProgress !== null ? (
+                            <UploadProgress
+                                file={uploadProgress.file}
+                                progress={uploadProgress.progress}
+                            />
+                        ) : null}
                         <MediaLibraryPicker
                             assetType="IMAGE"
                             disabled={isSaving || isUploadingHero}

@@ -9,9 +9,10 @@ import {Input} from '@directwerk/ui/components/input'
 
 import Link from 'next/link'
 import {useRouter} from 'next/navigation'
-import {useCallback, useEffect, useState, type FormEvent} from 'react'
+import {useCallback, useEffect, useRef, useState, type FormEvent} from 'react'
 
 import MediaLibraryPicker from '@/components/media/MediaLibraryPicker'
+import UploadProgress from '@/components/media/UploadProgress'
 import PublicationStatusBadge from '@/components/publication/PublicationStatusBadge'
 import PublishedLinksPanel from '@/components/publication/PublishedLinksPanel'
 import {AUTH_REQUIRED} from '@/lib/api/errors'
@@ -23,6 +24,7 @@ import {
     updateSeries,
 } from '@/lib/api/tenantApi'
 import type {SeriesStatus} from '@/lib/api/types'
+import {mediaLimitLabel} from '@/lib/media/limits'
 import {uploadMediaFile} from '@/lib/media/upload'
 import {getClientTenantHost} from '@/lib/tenant/getClientTenantHost'
 
@@ -48,6 +50,10 @@ export default function SeriesEditor({seriesId}: SeriesEditorProps): React.JSX.E
     const [coverAssetId, setCoverAssetId] = useState<number | null>(null)
     const [coverPreviewUrl, setCoverPreviewUrl] = useState<string | null>(null)
     const [isUploadingCover, setIsUploadingCover] = useState(false)
+    const [uploadProgress, setUploadProgress] = useState<{file: File; progress: number} | null>(
+        null,
+    )
+    const mountedRef = useRef(true)
     const [defaultRequiredLevelSortOrder, setDefaultRequiredLevelSortOrder] = useState<number | null>(null)
     const [rssUrl, setRssUrl] = useState<string | null>(null)
     const [publishOnCreate, setPublishOnCreate] = useState(false)
@@ -57,6 +63,7 @@ export default function SeriesEditor({seriesId}: SeriesEditorProps): React.JSX.E
     const [loadError, setLoadError] = useState(false)
 
     useEffect(() => {
+        mountedRef.current = true
         if (seriesId === undefined) {
             setIsLoading(false)
             return
@@ -105,6 +112,7 @@ export default function SeriesEditor({seriesId}: SeriesEditorProps): React.JSX.E
 
         return () => {
             active = false
+            mountedRef.current = false
         }
     }, [router, seriesId])
 
@@ -161,16 +169,25 @@ export default function SeriesEditor({seriesId}: SeriesEditorProps): React.JSX.E
         }
         setIsUploadingCover(true)
         setErrorMessage(null)
+        setUploadProgress({file, progress: 0})
         try {
             const asset = await uploadMediaFile(getClientTenantHost(), file, {
                 assetType: 'IMAGE',
                 visibility: 'PUBLIC',
+                onProgress: (percent) => {
+                    if (mountedRef.current) {
+                        setUploadProgress({file, progress: percent})
+                    }
+                },
             })
             setCoverAssetId(asset.id)
         } catch (error) {
             handleAuthError(error)
         } finally {
-            setIsUploadingCover(false)
+            if (mountedRef.current) {
+                setIsUploadingCover(false)
+                setUploadProgress(null)
+            }
         }
     }
 
@@ -375,6 +392,9 @@ export default function SeriesEditor({seriesId}: SeriesEditorProps): React.JSX.E
                         }}
                         type="file"
                     />
+                    <span className="text-xs font-normal text-muted-foreground">
+                        Max. {mediaLimitLabel('IMAGE')}.
+                    </span>
                     <MediaLibraryPicker
                         assetType="IMAGE"
                         disabled={isUploadingCover || isSaving}
@@ -385,7 +405,12 @@ export default function SeriesEditor({seriesId}: SeriesEditorProps): React.JSX.E
                         }}
                         selectedId={coverAssetId}
                     />
-                    {isUploadingCover ? <p>Lädt hoch…</p> : null}
+                    {uploadProgress !== null ? (
+                        <UploadProgress
+                            file={uploadProgress.file}
+                            progress={uploadProgress.progress}
+                        />
+                    ) : null}
                 </div>
                 <label className="grid gap-2 text-sm font-medium">
                     <span>Mindest-Stufe für Folgen (Standard)</span>

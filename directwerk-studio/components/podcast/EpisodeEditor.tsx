@@ -8,9 +8,10 @@ import {Input} from '@directwerk/ui/components/input'
 
 import Link from 'next/link'
 import {useRouter} from 'next/navigation'
-import {useCallback, useEffect, useEffectEvent, useState} from 'react'
+import {useCallback, useEffect, useEffectEvent, useRef, useState} from 'react'
 
 import MediaLibraryPicker from '@/components/media/MediaLibraryPicker'
+import UploadProgress from '@/components/media/UploadProgress'
 import PublicationEditorLayout from '@/components/publication/PublicationEditorLayout'
 import PublishedLinksPanel from '@/components/publication/PublishedLinksPanel'
 import {hasModule} from '@/lib/api/client'
@@ -38,6 +39,7 @@ import {
 } from '@/lib/api/tenantApi'
 import type {AccessPolicy, CategorySummary, EpisodeDetail, FormatSummary, SeriesSummary} from '@/lib/api/types'
 import {fromDatetimeLocalValue, toDatetimeLocalValue} from '@/lib/datetime'
+import {mediaLimitLabel} from '@/lib/media/limits'
 import {uploadMediaFile} from '@/lib/media/upload'
 import {episodePublishBlockReason} from '@/lib/podcast/episodePreflight'
 import {publicEpisodePageUrl} from '@/lib/podcast/publicUrls'
@@ -80,8 +82,12 @@ export default function EpisodeEditor({episodeId}: {episodeId?: number}): React.
     const [scheduledAt, setScheduledAt] = useState('')
     const [isSaving, setIsSaving] = useState(false)
     const [isUploading, setIsUploading] = useState(false)
+    const [uploadProgress, setUploadProgress] = useState<{file: File; progress: number} | null>(
+        null,
+    )
     const [isLoading, setIsLoading] = useState(true)
     const [errorMessage, setErrorMessage] = useState<string | null>(null)
+    const mountedRef = useRef(true)
     const [audioPreviewUrl, setAudioPreviewUrl] = useState<string | null>(null)
     const [audioPreviewError, setAudioPreviewError] = useState<string | null>(null)
     const [audioReady, setAudioReady] = useState(false)
@@ -157,6 +163,7 @@ export default function EpisodeEditor({episodeId}: {episodeId?: number}): React.
     }, [audioAssetId])
 
     useEffect(() => {
+        mountedRef.current = true
         let active = true
 
         async function load(): Promise<void> {
@@ -220,6 +227,7 @@ export default function EpisodeEditor({episodeId}: {episodeId?: number}): React.
 
         return () => {
             active = false
+            mountedRef.current = false
         }
     }, [episodeId, router])
 
@@ -375,19 +383,28 @@ export default function EpisodeEditor({episodeId}: {episodeId?: number}): React.
 
             setIsUploading(true)
             setErrorMessage(null)
+            setUploadProgress({file, progress: 0})
             try {
                 const host = getClientTenantHost()
                 const asset = await uploadMediaFile(host, file, {
                     assetType: 'AUDIO',
                     visibility: 'PRIVATE',
                     episodeId: saved.id,
+                    onProgress: (percent) => {
+                        if (mountedRef.current) {
+                            setUploadProgress({file, progress: percent})
+                        }
+                    },
                 })
                 const updated = await attachEpisodeAudio(host, saved.id, asset.id)
                 setEpisode(updated)
             } catch (error) {
                 handleAuthError(error)
             } finally {
-                setIsUploading(false)
+                if (mountedRef.current) {
+                    setIsUploading(false)
+                    setUploadProgress(null)
+                }
             }
         },
         [handleAuthError, save],
@@ -724,6 +741,9 @@ export default function EpisodeEditor({episodeId}: {episodeId?: number}): React.
                                         event.target.value = ''
                                     }}
                                 />
+                                <span className="text-xs font-normal text-muted-foreground">
+                                    Max. {mediaLimitLabel('AUDIO')}.
+                                </span>
                             </label>
                             {hasDigitalContent ? (
                                 <MediaLibraryPicker
@@ -737,7 +757,13 @@ export default function EpisodeEditor({episodeId}: {episodeId?: number}): React.
                                     selectedId={audioAssetId}
                                 />
                             ) : null}
-                            {isUploading ? <p className="text-xs text-muted-foreground">Upload läuft…</p> : null}
+                            {isUploading && uploadProgress === null ? <p className="text-xs text-muted-foreground">Upload läuft…</p> : null}
+                            {uploadProgress !== null ? (
+                                <UploadProgress
+                                    file={uploadProgress.file}
+                                    progress={uploadProgress.progress}
+                                />
+                            ) : null}
                         </div>
                         {episode !== null ? (
                             <div className="grid gap-2">

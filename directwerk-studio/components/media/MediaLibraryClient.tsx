@@ -1,6 +1,7 @@
 'use client'
 
 import SelectControl from '@/components/studio/SelectControl'
+import UploadProgress from '@/components/media/UploadProgress'
 
 import {Button} from '@directwerk/ui/components/button'
 import EmptyState from '@directwerk/ui/components/empty-state'
@@ -12,6 +13,7 @@ import {useRouter} from 'next/navigation'
 import {AUTH_REQUIRED} from '@/lib/api/errors'
 import {deleteMedia, listMedia} from '@/lib/api/tenantApi'
 import type {MediaAsset} from '@/lib/api/types'
+import {MEDIA_TYPE_LIMITS} from '@/lib/media/limits'
 import {uploadMediaFile} from '@/lib/media/upload'
 import {getClientTenantHost} from '@/lib/tenant/getClientTenantHost'
 
@@ -66,6 +68,9 @@ export default function MediaLibraryClient(): React.JSX.Element {
     const [isBusy, setIsBusy] = useState(false)
     const [isDragging, setIsDragging] = useState(false)
     const [typeFilter, setTypeFilter] = useState('')
+    const [uploadProgress, setUploadProgress] = useState<{file: File; progress: number} | null>(
+        null,
+    )
 
     async function reload(): Promise<void> {
         const result = await listMedia(getClientTenantHost())
@@ -120,11 +125,17 @@ export default function MediaLibraryClient(): React.JSX.Element {
         setIsBusy(true)
         setErrorMessage(null)
         setStatusMessage(null)
+        setUploadProgress({file, progress: 0})
 
         try {
             await uploadMediaFile(getClientTenantHost(), file, {
                 assetType,
                 visibility: 'PRIVATE',
+                onProgress: (percent) => {
+                    if (mountedRef.current) {
+                        setUploadProgress({file, progress: percent})
+                    }
+                },
             })
             if (!mountedRef.current) {
                 return
@@ -148,6 +159,7 @@ export default function MediaLibraryClient(): React.JSX.Element {
         } finally {
             if (mountedRef.current) {
                 setIsBusy(false)
+                setUploadProgress(null)
             }
         }
     }
@@ -259,7 +271,18 @@ export default function MediaLibraryClient(): React.JSX.Element {
                 <p className="mt-1 text-muted-foreground">
                     Audio, Bilder, Video oder PDF/DOC. Alternativ über „Datei hochladen“.
                 </p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                    Audio bis {MEDIA_TYPE_LIMITS.AUDIO.label} · Video bis {MEDIA_TYPE_LIMITS.VIDEO.label}
+                    {' · '}Bilder bis {MEDIA_TYPE_LIMITS.IMAGE.label} · Dokumente bis {MEDIA_TYPE_LIMITS.DOCUMENT.label}
+                </p>
             </div>
+
+            {uploadProgress !== null ? (
+                <UploadProgress
+                    file={uploadProgress.file}
+                    progress={uploadProgress.progress}
+                />
+            ) : null}
 
             <label className="grid gap-2 text-sm font-medium" htmlFor="typeFilter">
                 Typ filtern
