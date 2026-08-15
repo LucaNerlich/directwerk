@@ -1,4 +1,4 @@
-import type {ReactNode} from 'react'
+import {cloneElement, isValidElement, type ReactElement, type ReactNode} from 'react'
 
 import {Label} from '#components/label'
 import {cn} from '#lib/utils'
@@ -19,11 +19,17 @@ export default function FormField({
     className?: string
 }): React.JSX.Element {
     const messageId = `${htmlFor}-message`
+    const control = isValidElement(children)
+        ? cloneElement(children as ReactElement<Record<string, unknown>>, {
+              'aria-describedby': messageId,
+              ...(error !== undefined ? {'aria-invalid': true} : {}),
+          })
+        : children
 
     return (
         <div className={cn('grid gap-2', className)}>
             <Label htmlFor={htmlFor}>{label}</Label>
-            {children}
+            {control}
             {error !== undefined ? (
                 <p className="text-sm text-destructive" id={messageId} role="alert">
                     {error}

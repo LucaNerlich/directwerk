@@ -3,14 +3,12 @@
 import type {OAuthTokenResponse} from '@/lib/api/types'
 
 const ACCESS_TOKEN_KEY = 'publish_admin_access'
-const REFRESH_TOKEN_KEY = 'publish_admin_refresh'
 const ACCESS_EXPIRES_AT_KEY = 'publish_admin_access_expires_at'
 
 const DEFAULT_ACCESS_TTL_SECONDS = 900
 const REFRESH_BUFFER_MS = 60_000
 
 let accessTokenCache: string | null | undefined
-let refreshTokenCache: string | null | undefined
 let expiresAtCache: number | null | undefined
 
 const tokenListeners = new Set<() => void>()
@@ -32,12 +30,6 @@ function initializeAccessCache(): void {
     }
 }
 
-function initializeRefreshCache(): void {
-    if (refreshTokenCache === undefined) {
-        refreshTokenCache = sessionStorage.getItem(REFRESH_TOKEN_KEY)
-    }
-}
-
 function initializeExpiresAtCache(): void {
     if (expiresAtCache === undefined) {
         const stored = sessionStorage.getItem(ACCESS_EXPIRES_AT_KEY)
@@ -53,7 +45,6 @@ function initializeExpiresAtCache(): void {
 
 function resetCaches(): void {
     accessTokenCache = undefined
-    refreshTokenCache = undefined
     expiresAtCache = undefined
 }
 
@@ -61,7 +52,6 @@ if (typeof window !== 'undefined') {
     window.addEventListener('storage', (event) => {
         if (
             event.key === ACCESS_TOKEN_KEY ||
-            event.key === REFRESH_TOKEN_KEY ||
             event.key === ACCESS_EXPIRES_AT_KEY ||
             event.key === null
         ) {
@@ -74,11 +64,6 @@ if (typeof window !== 'undefined') {
 export function getAccessToken(): string | null {
     initializeAccessCache()
     return accessTokenCache ?? null
-}
-
-export function getRefreshToken(): string | null {
-    initializeRefreshCache()
-    return refreshTokenCache ?? null
 }
 
 export function getAccessTokenExpiresAt(): number | null {
@@ -110,23 +95,13 @@ export function storeTokens(tokens: OAuthTokenResponse): void {
     sessionStorage.setItem(ACCESS_EXPIRES_AT_KEY, String(expiresAt))
     accessTokenCache = tokens.access_token
     expiresAtCache = expiresAt
-
-    if (tokens.refresh_token) {
-        sessionStorage.setItem(REFRESH_TOKEN_KEY, tokens.refresh_token)
-        refreshTokenCache = tokens.refresh_token
-    } else {
-        sessionStorage.removeItem(REFRESH_TOKEN_KEY)
-        refreshTokenCache = null
-    }
     notifyTokenListeners()
 }
 
 export function clearTokens(): void {
     sessionStorage.removeItem(ACCESS_TOKEN_KEY)
-    sessionStorage.removeItem(REFRESH_TOKEN_KEY)
     sessionStorage.removeItem(ACCESS_EXPIRES_AT_KEY)
     accessTokenCache = null
-    refreshTokenCache = null
     expiresAtCache = null
     notifyTokenListeners()
 }

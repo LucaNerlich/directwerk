@@ -9,6 +9,7 @@ import AdminShell from '@directwerk/ui/components/layout/admin-shell'
 
 import AdminSideNav from '@/components/AdminSideNav'
 import {clearTokens, getAccessToken, subscribeToTokenStore} from '@/lib/auth/tokenStore'
+import {clearTenantTokens} from '@/lib/auth/tenantTokenStore'
 
 export default function Header({children}: {children: ReactNode}) {
     const pathname = usePathname()
@@ -24,7 +25,9 @@ export default function Header({children}: {children: ReactNode}) {
     }, [])
 
     function logout(): void {
+        void fetch('/api/auth/logout', {method: 'POST', cache: 'no-store'})
         clearTokens()
+        clearTenantTokens()
         router.replace('/login')
     }
 

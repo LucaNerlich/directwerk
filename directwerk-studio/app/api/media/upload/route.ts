@@ -83,6 +83,34 @@ function parseSizeBytes(value: string | null): number | null {
 }
 
 /**
+ * Aborts the stream as soon as the actual byte count exceeds the declared
+ * Content-Length, so a client cannot declare a small size and stream an
+ * arbitrarily large body through to object storage.
+ */
+function limitStreamToSize(
+    body: ReadableStream<Uint8Array>,
+    maxBytes: number,
+): ReadableStream<Uint8Array> {
+    let totalBytes = 0
+    return body.pipeThrough(
+        new TransformStream<Uint8Array, Uint8Array>({
+            transform(chunk, controller) {
+                totalBytes += chunk.byteLength
+                if (totalBytes > maxBytes) {
+                    const error = new Error(
+                        'Uploaded body exceeds the declared Content-Length.',
+                    )
+                    error.name = 'BodyTooLargeError'
+                    controller.error(error)
+                    return
+                }
+                controller.enqueue(chunk)
+            },
+        }),
+    )
+}
+
+/**
  * Tenant media upload for studio.
  *
  * The browser sends the raw file bytes as the request body (no multipart) with
@@ -199,7 +227,7 @@ export async function POST(request: Request): Promise<Response> {
         const putResult = await putStreamToStorage(
             uploadData.uploadUrl,
             headersObject,
-            request.body,
+            limitStreamToSize(request.body, sizeBytes),
             STORAGE_PUT_TIMEOUT_MS,
         )
 
@@ -235,6 +263,9 @@ export async function POST(request: Request): Promise<Response> {
 
         return toClientResponse(confirmUpstream)
     } catch (error: unknown) {
+        if (error instanceof Error && error.name === 'BodyTooLargeError') {
+            return jsonError('Uploaded body exceeds the declared Content-Length.', 413)
+        }
         if (isTimeoutError(error)) {
             return jsonError('Upstream request timed out.', 504)
         }
