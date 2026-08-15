@@ -10,8 +10,6 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface ProcessedWebhookEventRepository extends JpaRepository<ProcessedWebhookEvent, Long> {
 
-    boolean existsByEventId(String eventId);
-
     /**
      * Atomically records a processed webhook event. Returns {@code 1} when the row was inserted
      * (first delivery) and {@code 0} when it already existed (concurrent duplicate or replay), so

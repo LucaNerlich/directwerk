@@ -63,6 +63,9 @@ public class QueueRepository {
             String correlationId,
             JsonNode metadata
     ) {
+        if (correlationId != null && tenantId == null) {
+            throw new IllegalArgumentException("tenantId is required when correlationId is supplied");
+        }
         if (correlationId == null) {
             return insert(queue, payload, priority, availableAt, maxAttempts, tenantId, null, metadata);
         }
