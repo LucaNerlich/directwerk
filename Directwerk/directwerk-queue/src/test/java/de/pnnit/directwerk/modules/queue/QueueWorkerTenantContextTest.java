@@ -1,8 +1,11 @@
 package de.pnnit.directwerk.modules.queue;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -13,6 +16,7 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -78,5 +82,125 @@ class QueueWorkerTenantContextTest {
         assertThat(seenTenantId.get()).isEqualTo(42L);
         assertThat(TenantContext.getTenantId()).isNull();
         verify(queueService).complete(jobId, "test-worker");
+    }
+
+    @Test
+    void failsJobWhenTenantRequiredButMissing() {
+        QueueService queueService = mock(QueueService.class);
+        JobHandlerRegistry registry = mock(JobHandlerRegistry.class);
+        DirectwerkConfig config = configWithQueueEnabled();
+
+        AtomicBoolean invoked = new AtomicBoolean(false);
+        JobHandler handler = new JobHandler() {
+            @Override
+            public String queueName() {
+                return "content-notify";
+            }
+
+            @Override
+            public void handle(QueueJob job) {
+                invoked.set(true);
+            }
+        };
+
+        when(registry.registeredQueues()).thenReturn(Set.of("content-notify"));
+        when(registry.handlerFor("content-notify")).thenReturn(handler);
+        when(queueService.resolveLeaseSeconds(eq("content-notify"), anyLong())).thenReturn(60L);
+        when(queueService.resolveRetryDelaySeconds(eq("content-notify"), anyLong())).thenReturn(30L);
+
+        UUID jobId = UUID.randomUUID();
+        QueueJob job = new QueueJob(
+                jobId,
+                "content-notify",
+                JsonNodeFactory.instance.objectNode(),
+                0,
+                JobStatus.PROCESSING,
+                Instant.now(),
+                1,
+                5,
+                "test-worker",
+                Instant.now().plusSeconds(60),
+                null,
+                null,
+                null,
+                null,
+                Instant.now(),
+                Instant.now()
+        );
+        when(queueService.claim("content-notify", "test-worker", 10, 60)).thenReturn(List.of(job));
+        when(queueService.fail(eq(job), eq("test-worker"), anyString(), eq(30L))).thenReturn(job);
+
+        QueueWorker worker = new QueueWorker(queueService, config, registry);
+        worker.poll("content-notify");
+
+        assertThat(invoked.get()).isFalse();
+        verify(queueService, never()).complete(jobId, "test-worker");
+        verify(queueService).fail(eq(job), eq("test-worker"), anyString(), eq(30L));
+        assertThat(TenantContext.getTenantId()).isNull();
+    }
+
+    @Test
+    void processesNullTenantJobWhenHandlerAllowsIt() {
+        QueueService queueService = mock(QueueService.class);
+        JobHandlerRegistry registry = mock(JobHandlerRegistry.class);
+        DirectwerkConfig config = configWithQueueEnabled();
+
+        AtomicBoolean invoked = new AtomicBoolean(false);
+        JobHandler handler = new JobHandler() {
+            @Override
+            public String queueName() {
+                return "email";
+            }
+
+            @Override
+            public boolean requiresTenant() {
+                return false;
+            }
+
+            @Override
+            public void handle(QueueJob job) {
+                invoked.set(true);
+            }
+        };
+
+        when(registry.registeredQueues()).thenReturn(Set.of("email"));
+        when(registry.handlerFor("email")).thenReturn(handler);
+        when(queueService.resolveLeaseSeconds(eq("email"), anyLong())).thenReturn(60L);
+
+        UUID jobId = UUID.randomUUID();
+        QueueJob job = new QueueJob(
+                jobId,
+                "email",
+                JsonNodeFactory.instance.objectNode(),
+                0,
+                JobStatus.PROCESSING,
+                Instant.now(),
+                1,
+                5,
+                "test-worker",
+                Instant.now().plusSeconds(60),
+                null,
+                null,
+                null,
+                null,
+                Instant.now(),
+                Instant.now()
+        );
+        when(queueService.claim("email", "test-worker", 10, 60)).thenReturn(List.of(job));
+
+        QueueWorker worker = new QueueWorker(queueService, config, registry);
+        worker.poll("email");
+
+        assertThat(invoked.get()).isTrue();
+        verify(queueService).complete(jobId, "test-worker");
+        assertThat(TenantContext.getTenantId()).isNull();
+    }
+
+    private static DirectwerkConfig configWithQueueEnabled() {
+        DirectwerkProperties.Queue queueProps = new DirectwerkProperties.Queue(
+                true, 1000, 10, 100, 60, 3600, 5, 30, 3600, 10000, "test-worker", 7, 3600000, 100
+        );
+        DirectwerkProperties properties = new DirectwerkProperties(null, null, null, null, null, queueProps, null, null);
+        return new DirectwerkConfig(properties);
     }
 }

@@ -80,6 +80,10 @@ public class QueueWorker {
      */
     private void process(JobHandler handler, QueueJob job) {
         try {
+            if (handler.requiresTenant() && job.tenantId() == null) {
+                throw new IllegalStateException(
+                        "Job requires a tenant but none is set (queue=" + job.queue() + ", id=" + job.id() + ")");
+            }
             TenantContext.runWithTenant(job.tenantId(), () -> handler.handle(job));
             queueService.complete(job.id(), workerId);
             log.info("Completed job id={} queue={}", job.id(), job.queue());
