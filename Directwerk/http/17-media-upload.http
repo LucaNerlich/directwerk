@@ -5,6 +5,7 @@
 ### Flow: upload-url → client PUT to uploadUrl → confirm → preview-url
 ### Note: the PUT to S3 is done outside this client (curl / studio). For harness smoke without
 ### a real upload, expect confirm to fail with UPLOAD_VALIDATION_FAILED until staging exists.
+### Final key after confirm: {tenant}/{public|private}/{type}/{uuid}_{sanitizedFilename}.{ext}
 
 ### @name createUploadUrl
 POST {{baseUrl}}/api/v1/media/upload-url
@@ -64,6 +65,13 @@ Accept: application/json
             response.status === 200 || response.status === 400 || response.status === 503,
             "Expected 200 after PUT, 400 if staging missing, or 503 if storage off"
         );
+        if (response.status === 200) {
+            // Final key: {tenant}/public|private/{type}/{uuid}_{sanitizedFilename}.{ext}
+            client.assert(
+                /\/images\/[0-9a-f-]{36}_harness-cover\.jpg$/.test(response.body.data.s3Key),
+                "Expected final key ending in uuid_harness-cover.jpg, got " + response.body.data.s3Key
+            );
+        }
     });
 %}
 

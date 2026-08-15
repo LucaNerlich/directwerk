@@ -14,4 +14,11 @@ tests {
   test("returns expected status", function() {
     expect(res.getStatus() === 200 || res.getStatus() === 400 || res.getStatus() === 503).to.equal(true);
   });
+
+  test("final key keeps uuid plus sanitized filename", function() {
+    if (res.getStatus() !== 200) {
+      return;
+    }
+    expect(res.body.data.s3Key).to.match(/images\/[0-9a-f-]{36}_harness-cover\.jpg$/);
+  });
 }
