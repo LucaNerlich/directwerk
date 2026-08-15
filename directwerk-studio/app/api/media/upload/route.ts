@@ -1,6 +1,6 @@
 import {parseJsonText} from '@/lib/api/validation'
 import {readBearerToken} from '@/lib/api/proxy'
-import {jsonError, toClientResponse} from '@/lib/api/upstream'
+import {jsonError} from '@/lib/api/upstream'
 import {directwerkFetch} from '@/lib/directwerk'
 import {parseTenantHost} from '@/lib/tenant/parseTenantHost'
 
@@ -10,6 +10,7 @@ const UPSTREAM_TIMEOUT_MS = 30_000
 const STORAGE_PUT_TIMEOUT_MS = 120_000
 const ASSET_TYPES = new Set(['AUDIO', 'IMAGE', 'VIDEO', 'DOCUMENT'])
 const ASSET_VISIBILITIES = new Set(['PUBLIC', 'PRIVATE'])
+const NDJSON_CONTENT_TYPE = 'application/x-ndjson; charset=utf-8'
 
 function inferAssetType(mimeType: string): string {
     if (mimeType.startsWith('image/')) {
@@ -56,6 +57,58 @@ function isTimeoutError(error: unknown): boolean {
         error instanceof Error &&
         (error.name === 'TimeoutError' || error.name === 'AbortError')
     )
+}
+
+interface UpstreamPayload {
+    status: number
+    body: unknown
+}
+
+/**
+ * Reads an upstream (Directwerk) response into `{status, body}` while applying
+ * the same status-mapping rules as `toClientResponse`.
+ */
+async function upstreamPayload(response: Response): Promise<UpstreamPayload> {
+    if (response.status >= 500 && response.status <= 599) {
+        return {
+            status: 502,
+            body: {error: 'The upstream service returned an invalid response.'},
+        }
+    }
+
+    if (response.status === 204 || response.status === 205) {
+        return {status: response.status, body: null}
+    }
+
+    const contentType = response.headers.get('content-type') ?? ''
+    if (!contentType.toLowerCase().includes('application/json')) {
+        if (response.status >= 400 && response.status < 500) {
+            return {
+                status: response.status,
+                body: {error: 'The upstream service rejected the request.'},
+            }
+        }
+        return {
+            status: 502,
+            body: {error: 'The upstream service returned an invalid response.'},
+        }
+    }
+
+    const data = parseJsonText(await response.text())
+    if (data === null) {
+        if (response.status >= 400 && response.status < 500) {
+            return {
+                status: response.status,
+                body: {error: 'The upstream service rejected the request.'},
+            }
+        }
+        return {
+            status: 502,
+            body: {error: 'The upstream service returned an invalid response.'},
+        }
+    }
+
+    return {status: response.status, body: data}
 }
 
 async function readFormDataWithByteLimit(
@@ -110,10 +163,174 @@ async function readFormDataWithByteLimit(
     }
 }
 
+interface UploadStreamInput {
+    tenantHost: string
+    bearerToken: string
+    fileEntry: File
+    mimeType: string
+    uploadUrlBody: Record<string, unknown>
+}
+
+/**
+ * Runs the upload flow (upload-url → S3 PUT → confirm) while streaming
+ * newline-delimited JSON progress events to the browser.
+ *
+ * Events: `{"type":"progress","percent":N}`, `{"type":"result","body":…}`,
+ * and `{"type":"error","status":N,"body":…}`.
+ */
+function uploadStream({
+    tenantHost,
+    bearerToken,
+    fileEntry,
+    mimeType,
+    uploadUrlBody,
+}: UploadStreamInput): ReadableStream<Uint8Array> {
+    const encoder = new TextEncoder()
+    let lastPercent = -1
+    let sentBytes = 0
+    const totalBytes = fileEntry.size
+
+    return new ReadableStream<Uint8Array>({
+        async start(controller) {
+            const send = (event: unknown): void => {
+                controller.enqueue(encoder.encode(`${JSON.stringify(event)}\n`))
+            }
+
+            const sendProgress = (percent: number): void => {
+                if (percent !== lastPercent) {
+                    lastPercent = percent
+                    send({type: 'progress', percent})
+                }
+            }
+
+            try {
+                const uploadUrlUpstream = await directwerkFetch({
+                    path: '/api/v1/media/upload-url',
+                    tenantHost,
+                    method: 'POST',
+                    bearerToken,
+                    body: JSON.stringify(uploadUrlBody),
+                    contentType: 'application/json',
+                })
+
+                if (!uploadUrlUpstream.ok) {
+                    const failure = await upstreamPayload(uploadUrlUpstream)
+                    send({type: 'error', status: failure.status, body: failure.body})
+                    controller.close()
+                    return
+                }
+
+                const uploadUrlPayload: unknown = await uploadUrlUpstream.json()
+                const uploadData = readEnvelopeData(uploadUrlPayload) as {
+                    assetId?: number
+                    uploadUrl?: string
+                    headers?: Record<string, string>
+                } | null
+
+                if (
+                    uploadData === null ||
+                    typeof uploadData.assetId !== 'number' ||
+                    typeof uploadData.uploadUrl !== 'string' ||
+                    !isAllowedUploadUrl(uploadData.uploadUrl)
+                ) {
+                    send({
+                        type: 'error',
+                        status: 502,
+                        body: {error: 'Invalid upload-url response from Directwerk.'},
+                    })
+                    controller.close()
+                    return
+                }
+
+                const putHeaders = new Headers(uploadData.headers ?? {})
+                if (!putHeaders.has('Content-Type')) {
+                    putHeaders.set('Content-Type', mimeType)
+                }
+
+                const progressStream = new TransformStream<Uint8Array, Uint8Array>({
+                    transform(chunk, sink) {
+                        sentBytes += chunk.byteLength
+                        sendProgress(Math.min(99, Math.round((sentBytes / totalBytes) * 100)))
+                        sink.enqueue(chunk)
+                    },
+                })
+
+                const putResponse = await fetch(uploadData.uploadUrl, {
+                    method: 'PUT',
+                    headers: putHeaders,
+                    body: fileEntry.stream().pipeThrough(progressStream),
+                    cache: 'no-store',
+                    redirect: 'manual',
+                    signal: AbortSignal.timeout(STORAGE_PUT_TIMEOUT_MS),
+                    duplex: 'half',
+                } as RequestInit)
+
+                if (!putResponse.ok) {
+                    send({
+                        type: 'error',
+                        status: 502,
+                        body: {
+                            error: `Object storage rejected the upload (HTTP ${putResponse.status}).`,
+                        },
+                    })
+                    controller.close()
+                    return
+                }
+
+                sendProgress(100)
+
+                const confirmUpstream = await directwerkFetch({
+                    path: `/api/v1/media/${uploadData.assetId}/confirm`,
+                    tenantHost,
+                    method: 'POST',
+                    bearerToken,
+                })
+
+                if (!confirmUpstream.ok) {
+                    const failure = await upstreamPayload(confirmUpstream)
+                    const failureBody =
+                        typeof failure.body === 'object' && failure.body !== null
+                            ? failure.body
+                            : {error: 'Directwerk confirm failed.'}
+                    send({
+                        type: 'error',
+                        status: failure.status,
+                        body: {
+                            ...failureBody,
+                            assetId: uploadData.assetId,
+                            retryConfirm: true,
+                        },
+                    })
+                    controller.close()
+                    return
+                }
+
+                const success = await upstreamPayload(confirmUpstream)
+                send({type: 'result', status: success.status, body: success.body})
+                controller.close()
+            } catch (error: unknown) {
+                if (isTimeoutError(error)) {
+                    send({type: 'error', status: 504, body: {error: 'Upstream request timed out.'}})
+                } else {
+                    send({
+                        type: 'error',
+                        status: 502,
+                        body: {error: 'Directwerk or object storage is unavailable.'},
+                    })
+                }
+                controller.close()
+            }
+        },
+    })
+}
+
 /**
  * Tenant media upload for studio.
  * Bunny S3 has no CORS; browser cannot PUT the presigned URL.
  * Flow: upload-url → Node PUT to S3 → confirm (caller's Bearer).
+ *
+ * The upload flow is streamed as NDJSON so the browser can render real upload
+ * progress for the object-storage leg.
  */
 export async function POST(request: Request): Promise<Response> {
     const tenantHost = parseTenantHost(request.headers.get('x-tenant-host'))
@@ -172,86 +389,14 @@ export async function POST(request: Request): Promise<Response> {
         ...(episodeId === undefined ? {} : {episodeId}),
     }
 
-    try {
-        const uploadUrlUpstream = await directwerkFetch({
-            path: '/api/v1/media/upload-url',
-            tenantHost,
-            method: 'POST',
-            bearerToken,
-            body: JSON.stringify(uploadUrlBody),
-            contentType: 'application/json',
-        })
-
-        if (!uploadUrlUpstream.ok) {
-            return toClientResponse(uploadUrlUpstream)
-        }
-
-        const uploadUrlPayload: unknown = await uploadUrlUpstream.json()
-        const uploadData = readEnvelopeData(uploadUrlPayload) as {
-            assetId?: number
-            uploadUrl?: string
-            headers?: Record<string, string>
-        } | null
-
-        if (
-            uploadData === null ||
-            typeof uploadData.assetId !== 'number' ||
-            typeof uploadData.uploadUrl !== 'string' ||
-            !isAllowedUploadUrl(uploadData.uploadUrl)
-        ) {
-            return jsonError('Invalid upload-url response from Directwerk.', 502)
-        }
-
-        const putHeaders = new Headers(uploadData.headers ?? {})
-        if (!putHeaders.has('Content-Type')) {
-            putHeaders.set('Content-Type', mimeType)
-        }
-
-        const putResponse = await fetch(uploadData.uploadUrl, {
-            method: 'PUT',
-            headers: putHeaders,
-            body: fileEntry.stream(),
-            cache: 'no-store',
-            redirect: 'manual',
-            signal: AbortSignal.timeout(STORAGE_PUT_TIMEOUT_MS),
-            duplex: 'half',
-        } as RequestInit)
-
-        if (!putResponse.ok) {
-            return jsonError(
-                `Object storage rejected the upload (HTTP ${putResponse.status}).`,
-                502,
-            )
-        }
-
-        const confirmUpstream = await directwerkFetch({
-            path: `/api/v1/media/${uploadData.assetId}/confirm`,
-            tenantHost,
-            method: 'POST',
-            bearerToken,
-        })
-
-        if (!confirmUpstream.ok) {
-            const failure = await toClientResponse(confirmUpstream)
-            const failureText = await failure.text()
-            const failureJson = parseJsonText(failureText)
-            return Response.json(
-                {
-                    ...(typeof failureJson === 'object' && failureJson !== null
-                        ? failureJson
-                        : {error: 'Directwerk confirm failed.'}),
-                    assetId: uploadData.assetId,
-                    retryConfirm: true,
-                },
-                {status: failure.status},
-            )
-        }
-
-        return toClientResponse(confirmUpstream)
-    } catch (error: unknown) {
-        if (isTimeoutError(error)) {
-            return jsonError('Upstream request timed out.', 504)
-        }
-        return jsonError('Directwerk or object storage is unavailable.', 502)
-    }
+    return new Response(
+        uploadStream({tenantHost, bearerToken, fileEntry, mimeType, uploadUrlBody}),
+        {
+            status: 200,
+            headers: {
+                'Content-Type': NDJSON_CONTENT_TYPE,
+                'Cache-Control': 'no-store',
+            },
+        },
+    )
 }

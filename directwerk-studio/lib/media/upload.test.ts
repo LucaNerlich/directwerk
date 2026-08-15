@@ -20,10 +20,12 @@ class MockXMLHttpRequest {
 
     upload: {onprogress: ((event: ProgressEventLike) => void) | null} = {onprogress: null}
     onload: (() => void) | null = null
+    onprogress: (() => void) | null = null
     onerror: (() => void) | null = null
     ontimeout: (() => void) | null = null
     onabort: (() => void) | null = null
 
+    readyState = 0
     status = 0
     responseText = ''
 
@@ -60,7 +62,7 @@ describe('uploadMediaFile', () => {
         vi.unstubAllGlobals()
     })
 
-    it('reports progress and resolves with the parsed media asset', async () => {
+    it('reports combined progress across both legs and resolves with the asset', async () => {
         const onProgress = vi.fn()
         const file = new File(['x'.repeat(64)], 'folge.mp3', {type: 'audio/mpeg'})
 
@@ -74,31 +76,46 @@ describe('uploadMediaFile', () => {
             expect(MockXMLHttpRequest.instances.length).toBe(1)
         })
         const xhr = MockXMLHttpRequest.instances[0]
-        expect(xhr).toBeDefined()
         expect(xhr.getRequestHeader('authorization')).toBe('Bearer token')
         expect(xhr.getRequestHeader('x-tenant-host')).toBe('tenant.test')
 
-        xhr.upload.onprogress?.({lengthComputable: true, loaded: 25, total: 100})
+        // Leg 1: browser → BFF upload progress (maps to 0–50 %).
+        xhr.upload.onprogress?.({lengthComputable: true, loaded: 50, total: 100})
         expect(onProgress).toHaveBeenLastCalledWith(25)
 
-        xhr.upload.onprogress?.({lengthComputable: false, loaded: 50, total: 100})
+        xhr.upload.onprogress?.({lengthComputable: false, loaded: 60, total: 100})
         expect(onProgress).toHaveBeenCalledTimes(1)
 
         xhr.upload.onprogress?.({lengthComputable: true, loaded: 100, total: 100})
+        expect(onProgress).toHaveBeenLastCalledWith(50)
+
+        // Leg 2: BFF → S3 progress streamed back as NDJSON (maps to 50–100 %).
+        xhr.readyState = 3
+        xhr.responseText = '{"type":"progress","percent":50}\n'
+        xhr.onprogress?.()
+        expect(onProgress).toHaveBeenLastCalledWith(75)
+
+        xhr.responseText += '{"type":"progress","percent":100}\n'
+        xhr.onprogress?.()
         expect(onProgress).toHaveBeenLastCalledWith(100)
 
-        xhr.status = 200
-        xhr.setResponseHeader('content-type', 'application/json')
-        xhr.responseText = JSON.stringify({
-            data: {
-                id: 8,
-                status: 'READY',
-                assetType: 'AUDIO',
-                mimeType: 'audio/mpeg',
-                originalFilename: 'folge.mp3',
-                sizeBytes: 64,
+        // Final result event.
+        xhr.readyState = 4
+        xhr.setResponseHeader('content-type', 'application/x-ndjson; charset=utf-8')
+        xhr.responseText += `${JSON.stringify({
+            type: 'result',
+            status: 200,
+            body: {
+                data: {
+                    id: 8,
+                    status: 'READY',
+                    assetType: 'AUDIO',
+                    mimeType: 'audio/mpeg',
+                    originalFilename: 'folge.mp3',
+                    sizeBytes: 64,
+                },
             },
-        })
+        })}\n`
         xhr.onload?.()
 
         await expect(promise).resolves.toEqual({
@@ -109,5 +126,27 @@ describe('uploadMediaFile', () => {
             originalFilename: 'folge.mp3',
             sizeBytes: 64,
         })
+    })
+
+    it('rejects with AUTH_REQUIRED when the stream reports a 401', async () => {
+        const file = new File(['x'.repeat(8)], 'folge.mp3', {type: 'audio/mpeg'})
+
+        const promise = uploadMediaFile('tenant.test', file)
+
+        await vi.waitFor(() => {
+            expect(MockXMLHttpRequest.instances.length).toBe(1)
+        })
+        const xhr = MockXMLHttpRequest.instances[0]
+
+        xhr.readyState = 4
+        xhr.setResponseHeader('content-type', 'application/x-ndjson; charset=utf-8')
+        xhr.responseText = `${JSON.stringify({
+            type: 'error',
+            status: 401,
+            body: {error: 'unauthorized'},
+        })}\n`
+        xhr.onload?.()
+
+        await expect(promise).rejects.toThrow('AUTH_REQUIRED')
     })
 })
