@@ -17,7 +17,6 @@ import type {
     SubscriptionSummary,
     TokenResponse,
 } from '@/lib/api/types'
-} from '@/lib/api/types'
 import {isAllowedFeedUrl} from '@/lib/feeds'
 import {sanitizeContentHtml} from '@/lib/sanitizeContentHtml'
 

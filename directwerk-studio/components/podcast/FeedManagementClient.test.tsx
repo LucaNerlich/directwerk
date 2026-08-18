@@ -103,7 +103,7 @@ describe('FeedManagementClient', () => {
         ).toHaveAttribute('href', '/podcast/series/2')
         expect(screen.getAllByText('sub@example.test')).toHaveLength(2)
         expect(screen.getByText(/Eigener Feed/)).toBeInTheDocument()
-        expect(screen.getByText(/Interview/)).toBeInTheDocument()
+        expect(screen.getByText(/· Interview/)).toBeInTheDocument()
         const openLinks = screen.getAllByRole('link', {name: 'Öffnen'})
         expect(openLinks).toHaveLength(2)
         expect(openLinks[0]).toHaveAttribute(
