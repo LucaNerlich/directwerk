@@ -11,6 +11,7 @@ import {
     parseCheckoutSessionEnvelope,
     parseSubscriptionListEnvelope,
     parseSubscriberDownloadListEnvelope,
+    parseFeedPreviewEnvelope,
     parseSubscriberFeedEnvelope,
     parseSubscriberFeedListEnvelope,
     parseTokenResponse,
@@ -338,6 +339,48 @@ describe('public content HTML sanitization', () => {
         expect(result?.data).toHaveLength(1)
         expect(result?.data[0].url).toContain('/feeds/')
         expect(result?.data[0].isDefault).toBe(true)
+        expect(result?.data[0].formatIds).toEqual([])
+        expect(result?.data[0].formats).toEqual([])
+    })
+
+    it('accepts a custom subscriber feed with formats', () => {
+        const result = parseSubscriberFeedEnvelope(
+            envelopeWith({
+                id: 9,
+                title: 'Nur Interviews',
+                isDefault: false,
+                enabled: true,
+                url: 'http://alpha-a.localhost:8080/feeds/alpha-show-a/u/customtok.xml',
+                formatIds: [3],
+                formats: [
+                    {
+                        id: 3,
+                        slug: 'interview',
+                        name: 'Interview',
+                        requiredLevelSortOrder: null,
+                        sortOrder: 2,
+                    },
+                ],
+                createdAt: '2026-07-22T12:00:00Z',
+                updatedAt: '2026-07-22T12:00:00Z',
+            }),
+        )
+        expect(result?.data.isDefault).toBe(false)
+        expect(result?.data.formatIds).toEqual([3])
+        expect(result?.data.formats[0].name).toBe('Interview')
+    })
+
+    it('accepts a feed preview envelope', () => {
+        const result = parseFeedPreviewEnvelope(
+            envelopeWith({
+                episodeCount: 2,
+                sampleTitles: ['Eins', 'Zwei'],
+            }),
+        )
+        expect(result?.data).toEqual({
+            episodeCount: 2,
+            sampleTitles: ['Eins', 'Zwei'],
+        })
     })
 
     it('accepts http subscriber feed urls on loopback hosts', () => {

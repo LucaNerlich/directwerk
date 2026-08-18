@@ -1,0 +1,28 @@
+meta {
+  name: 3 - Preview Custom Feed
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/api/v1/me/feeds/preview?formatIds={{podcastFormatId}}
+  body: none
+  auth: inherit
+}
+
+tests {
+  test("returns preview or module/format error", function() {
+    expect([200, 400, 403]).to.include(res.getStatus());
+    if (res.getStatus() === 200) {
+      expect(res.body.data.episodeCount).to.be.a("number");
+      expect(res.body.data.sampleTitles).to.be.an("array");
+    }
+    if (res.getStatus() === 403) {
+      expect(res.body.errors[0].code).to.equal("FEATURE_NOT_ENABLED");
+    }
+  });
+}
+
+docs {
+  GET /api/v1/me/feeds/preview?formatIds= — episode count after entitlement + format match.
+}

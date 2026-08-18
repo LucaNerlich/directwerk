@@ -132,20 +132,21 @@ tracked before redirecting to the public CDN. Analytics is fail-open and never g
 
 ---
 
-## Feed builder (deferred)
+## Feed builder (Formate)
 
-Subscribers will compose a **private** RSS feed by selecting formats (and optionally categories).
-That feed only includes episodes they are **entitled** to and that match the filter.
+Subscribers compose a **private** RSS feed by selecting one or more **Formate**. That feed only
+includes episodes they are **entitled** to and that match at least one selected active format.
 
 ```
-CustomFeed { includeFormats[], includeCategories[] }
-  → entitled PUBLISHED episodes
+SubscriberFeed { is_default=false, formats[] }
+  → entitled PUBLISHED episodes with enclosure
   → private /feeds/{tenantSlug}/u/{feedToken}.xml
 ```
 
-The base public and entitlement-filtered private feeds are shipped. Subscriber-selected format and
-category filters remain deferred; the existing taxonomy and episode tags avoid schema churn when
-that UI and API are added.
+Create/update/preview require the tenant `FEED_BUILDER` module. Disable, delete, and token rotate
+of an existing custom feed only need `PODCAST_RSS` + `SUBSCRIPTION` so leftover feeds can be
+cleaned up after a downgrade. Public custom-feed URLs 404 (not JSON 403) when `FEED_BUILDER` is
+off. Category filters remain deferred.
 
 ---
 

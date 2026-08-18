@@ -1,0 +1,31 @@
+meta {
+  name: 13 - Rotate Custom Feed Token
+  type: http
+  seq: 13
+}
+
+post {
+  url: {{baseUrl}}/api/v1/me/feeds/{{customFeedId}}/rotate-token
+  body: none
+  auth: inherit
+}
+
+script:post-response {
+  if (res.getStatus() === 200) {
+    bru.setVar("customFeedUrl", res.body.data.url);
+  }
+}
+
+tests {
+  test("rotates the custom feed token", function() {
+    expect([200, 403, 404]).to.include(res.getStatus());
+    if (res.getStatus() === 200) {
+      expect(res.body.data.url).to.include("/feeds/");
+      expect(res.body.data.url).to.match(/\.xml$/);
+    }
+  });
+}
+
+docs {
+  Invalidates the previous capability URL. Allowed without FEED_BUILDER.
+}

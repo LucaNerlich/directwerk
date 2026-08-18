@@ -12,6 +12,7 @@ import de.pnnit.directwerk.modules.digital.api.CdnPurgeClient;
 import de.pnnit.directwerk.modules.digital.exception.StorageNotConfiguredException;
 import de.pnnit.directwerk.modules.digital.storage.BunnyTokenUrlSigner;
 import de.pnnit.directwerk.modules.digital.storage.S3PublicUrlBuilder;
+import de.pnnit.directwerk.modules.podcast.FeedBuilderModule;
 import de.pnnit.directwerk.modules.podcast.PodcastRssModule;
 import de.pnnit.directwerk.modules.podcast.entity.PodcastSeries;
 import de.pnnit.directwerk.modules.podcast.feed.SubscriberFeed;
@@ -136,7 +137,8 @@ public class RssFeedSnapshotService {
                 )));
         subscriberFeedRepository.findByTenantIdOrderByIdAsc(tenantId)
                 .forEach(feed -> {
-                    if (feed.isEnabled()) {
+                    boolean customFeedBlocked = !feed.isDefaultFeed() && !feedBuilderModuleActive(tenantId);
+                    if (feed.isEnabled() && !customFeedBlocked) {
                         refresh(privateFeedRef(tenant, feed.getId()), () -> rssFeedService.buildPrivateFeed(
                                 tenant, feed, origin.scheme(), origin.host(), origin.port()
                         ));
@@ -144,6 +146,21 @@ public class RssFeedSnapshotService {
                         withdraw(privateFeedRef(tenant, feed.getId()));
                     }
                 });
+    }
+
+    /**
+     * Removes a private feed snapshot immediately (disable/delete). Safe when storage is off:
+     * only the presence row is cleared so a later refresh cannot serve a stale object.
+     */
+    public void withdrawPrivateFeed(Tenant tenant, Long feedId) {
+        if (tenant == null || feedId == null) {
+            return;
+        }
+        if (!directwerkConfig.isStorageEnabled()) {
+            snapshotStateStore.clearWritten(tenant.getId(), RssSnapshotKind.PRIVATE_FEED, feedId);
+            return;
+        }
+        withdraw(privateFeedRef(tenant, feedId));
     }
 
     private FeedDelivery deliver(SnapshotRef ref) {
@@ -279,7 +296,15 @@ public class RssFeedSnapshotService {
     }
 
     private boolean rssModuleActive(Long tenantId) {
-        return tenantModuleActivationRepository.findByTenantIdAndModuleKey(tenantId, PodcastRssModule.KEY)
+        return moduleActive(tenantId, PodcastRssModule.KEY);
+    }
+
+    private boolean feedBuilderModuleActive(Long tenantId) {
+        return moduleActive(tenantId, FeedBuilderModule.KEY);
+    }
+
+    private boolean moduleActive(Long tenantId, String moduleKey) {
+        return tenantModuleActivationRepository.findByTenantIdAndModuleKey(tenantId, moduleKey)
                 .map(activation -> activation.isActive())
                 .orElse(false);
     }

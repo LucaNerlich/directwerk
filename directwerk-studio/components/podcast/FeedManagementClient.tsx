@@ -265,7 +265,10 @@ export default function FeedManagementClient(): React.JSX.Element {
                                     <span>
                                         <span>{feed.userEmail}</span>{' '}
                                         <code>{feed.title}</code>
-                                        {feed.isDefault ? ' (Standard)' : null}
+                                        {feed.isDefault ? ' (Standard)' : ' (Eigener Feed)'}
+                                        {feed.formats.length > 0
+                                            ? ` · ${feed.formats.map((item) => item.name).join(', ')}`
+                                            : null}
                                     </span>
                                     <span className="flex shrink-0 items-center gap-3 text-sm text-muted-foreground">
                                         <span

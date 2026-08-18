@@ -1,0 +1,28 @@
+meta {
+  name: 2 - List Public Formats
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/api/v1/public/formats
+  body: none
+  auth: none
+}
+
+script:post-response {
+  if (res.getStatus() === 200 && Array.isArray(res.body.data) && res.body.data.length > 0 && !bru.getVar("podcastFormatId")) {
+    bru.setVar("podcastFormatId", res.body.data[0].id);
+  }
+}
+
+tests {
+  test("returns formats", function() {
+    expect(res.getStatus()).to.equal(200);
+    expect(Array.isArray(res.body.data)).to.equal(true);
+  });
+}
+
+docs {
+  Captures podcastFormatId when 09-Podcast-Content has not run yet.
+}

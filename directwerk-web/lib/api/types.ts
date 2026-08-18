@@ -140,6 +140,28 @@ export interface SubscriberDownload {
     downloadUrl: string
 }
 
+export interface PublicFormat {
+    id: number
+    slug: string
+    name: string
+    description: string | null
+    requiredLevelSortOrder: number | null
+    sortOrder: number
+}
+
+export interface FeedFormat {
+    id: number
+    slug: string
+    name: string
+    requiredLevelSortOrder: number | null
+    sortOrder: number
+}
+
+export interface FeedPreview {
+    episodeCount: number
+    sampleTitles: string[]
+}
+
 /** Private subscriber RSS feed from GET /api/v1/me/feeds */
 export interface SubscriberFeed {
     id: number
@@ -147,6 +169,8 @@ export interface SubscriberFeed {
     isDefault: boolean
     enabled: boolean
     url: string
+    formatIds: number[]
+    formats: FeedFormat[]
     createdAt: string
     updatedAt: string
 }

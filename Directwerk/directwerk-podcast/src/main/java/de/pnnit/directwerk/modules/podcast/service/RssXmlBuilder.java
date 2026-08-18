@@ -28,11 +28,21 @@ public class RssXmlBuilder {
             List<RssEpisode> episodes,
             String originBaseUrl
     ) {
+        return buildPublicFeed(tenant, seriesOrNull, episodes, originBaseUrl, null);
+    }
+
+    public String buildPublicFeed(
+            Tenant tenant,
+            PodcastSeries seriesOrNull,
+            List<RssEpisode> episodes,
+            String originBaseUrl,
+            String channelTitleOverride
+    ) {
         StringBuilder xml = new StringBuilder(4096);
         xml.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
         xml.append("<rss version=\"2.0\">\n");
         xml.append("  <channel>\n");
-        appendElement(xml, "title", channelTitle(tenant, seriesOrNull, episodes), 4);
+        appendElement(xml, "title", channelTitle(tenant, seriesOrNull, episodes, channelTitleOverride), 4);
         appendElement(xml, "link", originBaseUrl, 4);
         appendElement(xml, "description", channelDescription(tenant, seriesOrNull), 4);
         appendElement(xml, "language", channelLanguage(seriesOrNull, episodes), 4);
@@ -82,7 +92,15 @@ public class RssXmlBuilder {
                 .append(">\n");
     }
 
-    private static String channelTitle(Tenant tenant, PodcastSeries seriesOrNull, List<RssEpisode> episodes) {
+    private static String channelTitle(
+            Tenant tenant,
+            PodcastSeries seriesOrNull,
+            List<RssEpisode> episodes,
+            String channelTitleOverride
+    ) {
+        if (channelTitleOverride != null && !channelTitleOverride.isBlank()) {
+            return channelTitleOverride;
+        }
         if (seriesOrNull != null) {
             return seriesOrNull.getTitle();
         }

@@ -94,7 +94,7 @@ class FormatServiceTest {
         Format deactivated = formatService.deactivateFormat(10L, 1L);
 
         assertThat(deactivated.isActive()).isFalse();
-        verify(rssFeedRefreshJobProducer, never()).requestRefreshAfterCommit(10L);
+        verify(rssFeedRefreshJobProducer).requestRefreshAfterCommit(10L);
     }
 
     @Test

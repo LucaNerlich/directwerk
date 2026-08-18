@@ -77,7 +77,8 @@ class TenantSubscriberFeedControllerTest {
                 .andExpect(jsonPath("$.data[0].userEmail").value("sub@example.test"))
                 .andExpect(jsonPath("$.data[0].title").value("Mein Feed"))
                 .andExpect(jsonPath("$.data[0].isDefault").value(false))
-                .andExpect(jsonPath("$.data[0].enabled").value(true));
+                .andExpect(jsonPath("$.data[0].enabled").value(true))
+                .andExpect(jsonPath("$.data[0].formatIds").isArray());
 
         verify(subscriberFeedService).listTenantFeeds(10L);
         verify(moduleGateService).requireModule(SubscriptionModule.MODULE_KEY);

@@ -32,6 +32,10 @@ separate private pull zone with Advanced Token Authentication for the private pr
 pull-zone settings are incomplete, delivery fails closed; when they are absent, Directwerk falls
 back to an S3 presigned GET.
 
+Custom (feed-builder) feeds reuse the same `feed-{subscriberFeedId}.xml` object as the default
+private feed. Turning `FEED_BUILDER` off withdraws snapshots for non-default feeds only; the
+default private feed stays available while `PODCAST_RSS` and `SUBSCRIPTION` remain on.
+
 ## Refresh and failure behavior
 
 Content, feed, and entitlement mutations request the `rss-feed-refresh` queue after their database
@@ -43,18 +47,19 @@ primary verified tenant domain. Queue retries handle transient failures. Feed HT
 generate XML or inspect the database for episode eligibility.
 
 Refresh is also requested when the XML *payload* would change without a content edit: tenant name
-or slug, a newly verified or newly primary domain, a format `requiredLevelSortOrder` change, and
-first-time `PODCAST_RSS` activation (so the initial objects exist). Draft-only episode edits do
-not enqueue; enclosure toggles enqueue only for published episodes. A tenant slug change records
-the previous prefix, 404s until the new objects exist, then deletes and purges the old prefix.
+or slug, a newly verified or newly primary domain, a format `requiredLevelSortOrder` or `active`
+change, custom-feed create/update/delete, and first-time `PODCAST_RSS` activation (so the initial
+objects exist). Draft-only episode edits do not enqueue; enclosure toggles enqueue only for
+published episodes. A tenant slug change records the previous prefix, 404s until the new objects
+exist, then deletes and purges the old prefix.
 
 Generation or upload failure never deletes or truncates an existing object. The previous S3 XML
 stays live. Turning `PODCAST_RSS` off, or disabling a subscriber feed, deletes the corresponding
 S3 objects, clears presence rows, and purges their unsigned pull-zone URLs so a previously
-redirected CDN location cannot keep serving the feed. When the queue is disabled (normally local
-development), refresh requests are skipped; RSS delivery requires configured object storage and an
-active queue worker. Production refuses to start without storage enabled, a bucket, and an HTTPS
-public CDN base URL.
+redirected CDN location cannot keep serving the feed. Deleting a custom feed withdraws its object
+before the row is dropped. When the queue is disabled (normally local development), refresh
+requests are skipped; RSS delivery requires configured object storage and an active queue worker.
+Production refuses to start without storage enabled, a bucket, and an HTTPS public CDN base URL.
 
 ## Required configuration
 

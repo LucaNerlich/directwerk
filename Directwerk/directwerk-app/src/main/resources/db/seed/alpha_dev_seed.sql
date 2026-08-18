@@ -54,6 +54,7 @@ JOIN (VALUES
     ('alpha-show-a', 'PODCAST_RSS'),
     ('alpha-show-a', 'WHITELABEL'),
     ('alpha-show-a', 'SUBSCRIPTION'),
+    ('alpha-show-a', 'FEED_BUILDER'),
     ('alpha-show-b', 'DIGITAL_CONTENT')
 ) AS seed(tenant_slug, module_key) ON seed.tenant_slug = t.slug
 ON CONFLICT (tenant_id, module_key) DO NOTHING;

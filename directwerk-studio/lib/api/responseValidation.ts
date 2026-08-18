@@ -1207,6 +1207,51 @@ function parseSubscriberFeedSummary(value: unknown): SubscriberFeedSummary | nul
         return null
     }
 
+    const formatIds =
+        value.formatIds === undefined
+            ? []
+            : Array.isArray(value.formatIds) &&
+                value.formatIds.length <= 50 &&
+                value.formatIds.every(
+                    (item) => typeof item === 'number' && Number.isSafeInteger(item) && item > 0,
+                )
+              ? value.formatIds
+              : null
+    const formats =
+        value.formats === undefined
+            ? []
+            : Array.isArray(value.formats) && value.formats.length <= 50
+              ? value.formats.flatMap((item) => {
+                    if (
+                        typeof item !== 'object' ||
+                        item === null ||
+                        !('id' in item) ||
+                        !('name' in item)
+                    ) {
+                        return []
+                    }
+                    const record = item as {id: unknown; slug?: unknown; name: unknown}
+                    if (
+                        typeof record.id !== 'number' ||
+                        !Number.isSafeInteger(record.id) ||
+                        record.id < 1 ||
+                        typeof record.name !== 'string'
+                    ) {
+                        return []
+                    }
+                    return [
+                        {
+                            id: record.id,
+                            slug: typeof record.slug === 'string' ? record.slug : '',
+                            name: record.name,
+                        },
+                    ]
+                })
+              : null
+    if (formatIds === null || formats === null) {
+        return null
+    }
+
     return {
         id: value.id,
         userId: value.userId,
@@ -1214,6 +1259,8 @@ function parseSubscriberFeedSummary(value: unknown): SubscriberFeedSummary | nul
         title: value.title,
         isDefault: value.isDefault,
         enabled: value.enabled,
+        formatIds,
+        formats,
         createdAt: value.createdAt,
         updatedAt: value.updatedAt,
     }

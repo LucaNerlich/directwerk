@@ -10,6 +10,7 @@ import de.pnnit.directwerk.modules.digital.entity.MediaAsset;
 import de.pnnit.directwerk.modules.podcast.entity.Episode;
 import de.pnnit.directwerk.modules.podcast.entity.PodcastSeries;
 import de.pnnit.directwerk.modules.podcast.feed.SubscriberFeed;
+import de.pnnit.directwerk.modules.podcast.feed.SubscriberFeedFormatMatcher;
 import java.util.List;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
@@ -71,10 +72,11 @@ public class RssFeedService {
                 .listEntitledEpisodes(tenant.getId(), feed.getUser().getId())
                 .stream()
                 .filter(Episode::isEnclosureEnabled)
+                .filter(episode -> SubscriberFeedFormatMatcher.includes(feed, episode))
                 .map(episode -> toPrivateRssEpisode(episode, tenant, feed.getFeedToken(), scheme, host, port))
                 .flatMap(Optional::stream)
                 .toList();
-        return rssXmlBuilder.buildPublicFeed(tenant, null, episodes, originBaseUrl);
+        return rssXmlBuilder.buildPublicFeed(tenant, null, episodes, originBaseUrl, feed.getTitle());
     }
 
     /**

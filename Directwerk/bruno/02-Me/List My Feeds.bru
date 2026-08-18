@@ -12,7 +12,9 @@ get {
 
 script:post-response {
   if (res.getStatus() === 200 && Array.isArray(res.body.data) && res.body.data.length > 0) {
-    bru.setVar("subscriberFeedUrl", res.body.data[0].url);
+    const defaultFeed = res.body.data.find((feed) => feed.isDefault) || res.body.data[0];
+    bru.setVar("subscriberFeedUrl", defaultFeed.url);
+    bru.setVar("defaultFeedId", defaultFeed.id);
   }
 }
 

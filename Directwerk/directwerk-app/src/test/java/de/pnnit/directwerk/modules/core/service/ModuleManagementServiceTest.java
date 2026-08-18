@@ -138,6 +138,59 @@ class ModuleManagementServiceTest {
         assertThat(activation.isActive()).isFalse();
     }
 
+    @Test
+    void activateFeedBuilderRequestsSnapshotRefresh() {
+        Tenant tenant = new Tenant();
+        tenant.setId(1L);
+        when(tenantLookupService.requireTenant(1L)).thenReturn(tenant);
+
+        FeatureModule feedBuilder = module("FEED_BUILDER", List.of("PODCAST_RSS", "SUBSCRIPTION"));
+        when(featureModuleRepository.findByModuleKey("FEED_BUILDER")).thenReturn(Optional.of(feedBuilder));
+        TenantModuleActivation rss = new TenantModuleActivation();
+        rss.setId(8L);
+        rss.setModuleKey("PODCAST_RSS");
+        rss.setActive(true);
+        TenantModuleActivation subscription = new TenantModuleActivation();
+        subscription.setId(9L);
+        subscription.setModuleKey("SUBSCRIPTION");
+        subscription.setActive(true);
+        when(tenantModuleActivationRepository.findByTenantIdAndModuleKey(1L, "PODCAST_RSS"))
+                .thenReturn(Optional.of(rss));
+        when(tenantModuleActivationRepository.findByTenantIdAndModuleKey(1L, "SUBSCRIPTION"))
+                .thenReturn(Optional.of(subscription));
+        when(tenantModuleActivationRepository.findByTenantIdAndModuleKey(1L, "FEED_BUILDER"))
+                .thenReturn(Optional.empty());
+        when(tenantModuleActivationRepository.save(any(TenantModuleActivation.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+        when(tenantModuleActivationRepository.findByTenantIdAndActiveTrue(1L)).thenReturn(List.of());
+
+        service.activateModule(1L, "FEED_BUILDER");
+
+        verify(eventPublisher).publishEvent(new TenantRssSnapshotStaleEvent(1L));
+    }
+
+    @Test
+    void deactivateFeedBuilderRequestsSnapshotWithdraw() {
+        Tenant tenant = new Tenant();
+        tenant.setId(1L);
+        when(tenantLookupService.requireTenant(1L)).thenReturn(tenant);
+
+        FeatureModule feedBuilder = module("FEED_BUILDER", List.of("PODCAST_RSS", "SUBSCRIPTION"));
+        when(featureModuleRepository.findByModuleKey("FEED_BUILDER")).thenReturn(Optional.of(feedBuilder));
+        when(featureModuleRepository.findAll()).thenReturn(List.of(feedBuilder));
+        TenantModuleActivation activation = new TenantModuleActivation();
+        activation.setModuleKey("FEED_BUILDER");
+        activation.setActive(true);
+        when(tenantModuleActivationRepository.findByTenantIdAndModuleKey(1L, "FEED_BUILDER"))
+                .thenReturn(Optional.of(activation));
+        when(tenantModuleActivationRepository.findByTenantIdAndActiveTrue(1L)).thenReturn(List.of());
+
+        service.deactivateModule(1L, "FEED_BUILDER");
+
+        verify(eventPublisher).publishEvent(new TenantRssSnapshotStaleEvent(1L));
+        assertThat(activation.isActive()).isFalse();
+    }
+
     private static FeatureModule coreModule(String moduleKey) {
         FeatureModule module = module(moduleKey, List.of());
         module.setCore(true);

@@ -15,6 +15,7 @@ import de.pnnit.directwerk.modules.digital.entity.AssetType;
 import de.pnnit.directwerk.modules.digital.entity.AssetVisibility;
 import de.pnnit.directwerk.modules.digital.entity.MediaAsset;
 import de.pnnit.directwerk.modules.podcast.entity.Episode;
+import de.pnnit.directwerk.modules.podcast.entity.Format;
 import de.pnnit.directwerk.modules.podcast.entity.PodcastSeries;
 import de.pnnit.directwerk.modules.podcast.feed.SubscriberFeed;
 import de.pnnit.directwerk.modules.podcast.feed.SubscriberFeedNotFoundException;
@@ -175,6 +176,40 @@ class RssFeedServiceTest {
     }
 
     @Test
+    void privateFeedUsesCustomChannelTitleAndFormatFilter() {
+        Tenant tenant = tenant();
+        PodcastSeries series = series(tenant);
+        Format interview = format(3L, true);
+        Format bonus = format(8L, true);
+        Episode interviewEpisode = episode(tenant, series, 2L, "Interview Folge", AccessPolicy.PAID, privateAudio(11L));
+        interviewEpisode.getFormats().add(interview);
+        Episode bonusEpisode = episode(tenant, series, 3L, "Bonus Folge", AccessPolicy.PAID, privateAudio(12L));
+        bonusEpisode.getFormats().add(bonus);
+        SubscriberFeed feed = feed(tenant);
+        feed.setDefaultFeed(false);
+        feed.setTitle("Nur Interviews");
+        feed.getFormats().add(interview);
+
+        when(subscriberEpisodeService.listEntitledEpisodes(10L, 99L))
+                .thenReturn(List.of(interviewEpisode, bonusEpisode));
+        when(episodeDownloadAnalyticsService.privateRssEnclosureUrl(
+                10L,
+                "http",
+                "alpha.example.test",
+                8080,
+                "alpha",
+                "tok",
+                "episode-2"
+        )).thenReturn("https://alpha.example.test/feeds/alpha/u/tok/e/episode-2.mp3");
+
+        String xml = rssFeedService.buildPrivateFeed(tenant, feed, "http", "alpha.example.test", 8080);
+
+        assertThat(xml).contains("<title>Nur Interviews</title>");
+        assertThat(xml).contains("Interview Folge");
+        assertThat(xml).doesNotContain("Bonus Folge");
+    }
+
+    @Test
     void privateFeedRejectsDisabledSubscriberFeed() {
         Tenant tenant = tenant();
         SubscriberFeed feed = feed(tenant);
@@ -237,6 +272,16 @@ class RssFeedServiceTest {
         episode.setEnclosureEnabled(true);
         episode.setPublishedAt(Instant.parse("2026-07-20T12:00:00Z"));
         return episode;
+    }
+
+    private static Format format(Long id, boolean active) {
+        Format format = new Format();
+        format.setId(id);
+        format.setSlug("format-" + id);
+        format.setName("Format " + id);
+        format.setActive(active);
+        format.setSortOrder(id.intValue());
+        return format;
     }
 
     private static MediaAsset publicAudio(Long id) {

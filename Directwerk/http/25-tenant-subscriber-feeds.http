@@ -20,6 +20,7 @@ Accept: application/json
             typeof response.body.data[0].userEmail === "string",
             "Expected userEmail on each feed"
         );
+        client.assert(Array.isArray(response.body.data[0].formatIds), "Expected formatIds");
         client.global.set("subscriberFeedId", response.body.data[0].id);
     });
 %}

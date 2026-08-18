@@ -1,0 +1,459 @@
+### Directwerk — Custom subscriber feeds (feed builder)
+### Prerequisites:
+###   02-oauth2.http / 03-auth.http (subscriberAccessToken, tenantAAccessToken, platformAccessToken)
+###   06-platform-tenants.http (tenantAId)
+###   19-podcast-content.http (podcastFormatId, podcastEpisodeSlug) — 27 creates a second format if needed
+###   PODCAST_RSS + SUBSCRIPTION on tenant A. This file activates FEED_BUILDER.
+###
+### Covers: preview, create/update, duplicate title, missing formats, disable 404,
+### rotate, delete default forbidden, enclosure format mismatch 404,
+### FEED_BUILDER-off public URL 404 (not JSON 403), cleanup delete.
+
+### @name ensureFeedBuilderEnabled
+POST {{baseUrl}}/api/v1/platform/tenants/{{tenantAId}}/modules/FEED_BUILDER/activate
+Authorization: Bearer {{platformAccessToken}}
+Accept: application/json
+
+> {%
+    client.test("Ensure FEED_BUILDER on", function() {
+        client.assert(response.status === 200 || response.status === 409, "Expected 200 or 409");
+        if (response.status === 200) {
+            client.assert(response.body.data.enabledModules.includes("FEED_BUILDER"), "Expected FEED_BUILDER on");
+        }
+    });
+%}
+
+###
+
+### @name listPublicFormatsForFeedBuilder
+GET {{baseUrl}}/api/v1/public/formats
+Host: {{tenantAHost}}
+Accept: application/json
+
+> {%
+    client.test("List public formats", function() {
+        client.assert(response.status === 200, "Expected 200");
+        client.assert(Array.isArray(response.body.data), "Expected formats array");
+        if (!client.global.get("podcastFormatId") && response.body.data.length > 0) {
+            client.global.set("podcastFormatId", response.body.data[0].id);
+        }
+    });
+%}
+
+###
+
+### @name createMismatchFormat
+< {%
+  client.global.set("customFeedMismatchSlug", "mismatch-" + Date.now().toString(36));
+%}
+POST {{baseUrl}}/api/v1/formats
+Host: {{tenantAHost}}
+Authorization: Bearer {{tenantAAccessToken}}
+Content-Type: application/json
+Accept: application/json
+
+{
+  "slug": "{{customFeedMismatchSlug}}",
+  "name": "Harness Mismatch Format",
+  "description": "Used to assert custom-feed enclosure 404 when the episode is not tagged",
+  "sortOrder": 90
+}
+
+> {%
+    client.test("Create mismatch format", function() {
+        client.assert(response.status === 201 || response.status === 403, "Expected 201 or 403");
+        if (response.status === 201) {
+            client.global.set("customFeedMismatchFormatId", response.body.data.id);
+        }
+    });
+%}
+
+###
+
+### @name previewCustomFeed
+GET {{baseUrl}}/api/v1/me/feeds/preview?formatIds={{podcastFormatId}}
+Host: {{tenantAHost}}
+Authorization: Bearer {{subscriberAccessToken}}
+Accept: application/json
+
+> {%
+    client.test("Preview custom feed by formatIds", function() {
+        client.assert(response.status === 200, "Expected 200");
+        client.assert(typeof response.body.data.episodeCount === "number", "Expected episodeCount");
+        client.assert(Array.isArray(response.body.data.sampleTitles), "Expected sampleTitles");
+    });
+%}
+
+###
+
+### @name listMeFeedsBeforeCreate
+GET {{baseUrl}}/api/v1/me/feeds
+Host: {{tenantAHost}}
+Authorization: Bearer {{subscriberAccessToken}}
+Accept: application/json
+
+> {%
+    client.test("List feeds and capture default id", function() {
+        client.assert(response.status === 200, "Expected 200");
+        client.assert(Array.isArray(response.body.data) && response.body.data.length > 0, "Expected at least the default feed");
+        const defaultFeed = response.body.data.find(feed => feed.isDefault) || response.body.data[0];
+        client.global.set("defaultFeedId", defaultFeed.id);
+        client.assert(Array.isArray(defaultFeed.formatIds), "Expected formatIds on feed view");
+        client.assert(defaultFeed.formatIds.length === 0, "Default feed has no format filter");
+    });
+%}
+
+###
+
+### @name createCustomFeed
+< {%
+  client.global.set("customFeedTitle", "Custom-" + Date.now().toString(36));
+%}
+POST {{baseUrl}}/api/v1/me/feeds
+Host: {{tenantAHost}}
+Authorization: Bearer {{subscriberAccessToken}}
+Content-Type: application/json
+Accept: application/json
+
+{
+  "title": "{{customFeedTitle}}",
+  "formatIds": [{{podcastFormatId}}]
+}
+
+> {%
+    client.test("Create custom feed", function() {
+        client.assert(response.status === 201, "Expected 201");
+        client.assert(response.body.data.isDefault === false, "Expected custom feed");
+        client.assert(response.body.data.enabled === true, "Expected enabled");
+        client.assert(Array.isArray(response.body.data.formatIds) && response.body.data.formatIds.length > 0, "Expected formatIds");
+        const feedUrl = response.body.data.url;
+        client.assert(typeof feedUrl === "string" && feedUrl.includes("/feeds/") && feedUrl.endsWith(".xml"), "Expected RSS URL");
+        client.global.set("customFeedId", response.body.data.id);
+        client.global.set("customFeedUrl", feedUrl);
+        const episodeSlug = client.global.get("podcastEpisodeSlug") || "missing-episode";
+        client.global.set("customEnclosureUrl", feedUrl.replace(/\.xml$/, "/e/" + episodeSlug + ".mp3"));
+    });
+%}
+
+###
+
+### @name createCustomFeedDuplicateTitle
+POST {{baseUrl}}/api/v1/me/feeds
+Host: {{tenantAHost}}
+Authorization: Bearer {{subscriberAccessToken}}
+Content-Type: application/json
+Accept: application/json
+
+{
+  "title": "{{customFeedTitle}}",
+  "formatIds": [{{podcastFormatId}}]
+}
+
+> {%
+    client.test("Duplicate custom title", function() {
+        client.assert(response.status === 409, "Expected 409");
+        client.assert(response.body.errors[0].code === "FEED_TITLE_DUPLICATE", "Expected FEED_TITLE_DUPLICATE");
+    });
+%}
+
+###
+
+### @name createCustomFeedMissingFormats
+POST {{baseUrl}}/api/v1/me/feeds
+Host: {{tenantAHost}}
+Authorization: Bearer {{subscriberAccessToken}}
+Content-Type: application/json
+Accept: application/json
+
+{
+  "title": "Missing formats",
+  "formatIds": []
+}
+
+> {%
+    client.test("Missing formats", function() {
+        client.assert(response.status === 400, "Expected 400");
+        client.assert(response.body.errors[0].code === "FEED_FORMATS_REQUIRED", "Expected FEED_FORMATS_REQUIRED");
+    });
+%}
+
+###
+
+### @name updateCustomFeed
+PUT {{baseUrl}}/api/v1/me/feeds/{{customFeedId}}
+Host: {{tenantAHost}}
+Authorization: Bearer {{subscriberAccessToken}}
+Content-Type: application/json
+Accept: application/json
+
+{
+  "title": "{{customFeedTitle}} updated",
+  "formatIds": [{{podcastFormatId}}]
+}
+
+> {%
+    client.test("Update custom feed", function() {
+        client.assert(response.status === 200, "Expected 200");
+        client.assert(response.body.data.title.indexOf("updated") !== -1, "Expected updated title");
+        client.assert(response.body.data.isDefault === false, "Expected custom feed");
+    });
+%}
+
+###
+
+### @name previewOwnedCustomFeed
+GET {{baseUrl}}/api/v1/me/feeds/{{customFeedId}}/preview
+Host: {{tenantAHost}}
+Authorization: Bearer {{subscriberAccessToken}}
+Accept: application/json
+
+> {%
+    client.test("Preview owned custom feed", function() {
+        client.assert(response.status === 200, "Expected 200");
+        client.assert(typeof response.body.data.episodeCount === "number", "Expected episodeCount");
+    });
+%}
+
+###
+
+### @name previewDefaultFeedForbidden
+GET {{baseUrl}}/api/v1/me/feeds/{{defaultFeedId}}/preview
+Host: {{tenantAHost}}
+Authorization: Bearer {{subscriberAccessToken}}
+Accept: application/json
+
+> {%
+    client.test("Default feed is not filterable", function() {
+        client.assert(response.status === 409, "Expected 409");
+        client.assert(response.body.errors[0].code === "DEFAULT_FEED_NOT_FILTERABLE", "Expected DEFAULT_FEED_NOT_FILTERABLE");
+    });
+%}
+
+###
+
+### @name privateCustomFeed
+GET {{customFeedUrl}}
+Host: {{tenantAHost}}
+Accept: application/rss+xml
+
+> {%
+    client.test("Custom private RSS", function() {
+        client.assert(response.status === 200 || response.status === 302 || response.status === 404, "Expected RSS redirect, XML, or cold-start 404");
+        if (response.status === 200) {
+            client.assert(response.body.includes("<rss"), "Expected RSS XML");
+        }
+    });
+%}
+
+###
+
+### @name updateCustomFeedMismatchFormat
+PUT {{baseUrl}}/api/v1/me/feeds/{{customFeedId}}
+Host: {{tenantAHost}}
+Authorization: Bearer {{subscriberAccessToken}}
+Content-Type: application/json
+Accept: application/json
+
+{
+  "title": "{{customFeedTitle}} updated",
+  "formatIds": [{{customFeedMismatchFormatId}}]
+}
+
+> {%
+    client.test("Point custom feed at mismatch format", function() {
+        const mismatchId = client.global.get("customFeedMismatchFormatId");
+        if (!mismatchId) {
+            client.assert(true, "Skipped — mismatch format was not created");
+            return;
+        }
+        client.assert(response.status === 200, "Expected 200");
+        client.assert(response.body.data.formatIds.includes(mismatchId), "Expected mismatch format selected");
+    });
+%}
+
+###
+
+### @name customEnclosureMismatch
+GET {{customEnclosureUrl}}
+Host: {{tenantAHost}}
+Accept: */*
+
+> {%
+    client.test("Custom enclosure format mismatch is 404", function() {
+        const mismatchId = client.global.get("customFeedMismatchFormatId");
+        const episodeSlug = client.global.get("podcastEpisodeSlug");
+        if (!mismatchId || !episodeSlug) {
+            client.assert(true, "Skipped — mismatch format or episode slug missing");
+            return;
+        }
+        client.assert(response.status === 404, "Expected 404 when the episode is not in this feed's formats");
+    });
+%}
+
+###
+
+### @name disableCustomFeed
+PUT {{baseUrl}}/api/v1/me/feeds/{{customFeedId}}/enabled
+Host: {{tenantAHost}}
+Authorization: Bearer {{subscriberAccessToken}}
+Content-Type: application/json
+Accept: application/json
+
+{
+  "enabled": false
+}
+
+> {%
+    client.test("Disable custom feed", function() {
+        client.assert(response.status === 200, "Expected 200");
+        client.assert(response.body.data.enabled === false, "Expected disabled");
+    });
+%}
+
+###
+
+### @name privateCustomFeedDisabled
+GET {{customFeedUrl}}
+Host: {{tenantAHost}}
+Accept: application/rss+xml
+
+> {%
+    client.test("Disabled custom RSS is 404", function() {
+        client.assert(response.status === 404, "Expected 404");
+    });
+%}
+
+###
+
+### @name enableCustomFeed
+PUT {{baseUrl}}/api/v1/me/feeds/{{customFeedId}}/enabled
+Host: {{tenantAHost}}
+Authorization: Bearer {{subscriberAccessToken}}
+Content-Type: application/json
+Accept: application/json
+
+{
+  "enabled": true
+}
+
+> {%
+    client.test("Enable custom feed", function() {
+        client.assert(response.status === 200, "Expected 200");
+        client.assert(response.body.data.enabled === true, "Expected enabled");
+    });
+%}
+
+###
+
+### @name rotateCustomFeedToken
+POST {{baseUrl}}/api/v1/me/feeds/{{customFeedId}}/rotate-token
+Host: {{tenantAHost}}
+Authorization: Bearer {{subscriberAccessToken}}
+Accept: application/json
+
+> {%
+    client.test("Rotate custom feed token", function() {
+        client.assert(response.status === 200, "Expected 200");
+        const feedUrl = response.body.data && response.body.data.url;
+        client.assert(typeof feedUrl === "string" && feedUrl.endsWith(".xml"), "Expected new URL");
+        client.global.set("customFeedUrl", feedUrl);
+    });
+%}
+
+###
+
+### @name deleteDefaultFeedForbidden
+DELETE {{baseUrl}}/api/v1/me/feeds/{{defaultFeedId}}
+Host: {{tenantAHost}}
+Authorization: Bearer {{subscriberAccessToken}}
+Accept: application/json
+
+> {%
+    client.test("Default feed is not deletable", function() {
+        client.assert(response.status === 409, "Expected 409");
+        client.assert(response.body.errors[0].code === "DEFAULT_FEED_NOT_DELETABLE", "Expected DEFAULT_FEED_NOT_DELETABLE");
+    });
+%}
+
+###
+
+### @name deactivateFeedBuilderForCustomFeedOff
+DELETE {{baseUrl}}/api/v1/platform/tenants/{{tenantAId}}/modules/FEED_BUILDER
+Authorization: Bearer {{platformAccessToken}}
+Accept: application/json
+
+> {%
+    client.test("Deactivate FEED_BUILDER", function() {
+        client.assert(response.status === 200, "Expected 200");
+        client.assert(!response.body.data.enabledModules.includes("FEED_BUILDER"), "Expected FEED_BUILDER off");
+    });
+%}
+
+###
+
+### @name privateCustomFeedModuleOff
+GET {{customFeedUrl}}
+Host: {{tenantAHost}}
+Accept: application/rss+xml
+
+> {%
+    client.test("Custom RSS without FEED_BUILDER is 404 not JSON 403", function() {
+        const feedUrl = client.global.get("customFeedUrl");
+        client.assert(typeof feedUrl === "string" && feedUrl.endsWith(".xml"), "customFeedUrl must be initialized");
+        client.assert(response.status === 404, "Expected 404");
+        client.assert(
+            !response.body || !response.body.errors || response.body.errors[0].code !== "FEATURE_NOT_ENABLED",
+            "Must not return FEATURE_NOT_ENABLED JSON"
+        );
+    });
+%}
+
+###
+
+### @name createCustomFeedModuleOff
+POST {{baseUrl}}/api/v1/me/feeds
+Host: {{tenantAHost}}
+Authorization: Bearer {{subscriberAccessToken}}
+Content-Type: application/json
+Accept: application/json
+
+{
+  "title": "Should fail",
+  "formatIds": [{{podcastFormatId}}]
+}
+
+> {%
+    client.test("Create custom feed without FEED_BUILDER", function() {
+        client.assert(response.status === 403, "Expected 403");
+        client.assert(response.body.errors[0].code === "FEATURE_NOT_ENABLED", "Expected FEATURE_NOT_ENABLED");
+    });
+%}
+
+###
+
+### @name restoreFeedBuilder
+POST {{baseUrl}}/api/v1/platform/tenants/{{tenantAId}}/modules/FEED_BUILDER/activate
+Authorization: Bearer {{platformAccessToken}}
+Accept: application/json
+
+> {%
+    client.test("Restore FEED_BUILDER", function() {
+        client.assert(response.status === 200, "Expected 200");
+        client.assert(response.body.data.enabledModules.includes("FEED_BUILDER"), "Expected FEED_BUILDER on");
+    });
+%}
+
+###
+
+### @name deleteCustomFeed
+DELETE {{baseUrl}}/api/v1/me/feeds/{{customFeedId}}
+Host: {{tenantAHost}}
+Authorization: Bearer {{subscriberAccessToken}}
+Accept: application/json
+
+> {%
+    client.test("Delete custom feed", function() {
+        client.assert(response.status === 200, "Expected 200");
+        client.assert(response.body.data.isDefault === false, "Expected deleted custom feed view");
+    });
+%}

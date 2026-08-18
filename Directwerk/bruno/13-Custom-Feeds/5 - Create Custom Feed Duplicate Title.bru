@@ -1,0 +1,35 @@
+meta {
+  name: 5 - Create Custom Feed Duplicate Title
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{baseUrl}}/api/v1/me/feeds
+  body: json
+  auth: inherit
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "title": "{{customFeedTitle}}",
+    "formatIds": [{{podcastFormatId}}]
+  }
+}
+
+tests {
+  test("rejects a duplicate custom title", function() {
+    expect([409, 400, 403]).to.include(res.getStatus());
+    if (res.getStatus() === 409) {
+      expect(res.body.errors[0].code).to.equal("FEED_TITLE_DUPLICATE");
+    }
+  });
+}
+
+docs {
+  Custom titles are unique per user+tenant (case-insensitive).
+}

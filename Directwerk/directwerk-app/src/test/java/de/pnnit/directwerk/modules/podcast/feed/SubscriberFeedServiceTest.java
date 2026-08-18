@@ -11,7 +11,12 @@ import de.pnnit.directwerk.modules.core.entity.Tenant;
 import de.pnnit.directwerk.modules.core.entity.User;
 import de.pnnit.directwerk.modules.core.repository.TenantRepository;
 import de.pnnit.directwerk.modules.core.repository.UserRepository;
+import de.pnnit.directwerk.modules.podcast.entity.Format;
 import de.pnnit.directwerk.modules.podcast.job.RssFeedRefreshJobProducer;
+import de.pnnit.directwerk.modules.podcast.repository.FormatRepository;
+import de.pnnit.directwerk.modules.podcast.service.RssFeedSnapshotService;
+import de.pnnit.directwerk.modules.podcast.service.SubscriberEpisodeService;
+import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -31,6 +36,15 @@ class SubscriberFeedServiceTest {
 
     @Mock
     private UserRepository userRepository;
+
+    @Mock
+    private FormatRepository formatRepository;
+
+    @Mock
+    private SubscriberEpisodeService subscriberEpisodeService;
+
+    @Mock
+    private RssFeedSnapshotService rssFeedSnapshotService;
 
     @Mock
     private RssFeedRefreshJobProducer rssFeedRefreshJobProducer;
@@ -92,6 +106,83 @@ class SubscriberFeedServiceTest {
         verify(subscriberFeedRepository).findByTenantIdAndUserIdAndDefaultFeedTrue(10L, 99L);
         verify(subscriberFeedRepository).save(feed);
         verify(tenantRepository, never()).getReferenceById(any());
+    }
+
+    @Test
+    void createCustomFeedPersistsFormatsAndEnqueuesRefresh() {
+        SubscriberFeed defaultFeed = feed(10L, 1L);
+        when(subscriberFeedRepository.findByTenantIdAndUserIdAndDefaultFeedTrue(10L, 99L))
+                .thenReturn(Optional.of(defaultFeed));
+        when(subscriberFeedRepository.countByTenantIdAndUserIdAndDefaultFeedFalse(10L, 99L)).thenReturn(0L);
+        when(subscriberFeedRepository.existsByTenantIdAndUserIdAndDefaultFeedFalseAndTitleIgnoreCase(
+                10L, 99L, "Nur Interviews"
+        )).thenReturn(false);
+        when(tenantRepository.getReferenceById(10L)).thenReturn(defaultFeed.getTenant());
+        when(userRepository.getReferenceById(99L)).thenReturn(defaultFeed.getUser());
+        when(formatRepository.findByIdAndTenantId(3L, 10L)).thenReturn(Optional.of(format(3L, true)));
+        when(subscriberFeedRepository.existsByFeedToken(org.mockito.ArgumentMatchers.anyString())).thenReturn(false);
+        when(subscriberFeedRepository.save(any(SubscriberFeed.class))).thenAnswer(invocation -> {
+            SubscriberFeed saved = invocation.getArgument(0);
+            saved.setId(12L);
+            return saved;
+        });
+
+        SubscriberFeed created = subscriberFeedService.createCustomFeed(10L, 99L, "  Nur Interviews  ", List.of(3L));
+
+        assertThat(created.isDefaultFeed()).isFalse();
+        assertThat(created.getTitle()).isEqualTo("Nur Interviews");
+        assertThat(created.getFormats()).extracting(Format::getId).containsExactly(3L);
+        verify(rssFeedRefreshJobProducer).requestRefreshAfterCommit(10L);
+    }
+
+    @Test
+    void createCustomFeedRejectsWhenLimitReached() {
+        when(subscriberFeedRepository.findByTenantIdAndUserIdAndDefaultFeedTrue(10L, 99L))
+                .thenReturn(Optional.of(feed(10L, 1L)));
+        when(subscriberFeedRepository.countByTenantIdAndUserIdAndDefaultFeedFalse(10L, 99L)).thenReturn(5L);
+
+        assertThatThrownBy(() -> subscriberFeedService.createCustomFeed(10L, 99L, "Extra", List.of(3L)))
+                .isInstanceOf(FeedBuilderException.class)
+                .extracting(ex -> ((FeedBuilderException) ex).getCode())
+                .isEqualTo("FEED_LIMIT_REACHED");
+        verify(subscriberFeedRepository, never()).save(any());
+    }
+
+    @Test
+    void deleteCustomFeedRejectsDefaultFeed() {
+        SubscriberFeed defaultFeed = feed(10L, 1L);
+        when(subscriberFeedRepository.findByIdAndTenantIdAndUserId(1L, 10L, 99L))
+                .thenReturn(Optional.of(defaultFeed));
+
+        assertThatThrownBy(() -> subscriberFeedService.deleteCustomFeed(10L, 99L, 1L))
+                .isInstanceOf(FeedBuilderException.class)
+                .extracting(ex -> ((FeedBuilderException) ex).getCode())
+                .isEqualTo("DEFAULT_FEED_NOT_DELETABLE");
+        verify(subscriberFeedRepository, never()).delete(any());
+    }
+
+    @Test
+    void deleteCustomFeedWithdrawsThenDeletes() {
+        SubscriberFeed custom = feed(10L, 12L);
+        custom.setDefaultFeed(false);
+        when(subscriberFeedRepository.findByIdAndTenantIdAndUserId(12L, 10L, 99L))
+                .thenReturn(Optional.of(custom));
+
+        subscriberFeedService.deleteCustomFeed(10L, 99L, 12L);
+
+        verify(rssFeedSnapshotService).withdrawPrivateFeed(custom.getTenant(), 12L);
+        verify(subscriberFeedRepository).delete(custom);
+        verify(rssFeedRefreshJobProducer).requestRefreshAfterCommit(10L);
+    }
+
+    private static Format format(Long id, boolean active) {
+        Format format = new Format();
+        format.setId(id);
+        format.setSlug("interview");
+        format.setName("Interview");
+        format.setActive(active);
+        format.setSortOrder(10);
+        return format;
     }
 
     private static SubscriberFeed feed(Long tenantId, Long feedId) {

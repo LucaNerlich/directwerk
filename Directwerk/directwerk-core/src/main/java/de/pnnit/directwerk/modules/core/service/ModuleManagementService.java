@@ -84,7 +84,8 @@ public class ModuleManagementService {
         activation.setActive(true);
         tenantModuleActivationRepository.save(activation);
         cacheEviction.evictTenantPublicCachesAfterCommit(tenantId);
-        if (newlyActivated && "PODCAST_RSS".equals(module.getModuleKey())) {
+        if (newlyActivated && ("PODCAST_RSS".equals(module.getModuleKey())
+                || "FEED_BUILDER".equals(module.getModuleKey()))) {
             eventPublisher.publishEvent(new TenantRssSnapshotStaleEvent(tenantId));
         }
         platformAuditService.record(
@@ -119,7 +120,8 @@ public class ModuleManagementService {
                     });
         }
         cacheEviction.evictTenantPublicCachesAfterCommit(tenantId);
-        if (moduleKeysToDeactivate.contains("PODCAST_RSS")) {
+        if (moduleKeysToDeactivate.contains("PODCAST_RSS")
+                || moduleKeysToDeactivate.contains("FEED_BUILDER")) {
             eventPublisher.publishEvent(new TenantRssSnapshotStaleEvent(tenantId));
         }
         platformAuditService.record(

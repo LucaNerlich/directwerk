@@ -1,0 +1,25 @@
+meta {
+  name: 13-Custom-Feeds
+  seq: 13
+}
+
+auth {
+  mode: bearer
+}
+
+auth:bearer {
+  token: {{subscriberAccessToken}}
+}
+
+headers {
+  Host: {{tenantAHost}}
+}
+
+docs {
+  MeFeedController custom feeds + RssFeedController token URLs.
+  Run after 01-Auth-and-Tokens, 06-Platform-Admin/Tenants (tenantAId),
+  09-Podcast-Content/Formats (podcastFormatId) or 03-Public/Public Formats,
+  and 02-Me/List My Feeds (defaultFeedId).
+  Enable/disable/rotate/delete of existing custom feeds only need PODCAST_RSS + SUBSCRIPTION;
+  create/update/preview require FEED_BUILDER.
+}

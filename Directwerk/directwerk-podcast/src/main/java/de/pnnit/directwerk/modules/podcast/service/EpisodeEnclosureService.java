@@ -15,6 +15,7 @@ import de.pnnit.directwerk.modules.podcast.entity.EpisodeStatus;
 import de.pnnit.directwerk.modules.podcast.entity.SeriesStatus;
 import de.pnnit.directwerk.modules.podcast.exception.EpisodeNotFoundException;
 import de.pnnit.directwerk.modules.podcast.feed.SubscriberFeed;
+import de.pnnit.directwerk.modules.podcast.feed.SubscriberFeedFormatMatcher;
 import de.pnnit.directwerk.modules.podcast.feed.SubscriberFeedNotFoundException;
 import de.pnnit.directwerk.modules.podcast.repository.EpisodeRepository;
 import java.net.URL;
@@ -62,6 +63,9 @@ public class EpisodeEnclosureService {
         Episode episode = requirePublishedPlayableEpisode(tenantId, episodeSlug);
         if (episode.getAccessPolicy() == AccessPolicy.PAID
                 && !entitlementApi.hasAccess(tenantId, feed.getUser().getId(), episode.getId())) {
+            throw new EpisodeNotFoundException(episodeSlug);
+        }
+        if (!SubscriberFeedFormatMatcher.includes(feed, episode)) {
             throw new EpisodeNotFoundException(episodeSlug);
         }
         MediaAsset audio = episode.getAudioAsset();
