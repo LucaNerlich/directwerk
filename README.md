@@ -274,7 +274,7 @@ plumbing, podcast content (series/episodes/formats), episode streaming, public +
 RSS, and real LEVEL/PACKAGE entitlements are implemented — see
 [`docs/poc-alpha-setup.md`](docs/poc-alpha-setup.md) and
 [`docs/phase-2e-4-4b-implementation.md`](docs/phase-2e-4-4b-implementation.md) for what's shipped vs.
-open. Still design-only: feed builder, Stripe/Patreon/Steady billing, `EMAIL_NOTIFY`, articles, and the
+open. Still design-only: Stripe/Patreon/Steady billing, `EMAIL_NOTIFY`, articles, and the
 `directwerk-admin`/`directwerk-web` reference frontends. Full doc index: [Documentation](#documentation).
 
 ### MVP Scope
@@ -1770,7 +1770,7 @@ Generate **RSS 2.0** with namespaces:
 **Item elements (per episode):** `title`, `description`, `pubDate`, `guid` (permanent, never changes),
 `enclosure` (url, length, type), `itunes:duration`, `itunes:episode`, `content:encoded`
 
-**Custom feed channel title:** Use `CustomFeed.title` so podcast apps show "My Interviews" as a separate subscription.
+**Custom feed channel title:** Use `SubscriberFeed.title` so podcast apps show "My Interviews" as a separate subscription.
 
 ### Per-Subscriber Private Feeds
 
@@ -1853,7 +1853,7 @@ flowchart LR
 
     subgraph subscriber [SubscriberPortal]
         SelectFormats[Select Formats in Feed Builder]
-        SaveFeed[Save CustomFeed]
+        SaveFeed[Save SubscriberFeed]
         CopyURL[Copy RSS URL]
     end
 

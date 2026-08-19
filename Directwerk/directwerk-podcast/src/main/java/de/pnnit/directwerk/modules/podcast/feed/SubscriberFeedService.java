@@ -19,6 +19,8 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import lombok.RequiredArgsConstructor;
+import org.hibernate.exception.ConstraintViolationException;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -98,6 +100,11 @@ public class SubscriberFeedService {
     @Transactional
     public SubscriberFeed createCustomFeed(Long tenantId, Long userId, String rawTitle, Collection<Long> formatIds) {
         ensureDefaultFeed(tenantId, userId);
+
+        // Acquire lock on user's default feed to serialize concurrent creates
+        subscriberFeedRepository.findWithLockByTenantIdAndUserIdAndDefaultFeedTrue(tenantId, userId)
+                .orElseThrow(() -> new IllegalStateException("Default feed not found after ensureDefaultFeed"));
+
         if (subscriberFeedRepository.countByTenantIdAndUserIdAndDefaultFeedFalse(tenantId, userId)
                 >= MAX_CUSTOM_FEEDS_PER_USER) {
             throw FeedBuilderException.conflict(
@@ -121,9 +128,20 @@ public class SubscriberFeedService {
         feed.setEnabled(true);
         feed.setFeedToken(generateUniqueToken());
         feed.getFormats().addAll(resolveActiveFormats(tenantId, formatIds));
-        SubscriberFeed saved = subscriberFeedRepository.save(feed);
-        rssFeedRefreshJobProducer.requestRefreshAfterCommit(tenantId);
-        return saved;
+
+        try {
+            SubscriberFeed saved = subscriberFeedRepository.save(feed);
+            rssFeedRefreshJobProducer.requestRefreshAfterCommit(tenantId);
+            return saved;
+        } catch (DataIntegrityViolationException ex) {
+            if (ex.getCause() instanceof ConstraintViolationException cve) {
+                String constraintName = cve.getConstraintName();
+                if (constraintName != null && constraintName.contains("uq_subscriber_feeds_custom_title")) {
+                    throw FeedBuilderException.conflict("FEED_TITLE_DUPLICATE", "A custom feed with this title already exists");
+                }
+            }
+            throw ex;
+        }
     }
 
     @Transactional

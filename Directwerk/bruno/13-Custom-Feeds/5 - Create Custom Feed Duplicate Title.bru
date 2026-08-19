@@ -23,10 +23,8 @@ body:json {
 
 tests {
   test("rejects a duplicate custom title", function() {
-    expect([409, 400, 403]).to.include(res.getStatus());
-    if (res.getStatus() === 409) {
-      expect(res.body.errors[0].code).to.equal("FEED_TITLE_DUPLICATE");
-    }
+    expect(res.getStatus()).to.equal(409);
+    expect(res.body.errors[0].code).to.equal("FEED_TITLE_DUPLICATE");
   });
 }
 

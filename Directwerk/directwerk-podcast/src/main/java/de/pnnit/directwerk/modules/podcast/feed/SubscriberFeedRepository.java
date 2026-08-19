@@ -1,9 +1,11 @@
 package de.pnnit.directwerk.modules.podcast.feed;
 
+import jakarta.persistence.LockModeType;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.stereotype.Repository;
 
 @Repository
@@ -14,6 +16,10 @@ public interface SubscriberFeedRepository extends JpaRepository<SubscriberFeed, 
 
     @EntityGraph(attributePaths = {"tenant", "user", "formats"})
     Optional<SubscriberFeed> findByTenantIdAndUserIdAndDefaultFeedTrue(Long tenantId, Long userId);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @EntityGraph(attributePaths = {"tenant", "user", "formats"})
+    Optional<SubscriberFeed> findWithLockByTenantIdAndUserIdAndDefaultFeedTrue(Long tenantId, Long userId);
 
     @EntityGraph(attributePaths = {"tenant", "user", "formats"})
     List<SubscriberFeed> findByTenantIdAndUserIdOrderByDefaultFeedDescIdAsc(Long tenantId, Long userId);

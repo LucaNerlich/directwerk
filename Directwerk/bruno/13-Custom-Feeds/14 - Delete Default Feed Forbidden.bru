@@ -12,9 +12,7 @@ delete {
 
 tests {
   test("default feed cannot be deleted", function() {
-    expect([409, 400, 403, 404]).to.include(res.getStatus());
-    if (res.getStatus() === 409) {
-      expect(res.body.errors[0].code).to.equal("DEFAULT_FEED_NOT_DELETABLE");
-    }
+    expect(res.getStatus()).to.equal(409);
+    expect(res.body.errors[0].code).to.equal("DEFAULT_FEED_NOT_DELETABLE");
   });
 }

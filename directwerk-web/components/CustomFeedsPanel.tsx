@@ -27,6 +27,8 @@ interface CustomFeedsPanelProps {
     onAuthRequired: () => void
 }
 
+const MAX_CUSTOM_FEEDS = 5
+
 export default function CustomFeedsPanel({
     tenantHost,
     feeds,
@@ -223,7 +225,7 @@ export default function CustomFeedsPanel({
         }
     }
 
-    const atFeedLimit = customFeeds.length >= 5
+    const atFeedLimit = customFeeds.length >= MAX_CUSTOM_FEEDS
     const showCreateForm =
         canBuild && formats.length > 0 && (editingId !== null || !atFeedLimit)
     const canSave = title.trim().length > 0 && selectedIds.length > 0 && !busy
@@ -240,7 +242,7 @@ export default function CustomFeedsPanel({
                 <p>Der Verlag hat noch keine Formate angelegt.</p>
             ) : null}
             {canBuild && atFeedLimit && editingId === null ? (
-                <p>Du kannst höchstens 5 eigene Feeds anlegen.</p>
+                <p>Du kannst höchstens {MAX_CUSTOM_FEEDS} eigene Feeds anlegen.</p>
             ) : null}
             {showCreateForm ? (
                 <form
@@ -346,15 +348,17 @@ export default function CustomFeedsPanel({
                                 >
                                     Token erneuern
                                 </Button>
-                                <Button
-                                    disabled={busy}
-                                    onClick={() => startEdit(feed)}
-                                    size="sm"
-                                    type="button"
-                                    variant="outline"
-                                >
-                                    Bearbeiten
-                                </Button>
+                                {canBuild && formats.length > 0 ? (
+                                    <Button
+                                        disabled={busy}
+                                        onClick={() => startEdit(feed)}
+                                        size="sm"
+                                        type="button"
+                                        variant="outline"
+                                    >
+                                        Bearbeiten
+                                    </Button>
+                                ) : null}
                                 <Button
                                     disabled={busy}
                                     onClick={() => void handleDelete(feed)}

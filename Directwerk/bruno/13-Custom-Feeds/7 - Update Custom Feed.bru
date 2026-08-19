@@ -23,11 +23,9 @@ body:json {
 
 tests {
   test("updates title and formats", function() {
-    expect([200, 400, 403, 404]).to.include(res.getStatus());
-    if (res.getStatus() === 200) {
-      expect(res.body.data.title).to.include("updated");
-      expect(res.body.data.isDefault).to.equal(false);
-    }
+    expect(res.getStatus()).to.equal(200);
+    expect(res.body.data.title).to.include("updated");
+    expect(res.body.data.isDefault).to.equal(false);
   });
 }
 

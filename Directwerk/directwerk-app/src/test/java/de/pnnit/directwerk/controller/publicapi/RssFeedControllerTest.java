@@ -202,6 +202,25 @@ class RssFeedControllerTest {
     }
 
     @Test
+    void privateEnclosureThrowsNotFoundWhenFeedBuilderModuleIsOff() {
+        Tenant tenant = tenant(10L, "alpha");
+        SubscriberFeed feed = subscriberFeed(tenant, "tok", true);
+        feed.setDefaultFeed(false);
+        TenantContext.setTenantId(10L);
+        when(tenantRepository.findById(10L)).thenReturn(Optional.of(tenant));
+        when(subscriberFeedService.requireFeedByToken("tok")).thenReturn(feed);
+        lenient().doThrow(new ModuleNotEnabledException(FeedBuilderModule.KEY))
+                .when(moduleGateService)
+                .requireModule(FeedBuilderModule.KEY);
+
+        assertThatThrownBy(() -> controller().privateEnclosure("alpha", "tok", "episode-slug", request))
+                .isInstanceOf(SubscriberFeedNotFoundException.class);
+
+        verify(episodeEnclosureService, org.mockito.Mockito.never()).resolvePrivateRedirect(org.mockito.Mockito.any(), org.mockito.Mockito.anyString());
+        verify(episodeDownloadAnalyticsService, org.mockito.Mockito.never()).trackEpisodeDownload(org.mockito.Mockito.anyLong(), org.mockito.Mockito.any(), org.mockito.Mockito.anyString(), org.mockito.Mockito.anyString());
+    }
+
+    @Test
     void publicFeedThrowsModuleNotEnabledWhenRssModuleMissing() {
         Tenant tenant = tenant(10L, "alpha");
         TenantContext.setTenantId(10L);

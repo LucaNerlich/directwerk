@@ -16,7 +16,7 @@ headers {
 
 script:pre-request {
   const feedUrl = bru.getVar("customFeedUrl") || bru.getEnvVar("customFeedUrl");
-  const episodeSlug = bru.getVar("podcastEpisodeSlug") || "missing-episode";
+  const episodeSlug = bru.getVar("mismatchEpisodeSlug") || bru.getVar("podcastEpisodeSlug") || "missing-episode";
   if (feedUrl && typeof feedUrl === "string" && feedUrl.endsWith(".xml")) {
     bru.setVar("customEnclosureUrl", feedUrl.replace(/\.xml$/, "/e/" + episodeSlug + ".mp3"));
   }
@@ -24,11 +24,7 @@ script:pre-request {
 
 tests {
   test("custom enclosure is gated by feed formats", function() {
-    const status = res.getStatus();
-    expect([302, 403, 404]).to.include(status);
-    if (status === 403) {
-      expect(res.body.errors[0].code).to.equal("FEATURE_NOT_ENABLED");
-    }
+    expect(res.getStatus()).to.equal(404);
   });
 }
 

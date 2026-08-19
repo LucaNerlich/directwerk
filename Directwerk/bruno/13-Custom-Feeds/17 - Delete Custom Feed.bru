@@ -12,11 +12,9 @@ delete {
 
 tests {
   test("deletes the custom feed", function() {
-    expect([200, 403, 404]).to.include(res.getStatus());
-    if (res.getStatus() === 200) {
-      expect(res.body.data.id).to.equal(Number(bru.getVar("customFeedId")));
-      expect(res.body.data.isDefault).to.equal(false);
-    }
+    expect(res.getStatus()).to.equal(200);
+    expect(res.body.data.id).to.equal(Number(bru.getVar("customFeedId")));
+    expect(res.body.data.isDefault).to.equal(false);
   });
 }
 

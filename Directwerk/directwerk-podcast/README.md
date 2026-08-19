@@ -137,7 +137,7 @@ tracked before redirecting to the public CDN. Analytics is fail-open and never g
 Subscribers compose a **private** RSS feed by selecting one or more **Formate**. That feed only
 includes episodes they are **entitled** to and that match at least one selected active format.
 
-```
+```text
 SubscriberFeed { is_default=false, formats[] }
   → entitled PUBLISHED episodes with enclosure
   → private /feeds/{tenantSlug}/u/{feedToken}.xml

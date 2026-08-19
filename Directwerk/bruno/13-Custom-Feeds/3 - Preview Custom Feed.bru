@@ -12,14 +12,9 @@ get {
 
 tests {
   test("returns preview or module/format error", function() {
-    expect([200, 400, 403]).to.include(res.getStatus());
-    if (res.getStatus() === 200) {
-      expect(res.body.data.episodeCount).to.be.a("number");
-      expect(res.body.data.sampleTitles).to.be.an("array");
-    }
-    if (res.getStatus() === 403) {
-      expect(res.body.errors[0].code).to.equal("FEATURE_NOT_ENABLED");
-    }
+    expect(res.getStatus()).to.equal(200);
+    expect(res.body.data.episodeCount).to.be.a("number");
+    expect(res.body.data.sampleTitles).to.be.an("array");
   });
 }
 

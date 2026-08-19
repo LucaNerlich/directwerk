@@ -135,9 +135,10 @@ public class RssFeedSnapshotService {
                 .forEach(series -> refresh(publicSeriesRef(tenant, series.getId()), () -> rssFeedService.buildPublicFeed(
                         tenant, series, origin.scheme(), origin.host(), origin.port()
                 )));
+        boolean feedBuilderActive = feedBuilderModuleActive(tenantId);
         subscriberFeedRepository.findByTenantIdOrderByIdAsc(tenantId)
                 .forEach(feed -> {
-                    boolean customFeedBlocked = !feed.isDefaultFeed() && !feedBuilderModuleActive(tenantId);
+                    boolean customFeedBlocked = !feed.isDefaultFeed() && !feedBuilderActive;
                     if (feed.isEnabled() && !customFeedBlocked) {
                         refresh(privateFeedRef(tenant, feed.getId()), () -> rssFeedService.buildPrivateFeed(
                                 tenant, feed, origin.scheme(), origin.host(), origin.port()

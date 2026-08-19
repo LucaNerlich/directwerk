@@ -23,9 +23,7 @@ body:json {
 
 tests {
   test("requires at least one format", function() {
-    expect([400, 403]).to.include(res.getStatus());
-    if (res.getStatus() === 400) {
-      expect(res.body.errors[0].code).to.equal("FEED_FORMATS_REQUIRED");
-    }
+    expect(res.getStatus()).to.equal(400);
+    expect(res.body.errors[0].code).to.equal("FEED_FORMATS_REQUIRED");
   });
 }
