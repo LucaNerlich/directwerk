@@ -65,7 +65,7 @@ public class MeFeedController {
     @PostMapping
     ResponseEntity<Response<SubscriberFeedView>> createCustomFeed(
             @AuthenticationPrincipal DirectwerkUserPrincipal principal,
-            @Valid @RequestBody CreateCustomFeedRequest body,
+            @RequestBody CreateCustomFeedRequest body,
             HttpServletRequest request
     ) {
         DirectwerkUserPrincipal user = SecurityUtils.requireTenantPrincipal(principal);
@@ -85,7 +85,7 @@ public class MeFeedController {
     ResponseEntity<Response<SubscriberFeedView>> updateCustomFeed(
             @AuthenticationPrincipal DirectwerkUserPrincipal principal,
             @PathVariable Long feedId,
-            @Valid @RequestBody UpdateCustomFeedRequest body,
+            @RequestBody UpdateCustomFeedRequest body,
             HttpServletRequest request
     ) {
         DirectwerkUserPrincipal user = SecurityUtils.requireTenantPrincipal(principal);
