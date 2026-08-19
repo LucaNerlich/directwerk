@@ -1,0 +1,25 @@
+meta {
+  name: 11 - Private Custom Feed Disabled
+  type: http
+  seq: 11
+}
+
+get {
+  url: {{customFeedUrl}}
+  body: none
+  auth: none
+}
+
+headers {
+  Accept: application/rss+xml
+}
+
+tests {
+  test("disabled custom feed is 404", function() {
+    expect(res.getStatus()).to.equal(404);
+  });
+}
+
+docs {
+  Disabled custom feeds must not serve XML (no-store 404).
+}

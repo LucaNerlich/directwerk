@@ -1,0 +1,23 @@
+meta {
+  name: 3 - Preview Custom Feed
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/api/v1/me/feeds/preview?formatIds={{podcastFormatId}}
+  body: none
+  auth: inherit
+}
+
+tests {
+  test("returns preview or module/format error", function() {
+    expect(res.getStatus()).to.equal(200);
+    expect(res.body.data.episodeCount).to.be.a("number");
+    expect(res.body.data.sampleTitles).to.be.an("array");
+  });
+}
+
+docs {
+  GET /api/v1/me/feeds/preview?formatIds= — episode count after entitlement + format match.
+}

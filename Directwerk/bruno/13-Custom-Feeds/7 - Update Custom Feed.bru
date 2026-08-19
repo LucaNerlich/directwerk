@@ -1,0 +1,34 @@
+meta {
+  name: 7 - Update Custom Feed
+  type: http
+  seq: 7
+}
+
+put {
+  url: {{baseUrl}}/api/v1/me/feeds/{{customFeedId}}
+  body: json
+  auth: inherit
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "title": "{{customFeedTitle}} updated",
+    "formatIds": [{{podcastFormatId}}]
+  }
+}
+
+tests {
+  test("updates title and formats", function() {
+    expect(res.getStatus()).to.equal(200);
+    expect(res.body.data.title).to.include("updated");
+    expect(res.body.data.isDefault).to.equal(false);
+  });
+}
+
+docs {
+  PUT /api/v1/me/feeds/{id} — cannot filter the default feed (DEFAULT_FEED_NOT_FILTERABLE).
+}

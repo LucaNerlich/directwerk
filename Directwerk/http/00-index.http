@@ -38,6 +38,7 @@
 ### | 24-articles.http | ArticleController + PublicArticleController (Write desk) |
 ### | 25-tenant-subscriber-feeds.http | TenantSubscriberFeedController (list/enable/disable) |
 ### | 26-stripe-billing.http | Stripe Connect, checkout, portal, dashboard, webhook |
+### | 27-custom-feeds.http | MeFeed custom feeds + private RSS format filter (after 19 + 22) |
 ###
 ### Controllers live under de.pnnit.directwerk.controller.*
 

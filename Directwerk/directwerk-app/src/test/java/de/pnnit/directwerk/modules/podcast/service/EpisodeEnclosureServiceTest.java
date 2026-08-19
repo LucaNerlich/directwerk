@@ -19,6 +19,7 @@ import de.pnnit.directwerk.modules.digital.entity.AssetVisibility;
 import de.pnnit.directwerk.modules.digital.entity.MediaAsset;
 import de.pnnit.directwerk.modules.podcast.entity.Episode;
 import de.pnnit.directwerk.modules.podcast.entity.EpisodeStatus;
+import de.pnnit.directwerk.modules.podcast.entity.Format;
 import de.pnnit.directwerk.modules.podcast.entity.PodcastSeries;
 import de.pnnit.directwerk.modules.podcast.entity.SeriesStatus;
 import de.pnnit.directwerk.modules.podcast.exception.EpisodeNotFoundException;
@@ -114,6 +115,28 @@ class EpisodeEnclosureServiceTest {
                 10L, "episode-2", EpisodeStatus.PUBLISHED, SeriesStatus.PUBLISHED
         )).thenReturn(Optional.of(episode));
         when(entitlementApi.hasAccess(10L, 99L, 50L)).thenReturn(false);
+
+        assertThatThrownBy(() -> service.resolvePrivateRedirect(feed, "episode-2"))
+                .isInstanceOf(EpisodeNotFoundException.class);
+    }
+
+    @Test
+    void privatePaidRedirectFailsWhenCustomFeedDoesNotSelectEpisodeFormat() {
+        Episode episode = paidEpisode();
+        Format interview = new Format();
+        interview.setId(3L);
+        interview.setActive(true);
+        episode.getFormats().add(interview);
+        SubscriberFeed feed = feed();
+        feed.setDefaultFeed(false);
+        Format bonus = new Format();
+        bonus.setId(8L);
+        bonus.setActive(true);
+        feed.getFormats().add(bonus);
+        when(episodeRepository.findByTenantIdAndSlugAndStatusAndSeriesStatus(
+                10L, "episode-2", EpisodeStatus.PUBLISHED, SeriesStatus.PUBLISHED
+        )).thenReturn(Optional.of(episode));
+        when(entitlementApi.hasAccess(10L, 99L, 50L)).thenReturn(true);
 
         assertThatThrownBy(() -> service.resolvePrivateRedirect(feed, "episode-2"))
                 .isInstanceOf(EpisodeNotFoundException.class);

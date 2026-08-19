@@ -115,7 +115,7 @@ Active subscription = `status = ACTIVE` and (`endsAt` is null or in the future).
 | `FORMAT` | format id | Episode has that format |
 | `CATEGORY` | category id | Episode has that category |
 | `DIGITAL_ASSET` | media asset id | **Not** for episodes (asset API only) |
-| `FEED_BUILDER` | must be `null` | Reserved; does not grant episodes today |
+| `FEED_BUILDER` | must be `null` | Reserved as a product-rule scope; does not grant episodes. Custom feeds are a subscriber filter, not an entitlement grant. |
 
 Effect is only `GRANT` (no deny rules). Rules are **PACKAGE-only**; replace is full replace (`PUT .../rules`).
 
@@ -153,7 +153,23 @@ Every subscriber gets one **default** `SubscriberFeed` (`defaultFeed=true`, `ena
 - List (admin): `GET /api/v1/tenant/subscriber-feeds` — feeds with user email + enabled state
 - Disable (admin): `PUT /api/v1/tenant/subscriber-feeds/{feedId}/enabled`
 
-Custom feed builder (`FEED_BUILDER` scope / subscriber-built filters) is **reserved**, not shipped as a product UI yet.
+### Custom private feeds (feed builder)
+
+When `FEED_BUILDER` is on, any authenticated tenant member can create up to **5** extra
+`SubscriberFeed` rows (`isDefault=false`) filtered by **Formate** (OR match). Entitlements still
+apply; selecting a LEVEL-gated format is allowed (episodes the user cannot hear are omitted).
+
+- Create: `POST /api/v1/me/feeds` `{ "title", "formatIds" }`
+- Update: `PUT /api/v1/me/feeds/{id}`
+- Preview: `GET /api/v1/me/feeds/preview?formatIds=` and `GET /api/v1/me/feeds/{id}/preview`
+- Disable / rotate / delete owned custom feeds: `PUT .../enabled`, `POST .../rotate-token`, `DELETE .../{id}`
+- Default feed stays unfiltered and is not deletable (`DEFAULT_FEED_NOT_DELETABLE`)
+- RSS channel `<title>` is the feed title; empty XML is valid
+- Custom PAID enclosures 404 when the episode’s formats are not selected, even if the user is entitled
+- Public custom URLs 404 no-store when `FEED_BUILDER` is off (not JSON `FEATURE_NOT_ENABLED`)
+
+Subscriber UI: `directwerk-web` `/feeds` (German copy). Tenant admins see custom feeds in studio
+feed management as “(Eigener Feed)” plus format names.
 
 ---
 

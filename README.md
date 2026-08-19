@@ -238,7 +238,7 @@ Tenants activate these via the module system as they grow — not required for M
 |-------|-----------|-----------------|
 | **Public + private RSS** | `PODCAST_RSS` | Free discovery feed + per-subscriber private feeds |
 | **Subscription products** | `SUBSCRIPTION` | LEVEL (tier ladder) and PACKAGE (scoped access) products |
-| **Feed builder** | `FEED_BUILDER` | Subscribers compose custom RSS by format/category |
+| **Feed builder** | `FEED_BUILDER` | Subscribers compose custom RSS by format |
 | **Stripe billing** | `STRIPE_BILLING` | Checkout, Customer Portal, Connect payouts |
 | **Patreon migration** | `PATREON_SYNC` | Import members, dual-run sync, shadow-user claim |
 | **Steady migration** | `STEADY_SYNC` | Same for Steady publishers |
@@ -274,7 +274,7 @@ plumbing, podcast content (series/episodes/formats), episode streaming, public +
 RSS, and real LEVEL/PACKAGE entitlements are implemented — see
 [`docs/poc-alpha-setup.md`](docs/poc-alpha-setup.md) and
 [`docs/phase-2e-4-4b-implementation.md`](docs/phase-2e-4-4b-implementation.md) for what's shipped vs.
-open. Still design-only: feed builder, Stripe/Patreon/Steady billing, `EMAIL_NOTIFY`, articles, and the
+open. Still design-only: Stripe/Patreon/Steady billing, `EMAIL_NOTIFY`, articles, and the
 `directwerk-admin`/`directwerk-web` reference frontends. Full doc index: [Documentation](#documentation).
 
 ### MVP Scope
@@ -551,7 +551,7 @@ implement their own.
 1. Subscriber authenticates → `POST /oauth2/token` → JWT
 2. `GET /api/v1/me/feeds` — list existing feeds
 3. `GET /api/v1/public/formats` — available formats for feed builder
-4. `POST /api/v1/me/feeds` — create custom feed with `{ title, includeFormats, includeCategories }`
+4. `POST /api/v1/me/feeds` — create custom feed with `{ title, formatIds }`
 5. Response includes `feedUrl: "https://feeds.client-a.de/u/{token}.xml"`
 6. Subscriber pastes URL into podcast app (no platform UI required)
 
@@ -895,7 +895,7 @@ media; vertical modules (podcast, RSS, feed builder) stack on top.
 | `DIGITAL_CONTENT` | Digital Content | Media upload, publish workflow, content storage — **foundation for all content** | Yes (base) |
 | `PODCAST` | Podcast | Series, episodes, formats, categories (podcast vertical) | Yes |
 | `PODCAST_RSS` | Podcast RSS | Public free feeds + per-subscriber private feeds | Yes |
-| `FEED_BUILDER` | Feed Builder | Subscriber custom RSS feeds by format/category | Yes |
+| `FEED_BUILDER` | Feed Builder | Subscriber custom RSS feeds by format | Yes |
 | `SUBSCRIPTION` | Subscriptions | Products, entitlements, subscriber portal | Yes |
 | `STRIPE_BILLING` | Stripe Billing | Stripe Connect checkout + Customer Portal | Yes |
 | `PATREON_SYNC` | Patreon Sync | OAuth import, membership webhooks | Yes |
@@ -1739,9 +1739,9 @@ RSS is the **primary delivery channel**. Three feed types serve different audien
 | **Public free** | `/feeds/{tenantSlug}/podcast.xml` | Anyone, podcast directories | `FREE` only |
 | **Series public** | `/feeds/{tenantSlug}/{seriesSlug}.xml` | Anyone | `FREE` in that series |
 | **Default private** | `/feeds/{tenantSlug}/u/{feedToken}.xml` | One subscriber | All entitled episodes |
-| **Custom (feed builder)** | `/feeds/{tenantSlug}/u/{feedToken}.xml` | One subscriber | Entitled episodes matching format/category filter |
+| **Custom (feed builder)** | `/feeds/{tenantSlug}/u/{feedToken}.xml` | One subscriber | Entitled episodes matching selected formats |
 
-Private and custom feeds share the same URL structure; `feedToken` resolves to either `SubscriberFeed` or `CustomFeed`.
+Private and custom feeds share the same URL structure; `feedToken` resolves to a `SubscriberFeed` (`is_default` distinguishes default vs custom).
 
 ### Feed Endpoints
 
@@ -1770,7 +1770,7 @@ Generate **RSS 2.0** with namespaces:
 **Item elements (per episode):** `title`, `description`, `pubDate`, `guid` (permanent, never changes),
 `enclosure` (url, length, type), `itunes:duration`, `itunes:episode`, `content:encoded`
 
-**Custom feed channel title:** Use `CustomFeed.title` so podcast apps show "My Interviews" as a separate subscription.
+**Custom feed channel title:** Use `SubscriberFeed.title` so podcast apps show "My Interviews" as a separate subscription.
 
 ### Per-Subscriber Private Feeds
 
@@ -1799,9 +1799,9 @@ Never cache private feed responses in shared CDN without varying on token.
 
 ## Feed Builder
 
-Subscribers self-manage **custom RSS feeds** by selecting which **formats** and/or **categories**
-to include. This is a core differentiator for podcast projects with varied content types (main show,
-bonus, interviews, seasonal arcs).
+Subscribers self-manage **custom RSS feeds** by selecting which **formats** to include. Category
+filters and `match_mode` are deferred. This is a core differentiator for podcast projects with
+varied content types (main show, bonus, interviews, seasonal arcs).
 
 ### Formats and Categories
 
@@ -1812,47 +1812,37 @@ bonus, interviews, seasonal arcs).
 
 Each episode is tagged with ≥1 format and optionally ≥1 category at publish time.
 
-Publishers may set `Format.required_level_sort_order` to restrict who can filter by that format (e.g. "Bonus"
-only for Producer level and above).
+Publishers may set `Format.required_level_sort_order` to restrict who can *hear* that format via
+LEVEL entitlements. Feed builder still allows selecting the format; episodes the subscriber is not
+entitled to are simply omitted from the custom feed.
 
 ### Custom Feed Model
 
-See `CustomFeed` entity above. Constraints:
+Custom feeds reuse `subscriber_feeds` (`is_default = false`) plus `subscriber_feed_formats`.
+Constraints (v1):
 
 | Rule | Value |
 |------|-------|
-| Max custom feeds per subscriber | 5 (configurable per tenant) |
-| Min formats selected | 1 |
-| Categories | Optional; empty = match any category |
-| `match_mode` | `ANY`: episode matches if it has any selected format OR any selected category. `ALL`: must match ≥1 format AND ≥1 category |
+| Max custom feeds per subscriber | 5 per tenant |
+| Min formats selected | 1 (active formats only) |
+| Match | OR — episode is included if it has ≥1 selected **active** format |
+| Categories / `match_mode` | Deferred |
 
 ### Feed Generation Rules
 
-```java
-List<Episode> episodesForCustomFeed(CustomFeed feed, User subscriber) {
-    int maxLevelSortOrder = subscriptionService.maxActiveLevelSortOrder(subscriber, feed.getTenantId());
-
-    return episodeRepository.findPublishedByTenant(feed.getTenantId()).stream()
-        .filter(ep -> entitlementService.hasAccess(subscriber.getId(), ep.getId()))
-        .filter(ep -> matchesFormatFilter(ep, feed.getIncludeFormats(), maxLevelSortOrder))
-        .filter(ep -> matchesCategoryFilter(ep, feed.getIncludeCategories()))
-        .filter(ep -> matchesMatchMode(ep, feed))
-        .sorted(byPublishedAtDesc())
-        .toList();
-}
-```
-
-**Entitlement filter always applies** — custom feeds never leak episodes the subscriber has not paid for.
+Custom feeds always apply the entitlement filter, then the format OR-match. They never leak
+episodes the subscriber has not paid for. A PAID enclosure URL on a custom token 404s when the
+episode does not match that feed’s formats.
 
 ### Subscriber UX
 
-Subscriber portal (`/account/feeds`):
+Subscriber portal (`directwerk-web` `/feeds`):
 
-1. **Default feed** — read-only card with URL + copy button + "rotate token"
-2. **My custom feeds** — list of created feeds with edit/delete
-3. **Create feed** — name input + multi-select formats + optional categories + match mode toggle
-4. **Preview** — show episode count before saving ("This feed will include 12 episodes")
-5. **Podcast app help** — short guide: "Paste this URL in Overcast → Add URL"
+1. **Default feed** — unfiltered private feed with URL + disable + rotate token
+2. **My custom feeds** — list with edit/disable/rotate/delete
+3. **Create feed** — name (1–80 chars, unique per user) + multi-select formats
+4. **Preview** — episode count + sample titles before saving
+5. **Podcast app help** — paste the URL in Overcast / Apple Podcasts / etc.
 
 ```mermaid
 flowchart LR
@@ -1863,7 +1853,7 @@ flowchart LR
 
     subgraph subscriber [SubscriberPortal]
         SelectFormats[Select Formats in Feed Builder]
-        SaveFeed[Save CustomFeed]
+        SaveFeed[Save SubscriberFeed]
         CopyURL[Copy RSS URL]
     end
 
@@ -1884,13 +1874,20 @@ flowchart LR
 
 | Method | Path | Auth | Description |
 |--------|------|------|-------------|
-| GET | `/api/v1/me/feeds` | JWT | List default + custom feeds with URLs |
-| POST | `/api/v1/me/feeds` | JWT | Create custom feed |
-| PUT | `/api/v1/me/feeds/{id}` | JWT | Update format/category selection |
+| GET | `/api/v1/me/feeds` | JWT | List default + custom feeds with URLs, `formatIds`, `formats` |
+| POST | `/api/v1/me/feeds` | JWT | Create custom feed (`FEED_BUILDER`) |
+| PUT | `/api/v1/me/feeds/{id}` | JWT | Update title/formats (`FEED_BUILDER`) |
+| GET | `/api/v1/me/feeds/preview` | JWT | Preview by `formatIds` (`FEED_BUILDER`) |
+| GET | `/api/v1/me/feeds/{id}/preview` | JWT | Preview an owned custom feed (`FEED_BUILDER`) |
+| PUT | `/api/v1/me/feeds/{id}/enabled` | JWT | Disable/enable (custom or default) |
+| POST | `/api/v1/me/feeds/{id}/rotate-token` | JWT | Rotate a custom feed token |
 | DELETE | `/api/v1/me/feeds/{id}` | JWT | Delete custom feed (not default) |
 | POST | `/api/v1/me/feeds/default/rotate-token` | JWT | Rotate default feed token |
-| GET | `/api/v1/me/feeds/{id}/preview` | JWT | Episode count + sample titles |
-| GET | `/api/v1/public/formats` | Host | Formats available on tenant (for marketing page) |
+| GET | `/api/v1/public/formats` | Host | Formats available on tenant |
+
+Error `code`s: `FEED_LIMIT_REACHED`, `FEED_TITLE_DUPLICATE`, `FEED_TITLE_INVALID`,
+`FEED_FORMATS_REQUIRED`, `FEED_FORMAT_INVALID`, `DEFAULT_FEED_NOT_DELETABLE`,
+`DEFAULT_FEED_NOT_FILTERABLE`. Public custom RSS URLs return **404** when `FEED_BUILDER` is off.
 
 ---
 
@@ -2167,8 +2164,11 @@ Standard error codes: `FEATURE_NOT_ENABLED`, `ENTITLEMENT_DENIED`, `MODULE_DEPEN
 | GET | `/api/v1/me/downloads` | JWT | Entitled digital files |
 | GET | `/api/v1/me/feeds` | JWT | Default + custom feed URLs |
 | POST | `/api/v1/me/feeds` | JWT | Create custom feed (feed builder) |
-| PUT | `/api/v1/me/feeds/{id}` | JWT | Update format/category selection |
+| PUT | `/api/v1/me/feeds/{id}` | JWT | Update title/format selection |
+| PUT | `/api/v1/me/feeds/{id}/enabled` | JWT | Disable/enable an owned feed |
+| POST | `/api/v1/me/feeds/{id}/rotate-token` | JWT | Rotate a custom feed token |
 | DELETE | `/api/v1/me/feeds/{id}` | JWT | Delete custom feed |
+| GET | `/api/v1/me/feeds/preview` | JWT | Preview by formatIds |
 | GET | `/api/v1/me/feeds/{id}/preview` | JWT | Preview episode count |
 | POST | `/api/v1/me/feeds/default/rotate-token` | JWT | Rotate default private feed token |
 | GET | `/api/v1/me/episodes/{slug}/stream` | JWT | 302 to signed S3 URL if entitled |
@@ -2852,12 +2852,12 @@ Path filter: `projects/directwerk/**`
 
 ### Phase 7 — Feed builder
 
-- [ ] `CustomFeed` entity + CRUD API
-- [ ] `CustomFeedService` — format/category filtering with entitlement gate
-- [ ] Feed preview endpoint (episode count)
-- [ ] Custom feed RSS generation (shared token URL path)
-- [ ] Max feeds per subscriber enforcement
-- [ ] Token rotation for default private feed
+- [x] Custom feeds reuse `subscriber_feeds` (`is_default=false`) + format join + CRUD API
+- [x] Format OR-match filtering with entitlement gate
+- [x] Feed preview endpoint (episode count + sample titles)
+- [x] Custom feed RSS generation (shared token URL path)
+- [x] Max 5 custom feeds per subscriber
+- [x] Token rotation for default and custom private feeds
 
 ### Phase 8 — Stripe billing
 

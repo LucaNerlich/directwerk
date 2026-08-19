@@ -1,0 +1,47 @@
+meta {
+  name: 4 - Create Custom Feed
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{baseUrl}}/api/v1/me/feeds
+  body: json
+  auth: inherit
+}
+
+headers {
+  Content-Type: application/json
+}
+
+script:pre-request {
+  bru.setVar("customFeedTitle", "Custom-" + Date.now().toString(36));
+}
+
+body:json {
+  {
+    "title": "{{customFeedTitle}}",
+    "formatIds": [{{podcastFormatId}}]
+  }
+}
+
+script:post-response {
+  if (res.getStatus() === 201) {
+    bru.setVar("customFeedId", res.body.data.id);
+    bru.setVar("customFeedUrl", res.body.data.url);
+  }
+}
+
+tests {
+  test("creates a custom feed", function() {
+    expect(res.getStatus()).to.equal(201);
+    expect(res.body.data.isDefault).to.equal(false);
+    expect(res.body.data.enabled).to.equal(true);
+    expect(res.body.data.formatIds).to.be.an("array").that.is.not.empty;
+    expect(res.body.data.url).to.include("/feeds/");
+  });
+}
+
+docs {
+  POST /api/v1/me/feeds — Formate-only custom private RSS. Max 5 per user/tenant.
+}

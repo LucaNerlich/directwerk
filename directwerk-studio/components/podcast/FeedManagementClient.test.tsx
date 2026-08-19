@@ -68,6 +68,20 @@ describe('FeedManagementClient', () => {
                 title: 'Demo Private Feed',
                 isDefault: true,
                 enabled: true,
+                formatIds: [],
+                formats: [],
+                createdAt: '2026-07-20T12:00:00Z',
+                updatedAt: '2026-07-20T12:00:00Z',
+            },
+            {
+                id: 43,
+                userId: 7,
+                userEmail: 'sub@example.test',
+                title: 'Nur Interviews',
+                isDefault: false,
+                enabled: true,
+                formatIds: [3],
+                formats: [{id: 3, slug: 'interview', name: 'Interview'}],
                 createdAt: '2026-07-20T12:00:00Z',
                 updatedAt: '2026-07-20T12:00:00Z',
             },
@@ -87,7 +101,9 @@ describe('FeedManagementClient', () => {
         expect(
             screen.getByRole('link', {name: 'Sendung veröffentlichen'}),
         ).toHaveAttribute('href', '/podcast/series/2')
-        expect(screen.getByText('sub@example.test')).toBeInTheDocument()
+        expect(screen.getAllByText('sub@example.test')).toHaveLength(2)
+        expect(screen.getByText(/Eigener Feed/)).toBeInTheDocument()
+        expect(screen.getByText(/· Interview/)).toBeInTheDocument()
         const openLinks = screen.getAllByRole('link', {name: 'Öffnen'})
         expect(openLinks).toHaveLength(2)
         expect(openLinks[0]).toHaveAttribute(
@@ -129,6 +145,8 @@ describe('FeedManagementClient', () => {
             title: 'Demo Private Feed',
             isDefault: true,
             enabled: true,
+            formatIds: [],
+            formats: [],
             createdAt: '2026-07-20T12:00:00Z',
             updatedAt: '2026-07-20T12:00:00Z',
         }

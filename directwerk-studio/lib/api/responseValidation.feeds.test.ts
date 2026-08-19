@@ -37,10 +37,13 @@ describe('subscriber feed parsers', () => {
             title: 'Demo Private Feed',
             isDefault: true,
             enabled: true,
+            formatIds: [],
+            formats: [],
             createdAt: '2026-07-20T12:00:00Z',
             updatedAt: '2026-07-20T12:00:00Z',
         })
         expect(parsed?.data[1]?.enabled).toBe(false)
+        expect(parsed?.data[1]?.formatIds).toEqual([])
     })
 
     it('rejects a feed without a userEmail', () => {

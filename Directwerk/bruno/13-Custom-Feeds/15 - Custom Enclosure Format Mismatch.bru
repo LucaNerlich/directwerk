@@ -1,0 +1,35 @@
+meta {
+  name: 15 - Custom Enclosure Format Mismatch
+  type: http
+  seq: 15
+}
+
+get {
+  url: {{customEnclosureUrl}}
+  body: none
+  auth: none
+}
+
+headers {
+  Accept: */*
+}
+
+script:pre-request {
+  const feedUrl = bru.getVar("customFeedUrl") || bru.getEnvVar("customFeedUrl");
+  const episodeSlug = bru.getVar("mismatchEpisodeSlug") || bru.getVar("podcastEpisodeSlug") || "missing-episode";
+  if (feedUrl && typeof feedUrl === "string" && feedUrl.endsWith(".xml")) {
+    bru.setVar("customEnclosureUrl", feedUrl.replace(/\.xml$/, "/e/" + episodeSlug + ".mp3"));
+  }
+}
+
+tests {
+  test("custom enclosure is gated by feed formats", function() {
+    expect(res.getStatus()).to.equal(404);
+  });
+}
+
+docs {
+  PAID enclosures on a custom feed 404 when the episode's formats are not selected,
+  even if the subscriber is entitled. Matching formats may 302. See http/27-custom-feeds.http
+  for an explicit mismatch (second format) assertion.
+}

@@ -6,13 +6,18 @@ import de.pnnit.directwerk.modules.core.entity.User;
 import de.pnnit.directwerk.multitenancy.TenantFilters;
 import de.pnnit.directwerk.multitenancy.TenantOwned;
 import de.pnnit.directwerk.multitenancy.TenantWriteGuardListener;
+import de.pnnit.directwerk.modules.podcast.entity.Format;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EntityListeners;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
+import jakarta.persistence.JoinTable;
+import jakarta.persistence.ManyToMany;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import java.util.LinkedHashSet;
+import java.util.Set;
 import lombok.Getter;
 import lombok.Setter;
 import org.hibernate.annotations.Filter;
@@ -45,4 +50,16 @@ public class SubscriberFeed extends BaseEntity implements TenantOwned {
     /** When false, the private feed XML and all tokenized enclosure URLs return 404. */
     @Column(nullable = false)
     private boolean enabled = true;
+
+    /**
+     * Formate included in a custom feed. Empty on the default feed (all entitled episodes).
+     * Custom feeds require at least one format.
+     */
+    @ManyToMany
+    @JoinTable(
+            name = "subscriber_feed_formats",
+            joinColumns = @JoinColumn(name = "feed_id"),
+            inverseJoinColumns = @JoinColumn(name = "format_id")
+    )
+    private Set<Format> formats = new LinkedHashSet<>();
 }

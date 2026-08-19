@@ -3,8 +3,10 @@ import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest'
 import {AUTH_REQUIRED} from './errors'
 import {
     acceptInvite,
+    createCustomFeed,
     forgotPassword,
     getMe,
+    previewCustomFeed,
     resetPassword,
     listMyDownloads,
     rotateDefaultFeedToken,
@@ -182,6 +184,8 @@ const privateFeed = {
     isDefault: true,
     enabled: true,
     url: 'http://alpha-a.localhost:8080/feeds/alpha-show-a/u/tok123.xml',
+    formatIds: [] as number[],
+    formats: [] as {id: number; slug: string; name: string; requiredLevelSortOrder: number | null; sortOrder: number}[],
     createdAt: '2026-07-22T12:00:00Z',
     updatedAt: '2026-07-22T12:00:00Z',
 }
@@ -256,6 +260,58 @@ describe('subscriber feed actions', () => {
                     Authorization: 'Bearer access-token',
                 }),
             }),
+        )
+    })
+
+    it('posts title and formatIds when creating a custom feed', async () => {
+        const created = {
+            ...privateFeed,
+            id: 9,
+            title: 'Nur Interviews',
+            isDefault: false,
+            formatIds: [3],
+            formats: [
+                {
+                    id: 3,
+                    slug: 'interview',
+                    name: 'Interview',
+                    requiredLevelSortOrder: null,
+                    sortOrder: 2,
+                },
+            ],
+        }
+        mockJsonFetch({
+            statusCode: 201,
+            statusMessage: 'Created',
+            data: created,
+        })
+
+        await expect(createCustomFeed('alpha-a.localhost', 'Nur Interviews', [3])).resolves.toEqual(
+            created,
+        )
+        expect(fetch).toHaveBeenCalledWith(
+            '/api/proxy/me/feeds',
+            expect.objectContaining({
+                method: 'POST',
+                body: JSON.stringify({title: 'Nur Interviews', formatIds: [3]}),
+            }),
+        )
+    })
+
+    it('previews a custom feed by repeating formatIds query params', async () => {
+        mockJsonFetch({
+            statusCode: 200,
+            statusMessage: 'OK',
+            data: {episodeCount: 2, sampleTitles: ['Eins', 'Zwei']},
+        })
+
+        await expect(previewCustomFeed('alpha-a.localhost', [3, 4])).resolves.toEqual({
+            episodeCount: 2,
+            sampleTitles: ['Eins', 'Zwei'],
+        })
+        expect(fetch).toHaveBeenCalledWith(
+            '/api/proxy/me/feeds/preview?formatIds=3&formatIds=4',
+            expect.anything(),
         )
     })
 })

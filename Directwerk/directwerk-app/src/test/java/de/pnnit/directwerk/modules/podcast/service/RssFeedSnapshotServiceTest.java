@@ -165,6 +165,31 @@ class RssFeedSnapshotServiceTest {
     }
 
     @Test
+    void refreshWithdrawsEnabledCustomFeedWhenFeedBuilderModuleIsOff() {
+        Fixture fixture = fixture();
+        enableRss(fixture);
+        stubCanonicalDomain(fixture);
+        when(fixture.storage.privateCdnBaseUrl()).thenReturn("https://private.example.test");
+        when(fixture.podcastSeriesRepository.findByTenantIdOrderByTitleAscIdAsc(10L)).thenReturn(List.of());
+        when(fixture.rssFeedService.buildPublicFeed(
+                fixture.tenant, null, "https", "alpha.example.test", 443
+        )).thenReturn("<rss>generated</rss>");
+        SubscriberFeed custom = new SubscriberFeed();
+        custom.setId(42L);
+        custom.setTenant(fixture.tenant);
+        custom.setDefaultFeed(false);
+        custom.setEnabled(true);
+        when(fixture.subscriberFeedRepository.findByTenantIdOrderByIdAsc(10L)).thenReturn(List.of(custom));
+
+        fixture.service.refreshTenant(10L);
+
+        ArgumentCaptor<DeleteObjectRequest> deleted = ArgumentCaptor.forClass(DeleteObjectRequest.class);
+        verify(fixture.s3Client).deleteObject(deleted.capture());
+        assertThat(deleted.getValue().key()).isEqualTo("alpha/private/rss/feed-42.xml");
+        verify(fixture.rssFeedService, never()).buildPrivateFeed(any(), any(), any(), any(), any(Integer.class));
+    }
+
+    @Test
     void refreshWithdrawsObjectsUnderAPreviousTenantSlug() {
         Fixture fixture = fixture();
         enableRss(fixture);

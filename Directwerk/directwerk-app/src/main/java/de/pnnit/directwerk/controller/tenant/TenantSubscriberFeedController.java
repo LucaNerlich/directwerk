@@ -4,6 +4,7 @@ import de.pnnit.directwerk.api.response.Response;
 import de.pnnit.directwerk.modules.core.RequiresModule;
 import de.pnnit.directwerk.modules.core.service.ModuleGateService;
 import de.pnnit.directwerk.modules.podcast.PodcastRssModule;
+import de.pnnit.directwerk.modules.podcast.entity.Format;
 import de.pnnit.directwerk.modules.podcast.feed.SubscriberFeed;
 import de.pnnit.directwerk.modules.podcast.feed.SubscriberFeedService;
 import de.pnnit.directwerk.modules.subscription.SubscriptionModule;
@@ -11,6 +12,7 @@ import de.pnnit.directwerk.multitenancy.TenantContext;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import java.time.Instant;
+import java.util.Comparator;
 import java.util.List;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -65,6 +67,18 @@ public class TenantSubscriberFeedController {
     }
 
     private static SubscriberFeedAdminView toView(SubscriberFeed feed) {
+        List<FormatView> formats = feed.getFormats() == null
+                ? List.of()
+                : feed.getFormats().stream()
+                        .sorted(Comparator.comparingInt(Format::getSortOrder).thenComparing(Format::getId))
+                        .map(format -> new FormatView(
+                                format.getId(),
+                                format.getSlug(),
+                                format.getName(),
+                                format.getRequiredLevelSortOrder(),
+                                format.getSortOrder()
+                        ))
+                        .toList();
         return new SubscriberFeedAdminView(
                 feed.getId(),
                 feed.getUser().getId(),
@@ -72,12 +86,23 @@ public class TenantSubscriberFeedController {
                 feed.getTitle(),
                 feed.isDefaultFeed(),
                 feed.isEnabled(),
+                formats.stream().map(FormatView::id).toList(),
+                formats,
                 feed.getCreatedAt(),
                 feed.getUpdatedAt()
         );
     }
 
     public record FeedEnabledRequest(@NotNull Boolean enabled) {
+    }
+
+    public record FormatView(
+            Long id,
+            String slug,
+            String name,
+            Integer requiredLevelSortOrder,
+            int sortOrder
+    ) {
     }
 
     public record SubscriberFeedAdminView(
@@ -87,6 +112,8 @@ public class TenantSubscriberFeedController {
             String title,
             boolean isDefault,
             boolean enabled,
+            List<Long> formatIds,
+            List<FormatView> formats,
             Instant createdAt,
             Instant updatedAt
     ) {

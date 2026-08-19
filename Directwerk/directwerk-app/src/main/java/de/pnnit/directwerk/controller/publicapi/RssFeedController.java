@@ -3,6 +3,8 @@ package de.pnnit.directwerk.controller.publicapi;
 import de.pnnit.directwerk.modules.core.entity.Tenant;
 import de.pnnit.directwerk.modules.core.repository.TenantRepository;
 import de.pnnit.directwerk.modules.core.service.ModuleGateService;
+import de.pnnit.directwerk.modules.core.service.ModuleNotEnabledException;
+import de.pnnit.directwerk.modules.podcast.FeedBuilderModule;
 import de.pnnit.directwerk.modules.podcast.PodcastModule;
 import de.pnnit.directwerk.modules.podcast.PodcastRssModule;
 import de.pnnit.directwerk.modules.podcast.entity.PodcastSeries;
@@ -110,6 +112,7 @@ public class RssFeedController {
         requireModules(PodcastRssModule.KEY, SubscriptionModule.MODULE_KEY);
 
         SubscriberFeed feed = requireEnabledFeed(tenant, feedToken);
+        requireCustomFeedModule(feed);
         var delivery = rssFeedSnapshotService.privateFeed(tenant, feed);
         return rssResponse(delivery);
     }
@@ -157,6 +160,7 @@ public class RssFeedController {
         );
 
         SubscriberFeed feed = requireEnabledFeed(tenant, feedToken);
+        requireCustomFeedModule(feed);
         var redirect = episodeEnclosureService.resolvePrivateRedirect(feed, episodeSlug);
         episodeDownloadAnalyticsService.trackEpisodeDownload(
                 tenant.getId(),
@@ -176,6 +180,20 @@ public class RssFeedController {
             throw new SubscriberFeedNotFoundException();
         }
         return feed;
+    }
+
+    /**
+     * Custom feeds 404 (not JSON 403) when FEED_BUILDER is off so podcatchers do not see an API error.
+     */
+    private void requireCustomFeedModule(SubscriberFeed feed) {
+        if (feed.isDefaultFeed()) {
+            return;
+        }
+        try {
+            moduleGateService.requireModule(FeedBuilderModule.KEY);
+        } catch (ModuleNotEnabledException ex) {
+            throw new SubscriberFeedNotFoundException();
+        }
     }
 
     private Tenant requireHostTenant(String tenantSlug) {

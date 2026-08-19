@@ -497,6 +497,8 @@ export interface SubscriberFeedSummary {
     title: string
     isDefault: boolean
     enabled: boolean
+    formatIds: number[]
+    formats: {id: number; slug: string; name: string}[]
     createdAt: string
     updatedAt: string
 }

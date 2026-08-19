@@ -24,6 +24,7 @@ import de.pnnit.directwerk.modules.podcast.exception.EpisodeValidationException;
 import de.pnnit.directwerk.modules.podcast.exception.FormatNotFoundException;
 import de.pnnit.directwerk.modules.digital.exception.InvalidPublicationTransitionException;
 import de.pnnit.directwerk.modules.podcast.exception.SeriesNotFoundException;
+import de.pnnit.directwerk.modules.podcast.feed.FeedBuilderException;
 import de.pnnit.directwerk.modules.podcast.feed.SubscriberFeedNotFoundException;
 import de.pnnit.directwerk.modules.queue.JobConflictException;
 import de.pnnit.directwerk.modules.queue.JobNotFoundException;
@@ -304,6 +305,12 @@ public class GlobalExceptionHandler {
     ResponseEntity<Response<Void>> handleSubscriberFeedNotFound(SubscriberFeedNotFoundException ex) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND)
                 .body(Response.error(404, "SUBSCRIBER_FEED_NOT_FOUND", ex.getMessage()));
+    }
+
+    @ExceptionHandler(FeedBuilderException.class)
+    ResponseEntity<Response<Void>> handleFeedBuilder(FeedBuilderException ex) {
+        return ResponseEntity.status(ex.getStatus())
+                .body(Response.error(ex.getStatus(), ex.getCode(), ex.getMessage()));
     }
 
     @ExceptionHandler(InvalidPublicationTransitionException.class)

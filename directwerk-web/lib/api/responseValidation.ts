@@ -2,11 +2,14 @@ import type {
     Access,
     AccessLevel,
     ApiEnvelope,
+    FeedFormat,
+    FeedPreview,
     MediaAsset,
     Me,
     PublicArticle,
     PublicCategory,
     PublicEpisode,
+    PublicFormat,
     PublicSeries,
     SiteConfig,
     SubscriberDownload,
@@ -497,6 +500,43 @@ export function parsePublicEpisodeListEnvelope(
     )
 }
 
+function parseFeedFormat(value: unknown): FeedFormat | null {
+    if (
+        !isRecord(value) ||
+        !isPositiveSafeInteger(value.id) ||
+        !isBoundedString(value.slug) ||
+        !isBoundedString(value.name) ||
+        !isNullableNonNegativeSafeInteger(value.requiredLevelSortOrder) ||
+        !isSafeInteger(value.sortOrder)
+    ) {
+        return null
+    }
+    return {
+        id: value.id,
+        slug: value.slug,
+        name: value.name,
+        requiredLevelSortOrder: value.requiredLevelSortOrder,
+        sortOrder: value.sortOrder,
+    }
+}
+
+function parsePublicFormat(value: unknown): PublicFormat | null {
+    const base = parseFeedFormat(value)
+    if (base === null || !isRecord(value) || !isNullableString(value.description, 4000)) {
+        return null
+    }
+    return {
+        ...base,
+        description: value.description,
+    }
+}
+
+export function parsePublicFormatListEnvelope(
+    value: unknown,
+): ApiEnvelope<PublicFormat[]> | null {
+    return envelope(value, (data) => parseBoundedArray(data, 100, parsePublicFormat))
+}
+
 function parseSubscriberFeed(value: unknown): SubscriberFeed | null {
     if (
         !isRecord(value) ||
@@ -512,15 +552,55 @@ function parseSubscriberFeed(value: unknown): SubscriberFeed | null {
         return null
     }
 
+    const formatIds =
+        value.formatIds === undefined
+            ? []
+            : parseBoundedArray(value.formatIds, 50, (item) =>
+                  isPositiveSafeInteger(item) ? item : null,
+              )
+    const formats =
+        value.formats === undefined
+            ? []
+            : parseBoundedArray(value.formats, 50, parseFeedFormat)
+    if (formatIds === null || formats === null) {
+        return null
+    }
+
     return {
         id: value.id,
         title: value.title,
         isDefault: value.isDefault,
         enabled: value.enabled,
         url: value.url,
+        formatIds,
+        formats,
         createdAt: value.createdAt,
         updatedAt: value.updatedAt,
     }
+}
+
+function parseFeedPreview(value: unknown): FeedPreview | null {
+    if (
+        !isRecord(value) ||
+        !isSafeInteger(value.episodeCount) ||
+        value.episodeCount < 0 ||
+        !Array.isArray(value.sampleTitles)
+    ) {
+        return null
+    }
+    const sampleTitles = parseBoundedArray(value.sampleTitles, 10, (item) =>
+        isBoundedString(item, 255) ? item : null,
+    )
+    if (sampleTitles === null) {
+        return null
+    }
+    return {episodeCount: value.episodeCount, sampleTitles}
+}
+
+export function parseFeedPreviewEnvelope(
+    value: unknown,
+): ApiEnvelope<FeedPreview> | null {
+    return envelope(value, parseFeedPreview)
 }
 
 export function parseSubscriberFeedListEnvelope(

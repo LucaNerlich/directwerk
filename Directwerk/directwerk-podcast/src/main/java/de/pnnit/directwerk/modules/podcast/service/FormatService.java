@@ -83,6 +83,7 @@ public class FormatService {
     ) {
         Format format = requireFormat(tenantId, formatId);
         Integer previousRequiredLevel = format.getRequiredLevelSortOrder();
+        boolean previousActive = format.isActive();
         if (rawSlug != null) {
             String slug = SlugNormalizer.normalize(rawSlug);
             if (formatRepository.existsByTenantIdAndSlugAndIdNot(tenantId, slug, formatId)) {
@@ -106,7 +107,9 @@ public class FormatService {
             format.setActive(active);
         }
         Format saved = formatRepository.save(format);
-        if (!Objects.equals(previousRequiredLevel, saved.getRequiredLevelSortOrder())) {
+        boolean levelChanged = !Objects.equals(previousRequiredLevel, saved.getRequiredLevelSortOrder());
+        boolean activeChanged = previousActive != saved.isActive();
+        if (levelChanged || activeChanged) {
             rssFeedRefreshJobProducer.requestRefreshAfterCommit(tenantId);
         }
         return saved;

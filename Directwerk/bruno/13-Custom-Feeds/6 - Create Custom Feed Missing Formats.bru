@@ -1,0 +1,29 @@
+meta {
+  name: 6 - Create Custom Feed Missing Formats
+  type: http
+  seq: 6
+}
+
+post {
+  url: {{baseUrl}}/api/v1/me/feeds
+  body: json
+  auth: inherit
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "title": "Missing formats",
+    "formatIds": []
+  }
+}
+
+tests {
+  test("requires at least one format", function() {
+    expect(res.getStatus()).to.equal(400);
+    expect(res.body.errors[0].code).to.equal("FEED_FORMATS_REQUIRED");
+  });
+}

@@ -9,6 +9,7 @@ import {Button} from '@directwerk/ui/components/button'
 import PageHeader from '@directwerk/ui/components/page-header'
 
 import HowToListen from '@/components/HowToListen'
+import CustomFeedsPanel from '@/components/CustomFeedsPanel'
 import {
     getSiteConfig,
     listMyFeeds,
@@ -121,6 +122,14 @@ export default function FeedsPage() {
               publicPodcastFeedUrl(tenantHost, siteConfig.tenant.slug))
 
     const defaultPrivate = privateFeeds.find((feed) => feed.isDefault) ?? null
+    const customFeeds = privateFeeds.filter((feed) => !feed.isDefault)
+    const showFeedBuilder =
+        isAuthenticated &&
+        ((siteConfig?.enabledModules.includes('FEED_BUILDER') ?? false) ||
+            customFeeds.length > 0)
+    const canBuildFeeds =
+        isAuthenticated &&
+        (siteConfig?.enabledModules.includes('FEED_BUILDER') ?? false)
 
     async function handleRotate(): Promise<void> {
         setFeedActionBusy(true)
@@ -257,7 +266,9 @@ export default function FeedsPage() {
                                 <p>Noch kein privater Feed für dieses Konto.</p>
                             ) : (
                                 <ul className="space-y-4">
-                                    {privateFeeds.map((feed) => (
+                                    {privateFeeds
+                                        .filter((feed) => feed.isDefault)
+                                        .map((feed) => (
                                         <li key={feed.id}>
                                             <h3>
                                                 {feed.title}
@@ -317,6 +328,21 @@ export default function FeedsPage() {
                     </>
                 )}
             </section>
+
+            {showFeedBuilder ? (
+                <CustomFeedsPanel
+                    canBuild={canBuildFeeds}
+                    feeds={privateFeeds}
+                    onAuthRequired={() =>
+                        setPrivateError(
+                            'Bitte erneut anmelden, um private Feeds zu sehen.',
+                        )
+                    }
+                    onError={setPrivateError}
+                    onFeedsChange={setPrivateFeeds}
+                    tenantHost={tenantHost}
+                />
+            ) : null}
         </div>
     )
 }

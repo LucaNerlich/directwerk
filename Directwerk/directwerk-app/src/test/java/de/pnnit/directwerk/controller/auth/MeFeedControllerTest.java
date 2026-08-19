@@ -1,6 +1,7 @@
 package de.pnnit.directwerk.controller.auth;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -8,7 +9,9 @@ import de.pnnit.directwerk.api.response.Response;
 import de.pnnit.directwerk.controller.auth.MeFeedController.SubscriberFeedView;
 import de.pnnit.directwerk.modules.core.entity.Tenant;
 import de.pnnit.directwerk.modules.core.service.ModuleGateService;
+import de.pnnit.directwerk.modules.podcast.FeedBuilderModule;
 import de.pnnit.directwerk.modules.podcast.PodcastRssModule;
+import de.pnnit.directwerk.modules.podcast.entity.Format;
 import de.pnnit.directwerk.modules.podcast.feed.SubscriberFeed;
 import de.pnnit.directwerk.modules.podcast.feed.SubscriberFeedService;
 import de.pnnit.directwerk.modules.subscription.SubscriptionModule;
@@ -58,6 +61,8 @@ class MeFeedControllerTest {
         assertThat(response.getStatusCode().value()).isEqualTo(200);
         SubscriberFeedView view = response.getBody().data().get(0);
         assertThat(view.url()).isEqualTo("https://alpha.example.test/feeds/alpha/u/tok-123.xml");
+        assertThat(view.formatIds()).isEmpty();
+        assertThat(view.formats()).isEmpty();
         verify(subscriberFeedService).ensureDefaultFeed(5L, 1L);
         verify(moduleGateService).requireModule(PodcastRssModule.KEY);
         verify(moduleGateService).requireModule(SubscriptionModule.MODULE_KEY);
@@ -120,6 +125,54 @@ class MeFeedControllerTest {
         verify(subscriberFeedService).setDefaultFeedEnabled(5L, 1L, false);
     }
 
+    @Test
+    void createCustomFeedRequiresFeedBuilderAndReturnsFormats() {
+        DirectwerkUserPrincipal principal = principal(1L, 5L);
+        SubscriberFeed feed = feed("alpha", "tok-custom");
+        feed.setDefaultFeed(false);
+        feed.setTitle("Nur Bonus");
+        feed.getFormats().add(format(3L, "bonus", "Bonus"));
+        when(request.getScheme()).thenReturn("https");
+        when(request.getServerName()).thenReturn("alpha.example.test");
+        when(request.getServerPort()).thenReturn(443);
+        when(subscriberFeedService.createCustomFeed(5L, 1L, "Nur Bonus", List.of(3L))).thenReturn(feed);
+
+        ResponseEntity<Response<SubscriberFeedView>> response = controller.createCustomFeed(
+                principal,
+                new MeFeedController.CreateCustomFeedRequest("Nur Bonus", List.of(3L)),
+                request
+        );
+
+        assertThat(response.getStatusCode().value()).isEqualTo(201);
+        assertThat(response.getBody().data().isDefault()).isFalse();
+        assertThat(response.getBody().data().formatIds()).containsExactly(3L);
+        assertThat(response.getBody().data().formats())
+                .extracting(MeFeedController.FormatView::name)
+                .containsExactly("Bonus");
+        verify(moduleGateService).requireModule(PodcastRssModule.KEY);
+        verify(moduleGateService).requireModule(SubscriptionModule.MODULE_KEY);
+        verify(moduleGateService).requireModule(FeedBuilderModule.KEY);
+    }
+
+    @Test
+    void deleteCustomFeedDoesNotRequireFeedBuilder() {
+        DirectwerkUserPrincipal principal = principal(1L, 5L);
+        SubscriberFeed feed = feed("alpha", "tok-custom");
+        feed.setDefaultFeed(false);
+        feed.setTitle("Nur Bonus");
+        when(request.getScheme()).thenReturn("https");
+        when(request.getServerName()).thenReturn("alpha.example.test");
+        when(request.getServerPort()).thenReturn(443);
+        when(subscriberFeedService.deleteCustomFeed(5L, 1L, 12L)).thenReturn(feed);
+
+        ResponseEntity<Response<SubscriberFeedView>> response = controller.deleteCustomFeed(principal, 12L, request);
+
+        assertThat(response.getStatusCode().value()).isEqualTo(200);
+        assertThat(response.getBody().data().title()).isEqualTo("Nur Bonus");
+        verify(subscriberFeedService).deleteCustomFeed(5L, 1L, 12L);
+        verify(moduleGateService, never()).requireModule(FeedBuilderModule.KEY);
+    }
+
     private static DirectwerkUserPrincipal principal(Long userId, Long tenantId) {
         return new DirectwerkUserPrincipal(
                 userId,
@@ -145,5 +198,15 @@ class MeFeedControllerTest {
         feed.setCreatedAt(Instant.parse("2026-07-20T12:00:00Z"));
         feed.setUpdatedAt(Instant.parse("2026-07-20T12:00:00Z"));
         return feed;
+    }
+
+    private static Format format(Long id, String slug, String name) {
+        Format format = new Format();
+        format.setId(id);
+        format.setSlug(slug);
+        format.setName(name);
+        format.setSortOrder(1);
+        format.setActive(true);
+        return format;
     }
 }

@@ -3,6 +3,7 @@ package de.pnnit.directwerk.controller.publicapi;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -11,6 +12,7 @@ import de.pnnit.directwerk.modules.core.repository.TenantRepository;
 import de.pnnit.directwerk.modules.core.service.ModuleGateService;
 import de.pnnit.directwerk.modules.core.service.ModuleNotEnabledException;
 import de.pnnit.directwerk.modules.podcast.PodcastRssModule;
+import de.pnnit.directwerk.modules.podcast.FeedBuilderModule;
 import de.pnnit.directwerk.modules.podcast.entity.PodcastSeries;
 import de.pnnit.directwerk.modules.podcast.feed.SubscriberFeed;
 import de.pnnit.directwerk.modules.podcast.feed.SubscriberFeedNotFoundException;
@@ -181,6 +183,41 @@ class RssFeedControllerTest {
 
         assertThatThrownBy(() -> controller().privateSubscriberFeed("alpha", "tok"))
                 .isInstanceOf(SubscriberFeedNotFoundException.class);
+    }
+
+    @Test
+    void privateCustomFeedThrowsNotFoundWhenFeedBuilderModuleIsOff() {
+        Tenant tenant = tenant(10L, "alpha");
+        SubscriberFeed feed = subscriberFeed(tenant, "tok", true);
+        feed.setDefaultFeed(false);
+        TenantContext.setTenantId(10L);
+        when(tenantRepository.findById(10L)).thenReturn(Optional.of(tenant));
+        when(subscriberFeedService.requireFeedByToken("tok")).thenReturn(feed);
+        lenient().doThrow(new ModuleNotEnabledException(FeedBuilderModule.KEY))
+                .when(moduleGateService)
+                .requireModule(FeedBuilderModule.KEY);
+
+        assertThatThrownBy(() -> controller().privateSubscriberFeed("alpha", "tok"))
+                .isInstanceOf(SubscriberFeedNotFoundException.class);
+    }
+
+    @Test
+    void privateEnclosureThrowsNotFoundWhenFeedBuilderModuleIsOff() {
+        Tenant tenant = tenant(10L, "alpha");
+        SubscriberFeed feed = subscriberFeed(tenant, "tok", true);
+        feed.setDefaultFeed(false);
+        TenantContext.setTenantId(10L);
+        when(tenantRepository.findById(10L)).thenReturn(Optional.of(tenant));
+        when(subscriberFeedService.requireFeedByToken("tok")).thenReturn(feed);
+        lenient().doThrow(new ModuleNotEnabledException(FeedBuilderModule.KEY))
+                .when(moduleGateService)
+                .requireModule(FeedBuilderModule.KEY);
+
+        assertThatThrownBy(() -> controller().privateEnclosure("alpha", "tok", "episode-slug", request))
+                .isInstanceOf(SubscriberFeedNotFoundException.class);
+
+        verify(episodeEnclosureService, org.mockito.Mockito.never()).resolvePrivateRedirect(org.mockito.Mockito.any(), org.mockito.Mockito.anyString());
+        verify(episodeDownloadAnalyticsService, org.mockito.Mockito.never()).trackEpisodeDownload(org.mockito.Mockito.anyLong(), org.mockito.Mockito.any(), org.mockito.Mockito.anyString(), org.mockito.Mockito.anyString());
     }
 
     @Test

@@ -7,6 +7,7 @@ import {
     parsePublicArticleEnvelope,
     parsePublicArticleListEnvelope,
     parsePublicEpisodeListEnvelope,
+    parsePublicFormatListEnvelope,
     parsePublicSeriesListEnvelope,
     parseCheckoutSessionEnvelope,
     parseSiteConfigEnvelope,
@@ -14,6 +15,7 @@ import {
     parseSubscriberDownloadListEnvelope,
     parseSubscriberFeedEnvelope,
     parseSubscriberFeedListEnvelope,
+    parseFeedPreviewEnvelope,
     parseTokenResponse,
 } from '@/lib/api/responseValidation'
 import type {
@@ -23,10 +25,12 @@ import type {
     Me,
     PublicArticle,
     PublicEpisode,
+    PublicFormat,
     PublicSeries,
     SiteConfig,
     SubscriberDownload,
     SubscriberFeed,
+    FeedPreview,
     SubscriptionSummary,
     TokenResponse,
 } from '@/lib/api/types'
@@ -395,6 +399,119 @@ export async function setDefaultFeedEnabled(
     }
 
     return parsed.data
+}
+
+export async function listPublicFormats(
+    tenantHost: string,
+): Promise<PublicFormat[]> {
+    const parsed = parsePublicFormatListEnvelope(
+        await request('/api/proxy/public/formats', tenantHost),
+    )
+    if (parsed === null) {
+        throw new Error('The server returned an invalid format list.')
+    }
+    return parsed.data
+}
+
+export async function createCustomFeed(
+    tenantHost: string,
+    title: string,
+    formatIds: number[],
+): Promise<SubscriberFeed> {
+    const parsed = parseSubscriberFeedEnvelope(
+        await authenticatedRequest('/api/proxy/me/feeds', tenantHost, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({title, formatIds}),
+        }),
+    )
+    if (parsed === null) {
+        throw new Error('Der Server hat eine ungültige Feed-Antwort geliefert.')
+    }
+    return parsed.data
+}
+
+export async function updateCustomFeed(
+    tenantHost: string,
+    feedId: number,
+    title: string,
+    formatIds: number[],
+): Promise<SubscriberFeed> {
+    const parsed = parseSubscriberFeedEnvelope(
+        await authenticatedRequest(`/api/proxy/me/feeds/${feedId}`, tenantHost, {
+            method: 'PUT',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({title, formatIds}),
+        }),
+    )
+    if (parsed === null) {
+        throw new Error('Der Server hat eine ungültige Feed-Antwort geliefert.')
+    }
+    return parsed.data
+}
+
+export async function previewCustomFeed(
+    tenantHost: string,
+    formatIds: number[],
+): Promise<FeedPreview> {
+    const params = new URLSearchParams()
+    for (const formatId of formatIds) {
+        params.append('formatIds', String(formatId))
+    }
+    const parsed = parseFeedPreviewEnvelope(
+        await authenticatedRequest(
+            `/api/proxy/me/feeds/preview?${params.toString()}`,
+            tenantHost,
+        ),
+    )
+    if (parsed === null) {
+        throw new Error('Der Server hat eine ungültige Vorschau geliefert.')
+    }
+    return parsed.data
+}
+
+export async function setFeedEnabled(
+    tenantHost: string,
+    feedId: number,
+    enabled: boolean,
+): Promise<SubscriberFeed> {
+    const parsed = parseSubscriberFeedEnvelope(
+        await authenticatedRequest(`/api/proxy/me/feeds/${feedId}/enabled`, tenantHost, {
+            method: 'PUT',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({enabled}),
+        }),
+    )
+    if (parsed === null) {
+        throw new Error('Der Server hat eine ungültige Feed-Antwort geliefert.')
+    }
+    return parsed.data
+}
+
+export async function rotateFeedToken(
+    tenantHost: string,
+    feedId: number,
+): Promise<SubscriberFeed> {
+    const parsed = parseSubscriberFeedEnvelope(
+        await authenticatedRequest(`/api/proxy/me/feeds/${feedId}/rotate-token`, tenantHost, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({}),
+        }),
+    )
+    if (parsed === null) {
+        throw new Error('Der Server hat eine ungültige Feed-Antwort geliefert.')
+    }
+    return parsed.data
+}
+
+export async function deleteCustomFeed(
+    tenantHost: string,
+    feedId: number,
+): Promise<void> {
+    await authenticatedRequest(`/api/proxy/me/feeds/${feedId}`, tenantHost, {
+        method: 'DELETE',
+    })
 }
 
 export async function getNotificationPreferences(
