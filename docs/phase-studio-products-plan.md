@@ -24,23 +24,13 @@ complete end-to-end from Studio.
 
 ## Gaps to close
 
-### 1. Episode `requiredLevelSortOrder` picker (high priority)
+### ~~1. Episode `requiredLevelSortOrder` picker~~ — DONE
 
-Creators can set episodes to `PAID` but cannot yet assign the minimum level
-from the episode editor. Without this, all PAID episodes effectively require
-level 0 (any subscription unlocks them).
+Already shipped as `LevelSelect` component (`components/studio/LevelSelect.tsx`).
+Used in the episode editor ("Mindest-Stufe" dropdown, disabled when FREE),
+article editor, and format editor. Populates from `listPublicLevels`.
 
-**Plan:**
-- Add a "Mindeststufe" dropdown/number input to the episode editor form
-  (only visible when `accessPolicy === 'PAID'`).
-- Populate options from the tenant's LEVEL products (`listProducts` filtered
-  to `offeringType === 'LEVEL'`, sorted by `sortOrder`).
-- On save, include `requiredLevelSortOrder` in the episode create/update payload.
-- Backend already supports the field — no API changes needed.
-
-**Files:** `components/podcast/EpisodeEditor.tsx` (or equivalent), `lib/api/types.ts`
-
-### 2. Visual level ladder on product list
+### 1. Visual level ladder on product list
 
 The current list shows products flat. For LEVEL products, the sort order
 defines the tier hierarchy but isn't visually emphasized.
@@ -51,14 +41,9 @@ defines the tier hierarchy but isn't visually emphasized.
   existing `GET /tenant/products` response with `subscriberCount`).
 - Sort LEVEL products by `sortOrder` ascending in the UI.
 
-### 3. Format `requiredLevelSortOrder` editor
+### ~~3. Format `requiredLevelSortOrder` editor~~ — DONE
 
-Formats can raise the level floor for tagged episodes. Studio's format
-editor doesn't expose this field yet.
-
-**Plan:**
-- Add optional "Mindeststufe" field to format create/edit form.
-- Backend already supports the field on `PUT /api/v1/formats/{id}`.
+Already shipped in `FormatEditor.tsx` using `LevelSelect`.
 
 ### 4. Stripe Checkout flow (future — separate issue)
 
@@ -85,9 +70,8 @@ PACKAGE products bypass the level ladder entirely (bundle access).
 
 ## Suggested implementation order
 
-1. **Episode `requiredLevelSortOrder` picker** — completes the core PAID gating UX
-2. **Level ladder visual** — sort + badge on product list
-3. **Format level floor** — minor form addition
-4. Stripe Checkout — separate workstream
+1. **Level ladder visual** — sort + badge on product list (frontend-only)
+2. **Stripe Checkout** — separate workstream, depends on Connect onboarding
 
-Items 1–3 are frontend-only changes against existing API endpoints.
+The core level-gating flow (create products → set episode minimum level →
+grant subscriptions) is **already complete end-to-end** in Studio.
