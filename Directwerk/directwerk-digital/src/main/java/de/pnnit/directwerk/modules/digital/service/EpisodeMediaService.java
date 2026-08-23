@@ -87,13 +87,34 @@ public class EpisodeMediaService implements EpisodeMediaApi {
                     .build());
         }
 
-        return new TransactionTemplate(transactionManager).execute(status -> {
-            MediaAsset managed = requireTenantAsset(assetId);
-            managed.setS3Key(publicKey);
-            managed.setVisibility(AssetVisibility.PUBLIC);
-            managed.setScope(AssetScope.TENANT_PUBLIC);
-            return mediaAssetRepository.save(managed);
-        });
+        MediaAsset updated;
+        try {
+            updated = new TransactionTemplate(transactionManager).execute(status -> {
+                MediaAsset managed = requireTenantAsset(assetId);
+                managed.setS3Key(publicKey);
+                managed.setVisibility(AssetVisibility.PUBLIC);
+                managed.setScope(AssetScope.TENANT_PUBLIC);
+                return mediaAssetRepository.save(managed);
+            });
+        } catch (RuntimeException promoteFailure) {
+            // The metadata transition failed after our copy succeeded: without
+            // cleanup the copied object would sit untracked under the public
+            // prefix while the DB still says PRIVATE. Best-effort removal.
+            if (directwerkConfig.isStorageEnabled()) {
+                DirectwerkProperties.Storage storage = requireStorage();
+                try {
+                    s3ClientProvider.getIfAvailable().deleteObject(DeleteObjectRequest.builder()
+                            .bucket(storage.bucket())
+                            .key(publicKey)
+                            .build());
+                } catch (Exception cleanupEx) {
+                    // Never mask the original failure.
+                }
+            }
+            throw promoteFailure;
+        }
+
+        return updated;
     }
 
     @Override

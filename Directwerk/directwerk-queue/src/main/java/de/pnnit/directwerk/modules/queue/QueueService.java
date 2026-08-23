@@ -5,6 +5,7 @@ import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -124,6 +125,21 @@ public class QueueService {
                 .orElseThrow(() -> new JobConflictException(
                         "Job is not actively leased by worker '%s'.".formatted(worker)
                 ));
+    }
+
+    /**
+     * Extends the lease of a processing job held by the specified worker. Used
+     * as a heartbeat by {@link QueueWorker} so long-running handlers are not
+     * re-claimed (and re-executed) by another node while still running.
+     *
+     * @param id the job identifier
+     * @param worker the worker holding the job lease
+     * @param extensionSeconds how much longer the lease should run from now
+     * @return the updated job, or an empty optional if the lease was lost
+     */
+    @Transactional
+    public Optional<QueueJob> renew(UUID id, String worker, long extensionSeconds) {
+        return repository.renew(id, worker, Duration.ofSeconds(extensionSeconds));
     }
 
     @Transactional
