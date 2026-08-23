@@ -1,7 +1,7 @@
 'use client'
 
 import type {OAuthTokenResponse} from '@/lib/api/types'
-import {AUTH_REQUIRED} from '@/lib/api/errors'
+import {AUTH_REQUIRED, AUTH_TRANSIENT} from '@/lib/api/errors'
 import {
     clearTenantTokens,
     getTenantAccessToken,
@@ -16,6 +16,14 @@ let currentSessionGeneration = 0
 function invalidateTenantSession(): void {
     currentSessionGeneration++
     clearTenantTokens()
+}
+
+/**
+ * Ends any tenant refresh that is currently in flight so it can no longer
+ * write tokens for the previous identity over a freshly logged-in session.
+ */
+export function invalidatePendingTenantRefresh(): void {
+    currentSessionGeneration++
 }
 
 function isOAuthTokenResponse(value: unknown): value is OAuthTokenResponse {
@@ -54,9 +62,15 @@ async function postRefresh(
         clearTimeout(timeoutId)
 
         const tokens: unknown = await response.json().catch(() => null)
-        if (!response.ok || !isOAuthTokenResponse(tokens)) {
+        if (response.status === 400 || response.status === 401) {
+            // Definitive auth failure from the token endpoint.
             invalidateTenantSession()
             throw new Error(AUTH_REQUIRED)
+        }
+        if (!response.ok || !isOAuthTokenResponse(tokens)) {
+            // Upstream outage or malformed reply — the session itself is
+            // intact; keep tokens so the next call can retry.
+            throw new Error(AUTH_TRANSIENT)
         }
 
         if (sessionGeneration === currentSessionGeneration) {
@@ -69,8 +83,8 @@ async function postRefresh(
     } catch (error) {
         clearTimeout(timeoutId)
         if (error instanceof Error && error.name === 'AbortError') {
-            invalidateTenantSession()
-            throw new Error(AUTH_REQUIRED)
+            // A timeout is transient — do not destroy a recoverable session.
+            throw new Error(AUTH_TRANSIENT)
         }
         throw error
     }
@@ -109,6 +123,10 @@ export async function loginTenantSession(input: {
     password: string
     tenantHost: string
 }): Promise<void> {
+    // A new tenant identity is being established — end any refresh still in
+    // flight for the previous one so it cannot overwrite this session.
+    invalidatePendingTenantRefresh()
+
     const response = await fetch('/api/auth/tenant-login', {
         method: 'POST',
         headers: {

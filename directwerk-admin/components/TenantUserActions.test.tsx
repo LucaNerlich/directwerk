@@ -35,6 +35,7 @@ describe('TenantUserActions', () => {
     })
 
     it('deactivates an active user', async () => {
+        vi.spyOn(window, 'confirm').mockReturnValue(true)
         const user = userEvent.setup()
         const onChanged = vi.fn()
         render(

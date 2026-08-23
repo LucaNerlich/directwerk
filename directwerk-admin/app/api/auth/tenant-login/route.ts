@@ -2,12 +2,29 @@ import {safeUpstreamResponse} from '@/lib/directwerk'
 import {requestTenantToken} from '@/lib/directwerkServer'
 import {readBoundedRequestBody} from '@/lib/http/readBoundedRequestBody'
 import {parseTenantHost} from '@/lib/tenant/parseTenantHost'
-import {TENANT_REFRESH_COOKIE, sealRefreshToken} from '@/lib/auth/cookies'
+import {
+    PLATFORM_REFRESH_COOKIE,
+    readRequestCookie,
+    TENANT_REFRESH_COOKIE,
+    sealRefreshToken,
+} from '@/lib/auth/cookies'
 import {validateLoginInput} from '@/lib/validation'
 
 const MAX_LOGIN_BODY_SIZE = 16 * 1024
 
 export async function POST(request: Request): Promise<Response> {
+    // Brokering tenant logins must require an authenticated platform admin
+    // session. Without this gate the route is an open relay: anyone on the
+    // internet can password-spray arbitrary tenants through this deployment,
+    // hiding their origin and tripping upstream rate limits. The httpOnly
+    // platform refresh cookie is only issued after a successful platform login.
+    if (readRequestCookie(request, PLATFORM_REFRESH_COOKIE) === null) {
+        return Response.json(
+            {error: 'A platform admin session is required.'},
+            {status: 401}
+        )
+    }
+
     const tenantHost = parseTenantHost(request.headers.get('x-tenant-host'))
     if (tenantHost === null) {
         return Response.json(
