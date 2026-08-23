@@ -1,6 +1,6 @@
 import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest'
 
-import {AUTH_REQUIRED} from '@/lib/api/errors'
+import {AUTH_REQUIRED, AUTH_TRANSIENT} from '@/lib/api/errors'
 import {
     clearTokens,
     getAccessToken,
@@ -103,6 +103,59 @@ describe('session', () => {
         const {getValidAccessToken} = await import('./session')
         await expect(getValidAccessToken()).rejects.toThrow(AUTH_REQUIRED)
         expect(getAccessToken()).toBeNull()
+
+        vi.useRealTimers()
+    })
+
+    it('keeps the session when refresh fails transiently (502)', async () => {
+        vi.useFakeTimers()
+        vi.setSystemTime(new Date('2026-01-01T12:00:00Z'))
+
+        setTokens({access_token: 'expired-access', expires_in: 60})
+        vi.setSystemTime(new Date('2026-01-01T12:05:00Z'))
+
+        vi.stubGlobal(
+            'fetch',
+            vi.fn(async () =>
+                Response.json(
+                    {error: 'The upstream service is unavailable.'},
+                    {status: 502},
+                ),
+            ),
+        )
+
+        const {getValidAccessToken} = await import('./session')
+        await expect(getValidAccessToken()).rejects.toThrow(AUTH_TRANSIENT)
+        expect(getAccessToken()).toBe('expired-access')
+
+        vi.useRealTimers()
+    })
+
+    it('refreshes via the httpOnly cookie without a legacy body token', async () => {
+        vi.useFakeTimers()
+        vi.setSystemTime(new Date('2026-01-01T12:00:00Z'))
+
+        setTokens({access_token: 'expired-access', expires_in: 60})
+        vi.setSystemTime(new Date('2026-01-01T12:05:00Z'))
+
+        const fetchMock = vi.fn(async () =>
+            Response.json({
+                access_token: 'cookie-refreshed',
+                expires_in: 900,
+                token_type: 'bearer',
+            }),
+        )
+        vi.stubGlobal('fetch', fetchMock)
+
+        const {getValidAccessToken} = await import('./session')
+        await expect(getValidAccessToken()).resolves.toBe('cookie-refreshed')
+        expect(getAccessToken()).toBe('cookie-refreshed')
+
+        const [, init] = fetchMock.mock.calls[0] as unknown as [
+            unknown,
+            RequestInit,
+        ]
+        expect(init.body).toBe(JSON.stringify({}))
 
         vi.useRealTimers()
     })

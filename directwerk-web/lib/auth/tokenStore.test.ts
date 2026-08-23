@@ -32,7 +32,7 @@ afterEach(() => {
 })
 
 describe('tokenStore', () => {
-    it('stores access, refresh, and expiry metadata', () => {
+    it('stores access and expiry metadata but never persists the refresh token', () => {
         setTokens({
             access_token: 'access-token',
             refresh_token: 'refresh-token',
@@ -40,9 +40,23 @@ describe('tokenStore', () => {
         })
 
         expect(getAccessToken()).toBe('access-token')
-        expect(getRefreshToken()).toBe('refresh-token')
         expect(getAccessTokenExpiresAt()).toBeTypeOf('number')
         expect(isAccessTokenExpired()).toBe(false)
+        // The refresh token lives in an httpOnly cookie handled by the BFF.
+        expect(getRefreshToken()).toBeNull()
+    })
+
+    it('drops a legacy sessionStorage refresh token on the next token write', () => {
+        storage.set('publish_web_refresh_token', 'legacy-refresh-token')
+
+        setTokens({
+            access_token: 'access-token',
+            refresh_token: 'cookie-managed-refresh-token',
+            expires_in: 900,
+        })
+
+        expect(storage.get('publish_web_refresh_token')).toBeUndefined()
+        expect(getRefreshToken()).toBeNull()
     })
 
     it('clears all stored credentials', () => {

@@ -157,7 +157,12 @@ export function parseSiteConfigEnvelope(
                 secondaryColor: data.branding.secondaryColor,
                 logoUrl: data.branding.logoUrl,
             },
-            publicRssUrl: isNullableString(data.publicRssUrl) ? data.publicRssUrl : null,
+            publicRssUrl:
+                isNullableString(data.publicRssUrl) &&
+                data.publicRssUrl !== null &&
+                isAllowedFeedUrl(data.publicRssUrl)
+                    ? data.publicRssUrl
+                    : null,
         }
     })
 }
@@ -467,6 +472,14 @@ function parsePublicEpisode(value: unknown): PublicEpisode | null {
         return null
     }
 
+    // Same URL-safety invariant as every other API-supplied URL: https (or
+    // loopback http). Invalid values are coerced to null instead of failing
+    // the whole episode.
+    const audioCdnUrl =
+        value.audioCdnUrl !== null && isAllowedFeedUrl(value.audioCdnUrl)
+            ? value.audioCdnUrl
+            : null
+
     return {
         id: value.id,
         seriesId: value.seriesId,
@@ -488,7 +501,7 @@ function parsePublicEpisode(value: unknown): PublicEpisode | null {
         accessPolicy: value.accessPolicy as 'FREE' | 'PAID',
         requiredLevelSortOrder: value.requiredLevelSortOrder,
         publishedAt: value.publishedAt,
-        audioCdnUrl: value.audioCdnUrl,
+        audioCdnUrl,
     }
 }
 
