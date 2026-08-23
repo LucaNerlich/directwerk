@@ -5,7 +5,11 @@ import {directwerkFetch} from '@/lib/directwerk'
 import {putStreamToStorage} from '@/lib/server/storagePut'
 import {parseTenantHost} from '@/lib/tenant/parseTenantHost'
 
-const STORAGE_PUT_TIMEOUT_MS = 120_000
+// The idle timeout only trips when the storage socket stalls; steady progress
+// keeps resetting it, so large-but-legitimate uploads are not cut off. The
+// absolute ceiling still bounds worst-case resource usage.
+const STORAGE_PUT_IDLE_TIMEOUT_MS = 60_000
+const STORAGE_PUT_ABSOLUTE_TIMEOUT_MS = 30 * 60_000
 const ASSET_TYPES = new Set(['AUDIO', 'IMAGE', 'VIDEO', 'DOCUMENT'])
 const ASSET_VISIBILITIES = new Set(['PUBLIC', 'PRIVATE'])
 
@@ -228,7 +232,10 @@ export async function POST(request: Request): Promise<Response> {
             uploadData.uploadUrl,
             headersObject,
             limitStreamToSize(request.body, sizeBytes),
-            STORAGE_PUT_TIMEOUT_MS,
+            {
+                idleTimeoutMs: STORAGE_PUT_IDLE_TIMEOUT_MS,
+                absoluteTimeoutMs: STORAGE_PUT_ABSOLUTE_TIMEOUT_MS,
+            },
         )
 
         if (putResult.status < 200 || putResult.status >= 300) {

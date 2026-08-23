@@ -7,6 +7,21 @@ export interface StoragePutResult {
     status: number
 }
 
+export interface StoragePutTimeouts {
+    /**
+     * Maximum inactivity window: if nothing happens on the storage socket for
+     * this long, the upload is treated as stalled and aborted. Activity
+     * (progress on a large transfer) keeps resetting it, so legitimate
+     * multi-minute uploads are not cut off mid-flight.
+     */
+    idleTimeoutMs: number
+    /**
+     * Absolute ceiling regardless of progress — protects against a trickle
+     * stream that never stalls for long enough to trip the idle timeout.
+     */
+    absoluteTimeoutMs: number
+}
+
 /**
  * PUTs a web ReadableStream to an object-storage URL, applying backpressure so
  * the source is only read as fast as the storage socket drains. This keeps the
@@ -17,7 +32,7 @@ export async function putStreamToStorage(
     uploadUrl: string,
     headers: Record<string, string>,
     body: ReadableStream<Uint8Array>,
-    timeoutMs: number,
+    timeouts: StoragePutTimeouts,
 ): Promise<StoragePutResult> {
     const targetUrl = new URL(uploadUrl)
     const request = targetUrl.protocol === 'https:' ? httpsRequest : httpRequest
@@ -30,29 +45,44 @@ export async function putStreamToStorage(
                 fn()
             }
         }
+        const clearTimers = (): void => {
+            clearTimeout(absoluteTimer)
+        }
 
         const upstreamRequest = request(
             targetUrl,
             {method: 'PUT', headers},
             (response) => {
                 response.resume()
-                clearTimeout(timeout)
+                clearTimers()
                 settle(() => resolve({status: response.statusCode ?? 0}))
             },
         )
 
-        const timeout = setTimeout(() => {
+        // Idle watchdog: Node's socket timeout only fires when the socket has
+        // been inactive for the full window, so steady progress on a large
+        // upload never triggers it.
+        upstreamRequest.on('socket', (socket) => {
+            socket.setTimeout(timeouts.idleTimeoutMs)
+            socket.on('timeout', () => {
+                const error = new Error('Upstream request stalled (idle timeout)')
+                error.name = 'TimeoutError'
+                upstreamRequest.destroy(error)
+            })
+        })
+
+        const absoluteTimer = setTimeout(() => {
             const error = new Error('Upstream request timed out')
             error.name = 'TimeoutError'
             upstreamRequest.destroy(error)
-        }, timeoutMs)
+        }, timeouts.absoluteTimeoutMs)
 
         upstreamRequest.on('error', (error) => {
-            clearTimeout(timeout)
+            clearTimers()
             settle(() => reject(error))
         })
         upstreamRequest.on('close', () => {
-            clearTimeout(timeout)
+            clearTimers()
             settle(() =>
                 reject(new Error('Upstream connection closed before completing the upload')),
             )
