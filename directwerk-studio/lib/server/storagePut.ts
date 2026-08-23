@@ -39,9 +39,15 @@ export async function putStreamToStorage(
 
     return new Promise<StoragePutResult>((resolve, reject) => {
         let settled = false
+        const reader = body.getReader()
+
         const settle = (fn: () => void): void => {
             if (!settled) {
                 settled = true
+                // Stop consuming the client upload as soon as the request has
+                // settled — including idle/absolute timeout paths — so the
+                // pump does not keep pulling and writing into a dead request.
+                reader.cancel().catch(() => {})
                 fn()
             }
         }
@@ -88,13 +94,14 @@ export async function putStreamToStorage(
             )
         })
 
-        const reader = body.getReader()
-
         const pump = async (): Promise<void> => {
             try {
                 while (true) {
+                    if (settled) {
+                        return
+                    }
                     const {done, value} = await reader.read()
-                    if (done) {
+                    if (done || settled) {
                         break
                     }
                     if (!upstreamRequest.write(value)) {
@@ -104,7 +111,9 @@ export async function putStreamToStorage(
                         })
                     }
                 }
-                upstreamRequest.end()
+                if (!settled) {
+                    upstreamRequest.end()
+                }
             } catch (error) {
                 upstreamRequest.destroy(
                     error instanceof Error ? error : new Error('Upload stream failed'),

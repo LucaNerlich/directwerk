@@ -32,6 +32,13 @@ describe('refreshAccessToken transient-failure semantics', () => {
         expect(getAccessToken()).toBe('stale-token')
     })
 
+    it('classifies fetch rejections as transient and keeps the session', async () => {
+        vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new TypeError('Failed to fetch')))
+
+        await expect(refreshAccessToken()).rejects.toThrow(AUTH_TRANSIENT)
+        expect(getAccessToken()).toBe('stale-token')
+    })
+
     it('ends the session only on definitive auth failures (400/401)', async () => {
         vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse(400, {
             error: 'invalid_grant',

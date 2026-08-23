@@ -16,15 +16,23 @@ async function postRefresh(): Promise<string> {
     const tenantHost = getClientTenantHost()
     // The refresh token lives in an httpOnly cookie; the refresh route reads it
     // server-side so the credential is never exposed to client JS.
-    const response = await fetch('/api/auth/refresh', {
-        method: 'POST',
-        headers: {
-            Accept: 'application/json',
-            'Content-Type': 'application/json',
-            'X-Tenant-Host': tenantHost,
-        },
-        body: '{}',
-    })
+    let response: Response
+    try {
+        response = await fetch('/api/auth/refresh', {
+            method: 'POST',
+            headers: {
+                Accept: 'application/json',
+                'Content-Type': 'application/json',
+                'X-Tenant-Host': tenantHost,
+            },
+            body: '{}',
+        })
+    } catch {
+        // Network-level failure reaching our own BFF is transient by
+        // definition; classify it like an upstream outage instead of leaking
+        // a raw TypeError to consumers.
+        throw new Error(AUTH_TRANSIENT)
+    }
 
     // Only definitive auth failures (invalid/expired refresh token) may clear
     // tokens. Upstream outages surface as >=500 from the refresh route —
