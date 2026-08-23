@@ -5,6 +5,7 @@ import {
     safeUpstreamResponse,
 } from '@/lib/directwerk'
 import {createConfiguredPlatformApiRequest} from '@/lib/directwerkServer'
+import {readBoundedRequestBody} from '@/lib/http/readBoundedRequestBody'
 
 interface RouteContext {
     params: Promise<{path: string[]}>
@@ -30,17 +31,18 @@ async function proxy(request: Request, context: RouteContext): Promise<Response>
     }
 
     if (request.method !== 'GET' && request.method !== 'HEAD') {
-        const body = await request.clone().text()
+        const bounded = await readBoundedRequestBody(request, MAX_PROXY_BODY_SIZE)
+        const body = bounded.ok ? bounded.text : ''
         const isBodylessDelete =
             request.method === 'DELETE' && body.length === 0
 
         if (!isBodylessDelete) {
-            if (!request.headers.get('content-type')?.includes('application/json')) {
-                return jsonError('Content-Type must be application/json.', 415)
+            if (!bounded.ok) {
+                return jsonError(bounded.error, bounded.status)
             }
 
-            if (body.length > MAX_PROXY_BODY_SIZE) {
-                return jsonError('Request body is too large.', 413)
+            if (!request.headers.get('content-type')?.includes('application/json')) {
+                return jsonError('Content-Type must be application/json.', 415)
             }
 
             try {

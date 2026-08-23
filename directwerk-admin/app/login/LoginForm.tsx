@@ -10,6 +10,7 @@ import {Input} from '@directwerk/ui/components/input'
 import {Label} from '@directwerk/ui/components/label'
 
 import type {OAuthTokenResponse} from '@/lib/api/types'
+import {invalidatePendingRefresh} from '@/lib/auth/session'
 import {storeTokens} from '@/lib/auth/tokenStore'
 
 interface LoginState {
@@ -62,6 +63,9 @@ export default function LoginForm() {
                 return {error: 'Login failed. Check your credentials.'}
             }
 
+            // End any refresh that is still in flight for the previous
+            // identity so it cannot overwrite this fresh login.
+            invalidatePendingRefresh()
             storeTokens(body)
             router.replace('/')
             return INITIAL_STATE

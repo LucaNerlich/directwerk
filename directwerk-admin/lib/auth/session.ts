@@ -1,6 +1,6 @@
 'use client'
 
-import {AUTH_REQUIRED} from '@/lib/api/errors'
+import {AUTH_REQUIRED, AUTH_TRANSIENT} from '@/lib/api/errors'
 import {
     clearTokens as clearTokensBase,
     getAccessToken,
@@ -15,6 +15,16 @@ let currentSessionGeneration = 0
 function clearTokens(): void {
     currentSessionGeneration++
     clearTokensBase()
+}
+
+/**
+ * Ends any refresh that is currently in flight so it can no longer write
+ * tokens. Must be called whenever a new identity logs in — otherwise an
+ * in-flight refresh for the previous identity passes its generation check
+ * after login resolves and overwrites the fresh session.
+ */
+export function invalidatePendingRefresh(): void {
+    currentSessionGeneration++
 }
 
 function isOAuthTokenResponse(value: unknown): value is OAuthTokenResponse {
@@ -55,9 +65,15 @@ async function postRefresh(sessionGeneration: number): Promise<string> {
         clearTimeout(timeoutId)
 
         const body: unknown = await response.json().catch(() => null)
-        if (!response.ok || !isOAuthTokenResponse(body)) {
+        if (response.status === 400 || response.status === 401) {
+            // Definitive auth failure from the token endpoint.
             clearTokens()
             throw new Error(AUTH_REQUIRED)
+        }
+        if (!response.ok || !isOAuthTokenResponse(body)) {
+            // Upstream outage or malformed reply — the session itself is
+            // intact; keep tokens so the next call can retry.
+            throw new Error(AUTH_TRANSIENT)
         }
 
         // Only store tokens if session hasn't been invalidated
@@ -71,8 +87,8 @@ async function postRefresh(sessionGeneration: number): Promise<string> {
     } catch (error) {
         clearTimeout(timeoutId)
         if (error instanceof Error && error.name === 'AbortError') {
-            clearTokens()
-            throw new Error(AUTH_REQUIRED)
+            // A timeout is transient — do not destroy a recoverable session.
+            throw new Error(AUTH_TRANSIENT)
         }
         throw error
     }

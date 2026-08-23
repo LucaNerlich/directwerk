@@ -6,7 +6,7 @@ import {Alert, AlertDescription} from '@directwerk/ui/components/alert'
 import {Button} from '@directwerk/ui/components/button'
 
 import {deletePlatformData} from '@/lib/api/client'
-import {AUTH_REQUIRED} from '@/lib/api/errors'
+import {AUTH_REQUIRED, FORBIDDEN} from '@/lib/api/errors'
 
 interface RevokeAdminButtonProps {
     userId: number
@@ -27,6 +27,13 @@ export default function RevokeAdminButton({
     const [error, setError] = useState<string | null>(null)
 
     async function handleRevoke(): Promise<void> {
+        const confirmed = window.confirm(
+            'Revoke platform admin access for this user? This cannot be undone.',
+        )
+        if (!confirmed) {
+            return
+        }
+
         setIsRevoking(true)
         setError(null)
 
@@ -39,6 +46,13 @@ export default function RevokeAdminButton({
                 requestError.message === AUTH_REQUIRED
             ) {
                 setError('Your session expired. Sign in again.')
+                return
+            }
+            if (
+                requestError instanceof Error &&
+                requestError.message === FORBIDDEN
+            ) {
+                setError('You do not have permission for this action.')
                 return
             }
             setError(

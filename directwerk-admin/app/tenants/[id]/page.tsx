@@ -191,12 +191,18 @@ export default function TenantPage({params}: TenantPageProps) {
                             {data.tenant.status === 'ACTIVE' ? (
                                 <Button
                                     disabled={lifecycleBusy}
-                                    onClick={() =>
+                                    onClick={() => {
+                                        const confirmed = window.confirm(
+                                            'Suspend this tenant? All of its users will immediately lose access.',
+                                        )
+                                        if (!confirmed) {
+                                            return
+                                        }
                                         void runLifecycle(
                                             `tenants/${id}/suspend`,
                                             'Tenant suspended.'
                                         )
-                                    }
+                                    }}
                                     type="button"
                                     variant="destructive"
                                 >

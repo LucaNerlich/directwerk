@@ -4,6 +4,7 @@ import {
     API_CONTRACT_ERROR,
     AUTH_REQUIRED,
     CONFLICT,
+    FORBIDDEN,
     REQUEST_FAILED,
 } from './errors'
 import {JOB_STATUSES} from './types'
@@ -232,9 +233,14 @@ async function platformPaginatedRequest(
         return platformPaginatedRequest(path, true)
     }
 
-    if (response.status === 401 || response.status === 403) {
+    if (response.status === 401) {
         clearTokens()
         throw new Error(AUTH_REQUIRED)
+    }
+
+    if (response.status === 403) {
+        // Authorization denied with a valid token — the session is fine.
+        throw new Error(FORBIDDEN)
     }
 
     if (!response.ok) {
@@ -276,9 +282,14 @@ async function platformRequest<T>(
         return platformRequest<T>(path, init, true)
     }
 
-    if (response.status === 401 || response.status === 403) {
+    if (response.status === 401) {
         clearTokens()
         throw new Error(AUTH_REQUIRED)
+    }
+
+    if (response.status === 403) {
+        // Authorization denied with a valid token — the session is fine.
+        throw new Error(FORBIDDEN)
     }
 
     if (!response.ok) {

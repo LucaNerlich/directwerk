@@ -7,7 +7,7 @@ import {Alert, AlertDescription} from '@directwerk/ui/components/alert'
 import {Button} from '@directwerk/ui/components/button'
 
 import {patchPlatformData, postPlatformData} from '@/lib/api/client'
-import {AUTH_REQUIRED, CONFLICT, REQUEST_FAILED} from '@/lib/api/errors'
+import {AUTH_REQUIRED, CONFLICT, FORBIDDEN, REQUEST_FAILED} from '@/lib/api/errors'
 import type {TenantUser} from '@/lib/api/types'
 import {TENANT_INVITABLE_ROLES} from '@/lib/api/types'
 import {getTenantRoleLabel} from '@/lib/roles'
@@ -59,6 +59,12 @@ export default function TenantUserActions({
             }
             if (
                 requestError instanceof Error &&
+                requestError.message === FORBIDDEN
+            ) {
+                return {error: 'You do not have permission for this action.'}
+            }
+            if (
+                requestError instanceof Error &&
                 requestError.message === CONFLICT
             ) {
                 return {
@@ -82,6 +88,15 @@ export default function TenantUserActions({
     )
 
     async function handleToggleStatus(): Promise<void> {
+        const deactivating = user.status === 'ACTIVE'
+        if (
+            deactivating &&
+            !window.confirm(
+                `Deactivate this user (${user.email})? They will immediately lose access.`,
+            )
+        ) {
+            return
+        }
         setIsTogglingStatus(true)
         setStatusError(null)
         const path =
@@ -98,6 +113,13 @@ export default function TenantUserActions({
                 requestError.message === AUTH_REQUIRED
             ) {
                 setStatusError('Your session expired. Sign in again.')
+                return
+            }
+            if (
+                requestError instanceof Error &&
+                requestError.message === FORBIDDEN
+            ) {
+                setStatusError('You do not have permission for this action.')
                 return
             }
             if (
