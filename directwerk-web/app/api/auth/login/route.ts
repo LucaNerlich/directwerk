@@ -2,6 +2,7 @@ import {directwerkFetch, getOAuthClientId} from '@/lib/directwerk'
 import {parseTenantHost} from '@/lib/tenant/parseTenantHost'
 import {jsonError, toClientResponse} from '@/lib/api/upstream'
 import {parseJsonText, parseLoginInput, readBoundedBody} from '@/lib/api/validation'
+import {REFRESH_COOKIE, sealRefreshToken} from '@/lib/auth/cookies'
 
 export async function POST(request: Request): Promise<Response> {
     const tenantHost = parseTenantHost(request.headers.get('x-tenant-host'))
@@ -35,7 +36,15 @@ export async function POST(request: Request): Promise<Response> {
             useOAuthClient: true,
         })
 
-        return toClientResponse(response)
+        // Move the refresh token into an httpOnly cookie so it never reaches
+        // client-side JavaScript.
+        const clientResponse = await sealRefreshToken(
+            await toClientResponse(response),
+            REFRESH_COOKIE,
+        )
+        clientResponse.headers.set('Cache-Control', 'no-store')
+        clientResponse.headers.set('Pragma', 'no-cache')
+        return clientResponse
     } catch {
         return jsonError('The upstream service is unavailable.', 502)
     }

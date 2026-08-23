@@ -88,6 +88,9 @@ public class SecurityConfig {
                                         tokenGenerator
                                 ))
                         )
+                        // RFC 7009 revocation so BFF logout routes can invalidate
+                        // stolen/left-behind refresh tokens server-side.
+                        .tokenRevocationEndpoint(Customizer.withDefaults())
                 )
                 .authorizeHttpRequests(authorize -> authorize.anyRequest().authenticated())
                 .csrf(csrf -> csrf.ignoringRequestMatchers(authorizationServerConfigurer.getEndpointsMatcher()))

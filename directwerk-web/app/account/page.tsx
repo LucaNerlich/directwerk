@@ -62,6 +62,20 @@ export default function AccountPage() {
     const [isLoading, setIsLoading] = useState(true)
     const [, logoutAction, isLoggingOut] = useActionState(
         async (): Promise<LogoutState> => {
+            // Best-effort server-side revocation before clearing local state;
+            // failure here must not block the local logout.
+            try {
+                await fetch('/api/auth/logout', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Tenant-Host': getClientTenantHost(),
+                    },
+                    body: '{}',
+                })
+            } catch {
+                // Ignore — clear local session regardless.
+            }
             clearTokens()
             router.replace('/login')
             return {complete: true}

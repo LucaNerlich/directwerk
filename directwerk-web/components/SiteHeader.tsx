@@ -15,6 +15,7 @@ import {
     getAccessToken,
     subscribeToTokenStore,
 } from '@/lib/auth/tokenStore'
+import {getClientTenantHost} from '@/lib/tenant/getClientTenantHost'
 import {useSiteConfig} from '@/lib/site/SiteConfigProvider'
 
 interface NavItem {
@@ -56,7 +57,21 @@ export default function SiteHeader({
     const token = useSyncExternalStore(subscribeToken, readToken, readTokenServer)
     const brand = config.branding.siteTitle ?? config.tenant.name
 
-    function handleLogout(): void {
+    async function handleLogout(): Promise<void> {
+        // Best-effort server-side revocation before clearing local state;
+        // failure here must not block the local logout.
+        try {
+            await fetch('/api/auth/logout', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Tenant-Host': getClientTenantHost(),
+                },
+                body: '{}',
+            })
+        } catch {
+            // Ignore — clear local session regardless.
+        }
         clearTokens()
         router.replace('/login')
     }

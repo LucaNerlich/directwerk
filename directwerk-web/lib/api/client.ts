@@ -122,7 +122,9 @@ async function authenticatedRequest(
         if (error instanceof Error && error.message === AUTH_REQUIRED) {
             throw error
         }
-        throw new Error(AUTH_REQUIRED)
+        // Transient refresh failures must not be reported as "not
+        // authenticated" — consumers would log the user out.
+        throw new Error('Der Server ist derzeit nicht erreichbar.')
     }
 
     const response = await fetch(path, {
@@ -142,8 +144,8 @@ async function authenticatedRequest(
             if (error instanceof Error && error.message === AUTH_REQUIRED) {
                 throw error
             }
-            clearTokens()
-            throw new Error(AUTH_REQUIRED)
+            // The session itself is intact — only this request failed.
+            throw new Error('Der Server ist derzeit nicht erreichbar.')
         }
 
         return authenticatedRequest(path, tenantHost, init, true)
