@@ -3,9 +3,12 @@
 import {useRouter} from 'next/navigation'
 import {useEffect, useState} from 'react'
 
+import {Button} from '@directwerk/ui/components/button'
+
 import {fetchMe, isEditorRole} from '@/lib/api/tenantApi'
 import {MeProvider} from '@/lib/auth/MeProvider'
 import {ensureAuthenticated} from '@/lib/auth/session'
+import {AUTH_REQUIRED} from '@/lib/api/errors'
 import {clearTokens, getAccessToken} from '@/lib/auth/tokenStore'
 import {getClientTenantHost} from '@/lib/tenant/getClientTenantHost'
 import type {Me} from '@/lib/api/types'
@@ -13,11 +16,15 @@ import type {Me} from '@/lib/api/types'
 export default function AuthGuard({children}: Readonly<{children: React.ReactNode}>) {
     const router = useRouter()
     const [me, setMe] = useState<Me | null>(null)
+    const [verifyError, setVerifyError] = useState<string | null>(null)
+    const [attempt, setAttempt] = useState(0)
 
     useEffect(() => {
         let active = true
 
         async function verify(): Promise<void> {
+            setVerifyError(null)
+
             if (getAccessToken() === null) {
                 if (active) {
                     router.replace('/login')
@@ -39,24 +46,51 @@ export default function AuthGuard({children}: Readonly<{children: React.ReactNod
                 }
 
                 setMe(account)
-            } catch {
+            } catch (error: unknown) {
                 if (!active) {
                     return
                 }
 
-                clearTokens()
-                router.replace('/login')
+                // Only definitive auth failures end the session. Network or
+                // upstream errors during a deploy must keep the valid refresh
+                // cookie intact and offer a retry instead.
+                if (error instanceof Error && error.message === AUTH_REQUIRED) {
+                    clearTokens()
+                    router.replace('/login')
+                    return
+                }
+
+                setVerifyError(
+                    'Die Verbindung zum Server ist fehlgeschlagen. Bitte erneut versuchen.',
+                )
             }
         }
 
-        verify()
+        void verify()
 
         return () => {
             active = false
         }
-    }, [router])
+    }, [router, attempt])
 
     if (me === null) {
+        if (verifyError !== null) {
+            return (
+                <div className="flex flex-col items-start gap-3 p-6">
+                    <p className="text-sm text-muted-foreground">{verifyError}</p>
+                    <Button
+                        onClick={() => {
+                            setAttempt((value) => value + 1)
+                        }}
+                        type="button"
+                        variant="outline"
+                    >
+                        Erneut versuchen
+                    </Button>
+                </div>
+            )
+        }
+
         return <p>Wird geladen…</p>
     }
 

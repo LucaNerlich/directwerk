@@ -1,7 +1,11 @@
 import {request as httpRequest} from 'node:http'
 import {request as httpsRequest} from 'node:https'
 
-const MAX_RESPONSE_BYTES = 1_048_576
+// List endpoints currently return full detail rows (episode descriptions and
+// article bodies can be up to 512 KB each), so a growing catalog easily
+// exceeds a 1 MiB cap and would permanently break list pages. Backend
+// pagination is not available yet — revisit once it exists.
+const MAX_RESPONSE_BYTES = 16_777_216
 const REQUEST_TIMEOUT_MS = 10_000
 
 type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'

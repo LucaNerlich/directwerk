@@ -87,7 +87,6 @@ import type {
     AddTenantDomainInput,
 } from '@/lib/api/types'
 import type {LoginInput} from '@/lib/api/validation'
-import {clearTokens} from '@/lib/auth/tokenStore'
 import {getValidAccessToken, refreshAccessToken} from '@/lib/auth/session'
 import {getClientTenantHost} from '@/lib/tenant/getClientTenantHost'
 
@@ -96,10 +95,17 @@ function errorMessage(value: unknown, status: number): string {
         typeof value === 'object' &&
         value !== null &&
         'error' in value &&
-        typeof value.error === 'string' &&
-        value.error.length <= 255
+        typeof value.error === 'string'
     ) {
-        return value.error
+        // The OAuth token endpoint reports failed logins as 400 with an
+        // `error` code (typically "invalid_grant"). Show a user-facing
+        // message instead of the raw protocol code.
+        if (value.error === 'invalid_grant') {
+            return 'E-Mail oder Passwort falsch.'
+        }
+        if (value.error.length > 0 && value.error.length <= 255) {
+            return value.error
+        }
     }
 
     if (
@@ -172,7 +178,9 @@ async function authenticatedRequest(
         if (error instanceof Error && error.message === AUTH_REQUIRED) {
             throw error
         }
-        throw new Error(AUTH_REQUIRED)
+        // Transient refresh failures (upstream outage, timeout) must not be
+        // reported as "not authenticated" — consumers would log the user out.
+        throw new Error('Der Server ist derzeit nicht erreichbar.')
     }
 
     const response = await fetch(path, {
@@ -192,8 +200,9 @@ async function authenticatedRequest(
             if (error instanceof Error && error.message === AUTH_REQUIRED) {
                 throw error
             }
-            clearTokens()
-            throw new Error(AUTH_REQUIRED)
+            // The session itself is intact — only this request failed.
+            // Clearing tokens here would log the user out on transient errors.
+            throw new Error('Der Server ist derzeit nicht erreichbar.')
         }
 
         return authenticatedRequest(path, tenantHost, init, true)

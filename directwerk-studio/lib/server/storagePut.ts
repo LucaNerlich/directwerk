@@ -7,6 +7,21 @@ export interface StoragePutResult {
     status: number
 }
 
+export interface StoragePutTimeouts {
+    /**
+     * Maximum inactivity window: if nothing happens on the storage socket for
+     * this long, the upload is treated as stalled and aborted. Activity
+     * (progress on a large transfer) keeps resetting it, so legitimate
+     * multi-minute uploads are not cut off mid-flight.
+     */
+    idleTimeoutMs: number
+    /**
+     * Absolute ceiling regardless of progress — protects against a trickle
+     * stream that never stalls for long enough to trip the idle timeout.
+     */
+    absoluteTimeoutMs: number
+}
+
 /**
  * PUTs a web ReadableStream to an object-storage URL, applying backpressure so
  * the source is only read as fast as the storage socket drains. This keeps the
@@ -17,18 +32,27 @@ export async function putStreamToStorage(
     uploadUrl: string,
     headers: Record<string, string>,
     body: ReadableStream<Uint8Array>,
-    timeoutMs: number,
+    timeouts: StoragePutTimeouts,
 ): Promise<StoragePutResult> {
     const targetUrl = new URL(uploadUrl)
     const request = targetUrl.protocol === 'https:' ? httpsRequest : httpRequest
 
     return new Promise<StoragePutResult>((resolve, reject) => {
         let settled = false
+        const reader = body.getReader()
+
         const settle = (fn: () => void): void => {
             if (!settled) {
                 settled = true
+                // Stop consuming the client upload as soon as the request has
+                // settled — including idle/absolute timeout paths — so the
+                // pump does not keep pulling and writing into a dead request.
+                reader.cancel().catch(() => {})
                 fn()
             }
+        }
+        const clearTimers = (): void => {
+            clearTimeout(absoluteTimer)
         }
 
         const upstreamRequest = request(
@@ -36,35 +60,48 @@ export async function putStreamToStorage(
             {method: 'PUT', headers},
             (response) => {
                 response.resume()
-                clearTimeout(timeout)
+                clearTimers()
                 settle(() => resolve({status: response.statusCode ?? 0}))
             },
         )
 
-        const timeout = setTimeout(() => {
+        // Idle watchdog: Node's socket timeout only fires when the socket has
+        // been inactive for the full window, so steady progress on a large
+        // upload never triggers it.
+        upstreamRequest.on('socket', (socket) => {
+            socket.setTimeout(timeouts.idleTimeoutMs)
+            socket.on('timeout', () => {
+                const error = new Error('Upstream request stalled (idle timeout)')
+                error.name = 'TimeoutError'
+                upstreamRequest.destroy(error)
+            })
+        })
+
+        const absoluteTimer = setTimeout(() => {
             const error = new Error('Upstream request timed out')
             error.name = 'TimeoutError'
             upstreamRequest.destroy(error)
-        }, timeoutMs)
+        }, timeouts.absoluteTimeoutMs)
 
         upstreamRequest.on('error', (error) => {
-            clearTimeout(timeout)
+            clearTimers()
             settle(() => reject(error))
         })
         upstreamRequest.on('close', () => {
-            clearTimeout(timeout)
+            clearTimers()
             settle(() =>
                 reject(new Error('Upstream connection closed before completing the upload')),
             )
         })
 
-        const reader = body.getReader()
-
         const pump = async (): Promise<void> => {
             try {
                 while (true) {
+                    if (settled) {
+                        return
+                    }
                     const {done, value} = await reader.read()
-                    if (done) {
+                    if (done || settled) {
                         break
                     }
                     if (!upstreamRequest.write(value)) {
@@ -74,7 +111,9 @@ export async function putStreamToStorage(
                         })
                     }
                 }
-                upstreamRequest.end()
+                if (!settled) {
+                    upstreamRequest.end()
+                }
             } catch (error) {
                 upstreamRequest.destroy(
                     error instanceof Error ? error : new Error('Upload stream failed'),
