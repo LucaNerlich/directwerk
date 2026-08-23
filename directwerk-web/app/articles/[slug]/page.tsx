@@ -1,49 +1,93 @@
-'use client'
-
+import type {Metadata} from 'next'
 import Link from 'next/link'
-import {useParams} from 'next/navigation'
-import useSWR from 'swr'
+import {notFound} from 'next/navigation'
 
 import {Alert, AlertDescription} from '@directwerk/ui/components/alert'
 import {Badge} from '@directwerk/ui/components/badge'
 import PageHeader from '@directwerk/ui/components/page-header'
 
-import {getPublicArticle} from '@/lib/api/client'
-import type {PublicArticle} from '@/lib/api/types'
 import {formatPublishedAt} from '@/lib/format'
+import {fetchPublicArticleServer} from '@/lib/site/fetchPublicContentServer'
+import {getTenantHost} from '@/lib/site/getTenantHost'
 
-import {getClientTenantHost} from '@/lib/tenant/getClientTenantHost'
+interface ArticlePageProps {
+    params: Promise<{slug: string}>
+}
 
-export default function ArticleDetailPage() {
-    const params = useParams<{slug: string}>()
-    const slug = typeof params.slug === 'string' ? params.slug : ''
-    const tenantHost = getClientTenantHost()
-    const invalidSlug = slug.length === 0
-    const swrKey = invalidSlug
-        ? null
-        : (['public-article', tenantHost, slug] as const)
-    const {data: article, error, isLoading} = useSWR<PublicArticle>(
-        swrKey,
-        ([, host, articleSlug]: readonly [string, string, string]) =>
-            getPublicArticle(host, articleSlug),
-    )
+function resolveSlug(params: Promise<{slug: string}>): Promise<string> {
+    return params.then(({slug}) => (typeof slug === 'string' ? slug : ''))
+}
 
-    const errorMessage = invalidSlug
-        ? 'Invalid article slug.'
-        : error instanceof Error
-          ? error.message
-          : error
-            ? 'Unable to load article.'
-            : null
+export async function generateMetadata({
+    params,
+}: ArticlePageProps): Promise<Metadata> {
+    const slug = await resolveSlug(params)
+    if (slug.length === 0) {
+        return {}
+    }
+
+    try {
+        const host = await getTenantHost()
+        const article = await fetchPublicArticleServer(host, slug)
+        if (article === null) {
+            return {}
+        }
+
+        const description =
+            article.seoDescription ?? article.excerpt ?? undefined
+        return {
+            title: article.title,
+            description,
+            alternates: {canonical: `/articles/${slug}`},
+            openGraph: {
+                title: article.title,
+                description,
+                type: 'article',
+                publishedTime: article.publishedAt ?? undefined,
+            },
+        }
+    } catch {
+        // Metadata is best-effort; the page itself handles upstream failures.
+        return {}
+    }
+}
+
+export default async function ArticleDetailPage({params}: ArticlePageProps) {
+    const slug = await resolveSlug(params)
+    if (slug.length === 0) {
+        notFound()
+    }
+
+    let article = null
+    let loadError: string | null = null
+    try {
+        const host = await getTenantHost()
+        article = await fetchPublicArticleServer(host, slug)
+        if (article === null) {
+            notFound()
+        }
+    } catch (error: unknown) {
+        loadError =
+            error instanceof Error
+                ? error.message
+                : 'Unable to load article.'
+    }
 
     return (
         <div className="page-container space-y-6">
             <Link className="text-sm text-muted-foreground hover:text-foreground" href="/articles">← Beiträge</Link>
-            {isLoading && <p>Loading…</p>}
-            {errorMessage !== null && <Alert variant="destructive"><AlertDescription>{errorMessage}</AlertDescription></Alert>}
-            {article !== undefined && !isLoading && errorMessage === null && (
+            {loadError !== null && (
+                <Alert variant="destructive">
+                    <AlertDescription>{loadError}</AlertDescription>
+                </Alert>
+            )}
+            {article !== null && loadError === null && (
                 <article className="space-y-8">
-                    <PageHeader title={article.title} description={formatPublishedAt(article.publishedAt)} actions={<Badge>{article.accessPolicy}</Badge>} />
+                    <PageHeader
+                        title={article.title}
+                        description={formatPublishedAt(article.publishedAt)}
+                        actions={<Badge>{article.accessPolicy}</Badge>}
+                    />
                     {article.accessPolicy === 'PAID' && article.body === null ? (
                         <Alert><AlertDescription>
                             This is paid content. Public visitors only see the teaser.

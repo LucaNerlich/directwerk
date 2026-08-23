@@ -7,6 +7,7 @@ import SiteHeader from '@/components/SiteHeader'
 import {fetchSiteConfigServer} from '@/lib/site/fetchSiteConfigServer'
 import {getTenantHost} from '@/lib/site/getTenantHost'
 import {SiteConfigProvider} from '@/lib/site/SiteConfigProvider'
+import type {SiteConfig} from '@/lib/api/types'
 
 import './globals.css'
 
@@ -34,8 +35,25 @@ export default async function RootLayout({
 }: Readonly<{
     children: React.ReactNode
 }>): Promise<React.JSX.Element> {
-    const host = await getTenantHost()
-    const config = await fetchSiteConfigServer(host)
+    // The layout renders on every route — an upstream outage or unmapped host
+    // must degrade to a neutral default instead of hard-failing every page.
+    let config: SiteConfig
+    try {
+        const host = await getTenantHost()
+        config = await fetchSiteConfigServer(host)
+    } catch {
+        config = {
+            tenant: {slug: 'unknown', name: 'Publish'},
+            enabledModules: [],
+            branding: {
+                siteTitle: null,
+                primaryColor: null,
+                secondaryColor: null,
+                logoUrl: null,
+            },
+            publicRssUrl: null,
+        }
+    }
     const primary = config.branding.primaryColor
 
     return (
