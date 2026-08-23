@@ -11,6 +11,7 @@ import de.pnnit.directwerk.modules.podcast.repository.PodcastSeriesRepository;
 import de.pnnit.directwerk.modules.subscription.entity.ProductAccessScopeType;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
@@ -21,6 +22,11 @@ public class ProductAccessRuleScopeValidator {
     private final CategoryRepository categoryRepository;
     private final MediaAssetRepository mediaAssetRepository;
 
+    /**
+     * Transactional (read-only) so repository lookups run on a transaction-bound
+     * session and the tenant Hibernate filter applies.
+     */
+    @Transactional(readOnly = true)
     public void validateScope(Long tenantId, ProductAccessScopeType scopeType, Long scopeId) {
         if (scopeType == null) {
             return;

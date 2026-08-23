@@ -2,6 +2,7 @@ package de.pnnit.directwerk.modules.core.service;
 
 import de.pnnit.directwerk.modules.core.entity.PasswordResetToken;
 import de.pnnit.directwerk.modules.core.entity.User;
+import de.pnnit.directwerk.modules.core.event.PasswordChangedEvent;
 import de.pnnit.directwerk.modules.core.repository.PasswordResetTokenRepository;
 import de.pnnit.directwerk.modules.core.repository.UserRepository;
 import de.pnnit.directwerk.modules.core.util.EmailNormalizer;
@@ -14,6 +15,7 @@ import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -31,6 +33,7 @@ public class PasswordResetService {
     public static final java.time.Duration RESET_TOKEN_LIFETIME = java.time.Duration.of(1, ChronoUnit.HOURS);
 
     private final TransactionalEmailNotifier transactionalEmailNotifier;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Transactional
     public String requestReset(String email) {
@@ -72,5 +75,9 @@ public class PasswordResetService {
         resetToken.setUsedAt(Instant.now());
         userRepository.save(user);
         passwordResetTokenRepository.save(resetToken);
+        // Notify session-revocation listeners AFTER commit so a stolen
+        // pre-reset refresh token cannot outlive the credential change.
+        eventPublisher.publishEvent(
+                new PasswordChangedEvent(user.getEmail(), user.getId()));
     }
 }

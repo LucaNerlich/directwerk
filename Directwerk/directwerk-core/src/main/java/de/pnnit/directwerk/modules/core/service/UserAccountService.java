@@ -19,6 +19,7 @@ import de.pnnit.directwerk.security.SecurityUtils;
 import java.util.EnumSet;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -80,7 +81,13 @@ public class UserAccountService {
         user.setPasswordHash(passwordEncoder.encode(password));
         user.setName(name);
         user.setStatus(initialUserStatus());
-        user = userRepository.save(user);
+        try {
+            user = userRepository.save(user);
+        } catch (DataIntegrityViolationException ex) {
+            // Concurrent registration raced us to the uq_users_email unique
+            // index — surface the same 409 USER_EXISTS as the pre-check.
+            throw new IllegalStateException("User already registered on this tenant");
+        }
         TenantMembership membership = createSubscriberMembership(user, tenant);
         notifyVerificationIfRequired(user, membership, tenant);
         return user;

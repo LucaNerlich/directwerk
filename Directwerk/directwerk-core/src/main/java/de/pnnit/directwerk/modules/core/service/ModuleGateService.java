@@ -8,6 +8,7 @@ import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
@@ -15,6 +16,11 @@ public class ModuleGateService {
 
     private final TenantModuleActivationRepository tenantModuleActivationRepository;
 
+    /**
+     * Transactional so repository access runs on a transaction-bound session
+     * (tenant Hibernate filter applies) — see {@code TenantHibernateFilterEnabler}.
+     */
+    @Transactional(readOnly = true)
     public void requireModule(String moduleKey) {
         Long tenantId = TenantContext.getTenantId();
         if (tenantId == null) {
@@ -29,6 +35,7 @@ public class ModuleGateService {
     }
 
     @Cacheable(cacheNames = DirectwerkCacheNames.TENANT_MODULE_KEYS, key = "#tenantId")
+    @Transactional(readOnly = true)
     public Set<String> enabledModuleKeys(Long tenantId) {
         return tenantModuleActivationRepository.findByTenantIdAndActiveTrue(tenantId).stream()
                 .map(activation -> activation.getModuleKey())

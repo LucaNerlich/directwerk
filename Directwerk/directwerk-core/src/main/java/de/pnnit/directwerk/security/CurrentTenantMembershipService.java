@@ -7,6 +7,7 @@ import de.pnnit.directwerk.multitenancy.TenantContext;
 import de.pnnit.directwerk.multitenancy.TenantMismatchException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Resolves the caller's <em>current</em> tenant membership from the Spring Security context
@@ -26,9 +27,13 @@ public class CurrentTenantMembershipService {
      * Requires an authenticated tenant principal whose JWT/security-context tenant matches
      * {@link TenantContext}, and whose DB membership is still {@link MembershipStatus#ACTIVE}.
      *
+     * <p>Transactional (read-only) so the repository lookup runs on a
+     * transaction-bound session with the tenant Hibernate filter applied.</p>
+     *
      * @return the active membership for the current security principal and tenant context
      * @throws TenantMismatchException if principal, context, or membership validation fails
      */
+    @Transactional(readOnly = true)
     public TenantMembership requireActiveMembership() {
         DirectwerkUserPrincipal principal = SecurityUtils.requireTenantPrincipal();
         Long contextTenantId = TenantContext.requireTenantId();
