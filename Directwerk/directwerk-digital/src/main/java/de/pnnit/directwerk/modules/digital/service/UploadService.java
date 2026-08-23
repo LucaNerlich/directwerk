@@ -34,6 +34,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 import software.amazon.awssdk.core.exception.SdkException;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.CopyObjectRequest;
+import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
 import software.amazon.awssdk.services.s3.model.HeadObjectRequest;
 import software.amazon.awssdk.services.s3.model.HeadObjectResponse;
 import software.amazon.awssdk.services.s3.model.NoSuchKeyException;
@@ -205,28 +206,41 @@ public class UploadService implements UploadApi {
                 .destinationKey(finalKey)
                 .build());
 
-        MediaAsset confirmed = new TransactionTemplate(transactionManager).execute(status -> {
-            MediaAsset locked = mediaAssetRepository.findByIdForUpdate(command.mediaAssetId())
-                    .orElseThrow(() -> new MediaAssetNotFoundException(command.mediaAssetId()));
-            if (!tenantId.equals(locked.getTenant().getId())) {
-                throw new MediaAssetNotFoundException(command.mediaAssetId());
-            }
-            if (locked.getStatus() != AssetStatus.PENDING) {
-                throw new UploadValidationException(
-                        "UPLOAD_VALIDATION_FAILED",
-                        "Asset is not PENDING (status=" + locked.getStatus() + ")"
-                );
-            }
-            if (head.contentLength() != null) {
-                locked.setSizeBytes(head.contentLength());
-            }
-            if (head.eTag() != null) {
-                locked.setChecksumSha256(head.eTag().replace("\"", ""));
-            }
-            locked.setS3Key(finalKey);
-            locked.setStatus(AssetStatus.READY);
-            return mediaAssetRepository.saveAndFlush(locked);
-        });
+        MediaAsset confirmed;
+        try {
+            confirmed = new TransactionTemplate(transactionManager).execute(status -> {
+                MediaAsset locked = mediaAssetRepository.findByIdForUpdate(command.mediaAssetId())
+                        .orElseThrow(() -> new MediaAssetNotFoundException(command.mediaAssetId()));
+                if (!tenantId.equals(locked.getTenant().getId())) {
+                    throw new MediaAssetNotFoundException(command.mediaAssetId());
+                }
+                if (locked.getStatus() != AssetStatus.PENDING) {
+                    throw new UploadValidationException(
+                            "UPLOAD_VALIDATION_FAILED",
+                            "Asset is not PENDING (status=" + locked.getStatus() + ")"
+                    );
+                }
+                if (head.contentLength() != null) {
+                    locked.setSizeBytes(head.contentLength());
+                }
+                if (head.eTag() != null) {
+                    locked.setChecksumSha256(head.eTag().replace("\"", ""));
+                }
+                locked.setS3Key(finalKey);
+                locked.setStatus(AssetStatus.READY);
+                return mediaAssetRepository.saveAndFlush(locked);
+            });
+        } catch (UploadValidationException conflictEx) {
+            // A concurrent confirm won the claim. The deterministic final key
+            // means the object it references is identical — do NOT delete it.
+            throw conflictEx;
+        } catch (RuntimeException copyFollowupFailure) {
+            // The DB transition failed after our copy succeeded: the object is
+            // unreferenced and would otherwise leak forever (staging sweeps
+            // only cover {tenant}/staging/**). Best-effort removal.
+            deleteObjectQuietly(storage.bucket(), finalKey);
+            throw copyFollowupFailure;
+        }
 
         cleanupStagingObject(storage.bucket(), stagingKey);
 
@@ -255,13 +269,28 @@ public class UploadService implements UploadApi {
         }
     }
 
+    /** Best-effort delete of an orphaned copied object; never masks the original failure. */
+    private void deleteObjectQuietly(String bucket, String key) {
+        try {
+            s3Client.deleteObject(DeleteObjectRequest.builder()
+                    .bucket(bucket)
+                    .key(key)
+                    .build());
+        } catch (Exception cleanupEx) {
+            log.warn("Failed to clean up unreferenced object after failed confirm: {}", key, cleanupEx);
+        }
+    }
+
     private static String buildFinalKey(String tenantSlug, MediaAsset asset) {
         String visibilityFolder = asset.getVisibility() == AssetVisibility.PUBLIC ? "public" : "private";
         String typeFolder = MediaUploadRules.typeFolder(asset.getAssetType());
         String filename = asset.getOriginalFilename() != null ? asset.getOriginalFilename() : "file.bin";
         String ext = MediaUploadRules.fileExtension(filename);
         String stem = MediaUploadRules.sanitizeFilenameStem(filename);
-        String objectName = UUID.randomUUID() + "_" + stem + "." + ext;
+        // Deterministic per-asset object name: concurrent/duplicated confirm
+        // calls copy to the SAME key (idempotent overwrite) instead of leaving
+        // orphaned copies under unreferenced random keys.
+        String objectName = "asset-" + asset.getId() + "_" + stem + "." + ext;
         if (asset.getScope() == AssetScope.USER && asset.getOwnerUserId() != null) {
             return TenantAssetKeys.privateKey(
                     tenantSlug,

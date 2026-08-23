@@ -1,11 +1,13 @@
 package de.pnnit.directwerk.modules.subscription.stripe;
 
+import de.pnnit.directwerk.modules.subscription.entity.Subscription;
 import de.pnnit.directwerk.modules.subscription.entity.SubscriptionProduct;
 import de.pnnit.directwerk.modules.subscription.entity.SubscriptionStatus;
 import de.pnnit.directwerk.modules.subscription.entity.TenantStripeAccount;
 import de.pnnit.directwerk.modules.subscription.exception.StripeSignatureException;
 import de.pnnit.directwerk.modules.subscription.repository.ProcessedWebhookEventRepository;
 import de.pnnit.directwerk.modules.subscription.repository.SubscriptionProductRepository;
+import de.pnnit.directwerk.modules.subscription.repository.SubscriptionRepository;
 import de.pnnit.directwerk.modules.subscription.service.SubscriptionService;
 import de.pnnit.directwerk.multitenancy.TenantContext;
 import org.slf4j.Logger;
@@ -24,6 +26,7 @@ public class StripeWebhookService {
     private final SubscriptionService subscriptionService;
     private final SubscriptionProductRepository subscriptionProductRepository;
     private final ProcessedWebhookEventRepository processedWebhookEventRepository;
+    private final SubscriptionRepository subscriptionRepository;
     private final ApplicationEventPublisher eventPublisher;
 
     public StripeWebhookService(
@@ -32,6 +35,7 @@ public class StripeWebhookService {
             SubscriptionService subscriptionService,
             SubscriptionProductRepository subscriptionProductRepository,
             ProcessedWebhookEventRepository processedWebhookEventRepository,
+            SubscriptionRepository subscriptionRepository,
             ApplicationEventPublisher eventPublisher
     ) {
         this.stripeOperations = stripeOperations;
@@ -39,6 +43,7 @@ public class StripeWebhookService {
         this.subscriptionService = subscriptionService;
         this.subscriptionProductRepository = subscriptionProductRepository;
         this.processedWebhookEventRepository = processedWebhookEventRepository;
+        this.subscriptionRepository = subscriptionRepository;
         this.eventPublisher = eventPublisher;
     }
 
@@ -154,14 +159,36 @@ public class StripeWebhookService {
         if (productId == null && event.stripePriceId() != null) {
             productId = findProductIdByStripePrice(tenantId, event.stripePriceId());
         }
+        SubscriptionStatus mappedStatus = mapStripeStatus(event.stripeSubscriptionStatus());
         if (userId == null || productId == null) {
+            if (mappedStatus == SubscriptionStatus.ACTIVE
+                    && hasLocalCanceledRow(tenantId, event.subscriptionId())) {
+                if (!isLiveActive(tenantId, event)) {
+                    log.warn(
+                            "Skipping stale sync for canceled local row (subscription={})",
+                            event.subscriptionId());
+                    return;
+                }
+            }
             subscriptionService.syncStripeSubscriptionByExternalId(
                     tenantId,
                     event.subscriptionId(),
-                    mapStripeStatus(event.stripeSubscriptionStatus()),
+                    mappedStatus,
                     event.currentPeriodEnd()
             );
             return;
+        }
+        // Guard against out-of-order delivery: a stale/retried `updated` event
+        // arriving after `deleted` must not resurrect paid entitlements. When
+        // the local row is CANCELED, only apply ACTIVE if the subscription is
+        // verifiably active at Stripe right now.
+        if (mappedStatus == SubscriptionStatus.ACTIVE && hasLocalCanceledRow(tenantId, event.subscriptionId())) {
+            if (!isLiveActive(tenantId, event)) {
+                log.warn(
+                        "Skipping stale subscription.updated for canceled local row (subscription={})",
+                        event.subscriptionId());
+                return;
+            }
         }
         subscriptionService.upsertStripeSubscription(
                 tenantId,
@@ -169,7 +196,7 @@ public class StripeWebhookService {
                 productId,
                 event.subscriptionId(),
                 event.customerId(),
-                mapStripeStatus(event.stripeSubscriptionStatus()),
+                mappedStatus,
                 event.currentPeriodEnd(),
                 event.paymentIntentId()
         );
@@ -221,6 +248,31 @@ public class StripeWebhookService {
                 .map(SubscriptionProduct::getId)
                 .findFirst()
                 .orElse(null);
+    }
+
+    private boolean hasLocalCanceledRow(Long tenantId, String externalSubscriptionId) {
+        return subscriptionRepository
+                .findByTenantIdAndExternalSubscriptionId(tenantId, externalSubscriptionId)
+                .map(subscription -> subscription.getStatus() == SubscriptionStatus.CANCELED)
+                .orElse(false);
+    }
+
+    private boolean isLiveActive(Long tenantId, StripeOperations.StripeWebhookPayload event) {
+        try {
+            String liveStatus = stripeOperations.retrieveSubscriptionStatus(
+                    event.connectedAccountId(),
+                    event.subscriptionId());
+            return "active".equals(liveStatus)
+                    || "trialing".equals(liveStatus)
+                    || "past_due".equals(liveStatus);
+        } catch (RuntimeException ex) {
+            log.warn(
+                    "Live subscription lookup failed for canceled local row (subscription={}) — refusing reactivation",
+                    event.subscriptionId(),
+                    ex);
+            // Fail closed: without live confirmation, do not reactivate.
+            return false;
+        }
     }
 
     private static SubscriptionStatus mapStripeStatus(String stripeStatus) {

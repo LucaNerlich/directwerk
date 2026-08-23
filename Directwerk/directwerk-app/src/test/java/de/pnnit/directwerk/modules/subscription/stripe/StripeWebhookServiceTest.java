@@ -2,16 +2,19 @@ package de.pnnit.directwerk.modules.subscription.stripe;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import de.pnnit.directwerk.modules.core.entity.Tenant;
+import de.pnnit.directwerk.modules.subscription.entity.Subscription;
 import de.pnnit.directwerk.modules.subscription.entity.SubscriptionProduct;
 import de.pnnit.directwerk.modules.subscription.entity.SubscriptionStatus;
 import de.pnnit.directwerk.modules.subscription.entity.TenantStripeAccount;
 import de.pnnit.directwerk.modules.subscription.repository.ProcessedWebhookEventRepository;
 import de.pnnit.directwerk.modules.subscription.repository.SubscriptionProductRepository;
+import de.pnnit.directwerk.modules.subscription.repository.SubscriptionRepository;
 import de.pnnit.directwerk.modules.subscription.service.SubscriptionService;
 import java.time.Instant;
 import java.util.Map;
@@ -42,6 +45,9 @@ class StripeWebhookServiceTest {
     private ProcessedWebhookEventRepository processedWebhookEventRepository;
 
     @Mock
+    private SubscriptionRepository subscriptionRepository;
+
+    @Mock
     private ApplicationEventPublisher eventPublisher;
 
     private StripeWebhookService service;
@@ -54,6 +60,7 @@ class StripeWebhookServiceTest {
                 subscriptionService,
                 subscriptionProductRepository,
                 processedWebhookEventRepository,
+                subscriptionRepository,
                 eventPublisher
         );
     }
@@ -101,8 +108,83 @@ class StripeWebhookServiceTest {
     }
 
     @Test
-    void replayIsIgnored() {
+    void staleUpdatedDoesNotResurrectCanceledSubscription() {
         StripeOperations.StripeWebhookPayload payload = new StripeOperations.StripeWebhookPayload(
+                "evt_stale",
+                "customer.subscription.updated",
+                "acct_1",
+                "cus_1",
+                "sub_1",
+                "price_1",
+                Instant.parse("2026-09-01T00:00:00Z"),
+                "active",
+                true,
+                true,
+                true,
+                Map.of("tenant_id", "7", "user_id", "3", "product_id", "11"),
+                null,
+                false
+        );
+        when(stripeOperations.parseWebhook("{}", "t=1,v1=sig")).thenReturn(payload);
+        when(processedWebhookEventRepository.insertIfAbsent("evt_stale", "customer.subscription.updated", "acct_1"))
+                .thenReturn(1);
+        TenantStripeAccount account = account(7L, "acct_1");
+        when(stripeConnectService.findByStripeAccountId("acct_1")).thenReturn(account);
+
+        Subscription canceled = new Subscription();
+        canceled.setStatus(SubscriptionStatus.CANCELED);
+        when(subscriptionRepository.findByTenantIdAndExternalSubscriptionId(7L, "sub_1"))
+                .thenReturn(Optional.of(canceled));
+        // Live Stripe says canceled too — a stale event must not reactivate.
+        when(stripeOperations.retrieveSubscriptionStatus("acct_1", "sub_1")).thenReturn("canceled");
+
+        service.handle("{}", "t=1,v1=sig");
+
+        verify(subscriptionService, never()).upsertStripeSubscription(
+                any(), any(), any(), any(), any(), any(), any(), any()
+        );
+    }
+
+    @Test
+    void updatedAppliesWhenLiveLookupConfirmsActive() {
+        StripeOperations.StripeWebhookPayload payload = new StripeOperations.StripeWebhookPayload(
+                "evt_live",
+                "customer.subscription.updated",
+                "acct_1",
+                "cus_1",
+                "sub_2",
+                "price_1",
+                Instant.parse("2026-09-01T00:00:00Z"),
+                "active",
+                true,
+                true,
+                true,
+                Map.of("tenant_id", "7", "user_id", "3", "product_id", "11"),
+                null,
+                false
+        );
+        when(stripeOperations.parseWebhook("{}", "t=1,v1=sig")).thenReturn(payload);
+        when(processedWebhookEventRepository.insertIfAbsent("evt_live", "customer.subscription.updated", "acct_1"))
+                .thenReturn(1);
+        TenantStripeAccount account = account(7L, "acct_1");
+        when(stripeConnectService.findByStripeAccountId("acct_1")).thenReturn(account);
+        // No local CANCELED row → no live lookup needed, straight upsert.
+        when(subscriptionRepository.findByTenantIdAndExternalSubscriptionId(7L, "sub_2"))
+                .thenReturn(Optional.empty());
+
+        service.handle("{}", "t=1,v1=sig");
+
+        verify(stripeOperations, never()).retrieveSubscriptionStatus(any(), any());
+        verify(subscriptionService).upsertStripeSubscription(
+                eq(7L), eq(3L), eq(11L), eq("sub_2"), eq("cus_1"),
+                eq(SubscriptionStatus.ACTIVE),
+                eq(Instant.parse("2026-09-01T00:00:00Z")),
+                isNull()
+        );
+    }
+
+    @Test
+    void replayIsIgnored() {        StripeOperations.StripeWebhookPayload payload = new StripeOperations.StripeWebhookPayload(
                 "evt_dup",
                 "checkout.session.completed",
                 "acct_1",

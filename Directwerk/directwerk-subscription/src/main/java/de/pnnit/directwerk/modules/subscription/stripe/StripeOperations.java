@@ -40,6 +40,14 @@ public interface StripeOperations {
 
     void cancelSubscription(String accountId, String subscriptionId);
 
+    /**
+     * Retrieves the current live status of a Stripe subscription from the API.
+     * Used to guard against out-of-order webhook events (e.g. a stale
+     * {@code customer.subscription.updated} arriving after
+     * {@code customer.subscription.deleted}).
+     */
+    String retrieveSubscriptionStatus(String accountId, String subscriptionId);
+
     StripeWebhookPayload parseWebhook(String payload, String signature);
 
     record ConnectedAccount(

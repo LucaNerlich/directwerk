@@ -239,6 +239,28 @@ public class QueueRepository {
     }
 
     /**
+     * Extends the lease of a processing job held by the specified worker. The
+     * new expiry is computed from the current time so a heartbeat issued just
+     * before expiry still rescues the job.
+     *
+     * @param id     the job identifier
+     * @param worker the worker holding the job lease
+     * @param extension additional lease duration from now
+     * @return the updated job, or an empty optional if the lease was lost
+     */
+    public Optional<QueueJob> renew(UUID id, String worker, Duration extension) {
+        return jdbcTemplate.query("""
+                UPDATE jobs
+                SET locked_until = clock_timestamp() + (? * interval '1 millisecond'),
+                    updated_at = clock_timestamp()
+                WHERE id = ? AND status = 'PROCESSING' AND locked_by = ?
+                  AND locked_until > clock_timestamp()
+                RETURNING %s
+                """.formatted(COLUMNS), this::mapJob, extension.toMillis(), id, worker)
+                .stream().findFirst();
+    }
+
+    /**
      * Records a processing failure and either requeues the job for another attempt or marks it as failed.
      *
      * @param id the job identifier

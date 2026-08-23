@@ -234,6 +234,18 @@ public class StripeSdkOperations implements StripeOperations {
     }
 
     @Override
+    public String retrieveSubscriptionStatus(String accountId, String subscriptionId) {
+        requireConfigured();
+        try {
+            Subscription subscription =
+                    Subscription.retrieve(subscriptionId, connectedOptions(accountId));
+            return subscription.getStatus();
+        } catch (StripeException ex) {
+            throw wrap(ex);
+        }
+    }
+
+    @Override
     public StripeWebhookPayload parseWebhook(String payload, String signature) {
         if (!isWebhookConfigured()) {
             throw new StripeNotConfiguredException("Stripe webhook secret is not configured");
