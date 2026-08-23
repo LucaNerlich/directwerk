@@ -9,6 +9,7 @@ import static org.mockito.Mockito.when;
 
 import de.pnnit.directwerk.modules.core.entity.PasswordResetToken;
 import de.pnnit.directwerk.modules.core.entity.User;
+import de.pnnit.directwerk.modules.core.event.PasswordChangedEvent;
 import de.pnnit.directwerk.modules.core.repository.PasswordResetTokenRepository;
 import de.pnnit.directwerk.modules.core.repository.UserRepository;
 import de.pnnit.directwerk.modules.core.util.TokenHashUtil;
@@ -21,6 +22,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 @ExtendWith(MockitoExtension.class)
@@ -37,6 +39,9 @@ class PasswordResetServiceTest {
 
     @Mock
     private TransactionalEmailNotifier transactionalEmailNotifier;
+
+    @Mock
+    private ApplicationEventPublisher eventPublisher;
 
     @InjectMocks
     private PasswordResetService service;
@@ -81,6 +86,7 @@ class PasswordResetServiceTest {
 
         assertThat(resetToken.getUsedAt()).isNotNull();
         verify(userRepository).save(user);
+        verify(eventPublisher).publishEvent(any(PasswordChangedEvent.class));
     }
 
     @Test

@@ -12,7 +12,15 @@ import org.springframework.stereotype.Component;
 
 /**
  * Enables the Hibernate {@code tenantFilter} whenever a tenant context is present.
- * Runs after transaction advice to ensure it operates on the transaction-bound session.
+ *
+ * <p>Contract: the filter can only be applied to the <em>transaction-bound</em>
+ * session. This aspect therefore only takes effect when an enclosing
+ * transaction (or the repository's own {@code @Transactional}) has already
+ * opened one — outside any transaction, Spring's shared EntityManager proxy
+ * hands out a throwaway session per operation and a filter enabled there is
+ * lost. Every code path that touches {@code TenantOwned} entities must run
+ * inside a transactional boundary; services that query repositories directly
+ * should be annotated {@code @Transactional(readOnly = true)}.</p>
  */
 @Aspect
 @Component
