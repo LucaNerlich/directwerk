@@ -7,6 +7,7 @@ import de.pnnit.directwerk.modules.core.entity.Role;
 import de.pnnit.directwerk.modules.core.entity.TenantMembership;
 import de.pnnit.directwerk.modules.core.repository.TenantMembershipRepository;
 import de.pnnit.directwerk.security.SecurityUtils;
+import jakarta.persistence.EntityManager;
 import java.util.EnumSet;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
@@ -27,8 +28,11 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class TenantMembershipManagementService {
 
+    private static final int MEMBERSHIP_LOCK_NAMESPACE = 0x4D454D42; // "MEMB"
+
     private final TenantMembershipRepository tenantMembershipRepository;
     private final PlatformAuditService platformAuditService;
+    private final EntityManager entityManager;
 
     /**
      * Deactivates (disables) a user's membership in a tenant.
@@ -42,6 +46,7 @@ public class TenantMembershipManagementService {
      */
     @Transactional
     public TenantUserQueryService.TenantUserView deactivateMembership(Long tenantId, Long userId) {
+        acquireTenantMembershipLock(tenantId);
         TenantMembership membership = requireMembership(tenantId, userId);
 
         Long callerUserId = SecurityUtils.currentUserId();
@@ -97,6 +102,7 @@ public class TenantMembershipManagementService {
      */
     @Transactional
     public TenantUserQueryService.TenantUserView updateRole(Long tenantId, Long userId, String role) {
+        acquireTenantMembershipLock(tenantId);
         Role newRole;
         try {
             newRole = Role.valueOf(role);
@@ -136,6 +142,17 @@ public class TenantMembershipManagementService {
     private TenantMembership requireMembership(Long tenantId, Long userId) {
         return tenantMembershipRepository.findByUserIdAndTenantId(userId, tenantId)
                 .orElseThrow(() -> new TenantMembershipNotFoundException(tenantId, userId));
+    }
+
+    // Serializes membership mutations per tenant so two racing deactivations/demotions cannot
+    // both evaluate wouldRemoveLastActiveAdmin against the same "one admin remaining" snapshot
+    // and jointly leave the tenant with zero active admins. The lock is held until the
+    // surrounding transaction commits, so the second request re-reads committed state.
+    private void acquireTenantMembershipLock(Long tenantId) {
+        entityManager.createNativeQuery("SELECT pg_advisory_xact_lock(?, ?)")
+                .setParameter(1, MEMBERSHIP_LOCK_NAMESPACE)
+                .setParameter(2, tenantId.intValue())
+                .getSingleResult();
     }
 
     /**

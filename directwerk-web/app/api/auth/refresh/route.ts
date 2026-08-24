@@ -46,13 +46,8 @@ export async function POST(request: Request): Promise<Response> {
             useOAuthClient: true,
         })
 
-        const clientResponse = await sealRefreshToken(
-            await toClientResponse(response),
-            REFRESH_COOKIE,
-        )
-        clientResponse.headers.set('Cache-Control', 'no-store')
-        clientResponse.headers.set('Pragma', 'no-cache')
-        return clientResponse
+        // toClientResponse already marks every proxied response no-store.
+        return sealRefreshToken(await toClientResponse(response), REFRESH_COOKIE)
     } catch {
         return jsonError('The upstream service is unavailable.', 502)
     }

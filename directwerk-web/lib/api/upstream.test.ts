@@ -13,6 +13,29 @@ describe('upstream response handling', () => {
         })
     })
 
+    it('marks error responses as uncacheable', () => {
+        const response = jsonError('The upstream service is unavailable.', 502)
+
+        expect(response.headers.get('cache-control')).toBe('no-store')
+        expect(response.headers.get('pragma')).toBe('no-cache')
+    })
+
+    it('marks a 204 upstream response as uncacheable', async () => {
+        const response = await toClientResponse(new Response(null, {status: 204}))
+
+        expect(response.status).toBe(204)
+        expect(response.headers.get('cache-control')).toBe('no-store')
+        expect(response.headers.get('pragma')).toBe('no-cache')
+    })
+
+    it('marks a 205 upstream response as uncacheable', async () => {
+        const response = await toClientResponse(new Response(null, {status: 205}))
+
+        expect(response.status).toBe(205)
+        expect(response.headers.get('cache-control')).toBe('no-store')
+        expect(response.headers.get('pragma')).toBe('no-cache')
+    })
+
     it('preserves JSON responses and status codes', async () => {
         const response = await toClientResponse(
             new Response(JSON.stringify({code: 'USER_EXISTS'}), {
@@ -23,6 +46,8 @@ describe('upstream response handling', () => {
 
         expect(response.status).toBe(409)
         expect(response.headers.get('content-type')).toContain('application/json')
+        expect(response.headers.get('cache-control')).toBe('no-store')
+        expect(response.headers.get('pragma')).toBe('no-cache')
         expect(await response.json()).toEqual({code: 'USER_EXISTS'})
     })
 

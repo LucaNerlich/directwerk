@@ -115,7 +115,12 @@ export default function PricingPage(): React.JSX.Element {
                 window.location.assign(checkoutUrl)
                 return
             }
-            router.push('/checkout/success')
+            // A missing/invalid URL is an API contract violation, not a completed
+            // payment or grant — never route to the "payment received" screen.
+            setCheckoutMessage(
+                'Es konnte keine gültige Checkout-Adresse erstellt werden. '
+                    + 'Bitte versuche es später erneut oder wende dich an die Redaktion.',
+            )
         } catch (requestError: unknown) {
             if (
                 requestError instanceof Error &&

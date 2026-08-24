@@ -13,7 +13,6 @@ import de.pnnit.directwerk.modules.subscription.repository.StripeCustomerReposit
 import de.pnnit.directwerk.modules.subscription.service.SubscriptionProductService;
 import java.util.Map;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class StripeCheckoutService {
@@ -47,7 +46,11 @@ public class StripeCheckoutService {
         this.redirectUrlValidator = redirectUrlValidator;
     }
 
-    @Transactional
+    // Deliberately not @Transactional: this method spans up to three remote Stripe HTTP
+    // calls (account refresh, customer creation, session creation). Holding a pooled DB
+    // connection across them exhausts Hikari under concurrent checkout load. Each
+    // collaborator (requireChargeableAccount, syncProduct, repository saves) opens its
+    // own short transaction instead.
     @RequiresModule(StripeBillingModule.KEY)
     public String createCheckoutSession(
             Long tenantId,

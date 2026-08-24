@@ -111,7 +111,9 @@ public class TenantDomainService {
      * @return the domain's verification token, expected DNS TXT value, and DNS name hint
      * @throws DomainVerificationException if the domain is not found or is already verified
      */
-    @Transactional(readOnly = true)
+    // Not readOnly: ensureToken may generate and persist a token for legacy rows that
+    // lack one, which is a write.
+    @Transactional
     public DomainVerificationChallenge getVerificationChallenge(Long tenantId, String host) {
         TenantDomain domain = requireDomain(tenantId, host);
         if (domain.isVerified()) {
@@ -135,6 +137,12 @@ public class TenantDomainService {
      * @param allowTokenFallback  whether token-based verification is permitted
      * @return the verified domain
      */
+    // Transactional because the protected helper methods below are invoked on `this`
+    // (self-invocation bypasses the Spring proxy, so their own annotations are dead).
+    // Wrapping verifyDomain makes verification state and audit record commit atomically.
+    // The DNS lookup now sits inside the transaction - an accepted trade-off for this rare
+    // admin operation.
+    @Transactional
     public TenantDomain verifyDomain(
             Long tenantId,
             String host,

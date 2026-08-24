@@ -11,11 +11,12 @@ import {useEffect, useRef, useState, type ChangeEvent, type DragEvent} from 'rea
 import {useRouter} from 'next/navigation'
 
 import {AUTH_REQUIRED} from '@/lib/api/errors'
-import {deleteMedia, listMedia} from '@/lib/api/tenantApi'
+import {deleteMedia, getMediaPreviewUrl, listMedia} from '@/lib/api/tenantApi'
 import type {MediaAsset} from '@/lib/api/types'
 import {MEDIA_TYPE_LIMITS} from '@/lib/media/limits'
 import {uploadMediaFile} from '@/lib/media/upload'
 import {getClientTenantHost} from '@/lib/tenant/getClientTenantHost'
+import {safeImageSrc} from '@/lib/url/safeUrl'
 
 function formatBytes(sizeBytes: number | null): string {
     if (sizeBytes === null || sizeBytes <= 0) {
@@ -57,11 +58,43 @@ function resolveAssetType(
     return null
 }
 
+/**
+ * Fetches presigned preview URLs through a small worker pool so a library full of
+ * private images cannot fire dozens of presign requests simultaneously.
+ * Returns {id, url} pairs; assets whose fetch failed are simply absent.
+ */
+async function fetchPreviewUrls(
+    tenantHost: string,
+    assetIds: number[],
+    concurrency = 4,
+): Promise<Record<number, string>> {
+    const urls: Record<number, string> = {}
+    let cursor = 0
+
+    async function worker(): Promise<void> {
+        while (cursor < assetIds.length) {
+            const assetId = assetIds[cursor]
+            cursor += 1
+            try {
+                urls[assetId] = await getMediaPreviewUrl(tenantHost, assetId)
+            } catch {
+                // Keep the placeholder for this asset.
+            }
+        }
+    }
+
+    await Promise.all(
+        Array.from({length: Math.min(concurrency, assetIds.length)}, () => worker()),
+    )
+    return urls
+}
+
 export default function MediaLibraryClient(): React.JSX.Element {
     const router = useRouter()
     const fileInputRef = useRef<HTMLInputElement>(null)
     const mountedRef = useRef(true)
     const [assets, setAssets] = useState<MediaAsset[]>([])
+    const [previewUrls, setPreviewUrls] = useState<Record<number, string>>({})
     const [errorMessage, setErrorMessage] = useState<string | null>(null)
     const [statusMessage, setStatusMessage] = useState<string | null>(null)
     const [isLoading, setIsLoading] = useState(true)
@@ -75,6 +108,21 @@ export default function MediaLibraryClient(): React.JSX.Element {
     async function reload(): Promise<void> {
         const result = await listMedia(getClientTenantHost())
         setAssets(result)
+
+        // Fetch preview URLs for private IMAGE assets in the background
+        const privateImageIds = result
+            .filter((a) => a.assetType === 'IMAGE' && a.cdnUrl == null)
+            .map((a) => a.id)
+        if (privateImageIds.length > 0) {
+            void fetchPreviewUrls(getClientTenantHost(), privateImageIds).then(
+                (urls) => {
+                    if (!mountedRef.current || Object.keys(urls).length === 0) {
+                        return
+                    }
+                    setPreviewUrls((prev) => ({...prev, ...urls}))
+                },
+            )
+        }
     }
 
     useEffect(() => {
@@ -317,16 +365,21 @@ export default function MediaLibraryClient(): React.JSX.Element {
                 <p className="text-sm text-muted-foreground">Keine Medien dieses Typs.</p>
             ) : (
                 <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                    {visibleAssets.map((asset) => (
-                        <li
-                            className="flex flex-col gap-3 rounded-xl border bg-card p-4"
-                            key={asset.id}
-                        >
-                            {asset.assetType === 'IMAGE' && asset.cdnUrl != null ? (
+                    {visibleAssets.map((asset) => {
+                        const imgSrc =
+                            safeImageSrc(asset.cdnUrl) ??
+                            safeImageSrc(previewUrls[asset.id])
+                        return (
+                            <li
+                                className="flex flex-col gap-3 rounded-xl border bg-card p-4"
+                                key={asset.id}
+                            >
+                            {asset.assetType === 'IMAGE' &&
+                            imgSrc !== null ? (
                                 <img
                                     alt={asset.originalFilename ?? `Bild #${asset.id}`}
                                     className="aspect-video w-full rounded-md object-cover"
-                                    src={asset.cdnUrl}
+                                    src={imgSrc}
                                 />
                             ) : (
                                 <div className="flex aspect-video items-center justify-center rounded-md bg-muted text-xs font-medium uppercase tracking-wide text-muted-foreground">
@@ -355,7 +408,8 @@ export default function MediaLibraryClient(): React.JSX.Element {
                                 Löschen
                             </Button>
                         </li>
-                    ))}
+                        )
+                    })}
                 </ul>
             )}
         </div>

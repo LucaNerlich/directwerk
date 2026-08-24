@@ -15,6 +15,8 @@ export default function Header({children}: {children: ReactNode}) {
     const pathname = usePathname()
     const router = useRouter()
     const [hasToken, setHasToken] = useState(false)
+    const [isLoggingOut, setIsLoggingOut] = useState(false)
+    const [logoutError, setLogoutError] = useState(false)
 
     useEffect(() => {
         setHasToken(getAccessToken() !== null)
@@ -24,11 +26,29 @@ export default function Header({children}: {children: ReactNode}) {
         return unsubscribe
     }, [])
 
-    function logout(): void {
-        void fetch('/api/auth/logout', {method: 'POST', cache: 'no-store'})
-        clearTokens()
-        clearTenantTokens()
-        router.replace('/login')
+    // Only clear local state and navigate once the server has actually cleared the
+    // httpOnly refresh cookies — otherwise a failed request silently resurrects the
+    // session on the next visit.
+    async function logout(): Promise<void> {
+        setIsLoggingOut(true)
+        setLogoutError(false)
+        try {
+            const response = await fetch('/api/auth/logout', {
+                method: 'POST',
+                cache: 'no-store',
+            })
+            if (!response.ok) {
+                setLogoutError(true)
+                return
+            }
+            clearTokens()
+            clearTenantTokens()
+            router.replace('/login')
+        } catch {
+            setLogoutError(true)
+        } finally {
+            setIsLoggingOut(false)
+        }
     }
 
     function goToLogin(): void {
@@ -43,14 +63,24 @@ export default function Header({children}: {children: ReactNode}) {
         <AdminShell
             footer={
                 hasToken ? (
-                    <Button
-                        className="w-full justify-start"
-                        onClick={logout}
-                        type="button"
-                        variant="outline"
-                    >
-                        Log out
-                    </Button>
+                    <div className="space-y-2">
+                        {logoutError ? (
+                            <p className="text-xs text-destructive" role="alert">
+                                Abmelden fehlgeschlagen. Bitte erneut versuchen.
+                            </p>
+                        ) : null}
+                        <Button
+                            className="w-full justify-start"
+                            disabled={isLoggingOut}
+                            onClick={() => {
+                                void logout()
+                            }}
+                            type="button"
+                            variant={logoutError ? 'destructive' : 'outline'}
+                        >
+                            {isLoggingOut ? 'Logging out…' : logoutError ? 'Retry log out' : 'Log out'}
+                        </Button>
+                    </div>
                 ) : (
                     <Button
                         className="w-full justify-start"

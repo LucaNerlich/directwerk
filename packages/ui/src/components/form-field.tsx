@@ -22,14 +22,20 @@ export default function FormField({
     const hasMessage = error !== undefined || hint !== undefined
     const control = isValidElement(children)
         ? cloneElement(children as ReactElement<Record<string, unknown>>, {
-              'aria-describedby': hasMessage
-                  ? [
-                        (children.props as {'aria-describedby'?: string})['aria-describedby'],
-                        messageId,
-                    ]
-                        .filter(Boolean)
-                        .join(' ') || undefined
-                  : undefined,
+              // Only touch aria-describedby when a FormField-level message exists;
+              // passing an explicit undefined would erase the consumer's own value.
+              ...(hasMessage
+                  ? {
+                        'aria-describedby': [
+                            (children.props as {'aria-describedby'?: string})[
+                                'aria-describedby'
+                            ],
+                            messageId,
+                        ]
+                            .filter(Boolean)
+                            .join(' ') || undefined,
+                    }
+                  : {}),
               ...(error !== undefined ? {'aria-invalid': true} : {}),
           })
         : children

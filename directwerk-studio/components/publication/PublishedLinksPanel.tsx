@@ -4,6 +4,8 @@ import {Button} from '@directwerk/ui/components/button'
 
 import {useState} from 'react'
 
+import {safeLinkHref} from '@/lib/url/safeUrl'
+
 
 interface PublishedLink {
     label: string
@@ -45,9 +47,11 @@ export default function PublishedLinksPanel({
                         <code>{link.url}</code>
                     </p>
                     <div className="flex flex-wrap items-center gap-2">
-                        <a href={link.url} rel="noreferrer" target="_blank">
-                            Öffnen
-                        </a>
+                        {safeLinkHref(link.url) !== null ? (
+                            <a href={link.url} rel="noreferrer" target="_blank">
+                                Öffnen
+                            </a>
+                        ) : null}
                         <Button
                             className="inline-flex h-9 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground shadow-xs hover:bg-primary/90 disabled:pointer-events-none disabled:opacity-50"
                             onClick={() => {
