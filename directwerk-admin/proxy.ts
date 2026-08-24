@@ -2,8 +2,8 @@ import {NextResponse} from 'next/server'
 import type {NextRequest} from 'next/server'
 
 // Nonce-based strict CSP (per the Next.js Content Security Policy guide). Next.js
-// automatically applies the nonce from the request's CSP header to its own scripts,
-// so production no longer needs `script-src 'unsafe-inline'`.
+// automatically applies the nonce from the request's CSP header to its own scripts
+// and styles, so production needs neither script-src nor style-src 'unsafe-inline'.
 // Dev tooling still needs eval(); React hot reloading additionally requires
 // style-src unsafe-inline in dev.
 export function proxy(request: NextRequest) {
@@ -13,7 +13,7 @@ export function proxy(request: NextRequest) {
     const cspHeader = [
         "default-src 'self'",
         `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'${isDev ? " 'unsafe-eval'" : ''}`,
-        "style-src 'self' 'unsafe-inline'",
+        isDev ? "style-src 'self' 'unsafe-inline'" : `style-src 'self' 'nonce-${nonce}'`,
         "img-src 'self' data:",
         "font-src 'self'",
         "connect-src 'self'",

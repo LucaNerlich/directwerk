@@ -58,6 +58,37 @@ function resolveAssetType(
     return null
 }
 
+/**
+ * Fetches presigned preview URLs through a small worker pool so a library full of
+ * private images cannot fire dozens of presign requests simultaneously.
+ * Returns {id, url} pairs; assets whose fetch failed are simply absent.
+ */
+async function fetchPreviewUrls(
+    tenantHost: string,
+    assetIds: number[],
+    concurrency = 4,
+): Promise<Record<number, string>> {
+    const urls: Record<number, string> = {}
+    let cursor = 0
+
+    async function worker(): Promise<void> {
+        while (cursor < assetIds.length) {
+            const assetId = assetIds[cursor]
+            cursor += 1
+            try {
+                urls[assetId] = await getMediaPreviewUrl(tenantHost, assetId)
+            } catch {
+                // Keep the placeholder for this asset.
+            }
+        }
+    }
+
+    await Promise.all(
+        Array.from({length: Math.min(concurrency, assetIds.length)}, () => worker()),
+    )
+    return urls
+}
+
 export default function MediaLibraryClient(): React.JSX.Element {
     const router = useRouter()
     const fileInputRef = useRef<HTMLInputElement>(null)
@@ -79,26 +110,18 @@ export default function MediaLibraryClient(): React.JSX.Element {
         setAssets(result)
 
         // Fetch preview URLs for private IMAGE assets in the background
-        const privateImages = result.filter(
-            (a) => a.assetType === 'IMAGE' && a.cdnUrl == null,
-        )
-        if (privateImages.length > 0) {
-            Promise.allSettled(
-                privateImages.map(async (a) => {
-                    const url = await getMediaPreviewUrl(getClientTenantHost(), a.id)
-                    return {id: a.id, url}
-                }),
-            ).then((results) => {
-                const urls: Record<number, string> = {}
-                for (const r of results) {
-                    if (r.status === 'fulfilled') {
-                        urls[r.value.id] = r.value.url
+        const privateImageIds = result
+            .filter((a) => a.assetType === 'IMAGE' && a.cdnUrl == null)
+            .map((a) => a.id)
+        if (privateImageIds.length > 0) {
+            void fetchPreviewUrls(getClientTenantHost(), privateImageIds).then(
+                (urls) => {
+                    if (!mountedRef.current || Object.keys(urls).length === 0) {
+                        return
                     }
-                }
-                if (Object.keys(urls).length > 0) {
                     setPreviewUrls((prev) => ({...prev, ...urls}))
-                }
-            })
+                },
+            )
         }
     }
 

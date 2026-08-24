@@ -150,8 +150,10 @@ class TenantMembershipManagementServiceTest {
         assertThatThrownBy(() -> service.deactivateMembership(TENANT_ID, 5L))
                 .isInstanceOf(CannotDeactivateLastAdminException.class);
 
-        org.mockito.InOrder inOrder = org.mockito.Mockito.inOrder(entityManager, tenantMembershipRepository);
+        org.mockito.InOrder inOrder =
+                org.mockito.Mockito.inOrder(entityManager, lockQuery, tenantMembershipRepository);
         inOrder.verify(entityManager).createNativeQuery(LOCK_QUERY);
+        inOrder.verify(lockQuery).getSingleResult();
         inOrder.verify(tenantMembershipRepository).findByUserIdAndTenantId(5L, TENANT_ID);
         inOrder.verify(tenantMembershipRepository).findByTenantId(TENANT_ID);
     }
