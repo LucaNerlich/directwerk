@@ -153,7 +153,7 @@ public class SubscriptionService {
                 // stale/duplicate metadata must not silently overwrite it.
                 return byUserAndProduct;
             }
-            subscription = byUserAndProduct != null ? byUserAndProduct : newSubscription(tenantId, userId, product);
+            subscription = byUserAndProduct != null ? byUserAndProduct : newSubscription(tenantId, user, product);
         }
         subscription.setUser(user);
         subscription.setProduct(product);
