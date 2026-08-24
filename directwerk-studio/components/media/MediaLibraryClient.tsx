@@ -11,11 +11,12 @@ import {useEffect, useRef, useState, type ChangeEvent, type DragEvent} from 'rea
 import {useRouter} from 'next/navigation'
 
 import {AUTH_REQUIRED} from '@/lib/api/errors'
-import {deleteMedia, listMedia} from '@/lib/api/tenantApi'
+import {deleteMedia, getMediaPreviewUrl, listMedia} from '@/lib/api/tenantApi'
 import type {MediaAsset} from '@/lib/api/types'
 import {MEDIA_TYPE_LIMITS} from '@/lib/media/limits'
 import {uploadMediaFile} from '@/lib/media/upload'
 import {getClientTenantHost} from '@/lib/tenant/getClientTenantHost'
+import {safeImageSrc} from '@/lib/url/safeUrl'
 
 function formatBytes(sizeBytes: number | null): string {
     if (sizeBytes === null || sizeBytes <= 0) {
@@ -62,6 +63,7 @@ export default function MediaLibraryClient(): React.JSX.Element {
     const fileInputRef = useRef<HTMLInputElement>(null)
     const mountedRef = useRef(true)
     const [assets, setAssets] = useState<MediaAsset[]>([])
+    const [previewUrls, setPreviewUrls] = useState<Record<number, string>>({})
     const [errorMessage, setErrorMessage] = useState<string | null>(null)
     const [statusMessage, setStatusMessage] = useState<string | null>(null)
     const [isLoading, setIsLoading] = useState(true)
@@ -75,6 +77,29 @@ export default function MediaLibraryClient(): React.JSX.Element {
     async function reload(): Promise<void> {
         const result = await listMedia(getClientTenantHost())
         setAssets(result)
+
+        // Fetch preview URLs for private IMAGE assets in the background
+        const privateImages = result.filter(
+            (a) => a.assetType === 'IMAGE' && a.cdnUrl == null,
+        )
+        if (privateImages.length > 0) {
+            Promise.allSettled(
+                privateImages.map(async (a) => {
+                    const url = await getMediaPreviewUrl(getClientTenantHost(), a.id)
+                    return {id: a.id, url}
+                }),
+            ).then((results) => {
+                const urls: Record<number, string> = {}
+                for (const r of results) {
+                    if (r.status === 'fulfilled') {
+                        urls[r.value.id] = r.value.url
+                    }
+                }
+                if (Object.keys(urls).length > 0) {
+                    setPreviewUrls((prev) => ({...prev, ...urls}))
+                }
+            })
+        }
     }
 
     useEffect(() => {
@@ -317,16 +342,21 @@ export default function MediaLibraryClient(): React.JSX.Element {
                 <p className="text-sm text-muted-foreground">Keine Medien dieses Typs.</p>
             ) : (
                 <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                    {visibleAssets.map((asset) => (
-                        <li
-                            className="flex flex-col gap-3 rounded-xl border bg-card p-4"
-                            key={asset.id}
-                        >
-                            {asset.assetType === 'IMAGE' && asset.cdnUrl != null ? (
+                    {visibleAssets.map((asset) => {
+                        const imgSrc =
+                            safeImageSrc(asset.cdnUrl) ??
+                            safeImageSrc(previewUrls[asset.id])
+                        return (
+                            <li
+                                className="flex flex-col gap-3 rounded-xl border bg-card p-4"
+                                key={asset.id}
+                            >
+                            {asset.assetType === 'IMAGE' &&
+                            imgSrc !== null ? (
                                 <img
                                     alt={asset.originalFilename ?? `Bild #${asset.id}`}
                                     className="aspect-video w-full rounded-md object-cover"
-                                    src={asset.cdnUrl}
+                                    src={imgSrc}
                                 />
                             ) : (
                                 <div className="flex aspect-video items-center justify-center rounded-md bg-muted text-xs font-medium uppercase tracking-wide text-muted-foreground">
@@ -355,7 +385,8 @@ export default function MediaLibraryClient(): React.JSX.Element {
                                 Löschen
                             </Button>
                         </li>
-                    ))}
+                        )
+                    })}
                 </ul>
             )}
         </div>

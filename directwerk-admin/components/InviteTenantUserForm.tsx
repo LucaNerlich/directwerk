@@ -172,7 +172,7 @@ export default function InviteTenantUserForm({
                 </div>
                 <div className="space-y-2">
                     <Label htmlFor="invite-role">Role</Label>
-                    <select className="native-select" defaultValue="TENANT_ADMIN" id="invite-role" name="role" required>
+                    <select className="native-select" defaultValue="EDITOR" id="invite-role" name="role" required>
                         {TENANT_INVITABLE_ROLES.map((role) => (
                             <option key={role} value={role}>
                                 {getTenantRoleLabel(role)}

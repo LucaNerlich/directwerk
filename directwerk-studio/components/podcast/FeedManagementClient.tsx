@@ -17,6 +17,7 @@ import {
 import type {SeriesSummary, SubscriberFeedSummary} from '@/lib/api/types'
 import {useSiteConfig} from '@/lib/site/SiteConfigProvider'
 import {getClientTenantHost} from '@/lib/tenant/getClientTenantHost'
+import {safeLinkHref} from '@/lib/url/safeUrl'
 
 function copyUrl(url: string): Promise<void> {
     return navigator.clipboard.writeText(url)
@@ -161,13 +162,15 @@ export default function FeedManagementClient(): React.JSX.Element {
                                 <code>{config.publicRssUrl}</code>
                             </span>
                             <span className="flex shrink-0 items-center gap-3 text-sm text-muted-foreground">
-                                <a
-                                    href={config.publicRssUrl}
-                                    rel="noreferrer"
-                                    target="_blank"
-                                >
-                                    Öffnen
-                                </a>
+                                {safeLinkHref(config.publicRssUrl) !== null ? (
+                                    <a
+                                        href={config.publicRssUrl}
+                                        rel="noreferrer"
+                                        target="_blank"
+                                    >
+                                        Öffnen
+                                    </a>
+                                ) : null}
                                 <Button
                                     className="inline-flex h-9 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground shadow-xs hover:bg-primary/90 disabled:pointer-events-none disabled:opacity-50"
                                     onClick={() =>
@@ -196,13 +199,15 @@ export default function FeedManagementClient(): React.JSX.Element {
                                     <PublicationStatusBadge status={item.status} />
                                 </span>
                                 <span className="flex shrink-0 items-center gap-3 text-sm text-muted-foreground">
-                                    <a
-                                        href={item.rssUrl ?? '#'}
-                                        rel="noreferrer"
-                                        target="_blank"
-                                    >
-                                        Öffnen
-                                    </a>
+                                    {safeLinkHref(item.rssUrl) !== null ? (
+                                        <a
+                                            href={item.rssUrl as string}
+                                            rel="noreferrer"
+                                            target="_blank"
+                                        >
+                                            Öffnen
+                                        </a>
+                                    ) : null}
                                     <Button
                                         className="inline-flex h-9 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground shadow-xs hover:bg-primary/90 disabled:pointer-events-none disabled:opacity-50"
                                         onClick={() =>

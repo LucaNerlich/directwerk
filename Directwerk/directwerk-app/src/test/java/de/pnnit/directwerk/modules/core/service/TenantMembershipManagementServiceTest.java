@@ -3,6 +3,7 @@ package de.pnnit.directwerk.modules.core.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -20,9 +21,12 @@ import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentMatchers;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -34,6 +38,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 class TenantMembershipManagementServiceTest {
 
     private static final Long TENANT_ID = 1L;
+    private static final String LOCK_QUERY = "SELECT pg_advisory_xact_lock(?, ?)";
 
     @Mock
     private TenantMembershipRepository tenantMembershipRepository;
@@ -41,8 +46,23 @@ class TenantMembershipManagementServiceTest {
     @Mock
     private PlatformAuditService platformAuditService;
 
+    @Mock
+    private EntityManager entityManager;
+
+    @Mock
+    private jakarta.persistence.Query lockQuery;
+
     @InjectMocks
     private TenantMembershipManagementService service;
+
+    @BeforeEach
+    void stubTenantAdvisoryLock() {
+        // Not every path reaches the lock; lenient keeps strict-stubs happy.
+        lenient().when(entityManager.createNativeQuery(LOCK_QUERY)).thenReturn(lockQuery);
+        lenient().when(lockQuery.setParameter(ArgumentMatchers.anyInt(), ArgumentMatchers.any()))
+                .thenReturn(lockQuery);
+        lenient().when(lockQuery.getSingleResult()).thenReturn(new Object());
+    }
 
     @AfterEach
     void cleanup() {
@@ -118,6 +138,22 @@ class TenantMembershipManagementServiceTest {
 
         assertThatThrownBy(() -> service.deactivateMembership(TENANT_ID, 5L))
                 .isInstanceOf(CannotDeactivateLastAdminException.class);
+    }
+
+    @Test
+    void deactivationAcquiresTenantAdvisoryLockBeforeEvaluatingGuard() {
+        authenticateAs(99L);
+        TenantMembership target = membership(5L, MembershipStatus.ACTIVE, Role.TENANT_ADMIN);
+        when(tenantMembershipRepository.findByUserIdAndTenantId(5L, TENANT_ID)).thenReturn(Optional.of(target));
+        when(tenantMembershipRepository.findByTenantId(TENANT_ID)).thenReturn(List.of(target));
+
+        assertThatThrownBy(() -> service.deactivateMembership(TENANT_ID, 5L))
+                .isInstanceOf(CannotDeactivateLastAdminException.class);
+
+        org.mockito.InOrder inOrder = org.mockito.Mockito.inOrder(entityManager, tenantMembershipRepository);
+        inOrder.verify(entityManager).createNativeQuery(LOCK_QUERY);
+        inOrder.verify(tenantMembershipRepository).findByUserIdAndTenantId(5L, TENANT_ID);
+        inOrder.verify(tenantMembershipRepository).findByTenantId(TENANT_ID);
     }
 
     @Test

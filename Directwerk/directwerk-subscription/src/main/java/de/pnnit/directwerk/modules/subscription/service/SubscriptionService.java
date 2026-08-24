@@ -62,16 +62,27 @@ public class SubscriptionService {
             throw new IllegalArgumentException("Subscription product is not active");
         }
 
-        Subscription subscription = subscriptionRepository
+        Subscription existing = subscriptionRepository
                 .findByTenantIdAndUserIdAndProductId(tenantId, user.getId(), productId)
-                .orElseGet(() -> {
-                    Subscription created = new Subscription();
-                    created.setTenant(tenantRepository.getReferenceById(tenantId));
-                    created.setUser(user);
-                    created.setProduct(product);
-                    created.setSource(SubscriptionSource.MANUAL);
-                    return created;
-                });
+                .orElse(null);
+        if (existing != null && existing.getSource() == SubscriptionSource.STRIPE
+                && existing.getStatus() == SubscriptionStatus.ACTIVE) {
+            // (tenant, user, product) is unique: converting the row to MANUAL would keep it
+            // reachable via its external IDs and later Stripe lifecycle events would cancel
+            // or overwrite the admin's grant. Force an explicit revoke first.
+            throw new IllegalArgumentException(
+                    "User already has an active Stripe subscription for this product; revoke it before granting manual access");
+        }
+        if (existing != null) {
+            // Drop external references so Stripe syncs that match by external ID stop
+            // touching this now manually-managed row.
+            existing.setExternalSubscriptionId(null);
+            existing.setExternalPaymentId(null);
+        }
+
+        Subscription subscription = existing != null
+                ? existing
+                : newManualSubscription(tenantId, user, product);
 
         subscription.setStatus(SubscriptionStatus.ACTIVE);
         subscription.setStartedAt(Instant.now());
@@ -81,6 +92,23 @@ public class SubscriptionService {
         eventPublisher.publishEvent(new TenantEntitlementsChangedEvent(tenantId));
         return subscriptionRepository.findDetailedByIdAndTenantId(subscription.getId(), tenantId)
                 .orElse(subscription);
+    }
+
+    private Subscription newManualSubscription(Long tenantId, User user, SubscriptionProduct product) {
+        Subscription created = new Subscription();
+        created.setTenant(tenantRepository.getReferenceById(tenantId));
+        created.setUser(user);
+        created.setProduct(product);
+        created.setSource(SubscriptionSource.MANUAL);
+        return created;
+    }
+
+    private Subscription newSubscription(Long tenantId, User user, SubscriptionProduct product) {
+        Subscription created = new Subscription();
+        created.setTenant(tenantRepository.getReferenceById(tenantId));
+        created.setUser(user);
+        created.setProduct(product);
+        return created;
     }
 
     @Transactional
@@ -115,15 +143,17 @@ public class SubscriptionService {
                     .orElse(null);
         }
         if (subscription == null) {
-            subscription = subscriptionRepository
+            Subscription byUserAndProduct = subscriptionRepository
                     .findByTenantIdAndUserIdAndProductId(tenantId, userId, productId)
-                    .orElseGet(() -> {
-                        Subscription created = new Subscription();
-                        created.setTenant(tenantRepository.getReferenceById(tenantId));
-                        created.setUser(user);
-                        created.setProduct(product);
-                        return created;
-                    });
+                    .orElse(null);
+            if (byUserAndProduct != null
+                    && byUserAndProduct.getSource() == SubscriptionSource.MANUAL
+                    && byUserAndProduct.getStatus() == SubscriptionStatus.ACTIVE) {
+                // An admin's active manual grant owns this row; a Stripe event carrying
+                // stale/duplicate metadata must not silently overwrite it.
+                return byUserAndProduct;
+            }
+            subscription = byUserAndProduct != null ? byUserAndProduct : newSubscription(tenantId, userId, product);
         }
         subscription.setUser(user);
         subscription.setProduct(product);
