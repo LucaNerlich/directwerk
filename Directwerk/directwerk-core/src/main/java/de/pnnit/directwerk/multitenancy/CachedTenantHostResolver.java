@@ -27,7 +27,6 @@ public class CachedTenantHostResolver {
      * @param host the host name to resolve
      * @return the matching tenant, or an empty optional when the host is blank or has no verified domain
      */
-    @SuppressWarnings("unchecked")
     public Optional<Tenant> resolveHost(String host) {
         if (!StringUtils.hasText(host)) {
             return Optional.empty();
@@ -36,8 +35,8 @@ public class CachedTenantHostResolver {
         Cache cache = cacheManager.getCache(DirectwerkCacheNames.TENANT_BY_HOST);
         if (cache != null) {
             Cache.ValueWrapper cached = cache.get(cacheKey);
-            if (cached != null) {
-                return (Optional<Tenant>) cached.get();
+            if (cached != null && cached.get() instanceof Optional<?> cachedTenant) {
+                return cachedTenant.map(Tenant.class::cast);
             }
         }
 
