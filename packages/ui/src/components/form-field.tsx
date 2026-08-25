@@ -1,7 +1,12 @@
-import {cloneElement, isValidElement, type ReactElement, type ReactNode} from 'react'
+import {cloneElement, isValidElement, type ReactNode} from 'react'
 
 import {Label} from '#components/label'
 import {cn} from '#lib/utils'
+
+type FieldControlProps = {
+    'aria-describedby'?: string
+    'aria-invalid'?: boolean
+}
 
 export default function FormField({
     htmlFor,
@@ -20,20 +25,19 @@ export default function FormField({
 }): React.JSX.Element {
     const messageId = `${htmlFor}-message`
     const hasMessage = error !== undefined || hint !== undefined
-    const control = isValidElement(children)
-        ? cloneElement(children as ReactElement<Record<string, unknown>>, {
+    const control = isValidElement<FieldControlProps>(children)
+        ? cloneElement(children, {
               // Only touch aria-describedby when a FormField-level message exists;
               // passing an explicit undefined would erase the consumer's own value.
               ...(hasMessage
                   ? {
-                        'aria-describedby': [
-                            (children.props as {'aria-describedby'?: string})[
-                                'aria-describedby'
-                            ],
-                            messageId,
-                        ]
-                            .filter(Boolean)
-                            .join(' ') || undefined,
+                        'aria-describedby':
+                            [
+                                children.props['aria-describedby'],
+                                messageId,
+                            ]
+                                .filter(Boolean)
+                                .join(' ') || undefined,
                     }
                   : {}),
               ...(error !== undefined ? {'aria-invalid': true} : {}),
