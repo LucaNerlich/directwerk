@@ -4,6 +4,8 @@ export interface ApiErrorDetail {
     field: string | null
 }
 
+export type AccessPolicy = 'FREE' | 'PAID'
+
 export interface ApiEnvelope<T> {
     statusCode: number
     statusMessage: string
@@ -99,7 +101,7 @@ export interface PublicArticle {
     excerpt: string | null
     seoDescription: string | null
     heroAssetId: number | null
-    accessPolicy: 'FREE' | 'PAID'
+    accessPolicy: AccessPolicy
     requiredLevelSortOrder: number | null
     publishedAt: string | null
     categories: PublicCategory[]
@@ -124,7 +126,7 @@ export interface PublicEpisode {
     title: string
     description: string | null
     durationSeconds: number | null
-    accessPolicy: 'FREE' | 'PAID'
+    accessPolicy: AccessPolicy
     requiredLevelSortOrder: number | null
     publishedAt: string | null
     audioCdnUrl: string | null
