@@ -1,4 +1,4 @@
-package de.pnnit.directwerk.modules.podcast.feed;
+package de.pnnit.directwerk.modules.podcast.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -12,10 +12,12 @@ import de.pnnit.directwerk.modules.core.entity.User;
 import de.pnnit.directwerk.modules.core.repository.TenantRepository;
 import de.pnnit.directwerk.modules.core.repository.UserRepository;
 import de.pnnit.directwerk.modules.podcast.entity.Format;
+import de.pnnit.directwerk.modules.podcast.feed.FeedBuilderException;
+import de.pnnit.directwerk.modules.podcast.feed.SubscriberFeed;
+import de.pnnit.directwerk.modules.podcast.feed.SubscriberFeedNotFoundException;
+import de.pnnit.directwerk.modules.podcast.feed.SubscriberFeedRepository;
 import de.pnnit.directwerk.modules.podcast.job.RssFeedRefreshJobProducer;
 import de.pnnit.directwerk.modules.podcast.repository.FormatRepository;
-import de.pnnit.directwerk.modules.podcast.service.RssFeedSnapshotService;
-import de.pnnit.directwerk.modules.podcast.service.SubscriberEpisodeService;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;

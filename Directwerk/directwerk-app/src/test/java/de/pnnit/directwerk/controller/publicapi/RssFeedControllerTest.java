@@ -16,7 +16,7 @@ import de.pnnit.directwerk.modules.podcast.FeedBuilderModule;
 import de.pnnit.directwerk.modules.podcast.entity.PodcastSeries;
 import de.pnnit.directwerk.modules.podcast.feed.SubscriberFeed;
 import de.pnnit.directwerk.modules.podcast.feed.SubscriberFeedNotFoundException;
-import de.pnnit.directwerk.modules.podcast.feed.SubscriberFeedService;
+import de.pnnit.directwerk.modules.podcast.service.SubscriberFeedService;
 import de.pnnit.directwerk.modules.podcast.repository.PodcastSeriesRepository;
 import de.pnnit.directwerk.modules.podcast.service.EpisodeDownloadAnalyticsService;
 import de.pnnit.directwerk.modules.podcast.service.EpisodeEnclosureService;

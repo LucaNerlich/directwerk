@@ -7,7 +7,7 @@ import de.pnnit.directwerk.modules.podcast.FeedBuilderModule;
 import de.pnnit.directwerk.modules.podcast.PodcastRssModule;
 import de.pnnit.directwerk.modules.podcast.entity.Format;
 import de.pnnit.directwerk.modules.podcast.feed.SubscriberFeed;
-import de.pnnit.directwerk.modules.podcast.feed.SubscriberFeedService;
+import de.pnnit.directwerk.modules.podcast.service.SubscriberFeedService;
 import de.pnnit.directwerk.modules.subscription.SubscriptionModule;
 import de.pnnit.directwerk.security.DirectwerkUserPrincipal;
 import de.pnnit.directwerk.security.SecurityUtils;

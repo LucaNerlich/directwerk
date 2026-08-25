@@ -1,4 +1,4 @@
-package de.pnnit.directwerk.modules.podcast.feed;
+package de.pnnit.directwerk.modules.podcast.service;
 
 import de.pnnit.directwerk.modules.core.entity.Tenant;
 import de.pnnit.directwerk.modules.core.repository.TenantRepository;
@@ -8,8 +8,11 @@ import de.pnnit.directwerk.modules.podcast.entity.Episode;
 import de.pnnit.directwerk.modules.podcast.entity.Format;
 import de.pnnit.directwerk.modules.podcast.job.RssFeedRefreshJobProducer;
 import de.pnnit.directwerk.modules.podcast.repository.FormatRepository;
-import de.pnnit.directwerk.modules.podcast.service.RssFeedSnapshotService;
-import de.pnnit.directwerk.modules.podcast.service.SubscriberEpisodeService;
+import de.pnnit.directwerk.modules.podcast.feed.FeedBuilderException;
+import de.pnnit.directwerk.modules.podcast.feed.SubscriberFeed;
+import de.pnnit.directwerk.modules.podcast.feed.SubscriberFeedFormatMatcher;
+import de.pnnit.directwerk.modules.podcast.feed.SubscriberFeedNotFoundException;
+import de.pnnit.directwerk.modules.podcast.feed.SubscriberFeedRepository;
 import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Base64;
