@@ -1,4 +1,4 @@
-package de.pnnit.directwerk.modules.digital.service;
+package de.pnnit.directwerk.modules.digital.job;
 
 import de.pnnit.directwerk.config.DirectwerkConfig;
 import de.pnnit.directwerk.config.DirectwerkProperties;

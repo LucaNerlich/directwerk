@@ -4,7 +4,7 @@ import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import de.pnnit.directwerk.modules.digital.service.StagingCleanupService;
+import de.pnnit.directwerk.modules.digital.job.StagingCleanupService;
 import java.time.Instant;
 import java.util.Date;
 import org.junit.jupiter.api.Test;
