@@ -4,7 +4,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.verify;
@@ -14,7 +13,6 @@ import de.pnnit.directwerk.config.DirectwerkConfig;
 import de.pnnit.directwerk.modules.content.ContentPublishedNotifier;
 import de.pnnit.directwerk.modules.core.entity.Tenant;
 import de.pnnit.directwerk.modules.core.service.ModuleGateService;
-import de.pnnit.directwerk.modules.podcast.job.RssFeedRefreshJobProducer;
 import de.pnnit.directwerk.modules.digital.api.EpisodeMediaApi;
 import de.pnnit.directwerk.modules.digital.entity.AssetScope;
 import de.pnnit.directwerk.modules.digital.entity.AssetStatus;
@@ -64,14 +62,15 @@ class PublicationWorkflowServiceTest {
     private DirectwerkConfig directwerkConfig;
 
     @Mock
-    private RssFeedRefreshJobProducer rssFeedRefreshJobProducer;
+    private RssFeedRefreshScheduler rssFeedRefreshScheduler;
 
     private PublicationWorkflowService publicationWorkflowService;
 
-    @SuppressWarnings("unchecked")
+    @Mock
+    private ObjectProvider<PublicationWorkflowService> selfProvider;
+
     @BeforeEach
     void setUp() {
-        ObjectProvider<PublicationWorkflowService> selfProvider = mock(ObjectProvider.class);
         publicationWorkflowService = new PublicationWorkflowService(
                 episodeRepository,
                 episodeService,
@@ -81,7 +80,7 @@ class PublicationWorkflowServiceTest {
                 moduleGateService,
                 directwerkConfig,
                 contentPublishedNotifier,
-                rssFeedRefreshJobProducer,
+                rssFeedRefreshScheduler,
                 selfProvider
         );
         lenient().when(selfProvider.getObject()).thenReturn(publicationWorkflowService);
@@ -109,7 +108,7 @@ class PublicationWorkflowServiceTest {
         assertThat(published.getAudioAsset().getVisibility()).isEqualTo(AssetVisibility.PUBLIC);
         verify(episodeMediaApi).attachEpisode(99L, 55L);
         verify(episodeMediaApi).promoteToPublic(99L);
-        verify(rssFeedRefreshJobProducer).requestRefreshAfterCommit(10L);
+        verify(rssFeedRefreshScheduler).requestRefreshAfterCommit(10L);
     }
 
     @Test
@@ -207,7 +206,7 @@ class PublicationWorkflowServiceTest {
         assertThat(unpublished.getStatus()).isEqualTo(EpisodeStatus.DRAFT);
         assertThat(unpublished.getAudioAsset().getVisibility()).isEqualTo(AssetVisibility.PRIVATE);
         verify(episodeMediaApi).demoteToPrivate(99L);
-        verify(rssFeedRefreshJobProducer).requestRefreshAfterCommit(10L);
+        verify(rssFeedRefreshScheduler).requestRefreshAfterCommit(10L);
     }
 
     @Test
@@ -239,7 +238,7 @@ class PublicationWorkflowServiceTest {
         assertThat(archived.getStatus()).isEqualTo(EpisodeStatus.ARCHIVED);
         assertThat(archived.getAudioAsset().getVisibility()).isEqualTo(AssetVisibility.PRIVATE);
         verify(episodeMediaApi).demoteToPrivate(99L);
-        verify(rssFeedRefreshJobProducer).requestRefreshAfterCommit(10L);
+        verify(rssFeedRefreshScheduler).requestRefreshAfterCommit(10L);
     }
 
     @Test

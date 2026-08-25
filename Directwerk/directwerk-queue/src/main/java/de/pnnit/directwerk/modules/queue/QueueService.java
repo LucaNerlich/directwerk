@@ -58,7 +58,6 @@ public class QueueService {
             throw new IllegalArgumentException("maxAttempts must be between 1 and 100");
         }
         JobEnqueueMetadata safeMetadata = metadata == null ? JobEnqueueMetadata.empty() : metadata;
-        // Validate metadata JSON size if present
         if (safeMetadata.metadata() != null) {
             validateJson(safeMetadata.metadata());
         }

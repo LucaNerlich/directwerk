@@ -79,21 +79,4 @@ public final class SecurityUtils {
         DirectwerkUserPrincipal principal = currentPrincipal();
         return principal != null ? principal.userId() : null;
     }
-
-    /**
-     * Tenant id claimed by the Spring Security principal (issued at login for that Host).
-     * This is the authoritative membership tenant for the request — never take tenant id from
-     * client headers or body for authorization.
-     */
-    public static Long currentPrincipalTenantId() {
-        DirectwerkUserPrincipal principal = currentPrincipal();
-        return principal != null ? principal.tenantId() : null;
-    }
-
-    public static boolean isPlatformAdmin() {
-        DirectwerkUserPrincipal principal = currentPrincipal();
-        return principal != null
-                && principal.getAuthorities().stream()
-                        .anyMatch(authority -> RoleConstants.PLATFORM_ADMIN.equals(authority.getAuthority()));
-    }
 }

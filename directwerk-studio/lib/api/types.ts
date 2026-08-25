@@ -1,4 +1,4 @@
-export type StudioHome = 'OVERVIEW' | 'WRITE_DESK' | 'PODCAST_DESK'
+type StudioHome = 'OVERVIEW' | 'WRITE_DESK' | 'PODCAST_DESK'
 
 export type StudioDesk = 'WRITE' | 'PODCAST'
 
@@ -186,27 +186,6 @@ export interface ScheduleOptions {
 }
 
 export type AssetType = 'AUDIO' | 'IMAGE' | 'VIDEO' | 'DOCUMENT'
-
-export type AssetVisibility = 'PUBLIC' | 'PRIVATE'
-
-export type AssetScope = 'TENANT_PUBLIC' | 'CONTENT' | 'USER_PRIVATE'
-
-export interface CreateUploadUrlInput {
-    filename: string
-    mimeType: string
-    sizeBytes: number
-    assetType: AssetType
-    intendedVisibility?: AssetVisibility
-    scope?: AssetScope
-    episodeId?: number
-}
-
-export interface UploadUrlResult {
-    assetId: number
-    uploadUrl: string
-    expiresAt: string | null
-    headers: Record<string, string>
-}
 
 export interface MediaAsset {
     id: number

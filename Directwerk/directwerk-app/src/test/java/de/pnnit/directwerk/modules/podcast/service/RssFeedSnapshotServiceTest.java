@@ -23,6 +23,7 @@ import de.pnnit.directwerk.modules.digital.storage.S3PublicUrlBuilder;
 import de.pnnit.directwerk.modules.podcast.feed.SubscriberFeed;
 import de.pnnit.directwerk.modules.podcast.feed.SubscriberFeedRepository;
 import de.pnnit.directwerk.modules.podcast.repository.PodcastSeriesRepository;
+import de.pnnit.directwerk.testsupport.TestObjectProviders;
 import java.net.URL;
 import java.time.Duration;
 import java.util.List;
@@ -210,7 +211,6 @@ class RssFeedSnapshotServiceTest {
         verify(fixture.s3Client).putObject(any(PutObjectRequest.class), any(software.amazon.awssdk.core.sync.RequestBody.class));
     }
 
-    @SuppressWarnings("unchecked")
     private Fixture fixture() {
         RssFeedService rssFeedService = mock(RssFeedService.class);
         TenantRepository tenantRepository = mock(TenantRepository.class);
@@ -219,18 +219,16 @@ class RssFeedSnapshotServiceTest {
         PodcastSeriesRepository podcastSeriesRepository = mock(PodcastSeriesRepository.class);
         SubscriberFeedRepository subscriberFeedRepository = mock(SubscriberFeedRepository.class);
         RssSnapshotStateStore stateStore = mock(RssSnapshotStateStore.class);
-        ObjectProvider<S3Client> s3ClientProvider = mock(ObjectProvider.class);
-        ObjectProvider<S3Presigner> s3PresignerProvider = mock(ObjectProvider.class);
-        ObjectProvider<CdnPurgeClient> cdnPurgeProvider = mock(ObjectProvider.class);
         S3Client s3Client = mock(S3Client.class);
         CdnPurgeClient cdnPurgeClient = mock(CdnPurgeClient.class);
+        ObjectProvider<S3Client> s3ClientProvider = TestObjectProviders.returning(s3Client);
+        ObjectProvider<S3Presigner> s3PresignerProvider = TestObjectProviders.empty();
+        ObjectProvider<CdnPurgeClient> cdnPurgeProvider = TestObjectProviders.returning(cdnPurgeClient);
         DirectwerkConfig directwerkConfig = mock(DirectwerkConfig.class);
         DirectwerkProperties.Storage storage = mock(DirectwerkProperties.Storage.class);
         when(directwerkConfig.isStorageEnabled()).thenReturn(true);
         when(storage.bucket()).thenReturn("feeds");
         when(directwerkConfig.storage()).thenReturn(storage);
-        when(s3ClientProvider.getIfAvailable()).thenReturn(s3Client);
-        when(cdnPurgeProvider.getIfAvailable()).thenReturn(cdnPurgeClient);
         when(stateStore.stalePrefixes(10L)).thenReturn(List.of());
 
         Tenant tenant = new Tenant();

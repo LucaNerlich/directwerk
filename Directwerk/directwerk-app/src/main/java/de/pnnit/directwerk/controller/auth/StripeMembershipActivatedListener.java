@@ -1,6 +1,6 @@
 package de.pnnit.directwerk.controller.auth;
 
-import de.pnnit.directwerk.modules.podcast.feed.SubscriberFeedService;
+import de.pnnit.directwerk.modules.podcast.service.SubscriberFeedService;
 import de.pnnit.directwerk.modules.subscription.stripe.StripeMembershipActivatedEvent;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.event.TransactionalEventListener;

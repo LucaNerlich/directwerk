@@ -1,7 +1,3 @@
-export interface ApiEnvelope<T> {
-    data: T
-}
-
 export interface OAuthTokenResponse {
     access_token: string
     refresh_token?: string
@@ -20,7 +16,7 @@ export interface TenantList {
     content: Tenant[]
 }
 
-export interface TenantAdminInvitation {
+interface TenantAdminInvitation {
     email: string
     status: string
     inviteToken: string | null
@@ -88,7 +84,7 @@ export const ASSET_TYPES = [
     'DOCUMENT',
 ] as const
 
-export type AssetType = (typeof ASSET_TYPES)[number]
+type AssetType = (typeof ASSET_TYPES)[number]
 
 export const ASSET_STATUSES = [
     'PENDING',
@@ -97,7 +93,7 @@ export const ASSET_STATUSES = [
     'ARCHIVED',
 ] as const
 
-export type AssetStatus = (typeof ASSET_STATUSES)[number]
+type AssetStatus = (typeof ASSET_STATUSES)[number]
 
 export interface MediaAsset {
     id: number
@@ -132,22 +128,6 @@ export interface TenantMediaQuery {
 export const ASSET_VISIBILITIES = ['PUBLIC', 'PRIVATE'] as const
 
 export type AssetVisibility = (typeof ASSET_VISIBILITIES)[number]
-
-export interface CreateUploadUrlRequest {
-    filename: string
-    mimeType: string
-    sizeBytes: number
-    assetType: AssetType
-    intendedVisibility?: AssetVisibility
-    scope?: string
-}
-
-export interface UploadUrlResponse {
-    assetId: number
-    uploadUrl: string
-    expiresAt: string
-    headers: Record<string, string>
-}
 
 export const TENANT_INVITABLE_ROLES = [
     'TENANT_ADMIN',
@@ -189,8 +169,6 @@ export const JOB_STATUSES = [
 export type JobStatus = (typeof JOB_STATUSES)[number]
 
 export const KNOWN_JOB_QUEUES = ['email'] as const
-
-export type KnownJobQueue = (typeof KNOWN_JOB_QUEUES)[number]
 
 export interface QueueJob {
     id: string

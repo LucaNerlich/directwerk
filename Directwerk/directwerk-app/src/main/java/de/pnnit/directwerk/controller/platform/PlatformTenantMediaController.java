@@ -1,10 +1,12 @@
 package de.pnnit.directwerk.controller.platform;
 
+import de.pnnit.directwerk.api.dto.CreateUploadUrlRequest;
+import de.pnnit.directwerk.api.dto.MediaAssetView;
+import de.pnnit.directwerk.api.dto.UploadUrlResponse;
 import de.pnnit.directwerk.api.response.Response;
 import de.pnnit.directwerk.modules.digital.api.MediaAssetLifecycleApi;
 import de.pnnit.directwerk.modules.digital.api.MediaAssetQueryApi;
 import de.pnnit.directwerk.modules.digital.api.UploadApi;
-import de.pnnit.directwerk.modules.digital.entity.AssetScope;
 import de.pnnit.directwerk.modules.digital.entity.AssetStatus;
 import de.pnnit.directwerk.modules.digital.entity.AssetType;
 import de.pnnit.directwerk.modules.digital.entity.AssetVisibility;
@@ -15,13 +17,7 @@ import de.pnnit.directwerk.multitenancy.TenantContext;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Positive;
-import jakarta.validation.constraints.Size;
-import java.time.Instant;
 import java.util.List;
-import java.util.Map;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -198,44 +194,6 @@ public class PlatformTenantMediaController {
     public record TenantMediaListResponse(
             List<MediaAssetView> content,
             String publicCdnBaseUrl
-    ) {
-    }
-
-    public record CreateUploadUrlRequest(
-            @NotBlank @Size(max = 255) String filename,
-            @NotBlank @Size(max = 128) String mimeType,
-            @Positive long sizeBytes,
-            @NotNull AssetType assetType,
-            AssetVisibility intendedVisibility,
-            AssetScope scope,
-            @Positive Long episodeId,
-            @Positive Long ownerUserId
-    ) {
-    }
-
-    public record UploadUrlResponse(
-            Long assetId,
-            String uploadUrl,
-            Instant expiresAt,
-            Map<String, String> headers
-    ) {
-    }
-
-    public record MediaAssetView(
-            Long id,
-            String s3Key,
-            String visibility,
-            String scope,
-            String assetType,
-            String status,
-            String mimeType,
-            Long sizeBytes,
-            String originalFilename,
-            Long episodeId,
-            Long ownerUserId,
-            String cdnUrl,
-            Instant createdAt,
-            Instant updatedAt
     ) {
     }
 }

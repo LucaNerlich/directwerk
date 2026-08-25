@@ -6,7 +6,6 @@ import de.pnnit.directwerk.modules.core.util.SlugNormalizer;
 import de.pnnit.directwerk.modules.podcast.PodcastModule;
 import de.pnnit.directwerk.modules.podcast.entity.Format;
 import de.pnnit.directwerk.modules.podcast.exception.FormatNotFoundException;
-import de.pnnit.directwerk.modules.podcast.job.RssFeedRefreshJobProducer;
 import de.pnnit.directwerk.modules.podcast.repository.FormatRepository;
 import java.util.List;
 import java.util.Objects;
@@ -22,7 +21,7 @@ public class FormatService {
 
     private final FormatRepository formatRepository;
     private final TenantRepository tenantRepository;
-    private final RssFeedRefreshJobProducer rssFeedRefreshJobProducer;
+    private final RssFeedRefreshScheduler rssFeedRefreshScheduler;
 
     @Transactional(readOnly = true)
     public List<Format> listFormats(Long tenantId, boolean activeOnly) {
@@ -110,7 +109,7 @@ public class FormatService {
         boolean levelChanged = !Objects.equals(previousRequiredLevel, saved.getRequiredLevelSortOrder());
         boolean activeChanged = previousActive != saved.isActive();
         if (levelChanged || activeChanged) {
-            rssFeedRefreshJobProducer.requestRefreshAfterCommit(tenantId);
+            rssFeedRefreshScheduler.requestRefreshAfterCommit(tenantId);
         }
         return saved;
     }

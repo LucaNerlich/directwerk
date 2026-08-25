@@ -1,4 +1,5 @@
 import type {LoginCredentials} from './validation'
+import {ASSET_STATUSES, ASSET_TYPES, JOB_STATUSES} from './api/types'
 
 export interface DirectwerkEnvironment {
     apiUrl: string
@@ -16,19 +17,9 @@ const SAFE_QUEUE_NAME = /^[A-Za-z0-9_-]+$/
 const BEARER_TOKEN = /^Bearer [A-Za-z0-9\-._~+/]+=*$/
 const MAX_AUTHORIZATION_LENGTH = 8192
 const MAX_QUEUE_NAME_LENGTH = 100
-const JOB_STATUSES = new Set([
-    'QUEUED',
-    'PROCESSING',
-    'COMPLETED',
-    'FAILED',
-])
-const ASSET_STATUSES = new Set([
-    'PENDING',
-    'READY',
-    'PENDING_DELETE',
-    'ARCHIVED',
-])
-const ASSET_TYPES = new Set(['AUDIO', 'IMAGE', 'VIDEO', 'DOCUMENT'])
+const JOB_STATUS_VALUES = new Set<string>(JOB_STATUSES)
+const ASSET_STATUS_VALUES = new Set<string>(ASSET_STATUSES)
+const ASSET_TYPE_VALUES = new Set<string>(ASSET_TYPES)
 const ALLOWED_QUERY_PARAMS = new Set([
     'queue',
     'status',
@@ -164,12 +155,12 @@ export function buildSafePlatformQueryString(
                 }
                 break
             case 'status':
-                if (!JOB_STATUSES.has(value) && !ASSET_STATUSES.has(value)) {
+                if (!JOB_STATUS_VALUES.has(value) && !ASSET_STATUS_VALUES.has(value)) {
                     throw new Error('Invalid platform API query.')
                 }
                 break
             case 'assetType':
-                if (!ASSET_TYPES.has(value)) {
+                if (!ASSET_TYPE_VALUES.has(value)) {
                     throw new Error('Invalid platform API query.')
                 }
                 break

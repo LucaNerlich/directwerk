@@ -40,7 +40,6 @@ import type {
     TenantSubscriberSubscription,
     TenantUser,
     TokenResponse,
-    UploadUrlResult,
 } from '@/lib/api/types'
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -581,37 +580,6 @@ export function parseSeriesEnvelope(value: unknown): ApiEnvelope<SeriesDetail> |
     return envelope(value, parseSeriesDetail)
 }
 
-export function parseUploadUrlEnvelope(
-    value: unknown,
-): ApiEnvelope<UploadUrlResult> | null {
-    return envelope(value, (data) => {
-        if (
-            !isRecord(data) ||
-            !isPositiveSafeInteger(data.assetId) ||
-            !isBoundedString(data.uploadUrl, 4096) ||
-            data.uploadUrl.length === 0
-        ) {
-            return null
-        }
-
-        const headers: Record<string, string> = {}
-        if (isRecord(data.headers)) {
-            for (const [key, headerValue] of Object.entries(data.headers)) {
-                if (isBoundedString(key, 128) && isBoundedString(headerValue, 2048)) {
-                    headers[key] = headerValue
-                }
-            }
-        }
-
-        return {
-            assetId: data.assetId,
-            uploadUrl: data.uploadUrl,
-            expiresAt: isNullableString(data.expiresAt, 64) ? data.expiresAt : null,
-            headers,
-        }
-    })
-}
-
 export function parseMediaAssetEnvelope(value: unknown): ApiEnvelope<MediaAsset> | null {
     return envelope(value, parseMediaAsset)
 }
@@ -710,7 +678,7 @@ function isNonNegativeSafeInteger(value: unknown): value is number {
     return typeof value === 'number' && Number.isSafeInteger(value) && value >= 0
 }
 
-export function parseSubscriptionProduct(value: unknown): SubscriptionProduct | null {
+function parseSubscriptionProduct(value: unknown): SubscriptionProduct | null {
     if (
         !isRecord(value) ||
         !isPositiveSafeInteger(value.id) ||
@@ -772,7 +740,7 @@ export function parseProductEnvelope(
     return envelope(value, parseSubscriptionProduct)
 }
 
-export function parseLevelSummary(value: unknown): LevelSummary | null {
+function parseLevelSummary(value: unknown): LevelSummary | null {
     if (
         !isRecord(value) ||
         !isPositiveSafeInteger(value.id) ||
@@ -812,7 +780,7 @@ export function parseLevelListEnvelope(
     })
 }
 
-export function parseProductAccessRule(value: unknown): ProductAccessRule | null {
+function parseProductAccessRule(value: unknown): ProductAccessRule | null {
     if (
         !isRecord(value) ||
         !isPositiveSafeInteger(value.id) ||
@@ -856,7 +824,7 @@ export function parseProductRuleListEnvelope(
     })
 }
 
-export function parseSubscriptionGrant(value: unknown): SubscriptionGrant | null {
+function parseSubscriptionGrant(value: unknown): SubscriptionGrant | null {
     if (
         !isRecord(value) ||
         !isPositiveSafeInteger(value.id) ||
@@ -1386,9 +1354,13 @@ function parseContentEmailTemplate(value: unknown): ContentEmailTemplate | null 
     if (value === null) {
         return null
     }
+    if (!isRecord(value)) {
+        return null
+    }
+
+    const contentType = parseContentEmailTemplateType(value.contentType)
     if (
-        !isRecord(value) ||
-        parseContentEmailTemplateType(value.contentType) === null ||
+        contentType === null ||
         !isBoundedString(value.subjectTemplate, 512) ||
         !isBoundedString(value.bodyHtml, 65_535) ||
         !isNullableString(value.updatedAt, 64)
@@ -1397,7 +1369,7 @@ function parseContentEmailTemplate(value: unknown): ContentEmailTemplate | null 
     }
 
     return {
-        contentType: value.contentType as ContentEmailTemplateType,
+        contentType,
         subjectTemplate: value.subjectTemplate,
         bodyHtml: value.bodyHtml,
         updatedAt: value.updatedAt,

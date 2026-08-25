@@ -1,4 +1,4 @@
-package de.pnnit.directwerk.modules.podcast.feed;
+package de.pnnit.directwerk.modules.podcast.service;
 
 import de.pnnit.directwerk.modules.core.entity.Tenant;
 import de.pnnit.directwerk.modules.core.repository.TenantRepository;
@@ -6,10 +6,12 @@ import de.pnnit.directwerk.modules.core.repository.UserRepository;
 import de.pnnit.directwerk.modules.digital.exception.StorageNotConfiguredException;
 import de.pnnit.directwerk.modules.podcast.entity.Episode;
 import de.pnnit.directwerk.modules.podcast.entity.Format;
-import de.pnnit.directwerk.modules.podcast.job.RssFeedRefreshJobProducer;
 import de.pnnit.directwerk.modules.podcast.repository.FormatRepository;
-import de.pnnit.directwerk.modules.podcast.service.RssFeedSnapshotService;
-import de.pnnit.directwerk.modules.podcast.service.SubscriberEpisodeService;
+import de.pnnit.directwerk.modules.podcast.feed.FeedBuilderException;
+import de.pnnit.directwerk.modules.podcast.feed.SubscriberFeed;
+import de.pnnit.directwerk.modules.podcast.feed.SubscriberFeedFormatMatcher;
+import de.pnnit.directwerk.modules.podcast.feed.SubscriberFeedNotFoundException;
+import de.pnnit.directwerk.modules.podcast.feed.SubscriberFeedRepository;
 import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Base64;
@@ -40,7 +42,7 @@ public class SubscriberFeedService {
     private final FormatRepository formatRepository;
     private final SubscriberEpisodeService subscriberEpisodeService;
     private final RssFeedSnapshotService rssFeedSnapshotService;
-    private final RssFeedRefreshJobProducer rssFeedRefreshJobProducer;
+    private final RssFeedRefreshScheduler rssFeedRefreshScheduler;
     private final SecureRandom secureRandom = new SecureRandom();
 
     @Transactional(readOnly = true)
@@ -131,7 +133,7 @@ public class SubscriberFeedService {
 
         try {
             SubscriberFeed saved = subscriberFeedRepository.save(feed);
-            rssFeedRefreshJobProducer.requestRefreshAfterCommit(tenantId);
+            rssFeedRefreshScheduler.requestRefreshAfterCommit(tenantId);
             return saved;
         } catch (DataIntegrityViolationException ex) {
             if (ex.getCause() instanceof ConstraintViolationException cve) {
@@ -179,7 +181,7 @@ public class SubscriberFeedService {
             feed.getFormats().addAll(resolveActiveFormats(tenantId, formatIds));
         }
         SubscriberFeed saved = subscriberFeedRepository.save(feed);
-        rssFeedRefreshJobProducer.requestRefreshAfterCommit(tenantId);
+        rssFeedRefreshScheduler.requestRefreshAfterCommit(tenantId);
         return saved;
     }
 
@@ -194,7 +196,7 @@ public class SubscriberFeedService {
         );
         withdrawSnapshot(feed);
         subscriberFeedRepository.delete(feed);
-        rssFeedRefreshJobProducer.requestRefreshAfterCommit(tenantId);
+        rssFeedRefreshScheduler.requestRefreshAfterCommit(tenantId);
         return feed;
     }
 
@@ -255,14 +257,14 @@ public class SubscriberFeedService {
     private SubscriberFeed persistEnabled(SubscriberFeed feed, boolean enabled) {
         feed.setEnabled(enabled);
         SubscriberFeed saved = subscriberFeedRepository.save(feed);
-        rssFeedRefreshJobProducer.requestRefreshAfterCommit(saved.getTenant().getId());
+        rssFeedRefreshScheduler.requestRefreshAfterCommit(saved.getTenant().getId());
         return saved;
     }
 
     private SubscriberFeed rotateToken(SubscriberFeed feed) {
         feed.setFeedToken(generateUniqueToken());
         SubscriberFeed saved = subscriberFeedRepository.save(feed);
-        rssFeedRefreshJobProducer.requestRefreshAfterCommit(saved.getTenant().getId());
+        rssFeedRefreshScheduler.requestRefreshAfterCommit(saved.getTenant().getId());
         return saved;
     }
 
@@ -327,7 +329,7 @@ public class SubscriberFeedService {
         feed.setDefaultFeed(true);
         feed.setFeedToken(generateUniqueToken());
         SubscriberFeed saved = subscriberFeedRepository.save(feed);
-        rssFeedRefreshJobProducer.requestRefreshAfterCommit(tenantId);
+        rssFeedRefreshScheduler.requestRefreshAfterCommit(tenantId);
         return saved;
     }
 

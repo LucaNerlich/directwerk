@@ -1,16 +1,17 @@
 package de.pnnit.directwerk.controller.tenant;
 
+import de.pnnit.directwerk.api.dto.FeedEnabledRequest;
+import de.pnnit.directwerk.api.dto.FormatView;
 import de.pnnit.directwerk.api.response.Response;
 import de.pnnit.directwerk.modules.core.RequiresModule;
 import de.pnnit.directwerk.modules.core.service.ModuleGateService;
 import de.pnnit.directwerk.modules.podcast.PodcastRssModule;
 import de.pnnit.directwerk.modules.podcast.entity.Format;
 import de.pnnit.directwerk.modules.podcast.feed.SubscriberFeed;
-import de.pnnit.directwerk.modules.podcast.feed.SubscriberFeedService;
+import de.pnnit.directwerk.modules.podcast.service.SubscriberFeedService;
 import de.pnnit.directwerk.modules.subscription.SubscriptionModule;
 import de.pnnit.directwerk.multitenancy.TenantContext;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.NotNull;
 import java.time.Instant;
 import java.util.Comparator;
 import java.util.List;
@@ -91,18 +92,6 @@ public class TenantSubscriberFeedController {
                 feed.getCreatedAt(),
                 feed.getUpdatedAt()
         );
-    }
-
-    public record FeedEnabledRequest(@NotNull Boolean enabled) {
-    }
-
-    public record FormatView(
-            Long id,
-            String slug,
-            String name,
-            Integer requiredLevelSortOrder,
-            int sortOrder
-    ) {
     }
 
     public record SubscriberFeedAdminView(

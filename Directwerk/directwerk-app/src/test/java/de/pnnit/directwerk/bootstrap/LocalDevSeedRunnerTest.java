@@ -1,4 +1,4 @@
-package de.pnnit.directwerk.config;
+package de.pnnit.directwerk.bootstrap;
 
 import static org.assertj.core.api.Assertions.assertThat;
 

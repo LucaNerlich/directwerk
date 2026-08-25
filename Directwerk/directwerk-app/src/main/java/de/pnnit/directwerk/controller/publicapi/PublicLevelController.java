@@ -1,5 +1,6 @@
 package de.pnnit.directwerk.controller.publicapi;
 
+import de.pnnit.directwerk.api.dto.LevelView;
 import de.pnnit.directwerk.api.response.Response;
 import de.pnnit.directwerk.modules.core.service.ModuleGateService;
 import de.pnnit.directwerk.modules.subscription.SubscriptionModule;
@@ -47,8 +48,5 @@ public class PublicLevelController {
                 product.getTitle(),
                 product.getSortOrder()
         );
-    }
-
-    public record LevelView(Long id, String slug, String title, int sortOrder) {
     }
 }

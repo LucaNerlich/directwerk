@@ -1,10 +1,9 @@
 import {request as httpRequest} from 'node:http'
 import {request as httpsRequest} from 'node:https'
 
-// List endpoints currently return full detail rows (episode descriptions and
-// article bodies can be up to 512 KB each), so a growing catalog easily
-// exceeds a 1 MiB cap and would permanently break list pages. Backend
-// pagination is not available yet — revisit once it exists.
+// List endpoints return full detail rows (episode descriptions and article
+// bodies can be up to 512 KB each), so a growing catalog easily exceeds a 1 MiB
+// cap and would permanently break list pages. The backend has no pagination yet.
 const MAX_RESPONSE_BYTES = 16_777_216
 const REQUEST_TIMEOUT_MS = 10_000
 

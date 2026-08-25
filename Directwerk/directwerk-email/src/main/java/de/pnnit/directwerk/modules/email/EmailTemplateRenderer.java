@@ -46,15 +46,13 @@ public class EmailTemplateRenderer {
     }
 
     static String htmlToPlainText(String html) {
-        // Replace tags with spaces to preserve word boundaries
+        // Tags become a space (not "") so adjacent words don't merge.
         String withoutTags = HTML_TAG_PATTERN.matcher(html).replaceAll(" ");
-        // Decode common HTML entities
         String decoded = withoutTags
                 .replace("&nbsp;", " ")
                 .replace("&amp;", "&")
                 .replace("&lt;", "<")
                 .replace("&gt;", ">");
-        // Collapse multiple whitespace characters to single space, trim edges
         return decoded.replaceAll("\\s+", " ").trim();
     }
 }

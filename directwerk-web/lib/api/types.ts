@@ -1,8 +1,10 @@
-export interface ApiErrorDetail {
+interface ApiErrorDetail {
     code: string
     message: string
     field: string | null
 }
+
+export type AccessPolicy = 'FREE' | 'PAID'
 
 export interface ApiEnvelope<T> {
     statusCode: number
@@ -67,23 +69,6 @@ export interface SiteConfig {
     publicRssUrl: string | null
 }
 
-export interface MediaAsset {
-    id: number
-    s3Key: string
-    visibility: string
-    scope: string
-    assetType: string
-    status: string
-    mimeType: string | null
-    sizeBytes: number | null
-    originalFilename: string | null
-    episodeId: number | null
-    ownerUserId: number | null
-    cdnUrl: string | null
-    createdAt: string
-    updatedAt: string
-}
-
 export interface PublicCategory {
     id: number
     slug: string
@@ -99,7 +84,7 @@ export interface PublicArticle {
     excerpt: string | null
     seoDescription: string | null
     heroAssetId: number | null
-    accessPolicy: 'FREE' | 'PAID'
+    accessPolicy: AccessPolicy
     requiredLevelSortOrder: number | null
     publishedAt: string | null
     categories: PublicCategory[]
@@ -124,7 +109,7 @@ export interface PublicEpisode {
     title: string
     description: string | null
     durationSeconds: number | null
-    accessPolicy: 'FREE' | 'PAID'
+    accessPolicy: AccessPolicy
     requiredLevelSortOrder: number | null
     publishedAt: string | null
     audioCdnUrl: string | null

@@ -5,6 +5,8 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import de.pnnit.directwerk.api.dto.FeedEnabledRequest;
+import de.pnnit.directwerk.api.dto.FormatView;
 import de.pnnit.directwerk.api.response.Response;
 import de.pnnit.directwerk.controller.auth.MeFeedController.SubscriberFeedView;
 import de.pnnit.directwerk.modules.core.entity.Tenant;
@@ -13,7 +15,7 @@ import de.pnnit.directwerk.modules.podcast.FeedBuilderModule;
 import de.pnnit.directwerk.modules.podcast.PodcastRssModule;
 import de.pnnit.directwerk.modules.podcast.entity.Format;
 import de.pnnit.directwerk.modules.podcast.feed.SubscriberFeed;
-import de.pnnit.directwerk.modules.podcast.feed.SubscriberFeedService;
+import de.pnnit.directwerk.modules.podcast.service.SubscriberFeedService;
 import de.pnnit.directwerk.modules.subscription.SubscriptionModule;
 import de.pnnit.directwerk.security.DirectwerkUserPrincipal;
 import de.pnnit.directwerk.security.RoleConstants;
@@ -119,7 +121,7 @@ class MeFeedControllerTest {
         when(subscriberFeedService.setDefaultFeedEnabled(5L, 1L, false)).thenReturn(feed);
 
         ResponseEntity<Response<SubscriberFeedView>> response =
-                controller.setDefaultFeedEnabled(principal, new MeFeedController.FeedEnabledRequest(false), request);
+                controller.setDefaultFeedEnabled(principal, new FeedEnabledRequest(false), request);
 
         assertThat(response.getBody().data().enabled()).isFalse();
         verify(subscriberFeedService).setDefaultFeedEnabled(5L, 1L, false);
@@ -147,7 +149,7 @@ class MeFeedControllerTest {
         assertThat(response.getBody().data().isDefault()).isFalse();
         assertThat(response.getBody().data().formatIds()).containsExactly(3L);
         assertThat(response.getBody().data().formats())
-                .extracting(MeFeedController.FormatView::name)
+                .extracting(FormatView::name)
                 .containsExactly("Bonus");
         verify(moduleGateService).requireModule(PodcastRssModule.KEY);
         verify(moduleGateService).requireModule(SubscriptionModule.MODULE_KEY);

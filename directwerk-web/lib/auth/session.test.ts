@@ -138,12 +138,13 @@ describe('session', () => {
         setTokens({access_token: 'expired-access', expires_in: 60})
         vi.setSystemTime(new Date('2026-01-01T12:05:00Z'))
 
-        const fetchMock = vi.fn(async () =>
-            Response.json({
-                access_token: 'cookie-refreshed',
-                expires_in: 900,
-                token_type: 'bearer',
-            }),
+        const fetchMock = vi.fn(
+            async (_input: RequestInfo | URL, _init?: RequestInit) =>
+                Response.json({
+                    access_token: 'cookie-refreshed',
+                    expires_in: 900,
+                    token_type: 'bearer',
+                }),
         )
         vi.stubGlobal('fetch', fetchMock)
 
@@ -151,11 +152,8 @@ describe('session', () => {
         await expect(getValidAccessToken()).resolves.toBe('cookie-refreshed')
         expect(getAccessToken()).toBe('cookie-refreshed')
 
-        const [, init] = fetchMock.mock.calls[0] as unknown as [
-            unknown,
-            RequestInit,
-        ]
-        expect(init.body).toBe(JSON.stringify({}))
+        const [, init] = fetchMock.mock.calls[0]
+        expect(init?.body).toBe(JSON.stringify({}))
 
         vi.useRealTimers()
     })

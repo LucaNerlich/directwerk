@@ -4,7 +4,6 @@ import type {
     ApiEnvelope,
     FeedFormat,
     FeedPreview,
-    MediaAsset,
     Me,
     PublicArticle,
     PublicCategory,
@@ -180,7 +179,12 @@ export function parseMeEnvelope(value: unknown): ApiEnvelope<Me> | null {
             return null
         }
 
-        return data as unknown as Me
+        return {
+            email: data.email,
+            name: data.name,
+            roles: data.roles,
+            tenantId: data.tenantId,
+        }
     })
 }
 
@@ -195,25 +199,43 @@ function parseAccessLevel(value: unknown): AccessLevel | null {
         return null
     }
 
-    return value as unknown as AccessLevel
+    return {
+        id: value.id,
+        slug: value.slug,
+        title: value.title,
+        sortOrder: value.sortOrder,
+    }
 }
 
 export function parseAccessEnvelope(value: unknown): ApiEnvelope<Access> | null {
     return envelope(value, (data) => {
         if (
             !isRecord(data) ||
-            !Array.isArray(data.activeLevels) ||
-            data.activeLevels.length > 100 ||
-            data.activeLevels.some((level) => parseAccessLevel(level) === null) ||
-            (data.maxLevelSortOrder !== null &&
-                !isSafeInteger(data.maxLevelSortOrder)) ||
             !isStringArray(data.roles) ||
             !isPositiveSafeInteger(data.tenantId)
         ) {
             return null
         }
 
-        return data as unknown as Access
+        if (!isNullableSafeInteger(data.maxLevelSortOrder)) {
+            return null
+        }
+
+        const activeLevels = parseBoundedArray(
+            data.activeLevels,
+            100,
+            parseAccessLevel,
+        )
+        if (activeLevels === null) {
+            return null
+        }
+
+        return {
+            activeLevels,
+            maxLevelSortOrder: data.maxLevelSortOrder,
+            roles: data.roles,
+            tenantId: data.tenantId,
+        }
     })
 }
 
@@ -223,78 +245,6 @@ function isNullableSafeInteger(value: unknown): value is number | null {
 
 function isNullableNonNegativeSafeInteger(value: unknown): value is number | null {
     return value === null || (isSafeInteger(value) && value >= 0)
-}
-
-function parseMediaAsset(value: unknown): MediaAsset | null {
-    if (!isRecord(value)) {
-        return null
-    }
-
-    const cdnUrl = value.cdnUrl === undefined ? null : value.cdnUrl
-
-    if (
-        !isPositiveSafeInteger(value.id) ||
-        !isBoundedString(value.s3Key, 512) ||
-        !isBoundedString(value.visibility, 64) ||
-        !isBoundedString(value.scope, 64) ||
-        !isBoundedString(value.assetType, 64) ||
-        !isBoundedString(value.status, 64) ||
-        !isNullableString(value.mimeType, 255) ||
-        !isNullableNonNegativeSafeInteger(value.sizeBytes) ||
-        !isNullableString(value.originalFilename, 512) ||
-        !isNullableSafeInteger(value.episodeId) ||
-        !isNullableSafeInteger(value.ownerUserId) ||
-        !isNullableString(cdnUrl, 2048) ||
-        !isBoundedString(value.createdAt, 64) ||
-        !isBoundedString(value.updatedAt, 64)
-    ) {
-        return null
-    }
-
-    return {
-        ...(value as unknown as MediaAsset),
-        cdnUrl,
-    }
-}
-
-export function parseMediaListEnvelope(
-    value: unknown,
-): ApiEnvelope<MediaAsset[]> | null {
-    return envelope(value, (data) => {
-        if (!Array.isArray(data) || data.length > 100) {
-            return null
-        }
-
-        const parsed: MediaAsset[] = []
-        for (const item of data) {
-            const asset = parseMediaAsset(item)
-            if (asset === null) {
-                return null
-            }
-            parsed.push(asset)
-        }
-
-        return parsed
-    })
-}
-
-export function parsePreviewUrlEnvelope(value: unknown): string | null {
-    if (!isRecord(value) || !isRecord(value.data)) {
-        return null
-    }
-    const url = value.data.url
-    if (!isBoundedString(url, 2048) || url.length === 0) {
-        return null
-    }
-    try {
-        const parsed = new URL(url)
-        if (parsed.protocol !== 'https:') {
-            return null
-        }
-    } catch {
-        return null
-    }
-    return url
 }
 
 function parsePublicCategory(value: unknown): PublicCategory | null {
@@ -321,8 +271,12 @@ function parseAccessPolicy(value: unknown): 'FREE' | 'PAID' | null {
 }
 
 function parsePublicArticle(value: unknown): PublicArticle | null {
+    if (!isRecord(value)) {
+        return null
+    }
+
+    const accessPolicy = parseAccessPolicy(value.accessPolicy)
     if (
-        !isRecord(value) ||
         !isPositiveSafeInteger(value.id) ||
         !isBoundedString(value.slug) ||
         !isBoundedString(value.title) ||
@@ -334,7 +288,7 @@ function parsePublicArticle(value: unknown): PublicArticle | null {
             value.heroAssetId === undefined ||
             isPositiveSafeInteger(value.heroAssetId)
         ) ||
-        parseAccessPolicy(value.accessPolicy) === null ||
+        accessPolicy === null ||
         !isNullableNonNegativeSafeInteger(value.requiredLevelSortOrder) ||
         !isNullableString(value.publishedAt, 64) ||
         !Array.isArray(value.categories) ||
@@ -363,7 +317,7 @@ function parsePublicArticle(value: unknown): PublicArticle | null {
             value.heroAssetId === undefined || value.heroAssetId === null
                 ? null
                 : value.heroAssetId,
-        accessPolicy: value.accessPolicy as 'FREE' | 'PAID',
+        accessPolicy,
         requiredLevelSortOrder: value.requiredLevelSortOrder,
         publishedAt: value.publishedAt,
         categories,
@@ -446,8 +400,12 @@ export function parsePublicSeriesListEnvelope(
 }
 
 function parsePublicEpisode(value: unknown): PublicEpisode | null {
+    if (!isRecord(value)) {
+        return null
+    }
+
+    const accessPolicy = parseAccessPolicy(value.accessPolicy)
     if (
-        !isRecord(value) ||
         !isPositiveSafeInteger(value.id) ||
         !isPositiveSafeInteger(value.seriesId) ||
         !isBoundedString(value.seriesSlug) ||
@@ -464,7 +422,7 @@ function parsePublicEpisode(value: unknown): PublicEpisode | null {
             value.durationSeconds === undefined ||
             (isSafeInteger(value.durationSeconds) && value.durationSeconds >= 1)
         ) ||
-        parseAccessPolicy(value.accessPolicy) === null ||
+        accessPolicy === null ||
         !isNullableNonNegativeSafeInteger(value.requiredLevelSortOrder) ||
         !isNullableString(value.publishedAt, 64) ||
         !isNullableString(value.audioCdnUrl, 4096)
@@ -498,7 +456,7 @@ function parsePublicEpisode(value: unknown): PublicEpisode | null {
             value.durationSeconds === undefined || value.durationSeconds === null
                 ? null
                 : value.durationSeconds,
-        accessPolicy: value.accessPolicy as 'FREE' | 'PAID',
+        accessPolicy,
         requiredLevelSortOrder: value.requiredLevelSortOrder,
         publishedAt: value.publishedAt,
         audioCdnUrl,

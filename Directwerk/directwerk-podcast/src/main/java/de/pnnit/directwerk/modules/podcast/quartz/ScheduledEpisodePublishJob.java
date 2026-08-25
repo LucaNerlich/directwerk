@@ -20,7 +20,7 @@ public class ScheduledEpisodePublishJob extends QuartzJobBean {
     }
 
     @Override
-    protected void executeInternal(JobExecutionContext context) {
+    protected void executeInternal(JobExecutionContext context) throws org.quartz.JobExecutionException {
         try {
             publicationWorkflowService.publishDueScheduled();
         } catch (Exception ex) {
@@ -31,6 +31,7 @@ public class ScheduledEpisodePublishJob extends QuartzJobBean {
                     context.getFireTime(),
                     ex
             );
+            throw new org.quartz.JobExecutionException("Scheduled episode publish batch failed", ex);
         }
     }
 }

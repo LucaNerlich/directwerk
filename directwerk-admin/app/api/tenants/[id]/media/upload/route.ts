@@ -6,6 +6,7 @@ import {
     safeUpstreamResponse,
 } from '@/lib/directwerk'
 import {createConfiguredPlatformApiRequest} from '@/lib/directwerkServer'
+import {ASSET_TYPES, ASSET_VISIBILITIES} from '@/lib/api/types'
 
 interface RouteContext {
     params: Promise<{id: string}>
@@ -16,8 +17,8 @@ const MAX_UPLOAD_BYTES = 10 * 1024 * 1024
 const MAX_REQUEST_BYTES = MAX_UPLOAD_BYTES + 64 * 1024
 const UPSTREAM_TIMEOUT_MS = 30_000
 const STORAGE_PUT_TIMEOUT_MS = 60_000
-const ASSET_TYPES = new Set(['AUDIO', 'IMAGE', 'VIDEO', 'DOCUMENT'])
-const ASSET_VISIBILITIES = new Set(['PUBLIC', 'PRIVATE'])
+const ASSET_TYPE_VALUES = new Set<string>(ASSET_TYPES)
+const ASSET_VISIBILITY_VALUES = new Set<string>(ASSET_VISIBILITIES)
 
 function inferAssetType(mimeType: string): string {
     if (mimeType.startsWith('image/')) {
@@ -172,14 +173,14 @@ export async function POST(
     }
 
     const visibilityRaw = String(formData.get('visibility') ?? 'PUBLIC').trim()
-    if (!ASSET_VISIBILITIES.has(visibilityRaw)) {
+    if (!ASSET_VISIBILITY_VALUES.has(visibilityRaw)) {
         return jsonError('Choose a valid visibility.', 400)
     }
 
     const mimeType = fileEntry.type || 'application/octet-stream'
     const assetTypeRaw = String(formData.get('assetType') ?? '').trim()
     const assetType = assetTypeRaw || inferAssetType(mimeType)
-    if (!ASSET_TYPES.has(assetType)) {
+    if (!ASSET_TYPE_VALUES.has(assetType)) {
         return jsonError('Choose a valid asset type.', 400)
     }
 

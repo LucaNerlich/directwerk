@@ -20,6 +20,7 @@ import de.pnnit.directwerk.modules.digital.entity.AssetVisibility;
 import de.pnnit.directwerk.modules.digital.entity.MediaAsset;
 import de.pnnit.directwerk.modules.digital.exception.UploadValidationException;
 import de.pnnit.directwerk.modules.digital.job.MediaDeleteJobProducer;
+import de.pnnit.directwerk.modules.digital.job.StagingCleanupService;
 import de.pnnit.directwerk.modules.digital.repository.MediaAssetRepository;
 import de.pnnit.directwerk.multitenancy.TenantContext;
 import java.net.URI;

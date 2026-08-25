@@ -2,9 +2,9 @@ package de.pnnit.directwerk.modules.digital.job;
 
 import de.pnnit.directwerk.config.DirectwerkConfig;
 import de.pnnit.directwerk.config.DirectwerkProperties;
+import de.pnnit.directwerk.modules.digital.storage.StorageConfigs;
 import de.pnnit.directwerk.modules.digital.entity.AssetStatus;
 import de.pnnit.directwerk.modules.digital.entity.MediaAsset;
-import de.pnnit.directwerk.modules.digital.exception.StorageNotConfiguredException;
 import de.pnnit.directwerk.modules.digital.repository.MediaAssetRepository;
 import de.pnnit.directwerk.modules.queue.JobHandler;
 import de.pnnit.directwerk.modules.queue.JobHandlerSettings;
@@ -77,7 +77,7 @@ public class MediaS3DeleteJobHandler implements JobHandler {
             return;
         }
 
-        DirectwerkProperties.Storage storage = requireStorage();
+        DirectwerkProperties.Storage storage = StorageConfigs.requireEnabled(directwerkConfig);
         deleteS3Object(storage, payload.s3Key());
 
         if (StringUtils.hasText(payload.cdnUrl())) {
@@ -106,14 +106,4 @@ public class MediaS3DeleteJobHandler implements JobHandler {
         }
     }
 
-    private DirectwerkProperties.Storage requireStorage() {
-        if (!directwerkConfig.isStorageEnabled()) {
-            throw new StorageNotConfiguredException("Object storage is disabled");
-        }
-        DirectwerkProperties.Storage storage = directwerkConfig.storage();
-        if (storage == null || storage.bucket() == null || storage.bucket().isBlank()) {
-            throw new StorageNotConfiguredException("Object storage bucket is not configured");
-        }
-        return storage;
-    }
 }

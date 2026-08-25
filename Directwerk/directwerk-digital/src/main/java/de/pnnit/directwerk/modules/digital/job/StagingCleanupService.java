@@ -1,10 +1,10 @@
-package de.pnnit.directwerk.modules.digital.service;
+package de.pnnit.directwerk.modules.digital.job;
 
 import de.pnnit.directwerk.config.DirectwerkConfig;
 import de.pnnit.directwerk.config.DirectwerkProperties;
+import de.pnnit.directwerk.modules.digital.storage.StorageConfigs;
 import de.pnnit.directwerk.modules.core.entity.Tenant;
 import de.pnnit.directwerk.modules.core.repository.TenantRepository;
-import de.pnnit.directwerk.modules.digital.exception.StorageNotConfiguredException;
 import de.pnnit.directwerk.modules.digital.repository.MediaAssetRepository;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
@@ -70,7 +70,7 @@ public class StagingCleanupService {
      * in their own transaction so a failure for one tenant never abandons or undoes another's work.
      */
     public void cleanupExpiredStaging() {
-        DirectwerkProperties.Storage storage = requireStorage();
+        DirectwerkProperties.Storage storage = StorageConfigs.requireEnabled(directwerkConfig);
         long cutoffMillis = Instant.now()
                 .minus(storage.stagingLifecycleHours(), ChronoUnit.HOURS)
                 .toEpochMilli();
@@ -160,14 +160,4 @@ public class StagingCleanupService {
         return key.endsWith("/") ? key.substring(0, key.length() - 1) : key;
     }
 
-    private DirectwerkProperties.Storage requireStorage() {
-        if (!directwerkConfig.isStorageEnabled()) {
-            throw new StorageNotConfiguredException("Object storage is disabled");
-        }
-        DirectwerkProperties.Storage storage = directwerkConfig.storage();
-        if (storage == null || storage.bucket() == null || storage.bucket().isBlank()) {
-            throw new StorageNotConfiguredException("Object storage bucket is not configured");
-        }
-        return storage;
-    }
 }

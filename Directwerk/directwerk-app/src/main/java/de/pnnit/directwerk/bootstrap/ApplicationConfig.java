@@ -1,5 +1,6 @@
-package de.pnnit.directwerk.config;
+package de.pnnit.directwerk.bootstrap;
 
+import de.pnnit.directwerk.config.DirectwerkProperties;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;

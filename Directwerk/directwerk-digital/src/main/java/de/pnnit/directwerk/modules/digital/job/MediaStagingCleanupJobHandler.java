@@ -2,8 +2,7 @@ package de.pnnit.directwerk.modules.digital.job;
 
 import de.pnnit.directwerk.config.DirectwerkConfig;
 import de.pnnit.directwerk.config.DirectwerkProperties;
-import de.pnnit.directwerk.modules.digital.exception.StorageNotConfiguredException;
-import de.pnnit.directwerk.modules.digital.service.StagingCleanupService;
+import de.pnnit.directwerk.modules.digital.storage.StorageConfigs;
 import de.pnnit.directwerk.modules.queue.JobHandler;
 import de.pnnit.directwerk.modules.queue.JobHandlerSettings;
 import de.pnnit.directwerk.modules.queue.QueueJob;
@@ -56,19 +55,9 @@ public class MediaStagingCleanupJobHandler implements JobHandler {
             throw new IllegalArgumentException("Invalid media staging cleanup job payload");
         }
 
-        DirectwerkProperties.Storage storage = requireStorage();
+        DirectwerkProperties.Storage storage = StorageConfigs.requireEnabled(directwerkConfig);
         stagingCleanupService.deleteStagingKeyAndFolder(storage.bucket(), payload.stagingKey());
         log.debug("Staging cleanup job deleted staging key {}", payload.stagingKey());
     }
 
-    private DirectwerkProperties.Storage requireStorage() {
-        if (!directwerkConfig.isStorageEnabled()) {
-            throw new StorageNotConfiguredException("Object storage is disabled");
-        }
-        DirectwerkProperties.Storage storage = directwerkConfig.storage();
-        if (storage == null || storage.bucket() == null || storage.bucket().isBlank()) {
-            throw new StorageNotConfiguredException("Object storage bucket is not configured");
-        }
-        return storage;
-    }
 }

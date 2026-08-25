@@ -1,7 +1,9 @@
-package de.pnnit.directwerk.modules.email;
+package de.pnnit.directwerk.modules.email.content;
 
 import de.pnnit.directwerk.modules.content.ContentType;
-import de.pnnit.directwerk.modules.email.content.TenantContentEmailTemplateService;
+import de.pnnit.directwerk.modules.email.ClasspathEmailTemplateSource;
+import de.pnnit.directwerk.modules.email.EmailTemplate;
+import de.pnnit.directwerk.modules.email.EmailTemplateSource;
 import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Component;
 

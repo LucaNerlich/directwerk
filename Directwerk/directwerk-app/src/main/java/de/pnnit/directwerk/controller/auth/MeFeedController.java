@@ -1,5 +1,7 @@
 package de.pnnit.directwerk.controller.auth;
 
+import de.pnnit.directwerk.api.dto.FeedEnabledRequest;
+import de.pnnit.directwerk.api.dto.FormatView;
 import de.pnnit.directwerk.api.response.Response;
 import de.pnnit.directwerk.modules.core.service.ModuleGateService;
 import de.pnnit.directwerk.modules.core.util.PublicUrlBuilder;
@@ -7,13 +9,12 @@ import de.pnnit.directwerk.modules.podcast.FeedBuilderModule;
 import de.pnnit.directwerk.modules.podcast.PodcastRssModule;
 import de.pnnit.directwerk.modules.podcast.entity.Format;
 import de.pnnit.directwerk.modules.podcast.feed.SubscriberFeed;
-import de.pnnit.directwerk.modules.podcast.feed.SubscriberFeedService;
+import de.pnnit.directwerk.modules.podcast.service.SubscriberFeedService;
 import de.pnnit.directwerk.modules.subscription.SubscriptionModule;
 import de.pnnit.directwerk.security.DirectwerkUserPrincipal;
 import de.pnnit.directwerk.security.SecurityUtils;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.NotNull;
 import java.time.Instant;
 import java.util.Comparator;
 import java.util.List;
@@ -265,9 +266,6 @@ public class MeFeedController {
         return new FeedPreviewView(preview.episodeCount(), preview.sampleTitles());
     }
 
-    public record FeedEnabledRequest(@NotNull Boolean enabled) {
-    }
-
     public record CreateCustomFeedRequest(String title, List<Long> formatIds) {
     }
 
@@ -275,15 +273,6 @@ public class MeFeedController {
     }
 
     public record FeedPreviewView(int episodeCount, List<String> sampleTitles) {
-    }
-
-    public record FormatView(
-            Long id,
-            String slug,
-            String name,
-            Integer requiredLevelSortOrder,
-            int sortOrder
-    ) {
     }
 
     public record SubscriberFeedView(

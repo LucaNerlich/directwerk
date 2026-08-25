@@ -13,6 +13,7 @@ import de.pnnit.directwerk.modules.content.TenantRssSnapshotStaleEvent;
 import de.pnnit.directwerk.modules.podcast.service.RssSnapshotStateStore;
 import de.pnnit.directwerk.modules.queue.JobEnqueueMetadata;
 import de.pnnit.directwerk.modules.queue.QueueService;
+import de.pnnit.directwerk.testsupport.TestObjectProviders;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.ObjectProvider;
@@ -22,14 +23,12 @@ import tools.jackson.databind.JsonNode;
 class RssFeedRefreshJobProducerTest {
 
     @Test
-    @SuppressWarnings("unchecked")
     void queuesTenantRefreshWhenTheQueueIsEnabled() {
-        ObjectProvider<QueueService> queueProvider = mock(ObjectProvider.class);
         QueueService queueService = mock(QueueService.class);
+        ObjectProvider<QueueService> queueProvider = TestObjectProviders.returning(queueService);
         DirectwerkConfig config = mock(DirectwerkConfig.class);
         RssSnapshotStateStore stateStore = mock(RssSnapshotStateStore.class);
         when(config.isQueueEnabled()).thenReturn(true);
-        when(queueProvider.getObject()).thenReturn(queueService);
         RssFeedRefreshJobProducer producer = new RssFeedRefreshJobProducer(
                 queueProvider,
                 new ObjectMapper(),
@@ -56,14 +55,12 @@ class RssFeedRefreshJobProducerTest {
     }
 
     @Test
-    @SuppressWarnings("unchecked")
     void snapshotStaleEventQueuesTheSameTenantRefresh() {
-        ObjectProvider<QueueService> queueProvider = mock(ObjectProvider.class);
         QueueService queueService = mock(QueueService.class);
+        ObjectProvider<QueueService> queueProvider = TestObjectProviders.returning(queueService);
         DirectwerkConfig config = mock(DirectwerkConfig.class);
         RssSnapshotStateStore stateStore = mock(RssSnapshotStateStore.class);
         when(config.isQueueEnabled()).thenReturn(true);
-        when(queueProvider.getObject()).thenReturn(queueService);
         RssFeedRefreshJobProducer producer = new RssFeedRefreshJobProducer(
                 queueProvider,
                 new ObjectMapper(),
@@ -85,14 +82,12 @@ class RssFeedRefreshJobProducerTest {
     }
 
     @Test
-    @SuppressWarnings("unchecked")
     void slugChangeRecordsTheOldPrefixAndClearsPresenceBeforeEnqueue() {
-        ObjectProvider<QueueService> queueProvider = mock(ObjectProvider.class);
         QueueService queueService = mock(QueueService.class);
+        ObjectProvider<QueueService> queueProvider = TestObjectProviders.returning(queueService);
         DirectwerkConfig config = mock(DirectwerkConfig.class);
         RssSnapshotStateStore stateStore = mock(RssSnapshotStateStore.class);
         when(config.isQueueEnabled()).thenReturn(true);
-        when(queueProvider.getObject()).thenReturn(queueService);
         RssFeedRefreshJobProducer producer = new RssFeedRefreshJobProducer(
                 queueProvider,
                 new ObjectMapper(),

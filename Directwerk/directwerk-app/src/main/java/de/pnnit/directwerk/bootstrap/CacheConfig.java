@@ -1,6 +1,7 @@
-package de.pnnit.directwerk.config;
+package de.pnnit.directwerk.bootstrap;
 
 import com.github.benmanes.caffeine.cache.Caffeine;
+import de.pnnit.directwerk.config.DirectwerkCacheNames;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import org.springframework.cache.CacheManager;

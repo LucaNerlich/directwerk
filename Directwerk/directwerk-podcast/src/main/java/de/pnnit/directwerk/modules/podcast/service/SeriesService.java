@@ -3,6 +3,7 @@ package de.pnnit.directwerk.modules.podcast.service;
 import de.pnnit.directwerk.modules.core.RequiresModule;
 import de.pnnit.directwerk.modules.core.repository.TenantRepository;
 import de.pnnit.directwerk.modules.core.util.SlugNormalizer;
+import de.pnnit.directwerk.modules.core.util.TitleNormalizer;
 import de.pnnit.directwerk.modules.digital.entity.AssetStatus;
 import de.pnnit.directwerk.modules.digital.entity.AssetType;
 import de.pnnit.directwerk.modules.digital.entity.MediaAsset;
@@ -11,7 +12,6 @@ import de.pnnit.directwerk.modules.digital.exception.UploadValidationException;
 import de.pnnit.directwerk.modules.digital.repository.MediaAssetRepository;
 import de.pnnit.directwerk.modules.podcast.PodcastModule;
 import de.pnnit.directwerk.modules.podcast.entity.PodcastSeries;
-import de.pnnit.directwerk.modules.podcast.job.RssFeedRefreshJobProducer;
 import de.pnnit.directwerk.modules.podcast.entity.SeriesStatus;
 import de.pnnit.directwerk.modules.podcast.exception.SeriesNotFoundException;
 import de.pnnit.directwerk.modules.podcast.repository.PodcastSeriesRepository;
@@ -24,14 +24,13 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class SeriesService {
 
-    private static final int MAX_TITLE_LENGTH = 255;
     private static final int MAX_LANGUAGE_LENGTH = 8;
     private static final int MAX_ITUNES_CATEGORY_LENGTH = 128;
 
     private final PodcastSeriesRepository podcastSeriesRepository;
     private final TenantRepository tenantRepository;
     private final MediaAssetRepository mediaAssetRepository;
-    private final RssFeedRefreshJobProducer rssFeedRefreshJobProducer;
+    private final RssFeedRefreshScheduler rssFeedRefreshScheduler;
 
     @Transactional(readOnly = true)
     public List<PodcastSeries> listSeries(Long tenantId, boolean publishedOnly) {
@@ -70,7 +69,7 @@ public class SeriesService {
         PodcastSeries series = new PodcastSeries();
         series.setTenant(tenantRepository.getReferenceById(tenantId));
         series.setSlug(slug);
-        series.setTitle(normalizeTitle(title));
+        series.setTitle(TitleNormalizer.normalize(title, "Series"));
         series.setDescription(normalizeText(description));
         series.setCoverAsset(resolveCoverAsset(tenantId, coverAssetId));
         series.setLanguage(normalizeLanguage(language));
@@ -81,7 +80,7 @@ public class SeriesService {
         ));
         series.setStatus(SeriesStatus.DRAFT);
         PodcastSeries saved = podcastSeriesRepository.save(series);
-        rssFeedRefreshJobProducer.requestRefreshAfterCommit(tenantId);
+        rssFeedRefreshScheduler.requestRefreshAfterCommit(tenantId);
         return saved;
     }
 
@@ -108,7 +107,7 @@ public class SeriesService {
             series.setSlug(slug);
         }
         if (title != null) {
-            series.setTitle(normalizeTitle(title));
+            series.setTitle(TitleNormalizer.normalize(title, "Series"));
         }
         if (description != null) {
             series.setDescription(normalizeText(description));
@@ -132,7 +131,7 @@ public class SeriesService {
             series.setStatus(status);
         }
         PodcastSeries saved = podcastSeriesRepository.save(series);
-        rssFeedRefreshJobProducer.requestRefreshAfterCommit(tenantId);
+        rssFeedRefreshScheduler.requestRefreshAfterCommit(tenantId);
         return saved;
     }
 
@@ -152,17 +151,6 @@ public class SeriesService {
             );
         }
         return asset;
-    }
-
-    private static String normalizeTitle(String title) {
-        if (title == null || title.isBlank()) {
-            throw new IllegalArgumentException("Series title is required");
-        }
-        String normalized = title.trim();
-        if (normalized.length() > MAX_TITLE_LENGTH) {
-            throw new IllegalArgumentException("Series title must be at most 255 characters");
-        }
-        return normalized;
     }
 
     private static String normalizeLanguage(String language) {

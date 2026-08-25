@@ -12,7 +12,6 @@ import de.pnnit.directwerk.modules.digital.entity.MediaAsset;
 import de.pnnit.directwerk.modules.podcast.PodcastModule;
 import de.pnnit.directwerk.modules.digital.entity.AccessPolicy;
 import de.pnnit.directwerk.modules.podcast.entity.Episode;
-import de.pnnit.directwerk.modules.podcast.job.RssFeedRefreshJobProducer;
 import de.pnnit.directwerk.modules.podcast.entity.EpisodeStatus;
 import de.pnnit.directwerk.modules.podcast.exception.EpisodeValidationException;
 import de.pnnit.directwerk.modules.digital.exception.InvalidPublicationTransitionException;
@@ -40,7 +39,7 @@ public class PublicationWorkflowService {
     private final ModuleGateService moduleGateService;
     private final DirectwerkConfig directwerkConfig;
     private final ContentPublishedNotifier contentPublishedNotifier;
-    private final RssFeedRefreshJobProducer rssFeedRefreshJobProducer;
+    private final RssFeedRefreshScheduler rssFeedRefreshScheduler;
     private final ObjectProvider<PublicationWorkflowService> self;
 
     @Transactional
@@ -102,7 +101,7 @@ public class PublicationWorkflowService {
         episode.setPublishedAt(null);
         episode.setScheduledAt(null);
         Episode unpublished = episodeRepository.save(episode);
-        rssFeedRefreshJobProducer.requestRefreshAfterCommit(tenantId);
+        rssFeedRefreshScheduler.requestRefreshAfterCommit(tenantId);
         return unpublished;
     }
 
@@ -117,7 +116,7 @@ public class PublicationWorkflowService {
         episode.setStatus(EpisodeStatus.ARCHIVED);
         episode.setScheduledAt(null);
         Episode archived = episodeRepository.save(episode);
-        rssFeedRefreshJobProducer.requestRefreshAfterCommit(tenantId);
+        rssFeedRefreshScheduler.requestRefreshAfterCommit(tenantId);
         return archived;
     }
 
@@ -218,7 +217,7 @@ public class PublicationWorkflowService {
         episode.setScheduledAt(null);
         Episode published = episodeRepository.save(episode);
 
-        rssFeedRefreshJobProducer.requestRefreshAfterCommit(tenantId);
+        rssFeedRefreshScheduler.requestRefreshAfterCommit(tenantId);
         maybeNotifySubscribers(tenantId, published, notifySubscribers);
         return published;
     }
