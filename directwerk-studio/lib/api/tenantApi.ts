@@ -34,7 +34,6 @@ import {
     parseTenantUserEnvelope,
     parseTenantUserListEnvelope,
     parseTokenResponse,
-    parseUploadUrlEnvelope,
     parseSubscriberFeedEnvelope,
     parseSubscriberFeedListEnvelope,
 } from '@/lib/api/responseValidation'
@@ -49,7 +48,6 @@ import type {
     CreateFormatInput,
     CreateProductInput,
     CreateSeriesInput,
-    CreateUploadUrlInput,
     DomainVerificationChallenge,
     EpisodeDetail,
     FormatSummary,
@@ -83,7 +81,6 @@ import type {
     UpdateSeriesInput,
     UpdateTenantBrandingInput,
     UpsertContentEmailTemplateInput,
-    UploadUrlResult,
     AddTenantDomainInput,
 } from '@/lib/api/types'
 import type {LoginInput} from '@/lib/api/validation'
@@ -732,24 +729,6 @@ export async function updateSeries(
     )
     if (parsed === null) {
         throw new Error('Der Server hat eine ungültige Sendung gesendet.')
-    }
-
-    return parsed.data
-}
-
-export async function requestUploadUrl(
-    tenantHost: string,
-    input: CreateUploadUrlInput,
-): Promise<UploadUrlResult> {
-    const parsed = parseUploadUrlEnvelope(
-        await authenticatedRequest('/api/proxy/media/upload-url', tenantHost, {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify(input),
-        }),
-    )
-    if (parsed === null) {
-        throw new Error('Der Server hat eine ungültige Upload-Antwort gesendet.')
     }
 
     return parsed.data
@@ -1587,5 +1566,3 @@ export async function replaceArticleCategories(
         'Der Server hat einen ungültigen Beitrag gesendet.',
     )
 }
-
-export {AUTH_REQUIRED}

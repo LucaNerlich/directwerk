@@ -11,19 +11,6 @@ const REFRESH_BUFFER_MS = 60_000
 let accessTokenCache: string | null | undefined
 let expiresAtCache: number | null | undefined
 
-const tokenListeners = new Set<() => void>()
-
-function notifyTokenListeners(): void {
-    tokenListeners.forEach((fn) => fn())
-}
-
-export function subscribeToTokenStore(callback: () => void): () => void {
-    tokenListeners.add(callback)
-    return () => {
-        tokenListeners.delete(callback)
-    }
-}
-
 function initializeAccessCache(): void {
     if (accessTokenCache === undefined) {
         accessTokenCache = sessionStorage.getItem(ACCESS_TOKEN_KEY)
@@ -43,30 +30,12 @@ function initializeExpiresAtCache(): void {
     }
 }
 
-function resetCaches(): void {
-    accessTokenCache = undefined
-    expiresAtCache = undefined
-}
-
-if (typeof window !== 'undefined') {
-    window.addEventListener('storage', (event) => {
-        if (
-            event.key === ACCESS_TOKEN_KEY ||
-            event.key === ACCESS_EXPIRES_AT_KEY ||
-            event.key === null
-        ) {
-            resetCaches()
-            notifyTokenListeners()
-        }
-    })
-}
-
 export function getAccessToken(): string | null {
     initializeAccessCache()
     return accessTokenCache ?? null
 }
 
-export function getAccessTokenExpiresAt(): number | null {
+function getAccessTokenExpiresAt(): number | null {
     initializeExpiresAtCache()
     return expiresAtCache ?? null
 }
@@ -92,7 +61,6 @@ export function setTokens(tokens: TokenResponse): void {
     sessionStorage.setItem(ACCESS_EXPIRES_AT_KEY, String(expiresAt))
     accessTokenCache = tokens.access_token
     expiresAtCache = expiresAt
-    notifyTokenListeners()
 }
 
 export function clearTokens(): void {
@@ -100,5 +68,4 @@ export function clearTokens(): void {
     sessionStorage.removeItem(ACCESS_EXPIRES_AT_KEY)
     accessTokenCache = null
     expiresAtCache = null
-    notifyTokenListeners()
 }
