@@ -4,7 +4,6 @@ import type {
     ApiEnvelope,
     FeedFormat,
     FeedPreview,
-    MediaAsset,
     Me,
     PublicArticle,
     PublicCategory,
@@ -246,90 +245,6 @@ function isNullableSafeInteger(value: unknown): value is number | null {
 
 function isNullableNonNegativeSafeInteger(value: unknown): value is number | null {
     return value === null || (isSafeInteger(value) && value >= 0)
-}
-
-function parseMediaAsset(value: unknown): MediaAsset | null {
-    if (!isRecord(value)) {
-        return null
-    }
-
-    const cdnUrl = value.cdnUrl === undefined ? null : value.cdnUrl
-
-    if (
-        !isPositiveSafeInteger(value.id) ||
-        !isBoundedString(value.s3Key, 512) ||
-        !isBoundedString(value.visibility, 64) ||
-        !isBoundedString(value.scope, 64) ||
-        !isBoundedString(value.assetType, 64) ||
-        !isBoundedString(value.status, 64) ||
-        !isNullableString(value.mimeType, 255) ||
-        !isNullableNonNegativeSafeInteger(value.sizeBytes) ||
-        !isNullableString(value.originalFilename, 512) ||
-        !isNullableSafeInteger(value.episodeId) ||
-        !isNullableSafeInteger(value.ownerUserId) ||
-        !isNullableString(cdnUrl, 2048) ||
-        !isBoundedString(value.createdAt, 64) ||
-        !isBoundedString(value.updatedAt, 64)
-    ) {
-        return null
-    }
-
-    return {
-        id: value.id,
-        s3Key: value.s3Key,
-        visibility: value.visibility,
-        scope: value.scope,
-        assetType: value.assetType,
-        status: value.status,
-        mimeType: value.mimeType,
-        sizeBytes: value.sizeBytes,
-        originalFilename: value.originalFilename,
-        episodeId: value.episodeId,
-        ownerUserId: value.ownerUserId,
-        cdnUrl,
-        createdAt: value.createdAt,
-        updatedAt: value.updatedAt,
-    }
-}
-
-export function parseMediaListEnvelope(
-    value: unknown,
-): ApiEnvelope<MediaAsset[]> | null {
-    return envelope(value, (data) => {
-        if (!Array.isArray(data) || data.length > 100) {
-            return null
-        }
-
-        const parsed: MediaAsset[] = []
-        for (const item of data) {
-            const asset = parseMediaAsset(item)
-            if (asset === null) {
-                return null
-            }
-            parsed.push(asset)
-        }
-
-        return parsed
-    })
-}
-
-export function parsePreviewUrlEnvelope(value: unknown): string | null {
-    if (!isRecord(value) || !isRecord(value.data)) {
-        return null
-    }
-    const url = value.data.url
-    if (!isBoundedString(url, 2048) || url.length === 0) {
-        return null
-    }
-    try {
-        const parsed = new URL(url)
-        if (parsed.protocol !== 'https:') {
-            return null
-        }
-    } catch {
-        return null
-    }
-    return url
 }
 
 function parsePublicCategory(value: unknown): PublicCategory | null {

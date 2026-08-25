@@ -69,23 +69,6 @@ export interface SiteConfig {
     publicRssUrl: string | null
 }
 
-export interface MediaAsset {
-    id: number
-    s3Key: string
-    visibility: string
-    scope: string
-    assetType: string
-    status: string
-    mimeType: string | null
-    sizeBytes: number | null
-    originalFilename: string | null
-    episodeId: number | null
-    ownerUserId: number | null
-    cdnUrl: string | null
-    createdAt: string
-    updatedAt: string
-}
-
 export interface PublicCategory {
     id: number
     slug: string
