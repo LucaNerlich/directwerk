@@ -52,7 +52,6 @@ public class EmailJobHandler implements JobHandler {
         EmailTemplate template = EmailTemplate.require(payload.template());
         Map<String, String> variables = new HashMap<>(payload.variables() == null ? Map.of() : payload.variables());
 
-        // Validate and add token-derived URL if required
         if (template.requiresToken()) {
             if (!StringUtils.hasText(payload.token())) {
                 throw new IllegalArgumentException("Email job payload missing token");
@@ -61,7 +60,6 @@ public class EmailJobHandler implements JobHandler {
             variables.put(template.tokenLink().variableName(), linkBuilder.buildTokenUrl(template, rawToken));
         }
 
-        // Validate required variables for each template
         validateRequiredVariables(template, variables);
 
         transactionalEmailService.sendFromPayload(job.id(), job.tenantId(), payload.to(), template, variables);

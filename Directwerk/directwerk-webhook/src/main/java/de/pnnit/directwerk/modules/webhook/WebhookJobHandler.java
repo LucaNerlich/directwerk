@@ -13,7 +13,9 @@ import org.springframework.util.StringUtils;
 import tools.jackson.databind.ObjectMapper;
 
 /**
- * Stub handler for webhook delivery jobs. Validates payloads and logs intent until HTTP delivery is wired.
+ * Queue consumer for outbound webhook delivery jobs. Currently validation-only:
+ * enforces a well-formed HTTPS target URL and payload bounds, then logs the
+ * accepted job (host only). No outbound HTTP request is performed yet.
  */
 @Component
 public class WebhookJobHandler implements JobHandler {
@@ -43,7 +45,6 @@ public class WebhookJobHandler implements JobHandler {
             throw new IllegalArgumentException("Invalid webhook job payload");
         }
 
-        // Validate and parse URL with HTTPS scheme requirement
         URI uri;
         try {
             uri = new URI(payload.url());
@@ -60,17 +61,14 @@ public class WebhookJobHandler implements JobHandler {
             throw new IllegalArgumentException("Webhook URL must have a valid host");
         }
 
-        // Validate eventType bounds
         if (payload.eventType().length() > 100) {
             throw new IllegalArgumentException("eventType exceeds max length of 100");
         }
 
-        // Validate correlationId bounds if present
         if (payload.correlationId() != null && payload.correlationId().length() > 200) {
             throw new IllegalArgumentException("correlationId exceeds max length of 200");
         }
 
-        // Validate body bounds if present
         if (payload.body() != null && payload.body().length() > 100000) {
             throw new IllegalArgumentException("body exceeds max length of 100000");
         }

@@ -33,7 +33,6 @@ public class InvitationTokenService {
         if (type == null) {
             throw new IllegalArgumentException("Invitation type is required");
         }
-        // Validate invitation type and membership combination
         if (type == InvitationType.PLATFORM_ADMIN && membership != null) {
             throw new IllegalArgumentException("PLATFORM_ADMIN invitation must not have a tenant membership");
         }
@@ -41,7 +40,6 @@ public class InvitationTokenService {
             throw new IllegalArgumentException("Tenant-scoped invitation must have a tenant membership");
         }
 
-        // Acquire pessimistic lock on the user row
         User lockedUser = userRepository.findWithLockById(user.getId())
                 .orElseThrow(() -> new IllegalStateException("User not found: " + user.getId()));
 
