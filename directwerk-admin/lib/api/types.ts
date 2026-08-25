@@ -133,22 +133,6 @@ export const ASSET_VISIBILITIES = ['PUBLIC', 'PRIVATE'] as const
 
 export type AssetVisibility = (typeof ASSET_VISIBILITIES)[number]
 
-export interface CreateUploadUrlRequest {
-    filename: string
-    mimeType: string
-    sizeBytes: number
-    assetType: AssetType
-    intendedVisibility?: AssetVisibility
-    scope?: string
-}
-
-export interface UploadUrlResponse {
-    assetId: number
-    uploadUrl: string
-    expiresAt: string
-    headers: Record<string, string>
-}
-
 export const TENANT_INVITABLE_ROLES = [
     'TENANT_ADMIN',
     'EDITOR',
