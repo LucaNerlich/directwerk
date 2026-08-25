@@ -243,7 +243,6 @@ public class SecurityConfig {
         int forgotPasswordLimit = security.forgotPasswordRateLimitPerMinute() != null ? security.forgotPasswordRateLimitPerMinute() : 5;
         int authLimit = security.authRateLimitPerMinute() != null ? security.authRateLimitPerMinute() : 20;
 
-        // Validate rate limit values are strictly positive
         if (oauthLimit <= 0) {
             throw new IllegalStateException("OAuth token rate limit must be positive, got: " + oauthLimit);
         }

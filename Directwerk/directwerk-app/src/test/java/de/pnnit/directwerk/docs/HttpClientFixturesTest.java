@@ -24,12 +24,9 @@ import org.junit.jupiter.api.Test;
  * Validates the IntelliJ HTTP Client fixtures under {@code Directwerk/http/} and their reference
  * from {@code projects/directwerk/AGENTS.md}.
  *
- * <p>This PR renumbered/renamed the manual API test scripts (e.g. {@code 06-tenant-admin.http} ->
- * {@code 10-tenant-admin.http}), replaced {@code http-client.secrets.example.json} with
- * {@code http-client.private.env.example.json}, added a {@code 00-index.http} table of contents,
- * and fixed the {@code AGENTS.md} link that previously pointed at the (non-existent) {@code http/}
- * directory instead of {@code Directwerk/http/}. These tests guard against regressions in that
- * structure since none of it is exercised by the Gradle {@code test} task otherwise.
+ * <p>These tests guard the fixture structure (numbered script names, the private env example,
+ * the {@code 00-index.http} table of contents, and the AGENTS.md reference to this directory)
+ * since none of it is exercised by the Gradle {@code test} task otherwise.
  *
  * <p>The environment JSON fixtures are simple flat {@code "key": "value"} maps, so they are parsed
  * with a small regex here rather than pulling in a JSON library dependency for a test.

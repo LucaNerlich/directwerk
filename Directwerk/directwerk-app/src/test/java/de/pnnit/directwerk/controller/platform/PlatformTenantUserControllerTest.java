@@ -28,14 +28,13 @@ import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 
 /**
- * Note: no dedicated test file previously existed for {@link PlatformTenantUserController} (its
- * deactivate/reactivate endpoints are instead covered end-to-end, via real Postgres/Testcontainers
- * and signed JWTs, by {@code MembershipDeactivationFullStackIT}). This class is modeled on the
- * sibling {@link PlatformTenantControllerTest} (same {@code @SpringBootTest}
- * + {@code @AutoConfigureMockMvc} + H2 {@code test} profile + {@code @WithMockUser} shape) rather
- * than the Testcontainers IT, since role-change coverage doesn't need real JWTs or the servlet-layer
- * tenant filter (this controller lives entirely under the platform-scoped {@code /api/v1/platform/**}
- * path, where {@code TenantContextFilter} clears tenant context regardless).
+ * The deactivate/reactivate endpoints are additionally covered end-to-end (real
+ * Postgres/Testcontainers and signed JWTs) by {@code MembershipDeactivationFullStackIT}. This class
+ * follows the lighter {@link PlatformTenantControllerTest} shape ({@code @SpringBootTest}
+ * + {@code @AutoConfigureMockMvc} + H2 {@code test} profile + {@code @WithMockUser}) because
+ * role-change coverage doesn't need real JWTs or the servlet-layer tenant filter: this controller
+ * lives entirely under the platform-scoped {@code /api/v1/platform/**} path, where
+ * {@code TenantContextFilter} clears tenant context regardless.
  */
 @SpringBootTest
 @AutoConfigureMockMvc

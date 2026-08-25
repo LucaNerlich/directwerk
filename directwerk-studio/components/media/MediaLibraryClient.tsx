@@ -109,7 +109,6 @@ export default function MediaLibraryClient(): React.JSX.Element {
         const result = await listMedia(getClientTenantHost())
         setAssets(result)
 
-        // Fetch preview URLs for private IMAGE assets in the background
         const privateImageIds = result
             .filter((a) => a.assetType === 'IMAGE' && a.cdnUrl == null)
             .map((a) => a.id)
