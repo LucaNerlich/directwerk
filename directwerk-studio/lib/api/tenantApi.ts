@@ -228,11 +228,15 @@ async function postJson(
     tenantHost: string,
     body: unknown,
 ): Promise<unknown> {
-    return request(path, tenantHost, {
-        method: 'POST',
+    return request(path, tenantHost, jsonInit('POST', body))
+}
+
+function jsonInit(method: 'POST' | 'PUT', body: unknown): RequestInit {
+    return {
+        method,
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify(body),
-    })
+    }
 }
 
 export async function login(
@@ -249,57 +253,49 @@ export async function login(
 }
 
 export async function fetchMe(tenantHost: string): Promise<Me> {
-    const parsed = parseMeEnvelope(
-        await authenticatedRequest('/api/proxy/me', tenantHost),
+    return proxyRequest(
+        '/api/proxy/me',
+        tenantHost,
+        undefined,
+        parseMeEnvelope,
+        'Der Server hat eine ungültige Kontodaten-Antwort gesendet.',
     )
-    if (parsed === null) {
-        throw new Error('Der Server hat eine ungültige Kontodaten-Antwort gesendet.')
-    }
-
-    return parsed.data
 }
 
 export async function listArticles(tenantHost: string): Promise<ArticleDetail[]> {
-    const parsed = parseArticleListEnvelope(
-        await authenticatedRequest('/api/proxy/articles', tenantHost),
+    return proxyRequest(
+        '/api/proxy/articles',
+        tenantHost,
+        undefined,
+        parseArticleListEnvelope,
+        'Der Server hat eine ungültige Beitragsliste gesendet.',
     )
-    if (parsed === null) {
-        throw new Error('Der Server hat eine ungültige Beitragsliste gesendet.')
-    }
-
-    return parsed.data
 }
 
 export async function getArticle(
     tenantHost: string,
     articleId: number,
 ): Promise<ArticleDetail> {
-    const parsed = parseArticleEnvelope(
-        await authenticatedRequest(`/api/proxy/articles/${articleId}`, tenantHost),
+    return proxyRequest(
+        `/api/proxy/articles/${articleId}`,
+        tenantHost,
+        undefined,
+        parseArticleEnvelope,
+        'Der Server hat einen ungültigen Beitrag gesendet.',
     )
-    if (parsed === null) {
-        throw new Error('Der Server hat einen ungültigen Beitrag gesendet.')
-    }
-
-    return parsed.data
 }
 
 export async function createArticle(
     tenantHost: string,
     input: CreateArticleInput,
 ): Promise<ArticleDetail> {
-    const parsed = parseArticleEnvelope(
-        await authenticatedRequest('/api/proxy/articles', tenantHost, {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify(input),
-        }),
+    return proxyRequest(
+        '/api/proxy/articles',
+        tenantHost,
+        jsonInit('POST', input),
+        parseArticleEnvelope,
+        'Der Server hat einen ungültigen Beitrag gesendet.',
     )
-    if (parsed === null) {
-        throw new Error('Der Server hat einen ungültigen Beitrag gesendet.')
-    }
-
-    return parsed.data
 }
 
 export async function updateArticle(
@@ -307,18 +303,13 @@ export async function updateArticle(
     articleId: number,
     input: UpdateArticleInput,
 ): Promise<ArticleDetail> {
-    const parsed = parseArticleEnvelope(
-        await authenticatedRequest(`/api/proxy/articles/${articleId}`, tenantHost, {
-            method: 'PUT',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify(input),
-        }),
+    return proxyRequest(
+        `/api/proxy/articles/${articleId}`,
+        tenantHost,
+        jsonInit('PUT', input),
+        parseArticleEnvelope,
+        'Der Server hat einen ungültigen Beitrag gesendet.',
     )
-    if (parsed === null) {
-        throw new Error('Der Server hat einen ungültigen Beitrag gesendet.')
-    }
-
-    return parsed.data
 }
 
 export async function publishArticle(
@@ -326,24 +317,15 @@ export async function publishArticle(
     articleId: number,
     options?: PublishOptions,
 ): Promise<ArticleDetail> {
-    const parsed = parseArticleEnvelope(
-        await authenticatedRequest(
-            `/api/proxy/articles/${articleId}/publish`,
-            tenantHost,
-            {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({
-                    notifySubscribers: options?.notifySubscribers === true,
-                }),
-            },
-        ),
+    return proxyRequest(
+        `/api/proxy/articles/${articleId}/publish`,
+        tenantHost,
+        jsonInit('POST', {
+            notifySubscribers: options?.notifySubscribers === true,
+        }),
+        parseArticleEnvelope,
+        'Der Server hat einen ungültigen Beitrag gesendet.',
     )
-    if (parsed === null) {
-        throw new Error('Der Server hat einen ungültigen Beitrag gesendet.')
-    }
-
-    return parsed.data
 }
 
 export async function scheduleArticle(
@@ -351,140 +333,104 @@ export async function scheduleArticle(
     articleId: number,
     options: ScheduleOptions,
 ): Promise<ArticleDetail> {
-    const parsed = parseArticleEnvelope(
-        await authenticatedRequest(
-            `/api/proxy/articles/${articleId}/schedule`,
-            tenantHost,
-            {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({
-                    scheduledAt: options.scheduledAt,
-                    notifySubscribers: options.notifySubscribers === true,
-                }),
-            },
-        ),
+    return proxyRequest(
+        `/api/proxy/articles/${articleId}/schedule`,
+        tenantHost,
+        jsonInit('POST', {
+            scheduledAt: options.scheduledAt,
+            notifySubscribers: options.notifySubscribers === true,
+        }),
+        parseArticleEnvelope,
+        'Der Server hat einen ungültigen Beitrag gesendet.',
     )
-    if (parsed === null) {
-        throw new Error('Der Server hat einen ungültigen Beitrag gesendet.')
-    }
-
-    return parsed.data
 }
 
 export async function cancelScheduleArticle(
     tenantHost: string,
     articleId: number,
 ): Promise<ArticleDetail> {
-    const parsed = parseArticleEnvelope(
-        await authenticatedRequest(
-            `/api/proxy/articles/${articleId}/cancel-schedule`,
-            tenantHost,
-            {method: 'POST'},
-        ),
+    return proxyRequest(
+        `/api/proxy/articles/${articleId}/cancel-schedule`,
+        tenantHost,
+        {method: 'POST'},
+        parseArticleEnvelope,
+        'Der Server hat einen ungültigen Beitrag gesendet.',
     )
-    if (parsed === null) {
-        throw new Error('Der Server hat einen ungültigen Beitrag gesendet.')
-    }
-
-    return parsed.data
 }
 
 export async function unpublishArticle(
     tenantHost: string,
     articleId: number,
 ): Promise<ArticleDetail> {
-    const parsed = parseArticleEnvelope(
-        await authenticatedRequest(
-            `/api/proxy/articles/${articleId}/unpublish`,
-            tenantHost,
-            {method: 'POST'},
-        ),
+    return proxyRequest(
+        `/api/proxy/articles/${articleId}/unpublish`,
+        tenantHost,
+        {method: 'POST'},
+        parseArticleEnvelope,
+        'Der Server hat einen ungültigen Beitrag gesendet.',
     )
-    if (parsed === null) {
-        throw new Error('Der Server hat einen ungültigen Beitrag gesendet.')
-    }
-
-    return parsed.data
 }
 
 export async function archiveArticle(
     tenantHost: string,
     articleId: number,
 ): Promise<ArticleDetail> {
-    const parsed = parseArticleEnvelope(
-        await authenticatedRequest(
-            `/api/proxy/articles/${articleId}/archive`,
-            tenantHost,
-            {method: 'POST'},
-        ),
+    return proxyRequest(
+        `/api/proxy/articles/${articleId}/archive`,
+        tenantHost,
+        {method: 'POST'},
+        parseArticleEnvelope,
+        'Der Server hat einen ungültigen Beitrag gesendet.',
     )
-    if (parsed === null) {
-        throw new Error('Der Server hat einen ungültigen Beitrag gesendet.')
-    }
-
-    return parsed.data
 }
 
 export async function unarchiveArticle(
     tenantHost: string,
     articleId: number,
 ): Promise<ArticleDetail> {
-    const parsed = parseArticleEnvelope(
-        await authenticatedRequest(
-            `/api/proxy/articles/${articleId}/unarchive`,
-            tenantHost,
-            {method: 'POST'},
-        ),
+    return proxyRequest(
+        `/api/proxy/articles/${articleId}/unarchive`,
+        tenantHost,
+        {method: 'POST'},
+        parseArticleEnvelope,
+        'Der Server hat einen ungültigen Beitrag gesendet.',
     )
-    if (parsed === null) {
-        throw new Error('Der Server hat einen ungültigen Beitrag gesendet.')
-    }
-
-    return parsed.data
 }
 
 export async function listEpisodes(tenantHost: string): Promise<EpisodeDetail[]> {
-    const parsed = parseEpisodeListEnvelope(
-        await authenticatedRequest('/api/proxy/episodes', tenantHost),
+    return proxyRequest(
+        '/api/proxy/episodes',
+        tenantHost,
+        undefined,
+        parseEpisodeListEnvelope,
+        'Der Server hat eine ungültige Folgenliste gesendet.',
     )
-    if (parsed === null) {
-        throw new Error('Der Server hat eine ungültige Folgenliste gesendet.')
-    }
-
-    return parsed.data
 }
 
 export async function getEpisode(
     tenantHost: string,
     episodeId: number,
 ): Promise<EpisodeDetail> {
-    const parsed = parseEpisodeEnvelope(
-        await authenticatedRequest(`/api/proxy/episodes/${episodeId}`, tenantHost),
+    return proxyRequest(
+        `/api/proxy/episodes/${episodeId}`,
+        tenantHost,
+        undefined,
+        parseEpisodeEnvelope,
+        'Der Server hat eine ungültige Folge gesendet.',
     )
-    if (parsed === null) {
-        throw new Error('Der Server hat eine ungültige Folge gesendet.')
-    }
-
-    return parsed.data
 }
 
 export async function createEpisode(
     tenantHost: string,
     input: CreateEpisodeInput,
 ): Promise<EpisodeDetail> {
-    const parsed = parseEpisodeEnvelope(
-        await authenticatedRequest('/api/proxy/episodes', tenantHost, {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify(input),
-        }),
+    return proxyRequest(
+        '/api/proxy/episodes',
+        tenantHost,
+        jsonInit('POST', input),
+        parseEpisodeEnvelope,
+        'Der Server hat eine ungültige Folge gesendet.',
     )
-    if (parsed === null) {
-        throw new Error('Der Server hat eine ungültige Folge gesendet.')
-    }
-
-    return parsed.data
 }
 
 export async function updateEpisode(
@@ -492,18 +438,13 @@ export async function updateEpisode(
     episodeId: number,
     input: UpdateEpisodeInput,
 ): Promise<EpisodeDetail> {
-    const parsed = parseEpisodeEnvelope(
-        await authenticatedRequest(`/api/proxy/episodes/${episodeId}`, tenantHost, {
-            method: 'PUT',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify(input),
-        }),
+    return proxyRequest(
+        `/api/proxy/episodes/${episodeId}`,
+        tenantHost,
+        jsonInit('PUT', input),
+        parseEpisodeEnvelope,
+        'Der Server hat eine ungültige Folge gesendet.',
     )
-    if (parsed === null) {
-        throw new Error('Der Server hat eine ungültige Folge gesendet.')
-    }
-
-    return parsed.data
 }
 
 export async function publishEpisode(
@@ -511,24 +452,15 @@ export async function publishEpisode(
     episodeId: number,
     options?: PublishOptions,
 ): Promise<EpisodeDetail> {
-    const parsed = parseEpisodeEnvelope(
-        await authenticatedRequest(
-            `/api/proxy/episodes/${episodeId}/publish`,
-            tenantHost,
-            {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({
-                    notifySubscribers: options?.notifySubscribers === true,
-                }),
-            },
-        ),
+    return proxyRequest(
+        `/api/proxy/episodes/${episodeId}/publish`,
+        tenantHost,
+        jsonInit('POST', {
+            notifySubscribers: options?.notifySubscribers === true,
+        }),
+        parseEpisodeEnvelope,
+        'Der Server hat eine ungültige Folge gesendet.',
     )
-    if (parsed === null) {
-        throw new Error('Der Server hat eine ungültige Folge gesendet.')
-    }
-
-    return parsed.data
 }
 
 export async function scheduleEpisode(
@@ -536,97 +468,68 @@ export async function scheduleEpisode(
     episodeId: number,
     options: ScheduleOptions,
 ): Promise<EpisodeDetail> {
-    const parsed = parseEpisodeEnvelope(
-        await authenticatedRequest(
-            `/api/proxy/episodes/${episodeId}/schedule`,
-            tenantHost,
-            {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({
-                    scheduledAt: options.scheduledAt,
-                    notifySubscribers: options.notifySubscribers === true,
-                }),
-            },
-        ),
+    return proxyRequest(
+        `/api/proxy/episodes/${episodeId}/schedule`,
+        tenantHost,
+        jsonInit('POST', {
+            scheduledAt: options.scheduledAt,
+            notifySubscribers: options.notifySubscribers === true,
+        }),
+        parseEpisodeEnvelope,
+        'Der Server hat eine ungültige Folge gesendet.',
     )
-    if (parsed === null) {
-        throw new Error('Der Server hat eine ungültige Folge gesendet.')
-    }
-
-    return parsed.data
 }
 
 export async function cancelScheduleEpisode(
     tenantHost: string,
     episodeId: number,
 ): Promise<EpisodeDetail> {
-    const parsed = parseEpisodeEnvelope(
-        await authenticatedRequest(
-            `/api/proxy/episodes/${episodeId}/cancel-schedule`,
-            tenantHost,
-            {method: 'POST'},
-        ),
+    return proxyRequest(
+        `/api/proxy/episodes/${episodeId}/cancel-schedule`,
+        tenantHost,
+        {method: 'POST'},
+        parseEpisodeEnvelope,
+        'Der Server hat eine ungültige Folge gesendet.',
     )
-    if (parsed === null) {
-        throw new Error('Der Server hat eine ungültige Folge gesendet.')
-    }
-
-    return parsed.data
 }
 
 export async function unpublishEpisode(
     tenantHost: string,
     episodeId: number,
 ): Promise<EpisodeDetail> {
-    const parsed = parseEpisodeEnvelope(
-        await authenticatedRequest(
-            `/api/proxy/episodes/${episodeId}/unpublish`,
-            tenantHost,
-            {method: 'POST'},
-        ),
+    return proxyRequest(
+        `/api/proxy/episodes/${episodeId}/unpublish`,
+        tenantHost,
+        {method: 'POST'},
+        parseEpisodeEnvelope,
+        'Der Server hat eine ungültige Folge gesendet.',
     )
-    if (parsed === null) {
-        throw new Error('Der Server hat eine ungültige Folge gesendet.')
-    }
-
-    return parsed.data
 }
 
 export async function archiveEpisode(
     tenantHost: string,
     episodeId: number,
 ): Promise<EpisodeDetail> {
-    const parsed = parseEpisodeEnvelope(
-        await authenticatedRequest(
-            `/api/proxy/episodes/${episodeId}/archive`,
-            tenantHost,
-            {method: 'POST'},
-        ),
+    return proxyRequest(
+        `/api/proxy/episodes/${episodeId}/archive`,
+        tenantHost,
+        {method: 'POST'},
+        parseEpisodeEnvelope,
+        'Der Server hat eine ungültige Folge gesendet.',
     )
-    if (parsed === null) {
-        throw new Error('Der Server hat eine ungültige Folge gesendet.')
-    }
-
-    return parsed.data
 }
 
 export async function unarchiveEpisode(
     tenantHost: string,
     episodeId: number,
 ): Promise<EpisodeDetail> {
-    const parsed = parseEpisodeEnvelope(
-        await authenticatedRequest(
-            `/api/proxy/episodes/${episodeId}/unarchive`,
-            tenantHost,
-            {method: 'POST'},
-        ),
+    return proxyRequest(
+        `/api/proxy/episodes/${episodeId}/unarchive`,
+        tenantHost,
+        {method: 'POST'},
+        parseEpisodeEnvelope,
+        'Der Server hat eine ungültige Folge gesendet.',
     )
-    if (parsed === null) {
-        throw new Error('Der Server hat eine ungültige Folge gesendet.')
-    }
-
-    return parsed.data
 }
 
 export async function setEpisodeEnclosureEnabled(
@@ -634,22 +537,13 @@ export async function setEpisodeEnclosureEnabled(
     episodeId: number,
     enabled: boolean,
 ): Promise<EpisodeDetail> {
-    const parsed = parseEpisodeEnvelope(
-        await authenticatedRequest(
-            `/api/proxy/episodes/${episodeId}/enclosure-enabled`,
-            tenantHost,
-            {
-                method: 'PUT',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({enabled}),
-            },
-        ),
+    return proxyRequest(
+        `/api/proxy/episodes/${episodeId}/enclosure-enabled`,
+        tenantHost,
+        jsonInit('PUT', {enabled}),
+        parseEpisodeEnvelope,
+        'Der Server hat eine ungültige Folge gesendet.',
     )
-    if (parsed === null) {
-        throw new Error('Der Server hat eine ungültige Folge gesendet.')
-    }
-
-    return parsed.data
 }
 
 export async function attachEpisodeAudio(
@@ -657,65 +551,49 @@ export async function attachEpisodeAudio(
     episodeId: number,
     audioAssetId: number,
 ): Promise<EpisodeDetail> {
-    const parsed = parseEpisodeEnvelope(
-        await authenticatedRequest(
-            `/api/proxy/episodes/${episodeId}/audio`,
-            tenantHost,
-            {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({audioAssetId}),
-            },
-        ),
+    return proxyRequest(
+        `/api/proxy/episodes/${episodeId}/audio`,
+        tenantHost,
+        jsonInit('POST', {audioAssetId}),
+        parseEpisodeEnvelope,
+        'Der Server hat eine ungültige Folge gesendet.',
     )
-    if (parsed === null) {
-        throw new Error('Der Server hat eine ungültige Folge gesendet.')
-    }
-
-    return parsed.data
 }
 
 export async function listSeries(tenantHost: string): Promise<SeriesSummary[]> {
-    const parsed = parseSeriesListEnvelope(
-        await authenticatedRequest('/api/proxy/series', tenantHost),
+    return proxyRequest(
+        '/api/proxy/series',
+        tenantHost,
+        undefined,
+        parseSeriesListEnvelope,
+        'Der Server hat eine ungültige Sendungsliste gesendet.',
     )
-    if (parsed === null) {
-        throw new Error('Der Server hat eine ungültige Sendungsliste gesendet.')
-    }
-
-    return parsed.data
 }
 
 export async function getSeries(
     tenantHost: string,
     seriesId: number,
 ): Promise<SeriesDetail> {
-    const parsed = parseSeriesEnvelope(
-        await authenticatedRequest(`/api/proxy/series/${seriesId}`, tenantHost),
+    return proxyRequest(
+        `/api/proxy/series/${seriesId}`,
+        tenantHost,
+        undefined,
+        parseSeriesEnvelope,
+        'Der Server hat eine ungültige Sendung gesendet.',
     )
-    if (parsed === null) {
-        throw new Error('Der Server hat eine ungültige Sendung gesendet.')
-    }
-
-    return parsed.data
 }
 
 export async function createSeries(
     tenantHost: string,
     input: CreateSeriesInput,
 ): Promise<SeriesDetail> {
-    const parsed = parseSeriesEnvelope(
-        await authenticatedRequest('/api/proxy/series', tenantHost, {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify(input),
-        }),
+    return proxyRequest(
+        '/api/proxy/series',
+        tenantHost,
+        jsonInit('POST', input),
+        parseSeriesEnvelope,
+        'Der Server hat eine ungültige Sendung gesendet.',
     )
-    if (parsed === null) {
-        throw new Error('Der Server hat eine ungültige Sendung gesendet.')
-    }
-
-    return parsed.data
 }
 
 export async function updateSeries(
@@ -723,93 +601,75 @@ export async function updateSeries(
     seriesId: number,
     input: UpdateSeriesInput,
 ): Promise<SeriesDetail> {
-    const parsed = parseSeriesEnvelope(
-        await authenticatedRequest(`/api/proxy/series/${seriesId}`, tenantHost, {
-            method: 'PUT',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify(input),
-        }),
+    return proxyRequest(
+        `/api/proxy/series/${seriesId}`,
+        tenantHost,
+        jsonInit('PUT', input),
+        parseSeriesEnvelope,
+        'Der Server hat eine ungültige Sendung gesendet.',
     )
-    if (parsed === null) {
-        throw new Error('Der Server hat eine ungültige Sendung gesendet.')
-    }
-
-    return parsed.data
 }
 
 export async function requestUploadUrl(
     tenantHost: string,
     input: CreateUploadUrlInput,
 ): Promise<UploadUrlResult> {
-    const parsed = parseUploadUrlEnvelope(
-        await authenticatedRequest('/api/proxy/media/upload-url', tenantHost, {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify(input),
-        }),
+    return proxyRequest(
+        '/api/proxy/media/upload-url',
+        tenantHost,
+        jsonInit('POST', input),
+        parseUploadUrlEnvelope,
+        'Der Server hat eine ungültige Upload-Antwort gesendet.',
     )
-    if (parsed === null) {
-        throw new Error('Der Server hat eine ungültige Upload-Antwort gesendet.')
-    }
-
-    return parsed.data
 }
 
 export async function confirmUpload(
     tenantHost: string,
     assetId: number,
 ): Promise<MediaAsset> {
-    const parsed = parseMediaAssetEnvelope(
-        await authenticatedRequest(`/api/proxy/media/${assetId}/confirm`, tenantHost, {
-            method: 'POST',
-        }),
+    return proxyRequest(
+        `/api/proxy/media/${assetId}/confirm`,
+        tenantHost,
+        {method: 'POST'},
+        parseMediaAssetEnvelope,
+        'Der Server hat ein ungültiges Medium gesendet.',
     )
-    if (parsed === null) {
-        throw new Error('Der Server hat ein ungültiges Medium gesendet.')
-    }
-
-    return parsed.data
 }
 
 export async function listMedia(tenantHost: string): Promise<MediaAsset[]> {
-    const parsed = parseMediaListEnvelope(
-        await authenticatedRequest('/api/proxy/media', tenantHost),
+    return proxyRequest(
+        '/api/proxy/media',
+        tenantHost,
+        undefined,
+        parseMediaListEnvelope,
+        'Der Server hat eine ungültige Medienliste gesendet.',
     )
-    if (parsed === null) {
-        throw new Error('Der Server hat eine ungültige Medienliste gesendet.')
-    }
-
-    return parsed.data
 }
 
 export async function getMedia(
     tenantHost: string,
     assetId: number,
 ): Promise<MediaAsset> {
-    const parsed = parseMediaAssetEnvelope(
-        await authenticatedRequest(`/api/proxy/media/${assetId}`, tenantHost),
+    return proxyRequest(
+        `/api/proxy/media/${assetId}`,
+        tenantHost,
+        undefined,
+        parseMediaAssetEnvelope,
+        'Der Server hat ein ungültiges Medium gesendet.',
     )
-    if (parsed === null) {
-        throw new Error('Der Server hat ein ungültiges Medium gesendet.')
-    }
-
-    return parsed.data
 }
 
 export async function deleteMedia(
     tenantHost: string,
     assetId: number,
 ): Promise<MediaAsset> {
-    const parsed = parseMediaAssetEnvelope(
-        await authenticatedRequest(`/api/proxy/media/${assetId}`, tenantHost, {
-            method: 'DELETE',
-        }),
+    return proxyRequest(
+        `/api/proxy/media/${assetId}`,
+        tenantHost,
+        {method: 'DELETE'},
+        parseMediaAssetEnvelope,
+        'Der Server hat ein ungültiges Medium gesendet.',
     )
-    if (parsed === null) {
-        throw new Error('Der Server hat ein ungültiges Medium gesendet.')
-    }
-
-    return parsed.data
 }
 
 export async function getMediaPreviewUrl(
@@ -1075,34 +935,25 @@ export async function syncProductStripe(
     tenantHost: string,
     productId: number,
 ): Promise<SubscriptionProduct> {
-    const parsed = parseProductEnvelope(
-        await authenticatedRequest(
-            `/api/proxy/tenant/products/${productId}/sync-stripe`,
-            tenantHost,
-            {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({}),
-            },
-        ),
+    return proxyRequest(
+        `/api/proxy/tenant/products/${productId}/sync-stripe`,
+        tenantHost,
+        jsonInit('POST', {}),
+        parseProductEnvelope,
+        'Der Server hat ein ungültiges Produkt gesendet.',
     )
-    if (parsed === null) {
-        throw new Error('Der Server hat ein ungültiges Produkt gesendet.')
-    }
-    return parsed.data
 }
 
 export async function listProducts(
     tenantHost: string,
 ): Promise<SubscriptionProduct[]> {
-    const parsed = parseProductListEnvelope(
-        await authenticatedRequest('/api/proxy/tenant/products', tenantHost),
+    return proxyRequest(
+        '/api/proxy/tenant/products',
+        tenantHost,
+        undefined,
+        parseProductListEnvelope,
+        'Der Server hat eine ungültige Produktliste gesendet.',
     )
-    if (parsed === null) {
-        throw new Error('Der Server hat eine ungültige Produktliste gesendet.')
-    }
-
-    return parsed.data
 }
 
 /**
@@ -1128,18 +979,13 @@ export async function createProduct(
     tenantHost: string,
     input: CreateProductInput,
 ): Promise<SubscriptionProduct> {
-    const parsed = parseProductEnvelope(
-        await authenticatedRequest('/api/proxy/tenant/products', tenantHost, {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify(input),
-        }),
+    return proxyRequest(
+        '/api/proxy/tenant/products',
+        tenantHost,
+        jsonInit('POST', input),
+        parseProductEnvelope,
+        'Der Server hat ein ungültiges Produkt gesendet.',
     )
-    if (parsed === null) {
-        throw new Error('Der Server hat ein ungültiges Produkt gesendet.')
-    }
-
-    return parsed.data
 }
 
 export async function updateProduct(
@@ -1147,57 +993,39 @@ export async function updateProduct(
     productId: number,
     input: UpdateProductInput,
 ): Promise<SubscriptionProduct> {
-    const parsed = parseProductEnvelope(
-        await authenticatedRequest(
-            `/api/proxy/tenant/products/${productId}`,
-            tenantHost,
-            {
-                method: 'PUT',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify(input),
-            },
-        ),
+    return proxyRequest(
+        `/api/proxy/tenant/products/${productId}`,
+        tenantHost,
+        jsonInit('PUT', input),
+        parseProductEnvelope,
+        'Der Server hat ein ungültiges Produkt gesendet.',
     )
-    if (parsed === null) {
-        throw new Error('Der Server hat ein ungültiges Produkt gesendet.')
-    }
-
-    return parsed.data
 }
 
 export async function deactivateProduct(
     tenantHost: string,
     productId: number,
 ): Promise<SubscriptionProduct> {
-    const parsed = parseProductEnvelope(
-        await authenticatedRequest(
-            `/api/proxy/tenant/products/${productId}`,
-            tenantHost,
-            {method: 'DELETE'},
-        ),
+    return proxyRequest(
+        `/api/proxy/tenant/products/${productId}`,
+        tenantHost,
+        {method: 'DELETE'},
+        parseProductEnvelope,
+        'Der Server hat ein ungültiges Produkt gesendet.',
     )
-    if (parsed === null) {
-        throw new Error('Der Server hat ein ungültiges Produkt gesendet.')
-    }
-
-    return parsed.data
 }
 
 export async function listProductRules(
     tenantHost: string,
     productId: number,
 ): Promise<ProductAccessRule[]> {
-    const parsed = parseProductRuleListEnvelope(
-        await authenticatedRequest(
-            `/api/proxy/tenant/products/${productId}/rules`,
-            tenantHost,
-        ),
+    return proxyRequest(
+        `/api/proxy/tenant/products/${productId}/rules`,
+        tenantHost,
+        undefined,
+        parseProductRuleListEnvelope,
+        'Der Server hat ungültige Produktregeln gesendet.',
     )
-    if (parsed === null) {
-        throw new Error('Der Server hat ungültige Produktregeln gesendet.')
-    }
-
-    return parsed.data
 }
 
 export async function replaceProductRules(
@@ -1205,62 +1033,39 @@ export async function replaceProductRules(
     productId: number,
     rules: ProductAccessRuleInput[],
 ): Promise<ProductAccessRule[]> {
-    const parsed = parseProductRuleListEnvelope(
-        await authenticatedRequest(
-            `/api/proxy/tenant/products/${productId}/rules`,
-            tenantHost,
-            {
-                method: 'PUT',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({rules}),
-            },
-        ),
+    return proxyRequest(
+        `/api/proxy/tenant/products/${productId}/rules`,
+        tenantHost,
+        jsonInit('PUT', {rules}),
+        parseProductRuleListEnvelope,
+        'Der Server hat ungültige Produktregeln gesendet.',
     )
-    if (parsed === null) {
-        throw new Error('Der Server hat ungültige Produktregeln gesendet.')
-    }
-
-    return parsed.data
 }
 
 export async function grantSubscription(
     tenantHost: string,
     input: GrantSubscriptionInput,
 ): Promise<SubscriptionGrant> {
-    const parsed = parseSubscriptionGrantEnvelope(
-        await authenticatedRequest(
-            '/api/proxy/tenant/subscriptions',
-            tenantHost,
-            {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify(input),
-            },
-        ),
+    return proxyRequest(
+        '/api/proxy/tenant/subscriptions',
+        tenantHost,
+        jsonInit('POST', input),
+        parseSubscriptionGrantEnvelope,
+        'Der Server hat eine ungültige Freischaltung gesendet.',
     )
-    if (parsed === null) {
-        throw new Error('Der Server hat eine ungültige Freischaltung gesendet.')
-    }
-
-    return parsed.data
 }
 
 export async function revokeSubscription(
     tenantHost: string,
     subscriptionId: number,
 ): Promise<SubscriptionGrant> {
-    const parsed = parseSubscriptionGrantEnvelope(
-        await authenticatedRequest(
-            `/api/proxy/tenant/subscriptions/${subscriptionId}`,
-            tenantHost,
-            {method: 'DELETE'},
-        ),
+    return proxyRequest(
+        `/api/proxy/tenant/subscriptions/${subscriptionId}`,
+        tenantHost,
+        {method: 'DELETE'},
+        parseSubscriptionGrantEnvelope,
+        'Der Server hat eine ungültige Freischaltung gesendet.',
     )
-    if (parsed === null) {
-        throw new Error('Der Server hat eine ungültige Freischaltung gesendet.')
-    }
-
-    return parsed.data
 }
 
 /**
@@ -1272,17 +1077,13 @@ export async function revokeSubscription(
 export async function listSubscriberFeeds(
     tenantHost: string,
 ): Promise<SubscriberFeedSummary[]> {
-    const parsed = parseSubscriberFeedListEnvelope(
-        await authenticatedRequest(
-            '/api/proxy/tenant/subscriber-feeds',
-            tenantHost,
-        ),
+    return proxyRequest(
+        '/api/proxy/tenant/subscriber-feeds',
+        tenantHost,
+        undefined,
+        parseSubscriberFeedListEnvelope,
+        'Der Server hat eine ungültige Feed-Liste gesendet.',
     )
-    if (parsed === null) {
-        throw new Error('Der Server hat eine ungültige Feed-Liste gesendet.')
-    }
-
-    return parsed.data
 }
 
 /**
@@ -1298,22 +1099,13 @@ export async function setSubscriberFeedEnabled(
     feedId: number,
     enabled: boolean,
 ): Promise<SubscriberFeedSummary> {
-    const parsed = parseSubscriberFeedEnvelope(
-        await authenticatedRequest(
-            `/api/proxy/tenant/subscriber-feeds/${feedId}/enabled`,
-            tenantHost,
-            {
-                method: 'PUT',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({enabled}),
-            },
-        ),
+    return proxyRequest(
+        `/api/proxy/tenant/subscriber-feeds/${feedId}/enabled`,
+        tenantHost,
+        jsonInit('PUT', {enabled}),
+        parseSubscriberFeedEnvelope,
+        'Der Server hat ein ungültiges Feed gesendet.',
     )
-    if (parsed === null) {
-        throw new Error('Der Server hat ein ungültiges Feed gesendet.')
-    }
-
-    return parsed.data
 }
 
 /**
@@ -1323,14 +1115,13 @@ export async function setSubscriberFeedEnabled(
  * @returns The tenant's available format summaries
  */
 export async function listFormats(tenantHost: string): Promise<FormatSummary[]> {
-    const parsed = parseFormatListEnvelope(
-        await authenticatedRequest('/api/proxy/formats', tenantHost),
+    return proxyRequest(
+        '/api/proxy/formats',
+        tenantHost,
+        undefined,
+        parseFormatListEnvelope,
+        'Der Server hat eine ungültige Formatliste gesendet.',
     )
-    if (parsed === null) {
-        throw new Error('Der Server hat eine ungültige Formatliste gesendet.')
-    }
-
-    return parsed.data
 }
 
 /**
@@ -1366,14 +1157,13 @@ async function proxyRequest<T>(
 export async function listCategories(
     tenantHost: string,
 ): Promise<CategorySummary[]> {
-    const parsed = parseCategoryListEnvelope(
-        await authenticatedRequest('/api/proxy/categories', tenantHost),
+    return proxyRequest(
+        '/api/proxy/categories',
+        tenantHost,
+        undefined,
+        parseCategoryListEnvelope,
+        'Der Server hat eine ungültige Kategorieliste gesendet.',
     )
-    if (parsed === null) {
-        throw new Error('Der Server hat eine ungültige Kategorieliste gesendet.')
-    }
-
-    return parsed.data
 }
 
 /**
