@@ -27,6 +27,17 @@ class CoreUtilTest {
     }
 
     @Test
+    void titleNormalizerTrimsAndLabelsErrors() {
+        assertThat(TitleNormalizer.normalize("  Hello world  ", "Series")).isEqualTo("Hello world");
+        assertThatThrownBy(() -> TitleNormalizer.normalize(" ", "Series"))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Series title is required");
+        assertThatThrownBy(() -> TitleNormalizer.normalize("a".repeat(256), "Episode"))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Episode title must be at most 255 characters");
+    }
+
+    @Test
     void tokenHashUtilGeneratesDistinctTokens() {
         String first = TokenHashUtil.generateUrlSafeToken(32);
         String second = TokenHashUtil.generateUrlSafeToken(32);

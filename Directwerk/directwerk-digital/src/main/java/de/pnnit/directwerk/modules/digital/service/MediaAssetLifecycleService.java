@@ -1,25 +1,22 @@
 package de.pnnit.directwerk.modules.digital.service;
 
 import de.pnnit.directwerk.config.DirectwerkConfig;
-import de.pnnit.directwerk.config.DirectwerkProperties;
+import de.pnnit.directwerk.modules.digital.storage.StorageConfigs;
 import de.pnnit.directwerk.modules.core.RequiresModule;
 import de.pnnit.directwerk.modules.core.entity.Tenant;
 import de.pnnit.directwerk.modules.core.service.TenantLookupService;
 import de.pnnit.directwerk.modules.core.util.TenantAssetKeys;
 import de.pnnit.directwerk.modules.digital.DigitalContentModule;
 import de.pnnit.directwerk.modules.digital.api.MediaAssetLifecycleApi;
-import de.pnnit.directwerk.modules.digital.entity.AssetScope;
 import de.pnnit.directwerk.modules.digital.entity.AssetStatus;
 import de.pnnit.directwerk.modules.digital.entity.AssetVisibility;
 import de.pnnit.directwerk.modules.digital.entity.MediaAsset;
 import de.pnnit.directwerk.modules.digital.exception.AssetAccessDeniedException;
 import de.pnnit.directwerk.modules.digital.exception.MediaAssetNotFoundException;
-import de.pnnit.directwerk.modules.digital.exception.StorageNotConfiguredException;
 import de.pnnit.directwerk.modules.digital.job.MediaDeleteJobProducer;
 import de.pnnit.directwerk.modules.digital.repository.MediaAssetRepository;
 import de.pnnit.directwerk.modules.digital.storage.S3PublicUrlBuilder;
 import de.pnnit.directwerk.multitenancy.TenantContext;
-import de.pnnit.directwerk.multitenancy.TenantMismatchException;
 import de.pnnit.directwerk.security.DirectwerkUserPrincipal;
 import de.pnnit.directwerk.security.RoleConstants;
 import java.net.URL;
@@ -47,7 +44,7 @@ public class MediaAssetLifecycleService implements MediaAssetLifecycleApi {
     @Override
     @Transactional
     public MediaAsset delete(DeleteCommand command) {
-        requireStorage();
+        StorageConfigs.requireEnabled(directwerkConfig);
         Long tenantId = TenantContext.requireTenantId();
         Tenant tenant = tenantLookupService.requireTenant(tenantId);
 
@@ -60,7 +57,7 @@ public class MediaAssetLifecycleService implements MediaAssetLifecycleApi {
             throw new MediaAssetNotFoundException(command.mediaAssetId());
         }
 
-        assertTenantMatch(asset);
+        MediaAssetTenantCheck.assertTenantMatch(asset);
         TenantAssetKeys.requireTenantPrefix(tenant.getSlug(), asset.getS3Key());
         authorizeDelete(asset, command.principal(), command.platformOps());
 
@@ -128,23 +125,6 @@ public class MediaAssetLifecycleService implements MediaAssetLifecycleApi {
         return publicUrlBuilder.cdnUrl(normalized);
     }
 
-    private void assertTenantMatch(MediaAsset asset) {
-        Long contextTenantId = TenantContext.getTenantId();
-        if (contextTenantId == null || !contextTenantId.equals(asset.getTenant().getId())) {
-            throw new TenantMismatchException("Media asset tenant does not match request tenant");
-        }
-    }
-
-    private DirectwerkProperties.Storage requireStorage() {
-        if (!directwerkConfig.isStorageEnabled()) {
-            throw new StorageNotConfiguredException("Object storage is disabled");
-        }
-        DirectwerkProperties.Storage storage = directwerkConfig.storage();
-        if (storage == null || storage.bucket() == null || storage.bucket().isBlank()) {
-            throw new StorageNotConfiguredException("Object storage bucket is not configured");
-        }
-        return storage;
-    }
 
     private static boolean hasEditorOrAdmin(DirectwerkUserPrincipal principal) {
         return principal.getAuthorities().stream()

@@ -172,6 +172,19 @@ async function postJson(
     })
 }
 
+function envelopeResult<T>(
+    parser: (value: unknown) => T | null,
+    value: unknown,
+    invalidMessage: string,
+): T {
+    const parsed = parser(value)
+    if (parsed === null) {
+        throw new Error(invalidMessage)
+    }
+
+    return parsed
+}
+
 export async function register(
     tenantHost: string,
     input: RegisterInput,
@@ -225,152 +238,120 @@ export async function login(
 export async function getSiteConfig(
     tenantHost: string,
 ): Promise<ApiEnvelope<SiteConfig>> {
-    const parsed = parseSiteConfigEnvelope(
+    return envelopeResult(
+        parseSiteConfigEnvelope,
         await request('/api/proxy/public/site-config', tenantHost),
+        'The server returned an invalid site configuration.',
     )
-    if (parsed === null) {
-        throw new Error('The server returned an invalid site configuration.')
-    }
-
-    return parsed
 }
 
 export async function getMe(tenantHost: string): Promise<ApiEnvelope<Me>> {
-    const parsed = parseMeEnvelope(
+    return envelopeResult(
+        parseMeEnvelope,
         await authenticatedRequest('/api/proxy/me', tenantHost),
+        'The server returned an invalid account response.',
     )
-    if (parsed === null) {
-        throw new Error('The server returned an invalid account response.')
-    }
-
-    return parsed
 }
 
 export async function getAccess(
     tenantHost: string,
 ): Promise<ApiEnvelope<Access>> {
-    const parsed = parseAccessEnvelope(
+    return envelopeResult(
+        parseAccessEnvelope,
         await authenticatedRequest('/api/proxy/me/access', tenantHost),
+        'The server returned an invalid access response.',
     )
-    if (parsed === null) {
-        throw new Error('The server returned an invalid access response.')
-    }
-
-    return parsed
 }
 
 export async function listPublicArticles(
     tenantHost: string,
 ): Promise<PublicArticle[]> {
-    const parsed = parsePublicArticleListEnvelope(
+    return envelopeResult(
+        parsePublicArticleListEnvelope,
         await request('/api/proxy/public/articles', tenantHost),
-    )
-    if (parsed === null) {
-        throw new Error('The server returned an invalid article list.')
-    }
-
-    return parsed.data
+        'The server returned an invalid article list.',
+    ).data
 }
 
 export async function listPublicSeries(
     tenantHost: string,
 ): Promise<PublicSeries[]> {
-    const parsed = parsePublicSeriesListEnvelope(
+    return envelopeResult(
+        parsePublicSeriesListEnvelope,
         await request('/api/proxy/public/series', tenantHost),
-    )
-    if (parsed === null) {
-        throw new Error('The server returned an invalid series list.')
-    }
-
-    return parsed.data
+        'The server returned an invalid series list.',
+    ).data
 }
 
 export async function listPublicEpisodes(
     tenantHost: string,
 ): Promise<PublicEpisode[]> {
-    const parsed = parsePublicEpisodeListEnvelope(
+    return envelopeResult(
+        parsePublicEpisodeListEnvelope,
         await request('/api/proxy/public/episodes', tenantHost),
-    )
-    if (parsed === null) {
-        throw new Error('The server returned an invalid episode list.')
-    }
-
-    return parsed.data
+        'The server returned an invalid episode list.',
+    ).data
 }
 
 /** Entitled (or publisher) episode list — includes playable audio URLs for PAID content. */
 export async function listMyEpisodes(
     tenantHost: string,
 ): Promise<PublicEpisode[]> {
-    const parsed = parsePublicEpisodeListEnvelope(
+    return envelopeResult(
+        parsePublicEpisodeListEnvelope,
         await authenticatedRequest('/api/proxy/me/episodes', tenantHost),
-    )
-    if (parsed === null) {
-        throw new Error('The server returned an invalid episode list.')
-    }
-
-    return parsed.data
+        'The server returned an invalid episode list.',
+    ).data
 }
 
 /** Private subscriber RSS feeds the signed-in user can use in a podcast app. */
 export async function listMyFeeds(
     tenantHost: string,
 ): Promise<SubscriberFeed[]> {
-    const parsed = parseSubscriberFeedListEnvelope(
+    return envelopeResult(
+        parseSubscriberFeedListEnvelope,
         await authenticatedRequest('/api/proxy/me/feeds', tenantHost),
-    )
-    if (parsed === null) {
-        throw new Error('The server returned an invalid feed list.')
-    }
-
-    return parsed.data
+        'The server returned an invalid feed list.',
+    ).data
 }
 
 export async function rotateDefaultFeedToken(
     tenantHost: string,
 ): Promise<SubscriberFeed> {
-    const parsed = parseSubscriberFeedEnvelope(
+    return envelopeResult(
+        parseSubscriberFeedEnvelope,
         await authenticatedRequest('/api/proxy/me/feeds/default/rotate-token', tenantHost, {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({}),
         }),
-    )
-    if (parsed === null) {
-        throw new Error('Der Server hat eine ungültige Feed-Antwort geliefert.')
-    }
-
-    return parsed.data
+        'Der Server hat eine ungültige Feed-Antwort geliefert.',
+    ).data
 }
 
 export async function setDefaultFeedEnabled(
     tenantHost: string,
     enabled: boolean,
 ): Promise<SubscriberFeed> {
-    const parsed = parseSubscriberFeedEnvelope(
+    return envelopeResult(
+        parseSubscriberFeedEnvelope,
         await authenticatedRequest('/api/proxy/me/feeds/default/enabled', tenantHost, {
             method: 'PUT',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({enabled}),
         }),
-    )
-    if (parsed === null) {
-        throw new Error('Der Server hat eine ungültige Feed-Antwort geliefert.')
-    }
-
-    return parsed.data
+        'Der Server hat eine ungültige Feed-Antwort geliefert.',
+    ).data
 }
 
 export async function listPublicFormats(
     tenantHost: string,
 ): Promise<PublicFormat[]> {
-    const parsed = parsePublicFormatListEnvelope(
+    return envelopeResult(
+        parsePublicFormatListEnvelope,
         await request('/api/proxy/public/formats', tenantHost),
-    )
-    if (parsed === null) {
-        throw new Error('The server returned an invalid format list.')
-    }
-    return parsed.data
+        'The server returned an invalid format list.',
+    ).data
 }
 
 export async function createCustomFeed(
@@ -378,17 +359,15 @@ export async function createCustomFeed(
     title: string,
     formatIds: number[],
 ): Promise<SubscriberFeed> {
-    const parsed = parseSubscriberFeedEnvelope(
+    return envelopeResult(
+        parseSubscriberFeedEnvelope,
         await authenticatedRequest('/api/proxy/me/feeds', tenantHost, {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({title, formatIds}),
         }),
-    )
-    if (parsed === null) {
-        throw new Error('Der Server hat eine ungültige Feed-Antwort geliefert.')
-    }
-    return parsed.data
+        'Der Server hat eine ungültige Feed-Antwort geliefert.',
+    ).data
 }
 
 export async function updateCustomFeed(
@@ -397,17 +376,15 @@ export async function updateCustomFeed(
     title: string,
     formatIds: number[],
 ): Promise<SubscriberFeed> {
-    const parsed = parseSubscriberFeedEnvelope(
+    return envelopeResult(
+        parseSubscriberFeedEnvelope,
         await authenticatedRequest(`/api/proxy/me/feeds/${feedId}`, tenantHost, {
             method: 'PUT',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({title, formatIds}),
         }),
-    )
-    if (parsed === null) {
-        throw new Error('Der Server hat eine ungültige Feed-Antwort geliefert.')
-    }
-    return parsed.data
+        'Der Server hat eine ungültige Feed-Antwort geliefert.',
+    ).data
 }
 
 export async function previewCustomFeed(
@@ -418,16 +395,14 @@ export async function previewCustomFeed(
     for (const formatId of formatIds) {
         params.append('formatIds', String(formatId))
     }
-    const parsed = parseFeedPreviewEnvelope(
+    return envelopeResult(
+        parseFeedPreviewEnvelope,
         await authenticatedRequest(
             `/api/proxy/me/feeds/preview?${params.toString()}`,
             tenantHost,
         ),
-    )
-    if (parsed === null) {
-        throw new Error('Der Server hat eine ungültige Vorschau geliefert.')
-    }
-    return parsed.data
+        'Der Server hat eine ungültige Vorschau geliefert.',
+    ).data
 }
 
 export async function setFeedEnabled(
@@ -435,34 +410,30 @@ export async function setFeedEnabled(
     feedId: number,
     enabled: boolean,
 ): Promise<SubscriberFeed> {
-    const parsed = parseSubscriberFeedEnvelope(
+    return envelopeResult(
+        parseSubscriberFeedEnvelope,
         await authenticatedRequest(`/api/proxy/me/feeds/${feedId}/enabled`, tenantHost, {
             method: 'PUT',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({enabled}),
         }),
-    )
-    if (parsed === null) {
-        throw new Error('Der Server hat eine ungültige Feed-Antwort geliefert.')
-    }
-    return parsed.data
+        'Der Server hat eine ungültige Feed-Antwort geliefert.',
+    ).data
 }
 
 export async function rotateFeedToken(
     tenantHost: string,
     feedId: number,
 ): Promise<SubscriberFeed> {
-    const parsed = parseSubscriberFeedEnvelope(
+    return envelopeResult(
+        parseSubscriberFeedEnvelope,
         await authenticatedRequest(`/api/proxy/me/feeds/${feedId}/rotate-token`, tenantHost, {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({}),
         }),
-    )
-    if (parsed === null) {
-        throw new Error('Der Server hat eine ungültige Feed-Antwort geliefert.')
-    }
-    return parsed.data
+        'Der Server hat eine ungültige Feed-Antwort geliefert.',
+    ).data
 }
 
 export async function deleteCustomFeed(
@@ -558,14 +529,11 @@ export async function createCheckoutSession(
 export async function listMySubscriptions(
     tenantHost: string,
 ): Promise<SubscriptionSummary[]> {
-    const parsed = parseSubscriptionListEnvelope(
+    return envelopeResult(
+        parseSubscriptionListEnvelope,
         await authenticatedRequest('/api/proxy/me/subscriptions', tenantHost),
-    )
-    if (parsed === null) {
-        throw new Error('Der Server hat eine ungültige Abo-Liste geliefert.')
-    }
-
-    return parsed.data
+        'Der Server hat eine ungültige Abo-Liste geliefert.',
+    ).data
 }
 
 export async function createPortalSession(
@@ -587,13 +555,11 @@ export async function createPortalSession(
 export async function listMyDownloads(
     tenantHost: string,
 ): Promise<SubscriberDownload[]> {
-    const parsed = parseSubscriberDownloadListEnvelope(
+    return envelopeResult(
+        parseSubscriberDownloadListEnvelope,
         await authenticatedRequest('/api/proxy/me/downloads', tenantHost),
-    )
-    if (parsed === null) {
-        throw new Error('Der Server hat eine ungültige Download-Liste geliefert.')
-    }
-    return parsed.data
+        'Der Server hat eine ungültige Download-Liste geliefert.',
+    ).data
 }
 
 export async function listPublicProducts(

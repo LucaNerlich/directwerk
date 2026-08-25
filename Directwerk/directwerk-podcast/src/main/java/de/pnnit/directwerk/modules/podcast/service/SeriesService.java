@@ -3,6 +3,7 @@ package de.pnnit.directwerk.modules.podcast.service;
 import de.pnnit.directwerk.modules.core.RequiresModule;
 import de.pnnit.directwerk.modules.core.repository.TenantRepository;
 import de.pnnit.directwerk.modules.core.util.SlugNormalizer;
+import de.pnnit.directwerk.modules.core.util.TitleNormalizer;
 import de.pnnit.directwerk.modules.digital.entity.AssetStatus;
 import de.pnnit.directwerk.modules.digital.entity.AssetType;
 import de.pnnit.directwerk.modules.digital.entity.MediaAsset;
@@ -24,7 +25,6 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class SeriesService {
 
-    private static final int MAX_TITLE_LENGTH = 255;
     private static final int MAX_LANGUAGE_LENGTH = 8;
     private static final int MAX_ITUNES_CATEGORY_LENGTH = 128;
 
@@ -70,7 +70,7 @@ public class SeriesService {
         PodcastSeries series = new PodcastSeries();
         series.setTenant(tenantRepository.getReferenceById(tenantId));
         series.setSlug(slug);
-        series.setTitle(normalizeTitle(title));
+        series.setTitle(TitleNormalizer.normalize(title, "Series"));
         series.setDescription(normalizeText(description));
         series.setCoverAsset(resolveCoverAsset(tenantId, coverAssetId));
         series.setLanguage(normalizeLanguage(language));
@@ -108,7 +108,7 @@ public class SeriesService {
             series.setSlug(slug);
         }
         if (title != null) {
-            series.setTitle(normalizeTitle(title));
+            series.setTitle(TitleNormalizer.normalize(title, "Series"));
         }
         if (description != null) {
             series.setDescription(normalizeText(description));
@@ -152,17 +152,6 @@ public class SeriesService {
             );
         }
         return asset;
-    }
-
-    private static String normalizeTitle(String title) {
-        if (title == null || title.isBlank()) {
-            throw new IllegalArgumentException("Series title is required");
-        }
-        String normalized = title.trim();
-        if (normalized.length() > MAX_TITLE_LENGTH) {
-            throw new IllegalArgumentException("Series title must be at most 255 characters");
-        }
-        return normalized;
     }
 
     private static String normalizeLanguage(String language) {
