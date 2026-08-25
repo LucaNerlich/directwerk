@@ -73,18 +73,6 @@ public final class TenantContext {
     }
 
     /**
-     * Runs an action without an active tenant and restores the previous tenant afterward.
-     *
-     * @param action the action to execute
-     */
-    public static void runWithoutTenant(Runnable action) {
-        callWithoutTenant(() -> {
-            action.run();
-            return null;
-        });
-    }
-
-    /**
      * Executes an action within the specified tenant context and restores the previous context afterward.
      *
      * @param tenantId the tenant identifier to use, or {@code null} for no tenant

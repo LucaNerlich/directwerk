@@ -64,20 +64,6 @@ public class EpisodeDownloadAnalyticsService {
         }
     }
 
-    @Transactional(readOnly = true)
-    public boolean isAnalyticsEnabledForTenant(Long tenantId) {
-        try {
-            return resolveValidBranding(tenantId) != null;
-        } catch (RuntimeException ex) {
-            return false;
-        }
-    }
-
-    public String publicDownloadUrl(String hostname, String episodeSlug) {
-        String normalizedHost = hostname.trim().toLowerCase(Locale.ROOT);
-        return "https://" + normalizedHost + "/api/v1/public/episodes/" + episodeSlug + "/download";
-    }
-
     /**
      * Builds the public RSS enclosure URL for an episode.
      *

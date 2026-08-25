@@ -132,20 +132,6 @@ public class EmailJobProducer implements TransactionalEmailNotifier {
         enqueue(tenantId, null, correlationId, () -> payload(template, to, variables, null));
     }
 
-    public QueueJob enqueueDelayed(EmailTemplate template, Long tenantId, String to, Map<String, String> variables, Instant availableAt) {
-        if (template.requiresToken()) {
-            throw new IllegalArgumentException(
-                    "Cannot enqueue delayed email for template %s: template requires a token".formatted(template.name())
-            );
-        }
-        return enqueue(
-                tenantId,
-                availableAt,
-                null,
-                () -> payload(template, to, variables, null)
-        );
-    }
-
     private EmailJobPayload payload(
             EmailTemplate template,
             String to,
