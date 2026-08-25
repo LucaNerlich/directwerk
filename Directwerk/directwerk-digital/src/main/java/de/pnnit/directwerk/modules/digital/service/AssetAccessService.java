@@ -17,8 +17,6 @@ import de.pnnit.directwerk.modules.digital.exception.StorageNotConfiguredExcepti
 import de.pnnit.directwerk.modules.digital.repository.MediaAssetRepository;
 import de.pnnit.directwerk.modules.digital.storage.BunnyTokenUrlSigner;
 import de.pnnit.directwerk.modules.digital.storage.S3PublicUrlBuilder;
-import de.pnnit.directwerk.multitenancy.TenantContext;
-import de.pnnit.directwerk.multitenancy.TenantMismatchException;
 import de.pnnit.directwerk.security.DirectwerkUserPrincipal;
 import de.pnnit.directwerk.security.RoleConstants;
 import java.net.URL;
@@ -57,7 +55,7 @@ public class AssetAccessService implements AssetAccessApi {
     @Transactional(readOnly = true)
     public URL resolveDownloadUrl(MediaAsset asset, DirectwerkUserPrincipal principal) {
         MediaAsset managed = requireLoadedAsset(asset);
-        assertTenantMatch(managed);
+        MediaAssetTenantCheck.assertTenantMatch(managed);
         TenantAssetKeys.requireTenantPrefix(managed.getTenant().getSlug(), managed.getS3Key());
 
         if (managed.getVisibility() == AssetVisibility.PUBLIC) {
@@ -72,7 +70,7 @@ public class AssetAccessService implements AssetAccessApi {
     @Transactional(readOnly = true)
     public URL resolveRssEnclosureUrl(MediaAsset asset, Long subscriberUserId) {
         MediaAsset managed = requireLoadedAsset(asset);
-        assertTenantMatch(managed);
+        MediaAssetTenantCheck.assertTenantMatch(managed);
         TenantAssetKeys.requireTenantPrefix(managed.getTenant().getSlug(), managed.getS3Key());
 
         if (managed.getVisibility() == AssetVisibility.PUBLIC) {
@@ -87,7 +85,7 @@ public class AssetAccessService implements AssetAccessApi {
     @Transactional(readOnly = true)
     public URL resolvePreviewUrl(MediaAsset asset, DirectwerkUserPrincipal principal, boolean previewDraft) {
         MediaAsset managed = requireLoadedAsset(asset);
-        assertTenantMatch(managed);
+        MediaAssetTenantCheck.assertTenantMatch(managed);
         TenantAssetKeys.requireTenantPrefix(managed.getTenant().getSlug(), managed.getS3Key());
 
         if (principal == null || !hasEditorOrAdmin(principal)) {
@@ -234,13 +232,6 @@ public class AssetAccessService implements AssetAccessApi {
         moduleGateService.requireModule(PODCAST_MODULE);
         if (!entitlementApi.hasAccess(asset.getTenant().getId(), subscriberUserId, asset.getEpisodeId())) {
             throw new EntitlementDeniedException(asset.getId());
-        }
-    }
-
-    private void assertTenantMatch(MediaAsset asset) {
-        Long contextTenantId = TenantContext.getTenantId();
-        if (contextTenantId == null || !contextTenantId.equals(asset.getTenant().getId())) {
-            throw new TenantMismatchException("Media asset tenant does not match request tenant");
         }
     }
 

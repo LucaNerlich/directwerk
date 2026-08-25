@@ -17,7 +17,6 @@ import de.pnnit.directwerk.modules.digital.job.MediaDeleteJobProducer;
 import de.pnnit.directwerk.modules.digital.repository.MediaAssetRepository;
 import de.pnnit.directwerk.modules.digital.storage.S3PublicUrlBuilder;
 import de.pnnit.directwerk.multitenancy.TenantContext;
-import de.pnnit.directwerk.multitenancy.TenantMismatchException;
 import de.pnnit.directwerk.security.DirectwerkUserPrincipal;
 import de.pnnit.directwerk.security.RoleConstants;
 import java.net.URL;
@@ -58,7 +57,7 @@ public class MediaAssetLifecycleService implements MediaAssetLifecycleApi {
             throw new MediaAssetNotFoundException(command.mediaAssetId());
         }
 
-        assertTenantMatch(asset);
+        MediaAssetTenantCheck.assertTenantMatch(asset);
         TenantAssetKeys.requireTenantPrefix(tenant.getSlug(), asset.getS3Key());
         authorizeDelete(asset, command.principal(), command.platformOps());
 
@@ -124,13 +123,6 @@ public class MediaAssetLifecycleService implements MediaAssetLifecycleApi {
             return null;
         }
         return publicUrlBuilder.cdnUrl(normalized);
-    }
-
-    private void assertTenantMatch(MediaAsset asset) {
-        Long contextTenantId = TenantContext.getTenantId();
-        if (contextTenantId == null || !contextTenantId.equals(asset.getTenant().getId())) {
-            throw new TenantMismatchException("Media asset tenant does not match request tenant");
-        }
     }
 
 
