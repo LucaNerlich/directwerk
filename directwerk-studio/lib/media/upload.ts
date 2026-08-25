@@ -1,12 +1,11 @@
 'use client'
 
 import {AUTH_REQUIRED} from '@/lib/api/errors'
-import type {MediaAsset} from '@/lib/api/types'
+import type {AssetType, MediaAsset} from '@/lib/api/types'
 import {confirmUpload} from '@/lib/api/tenantApi'
 import {getValidAccessToken} from '@/lib/auth/session'
 import {clearTokens} from '@/lib/auth/tokenStore'
 import {exceedsMediaLimit, mediaLimitLabel} from '@/lib/media/limits'
-import type {MediaAssetType} from '@/lib/media/limits'
 
 function errorMessage(value: unknown, status: number): string {
     if (
@@ -68,7 +67,7 @@ export async function uploadMediaFile(
     tenantHost: string,
     file: File,
     options?: {
-        assetType?: MediaAssetType
+        assetType?: AssetType
         visibility?: 'PUBLIC' | 'PRIVATE'
         episodeId?: number
         onProgress?: (percent: number) => void
