@@ -1,5 +1,6 @@
 package de.pnnit.directwerk.controller.tenant;
 
+import de.pnnit.directwerk.api.dto.DomainView;
 import de.pnnit.directwerk.api.dto.InvitationResponseMapper;
 import de.pnnit.directwerk.api.response.Response;
 import de.pnnit.directwerk.modules.core.entity.TenantBranding;
@@ -234,9 +235,6 @@ public class TenantAdminController {
             String logoUrl,
             String umamiWebsiteId
     ) {
-    }
-
-    public record DomainView(String host, boolean primary, boolean verified) {
     }
 
     public record AddDomainRequest(@NotBlank String host, boolean isPrimary) {

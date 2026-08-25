@@ -1,5 +1,9 @@
 package de.pnnit.directwerk.controller.podcast;
 
+import de.pnnit.directwerk.api.dto.CategoryView;
+import de.pnnit.directwerk.api.dto.FormatView;
+import de.pnnit.directwerk.api.dto.PublishOptionsRequest;
+import de.pnnit.directwerk.api.dto.ReplaceCategoriesRequest;
 import de.pnnit.directwerk.api.response.Response;
 import de.pnnit.directwerk.modules.core.RequiresModule;
 import de.pnnit.directwerk.modules.podcast.PodcastModule;
@@ -291,9 +295,6 @@ public class EpisodeController {
     public record ReplaceFormatsRequest(Set<@Min(1) Long> formatIds) {
     }
 
-    public record ReplaceCategoriesRequest(Set<@Min(1) Long> categoryIds) {
-    }
-
     public record AttachAudioRequest(@NotNull @Min(1) Long audioAssetId) {
     }
 
@@ -304,9 +305,6 @@ public class EpisodeController {
             @NotNull Instant scheduledAt,
             Boolean notifySubscribers
     ) {
-    }
-
-    public record PublishOptionsRequest(Boolean notifySubscribers) {
     }
 
     public record EpisodeView(
@@ -329,23 +327,6 @@ public class EpisodeController {
             List<CategoryView> categories,
             Instant createdAt,
             Instant updatedAt
-    ) {
-    }
-
-    public record FormatView(
-            Long id,
-            String slug,
-            String name,
-            Integer requiredLevelSortOrder,
-            int sortOrder
-    ) {
-    }
-
-    public record CategoryView(
-            Long id,
-            String slug,
-            String name,
-            Long parentId
     ) {
     }
 }

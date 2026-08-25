@@ -1,5 +1,6 @@
 package de.pnnit.directwerk.controller.publicapi;
 
+import de.pnnit.directwerk.api.dto.PublicCategoryView;
 import de.pnnit.directwerk.api.response.Response;
 import de.pnnit.directwerk.modules.core.service.ModuleGateService;
 import de.pnnit.directwerk.modules.digital.DigitalContentModule;
@@ -92,14 +93,6 @@ public class PublicArticleController {
             Integer requiredLevelSortOrder,
             Instant publishedAt,
             List<PublicCategoryView> categories
-    ) {
-    }
-
-    public record PublicCategoryView(
-            Long id,
-            String slug,
-            String name,
-            Long parentId
     ) {
     }
 }
