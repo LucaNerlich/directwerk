@@ -40,7 +40,6 @@ import type {
     TenantSubscriberSubscription,
     TenantUser,
     TokenResponse,
-    UploadUrlResult,
 } from '@/lib/api/types'
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -579,37 +578,6 @@ function isSeriesStatus(value: unknown): value is SeriesStatus {
 
 export function parseSeriesEnvelope(value: unknown): ApiEnvelope<SeriesDetail> | null {
     return envelope(value, parseSeriesDetail)
-}
-
-export function parseUploadUrlEnvelope(
-    value: unknown,
-): ApiEnvelope<UploadUrlResult> | null {
-    return envelope(value, (data) => {
-        if (
-            !isRecord(data) ||
-            !isPositiveSafeInteger(data.assetId) ||
-            !isBoundedString(data.uploadUrl, 4096) ||
-            data.uploadUrl.length === 0
-        ) {
-            return null
-        }
-
-        const headers: Record<string, string> = {}
-        if (isRecord(data.headers)) {
-            for (const [key, headerValue] of Object.entries(data.headers)) {
-                if (isBoundedString(key, 128) && isBoundedString(headerValue, 2048)) {
-                    headers[key] = headerValue
-                }
-            }
-        }
-
-        return {
-            assetId: data.assetId,
-            uploadUrl: data.uploadUrl,
-            expiresAt: isNullableString(data.expiresAt, 64) ? data.expiresAt : null,
-            headers,
-        }
-    })
 }
 
 export function parseMediaAssetEnvelope(value: unknown): ApiEnvelope<MediaAsset> | null {
