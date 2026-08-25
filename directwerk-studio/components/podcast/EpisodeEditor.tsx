@@ -124,12 +124,12 @@ export default function EpisodeEditor({episodeId}: {episodeId?: number}): React.
         setAudioReady(false)
         setAudioStatusKnown(false)
 
-        async function loadAudio(): Promise<void> {
+        async function loadAudio(assetId: number): Promise<void> {
             try {
                 const host = getClientTenantHost()
                 const [url, asset] = await Promise.all([
-                    getMediaPreviewUrl(host, audioAssetId!),
-                    getMedia(host, audioAssetId!),
+                    getMediaPreviewUrl(host, assetId),
+                    getMedia(host, assetId),
                 ])
                 if (!active) {
                     return
@@ -155,7 +155,7 @@ export default function EpisodeEditor({episodeId}: {episodeId?: number}): React.
             }
         }
 
-        void loadAudio()
+        void loadAudio(audioAssetId)
 
         return () => {
             active = false
