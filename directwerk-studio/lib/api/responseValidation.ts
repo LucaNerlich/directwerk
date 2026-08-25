@@ -1354,9 +1354,13 @@ function parseContentEmailTemplate(value: unknown): ContentEmailTemplate | null 
     if (value === null) {
         return null
     }
+    if (!isRecord(value)) {
+        return null
+    }
+
+    const contentType = parseContentEmailTemplateType(value.contentType)
     if (
-        !isRecord(value) ||
-        parseContentEmailTemplateType(value.contentType) === null ||
+        contentType === null ||
         !isBoundedString(value.subjectTemplate, 512) ||
         !isBoundedString(value.bodyHtml, 65_535) ||
         !isNullableString(value.updatedAt, 64)
@@ -1365,7 +1369,7 @@ function parseContentEmailTemplate(value: unknown): ContentEmailTemplate | null 
     }
 
     return {
-        contentType: value.contentType as ContentEmailTemplateType,
+        contentType,
         subjectTemplate: value.subjectTemplate,
         bodyHtml: value.bodyHtml,
         updatedAt: value.updatedAt,

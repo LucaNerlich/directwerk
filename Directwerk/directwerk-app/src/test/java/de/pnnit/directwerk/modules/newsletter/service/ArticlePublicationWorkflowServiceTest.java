@@ -5,7 +5,6 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.lenient;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -50,10 +49,11 @@ class ArticlePublicationWorkflowServiceTest {
 
     private ArticlePublicationWorkflowService articlePublicationWorkflowService;
 
-    @SuppressWarnings("unchecked")
+    @Mock
+    private ObjectProvider<ArticlePublicationWorkflowService> selfProvider;
+
     @BeforeEach
     void setUp() {
-        ObjectProvider<ArticlePublicationWorkflowService> selfProvider = mock(ObjectProvider.class);
         articlePublicationWorkflowService = new ArticlePublicationWorkflowService(
                 articleRepository,
                 articleService,
