@@ -1,4 +1,4 @@
-package de.pnnit.directwerk.config;
+package de.pnnit.directwerk.bootstrap;
 
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.jpa.repository.config.EnableJpaAuditing;

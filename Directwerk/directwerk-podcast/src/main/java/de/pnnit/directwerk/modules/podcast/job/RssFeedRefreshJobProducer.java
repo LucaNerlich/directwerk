@@ -3,6 +3,7 @@ package de.pnnit.directwerk.modules.podcast.job;
 import de.pnnit.directwerk.config.DirectwerkConfig;
 import de.pnnit.directwerk.modules.content.TenantEntitlementsChangedEvent;
 import de.pnnit.directwerk.modules.content.TenantRssSnapshotStaleEvent;
+import de.pnnit.directwerk.modules.podcast.service.RssFeedRefreshScheduler;
 import de.pnnit.directwerk.modules.podcast.service.RssSnapshotStateStore;
 import de.pnnit.directwerk.modules.queue.JobEnqueueMetadata;
 import de.pnnit.directwerk.modules.queue.QueueService;
@@ -15,7 +16,7 @@ import tools.jackson.databind.ObjectMapper;
 
 /** Enqueues durable RSS regeneration only after the content transaction commits. */
 @Service
-public class RssFeedRefreshJobProducer {
+public class RssFeedRefreshJobProducer implements RssFeedRefreshScheduler {
 
     private final ObjectProvider<QueueService> queueService;
     private final ObjectMapper objectMapper;
@@ -34,6 +35,7 @@ public class RssFeedRefreshJobProducer {
         this.snapshotStateStore = snapshotStateStore;
     }
 
+    @Override
     public void requestRefreshAfterCommit(Long tenantId) {
         if (tenantId == null || tenantId < 1) {
             throw new IllegalArgumentException("tenantId must be a positive id");

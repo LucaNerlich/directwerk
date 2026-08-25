@@ -1,5 +1,6 @@
-package de.pnnit.directwerk.config;
+package de.pnnit.directwerk.bootstrap;
 
+import de.pnnit.directwerk.config.DirectwerkProperties;
 import de.pnnit.directwerk.modules.core.entity.PlatformAdmin;
 import de.pnnit.directwerk.modules.core.entity.User;
 import de.pnnit.directwerk.modules.core.entity.UserStatus;

@@ -1,4 +1,4 @@
-package de.pnnit.directwerk.modules.digital.service;
+package de.pnnit.directwerk.modules.digital.job;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;

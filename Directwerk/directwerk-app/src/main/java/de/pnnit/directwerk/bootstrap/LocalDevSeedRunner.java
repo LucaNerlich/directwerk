@@ -1,4 +1,4 @@
-package de.pnnit.directwerk.config;
+package de.pnnit.directwerk.bootstrap;
 
 import javax.sql.DataSource;
 import lombok.RequiredArgsConstructor;

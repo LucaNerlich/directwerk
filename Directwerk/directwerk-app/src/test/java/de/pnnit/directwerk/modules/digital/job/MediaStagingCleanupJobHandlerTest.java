@@ -7,7 +7,7 @@ import static org.mockito.Mockito.when;
 
 import de.pnnit.directwerk.config.DirectwerkConfig;
 import de.pnnit.directwerk.config.DirectwerkProperties;
-import de.pnnit.directwerk.modules.digital.service.StagingCleanupService;
+import de.pnnit.directwerk.modules.digital.job.StagingCleanupService;
 import de.pnnit.directwerk.modules.queue.QueueJob;
 import java.time.Duration;
 import java.time.Instant;

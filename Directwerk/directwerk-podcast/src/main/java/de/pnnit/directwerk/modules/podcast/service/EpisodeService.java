@@ -10,7 +10,6 @@ import de.pnnit.directwerk.modules.podcast.PodcastModule;
 import de.pnnit.directwerk.modules.digital.entity.AccessPolicy;
 import de.pnnit.directwerk.modules.digital.entity.Category;
 import de.pnnit.directwerk.modules.podcast.entity.Episode;
-import de.pnnit.directwerk.modules.podcast.job.RssFeedRefreshJobProducer;
 import de.pnnit.directwerk.modules.podcast.entity.EpisodeStatus;
 import de.pnnit.directwerk.modules.podcast.entity.Format;
 import de.pnnit.directwerk.modules.podcast.entity.PodcastSeries;
@@ -41,7 +40,7 @@ public class EpisodeService {
     private final TenantRepository tenantRepository;
     private final EpisodeMediaApi episodeMediaApi;
     private final HtmlSanitizer htmlSanitizer;
-    private final RssFeedRefreshJobProducer rssFeedRefreshJobProducer;
+    private final RssFeedRefreshScheduler rssFeedRefreshScheduler;
 
     @Transactional(readOnly = true)
     public List<Episode> listEpisodes(Long tenantId) {
@@ -181,7 +180,7 @@ public class EpisodeService {
         episode.setEnclosureEnabled(enclosureEnabled);
         Episode saved = episodeRepository.save(episode);
         if (episode.getStatus() == EpisodeStatus.PUBLISHED) {
-            rssFeedRefreshJobProducer.requestRefreshAfterCommit(tenantId);
+            rssFeedRefreshScheduler.requestRefreshAfterCommit(tenantId);
         }
         return saved;
     }

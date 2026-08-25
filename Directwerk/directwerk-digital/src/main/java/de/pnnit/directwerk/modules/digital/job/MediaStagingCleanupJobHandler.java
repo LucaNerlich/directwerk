@@ -3,7 +3,6 @@ package de.pnnit.directwerk.modules.digital.job;
 import de.pnnit.directwerk.config.DirectwerkConfig;
 import de.pnnit.directwerk.config.DirectwerkProperties;
 import de.pnnit.directwerk.modules.digital.storage.StorageConfigs;
-import de.pnnit.directwerk.modules.digital.service.StagingCleanupService;
 import de.pnnit.directwerk.modules.queue.JobHandler;
 import de.pnnit.directwerk.modules.queue.JobHandlerSettings;
 import de.pnnit.directwerk.modules.queue.QueueJob;

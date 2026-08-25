@@ -1,6 +1,5 @@
 package de.pnnit.directwerk.modules.digital.job;
 
-import de.pnnit.directwerk.modules.digital.service.StagingCleanupService;
 import lombok.extern.slf4j.Slf4j;
 import org.quartz.DisallowConcurrentExecution;
 import org.quartz.JobExecutionContext;

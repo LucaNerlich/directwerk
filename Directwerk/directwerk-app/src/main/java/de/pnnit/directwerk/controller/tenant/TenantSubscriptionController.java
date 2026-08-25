@@ -1,7 +1,7 @@
 package de.pnnit.directwerk.controller.tenant;
 
 import de.pnnit.directwerk.api.response.Response;
-import de.pnnit.directwerk.modules.podcast.feed.SubscriberFeedService;
+import de.pnnit.directwerk.modules.podcast.service.SubscriberFeedService;
 import de.pnnit.directwerk.modules.subscription.entity.Subscription;
 import de.pnnit.directwerk.modules.subscription.entity.SubscriptionProduct;
 import de.pnnit.directwerk.modules.subscription.entity.SubscriptionSource;

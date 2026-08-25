@@ -1,5 +1,7 @@
-package de.pnnit.directwerk.config;
+package de.pnnit.directwerk.bootstrap;
 
+import de.pnnit.directwerk.config.DirectwerkConfig;
+import de.pnnit.directwerk.config.DirectwerkProperties;
 import java.util.Map;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.health.contributor.Health;

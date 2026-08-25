@@ -1,5 +1,7 @@
-package de.pnnit.directwerk.config;
+package de.pnnit.directwerk.bootstrap;
 
+import de.pnnit.directwerk.config.DirectwerkConfig;
+import de.pnnit.directwerk.config.DirectwerkProperties;
 import jakarta.annotation.PostConstruct;
 import java.net.URI;
 import java.util.regex.Pattern;

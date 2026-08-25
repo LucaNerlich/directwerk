@@ -12,7 +12,6 @@ import de.pnnit.directwerk.modules.digital.exception.UploadValidationException;
 import de.pnnit.directwerk.modules.digital.repository.MediaAssetRepository;
 import de.pnnit.directwerk.modules.podcast.PodcastModule;
 import de.pnnit.directwerk.modules.podcast.entity.PodcastSeries;
-import de.pnnit.directwerk.modules.podcast.job.RssFeedRefreshJobProducer;
 import de.pnnit.directwerk.modules.podcast.entity.SeriesStatus;
 import de.pnnit.directwerk.modules.podcast.exception.SeriesNotFoundException;
 import de.pnnit.directwerk.modules.podcast.repository.PodcastSeriesRepository;
@@ -31,7 +30,7 @@ public class SeriesService {
     private final PodcastSeriesRepository podcastSeriesRepository;
     private final TenantRepository tenantRepository;
     private final MediaAssetRepository mediaAssetRepository;
-    private final RssFeedRefreshJobProducer rssFeedRefreshJobProducer;
+    private final RssFeedRefreshScheduler rssFeedRefreshScheduler;
 
     @Transactional(readOnly = true)
     public List<PodcastSeries> listSeries(Long tenantId, boolean publishedOnly) {
@@ -81,7 +80,7 @@ public class SeriesService {
         ));
         series.setStatus(SeriesStatus.DRAFT);
         PodcastSeries saved = podcastSeriesRepository.save(series);
-        rssFeedRefreshJobProducer.requestRefreshAfterCommit(tenantId);
+        rssFeedRefreshScheduler.requestRefreshAfterCommit(tenantId);
         return saved;
     }
 
@@ -132,7 +131,7 @@ public class SeriesService {
             series.setStatus(status);
         }
         PodcastSeries saved = podcastSeriesRepository.save(series);
-        rssFeedRefreshJobProducer.requestRefreshAfterCommit(tenantId);
+        rssFeedRefreshScheduler.requestRefreshAfterCommit(tenantId);
         return saved;
     }
 
