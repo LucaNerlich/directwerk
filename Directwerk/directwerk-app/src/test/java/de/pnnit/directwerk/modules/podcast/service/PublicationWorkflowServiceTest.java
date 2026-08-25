@@ -4,7 +4,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.verify;
@@ -68,10 +67,11 @@ class PublicationWorkflowServiceTest {
 
     private PublicationWorkflowService publicationWorkflowService;
 
-    @SuppressWarnings("unchecked")
+    @Mock
+    private ObjectProvider<PublicationWorkflowService> selfProvider;
+
     @BeforeEach
     void setUp() {
-        ObjectProvider<PublicationWorkflowService> selfProvider = mock(ObjectProvider.class);
         publicationWorkflowService = new PublicationWorkflowService(
                 episodeRepository,
                 episodeService,
