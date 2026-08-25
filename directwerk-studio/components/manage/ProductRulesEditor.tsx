@@ -78,8 +78,8 @@ export default function ProductRulesEditor({
             listProductRules(host, productId),
             listSeries(host).catch(() => [] as SeriesSummary[]),
             listFormats(host).catch(() => [] as FormatSummary[]),
-            listCategories(host).catch(() => [] as CategorySummary[]),
-            listMedia(host).catch(() => [] as MediaAsset[]),
+            listCategories(host),
+            listMedia(host),
         ])
             .then(([rules, seriesList, formatList, categoryList, mediaList]) => {
                 if (!active) {
