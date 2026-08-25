@@ -11,7 +11,7 @@ function secureFlag(): string {
  * Serializes an httpOnly, SameSite=Strict session cookie. The refresh token is
  * never exposed to client JavaScript; the BFF reads it on the refresh route.
  */
-export function serializeRefreshCookie(name: string, value: string): string {
+function serializeRefreshCookie(name: string, value: string): string {
     return `${name}=${encodeURIComponent(value)}; Path=/; HttpOnly; SameSite=Strict${secureFlag()}`
 }
 

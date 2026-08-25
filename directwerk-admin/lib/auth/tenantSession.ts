@@ -22,7 +22,7 @@ function invalidateTenantSession(): void {
  * Ends any tenant refresh that is currently in flight so it can no longer
  * write tokens for the previous identity over a freshly logged-in session.
  */
-export function invalidatePendingTenantRefresh(): void {
+function invalidatePendingTenantRefresh(): void {
     currentSessionGeneration++
 }
 

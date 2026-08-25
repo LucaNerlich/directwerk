@@ -1,4 +1,4 @@
-export interface ApiErrorDetail {
+interface ApiErrorDetail {
     code: string
     message: string
     field: string | null

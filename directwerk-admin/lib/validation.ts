@@ -21,7 +21,7 @@ export type LoginValidationResult =
     | {success: true; data: LoginCredentials}
     | {success: false; error: string}
 
-export interface TenantUserInviteInput {
+interface TenantUserInviteInput {
     email: string
     name: string | null
     role: TenantInvitableRole
@@ -31,7 +31,7 @@ export type TenantUserInviteValidationResult =
     | {success: true; data: TenantUserInviteInput}
     | {success: false; error: string}
 
-export interface PlatformAdminInviteInput {
+interface PlatformAdminInviteInput {
     email: string
     name: string | null
 }
