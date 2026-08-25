@@ -1,10 +1,7 @@
 import {AUTH_REQUIRED} from '@/lib/api/errors'
 import {
     parseAccessEnvelope,
-    parseMediaListEnvelope,
     parseMeEnvelope,
-    parsePreviewUrlEnvelope,
-    parsePublicArticleEnvelope,
     parsePublicArticleListEnvelope,
     parsePublicEpisodeListEnvelope,
     parsePublicFormatListEnvelope,
@@ -21,7 +18,6 @@ import {
 import type {
     Access,
     ApiEnvelope,
-    MediaAsset,
     Me,
     PublicArticle,
     PublicEpisode,
@@ -263,30 +259,6 @@ export async function getAccess(
     return parsed
 }
 
-export async function fetchImages(
-    tenantHost: string,
-): Promise<ApiEnvelope<MediaAsset[]>> {
-    const parsed = parseMediaListEnvelope(
-        await authenticatedRequest('/api/media', tenantHost),
-    )
-    if (parsed === null) {
-        throw new Error('The server returned an invalid media response.')
-    }
-
-    return parsed
-}
-
-export async function fetchImagePreviewUrl(
-    tenantHost: string,
-    id: number,
-): Promise<string | null> {
-    const value = await authenticatedRequest(
-        `/api/proxy/media/${id}/preview-url`,
-        tenantHost,
-    )
-    return parsePreviewUrlEnvelope(value)
-}
-
 export async function listPublicArticles(
     tenantHost: string,
 ): Promise<PublicArticle[]> {
@@ -295,20 +267,6 @@ export async function listPublicArticles(
     )
     if (parsed === null) {
         throw new Error('The server returned an invalid article list.')
-    }
-
-    return parsed.data
-}
-
-export async function getPublicArticle(
-    tenantHost: string,
-    slug: string,
-): Promise<PublicArticle> {
-    const parsed = parsePublicArticleEnvelope(
-        await request(`/api/proxy/public/articles/${encodeURIComponent(slug)}`, tenantHost),
-    )
-    if (parsed === null) {
-        throw new Error('The server returned an invalid article.')
     }
 
     return parsed.data

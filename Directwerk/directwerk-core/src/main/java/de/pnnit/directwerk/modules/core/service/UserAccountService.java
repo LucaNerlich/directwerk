@@ -93,11 +93,6 @@ public class UserAccountService {
         return user;
     }
 
-    @Transactional(readOnly = true)
-    public Optional<User> findByEmail(String email) {
-        return userRepository.findByEmailIgnoreCase(email);
-    }
-
     private UserStatus initialUserStatus() {
         return directwerkConfig.isEmailVerificationRequired()
                 ? UserStatus.PENDING_VERIFICATION

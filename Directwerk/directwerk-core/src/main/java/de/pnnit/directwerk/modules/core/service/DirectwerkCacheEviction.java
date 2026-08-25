@@ -48,10 +48,6 @@ public class DirectwerkCacheEviction {
         });
     }
 
-    public void evictPlatformModules() {
-        evictAll(DirectwerkCacheNames.PLATFORM_MODULES);
-    }
-
     public void evictHostAfterCommit(String host) {
         runAfterCommit(() -> evictHost(host));
     }
@@ -81,13 +77,6 @@ public class DirectwerkCacheEviction {
         Cache cache = cacheManager.getCache(cacheName);
         if (cache != null) {
             cache.evict(key);
-        }
-    }
-
-    private void evictAll(String cacheName) {
-        Cache cache = cacheManager.getCache(cacheName);
-        if (cache != null) {
-            cache.clear();
         }
     }
 }
