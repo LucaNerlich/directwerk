@@ -1,5 +1,6 @@
 package de.pnnit.directwerk.modules.digital.job;
 
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -13,6 +14,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.quartz.JobDetail;
 import org.quartz.JobExecutionContext;
+import org.quartz.JobExecutionException;
 import org.quartz.JobKey;
 import org.quartz.Trigger;
 import org.quartz.TriggerKey;
@@ -33,7 +35,7 @@ class MediaStagingCleanupJobTest {
     private Trigger trigger;
 
     @Test
-    void delegatesToCleanupService() {
+    void delegatesToCleanupService() throws JobExecutionException {
         MediaStagingCleanupJob job = new MediaStagingCleanupJob();
         job.setStagingCleanupService(stagingCleanupService);
 
@@ -43,7 +45,7 @@ class MediaStagingCleanupJobTest {
     }
 
     @Test
-    void swallowsCleanupFailures() {
+    void rethrowsCleanupFailuresAfterLogging() {
         doThrow(new RuntimeException("boom")).when(stagingCleanupService).cleanupExpiredStaging();
         when(context.getJobDetail()).thenReturn(jobDetail);
         when(jobDetail.getKey()).thenReturn(JobKey.jobKey("mediaStagingCleanupJob"));
@@ -54,8 +56,12 @@ class MediaStagingCleanupJobTest {
         MediaStagingCleanupJob job = new MediaStagingCleanupJob();
         job.setStagingCleanupService(stagingCleanupService);
 
-        job.executeInternal(context);
+        JobExecutionException thrown =
+                assertThrows(JobExecutionException.class, () -> job.executeInternal(context));
 
         verify(stagingCleanupService).cleanupExpiredStaging();
+        org.assertj.core.api.Assertions.assertThat(thrown.getCause())
+                .isInstanceOf(RuntimeException.class)
+                .hasMessage("boom");
     }
 }

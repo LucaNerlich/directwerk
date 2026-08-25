@@ -24,7 +24,7 @@ public class MediaStagingCleanupJob extends QuartzJobBean {
     }
 
     @Override
-    protected void executeInternal(JobExecutionContext context) {
+    protected void executeInternal(JobExecutionContext context) throws org.quartz.JobExecutionException {
         try {
             stagingCleanupService.cleanupExpiredStaging();
         } catch (Exception ex) {
@@ -35,6 +35,7 @@ public class MediaStagingCleanupJob extends QuartzJobBean {
                     context.getFireTime(),
                     ex
             );
+            throw new org.quartz.JobExecutionException("Staging cleanup batch failed", ex);
         }
     }
 }
