@@ -11,13 +11,13 @@ import de.pnnit.directwerk.modules.digital.entity.AssetType;
 import de.pnnit.directwerk.modules.digital.entity.AssetVisibility;
 import de.pnnit.directwerk.modules.digital.entity.MediaAsset;
 import de.pnnit.directwerk.modules.digital.exception.MediaAssetNotFoundException;
-import de.pnnit.directwerk.modules.digital.exception.StorageNotConfiguredException;
 import de.pnnit.directwerk.modules.digital.exception.UploadValidationException;
 import de.pnnit.directwerk.modules.digital.repository.MediaAssetRepository;
 import de.pnnit.directwerk.modules.digital.job.MediaDeleteJobProducer;
 import de.pnnit.directwerk.modules.core.entity.Tenant;
 import de.pnnit.directwerk.config.DirectwerkConfig;
 import de.pnnit.directwerk.config.DirectwerkProperties;
+import de.pnnit.directwerk.modules.digital.storage.StorageConfigs;
 import de.pnnit.directwerk.multitenancy.TenantContext;
 import java.time.Duration;
 import java.time.Instant;
@@ -71,7 +71,7 @@ public class UploadService implements UploadApi {
     @Override
     @Transactional
     public UploadUrlResult createUploadUrl(CreateUploadUrlCommand command) {
-        DirectwerkProperties.Storage storage = requireStorage();
+        DirectwerkProperties.Storage storage = StorageConfigs.requireEnabled(directwerkConfig);
         Long tenantId = TenantContext.requireTenantId();
         Tenant tenant = tenantLookupService.requireTenant(tenantId);
 
@@ -144,7 +144,7 @@ public class UploadService implements UploadApi {
 
     @Override
     public ConfirmUploadResult confirmUpload(ConfirmUploadCommand command) {
-        DirectwerkProperties.Storage storage = requireStorage();
+        DirectwerkProperties.Storage storage = StorageConfigs.requireEnabled(directwerkConfig);
         Long tenantId = TenantContext.requireTenantId();
         Tenant tenant = tenantLookupService.requireTenant(tenantId);
 
@@ -322,14 +322,4 @@ public class UploadService implements UploadApi {
         }
     }
 
-    private DirectwerkProperties.Storage requireStorage() {
-        if (!directwerkConfig.isStorageEnabled()) {
-            throw new StorageNotConfiguredException("Object storage is disabled");
-        }
-        DirectwerkProperties.Storage storage = directwerkConfig.storage();
-        if (storage == null || storage.bucket() == null || storage.bucket().isBlank()) {
-            throw new StorageNotConfiguredException("Object storage bucket is not configured");
-        }
-        return storage;
-    }
 }
