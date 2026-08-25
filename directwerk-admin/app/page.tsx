@@ -39,13 +39,8 @@ export default function HomePage() {
 
         Promise.all([
             getPlatformData<TenantList>('tenants'),
-            getPlatformData<PlatformAdmin[]>('admins').catch(() => []),
-            getPlatformJobList({limit: 1, offset: 0}).catch(() => ({
-                items: [],
-                total: 0,
-                offset: 0,
-                limit: 1,
-            })),
+            getPlatformData<PlatformAdmin[]>('admins'),
+            getPlatformJobList({limit: 1, offset: 0}),
         ])
             .then(([result, admins, jobs]) => {
                 if (active) {
@@ -68,7 +63,7 @@ export default function HomePage() {
                     return
                 }
 
-                setError('Could not load tenants.')
+                setError('Could not load platform overview.')
             })
 
         return () => {

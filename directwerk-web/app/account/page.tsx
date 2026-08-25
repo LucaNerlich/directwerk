@@ -129,21 +129,19 @@ export default function AccountPage() {
         Promise.all([
             getMe(tenantHost),
             getAccess(tenantHost),
-            getNotificationPreferences(tenantHost).catch(() => null),
-            listMyFeeds(tenantHost).catch(() => []),
-            listMySubscriptions(tenantHost).catch(() => []),
-            getSiteConfig(tenantHost).catch(() => null),
+            getNotificationPreferences(tenantHost),
+            listMyFeeds(tenantHost),
+            listMySubscriptions(tenantHost),
+            getSiteConfig(tenantHost),
         ])
             .then(([meResponse, accessResponse, prefs, feedList, subscriptionList, siteConfig]) => {
                 if (isCurrent) {
                     setMe(meResponse.data)
                     setAccess(accessResponse.data)
-                    setEmailNotificationsEnabled(
-                        prefs?.emailNotificationsEnabled ?? null,
-                    )
+                    setEmailNotificationsEnabled(prefs.emailNotificationsEnabled)
                     setFeeds(feedList)
                     setSubscriptions(subscriptionList)
-                    setPublicRssUrl(siteConfig?.data.publicRssUrl ?? null)
+                    setPublicRssUrl(siteConfig.data.publicRssUrl ?? null)
                 }
             })
             .catch((requestError: unknown) => {
