@@ -1,5 +1,7 @@
-package de.pnnit.directwerk.config;
+package de.pnnit.directwerk.bootstrap;
 
+import de.pnnit.directwerk.config.DirectwerkConfig;
+import de.pnnit.directwerk.config.DirectwerkProperties;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.when;
 

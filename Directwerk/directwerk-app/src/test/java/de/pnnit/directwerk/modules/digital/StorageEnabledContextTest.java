@@ -2,7 +2,7 @@ package de.pnnit.directwerk.modules.digital;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import de.pnnit.directwerk.config.S3StorageHealthIndicator;
+import de.pnnit.directwerk.bootstrap.S3StorageHealthIndicator;
 import de.pnnit.directwerk.modules.digital.api.MediaAssetLifecycleApi;
 import de.pnnit.directwerk.modules.digital.api.UploadApi;
 import de.pnnit.directwerk.modules.digital.service.MediaAssetLifecycleService;

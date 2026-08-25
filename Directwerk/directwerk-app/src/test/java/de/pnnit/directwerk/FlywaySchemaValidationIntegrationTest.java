@@ -2,7 +2,7 @@ package de.pnnit.directwerk;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import de.pnnit.directwerk.config.LocalDevSeedRunner;
+import de.pnnit.directwerk.bootstrap.LocalDevSeedRunner;
 import java.util.UUID;
 import javax.sql.DataSource;
 import org.junit.jupiter.api.Test;
