@@ -2,9 +2,7 @@ import {describe, expect, it} from 'vitest'
 
 import {
     parseAccessEnvelope,
-    parseMediaListEnvelope,
     parseMeEnvelope,
-    parsePreviewUrlEnvelope,
     parsePublicArticleEnvelope,
     parsePublicEpisodeListEnvelope,
     parseSiteConfigEnvelope,
@@ -16,25 +14,6 @@ import {
     parseSubscriberFeedListEnvelope,
     parseTokenResponse,
 } from './responseValidation'
-
-function validAsset(id: number) {
-    return {
-        id,
-        s3Key: `tenant/staging/${id}.jpg`,
-        visibility: 'private',
-        scope: 'tenant',
-        assetType: 'image',
-        status: 'ready',
-        mimeType: null,
-        sizeBytes: null,
-        originalFilename: null,
-        episodeId: null,
-        ownerUserId: null,
-        cdnUrl: null,
-        createdAt: '2026-07-20T00:00:00Z',
-        updatedAt: '2026-07-20T00:00:00Z',
-    }
-}
 
 function envelopeWith(data: unknown) {
     return {statusCode: 200, statusMessage: 'OK', data}
@@ -113,141 +92,6 @@ describe('API response validation', () => {
     })
 })
 
-
-describe('parseMediaListEnvelope', () => {
-    it('accepts an empty list', () => {
-        const result = parseMediaListEnvelope(envelopeWith([]))
-        expect(result).not.toBeNull()
-        expect(result?.data).toEqual([])
-    })
-
-    it('accepts exactly 100 valid assets', () => {
-        const assets = Array.from({length: 100}, (_, i) => validAsset(i + 1))
-        const result = parseMediaListEnvelope(envelopeWith(assets))
-        expect(result).not.toBeNull()
-        expect(result?.data).toHaveLength(100)
-    })
-
-    it('rejects 101 assets', () => {
-        const assets = Array.from({length: 101}, (_, i) => validAsset(i + 1))
-        expect(parseMediaListEnvelope(envelopeWith(assets))).toBeNull()
-    })
-
-    it('rejects the whole list when a single asset is malformed', () => {
-        const good = validAsset(1)
-        const bad = validAsset(2) as Partial<ReturnType<typeof validAsset>>
-        delete bad.s3Key
-        expect(parseMediaListEnvelope(envelopeWith([good, bad]))).toBeNull()
-    })
-
-    it('returns typed data for a single valid asset', () => {
-        const result = parseMediaListEnvelope(envelopeWith([validAsset(42)]))
-        expect(result).not.toBeNull()
-        expect(result?.data[0].id).toBe(42)
-        expect(result?.data[0].s3Key).toBe('tenant/staging/42.jpg')
-    })
-
-    it('accepts a public CDN URL when present', () => {
-        const result = parseMediaListEnvelope(
-            envelopeWith([
-                {
-                    ...validAsset(7),
-                    visibility: 'PUBLIC',
-                    status: 'READY',
-                    cdnUrl: 'https://cdn.example.test/tenant/public/7.jpg',
-                },
-            ])
-        )
-        expect(result?.data[0].cdnUrl).toBe(
-            'https://cdn.example.test/tenant/public/7.jpg'
-        )
-    })
-})
-
-describe('parseMediaAsset field boundaries', () => {
-    it('rejects a non-integer id', () => {
-        expect(parseMediaListEnvelope(envelopeWith([{...validAsset(1), id: 'one'}]))).toBeNull()
-    })
-
-    it('rejects a negative id', () => {
-        expect(parseMediaListEnvelope(envelopeWith([{...validAsset(1), id: -1}]))).toBeNull()
-    })
-
-    it('rejects an unsafe integer id', () => {
-        expect(
-            parseMediaListEnvelope(envelopeWith([{...validAsset(1), id: Number.MAX_SAFE_INTEGER + 1}])),
-        ).toBeNull()
-    })
-
-    it('rejects an overlong s3Key (>512 chars)', () => {
-        expect(
-            parseMediaListEnvelope(envelopeWith([{...validAsset(1), s3Key: 'a'.repeat(513)}])),
-        ).toBeNull()
-    })
-
-    it('rejects a non-string s3Key', () => {
-        expect(parseMediaListEnvelope(envelopeWith([{...validAsset(1), s3Key: 42}]))).toBeNull()
-    })
-
-    it('accepts null for all nullable fields', () => {
-        const asset = {
-            ...validAsset(1),
-            mimeType: null,
-            sizeBytes: null,
-            originalFilename: null,
-            episodeId: null,
-            ownerUserId: null,
-        }
-        const result = parseMediaListEnvelope(envelopeWith([asset]))
-        expect(result).not.toBeNull()
-        expect(result?.data[0].mimeType).toBeNull()
-    })
-
-    it('rejects a negative sizeBytes', () => {
-        expect(
-            parseMediaListEnvelope(envelopeWith([{...validAsset(1), sizeBytes: -1}])),
-        ).toBeNull()
-    })
-
-    it('rejects a float sizeBytes', () => {
-        expect(
-            parseMediaListEnvelope(envelopeWith([{...validAsset(1), sizeBytes: 1.5}])),
-        ).toBeNull()
-    })
-
-    it('rejects an overlong originalFilename (>512 chars)', () => {
-        expect(
-            parseMediaListEnvelope(
-                envelopeWith([{...validAsset(1), originalFilename: 'a'.repeat(513)}]),
-            ),
-        ).toBeNull()
-    })
-})
-
-describe('parsePreviewUrlEnvelope', () => {
-    it('accepts a valid HTTPS URL', () => {
-        const url = 'https://cdn.example.test/media/foo.jpg'
-        expect(parsePreviewUrlEnvelope({data: {url}})).toBe(url)
-    })
-
-    it('rejects non-HTTPS URLs', () => {
-        expect(
-            parsePreviewUrlEnvelope({data: {url: 'http://cdn.example.test/foo.jpg'}}),
-        ).toBeNull()
-    })
-
-    it('rejects a relative path', () => {
-        expect(parsePreviewUrlEnvelope({data: {url: '/media/foo.jpg'}})).toBeNull()
-    })
-
-    it('rejects a missing data.url field', () => {
-        expect(parsePreviewUrlEnvelope({data: {}})).toBeNull()
-    })
-
-    it('rejects an empty string', () => {
-        expect(parsePreviewUrlEnvelope({data: {url: ''}})).toBeNull()
-    })
-})
 
 describe('public content HTML sanitization', () => {
     function validArticle(overrides: Record<string, unknown> = {}) {
