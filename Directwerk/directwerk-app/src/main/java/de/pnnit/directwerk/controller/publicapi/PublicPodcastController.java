@@ -1,5 +1,6 @@
 package de.pnnit.directwerk.controller.publicapi;
 
+import de.pnnit.directwerk.api.dto.PublicCategoryView;
 import de.pnnit.directwerk.api.response.Response;
 import de.pnnit.directwerk.modules.core.service.ModuleGateService;
 import de.pnnit.directwerk.modules.digital.api.EpisodeMediaApi;
@@ -182,14 +183,6 @@ public class PublicPodcastController {
             String description,
             Integer requiredLevelSortOrder,
             int sortOrder
-    ) {
-    }
-
-    public record PublicCategoryView(
-            Long id,
-            String slug,
-            String name,
-            Long parentId
     ) {
     }
 }

@@ -1,5 +1,7 @@
 package de.pnnit.directwerk.controller.auth;
 
+import de.pnnit.directwerk.api.dto.CategoryView;
+import de.pnnit.directwerk.api.dto.FormatView;
 import de.pnnit.directwerk.api.response.Response;
 import de.pnnit.directwerk.modules.core.service.ModuleGateService;
 import de.pnnit.directwerk.modules.digital.api.AssetAccessApi;
@@ -182,11 +184,5 @@ public class MeEpisodeController {
             List<FormatView> formats,
             List<CategoryView> categories
     ) {
-    }
-
-    public record FormatView(Long id, String slug, String name, Integer requiredLevelSortOrder, int sortOrder) {
-    }
-
-    public record CategoryView(Long id, String slug, String name, Long parentId) {
     }
 }

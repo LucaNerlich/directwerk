@@ -1,5 +1,6 @@
 package de.pnnit.directwerk.controller.auth;
 
+import de.pnnit.directwerk.api.dto.LevelView;
 import de.pnnit.directwerk.api.response.Response;
 import de.pnnit.directwerk.modules.core.repository.UserRepository;
 import de.pnnit.directwerk.modules.subscription.entity.Subscription;
@@ -125,9 +126,6 @@ public class MeController {
             List<String> roles,
             Long tenantId
     ) {
-    }
-
-    public record LevelView(Long id, String slug, String title, int sortOrder) {
     }
 
     public record PackageView(Long id, String slug, String title) {

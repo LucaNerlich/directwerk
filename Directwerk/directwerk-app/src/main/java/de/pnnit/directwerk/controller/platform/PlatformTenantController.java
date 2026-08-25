@@ -1,5 +1,6 @@
 package de.pnnit.directwerk.controller.platform;
 
+import de.pnnit.directwerk.api.dto.DomainView;
 import de.pnnit.directwerk.api.response.Response;
 import de.pnnit.directwerk.config.DirectwerkConfig;
 import de.pnnit.directwerk.modules.core.entity.Tenant;
@@ -227,8 +228,5 @@ public class PlatformTenantController {
     }
 
     public record AdminInvitationResponse(String email, String status, String inviteToken) {
-    }
-
-    public record DomainView(String host, boolean primary, boolean verified) {
     }
 }

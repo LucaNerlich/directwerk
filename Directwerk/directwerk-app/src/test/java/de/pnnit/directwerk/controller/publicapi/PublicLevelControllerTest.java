@@ -5,6 +5,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import de.pnnit.directwerk.api.dto.LevelView;
 import de.pnnit.directwerk.api.response.Response;
 import de.pnnit.directwerk.modules.core.service.ModuleGateService;
 import de.pnnit.directwerk.modules.subscription.entity.OfferingType;
@@ -39,14 +40,14 @@ class PublicLevelControllerTest {
         when(subscriptionProductService.listProducts(10L, true))
                 .thenReturn(List.of(bundle, fan, supporter));
 
-        ResponseEntity<Response<List<PublicLevelController.LevelView>>> response = controller.listLevels();
+        ResponseEntity<Response<List<LevelView>>> response = controller.listLevels();
 
         verify(subscriptionProductService).listProducts(10L, true);
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-        List<PublicLevelController.LevelView> levels = response.getBody().data();
+        List<LevelView> levels = response.getBody().data();
         assertThat(levels).containsExactly(
-                new PublicLevelController.LevelView(1L, "fan", "Fan", 10),
-                new PublicLevelController.LevelView(2L, "supporter", "Supporter", 20)
+                new LevelView(1L, "fan", "Fan", 10),
+                new LevelView(2L, "supporter", "Supporter", 20)
         );
     }
 
@@ -56,7 +57,7 @@ class PublicLevelControllerTest {
         when(subscriptionProductService.listProducts(10L, true))
                 .thenReturn(List.of(product(3L, "bundle", "Bundle", OfferingType.PACKAGE, 5)));
 
-        ResponseEntity<Response<List<PublicLevelController.LevelView>>> response = controller.listLevels();
+        ResponseEntity<Response<List<LevelView>>> response = controller.listLevels();
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(response.getBody().data()).isEmpty();

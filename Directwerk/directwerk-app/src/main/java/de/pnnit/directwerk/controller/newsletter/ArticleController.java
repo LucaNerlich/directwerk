@@ -1,5 +1,8 @@
 package de.pnnit.directwerk.controller.newsletter;
 
+import de.pnnit.directwerk.api.dto.CategoryView;
+import de.pnnit.directwerk.api.dto.PublishOptionsRequest;
+import de.pnnit.directwerk.api.dto.ReplaceCategoriesRequest;
 import de.pnnit.directwerk.api.response.Response;
 import de.pnnit.directwerk.modules.core.RequiresModule;
 import de.pnnit.directwerk.modules.digital.DigitalContentModule;
@@ -243,16 +246,10 @@ public class ArticleController {
     ) {
     }
 
-    public record ReplaceCategoriesRequest(Set<@Min(1) Long> categoryIds) {
-    }
-
     public record ScheduleArticleRequest(
             @NotNull Instant scheduledAt,
             Boolean notifySubscribers
     ) {
-    }
-
-    public record PublishOptionsRequest(Boolean notifySubscribers) {
     }
 
     public record ArticleView(
@@ -271,14 +268,6 @@ public class ArticleController {
             List<CategoryView> categories,
             Instant createdAt,
             Instant updatedAt
-    ) {
-    }
-
-    public record CategoryView(
-            Long id,
-            String slug,
-            String name,
-            Long parentId
     ) {
     }
 }
