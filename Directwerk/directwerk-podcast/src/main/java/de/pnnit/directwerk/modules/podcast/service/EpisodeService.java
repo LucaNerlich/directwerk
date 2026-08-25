@@ -3,6 +3,7 @@ package de.pnnit.directwerk.modules.podcast.service;
 import de.pnnit.directwerk.modules.core.RequiresModule;
 import de.pnnit.directwerk.modules.core.repository.TenantRepository;
 import de.pnnit.directwerk.modules.core.util.SlugNormalizer;
+import de.pnnit.directwerk.modules.core.util.TitleNormalizer;
 import de.pnnit.directwerk.modules.digital.api.EpisodeMediaApi;
 import de.pnnit.directwerk.modules.digital.entity.MediaAsset;
 import de.pnnit.directwerk.modules.podcast.PodcastModule;
@@ -32,7 +33,6 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class EpisodeService {
 
-    private static final int MAX_TITLE_LENGTH = 255;
 
     private final EpisodeRepository episodeRepository;
     private final SeriesService seriesService;
@@ -81,7 +81,7 @@ public class EpisodeService {
         episode.setSeries(series);
         episode.setEpisodeNumber(validatePositive(episodeNumber, "episodeNumber"));
         episode.setSlug(slug);
-        episode.setTitle(normalizeTitle(title));
+        episode.setTitle(TitleNormalizer.normalize(title, "Episode"));
         episode.setDescription(htmlSanitizer.sanitize(description));
         episode.setDurationSeconds(validatePositive(durationSeconds, "durationSeconds"));
         episode.setAccessPolicy(accessPolicy != null ? accessPolicy : AccessPolicy.FREE);
@@ -124,7 +124,7 @@ public class EpisodeService {
             episode.setSlug(slug);
         }
         if (title != null) {
-            episode.setTitle(normalizeTitle(title));
+            episode.setTitle(TitleNormalizer.normalize(title, "Episode"));
         }
         if (description != null) {
             episode.setDescription(htmlSanitizer.sanitize(description));
@@ -224,17 +224,6 @@ public class EpisodeService {
             categories.add(category);
         }
         return categories;
-    }
-
-    private static String normalizeTitle(String title) {
-        if (title == null || title.isBlank()) {
-            throw new IllegalArgumentException("Episode title is required");
-        }
-        String normalized = title.trim();
-        if (normalized.length() > MAX_TITLE_LENGTH) {
-            throw new IllegalArgumentException("Episode title must be at most 255 characters");
-        }
-        return normalized;
     }
 
     private static Integer validatePositive(Integer value, String field) {

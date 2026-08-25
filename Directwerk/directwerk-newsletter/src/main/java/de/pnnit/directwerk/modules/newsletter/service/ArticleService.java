@@ -3,6 +3,7 @@ package de.pnnit.directwerk.modules.newsletter.service;
 import de.pnnit.directwerk.modules.core.RequiresModule;
 import de.pnnit.directwerk.modules.core.repository.TenantRepository;
 import de.pnnit.directwerk.modules.core.util.SlugNormalizer;
+import de.pnnit.directwerk.modules.core.util.TitleNormalizer;
 import de.pnnit.directwerk.modules.digital.DigitalContentModule;
 import de.pnnit.directwerk.modules.digital.api.MediaAssetQueryApi;
 import de.pnnit.directwerk.modules.digital.entity.AssetStatus;
@@ -30,7 +31,6 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class ArticleService {
 
-    private static final int MAX_TITLE_LENGTH = 255;
     private static final int MAX_SEO_DESCRIPTION_LENGTH = 512;
 
     private final ArticleRepository articleRepository;
@@ -72,7 +72,7 @@ public class ArticleService {
         Article article = new Article();
         article.setTenant(tenantRepository.getReferenceById(tenantId));
         article.setSlug(slug);
-        article.setTitle(normalizeTitle(title));
+        article.setTitle(TitleNormalizer.normalize(title, "Article"));
         article.setBody(htmlSanitizer.sanitize(body));
         article.setExcerpt(normalizeOptionalText(excerpt));
         article.setSeoDescription(normalizeSeoDescription(seoDescription));
@@ -109,7 +109,7 @@ public class ArticleService {
             article.setSlug(slug);
         }
         if (title != null) {
-            article.setTitle(normalizeTitle(title));
+            article.setTitle(TitleNormalizer.normalize(title, "Article"));
         }
         if (body != null) {
             article.setBody(htmlSanitizer.sanitize(body));
@@ -182,17 +182,6 @@ public class ArticleService {
             categories.add(category);
         }
         return categories;
-    }
-
-    private static String normalizeTitle(String title) {
-        if (title == null || title.isBlank()) {
-            throw new IllegalArgumentException("Article title is required");
-        }
-        String normalized = title.trim();
-        if (normalized.length() > MAX_TITLE_LENGTH) {
-            throw new IllegalArgumentException("Article title must be at most 255 characters");
-        }
-        return normalized;
     }
 
     private static String normalizeOptionalText(String value) {
