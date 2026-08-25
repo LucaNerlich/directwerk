@@ -16,7 +16,6 @@ import de.pnnit.directwerk.modules.podcast.feed.FeedBuilderException;
 import de.pnnit.directwerk.modules.podcast.feed.SubscriberFeed;
 import de.pnnit.directwerk.modules.podcast.feed.SubscriberFeedNotFoundException;
 import de.pnnit.directwerk.modules.podcast.feed.SubscriberFeedRepository;
-import de.pnnit.directwerk.modules.podcast.job.RssFeedRefreshJobProducer;
 import de.pnnit.directwerk.modules.podcast.repository.FormatRepository;
 import java.util.List;
 import java.util.Optional;
@@ -49,7 +48,7 @@ class SubscriberFeedServiceTest {
     private RssFeedSnapshotService rssFeedSnapshotService;
 
     @Mock
-    private RssFeedRefreshJobProducer rssFeedRefreshJobProducer;
+    private RssFeedRefreshScheduler rssFeedRefreshScheduler;
 
     @InjectMocks
     private SubscriberFeedService subscriberFeedService;
@@ -83,7 +82,7 @@ class SubscriberFeedServiceTest {
         verify(subscriberFeedRepository).save(captor.capture());
         assertThat(captor.getValue().isEnabled()).isFalse();
         assertThat(captor.getValue().getTenant().getId()).isEqualTo(10L);
-        verify(rssFeedRefreshJobProducer).requestRefreshAfterCommit(10L);
+        verify(rssFeedRefreshScheduler).requestRefreshAfterCommit(10L);
     }
 
     @Test
@@ -134,7 +133,7 @@ class SubscriberFeedServiceTest {
         assertThat(created.isDefaultFeed()).isFalse();
         assertThat(created.getTitle()).isEqualTo("Nur Interviews");
         assertThat(created.getFormats()).extracting(Format::getId).containsExactly(3L);
-        verify(rssFeedRefreshJobProducer).requestRefreshAfterCommit(10L);
+        verify(rssFeedRefreshScheduler).requestRefreshAfterCommit(10L);
     }
 
     @Test
@@ -174,7 +173,7 @@ class SubscriberFeedServiceTest {
 
         verify(rssFeedSnapshotService).withdrawPrivateFeed(custom.getTenant(), 12L);
         verify(subscriberFeedRepository).delete(custom);
-        verify(rssFeedRefreshJobProducer).requestRefreshAfterCommit(10L);
+        verify(rssFeedRefreshScheduler).requestRefreshAfterCommit(10L);
     }
 
     private static Format format(Long id, boolean active) {

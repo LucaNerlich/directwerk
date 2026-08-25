@@ -11,7 +11,6 @@ import de.pnnit.directwerk.modules.core.entity.Tenant;
 import de.pnnit.directwerk.modules.core.repository.TenantRepository;
 import de.pnnit.directwerk.modules.podcast.entity.Format;
 import de.pnnit.directwerk.modules.podcast.exception.FormatNotFoundException;
-import de.pnnit.directwerk.modules.podcast.job.RssFeedRefreshJobProducer;
 import de.pnnit.directwerk.modules.podcast.repository.FormatRepository;
 import java.util.List;
 import java.util.Optional;
@@ -31,14 +30,14 @@ class FormatServiceTest {
     private TenantRepository tenantRepository;
 
     @Mock
-    private RssFeedRefreshJobProducer rssFeedRefreshJobProducer;
+    private RssFeedRefreshScheduler rssFeedRefreshScheduler;
 
     private FormatService formatService;
     private Tenant tenant;
 
     @BeforeEach
     void setUp() {
-        formatService = new FormatService(formatRepository, tenantRepository, rssFeedRefreshJobProducer);
+        formatService = new FormatService(formatRepository, tenantRepository, rssFeedRefreshScheduler);
         tenant = new Tenant();
         tenant.setId(10L);
         tenant.setSlug("alpha");
@@ -94,7 +93,7 @@ class FormatServiceTest {
         Format deactivated = formatService.deactivateFormat(10L, 1L);
 
         assertThat(deactivated.isActive()).isFalse();
-        verify(rssFeedRefreshJobProducer).requestRefreshAfterCommit(10L);
+        verify(rssFeedRefreshScheduler).requestRefreshAfterCommit(10L);
     }
 
     @Test
@@ -106,7 +105,7 @@ class FormatServiceTest {
 
         formatService.updateFormat(10L, 1L, null, null, null, 3, null, null);
 
-        verify(rssFeedRefreshJobProducer).requestRefreshAfterCommit(10L);
+        verify(rssFeedRefreshScheduler).requestRefreshAfterCommit(10L);
     }
 
     @Test
@@ -117,7 +116,7 @@ class FormatServiceTest {
 
         formatService.updateFormat(10L, 1L, null, "Renamed", null, null, null, null);
 
-        verify(rssFeedRefreshJobProducer, never()).requestRefreshAfterCommit(10L);
+        verify(rssFeedRefreshScheduler, never()).requestRefreshAfterCommit(10L);
     }
 
     @Test
