@@ -7,7 +7,6 @@ include(
         'directwerk-common',
         'directwerk-queue',
         'directwerk-email',
-        'directwerk-webhook',
         'directwerk-core',
         'directwerk-subscription',
         'directwerk-digital',

@@ -178,4 +178,89 @@ class EntitlementServiceTest {
         rule.setScopeId(scopeId);
         return rule;
     }
+
+    // --- batch evaluation ------------------------------------------------------------------
+
+    @Test
+    void filterAccessibleEpisodesGrantsFreeWithoutAnyQuery() {
+        EntitlementService.EpisodeAccessSubject free =
+                new EntitlementService.EpisodeAccessSubject(true, 0, 30L, Set.of(), Set.of(), null);
+
+        Set<Long> accessible = entitlementService.filterAccessibleEpisodes(
+                10L, 20L, java.util.Map.of(1L, free));
+
+        assertThat(accessible).containsExactly(1L);
+        org.mockito.Mockito.verifyNoInteractions(subscriptionRepository);
+    }
+
+    @Test
+    void filterAccessibleEpisodesEvaluatesManyPaidEpisodesAgainstOneSubscriptionFetch() {
+        SubscriptionProduct supporter = product(1L, "supporter", 1);
+        Subscription active = subscription(supporter, null);
+        Subscription expired = subscription(product(2L, "expired", 5), java.time.Instant.now().minusSeconds(60));
+
+        when(subscriptionRepository.findActiveWithProducts(10L, 20L, SubscriptionStatus.ACTIVE))
+                .thenReturn(List.of(active, expired));
+
+        EntitlementService.EpisodeAccessSubject lowLevel = new EntitlementService.EpisodeAccessSubject(
+                false, 4, 30L, Set.of(), Set.of(), null);
+        EntitlementService.EpisodeAccessSubject withinLevel = new EntitlementService.EpisodeAccessSubject(
+                false, 1, 31L, Set.of(40L), Set.of(), 1);
+        EntitlementService.EpisodeAccessSubject blockedByMaxFormat = new EntitlementService.EpisodeAccessSubject(
+                false, 0, 32L, Set.of(41L), Set.of(), 9);
+
+        Set<Long> accessible = entitlementService.filterAccessibleEpisodes(
+                10L, 20L,
+                java.util.Map.of(
+                        101L, lowLevel,
+                        102L, withinLevel,
+                        103L, blockedByMaxFormat));
+
+        assertThat(accessible).containsExactlyInAnyOrder(102L);
+        // ONE subscription fetch for the whole batch — the N+1 this method replaced
+        org.mockito.Mockito.verify(subscriptionRepository, org.mockito.Mockito.times(1))
+                .findActiveWithProducts(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(),
+                        org.mockito.ArgumentMatchers.any());
+    }
+
+    @Test
+    void filterAccessibleDigitalAssetsReturnsOnlyGrantedCandidateIds() {
+        SubscriptionProduct bundle = product(7L, "bundle", 1);
+        bundle.setOfferingType(OfferingType.PACKAGE);
+        Subscription active = subscription(bundle, null);
+        when(subscriptionRepository.findActiveWithProducts(10L, 20L, SubscriptionStatus.ACTIVE))
+                .thenReturn(List.of(active));
+        when(productAccessRuleRepository.findByTenantIdAndProductIdInOrderByProductIdAscIdAsc(
+                org.mockito.ArgumentMatchers.eq(10L), org.mockito.ArgumentMatchers.any()))
+                .thenReturn(List.of(digitalRule(501L), digitalRule(502L)));
+
+        Set<Long> accessible = entitlementService.filterAccessibleDigitalAssetIds(
+                10L, 20L, List.of(501L, 999L));
+
+        assertThat(accessible).containsExactly(501L);
+    }
+
+    @Test
+    void filterAccessibleDigitalAssetsIsEmptyWithoutActivePackages() {
+        SubscriptionProduct level = product(1L, "fan", 1);
+        when(subscriptionRepository.findActiveWithProducts(10L, 20L, SubscriptionStatus.ACTIVE))
+                .thenReturn(List.of(subscription(level, null)));
+
+        assertThat(entitlementService.filterAccessibleDigitalAssetIds(10L, 20L, List.of(501L))).isEmpty();
+    }
+
+    private Subscription subscription(SubscriptionProduct product, java.time.Instant endsAt) {
+        Subscription subscription = new Subscription();
+        subscription.setProduct(product);
+        subscription.setStatus(SubscriptionStatus.ACTIVE);
+        subscription.setEndsAt(endsAt);
+        return subscription;
+    }
+
+    private ProductAccessRule digitalRule(Long scopeId) {
+        ProductAccessRule rule = new ProductAccessRule();
+        rule.setScopeType(ProductAccessScopeType.DIGITAL_ASSET);
+        rule.setScopeId(scopeId);
+        return rule;
+    }
 }

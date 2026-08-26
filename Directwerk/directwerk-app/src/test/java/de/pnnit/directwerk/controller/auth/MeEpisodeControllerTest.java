@@ -4,9 +4,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import de.pnnit.directwerk.access.SubscriberContentAccessService;
 import de.pnnit.directwerk.modules.core.entity.Tenant;
-import de.pnnit.directwerk.modules.core.service.ModuleGateService;
-import de.pnnit.directwerk.modules.digital.api.AssetAccessApi;
 import de.pnnit.directwerk.modules.digital.entity.AssetScope;
 import de.pnnit.directwerk.modules.digital.entity.AssetStatus;
 import de.pnnit.directwerk.modules.digital.entity.AssetType;
@@ -36,13 +35,7 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 class MeEpisodeControllerTest {
 
     @Mock
-    private SubscriberEpisodeService subscriberEpisodeService;
-
-    @Mock
-    private ModuleGateService moduleGateService;
-
-    @Mock
-    private AssetAccessApi assetAccessApi;
+    private SubscriberContentAccessService subscriberContentAccessService;
 
     @Mock
     private EpisodeDownloadAnalyticsService episodeDownloadAnalyticsService;
@@ -59,16 +52,14 @@ class MeEpisodeControllerTest {
     void streamFreeEpisodeReturnsFoundRedirect() throws Exception {
         TenantContext.setTenantId(10L);
         MeEpisodeController controller = new MeEpisodeController(
-                subscriberEpisodeService,
-                moduleGateService,
-                assetAccessApi,
+                subscriberContentAccessService,
                 episodeDownloadAnalyticsService
         );
         DirectwerkUserPrincipal principal = subscriber();
         Episode episode = freeEpisode();
-        when(subscriberEpisodeService.requirePublishedEpisode(10L, "episode-1")).thenReturn(episode);
-        when(assetAccessApi.resolveDownloadUrl(episode.getAudioAsset(), principal))
-                .thenReturn(URI.create("https://cdn.example.test/alpha/public/audio/ep.mp3").toURL());
+        when(subscriberContentAccessService.resolveStream(principal, "episode-1"))
+                .thenReturn(new SubscriberContentAccessService.EpisodeStream(
+                        episode, URI.create("https://cdn.example.test/alpha/public/audio/ep.mp3").toURL()));
         when(request.getServerName()).thenReturn("alpha.example.test");
 
         ResponseEntity<Void> response = controller.streamEpisode("episode-1", principal, request);

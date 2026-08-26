@@ -33,16 +33,12 @@ class MultiTenancyArchitectureTest {
             };
 
     @ArchTest
-    static final ArchRule tenantControllersDoNotDependOnRepositories = noClasses()
-            .that().resideInAPackage("..controller.tenant..")
+    static final ArchRule controllersDoNotDependOnRepositories = noClasses()
+            .that().resideInAPackage("..controller..")
             .should().dependOnClassesThat().resideInAPackage("..repository..")
-            .because("tenant controllers must use services that enforce TenantContext scoping");
-
-    @ArchTest
-    static final ArchRule podcastControllersDoNotDependOnRepositories = noClasses()
-            .that().resideInAPackage("..controller.podcast..")
-            .should().dependOnClassesThat().resideInAPackage("..repository..")
-            .because("podcast controllers must use services that enforce TenantContext scoping");
+            .because("controllers must use services that enforce TenantContext scoping — "
+                    + "the earlier per-package rules (tenant, podcast) left publicapi/auth/platform "
+                    + "controllers legally holding repositories");
 
     @ArchTest
     static final ArchRule tenantOwnedEntitiesHaveHibernateFilter = classes()

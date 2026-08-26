@@ -1,4 +1,6 @@
 dependencies {
+    testImplementation 'org.junit.jupiter:junit-jupiter'
+    testImplementation 'org.assertj:assertj-core'
     api project(':directwerk-digital')
     implementation project(':directwerk-queue')
     implementation 'org.springframework.boot:spring-boot-starter-jdbc'

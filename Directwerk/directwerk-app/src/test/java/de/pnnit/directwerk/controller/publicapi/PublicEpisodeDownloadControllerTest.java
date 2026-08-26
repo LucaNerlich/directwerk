@@ -2,20 +2,16 @@ package de.pnnit.directwerk.controller.publicapi;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import de.pnnit.directwerk.modules.core.entity.Tenant;
-import de.pnnit.directwerk.modules.core.service.ModuleGateService;
-import de.pnnit.directwerk.modules.core.service.ModuleNotEnabledException;
 import de.pnnit.directwerk.modules.digital.entity.AccessPolicy;
 import de.pnnit.directwerk.modules.digital.entity.AssetScope;
 import de.pnnit.directwerk.modules.digital.entity.AssetStatus;
 import de.pnnit.directwerk.modules.digital.entity.AssetType;
 import de.pnnit.directwerk.modules.digital.entity.AssetVisibility;
 import de.pnnit.directwerk.modules.digital.entity.MediaAsset;
-import de.pnnit.directwerk.modules.podcast.PodcastModule;
 import de.pnnit.directwerk.modules.podcast.entity.Episode;
 import de.pnnit.directwerk.modules.podcast.entity.PodcastSeries;
 import de.pnnit.directwerk.modules.podcast.exception.EpisodeNotFoundException;
@@ -34,9 +30,6 @@ import org.springframework.http.ResponseEntity;
 
 @ExtendWith(MockitoExtension.class)
 class PublicEpisodeDownloadControllerTest {
-
-    @Mock
-    private ModuleGateService moduleGateService;
 
     @Mock
     private EpisodeEnclosureService episodeEnclosureService;
@@ -69,7 +62,6 @@ class PublicEpisodeDownloadControllerTest {
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.FOUND);
         assertThat(response.getHeaders().getLocation())
                 .hasToString("https://cdn.example.test/alpha/public/audio/ep.mp3");
-        verify(moduleGateService).requireModule(PodcastModule.KEY);
         verify(episodeDownloadAnalyticsService)
                 .trackEpisodeDownload(10L, episode, "public-download", "alpha.example.test");
     }
@@ -83,25 +75,10 @@ class PublicEpisodeDownloadControllerTest {
 
         assertThatThrownBy(() -> controller.downloadEpisode("episode-1", request))
                 .isInstanceOf(EpisodeNotFoundException.class);
-        verify(moduleGateService).requireModule(PodcastModule.KEY);
-    }
-
-    @Test
-    void tenantWithoutPodcastModuleThrowsFeatureNotEnabled() {
-        TenantContext.setTenantId(10L);
-        PublicEpisodeDownloadController controller = controller();
-        doThrow(new ModuleNotEnabledException(PodcastModule.KEY))
-                .when(moduleGateService)
-                .requireModule(PodcastModule.KEY);
-
-        assertThatThrownBy(() -> controller.downloadEpisode("episode-1", request))
-                .isInstanceOf(ModuleNotEnabledException.class)
-                .isNotInstanceOf(EpisodeNotFoundException.class);
     }
 
     private PublicEpisodeDownloadController controller() {
         return new PublicEpisodeDownloadController(
-                moduleGateService,
                 episodeEnclosureService,
                 episodeDownloadAnalyticsService
         );

@@ -37,6 +37,18 @@ public class UserAccountService {
     private final DirectwerkConfig directwerkConfig;
     private final EmailVerificationService emailVerificationService;
 
+    @Transactional(readOnly = true)
+    public java.util.Optional<AccountView> findAccount(Long userId) {
+        return userRepository.findById(userId).map(account -> new AccountView(
+                account.getId(),
+                account.getEmail(),
+                account.getName()
+        ));
+    }
+
+    public record AccountView(Long id, String email, String name) {
+    }
+
     @Transactional
     public User register(String email, String password, String name, Long tenantId) {
         PasswordPolicy.validate(password);

@@ -1,8 +1,10 @@
 package de.pnnit.directwerk.modules.newsletter.service;
 
+import de.pnnit.directwerk.modules.core.notification.SubscriberNotificationGate;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.verify;
@@ -50,6 +52,9 @@ class ArticlePublicationWorkflowServiceTest {
     private ArticlePublicationWorkflowService articlePublicationWorkflowService;
 
     @Mock
+    private SubscriberNotificationGate notificationGate;
+
+    @Mock
     private ObjectProvider<ArticlePublicationWorkflowService> selfProvider;
 
     @BeforeEach
@@ -59,10 +64,11 @@ class ArticlePublicationWorkflowServiceTest {
                 articleService,
                 new de.pnnit.directwerk.modules.digital.service.HtmlSanitizer(),
                 moduleGateService,
-                directwerkConfig,
                 contentPublishedNotifier,
+                notificationGate,
                 selfProvider
         );
+        lenient().when(notificationGate.enabled(anyLong(), any(), anyLong())).thenReturn(true);
         lenient().when(selfProvider.getObject()).thenReturn(articlePublicationWorkflowService);
         lenient().when(articleRepository.save(any(Article.class))).thenAnswer(invocation -> invocation.getArgument(0));
     }
@@ -94,8 +100,7 @@ class ArticlePublicationWorkflowServiceTest {
     void publishWithNotifySubscribersEnqueuesNotificationOnFirstPublish() {
         Article article = draftArticle();
         when(articleService.requireArticle(10L, 7L)).thenReturn(article);
-        when(directwerkConfig.isEmailEnabled()).thenReturn(true);
-        when(moduleGateService.enabledModuleKeys(10L)).thenReturn(Set.of("EMAIL_NOTIFY"));
+        // notificationGate mock is stubbed lenient() in setUp; email/EMAIL_NOTIFY gates live there now.
         when(articleRepository.claimEmailNotification(eq(10L), eq(7L), any())).thenReturn(1);
 
         articlePublicationWorkflowService.publish(10L, 7L, true);
@@ -116,8 +121,7 @@ class ArticlePublicationWorkflowServiceTest {
         Article article = draftArticle();
         article.setEmailNotifiedAt(Instant.parse("2026-01-01T00:00:00Z"));
         when(articleService.requireArticle(10L, 7L)).thenReturn(article);
-        when(directwerkConfig.isEmailEnabled()).thenReturn(true);
-        when(moduleGateService.enabledModuleKeys(10L)).thenReturn(Set.of("EMAIL_NOTIFY"));
+        // notificationGate mock is stubbed lenient() in setUp; email/EMAIL_NOTIFY gates live there now.
         when(articleRepository.claimEmailNotification(eq(10L), eq(7L), any())).thenReturn(0);
 
         articlePublicationWorkflowService.publish(10L, 7L, true);

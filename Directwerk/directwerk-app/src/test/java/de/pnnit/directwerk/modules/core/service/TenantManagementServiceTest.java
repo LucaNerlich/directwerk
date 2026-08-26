@@ -44,9 +44,6 @@ class TenantManagementServiceTest {
     private TenantInvitationService tenantInvitationService;
 
     @Mock
-    private TenantLookupService tenantLookupService;
-
-    @Mock
     private DirectwerkCacheEviction cacheEviction;
 
     @Mock
@@ -118,13 +115,13 @@ class TenantManagementServiceTest {
         tenant.setSlug("acme");
         tenant.setName("Acme");
         tenant.setStatus(TenantStatus.ACTIVE);
-        when(tenantLookupService.requireTenant(7L)).thenReturn(tenant);
+        when(tenantRepository.requireById(7L)).thenReturn(tenant);
         when(tenantRepository.save(tenant)).thenReturn(tenant);
 
         TenantManagementService.TenantDetailView result = service.suspendTenant(7L);
 
         assertThat(result.status()).isEqualTo("SUSPENDED");
-        verify(tenantLookupService).requireTenant(7L);
+        verify(tenantRepository).requireById(7L);
         verify(cacheEviction).evictTenantPublicCachesAfterCommit(7L);
     }
 
@@ -135,13 +132,13 @@ class TenantManagementServiceTest {
         tenant.setSlug("acme");
         tenant.setName("Acme");
         tenant.setStatus(TenantStatus.SUSPENDED);
-        when(tenantLookupService.requireTenant(7L)).thenReturn(tenant);
+        when(tenantRepository.requireById(7L)).thenReturn(tenant);
         when(tenantRepository.save(tenant)).thenReturn(tenant);
 
         TenantManagementService.TenantDetailView result = service.reactivateTenant(7L);
 
         assertThat(result.status()).isEqualTo("ACTIVE");
-        verify(tenantLookupService).requireTenant(7L);
+        verify(tenantRepository).requireById(7L);
         verify(cacheEviction).evictTenantPublicCachesAfterCommit(7L);
         verify(cacheEviction, never()).evictHostAfterCommit(org.mockito.ArgumentMatchers.anyString());
     }
@@ -153,7 +150,7 @@ class TenantManagementServiceTest {
         tenant.setSlug("original-slug");
         tenant.setName("Original Name");
         tenant.setStatus(TenantStatus.ACTIVE);
-        when(tenantLookupService.requireTenant(7L)).thenReturn(tenant);
+        when(tenantRepository.requireById(7L)).thenReturn(tenant);
         when(tenantRepository.findBySlug("new-slug")).thenReturn(Optional.empty());
         when(tenantRepository.save(tenant)).thenReturn(tenant);
 
@@ -172,11 +169,11 @@ class TenantManagementServiceTest {
         tenant.setSlug("second-slug");
         tenant.setName("Second");
         tenant.setStatus(TenantStatus.ACTIVE);
-        when(tenantLookupService.requireTenant(7L)).thenReturn(tenant);
+        when(tenantRepository.requireById(7L)).thenReturn(tenant);
         when(tenantRepository.findBySlug("first-slug")).thenReturn(Optional.of(new Tenant()));
 
         assertThatThrownBy(() -> service.updateTenant(7L, null, "first-slug"))
-                .isInstanceOf(IllegalStateException.class);
+                .isInstanceOf(de.pnnit.directwerk.modules.core.exception.ConflictException.class);
     }
 
     @Test
@@ -186,7 +183,7 @@ class TenantManagementServiceTest {
         tenant.setSlug("acme");
         tenant.setName("Acme Original");
         tenant.setStatus(TenantStatus.ACTIVE);
-        when(tenantLookupService.requireTenant(7L)).thenReturn(tenant);
+        when(tenantRepository.requireById(7L)).thenReturn(tenant);
         when(tenantRepository.save(tenant)).thenReturn(tenant);
 
         TenantManagementService.TenantDetailView updated = service.updateTenant(7L, "Acme Renamed", "acme");
@@ -204,7 +201,7 @@ class TenantManagementServiceTest {
         tenant.setSlug("keep-slug");
         tenant.setName("Keep Slug");
         tenant.setStatus(TenantStatus.ACTIVE);
-        when(tenantLookupService.requireTenant(7L)).thenReturn(tenant);
+        when(tenantRepository.requireById(7L)).thenReturn(tenant);
         when(tenantRepository.save(tenant)).thenReturn(tenant);
 
         TenantManagementService.TenantDetailView updated = service.updateTenant(7L, "Renamed Only", null);

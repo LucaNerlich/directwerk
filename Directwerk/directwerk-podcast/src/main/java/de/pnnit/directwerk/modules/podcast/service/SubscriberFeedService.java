@@ -11,13 +11,12 @@ import de.pnnit.directwerk.modules.podcast.entity.Episode;
 import de.pnnit.directwerk.modules.podcast.entity.Format;
 import de.pnnit.directwerk.modules.podcast.repository.FormatRepository;
 import de.pnnit.directwerk.modules.podcast.feed.FeedBuilderException;
+import de.pnnit.directwerk.modules.podcast.feed.FeedTokenGenerator;
 import de.pnnit.directwerk.modules.podcast.feed.SubscriberFeed;
 import de.pnnit.directwerk.modules.podcast.feed.SubscriberFeedFormatMatcher;
 import de.pnnit.directwerk.modules.podcast.feed.SubscriberFeedNotFoundException;
 import de.pnnit.directwerk.modules.podcast.feed.SubscriberFeedRepository;
-import java.security.SecureRandom;
 import java.util.ArrayList;
-import java.util.Base64;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.LinkedHashSet;
@@ -37,17 +36,15 @@ public class SubscriberFeedService {
     public static final int MAX_TITLE_LENGTH = 80;
     public static final int PREVIEW_SAMPLE_SIZE = 5;
 
-    private static final int TOKEN_BYTES = 24;
-
     private final SubscriberFeedRepository subscriberFeedRepository;
     private final TenantRepository tenantRepository;
     private final UserRepository userRepository;
     private final FormatRepository formatRepository;
     private final SubscriberEpisodeService subscriberEpisodeService;
+    private final FeedTokenGenerator feedTokenGenerator;
     private final ModuleGateService moduleGateService;
     private final RssFeedSnapshotService rssFeedSnapshotService;
     private final RssFeedRefreshScheduler rssFeedRefreshScheduler;
-    private final SecureRandom secureRandom = new SecureRandom();
 
     @Transactional(readOnly = true)
     public SubscriberFeed requireFeedByToken(String feedToken) {
@@ -361,9 +358,7 @@ public class SubscriberFeedService {
     private String generateUniqueToken() {
         String token;
         do {
-            byte[] bytes = new byte[TOKEN_BYTES];
-            secureRandom.nextBytes(bytes);
-            token = Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
+            token = feedTokenGenerator.generate();
         } while (subscriberFeedRepository.existsByFeedToken(token));
         return token;
     }

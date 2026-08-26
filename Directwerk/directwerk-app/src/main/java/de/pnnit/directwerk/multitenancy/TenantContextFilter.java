@@ -2,8 +2,8 @@ package de.pnnit.directwerk.multitenancy;
 
 import de.pnnit.directwerk.api.exception.FilterExceptionResolver;
 import de.pnnit.directwerk.modules.core.entity.Tenant;
-import de.pnnit.directwerk.modules.core.entity.TenantStatus;
 import de.pnnit.directwerk.security.DirectwerkUserPrincipal;
+import de.pnnit.directwerk.security.RequestScope;
 import de.pnnit.directwerk.security.SecurityUtils;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -57,15 +57,16 @@ public class TenantContextFilter extends OncePerRequestFilter {
     private boolean establishTenantContext(HttpServletRequest request, HttpServletResponse response) {
         try {
             String path = request.getRequestURI();
-            if (isPlatformScopedPath(path)) {
+            RequestScope scope = RequestScope.of(path);
+            if (scope == RequestScope.PLATFORM) {
                 TenantContext.clear();
-            } else if (isPublicPath(path)) {
+            } else if (scope == RequestScope.PUBLIC) {
                 tenantResolver.resolveHost(request.getServerName())
                         .ifPresent(tenant -> {
                             ensureTenantActive(tenant, request.getServerName());
                             TenantContext.setTenantId(tenant.getId());
                         });
-            } else if (requiresTenantContext(path)) {
+            } else if (scope.isTenantScoped()) {
                 Tenant tenant = tenantResolver.requireActiveHost(request.getServerName());
                 if (SecurityUtils.isAuthenticated()) {
                     // Authenticated tenant routes must bind to the membership in SecurityContext —
@@ -93,25 +94,5 @@ public class TenantContextFilter extends OncePerRequestFilter {
         if (!tenant.isActive()) {
             throw new TenantSuspendedException(host);
         }
-    }
-
-    private boolean isPublicPath(String path) {
-        return path.startsWith("/api/v1/public/")
-                || path.startsWith("/api/v1/auth/")
-                || path.startsWith("/feeds/")
-                || path.startsWith("/actuator/")
-                || path.startsWith("/swagger-ui")
-                || path.startsWith("/v3/api-docs");
-    }
-
-    private boolean isPlatformScopedPath(String path) {
-        return path.startsWith("/api/v1/platform/")
-                || path.startsWith("/api/v1/webhooks/")
-                || "/api/v1/security/platform".equals(path);
-    }
-
-    private boolean requiresTenantContext(String path) {
-        return path.startsWith("/api/v1/")
-                && !isPlatformScopedPath(path);
     }
 }

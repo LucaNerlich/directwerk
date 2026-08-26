@@ -1,9 +1,10 @@
 package de.pnnit.directwerk.controller.podcast;
 
-import static org.mockito.ArgumentMatchers.any;
+import de.pnnit.directwerk.modules.core.entity.Tenant;
+import de.pnnit.directwerk.modules.core.service.ModuleGateService;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -11,17 +12,14 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import de.pnnit.directwerk.modules.core.entity.Tenant;
-import de.pnnit.directwerk.modules.core.service.ModuleGateService;
-import de.pnnit.directwerk.modules.core.service.TenantLookupService;
-import de.pnnit.directwerk.modules.podcast.PodcastRssModule;
+import de.pnnit.directwerk.modules.podcast.service.RssFeedSnapshotService;
 import de.pnnit.directwerk.modules.podcast.entity.PodcastSeries;
 import de.pnnit.directwerk.modules.podcast.entity.SeriesStatus;
 import de.pnnit.directwerk.modules.podcast.service.SeriesService;
 import de.pnnit.directwerk.multitenancy.TenantContext;
 import java.time.Instant;
 import java.util.List;
-import java.util.Set;
+import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -52,7 +50,20 @@ class SeriesControllerTest {
     private ModuleGateService moduleGateService;
 
     @MockitoBean
-    private TenantLookupService tenantLookupService;
+    private RssFeedSnapshotService rssFeedSnapshotService;
+
+    @BeforeEach
+    void allowModuleGates() {
+        doNothing().when(moduleGateService).requireModule(org.mockito.ArgumentMatchers.anyString());
+    }
+
+    private void rssEnabled() {
+        when(rssFeedSnapshotService.publicRssTenantSlug(10L)).thenReturn(Optional.of("alpha"));
+    }
+
+    private void rssDisabled() {
+        when(rssFeedSnapshotService.publicRssTenantSlug(10L)).thenReturn(Optional.empty());
+    }
 
     @DynamicPropertySource
     static void registerEphemeralSecrets(DynamicPropertyRegistry registry) {
@@ -92,8 +103,7 @@ class SeriesControllerTest {
     void listSeriesIncludesRssUrlWhenPodcastRssModuleEnabled() throws Exception {
         PodcastSeries series = series(7L);
         when(seriesService.listSeries(10L, false)).thenReturn(List.of(series));
-        when(moduleGateService.enabledModuleKeys(10L)).thenReturn(Set.of(PodcastRssModule.KEY));
-        when(tenantLookupService.requireTenant(10L)).thenReturn(series.getTenant());
+        rssEnabled();
 
         mockMvc.perform(get("/api/v1/series"))
                 .andExpect(status().isOk())
@@ -105,13 +115,12 @@ class SeriesControllerTest {
     void listSeriesRssUrlIsNullWhenPodcastRssModuleDisabled() throws Exception {
         PodcastSeries series = series(7L);
         when(seriesService.listSeries(10L, false)).thenReturn(List.of(series));
-        when(moduleGateService.enabledModuleKeys(10L)).thenReturn(Set.of());
+        rssDisabled();
 
         mockMvc.perform(get("/api/v1/series"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data[0].rssUrl").doesNotExist());
 
-        verify(tenantLookupService, never()).requireTenant(any());
     }
 
     @Test
@@ -163,8 +172,7 @@ class SeriesControllerTest {
         when(seriesService.createSeries(
                 eq(10L), eq("main-show"), eq("Main Show"), eq("<p>About</p>"), eq(null), eq("de"), eq("News"), eq(null)
         )).thenReturn(series);
-        when(moduleGateService.enabledModuleKeys(10L)).thenReturn(Set.of(PodcastRssModule.KEY));
-        when(tenantLookupService.requireTenant(10L)).thenReturn(series.getTenant());
+        rssEnabled();
 
         mockMvc.perform(post("/api/v1/series")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -188,7 +196,7 @@ class SeriesControllerTest {
         when(seriesService.createSeries(
                 eq(10L), eq("main-show"), eq("Main Show"), eq("<p>About</p>"), eq(null), eq("de"), eq("News"), eq(null)
         )).thenReturn(series);
-        when(moduleGateService.enabledModuleKeys(10L)).thenReturn(Set.of());
+        rssDisabled();
 
         mockMvc.perform(post("/api/v1/series")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -204,7 +212,6 @@ class SeriesControllerTest {
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.data.rssUrl").doesNotExist());
 
-        verify(tenantLookupService, never()).requireTenant(any());
     }
 
     @Test
@@ -212,7 +219,9 @@ class SeriesControllerTest {
     void createSeriesReturnsConflictOnDuplicateSlug() throws Exception {
         when(seriesService.createSeries(
                 eq(10L), eq("main-show"), eq("Main Show"), eq(null), eq(null), eq(null), eq(null), eq(null)
-        )).thenThrow(new IllegalStateException("Series slug already exists: main-show"));
+        )).thenThrow(new de.pnnit.directwerk.modules.core.exception.ConflictException(
+                        de.pnnit.directwerk.modules.core.exception.ConflictCodes.SERIES_SLUG_EXISTS,
+                        "Series slug already exists: main-show"));
 
         mockMvc.perform(post("/api/v1/series")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -233,8 +242,7 @@ class SeriesControllerTest {
         when(seriesService.updateSeries(
                 eq(10L), eq(9L), eq(null), eq("Renamed Show"), eq(null), eq(null), eq(null), eq(null), eq(null), eq(null)
         )).thenReturn(series);
-        when(moduleGateService.enabledModuleKeys(10L)).thenReturn(Set.of(PodcastRssModule.KEY));
-        when(tenantLookupService.requireTenant(10L)).thenReturn(series.getTenant());
+        rssEnabled();
 
         mockMvc.perform(put("/api/v1/series/{seriesId}", 9L)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -254,7 +262,7 @@ class SeriesControllerTest {
         when(seriesService.updateSeries(
                 eq(10L), eq(9L), eq(null), eq("Renamed Show"), eq(null), eq(null), eq(null), eq(null), eq(null), eq(null)
         )).thenReturn(series);
-        when(moduleGateService.enabledModuleKeys(10L)).thenReturn(Set.of());
+        rssDisabled();
 
         mockMvc.perform(put("/api/v1/series/{seriesId}", 9L)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -272,7 +280,9 @@ class SeriesControllerTest {
     void updateSeriesReturnsConflictOnDuplicateSlug() throws Exception {
         when(seriesService.updateSeries(
                 eq(10L), eq(9L), eq("taken-slug"), eq(null), eq(null), eq(null), eq(null), eq(null), eq(null), eq(null)
-        )).thenThrow(new IllegalStateException("Series slug already exists: taken-slug"));
+        )).thenThrow(new de.pnnit.directwerk.modules.core.exception.ConflictException(
+                        de.pnnit.directwerk.modules.core.exception.ConflictCodes.SERIES_SLUG_EXISTS,
+                        "Series slug already exists: taken-slug"));
 
         mockMvc.perform(put("/api/v1/series/{seriesId}", 9L)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -297,8 +307,7 @@ class SeriesControllerTest {
     void getSeriesIncludesRssUrlWhenPodcastRssModuleEnabled() throws Exception {
         PodcastSeries series = series(9L);
         when(seriesService.requireSeries(10L, 9L)).thenReturn(series);
-        when(moduleGateService.enabledModuleKeys(10L)).thenReturn(Set.of(PodcastRssModule.KEY));
-        when(tenantLookupService.requireTenant(10L)).thenReturn(series.getTenant());
+        rssEnabled();
 
         mockMvc.perform(get("/api/v1/series/{seriesId}", 9L))
                 .andExpect(status().isOk())
@@ -310,7 +319,7 @@ class SeriesControllerTest {
     void getSeriesRssUrlIsNullWhenPodcastRssModuleDisabled() throws Exception {
         PodcastSeries series = series(9L);
         when(seriesService.requireSeries(10L, 9L)).thenReturn(series);
-        when(moduleGateService.enabledModuleKeys(10L)).thenReturn(Set.of());
+        rssDisabled();
 
         mockMvc.perform(get("/api/v1/series/{seriesId}", 9L))
                 .andExpect(status().isOk())

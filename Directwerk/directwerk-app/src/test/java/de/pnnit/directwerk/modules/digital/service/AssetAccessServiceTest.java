@@ -3,6 +3,7 @@ package de.pnnit.directwerk.modules.digital.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -36,14 +37,10 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import software.amazon.awssdk.services.s3.presigner.S3Presigner;
-import software.amazon.awssdk.services.s3.presigner.model.GetObjectPresignRequest;
-import software.amazon.awssdk.services.s3.presigner.model.PresignedGetObjectRequest;
 
 @ExtendWith(MockitoExtension.class)
 class AssetAccessServiceTest {
@@ -55,10 +52,7 @@ class AssetAccessServiceTest {
     private ModuleGateService moduleGateService;
 
     @Mock
-    private ObjectProvider<S3Presigner> s3PresignerProvider;
-
-    @Mock
-    private S3Presigner s3Presigner;
+    private de.pnnit.directwerk.modules.digital.storage.PrivateObjectUrlSigner privateObjectUrlSigner;
 
     @Mock
     private DirectwerkConfig directwerkConfig;
@@ -74,7 +68,7 @@ class AssetAccessServiceTest {
                 entitlementApi,
                 moduleGateService,
                 new S3PublicUrlBuilder("https://cdn.example.test"),
-                s3PresignerProvider,
+                privateObjectUrlSigner,
                 directwerkConfig,
                 mediaAssetRepository
         );
@@ -120,51 +114,28 @@ class AssetAccessServiceTest {
                 privateContentAsset(10L, "alpha-show-a", "alpha-show-a/private/audio/x.mp3", null)
         );
         when(entitlementApi.hasDigitalAssetAccess(10L, 42L, 7L)).thenReturn(true);
-        when(s3PresignerProvider.getIfAvailable()).thenReturn(s3Presigner);
-        when(directwerkConfig.storage()).thenReturn(storageProps());
-        PresignedGetObjectRequest presigned = mock(PresignedGetObjectRequest.class);
-        when(presigned.url()).thenReturn(URI.create("https://s3.example/signed").toURL());
-        when(s3Presigner.presignGetObject(any(GetObjectPresignRequest.class))).thenReturn(presigned);
+        URL signed = URI.create("https://s3.example/signed").toURL();
+        when(privateObjectUrlSigner.signPrivateObject(eq(asset.getS3Key()), any(Duration.class))).thenReturn(signed);
 
         URL url = service.resolveDownloadUrl(asset, subscriber(42L, 10L));
 
-        assertThat(url.toString()).isEqualTo("https://s3.example/signed");
-        ArgumentCaptor<GetObjectPresignRequest> captor = ArgumentCaptor.forClass(GetObjectPresignRequest.class);
-        verify(s3Presigner).presignGetObject(captor.capture());
-        assertThat(captor.getValue().getObjectRequest().key()).isEqualTo(asset.getS3Key());
+        assertThat(url).isSameAs(signed);
+        verify(privateObjectUrlSigner).signPrivateObject(eq("alpha-show-a/private/audio/x.mp3"), eq(Duration.ofHours(1)));
     }
 
     @Test
-    void resolveDownloadUrlUsesBunnyTokenWhenPrivateCdnConfigured() throws Exception {
+    void resolveDownloadUrlDelegatesPrivateDeliveryToSigner() throws Exception {
         MediaAsset asset = givenLoaded(
                 privateContentAsset(10L, "alpha-show-a", "alpha-show-a/private/audio/x.mp3", null)
         );
         when(entitlementApi.hasDigitalAssetAccess(10L, 42L, 7L)).thenReturn(true);
+        URL tokenUrl = URI.create("https://cdn-private.example.test/alpha-show-a/private/audio/x.mp3?token=x&expires=y").toURL();
+        when(privateObjectUrlSigner.signPrivateObject(eq(asset.getS3Key()), any(Duration.class))).thenReturn(tokenUrl);
         when(directwerkConfig.storage()).thenReturn(storagePropsWithPrivateCdn());
 
         URL url = service.resolveDownloadUrl(asset, subscriber(42L, 10L));
 
-        assertThat(url.getHost()).isEqualTo("cdn-private.example.test");
-        assertThat(url.getPath()).isEqualTo("/alpha-show-a/private/audio/x.mp3");
-        assertThat(url.getQuery()).contains("token=HS256-");
-        assertThat(url.getQuery()).contains("expires=");
-        verify(s3PresignerProvider, never()).getIfAvailable();
-    }
-
-    @Test
-    void resolveDownloadUrlRejectsPartialPrivateCdnConfig() {
-        MediaAsset asset = givenLoaded(
-                privateContentAsset(10L, "alpha-show-a", "alpha-show-a/private/audio/x.mp3", null)
-        );
-        when(entitlementApi.hasDigitalAssetAccess(10L, 42L, 7L)).thenReturn(true);
-        when(directwerkConfig.storage()).thenReturn(storageProps(
-                "https://cdn-private.example.test",
-                null
-        ));
-
-        assertThatThrownBy(() -> service.resolveDownloadUrl(asset, subscriber(42L, 10L)))
-                .isInstanceOf(StorageNotConfiguredException.class)
-                .hasMessageContaining("private-cdn-base-url");
+        assertThat(url).isSameAs(tokenUrl);
     }
 
     @Test
@@ -173,18 +144,12 @@ class AssetAccessServiceTest {
                 privateContentAsset(10L, "alpha-show-a", "alpha-show-a/private/audio/x.mp3", 55L)
         );
         when(entitlementApi.hasAccess(10L, 42L, 55L)).thenReturn(true);
-        when(s3PresignerProvider.getIfAvailable()).thenReturn(s3Presigner);
-        when(directwerkConfig.storage()).thenReturn(storageProps());
-        PresignedGetObjectRequest presigned = mock(PresignedGetObjectRequest.class);
-        when(presigned.url()).thenReturn(URI.create("https://s3.example/rss-signed").toURL());
-        when(s3Presigner.presignGetObject(any(GetObjectPresignRequest.class))).thenReturn(presigned);
+        URL signed = URI.create("https://s3.example/rss-signed").toURL();
+        when(privateObjectUrlSigner.signPrivateObject(eq(asset.getS3Key()), eq(Duration.ofHours(24)))).thenReturn(signed);
 
         URL url = service.resolveRssEnclosureUrl(asset, 42L);
 
-        assertThat(url.toString()).isEqualTo("https://s3.example/rss-signed");
-        ArgumentCaptor<GetObjectPresignRequest> captor = ArgumentCaptor.forClass(GetObjectPresignRequest.class);
-        verify(s3Presigner).presignGetObject(captor.capture());
-        assertThat(captor.getValue().signatureDuration()).isEqualTo(Duration.ofHours(24));
+        assertThat(url).isSameAs(signed);
     }
 
     @Test
@@ -192,11 +157,9 @@ class AssetAccessServiceTest {
         MediaAsset asset = givenLoaded(
                 privateContentAsset(10L, "alpha-show-a", "alpha-show-a/private/audio/x.mp3", 55L)
         );
-        when(s3PresignerProvider.getIfAvailable()).thenReturn(s3Presigner);
         when(directwerkConfig.storage()).thenReturn(storageProps());
-        PresignedGetObjectRequest presigned = mock(PresignedGetObjectRequest.class);
-        when(presigned.url()).thenReturn(URI.create("https://s3.example/preview").toURL());
-        when(s3Presigner.presignGetObject(any(GetObjectPresignRequest.class))).thenReturn(presigned);
+        when(privateObjectUrlSigner.signPrivateObject(any(String.class), any(Duration.class)))
+                .thenReturn(URI.create("https://s3.example/preview").toURL());
 
         URL url = service.resolvePreviewUrl(asset, editor(9L, 10L), true);
 

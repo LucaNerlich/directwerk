@@ -10,13 +10,9 @@ import de.pnnit.directwerk.api.dto.FormatView;
 import de.pnnit.directwerk.api.response.Response;
 import de.pnnit.directwerk.controller.auth.MeFeedController.SubscriberFeedView;
 import de.pnnit.directwerk.modules.core.entity.Tenant;
-import de.pnnit.directwerk.modules.core.service.ModuleGateService;
-import de.pnnit.directwerk.modules.podcast.FeedBuilderModule;
-import de.pnnit.directwerk.modules.podcast.PodcastRssModule;
 import de.pnnit.directwerk.modules.podcast.entity.Format;
 import de.pnnit.directwerk.modules.podcast.feed.SubscriberFeed;
 import de.pnnit.directwerk.modules.podcast.service.SubscriberFeedService;
-import de.pnnit.directwerk.modules.subscription.SubscriptionModule;
 import de.pnnit.directwerk.security.DirectwerkUserPrincipal;
 import de.pnnit.directwerk.security.RoleConstants;
 import jakarta.servlet.http.HttpServletRequest;
@@ -37,16 +33,13 @@ class MeFeedControllerTest {
     private SubscriberFeedService subscriberFeedService;
 
     @Mock
-    private ModuleGateService moduleGateService;
-
-    @Mock
     private HttpServletRequest request;
 
     private MeFeedController controller;
 
     @BeforeEach
     void setUp() {
-        controller = new MeFeedController(subscriberFeedService, moduleGateService);
+        controller = new MeFeedController(subscriberFeedService);
     }
 
     @Test
@@ -66,8 +59,6 @@ class MeFeedControllerTest {
         assertThat(view.formatIds()).isEmpty();
         assertThat(view.formats()).isEmpty();
         verify(subscriberFeedService).ensureDefaultFeed(5L, 1L);
-        verify(moduleGateService).requireModule(PodcastRssModule.KEY);
-        verify(moduleGateService).requireModule(SubscriptionModule.MODULE_KEY);
     }
 
     @Test
@@ -151,9 +142,6 @@ class MeFeedControllerTest {
         assertThat(response.getBody().data().formats())
                 .extracting(FormatView::name)
                 .containsExactly("Bonus");
-        verify(moduleGateService).requireModule(PodcastRssModule.KEY);
-        verify(moduleGateService).requireModule(SubscriptionModule.MODULE_KEY);
-        verify(moduleGateService).requireModule(FeedBuilderModule.KEY);
     }
 
     @Test
@@ -172,7 +160,6 @@ class MeFeedControllerTest {
         assertThat(response.getStatusCode().value()).isEqualTo(200);
         assertThat(response.getBody().data().title()).isEqualTo("Nur Bonus");
         verify(subscriberFeedService).deleteCustomFeed(5L, 1L, 12L);
-        verify(moduleGateService, never()).requireModule(FeedBuilderModule.KEY);
     }
 
     private static DirectwerkUserPrincipal principal(Long userId, Long tenantId) {

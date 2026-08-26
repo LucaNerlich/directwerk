@@ -5,7 +5,6 @@ import de.pnnit.directwerk.api.response.Response;
 import de.pnnit.directwerk.config.DirectwerkConfig;
 import de.pnnit.directwerk.modules.core.entity.Tenant;
 import de.pnnit.directwerk.modules.core.entity.TenantDomain;
-import de.pnnit.directwerk.modules.core.repository.TenantRepository;
 import de.pnnit.directwerk.modules.core.service.TenantDomainService;
 import de.pnnit.directwerk.modules.core.service.TenantManagementService;
 import de.pnnit.directwerk.modules.core.service.TenantInvitationService;
@@ -33,7 +32,6 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/v1/platform/tenants")
 public class PlatformTenantController {
 
-    private final TenantRepository tenantRepository;
     private final TenantManagementService tenantManagementService;
     private final TenantDomainService tenantDomainService;
     private final DirectwerkConfig directwerkConfig;
@@ -41,18 +39,15 @@ public class PlatformTenantController {
     /**
      * Creates a controller for platform tenant lifecycle endpoints.
      *
-     * @param tenantRepository         repository used to retrieve tenants
      * @param tenantManagementService service used to manage tenant lifecycle operations
      * @param tenantDomainService      service used for platform domain operations
      * @param directwerkConfig         configuration controlling development token exposure
      */
     public PlatformTenantController(
-            TenantRepository tenantRepository,
             TenantManagementService tenantManagementService,
             TenantDomainService tenantDomainService,
             DirectwerkConfig directwerkConfig
     ) {
-        this.tenantRepository = tenantRepository;
         this.tenantManagementService = tenantManagementService;
         this.tenantDomainService = tenantDomainService;
         this.directwerkConfig = directwerkConfig;
@@ -65,7 +60,7 @@ public class PlatformTenantController {
      */
     @GetMapping
     ResponseEntity<Response<TenantListResponse>> listTenants() {
-        List<TenantView> tenants = tenantRepository.findAll().stream()
+        List<TenantView> tenants = tenantManagementService.listTenants().stream()
                 .map(this::toView)
                 .toList();
         return ResponseEntity.ok(Response.ok(new TenantListResponse(tenants)));

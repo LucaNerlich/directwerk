@@ -9,6 +9,7 @@ import static org.mockito.Mockito.when;
 
 import de.pnnit.directwerk.modules.content.TenantRssSnapshotStaleEvent;
 import de.pnnit.directwerk.modules.core.audit.PlatformAuditService;
+import de.pnnit.directwerk.modules.core.repository.TenantRepository;
 import de.pnnit.directwerk.modules.core.entity.FeatureModule;
 import de.pnnit.directwerk.modules.core.entity.Tenant;
 import de.pnnit.directwerk.modules.core.entity.TenantModuleActivation;
@@ -33,7 +34,7 @@ class ModuleManagementServiceTest {
     private TenantModuleActivationRepository tenantModuleActivationRepository;
 
     @Mock
-    private TenantLookupService tenantLookupService;
+    private TenantRepository tenantRepository;
 
     @Mock
     private DirectwerkCacheEviction cacheEviction;
@@ -51,7 +52,7 @@ class ModuleManagementServiceTest {
     void deactivateModuleRejectsCoreModule() {
         Tenant tenant = new Tenant();
         tenant.setId(1L);
-        when(tenantLookupService.requireTenant(1L)).thenReturn(tenant);
+        when(tenantRepository.requireById(1L)).thenReturn(tenant);
 
         FeatureModule digitalContent = coreModule("DIGITAL_CONTENT");
         when(featureModuleRepository.findByModuleKey("DIGITAL_CONTENT")).thenReturn(Optional.of(digitalContent));
@@ -68,7 +69,7 @@ class ModuleManagementServiceTest {
     void deactivateModuleAllowsNonCoreModule() {
         Tenant tenant = new Tenant();
         tenant.setId(1L);
-        when(tenantLookupService.requireTenant(1L)).thenReturn(tenant);
+        when(tenantRepository.requireById(1L)).thenReturn(tenant);
 
         FeatureModule podcast = module("PODCAST", List.of("DIGITAL_CONTENT"));
         when(featureModuleRepository.findByModuleKey("PODCAST")).thenReturn(Optional.of(podcast));
@@ -95,7 +96,7 @@ class ModuleManagementServiceTest {
     void activatePodcastRssRequestsSnapshotRefresh() {
         Tenant tenant = new Tenant();
         tenant.setId(1L);
-        when(tenantLookupService.requireTenant(1L)).thenReturn(tenant);
+        when(tenantRepository.requireById(1L)).thenReturn(tenant);
 
         FeatureModule rss = module("PODCAST_RSS", List.of("PODCAST"));
         when(featureModuleRepository.findByModuleKey("PODCAST_RSS")).thenReturn(Optional.of(rss));
@@ -120,7 +121,7 @@ class ModuleManagementServiceTest {
     void deactivatePodcastRssRequestsSnapshotWithdraw() {
         Tenant tenant = new Tenant();
         tenant.setId(1L);
-        when(tenantLookupService.requireTenant(1L)).thenReturn(tenant);
+        when(tenantRepository.requireById(1L)).thenReturn(tenant);
 
         FeatureModule rss = module("PODCAST_RSS", List.of("PODCAST"));
         when(featureModuleRepository.findByModuleKey("PODCAST_RSS")).thenReturn(Optional.of(rss));
@@ -142,7 +143,7 @@ class ModuleManagementServiceTest {
     void activateFeedBuilderRequestsSnapshotRefresh() {
         Tenant tenant = new Tenant();
         tenant.setId(1L);
-        when(tenantLookupService.requireTenant(1L)).thenReturn(tenant);
+        when(tenantRepository.requireById(1L)).thenReturn(tenant);
 
         FeatureModule feedBuilder = module("FEED_BUILDER", List.of("PODCAST_RSS", "SUBSCRIPTION"));
         when(featureModuleRepository.findByModuleKey("FEED_BUILDER")).thenReturn(Optional.of(feedBuilder));
@@ -173,7 +174,7 @@ class ModuleManagementServiceTest {
     void deactivateFeedBuilderRequestsSnapshotWithdraw() {
         Tenant tenant = new Tenant();
         tenant.setId(1L);
-        when(tenantLookupService.requireTenant(1L)).thenReturn(tenant);
+        when(tenantRepository.requireById(1L)).thenReturn(tenant);
 
         FeatureModule feedBuilder = module("FEED_BUILDER", List.of("PODCAST_RSS", "SUBSCRIPTION"));
         when(featureModuleRepository.findByModuleKey("FEED_BUILDER")).thenReturn(Optional.of(feedBuilder));

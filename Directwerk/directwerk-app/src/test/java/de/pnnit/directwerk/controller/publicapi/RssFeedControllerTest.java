@@ -2,32 +2,22 @@ package de.pnnit.directwerk.controller.publicapi;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import de.pnnit.directwerk.modules.core.entity.Tenant;
-import de.pnnit.directwerk.modules.core.repository.TenantRepository;
-import de.pnnit.directwerk.modules.core.service.ModuleGateService;
-import de.pnnit.directwerk.modules.core.service.ModuleNotEnabledException;
-import de.pnnit.directwerk.modules.podcast.PodcastRssModule;
-import de.pnnit.directwerk.modules.podcast.FeedBuilderModule;
-import de.pnnit.directwerk.modules.podcast.entity.PodcastSeries;
 import de.pnnit.directwerk.modules.podcast.feed.SubscriberFeed;
 import de.pnnit.directwerk.modules.podcast.feed.SubscriberFeedNotFoundException;
 import de.pnnit.directwerk.modules.podcast.service.SubscriberFeedService;
-import de.pnnit.directwerk.modules.podcast.repository.PodcastSeriesRepository;
 import de.pnnit.directwerk.modules.podcast.service.EpisodeDownloadAnalyticsService;
 import de.pnnit.directwerk.modules.podcast.service.EpisodeEnclosureService;
 import de.pnnit.directwerk.modules.podcast.service.RssFeedSnapshotService;
-import de.pnnit.directwerk.modules.subscription.SubscriptionModule;
 import de.pnnit.directwerk.multitenancy.TenantContext;
 import de.pnnit.directwerk.multitenancy.TenantNotFoundException;
+import de.pnnit.directwerk.multitenancy.TenantResolver;
 import jakarta.servlet.http.HttpServletRequest;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.util.Optional;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -36,14 +26,16 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
+/**
+ * Controller-level behaviour only: host-tenant matching, delivery delegation and redirect
+ * shaping. Module gating is annotation-driven (covered by {@code RequiresModuleAspectTest});
+ * token/tenant/enabled/feed-builder policy lives in {@code SubscriberFeedService}.
+ */
 @ExtendWith(MockitoExtension.class)
 class RssFeedControllerTest {
 
     @Mock
-    private TenantRepository tenantRepository;
-
-    @Mock
-    private PodcastSeriesRepository podcastSeriesRepository;
+    private TenantResolver tenantResolver;
 
     @Mock
     private SubscriberFeedService subscriberFeedService;
@@ -58,9 +50,6 @@ class RssFeedControllerTest {
     private EpisodeDownloadAnalyticsService episodeDownloadAnalyticsService;
 
     @Mock
-    private ModuleGateService moduleGateService;
-
-    @Mock
     private HttpServletRequest request;
 
     @AfterEach
@@ -69,10 +58,9 @@ class RssFeedControllerTest {
     }
 
     @Test
-    void publicFeedReturnsRssWhenModuleEnabled() {
+    void publicFeedReturnsRssWhenSnapshotReady() {
         Tenant tenant = tenant(10L, "alpha");
-        TenantContext.setTenantId(10L);
-        when(tenantRepository.findById(10L)).thenReturn(Optional.of(tenant));
+        when(tenantResolver.requireHostTenantBySlug("alpha")).thenReturn(tenant);
         when(rssFeedSnapshotService.publicTenantFeed(tenant))
                 .thenReturn(new RssFeedSnapshotService.FeedDelivery(url("https://cdn.example.test/podcast.xml")));
 
@@ -81,14 +69,13 @@ class RssFeedControllerTest {
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.FOUND);
         assertThat(response.getHeaders().getLocation()).hasToString("https://cdn.example.test/podcast.xml");
         assertThat(response.getHeaders().getCacheControl()).isEqualTo("no-store");
-        verify(moduleGateService).requireModule(PodcastRssModule.KEY);
+        verify(rssFeedSnapshotService).publicTenantFeed(tenant);
     }
 
     @Test
     void publicFeedReturnsNotFoundWhenSnapshotIsNotReady() {
         Tenant tenant = tenant(10L, "alpha");
-        TenantContext.setTenantId(10L);
-        when(tenantRepository.findById(10L)).thenReturn(Optional.of(tenant));
+        when(tenantResolver.requireHostTenantBySlug("alpha")).thenReturn(tenant);
         when(rssFeedSnapshotService.publicTenantFeed(tenant))
                 .thenReturn(RssFeedSnapshotService.FeedDelivery.notReady());
 
@@ -100,43 +87,25 @@ class RssFeedControllerTest {
     }
 
     @Test
-    void publicPodcastFeedDelegatesToS3SnapshotService() {
+    void publicSeriesFeedResolvesBySlugAndRedirectsToS3Snapshot() {
         Tenant tenant = tenant(10L, "alpha");
-        TenantContext.setTenantId(10L);
-        when(tenantRepository.findById(10L)).thenReturn(Optional.of(tenant));
-        when(rssFeedSnapshotService.publicTenantFeed(tenant))
-                .thenReturn(new RssFeedSnapshotService.FeedDelivery(url("https://cdn.example.test/podcast.xml")));
-
-        controller().publicPodcastFeed("alpha");
-
-        verify(rssFeedSnapshotService).publicTenantFeed(tenant);
-    }
-
-    @Test
-    void publicSeriesFeedRedirectsToS3Snapshot() {
-        Tenant tenant = tenant(10L, "alpha");
-        PodcastSeries series = new PodcastSeries();
-        series.setId(20L);
-        series.setSlug("main-show");
-        TenantContext.setTenantId(10L);
-        when(tenantRepository.findById(10L)).thenReturn(Optional.of(tenant));
-        when(podcastSeriesRepository.findByTenantIdAndSlug(10L, "main-show")).thenReturn(Optional.of(series));
-        when(rssFeedSnapshotService.publicSeriesFeed(tenant, series))
+        when(tenantResolver.requireHostTenantBySlug("alpha")).thenReturn(tenant);
+        when(rssFeedSnapshotService.publicSeriesFeed(tenant, "main-show"))
                 .thenReturn(new RssFeedSnapshotService.FeedDelivery(url("https://cdn.example.test/series.xml")));
 
         ResponseEntity<String> response = controller().publicSeriesFeed("alpha", "main-show");
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.FOUND);
         assertThat(response.getHeaders().getCacheControl()).isEqualTo("no-store");
-        verify(rssFeedSnapshotService).publicSeriesFeed(tenant, series);
+        verify(rssFeedSnapshotService).publicSeriesFeed(tenant, "main-show");
     }
 
     @Test
     void publicSeriesFeedThrowsSeriesNotFoundWhenSlugUnknown() {
         Tenant tenant = tenant(10L, "alpha");
-        TenantContext.setTenantId(10L);
-        when(tenantRepository.findById(10L)).thenReturn(Optional.of(tenant));
-        when(podcastSeriesRepository.findByTenantIdAndSlug(10L, "missing-show")).thenReturn(Optional.empty());
+        when(tenantResolver.requireHostTenantBySlug("alpha")).thenReturn(tenant);
+        when(rssFeedSnapshotService.publicSeriesFeed(tenant, "missing-show"))
+                .thenThrow(new de.pnnit.directwerk.modules.podcast.exception.SeriesNotFoundException("missing-show"));
 
         assertThatThrownBy(() -> controller().publicSeriesFeed("alpha", "missing-show"))
                 .isInstanceOf(de.pnnit.directwerk.modules.podcast.exception.SeriesNotFoundException.class);
@@ -146,9 +115,8 @@ class RssFeedControllerTest {
     void privateSubscriberFeedRedirectsToSignedS3Snapshot() {
         Tenant tenant = tenant(10L, "alpha");
         SubscriberFeed feed = subscriberFeed(tenant, "tok", true);
-        TenantContext.setTenantId(10L);
-        when(tenantRepository.findById(10L)).thenReturn(Optional.of(tenant));
-        when(subscriberFeedService.requireFeedByToken("tok")).thenReturn(feed);
+        when(tenantResolver.requireHostTenantBySlug("alpha")).thenReturn(tenant);
+        when(subscriberFeedService.requireDeliverableFeed(10L, "tok")).thenReturn(feed);
         when(rssFeedSnapshotService.privateFeed(tenant, feed))
                 .thenReturn(new RssFeedSnapshotService.FeedDelivery(url("https://private.example.test/feed.xml")));
 
@@ -157,88 +125,24 @@ class RssFeedControllerTest {
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.FOUND);
         assertThat(response.getHeaders().getCacheControl()).isEqualTo("no-store");
         verify(rssFeedSnapshotService).privateFeed(tenant, feed);
-        verify(moduleGateService).requireModule(SubscriptionModule.MODULE_KEY);
     }
 
     @Test
-    void privateSubscriberFeedThrowsNotFoundWhenFeedDisabled() {
+    void privateSubscriberFeedPropagatesNotFoundFromDeliveryGate() {
         Tenant tenant = tenant(10L, "alpha");
-        SubscriberFeed feed = subscriberFeed(tenant, "tok", false);
-        TenantContext.setTenantId(10L);
-        when(tenantRepository.findById(10L)).thenReturn(Optional.of(tenant));
-        when(subscriberFeedService.requireFeedByToken("tok")).thenReturn(feed);
+        // Disabled feeds, foreign-tenant tokens and custom feeds without FEED_BUILDER all
+        // surface as not-found — decided inside SubscriberFeedService.requireDeliverableFeed.
+        when(tenantResolver.requireHostTenantBySlug("alpha")).thenReturn(tenant);
+        when(subscriberFeedService.requireDeliverableFeed(10L, "tok"))
+                .thenThrow(new SubscriberFeedNotFoundException());
 
         assertThatThrownBy(() -> controller().privateSubscriberFeed("alpha", "tok"))
                 .isInstanceOf(SubscriberFeedNotFoundException.class);
     }
 
     @Test
-    void privateSubscriberFeedThrowsNotFoundWhenFeedBelongsToOtherTenant() {
-        Tenant tenant = tenant(10L, "alpha");
-        Tenant otherTenant = tenant(11L, "beta");
-        SubscriberFeed feed = subscriberFeed(otherTenant, "tok", true);
-        TenantContext.setTenantId(10L);
-        when(tenantRepository.findById(10L)).thenReturn(Optional.of(tenant));
-        when(subscriberFeedService.requireFeedByToken("tok")).thenReturn(feed);
-
-        assertThatThrownBy(() -> controller().privateSubscriberFeed("alpha", "tok"))
-                .isInstanceOf(SubscriberFeedNotFoundException.class);
-    }
-
-    @Test
-    void privateCustomFeedThrowsNotFoundWhenFeedBuilderModuleIsOff() {
-        Tenant tenant = tenant(10L, "alpha");
-        SubscriberFeed feed = subscriberFeed(tenant, "tok", true);
-        feed.setDefaultFeed(false);
-        TenantContext.setTenantId(10L);
-        when(tenantRepository.findById(10L)).thenReturn(Optional.of(tenant));
-        when(subscriberFeedService.requireFeedByToken("tok")).thenReturn(feed);
-        lenient().doThrow(new ModuleNotEnabledException(FeedBuilderModule.KEY))
-                .when(moduleGateService)
-                .requireModule(FeedBuilderModule.KEY);
-
-        assertThatThrownBy(() -> controller().privateSubscriberFeed("alpha", "tok"))
-                .isInstanceOf(SubscriberFeedNotFoundException.class);
-    }
-
-    @Test
-    void privateEnclosureThrowsNotFoundWhenFeedBuilderModuleIsOff() {
-        Tenant tenant = tenant(10L, "alpha");
-        SubscriberFeed feed = subscriberFeed(tenant, "tok", true);
-        feed.setDefaultFeed(false);
-        TenantContext.setTenantId(10L);
-        when(tenantRepository.findById(10L)).thenReturn(Optional.of(tenant));
-        when(subscriberFeedService.requireFeedByToken("tok")).thenReturn(feed);
-        lenient().doThrow(new ModuleNotEnabledException(FeedBuilderModule.KEY))
-                .when(moduleGateService)
-                .requireModule(FeedBuilderModule.KEY);
-
-        assertThatThrownBy(() -> controller().privateEnclosure("alpha", "tok", "episode-slug", request))
-                .isInstanceOf(SubscriberFeedNotFoundException.class);
-
-        verify(episodeEnclosureService, org.mockito.Mockito.never()).resolvePrivateRedirect(org.mockito.Mockito.any(), org.mockito.Mockito.anyString());
-        verify(episodeDownloadAnalyticsService, org.mockito.Mockito.never()).trackEpisodeDownload(org.mockito.Mockito.anyLong(), org.mockito.Mockito.any(), org.mockito.Mockito.anyString(), org.mockito.Mockito.anyString());
-    }
-
-    @Test
-    void publicFeedThrowsModuleNotEnabledWhenRssModuleMissing() {
-        Tenant tenant = tenant(10L, "alpha");
-        TenantContext.setTenantId(10L);
-        when(tenantRepository.findById(10L)).thenReturn(Optional.of(tenant));
-        doThrow(new ModuleNotEnabledException(PodcastRssModule.KEY))
-                .when(moduleGateService)
-                .requireModule(PodcastRssModule.KEY);
-
-        assertThatThrownBy(() -> controller().publicPodcastFeed("alpha"))
-                .isInstanceOf(ModuleNotEnabledException.class)
-                .isNotInstanceOf(TenantNotFoundException.class);
-    }
-
-    @Test
-    void publicFeedThrowsTenantNotFoundWhenSlugDoesNotMatchHostTenant() {
-        Tenant tenant = tenant(10L, "alpha");
-        TenantContext.setTenantId(10L);
-        when(tenantRepository.findById(10L)).thenReturn(Optional.of(tenant));
+    void publicFeedThrowsNotFoundWhenPathSlugDoesNotMatchHostTenant() {
+        when(tenantResolver.requireHostTenantBySlug("other")).thenThrow(new TenantNotFoundException("other"));
 
         assertThatThrownBy(() -> controller().publicPodcastFeed("other"))
                 .isInstanceOf(TenantNotFoundException.class);
@@ -246,13 +150,11 @@ class RssFeedControllerTest {
 
     private RssFeedController controller() {
         return new RssFeedController(
-                tenantRepository,
-                podcastSeriesRepository,
+                tenantResolver,
                 subscriberFeedService,
                 rssFeedSnapshotService,
                 episodeEnclosureService,
-                episodeDownloadAnalyticsService,
-                moduleGateService
+                episodeDownloadAnalyticsService
         );
     }
 
@@ -273,9 +175,9 @@ class RssFeedControllerTest {
 
     private static URL url(String value) {
         try {
-            return new URL(value);
-        } catch (MalformedURLException ex) {
-            throw new IllegalArgumentException(ex);
+            return java.net.URI.create(value).toURL();
+        } catch (MalformedURLException e) {
+            throw new IllegalArgumentException(e);
         }
     }
 }

@@ -2,9 +2,13 @@ package de.pnnit.directwerk.modules.podcast.service;
 
 import de.pnnit.directwerk.config.DirectwerkConfig;
 import de.pnnit.directwerk.modules.content.ContentPublishedEvent;
+import de.pnnit.directwerk.modules.content.PublicationTexts;
+import de.pnnit.directwerk.modules.content.ScheduledPublishing;
+import de.pnnit.directwerk.modules.content.ScheduledPublishing.DueItem;
 import de.pnnit.directwerk.modules.content.ContentPublishedNotifier;
 import de.pnnit.directwerk.modules.content.ContentType;
 import de.pnnit.directwerk.modules.core.RequiresModule;
+import de.pnnit.directwerk.modules.core.notification.SubscriberNotificationGate;
 import de.pnnit.directwerk.modules.core.service.ModuleGateService;
 import de.pnnit.directwerk.modules.digital.api.EpisodeMediaApi;
 import de.pnnit.directwerk.modules.digital.entity.AssetVisibility;
@@ -37,8 +41,8 @@ public class PublicationWorkflowService {
     private final EpisodeMediaApi episodeMediaApi;
     private final HtmlSanitizer htmlSanitizer;
     private final ModuleGateService moduleGateService;
-    private final DirectwerkConfig directwerkConfig;
     private final ContentPublishedNotifier contentPublishedNotifier;
+    private final SubscriberNotificationGate notificationGate;
     private final RssFeedRefreshScheduler rssFeedRefreshScheduler;
     private final ObjectProvider<PublicationWorkflowService> self;
 
@@ -141,27 +145,18 @@ public class PublicationWorkflowService {
     }
 
     public int publishDueScheduled() {
-        List<Episode> dueEpisodes = episodeRepository
+        List<DueItem> dueItems = episodeRepository
                 .findByStatusAndScheduledAtLessThanEqualOrderByScheduledAtAscIdAsc(
                         EpisodeStatus.SCHEDULED,
                         Instant.now()
-                );
-        int published = 0;
+                ).stream()
+                .map(episode -> new DueItem(episode.getTenant().getId(), episode.getId()))
+                .toList();
         PublicationWorkflowService proxy = self.getObject();
-        for (Episode episode : dueEpisodes) {
-            Long tenantId = episode.getTenant().getId();
-            Long episodeId = episode.getId();
-            try {
-                TenantContext.runWithTenant(tenantId, () -> {
-                    moduleGateService.requireModule(PodcastModule.KEY);
-                    proxy.publishScheduledEpisode(tenantId, episodeId);
-                });
-                published++;
-            } catch (Exception ex) {
-                log.error("Failed to publish scheduled episode tenant={} episode={}", tenantId, episodeId, ex);
-            }
-        }
-        return published;
+        return ScheduledPublishing.publishDue(dueItems, (tenantId, episodeId) -> {
+            moduleGateService.requireModule(PodcastModule.KEY);
+            proxy.publishScheduledEpisode(tenantId, episodeId);
+        }, "episodes");
     }
 
     @Transactional
@@ -185,7 +180,7 @@ public class PublicationWorkflowService {
         }
 
         String sanitizedDescription = htmlSanitizer.sanitize(episode.getDescription());
-        if (isBlankHtml(sanitizedDescription)) {
+        if (PublicationTexts.isBlankHtml(sanitizedDescription)) {
             throw new EpisodeValidationException("Episode description is required");
         }
         episode.setDescription(sanitizedDescription);
@@ -223,15 +218,7 @@ public class PublicationWorkflowService {
     }
 
     private void maybeNotifySubscribers(Long tenantId, Episode published, boolean notifySubscribers) {
-        if (!notifySubscribers) {
-            return;
-        }
-        if (!directwerkConfig.isEmailEnabled()) {
-            log.debug("Skipping episode notification tenant={} episode={} — email delivery disabled", tenantId, published.getId());
-            return;
-        }
-        if (!moduleGateService.enabledModuleKeys(tenantId).contains("EMAIL_NOTIFY")) {
-            log.debug("Skipping episode notification tenant={} episode={} — EMAIL_NOTIFY module not enabled", tenantId, published.getId());
+        if (!notifySubscribers || !notificationGate.enabled(tenantId, ContentType.EPISODE, published.getId())) {
             return;
         }
         Instant notifiedAt = Instant.now();
@@ -246,35 +233,9 @@ public class PublicationWorkflowService {
                 ContentType.EPISODE,
                 published.getId(),
                 published.getTitle(),
-                htmlExcerpt(published.getDescription()),
+                PublicationTexts.htmlExcerpt(published.getDescription()),
                 published.getSlug(),
                 published.getAccessPolicy().name()
         ));
-    }
-
-    private static String htmlExcerpt(String html) {
-        if (html == null) {
-            return "";
-        }
-        String textOnly = html
-                .replaceAll("<[^>]*>", " ")
-                .replace("&nbsp;", " ")
-                .replaceAll("\\s+", " ")
-                .trim();
-        if (textOnly.length() <= 280) {
-            return textOnly;
-        }
-        return textOnly.substring(0, 277) + "...";
-    }
-
-    private static boolean isBlankHtml(String sanitizedDescription) {
-        if (sanitizedDescription == null) {
-            return true;
-        }
-        String textOnly = sanitizedDescription
-                .replaceAll("<[^>]*>", "")
-                .replace("&nbsp;", " ")
-                .trim();
-        return textOnly.isBlank();
     }
 }

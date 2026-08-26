@@ -6,6 +6,7 @@ import de.pnnit.directwerk.modules.core.audit.PlatformAuditActions;
 import de.pnnit.directwerk.modules.core.audit.PlatformAuditService;
 import de.pnnit.directwerk.modules.core.entity.Role;
 import de.pnnit.directwerk.modules.core.entity.Tenant;
+import java.util.List;
 import de.pnnit.directwerk.modules.core.entity.TenantBranding;
 import de.pnnit.directwerk.modules.core.entity.TenantDomain;
 import de.pnnit.directwerk.modules.core.entity.TenantStatus;
@@ -18,6 +19,8 @@ import de.pnnit.directwerk.modules.core.util.TenantHostname;
 import java.time.Instant;
 import java.util.Map;
 import java.util.Objects;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
@@ -28,6 +31,8 @@ import org.springframework.util.StringUtils;
 @RequiredArgsConstructor
 public class TenantManagementService {
 
+    private static final int MAX_TENANT_LIST_SIZE = 1000;
+
     private final TenantRepository tenantRepository;
     private final TenantDomainRepository tenantDomainRepository;
     private final TenantBrandingRepository tenantBrandingRepository;
@@ -36,6 +41,15 @@ public class TenantManagementService {
     private final DirectwerkCacheEviction cacheEviction;
     private final PlatformAuditService platformAuditService;
     private final ApplicationEventPublisher eventPublisher;
+
+    /**
+     * Lists tenants for the platform admin surface, bounded so an unbounded table can never
+     * produce an unbounded response.
+     */
+    @Transactional(readOnly = true)
+    public List<Tenant> listTenants() {
+        return tenantRepository.findAll(PageRequest.of(0, MAX_TENANT_LIST_SIZE, Sort.by("id").ascending())).getContent();
+    }
 
     /**
      * Retrieves a tenant by its identifier.

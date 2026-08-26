@@ -9,7 +9,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import de.pnnit.directwerk.modules.core.entity.Tenant;
-import de.pnnit.directwerk.modules.core.service.TenantLookupService;
+import de.pnnit.directwerk.modules.core.repository.TenantRepository;
 import de.pnnit.directwerk.modules.digital.entity.AssetStatus;
 import de.pnnit.directwerk.modules.digital.entity.AssetType;
 import de.pnnit.directwerk.modules.digital.entity.MediaAsset;
@@ -32,14 +32,14 @@ class MediaAssetQueryServiceTest {
     private MediaAssetRepository mediaAssetRepository;
 
     @Mock
-    private TenantLookupService tenantLookupService;
+    private TenantRepository tenantRepository;
 
     private MediaAssetQueryService service;
 
     @BeforeEach
     void setUp() {
         TenantContext.clear();
-        service = new MediaAssetQueryService(mediaAssetRepository, tenantLookupService);
+        service = new MediaAssetQueryService(mediaAssetRepository, tenantRepository);
     }
 
     @AfterEach
@@ -51,7 +51,7 @@ class MediaAssetQueryServiceTest {
     void listForTenantAppliesTenantContextWhileQuerying() {
         Tenant tenant = new Tenant();
         tenant.setId(42L);
-        when(tenantLookupService.requireTenant(42L)).thenReturn(tenant);
+        when(tenantRepository.requireById(42L)).thenReturn(tenant);
 
         AtomicReference<Long> seenTenantId = new AtomicReference<>();
         when(mediaAssetRepository.findFiltered(eq(AssetType.IMAGE), isNull(), any(Pageable.class)))
@@ -68,12 +68,12 @@ class MediaAssetQueryServiceTest {
         assertThat(result.getFirst().getId()).isEqualTo(7L);
         assertThat(seenTenantId.get()).isEqualTo(42L);
         assertThat(TenantContext.getTenantId()).isNull();
-        verify(tenantLookupService).requireTenant(42L);
+        verify(tenantRepository).requireById(42L);
     }
 
     @Test
     void listForTenantPropagatesMissingTenant() {
-        when(tenantLookupService.requireTenant(99L))
+        when(tenantRepository.requireById(99L))
                 .thenThrow(new IllegalArgumentException("Tenant not found"));
 
         assertThatThrownBy(() -> service.listForTenant(99L, null, AssetStatus.READY, 10))
