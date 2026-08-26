@@ -11,5 +11,9 @@ import java.lang.annotation.Target;
 @Documented
 public @interface RequiresModule {
 
-    String value();
+    /**
+     * Module keys that must ALL be active for the annotated element to be reachable.
+     * A single key may be written without braces: {@code @RequiresModule(PODCAST_MODULE_KEY)}.
+     */
+    String[] value();
 }

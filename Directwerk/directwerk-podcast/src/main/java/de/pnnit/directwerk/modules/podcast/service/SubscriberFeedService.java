@@ -2,6 +2,9 @@ package de.pnnit.directwerk.modules.podcast.service;
 
 import de.pnnit.directwerk.modules.core.entity.Tenant;
 import de.pnnit.directwerk.modules.core.repository.TenantRepository;
+import de.pnnit.directwerk.modules.core.service.ModuleGateService;
+import de.pnnit.directwerk.modules.core.service.ModuleNotEnabledException;
+import de.pnnit.directwerk.modules.podcast.FeedBuilderModule;
 import de.pnnit.directwerk.modules.core.repository.UserRepository;
 import de.pnnit.directwerk.modules.digital.exception.StorageNotConfiguredException;
 import de.pnnit.directwerk.modules.podcast.entity.Episode;
@@ -41,6 +44,7 @@ public class SubscriberFeedService {
     private final UserRepository userRepository;
     private final FormatRepository formatRepository;
     private final SubscriberEpisodeService subscriberEpisodeService;
+    private final ModuleGateService moduleGateService;
     private final RssFeedSnapshotService rssFeedSnapshotService;
     private final RssFeedRefreshScheduler rssFeedRefreshScheduler;
     private final SecureRandom secureRandom = new SecureRandom();
@@ -49,6 +53,27 @@ public class SubscriberFeedService {
     public SubscriberFeed requireFeedByToken(String feedToken) {
         return subscriberFeedRepository.findByFeedToken(feedToken)
                 .orElseThrow(SubscriberFeedNotFoundException::new);
+    }
+
+    /**
+     * Delivery-time gate for token-authenticated feeds: token must resolve, belong to the
+     * Host tenant and be enabled. Custom feeds additionally require FEED_BUILDER — translated
+     * to not-found so podcatchers never see an API error for a disabled feature.
+     */
+    @Transactional(readOnly = true)
+    public SubscriberFeed requireDeliverableFeed(Long tenantId, String feedToken) {
+        SubscriberFeed feed = requireFeedByToken(feedToken);
+        if (!tenantId.equals(feed.getTenant().getId()) || !feed.isEnabled()) {
+            throw new SubscriberFeedNotFoundException();
+        }
+        if (!feed.isDefaultFeed()) {
+            try {
+                moduleGateService.requireModule(FeedBuilderModule.KEY);
+            } catch (ModuleNotEnabledException ex) {
+                throw new SubscriberFeedNotFoundException();
+            }
+        }
+        return feed;
     }
 
     @Transactional(readOnly = true)

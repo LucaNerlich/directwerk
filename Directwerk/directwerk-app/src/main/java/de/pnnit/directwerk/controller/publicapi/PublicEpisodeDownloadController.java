@@ -1,6 +1,6 @@
 package de.pnnit.directwerk.controller.publicapi;
 
-import de.pnnit.directwerk.modules.core.service.ModuleGateService;
+import de.pnnit.directwerk.modules.core.RequiresModule;
 import de.pnnit.directwerk.modules.podcast.PodcastModule;
 import de.pnnit.directwerk.modules.podcast.service.EpisodeDownloadAnalyticsService;
 import de.pnnit.directwerk.modules.podcast.service.EpisodeEnclosureService;
@@ -21,23 +21,20 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/v1/public/episodes")
 public class PublicEpisodeDownloadController {
 
-    private final ModuleGateService moduleGateService;
     private final EpisodeEnclosureService episodeEnclosureService;
     private final EpisodeDownloadAnalyticsService episodeDownloadAnalyticsService;
 
     public PublicEpisodeDownloadController(
-            ModuleGateService moduleGateService,
             EpisodeEnclosureService episodeEnclosureService,
             EpisodeDownloadAnalyticsService episodeDownloadAnalyticsService
     ) {
-        this.moduleGateService = moduleGateService;
         this.episodeEnclosureService = episodeEnclosureService;
         this.episodeDownloadAnalyticsService = episodeDownloadAnalyticsService;
     }
 
     @GetMapping("/{slug}/download")
+    @RequiresModule(PodcastModule.KEY)
     ResponseEntity<Void> downloadEpisode(@PathVariable String slug, HttpServletRequest request) {
-        moduleGateService.requireModule(PodcastModule.KEY);
         Long tenantId = TenantContext.getTenantId();
 
         var redirect = episodeEnclosureService.resolvePublicRedirect(tenantId, slug);

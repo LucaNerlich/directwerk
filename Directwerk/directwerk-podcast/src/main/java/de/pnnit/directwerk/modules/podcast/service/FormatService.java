@@ -1,5 +1,7 @@
 package de.pnnit.directwerk.modules.podcast.service;
 
+import de.pnnit.directwerk.modules.core.exception.ConflictException;
+import de.pnnit.directwerk.modules.core.exception.ConflictCodes;
 import de.pnnit.directwerk.modules.core.RequiresModule;
 import de.pnnit.directwerk.modules.core.repository.TenantRepository;
 import de.pnnit.directwerk.modules.core.util.SlugNormalizer;
@@ -54,7 +56,7 @@ public class FormatService {
     ) {
         String slug = SlugNormalizer.normalize(rawSlug);
         if (formatRepository.existsByTenantIdAndSlug(tenantId, slug)) {
-            throw new IllegalStateException("Format slug already exists: " + slug);
+            throw new ConflictException(ConflictCodes.FORMAT_SLUG_EXISTS, "Format slug already exists: " + slug);
         }
 
         Format format = new Format();
@@ -86,7 +88,7 @@ public class FormatService {
         if (rawSlug != null) {
             String slug = SlugNormalizer.normalize(rawSlug);
             if (formatRepository.existsByTenantIdAndSlugAndIdNot(tenantId, slug, formatId)) {
-                throw new IllegalStateException("Format slug already exists: " + slug);
+                throw new ConflictException(ConflictCodes.FORMAT_SLUG_EXISTS, "Format slug already exists: " + slug);
             }
             format.setSlug(slug);
         }

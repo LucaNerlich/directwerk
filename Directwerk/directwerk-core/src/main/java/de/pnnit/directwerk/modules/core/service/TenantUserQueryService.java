@@ -1,5 +1,6 @@
 package de.pnnit.directwerk.modules.core.service;
 
+import de.pnnit.directwerk.modules.core.repository.TenantRepository;
 import de.pnnit.directwerk.modules.core.entity.TenantMembership;
 import de.pnnit.directwerk.modules.core.repository.TenantMembershipRepository;
 import java.util.List;
@@ -12,11 +13,11 @@ import org.springframework.transaction.annotation.Transactional;
 public class TenantUserQueryService {
 
     private final TenantMembershipRepository tenantMembershipRepository;
-    private final TenantLookupService tenantLookupService;
+    private final TenantRepository tenantRepository;
 
     @Transactional(readOnly = true)
     public List<TenantUserView> listTenantUsers(Long tenantId) {
-        tenantLookupService.requireTenant(tenantId);
+        tenantRepository.requireById(tenantId);
         return tenantMembershipRepository.findByTenantId(tenantId).stream()
                 .map(this::toView)
                 .toList();

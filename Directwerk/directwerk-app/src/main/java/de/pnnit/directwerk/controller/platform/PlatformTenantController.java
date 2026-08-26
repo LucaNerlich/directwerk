@@ -79,37 +79,32 @@ public class PlatformTenantController {
      */
     @PostMapping
     ResponseEntity<Response<TenantCreationResponse>> createTenant(@Valid @RequestBody CreateTenantRequest request) {
-        try {
-            TenantCreationResult result = tenantManagementService.createTenant(
-                    request.name(),
-                    request.slug(),
-                    request.primaryDomain(),
-                    request.modulePreset(),
-                    request.adminEmail(),
-                    request.adminName()
-            );
-            TenantDetailView tenant = result.tenant();
-            TenantInvitationService.InvitationResult invitation = result.adminInvitation();
-            AdminInvitationResponse adminInvitation = invitation == null
-                    ? null
-                    : new AdminInvitationResponse(
-                            invitation.email(),
-                            invitation.status(),
-                            directwerkConfig.isExposeDevTokens() ? invitation.inviteToken() : null
-                    );
-            return ResponseEntity.status(HttpStatus.CREATED).body(Response.created(
-                    new TenantCreationResponse(
-                            tenant.id(),
-                            tenant.slug(),
-                            tenant.name(),
-                            tenant.status(),
-                            adminInvitation
-                    )
-            ));
-        } catch (IllegalStateException ex) {
-            return ResponseEntity.status(HttpStatus.CONFLICT)
-                    .body(Response.error(409, "TENANT_SLUG_EXISTS", ex.getMessage()));
-        }
+                TenantCreationResult result = tenantManagementService.createTenant(
+                request.name(),
+                request.slug(),
+                request.primaryDomain(),
+                request.modulePreset(),
+                request.adminEmail(),
+                request.adminName()
+        );
+        TenantDetailView tenant = result.tenant();
+        TenantInvitationService.InvitationResult invitation = result.adminInvitation();
+        AdminInvitationResponse adminInvitation = invitation == null
+                ? null
+                : new AdminInvitationResponse(
+                        invitation.email(),
+                        invitation.status(),
+                        directwerkConfig.isExposeDevTokens() ? invitation.inviteToken() : null
+                );
+        return ResponseEntity.status(HttpStatus.CREATED).body(Response.created(
+                new TenantCreationResponse(
+                        tenant.id(),
+                        tenant.slug(),
+                        tenant.name(),
+                        tenant.status(),
+                        adminInvitation
+                )
+        ));
     }
 
     /**
@@ -135,14 +130,9 @@ public class PlatformTenantController {
             @PathVariable Long tenantId,
             @Valid @RequestBody UpdateTenantRequest request
     ) {
-        try {
-            return ResponseEntity.ok(Response.ok(
-                    tenantManagementService.updateTenant(tenantId, request.name(), request.slug())
-            ));
-        } catch (IllegalStateException ex) {
-            return ResponseEntity.status(HttpStatus.CONFLICT)
-                    .body(Response.error(409, "TENANT_SLUG_EXISTS", ex.getMessage()));
-        }
+                return ResponseEntity.ok(Response.ok(
+                tenantManagementService.updateTenant(tenantId, request.name(), request.slug())
+        ));
     }
 
     /**

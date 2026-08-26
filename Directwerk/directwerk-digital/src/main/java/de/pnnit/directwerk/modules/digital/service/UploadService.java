@@ -1,7 +1,7 @@
 package de.pnnit.directwerk.modules.digital.service;
 
 import de.pnnit.directwerk.modules.core.RequiresModule;
-import de.pnnit.directwerk.modules.core.service.TenantLookupService;
+import de.pnnit.directwerk.modules.core.repository.TenantRepository;
 import de.pnnit.directwerk.modules.core.util.TenantAssetKeys;
 import de.pnnit.directwerk.modules.digital.DigitalContentModule;
 import de.pnnit.directwerk.modules.digital.api.UploadApi;
@@ -63,7 +63,7 @@ public class UploadService implements UploadApi {
     private final S3Client s3Client;
     private final S3Presigner s3Presigner;
     private final MediaAssetRepository mediaAssetRepository;
-    private final TenantLookupService tenantLookupService;
+    private final TenantRepository tenantRepository;
     private final DirectwerkConfig directwerkConfig;
     private final StagingCleanupService stagingCleanupService;
     private final MediaDeleteJobProducer mediaDeleteJobProducer;
@@ -74,7 +74,7 @@ public class UploadService implements UploadApi {
     public UploadUrlResult createUploadUrl(CreateUploadUrlCommand command) {
         DirectwerkProperties.Storage storage = StorageConfigs.requireEnabled(directwerkConfig);
         Long tenantId = TenantContext.requireTenantId();
-        Tenant tenant = tenantLookupService.requireTenant(tenantId);
+        Tenant tenant = tenantRepository.requireById(tenantId);
 
         MediaUploadRules.validateMimeAndSize(command.assetType(), command.mimeType(), command.sizeBytes());
         String filename = MediaUploadRules.sanitizeFilename(command.filename());
@@ -147,7 +147,7 @@ public class UploadService implements UploadApi {
     public ConfirmUploadResult confirmUpload(ConfirmUploadCommand command) {
         DirectwerkProperties.Storage storage = StorageConfigs.requireEnabled(directwerkConfig);
         Long tenantId = TenantContext.requireTenantId();
-        Tenant tenant = tenantLookupService.requireTenant(tenantId);
+        Tenant tenant = tenantRepository.requireById(tenantId);
 
         MediaAsset asset = mediaAssetRepository.findById(command.mediaAssetId())
                 .orElseThrow(() -> new MediaAssetNotFoundException(command.mediaAssetId()));

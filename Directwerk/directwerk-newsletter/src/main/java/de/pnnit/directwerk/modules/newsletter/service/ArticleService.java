@@ -1,5 +1,7 @@
 package de.pnnit.directwerk.modules.newsletter.service;
 
+import de.pnnit.directwerk.modules.core.exception.ConflictException;
+import de.pnnit.directwerk.modules.core.exception.ConflictCodes;
 import de.pnnit.directwerk.modules.core.RequiresModule;
 import de.pnnit.directwerk.modules.core.repository.TenantRepository;
 import de.pnnit.directwerk.modules.core.util.SlugNormalizer;
@@ -66,7 +68,7 @@ public class ArticleService {
     ) {
         String slug = SlugNormalizer.normalize(rawSlug);
         if (articleRepository.existsByTenantIdAndSlug(tenantId, slug)) {
-            throw new IllegalStateException("Article slug already exists: " + slug);
+            throw new ConflictException(ConflictCodes.ARTICLE_SLUG_EXISTS, "Article slug already exists: " + slug);
         }
 
         Article article = new Article();
@@ -104,7 +106,7 @@ public class ArticleService {
         if (rawSlug != null) {
             String slug = SlugNormalizer.normalize(rawSlug);
             if (articleRepository.existsByTenantIdAndSlugAndIdNot(tenantId, slug, articleId)) {
-                throw new IllegalStateException("Article slug already exists: " + slug);
+                throw new ConflictException(ConflictCodes.ARTICLE_SLUG_EXISTS, "Article slug already exists: " + slug);
             }
             article.setSlug(slug);
         }

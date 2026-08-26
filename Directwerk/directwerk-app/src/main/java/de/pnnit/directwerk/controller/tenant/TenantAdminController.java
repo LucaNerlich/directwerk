@@ -155,18 +155,13 @@ public class TenantAdminController {
     ResponseEntity<Response<de.pnnit.directwerk.api.dto.InviteUserResponse>> inviteUser(
             @Valid @RequestBody InviteRequest request
     ) {
-        try {
-            TenantInvitationService.InvitationResult invitation = tenantInvitationService.invite(
-                    TenantContext.requireTenantId(),
-                    request.email(),
-                    request.name(),
-                    request.role()
-            );
-            return invitationResponseMapper.toCreatedResponse(invitation);
-        } catch (IllegalStateException ex) {
-            return ResponseEntity.status(HttpStatus.CONFLICT)
-                    .body(Response.error(409, "USER_ALREADY_MEMBER", ex.getMessage()));
-        }
+                TenantInvitationService.InvitationResult invitation = tenantInvitationService.invite(
+                TenantContext.requireTenantId(),
+                request.email(),
+                request.name(),
+                request.role()
+        );
+        return invitationResponseMapper.toCreatedResponse(invitation);
     }
 
     @GetMapping("/users")

@@ -90,7 +90,7 @@ public class TenantContextFilter extends OncePerRequestFilter {
     }
 
     private static void ensureTenantActive(Tenant tenant, String host) {
-        if (tenant.getStatus() != TenantStatus.ACTIVE) {
+        if (!tenant.isActive()) {
             throw new TenantSuspendedException(host);
         }
     }

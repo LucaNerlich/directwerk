@@ -1,5 +1,7 @@
 package de.pnnit.directwerk.modules.core.service;
 
+import de.pnnit.directwerk.modules.core.exception.ConflictException;
+import de.pnnit.directwerk.modules.core.exception.ConflictCodes;
 import de.pnnit.directwerk.modules.core.audit.PlatformAuditActions;
 import de.pnnit.directwerk.modules.core.audit.PlatformAuditService;
 import de.pnnit.directwerk.modules.core.entity.Role;
@@ -31,7 +33,6 @@ public class TenantManagementService {
     private final TenantBrandingRepository tenantBrandingRepository;
     private final ModuleManagementService moduleManagementService;
     private final TenantInvitationService tenantInvitationService;
-    private final TenantLookupService tenantLookupService;
     private final DirectwerkCacheEviction cacheEviction;
     private final PlatformAuditService platformAuditService;
     private final ApplicationEventPublisher eventPublisher;
@@ -44,7 +45,7 @@ public class TenantManagementService {
      */
     @Transactional(readOnly = true)
     public TenantDetailView getTenant(Long tenantId) {
-        return toView(requireTenant(tenantId));
+        return toView(tenantRepository.requireById(tenantId));
     }
 
     /**
@@ -88,7 +89,7 @@ public class TenantManagementService {
         }
         String normalizedSlug = SlugNormalizer.normalize(slug);
         if (tenantRepository.findBySlug(normalizedSlug).isPresent()) {
-            throw new IllegalStateException("Tenant slug already exists: " + normalizedSlug);
+            throw new ConflictException(ConflictCodes.TENANT_SLUG_EXISTS, "Tenant slug already exists: " + normalizedSlug);
         }
 
         Tenant tenant = new Tenant();
@@ -153,7 +154,7 @@ public class TenantManagementService {
      */
     @Transactional
     public TenantDetailView suspendTenant(Long tenantId) {
-        Tenant tenant = requireTenant(tenantId);
+        Tenant tenant = tenantRepository.requireById(tenantId);
         tenant.setStatus(TenantStatus.SUSPENDED);
         Tenant saved = tenantRepository.save(tenant);
         cacheEviction.evictTenantPublicCachesAfterCommit(tenantId);
@@ -169,7 +170,7 @@ public class TenantManagementService {
      */
     @Transactional
     public TenantDetailView reactivateTenant(Long tenantId) {
-        Tenant tenant = requireTenant(tenantId);
+        Tenant tenant = tenantRepository.requireById(tenantId);
         tenant.setStatus(TenantStatus.ACTIVE);
         Tenant saved = tenantRepository.save(tenant);
         cacheEviction.evictTenantPublicCachesAfterCommit(tenantId);
@@ -188,7 +189,7 @@ public class TenantManagementService {
      */
     @Transactional
     public TenantDetailView updateTenant(Long tenantId, String name, String slug) {
-        Tenant tenant = requireTenant(tenantId);
+        Tenant tenant = tenantRepository.requireById(tenantId);
         String previousName = tenant.getName();
         String previousSlug = tenant.getSlug();
 
@@ -200,7 +201,7 @@ public class TenantManagementService {
             String normalizedSlug = SlugNormalizer.normalize(slug);
             if (!normalizedSlug.equals(tenant.getSlug())
                     && tenantRepository.findBySlug(normalizedSlug).isPresent()) {
-                throw new IllegalStateException("Tenant slug already exists: " + normalizedSlug);
+                throw new ConflictException(ConflictCodes.TENANT_SLUG_EXISTS, "Tenant slug already exists: " + normalizedSlug);
             }
             tenant.setSlug(normalizedSlug);
         }
@@ -228,9 +229,6 @@ public class TenantManagementService {
      * @param tenantId the tenant identifier
      * @return the matching tenant
      */
-    private Tenant requireTenant(Long tenantId) {
-        return tenantLookupService.requireTenant(tenantId);
-    }
 
     private TenantDetailView toView(Tenant tenant) {
         return new TenantDetailView(

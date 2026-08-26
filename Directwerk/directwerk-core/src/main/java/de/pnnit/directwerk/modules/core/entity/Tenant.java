@@ -23,4 +23,12 @@ public class Tenant extends BaseEntity {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 32)
     private TenantStatus status = TenantStatus.ACTIVE;
+
+    /**
+     * Single definition of "tenant may serve traffic" — used by resolution, filters and
+     * registration alike so new statuses cannot silently diverge the checks.
+     */
+    public boolean isActive() {
+        return status == TenantStatus.ACTIVE;
+    }
 }

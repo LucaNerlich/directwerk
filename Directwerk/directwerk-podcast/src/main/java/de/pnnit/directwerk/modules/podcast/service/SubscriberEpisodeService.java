@@ -1,7 +1,6 @@
 package de.pnnit.directwerk.modules.podcast.service;
 
-import de.pnnit.directwerk.modules.digital.api.EntitlementApi;
-import de.pnnit.directwerk.modules.digital.entity.AccessPolicy;
+import de.pnnit.directwerk.modules.podcast.api.EpisodeAccessApi;
 import de.pnnit.directwerk.modules.podcast.entity.Episode;
 import de.pnnit.directwerk.modules.podcast.entity.EpisodeStatus;
 import de.pnnit.directwerk.modules.podcast.entity.SeriesStatus;
@@ -17,7 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class SubscriberEpisodeService {
 
     private final EpisodeRepository episodeRepository;
-    private final EntitlementApi entitlementApi;
+    private final EpisodeAccessApi episodeAccessApi;
 
     @Transactional(readOnly = true)
     public Episode requirePublishedEpisode(Long tenantId, String slug) {
@@ -38,11 +37,11 @@ public class SubscriberEpisodeService {
         );
     }
 
+    /**
+     * One batched entitlement evaluation for the whole list — no per-episode subscription lookups.
+     */
     @Transactional(readOnly = true)
     public List<Episode> listEntitledEpisodes(Long tenantId, Long userId) {
-        return listPublishedEpisodes(tenantId).stream()
-                .filter(episode -> episode.getAccessPolicy() == AccessPolicy.FREE
-                        || entitlementApi.hasAccess(tenantId, userId, episode.getId()))
-                .toList();
+        return episodeAccessApi.filterAccessible(tenantId, userId, listPublishedEpisodes(tenantId));
     }
 }

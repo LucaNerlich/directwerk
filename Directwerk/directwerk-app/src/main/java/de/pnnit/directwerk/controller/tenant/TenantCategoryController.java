@@ -49,18 +49,13 @@ public class TenantCategoryController {
     @PostMapping
     ResponseEntity<Response<CategoryView>> createCategory(@Valid @RequestBody CreateCategoryRequest request) {
         Long tenantId = TenantContext.requireTenantId();
-        try {
-            Category category = categoryService.createCategory(
-                    tenantId,
-                    request.slug(),
-                    request.name(),
-                    request.parentId()
-            );
-            return ResponseEntity.status(HttpStatus.CREATED).body(Response.created(toView(category)));
-        } catch (IllegalStateException ex) {
-            return ResponseEntity.status(HttpStatus.CONFLICT)
-                    .body(Response.error(409, "CATEGORY_SLUG_EXISTS", ex.getMessage()));
-        }
+                Category category = categoryService.createCategory(
+                tenantId,
+                request.slug(),
+                request.name(),
+                request.parentId()
+        );
+        return ResponseEntity.status(HttpStatus.CREATED).body(Response.created(toView(category)));
     }
 
     @PutMapping("/{categoryId}")
@@ -69,20 +64,15 @@ public class TenantCategoryController {
             @Valid @RequestBody UpdateCategoryRequest request
     ) {
         Long tenantId = TenantContext.requireTenantId();
-        try {
-            Category category = categoryService.updateCategory(
-                    tenantId,
-                    categoryId,
-                    request.slug(),
-                    request.name(),
-                    request.parentId(),
-                    request.active()
-            );
-            return ResponseEntity.ok(Response.ok(toView(category)));
-        } catch (IllegalStateException ex) {
-            return ResponseEntity.status(HttpStatus.CONFLICT)
-                    .body(Response.error(409, "CATEGORY_SLUG_EXISTS", ex.getMessage()));
-        }
+                Category category = categoryService.updateCategory(
+                tenantId,
+                categoryId,
+                request.slug(),
+                request.name(),
+                request.parentId(),
+                request.active()
+        );
+        return ResponseEntity.ok(Response.ok(toView(category)));
     }
 
     @DeleteMapping("/{categoryId}")

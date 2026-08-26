@@ -54,6 +54,13 @@ public interface MediaAssetRepository extends JpaRepository<MediaAsset, Long> {
     );
 
     /**
+     * Bulk variant of {@link #findById(Long)}: one query, tenant eagerly fetched — same
+     * LazyInitializationException rationale as the findById override.
+     */
+    @EntityGraph(attributePaths = "tenant")
+    List<MediaAsset> findAllWithTenantByIdIn(java.util.Collection<Long> ids);
+
+    /**
      * Tombstones a {@code PENDING} asset whose staging object was purged. Explicitly scoped by
      * tenant because Hibernate filters do not apply to bulk updates.
      */

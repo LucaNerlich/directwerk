@@ -1,5 +1,7 @@
 package de.pnnit.directwerk.modules.core.service;
 
+import de.pnnit.directwerk.modules.core.exception.ConflictException;
+import de.pnnit.directwerk.modules.core.exception.ConflictCodes;
 import de.pnnit.directwerk.modules.core.entity.InvitationType;
 import de.pnnit.directwerk.modules.core.entity.MembershipStatus;
 import de.pnnit.directwerk.modules.core.entity.Role;
@@ -69,7 +71,7 @@ public class TenantInvitationService {
         Optional<TenantMembership> existingMembership = tenantMembershipRepository
                 .findByUserIdAndTenantId(user.getId(), tenant.getId());
         if (existingMembership.map(membership -> membership.getStatus() == MembershipStatus.ACTIVE).orElse(false)) {
-            throw new IllegalStateException("User is already an active member of this tenant");
+            throw new ConflictException(ConflictCodes.USER_ALREADY_MEMBER, "User is already an active member of this tenant");
         }
 
         TenantMembership membership = existingMembership.orElseGet(() -> {

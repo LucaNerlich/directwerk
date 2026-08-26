@@ -3,7 +3,8 @@ package de.pnnit.directwerk.controller.auth;
 import de.pnnit.directwerk.api.dto.FeedEnabledRequest;
 import de.pnnit.directwerk.api.dto.FormatView;
 import de.pnnit.directwerk.api.response.Response;
-import de.pnnit.directwerk.modules.core.service.ModuleGateService;
+import de.pnnit.directwerk.modules.core.RequiresModule;
+import de.pnnit.directwerk.modules.core.util.FeedUrls;
 import de.pnnit.directwerk.modules.core.util.PublicUrlBuilder;
 import de.pnnit.directwerk.modules.podcast.FeedBuilderModule;
 import de.pnnit.directwerk.modules.podcast.PodcastRssModule;
@@ -35,17 +36,15 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @PreAuthorize("isAuthenticated()")
 @RequestMapping("/api/v1/me/feeds")
+@RequiresModule({PodcastRssModule.KEY, SubscriptionModule.MODULE_KEY})
 public class MeFeedController {
 
     private final SubscriberFeedService subscriberFeedService;
-    private final ModuleGateService moduleGateService;
 
     public MeFeedController(
-            SubscriberFeedService subscriberFeedService,
-            ModuleGateService moduleGateService
+            SubscriberFeedService subscriberFeedService
     ) {
         this.subscriberFeedService = subscriberFeedService;
-        this.moduleGateService = moduleGateService;
     }
 
     @GetMapping
@@ -54,7 +53,6 @@ public class MeFeedController {
             HttpServletRequest request
     ) {
         DirectwerkUserPrincipal user = SecurityUtils.requireTenantPrincipal(principal);
-        requireFeedModules();
 
         subscriberFeedService.ensureDefaultFeed(user.tenantId(), user.userId());
         List<SubscriberFeedView> feeds = subscriberFeedService.listFeeds(user.tenantId(), user.userId()).stream()
@@ -64,14 +62,13 @@ public class MeFeedController {
     }
 
     @PostMapping
+    @RequiresModule({PodcastRssModule.KEY, SubscriptionModule.MODULE_KEY, FeedBuilderModule.KEY})
     ResponseEntity<Response<SubscriberFeedView>> createCustomFeed(
             @AuthenticationPrincipal DirectwerkUserPrincipal principal,
             @RequestBody CreateCustomFeedRequest body,
             HttpServletRequest request
     ) {
         DirectwerkUserPrincipal user = SecurityUtils.requireTenantPrincipal(principal);
-        requireFeedModules();
-        requireFeedBuilder();
 
         SubscriberFeed feed = subscriberFeedService.createCustomFeed(
                 user.tenantId(),
@@ -83,6 +80,7 @@ public class MeFeedController {
     }
 
     @PutMapping("/{feedId}")
+    @RequiresModule({PodcastRssModule.KEY, SubscriptionModule.MODULE_KEY, FeedBuilderModule.KEY})
     ResponseEntity<Response<SubscriberFeedView>> updateCustomFeed(
             @AuthenticationPrincipal DirectwerkUserPrincipal principal,
             @PathVariable Long feedId,
@@ -90,8 +88,6 @@ public class MeFeedController {
             HttpServletRequest request
     ) {
         DirectwerkUserPrincipal user = SecurityUtils.requireTenantPrincipal(principal);
-        requireFeedModules();
-        requireFeedBuilder();
 
         SubscriberFeed feed = subscriberFeedService.updateCustomFeed(
                 user.tenantId(),
@@ -104,13 +100,12 @@ public class MeFeedController {
     }
 
     @GetMapping("/preview")
+    @RequiresModule({PodcastRssModule.KEY, SubscriptionModule.MODULE_KEY, FeedBuilderModule.KEY})
     ResponseEntity<Response<FeedPreviewView>> previewFormats(
             @AuthenticationPrincipal DirectwerkUserPrincipal principal,
             @RequestParam List<Long> formatIds
     ) {
         DirectwerkUserPrincipal user = SecurityUtils.requireTenantPrincipal(principal);
-        requireFeedModules();
-        requireFeedBuilder();
 
         SubscriberFeedService.FeedPreview preview = subscriberFeedService.preview(
                 user.tenantId(),
@@ -121,13 +116,12 @@ public class MeFeedController {
     }
 
     @GetMapping("/{feedId}/preview")
+    @RequiresModule({PodcastRssModule.KEY, SubscriptionModule.MODULE_KEY, FeedBuilderModule.KEY})
     ResponseEntity<Response<FeedPreviewView>> previewFeed(
             @AuthenticationPrincipal DirectwerkUserPrincipal principal,
             @PathVariable Long feedId
     ) {
         DirectwerkUserPrincipal user = SecurityUtils.requireTenantPrincipal(principal);
-        requireFeedModules();
-        requireFeedBuilder();
 
         SubscriberFeedService.FeedPreview preview = subscriberFeedService.previewOwnedFeed(
                 user.tenantId(),
@@ -145,7 +139,6 @@ public class MeFeedController {
             HttpServletRequest request
     ) {
         DirectwerkUserPrincipal user = SecurityUtils.requireTenantPrincipal(principal);
-        requireFeedModules();
 
         SubscriberFeed feed = subscriberFeedService.setOwnedFeedEnabled(
                 user.tenantId(),
@@ -163,7 +156,6 @@ public class MeFeedController {
             HttpServletRequest request
     ) {
         DirectwerkUserPrincipal user = SecurityUtils.requireTenantPrincipal(principal);
-        requireFeedModules();
 
         SubscriberFeed feed = subscriberFeedService.rotateOwnedFeedToken(
                 user.tenantId(),
@@ -180,7 +172,6 @@ public class MeFeedController {
             HttpServletRequest request
     ) {
         DirectwerkUserPrincipal user = SecurityUtils.requireTenantPrincipal(principal);
-        requireFeedModules();
 
         SubscriberFeed feed = subscriberFeedService.deleteCustomFeed(user.tenantId(), user.userId(), feedId);
         return ResponseEntity.ok(Response.ok(toView(feed, request)));
@@ -192,7 +183,6 @@ public class MeFeedController {
             HttpServletRequest request
     ) {
         DirectwerkUserPrincipal user = SecurityUtils.requireTenantPrincipal(principal);
-        requireFeedModules();
 
         SubscriberFeed feed = subscriberFeedService.rotateDefaultFeedToken(user.tenantId(), user.userId());
         return ResponseEntity.ok(Response.ok(toView(feed, request)));
@@ -205,7 +195,6 @@ public class MeFeedController {
             HttpServletRequest request
     ) {
         DirectwerkUserPrincipal user = SecurityUtils.requireTenantPrincipal(principal);
-        requireFeedModules();
 
         SubscriberFeed feed = subscriberFeedService.setDefaultFeedEnabled(
                 user.tenantId(),
@@ -215,29 +204,18 @@ public class MeFeedController {
         return ResponseEntity.ok(Response.ok(toView(feed, request)));
     }
 
-    private void requireFeedModules() {
-        moduleGateService.requireModule(PodcastRssModule.KEY);
-        moduleGateService.requireModule(SubscriptionModule.MODULE_KEY);
-    }
-
-    private void requireFeedBuilder() {
-        moduleGateService.requireModule(FeedBuilderModule.KEY);
-    }
-
     private static SubscriberFeedView toView(SubscriberFeed feed, HttpServletRequest request) {
         String origin = PublicUrlBuilder.baseUrl(
                 request.getScheme(),
                 request.getServerName(),
                 request.getServerPort()
         );
-        String url = origin
-                + "/feeds/" + feed.getTenant().getSlug()
-                + "/u/" + feed.getFeedToken() + ".xml";
+        String url = FeedUrls.subscriberFeed(origin, feed.getTenant().getSlug(), feed.getFeedToken());
         List<FormatView> formats = feed.getFormats() == null
                 ? List.of()
                 : feed.getFormats().stream()
-                        .sorted(Comparator.comparingInt(Format::getSortOrder).thenComparing(Format::getId))
-                        .map(MeFeedController::toFormatView)
+                        .sorted(FormatView.DISPLAY_ORDER)
+                        .map(FormatView::of)
                         .toList();
         return new SubscriberFeedView(
                 feed.getId(),
@@ -249,16 +227,6 @@ public class MeFeedController {
                 formats,
                 feed.getCreatedAt(),
                 feed.getUpdatedAt()
-        );
-    }
-
-    private static FormatView toFormatView(Format format) {
-        return new FormatView(
-                format.getId(),
-                format.getSlug(),
-                format.getName(),
-                format.getRequiredLevelSortOrder(),
-                format.getSortOrder()
         );
     }
 

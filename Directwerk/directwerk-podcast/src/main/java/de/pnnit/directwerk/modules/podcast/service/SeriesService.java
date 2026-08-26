@@ -1,5 +1,7 @@
 package de.pnnit.directwerk.modules.podcast.service;
 
+import de.pnnit.directwerk.modules.core.exception.ConflictException;
+import de.pnnit.directwerk.modules.core.exception.ConflictCodes;
 import de.pnnit.directwerk.modules.core.RequiresModule;
 import de.pnnit.directwerk.modules.core.repository.TenantRepository;
 import de.pnnit.directwerk.modules.core.util.SlugNormalizer;
@@ -63,7 +65,7 @@ public class SeriesService {
     ) {
         String slug = SlugNormalizer.normalize(rawSlug);
         if (podcastSeriesRepository.existsByTenantIdAndSlug(tenantId, slug)) {
-            throw new IllegalStateException("Series slug already exists: " + slug);
+            throw new ConflictException(ConflictCodes.SERIES_SLUG_EXISTS, "Series slug already exists: " + slug);
         }
 
         PodcastSeries series = new PodcastSeries();
@@ -102,7 +104,7 @@ public class SeriesService {
         if (rawSlug != null) {
             String slug = SlugNormalizer.normalize(rawSlug);
             if (podcastSeriesRepository.existsByTenantIdAndSlugAndIdNot(tenantId, slug, seriesId)) {
-                throw new IllegalStateException("Series slug already exists: " + slug);
+                throw new ConflictException(ConflictCodes.SERIES_SLUG_EXISTS, "Series slug already exists: " + slug);
             }
             series.setSlug(slug);
         }

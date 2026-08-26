@@ -12,6 +12,7 @@ import de.pnnit.directwerk.modules.digital.entity.AssetVisibility;
 import de.pnnit.directwerk.modules.digital.entity.MediaAsset;
 import de.pnnit.directwerk.modules.digital.exception.MediaAssetNotFoundException;
 import de.pnnit.directwerk.modules.digital.exception.StorageNotConfiguredException;
+import de.pnnit.directwerk.modules.digital.storage.StorageConfigs;
 import de.pnnit.directwerk.modules.digital.exception.UploadValidationException;
 import de.pnnit.directwerk.modules.digital.repository.MediaAssetRepository;
 import de.pnnit.directwerk.modules.digital.storage.S3PublicUrlBuilder;
@@ -78,7 +79,7 @@ public class EpisodeMediaService implements EpisodeMediaApi {
             if (s3Client == null) {
                 throw new StorageNotConfiguredException("Object storage client is not available");
             }
-            DirectwerkProperties.Storage storage = requireStorage();
+            DirectwerkProperties.Storage storage = StorageConfigs.requireEnabled(directwerkConfig);
             s3Client.copyObject(CopyObjectRequest.builder()
                     .sourceBucket(storage.bucket())
                     .sourceKey(asset.getS3Key())
@@ -101,7 +102,7 @@ public class EpisodeMediaService implements EpisodeMediaApi {
             // cleanup the copied object would sit untracked under the public
             // prefix while the DB still says PRIVATE. Best-effort removal.
             if (directwerkConfig.isStorageEnabled()) {
-                DirectwerkProperties.Storage storage = requireStorage();
+                DirectwerkProperties.Storage storage = StorageConfigs.requireEnabled(directwerkConfig);
                 try {
                     s3ClientProvider.getIfAvailable().deleteObject(DeleteObjectRequest.builder()
                             .bucket(storage.bucket())
@@ -135,7 +136,7 @@ public class EpisodeMediaService implements EpisodeMediaApi {
             if (s3Client == null) {
                 throw new StorageNotConfiguredException("Object storage client is not available");
             }
-            storage = requireStorage();
+            storage = StorageConfigs.requireEnabled(directwerkConfig);
             s3Client.copyObject(CopyObjectRequest.builder()
                     .sourceBucket(storage.bucket())
                     .sourceKey(publicKey)
@@ -195,13 +196,12 @@ public class EpisodeMediaService implements EpisodeMediaApi {
                 || managed.getS3Key() == null) {
             return Optional.empty();
         }
+        if (!TenantAssetKeys.isPublicKey(managed.getTenant().getSlug(), managed.getS3Key())) {
+            return Optional.empty();
+        }
         String normalized = managed.getS3Key().startsWith("/")
                 ? managed.getS3Key().substring(1)
                 : managed.getS3Key();
-        String tenantPublicPrefix = managed.getTenant().getSlug() + "/public/";
-        if (!normalized.startsWith(tenantPublicPrefix)) {
-            return Optional.empty();
-        }
         S3PublicUrlBuilder publicUrlBuilder = publicUrlBuilderProvider.getIfAvailable();
         if (publicUrlBuilder == null) {
             return Optional.empty();
@@ -253,11 +253,5 @@ public class EpisodeMediaService implements EpisodeMediaApi {
         return privatePrefix + key.substring(publicPrefix.length());
     }
 
-    private DirectwerkProperties.Storage requireStorage() {
-        DirectwerkProperties.Storage storage = directwerkConfig.storage();
-        if (storage == null || storage.bucket() == null || storage.bucket().isBlank()) {
-            throw new StorageNotConfiguredException("Object storage bucket is not configured");
-        }
-        return storage;
-    }
+
 }
