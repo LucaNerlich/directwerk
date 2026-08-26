@@ -10,7 +10,6 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import java.util.List;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -54,18 +53,13 @@ public class PlatformTenantUserController {
             @PathVariable Long tenantId,
             @Valid @RequestBody InviteTenantUserRequest request
     ) {
-        try {
-            TenantInvitationService.InvitationResult invitation = tenantInvitationService.invite(
-                    tenantId,
-                    request.email(),
-                    request.name(),
-                    request.role()
-            );
-            return invitationResponseMapper.toCreatedResponse(invitation);
-        } catch (IllegalStateException ex) {
-            return ResponseEntity.status(HttpStatus.CONFLICT)
-                    .body(Response.error(409, "USER_ALREADY_MEMBER", ex.getMessage()));
-        }
+                TenantInvitationService.InvitationResult invitation = tenantInvitationService.invite(
+                tenantId,
+                request.email(),
+                request.name(),
+                request.role()
+        );
+        return invitationResponseMapper.toCreatedResponse(invitation);
     }
 
     /**

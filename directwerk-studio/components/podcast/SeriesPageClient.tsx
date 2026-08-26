@@ -9,13 +9,14 @@ import EmptyState from '@directwerk/ui/components/empty-state'
 import PageHeader from '@directwerk/ui/components/page-header'
 
 import PublicationStatusBadge from '@/components/publication/PublicationStatusBadge'
-import {AUTH_REQUIRED} from '@/lib/api/errors'
 import {listSeries} from '@/lib/api/tenantApi'
-import type {SeriesSummary} from '@/lib/api/types'
+import type {SeriesSummary} from '@directwerk/api/types'
 import {getClientTenantHost} from '@/lib/tenant/getClientTenantHost'
+import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
 
 export default function SeriesPageClient(): React.JSX.Element {
     const router = useRouter()
+    const authRedirect = useAuthRequired()
     const [series, setSeries] = useState<SeriesSummary[]>([])
     const [errorMessage, setErrorMessage] = useState<string | null>(null)
     const [isLoading, setIsLoading] = useState(true)
@@ -33,10 +34,7 @@ export default function SeriesPageClient(): React.JSX.Element {
                 if (!active) {
                     return
                 }
-                if (error instanceof Error && error.message === AUTH_REQUIRED) {
-                    router.replace('/login')
-                    return
-                }
+                if (authRedirect(error)) return
                 setErrorMessage(
                     error instanceof Error
                         ? error.message

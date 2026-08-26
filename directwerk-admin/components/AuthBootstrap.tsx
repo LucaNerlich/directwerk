@@ -3,7 +3,7 @@
 import {usePathname, useRouter} from 'next/navigation'
 import {useEffect, useState} from 'react'
 
-import {AUTH_REQUIRED} from '@/lib/api/errors'
+import {AUTH_REQUIRED} from '@directwerk/api/constants'
 import {ensureAuthenticated} from '@/lib/auth/session'
 import {getAccessToken} from '@/lib/auth/tokenStore'
 

@@ -11,7 +11,7 @@ import {Input} from '@directwerk/ui/components/input'
 import {Label} from '@directwerk/ui/components/label'
 
 import {forgotPassword} from '@/lib/api/client'
-import {parseForgotPasswordInput} from '@/lib/api/validation'
+import {parseForgotPasswordInput} from '@directwerk/api/validation'
 
 interface ForgotPasswordState {
     error: string | null

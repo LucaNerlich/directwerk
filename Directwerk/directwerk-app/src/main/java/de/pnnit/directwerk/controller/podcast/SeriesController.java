@@ -2,14 +2,13 @@ package de.pnnit.directwerk.controller.podcast;
 
 import de.pnnit.directwerk.api.response.Response;
 import de.pnnit.directwerk.modules.core.RequiresModule;
-import de.pnnit.directwerk.modules.core.entity.Tenant;
-import de.pnnit.directwerk.modules.core.service.ModuleGateService;
-import de.pnnit.directwerk.modules.core.service.TenantLookupService;
+import de.pnnit.directwerk.modules.core.util.FeedUrls;
 import de.pnnit.directwerk.modules.core.util.PublicUrlBuilder;
 import de.pnnit.directwerk.modules.podcast.PodcastModule;
 import de.pnnit.directwerk.modules.podcast.PodcastRssModule;
 import de.pnnit.directwerk.modules.podcast.entity.PodcastSeries;
 import de.pnnit.directwerk.modules.podcast.entity.SeriesStatus;
+import de.pnnit.directwerk.modules.podcast.service.RssFeedSnapshotService;
 import de.pnnit.directwerk.modules.podcast.service.SeriesService;
 import de.pnnit.directwerk.multitenancy.TenantContext;
 import jakarta.servlet.http.HttpServletRequest;
@@ -38,24 +37,14 @@ import org.springframework.web.bind.annotation.RestController;
 public class SeriesController {
 
     private final SeriesService seriesService;
-    private final ModuleGateService moduleGateService;
-    private final TenantLookupService tenantLookupService;
+    private final RssFeedSnapshotService rssFeedSnapshotService;
 
-    /**
-     * Creates a controller for managing podcast series.
-     *
-     * @param seriesService        service for series operations
-     * @param moduleGateService    service for checking tenant module availability
-     * @param tenantLookupService  service for resolving tenant details
-     */
     public SeriesController(
             SeriesService seriesService,
-            ModuleGateService moduleGateService,
-            TenantLookupService tenantLookupService
+            RssFeedSnapshotService rssFeedSnapshotService
     ) {
         this.seriesService = seriesService;
-        this.moduleGateService = moduleGateService;
-        this.tenantLookupService = tenantLookupService;
+        this.rssFeedSnapshotService = rssFeedSnapshotService;
     }
 
     /**
@@ -67,22 +56,10 @@ public class SeriesController {
     @GetMapping
     ResponseEntity<Response<List<SeriesView>>> listSeries(HttpServletRequest request) {
         Long tenantId = TenantContext.requireTenantId();
-        boolean rssModuleEnabled = moduleGateService.enabledModuleKeys(tenantId).contains(PodcastRssModule.KEY);
-        String rssOrigin = null;
-        String tenantSlug = null;
-        if (rssModuleEnabled) {
-            Tenant tenant = tenantLookupService.requireTenant(tenantId);
-            tenantSlug = tenant.getSlug();
-            rssOrigin = PublicUrlBuilder.baseUrl(
-                    request.getScheme(),
-                    request.getServerName(),
-                    request.getServerPort()
-            );
-        }
-        final String finalRssOrigin = rssOrigin;
-        final String finalTenantSlug = tenantSlug;
+        final String tenantSlug = rssTenantSlug(tenantId);
+        final String rssOrigin = tenantSlug == null ? null : rssOrigin(request);
         List<SeriesView> series = seriesService.listSeries(tenantId, false).stream()
-                .map(item -> toView(item, finalRssOrigin, finalTenantSlug))
+                .map(item -> toView(item, rssOrigin, tenantSlug))
                 .toList();
         return ResponseEntity.ok(Response.ok(series));
     }
@@ -96,18 +73,8 @@ public class SeriesController {
     @GetMapping("/{seriesId}")
     ResponseEntity<Response<SeriesView>> getSeries(@PathVariable Long seriesId, HttpServletRequest request) {
         Long tenantId = TenantContext.requireTenantId();
-        boolean rssModuleEnabled = moduleGateService.enabledModuleKeys(tenantId).contains(PodcastRssModule.KEY);
-        String rssOrigin = null;
-        String tenantSlug = null;
-        if (rssModuleEnabled) {
-            Tenant tenant = tenantLookupService.requireTenant(tenantId);
-            tenantSlug = tenant.getSlug();
-            rssOrigin = PublicUrlBuilder.baseUrl(
-                    request.getScheme(),
-                    request.getServerName(),
-                    request.getServerPort()
-            );
-        }
+        String tenantSlug = rssTenantSlug(tenantId);
+        String rssOrigin = tenantSlug == null ? null : rssOrigin(request);
         return ResponseEntity.ok(
                 Response.ok(toView(seriesService.requireSeries(tenantId, seriesId), rssOrigin, tenantSlug))
         );
@@ -126,35 +93,20 @@ public class SeriesController {
             HttpServletRequest httpRequest
     ) {
         Long tenantId = TenantContext.requireTenantId();
-        try {
-            PodcastSeries series = seriesService.createSeries(
-                    tenantId,
-                    request.slug(),
-                    request.title(),
-                    request.description(),
-                    request.coverAssetId(),
-                    request.language(),
-                    request.itunesCategory(),
-                    request.defaultRequiredLevelSortOrder()
-            );
-            boolean rssModuleEnabled = moduleGateService.enabledModuleKeys(tenantId).contains(PodcastRssModule.KEY);
-            String rssOrigin = null;
-            String tenantSlug = null;
-            if (rssModuleEnabled) {
-                Tenant tenant = tenantLookupService.requireTenant(tenantId);
-                tenantSlug = tenant.getSlug();
-                rssOrigin = PublicUrlBuilder.baseUrl(
-                        httpRequest.getScheme(),
-                        httpRequest.getServerName(),
-                        httpRequest.getServerPort()
-                );
-            }
-            return ResponseEntity.status(HttpStatus.CREATED)
-                    .body(Response.created(toView(series, rssOrigin, tenantSlug)));
-        } catch (IllegalStateException ex) {
-            return ResponseEntity.status(HttpStatus.CONFLICT)
-                    .body(Response.error(409, "SERIES_SLUG_EXISTS", ex.getMessage()));
-        }
+                PodcastSeries series = seriesService.createSeries(
+                tenantId,
+                request.slug(),
+                request.title(),
+                request.description(),
+                request.coverAssetId(),
+                request.language(),
+                request.itunesCategory(),
+                request.defaultRequiredLevelSortOrder()
+        );
+        String tenantSlug = rssTenantSlug(tenantId);
+        String rssOrigin = tenantSlug == null ? null : rssOrigin(httpRequest);
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(Response.created(toView(series, rssOrigin, tenantSlug)));
     }
 
     /**
@@ -171,36 +123,21 @@ public class SeriesController {
             HttpServletRequest httpRequest
     ) {
         Long tenantId = TenantContext.requireTenantId();
-        try {
-            PodcastSeries series = seriesService.updateSeries(
-                    tenantId,
-                    seriesId,
-                    request.slug(),
-                    request.title(),
-                    request.description(),
-                    request.coverAssetId(),
-                    request.language(),
-                    request.itunesCategory(),
-                    request.defaultRequiredLevelSortOrder(),
-                    request.status()
-            );
-            boolean rssModuleEnabled = moduleGateService.enabledModuleKeys(tenantId).contains(PodcastRssModule.KEY);
-            String rssOrigin = null;
-            String tenantSlug = null;
-            if (rssModuleEnabled) {
-                Tenant tenant = tenantLookupService.requireTenant(tenantId);
-                tenantSlug = tenant.getSlug();
-                rssOrigin = PublicUrlBuilder.baseUrl(
-                        httpRequest.getScheme(),
-                        httpRequest.getServerName(),
-                        httpRequest.getServerPort()
-                );
-            }
-            return ResponseEntity.ok(Response.ok(toView(series, rssOrigin, tenantSlug)));
-        } catch (IllegalStateException ex) {
-            return ResponseEntity.status(HttpStatus.CONFLICT)
-                    .body(Response.error(409, "SERIES_SLUG_EXISTS", ex.getMessage()));
-        }
+                PodcastSeries series = seriesService.updateSeries(
+                tenantId,
+                seriesId,
+                request.slug(),
+                request.title(),
+                request.description(),
+                request.coverAssetId(),
+                request.language(),
+                request.itunesCategory(),
+                request.defaultRequiredLevelSortOrder(),
+                request.status()
+        );
+        String tenantSlug = rssTenantSlug(tenantId);
+        String rssOrigin = tenantSlug == null ? null : rssOrigin(httpRequest);
+        return ResponseEntity.ok(Response.ok(toView(series, rssOrigin, tenantSlug)));
     }
 
     /**
@@ -211,10 +148,18 @@ public class SeriesController {
      * @param tenantSlug the tenant slug used to build the RSS feed URL
      * @return the API view representing the series
      */
+    private static String rssOrigin(HttpServletRequest request) {
+        return PublicUrlBuilder.baseUrl(request.getScheme(), request.getServerName(), request.getServerPort());
+    }
+
+    private String rssTenantSlug(Long tenantId) {
+        return rssFeedSnapshotService.publicRssTenantSlug(tenantId).orElse(null);
+    }
+
     private SeriesView toView(PodcastSeries series, String rssOrigin, String tenantSlug) {
         String rssUrl = null;
         if (rssOrigin != null && tenantSlug != null) {
-            rssUrl = rssOrigin + "/feeds/" + tenantSlug + "/" + series.getSlug() + ".xml";
+            rssUrl = FeedUrls.seriesFeed(rssOrigin, tenantSlug, series.getSlug());
         }
         return new SeriesView(
                 series.getId(),

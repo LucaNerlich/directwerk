@@ -12,17 +12,18 @@ import Link from 'next/link'
 import {useEffect, useState, type FormEvent} from 'react'
 import {useRouter} from 'next/navigation'
 
-import {AUTH_REQUIRED} from '@/lib/api/errors'
 import {
     grantSubscription,
     listProducts,
     revokeSubscription,
 } from '@/lib/api/tenantApi'
-import type {SubscriptionGrant, SubscriptionProduct} from '@/lib/api/types'
+import type {SubscriptionGrant, SubscriptionProduct} from '@directwerk/api/types'
 import {getClientTenantHost} from '@/lib/tenant/getClientTenantHost'
+import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
 
 export default function GrantsClient(): React.JSX.Element {
     const router = useRouter()
+    const authRedirect = useAuthRequired()
     const [products, setProducts] = useState<SubscriptionProduct[]>([])
     const [email, setEmail] = useState('')
     const [productId, setProductId] = useState('')
@@ -51,10 +52,7 @@ export default function GrantsClient(): React.JSX.Element {
                 if (!active) {
                     return
                 }
-                if (error instanceof Error && error.message === AUTH_REQUIRED) {
-                    router.replace('/login')
-                    return
-                }
+                if (authRedirect(error)) return
                 setErrorMessage(
                     error instanceof Error
                         ? error.message
@@ -90,10 +88,7 @@ export default function GrantsClient(): React.JSX.Element {
             setStatusMessage(`Freigeschaltet: ${grant.email} → ${grant.productTitle}`)
             setEmail('')
         } catch (error) {
-            if (error instanceof Error && error.message === AUTH_REQUIRED) {
-                router.replace('/login')
-                return
-            }
+            if (authRedirect(error)) return
             setErrorMessage(
                 error instanceof Error ? error.message : 'Freischaltung fehlgeschlagen.',
             )
@@ -119,10 +114,7 @@ export default function GrantsClient(): React.JSX.Element {
             )
             setStatusMessage(`Widerrufen: ${revoked.email}`)
         } catch (error) {
-            if (error instanceof Error && error.message === AUTH_REQUIRED) {
-                router.replace('/login')
-                return
-            }
+            if (authRedirect(error)) return
             setErrorMessage(
                 error instanceof Error ? error.message : 'Widerruf fehlgeschlagen.',
             )

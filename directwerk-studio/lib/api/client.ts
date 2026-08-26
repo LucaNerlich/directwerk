@@ -1,4 +1,4 @@
-import type {SiteConfig} from '@/lib/api/types'
+import type {SiteConfig} from '@directwerk/api/types'
 
 export function hasModule(config: SiteConfig, moduleKey: string): boolean {
     return config.enabledModules.includes(moduleKey)

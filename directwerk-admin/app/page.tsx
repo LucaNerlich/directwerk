@@ -19,8 +19,8 @@ import {
 
 import CreateTenantForm from '@/components/CreateTenantForm'
 import {getPlatformData, getPlatformJobList} from '@/lib/api/client'
-import {AUTH_REQUIRED} from '@/lib/api/errors'
-import type {PlatformAdmin, Tenant, TenantList} from '@/lib/api/types'
+import {AUTH_REQUIRED} from '@directwerk/api/constants'
+import type {PlatformAdmin, Tenant, TenantList} from '@directwerk/api/types'
 
 export default function HomePage() {
     const router = useRouter()

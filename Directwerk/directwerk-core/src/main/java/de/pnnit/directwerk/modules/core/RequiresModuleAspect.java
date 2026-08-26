@@ -2,6 +2,9 @@ package de.pnnit.directwerk.modules.core;
 
 import de.pnnit.directwerk.modules.core.service.ModuleGateService;
 import java.lang.reflect.Method;
+import java.util.Collections;
+import java.util.LinkedHashSet;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.aspectj.lang.JoinPoint;
 import org.aspectj.lang.annotation.Aspect;
@@ -40,18 +43,26 @@ public class RequiresModuleAspect {
     @Before("@annotation(de.pnnit.directwerk.modules.core.RequiresModule) "
             + "|| @within(de.pnnit.directwerk.modules.core.RequiresModule)")
     public void enforceModule(JoinPoint joinPoint) {
-        RequiresModule requiresModule = resolveAnnotation(joinPoint);
-        if (requiresModule == null) {
-            // Defensive: the pointcut guarantees a match exists, but never NPE if resolution
-            // somehow fails - fail closed by doing nothing would be wrong, so surface clearly.
+        List<String> moduleKeys = resolveRequiredModuleKeys(joinPoint);
+        if (moduleKeys.isEmpty()) {
+            // Defensive: the pointcut guarantees a match exists, but never silently pass if
+            // resolution somehow fails - surface clearly instead.
             throw new IllegalStateException(
                     "RequiresModuleAspect matched a join point without a resolvable @RequiresModule annotation: "
                             + joinPoint.getSignature());
         }
-        moduleGateService.requireModule(requiresModule.value());
+        for (String moduleKey : moduleKeys) {
+            moduleGateService.requireModule(moduleKey);
+        }
     }
 
-    private static RequiresModule resolveAnnotation(JoinPoint joinPoint) {
+    /**
+     * Method-level and type-level annotations <strong>accumulate</strong>: every key from the most
+     * specific method annotation plus every key from the declaring class annotation must be active
+     * (AND semantics). Keys are enforced in declaration order (method first, then type),
+     * deduplicated.
+     */
+    private static List<String> resolveRequiredModuleKeys(JoinPoint joinPoint) {
         MethodSignature signature = (MethodSignature) joinPoint.getSignature();
         Method method = signature.getMethod();
         Object target = joinPoint.getTarget();
@@ -59,9 +70,18 @@ public class RequiresModuleAspect {
         Method mostSpecificMethod = AopUtils.getMostSpecificMethod(method, targetClass);
 
         RequiresModule onMethod = AnnotatedElementUtils.findMergedAnnotation(mostSpecificMethod, RequiresModule.class);
-        if (onMethod != null) {
-            return onMethod;
+        RequiresModule onType = AnnotatedElementUtils.findMergedAnnotation(targetClass, RequiresModule.class);
+
+        if (onMethod == null && onType == null) {
+            return List.of();
         }
-        return AnnotatedElementUtils.findMergedAnnotation(targetClass, RequiresModule.class);
+        LinkedHashSet<String> keys = new LinkedHashSet<>();
+        if (onMethod != null) {
+            Collections.addAll(keys, onMethod.value());
+        }
+        if (onType != null) {
+            Collections.addAll(keys, onType.value());
+        }
+        return List.copyOf(keys);
     }
 }

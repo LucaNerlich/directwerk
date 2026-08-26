@@ -1,6 +1,6 @@
 import {Badge} from '@directwerk/ui/components/badge'
 
-import type {PublicationStatus} from '@/lib/api/types'
+import type {PublicationStatus} from '@directwerk/api/types'
 
 const LABELS: Record<PublicationStatus, string> = {
     DRAFT: 'Entwurf',

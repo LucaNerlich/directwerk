@@ -8,11 +8,11 @@ import {Button} from '@directwerk/ui/components/button'
 import EmptyState from '@directwerk/ui/components/empty-state'
 import PageHeader from '@directwerk/ui/components/page-header'
 
-import {AUTH_REQUIRED} from '@/lib/api/errors'
 import {listProducts} from '@/lib/api/tenantApi'
-import type {SubscriptionProduct} from '@/lib/api/types'
+import type {SubscriptionProduct} from '@directwerk/api/types'
 import {formatMoney} from '@/lib/format/money'
 import {getClientTenantHost} from '@/lib/tenant/getClientTenantHost'
+import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
 
 function ProductGroups({products}: {products: SubscriptionProduct[]}): React.JSX.Element {
     const levels = products
@@ -103,6 +103,7 @@ function ProductGroups({products}: {products: SubscriptionProduct[]}): React.JSX
 
 export default function ProductListClient(): React.JSX.Element {
     const router = useRouter()
+    const authRedirect = useAuthRequired()
     const [products, setProducts] = useState<SubscriptionProduct[] | null>(null)
     const [errorMessage, setErrorMessage] = useState<string | null>(null)
 
@@ -119,10 +120,7 @@ export default function ProductListClient(): React.JSX.Element {
                 if (!active) {
                     return
                 }
-                if (error instanceof Error && error.message === AUTH_REQUIRED) {
-                    router.replace('/login')
-                    return
-                }
+                if (authRedirect(error)) return
                 setErrorMessage(
                     error instanceof Error
                         ? error.message

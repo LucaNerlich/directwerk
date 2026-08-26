@@ -14,8 +14,8 @@ import {
     setFeedEnabled,
     updateCustomFeed,
 } from '@/lib/api/client'
-import {AUTH_REQUIRED} from '@/lib/api/errors'
-import type {FeedPreview, PublicFormat, SubscriberFeed} from '@/lib/api/types'
+import {AUTH_REQUIRED} from '@directwerk/api/constants'
+import type {FeedPreview, PublicFormat, SubscriberFeed} from '@directwerk/api/types'
 import {formatPublishedAt} from '@/lib/format'
 
 interface CustomFeedsPanelProps {

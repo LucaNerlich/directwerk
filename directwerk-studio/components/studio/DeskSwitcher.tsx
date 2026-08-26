@@ -4,7 +4,7 @@ import Link from 'next/link'
 import {usePathname} from 'next/navigation'
 
 import {deskHome, hasDesk, resolveActiveDesk} from '@/lib/api/client'
-import type {SiteConfig} from '@/lib/api/types'
+import type {SiteConfig} from '@directwerk/api/types'
 
 function tabClassName(active: boolean): string {
     return [

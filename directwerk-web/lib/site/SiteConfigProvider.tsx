@@ -2,15 +2,15 @@
 
 import {createContext, useContext, type ReactNode} from 'react'
 
-import type {SiteConfig} from '@/lib/api/types'
+import type {PublicSiteConfig} from '@directwerk/api/types'
 
-const SiteConfigContext = createContext<SiteConfig | null>(null)
+const SiteConfigContext = createContext<PublicSiteConfig | null>(null)
 
 export function SiteConfigProvider({
     config,
     children,
 }: {
-    config: SiteConfig
+    config: PublicSiteConfig
     children: ReactNode
 }) {
     return (
@@ -18,7 +18,7 @@ export function SiteConfigProvider({
     )
 }
 
-export function useSiteConfig(): SiteConfig {
+export function useSiteConfig(): PublicSiteConfig {
     const config = useContext(SiteConfigContext)
     if (!config) {
         throw new Error('SiteConfigProvider is missing')

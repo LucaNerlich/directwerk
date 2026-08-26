@@ -1,6 +1,6 @@
 package de.pnnit.directwerk.modules.digital.service;
 
-import de.pnnit.directwerk.modules.core.service.TenantLookupService;
+import de.pnnit.directwerk.modules.core.repository.TenantRepository;
 import de.pnnit.directwerk.modules.digital.api.MediaAssetQueryApi;
 import de.pnnit.directwerk.modules.digital.entity.AssetStatus;
 import de.pnnit.directwerk.modules.digital.entity.AssetType;
@@ -20,7 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class MediaAssetQueryService implements MediaAssetQueryApi {
 
     private final MediaAssetRepository mediaAssetRepository;
-    private final TenantLookupService tenantLookupService;
+    private final TenantRepository tenantRepository;
 
     @Override
     public Optional<MediaAsset> findById(Long assetId) {
@@ -38,7 +38,7 @@ public class MediaAssetQueryService implements MediaAssetQueryApi {
 
     @Override
     public List<MediaAsset> listForTenant(Long tenantId, AssetType assetType, AssetStatus status, int limit) {
-        tenantLookupService.requireTenant(tenantId);
+        tenantRepository.requireById(tenantId);
         return TenantContext.callWithTenant(tenantId, () -> list(assetType, status, limit));
     }
 }

@@ -67,24 +67,19 @@ public class TenantSubscriptionProductController {
     @PostMapping
     ResponseEntity<Response<ProductView>> createProduct(@Valid @RequestBody CreateProductRequest request) {
         Long tenantId = TenantContext.requireTenantId();
-        try {
-            SubscriptionProduct product = subscriptionProductService.createProduct(
-                    tenantId,
-                    request.slug(),
-                    request.title(),
-                    request.sortOrder(),
-                    request.offeringType(),
-                    request.description(),
-                    request.priceCents(),
-                    request.currency(),
-                    request.billingInterval()
-            );
-            return ResponseEntity.status(HttpStatus.CREATED)
-                    .body(Response.created(toView(product)));
-        } catch (IllegalStateException ex) {
-            return ResponseEntity.status(HttpStatus.CONFLICT)
-                    .body(Response.error(409, "PRODUCT_SLUG_EXISTS", ex.getMessage()));
-        }
+                SubscriptionProduct product = subscriptionProductService.createProduct(
+                tenantId,
+                request.slug(),
+                request.title(),
+                request.sortOrder(),
+                request.offeringType(),
+                request.description(),
+                request.priceCents(),
+                request.currency(),
+                request.billingInterval()
+        );
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(Response.created(toView(product)));
     }
 
     @PutMapping("/{productId}")

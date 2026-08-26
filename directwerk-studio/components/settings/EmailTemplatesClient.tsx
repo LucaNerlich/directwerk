@@ -10,13 +10,14 @@ import Form from 'next/form'
 import {useRouter} from 'next/navigation'
 import {useActionState, useEffect, useState} from 'react'
 
-import {AUTH_REQUIRED} from '@/lib/api/errors'
+import {AUTH_REQUIRED} from '@directwerk/api/constants'
 import {
     getContentEmailTemplate,
     upsertContentEmailTemplate,
 } from '@/lib/api/tenantApi'
-import type {ContentEmailTemplate, ContentEmailTemplateType} from '@/lib/api/types'
+import type {ContentEmailTemplate, ContentEmailTemplateType} from '@directwerk/api/types'
 import {getClientTenantHost} from '@/lib/tenant/getClientTenantHost'
+import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
 
 interface TemplateFormState {
     error: string | null
@@ -29,6 +30,7 @@ const CONTENT_TYPES: ContentEmailTemplateType[] = ['EPISODE', 'ARTICLE']
 
 export default function EmailTemplatesClient(): React.JSX.Element {
     const router = useRouter()
+    const authRedirect = useAuthRequired()
     const [contentType, setContentType] = useState<ContentEmailTemplateType>('EPISODE')
     const [template, setTemplate] = useState<ContentEmailTemplate | null>(null)
     const [loadError, setLoadError] = useState<string | null>(null)
@@ -51,10 +53,7 @@ export default function EmailTemplatesClient(): React.JSX.Element {
                 if (!active) {
                     return
                 }
-                if (error instanceof Error && error.message === AUTH_REQUIRED) {
-                    router.replace('/login')
-                    return
-                }
+                if (authRedirect(error)) return
                 setLoadError(
                     error instanceof Error
                         ? error.message
@@ -90,10 +89,7 @@ export default function EmailTemplatesClient(): React.JSX.Element {
             setTemplate(updated)
             return {error: null, success: 'Vorlage gespeichert.'}
         } catch (error: unknown) {
-            if (error instanceof Error && error.message === AUTH_REQUIRED) {
-                router.replace('/login')
-                return INITIAL_STATE
-            }
+            if (authRedirect(error)) return INITIAL_STATE
             return {
                 error:
                     error instanceof Error

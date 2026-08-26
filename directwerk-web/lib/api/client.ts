@@ -1,84 +1,69 @@
-import {AUTH_REQUIRED} from '@/lib/api/errors'
+import {createAuthedRequest} from '@directwerk/api/client'
+import {extractApiErrorMessage} from '@directwerk/api/envelope'
 import {
+    createPublicContentParsers,
     parseAccessEnvelope,
-    parseMeEnvelope,
-    parsePublicArticleListEnvelope,
-    parsePublicEpisodeListEnvelope,
-    parsePublicFormatListEnvelope,
-    parsePublicSeriesListEnvelope,
     parseCheckoutSessionEnvelope,
-    parseSiteConfigEnvelope,
-    parseSubscriptionListEnvelope,
-    parseSubscriberDownloadListEnvelope,
-    parseSubscriberFeedEnvelope,
-    parseSubscriberFeedListEnvelope,
     parseFeedPreviewEnvelope,
+    parseMeEnvelope,
+    parsePublicFormatListEnvelope,
+    parsePublicSiteConfigEnvelope,
+    parseSubscriptionListEnvelope,
     parseTokenResponse,
-} from '@/lib/api/responseValidation'
+} from '@directwerk/api/validation'
+import {
+    parseSubscriberDownloadListEnvelope as parseSubscriberDownloadListEnvelopeAlias,
+    parseSubscriberFeedEnvelope as parseSubscriberFeedEnvelopeAlias,
+    parseSubscriberFeedListEnvelope as parseSubscriberFeedListEnvelopeAlias,
+} from '@directwerk/api/validation'
+import type {ErrorMessageCatalog} from '@directwerk/api/envelope'
+import {sanitizeContentHtml} from '@/lib/sanitizeContentHtml'
 import type {
     Access,
     ApiEnvelope,
+    FeedPreview,
     Me,
     PublicArticle,
     PublicEpisode,
     PublicFormat,
     PublicSeries,
-    SiteConfig,
+    PublicSiteConfig,
     SubscriberDownload,
-    SubscriberFeed,
-    FeedPreview,
+    SubscriberFeedView,
     SubscriptionSummary,
     TokenResponse,
-} from '@/lib/api/types'
+} from '@directwerk/api/types'
 import type {
     AcceptInviteInput,
     ForgotPasswordInput,
     LoginInput,
     RegisterInput,
     ResetPasswordInput,
-} from '@/lib/api/validation'
+} from '@directwerk/api/validation'
 import {clearTokens} from '@/lib/auth/tokenStore'
+import {getClientTenantHost} from '@/lib/tenant/getClientTenantHost'
 import {getValidAccessToken, refreshAccessToken} from '@/lib/auth/session'
 
+const INVALID_RESPONSE = 'The server returned an invalid response.'
 
-function errorMessage(value: unknown, status: number): string {
-    if (
-        typeof value === 'object' &&
-        value !== null &&
-        'error' in value &&
-        typeof value.error === 'string' &&
-        value.error.length <= 255
-    ) {
-        return value.error
-    }
-
-    if (
-        typeof value === 'object' &&
-        value !== null &&
-        'errors' in value &&
-        Array.isArray(value.errors) &&
-        value.errors.length > 0
-    ) {
-        const first = value.errors[0]
-        if (
-            typeof first === 'object' &&
-            first !== null &&
-            'message' in first &&
-            typeof first.message === 'string' &&
-            first.message.length > 0 &&
-            first.message.length <= 255
-        ) {
-            return first.message
-        }
-    }
-
-    return `Request failed with status ${status}.`
+/** Web error-message catalog (English user-facing strings). */
+const ERROR_CATALOG: ErrorMessageCatalog = {
+    fallback: (status) => `Request failed with status ${status}.`,
 }
+
+// Web sanitizes API-supplied HTML through its own policy before rendering;
+// the structural guards live in the shared validation tower.
+const publicParsers = createPublicContentParsers({
+    sanitizeHtml: sanitizeContentHtml,
+})
+const parsePublicArticleListEnvelope = publicParsers.parsePublicArticleListEnvelope
+const parsePublicSeriesListEnvelope = publicParsers.parsePublicSeriesListEnvelope
+const parsePublicEpisodeListEnvelope = publicParsers.parsePublicEpisodeListEnvelope
 
 async function parseJsonResponse(response: Response): Promise<unknown> {
     const contentType = response.headers.get('content-type') ?? ''
     if (!contentType.toLowerCase().includes('application/json')) {
-        throw new Error('The server returned an invalid response.')
+        throw new Error(INVALID_RESPONSE)
     }
 
     return response.json()
@@ -99,65 +84,29 @@ async function request(
     })
     const value = await parseJsonResponse(response)
     if (!response.ok) {
-        throw new Error(errorMessage(value, response.status))
+        throw new Error(extractApiErrorMessage(value, response.status, ERROR_CATALOG))
     }
 
     return value
 }
 
-async function authenticatedRequest(
+const authedFetch = createAuthedRequest({
+    session: {getValidAccessToken, refreshAccessToken},
+    clearTokens,
+    baseHeaders: () => ({'X-Tenant-Host': getClientTenantHost()}),
+    authFailureMode: 'preserve-transient',
+    transientMessage: 'Der Server ist derzeit nicht erreichbar.',
+    finalUnauthorized: 'clear-and-auth-required',
+    invalidResponseMessage: INVALID_RESPONSE,
+    catalog: ERROR_CATALOG,
+})
+
+function authenticatedRequest(
     path: string,
-    tenantHost: string,
+    _tenantHost: string,
     init?: RequestInit,
-    retried = false,
 ): Promise<unknown> {
-    let accessToken: string
-    try {
-        accessToken = await getValidAccessToken()
-    } catch (error: unknown) {
-        if (error instanceof Error && error.message === AUTH_REQUIRED) {
-            throw error
-        }
-        // Transient refresh failures must not be reported as "not
-        // authenticated" — consumers would log the user out.
-        throw new Error('Der Server ist derzeit nicht erreichbar.')
-    }
-
-    const response = await fetch(path, {
-        ...init,
-        headers: {
-            Accept: 'application/json',
-            'X-Tenant-Host': tenantHost,
-            Authorization: `Bearer ${accessToken}`,
-            ...init?.headers,
-        },
-    })
-
-    if (response.status === 401 && !retried) {
-        try {
-            accessToken = await refreshAccessToken()
-        } catch (error: unknown) {
-            if (error instanceof Error && error.message === AUTH_REQUIRED) {
-                throw error
-            }
-            // The session itself is intact — only this request failed.
-            throw new Error('Der Server ist derzeit nicht erreichbar.')
-        }
-
-        return authenticatedRequest(path, tenantHost, init, true)
-    }
-
-    const value = await parseJsonResponse(response)
-    if (response.status === 401) {
-        clearTokens()
-        throw new Error(AUTH_REQUIRED)
-    }
-
-    if (!response.ok) {
-        throw new Error(errorMessage(value, response.status))
-    }
-
-    return value
+    return authedFetch(path, init)
 }
 
 async function postJson(
@@ -237,9 +186,9 @@ export async function login(
 
 export async function getSiteConfig(
     tenantHost: string,
-): Promise<ApiEnvelope<SiteConfig>> {
+): Promise<ApiEnvelope<PublicSiteConfig>> {
     return envelopeResult(
-        parseSiteConfigEnvelope,
+        parsePublicSiteConfigEnvelope,
         await request('/api/proxy/public/site-config', tenantHost),
         'The server returned an invalid site configuration.',
     )
@@ -307,9 +256,9 @@ export async function listMyEpisodes(
 /** Private subscriber RSS feeds the signed-in user can use in a podcast app. */
 export async function listMyFeeds(
     tenantHost: string,
-): Promise<SubscriberFeed[]> {
+): Promise<SubscriberFeedView[]> {
     return envelopeResult(
-        parseSubscriberFeedListEnvelope,
+        parseSubscriberFeedListEnvelopeAlias,
         await authenticatedRequest('/api/proxy/me/feeds', tenantHost),
         'The server returned an invalid feed list.',
     ).data
@@ -317,9 +266,9 @@ export async function listMyFeeds(
 
 export async function rotateDefaultFeedToken(
     tenantHost: string,
-): Promise<SubscriberFeed> {
+): Promise<SubscriberFeedView> {
     return envelopeResult(
-        parseSubscriberFeedEnvelope,
+        parseSubscriberFeedEnvelopeAlias,
         await authenticatedRequest('/api/proxy/me/feeds/default/rotate-token', tenantHost, {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
@@ -332,9 +281,9 @@ export async function rotateDefaultFeedToken(
 export async function setDefaultFeedEnabled(
     tenantHost: string,
     enabled: boolean,
-): Promise<SubscriberFeed> {
+): Promise<SubscriberFeedView> {
     return envelopeResult(
-        parseSubscriberFeedEnvelope,
+        parseSubscriberFeedEnvelopeAlias,
         await authenticatedRequest('/api/proxy/me/feeds/default/enabled', tenantHost, {
             method: 'PUT',
             headers: {'Content-Type': 'application/json'},
@@ -358,9 +307,9 @@ export async function createCustomFeed(
     tenantHost: string,
     title: string,
     formatIds: number[],
-): Promise<SubscriberFeed> {
+): Promise<SubscriberFeedView> {
     return envelopeResult(
-        parseSubscriberFeedEnvelope,
+        parseSubscriberFeedEnvelopeAlias,
         await authenticatedRequest('/api/proxy/me/feeds', tenantHost, {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
@@ -375,9 +324,9 @@ export async function updateCustomFeed(
     feedId: number,
     title: string,
     formatIds: number[],
-): Promise<SubscriberFeed> {
+): Promise<SubscriberFeedView> {
     return envelopeResult(
-        parseSubscriberFeedEnvelope,
+        parseSubscriberFeedEnvelopeAlias,
         await authenticatedRequest(`/api/proxy/me/feeds/${feedId}`, tenantHost, {
             method: 'PUT',
             headers: {'Content-Type': 'application/json'},
@@ -409,9 +358,9 @@ export async function setFeedEnabled(
     tenantHost: string,
     feedId: number,
     enabled: boolean,
-): Promise<SubscriberFeed> {
+): Promise<SubscriberFeedView> {
     return envelopeResult(
-        parseSubscriberFeedEnvelope,
+        parseSubscriberFeedEnvelopeAlias,
         await authenticatedRequest(`/api/proxy/me/feeds/${feedId}/enabled`, tenantHost, {
             method: 'PUT',
             headers: {'Content-Type': 'application/json'},
@@ -424,9 +373,9 @@ export async function setFeedEnabled(
 export async function rotateFeedToken(
     tenantHost: string,
     feedId: number,
-): Promise<SubscriberFeed> {
+): Promise<SubscriberFeedView> {
     return envelopeResult(
-        parseSubscriberFeedEnvelope,
+        parseSubscriberFeedEnvelopeAlias,
         await authenticatedRequest(`/api/proxy/me/feeds/${feedId}/rotate-token`, tenantHost, {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
@@ -556,7 +505,7 @@ export async function listMyDownloads(
     tenantHost: string,
 ): Promise<SubscriberDownload[]> {
     return envelopeResult(
-        parseSubscriberDownloadListEnvelope,
+        parseSubscriberDownloadListEnvelopeAlias,
         await authenticatedRequest('/api/proxy/me/downloads', tenantHost),
         'Der Server hat eine ungültige Download-Liste geliefert.',
     ).data

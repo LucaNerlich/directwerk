@@ -1,4 +1,5 @@
-import {REFRESH_COOKIE, serializeClearCookie} from '@/lib/auth/cookies'
+import {REFRESH_COOKIE} from '@/lib/server/api'
+import {serializeClearCookie} from '@directwerk/api/auth/cookies'
 
 /**
  * Clears the httpOnly refresh cookie so a logged-out creator cannot be silently

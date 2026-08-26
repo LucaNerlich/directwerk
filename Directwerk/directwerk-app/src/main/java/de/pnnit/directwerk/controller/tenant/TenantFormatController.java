@@ -49,20 +49,15 @@ public class TenantFormatController {
     @PostMapping
     ResponseEntity<Response<FormatView>> createFormat(@Valid @RequestBody CreateFormatRequest request) {
         Long tenantId = TenantContext.requireTenantId();
-        try {
-            Format format = formatService.createFormat(
-                    tenantId,
-                    request.slug(),
-                    request.name(),
-                    request.description(),
-                    request.requiredLevelSortOrder(),
-                    request.sortOrder()
-            );
-            return ResponseEntity.status(HttpStatus.CREATED).body(Response.created(toView(format)));
-        } catch (IllegalStateException ex) {
-            return ResponseEntity.status(HttpStatus.CONFLICT)
-                    .body(Response.error(409, "FORMAT_SLUG_EXISTS", ex.getMessage()));
-        }
+                Format format = formatService.createFormat(
+                tenantId,
+                request.slug(),
+                request.name(),
+                request.description(),
+                request.requiredLevelSortOrder(),
+                request.sortOrder()
+        );
+        return ResponseEntity.status(HttpStatus.CREATED).body(Response.created(toView(format)));
     }
 
     @PutMapping("/{formatId}")
@@ -71,22 +66,17 @@ public class TenantFormatController {
             @Valid @RequestBody UpdateFormatRequest request
     ) {
         Long tenantId = TenantContext.requireTenantId();
-        try {
-            Format format = formatService.updateFormat(
-                    tenantId,
-                    formatId,
-                    request.slug(),
-                    request.name(),
-                    request.description(),
-                    request.requiredLevelSortOrder(),
-                    request.sortOrder(),
-                    request.active()
-            );
-            return ResponseEntity.ok(Response.ok(toView(format)));
-        } catch (IllegalStateException ex) {
-            return ResponseEntity.status(HttpStatus.CONFLICT)
-                    .body(Response.error(409, "FORMAT_SLUG_EXISTS", ex.getMessage()));
-        }
+                Format format = formatService.updateFormat(
+                tenantId,
+                formatId,
+                request.slug(),
+                request.name(),
+                request.description(),
+                request.requiredLevelSortOrder(),
+                request.sortOrder(),
+                request.active()
+        );
+        return ResponseEntity.ok(Response.ok(toView(format)));
     }
 
     @DeleteMapping("/{formatId}")

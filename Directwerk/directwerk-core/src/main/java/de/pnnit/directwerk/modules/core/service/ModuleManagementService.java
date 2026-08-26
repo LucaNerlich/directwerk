@@ -1,5 +1,6 @@
 package de.pnnit.directwerk.modules.core.service;
 
+import de.pnnit.directwerk.modules.core.repository.TenantRepository;
 import de.pnnit.directwerk.config.DirectwerkCacheNames;
 import de.pnnit.directwerk.modules.content.TenantRssSnapshotStaleEvent;
 import de.pnnit.directwerk.modules.core.audit.PlatformAuditActions;
@@ -29,7 +30,7 @@ public class ModuleManagementService {
 
     private final FeatureModuleRepository featureModuleRepository;
     private final TenantModuleActivationRepository tenantModuleActivationRepository;
-    private final TenantLookupService tenantLookupService;
+    private final TenantRepository tenantRepository;
     private final DirectwerkCacheEviction cacheEviction;
     private final PlatformAuditService platformAuditService;
     private final ApplicationEventPublisher eventPublisher;
@@ -50,7 +51,7 @@ public class ModuleManagementService {
     @Transactional(readOnly = true)
     @Cacheable(cacheNames = DirectwerkCacheNames.TENANT_MODULE_VIEWS, key = "#tenantId")
     public TenantModulesView getTenantModules(Long tenantId) {
-        requireTenant(tenantId);
+        tenantRepository.requireById(tenantId);
         List<String> enabledModules = tenantModuleActivationRepository.findByTenantIdAndActiveTrue(tenantId).stream()
                 .map(TenantModuleActivation::getModuleKey)
                 .sorted()
@@ -67,7 +68,7 @@ public class ModuleManagementService {
      */
     @Transactional
     public TenantModulesView activateModule(Long tenantId, String moduleKey) {
-        Tenant tenant = requireTenant(tenantId);
+        Tenant tenant = tenantRepository.requireById(tenantId);
         FeatureModule module = requirePlatformModule(moduleKey);
         validateDependencies(tenantId, module);
 
@@ -105,7 +106,7 @@ public class ModuleManagementService {
      */
     @Transactional
     public TenantModulesView deactivateModule(Long tenantId, String moduleKey) {
-        requireTenant(tenantId);
+        tenantRepository.requireById(tenantId);
         FeatureModule module = requirePlatformModule(moduleKey);
         if (module.isCore()) {
             throw new CannotDeactivateCoreModuleException(module.getModuleKey());
@@ -188,9 +189,6 @@ public class ModuleManagementService {
         return dependents;
     }
 
-    private Tenant requireTenant(Long tenantId) {
-        return tenantLookupService.requireTenant(tenantId);
-    }
 
     private FeatureModule requirePlatformModule(String moduleKey) {
         if (!StringUtils.hasText(moduleKey)) {

@@ -1,8 +1,8 @@
 import 'server-only'
 
-import {directwerkFetch} from '@/lib/directwerk'
-import {parseSiteConfigEnvelope} from '@/lib/api/responseValidation'
-import type {SiteConfig} from '@/lib/api/types'
+import {directwerkFetch} from '@/lib/server/api'
+import {parseStudioSiteConfigEnvelope} from '@directwerk/api/validation'
+import type {SiteConfig} from '@directwerk/api/types'
 
 export async function fetchSiteConfigServer(host: string): Promise<SiteConfig> {
     const response = await directwerkFetch({
@@ -18,7 +18,7 @@ export async function fetchSiteConfigServer(host: string): Promise<SiteConfig> {
     }
 
     const value: unknown = await response.json()
-    const parsed = parseSiteConfigEnvelope(value)
+    const parsed = parseStudioSiteConfigEnvelope(value)
     if (parsed === null) {
         throw new Error(`site-config response invalid for host ${host}`)
     }

@@ -53,18 +53,3 @@ export function publicPodcastFeedUrl(originHost: string, tenantSlug: string): st
     return `${origin}/feeds/${encodeURIComponent(tenantSlug)}/podcast.xml`
 }
 
-/** True when a feed URL is safe to accept from the API (https, or http on loopback). */
-export function isAllowedFeedUrl(url: string): boolean {
-    try {
-        const parsed = new URL(url)
-        if (parsed.protocol === 'https:') {
-            return true
-        }
-        if (parsed.protocol === 'http:') {
-            return isLoopbackHostname(parsed.hostname)
-        }
-        return false
-    } catch {
-        return false
-    }
-}

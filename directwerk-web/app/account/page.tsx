@@ -22,9 +22,9 @@ import {
     listMySubscriptions,
     updateNotificationPreferences,
 } from '@/lib/api/client'
-import {AUTH_REQUIRED} from '@/lib/api/errors'
-import type {Access, Me, SubscriberFeed, SubscriptionSummary} from '@/lib/api/types'
-import {parseForgotPasswordInput} from '@/lib/api/validation'
+import {AUTH_REQUIRED} from '@directwerk/api/constants'
+import type {Access, Me, SubscriberFeed, SubscriptionSummary} from '@directwerk/api/types'
+import {parseForgotPasswordInput} from '@directwerk/api/validation'
 import {clearTokens} from '@/lib/auth/tokenStore'
 import {getClientTenantHost} from '@/lib/tenant/getClientTenantHost'
 

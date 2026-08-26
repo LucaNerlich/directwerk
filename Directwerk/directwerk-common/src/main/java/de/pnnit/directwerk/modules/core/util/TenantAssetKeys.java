@@ -43,6 +43,27 @@ public final class TenantAssetKeys {
     }
 
     /**
+     * Whether {@code objectKey} is one of {@code tenantSlug}'s publicly served keys
+     * (grammar: {@code {tenantSlug}/public/...}). Single home of that decision — CDN URL
+     * resolution, RSS eligibility and delete-time purge decisions all delegate here so the
+     * predicate cannot drift between call sites.
+     */
+    public static boolean isPublicKey(String tenantSlug, String objectKey) {
+        if (tenantSlug == null || objectKey == null) {
+            return false;
+        }
+        String slug = tenantSlug.trim().toLowerCase(Locale.ROOT);
+        String key = objectKey.trim();
+        if (slug.isEmpty() || key.isEmpty()) {
+            return false;
+        }
+        if (key.startsWith("/")) {
+            key = key.substring(1);
+        }
+        return key.toLowerCase(Locale.ROOT).startsWith(slug + "/public/");
+    }
+
+    /**
      * Constructs a tenant-scoped key for a public asset.
      *
      * @param tenantSlug    the tenant identifier

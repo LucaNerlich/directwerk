@@ -4,10 +4,10 @@ import {
     jsonError,
     parseBearerAuthorization,
     safeUpstreamResponse,
-} from '@/lib/directwerk'
-import {requestTenantApi} from '@/lib/directwerkServer'
-import {readBoundedRequestBody} from '@/lib/http/readBoundedRequestBody'
-import {parseTenantHost} from '@/lib/tenant/parseTenantHost'
+} from '@directwerk/api/server'
+import {requestTenantApi} from '@/lib/server/api'
+import {readBoundedRequestBody} from '@directwerk/api/proxy'
+import {parseTenantHost} from '@directwerk/api/proxy'
 
 interface RouteContext {
     params: Promise<{path: string[]}>

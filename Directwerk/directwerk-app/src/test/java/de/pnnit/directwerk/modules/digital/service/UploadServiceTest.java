@@ -11,7 +11,7 @@ import static org.mockito.Mockito.when;
 import de.pnnit.directwerk.config.DirectwerkConfig;
 import de.pnnit.directwerk.config.DirectwerkProperties;
 import de.pnnit.directwerk.modules.core.entity.Tenant;
-import de.pnnit.directwerk.modules.core.service.TenantLookupService;
+import de.pnnit.directwerk.modules.core.repository.TenantRepository;
 import de.pnnit.directwerk.modules.digital.api.UploadApi;
 import de.pnnit.directwerk.modules.digital.entity.AssetScope;
 import de.pnnit.directwerk.modules.digital.entity.AssetStatus;
@@ -57,7 +57,7 @@ class UploadServiceTest {
     private MediaAssetRepository mediaAssetRepository;
 
     @Mock
-    private TenantLookupService tenantLookupService;
+    private TenantRepository tenantRepository;
 
     @Mock
     private DirectwerkConfig directwerkConfig;
@@ -83,7 +83,7 @@ class UploadServiceTest {
                 s3Client,
                 s3Presigner,
                 mediaAssetRepository,
-                tenantLookupService,
+                tenantRepository,
                 directwerkConfig,
                 stagingCleanupService,
                 mediaDeleteJobProducer,
@@ -106,7 +106,7 @@ class UploadServiceTest {
     void createUploadUrlPersistsPendingAssetAndReturnsPresignedPut() throws Exception {
         when(directwerkConfig.isStorageEnabled()).thenReturn(true);
         when(directwerkConfig.storage()).thenReturn(storageProps());
-        when(tenantLookupService.requireTenant(10L)).thenReturn(tenant);
+        when(tenantRepository.requireById(10L)).thenReturn(tenant);
         when(mediaAssetRepository.saveAndFlush(any(MediaAsset.class))).thenAnswer(invocation -> {
             MediaAsset asset = invocation.getArgument(0);
             asset.setId(1001L);
@@ -149,7 +149,7 @@ class UploadServiceTest {
     void createUploadUrlRejectsInvalidMime() {
         when(directwerkConfig.isStorageEnabled()).thenReturn(true);
         when(directwerkConfig.storage()).thenReturn(storageProps());
-        when(tenantLookupService.requireTenant(10L)).thenReturn(tenant);
+        when(tenantRepository.requireById(10L)).thenReturn(tenant);
 
         assertThatThrownBy(() -> uploadService.createUploadUrl(new UploadApi.CreateUploadUrlCommand(
                 "x.exe",
@@ -167,7 +167,7 @@ class UploadServiceTest {
     void confirmUploadPromotesStagingObject() {
         when(directwerkConfig.isStorageEnabled()).thenReturn(true);
         when(directwerkConfig.storage()).thenReturn(storageProps());
-        when(tenantLookupService.requireTenant(10L)).thenReturn(tenant);
+        when(tenantRepository.requireById(10L)).thenReturn(tenant);
 
         MediaAsset pending = new MediaAsset();
         pending.setId(55L);
@@ -196,7 +196,7 @@ class UploadServiceTest {
         assertThat(result.status()).isEqualTo("READY");
         assertThat(result.s3Key()).startsWith("alpha-show-a/private/audio/");
         assertThat(result.s3Key()).matches(
-                "alpha-show-a/private/audio/[0-9a-f-]{36}_episode\\.mp3"
+                "alpha-show-a/private/audio/asset-\\d+_episode\\.mp3"
         );
         verify(s3Client).copyObject(any(CopyObjectRequest.class));
         verify(stagingCleanupService).deleteStagingKeyAndFolder(
@@ -210,7 +210,7 @@ class UploadServiceTest {
     void confirmUploadAppendsSanitizedFilenameStem() {
         when(directwerkConfig.isStorageEnabled()).thenReturn(true);
         when(directwerkConfig.storage()).thenReturn(storageProps());
-        when(tenantLookupService.requireTenant(10L)).thenReturn(tenant);
+        when(tenantRepository.requireById(10L)).thenReturn(tenant);
 
         MediaAsset pending = new MediaAsset();
         pending.setId(55L);
@@ -238,7 +238,7 @@ class UploadServiceTest {
 
         assertThat(result.status()).isEqualTo("READY");
         assertThat(result.s3Key()).matches(
-                "alpha-show-a/private/audio/[0-9a-f-]{36}_episode_42\\.mp3"
+                "alpha-show-a/private/audio/asset-\\d+_episode_42\\.mp3"
         );
     }
 
@@ -246,7 +246,7 @@ class UploadServiceTest {
     void confirmUploadEnqueuesCleanupWhenS3DeleteFails() {
         when(directwerkConfig.isStorageEnabled()).thenReturn(true);
         when(directwerkConfig.storage()).thenReturn(storageProps());
-        when(tenantLookupService.requireTenant(10L)).thenReturn(tenant);
+        when(tenantRepository.requireById(10L)).thenReturn(tenant);
 
         MediaAsset pending = new MediaAsset();
         pending.setId(55L);

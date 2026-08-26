@@ -7,17 +7,17 @@ import {useRouter} from 'next/navigation'
 import Link from 'next/link'
 
 import PublicationStatusBadge from '@/components/publication/PublicationStatusBadge'
-import {AUTH_REQUIRED} from '@/lib/api/errors'
 import {hasModule} from '@/lib/api/client'
 import {
     listSeries,
     listSubscriberFeeds,
     setSubscriberFeedEnabled,
 } from '@/lib/api/tenantApi'
-import type {SeriesSummary, SubscriberFeedSummary} from '@/lib/api/types'
+import type {SeriesSummary, SubscriberFeedSummary} from '@directwerk/api/types'
 import {useSiteConfig} from '@/lib/site/SiteConfigProvider'
 import {getClientTenantHost} from '@/lib/tenant/getClientTenantHost'
 import {safeLinkHref} from '@/lib/url/safeUrl'
+import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
 
 function copyUrl(url: string): Promise<void> {
     return navigator.clipboard.writeText(url)
@@ -25,6 +25,7 @@ function copyUrl(url: string): Promise<void> {
 
 export default function FeedManagementClient(): React.JSX.Element {
     const router = useRouter()
+    const authRedirect = useAuthRequired()
     const config = useSiteConfig()
     const [series, setSeries] = useState<SeriesSummary[]>([])
     const [subscriberFeeds, setSubscriberFeeds] = useState<SubscriberFeedSummary[]>([])
@@ -53,10 +54,7 @@ export default function FeedManagementClient(): React.JSX.Element {
                 if (!active) {
                     return
                 }
-                if (error instanceof Error && error.message === AUTH_REQUIRED) {
-                    router.replace('/login')
-                    return
-                }
+                if (authRedirect(error)) return
                 setErrorMessage(
                     error instanceof Error
                         ? error.message
@@ -78,10 +76,7 @@ export default function FeedManagementClient(): React.JSX.Element {
 
     const handleAuthError = useCallback(
         (error: unknown) => {
-            if (error instanceof Error && error.message === AUTH_REQUIRED) {
-                router.replace('/login')
-                return
-            }
+            if (authRedirect(error)) return
             setErrorMessage(
                 error instanceof Error ? error.message : 'Aktion fehlgeschlagen.',
             )
@@ -95,7 +90,7 @@ export default function FeedManagementClient(): React.JSX.Element {
             await copyUrl(url)
             setCopiedUrl(url)
         } catch (error) {
-            handleAuthError(error)
+            authRedirect(error)
         }
     }
 
@@ -114,7 +109,7 @@ export default function FeedManagementClient(): React.JSX.Element {
                 current.map((item) => (item.id === feed.id ? updated : item)),
             )
         } catch (error) {
-            handleAuthError(error)
+            authRedirect(error)
         } finally {
             setBusyFeedId(null)
         }

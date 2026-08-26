@@ -34,7 +34,6 @@ Directwerk/
 ├── directwerk-core/           # domain (tenants, users, invites, …)
 ├── directwerk-queue/          # Postgres job queue + Quartz worker
 ├── directwerk-email/          # transactional email (queue consumer → SMTP)
-├── directwerk-webhook/        # outbound webhook job stub (future HTTP delivery)
 ├── directwerk-subscription/   # subscription products / entitlements slice
 ├── directwerk-digital/        # MediaAsset + S3 upload/presign (2c/2d)
 └── directwerk-podcast/        # series, episodes, formats (Formate) — Phase 3
@@ -236,7 +235,7 @@ docker build -t directwerk:local .
 
 The Dockerfile:
 
-1. **Build stage** — `./gradlew :directwerk-app:bootJar -x test` on JDK 21 Alpine (copies all Gradle modules including `directwerk-webhook`)
+1. **Build stage** — `./gradlew :directwerk-app:bootJar -x test` on JDK 21 Alpine (copies all Gradle modules)
 2. **Runtime stage** — JRE 21 Alpine, non-root user `directwerk`, port `8080`, health check `/actuator/health` (90s start period)
 
 Registry example:

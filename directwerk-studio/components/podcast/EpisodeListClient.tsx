@@ -9,13 +9,14 @@ import EmptyState from '@directwerk/ui/components/empty-state'
 import PageHeader from '@directwerk/ui/components/page-header'
 
 import PublicationStatusBadge from '@/components/publication/PublicationStatusBadge'
-import {AUTH_REQUIRED} from '@/lib/api/errors'
 import {listEpisodes, listFormats, listSeries} from '@/lib/api/tenantApi'
-import type {EpisodeDetail, FormatSummary, SeriesSummary} from '@/lib/api/types'
+import type {EpisodeDetail, FormatSummary, SeriesSummary} from '@directwerk/api/types'
 import {getClientTenantHost} from '@/lib/tenant/getClientTenantHost'
+import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
 
 export default function EpisodeListClient() {
     const router = useRouter()
+    const authRedirect = useAuthRequired()
     const [episodes, setEpisodes] = useState<EpisodeDetail[]>([])
     const [series, setSeries] = useState<SeriesSummary[]>([])
     const [formats, setFormats] = useState<FormatSummary[]>([])
@@ -42,10 +43,7 @@ export default function EpisodeListClient() {
                 if (!active) {
                     return
                 }
-                if (error instanceof Error && error.message === AUTH_REQUIRED) {
-                    router.replace('/login')
-                    return
-                }
+                if (authRedirect(error)) return
                 setErrorMessage(
                     error instanceof Error
                         ? error.message

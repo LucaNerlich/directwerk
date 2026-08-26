@@ -9,7 +9,7 @@ import AccessPolicySelect from '@/components/publication/AccessPolicySelect'
 import PublicationStatusBadge from '@/components/publication/PublicationStatusBadge'
 import PublicationWorkflowActions from '@/components/publication/PublicationWorkflowActions'
 import ShowNotesEditor from '@/components/editors/ShowNotesEditor'
-import type {AccessPolicy, PublicationStatus} from '@/lib/api/types'
+import type {AccessPolicy, PublicationStatus} from '@directwerk/api/types'
 
 interface PublicationEditorLayoutProps {
     kind: 'article' | 'episode'

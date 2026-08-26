@@ -2,6 +2,7 @@ package de.pnnit.directwerk.api.exception;
 
 import de.pnnit.directwerk.api.response.ErrorDetail;
 import de.pnnit.directwerk.api.response.Response;
+import de.pnnit.directwerk.modules.core.exception.ConflictException;
 import de.pnnit.directwerk.modules.core.service.CannotDeactivateCoreModuleException;
 import de.pnnit.directwerk.modules.core.service.CannotDeactivateLastAdminException;
 import de.pnnit.directwerk.modules.core.service.CannotDeactivateSelfException;
@@ -74,6 +75,18 @@ public class GlobalExceptionHandler {
      *
      * @return a conflict response with the {@code DOMAIN_ALREADY_EXISTS} error code and exception message
      */
+    /**
+     * Handles every resource-uniqueness conflict: the API error code travels on the exception,
+     * so one handler replaces all controller-local catch-relabel blocks.
+     *
+     * @return a conflict response with the exception's error code and message
+     */
+    @ExceptionHandler(ConflictException.class)
+    ResponseEntity<Response<Void>> handleConflict(ConflictException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(Response.error(409, ex.getCode(), ex.getMessage()));
+    }
+
     @ExceptionHandler(DomainAlreadyExistsException.class)
     ResponseEntity<Response<Void>> handleDomainAlreadyExists(DomainAlreadyExistsException ex) {
         return ResponseEntity.status(HttpStatus.CONFLICT)

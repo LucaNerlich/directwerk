@@ -13,30 +13,30 @@ import de.pnnit.directwerk.modules.digital.entity.AssetVisibility;
 import de.pnnit.directwerk.modules.digital.entity.MediaAsset;
 import de.pnnit.directwerk.modules.digital.exception.EntitlementDeniedException;
 import de.pnnit.directwerk.modules.digital.exception.MediaAssetNotFoundException;
-import de.pnnit.directwerk.modules.digital.exception.StorageNotConfiguredException;
 import de.pnnit.directwerk.modules.digital.repository.MediaAssetRepository;
-import de.pnnit.directwerk.modules.digital.storage.BunnyTokenUrlSigner;
+import de.pnnit.directwerk.modules.digital.storage.PrivateObjectUrlSigner;
 import de.pnnit.directwerk.modules.digital.storage.S3PublicUrlBuilder;
 import de.pnnit.directwerk.security.DirectwerkUserPrincipal;
 import de.pnnit.directwerk.security.RoleConstants;
 import java.net.URL;
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.util.StringUtils;
-import software.amazon.awssdk.services.s3.model.GetObjectRequest;
-import software.amazon.awssdk.services.s3.presigner.S3Presigner;
-import software.amazon.awssdk.services.s3.presigner.model.GetObjectPresignRequest;
-import software.amazon.awssdk.services.s3.presigner.model.PresignedGetObjectRequest;
 
 /**
  * Resolves public CDN URLs and private signed GET URLs after authorization.
- * Private delivery uses Bunny Advanced Token Auth on the private pull zone when configured;
- * otherwise falls back to S3 pre-signed GET.
+ * Private delivery policy (Bunny token auth vs S3 presign) is delegated to
+ * {@link PrivateObjectUrlSigner}.
  */
 @Service
 @RequiredArgsConstructor
@@ -47,7 +47,7 @@ public class AssetAccessService implements AssetAccessApi {
     private final EntitlementApi entitlementApi;
     private final ModuleGateService moduleGateService;
     private final S3PublicUrlBuilder publicUrlBuilder;
-    private final ObjectProvider<S3Presigner> s3Presigner;
+    private final PrivateObjectUrlSigner privateObjectUrlSigner;
     private final DirectwerkConfig directwerkConfig;
     private final MediaAssetRepository mediaAssetRepository;
 
@@ -88,7 +88,7 @@ public class AssetAccessService implements AssetAccessApi {
         MediaAssetTenantCheck.assertTenantMatch(managed);
         TenantAssetKeys.requireTenantPrefix(managed.getTenant().getSlug(), managed.getS3Key());
 
-        if (principal == null || !hasEditorOrAdmin(principal)) {
+        if (principal == null || !RoleConstants.isEditorOrTenantAdmin(principal)) {
             throw new AccessDeniedException("Preview requires EDITOR or TENANT_ADMIN");
         }
 
@@ -105,6 +105,67 @@ public class AssetAccessService implements AssetAccessApi {
         throw new EntitlementDeniedException(managed.getId());
     }
 
+    /**
+     * Batch downloads: public assets resolve directly; standalone private CONTENT assets share
+     * ONE batched entitlement evaluation; anything else (USER/SYSTEM scope, episode-linked)
+     * falls back to the single-asset policy. Denied assets are skipped, never leaked.
+     */
+    @Override
+    @Transactional(readOnly = true)
+    public List<AssetAccessApi.ResolvedDownload> resolveDownloadUrls(
+            Collection<MediaAsset> assets,
+            DirectwerkUserPrincipal principal
+    ) {
+        if (assets.isEmpty() || principal == null) {
+            return List.of();
+        }
+        List<Long> ids = assets.stream()
+                .map(MediaAsset::getId)
+                .filter(Objects::nonNull)
+                .toList();
+        Map<Long, MediaAsset> managedById = mediaAssetRepository.findAllWithTenantByIdIn(ids).stream()
+                .collect(Collectors.toMap(MediaAsset::getId, m -> m, (a, b) -> a));
+
+        List<AssetAccessApi.ResolvedDownload> resolved = new ArrayList<>();
+        List<MediaAsset> privateStandalone = new ArrayList<>();
+        for (MediaAsset input : assets) {
+            MediaAsset managed = input.getId() == null ? null : managedById.get(input.getId());
+            if (managed == null) {
+                continue;
+            }
+            MediaAssetTenantCheck.assertTenantMatch(managed);
+            TenantAssetKeys.requireTenantPrefix(managed.getTenant().getSlug(), managed.getS3Key());
+            if (managed.getVisibility() == AssetVisibility.PUBLIC) {
+                resolved.add(new AssetAccessApi.ResolvedDownload(managed, publicUrlBuilder.cdnUrl(managed.getS3Key())));
+            } else if (managed.getScope() == AssetScope.CONTENT && managed.getEpisodeId() == null) {
+                privateStandalone.add(managed);
+            } else {
+                try {
+                    resolved.add(new AssetAccessApi.ResolvedDownload(
+                            managed, resolveDownloadUrl(managed, principal)));
+                } catch (EntitlementDeniedException | AccessDeniedException ignored) {
+                    // Fail closed per asset — do not leak unauthorized files.
+                }
+            }
+        }
+
+        if (!privateStandalone.isEmpty()) {
+            moduleGateService.requireModule(DigitalContentModule.KEY);
+            Set<Long> allowed = entitlementApi.filterAccessibleDigitalAssets(
+                    privateStandalone.get(0).getTenant().getId(),
+                    principal.userId(),
+                    privateStandalone.stream().map(MediaAsset::getId).toList()
+            );
+            for (MediaAsset asset : privateStandalone) {
+                if (allowed.contains(asset.getId())) {
+                    resolved.add(new AssetAccessApi.ResolvedDownload(
+                            asset, resolvePrivateDownloadUrl(asset, apiDownloadTtl())));
+                }
+            }
+        }
+        return resolved;
+    }
+
     private MediaAsset requireLoadedAsset(MediaAsset asset) {
         if (asset == null || asset.getId() == null) {
             throw new MediaAssetNotFoundException(asset != null ? asset.getId() : null);
@@ -114,48 +175,11 @@ public class AssetAccessService implements AssetAccessApi {
     }
 
     /**
-     * Private object delivery: Bunny token URL on the private PZ when both
-     * {@code private-cdn-base-url} and {@code cdn-token-auth-key} are set; otherwise S3 presign.
+     * Private object delivery: delegated to {@link PrivateObjectUrlSigner} — one home for
+     * the Bunny-token vs S3-presign policy across API downloads and RSS delivery.
      */
     private URL resolvePrivateDownloadUrl(MediaAsset asset, Duration ttl) {
-        DirectwerkProperties.Storage storage = directwerkConfig.storage();
-        boolean hasPrivateCdn = storage != null && StringUtils.hasText(storage.privateCdnBaseUrl());
-        boolean hasTokenKey = storage != null && StringUtils.hasText(storage.cdnTokenAuthKey());
-        if (hasPrivateCdn && hasTokenKey) {
-            return BunnyTokenUrlSigner.signObjectGet(
-                    storage.privateCdnBaseUrl(),
-                    asset.getS3Key(),
-                    storage.cdnTokenAuthKey(),
-                    ttl
-            );
-        }
-        if (hasPrivateCdn || hasTokenKey) {
-            throw new StorageNotConfiguredException(
-                    "Private CDN token auth requires both private-cdn-base-url and cdn-token-auth-key"
-            );
-        }
-        return presignGet(asset, ttl);
-    }
-
-    private URL presignGet(MediaAsset asset, Duration ttl) {
-        S3Presigner presigner = Optional.ofNullable(s3Presigner.getIfAvailable())
-                .orElseThrow(() -> new StorageNotConfiguredException(
-                        "Object storage is disabled — cannot presign private assets"
-                ));
-        DirectwerkProperties.Storage storage = directwerkConfig.storage();
-        if (storage == null || storage.bucket() == null || storage.bucket().isBlank()) {
-            throw new StorageNotConfiguredException("Object storage bucket is not configured");
-        }
-
-        GetObjectRequest getObjectRequest = GetObjectRequest.builder()
-                .bucket(storage.bucket())
-                .key(asset.getS3Key())
-                .build();
-        PresignedGetObjectRequest presigned = presigner.presignGetObject(GetObjectPresignRequest.builder()
-                .signatureDuration(ttl)
-                .getObjectRequest(getObjectRequest)
-                .build());
-        return presigned.url();
+        return privateObjectUrlSigner.signPrivateObject(asset.getS3Key(), ttl);
     }
 
     private Duration apiDownloadTtl() {
@@ -183,7 +207,7 @@ public class AssetAccessService implements AssetAccessApi {
 
         switch (asset.getScope()) {
             case CONTENT -> {
-                if (publisherPreview && hasEditorOrAdmin(principal)) {
+                if (publisherPreview && RoleConstants.isEditorOrTenantAdmin(principal)) {
                     moduleGateService.requireModule(DigitalContentModule.KEY);
                     return;
                 }
@@ -195,7 +219,7 @@ public class AssetAccessService implements AssetAccessApi {
                 }
             }
             case SYSTEM -> {
-                if (!hasEditorOrAdmin(principal)) {
+                if (!RoleConstants.isEditorOrTenantAdmin(principal)) {
                     throw new AccessDeniedException("SYSTEM assets require EDITOR or TENANT_ADMIN");
                 }
             }
@@ -235,11 +259,4 @@ public class AssetAccessService implements AssetAccessApi {
         }
     }
 
-    private static boolean hasEditorOrAdmin(DirectwerkUserPrincipal principal) {
-        return principal.getAuthorities().stream()
-                .anyMatch(authority ->
-                        RoleConstants.EDITOR.equals(authority.getAuthority())
-                                || RoleConstants.TENANT_ADMIN.equals(authority.getAuthority())
-                );
-    }
 }

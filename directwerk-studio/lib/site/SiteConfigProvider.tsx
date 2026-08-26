@@ -2,7 +2,7 @@
 
 import {createContext, useContext, type ReactNode} from 'react'
 
-import type {SiteConfig} from '@/lib/api/types'
+import type {SiteConfig} from '@directwerk/api/types'
 
 const SiteConfigContext = createContext<SiteConfig | null>(null)
 

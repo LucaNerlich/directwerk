@@ -90,6 +90,45 @@ class RequiresModuleAspectTest {
                 .isSameAs(rejection);
     }
 
+    @Test
+    void methodAndTypeAnnotationsAccumulateWithAndSemantics() {
+        ModuleGateService moduleGateService = mock(ModuleGateService.class);
+        context = bootstrapContext(moduleGateService);
+        MultiModuleUnionBean bean = context.getBean(MultiModuleUnionBean.class);
+
+        assertThatCode(bean::handle).doesNotThrowAnyException();
+
+        // method keys first (declaration order), then class key — all enforced
+        org.mockito.InOrder inOrder = org.mockito.Mockito.inOrder(moduleGateService);
+        inOrder.verify(moduleGateService).requireModule("SUBSCRIPTION");
+        inOrder.verify(moduleGateService).requireModule("PODCAST_RSS");
+        inOrder.verify(moduleGateService).requireModule("PODCAST");
+        org.mockito.Mockito.verifyNoMoreInteractions(moduleGateService);
+    }
+
+    @Test
+    void typeLevelAnnotationAloneStillGatesUngatedMethodsOnUnionBeans() {
+        ModuleGateService moduleGateService = mock(ModuleGateService.class);
+        context = bootstrapContext(moduleGateService);
+        MultiModuleUnionBean bean = context.getBean(MultiModuleUnionBean.class);
+
+        assertThatCode(bean::ungatedMethod).doesNotThrowAnyException();
+
+        verify(moduleGateService).requireModule("PODCAST");
+        verify(moduleGateService, org.mockito.Mockito.times(1)).requireModule(org.mockito.ArgumentMatchers.anyString());
+    }
+
+    @Test
+    void singleKeyWithoutBracesStaysCompatibleWithStringArrayInterface() {
+        ModuleGateService moduleGateService = mock(ModuleGateService.class);
+        context = bootstrapContext(moduleGateService);
+        SingleKeyStillWorks bean = context.getBean(SingleKeyStillWorks.class);
+
+        assertThatCode(bean::createSomething).doesNotThrowAnyException();
+
+        verify(moduleGateService).requireModule("DIGITAL_CONTENT");
+    }
+
     private static AnnotationConfigApplicationContext bootstrapContext(ModuleGateService moduleGateService) {
         AnnotationConfigApplicationContext ctx = new AnnotationConfigApplicationContext();
         ctx.registerBean(ModuleGateService.class, () -> moduleGateService);
@@ -120,6 +159,41 @@ class RequiresModuleAspectTest {
         @Bean
         UngatedService ungatedService() {
             return new UngatedService();
+        }
+
+        @Bean
+        MultiModuleUnionBean multiModuleUnionBean() {
+            return new MultiModuleUnionBean();
+        }
+
+        @Bean
+        SingleKeyStillWorks singleKeyStillWorks() {
+            return new SingleKeyStillWorks();
+        }
+    }
+
+    /** Method + type annotations accumulate: every key from both must be active (AND). */
+    @Component
+    @RequiresModule("PODCAST")
+    static class MultiModuleUnionBean {
+
+        @RequiresModule({"SUBSCRIPTION", "PODCAST_RSS"})
+        void handle() {
+            // no-op
+        }
+
+        void ungatedMethod() {
+            // still gated by the type annotation only
+        }
+    }
+
+    /** A single key written without braces stays source-compatible with String[] value(). */
+    @Component
+    static class SingleKeyStillWorks {
+
+        @RequiresModule("DIGITAL_CONTENT")
+        void createSomething() {
+            // no-op
         }
     }
 

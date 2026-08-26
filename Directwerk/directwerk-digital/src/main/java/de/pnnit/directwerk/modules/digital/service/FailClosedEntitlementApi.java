@@ -1,6 +1,8 @@
 package de.pnnit.directwerk.modules.digital.service;
 
 import de.pnnit.directwerk.modules.digital.api.EntitlementApi;
+import java.util.Collection;
+import java.util.Set;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.stereotype.Service;
 
@@ -19,5 +21,10 @@ public class FailClosedEntitlementApi implements EntitlementApi {
     @Override
     public boolean hasDigitalAssetAccess(Long tenantId, Long userId, Long mediaAssetId) {
         return false;
+    }
+
+    @Override
+    public Set<Long> filterAccessibleDigitalAssets(Long tenantId, Long userId, Collection<Long> mediaAssetIds) {
+        return Set.of();
     }
 }

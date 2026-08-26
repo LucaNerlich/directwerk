@@ -9,10 +9,10 @@ import EmptyState from '@directwerk/ui/components/empty-state'
 import PageHeader from '@directwerk/ui/components/page-header'
 
 import PublicationStatusBadge from '@/components/publication/PublicationStatusBadge'
-import {AUTH_REQUIRED} from '@/lib/api/errors'
 import {listEpisodes, listFormats, listSeries} from '@/lib/api/tenantApi'
-import type {EpisodeSummary, FormatSummary, SeriesSummary} from '@/lib/api/types'
+import type {EpisodeSummary, FormatSummary, SeriesSummary} from '@directwerk/api/types'
 import {getClientTenantHost} from '@/lib/tenant/getClientTenantHost'
+import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
 
 interface SetupStep {
     id: string
@@ -29,6 +29,7 @@ interface SetupStep {
  */
 export default function PodcastDeskClient(): React.JSX.Element {
     const router = useRouter()
+    const authRedirect = useAuthRequired()
     const [series, setSeries] = useState<SeriesSummary[]>([])
     const [formats, setFormats] = useState<FormatSummary[]>([])
     const [episodes, setEpisodes] = useState<EpisodeSummary[]>([])
@@ -56,10 +57,7 @@ export default function PodcastDeskClient(): React.JSX.Element {
                 if (!active) {
                     return
                 }
-                if (error instanceof Error && error.message === AUTH_REQUIRED) {
-                    router.replace('/login')
-                    return
-                }
+                if (authRedirect(error)) return
                 setErrorMessage(
                     error instanceof Error
                         ? error.message

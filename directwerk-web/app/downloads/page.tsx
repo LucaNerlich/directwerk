@@ -9,12 +9,14 @@ import EmptyState from '@directwerk/ui/components/empty-state'
 import PageHeader from '@directwerk/ui/components/page-header'
 
 import {listMyDownloads} from '@/lib/api/client'
-import {AUTH_REQUIRED} from '@/lib/api/errors'
-import type {SubscriberDownload} from '@/lib/api/types'
+import {AUTH_REQUIRED} from '@directwerk/api/constants'
+import type {SubscriberDownload} from '@directwerk/api/types'
 import {getClientTenantHost} from '@/lib/tenant/getClientTenantHost'
+import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
 
 export default function DownloadsPage(): React.JSX.Element {
     const router = useRouter()
+    const authRedirect = useAuthRequired()
     const tenantHost = getClientTenantHost()
     const [downloads, setDownloads] = useState<SubscriberDownload[]>([])
     const [errorMessage, setErrorMessage] = useState<string | null>(null)
@@ -33,10 +35,7 @@ export default function DownloadsPage(): React.JSX.Element {
                 if (!active) {
                     return
                 }
-                if (error instanceof Error && error.message === AUTH_REQUIRED) {
-                    router.replace('/login')
-                    return
-                }
+                if (authRedirect(error)) return
                 setErrorMessage(
                     error instanceof Error
                         ? error.message

@@ -10,7 +10,7 @@ import {Input} from '@directwerk/ui/components/input'
 import {Label} from '@directwerk/ui/components/label'
 
 import {postPlatformData} from '@/lib/api/client'
-import {AUTH_REQUIRED} from '@/lib/api/errors'
+import {AUTH_REQUIRED} from '@directwerk/api/constants'
 
 interface DomainForceVerifyFormProps {
     tenantId: string

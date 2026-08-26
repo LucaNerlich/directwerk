@@ -7,9 +7,9 @@ import {Alert, AlertDescription} from '@directwerk/ui/components/alert'
 import {Button} from '@directwerk/ui/components/button'
 
 import {patchPlatformData, postPlatformData} from '@/lib/api/client'
-import {AUTH_REQUIRED, CONFLICT, FORBIDDEN, REQUEST_FAILED} from '@/lib/api/errors'
-import type {TenantUser} from '@/lib/api/types'
-import {TENANT_INVITABLE_ROLES} from '@/lib/api/types'
+import {AUTH_REQUIRED, CONFLICT, FORBIDDEN, REQUEST_FAILED} from '@directwerk/api/constants'
+import type {TenantUser} from '@directwerk/api/types'
+import {TENANT_INVITABLE_ROLES} from '@directwerk/api/types'
 import {getTenantRoleLabel} from '@/lib/roles'
 
 interface TenantUserActionsProps {

@@ -10,7 +10,7 @@ import Form from 'next/form'
 import {useRouter} from 'next/navigation'
 import {useActionState, useEffect, useState} from 'react'
 
-import {AUTH_REQUIRED} from '@/lib/api/errors'
+import {AUTH_REQUIRED} from '@directwerk/api/constants'
 import {
     createCategory,
     deactivateCategory,
@@ -18,8 +18,9 @@ import {
     suggestSlug,
     updateCategory,
 } from '@/lib/api/tenantApi'
-import type {CategorySummary} from '@/lib/api/types'
+import type {CategorySummary} from '@directwerk/api/types'
 import {getClientTenantHost} from '@/lib/tenant/getClientTenantHost'
+import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
 
 interface CategoryEditorProps {
     categoryId?: number
@@ -59,6 +60,7 @@ function parseOptionalId(value: FormDataEntryValue | null): number | undefined {
  */
 export default function CategoryEditor({categoryId}: CategoryEditorProps): React.JSX.Element {
     const router = useRouter()
+    const authRedirect = useAuthRequired()
     const isNew = categoryId === undefined
     const [categories, setCategories] = useState<CategorySummary[]>([])
     const [category, setCategory] = useState<CategorySummary | null>(null)
@@ -90,10 +92,7 @@ export default function CategoryEditor({categoryId}: CategoryEditorProps): React
                 if (!active) {
                     return
                 }
-                if (error instanceof Error && error.message === AUTH_REQUIRED) {
-                    router.replace('/login')
-                    return
-                }
+                if (authRedirect(error)) return
                 setLoadError(
                     error instanceof Error
                         ? error.message
@@ -133,10 +132,7 @@ export default function CategoryEditor({categoryId}: CategoryEditorProps): React
             setCategory(updated)
             return {error: null, success: 'Kategorie gespeichert.'}
         } catch (error) {
-            if (error instanceof Error && error.message === AUTH_REQUIRED) {
-                router.replace('/login')
-                return INITIAL_STATE
-            }
+            if (authRedirect(error)) return INITIAL_STATE
             return {
                 error: error instanceof Error ? error.message : 'Aktion fehlgeschlagen.',
                 success: null,
@@ -156,10 +152,7 @@ export default function CategoryEditor({categoryId}: CategoryEditorProps): React
             const updated = await deactivateCategory(getClientTenantHost(), categoryId)
             setCategory(updated)
         } catch (error) {
-            if (error instanceof Error && error.message === AUTH_REQUIRED) {
-                router.replace('/login')
-                return
-            }
+            if (authRedirect(error)) return
             setDeactivateError(
                 error instanceof Error ? error.message : 'Deaktivierung fehlgeschlagen.',
             )

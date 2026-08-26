@@ -15,8 +15,8 @@ import {
     getSiteConfig,
     listPublicProducts,
 } from '@/lib/api/client'
-import {AUTH_REQUIRED} from '@/lib/api/errors'
-import type {SiteConfig} from '@/lib/api/types'
+import {AUTH_REQUIRED} from '@directwerk/api/constants'
+import type {PublicSiteConfig} from '@directwerk/api/types'
 import {
     getAccessToken,
     subscribeToTokenStore,
@@ -67,7 +67,7 @@ export default function PricingPage(): React.JSX.Element {
     )
     const isAuthenticated = accessToken !== null
     const [products, setProducts] = useState<PublicProduct[]>([])
-    const [config, setConfig] = useState<SiteConfig | null>(null)
+    const [config, setConfig] = useState<PublicSiteConfig | null>(null)
     const [error, setError] = useState<string | null>(null)
     const [checkoutMessage, setCheckoutMessage] = useState<string | null>(null)
     const [isLoading, setIsLoading] = useState(true)

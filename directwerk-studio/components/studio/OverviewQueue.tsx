@@ -5,10 +5,10 @@ import {useRouter} from 'next/navigation'
 import {useEffect, useState} from 'react'
 
 import PublicationStatusBadge from '@/components/publication/PublicationStatusBadge'
-import {AUTH_REQUIRED} from '@/lib/api/errors'
 import {listArticles, listEpisodes, listSeries} from '@/lib/api/tenantApi'
-import type {ArticleSummary, EpisodeSummary, SeriesSummary, StudioDesk} from '@/lib/api/types'
+import type {ArticleSummary, EpisodeSummary, SeriesSummary, StudioDesk} from '@directwerk/api/types'
 import {getClientTenantHost} from '@/lib/tenant/getClientTenantHost'
+import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
 
 const AWAITING_STATUSES = new Set(['DRAFT', 'SCHEDULED'])
 
@@ -21,6 +21,7 @@ interface OverviewQueueProps {
  */
 export default function OverviewQueue({desks}: OverviewQueueProps): React.JSX.Element {
     const router = useRouter()
+    const authRedirect = useAuthRequired()
     const showWrite = desks.includes('WRITE')
     const showPodcast = desks.includes('PODCAST')
     const [episodes, setEpisodes] = useState<EpisodeSummary[]>([])
@@ -54,10 +55,7 @@ export default function OverviewQueue({desks}: OverviewQueueProps): React.JSX.El
                 if (!active) {
                     return
                 }
-                if (error instanceof Error && error.message === AUTH_REQUIRED) {
-                    router.replace('/login')
-                    return
-                }
+                if (authRedirect(error)) return
                 setErrorMessage(
                     error instanceof Error
                         ? error.message

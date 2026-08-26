@@ -68,24 +68,19 @@ public class ArticleController {
     @PostMapping
     ResponseEntity<Response<ArticleView>> createDraft(@Valid @RequestBody CreateArticleRequest request) {
         Long tenantId = TenantContext.requireTenantId();
-        try {
-            Article article = articleService.createDraft(
-                    tenantId,
-                    request.slug(),
-                    request.title(),
-                    request.body(),
-                    request.excerpt(),
-                    request.seoDescription(),
-                    request.heroAssetId(),
-                    request.accessPolicy(),
-                    request.requiredLevelSortOrder(),
-                    request.categoryIds()
-            );
-            return ResponseEntity.status(HttpStatus.CREATED).body(Response.created(toView(article)));
-        } catch (IllegalStateException ex) {
-            return ResponseEntity.status(HttpStatus.CONFLICT)
-                    .body(Response.error(409, "ARTICLE_SLUG_EXISTS", ex.getMessage()));
-        }
+                Article article = articleService.createDraft(
+                tenantId,
+                request.slug(),
+                request.title(),
+                request.body(),
+                request.excerpt(),
+                request.seoDescription(),
+                request.heroAssetId(),
+                request.accessPolicy(),
+                request.requiredLevelSortOrder(),
+                request.categoryIds()
+        );
+        return ResponseEntity.status(HttpStatus.CREATED).body(Response.created(toView(article)));
     }
 
     @PutMapping("/{articleId}")
@@ -94,25 +89,20 @@ public class ArticleController {
             @Valid @RequestBody UpdateArticleRequest request
     ) {
         Long tenantId = TenantContext.requireTenantId();
-        try {
-            Article article = articleService.updateDraft(
-                    tenantId,
-                    articleId,
-                    request.slug(),
-                    request.title(),
-                    request.body(),
-                    request.excerpt(),
-                    request.seoDescription(),
-                    request.heroAssetId(),
-                    request.accessPolicy(),
-                    request.requiredLevelSortOrder(),
-                    request.clearHeroAsset()
-            );
-            return ResponseEntity.ok(Response.ok(toView(article)));
-        } catch (IllegalStateException ex) {
-            return ResponseEntity.status(HttpStatus.CONFLICT)
-                    .body(Response.error(409, "ARTICLE_SLUG_EXISTS", ex.getMessage()));
-        }
+                Article article = articleService.updateDraft(
+                tenantId,
+                articleId,
+                request.slug(),
+                request.title(),
+                request.body(),
+                request.excerpt(),
+                request.seoDescription(),
+                request.heroAssetId(),
+                request.accessPolicy(),
+                request.requiredLevelSortOrder(),
+                request.clearHeroAsset()
+        );
+        return ResponseEntity.ok(Response.ok(toView(article)));
     }
 
     @PutMapping("/{articleId}/categories")
@@ -200,20 +190,11 @@ public class ArticleController {
                 article.getPublishedAt(),
                 article.getScheduledAt(),
                 article.getCategories().stream()
-                        .sorted(Comparator.comparing(Category::getName).thenComparing(Category::getId))
-                        .map(ArticleController::toCategoryView)
+                        .sorted(CategoryView.DISPLAY_ORDER)
+                        .map(CategoryView::of)
                         .toList(),
                 article.getCreatedAt(),
                 article.getUpdatedAt()
-        );
-    }
-
-    private static CategoryView toCategoryView(Category category) {
-        return new CategoryView(
-                category.getId(),
-                category.getSlug(),
-                category.getName(),
-                category.getParent() != null ? category.getParent().getId() : null
         );
     }
 

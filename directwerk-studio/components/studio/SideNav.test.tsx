@@ -3,7 +3,7 @@ import type {ReactNode} from 'react'
 import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest'
 
 import SideNav from '@/components/studio/SideNav'
-import type {Me, SiteConfig} from '@/lib/api/types'
+import type {Me, SiteConfig} from '@directwerk/api/types'
 import {MeProvider} from '@/lib/auth/MeProvider'
 
 let currentPathname = '/'

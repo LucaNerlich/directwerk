@@ -10,13 +10,13 @@ import PageHeader from '@directwerk/ui/components/page-header'
 import {useEffect, useRef, useState, type ChangeEvent, type DragEvent} from 'react'
 import {useRouter} from 'next/navigation'
 
-import {AUTH_REQUIRED} from '@/lib/api/errors'
 import {deleteMedia, getMediaPreviewUrl, listMedia} from '@/lib/api/tenantApi'
-import type {MediaAsset} from '@/lib/api/types'
+import type {MediaAsset} from '@directwerk/api/types'
 import {MEDIA_TYPE_LIMITS} from '@/lib/media/limits'
 import {uploadMediaFile} from '@/lib/media/upload'
 import {getClientTenantHost} from '@/lib/tenant/getClientTenantHost'
 import {safeImageSrc} from '@/lib/url/safeUrl'
+import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
 
 function formatBytes(sizeBytes: number | null): string {
     if (sizeBytes === null || sizeBytes <= 0) {
@@ -91,6 +91,7 @@ async function fetchPreviewUrls(
 
 export default function MediaLibraryClient(): React.JSX.Element {
     const router = useRouter()
+    const authRedirect = useAuthRequired()
     const fileInputRef = useRef<HTMLInputElement>(null)
     const mountedRef = useRef(true)
     const [assets, setAssets] = useState<MediaAsset[]>([])
@@ -138,10 +139,7 @@ export default function MediaLibraryClient(): React.JSX.Element {
                 if (!active) {
                     return
                 }
-                if (error instanceof Error && error.message === AUTH_REQUIRED) {
-                    router.replace('/login')
-                    return
-                }
+                if (authRedirect(error)) return
                 setErrorMessage(
                     error instanceof Error
                         ? error.message
@@ -196,10 +194,7 @@ export default function MediaLibraryClient(): React.JSX.Element {
             if (!mountedRef.current) {
                 return
             }
-            if (error instanceof Error && error.message === AUTH_REQUIRED) {
-                router.replace('/login')
-                return
-            }
+            if (authRedirect(error)) return
             setErrorMessage(
                 error instanceof Error ? error.message : 'Upload fehlgeschlagen.',
             )
@@ -251,10 +246,7 @@ export default function MediaLibraryClient(): React.JSX.Element {
             setAssets((current) => current.filter((item) => item.id !== assetId))
             setStatusMessage('Medium gelöscht.')
         } catch (error: unknown) {
-            if (error instanceof Error && error.message === AUTH_REQUIRED) {
-                router.replace('/login')
-                return
-            }
+            if (authRedirect(error)) return
             setErrorMessage(
                 error instanceof Error ? error.message : 'Löschen fehlgeschlagen.',
             )

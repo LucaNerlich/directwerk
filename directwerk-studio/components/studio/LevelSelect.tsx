@@ -3,7 +3,7 @@
 import {useEffect, useState} from 'react'
 
 import {listPublicLevels} from '@/lib/api/tenantApi'
-import type {LevelSummary} from '@/lib/api/types'
+import type {LevelSummary} from '@directwerk/api/types'
 import {getClientTenantHost} from '@/lib/tenant/getClientTenantHost'
 
 const PUBLIC_VALUE = ''

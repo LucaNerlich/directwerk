@@ -2,7 +2,7 @@ package de.pnnit.directwerk.controller.publicapi;
 
 import de.pnnit.directwerk.api.dto.PublicCategoryView;
 import de.pnnit.directwerk.api.response.Response;
-import de.pnnit.directwerk.modules.core.service.ModuleGateService;
+import de.pnnit.directwerk.modules.core.RequiresModule;
 import de.pnnit.directwerk.modules.digital.DigitalContentModule;
 import de.pnnit.directwerk.modules.digital.entity.AccessPolicy;
 import de.pnnit.directwerk.modules.newsletter.entity.Article;
@@ -20,22 +20,19 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/api/v1/public")
+@RequiresModule(DigitalContentModule.KEY)
 public class PublicArticleController {
 
     private final PublicArticleQueryService publicArticleQueryService;
-    private final ModuleGateService moduleGateService;
 
     public PublicArticleController(
-            PublicArticleQueryService publicArticleQueryService,
-            ModuleGateService moduleGateService
+            PublicArticleQueryService publicArticleQueryService
     ) {
         this.publicArticleQueryService = publicArticleQueryService;
-        this.moduleGateService = moduleGateService;
     }
 
     @GetMapping("/articles")
     ResponseEntity<Response<List<PublicArticleView>>> listArticles() {
-        moduleGateService.requireModule(DigitalContentModule.KEY);
         Long tenantId = TenantContext.getTenantId();
         List<PublicArticleView> articles = publicArticleQueryService.listPublishedArticles(tenantId).stream()
                 .map(PublicArticleController::toPublicView)
@@ -45,7 +42,6 @@ public class PublicArticleController {
 
     @GetMapping("/articles/{slug}")
     ResponseEntity<Response<PublicArticleView>> getArticle(@PathVariable String slug) {
-        moduleGateService.requireModule(DigitalContentModule.KEY);
         Long tenantId = TenantContext.getTenantId();
         return ResponseEntity.ok(Response.ok(toPublicView(
                 publicArticleQueryService.requirePublishedArticle(tenantId, slug)

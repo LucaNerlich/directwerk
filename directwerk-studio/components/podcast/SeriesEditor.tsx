@@ -15,7 +15,6 @@ import MediaLibraryPicker from '@/components/media/MediaLibraryPicker'
 import UploadProgress from '@/components/media/UploadProgress'
 import PublicationStatusBadge from '@/components/publication/PublicationStatusBadge'
 import PublishedLinksPanel from '@/components/publication/PublishedLinksPanel'
-import {AUTH_REQUIRED} from '@/lib/api/errors'
 import {
     createSeries,
     getMediaPreviewUrl,
@@ -23,10 +22,11 @@ import {
     suggestSlug,
     updateSeries,
 } from '@/lib/api/tenantApi'
-import type {SeriesStatus} from '@/lib/api/types'
+import type {SeriesStatus} from '@directwerk/api/types'
 import {mediaLimitLabel} from '@/lib/media/limits'
 import {uploadMediaFile} from '@/lib/media/upload'
 import {getClientTenantHost} from '@/lib/tenant/getClientTenantHost'
+import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
 
 interface SeriesEditorProps {
     seriesId?: number
@@ -40,6 +40,7 @@ interface SeriesEditorProps {
  */
 export default function SeriesEditor({seriesId}: SeriesEditorProps): React.JSX.Element {
     const router = useRouter()
+    const authRedirect = useAuthRequired()
     const isNew = seriesId === undefined
     const [title, setTitle] = useState('')
     const [slug, setSlug] = useState('')
@@ -91,10 +92,7 @@ export default function SeriesEditor({seriesId}: SeriesEditorProps): React.JSX.E
                 if (!active) {
                     return
                 }
-                if (error instanceof Error && error.message === AUTH_REQUIRED) {
-                    router.replace('/login')
-                    return
-                }
+                if (authRedirect(error)) return
                 setLoadError(true)
                 setErrorMessage(
                     error instanceof Error
@@ -134,10 +132,7 @@ export default function SeriesEditor({seriesId}: SeriesEditorProps): React.JSX.E
                 if (!active) {
                     return
                 }
-                if (error instanceof Error && error.message === AUTH_REQUIRED) {
-                    router.replace('/login')
-                    return
-                }
+                if (authRedirect(error)) return
                 setCoverPreviewUrl(null)
             })
 
@@ -148,10 +143,7 @@ export default function SeriesEditor({seriesId}: SeriesEditorProps): React.JSX.E
 
     const handleAuthError = useCallback(
         (error: unknown) => {
-            if (error instanceof Error && error.message === AUTH_REQUIRED) {
-                router.replace('/login')
-                return
-            }
+            if (authRedirect(error)) return
             setErrorMessage(
                 error instanceof Error ? error.message : 'Aktion fehlgeschlagen.',
             )
@@ -182,7 +174,7 @@ export default function SeriesEditor({seriesId}: SeriesEditorProps): React.JSX.E
             })
             setCoverAssetId(asset.id)
         } catch (error) {
-            handleAuthError(error)
+            authRedirect(error)
         } finally {
             if (mountedRef.current) {
                 setIsUploadingCover(false)
@@ -241,7 +233,7 @@ export default function SeriesEditor({seriesId}: SeriesEditorProps): React.JSX.E
             )
             applySeries(updated)
         } catch (error) {
-            handleAuthError(error)
+            authRedirect(error)
         } finally {
             setIsSaving(false)
         }
@@ -283,7 +275,7 @@ export default function SeriesEditor({seriesId}: SeriesEditorProps): React.JSX.E
             )
             applySeries(updated)
         } catch (error) {
-            handleAuthError(error)
+            authRedirect(error)
         } finally {
             setIsSaving(false)
         }

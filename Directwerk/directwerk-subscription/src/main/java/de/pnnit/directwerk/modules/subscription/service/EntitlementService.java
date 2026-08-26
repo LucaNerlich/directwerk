@@ -9,10 +9,15 @@ import de.pnnit.directwerk.modules.subscription.entity.SubscriptionStatus;
 import de.pnnit.directwerk.modules.subscription.repository.ProductAccessRuleRepository;
 import de.pnnit.directwerk.modules.subscription.repository.SubscriptionRepository;
 import java.time.Instant;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.OptionalInt;
 import java.util.Set;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -104,6 +109,57 @@ public class EntitlementService {
                 .anyMatch(rule -> grantsEpisode(rule, subject));
     }
 
+    /**
+     * Batch form of {@link #hasEpisodeAccess}: evaluates many episodes against ONE set of active
+     * subscriptions and access rules. FREE subjects are granted without any query; paid subjects
+     * share a single subscription fetch and a single rule fetch.
+     */
+    public Set<Long> filterAccessibleEpisodes(Long tenantId, Long userId, Map<Long, EpisodeAccessSubject> subjects) {
+        if (subjects.isEmpty()) {
+            return Set.of();
+        }
+        Set<Long> accessible = new HashSet<>();
+        Map<Long, EpisodeAccessSubject> paid = new LinkedHashMap<>();
+        for (Map.Entry<Long, EpisodeAccessSubject> entry : subjects.entrySet()) {
+            if (entry.getValue().free()) {
+                accessible.add(entry.getKey());
+            } else {
+                paid.put(entry.getKey(), entry.getValue());
+            }
+        }
+        if (paid.isEmpty()) {
+            return Set.copyOf(accessible);
+        }
+
+        List<Subscription> activeSubscriptions = activeSubscriptions(tenantId, userId);
+        OptionalInt maxLevelSortOrder = activeSubscriptions.stream()
+                .map(Subscription::getProduct)
+                .filter(product -> product.getOfferingType() == OfferingType.LEVEL)
+                .mapToInt(SubscriptionProduct::getSortOrder)
+                .max();
+        List<Long> packageProductIds = activeSubscriptions.stream()
+                .map(Subscription::getProduct)
+                .filter(product -> product.getOfferingType() == OfferingType.PACKAGE)
+                .map(SubscriptionProduct::getId)
+                .toList();
+        List<ProductAccessRule> rules = packageProductIds.isEmpty()
+                ? List.of()
+                : productAccessRuleRepository.findByTenantIdAndProductIdInOrderByProductIdAscIdAsc(
+                        tenantId, packageProductIds);
+
+        for (Map.Entry<Long, EpisodeAccessSubject> entry : paid.entrySet()) {
+            EpisodeAccessSubject subject = entry.getValue();
+            boolean levelGrants = maxLevelSortOrder.isPresent()
+                    && maxLevelSortOrder.getAsInt() >= subject.requiredLevelSortOrder()
+                    && (subject.maxFormatRequiredLevel() == null
+                            || maxLevelSortOrder.getAsInt() >= subject.maxFormatRequiredLevel());
+            if (levelGrants || rules.stream().anyMatch(rule -> grantsEpisode(rule, subject))) {
+                accessible.add(entry.getKey());
+            }
+        }
+        return Set.copyOf(accessible);
+    }
+
     public boolean hasDigitalAssetAccess(Long tenantId, Long userId, Long mediaAssetId) {
         List<Long> packageProductIds = activeSubscriptions(tenantId, userId).stream()
                 .map(Subscription::getProduct)
@@ -119,6 +175,33 @@ public class EntitlementService {
                 .stream()
                 .anyMatch(rule -> rule.getScopeType() == ProductAccessScopeType.DIGITAL_ASSET
                         && mediaAssetId.equals(rule.getScopeId()));
+    }
+
+    /**
+     * Batch form of {@link #hasDigitalAssetAccess}: one subscription fetch + one rule fetch,
+     * then intersection with the candidate ids. Fail-closed: only explicitly granted ids return.
+     */
+    public Set<Long> filterAccessibleDigitalAssetIds(Long tenantId, Long userId, Collection<Long> mediaAssetIds) {
+        if (mediaAssetIds.isEmpty()) {
+            return Set.of();
+        }
+        List<Long> packageProductIds = activeSubscriptions(tenantId, userId).stream()
+                .map(Subscription::getProduct)
+                .filter(product -> product.getOfferingType() == OfferingType.PACKAGE)
+                .map(SubscriptionProduct::getId)
+                .toList();
+        if (packageProductIds.isEmpty()) {
+            return Set.of();
+        }
+
+        return productAccessRuleRepository
+                .findByTenantIdAndProductIdInOrderByProductIdAscIdAsc(tenantId, packageProductIds)
+                .stream()
+                .filter(rule -> rule.getScopeType() == ProductAccessScopeType.DIGITAL_ASSET)
+                .map(ProductAccessRule::getScopeId)
+                .filter(Objects::nonNull)
+                .filter(mediaAssetIds::contains)
+                .collect(Collectors.toUnmodifiableSet());
     }
 
     public List<Long> listEntitledDigitalAssetIds(Long tenantId, Long userId) {

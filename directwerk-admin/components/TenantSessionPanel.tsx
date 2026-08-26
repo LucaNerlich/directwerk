@@ -14,7 +14,7 @@ import {
     getTenantSessionHost,
 } from '@/lib/auth/tenantTokenStore'
 import {loginTenantSession} from '@/lib/auth/tenantSession'
-import {parseTenantHost} from '@/lib/tenant/parseTenantHost'
+import {parseTenantHost} from '@directwerk/api/proxy'
 
 interface TenantSessionPanelProps {
     onSessionChange?: () => void

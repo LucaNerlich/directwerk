@@ -1,4 +1,4 @@
-import {parseTenantHost} from '@/lib/tenant/parseTenantHost'
+import {parseTenantHost} from '@directwerk/api/proxy'
 
 const LOOPBACK_HOSTS = new Set(['localhost', '127.0.0.1', '::1'])
 const SAFE_DEFAULT_TENANT_HOST = 'alpha-a.localhost'

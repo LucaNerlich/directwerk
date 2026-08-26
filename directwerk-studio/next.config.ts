@@ -2,7 +2,7 @@ import type {NextConfig} from 'next'
 
 const nextConfig: NextConfig = {
     reactCompiler: true,
-    transpilePackages: ['@directwerk/ui'],
+    transpilePackages: ['@directwerk/ui', '@directwerk/api'],
     async redirects() {
         return [
             {

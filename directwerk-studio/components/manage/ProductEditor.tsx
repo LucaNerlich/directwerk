@@ -10,7 +10,6 @@ import {useRouter} from 'next/navigation'
 import {useCallback, useEffect, useState, type FormEvent} from 'react'
 
 import ProductRulesEditor from '@/components/manage/ProductRulesEditor'
-import {AUTH_REQUIRED} from '@/lib/api/errors'
 import {
     createProduct,
     deactivateProduct,
@@ -19,9 +18,10 @@ import {
     syncProductStripe,
     updateProduct,
 } from '@/lib/api/tenantApi'
-import type {BillingInterval, OfferingType, SubscriptionProduct} from '@/lib/api/types'
+import type {BillingInterval, OfferingType, SubscriptionProduct} from '@directwerk/api/types'
 import {formatMoney} from '@/lib/format/money'
 import {getClientTenantHost} from '@/lib/tenant/getClientTenantHost'
+import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
 
 interface ProductEditorProps {
     productId?: number
@@ -31,6 +31,7 @@ export default function ProductEditor({
     productId,
 }: ProductEditorProps): React.JSX.Element {
     const router = useRouter()
+    const authRedirect = useAuthRequired()
     const isNew = productId === undefined
     const [title, setTitle] = useState('')
     const [slug, setSlug] = useState('')
@@ -85,10 +86,7 @@ export default function ProductEditor({
                 if (!activeLoad) {
                     return
                 }
-                if (error instanceof Error && error.message === AUTH_REQUIRED) {
-                    router.replace('/login')
-                    return
-                }
+                if (authRedirect(error)) return
                 setErrorMessage(
                     error instanceof Error
                         ? error.message
@@ -104,10 +102,7 @@ export default function ProductEditor({
 
     const handleAuthError = useCallback(
         (error: unknown) => {
-            if (error instanceof Error && error.message === AUTH_REQUIRED) {
-                router.replace('/login')
-                return
-            }
+            if (authRedirect(error)) return
             setErrorMessage(
                 error instanceof Error ? error.message : 'Aktion fehlgeschlagen.',
             )
@@ -160,7 +155,7 @@ export default function ProductEditor({
             setProduct(updated)
             setStatusMessage('Produkt gespeichert.')
         } catch (error) {
-            handleAuthError(error)
+            authRedirect(error)
         } finally {
             setIsSaving(false)
         }
@@ -177,7 +172,7 @@ export default function ProductEditor({
             setProduct(updated)
             setStatusMessage('Produkt mit Stripe synchronisiert.')
         } catch (error) {
-            handleAuthError(error)
+            authRedirect(error)
         } finally {
             setIsSaving(false)
         }
@@ -199,7 +194,7 @@ export default function ProductEditor({
             setActive(false)
             setStatusMessage('Produkt deaktiviert.')
         } catch (error) {
-            handleAuthError(error)
+            authRedirect(error)
         } finally {
             setIsSaving(false)
         }

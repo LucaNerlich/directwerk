@@ -10,6 +10,7 @@ import de.pnnit.directwerk.modules.core.util.UmamiWebsiteIdValidator;
 import de.pnnit.directwerk.modules.core.service.StudioNavigationService.StudioNavigationView;
 import de.pnnit.directwerk.multitenancy.TenantNotFoundException;
 import de.pnnit.directwerk.multitenancy.TenantResolver;
+import de.pnnit.directwerk.modules.core.util.FeedUrls;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.Cacheable;
@@ -101,7 +102,7 @@ public class PublicSiteConfigService {
         String origin = de.pnnit.directwerk.modules.core.util.PublicUrlBuilder.baseUrl(
                 scheme, host.trim().toLowerCase(java.util.Locale.ROOT), port
         );
-        return origin + "/feeds/" + tenant.getSlug() + "/podcast.xml";
+        return FeedUrls.tenantPodcastFeed(origin, tenant.getSlug());
     }
 
     /**

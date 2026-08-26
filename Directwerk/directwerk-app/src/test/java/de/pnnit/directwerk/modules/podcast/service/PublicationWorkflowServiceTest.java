@@ -1,8 +1,10 @@
 package de.pnnit.directwerk.modules.podcast.service;
 
+import de.pnnit.directwerk.modules.core.notification.SubscriberNotificationGate;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.lenient;
@@ -67,6 +69,9 @@ class PublicationWorkflowServiceTest {
     private PublicationWorkflowService publicationWorkflowService;
 
     @Mock
+    private SubscriberNotificationGate notificationGate;
+
+    @Mock
     private ObjectProvider<PublicationWorkflowService> selfProvider;
 
     @BeforeEach
@@ -78,11 +83,12 @@ class PublicationWorkflowServiceTest {
                 episodeMediaApi,
                 new HtmlSanitizer(),
                 moduleGateService,
-                directwerkConfig,
                 contentPublishedNotifier,
+                notificationGate,
                 rssFeedRefreshScheduler,
                 selfProvider
         );
+        lenient().when(notificationGate.enabled(anyLong(), any(), anyLong())).thenReturn(true);
         lenient().when(selfProvider.getObject()).thenReturn(publicationWorkflowService);
         lenient().when(episodeRepository.save(any(Episode.class))).thenAnswer(invocation -> invocation.getArgument(0));
     }

@@ -6,13 +6,14 @@ import PageHeader from '@directwerk/ui/components/page-header'
 import {useEffect, useState} from 'react'
 import {useRouter} from 'next/navigation'
 
-import {AUTH_REQUIRED} from '@/lib/api/errors'
 import {getStripeStatus, startStripeOnboard} from '@/lib/api/tenantApi'
-import type {StripeStatus} from '@/lib/api/types'
+import type {StripeStatus} from '@directwerk/api/types'
 import {getClientTenantHost} from '@/lib/tenant/getClientTenantHost'
+import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
 
 export default function StripeSettingsClient(): React.JSX.Element {
     const router = useRouter()
+    const authRedirect = useAuthRequired()
     const [status, setStatus] = useState<StripeStatus | null>(null)
     const [errorMessage, setErrorMessage] = useState<string | null>(null)
     const [statusMessage, setStatusMessage] = useState<string | null>(null)
@@ -34,10 +35,7 @@ export default function StripeSettingsClient(): React.JSX.Element {
                 if (!active) {
                     return
                 }
-                if (error instanceof Error && error.message === AUTH_REQUIRED) {
-                    router.replace('/login')
-                    return
-                }
+                if (authRedirect(error)) return
                 setErrorMessage(
                     error instanceof Error
                         ? error.message
@@ -64,10 +62,7 @@ export default function StripeSettingsClient(): React.JSX.Element {
             )
             window.location.assign(url)
         } catch (error: unknown) {
-            if (error instanceof Error && error.message === AUTH_REQUIRED) {
-                router.replace('/login')
-                return
-            }
+            if (authRedirect(error)) return
             setStatusMessage(
                 error instanceof Error
                     ? error.message

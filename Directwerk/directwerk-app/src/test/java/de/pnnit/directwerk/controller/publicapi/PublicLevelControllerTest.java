@@ -7,7 +7,6 @@ import static org.mockito.Mockito.when;
 
 import de.pnnit.directwerk.api.dto.LevelView;
 import de.pnnit.directwerk.api.response.Response;
-import de.pnnit.directwerk.modules.core.service.ModuleGateService;
 import de.pnnit.directwerk.modules.subscription.entity.OfferingType;
 import de.pnnit.directwerk.modules.subscription.entity.SubscriptionProduct;
 import de.pnnit.directwerk.modules.subscription.service.SubscriptionProductService;
@@ -22,9 +21,8 @@ class PublicLevelControllerTest {
 
     private final SubscriptionProductService subscriptionProductService =
             mock(SubscriptionProductService.class);
-    private final ModuleGateService moduleGateService = mock(ModuleGateService.class);
     private final PublicLevelController controller =
-            new PublicLevelController(subscriptionProductService, moduleGateService);
+            new PublicLevelController(subscriptionProductService);
 
     @AfterEach
     void clearTenant() {

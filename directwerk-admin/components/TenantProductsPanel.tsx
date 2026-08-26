@@ -17,7 +17,7 @@ import {
     postTenantData,
     putTenantData,
 } from '@/lib/api/tenantClient'
-import {AUTH_REQUIRED, CONFLICT, REQUEST_FAILED} from '@/lib/api/errors'
+import {AUTH_REQUIRED, CONFLICT, REQUEST_FAILED} from '@directwerk/api/constants'
 import {
     clearTenantTokens,
     getTenantSessionHost,

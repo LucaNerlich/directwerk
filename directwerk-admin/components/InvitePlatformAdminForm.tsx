@@ -10,8 +10,8 @@ import {Input} from '@directwerk/ui/components/input'
 import {Label} from '@directwerk/ui/components/label'
 
 import {postPlatformData} from '@/lib/api/client'
-import {AUTH_REQUIRED, CONFLICT, FORBIDDEN, REQUEST_FAILED} from '@/lib/api/errors'
-import type {InvitePlatformAdminResponse} from '@/lib/api/types'
+import {AUTH_REQUIRED, CONFLICT, FORBIDDEN, REQUEST_FAILED} from '@directwerk/api/constants'
+import type {InvitePlatformAdminResponse} from '@directwerk/api/types'
 import {validatePlatformAdminInviteInput} from '@/lib/validation'
 
 interface InvitePlatformAdminFormProps {

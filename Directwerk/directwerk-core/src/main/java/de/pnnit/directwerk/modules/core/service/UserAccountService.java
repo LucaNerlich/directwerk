@@ -1,5 +1,7 @@
 package de.pnnit.directwerk.modules.core.service;
 
+import de.pnnit.directwerk.modules.core.exception.ConflictException;
+import de.pnnit.directwerk.modules.core.exception.ConflictCodes;
 import de.pnnit.directwerk.config.DirectwerkConfig;
 import de.pnnit.directwerk.modules.core.entity.MembershipStatus;
 import de.pnnit.directwerk.modules.core.entity.Role;
@@ -10,7 +12,6 @@ import de.pnnit.directwerk.modules.core.entity.UserStatus;
 import de.pnnit.directwerk.modules.core.repository.TenantMembershipRepository;
 import de.pnnit.directwerk.modules.core.repository.TenantRepository;
 import de.pnnit.directwerk.modules.core.repository.UserRepository;
-import de.pnnit.directwerk.modules.core.entity.TenantStatus;
 import de.pnnit.directwerk.modules.core.util.EmailNormalizer;
 import de.pnnit.directwerk.modules.core.util.PasswordPolicy;
 import de.pnnit.directwerk.multitenancy.TenantSuspendedException;
@@ -36,13 +37,25 @@ public class UserAccountService {
     private final DirectwerkConfig directwerkConfig;
     private final EmailVerificationService emailVerificationService;
 
+    @Transactional(readOnly = true)
+    public java.util.Optional<AccountView> findAccount(Long userId) {
+        return userRepository.findById(userId).map(account -> new AccountView(
+                account.getId(),
+                account.getEmail(),
+                account.getName()
+        ));
+    }
+
+    public record AccountView(Long id, String email, String name) {
+    }
+
     @Transactional
     public User register(String email, String password, String name, Long tenantId) {
         PasswordPolicy.validate(password);
         String normalizedEmail = EmailNormalizer.normalize(email);
         Tenant tenant = tenantRepository.findById(tenantId)
                 .orElseThrow(() -> new IllegalArgumentException("Tenant not found"));
-        if (tenant.getStatus() == TenantStatus.SUSPENDED) {
+        if (!tenant.isActive()) {
             throw new TenantSuspendedException(tenant.getSlug());
         }
 
@@ -52,7 +65,7 @@ public class UserAccountService {
             Optional<TenantMembership> existingMembership = tenantMembershipRepository
                     .findByUserIdAndTenantId(user.getId(), tenant.getId());
             if (existingMembership.filter(membership -> membership.getStatus() == MembershipStatus.ACTIVE).isPresent()) {
-                throw new IllegalStateException("User already registered on this tenant");
+                throw new ConflictException(ConflictCodes.USER_EXISTS, "User already registered on this tenant");
             }
             if (existingMembership.filter(membership -> membership.getStatus() != MembershipStatus.INVITED).isPresent()) {
                 throw new IllegalStateException("User membership cannot be activated");
@@ -86,7 +99,7 @@ public class UserAccountService {
         } catch (DataIntegrityViolationException ex) {
             // Concurrent registration raced us to the uq_users_email unique
             // index — surface the same 409 USER_EXISTS as the pre-check.
-            throw new IllegalStateException("User already registered on this tenant");
+            throw new ConflictException(ConflictCodes.USER_EXISTS, "User already registered on this tenant");
         }
         TenantMembership membership = createSubscriberMembership(user, tenant);
         notifyVerificationIfRequired(user, membership, tenant);

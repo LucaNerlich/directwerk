@@ -8,10 +8,10 @@ import {Button} from '@directwerk/ui/components/button'
 import EmptyState from '@directwerk/ui/components/empty-state'
 import PageHeader from '@directwerk/ui/components/page-header'
 
-import {AUTH_REQUIRED} from '@/lib/api/errors'
 import {listSubscribers, revokeSubscription} from '@/lib/api/tenantApi'
-import type {TenantSubscriber, TenantSubscriberSubscription} from '@/lib/api/types'
+import type {TenantSubscriber, TenantSubscriberSubscription} from '@directwerk/api/types'
 import {getClientTenantHost} from '@/lib/tenant/getClientTenantHost'
+import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
 
 const REVOCABLE = new Set(['ACTIVE', 'PAST_DUE', 'INCOMPLETE'])
 
@@ -54,6 +54,7 @@ function periodLabel(item: TenantSubscriberSubscription): string {
 
 export default function SubscribersClient(): React.JSX.Element {
     const router = useRouter()
+    const authRedirect = useAuthRequired()
     const [subscribers, setSubscribers] = useState<TenantSubscriber[]>([])
     const [errorMessage, setErrorMessage] = useState<string | null>(null)
     const [statusMessage, setStatusMessage] = useState<string | null>(null)
@@ -76,10 +77,7 @@ export default function SubscribersClient(): React.JSX.Element {
                 if (!active) {
                     return
                 }
-                if (error instanceof Error && error.message === AUTH_REQUIRED) {
-                    router.replace('/login')
-                    return
-                }
+                if (authRedirect(error)) return
                 setErrorMessage(
                     error instanceof Error
                         ? error.message
@@ -124,10 +122,7 @@ export default function SubscribersClient(): React.JSX.Element {
             )
             setStatusMessage(`Zugang beendet: ${email}`)
         } catch (error: unknown) {
-            if (error instanceof Error && error.message === AUTH_REQUIRED) {
-                router.replace('/login')
-                return
-            }
+            if (authRedirect(error)) return
             setErrorMessage(
                 error instanceof Error ? error.message : 'Widerruf fehlgeschlagen.',
             )

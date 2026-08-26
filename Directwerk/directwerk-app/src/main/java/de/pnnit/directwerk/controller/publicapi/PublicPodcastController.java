@@ -2,7 +2,7 @@ package de.pnnit.directwerk.controller.publicapi;
 
 import de.pnnit.directwerk.api.dto.PublicCategoryView;
 import de.pnnit.directwerk.api.response.Response;
-import de.pnnit.directwerk.modules.core.service.ModuleGateService;
+import de.pnnit.directwerk.modules.core.RequiresModule;
 import de.pnnit.directwerk.modules.digital.api.EpisodeMediaApi;
 import de.pnnit.directwerk.modules.podcast.PodcastModule;
 import de.pnnit.directwerk.modules.digital.entity.AccessPolicy;
@@ -24,25 +24,22 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/api/v1/public")
+@RequiresModule(PodcastModule.KEY)
 public class PublicPodcastController {
 
     private final PublicPodcastQueryService publicPodcastQueryService;
-    private final ModuleGateService moduleGateService;
     private final EpisodeMediaApi episodeMediaApi;
 
     public PublicPodcastController(
             PublicPodcastQueryService publicPodcastQueryService,
-            ModuleGateService moduleGateService,
             EpisodeMediaApi episodeMediaApi
     ) {
         this.publicPodcastQueryService = publicPodcastQueryService;
-        this.moduleGateService = moduleGateService;
         this.episodeMediaApi = episodeMediaApi;
     }
 
     @GetMapping("/series")
     ResponseEntity<Response<List<PublicSeriesView>>> listSeries() {
-        moduleGateService.requireModule(PodcastModule.KEY);
         Long tenantId = TenantContext.getTenantId();
         List<PublicSeriesView> series = publicPodcastQueryService.listPublishedSeries(tenantId).stream()
                 .map(PublicPodcastController::toSeriesView)
@@ -54,7 +51,6 @@ public class PublicPodcastController {
     ResponseEntity<Response<List<PublicEpisodeView>>> listEpisodes(
             @RequestParam(required = false) Long seriesId
     ) {
-        moduleGateService.requireModule(PodcastModule.KEY);
         Long tenantId = TenantContext.getTenantId();
         List<PublicEpisodeView> episodes = publicPodcastQueryService
                 .listPublishedEpisodes(tenantId, seriesId)
@@ -66,7 +62,6 @@ public class PublicPodcastController {
 
     @GetMapping("/formats")
     ResponseEntity<Response<List<PublicFormatView>>> listFormats() {
-        moduleGateService.requireModule(PodcastModule.KEY);
         Long tenantId = TenantContext.getTenantId();
         List<PublicFormatView> formats = publicPodcastQueryService.listActiveFormats(tenantId).stream()
                 .map(PublicPodcastController::toFormatView)
@@ -76,7 +71,6 @@ public class PublicPodcastController {
 
     @GetMapping("/categories")
     ResponseEntity<Response<List<PublicCategoryView>>> listCategories() {
-        moduleGateService.requireModule(PodcastModule.KEY);
         Long tenantId = TenantContext.getTenantId();
         List<PublicCategoryView> categories = publicPodcastQueryService.listActiveCategories(tenantId).stream()
                 .map(PublicPodcastController::toCategoryView)

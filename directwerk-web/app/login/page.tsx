@@ -12,7 +12,7 @@ import {Input} from '@directwerk/ui/components/input'
 import {Label} from '@directwerk/ui/components/label'
 
 import {login} from '@/lib/api/client'
-import {parseLoginInput} from '@/lib/api/validation'
+import {parseLoginInput} from '@directwerk/api/validation'
 import {setTokens} from '@/lib/auth/tokenStore'
 import {getClientTenantHost} from '@/lib/tenant/getClientTenantHost'
 

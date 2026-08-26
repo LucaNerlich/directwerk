@@ -12,7 +12,7 @@ import {Input} from '@directwerk/ui/components/input'
 import {Label} from '@directwerk/ui/components/label'
 
 import {acceptInvite} from '@/lib/api/client'
-import {parseAcceptInviteInput} from '@/lib/api/validation'
+import {parseAcceptInviteInput} from '@directwerk/api/validation'
 
 interface AcceptInviteState {
     error: string | null

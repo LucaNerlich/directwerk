@@ -1,6 +1,7 @@
 'use client'
 
-import {AUTH_REQUIRED} from '@/lib/api/errors'
+import {createAuthedRequest, createJsonRequest} from '@directwerk/api/client'
+import type {ErrorMessageCatalog} from '@directwerk/api/envelope'
 import {
     parseArticleEnvelope,
     parseArticleListEnvelope,
@@ -34,9 +35,9 @@ import {
     parseTenantUserEnvelope,
     parseTenantUserListEnvelope,
     parseTokenResponse,
-    parseSubscriberFeedEnvelope,
-    parseSubscriberFeedListEnvelope,
-} from '@/lib/api/responseValidation'
+    parseSubscriberFeedAdminEnvelope,
+    parseSubscriberFeedAdminListEnvelope,
+} from '@directwerk/api/validation'
 import type {
     ArticleDetail,
     CategorySummary,
@@ -82,142 +83,55 @@ import type {
     UpdateTenantBrandingInput,
     UpsertContentEmailTemplateInput,
     AddTenantDomainInput,
-} from '@/lib/api/types'
-import type {LoginInput} from '@/lib/api/validation'
+} from '@directwerk/api/types'
+import type {LoginInput} from '@directwerk/api/validation'
 import {getValidAccessToken, refreshAccessToken} from '@/lib/auth/session'
 import {getClientTenantHost} from '@/lib/tenant/getClientTenantHost'
 
-function errorMessage(value: unknown, status: number): string {
-    if (
-        typeof value === 'object' &&
-        value !== null &&
-        'error' in value &&
-        typeof value.error === 'string'
-    ) {
-        // The OAuth token endpoint reports failed logins as 400 with an
-        // `error` code (typically "invalid_grant"). Show a user-facing
-        // message instead of the raw protocol code.
-        if (value.error === 'invalid_grant') {
-            return 'E-Mail oder Passwort falsch.'
-        }
-        if (value.error.length > 0 && value.error.length <= 255) {
-            return value.error
-        }
-    }
+const INVALID_RESPONSE = 'Der Server hat eine ungültige Antwort gesendet.'
 
-    if (
-        typeof value === 'object' &&
-        value !== null &&
-        'errors' in value &&
-        Array.isArray(value.errors) &&
-        value.errors.length > 0
-    ) {
-        const first = value.errors[0]
-        if (
-            typeof first === 'object' &&
-            first !== null &&
-            'message' in first &&
-            typeof first.message === 'string' &&
-            first.message.length > 0 &&
-            first.message.length <= 255
-        ) {
-            return first.message
-        }
-    }
-
-    if (status === 401) {
-        return 'E-Mail oder Passwort falsch.'
-    }
-
-    return `Anfrage fehlgeschlagen (${status}).`
+/** Studio error-message catalog (German user-facing strings). */
+const ERROR_CATALOG: ErrorMessageCatalog = {
+    invalidGrant: 'E-Mail oder Passwort falsch.',
+    unauthorized: 'E-Mail oder Passwort falsch.',
+    fallback: (status) => `Anfrage fehlgeschlagen (${status}).`,
 }
 
-async function parseJsonResponse(response: Response): Promise<unknown> {
-    const contentType = response.headers.get('content-type') ?? ''
-    if (!contentType.toLowerCase().includes('application/json')) {
-        throw new Error('Der Server hat eine ungültige Antwort gesendet.')
-    }
-
-    return response.json()
+function baseHeaders(): Record<string, string> {
+    return {'X-Tenant-Host': getClientTenantHost()}
 }
 
-async function request(
+const jsonRequest = createJsonRequest({
+    baseHeaders,
+    invalidResponseMessage: INVALID_RESPONSE,
+    catalog: ERROR_CATALOG,
+})
+
+const authedFetch = createAuthedRequest({
+    session: {getValidAccessToken, refreshAccessToken},
+    clearTokens: () => {},
+    authFailureMode: 'preserve-transient',
+    transientMessage: 'Der Server ist derzeit nicht erreichbar.',
+    finalUnauthorized: 'localized-error',
+    invalidResponseMessage: INVALID_RESPONSE,
+    catalog: ERROR_CATALOG,
+})
+
+/** Adapter preserving the historical (path, tenantHost, init) signatures. */
+function request(
     path: string,
-    tenantHost: string,
+    _tenantHost: string,
     init?: RequestInit,
 ): Promise<unknown> {
-    const response = await fetch(path, {
-        ...init,
-        headers: {
-            Accept: 'application/json',
-            'X-Tenant-Host': tenantHost,
-            ...init?.headers,
-        },
-    })
-    const value = await parseJsonResponse(response)
-    if (!response.ok) {
-        throw new Error(errorMessage(value, response.status))
-    }
-
-    return value
+    return jsonRequest(path, init)
 }
 
-async function authenticatedRequest(
+function authenticatedRequest(
     path: string,
-    tenantHost: string,
+    _tenantHost: string,
     init?: RequestInit,
-    retried = false,
 ): Promise<unknown> {
-    let accessToken: string
-    try {
-        accessToken = await getValidAccessToken()
-    } catch (error: unknown) {
-        if (error instanceof Error && error.message === AUTH_REQUIRED) {
-            throw error
-        }
-        // Transient refresh failures (upstream outage, timeout) must not be
-        // reported as "not authenticated" — consumers would log the user out.
-        throw new Error('Der Server ist derzeit nicht erreichbar.')
-    }
-
-    const response = await fetch(path, {
-        ...init,
-        headers: {
-            Accept: 'application/json',
-            'X-Tenant-Host': tenantHost,
-            Authorization: `Bearer ${accessToken}`,
-            ...init?.headers,
-        },
-    })
-
-    if (response.status === 401 && !retried) {
-        try {
-            accessToken = await refreshAccessToken()
-        } catch (error: unknown) {
-            if (error instanceof Error && error.message === AUTH_REQUIRED) {
-                throw error
-            }
-            // The session itself is intact — only this request failed.
-            // Clearing tokens here would log the user out on transient errors.
-            throw new Error('Der Server ist derzeit nicht erreichbar.')
-        }
-
-        return authenticatedRequest(path, tenantHost, init, true)
-    }
-
-    const value = await parseJsonResponse(response)
-    if (response.status === 401) {
-        // Reached only when the token was already refreshed once and the retry
-        // still returned 401 — that is an authorization (not authentication)
-        // failure. Surface the error instead of logging the user out.
-        throw new Error(errorMessage(value, response.status))
-    }
-
-    if (!response.ok) {
-        throw new Error(errorMessage(value, response.status))
-    }
-
-    return value
+    return authedFetch(path, init)
 }
 
 async function postJson(
@@ -1065,7 +979,7 @@ export async function listSubscriberFeeds(
         '/api/proxy/tenant/subscriber-feeds',
         tenantHost,
         undefined,
-        parseSubscriberFeedListEnvelope,
+        parseSubscriberFeedAdminListEnvelope,
         'Der Server hat eine ungültige Feed-Liste gesendet.',
     )
 }
@@ -1087,7 +1001,7 @@ export async function setSubscriberFeedEnabled(
         `/api/proxy/tenant/subscriber-feeds/${feedId}/enabled`,
         tenantHost,
         jsonInit('PUT', {enabled}),
-        parseSubscriberFeedEnvelope,
+        parseSubscriberFeedAdminEnvelope,
         'Der Server hat ein ungültiges Feed gesendet.',
     )
 }

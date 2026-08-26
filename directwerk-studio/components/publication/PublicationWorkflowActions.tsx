@@ -3,7 +3,7 @@
 import {Button} from '@directwerk/ui/components/button'
 import {Input} from '@directwerk/ui/components/input'
 
-import type {PublicationStatus} from '@/lib/api/types'
+import type {PublicationStatus} from '@directwerk/api/types'
 
 interface PublicationWorkflowActionsProps {
     status: PublicationStatus

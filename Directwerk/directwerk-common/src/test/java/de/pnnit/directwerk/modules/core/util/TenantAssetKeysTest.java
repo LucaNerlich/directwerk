@@ -65,4 +65,34 @@ class TenantAssetKeysTest {
         assertThat(TenantAssetKeys.requireTenantPrefix("alpha", "alpha/public/file-name_123.jpg"))
                 .isEqualTo("alpha/public/file-name_123.jpg");
     }
+
+    // --- isPublicKey: the single public-key grammar -------------------------------------
+
+    @Test
+    void acceptsTenantPrefixedPublicKey() {
+        assertThat(TenantAssetKeys.isPublicKey("alpha", "alpha/public/audio/ep.mp3")).isTrue();
+        assertThat(TenantAssetKeys.isPublicKey("alpha", "/alpha/public/audio/ep.mp3")).isTrue();
+    }
+
+    @Test
+    void rejectsPrivateAndForeignKeys() {
+        assertThat(TenantAssetKeys.isPublicKey("alpha", "alpha/private/audio/ep.mp3")).isFalse();
+        assertThat(TenantAssetKeys.isPublicKey("alpha", "beta/public/audio/ep.mp3")).isFalse();
+        assertThat(TenantAssetKeys.isPublicKey("alpha", "public/audio/ep.mp3")).isFalse();
+    }
+
+    @Test
+    void rejectsLookalikeSegmentsThatTheOldContainsCheckAccepted() {
+        // the lifecycle purge path used contains("/public/") and matched these
+        assertThat(TenantAssetKeys.isPublicKey("alpha", "alpha/public-bar/x.mp3")).isFalse();
+        assertThat(TenantAssetKeys.isPublicKey("alpha", "nested/alpha/public/x.mp3")).isFalse();
+    }
+
+    @Test
+    void rejectsNullOrBlankInputs() {
+        assertThat(TenantAssetKeys.isPublicKey(null, "alpha/public/x")).isFalse();
+        assertThat(TenantAssetKeys.isPublicKey("alpha", null)).isFalse();
+        assertThat(TenantAssetKeys.isPublicKey("", "alpha/public/x")).isFalse();
+        assertThat(TenantAssetKeys.isPublicKey("alpha", "  ")).isFalse();
+    }
 }

@@ -4,7 +4,7 @@
  * The API is trusted to serve well-formed values today, but if it ever serves a
  * `javascript:`/`data:` value (misconfiguration, compromise, future field reuse) it must
  * not execute in the studio origin — same defense-in-depth rule as the Stripe onboarding
- * URL parser in `lib/api/responseValidation.ts`.
+ * URL parser in `@directwerk/api/validation`.
  */
 
 const SAFE_LINK_PROTOCOLS = new Set(['http:', 'https:', 'mailto:', 'tel:'])

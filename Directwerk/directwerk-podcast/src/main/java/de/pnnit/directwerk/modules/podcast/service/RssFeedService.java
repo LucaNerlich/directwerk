@@ -1,5 +1,6 @@
 package de.pnnit.directwerk.modules.podcast.service;
 
+import de.pnnit.directwerk.modules.core.util.TenantAssetKeys;
 import de.pnnit.directwerk.modules.core.entity.Tenant;
 import de.pnnit.directwerk.modules.core.util.PublicUrlBuilder;
 import de.pnnit.directwerk.modules.digital.entity.AccessPolicy;
@@ -157,17 +158,14 @@ public class RssFeedService {
     }
 
     /**
-     * In-memory public-CDN eligibility matching {@code EpisodeMediaService.publicCdnUrl}
-     * without per-episode asset reloads: PUBLIC visibility and tenant {@code /public/} key.
+     * PUBLIC visibility plus the shared key grammar — parity with
+     * {@code EpisodeMediaService.publicCdnUrl} by construction, not by comment.
      */
     private static boolean isPublicCdnEligible(MediaAsset asset, String tenantSlug) {
         if (asset.getVisibility() != AssetVisibility.PUBLIC || asset.getS3Key() == null) {
             return false;
         }
-        String normalized = asset.getS3Key().startsWith("/")
-                ? asset.getS3Key().substring(1)
-                : asset.getS3Key();
-        return normalized.startsWith(tenantSlug + "/public/");
+        return TenantAssetKeys.isPublicKey(tenantSlug, asset.getS3Key());
     }
 
     private static RssXmlBuilder.RssEpisode toRssEpisode(Episode episode, MediaAsset asset, String url) {

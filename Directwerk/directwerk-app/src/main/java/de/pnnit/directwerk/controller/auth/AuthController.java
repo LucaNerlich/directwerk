@@ -71,14 +71,9 @@ public class AuthController {
     ) {
         Tenant tenant = tenantResolver.requireActiveHost(request.getServerName());
 
-        try {
-            var user = userAccountService.register(body.email(), body.password(), body.name(), tenant.getId());
-            return ResponseEntity.status(HttpStatus.CREATED)
-                    .body(Response.created(new RegisterResponse(user.getId(), user.getEmail())));
-        } catch (IllegalStateException ex) {
-            return ResponseEntity.status(HttpStatus.CONFLICT)
-                    .body(Response.error(409, "USER_EXISTS", ex.getMessage()));
-        }
+                var user = userAccountService.register(body.email(), body.password(), body.name(), tenant.getId());
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(Response.created(new RegisterResponse(user.getId(), user.getEmail())));
     }
 
     /**

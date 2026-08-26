@@ -7,15 +7,16 @@ import Form from 'next/form'
 import {useRouter} from 'next/navigation'
 import {useActionState, useCallback, useEffect, useState} from 'react'
 
-import {AUTH_REQUIRED} from '@/lib/api/errors'
+import {AUTH_REQUIRED} from '@directwerk/api/constants'
 import {
     addDomain,
     getDomainVerification,
     listDomains,
     verifyDomain,
 } from '@/lib/api/tenantApi'
-import type {DomainVerificationChallenge, TenantDomain} from '@/lib/api/types'
+import type {DomainVerificationChallenge, TenantDomain} from '@directwerk/api/types'
 import {getClientTenantHost} from '@/lib/tenant/getClientTenantHost'
+import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
 
 interface AddDomainState {
     error: string | null
@@ -31,6 +32,7 @@ const HOST_PATTERN = /^[a-z0-9]([a-z0-9.-]*[a-z0-9])?$/i
  */
 export default function DomainsClient(): React.JSX.Element {
     const router = useRouter()
+    const authRedirect = useAuthRequired()
     const [domains, setDomains] = useState<TenantDomain[]>([])
     const [loadError, setLoadError] = useState<string | null>(null)
     const [isLoading, setIsLoading] = useState(true)
@@ -60,10 +62,7 @@ export default function DomainsClient(): React.JSX.Element {
                 if (!active) {
                     return
                 }
-                if (error instanceof Error && error.message === AUTH_REQUIRED) {
-                    router.replace('/login')
-                    return
-                }
+                if (authRedirect(error)) return
                 setLoadError(
                     error instanceof Error
                         ? error.message
@@ -95,10 +94,7 @@ export default function DomainsClient(): React.JSX.Element {
             await reload()
             return {error: null, success: `Domain ${host} hinzugefügt.`}
         } catch (error: unknown) {
-            if (error instanceof Error && error.message === AUTH_REQUIRED) {
-                router.replace('/login')
-                return INITIAL_ADD_STATE
-            }
+            if (authRedirect(error)) return INITIAL_ADD_STATE
             return {
                 error:
                     error instanceof Error
@@ -122,10 +118,7 @@ export default function DomainsClient(): React.JSX.Element {
             const result = await getDomainVerification(getClientTenantHost(), host)
             setChallenge(result)
         } catch (error: unknown) {
-            if (error instanceof Error && error.message === AUTH_REQUIRED) {
-                router.replace('/login')
-                return
-            }
+            if (authRedirect(error)) return
             setActionError(
                 error instanceof Error
                     ? error.message
@@ -146,10 +139,7 @@ export default function DomainsClient(): React.JSX.Element {
             setChallenge(null)
             setActionStatus(`${host} ist verifiziert.`)
         } catch (error: unknown) {
-            if (error instanceof Error && error.message === AUTH_REQUIRED) {
-                router.replace('/login')
-                return
-            }
+            if (authRedirect(error)) return
             setActionError(
                 error instanceof Error
                     ? error.message

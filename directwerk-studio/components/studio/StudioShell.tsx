@@ -7,7 +7,7 @@ import DeskSwitcher from '@/components/studio/DeskSwitcher'
 import LogoutButton from '@/components/studio/LogoutButton'
 import SideNav from '@/components/studio/SideNav'
 import {SiteConfigProvider} from '@/lib/site/SiteConfigProvider'
-import type {SiteConfig} from '@/lib/api/types'
+import type {SiteConfig} from '@directwerk/api/types'
 
 export default function StudioShell({
     config,

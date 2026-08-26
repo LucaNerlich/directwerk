@@ -2,7 +2,7 @@ package de.pnnit.directwerk.controller.auth;
 
 import de.pnnit.directwerk.api.dto.LevelView;
 import de.pnnit.directwerk.api.response.Response;
-import de.pnnit.directwerk.modules.core.repository.UserRepository;
+import de.pnnit.directwerk.modules.core.service.UserAccountService;
 import de.pnnit.directwerk.modules.subscription.entity.Subscription;
 import de.pnnit.directwerk.modules.subscription.entity.SubscriptionProduct;
 import de.pnnit.directwerk.modules.subscription.service.EntitlementService;
@@ -23,16 +23,16 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/v1/me")
 public class MeController {
 
-    private final UserRepository userRepository;
+    private final UserAccountService userAccountService;
     private final EntitlementService entitlementService;
     private final SubscriptionService subscriptionService;
 
     public MeController(
-            UserRepository userRepository,
+            UserAccountService userAccountService,
             EntitlementService entitlementService,
             SubscriptionService subscriptionService
     ) {
-        this.userRepository = userRepository;
+        this.userAccountService = userAccountService;
         this.entitlementService = entitlementService;
         this.subscriptionService = subscriptionService;
     }
@@ -42,10 +42,10 @@ public class MeController {
         // Tenant membership already validated via SecurityContext + Host by tenant filters.
         DirectwerkUserPrincipal user = SecurityUtils.requireTenantPrincipal(principal);
 
-        return userRepository.findById(user.userId())
+        return userAccountService.findAccount(user.userId())
                 .map(account -> ResponseEntity.ok(Response.ok(new MeResponse(
-                        account.getEmail(),
-                        account.getName(),
+                        account.email(),
+                        account.name(),
                         user.roleNames(),
                         user.tenantId()
                 ))))
@@ -60,11 +60,11 @@ public class MeController {
         DirectwerkUserPrincipal user = SecurityUtils.requireTenantPrincipal(principal);
         Long tenantId = user.tenantId();
 
-        return userRepository.findById(user.userId())
+        return userAccountService.findAccount(user.userId())
                 .map(account -> {
                     EntitlementService.AccessSummary summary = entitlementService.resolveAccess(
                             tenantId,
-                            account.getId()
+                            account.id()
                     );
                     List<LevelView> levels = summary.activeLevels().stream()
                             .map(level -> new LevelView(level.id(), level.slug(), level.title(), level.sortOrder()))

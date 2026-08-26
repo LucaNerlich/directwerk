@@ -19,6 +19,7 @@ import de.pnnit.directwerk.modules.podcast.feed.SubscriberFeedRepository;
 import de.pnnit.directwerk.modules.podcast.repository.FormatRepository;
 import java.util.List;
 import java.util.Optional;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -27,7 +28,14 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
+@org.mockito.junit.jupiter.MockitoSettings(strictness = org.mockito.quality.Strictness.LENIENT)
 class SubscriberFeedServiceTest {
+
+    @BeforeEach
+    void stubTokenGeneration() {
+        org.mockito.Mockito.lenient().doReturn("tok-default")
+                .when(feedTokenGenerator).generate();
+    }
 
     @Mock
     private SubscriberFeedRepository subscriberFeedRepository;
@@ -49,6 +57,12 @@ class SubscriberFeedServiceTest {
 
     @Mock
     private RssFeedRefreshScheduler rssFeedRefreshScheduler;
+
+    @Mock
+    private de.pnnit.directwerk.modules.podcast.feed.FeedTokenGenerator feedTokenGenerator;
+
+    @Mock
+    private de.pnnit.directwerk.modules.core.service.ModuleGateService moduleGateService;
 
     @InjectMocks
     private SubscriberFeedService subscriberFeedService;
@@ -114,6 +128,8 @@ class SubscriberFeedServiceTest {
         SubscriberFeed defaultFeed = feed(10L, 1L);
         when(subscriberFeedRepository.findByTenantIdAndUserIdAndDefaultFeedTrue(10L, 99L))
                 .thenReturn(Optional.of(defaultFeed));
+        when(subscriberFeedRepository.findWithLockByTenantIdAndUserIdAndDefaultFeedTrue(10L, 99L))
+                .thenReturn(Optional.of(defaultFeed));
         when(subscriberFeedRepository.countByTenantIdAndUserIdAndDefaultFeedFalse(10L, 99L)).thenReturn(0L);
         when(subscriberFeedRepository.existsByTenantIdAndUserIdAndDefaultFeedFalseAndTitleIgnoreCase(
                 10L, 99L, "Nur Interviews"
@@ -138,8 +154,11 @@ class SubscriberFeedServiceTest {
 
     @Test
     void createCustomFeedRejectsWhenLimitReached() {
+        SubscriberFeed defaultFeed = feed(10L, 1L);
         when(subscriberFeedRepository.findByTenantIdAndUserIdAndDefaultFeedTrue(10L, 99L))
-                .thenReturn(Optional.of(feed(10L, 1L)));
+                .thenReturn(Optional.of(defaultFeed));
+        when(subscriberFeedRepository.findWithLockByTenantIdAndUserIdAndDefaultFeedTrue(10L, 99L))
+                .thenReturn(Optional.of(defaultFeed));
         when(subscriberFeedRepository.countByTenantIdAndUserIdAndDefaultFeedFalse(10L, 99L)).thenReturn(5L);
 
         assertThatThrownBy(() -> subscriberFeedService.createCustomFeed(10L, 99L, "Extra", List.of(3L)))

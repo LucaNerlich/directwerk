@@ -43,14 +43,15 @@ public class TenantMembershipGuardFilter extends OncePerRequestFilter {
             FilterChain filterChain
     ) throws ServletException, IOException {
         String path = request.getRequestURI();
-        if (!requiresFreshMembership(path)) {
+        RequestScope scope = RequestScope.of(path);
+        if (!SecurityUtils.isAuthenticated() || !scope.isTenantScoped()) {
             filterChain.doFilter(request, response);
             return;
         }
 
         try {
             TenantMembership membership = currentTenantMembershipService.requireActiveMembership();
-            if (!hasRequiredRole(membership.getRoles(), path)) {
+            if (!hasRequiredRole(membership.getRoles(), scope)) {
                 throw new TenantMismatchException("Active tenant membership required");
             }
         } catch (TenantMismatchException | PlatformTenantAccessDeniedException | TenantContextMissingException ex) {
@@ -62,60 +63,18 @@ public class TenantMembershipGuardFilter extends OncePerRequestFilter {
     }
 
     /**
-     * Determines whether a request path requires fresh tenant membership validation.
-     *
-     * @param path the request path
-     * @return {@code true} for authenticated tenant-scoped API routes
+     * Role gate from <em>DB membership</em> (not JWT claims alone) — the DB check closes the
+     * window where a deactivated or demoted member still holds a valid access token.
      */
-    private static boolean requiresFreshMembership(String path) {
-        if (!SecurityUtils.isAuthenticated()) {
-            return false;
-        }
-        if (path.startsWith("/api/v1/platform/") || "/api/v1/security/platform".equals(path)) {
-            return false;
-        }
-        return path.startsWith("/api/v1/tenant/")
-                || path.startsWith("/api/v1/probes/")
-                || path.startsWith("/api/v1/me/")
-                || "/api/v1/me".equals(path)
-                || path.startsWith("/api/v1/security/")
-                || isEditorContentPath(path);
-    }
-
-    /**
-     * Editor/tenant-admin content management routes. These rely on {@code @PreAuthorize} for their
-     * role check, but that only consults the (still-valid) JWT claims — a deactivated or demoted
-     * editor would otherwise keep access until the token expires. Re-validating the DB membership
-     * here closes that window.
-     */
-    private static boolean isEditorContentPath(String path) {
-        return isUnder(path, "/api/v1/media")
-                || isUnder(path, "/api/v1/series")
-                || isUnder(path, "/api/v1/episodes")
-                || isUnder(path, "/api/v1/articles")
-                || isUnder(path, "/api/v1/formats")
-                || isUnder(path, "/api/v1/categories");
-    }
-
-    private static boolean isUnder(String path, String base) {
-        return path.equals(base) || path.startsWith(base + "/");
-    }
-
-    /**
-     * Role gate from <em>DB membership</em> (not JWT claims alone) for admin/editor routes.
-     * {@code /me} and {@code /security} only need an ACTIVE membership; method security handles
-     * finer role checks on security probes.
-     */
-    private static boolean hasRequiredRole(Set<Role> roles, String path) {
+    private static boolean hasRequiredRole(Set<Role> roles, RequestScope scope) {
         if (roles == null || roles.isEmpty()) {
             return false;
         }
-        if (path.startsWith("/api/v1/tenant/")) {
-            return roles.contains(Role.TENANT_ADMIN);
-        }
-        if (path.startsWith("/api/v1/probes/") || isEditorContentPath(path)) {
-            return roles.contains(Role.TENANT_ADMIN) || roles.contains(Role.EDITOR);
-        }
-        return true;
+        return switch (scope.roleRequirement()) {
+            case NONE -> true;
+            case TENANT_ADMIN -> roles.contains(Role.TENANT_ADMIN);
+            case EDITOR_OR_TENANT_ADMIN -> roles.contains(Role.TENANT_ADMIN) || roles.contains(Role.EDITOR);
+            case ANY_ACTIVE -> true;
+        };
     }
 }

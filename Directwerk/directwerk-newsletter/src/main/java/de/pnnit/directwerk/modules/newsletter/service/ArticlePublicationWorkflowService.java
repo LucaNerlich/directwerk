@@ -2,9 +2,13 @@ package de.pnnit.directwerk.modules.newsletter.service;
 
 import de.pnnit.directwerk.config.DirectwerkConfig;
 import de.pnnit.directwerk.modules.content.ContentPublishedEvent;
+import de.pnnit.directwerk.modules.content.PublicationTexts;
+import de.pnnit.directwerk.modules.content.ScheduledPublishing;
+import de.pnnit.directwerk.modules.content.ScheduledPublishing.DueItem;
 import de.pnnit.directwerk.modules.content.ContentPublishedNotifier;
 import de.pnnit.directwerk.modules.content.ContentType;
 import de.pnnit.directwerk.modules.core.RequiresModule;
+import de.pnnit.directwerk.modules.core.notification.SubscriberNotificationGate;
 import de.pnnit.directwerk.modules.core.service.ModuleGateService;
 import de.pnnit.directwerk.modules.digital.DigitalContentModule;
 import de.pnnit.directwerk.modules.newsletter.entity.Article;
@@ -31,8 +35,8 @@ public class ArticlePublicationWorkflowService {
     private final ArticleService articleService;
     private final HtmlSanitizer htmlSanitizer;
     private final ModuleGateService moduleGateService;
-    private final DirectwerkConfig directwerkConfig;
     private final ContentPublishedNotifier contentPublishedNotifier;
+    private final SubscriberNotificationGate notificationGate;
     private final ObjectProvider<ArticlePublicationWorkflowService> self;
 
     @Transactional
@@ -121,26 +125,17 @@ public class ArticlePublicationWorkflowService {
     }
 
     public int publishDueScheduled() {
-        List<Article> dueArticles = articleRepository.findByStatusAndScheduledAtLessThanEqualOrderByScheduledAtAscIdAsc(
+        List<DueItem> dueItems = articleRepository.findByStatusAndScheduledAtLessThanEqualOrderByScheduledAtAscIdAsc(
                 ArticleStatus.SCHEDULED,
                 Instant.now()
-        );
-        int published = 0;
+        ).stream()
+                .map(article -> new DueItem(article.getTenant().getId(), article.getId()))
+                .toList();
         ArticlePublicationWorkflowService proxy = self.getObject();
-        for (Article article : dueArticles) {
-            Long tenantId = article.getTenant().getId();
-            Long articleId = article.getId();
-            try {
-                TenantContext.runWithTenant(tenantId, () -> {
-                    moduleGateService.requireModule(DigitalContentModule.KEY);
-                    proxy.publishScheduledArticle(tenantId, articleId);
-                });
-                published++;
-            } catch (Exception ex) {
-                log.error("Failed to publish scheduled article tenant={} article={}", tenantId, articleId, ex);
-            }
-        }
-        return published;
+        return ScheduledPublishing.publishDue(dueItems, (tenantId, articleId) -> {
+            moduleGateService.requireModule(DigitalContentModule.KEY);
+            proxy.publishScheduledArticle(tenantId, articleId);
+        }, "articles");
     }
 
     @Transactional
@@ -164,7 +159,7 @@ public class ArticlePublicationWorkflowService {
         }
 
         String sanitizedBody = htmlSanitizer.sanitize(article.getBody());
-        if (isBlankHtml(sanitizedBody)) {
+        if (PublicationTexts.isBlankHtml(sanitizedBody)) {
             throw new ArticleValidationException("Article body is required");
         }
         article.setBody(sanitizedBody);
@@ -180,15 +175,7 @@ public class ArticlePublicationWorkflowService {
     }
 
     private void maybeNotifySubscribers(Long tenantId, Article published, boolean notifySubscribers) {
-        if (!notifySubscribers) {
-            return;
-        }
-        if (!directwerkConfig.isEmailEnabled()) {
-            log.debug("Skipping article notification tenant={} article={} — email delivery disabled", tenantId, published.getId());
-            return;
-        }
-        if (!moduleGateService.enabledModuleKeys(tenantId).contains("EMAIL_NOTIFY")) {
-            log.debug("Skipping article notification tenant={} article={} — EMAIL_NOTIFY module not enabled", tenantId, published.getId());
+        if (!notifySubscribers || !notificationGate.enabled(tenantId, ContentType.ARTICLE, published.getId())) {
             return;
         }
         Instant notifiedAt = Instant.now();
@@ -203,38 +190,9 @@ public class ArticlePublicationWorkflowService {
                 ContentType.ARTICLE,
                 published.getId(),
                 published.getTitle(),
-                articleExcerpt(published),
+                PublicationTexts.excerptOr(published.getExcerpt(), published.getBody()),
                 published.getSlug(),
                 published.getAccessPolicy().name()
         ));
-    }
-
-    private static String articleExcerpt(Article article) {
-        if (article.getExcerpt() != null && !article.getExcerpt().isBlank()) {
-            return article.getExcerpt().trim();
-        }
-        if (article.getBody() == null) {
-            return "";
-        }
-        String textOnly = article.getBody()
-                .replaceAll("<[^>]*>", " ")
-                .replace("&nbsp;", " ")
-                .replaceAll("\\s+", " ")
-                .trim();
-        if (textOnly.length() <= 280) {
-            return textOnly;
-        }
-        return textOnly.substring(0, 277) + "...";
-    }
-
-    private static boolean isBlankHtml(String sanitizedBody) {
-        if (sanitizedBody == null) {
-            return true;
-        }
-        String textOnly = sanitizedBody
-                .replaceAll("<[^>]*>", "")
-                .replace("&nbsp;", " ")
-                .trim();
-        return textOnly.isBlank();
     }
 }

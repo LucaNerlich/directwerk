@@ -1,12 +1,17 @@
 import 'server-only'
 
-import {directwerkFetch} from '@/lib/directwerk'
-import {
+import {directwerkFetch} from '@/lib/server/api'
+import {createPublicContentParsers} from '@directwerk/api/validation'
+import {sanitizeContentHtml} from '@/lib/sanitizeContentHtml'
+
+// Same sanitization policy as the client-side parsers (shared structural
+// guards + web's HTML sanitizer).
+const {
     parsePublicArticleEnvelope,
     parsePublicArticleListEnvelope,
     parsePublicEpisodeListEnvelope,
-} from '@/lib/api/responseValidation'
-import type {PublicArticle, PublicEpisode} from '@/lib/api/types'
+} = createPublicContentParsers({sanitizeHtml: sanitizeContentHtml})
+import type {PublicArticle, PublicEpisode} from '@directwerk/api/types'
 
 /**
  * Fetches a single public article server-side. Returns `null` when the

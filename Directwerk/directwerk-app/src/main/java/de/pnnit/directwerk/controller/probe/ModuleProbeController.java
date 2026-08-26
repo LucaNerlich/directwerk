@@ -1,7 +1,9 @@
 package de.pnnit.directwerk.controller.probe;
 
 import de.pnnit.directwerk.api.response.Response;
+import de.pnnit.directwerk.modules.digital.DigitalContentModule;
 import de.pnnit.directwerk.modules.core.service.ModuleGateService;
+import de.pnnit.directwerk.modules.podcast.PodcastModule;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -21,14 +23,14 @@ public class ModuleProbeController {
 
     @GetMapping("/digital")
     ResponseEntity<Response<ProbeResponse>> digitalProbe() {
-        moduleGateService.requireModule("DIGITAL_CONTENT");
-        return ResponseEntity.ok(Response.ok(new ProbeResponse("DIGITAL_CONTENT", "enabled")));
+        moduleGateService.requireModule(DigitalContentModule.KEY);
+        return ResponseEntity.ok(Response.ok(new ProbeResponse(DigitalContentModule.KEY, "enabled")));
     }
 
     @GetMapping("/podcast")
     ResponseEntity<Response<ProbeResponse>> podcastProbe() {
-        moduleGateService.requireModule("PODCAST");
-        return ResponseEntity.ok(Response.ok(new ProbeResponse("PODCAST", "enabled")));
+        moduleGateService.requireModule(PodcastModule.KEY);
+        return ResponseEntity.ok(Response.ok(new ProbeResponse(PodcastModule.KEY, "enabled")));
     }
 
     public record ProbeResponse(String module, String status) {

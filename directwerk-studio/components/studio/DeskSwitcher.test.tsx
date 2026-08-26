@@ -3,7 +3,7 @@ import type {ComponentProps, ReactNode} from 'react'
 import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest'
 
 import DeskSwitcher from '@/components/studio/DeskSwitcher'
-import type {SiteConfig} from '@/lib/api/types'
+import type {SiteConfig} from '@directwerk/api/types'
 
 let currentPathname = '/'
 

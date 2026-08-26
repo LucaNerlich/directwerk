@@ -2,19 +2,21 @@ package de.pnnit.directwerk.modules.podcast.service;
 
 import de.pnnit.directwerk.modules.core.entity.Tenant;
 import de.pnnit.directwerk.modules.core.repository.TenantRepository;
+import de.pnnit.directwerk.modules.core.service.ModuleGateService;
+import de.pnnit.directwerk.modules.core.service.ModuleNotEnabledException;
+import de.pnnit.directwerk.modules.podcast.FeedBuilderModule;
 import de.pnnit.directwerk.modules.core.repository.UserRepository;
 import de.pnnit.directwerk.modules.digital.exception.StorageNotConfiguredException;
 import de.pnnit.directwerk.modules.podcast.entity.Episode;
 import de.pnnit.directwerk.modules.podcast.entity.Format;
 import de.pnnit.directwerk.modules.podcast.repository.FormatRepository;
 import de.pnnit.directwerk.modules.podcast.feed.FeedBuilderException;
+import de.pnnit.directwerk.modules.podcast.feed.FeedTokenGenerator;
 import de.pnnit.directwerk.modules.podcast.feed.SubscriberFeed;
 import de.pnnit.directwerk.modules.podcast.feed.SubscriberFeedFormatMatcher;
 import de.pnnit.directwerk.modules.podcast.feed.SubscriberFeedNotFoundException;
 import de.pnnit.directwerk.modules.podcast.feed.SubscriberFeedRepository;
-import java.security.SecureRandom;
 import java.util.ArrayList;
-import java.util.Base64;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.LinkedHashSet;
@@ -34,21 +36,41 @@ public class SubscriberFeedService {
     public static final int MAX_TITLE_LENGTH = 80;
     public static final int PREVIEW_SAMPLE_SIZE = 5;
 
-    private static final int TOKEN_BYTES = 24;
-
     private final SubscriberFeedRepository subscriberFeedRepository;
     private final TenantRepository tenantRepository;
     private final UserRepository userRepository;
     private final FormatRepository formatRepository;
     private final SubscriberEpisodeService subscriberEpisodeService;
+    private final FeedTokenGenerator feedTokenGenerator;
+    private final ModuleGateService moduleGateService;
     private final RssFeedSnapshotService rssFeedSnapshotService;
     private final RssFeedRefreshScheduler rssFeedRefreshScheduler;
-    private final SecureRandom secureRandom = new SecureRandom();
 
     @Transactional(readOnly = true)
     public SubscriberFeed requireFeedByToken(String feedToken) {
         return subscriberFeedRepository.findByFeedToken(feedToken)
                 .orElseThrow(SubscriberFeedNotFoundException::new);
+    }
+
+    /**
+     * Delivery-time gate for token-authenticated feeds: token must resolve, belong to the
+     * Host tenant and be enabled. Custom feeds additionally require FEED_BUILDER — translated
+     * to not-found so podcatchers never see an API error for a disabled feature.
+     */
+    @Transactional(readOnly = true)
+    public SubscriberFeed requireDeliverableFeed(Long tenantId, String feedToken) {
+        SubscriberFeed feed = requireFeedByToken(feedToken);
+        if (!tenantId.equals(feed.getTenant().getId()) || !feed.isEnabled()) {
+            throw new SubscriberFeedNotFoundException();
+        }
+        if (!feed.isDefaultFeed()) {
+            try {
+                moduleGateService.requireModule(FeedBuilderModule.KEY);
+            } catch (ModuleNotEnabledException ex) {
+                throw new SubscriberFeedNotFoundException();
+            }
+        }
+        return feed;
     }
 
     @Transactional(readOnly = true)
@@ -336,9 +358,7 @@ public class SubscriberFeedService {
     private String generateUniqueToken() {
         String token;
         do {
-            byte[] bytes = new byte[TOKEN_BYTES];
-            secureRandom.nextBytes(bytes);
-            token = Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
+            token = feedTokenGenerator.generate();
         } while (subscriberFeedRepository.existsByFeedToken(token));
         return token;
     }

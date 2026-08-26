@@ -11,13 +11,13 @@ import {Label} from '@directwerk/ui/components/label'
 
 import {postPlatformData} from '@/lib/api/client'
 import {clearTokens, getAccessToken} from '@/lib/auth/tokenStore'
-import {AUTH_REQUIRED} from '@/lib/api/errors'
+import {AUTH_REQUIRED} from '@directwerk/api/constants'
 import {
     ASSET_TYPES,
     ASSET_VISIBILITIES,
     type AssetVisibility,
     type MediaAsset,
-} from '@/lib/api/types'
+} from '@directwerk/api/types'
 
 interface TenantStorageUploadFormProps {
     tenantId: string

@@ -7,8 +7,8 @@ import {Alert, AlertDescription} from '@directwerk/ui/components/alert'
 import PageHeader from '@directwerk/ui/components/page-header'
 
 import {getSiteConfig, listMyEpisodes, listPublicEpisodes, listPublicSeries} from '@/lib/api/client'
-import {AUTH_REQUIRED} from '@/lib/api/errors'
-import type {PublicEpisode, PublicSeries, SiteConfig} from '@/lib/api/types'
+import {AUTH_REQUIRED} from '@directwerk/api/constants'
+import type {PublicEpisode, PublicSeries, PublicSiteConfig} from '@directwerk/api/types'
 import {
     getAccessToken,
     subscribeToTokenStore,
@@ -34,7 +34,7 @@ export default function EpisodesPage() {
     )
     const [series, setSeries] = useState<PublicSeries[]>([])
     const [episodes, setEpisodes] = useState<PublicEpisode[]>([])
-    const [siteConfig, setSiteConfig] = useState<SiteConfig | null>(null)
+    const [siteConfig, setSiteConfig] = useState<PublicSiteConfig | null>(null)
     const [errorMessage, setErrorMessage] = useState<string | null>(null)
     const [isLoading, setIsLoading] = useState(true)
     const isAuthenticated = accessToken !== null

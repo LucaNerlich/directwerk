@@ -17,7 +17,7 @@ import {Table, TableBody, TableCell, TableHead, TableHeader, TableRow} from '@di
 
 import TenantStorageUploadForm from '@/components/TenantStorageUploadForm'
 import {deletePlatformData, getPlatformData} from '@/lib/api/client'
-import {AUTH_REQUIRED} from '@/lib/api/errors'
+import {AUTH_REQUIRED} from '@directwerk/api/constants'
 import {
     ASSET_STATUSES,
     ASSET_TYPES,
@@ -25,7 +25,7 @@ import {
     type Tenant,
     type TenantMediaList,
     type TenantMediaQuery,
-} from '@/lib/api/types'
+} from '@directwerk/api/types'
 
 interface TenantStoragePageProps {
     params: Promise<{id: string}>

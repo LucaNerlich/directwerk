@@ -1,5 +1,7 @@
 package de.pnnit.directwerk.modules.digital.service;
 
+import de.pnnit.directwerk.modules.core.exception.ConflictException;
+import de.pnnit.directwerk.modules.core.exception.ConflictCodes;
 import de.pnnit.directwerk.modules.core.RequiresModule;
 import de.pnnit.directwerk.modules.core.repository.TenantRepository;
 import de.pnnit.directwerk.modules.core.util.SlugNormalizer;
@@ -48,7 +50,7 @@ public class CategoryService {
     ) {
         String slug = SlugNormalizer.normalize(rawSlug);
         if (categoryRepository.existsByTenantIdAndSlug(tenantId, slug)) {
-            throw new IllegalStateException("Category slug already exists: " + slug);
+            throw new ConflictException(ConflictCodes.CATEGORY_SLUG_EXISTS, "Category slug already exists: " + slug);
         }
 
         Category category = new Category();
@@ -74,7 +76,7 @@ public class CategoryService {
         if (rawSlug != null) {
             String slug = SlugNormalizer.normalize(rawSlug);
             if (categoryRepository.existsByTenantIdAndSlugAndIdNot(tenantId, slug, categoryId)) {
-                throw new IllegalStateException("Category slug already exists: " + slug);
+                throw new ConflictException(ConflictCodes.CATEGORY_SLUG_EXISTS, "Category slug already exists: " + slug);
             }
             category.setSlug(slug);
         }

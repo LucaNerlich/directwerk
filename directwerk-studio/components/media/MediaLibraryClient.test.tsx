@@ -4,7 +4,7 @@ import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest'
 import MediaLibraryClient from '@/components/media/MediaLibraryClient'
 import {listMedia} from '@/lib/api/tenantApi'
 import {uploadMediaFile} from '@/lib/media/upload'
-import type {MediaAsset} from '@/lib/api/types'
+import type {MediaAsset} from '@directwerk/api/types'
 
 vi.mock('next/navigation', () => ({useRouter: () => ({replace: vi.fn()})}))
 vi.mock('@/lib/tenant/getClientTenantHost', () => ({getClientTenantHost: () => 'tenant.test'}))
@@ -16,15 +16,22 @@ vi.mock('@/lib/media/upload', () => ({
     uploadMediaFile: vi.fn().mockResolvedValue({id: 8}),
 }))
 
+/** Full MediaAssetView fixture (shared DTO now carries all 14 fields). */
 const coverAsset = {
     id: 7,
+    s3Key: 'tenant/staging/cover.png',
+    visibility: 'PUBLIC',
+    scope: '',
     status: 'READY',
     assetType: 'IMAGE',
     mimeType: 'image/png',
     originalFilename: 'cover.png',
     sizeBytes: 2048,
-    visibility: 'PRIVATE',
+    episodeId: null,
+    ownerUserId: 1,
     cdnUrl: 'https://cdn.example/cover.png',
+    createdAt: '2026-01-01T00:00:00Z',
+    updatedAt: '2026-01-01T00:00:00Z',
 }
 
 describe('MediaLibraryClient', () => {
@@ -37,12 +44,13 @@ describe('MediaLibraryClient', () => {
         vi.mocked(listMedia).mockResolvedValue([])
         vi.mocked(uploadMediaFile).mockReset()
         vi.mocked(uploadMediaFile).mockResolvedValue({
+            ...coverAsset,
             id: 8,
-            status: 'READY',
             assetType: 'AUDIO',
             mimeType: 'audio/mpeg',
             originalFilename: 'folge.mp3',
             sizeBytes: 1024,
+            cdnUrl: null,
         })
     })
 
@@ -124,12 +132,13 @@ describe('MediaLibraryClient', () => {
         )
 
         resolveUpload?.({
+            ...coverAsset,
             id: 8,
-            status: 'READY',
             assetType: 'AUDIO',
             mimeType: 'audio/mpeg',
             originalFilename: 'folge.mp3',
             sizeBytes: 1024,
+            cdnUrl: null,
         })
 
         await waitFor(() =>

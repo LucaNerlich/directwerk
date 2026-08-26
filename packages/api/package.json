@@ -1,0 +1,34 @@
+{
+    "name": "@directwerk/api",
+    "version": "0.1.0",
+    "private": true,
+    "type": "module",
+    "exports": {
+        "./constants": "./src/constants.ts",
+        "./types": "./src/types.ts",
+        "./envelope": "./src/envelope.ts",
+        "./server": "./src/server/index.ts",
+        "./auth/*": "./src/auth/*.ts",
+        "./client": "./src/client/index.ts",
+        "./proxy": "./src/proxy/index.ts",
+        "./validation": "./src/validation/index.ts"
+    },
+    "scripts": {
+        "test": "vitest run",
+        "typecheck": "tsc --noEmit"
+    },
+    "dependencies": {
+        "server-only": "^0.0.1"
+    },
+    "devDependencies": {
+        "@types/node": "^22.20.1",
+        "@types/react": "^19.2.18",
+        "jsdom": "^26.1.0",
+        "typescript": "^5.9.3",
+        "vitest": "^4.1.10"
+    },
+    "peerDependencies": {
+        "next": "^16.3.0",
+        "react": "^19.2.8"
+    }
+}

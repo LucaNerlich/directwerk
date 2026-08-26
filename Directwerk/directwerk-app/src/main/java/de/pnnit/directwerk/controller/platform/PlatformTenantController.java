@@ -5,7 +5,6 @@ import de.pnnit.directwerk.api.response.Response;
 import de.pnnit.directwerk.config.DirectwerkConfig;
 import de.pnnit.directwerk.modules.core.entity.Tenant;
 import de.pnnit.directwerk.modules.core.entity.TenantDomain;
-import de.pnnit.directwerk.modules.core.repository.TenantRepository;
 import de.pnnit.directwerk.modules.core.service.TenantDomainService;
 import de.pnnit.directwerk.modules.core.service.TenantManagementService;
 import de.pnnit.directwerk.modules.core.service.TenantInvitationService;
@@ -33,7 +32,6 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/v1/platform/tenants")
 public class PlatformTenantController {
 
-    private final TenantRepository tenantRepository;
     private final TenantManagementService tenantManagementService;
     private final TenantDomainService tenantDomainService;
     private final DirectwerkConfig directwerkConfig;
@@ -41,18 +39,15 @@ public class PlatformTenantController {
     /**
      * Creates a controller for platform tenant lifecycle endpoints.
      *
-     * @param tenantRepository         repository used to retrieve tenants
      * @param tenantManagementService service used to manage tenant lifecycle operations
      * @param tenantDomainService      service used for platform domain operations
      * @param directwerkConfig         configuration controlling development token exposure
      */
     public PlatformTenantController(
-            TenantRepository tenantRepository,
             TenantManagementService tenantManagementService,
             TenantDomainService tenantDomainService,
             DirectwerkConfig directwerkConfig
     ) {
-        this.tenantRepository = tenantRepository;
         this.tenantManagementService = tenantManagementService;
         this.tenantDomainService = tenantDomainService;
         this.directwerkConfig = directwerkConfig;
@@ -65,7 +60,7 @@ public class PlatformTenantController {
      */
     @GetMapping
     ResponseEntity<Response<TenantListResponse>> listTenants() {
-        List<TenantView> tenants = tenantRepository.findAll().stream()
+        List<TenantView> tenants = tenantManagementService.listTenants().stream()
                 .map(this::toView)
                 .toList();
         return ResponseEntity.ok(Response.ok(new TenantListResponse(tenants)));
@@ -79,37 +74,32 @@ public class PlatformTenantController {
      */
     @PostMapping
     ResponseEntity<Response<TenantCreationResponse>> createTenant(@Valid @RequestBody CreateTenantRequest request) {
-        try {
-            TenantCreationResult result = tenantManagementService.createTenant(
-                    request.name(),
-                    request.slug(),
-                    request.primaryDomain(),
-                    request.modulePreset(),
-                    request.adminEmail(),
-                    request.adminName()
-            );
-            TenantDetailView tenant = result.tenant();
-            TenantInvitationService.InvitationResult invitation = result.adminInvitation();
-            AdminInvitationResponse adminInvitation = invitation == null
-                    ? null
-                    : new AdminInvitationResponse(
-                            invitation.email(),
-                            invitation.status(),
-                            directwerkConfig.isExposeDevTokens() ? invitation.inviteToken() : null
-                    );
-            return ResponseEntity.status(HttpStatus.CREATED).body(Response.created(
-                    new TenantCreationResponse(
-                            tenant.id(),
-                            tenant.slug(),
-                            tenant.name(),
-                            tenant.status(),
-                            adminInvitation
-                    )
-            ));
-        } catch (IllegalStateException ex) {
-            return ResponseEntity.status(HttpStatus.CONFLICT)
-                    .body(Response.error(409, "TENANT_SLUG_EXISTS", ex.getMessage()));
-        }
+                TenantCreationResult result = tenantManagementService.createTenant(
+                request.name(),
+                request.slug(),
+                request.primaryDomain(),
+                request.modulePreset(),
+                request.adminEmail(),
+                request.adminName()
+        );
+        TenantDetailView tenant = result.tenant();
+        TenantInvitationService.InvitationResult invitation = result.adminInvitation();
+        AdminInvitationResponse adminInvitation = invitation == null
+                ? null
+                : new AdminInvitationResponse(
+                        invitation.email(),
+                        invitation.status(),
+                        directwerkConfig.isExposeDevTokens() ? invitation.inviteToken() : null
+                );
+        return ResponseEntity.status(HttpStatus.CREATED).body(Response.created(
+                new TenantCreationResponse(
+                        tenant.id(),
+                        tenant.slug(),
+                        tenant.name(),
+                        tenant.status(),
+                        adminInvitation
+                )
+        ));
     }
 
     /**
@@ -135,14 +125,9 @@ public class PlatformTenantController {
             @PathVariable Long tenantId,
             @Valid @RequestBody UpdateTenantRequest request
     ) {
-        try {
-            return ResponseEntity.ok(Response.ok(
-                    tenantManagementService.updateTenant(tenantId, request.name(), request.slug())
-            ));
-        } catch (IllegalStateException ex) {
-            return ResponseEntity.status(HttpStatus.CONFLICT)
-                    .body(Response.error(409, "TENANT_SLUG_EXISTS", ex.getMessage()));
-        }
+                return ResponseEntity.ok(Response.ok(
+                tenantManagementService.updateTenant(tenantId, request.name(), request.slug())
+        ));
     }
 
     /**

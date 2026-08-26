@@ -6,7 +6,6 @@ package de.pnnit.directwerk.modules.queue;
 public final class QueueNames {
 
     public static final String EMAIL = "email";
-    public static final String WEBHOOK = "webhook";
     public static final String CONTENT_NOTIFY = "content-notify";
 
     private QueueNames() {

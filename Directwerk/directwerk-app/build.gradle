@@ -7,7 +7,6 @@ dependencies {
     implementation project(':directwerk-common')
     implementation project(':directwerk-queue')
     implementation project(':directwerk-email')
-    implementation project(':directwerk-webhook')
     implementation project(':directwerk-core')
     implementation project(':directwerk-subscription')
     implementation project(':directwerk-digital')

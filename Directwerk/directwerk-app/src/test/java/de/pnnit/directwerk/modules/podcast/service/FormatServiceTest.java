@@ -71,7 +71,7 @@ class FormatServiceTest {
         when(formatRepository.existsByTenantIdAndSlug(10L, "bonus")).thenReturn(true);
 
         assertThatThrownBy(() -> formatService.createFormat(10L, "bonus", "Bonus", null, null, null))
-                .isInstanceOf(IllegalStateException.class)
+                .isInstanceOf(de.pnnit.directwerk.modules.core.exception.ConflictException.class)
                 .hasMessageContaining("bonus");
     }
 

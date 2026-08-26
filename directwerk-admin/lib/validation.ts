@@ -4,13 +4,13 @@ import type {
     JobStatus,
     ModulePresetKey,
     TenantInvitableRole,
-} from './api/types'
+} from '@directwerk/api/types'
 import {
     JOB_STATUSES,
     MODULE_PRESETS,
     TENANT_INVITABLE_ROLES,
-} from './api/types'
-import {parseTenantHost} from './tenant/parseTenantHost'
+} from '@directwerk/api/types'
+import {parseTenantHost} from '@directwerk/api/proxy'
 
 export interface LoginCredentials {
     email: string

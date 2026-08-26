@@ -3,11 +3,17 @@ package de.pnnit.directwerk.modules.digital.api;
 import de.pnnit.directwerk.modules.digital.entity.MediaAsset;
 import de.pnnit.directwerk.security.DirectwerkUserPrincipal;
 import java.net.URL;
+import java.util.Collection;
+import java.util.List;
 
 /**
  * Resolves download URLs for media assets after tenant and entitlement checks.
  */
 public interface AssetAccessApi {
+
+    /** A resolved download: the (managed) asset plus its signed or CDN URL. */
+    record ResolvedDownload(MediaAsset asset, URL url) {
+    }
 
     /**
      * Resolves a download URL for the given asset (subscriber / general access path).
@@ -28,4 +34,12 @@ public interface AssetAccessApi {
      * for in-tenant preview (including drafts).
      */
     URL resolvePreviewUrl(MediaAsset asset, DirectwerkUserPrincipal principal, boolean previewDraft);
+
+    /**
+     * Batch form of {@link #resolveDownloadUrl}: one entitlement evaluation covers all
+     * standalone private assets; public assets resolve to CDN URLs without checks.
+     * Assets the principal may not access are silently skipped (fail closed) — the result
+     * never contains an unauthorized URL.
+     */
+    List<ResolvedDownload> resolveDownloadUrls(Collection<MediaAsset> assets, DirectwerkUserPrincipal principal);
 }

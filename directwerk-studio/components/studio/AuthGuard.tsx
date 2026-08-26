@@ -8,13 +8,14 @@ import {Button} from '@directwerk/ui/components/button'
 import {fetchMe, isEditorRole} from '@/lib/api/tenantApi'
 import {MeProvider} from '@/lib/auth/MeProvider'
 import {ensureAuthenticated} from '@/lib/auth/session'
-import {AUTH_REQUIRED} from '@/lib/api/errors'
+import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
 import {clearTokens, getAccessToken} from '@/lib/auth/tokenStore'
 import {getClientTenantHost} from '@/lib/tenant/getClientTenantHost'
-import type {Me} from '@/lib/api/types'
+import type {Me} from '@directwerk/api/types'
 
 export default function AuthGuard({children}: Readonly<{children: React.ReactNode}>) {
     const router = useRouter()
+    const authRedirect = useAuthRequired()
     const [me, setMe] = useState<Me | null>(null)
     const [verifyError, setVerifyError] = useState<string | null>(null)
     const [attempt, setAttempt] = useState(0)
@@ -54,9 +55,8 @@ export default function AuthGuard({children}: Readonly<{children: React.ReactNod
                 // Only definitive auth failures end the session. Network or
                 // upstream errors during a deploy must keep the valid refresh
                 // cookie intact and offer a retry instead.
-                if (error instanceof Error && error.message === AUTH_REQUIRED) {
+                if (authRedirect(error)) {
                     clearTokens()
-                    router.replace('/login')
                     return
                 }
 

@@ -9,7 +9,7 @@ import Form from 'next/form'
 import {useRouter} from 'next/navigation'
 import {useActionState, useCallback, useEffect, useState} from 'react'
 
-import {AUTH_REQUIRED} from '@/lib/api/errors'
+import {AUTH_REQUIRED} from '@directwerk/api/constants'
 import {
     deactivateTenantUser,
     inviteTenantUser,
@@ -20,9 +20,10 @@ import {
     TENANT_INVITABLE_ROLES,
     type TenantInvitableRole,
     type TenantUser,
-} from '@/lib/api/types'
+} from '@directwerk/api/types'
 import {useMe} from '@/lib/auth/MeProvider'
 import {getClientTenantHost} from '@/lib/tenant/getClientTenantHost'
+import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
 
 interface InviteState {
     error: string | null
@@ -71,6 +72,7 @@ function statusLabel(status: string): string {
  */
 export default function TeamClient(): React.JSX.Element {
     const router = useRouter()
+    const authRedirect = useAuthRequired()
     const me = useMe()
     const [users, setUsers] = useState<TenantUser[]>([])
     const [loadError, setLoadError] = useState<string | null>(null)
@@ -97,10 +99,7 @@ export default function TeamClient(): React.JSX.Element {
                 if (!active) {
                     return
                 }
-                if (error instanceof Error && error.message === AUTH_REQUIRED) {
-                    router.replace('/login')
-                    return
-                }
+                if (authRedirect(error)) return
                 setLoadError(
                     error instanceof Error
                         ? error.message
@@ -142,10 +141,7 @@ export default function TeamClient(): React.JSX.Element {
                 inviteToken: response.inviteToken,
             }
         } catch (error: unknown) {
-            if (error instanceof Error && error.message === AUTH_REQUIRED) {
-                router.replace('/login')
-                return INITIAL_INVITE_STATE
-            }
+            if (authRedirect(error)) return INITIAL_INVITE_STATE
             return {
                 ...INITIAL_INVITE_STATE,
                 error:
@@ -172,10 +168,7 @@ export default function TeamClient(): React.JSX.Element {
             }
             await reload()
         } catch (error: unknown) {
-            if (error instanceof Error && error.message === AUTH_REQUIRED) {
-                router.replace('/login')
-                return
-            }
+            if (authRedirect(error)) return
             setActionError(
                 error instanceof Error
                     ? error.message

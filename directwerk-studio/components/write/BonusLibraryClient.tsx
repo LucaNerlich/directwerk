@@ -8,16 +8,17 @@ import {Button} from '@directwerk/ui/components/button'
 import EmptyState from '@directwerk/ui/components/empty-state'
 import PageHeader from '@directwerk/ui/components/page-header'
 
-import {AUTH_REQUIRED} from '@/lib/api/errors'
 import {listMedia} from '@/lib/api/tenantApi'
-import type {MediaAsset} from '@/lib/api/types'
+import type {MediaAsset} from '@directwerk/api/types'
 import {getClientTenantHost} from '@/lib/tenant/getClientTenantHost'
+import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
 
 /**
  * Lists READY document assets as the studio bonus-file library.
  */
 export default function BonusLibraryClient(): React.JSX.Element {
     const router = useRouter()
+    const authRedirect = useAuthRequired()
     const [assets, setAssets] = useState<MediaAsset[]>([])
     const [errorMessage, setErrorMessage] = useState<string | null>(null)
     const [isLoading, setIsLoading] = useState(true)
@@ -41,10 +42,7 @@ export default function BonusLibraryClient(): React.JSX.Element {
                 if (!active) {
                     return
                 }
-                if (error instanceof Error && error.message === AUTH_REQUIRED) {
-                    router.replace('/login')
-                    return
-                }
+                if (authRedirect(error)) return
                 setErrorMessage(
                     error instanceof Error
                         ? error.message

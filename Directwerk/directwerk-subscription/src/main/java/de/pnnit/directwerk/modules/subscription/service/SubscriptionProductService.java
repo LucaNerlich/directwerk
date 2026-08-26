@@ -1,5 +1,7 @@
 package de.pnnit.directwerk.modules.subscription.service;
 
+import de.pnnit.directwerk.modules.core.exception.ConflictException;
+import de.pnnit.directwerk.modules.core.exception.ConflictCodes;
 import de.pnnit.directwerk.config.DirectwerkCacheNames;
 import de.pnnit.directwerk.modules.content.TenantEntitlementsChangedEvent;
 import de.pnnit.directwerk.modules.core.RequiresModule;
@@ -70,7 +72,7 @@ public class SubscriptionProductService {
     ) {
         String slug = SlugNormalizer.normalize(rawSlug);
         if (subscriptionProductRepository.existsByTenantIdAndSlug(tenantId, slug)) {
-            throw new IllegalStateException("Product slug already exists: " + slug);
+            throw new ConflictException(ConflictCodes.PRODUCT_SLUG_EXISTS, "Product slug already exists: " + slug);
         }
 
         SubscriptionProduct product = new SubscriptionProduct();

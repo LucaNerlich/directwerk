@@ -10,7 +10,7 @@ import EmptyState from '@directwerk/ui/components/empty-state'
 import PageHeader from '@directwerk/ui/components/page-header'
 
 import {listPublicArticles} from '@/lib/api/client'
-import type {PublicArticle} from '@/lib/api/types'
+import type {PublicArticle} from '@directwerk/api/types'
 import {formatPublishedAt} from '@/lib/format'
 import {getClientTenantHost} from '@/lib/tenant/getClientTenantHost'
 

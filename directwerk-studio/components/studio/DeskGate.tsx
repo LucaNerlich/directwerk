@@ -3,7 +3,7 @@
 import type {ReactNode} from 'react'
 
 import {hasDesk} from '@/lib/api/client'
-import type {StudioDesk} from '@/lib/api/types'
+import type {StudioDesk} from '@directwerk/api/types'
 import {useSiteConfig} from '@/lib/site/SiteConfigProvider'
 
 export default function DeskGate({

@@ -18,8 +18,8 @@ import {
 import InvitePlatformAdminForm from '@/components/InvitePlatformAdminForm'
 import RevokeAdminButton from '@/components/RevokeAdminButton'
 import {getPlatformData} from '@/lib/api/client'
-import {AUTH_REQUIRED} from '@/lib/api/errors'
-import type {PlatformAdmin} from '@/lib/api/types'
+import {AUTH_REQUIRED} from '@directwerk/api/constants'
+import type {PlatformAdmin} from '@directwerk/api/types'
 
 /**
  * Displays platform administrators and provides controls to invite or revoke administrators.

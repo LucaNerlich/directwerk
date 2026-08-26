@@ -1,4 +1,4 @@
-import {isAllowedFeedUrl} from '@/lib/feeds'
+import {isAllowedFeedUrl} from '@directwerk/api/validation'
 
 /**
  * Renders a tenant logo only when the URL is https or loopback http.

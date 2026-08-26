@@ -13,7 +13,7 @@ import {
 
 import {hasModule, resolveActiveDesk} from '@/lib/api/client'
 import {isTenantAdminRole} from '@/lib/api/tenantApi'
-import type {SiteConfig} from '@/lib/api/types'
+import type {SiteConfig} from '@directwerk/api/types'
 import {useOptionalMe} from '@/lib/auth/MeProvider'
 
 interface NavigationItem {

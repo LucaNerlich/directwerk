@@ -1,9 +1,9 @@
-import {parseJsonText} from '@/lib/api/validation'
-import {readBearerToken} from '@/lib/api/proxy'
-import {jsonError, toClientResponse} from '@/lib/api/upstream'
-import {directwerkFetch} from '@/lib/directwerk'
+import {parseJsonText} from '@directwerk/api/validation'
+import {readBearerToken} from '@directwerk/api/proxy'
+import {jsonError, toClientResponse} from '@directwerk/api/proxy'
+import {directwerkFetch} from '@/lib/server/api'
 import {putStreamToStorage} from '@/lib/server/storagePut'
-import {parseTenantHost} from '@/lib/tenant/parseTenantHost'
+import {parseTenantHost} from '@directwerk/api/proxy'
 
 // The idle timeout only trips when the storage socket stalls; steady progress
 // keeps resetting it, so large-but-legitimate uploads are not cut off. The

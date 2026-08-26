@@ -2,7 +2,7 @@ import {cleanup, render, screen, waitFor} from '@testing-library/react'
 import {afterEach, describe, expect, it, vi} from 'vitest'
 
 import CustomFeedsPanel from '@/components/CustomFeedsPanel'
-import type {SubscriberFeed} from '@/lib/api/types'
+import type {SubscriberFeed} from '@directwerk/api/types'
 
 const listPublicFormatsMock = vi.fn()
 const previewCustomFeedMock = vi.fn()

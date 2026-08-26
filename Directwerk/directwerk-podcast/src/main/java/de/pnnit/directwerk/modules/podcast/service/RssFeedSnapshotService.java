@@ -10,11 +10,13 @@ import de.pnnit.directwerk.modules.core.repository.TenantRepository;
 import de.pnnit.directwerk.modules.core.util.TenantAssetKeys;
 import de.pnnit.directwerk.modules.digital.api.CdnPurgeClient;
 import de.pnnit.directwerk.modules.digital.exception.StorageNotConfiguredException;
-import de.pnnit.directwerk.modules.digital.storage.BunnyTokenUrlSigner;
+import de.pnnit.directwerk.modules.digital.storage.PrivateObjectUrlSigner;
 import de.pnnit.directwerk.modules.digital.storage.S3PublicUrlBuilder;
+import de.pnnit.directwerk.modules.digital.storage.StorageConfigs;
 import de.pnnit.directwerk.modules.podcast.FeedBuilderModule;
 import de.pnnit.directwerk.modules.podcast.PodcastRssModule;
 import de.pnnit.directwerk.modules.podcast.entity.PodcastSeries;
+import de.pnnit.directwerk.modules.podcast.exception.SeriesNotFoundException;
 import de.pnnit.directwerk.modules.podcast.feed.SubscriberFeed;
 import de.pnnit.directwerk.modules.podcast.feed.SubscriberFeedRepository;
 import de.pnnit.directwerk.modules.podcast.repository.PodcastSeriesRepository;
@@ -32,12 +34,9 @@ import org.springframework.util.StringUtils;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
-import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.model.NoSuchKeyException;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 import software.amazon.awssdk.services.s3.model.S3Exception;
-import software.amazon.awssdk.services.s3.presigner.S3Presigner;
-import software.amazon.awssdk.services.s3.presigner.model.GetObjectPresignRequest;
 
 /**
  * Maintains S3 as the sole source of truth for generated RSS XML.
@@ -58,7 +57,7 @@ public class RssFeedSnapshotService {
     private final SubscriberFeedRepository subscriberFeedRepository;
     private final RssSnapshotStateStore snapshotStateStore;
     private final ObjectProvider<S3Client> s3Client;
-    private final ObjectProvider<S3Presigner> s3Presigner;
+    private final PrivateObjectUrlSigner privateObjectUrlSigner;
     private final ObjectProvider<CdnPurgeClient> cdnPurgeClient;
     private final S3PublicUrlBuilder publicUrlBuilder;
     private final DirectwerkConfig directwerkConfig;
@@ -72,7 +71,7 @@ public class RssFeedSnapshotService {
             SubscriberFeedRepository subscriberFeedRepository,
             RssSnapshotStateStore snapshotStateStore,
             ObjectProvider<S3Client> s3Client,
-            ObjectProvider<S3Presigner> s3Presigner,
+            PrivateObjectUrlSigner privateObjectUrlSigner,
             ObjectProvider<CdnPurgeClient> cdnPurgeClient,
             S3PublicUrlBuilder publicUrlBuilder,
             DirectwerkConfig directwerkConfig
@@ -85,7 +84,7 @@ public class RssFeedSnapshotService {
         this.subscriberFeedRepository = subscriberFeedRepository;
         this.snapshotStateStore = snapshotStateStore;
         this.s3Client = s3Client;
-        this.s3Presigner = s3Presigner;
+        this.privateObjectUrlSigner = privateObjectUrlSigner;
         this.cdnPurgeClient = cdnPurgeClient;
         this.publicUrlBuilder = publicUrlBuilder;
         this.directwerkConfig = directwerkConfig;
@@ -99,6 +98,28 @@ public class RssFeedSnapshotService {
             Tenant tenant,
             PodcastSeries series
     ) {
+        return deliver(publicSeriesRef(tenant, series.getId()));
+    }
+
+    /**
+     * Presentation lookup for API views: the Host tenant's slug when the public RSS module is
+     * active, else empty. Lets controllers build feed URLs without touching repositories or
+     * duplicating the module check.
+     */
+    public Optional<String> publicRssTenantSlug(Long tenantId) {
+        if (!rssModuleActive(tenantId)) {
+            return Optional.empty();
+        }
+        return tenantRepository.findById(tenantId).map(Tenant::getSlug);
+    }
+
+    /**
+     * Slug-based variant so callers do not need series repository access: resolves the
+     * published series within the tenant, then delivers its public snapshot.
+     */
+    public FeedDelivery publicSeriesFeed(Tenant tenant, String seriesSlug) {
+        PodcastSeries series = podcastSeriesRepository.findByTenantIdAndSlug(tenant.getId(), seriesSlug)
+                .orElseThrow(() -> new SeriesNotFoundException(seriesSlug));
         return deliver(publicSeriesRef(tenant, series.getId()));
     }
 
@@ -165,7 +186,7 @@ public class RssFeedSnapshotService {
     }
 
     private FeedDelivery deliver(SnapshotRef ref) {
-        requireStorage();
+        StorageConfigs.requireEnabled(directwerkConfig);
         if (!snapshotStateStore.isWritten(ref.tenantId(), ref.kind(), ref.subjectId())) {
             return FeedDelivery.notReady();
         }
@@ -204,7 +225,7 @@ public class RssFeedSnapshotService {
     private void upload(SnapshotRef ref, byte[] bytes) {
         TenantAssetKeys.requireTenantPrefix(ref.tenantSlug(), ref.objectKey());
         s3Client().putObject(PutObjectRequest.builder()
-                        .bucket(requireStorage().bucket())
+                        .bucket(StorageConfigs.requireEnabled(directwerkConfig).bucket())
                         .key(ref.objectKey())
                         .contentType(RSS_CONTENT_TYPE)
                         .cacheControl(ref.privateFeed() ? "private, max-age=300" : "public, max-age=300")
@@ -215,7 +236,7 @@ public class RssFeedSnapshotService {
 
     private void withdraw(SnapshotRef ref) {
         TenantAssetKeys.requireTenantPrefix(ref.tenantSlug(), ref.objectKey());
-        DirectwerkProperties.Storage storage = requireStorage();
+        DirectwerkProperties.Storage storage = StorageConfigs.requireEnabled(directwerkConfig);
         try {
             s3Client().deleteObject(DeleteObjectRequest.builder()
                     .bucket(storage.bucket())
@@ -239,35 +260,15 @@ public class RssFeedSnapshotService {
     }
 
     private URL remoteUrl(SnapshotRef ref) {
-        DirectwerkProperties.Storage storage = requireStorage();
+        DirectwerkProperties.Storage storage = StorageConfigs.requireEnabled(directwerkConfig);
         if (!ref.privateFeed()) {
             return publicUrlBuilder.cdnUrl(ref.objectKey());
         }
-        boolean hasPrivateCdn = StringUtils.hasText(storage.privateCdnBaseUrl());
-        boolean hasTokenKey = StringUtils.hasText(storage.cdnTokenAuthKey());
         Duration ttl = storage.presignDownloadTtlRss() != null
                 ? storage.presignDownloadTtlRss()
                 : DEFAULT_PRIVATE_TTL;
-        if (hasPrivateCdn && hasTokenKey) {
-            return BunnyTokenUrlSigner.signObjectGet(
-                    storage.privateCdnBaseUrl(), ref.objectKey(), storage.cdnTokenAuthKey(), ttl
-            );
-        }
-        if (hasPrivateCdn || hasTokenKey) {
-            throw new StorageNotConfiguredException(
-                    "Private CDN token auth requires both private-cdn-base-url and cdn-token-auth-key"
-            );
-        }
-        S3Presigner presigner = Optional.ofNullable(s3Presigner.getIfAvailable())
-                .orElseThrow(() -> new StorageNotConfiguredException("Object storage is enabled without an S3 presigner"));
-        return presigner.presignGetObject(GetObjectPresignRequest.builder()
-                        .signatureDuration(ttl)
-                        .getObjectRequest(GetObjectRequest.builder()
-                                .bucket(storage.bucket())
-                                .key(ref.objectKey())
-                                .build())
-                        .build())
-                .url();
+        // Shared delivery policy — same decision tree as API downloads by construction.
+        return privateObjectUrlSigner.signPrivateObject(ref.objectKey(), ttl);
     }
 
     /**
@@ -278,7 +279,7 @@ public class RssFeedSnapshotService {
         if (!ref.privateFeed()) {
             return publicUrlBuilder.cdnUrl(ref.objectKey());
         }
-        String base = requireStorage().privateCdnBaseUrl();
+        String base = StorageConfigs.requireEnabled(directwerkConfig).privateCdnBaseUrl();
         if (!StringUtils.hasText(base)) {
             return null;
         }
@@ -318,16 +319,7 @@ public class RssFeedSnapshotService {
                 .orElseThrow(() -> new StorageNotConfiguredException("Object storage is enabled without an S3 client"));
     }
 
-    private DirectwerkProperties.Storage requireStorage() {
-        if (!directwerkConfig.isStorageEnabled()) {
-            throw new StorageNotConfiguredException("Object storage is required for RSS feed delivery");
-        }
-        DirectwerkProperties.Storage storage = directwerkConfig.storage();
-        if (storage == null || !StringUtils.hasText(storage.bucket())) {
-            throw new StorageNotConfiguredException("Object storage bucket is not configured");
-        }
-        return storage;
-    }
+
 
     private Origin canonicalOrigin(Long tenantId) {
         TenantDomain domain = tenantDomainRepository.findByTenantId(tenantId).stream()

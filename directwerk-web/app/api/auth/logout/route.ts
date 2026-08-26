@@ -1,7 +1,8 @@
-import {directwerkFetch, getOAuthClientId} from '@/lib/directwerk'
-import {parseTenantHost} from '@/lib/tenant/parseTenantHost'
-import {jsonError} from '@/lib/api/upstream'
-import {REFRESH_COOKIE, readRequestCookie, serializeClearCookie} from '@/lib/auth/cookies'
+import {directwerkFetch, getOAuthClientId} from '@/lib/server/api'
+import {parseTenantHost} from '@directwerk/api/proxy'
+import {jsonError} from '@directwerk/api/proxy'
+import {REFRESH_COOKIE} from '@/lib/server/api'
+import {readRequestCookie, serializeClearCookie} from '@directwerk/api/auth/cookies'
 
 export async function POST(request: Request): Promise<Response> {
     const tenantHost = parseTenantHost(request.headers.get('x-tenant-host'))

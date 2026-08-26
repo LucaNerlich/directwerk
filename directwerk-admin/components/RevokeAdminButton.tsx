@@ -6,7 +6,7 @@ import {Alert, AlertDescription} from '@directwerk/ui/components/alert'
 import {Button} from '@directwerk/ui/components/button'
 
 import {deletePlatformData} from '@/lib/api/client'
-import {AUTH_REQUIRED, FORBIDDEN} from '@/lib/api/errors'
+import {AUTH_REQUIRED, FORBIDDEN} from '@directwerk/api/constants'
 
 interface RevokeAdminButtonProps {
     userId: number

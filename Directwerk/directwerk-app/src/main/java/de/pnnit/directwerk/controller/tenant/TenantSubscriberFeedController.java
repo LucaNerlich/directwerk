@@ -4,7 +4,6 @@ import de.pnnit.directwerk.api.dto.FeedEnabledRequest;
 import de.pnnit.directwerk.api.dto.FormatView;
 import de.pnnit.directwerk.api.response.Response;
 import de.pnnit.directwerk.modules.core.RequiresModule;
-import de.pnnit.directwerk.modules.core.service.ModuleGateService;
 import de.pnnit.directwerk.modules.podcast.PodcastRssModule;
 import de.pnnit.directwerk.modules.podcast.entity.Format;
 import de.pnnit.directwerk.modules.podcast.feed.SubscriberFeed;
@@ -31,14 +30,11 @@ import org.springframework.web.bind.annotation.RestController;
 public class TenantSubscriberFeedController {
 
     private final SubscriberFeedService subscriberFeedService;
-    private final ModuleGateService moduleGateService;
 
     public TenantSubscriberFeedController(
-            SubscriberFeedService subscriberFeedService,
-            ModuleGateService moduleGateService
+            SubscriberFeedService subscriberFeedService
     ) {
         this.subscriberFeedService = subscriberFeedService;
-        this.moduleGateService = moduleGateService;
     }
 
     /**
@@ -47,9 +43,9 @@ public class TenantSubscriberFeedController {
      * @return the tenant's subscriber feeds
      */
     @GetMapping
+    @RequiresModule({PodcastRssModule.KEY, SubscriptionModule.MODULE_KEY})
     ResponseEntity<Response<List<SubscriberFeedAdminView>>> listFeeds() {
         Long tenantId = TenantContext.requireTenantId();
-        moduleGateService.requireModule(SubscriptionModule.MODULE_KEY);
         List<SubscriberFeedAdminView> feeds = subscriberFeedService.listTenantFeeds(tenantId).stream()
                 .map(TenantSubscriberFeedController::toView)
                 .toList();
@@ -57,12 +53,12 @@ public class TenantSubscriberFeedController {
     }
 
     @PutMapping("/{feedId}/enabled")
+    @RequiresModule({PodcastRssModule.KEY, SubscriptionModule.MODULE_KEY})
     ResponseEntity<Response<SubscriberFeedAdminView>> setEnabled(
             @PathVariable Long feedId,
             @Valid @RequestBody FeedEnabledRequest body
     ) {
         Long tenantId = TenantContext.requireTenantId();
-        moduleGateService.requireModule(SubscriptionModule.MODULE_KEY);
         SubscriberFeed feed = subscriberFeedService.setFeedEnabled(tenantId, feedId, body.enabled());
         return ResponseEntity.ok(Response.ok(toView(feed)));
     }
@@ -71,14 +67,8 @@ public class TenantSubscriberFeedController {
         List<FormatView> formats = feed.getFormats() == null
                 ? List.of()
                 : feed.getFormats().stream()
-                        .sorted(Comparator.comparingInt(Format::getSortOrder).thenComparing(Format::getId))
-                        .map(format -> new FormatView(
-                                format.getId(),
-                                format.getSlug(),
-                                format.getName(),
-                                format.getRequiredLevelSortOrder(),
-                                format.getSortOrder()
-                        ))
+                        .sorted(FormatView.DISPLAY_ORDER)
+                        .map(FormatView::of)
                         .toList();
         return new SubscriberFeedAdminView(
                 feed.getId(),

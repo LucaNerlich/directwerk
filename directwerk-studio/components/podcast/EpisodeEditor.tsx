@@ -15,7 +15,6 @@ import UploadProgress from '@/components/media/UploadProgress'
 import PublicationEditorLayout from '@/components/publication/PublicationEditorLayout'
 import PublishedLinksPanel from '@/components/publication/PublishedLinksPanel'
 import {hasModule} from '@/lib/api/client'
-import {AUTH_REQUIRED} from '@/lib/api/errors'
 import {
     archiveEpisode,
     attachEpisodeAudio,
@@ -37,7 +36,7 @@ import {
     unpublishEpisode,
     updateEpisode,
 } from '@/lib/api/tenantApi'
-import type {AccessPolicy, CategorySummary, EpisodeDetail, FormatSummary, SeriesSummary} from '@/lib/api/types'
+import type {AccessPolicy, CategorySummary, EpisodeDetail, FormatSummary, SeriesSummary} from '@directwerk/api/types'
 import {fromDatetimeLocalValue, toDatetimeLocalValue} from '@/lib/datetime'
 import {mediaLimitLabel} from '@/lib/media/limits'
 import {uploadMediaFile} from '@/lib/media/upload'
@@ -46,6 +45,7 @@ import {publicEpisodePageUrl} from '@/lib/podcast/publicUrls'
 import {useSiteConfig} from '@/lib/site/SiteConfigProvider'
 import {useDraftAutosave} from '@/lib/editor/useDraftAutosave'
 import {getClientTenantHost} from '@/lib/tenant/getClientTenantHost'
+import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
 
 function optionalMinInt(value: string, minimum: number): number | undefined {
     const trimmed = value.trim()
@@ -67,6 +67,7 @@ function optionalMinInt(value: string, minimum: number): number | undefined {
  */
 export default function EpisodeEditor({episodeId}: {episodeId?: number}): React.JSX.Element {
     const router = useRouter()
+    const authRedirect = useAuthRequired()
     const config = useSiteConfig()
     const showNotify = config.emailNotifyAvailable === true
     const [episode, setEpisode] = useState<EpisodeDetail | null>(null)
@@ -141,10 +142,7 @@ export default function EpisodeEditor({episodeId}: {episodeId?: number}): React.
                 if (!active) {
                     return
                 }
-                if (error instanceof Error && error.message === AUTH_REQUIRED) {
-                    redirectToLogin()
-                    return
-                }
+                if (authRedirect(error)) return
                 setAudioPreviewError(
                     error instanceof Error
                         ? error.message
@@ -207,10 +205,7 @@ export default function EpisodeEditor({episodeId}: {episodeId?: number}): React.
                 if (!active) {
                     return
                 }
-                if (error instanceof Error && error.message === AUTH_REQUIRED) {
-                    router.replace('/login')
-                    return
-                }
+                if (authRedirect(error)) return
                 setErrorMessage(
                     error instanceof Error
                         ? error.message
@@ -233,10 +228,7 @@ export default function EpisodeEditor({episodeId}: {episodeId?: number}): React.
 
     const handleAuthError = useCallback(
         (error: unknown) => {
-            if (error instanceof Error && error.message === AUTH_REQUIRED) {
-                router.replace('/login')
-                return
-            }
+            if (authRedirect(error)) return
             setErrorMessage(
                 error instanceof Error ? error.message : 'Aktion fehlgeschlagen.',
             )
@@ -298,7 +290,7 @@ export default function EpisodeEditor({episodeId}: {episodeId?: number}): React.
             setSaveHint(hint)
             return updated
         } catch (error) {
-            handleAuthError(error)
+            authRedirect(error)
             return null
         } finally {
             setIsSaving(false)
@@ -362,7 +354,7 @@ export default function EpisodeEditor({episodeId}: {episodeId?: number}): React.
                 }
                 setRequiredLevelSortOrder(next.requiredLevelSortOrder)
             } catch (error) {
-                handleAuthError(error)
+                authRedirect(error)
             } finally {
                 setIsSaving(false)
             }
@@ -399,7 +391,7 @@ export default function EpisodeEditor({episodeId}: {episodeId?: number}): React.
                 const updated = await attachEpisodeAudio(host, saved.id, asset.id)
                 setEpisode(updated)
             } catch (error) {
-                handleAuthError(error)
+                authRedirect(error)
             } finally {
                 if (mountedRef.current) {
                     setIsUploading(false)
@@ -427,7 +419,7 @@ export default function EpisodeEditor({episodeId}: {episodeId?: number}): React.
                 )
                 setEpisode(updated)
             } catch (error) {
-                handleAuthError(error)
+                authRedirect(error)
             } finally {
                 setIsUploading(false)
             }
@@ -446,7 +438,7 @@ export default function EpisodeEditor({episodeId}: {episodeId?: number}): React.
             await persistTags(episode)
             setTagsStatusMessage('Formate & Kategorien gespeichert.')
         } catch (error) {
-            handleAuthError(error)
+            authRedirect(error)
         } finally {
             setIsTagsSaving(false)
         }
@@ -468,7 +460,7 @@ export default function EpisodeEditor({episodeId}: {episodeId?: number}): React.
                 )
                 setEpisode(updated)
             } catch (error) {
-                handleAuthError(error)
+                authRedirect(error)
             } finally {
                 setIsSaving(false)
             }

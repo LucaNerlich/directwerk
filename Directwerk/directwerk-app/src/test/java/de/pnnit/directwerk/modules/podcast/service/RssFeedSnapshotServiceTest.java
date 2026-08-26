@@ -243,7 +243,7 @@ class RssFeedSnapshotServiceTest {
                 subscriberFeedRepository,
                 stateStore,
                 s3ClientProvider,
-                s3PresignerProvider,
+                new de.pnnit.directwerk.modules.digital.storage.PrivateObjectUrlSigner(directwerkConfig, s3PresignerProvider),
                 cdnPurgeProvider,
                 new S3PublicUrlBuilder("https://public.example.test"),
                 directwerkConfig

@@ -70,26 +70,21 @@ public class EpisodeController {
     @PostMapping
     ResponseEntity<Response<EpisodeView>> createDraft(@Valid @RequestBody CreateEpisodeRequest request) {
         Long tenantId = TenantContext.requireTenantId();
-        try {
-            Episode episode = episodeService.createDraft(
-                    tenantId,
-                    request.seriesId(),
-                    request.episodeNumber(),
-                    request.slug(),
-                    request.title(),
-                    request.description(),
-                    request.audioAssetId(),
-                    request.durationSeconds(),
-                    request.accessPolicy(),
-                    request.requiredLevelSortOrder(),
-                    request.formatIds(),
-                    request.categoryIds()
-            );
-            return ResponseEntity.status(HttpStatus.CREATED).body(Response.created(toView(episode)));
-        } catch (IllegalStateException ex) {
-            return ResponseEntity.status(HttpStatus.CONFLICT)
-                    .body(Response.error(409, "EPISODE_SLUG_EXISTS", ex.getMessage()));
-        }
+                Episode episode = episodeService.createDraft(
+                tenantId,
+                request.seriesId(),
+                request.episodeNumber(),
+                request.slug(),
+                request.title(),
+                request.description(),
+                request.audioAssetId(),
+                request.durationSeconds(),
+                request.accessPolicy(),
+                request.requiredLevelSortOrder(),
+                request.formatIds(),
+                request.categoryIds()
+        );
+        return ResponseEntity.status(HttpStatus.CREATED).body(Response.created(toView(episode)));
     }
 
     @PutMapping("/{episodeId}")
@@ -98,23 +93,18 @@ public class EpisodeController {
             @Valid @RequestBody UpdateEpisodeRequest request
     ) {
         Long tenantId = TenantContext.requireTenantId();
-        try {
-            Episode episode = episodeService.updateDraft(
-                    tenantId,
-                    episodeId,
-                    request.episodeNumber(),
-                    request.slug(),
-                    request.title(),
-                    request.description(),
-                    request.durationSeconds(),
-                    request.accessPolicy(),
-                    request.requiredLevelSortOrder()
-            );
-            return ResponseEntity.ok(Response.ok(toView(episode)));
-        } catch (IllegalStateException ex) {
-            return ResponseEntity.status(HttpStatus.CONFLICT)
-                    .body(Response.error(409, "EPISODE_SLUG_EXISTS", ex.getMessage()));
-        }
+                Episode episode = episodeService.updateDraft(
+                tenantId,
+                episodeId,
+                request.episodeNumber(),
+                request.slug(),
+                request.title(),
+                request.description(),
+                request.durationSeconds(),
+                request.accessPolicy(),
+                request.requiredLevelSortOrder()
+        );
+        return ResponseEntity.ok(Response.ok(toView(episode)));
     }
 
     @PutMapping("/{episodeId}/formats")
@@ -232,34 +222,15 @@ public class EpisodeController {
                 episode.getPublishedAt(),
                 episode.getScheduledAt(),
                 episode.getFormats().stream()
-                        .sorted(Comparator.comparingInt(Format::getSortOrder).thenComparing(Format::getId))
-                        .map(EpisodeController::toFormatView)
+                        .sorted(FormatView.DISPLAY_ORDER)
+                        .map(FormatView::of)
                         .toList(),
                 episode.getCategories().stream()
-                        .sorted(Comparator.comparing(Category::getName).thenComparing(Category::getId))
-                        .map(EpisodeController::toCategoryView)
+                        .sorted(CategoryView.DISPLAY_ORDER)
+                        .map(CategoryView::of)
                         .toList(),
                 episode.getCreatedAt(),
                 episode.getUpdatedAt()
-        );
-    }
-
-    private static FormatView toFormatView(Format format) {
-        return new FormatView(
-                format.getId(),
-                format.getSlug(),
-                format.getName(),
-                format.getRequiredLevelSortOrder(),
-                format.getSortOrder()
-        );
-    }
-
-    private static CategoryView toCategoryView(Category category) {
-        return new CategoryView(
-                category.getId(),
-                category.getSlug(),
-                category.getName(),
-                category.getParent() != null ? category.getParent().getId() : null
         );
     }
 

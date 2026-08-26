@@ -1,7 +1,7 @@
 package de.pnnit.directwerk.controller.publicapi;
 
 import de.pnnit.directwerk.api.response.Response;
-import de.pnnit.directwerk.modules.core.service.ModuleGateService;
+import de.pnnit.directwerk.modules.core.RequiresModule;
 import de.pnnit.directwerk.modules.subscription.SubscriptionModule;
 import de.pnnit.directwerk.modules.subscription.entity.SubscriptionProduct;
 import de.pnnit.directwerk.modules.subscription.service.SubscriptionProductService;
@@ -14,22 +14,19 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/api/v1/public/products")
+@RequiresModule(SubscriptionModule.MODULE_KEY)
 public class PublicSubscriptionProductController {
 
     private final SubscriptionProductService subscriptionProductService;
-    private final ModuleGateService moduleGateService;
 
     public PublicSubscriptionProductController(
-            SubscriptionProductService subscriptionProductService,
-            ModuleGateService moduleGateService
+            SubscriptionProductService subscriptionProductService
     ) {
         this.subscriptionProductService = subscriptionProductService;
-        this.moduleGateService = moduleGateService;
     }
 
     @GetMapping
     ResponseEntity<Response<List<ProductView>>> listActiveProducts() {
-        moduleGateService.requireModule(SubscriptionModule.MODULE_KEY);
         Long tenantId = TenantContext.getTenantId();
 
         List<ProductView> products = subscriptionProductService.listProducts(tenantId, true).stream()

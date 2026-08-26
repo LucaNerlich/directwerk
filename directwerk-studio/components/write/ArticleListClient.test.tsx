@@ -9,7 +9,7 @@ import {
     unarchiveArticle,
     unpublishArticle,
 } from '@/lib/api/tenantApi'
-import type {ArticleDetail} from '@/lib/api/types'
+import type {ArticleDetail} from '@directwerk/api/types'
 
 const mockReplace = vi.fn()
 

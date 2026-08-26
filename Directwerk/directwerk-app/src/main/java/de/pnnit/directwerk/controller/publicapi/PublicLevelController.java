@@ -2,7 +2,7 @@ package de.pnnit.directwerk.controller.publicapi;
 
 import de.pnnit.directwerk.api.dto.LevelView;
 import de.pnnit.directwerk.api.response.Response;
-import de.pnnit.directwerk.modules.core.service.ModuleGateService;
+import de.pnnit.directwerk.modules.core.RequiresModule;
 import de.pnnit.directwerk.modules.subscription.SubscriptionModule;
 import de.pnnit.directwerk.modules.subscription.entity.OfferingType;
 import de.pnnit.directwerk.modules.subscription.entity.SubscriptionProduct;
@@ -16,22 +16,19 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/api/v1/public/levels")
+@RequiresModule(SubscriptionModule.MODULE_KEY)
 public class PublicLevelController {
 
     private final SubscriptionProductService subscriptionProductService;
-    private final ModuleGateService moduleGateService;
 
     public PublicLevelController(
-            SubscriptionProductService subscriptionProductService,
-            ModuleGateService moduleGateService
+            SubscriptionProductService subscriptionProductService
     ) {
         this.subscriptionProductService = subscriptionProductService;
-        this.moduleGateService = moduleGateService;
     }
 
     @GetMapping
     ResponseEntity<Response<List<LevelView>>> listLevels() {
-        moduleGateService.requireModule(SubscriptionModule.MODULE_KEY);
         Long tenantId = TenantContext.getTenantId();
 
         List<LevelView> levels = subscriptionProductService.listProducts(tenantId, true).stream()
