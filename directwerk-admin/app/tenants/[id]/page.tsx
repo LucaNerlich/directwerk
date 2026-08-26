@@ -20,8 +20,8 @@ import TenantProductsPanel from '@/components/TenantProductsPanel'
 import TenantSessionPanel from '@/components/TenantSessionPanel'
 import TenantUserActions from '@/components/TenantUserActions'
 import {getPlatformData, postPlatformData} from '@/lib/api/client'
-import {AUTH_REQUIRED, REQUEST_FAILED} from '@/lib/api/errors'
-import type {Tenant, TenantUser, TenantUsers} from '@/lib/api/types'
+import {AUTH_REQUIRED, REQUEST_FAILED} from '@directwerk/api/constants'
+import type {Tenant, TenantUser, TenantUsers} from '@directwerk/api/types'
 
 interface TenantPageProps {
     params: Promise<{id: string}>

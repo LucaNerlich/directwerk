@@ -11,7 +11,7 @@ import Form from 'next/form'
 import {useRouter} from 'next/navigation'
 import {useActionState, useEffect, useState} from 'react'
 
-import {AUTH_REQUIRED} from '@/lib/api/errors'
+import {AUTH_REQUIRED} from '@directwerk/api/constants'
 import {
     createFormat,
     deactivateFormat,
@@ -19,8 +19,9 @@ import {
     suggestSlug,
     updateFormat,
 } from '@/lib/api/tenantApi'
-import type {FormatSummary} from '@/lib/api/types'
+import type {FormatSummary} from '@directwerk/api/types'
 import {getClientTenantHost} from '@/lib/tenant/getClientTenantHost'
+import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
 
 interface FormatEditorProps {
     formatId?: number
@@ -55,6 +56,7 @@ function parseOptionalInt(value: FormDataEntryValue | null): number | undefined 
  */
 export default function FormatEditor({formatId}: FormatEditorProps): React.JSX.Element {
     const router = useRouter()
+    const authRedirect = useAuthRequired()
     const isNew = formatId === undefined
     const [format, setFormat] = useState<FormatSummary | null>(null)
     const [requiredLevelSortOrder, setRequiredLevelSortOrder] = useState<number | null>(null)
@@ -90,10 +92,7 @@ export default function FormatEditor({formatId}: FormatEditorProps): React.JSX.E
                 if (!active) {
                     return
                 }
-                if (error instanceof Error && error.message === AUTH_REQUIRED) {
-                    router.replace('/login')
-                    return
-                }
+                if (authRedirect(error)) return
                 setLoadError(
                     error instanceof Error ? error.message : 'Format konnte nicht geladen werden.',
                 )
@@ -144,10 +143,7 @@ export default function FormatEditor({formatId}: FormatEditorProps): React.JSX.E
             setFormat(updated)
             return {error: null, success: 'Format gespeichert.'}
         } catch (error) {
-            if (error instanceof Error && error.message === AUTH_REQUIRED) {
-                router.replace('/login')
-                return INITIAL_STATE
-            }
+            if (authRedirect(error)) return INITIAL_STATE
             return {
                 error: error instanceof Error ? error.message : 'Aktion fehlgeschlagen.',
                 success: null,
@@ -166,9 +162,7 @@ export default function FormatEditor({formatId}: FormatEditorProps): React.JSX.E
             const updated = await deactivateFormat(getClientTenantHost(), formatId)
             setFormat(updated)
         } catch (error) {
-            if (error instanceof Error && error.message === AUTH_REQUIRED) {
-                router.replace('/login')
-            }
+            if (authRedirect(error)) return
         } finally {
             setIsDeactivating(false)
         }

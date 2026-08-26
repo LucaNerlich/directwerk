@@ -23,13 +23,13 @@ import {
 } from '@directwerk/ui/components/table'
 
 import {getPlatformJobList} from '@/lib/api/client'
-import {AUTH_REQUIRED} from '@/lib/api/errors'
+import {AUTH_REQUIRED} from '@directwerk/api/constants'
 import {
     JOB_STATUSES,
     KNOWN_JOB_QUEUES,
     type JobListPage,
     type JobListQuery,
-} from '@/lib/api/types'
+} from '@directwerk/api/types'
 import {validateJobListQuery} from '@/lib/validation'
 
 const DEFAULT_QUERY: JobListQuery = {

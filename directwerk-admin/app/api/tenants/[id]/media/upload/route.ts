@@ -4,9 +4,9 @@ import {
     NO_STORE_HEADERS,
     parseBearerAuthorization,
     safeUpstreamResponse,
-} from '@/lib/directwerk'
-import {createConfiguredPlatformApiRequest} from '@/lib/directwerkServer'
-import {ASSET_TYPES, ASSET_VISIBILITIES} from '@/lib/api/types'
+} from '@directwerk/api/server'
+import {createConfiguredPlatformApiRequest} from '@/lib/server/api'
+import {ASSET_TYPES, ASSET_VISIBILITIES} from '@directwerk/api/types'
 
 interface RouteContext {
     params: Promise<{id: string}>

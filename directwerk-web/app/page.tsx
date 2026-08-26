@@ -13,7 +13,7 @@ import {
     listPublicEpisodes,
     listPublicProducts,
 } from '@/lib/api/client'
-import type {PublicArticle, PublicEpisode} from '@/lib/api/types'
+import type {PublicArticle, PublicEpisode} from '@directwerk/api/types'
 import {formatPublishedAt} from '@/lib/format'
 import {formatMoney} from '@/lib/format/money'
 import {useSiteConfig} from '@/lib/site/SiteConfigProvider'

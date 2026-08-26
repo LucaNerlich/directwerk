@@ -6,8 +6,8 @@ import {useEffect, useState, useSyncExternalStore} from 'react'
 import {Alert, AlertDescription} from '@directwerk/ui/components/alert'
 
 import {listMyEpisodes, listPublicEpisodes} from '@/lib/api/client'
-import {AUTH_REQUIRED} from '@/lib/api/errors'
-import type {PublicEpisode} from '@/lib/api/types'
+import {AUTH_REQUIRED} from '@directwerk/api/constants'
+import type {PublicEpisode} from '@directwerk/api/types'
 import {
     getAccessToken,
     subscribeToTokenStore,

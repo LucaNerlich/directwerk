@@ -4,6 +4,7 @@ import {uploadMediaFile} from '@/lib/media/upload'
 
 vi.mock('@/lib/auth/session', () => ({
     getValidAccessToken: vi.fn().mockResolvedValue('token'),
+    refreshAccessToken: vi.fn().mockResolvedValue('token'),
 }))
 vi.mock('@/lib/auth/tokenStore', () => ({
     clearTokens: vi.fn(),
@@ -120,12 +121,21 @@ describe('uploadMediaFile', () => {
         xhr.onload?.()
 
         await expect(promise).resolves.toEqual({
+            // Full MediaAssetView shape (shared DTO).
             id: 8,
+            s3Key: '',
+            visibility: 'PRIVATE',
+            scope: '',
             status: 'READY',
             assetType: 'AUDIO',
             mimeType: 'audio/mpeg',
             originalFilename: 'folge.mp3',
             sizeBytes: 64,
+            episodeId: null,
+            ownerUserId: null,
+            cdnUrl: null,
+            createdAt: '',
+            updatedAt: '',
         })
     })
 

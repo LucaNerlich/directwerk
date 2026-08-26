@@ -4,7 +4,7 @@ import {afterEach, describe, expect, it, vi} from 'vitest'
 import {cleanup} from '@testing-library/react'
 
 import FeedManagementClient from '@/components/podcast/FeedManagementClient'
-import type {SiteConfig} from '@/lib/api/types'
+import type {SiteConfig} from '@directwerk/api/types'
 import {SiteConfigProvider} from '@/lib/site/SiteConfigProvider'
 
 const mockRouter = {replace: vi.fn()}

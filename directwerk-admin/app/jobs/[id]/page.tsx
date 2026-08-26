@@ -10,8 +10,8 @@ import {Card, CardContent, CardHeader, CardTitle} from '@directwerk/ui/component
 import PageHeader from '@directwerk/ui/components/page-header'
 
 import {getPlatformData} from '@/lib/api/client'
-import {AUTH_REQUIRED} from '@/lib/api/errors'
-import type {QueueJob} from '@/lib/api/types'
+import {AUTH_REQUIRED} from '@directwerk/api/constants'
+import type {QueueJob} from '@directwerk/api/types'
 
 interface JobPageProps {
     params: Promise<{id: string}>

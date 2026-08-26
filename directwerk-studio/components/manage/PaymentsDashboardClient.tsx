@@ -10,11 +10,11 @@ import {Input} from '@directwerk/ui/components/input'
 import PageHeader from '@directwerk/ui/components/page-header'
 
 import SelectControl from '@/components/studio/SelectControl'
-import {AUTH_REQUIRED} from '@/lib/api/errors'
 import {getBillingDashboard, revokeSubscription} from '@/lib/api/tenantApi'
-import type {BillingDashboard, BillingMembership} from '@/lib/api/types'
+import type {BillingDashboard, BillingMembership} from '@directwerk/api/types'
 import {formatMoney} from '@/lib/format/money'
 import {getClientTenantHost} from '@/lib/tenant/getClientTenantHost'
+import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
 
 const REVOCABLE_STATUSES = new Set(['ACTIVE', 'PAST_DUE', 'INCOMPLETE'])
 
@@ -73,6 +73,7 @@ function canRevoke(row: BillingMembership): boolean {
 
 export default function PaymentsDashboardClient(): React.JSX.Element {
     const router = useRouter()
+    const authRedirect = useAuthRequired()
     const [dashboard, setDashboard] = useState<BillingDashboard | null>(null)
     const [errorMessage, setErrorMessage] = useState<string | null>(null)
     const [statusMessage, setStatusMessage] = useState<string | null>(null)
@@ -94,10 +95,7 @@ export default function PaymentsDashboardClient(): React.JSX.Element {
                 if (!active) {
                     return
                 }
-                if (error instanceof Error && error.message === AUTH_REQUIRED) {
-                    router.replace('/login')
-                    return
-                }
+                if (authRedirect(error)) return
                 setErrorMessage(
                     error instanceof Error
                         ? error.message
@@ -157,10 +155,7 @@ export default function PaymentsDashboardClient(): React.JSX.Element {
             await reloadDashboard()
             setStatusMessage(`Zugang beendet: ${revoked.email}`)
         } catch (error: unknown) {
-            if (error instanceof Error && error.message === AUTH_REQUIRED) {
-                router.replace('/login')
-                return
-            }
+            if (authRedirect(error)) return
             setErrorMessage(
                 error instanceof Error ? error.message : 'Widerruf fehlgeschlagen.',
             )

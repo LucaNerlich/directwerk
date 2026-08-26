@@ -10,9 +10,9 @@ import {Input} from '@directwerk/ui/components/input'
 import {Label} from '@directwerk/ui/components/label'
 
 import {postPlatformData} from '@/lib/api/client'
-import {AUTH_REQUIRED, CONFLICT, REQUEST_FAILED} from '@/lib/api/errors'
-import type {TenantCreationResponse} from '@/lib/api/types'
-import {MODULE_PRESETS} from '@/lib/api/types'
+import {AUTH_REQUIRED, CONFLICT, REQUEST_FAILED} from '@directwerk/api/constants'
+import type {TenantCreationResponse} from '@directwerk/api/types'
+import {MODULE_PRESETS} from '@directwerk/api/types'
 import {validateCreateTenantInput} from '@/lib/validation'
 
 interface CreateTenantFormProps {

@@ -10,7 +10,7 @@ import {Suspense, useActionState} from 'react'
 
 import {defaultHomePath} from '@/lib/api/client'
 import {login} from '@/lib/api/tenantApi'
-import {parseLoginInput} from '@/lib/api/validation'
+import {parseLoginInput} from '@directwerk/api/validation'
 import {setTokens} from '@/lib/auth/tokenStore'
 import {useSiteConfig} from '@/lib/site/SiteConfigProvider'
 import {getClientTenantHost} from '@/lib/tenant/getClientTenantHost'

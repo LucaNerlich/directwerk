@@ -10,7 +10,6 @@ import MediaLibraryPicker from '@/components/media/MediaLibraryPicker'
 import UploadProgress from '@/components/media/UploadProgress'
 import PublicationEditorLayout from '@/components/publication/PublicationEditorLayout'
 import LevelSelect from '@/components/studio/LevelSelect'
-import {AUTH_REQUIRED} from '@/lib/api/errors'
 import {
     archiveArticle,
     cancelScheduleArticle,
@@ -26,13 +25,14 @@ import {
     unpublishArticle,
     updateArticle,
 } from '@/lib/api/tenantApi'
-import type {AccessPolicy, ArticleDetail, CategorySummary} from '@/lib/api/types'
+import type {AccessPolicy, ArticleDetail, CategorySummary} from '@directwerk/api/types'
 import {fromDatetimeLocalValue, toDatetimeLocalValue} from '@/lib/datetime'
 import {useDraftAutosave} from '@/lib/editor/useDraftAutosave'
 import {mediaLimitLabel} from '@/lib/media/limits'
 import {uploadMediaFile} from '@/lib/media/upload'
 import {useSiteConfig} from '@/lib/site/SiteConfigProvider'
 import {getClientTenantHost} from '@/lib/tenant/getClientTenantHost'
+import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
 
 /**
  * Edits an article and manages its publication workflow and category assignments.
@@ -41,6 +41,7 @@ import {getClientTenantHost} from '@/lib/tenant/getClientTenantHost'
  */
 export default function ArticleEditor({articleId}: {articleId?: number}) {
     const router = useRouter()
+    const authRedirect = useAuthRequired()
     const routerRef = useRef(router)
     routerRef.current = router
     const config = useSiteConfig()
@@ -146,10 +147,7 @@ export default function ArticleEditor({articleId}: {articleId?: number}) {
                 if (!active) {
                     return
                 }
-                if (error instanceof Error && error.message === AUTH_REQUIRED) {
-                    routerRef.current.replace('/login')
-                    return
-                }
+                if (authRedirect(error)) return
                 setHeroPreviewUrl(null)
             })
 
@@ -160,10 +158,7 @@ export default function ArticleEditor({articleId}: {articleId?: number}) {
 
     const handleAuthError = useCallback(
         (error: unknown) => {
-            if (error instanceof Error && error.message === AUTH_REQUIRED) {
-                routerRef.current.replace('/login')
-                return
-            }
+            if (authRedirect(error)) return
             setErrorMessage(
                 error instanceof Error ? error.message : 'Aktion fehlgeschlagen.',
             )
@@ -214,7 +209,7 @@ export default function ArticleEditor({articleId}: {articleId?: number}) {
             setSaveHint(hint)
             return updated
         } catch (error) {
-            handleAuthError(error)
+            authRedirect(error)
             return null
         } finally {
             setIsSaving(false)
@@ -286,7 +281,7 @@ export default function ArticleEditor({articleId}: {articleId?: number}) {
                 setArticle(next)
                 setScheduledAt(toDatetimeLocalValue(next.scheduledAt))
             } catch (error) {
-                handleAuthError(error)
+                authRedirect(error)
             } finally {
                 setIsSaving(false)
             }
@@ -305,7 +300,7 @@ export default function ArticleEditor({articleId}: {articleId?: number}) {
             await persistTags(article)
             setTagsStatusMessage('Kategorien gespeichert.')
         } catch (error) {
-            handleAuthError(error)
+            authRedirect(error)
         } finally {
             setIsTagsSaving(false)
         }
@@ -332,7 +327,7 @@ export default function ArticleEditor({articleId}: {articleId?: number}) {
                 setHeroAssetId(asset.id)
                 markDirty()
             } catch (error) {
-                handleAuthError(error)
+                authRedirect(error)
             } finally {
                 if (mountedRef.current) {
                     setIsUploadingHero(false)

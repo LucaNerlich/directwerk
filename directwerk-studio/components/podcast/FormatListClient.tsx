@@ -8,16 +8,17 @@ import {Button} from '@directwerk/ui/components/button'
 import EmptyState from '@directwerk/ui/components/empty-state'
 import PageHeader from '@directwerk/ui/components/page-header'
 
-import {AUTH_REQUIRED} from '@/lib/api/errors'
 import {listFormats} from '@/lib/api/tenantApi'
-import type {FormatSummary} from '@/lib/api/types'
+import type {FormatSummary} from '@directwerk/api/types'
 import {getClientTenantHost} from '@/lib/tenant/getClientTenantHost'
+import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
 
 /**
  * Lists podcast formats (Formate) as a setup surface for the content-creation flow.
  */
 export default function FormatListClient(): React.JSX.Element {
     const router = useRouter()
+    const authRedirect = useAuthRequired()
     const [formats, setFormats] = useState<FormatSummary[] | null>(null)
     const [errorMessage, setErrorMessage] = useState<string | null>(null)
 
@@ -34,10 +35,7 @@ export default function FormatListClient(): React.JSX.Element {
                 if (!active) {
                     return
                 }
-                if (error instanceof Error && error.message === AUTH_REQUIRED) {
-                    router.replace('/login')
-                    return
-                }
+                if (authRedirect(error)) return
                 setErrorMessage(
                     error instanceof Error
                         ? error.message

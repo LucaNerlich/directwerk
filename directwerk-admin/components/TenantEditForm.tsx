@@ -10,8 +10,8 @@ import {Input} from '@directwerk/ui/components/input'
 import {Label} from '@directwerk/ui/components/label'
 
 import {patchPlatformData} from '@/lib/api/client'
-import {AUTH_REQUIRED, CONFLICT, REQUEST_FAILED} from '@/lib/api/errors'
-import type {Tenant} from '@/lib/api/types'
+import {AUTH_REQUIRED, CONFLICT, REQUEST_FAILED} from '@directwerk/api/constants'
+import type {Tenant} from '@directwerk/api/types'
 
 interface TenantEditFormProps {
     tenantId: string

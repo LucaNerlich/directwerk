@@ -7,7 +7,6 @@ import {Button} from '@directwerk/ui/components/button'
 import {useCallback, useEffect, useState} from 'react'
 import {useRouter} from 'next/navigation'
 
-import {AUTH_REQUIRED} from '@/lib/api/errors'
 import {
     listCategories,
     listFormats,
@@ -23,8 +22,9 @@ import type {
     ProductAccessRuleInput,
     ProductAccessScopeType,
     SeriesSummary,
-} from '@/lib/api/types'
+} from '@directwerk/api/types'
 import {getClientTenantHost} from '@/lib/tenant/getClientTenantHost'
+import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
 
 interface ProductRulesEditorProps {
     productId: number
@@ -47,6 +47,7 @@ export default function ProductRulesEditor({
     productId,
 }: ProductRulesEditorProps): React.JSX.Element {
     const router = useRouter()
+    const authRedirect = useAuthRequired()
     const [drafts, setDrafts] = useState<DraftRule[]>([])
     const [series, setSeries] = useState<SeriesSummary[]>([])
     const [formats, setFormats] = useState<FormatSummary[]>([])
@@ -59,10 +60,7 @@ export default function ProductRulesEditor({
 
     const handleAuthError = useCallback(
         (error: unknown) => {
-            if (error instanceof Error && error.message === AUTH_REQUIRED) {
-                router.replace('/login')
-                return
-            }
+            if (authRedirect(error)) return
             setErrorMessage(
                 error instanceof Error ? error.message : 'Aktion fehlgeschlagen.',
             )
@@ -106,7 +104,7 @@ export default function ProductRulesEditor({
                 if (!active) {
                     return
                 }
-                handleAuthError(error)
+                authRedirect(error)
                 setIsLoading(false)
             })
 
@@ -160,7 +158,7 @@ export default function ProductRulesEditor({
             )
             setStatusMessage('Regeln gespeichert.')
         } catch (error) {
-            handleAuthError(error)
+            authRedirect(error)
         } finally {
             setIsSaving(false)
         }

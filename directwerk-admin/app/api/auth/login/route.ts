@@ -1,6 +1,7 @@
-import {safeUpstreamResponse} from '@/lib/directwerk'
-import {createConfiguredPlatformTokenRequest} from '@/lib/directwerkServer'
-import {PLATFORM_REFRESH_COOKIE, sealRefreshToken} from '@/lib/auth/cookies'
+import {safeUpstreamResponse} from '@directwerk/api/server'
+import {createConfiguredPlatformTokenRequest} from '@/lib/server/api'
+import {PLATFORM_REFRESH_COOKIE} from '@/lib/server/api'
+import {sealRefreshToken} from '@directwerk/api/auth/cookies'
 import {validateLoginInput} from '@/lib/validation'
 
 const MAX_LOGIN_BODY_SIZE = 16 * 1024

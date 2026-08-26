@@ -2,7 +2,7 @@
 
 import {createContext, useContext, type ReactNode} from 'react'
 
-import type {Me} from '@/lib/api/types'
+import type {Me} from '@directwerk/api/types'
 
 const MeContext = createContext<Me | null>(null)
 

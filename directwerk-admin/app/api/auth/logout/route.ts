@@ -1,8 +1,5 @@
-import {
-    PLATFORM_REFRESH_COOKIE,
-    TENANT_REFRESH_COOKIE,
-    serializeClearCookie,
-} from '@/lib/auth/cookies'
+import {PLATFORM_REFRESH_COOKIE, TENANT_REFRESH_COOKIE} from '@/lib/server/api'
+import {serializeClearCookie} from '@directwerk/api/auth/cookies'
 
 /**
  * Clears the httpOnly refresh cookies so a logged-out admin cannot be silently

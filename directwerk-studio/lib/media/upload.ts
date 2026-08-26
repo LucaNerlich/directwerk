@@ -1,7 +1,7 @@
 'use client'
 
-import {AUTH_REQUIRED} from '@/lib/api/errors'
-import type {AssetType, MediaAsset} from '@/lib/api/types'
+import {AUTH_REQUIRED} from '@directwerk/api/constants'
+import type {AssetType, MediaAsset} from '@directwerk/api/types'
 import {confirmUpload} from '@/lib/api/tenantApi'
 import {getValidAccessToken} from '@/lib/auth/session'
 import {clearTokens} from '@/lib/auth/tokenStore'
@@ -39,20 +39,40 @@ function parseAssetBody(body: unknown): MediaAsset {
 
     const asset = data as {
         id: number
+        s3Key?: string
         status?: string
         assetType?: string
+        visibility?: string
+        scope?: string
         mimeType?: string | null
         originalFilename?: string | null
         sizeBytes?: number | null
+        episodeId?: number | null
+        ownerUserId?: number | null
+        cdnUrl?: string | null
+        createdAt?: string
+        updatedAt?: string
     }
 
+    // The upload route streams the upstream confirm response (a full
+    // MediaAssetView); the fallbacks only cover degraded BFF replies.
     return {
         id: asset.id,
+        s3Key: typeof asset.s3Key === 'string' ? asset.s3Key : '',
+        visibility: typeof asset.visibility === 'string' ? asset.visibility : 'PRIVATE',
+        scope: typeof asset.scope === 'string' ? asset.scope : '',
         status: typeof asset.status === 'string' ? asset.status : 'READY',
         assetType: typeof asset.assetType === 'string' ? asset.assetType : 'AUDIO',
         mimeType: asset.mimeType ?? null,
         originalFilename: asset.originalFilename ?? null,
         sizeBytes: typeof asset.sizeBytes === 'number' ? asset.sizeBytes : null,
+        episodeId:
+            typeof asset.episodeId === 'number' ? asset.episodeId : null,
+        ownerUserId:
+            typeof asset.ownerUserId === 'number' ? asset.ownerUserId : null,
+        cdnUrl: typeof asset.cdnUrl === 'string' ? asset.cdnUrl : null,
+        createdAt: typeof asset.createdAt === 'string' ? asset.createdAt : '',
+        updatedAt: typeof asset.updatedAt === 'string' ? asset.updatedAt : '',
     }
 }
 

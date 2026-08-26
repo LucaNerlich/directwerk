@@ -17,8 +17,8 @@ import {
     rotateDefaultFeedToken,
     setDefaultFeedEnabled,
 } from '@/lib/api/client'
-import {AUTH_REQUIRED} from '@/lib/api/errors'
-import type {PublicSeries, SiteConfig, SubscriberFeed} from '@/lib/api/types'
+import {AUTH_REQUIRED} from '@directwerk/api/constants'
+import type {PublicSeries, PublicSiteConfig, SubscriberFeed} from '@directwerk/api/types'
 import {
     getAccessToken,
     subscribeToTokenStore,
@@ -52,7 +52,7 @@ export default function FeedsPage() {
         ['public-series', tenantHost] as const,
         ([, host]: readonly [string, string]) => listPublicSeries(host),
     )
-    const {data: siteConfig} = useSWR<SiteConfig>(
+    const {data: siteConfig} = useSWR<PublicSiteConfig>(
         ['site-config', tenantHost] as const,
         async ([, host]: readonly [string, string]) =>
             (await getSiteConfig(host)).data,

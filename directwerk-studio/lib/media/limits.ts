@@ -1,4 +1,4 @@
-import type {AssetType} from '@/lib/api/types'
+import type {AssetType} from '@directwerk/api/types'
 
 interface MediaTypeLimit {
     maxBytes: number

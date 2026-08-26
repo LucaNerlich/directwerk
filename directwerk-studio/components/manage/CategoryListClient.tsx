@@ -8,16 +8,17 @@ import {Button} from '@directwerk/ui/components/button'
 import EmptyState from '@directwerk/ui/components/empty-state'
 import PageHeader from '@directwerk/ui/components/page-header'
 
-import {AUTH_REQUIRED} from '@/lib/api/errors'
 import {listCategories} from '@/lib/api/tenantApi'
-import type {CategorySummary} from '@/lib/api/types'
+import type {CategorySummary} from '@directwerk/api/types'
 import {getClientTenantHost} from '@/lib/tenant/getClientTenantHost'
+import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
 
 /**
  * Displays the tenant category management list with loading, empty, and error states.
  */
 export default function CategoryListClient(): React.JSX.Element {
     const router = useRouter()
+    const authRedirect = useAuthRequired()
     const [categories, setCategories] = useState<CategorySummary[] | null>(null)
     const [errorMessage, setErrorMessage] = useState<string | null>(null)
 
@@ -34,10 +35,7 @@ export default function CategoryListClient(): React.JSX.Element {
                 if (!active) {
                     return
                 }
-                if (error instanceof Error && error.message === AUTH_REQUIRED) {
-                    router.replace('/login')
-                    return
-                }
+                if (authRedirect(error)) return
                 setErrorMessage(
                     error instanceof Error
                         ? error.message

@@ -1,6 +1,7 @@
-import {directwerkFetch} from '@/lib/directwerk'
-import {jsonError, toClientResponse} from '@/lib/api/upstream'
-import {parseAcceptInviteInput, parseJsonText, readBoundedBody} from '@/lib/api/validation'
+import {directwerkFetch} from '@/lib/server/api'
+import {jsonError, toClientResponse} from '@directwerk/api/proxy'
+import {readBoundedBody} from '@directwerk/api/proxy'
+import {parseAcceptInviteInput, parseJsonText} from '@directwerk/api/validation'
 
 export async function POST(request: Request): Promise<Response> {
     const bodyText = await readBoundedBody(request.body)

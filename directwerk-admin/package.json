@@ -1,34 +1,35 @@
 {
-  "name": "directwerk-admin",
-  "version": "0.1.0",
-  "private": true,
-  "scripts": {
-    "dev": "next dev --port 3001",
-    "build": "next build",
-    "start": "next start --port 3001",
-    "test": "vitest run",
-    "typecheck": "tsc --noEmit"
-  },
-  "dependencies": {
-    "@directwerk/ui": "workspace:*",
-    "next": "^16.3.1",
-    "react": "^19.2.8",
-    "react-dom": "^19.2.8",
-    "server-only": "^0.0.1"
-  },
-  "devDependencies": {
-    "@tailwindcss/postcss": "latest",
-    "@testing-library/jest-dom": "^7.0.1",
-    "@testing-library/react": "^16.3.2",
-    "@testing-library/user-event": "^14.6.4",
-    "@types/node": "^22.20.1",
-    "@types/react": "^19.2.18",
-    "@types/react-dom": "^19.2.4",
-    "babel-plugin-react-compiler": "^1.0.0",
-    "jsdom": "^26.1.0",
-    "tailwindcss": "latest",
-    "typescript": "^5.9.3",
-    "vitest": "^4.1.10"
-  },
-  "packageManager": "pnpm@12.0.0-rc.5+sha512.32f01ead5d5eeae7cc740e73cb46a6e843471a2216a06cfc003404b958992759159a8496ef1b8289c3b4057202a2a954c97ee9e631fe04dd871b3318222ef456"
+    "name": "directwerk-admin",
+    "version": "0.1.0",
+    "private": true,
+    "scripts": {
+        "dev": "next dev --port 3001",
+        "build": "next build",
+        "start": "next start --port 3001",
+        "test": "vitest run",
+        "typecheck": "tsc --noEmit"
+    },
+    "dependencies": {
+        "@directwerk/api": "workspace:*",
+        "@directwerk/ui": "workspace:*",
+        "next": "^16.3.1",
+        "react": "^19.2.8",
+        "react-dom": "^19.2.8",
+        "server-only": "^0.0.1"
+    },
+    "devDependencies": {
+        "@tailwindcss/postcss": "latest",
+        "@testing-library/jest-dom": "^7.0.1",
+        "@testing-library/react": "^16.3.2",
+        "@testing-library/user-event": "^14.6.4",
+        "@types/node": "^22.20.1",
+        "@types/react": "^19.2.18",
+        "@types/react-dom": "^19.2.4",
+        "babel-plugin-react-compiler": "^1.0.0",
+        "jsdom": "^26.1.0",
+        "tailwindcss": "latest",
+        "typescript": "^5.9.3",
+        "vitest": "^4.1.10"
+    },
+    "packageManager": "pnpm@12.0.0-rc.5+sha512.32f01ead5d5eeae7cc740e73cb46a6e843471a2216a06cfc003404b958992759159a8496ef1b8289c3b4057202a2a954c97ee9e631fe04dd871b3318222ef456"
 }

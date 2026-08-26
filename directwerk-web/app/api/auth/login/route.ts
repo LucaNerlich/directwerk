@@ -1,8 +1,10 @@
-import {directwerkFetch, getOAuthClientId} from '@/lib/directwerk'
-import {parseTenantHost} from '@/lib/tenant/parseTenantHost'
-import {jsonError, toClientResponse} from '@/lib/api/upstream'
-import {parseJsonText, parseLoginInput, readBoundedBody} from '@/lib/api/validation'
-import {REFRESH_COOKIE, sealRefreshToken} from '@/lib/auth/cookies'
+import {directwerkFetch, getOAuthClientId} from '@/lib/server/api'
+import {parseTenantHost} from '@directwerk/api/proxy'
+import {jsonError, toClientResponse} from '@directwerk/api/proxy'
+import {readBoundedBody} from '@directwerk/api/proxy'
+import {parseJsonText, parseLoginInput} from '@directwerk/api/validation'
+import {REFRESH_COOKIE} from '@/lib/server/api'
+import {sealRefreshToken} from '@directwerk/api/auth/cookies'
 
 export async function POST(request: Request): Promise<Response> {
     const tenantHost = parseTenantHost(request.headers.get('x-tenant-host'))
@@ -15,7 +17,7 @@ export async function POST(request: Request): Promise<Response> {
         return jsonError('The request body is invalid.', 400)
     }
 
-    const input = parseLoginInput(parseJsonText(bodyText))
+    const input = parseLoginInput(parseJsonText(bodyText), {normalizeEmail: true})
     if (input === null) {
         return jsonError('A valid email and password are required.', 400)
     }

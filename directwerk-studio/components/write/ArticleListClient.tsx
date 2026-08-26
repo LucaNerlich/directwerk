@@ -9,18 +9,19 @@ import EmptyState from '@directwerk/ui/components/empty-state'
 import PageHeader from '@directwerk/ui/components/page-header'
 
 import PublicationStatusBadge from '@/components/publication/PublicationStatusBadge'
-import {AUTH_REQUIRED} from '@/lib/api/errors'
 import {
     cancelScheduleArticle,
     listArticles,
     unarchiveArticle,
     unpublishArticle,
 } from '@/lib/api/tenantApi'
-import type {ArticleDetail} from '@/lib/api/types'
+import type {ArticleDetail} from '@directwerk/api/types'
 import {getClientTenantHost} from '@/lib/tenant/getClientTenantHost'
+import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
 
 export default function ArticleListClient() {
     const router = useRouter()
+    const authRedirect = useAuthRequired()
     const routerRef = useRef(router)
     routerRef.current = router
 
@@ -35,10 +36,7 @@ export default function ArticleListClient() {
             const loaded = await listArticles(getClientTenantHost())
             setArticles(loaded)
         } catch (error) {
-            if (error instanceof Error && error.message === AUTH_REQUIRED) {
-                routerRef.current.replace('/login')
-                return
-            }
+            if (authRedirect(error)) return
             setErrorMessage(
                 error instanceof Error
                     ? error.message
@@ -65,10 +63,7 @@ export default function ArticleListClient() {
             )
             setStatusMessage(`Beitrag „${article.title}“ wurde zurückgezogen (Entwurf).`)
         } catch (error) {
-            if (error instanceof Error && error.message === AUTH_REQUIRED) {
-                routerRef.current.replace('/login')
-                return
-            }
+            if (authRedirect(error)) return
             setErrorMessage(
                 error instanceof Error
                     ? error.message
@@ -91,10 +86,7 @@ export default function ArticleListClient() {
             )
             setStatusMessage(`Planung für „${article.title}“ wurde aufgehoben (Entwurf).`)
         } catch (error) {
-            if (error instanceof Error && error.message === AUTH_REQUIRED) {
-                routerRef.current.replace('/login')
-                return
-            }
+            if (authRedirect(error)) return
             setErrorMessage(
                 error instanceof Error
                     ? error.message
@@ -117,10 +109,7 @@ export default function ArticleListClient() {
             )
             setStatusMessage(`Beitrag „${article.title}“ wurde wiederhergestellt (Entwurf).`)
         } catch (error) {
-            if (error instanceof Error && error.message === AUTH_REQUIRED) {
-                routerRef.current.replace('/login')
-                return
-            }
+            if (authRedirect(error)) return
             setErrorMessage(
                 error instanceof Error
                     ? error.message

@@ -8,9 +8,10 @@ import {buttonVariants} from '@directwerk/ui/components/button'
 import PageHeader from '@directwerk/ui/components/page-header'
 
 import {getAccess, listMySubscriptions} from '@/lib/api/client'
-import {AUTH_REQUIRED} from '@/lib/api/errors'
-import type {Access, SubscriptionSummary} from '@/lib/api/types'
+import {AUTH_REQUIRED} from '@directwerk/api/constants'
+import type {Access, SubscriptionSummary} from '@directwerk/api/types'
 import {getClientTenantHost} from '@/lib/tenant/getClientTenantHost'
+import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
 
 const POLL_MS = 2000
 const MAX_ATTEMPTS = 10
@@ -30,6 +31,7 @@ function hasGrantedAccess(
 
 export default function CheckoutSuccessPage(): React.JSX.Element {
     const router = useRouter()
+    const authRedirect = useAuthRequired()
     const [phase, setPhase] = useState<'checking' | 'ready' | 'waiting'>('checking')
 
     useEffect(() => {
@@ -55,10 +57,7 @@ export default function CheckoutSuccessPage(): React.JSX.Element {
                 if (cancelled) {
                     return
                 }
-                if (error instanceof Error && error.message === AUTH_REQUIRED) {
-                    router.replace('/login')
-                    return
-                }
+                if (authRedirect(error)) return
             }
 
             attempts += 1

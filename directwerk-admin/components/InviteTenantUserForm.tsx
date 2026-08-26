@@ -10,9 +10,9 @@ import {Input} from '@directwerk/ui/components/input'
 import {Label} from '@directwerk/ui/components/label'
 
 import {postPlatformData} from '@/lib/api/client'
-import {AUTH_REQUIRED, CONFLICT, FORBIDDEN, REQUEST_FAILED} from '@/lib/api/errors'
-import type {InviteTenantUserResponse} from '@/lib/api/types'
-import {TENANT_INVITABLE_ROLES} from '@/lib/api/types'
+import {AUTH_REQUIRED, CONFLICT, FORBIDDEN, REQUEST_FAILED} from '@directwerk/api/constants'
+import type {InviteTenantUserResponse} from '@directwerk/api/types'
+import {TENANT_INVITABLE_ROLES} from '@directwerk/api/types'
 import {getTenantRoleLabel} from '@/lib/roles'
 import {validateTenantUserInviteInput} from '@/lib/validation'
 

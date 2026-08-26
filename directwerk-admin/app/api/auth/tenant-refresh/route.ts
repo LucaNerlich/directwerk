@@ -1,8 +1,9 @@
-import {safeUpstreamResponse} from '@/lib/directwerk'
-import {requestTenantRefresh} from '@/lib/directwerkServer'
-import {readBoundedRequestBody} from '@/lib/http/readBoundedRequestBody'
-import {parseTenantHost} from '@/lib/tenant/parseTenantHost'
-import {TENANT_REFRESH_COOKIE, readRequestCookie, sealRefreshToken} from '@/lib/auth/cookies'
+import {safeUpstreamResponse} from '@directwerk/api/server'
+import {requestTenantRefresh} from '@/lib/server/api'
+import {readBoundedRequestBody} from '@directwerk/api/proxy'
+import {parseTenantHost} from '@directwerk/api/proxy'
+import {TENANT_REFRESH_COOKIE} from '@/lib/server/api'
+import {readRequestCookie, sealRefreshToken} from '@directwerk/api/auth/cookies'
 import {validateRefreshTokenInput} from '@/lib/validation'
 
 const MAX_REFRESH_BODY_SIZE = 16 * 1024

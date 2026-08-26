@@ -1,4 +1,4 @@
-import type {BillingInterval} from '@/lib/api/types'
+import type {BillingInterval} from '@directwerk/api/types'
 
 function formatCurrencyCents(priceCents: number, currency: string): string {
     return new Intl.NumberFormat('de-DE', {

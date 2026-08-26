@@ -7,10 +7,11 @@ import Form from 'next/form'
 import {useRouter} from 'next/navigation'
 import {useActionState, useEffect, useState} from 'react'
 
-import {AUTH_REQUIRED} from '@/lib/api/errors'
+import {AUTH_REQUIRED} from '@directwerk/api/constants'
 import {getBranding, updateBranding} from '@/lib/api/tenantApi'
-import type {TenantBranding} from '@/lib/api/types'
+import type {TenantBranding} from '@directwerk/api/types'
 import {getClientTenantHost} from '@/lib/tenant/getClientTenantHost'
+import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
 
 interface BrandingFormState {
     error: string | null
@@ -35,6 +36,7 @@ function normalizeColor(value: FormDataEntryValue | null): string | null | undef
  */
 export default function BrandingEditor(): React.JSX.Element {
     const router = useRouter()
+    const authRedirect = useAuthRequired()
     const [branding, setBranding] = useState<TenantBranding | null>(null)
     const [loadError, setLoadError] = useState<string | null>(null)
     const [isLoading, setIsLoading] = useState(true)
@@ -54,10 +56,7 @@ export default function BrandingEditor(): React.JSX.Element {
                 if (!active) {
                     return
                 }
-                if (error instanceof Error && error.message === AUTH_REQUIRED) {
-                    router.replace('/login')
-                    return
-                }
+                if (authRedirect(error)) return
                 setLoadError(
                     error instanceof Error
                         ? error.message
@@ -109,10 +108,7 @@ export default function BrandingEditor(): React.JSX.Element {
             setBranding(updated)
             return {error: null, success: 'Branding gespeichert.'}
         } catch (error: unknown) {
-            if (error instanceof Error && error.message === AUTH_REQUIRED) {
-                router.replace('/login')
-                return INITIAL_STATE
-            }
+            if (authRedirect(error)) return INITIAL_STATE
             return {
                 error:
                     error instanceof Error

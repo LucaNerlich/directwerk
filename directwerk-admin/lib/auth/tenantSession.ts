@@ -1,112 +1,60 @@
 'use client'
 
-import type {OAuthTokenResponse} from '@/lib/api/types'
-import {AUTH_REQUIRED, AUTH_TRANSIENT} from '@/lib/api/errors'
+import type {OAuthTokenResponse} from '@directwerk/api/types'
+import {createAuthSession} from '@directwerk/api/auth/session'
+import {AUTH_REQUIRED} from '@directwerk/api/constants'
 import {
     clearTenantTokens,
     getTenantAccessToken,
     getTenantSessionHost,
     isTenantAccessTokenExpired,
     storeTenantTokens,
+    tenantTokenStore,
 } from '@/lib/auth/tenantTokenStore'
 
-let refreshInFlight: Promise<string> | null = null
-let currentSessionGeneration = 0
+/**
+ * Admin tenant refresh/session coordinator — shared algorithm with the
+ * tenant host header.
+ */
+const session = createAuthSession({
+    store: tenantTokenStore,
+    refreshPath: '/api/auth/tenant-refresh',
+    refreshHeaders: (): Record<string, string> => {
+        const host = getTenantSessionHost()
+        return host === null ? {} : {'X-Tenant-Host': host}
+    },
+    parseTokens: parseTenantTokens,
+})
 
-function invalidateTenantSession(): void {
-    currentSessionGeneration++
-    clearTenantTokens()
+function parseTenantTokens(value: unknown): OAuthTokenResponse | null {
+    if (typeof value !== 'object' || value === null) {
+        return null
+    }
+
+    const tokens = value as Record<string, unknown>
+    if (
+        typeof tokens.access_token === 'string' &&
+        tokens.access_token.length > 0
+    ) {
+        return value as OAuthTokenResponse
+    }
+    return null
 }
 
 /**
  * Ends any tenant refresh that is currently in flight so it can no longer
  * write tokens for the previous identity over a freshly logged-in session.
  */
-function invalidatePendingTenantRefresh(): void {
-    currentSessionGeneration++
-}
-
-function isOAuthTokenResponse(value: unknown): value is OAuthTokenResponse {
-    if (typeof value !== 'object' || value === null) {
-        return false
-    }
-
-    const tokens = value as Record<string, unknown>
-    return (
-        typeof tokens.access_token === 'string' &&
-        tokens.access_token.length > 0
-    )
-}
-
-async function postRefresh(
-    tenantHost: string,
-    sessionGeneration: number
-): Promise<string> {
-    const abortController = new AbortController()
-    const timeoutId = setTimeout(() => abortController.abort(), 10000)
-
-    try {
-        // The refresh token lives in an httpOnly cookie; the refresh route reads
-        // it server-side so the credential is never exposed to client JS.
-        const response = await fetch('/api/auth/tenant-refresh', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-Tenant-Host': tenantHost,
-            },
-            body: '{}',
-            cache: 'no-store',
-            signal: abortController.signal,
-        })
-
-        clearTimeout(timeoutId)
-
-        const tokens: unknown = await response.json().catch(() => null)
-        if (response.status === 400 || response.status === 401) {
-            // Definitive auth failure from the token endpoint.
-            invalidateTenantSession()
-            throw new Error(AUTH_REQUIRED)
-        }
-        if (!response.ok || !isOAuthTokenResponse(tokens)) {
-            // Upstream outage or malformed reply — the session itself is
-            // intact; keep tokens so the next call can retry.
-            throw new Error(AUTH_TRANSIENT)
-        }
-
-        if (sessionGeneration === currentSessionGeneration) {
-            storeTenantTokens(tokens, tenantHost)
-            return tokens.access_token
-        }
-
-        invalidateTenantSession()
-        throw new Error(AUTH_REQUIRED)
-    } catch (error) {
-        clearTimeout(timeoutId)
-        if (error instanceof Error && error.name === 'AbortError') {
-            // A timeout is transient — do not destroy a recoverable session.
-            throw new Error(AUTH_TRANSIENT)
-        }
-        throw error
-    }
-}
+export const invalidatePendingTenantRefresh = session.invalidatePendingRefresh
 
 export async function refreshTenantAccessToken(): Promise<string> {
     const tenantHost = getTenantSessionHost()
     if (!tenantHost) {
-        invalidateTenantSession()
+        clearTenantTokens()
         throw new Error(AUTH_REQUIRED)
     }
 
-    if (refreshInFlight !== null) {
-        return refreshInFlight
-    }
-
-    const sessionGeneration = currentSessionGeneration
-    refreshInFlight = postRefresh(tenantHost, sessionGeneration).finally(() => {
-        refreshInFlight = null
-    })
-
-    return refreshInFlight
+    return session.refreshAccessToken()
 }
 
 export async function getValidTenantAccessToken(): Promise<string> {
@@ -145,9 +93,9 @@ export async function loginTenantSession(input: {
     }
 
     const tokens: unknown = await response.json()
-    if (!isOAuthTokenResponse(tokens)) {
+    if (!parseTenantTokens(tokens)) {
         throw new Error(AUTH_REQUIRED)
     }
 
-    storeTenantTokens(tokens, input.tenantHost)
+    storeTenantTokens(tokens as OAuthTokenResponse, input.tenantHost)
 }

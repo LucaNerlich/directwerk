@@ -1,7 +1,7 @@
 import {describe, expect, it} from 'vitest'
 
 import {defaultHomePath, deskHome, hasDesk, hasModule, resolveActiveDesk} from '@/lib/api/client'
-import type {SiteConfig} from '@/lib/api/types'
+import type {SiteConfig} from '@directwerk/api/types'
 
 const sampleConfig: SiteConfig = {
     tenant: {slug: 'alpha', name: 'Alpha'},

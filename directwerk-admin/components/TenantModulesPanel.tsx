@@ -15,13 +15,13 @@ import {
     getPlatformData,
     postPlatformData,
 } from '@/lib/api/client'
-import {AUTH_REQUIRED, REQUEST_FAILED} from '@/lib/api/errors'
+import {AUTH_REQUIRED, REQUEST_FAILED} from '@directwerk/api/constants'
 import type {
     ModuleDescriptor,
     ModulePresetKey,
     TenantModules,
-} from '@/lib/api/types'
-import {MODULE_PRESETS} from '@/lib/api/types'
+} from '@directwerk/api/types'
+import {MODULE_PRESETS} from '@directwerk/api/types'
 
 interface TenantModulesPanelProps {
     tenantId: string

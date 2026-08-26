@@ -2,7 +2,7 @@
 
 import {Input} from '@directwerk/ui/components/input'
 
-import type {AccessPolicy} from '@/lib/api/types'
+import type {AccessPolicy} from '@directwerk/api/types'
 
 export default function AccessPolicySelect({
     value,

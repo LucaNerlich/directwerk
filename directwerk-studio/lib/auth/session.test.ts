@@ -1,6 +1,6 @@
 import {beforeEach, afterEach, describe, expect, it, vi} from 'vitest'
 
-import {AUTH_REQUIRED, AUTH_TRANSIENT} from '@/lib/api/errors'
+import {AUTH_REQUIRED, AUTH_TRANSIENT} from '@directwerk/api/constants'
 import {getAccessToken, setTokens} from '@/lib/auth/tokenStore'
 import {refreshAccessToken} from '@/lib/auth/session'
 

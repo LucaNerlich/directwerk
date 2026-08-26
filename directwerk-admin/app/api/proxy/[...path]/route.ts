@@ -3,9 +3,9 @@ import {
     jsonError,
     parseBearerAuthorization,
     safeUpstreamResponse,
-} from '@/lib/directwerk'
-import {createConfiguredPlatformApiRequest} from '@/lib/directwerkServer'
-import {readBoundedRequestBody} from '@/lib/http/readBoundedRequestBody'
+} from '@directwerk/api/server'
+import {createConfiguredPlatformApiRequest} from '@/lib/server/api'
+import {readBoundedRequestBody} from '@directwerk/api/proxy'
 
 interface RouteContext {
     params: Promise<{path: string[]}>

@@ -7,7 +7,7 @@ import SiteHeader from '@/components/SiteHeader'
 import {fetchSiteConfigServer} from '@/lib/site/fetchSiteConfigServer'
 import {getTenantHost} from '@/lib/site/getTenantHost'
 import {SiteConfigProvider} from '@/lib/site/SiteConfigProvider'
-import type {SiteConfig} from '@/lib/api/types'
+import type {PublicSiteConfig} from '@directwerk/api/types'
 
 import './globals.css'
 
@@ -37,7 +37,7 @@ export default async function RootLayout({
 }>): Promise<React.JSX.Element> {
     // The layout renders on every route — an upstream outage or unmapped host
     // must degrade to a neutral default instead of hard-failing every page.
-    let config: SiteConfig
+    let config: PublicSiteConfig
     try {
         const host = await getTenantHost()
         config = await fetchSiteConfigServer(host)

@@ -9,7 +9,7 @@ import {Button} from '@directwerk/ui/components/button'
 import {Input} from '@directwerk/ui/components/input'
 import {Label} from '@directwerk/ui/components/label'
 
-import type {OAuthTokenResponse} from '@/lib/api/types'
+import type {OAuthTokenResponse} from '@directwerk/api/types'
 import {invalidatePendingRefresh} from '@/lib/auth/session'
 import {storeTokens} from '@/lib/auth/tokenStore'
 

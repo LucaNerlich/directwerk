@@ -1,4 +1,4 @@
-import type {SeriesStatus} from '@/lib/api/types'
+import type {SeriesStatus} from '@directwerk/api/types'
 
 export interface EpisodePublishChecklistInput {
     seriesStatus: SeriesStatus | null

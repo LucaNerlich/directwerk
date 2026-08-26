@@ -1,6 +1,6 @@
 import {describe, expect, it} from 'vitest'
 
-import {buildProxyPath} from '@/lib/api/proxy'
+import {buildProxyPath} from '@directwerk/api/proxy'
 
 describe('buildProxyPath', () => {
     it('allows domain hosts with dots as path segments', () => {
