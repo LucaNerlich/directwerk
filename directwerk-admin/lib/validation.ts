@@ -13,14 +13,7 @@ import {
 import {parseTenantHost} from '@directwerk/api/proxy'
 import type {LoginInput} from '@directwerk/api/validation'
 
-<<<<<<< HEAD
 export type LoginCredentials = LoginInput
-=======
-interface LoginCredentials {
-    email: string
-    password: string
-}
->>>>>>> cleanup/3-unused
 
 export type LoginValidationResult =
     | {success: true; data: LoginCredentials}
