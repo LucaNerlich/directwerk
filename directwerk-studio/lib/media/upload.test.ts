@@ -109,6 +109,8 @@ describe('uploadMediaFile', () => {
         xhr.status = 200
         xhr.setResponseHeader('content-type', 'application/json')
         xhr.responseText = JSON.stringify({
+            statusCode: 200,
+            statusMessage: 'OK',
             data: {
                 id: 8,
                 s3Key: 'tenant/staging/audio.mp3',
