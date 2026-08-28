@@ -111,21 +111,28 @@ describe('uploadMediaFile', () => {
         xhr.responseText = JSON.stringify({
             data: {
                 id: 8,
+                s3Key: 'tenant/staging/audio.mp3',
+                visibility: 'PRIVATE',
+                scope: 'PODCAST',
                 status: 'READY',
                 assetType: 'AUDIO',
                 mimeType: 'audio/mpeg',
                 originalFilename: 'folge.mp3',
                 sizeBytes: 64,
+                episodeId: null,
+                ownerUserId: null,
+                cdnUrl: null,
+                createdAt: '2026-07-20T12:00:00Z',
+                updatedAt: '2026-07-20T12:00:00Z',
             },
         })
         xhr.onload?.()
 
         await expect(promise).resolves.toEqual({
-            // Full MediaAssetView shape (shared DTO).
             id: 8,
-            s3Key: '',
+            s3Key: 'tenant/staging/audio.mp3',
             visibility: 'PRIVATE',
-            scope: '',
+            scope: 'PODCAST',
             status: 'READY',
             assetType: 'AUDIO',
             mimeType: 'audio/mpeg',
@@ -134,8 +141,8 @@ describe('uploadMediaFile', () => {
             episodeId: null,
             ownerUserId: null,
             cdnUrl: null,
-            createdAt: '',
-            updatedAt: '',
+            createdAt: '2026-07-20T12:00:00Z',
+            updatedAt: '2026-07-20T12:00:00Z',
         })
     })
 
