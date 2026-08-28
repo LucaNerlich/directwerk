@@ -4,10 +4,14 @@ import Link from 'next/link'
 import {useRouter} from 'next/navigation'
 import {useEffect, useMemo, useState} from 'react'
 
+import {Alert, AlertDescription} from '@directwerk/ui/components/alert'
 import {Button} from '@directwerk/ui/components/button'
 import EmptyState from '@directwerk/ui/components/empty-state'
 import {Input} from '@directwerk/ui/components/input'
+import ListPanel, {ListPanelRow} from '@directwerk/ui/components/list-panel'
 import PageHeader from '@directwerk/ui/components/page-header'
+import PageStack from '@directwerk/ui/components/page-stack'
+import StatCard from '@directwerk/ui/components/stat-card'
 
 import SelectControl from '@/components/studio/SelectControl'
 import {getBillingDashboard, revokeSubscription} from '@/lib/api/tenantApi'
@@ -165,25 +169,31 @@ export default function PaymentsDashboardClient(): React.JSX.Element {
     }
 
     return (
-        <div className="flex flex-col gap-6">
+        <PageStack>
             <PageHeader
-                eyebrow="Abos"
-                title="Zahlungen & Mitgliedschaften"
-                description="Übersicht über aktive Mitglieder, Zahlungsrückstände und geschätzte Einnahmen. Hier kannst du Zugänge beenden."
                 actions={
                     <Button nativeButton={false} render={<Link href="/settings/stripe" />} size="lg">
                         Stripe
                     </Button>
                 }
+                description="Übersicht über aktive Mitglieder, Zahlungsrückstände und geschätzte Einnahmen. Hier kannst du Zugänge beenden."
+                eyebrow="Abos"
+                title="Zahlungen & Mitgliedschaften"
             />
 
             {errorMessage !== null ? (
-                <p className="text-sm text-destructive" role="alert">
-                    {errorMessage}
-                </p>
+                <Alert variant="destructive">
+                    <AlertDescription>{errorMessage}</AlertDescription>
+                </Alert>
             ) : null}
-            {statusMessage !== null ? <p role="status">{statusMessage}</p> : null}
-            {dashboard === null && errorMessage === null ? <p>Laden…</p> : null}
+            {statusMessage !== null ? (
+                <Alert>
+                    <AlertDescription>{statusMessage}</AlertDescription>
+                </Alert>
+            ) : null}
+            {dashboard === null && errorMessage === null ? (
+                <p className="text-sm text-muted-foreground">Laden…</p>
+            ) : null}
 
             {dashboard !== null ? (
                 <>
@@ -208,43 +218,48 @@ export default function PaymentsDashboardClient(): React.JSX.Element {
                     </section>
 
                     <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                        <li className="rounded-xl border bg-card p-4">
-                            <p className="text-xs text-muted-foreground">Aktive Mitgliedschaften</p>
-                            <p className="mt-1 text-2xl font-semibold">{dashboard.stats.activeSubscriptions}</p>
+                        <li>
+                            <StatCard
+                                hint="Aktive Abonnements"
+                                label="Mitgliedschaften"
+                                value={dashboard.stats.activeSubscriptions}
+                            />
                         </li>
-                        <li className="rounded-xl border bg-card p-4">
-                            <p className="text-xs text-muted-foreground">Aktive Mitglieder</p>
-                            <p className="mt-1 text-2xl font-semibold">{dashboard.stats.uniqueActiveMembers}</p>
+                        <li>
+                            <StatCard
+                                hint="Eindeutige Konten mit Zugang"
+                                label="Aktive Mitglieder"
+                                value={dashboard.stats.uniqueActiveMembers}
+                            />
                         </li>
-                        <li className="rounded-xl border bg-card p-4">
-                            <p className="text-xs text-muted-foreground">Bezahlt / Freischaltung</p>
-                            <p className="mt-1 text-2xl font-semibold">
-                                {dashboard.stats.activePaidSubscriptions}
-                                {' / '}
-                                {dashboard.stats.activeGrantSubscriptions}
-                            </p>
+                        <li>
+                            <StatCard
+                                hint="Stripe vs. Freischaltung"
+                                label="Bezahlt / Freischaltung"
+                                value={`${dashboard.stats.activePaidSubscriptions} / ${dashboard.stats.activeGrantSubscriptions}`}
+                            />
                         </li>
-                        <li className="rounded-xl border bg-card p-4">
-                            <p className="text-xs text-muted-foreground">Geschätzter Monatswert</p>
-                            <p className="mt-1 text-2xl font-semibold">
-                                {formatMoney(
+                        <li>
+                            <StatCard
+                                label="Geschätzter Monatswert"
+                                value={formatMoney(
                                     dashboard.stats.estimatedMonthlyCents,
                                     dashboard.stats.currency,
                                 )}
-                            </p>
+                            />
                         </li>
-                        <li className="rounded-xl border bg-card p-4">
-                            <p className="text-xs text-muted-foreground">Zahlungsrückstand</p>
-                            <p className="mt-1 text-2xl font-semibold">{dashboard.stats.pastDueSubscriptions}</p>
+                        <li>
+                            <StatCard
+                                label="Zahlungsrückstand"
+                                value={dashboard.stats.pastDueSubscriptions}
+                            />
                         </li>
-                        <li className="rounded-xl border bg-card p-4">
-                            <p className="text-xs text-muted-foreground">Diesen Monat</p>
-                            <p className="mt-1 text-2xl font-semibold">
-                                +{dashboard.stats.newThisMonth}
-                                {' / −'}
-                                {dashboard.stats.canceledThisMonth}
-                            </p>
-                            <p className="mt-1 text-xs text-muted-foreground">neu / gekündigt</p>
+                        <li>
+                            <StatCard
+                                hint="neu / gekündigt"
+                                label="Diesen Monat"
+                                value={`+${dashboard.stats.newThisMonth} / −${dashboard.stats.canceledThisMonth}`}
+                            />
                         </li>
                     </ul>
 
@@ -321,13 +336,10 @@ export default function PaymentsDashboardClient(): React.JSX.Element {
                             {visibleMemberships.length === 0 ? (
                                 <p className="text-sm text-muted-foreground">Keine Mitgliedschaften für diesen Filter.</p>
                             ) : (
-                                <ul className="overflow-hidden rounded-xl border bg-card divide-y">
+                                <ListPanel>
                                     {visibleMemberships.map((row) => (
-                                        <li
-                                            className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between"
-                                            key={row.id}
-                                        >
-                                            <div>
+                                        <ListPanelRow key={row.id}>
+                                            <div className="min-w-0 flex-1">
                                                 <p className="font-medium">{row.email}</p>
                                                 <p className="text-sm text-muted-foreground">
                                                     {row.productTitle}
@@ -377,14 +389,14 @@ export default function PaymentsDashboardClient(): React.JSX.Element {
                                                     ) : null}
                                                 </div>
                                             ) : null}
-                                        </li>
+                                        </ListPanelRow>
                                     ))}
-                                </ul>
+                                </ListPanel>
                             )}
                         </section>
                     )}
                 </>
             ) : null}
-        </div>
+        </PageStack>
     )
 }

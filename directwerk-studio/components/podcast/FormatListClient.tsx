@@ -4,9 +4,12 @@ import Link from 'next/link'
 import {useRouter} from 'next/navigation'
 import {useEffect, useState} from 'react'
 
+import {Alert, AlertDescription} from '@directwerk/ui/components/alert'
 import {Button} from '@directwerk/ui/components/button'
 import EmptyState from '@directwerk/ui/components/empty-state'
+import ListPanel, {listPanelLinkClassName} from '@directwerk/ui/components/list-panel'
 import PageHeader from '@directwerk/ui/components/page-header'
+import PageStack from '@directwerk/ui/components/page-stack'
 
 import {listFormats} from '@/lib/api/tenantApi'
 import type {FormatSummary} from '@directwerk/api/types'
@@ -49,41 +52,43 @@ export default function FormatListClient(): React.JSX.Element {
     }, [router])
 
     return (
-        <div className="flex flex-col gap-6">
+        <PageStack>
             <PageHeader
-                eyebrow="Podcast · Einrichtung"
-                title="Formate"
-                description="Formate sortieren deine Folgen — z. B. Hauptfolge, Bonus oder Interview. Du wählst sie beim Erstellen einer Folge."
                 actions={
                     <Button nativeButton={false} render={<Link href="/podcast/formats/new" />} size="lg">
                         Neues Format
                     </Button>
                 }
+                description="Formate sortieren deine Folgen — z. B. Hauptfolge, Bonus oder Interview. Du wählst sie beim Erstellen einer Folge."
+                eyebrow="Podcast · Einrichtung"
+                title="Formate"
             />
 
             {errorMessage ? (
-                <p className="text-sm text-destructive" role="alert">
-                    {errorMessage}
-                </p>
+                <Alert variant="destructive">
+                    <AlertDescription>{errorMessage}</AlertDescription>
+                </Alert>
             ) : null}
-            {formats === null && !errorMessage ? <p>Laden…</p> : null}
+            {formats === null && !errorMessage ? (
+                <p className="text-sm text-muted-foreground">Laden…</p>
+            ) : null}
             {formats && formats.length === 0 ? (
                 <EmptyState
-                    title="Noch keine Formate"
-                    description="Empfohlen, aber optional: Mit Formaten können Hörer später gezielt Folgen finden und eigene Feeds bauen."
                     action={
                         <Button nativeButton={false} render={<Link href="/podcast/formats/new" />}>
                             Erstes Format anlegen
                         </Button>
                     }
+                    description="Empfohlen, aber optional: Mit Formaten können Hörer später gezielt Folgen finden und eigene Feeds bauen."
+                    title="Noch keine Formate"
                 />
             ) : null}
             {formats && formats.length > 0 ? (
-                <ul className="overflow-hidden rounded-xl border bg-card divide-y">
+                <ListPanel>
                     {formats.map((format) => (
                         <li key={format.id}>
                             <Link
-                                className="flex w-full items-center justify-between gap-4 p-4 text-sm no-underline hover:bg-muted/40"
+                                className={listPanelLinkClassName}
                                 href={`/podcast/formats/${format.id}`}
                             >
                                 <span>
@@ -91,13 +96,13 @@ export default function FormatListClient(): React.JSX.Element {
                                     <br />
                                     <small className="text-muted-foreground">{format.slug}</small>
                                 </span>
-                                <span className="flex shrink-0 items-center gap-3 text-sm text-muted-foreground">
+                                <span className="shrink-0 text-muted-foreground">
                                     {format.active ? 'Aktiv' : 'Inaktiv'}
                                 </span>
                             </Link>
                         </li>
                     ))}
-                </ul>
+                </ListPanel>
             ) : null}
 
             <p className="text-sm text-muted-foreground">
@@ -106,6 +111,6 @@ export default function FormatListClient(): React.JSX.Element {
                 {' · '}
                 <Link href="/podcast">Zur Podcast-Übersicht</Link>
             </p>
-        </div>
+        </PageStack>
     )
 }

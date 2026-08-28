@@ -1,10 +1,15 @@
 'use client'
 
-import {Button} from '@directwerk/ui/components/button'
-
-import {useCallback, useEffect, useState} from 'react'
-import {useRouter} from 'next/navigation'
 import Link from 'next/link'
+import {useCallback, useEffect, useState} from 'react'
+
+import {Alert, AlertDescription} from '@directwerk/ui/components/alert'
+import {Button} from '@directwerk/ui/components/button'
+import EmptyState from '@directwerk/ui/components/empty-state'
+import ListPanel, {ListPanelRow} from '@directwerk/ui/components/list-panel'
+import PageHeader from '@directwerk/ui/components/page-header'
+import PageStack from '@directwerk/ui/components/page-stack'
+import SectionHeader from '@directwerk/ui/components/section-header'
 
 import PublicationStatusBadge from '@/components/publication/PublicationStatusBadge'
 import {hasModule} from '@/lib/api/client'
@@ -23,8 +28,40 @@ function copyUrl(url: string): Promise<void> {
     return navigator.clipboard.writeText(url)
 }
 
+function FeedUrlActions({
+    copiedUrl,
+    onCopy,
+    url,
+}: {
+    copiedUrl: string | null
+    onCopy: (url: string) => void
+    url: string
+}): React.JSX.Element {
+    return (
+        <div className="flex flex-wrap gap-2">
+            {safeLinkHref(url) !== null ? (
+                <a
+                    className="text-sm font-medium text-primary underline-offset-4 hover:underline"
+                    href={url}
+                    rel="noreferrer"
+                    target="_blank"
+                >
+                    Öffnen
+                </a>
+            ) : null}
+            <Button
+                onClick={() => onCopy(url)}
+                size="sm"
+                type="button"
+                variant="outline"
+            >
+                {copiedUrl === url ? 'Kopiert!' : 'Kopieren'}
+            </Button>
+        </div>
+    )
+}
+
 export default function FeedManagementClient(): React.JSX.Element {
-    const router = useRouter()
     const authRedirect = useAuthRequired()
     const config = useSiteConfig()
     const [series, setSeries] = useState<SeriesSummary[]>([])
@@ -34,6 +71,16 @@ export default function FeedManagementClient(): React.JSX.Element {
     const [busyFeedId, setBusyFeedId] = useState<number | null>(null)
     const [copiedUrl, setCopiedUrl] = useState<string | null>(null)
     const showSubscriberFeeds = hasModule(config, 'SUBSCRIPTION')
+
+    const handleAuthError = useCallback(
+        (error: unknown) => {
+            if (authRedirect(error)) return
+            setErrorMessage(
+                error instanceof Error ? error.message : 'Aktion fehlgeschlagen.',
+            )
+        },
+        [authRedirect],
+    )
 
     useEffect(() => {
         let active = true
@@ -54,12 +101,7 @@ export default function FeedManagementClient(): React.JSX.Element {
                 if (!active) {
                     return
                 }
-                if (authRedirect(error)) return
-                setErrorMessage(
-                    error instanceof Error
-                        ? error.message
-                        : 'Feeds konnten nicht geladen werden.',
-                )
+                handleAuthError(error)
             } finally {
                 if (active) {
                     setIsLoading(false)
@@ -67,22 +109,12 @@ export default function FeedManagementClient(): React.JSX.Element {
             }
         }
 
-        load()
+        void load()
 
         return () => {
             active = false
         }
-    }, [router, showSubscriberFeeds])
-
-    const handleAuthError = useCallback(
-        (error: unknown) => {
-            if (authRedirect(error)) return
-            setErrorMessage(
-                error instanceof Error ? error.message : 'Aktion fehlgeschlagen.',
-            )
-        },
-        [router],
-    )
+    }, [handleAuthError, showSubscriberFeeds])
 
     async function handleCopy(url: string): Promise<void> {
         setErrorMessage(null)
@@ -90,7 +122,7 @@ export default function FeedManagementClient(): React.JSX.Element {
             await copyUrl(url)
             setCopiedUrl(url)
         } catch (error) {
-            authRedirect(error)
+            handleAuthError(error)
         }
     }
 
@@ -109,14 +141,14 @@ export default function FeedManagementClient(): React.JSX.Element {
                 current.map((item) => (item.id === feed.id ? updated : item)),
             )
         } catch (error) {
-            authRedirect(error)
+            handleAuthError(error)
         } finally {
             setBusyFeedId(null)
         }
     }
 
     if (isLoading) {
-        return <p>Feeds werden geladen…</p>
+        return <p className="text-sm text-muted-foreground">Feeds werden geladen…</p>
     }
 
     const seriesWithFeeds = series.filter(
@@ -125,182 +157,149 @@ export default function FeedManagementClient(): React.JSX.Element {
     const draftSeries = series.filter((item) => item.status !== 'PUBLISHED')
 
     return (
-        <div className="flex flex-col gap-6">
-            <header className="flex flex-col gap-4 border-b pb-6 sm:flex-row sm:items-end sm:justify-between">
-                <div>
-                    <p className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                        Podcast · Einrichtung
-                    </p>
-                    <h1>Feeds</h1>
-                </div>
-            </header>
+        <PageStack>
+            <PageHeader
+                eyebrow="Podcast · Einrichtung"
+                title="Feeds"
+                description="Teile diese URLs mit Podcast-Apps und Verzeichnissen. Der Abonnenten-Feed ist privat und wird über den Feed-Token der Abonnentin bzw. des Abonnenten geschützt."
+            />
 
-            <p>
-                Teile diese URLs mit Podcast-Apps und Verzeichnissen. Der
-                Abonnenten-Feed ist privat und wird über den Feed-Token der
-                Abonnentin bzw. des Abonnenten geschützt.
-            </p>
-
-            {errorMessage !== null && (
-                <p className="text-sm text-destructive" role="alert">
-                    {errorMessage}
-                </p>
-            )}
+            {errorMessage !== null ? (
+                <Alert variant="destructive">
+                    <AlertDescription>{errorMessage}</AlertDescription>
+                </Alert>
+            ) : null}
 
             {config.publicRssUrl !== null ? (
-                <section>
-                    <h2>Allgemeiner Feed</h2>
-                    <ul className="overflow-hidden rounded-xl border bg-card divide-y [&>li]:flex [&>li]:items-center [&>li]:justify-between [&>li]:gap-4 [&>li]:p-4">
-                        <li>
-                            <span>
-                                {config.tenant.name}{' '}
-                                <code>{config.publicRssUrl}</code>
-                            </span>
-                            <span className="flex shrink-0 items-center gap-3 text-sm text-muted-foreground">
-                                {safeLinkHref(config.publicRssUrl) !== null ? (
-                                    <a
-                                        href={config.publicRssUrl}
-                                        rel="noreferrer"
-                                        target="_blank"
-                                    >
-                                        Öffnen
-                                    </a>
-                                ) : null}
-                                <Button
-                                    className="inline-flex h-9 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground shadow-xs hover:bg-primary/90 disabled:pointer-events-none disabled:opacity-50"
-                                    onClick={() =>
-                                        void handleCopy(config.publicRssUrl as string)
-                                    }
-                                    type="button"
-                                >
-                                    {copiedUrl === config.publicRssUrl
-                                        ? 'Kopiert!'
-                                        : 'Kopieren'}
-                                </Button>
-                            </span>
-                        </li>
-                    </ul>
+                <section className="flex flex-col gap-4">
+                    <SectionHeader title="Allgemeiner Feed" />
+                    <ListPanel>
+                        <ListPanelRow>
+                            <div className="min-w-0 flex-1">
+                                <p className="font-medium">{config.tenant.name}</p>
+                                <p className="mt-2 break-all text-sm text-muted-foreground">
+                                    {config.publicRssUrl}
+                                </p>
+                            </div>
+                            <FeedUrlActions
+                                copiedUrl={copiedUrl}
+                                onCopy={(url) => {
+                                    void handleCopy(url)
+                                }}
+                                url={config.publicRssUrl}
+                            />
+                        </ListPanelRow>
+                    </ListPanel>
                 </section>
             ) : null}
 
             {seriesWithFeeds.length > 0 ? (
-                <section>
-                    <h2>Sendungs-Feeds</h2>
-                    <ul className="overflow-hidden rounded-xl border bg-card divide-y [&>li]:flex [&>li]:items-center [&>li]:justify-between [&>li]:gap-4 [&>li]:p-4">
+                <section className="flex flex-col gap-4">
+                    <SectionHeader title="Sendungs-Feeds" />
+                    <ListPanel>
                         {seriesWithFeeds.map((item) => (
-                            <li key={item.id}>
-                                <span>
-                                    {item.title} <code>{item.slug}</code>{' '}
-                                    <PublicationStatusBadge status={item.status} />
-                                </span>
-                                <span className="flex shrink-0 items-center gap-3 text-sm text-muted-foreground">
-                                    {safeLinkHref(item.rssUrl) !== null ? (
-                                        <a
-                                            href={item.rssUrl as string}
-                                            rel="noreferrer"
-                                            target="_blank"
-                                        >
-                                            Öffnen
-                                        </a>
-                                    ) : null}
-                                    <Button
-                                        className="inline-flex h-9 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground shadow-xs hover:bg-primary/90 disabled:pointer-events-none disabled:opacity-50"
-                                        onClick={() =>
-                                            void handleCopy(item.rssUrl as string)
-                                        }
-                                        type="button"
-                                    >
-                                        {copiedUrl === item.rssUrl
-                                            ? 'Kopiert!'
-                                            : 'Kopieren'}
-                                    </Button>
-                                </span>
-                            </li>
+                            <ListPanelRow key={item.id}>
+                                <div className="min-w-0 flex-1">
+                                    <p className="font-medium">
+                                        {item.title}{' '}
+                                        <span className="font-normal text-muted-foreground">
+                                            ({item.slug})
+                                        </span>{' '}
+                                        <PublicationStatusBadge status={item.status} />
+                                    </p>
+                                    <p className="mt-2 break-all text-sm text-muted-foreground">
+                                        {item.rssUrl}
+                                    </p>
+                                </div>
+                                <FeedUrlActions
+                                    copiedUrl={copiedUrl}
+                                    onCopy={(url) => {
+                                        void handleCopy(url)
+                                    }}
+                                    url={item.rssUrl as string}
+                                />
+                            </ListPanelRow>
                         ))}
-                    </ul>
+                    </ListPanel>
                 </section>
             ) : null}
 
             {draftSeries.length > 0 ? (
-                <section>
-                    <h2>Noch nicht veröffentlichte Sendungen</h2>
-                    <p className="text-sm text-muted-foreground">
-                        Entwürfe erscheinen nicht im öffentlichen Feed. Veröffentliche
-                        die Sendung, damit die RSS-URL sichtbar wird.
-                    </p>
-                    <ul className="overflow-hidden rounded-xl border bg-card divide-y [&>li]:flex [&>li]:items-center [&>li]:justify-between [&>li]:gap-4 [&>li]:p-4">
+                <section className="flex flex-col gap-4">
+                    <SectionHeader
+                        description="Entwürfe erscheinen nicht im öffentlichen Feed. Veröffentliche die Sendung, damit die RSS-URL sichtbar wird."
+                        title="Noch nicht veröffentlichte Sendungen"
+                    />
+                    <ListPanel>
                         {draftSeries.map((item) => (
-                            <li key={item.id}>
-                                <span>
-                                    {item.title} <code>{item.slug}</code>{' '}
-                                    <PublicationStatusBadge status={item.status} />
-                                </span>
-                                <span className="flex shrink-0 items-center gap-3 text-sm text-muted-foreground">
-                                    <Link
-                                        className="text-sm font-medium text-primary underline-offset-4 hover:underline"
-                                        href={`/podcast/series/${item.id}`}
-                                    >
-                                        Sendung veröffentlichen
-                                    </Link>
-                                </span>
-                            </li>
+                            <ListPanelRow key={item.id}>
+                                <div className="min-w-0 flex-1">
+                                    <p className="font-medium">
+                                        {item.title}{' '}
+                                        <span className="font-normal text-muted-foreground">
+                                            ({item.slug})
+                                        </span>{' '}
+                                        <PublicationStatusBadge status={item.status} />
+                                    </p>
+                                </div>
+                                <Link
+                                    className="text-sm font-medium text-primary underline-offset-4 hover:underline"
+                                    href={`/podcast/series/${item.id}`}
+                                >
+                                    Sendung veröffentlichen
+                                </Link>
+                            </ListPanelRow>
                         ))}
-                    </ul>
+                    </ListPanel>
                 </section>
             ) : null}
 
             {showSubscriberFeeds ? (
-                <section>
-                    <h2>Abonnenten-Feeds</h2>
+                <section className="flex flex-col gap-4">
+                    <SectionHeader title="Abonnenten-Feeds" />
                     {subscriberFeeds.length === 0 ? (
-                        <p className="text-sm text-muted-foreground">
-                            Noch keine Abonnenten-Feeds. Ein Feed wird bei der
-                            ersten Freischaltung einer Abonnentin bzw. eines
-                            Abonnenten automatisch angelegt.
-                        </p>
+                        <EmptyState
+                            description="Ein Feed wird bei der ersten Freischaltung einer Abonnentin bzw. eines Abonnenten automatisch angelegt."
+                            title="Noch keine Abonnenten-Feeds"
+                        />
                     ) : (
-                        <ul className="overflow-hidden rounded-xl border bg-card divide-y [&>li]:flex [&>li]:items-center [&>li]:justify-between [&>li]:gap-4 [&>li]:p-4">
+                        <ListPanel>
                             {subscriberFeeds.map((feed) => (
-                                <li key={feed.id}>
-                                    <span>
-                                        <span>{feed.userEmail}</span>{' '}
-                                        <code>{feed.title}</code>
-                                        {feed.isDefault ? ' (Standard)' : ' (Eigener Feed)'}
-                                        {feed.formats.length > 0
-                                            ? ` · ${feed.formats.map((item) => item.name).join(', ')}`
-                                            : null}
-                                    </span>
-                                    <span className="flex shrink-0 items-center gap-3 text-sm text-muted-foreground">
-                                        <span
-                                            className={
-                                                feed.enabled
-                                                    ? 'text-foreground'
-                                                    : 'text-muted-foreground'
-                                            }
-                                        >
+                                <ListPanelRow key={feed.id}>
+                                    <div className="min-w-0 flex-1">
+                                        <p className="font-medium">{feed.userEmail}</p>
+                                        <p className="mt-1 text-sm text-muted-foreground">
+                                            <code>{feed.title}</code>
+                                            {feed.isDefault ? ' (Standard)' : ' (Eigener Feed)'}
+                                            {feed.formats.length > 0
+                                                ? ` · ${feed.formats.map((item) => item.name).join(', ')}`
+                                                : null}
+                                        </p>
+                                        <p className="mt-1 text-sm text-muted-foreground">
                                             {feed.enabled ? 'Aktiv' : 'Deaktiviert'}
-                                        </span>
-                                        <Button
-                                            className="inline-flex h-9 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground shadow-xs hover:bg-primary/90 disabled:pointer-events-none disabled:opacity-50"
-                                            disabled={busyFeedId === feed.id}
-                                            onClick={() =>
-                                                void handleToggleFeed(feed)
-                                            }
-                                            type="button"
-                                        >
-                                            {busyFeedId === feed.id
-                                                ? 'Arbeiten…'
-                                                : feed.enabled
-                                                  ? 'Deaktivieren'
-                                                  : 'Aktivieren'}
-                                        </Button>
-                                    </span>
-                                </li>
+                                        </p>
+                                    </div>
+                                    <Button
+                                        disabled={busyFeedId === feed.id}
+                                        onClick={() => {
+                                            void handleToggleFeed(feed)
+                                        }}
+                                        size="sm"
+                                        type="button"
+                                        variant="outline"
+                                    >
+                                        {busyFeedId === feed.id
+                                            ? 'Arbeiten…'
+                                            : feed.enabled
+                                              ? 'Deaktivieren'
+                                              : 'Aktivieren'}
+                                    </Button>
+                                </ListPanelRow>
                             ))}
-                        </ul>
+                        </ListPanel>
                     )}
                 </section>
             ) : null}
-        </div>
+        </PageStack>
     )
 }

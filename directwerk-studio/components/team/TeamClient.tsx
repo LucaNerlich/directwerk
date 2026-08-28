@@ -1,15 +1,19 @@
 'use client'
 
-import SelectControl from '@/components/studio/SelectControl'
-
-import {Button} from '@directwerk/ui/components/button'
-import {Input} from '@directwerk/ui/components/input'
-
 import Form from 'next/form'
 import {useRouter} from 'next/navigation'
 import {useActionState, useCallback, useEffect, useState} from 'react'
 
-import {AUTH_REQUIRED} from '@directwerk/api/constants'
+import {Alert, AlertDescription} from '@directwerk/ui/components/alert'
+import {Button} from '@directwerk/ui/components/button'
+import {Card, CardContent, CardHeader, CardTitle} from '@directwerk/ui/components/card'
+import {Input} from '@directwerk/ui/components/input'
+import {Label} from '@directwerk/ui/components/label'
+import ListPanel, {ListPanelRow} from '@directwerk/ui/components/list-panel'
+import PageHeader from '@directwerk/ui/components/page-header'
+import PageStack from '@directwerk/ui/components/page-stack'
+
+import SelectControl from '@/components/studio/SelectControl'
 import {
     deactivateTenantUser,
     inviteTenantUser,
@@ -180,133 +184,139 @@ export default function TeamClient(): React.JSX.Element {
     }
 
     if (isLoading) {
-        return <p>Wird geladen…</p>
+        return <p className="text-sm text-muted-foreground">Wird geladen…</p>
     }
 
     if (loadError !== null) {
-        return <p className="text-sm text-destructive">{loadError}</p>
+        return (
+            <Alert variant="destructive">
+                <AlertDescription>{loadError}</AlertDescription>
+            </Alert>
+        )
     }
 
     return (
-        <div className="flex flex-col gap-6">
-            <header className="flex flex-col gap-4 border-b pb-6 sm:flex-row sm:items-end sm:justify-between">
-                <div>
-                    <p className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">Team</p>
-                    <h1>Mitglieder</h1>
-                </div>
-            </header>
+        <PageStack>
+            <PageHeader
+                description="Lade Redakteure und weitere Mandanten-Admins ein. Abonnenten verwaltest du unter Zahlungen."
+                eyebrow="Team"
+                title="Mitglieder"
+            />
 
             {users.length === 0 ? (
                 <p className="text-sm text-muted-foreground">Noch keine Mitglieder.</p>
             ) : (
-                <ul className="overflow-hidden rounded-xl border bg-card divide-y [&>li]:flex [&>li]:items-center [&>li]:justify-between [&>li]:gap-4 [&>li]:p-4">
+                <ListPanel>
                     {users.map((user) => {
                         const isSelf = user.email === me.email
                         return (
-                            <li key={user.userId}>
-                                <div>
-                                    <strong>{user.name ?? user.email}</strong>
-                                    <span className="flex shrink-0 items-center gap-3 text-sm text-muted-foreground">
+                            <ListPanelRow key={user.userId}>
+                                <div className="min-w-0 flex-1">
+                                    <p className="font-medium">{user.name ?? user.email}</p>
+                                    <p className="text-sm text-muted-foreground">
                                         {user.email}
                                         {' · '}
                                         {user.roles.map(roleLabel).join(', ')}
                                         {' · '}
                                         {statusLabel(user.status)}
-                                    </span>
+                                    </p>
                                 </div>
                                 {!isSelf ? (
                                     <Button
-                                        className="inline-flex h-9 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground shadow-xs hover:bg-primary/90 disabled:pointer-events-none disabled:opacity-50"
                                         disabled={busyUserId === user.userId}
                                         onClick={() => {
                                             void toggleMembership(user)
                                         }}
+                                        size="sm"
                                         type="button"
+                                        variant="outline"
                                     >
                                         {user.status === 'DISABLED'
                                             ? 'Reaktivieren'
                                             : 'Deaktivieren'}
                                     </Button>
                                 ) : null}
-                            </li>
+                            </ListPanelRow>
                         )
                     })}
-                </ul>
+                </ListPanel>
             )}
 
             {actionError ? (
-                <p aria-live="polite" className="text-sm text-destructive" role="alert">
-                    {actionError}
-                </p>
+                <Alert variant="destructive">
+                    <AlertDescription>{actionError}</AlertDescription>
+                </Alert>
             ) : null}
 
-            <Form action={inviteFormAction} className="grid w-full max-w-xl gap-5">
-                <h2>Person einladen</h2>
-                <label className="grid gap-2 text-sm font-medium" htmlFor="invite-email">
-                    E-Mail
-                    <Input
-                        autoComplete="email"
-                        className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50"
-                        id="invite-email"
-                        maxLength={254}
-                        name="email"
-                        required
-                        type="email"
-                    />
-                </label>
-                <label className="grid gap-2 text-sm font-medium" htmlFor="invite-name">
-                    Name
-                    <Input
-                        autoComplete="name"
-                        className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50"
-                        id="invite-name"
-                        maxLength={200}
-                        name="name"
-                        type="text"
-                    />
-                </label>
-                <label className="grid gap-2 text-sm font-medium" htmlFor="invite-role">
-                    Rolle
-                    <SelectControl
-                        className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:opacity-50"
-                        defaultValue="EDITOR"
-                        id="invite-role"
-                        name="role"
-                        required
-                    >
-                        {TENANT_INVITABLE_ROLES.map((role) => (
-                            <option key={role} value={role}>
-                                {roleLabel(role)}
-                            </option>
-                        ))}
-                    </SelectControl>
-                </label>
-                {inviteState.error ? (
-                    <p aria-live="polite" className="text-sm text-destructive" role="alert">
-                        {inviteState.error}
-                    </p>
-                ) : null}
-                {inviteState.success ? (
-                    <p aria-live="polite" role="status">
-                        {inviteState.success}
-                    </p>
-                ) : null}
-                {inviteState.inviteToken ? (
-                    <label className="grid gap-2 text-sm font-medium" htmlFor="invite-token">
-                        Dev-Einladungs-Token
-                        <Input
-                            className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50"
-                            id="invite-token"
-                            readOnly
-                            type="text"
-                            value={inviteState.inviteToken}
-                        />
-                    </label>
-                ) : null}
-                <Button className="inline-flex h-9 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground shadow-xs hover:bg-primary/90 disabled:pointer-events-none disabled:opacity-50" disabled={invitePending} type="submit">
-                    {invitePending ? 'Einladen…' : 'Einladung senden'}
-                </Button>
-            </Form>
-        </div>
+            <Card className="max-w-xl">
+                <CardHeader>
+                    <CardTitle>Person einladen</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <Form action={inviteFormAction} className="grid gap-5">
+                        <div className="grid gap-2">
+                            <Label htmlFor="invite-email">E-Mail</Label>
+                            <Input
+                                autoComplete="email"
+                                id="invite-email"
+                                maxLength={254}
+                                name="email"
+                                required
+                                type="email"
+                            />
+                        </div>
+                        <div className="grid gap-2">
+                            <Label htmlFor="invite-name">Name</Label>
+                            <Input
+                                autoComplete="name"
+                                id="invite-name"
+                                maxLength={200}
+                                name="name"
+                                type="text"
+                            />
+                        </div>
+                        <div className="grid gap-2">
+                            <Label htmlFor="invite-role">Rolle</Label>
+                            <SelectControl
+                                defaultValue="EDITOR"
+                                id="invite-role"
+                                name="role"
+                                required
+                            >
+                                {TENANT_INVITABLE_ROLES.map((role) => (
+                                    <option key={role} value={role}>
+                                        {roleLabel(role)}
+                                    </option>
+                                ))}
+                            </SelectControl>
+                        </div>
+                        {inviteState.error ? (
+                            <Alert variant="destructive">
+                                <AlertDescription>{inviteState.error}</AlertDescription>
+                            </Alert>
+                        ) : null}
+                        {inviteState.success ? (
+                            <Alert>
+                                <AlertDescription>{inviteState.success}</AlertDescription>
+                            </Alert>
+                        ) : null}
+                        {inviteState.inviteToken ? (
+                            <div className="grid gap-2">
+                                <Label htmlFor="invite-token">Dev-Einladungs-Token</Label>
+                                <Input
+                                    id="invite-token"
+                                    readOnly
+                                    type="text"
+                                    value={inviteState.inviteToken}
+                                />
+                            </div>
+                        ) : null}
+                        <Button disabled={invitePending} type="submit">
+                            {invitePending ? 'Einladen…' : 'Einladung senden'}
+                        </Button>
+                    </Form>
+                </CardContent>
+            </Card>
+        </PageStack>
     )
 }

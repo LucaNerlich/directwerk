@@ -1,12 +1,14 @@
 'use client'
 
-import {Button} from '@directwerk/ui/components/button'
-import {Input} from '@directwerk/ui/components/input'
-import AuthCard from '@directwerk/ui/components/auth-card'
-
 import Form from 'next/form'
 import {useRouter, useSearchParams} from 'next/navigation'
 import {Suspense, useActionState} from 'react'
+
+import {Alert, AlertDescription} from '@directwerk/ui/components/alert'
+import AuthCard from '@directwerk/ui/components/auth-card'
+import {Button} from '@directwerk/ui/components/button'
+import {Input} from '@directwerk/ui/components/input'
+import {Label} from '@directwerk/ui/components/label'
 
 import {defaultHomePath} from '@/lib/api/client'
 import {login} from '@/lib/api/tenantApi'
@@ -57,52 +59,56 @@ function LoginForm() {
 
     return (
         <AuthCard
-            title="Studio anmelden"
             description={`Bei ${config.tenant.name} anmelden`}
+            title="Studio anmelden"
         >
-                {roleDenied && (
-                    <p className="text-sm text-destructive" role="alert">
+            {roleDenied ? (
+                <Alert variant="destructive">
+                    <AlertDescription>
                         Studio ist nur für Editoren und Mandanten-Admins verfügbar.
-                    </p>
-                )}
-                <Form action={formAction} className="grid gap-4">
-                    <label className="grid gap-2 text-sm font-medium">
-                        <span>E-Mail</span>
-                        <Input
-                            name="email"
-                            type="email"
-                            autoComplete="email"
-                            maxLength={254}
-                            required
-                        />
-                    </label>
-                    <label className="grid gap-2 text-sm font-medium">
-                        <span>Passwort</span>
-                        <Input
-                            name="password"
-                            type="password"
-                            autoComplete="current-password"
-                            minLength={12}
-                            maxLength={128}
-                            required
-                        />
-                    </label>
-                    <Button type="submit" disabled={isPending}>
-                        {isPending ? 'Anmeldung…' : 'Anmelden'}
-                    </Button>
-                </Form>
-                {state.error !== null && (
-                    <p className="text-sm text-destructive" role="alert">
-                        {state.error}
-                    </p>
-                )}
+                    </AlertDescription>
+                </Alert>
+            ) : null}
+            <Form action={formAction} className="grid gap-4">
+                <div className="grid gap-2">
+                    <Label htmlFor="login-email">E-Mail</Label>
+                    <Input
+                        autoComplete="email"
+                        id="login-email"
+                        maxLength={254}
+                        name="email"
+                        required
+                        type="email"
+                    />
+                </div>
+                <div className="grid gap-2">
+                    <Label htmlFor="login-password">Passwort</Label>
+                    <Input
+                        autoComplete="current-password"
+                        id="login-password"
+                        maxLength={128}
+                        minLength={12}
+                        name="password"
+                        required
+                        type="password"
+                    />
+                </div>
+                <Button disabled={isPending} type="submit">
+                    {isPending ? 'Anmeldung…' : 'Anmelden'}
+                </Button>
+            </Form>
+            {state.error !== null ? (
+                <Alert variant="destructive">
+                    <AlertDescription>{state.error}</AlertDescription>
+                </Alert>
+            ) : null}
         </AuthCard>
     )
 }
 
 export default function LoginPage() {
     return (
-        <Suspense fallback={<p>Wird geladen…</p>}>
+        <Suspense fallback={<p className="text-sm text-muted-foreground">Wird geladen…</p>}>
             <LoginForm />
         </Suspense>
     )
