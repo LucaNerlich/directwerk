@@ -67,24 +67,6 @@ export async function getPlatformAuditLog(limit = 50): Promise<PlatformAuditEven
 }
 
 /**
- * Sends a JSON-encoded partial update request to the platform API.
- *
- * @param path - The platform API path
- * @param body - The request payload
- * @returns The parsed response data
- */
-export async function patchPlatformData<T>(
-    path: string,
-    body: unknown
-): Promise<T> {
-    return platformRequest<T>(path, {
-        method: 'PATCH',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify(body),
-    })
-}
-
-/**
  * Deletes platform data at the specified path.
  *
  * @param path - The platform API path
@@ -136,5 +118,3 @@ export async function getPlatformJobList(
     return parsePaginatedApiEnvelope(raw, isQueueJob)
 }
 
-// Re-export for callers that validate envelopes directly (unchanged surface).
-export {parseApiEnvelope}

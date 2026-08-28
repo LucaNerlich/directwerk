@@ -17,6 +17,6 @@ const transport = createServerTransport({maxResponseBytes: 16_777_216})
 
 export const REFRESH_COOKIE = 'dw_studio_refresh'
 
-export const directwerk = createDirectwerkServerClient({transport})
+const directwerk = createDirectwerkServerClient({transport})
 export const directwerkFetch = directwerk.fetch.bind(directwerk)
 export const getOAuthClientId = directwerk.getOAuthClientId.bind(directwerk)
