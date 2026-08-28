@@ -32,4 +32,25 @@ public final class PublicationTransitions {
                     fieldLabel + " must be in the future");
         }
     }
+
+    public static void requirePublishedStatus(boolean isPublished, String entityLabel) {
+        if (!isPublished) {
+            throw new InvalidPublicationTransitionException(
+                    "Only PUBLISHED " + entityLabel + " can be unpublished or archived");
+        }
+    }
+
+    public static void requireArchivedStatus(boolean isArchived, String entityLabel) {
+        if (!isArchived) {
+            throw new InvalidPublicationTransitionException(
+                    "Only ARCHIVED " + entityLabel + " can be unarchived");
+        }
+    }
+
+    public static void requireDraftOrScheduled(boolean draftOrScheduled, String entityLabel) {
+        if (!draftOrScheduled) {
+            throw new InvalidPublicationTransitionException(
+                    "Only DRAFT or SCHEDULED " + entityLabel + " can be published");
+        }
+    }
 }

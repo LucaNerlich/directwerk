@@ -1,7 +1,10 @@
 dependencies {
     testImplementation 'org.junit.jupiter:junit-jupiter'
     testImplementation 'org.assertj:assertj-core'
+    testImplementation 'org.mockito:mockito-core'
+    testImplementation 'org.mockito:mockito-junit-jupiter'
     api project(':directwerk-digital')
+    implementation project(':directwerk-subscription')
     implementation project(':directwerk-queue')
     implementation 'org.springframework.boot:spring-boot-starter-jdbc'
     implementation 'org.springframework.boot:spring-boot-starter-quartz'

@@ -1,6 +1,6 @@
 package de.pnnit.directwerk.controller.auth;
 
-import de.pnnit.directwerk.access.SubscriberContentAccessService;
+import de.pnnit.directwerk.modules.podcast.access.SubscriberPortalAccessService;
 import de.pnnit.directwerk.api.response.Response;
 import de.pnnit.directwerk.security.DirectwerkUserPrincipal;
 import de.pnnit.directwerk.security.SecurityUtils;
@@ -17,9 +17,9 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/v1/me/downloads")
 public class MeDownloadsController {
 
-    private final SubscriberContentAccessService subscriberContentAccessService;
+    private final SubscriberPortalAccessService subscriberContentAccessService;
 
-    public MeDownloadsController(SubscriberContentAccessService subscriberContentAccessService) {
+    public MeDownloadsController(SubscriberPortalAccessService subscriberContentAccessService) {
         this.subscriberContentAccessService = subscriberContentAccessService;
     }
 

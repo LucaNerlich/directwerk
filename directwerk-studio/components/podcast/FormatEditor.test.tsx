@@ -17,16 +17,17 @@ const createFormat = vi.fn().mockResolvedValue({
     requiredLevelSortOrder: null,
     sortOrder: 0,
 })
-vi.mock('@/lib/api/tenantApi', () => ({
+vi.mock('@/lib/api/catalogApi', () => ({
     createFormat: (...args: unknown[]) => createFormat(...args),
     updateFormat: vi.fn(),
     deactivateFormat: vi.fn(),
     listFormats: vi.fn().mockResolvedValue([]),
+}))
+vi.mock('@/lib/api/subscriptionApi', () => ({
     listPublicLevels: vi.fn().mockResolvedValue([
         {id: 1, slug: 'fan', title: 'Fan', sortOrder: 10},
         {id: 2, slug: 'supporter', title: 'Supporter', sortOrder: 20},
     ]),
-    suggestSlug: (title: string) => title.toLowerCase(),
 }))
 
 describe('FormatEditor', () => {

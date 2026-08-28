@@ -1,4 +1,4 @@
-package de.pnnit.directwerk.access;
+package de.pnnit.directwerk.modules.podcast.access;
 
 import de.pnnit.directwerk.modules.core.service.ModuleGateService;
 import de.pnnit.directwerk.modules.digital.DigitalContentModule;
@@ -24,17 +24,12 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * One deep operation for "what may this subscriber listen to / download?".
- *
- * <p>Absorbs the decisions that used to be re-composed in every caller: module gating,
- * the publisher (EDITOR/TENANT_ADMIN) preview branch, the PAID⇒SUBSCRIPTION coupling, the
- * audio-asset READY check, entitlement evaluation and the download cap. Ordering is the
- * security property here — every gate runs <em>before</em> any URL is resolved — and it is
- * now asserted in one place instead of being scattered across controllers.</p>
+ * JWT subscriber portal access: Episode streams, library listing, MediaAsset downloads.
+ * Complements {@link SubscriberFeedAccess} (tokenized RSS/enclosure paths).
  */
 @Service
 @RequiredArgsConstructor
-public class SubscriberContentAccessService {
+public class SubscriberPortalAccessService {
 
     private static final int MAX_DOWNLOADS = 50;
 
@@ -44,23 +39,15 @@ public class SubscriberContentAccessService {
     private final ModuleGateService moduleGateService;
     private final EntitlementService entitlementService;
 
-    /** A streamable episode: the published episode plus the URL its audio may be fetched from. */
     public record EpisodeStream(Episode episode, URL url) {
     }
 
-    /** A downloadable asset: the READY media asset plus its signed or CDN URL. */
     public record AssetDownload(MediaAsset asset, URL url) {
     }
 
-    /**
-     * Resolves the playback URL for a published episode on behalf of the current user.
-     * Publishers get preview URLs (including private paid audio); subscribers are
-     * entitlement-checked after the SUBSCRIPTION gate has been verified for paid episodes.
-     */
     @Transactional(readOnly = true)
     public EpisodeStream resolveStream(DirectwerkUserPrincipal user, String episodeSlug) {
         Long tenantId = TenantContext.requireTenantId();
-        // Gate first: no episode lookup, no URL resolution before the tenant may serve podcasts.
         moduleGateService.requireModule(PodcastModule.KEY);
 
         Episode episode = subscriberEpisodeService.requirePublishedEpisode(tenantId, episodeSlug);
@@ -71,11 +58,6 @@ public class SubscriberContentAccessService {
         return new EpisodeStream(episode, resolvePlayableUrl(audioAsset, episode, user));
     }
 
-    /**
-     * Lists the current user's entitled, READY digital assets with resolved download URLs,
-     * capped at {@value #MAX_DOWNLOADS} entries. Fail closed per asset: an asset without an
-     * authorized URL is silently skipped, never leaked.
-     */
     @Transactional(readOnly = true)
     public List<AssetDownload> listDownloads(DirectwerkUserPrincipal user) {
         moduleGateService.requireModule(DigitalContentModule.KEY);
@@ -92,14 +74,9 @@ public class SubscriberContentAccessService {
                 .toList();
     }
 
-    /**
-     * Lists the current user's library: publishers see all published episodes, subscribers
-     * their entitled ones — each with its playable URL when the audio asset is READY.
-     */
     @Transactional(readOnly = true)
     public List<EpisodeStream> listMyEpisodes(DirectwerkUserPrincipal user) {
         Long tenantId = TenantContext.requireTenantId();
-        // Gate first: no episode listing before the tenant may serve podcasts.
         moduleGateService.requireModule(PodcastModule.KEY);
 
         List<Episode> episodes = RoleConstants.isEditorOrTenantAdmin(user)
@@ -120,8 +97,6 @@ public class SubscriberContentAccessService {
     }
 
     private URL resolvePlayableUrl(MediaAsset audioAsset, Episode episode, DirectwerkUserPrincipal user) {
-        // Editors/admins get in-tenant preview URLs (including private PAID audio).
-        // Subscribers get entitlement-checked download/presign URLs.
         if (isPublisher(user)) {
             return assetAccessApi.resolvePreviewUrl(audioAsset, user, true);
         }

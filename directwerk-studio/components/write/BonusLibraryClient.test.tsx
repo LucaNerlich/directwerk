@@ -5,7 +5,7 @@ import BonusLibraryClient from '@/components/write/BonusLibraryClient'
 
 vi.mock('next/navigation', () => ({useRouter: () => ({replace: vi.fn()})}))
 vi.mock('@/lib/tenant/getClientTenantHost', () => ({getClientTenantHost: () => 'tenant.test'}))
-vi.mock('@/lib/api/tenantApi', () => ({
+vi.mock('@/lib/api/mediaApi', () => ({
     listMedia: vi.fn().mockResolvedValue([
         {
             id: 3,

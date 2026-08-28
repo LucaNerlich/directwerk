@@ -4,7 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import de.pnnit.directwerk.access.SubscriberContentAccessService;
+import de.pnnit.directwerk.modules.podcast.access.SubscriberPortalAccessService;
 import de.pnnit.directwerk.modules.core.entity.Tenant;
 import de.pnnit.directwerk.modules.digital.entity.AssetScope;
 import de.pnnit.directwerk.modules.digital.entity.AssetStatus;
@@ -35,7 +35,7 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 class MeEpisodeControllerTest {
 
     @Mock
-    private SubscriberContentAccessService subscriberContentAccessService;
+    private SubscriberPortalAccessService subscriberContentAccessService;
 
     @Mock
     private EpisodeDownloadAnalyticsService episodeDownloadAnalyticsService;
@@ -58,7 +58,7 @@ class MeEpisodeControllerTest {
         DirectwerkUserPrincipal principal = subscriber();
         Episode episode = freeEpisode();
         when(subscriberContentAccessService.resolveStream(principal, "episode-1"))
-                .thenReturn(new SubscriberContentAccessService.EpisodeStream(
+                .thenReturn(new SubscriberPortalAccessService.EpisodeStream(
                         episode, URI.create("https://cdn.example.test/alpha/public/audio/ep.mp3").toURL()));
         when(request.getServerName()).thenReturn("alpha.example.test");
 

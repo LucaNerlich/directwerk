@@ -6,8 +6,10 @@ import {listSubscribers} from '@/lib/api/tenantSettingsApi'
 
 vi.mock('next/navigation', () => ({useRouter: () => ({replace: vi.fn()})}))
 vi.mock('@/lib/tenant/getClientTenantHost', () => ({getClientTenantHost: () => 'tenant.test'}))
-vi.mock('@/lib/api/tenantApi', () => ({
+vi.mock('@/lib/api/tenantSettingsApi', () => ({
     listSubscribers: vi.fn(),
+}))
+vi.mock('@/lib/api/subscriptionApi', () => ({
     revokeSubscription: vi.fn(),
 }))
 

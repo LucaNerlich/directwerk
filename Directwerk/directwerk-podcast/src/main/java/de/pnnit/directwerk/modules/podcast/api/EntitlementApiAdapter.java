@@ -1,6 +1,6 @@
-package de.pnnit.directwerk.modules.subscription.api;
+package de.pnnit.directwerk.modules.podcast.api;
 
-import de.pnnit.directwerk.modules.digital.api.EntitlementApi;
+import de.pnnit.directwerk.modules.content.api.EntitlementApi;
 import de.pnnit.directwerk.modules.podcast.entity.EpisodeStatus;
 import de.pnnit.directwerk.modules.podcast.repository.EpisodeRepository;
 import de.pnnit.directwerk.modules.subscription.service.EntitlementService;

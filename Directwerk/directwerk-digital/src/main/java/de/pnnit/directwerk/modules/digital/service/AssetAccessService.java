@@ -6,7 +6,7 @@ import de.pnnit.directwerk.modules.core.service.ModuleGateService;
 import de.pnnit.directwerk.modules.core.util.TenantAssetKeys;
 import de.pnnit.directwerk.modules.digital.DigitalContentModule;
 import de.pnnit.directwerk.modules.digital.api.AssetAccessApi;
-import de.pnnit.directwerk.modules.digital.api.EntitlementApi;
+import de.pnnit.directwerk.modules.content.api.EntitlementApi;
 import de.pnnit.directwerk.modules.digital.entity.AssetScope;
 import de.pnnit.directwerk.modules.digital.entity.AssetStatus;
 import de.pnnit.directwerk.modules.digital.entity.AssetVisibility;

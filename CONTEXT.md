@@ -69,6 +69,33 @@ Domain glossary and deepening modules for AI navigation. Terms here name **seams
 **Interface:** `isPublicCdnEligible(tenantSlug, asset)`, `publicCdnUrl(asset)`.  
 **Seam:** RSS, public site, enclosure redirect share one eligibility rule.
 
+## Wave 3 deepened modules
+
+### 11. Entitlement port (`EntitlementApi` in common)
+
+**Interface:** `hasAccess`, `hasDigitalAssetAccess`, `filterAccessibleDigitalAssets`.  
+**Seam:** Podcast adapter implements; digital fail-closed fallback.
+
+### 12. Content scope lookup (`ContentScopeLookupApi` in common)
+
+**Interface:** `requirePodcastSeries`, `requireFormat`, `requireCategory`, `requireDigitalAsset`.  
+**Seam:** App adapter reaches podcast/digital repos; subscription validator uses port only.
+
+### 13. Subscriber portal access (`SubscriberPortalAccessService` in podcast)
+
+**Interface:** JWT portal Episode streams, library, MediaAsset downloads.  
+**Seam:** Complements `SubscriberFeedAccess` (tokenized RSS).
+
+### 14. RSS feed delivery (`RssFeedDeliveryFacade` in podcast)
+
+**Interface:** Public/private enclosure redirect + analytics tracking.  
+**Seam:** Controllers delegate; one place for enclosure delivery orchestration.
+
+### 15. Public CDN resolver (`PublicCdnUrlResolver` in digital)
+
+**Interface:** `resolve(MediaAsset)` via `PublicAssetPolicy`.  
+**Seam:** `EpisodeMediaService.publicCdnUrl` and RSS paths share eligibility.
+
 ## Migration order
 
 1. Transport policies (#3)  

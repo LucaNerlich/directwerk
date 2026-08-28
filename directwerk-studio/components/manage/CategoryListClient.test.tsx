@@ -6,7 +6,7 @@ import {listCategories} from '@/lib/api/catalogApi'
 
 vi.mock('next/navigation', () => ({useRouter: () => ({replace: vi.fn()})}))
 vi.mock('@/lib/tenant/getClientTenantHost', () => ({getClientTenantHost: () => 'tenant.test'}))
-vi.mock('@/lib/api/tenantApi', () => ({
+vi.mock('@/lib/api/catalogApi', () => ({
     listCategories: vi.fn().mockResolvedValue([
         {id: 1, slug: 'news', name: 'News', parentId: null, active: true},
     ]),

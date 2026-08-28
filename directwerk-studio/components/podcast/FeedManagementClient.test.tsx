@@ -18,8 +18,10 @@ const setSubscriberFeedEnabledMock = vi.fn()
 vi.mock('@/lib/tenant/getClientTenantHost', () => ({
     getClientTenantHost: () => 'tenant.test',
 }))
-vi.mock('@/lib/api/tenantApi', () => ({
+vi.mock('@/lib/api/podcastApi', () => ({
     listSeries: (...args: unknown[]) => listSeriesMock(...args),
+}))
+vi.mock('@/lib/api/subscriptionApi', () => ({
     listSubscriberFeeds: (...args: unknown[]) => listSubscriberFeedsMock(...args),
     setSubscriberFeedEnabled: (...args: unknown[]) => setSubscriberFeedEnabledMock(...args),
 }))

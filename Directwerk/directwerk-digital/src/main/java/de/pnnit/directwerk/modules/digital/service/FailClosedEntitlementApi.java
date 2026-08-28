@@ -1,6 +1,6 @@
 package de.pnnit.directwerk.modules.digital.service;
 
-import de.pnnit.directwerk.modules.digital.api.EntitlementApi;
+import de.pnnit.directwerk.modules.content.api.EntitlementApi;
 import java.util.Collection;
 import java.util.Set;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;

@@ -10,7 +10,7 @@ import SeriesEditor from '@/components/podcast/SeriesEditor'
 const mockRouter = {replace: vi.fn()}
 vi.mock('next/navigation', () => ({useRouter: () => mockRouter}))
 vi.mock('@/lib/tenant/getClientTenantHost', () => ({getClientTenantHost: () => 'tenant.test'}))
-vi.mock('@/lib/api/tenantApi', () => ({
+vi.mock('@/lib/api/podcastApi', () => ({
     getSeries: vi.fn().mockResolvedValue({
         id: 1, slug: 'show', title: 'Show', description: null, coverAssetId: null,
         language: 'de', itunesCategory: null, defaultRequiredLevelSortOrder: null,
@@ -18,13 +18,15 @@ vi.mock('@/lib/api/tenantApi', () => ({
     }),
     createSeries: vi.fn(),
     updateSeries: vi.fn(),
+}))
+vi.mock('@/lib/api/subscriptionApi', () => ({
     listPublicLevels: vi.fn().mockResolvedValue([
         {id: 1, slug: 'fan', title: 'Fan', sortOrder: 10},
         {id: 2, slug: 'supporter', title: 'Supporter', sortOrder: 20},
     ]),
+}))
+vi.mock('@/lib/api/mediaApi', () => ({
     getMediaPreviewUrl: vi.fn(),
-    listMedia: vi.fn().mockResolvedValue([]),
-    suggestSlug: (title: string) => title.toLowerCase(),
 }))
 vi.mock('@/lib/media/upload', () => ({uploadMediaFile: vi.fn()}))
 

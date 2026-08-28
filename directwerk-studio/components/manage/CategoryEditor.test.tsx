@@ -15,12 +15,11 @@ const createCategory = vi.fn().mockResolvedValue({
     parentId: null,
     active: true,
 })
-vi.mock('@/lib/api/tenantApi', () => ({
+vi.mock('@/lib/api/catalogApi', () => ({
     createCategory: (...args: unknown[]) => createCategory(...args),
     updateCategory: vi.fn(),
     deactivateCategory: vi.fn(),
     listCategories: vi.fn().mockResolvedValue([]),
-    suggestSlug: (title: string) => title.toLowerCase(),
 }))
 
 describe('CategoryEditor', () => {

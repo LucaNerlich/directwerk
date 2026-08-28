@@ -7,7 +7,7 @@ import de.pnnit.directwerk.modules.podcast.entity.Episode;
 import de.pnnit.directwerk.modules.podcast.feed.SubscriberFeed;
 import de.pnnit.directwerk.modules.podcast.feed.SubscriberFeedFormatMatcher;
 import de.pnnit.directwerk.modules.podcast.service.SubscriberEpisodeService;
-import de.pnnit.directwerk.modules.digital.api.EntitlementApi;
+import de.pnnit.directwerk.modules.content.api.EntitlementApi;
 import java.util.List;
 import java.util.Set;
 import lombok.RequiredArgsConstructor;

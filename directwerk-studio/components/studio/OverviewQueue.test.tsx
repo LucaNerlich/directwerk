@@ -11,8 +11,10 @@ const listArticlesMock = vi.fn()
 const listEpisodesMock = vi.fn()
 const listSeriesMock = vi.fn()
 
-vi.mock('@/lib/api/tenantApi', () => ({
+vi.mock('@/lib/api/writeApi', () => ({
     listArticles: (...args: unknown[]) => listArticlesMock(...args),
+}))
+vi.mock('@/lib/api/podcastApi', () => ({
     listEpisodes: (...args: unknown[]) => listEpisodesMock(...args),
     listSeries: (...args: unknown[]) => listSeriesMock(...args),
 }))

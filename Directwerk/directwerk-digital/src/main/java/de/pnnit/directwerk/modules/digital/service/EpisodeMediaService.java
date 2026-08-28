@@ -39,6 +39,7 @@ public class EpisodeMediaService implements EpisodeMediaApi {
     private final ObjectProvider<S3Client> s3ClientProvider;
     private final ObjectProvider<S3PublicUrlBuilder> publicUrlBuilderProvider;
     private final ObjectProvider<CdnPurgeClient> cdnPurgeClientProvider;
+    private final PublicCdnUrlResolver publicCdnUrlResolver;
     private final DirectwerkConfig directwerkConfig;
     private final PlatformTransactionManager transactionManager;
 
@@ -186,27 +187,7 @@ public class EpisodeMediaService implements EpisodeMediaApi {
     @Override
     @Transactional(readOnly = true)
     public Optional<URL> publicCdnUrl(MediaAsset asset) {
-        if (asset == null || asset.getId() == null) {
-            return Optional.empty();
-        }
-        // Re-load with tenant EntityGraph — callers often pass detached assets after OSIV-off txs.
-        MediaAsset managed = mediaAssetRepository.findById(asset.getId()).orElse(null);
-        if (managed == null
-                || managed.getVisibility() != AssetVisibility.PUBLIC
-                || managed.getS3Key() == null) {
-            return Optional.empty();
-        }
-        if (!TenantAssetKeys.isPublicKey(managed.getTenant().getSlug(), managed.getS3Key())) {
-            return Optional.empty();
-        }
-        String normalized = managed.getS3Key().startsWith("/")
-                ? managed.getS3Key().substring(1)
-                : managed.getS3Key();
-        S3PublicUrlBuilder publicUrlBuilder = publicUrlBuilderProvider.getIfAvailable();
-        if (publicUrlBuilder == null) {
-            return Optional.empty();
-        }
-        return Optional.of(publicUrlBuilder.cdnUrl(normalized));
+        return publicCdnUrlResolver.resolve(asset);
     }
 
     private MediaAsset requireTenantAsset(Long assetId) {

@@ -18,7 +18,7 @@ vi.mock('@/lib/tenant/getClientTenantHost', () => ({
     getClientTenantHost: () => 'tenant.test',
 }))
 
-vi.mock('@/lib/api/tenantApi', () => ({
+vi.mock('@/lib/api/writeApi', () => ({
     listArticles: vi.fn(),
     unpublishArticle: vi.fn(),
     cancelScheduleArticle: vi.fn(),

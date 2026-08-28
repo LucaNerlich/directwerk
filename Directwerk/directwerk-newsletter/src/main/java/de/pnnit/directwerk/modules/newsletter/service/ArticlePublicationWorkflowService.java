@@ -75,9 +75,7 @@ public class ArticlePublicationWorkflowService {
     @RequiresModule(DigitalContentModule.KEY)
     public Article cancelSchedule(Long tenantId, Long articleId) {
         Article article = articleService.requireArticle(tenantId, articleId);
-        if (article.getStatus() != ArticleStatus.SCHEDULED) {
-            throw new InvalidPublicationTransitionException("Only SCHEDULED articles can be unscheduled");
-        }
+        PublicationTransitions.requireScheduledStatus(article.getStatus() == ArticleStatus.SCHEDULED, "articles");
         article.setStatus(ArticleStatus.DRAFT);
         article.setScheduledAt(null);
         return articleRepository.save(article);
@@ -87,9 +85,7 @@ public class ArticlePublicationWorkflowService {
     @RequiresModule(DigitalContentModule.KEY)
     public Article unpublish(Long tenantId, Long articleId) {
         Article article = articleService.requireArticle(tenantId, articleId);
-        if (article.getStatus() != ArticleStatus.PUBLISHED) {
-            throw new InvalidPublicationTransitionException("Only PUBLISHED articles can be unpublished");
-        }
+        PublicationTransitions.requirePublishedStatus(article.getStatus() == ArticleStatus.PUBLISHED, "articles");
         article.setStatus(ArticleStatus.DRAFT);
         article.setPublishedAt(null);
         article.setScheduledAt(null);
@@ -100,9 +96,7 @@ public class ArticlePublicationWorkflowService {
     @RequiresModule(DigitalContentModule.KEY)
     public Article archive(Long tenantId, Long articleId) {
         Article article = articleService.requireArticle(tenantId, articleId);
-        if (article.getStatus() != ArticleStatus.PUBLISHED) {
-            throw new InvalidPublicationTransitionException("Only PUBLISHED articles can be archived");
-        }
+        PublicationTransitions.requirePublishedStatus(article.getStatus() == ArticleStatus.PUBLISHED, "articles");
         article.setStatus(ArticleStatus.ARCHIVED);
         article.setScheduledAt(null);
         return articleRepository.save(article);
@@ -112,9 +106,7 @@ public class ArticlePublicationWorkflowService {
     @RequiresModule(DigitalContentModule.KEY)
     public Article unarchive(Long tenantId, Long articleId) {
         Article article = articleService.requireArticle(tenantId, articleId);
-        if (article.getStatus() != ArticleStatus.ARCHIVED) {
-            throw new InvalidPublicationTransitionException("Only ARCHIVED articles can be unarchived");
-        }
+        PublicationTransitions.requireArchivedStatus(article.getStatus() == ArticleStatus.ARCHIVED, "articles");
         article.setStatus(ArticleStatus.DRAFT);
         article.setPublishedAt(null);
         article.setScheduledAt(null);
@@ -148,9 +140,9 @@ public class ArticlePublicationWorkflowService {
     }
 
     private Article publishInternal(Long tenantId, Article article, boolean notifySubscribers) {
-        if (article.getStatus() != ArticleStatus.DRAFT && article.getStatus() != ArticleStatus.SCHEDULED) {
-            throw new InvalidPublicationTransitionException("Only DRAFT or SCHEDULED articles can be published");
-        }
+        PublicationTransitions.requireDraftOrScheduled(
+                article.getStatus() == ArticleStatus.DRAFT || article.getStatus() == ArticleStatus.SCHEDULED,
+                "articles");
         if (article.getTitle() == null || article.getTitle().isBlank()) {
             throw new ArticleValidationException("Article title is required");
         }

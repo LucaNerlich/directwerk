@@ -5,7 +5,7 @@ import FormatListClient from '@/components/podcast/FormatListClient'
 
 vi.mock('next/navigation', () => ({useRouter: () => ({replace: vi.fn()})}))
 vi.mock('@/lib/tenant/getClientTenantHost', () => ({getClientTenantHost: () => 'tenant.test'}))
-vi.mock('@/lib/api/tenantApi', () => ({
+vi.mock('@/lib/api/catalogApi', () => ({
     listFormats: vi.fn().mockResolvedValue([
         {
             id: 1,

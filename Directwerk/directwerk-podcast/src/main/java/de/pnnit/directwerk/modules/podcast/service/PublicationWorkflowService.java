@@ -82,9 +82,7 @@ public class PublicationWorkflowService {
     @RequiresModule(PodcastModule.KEY)
     public Episode cancelSchedule(Long tenantId, Long episodeId) {
         Episode episode = episodeService.requireEpisode(tenantId, episodeId);
-        if (episode.getStatus() != EpisodeStatus.SCHEDULED) {
-            throw new InvalidPublicationTransitionException("Only SCHEDULED episodes can be unscheduled");
-        }
+        PublicationTransitions.requireScheduledStatus(episode.getStatus() == EpisodeStatus.SCHEDULED, "episodes");
         episode.setStatus(EpisodeStatus.DRAFT);
         episode.setScheduledAt(null);
         return episodeRepository.save(episode);
@@ -94,9 +92,7 @@ public class PublicationWorkflowService {
     @RequiresModule(PodcastModule.KEY)
     public Episode unpublish(Long tenantId, Long episodeId) {
         Episode episode = episodeService.requireEpisode(tenantId, episodeId);
-        if (episode.getStatus() != EpisodeStatus.PUBLISHED) {
-            throw new InvalidPublicationTransitionException("Only PUBLISHED episodes can be unpublished");
-        }
+        PublicationTransitions.requirePublishedStatus(episode.getStatus() == EpisodeStatus.PUBLISHED, "episodes");
         demotePublicAudioIfNeeded(episode);
         episode.setStatus(EpisodeStatus.DRAFT);
         episode.setPublishedAt(null);
@@ -110,9 +106,7 @@ public class PublicationWorkflowService {
     @RequiresModule(PodcastModule.KEY)
     public Episode archive(Long tenantId, Long episodeId) {
         Episode episode = episodeService.requireEpisode(tenantId, episodeId);
-        if (episode.getStatus() != EpisodeStatus.PUBLISHED) {
-            throw new InvalidPublicationTransitionException("Only PUBLISHED episodes can be archived");
-        }
+        PublicationTransitions.requirePublishedStatus(episode.getStatus() == EpisodeStatus.PUBLISHED, "episodes");
         demotePublicAudioIfNeeded(episode);
         episode.setStatus(EpisodeStatus.ARCHIVED);
         episode.setScheduledAt(null);
@@ -125,9 +119,7 @@ public class PublicationWorkflowService {
     @RequiresModule(PodcastModule.KEY)
     public Episode unarchive(Long tenantId, Long episodeId) {
         Episode episode = episodeService.requireEpisode(tenantId, episodeId);
-        if (episode.getStatus() != EpisodeStatus.ARCHIVED) {
-            throw new InvalidPublicationTransitionException("Only ARCHIVED episodes can be unarchived");
-        }
+        PublicationTransitions.requireArchivedStatus(episode.getStatus() == EpisodeStatus.ARCHIVED, "episodes");
         episode.setStatus(EpisodeStatus.DRAFT);
         episode.setPublishedAt(null);
         episode.setScheduledAt(null);
@@ -169,9 +161,9 @@ public class PublicationWorkflowService {
     }
 
     private Episode publishInternal(Long tenantId, Episode episode, boolean notifySubscribers) {
-        if (episode.getStatus() != EpisodeStatus.DRAFT && episode.getStatus() != EpisodeStatus.SCHEDULED) {
-            throw new InvalidPublicationTransitionException("Only DRAFT or SCHEDULED episodes can be published");
-        }
+        PublicationTransitions.requireDraftOrScheduled(
+                episode.getStatus() == EpisodeStatus.DRAFT || episode.getStatus() == EpisodeStatus.SCHEDULED,
+                "episodes");
         if (episode.getTitle() == null || episode.getTitle().isBlank()) {
             throw new EpisodeValidationException("Episode title is required");
         }

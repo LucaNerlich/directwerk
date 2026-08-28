@@ -8,7 +8,7 @@ import type {MediaAsset} from '@directwerk/api/types'
 
 vi.mock('next/navigation', () => ({useRouter: () => ({replace: vi.fn()})}))
 vi.mock('@/lib/tenant/getClientTenantHost', () => ({getClientTenantHost: () => 'tenant.test'}))
-vi.mock('@/lib/api/tenantApi', () => ({
+vi.mock('@/lib/api/mediaApi', () => ({
     listMedia: vi.fn().mockResolvedValue([]),
     deleteMedia: vi.fn(),
 }))

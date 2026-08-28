@@ -5,7 +5,7 @@ import PodcastDeskClient from '@/components/podcast/PodcastDeskClient'
 
 vi.mock('next/navigation', () => ({useRouter: () => ({replace: vi.fn()})}))
 vi.mock('@/lib/tenant/getClientTenantHost', () => ({getClientTenantHost: () => 'tenant.test'}))
-vi.mock('@/lib/api/tenantApi', () => ({
+vi.mock('@/lib/api/podcastApi', () => ({
     listSeries: vi.fn().mockResolvedValue([]),
     listFormats: vi.fn().mockResolvedValue([]),
     listEpisodes: vi.fn().mockResolvedValue([]),

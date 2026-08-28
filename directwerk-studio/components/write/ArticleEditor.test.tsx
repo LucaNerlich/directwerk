@@ -36,18 +36,23 @@ const replaceArticleCategories = vi.fn().mockResolvedValue({
     categories: [{id: 1, slug: 'news', name: 'News'}],
 })
 
-vi.mock('@/lib/api/tenantApi', () => ({
+vi.mock('@/lib/api/writeApi', () => ({
     getArticle: (...args: unknown[]) => getArticle(...args),
     updateArticle: (...args: unknown[]) => updateArticle(...args),
     listArticles: vi.fn().mockResolvedValue([]),
+}))
+vi.mock('@/lib/api/subscriptionApi', () => ({
     listPublicLevels: (...args: unknown[]) => listPublicLevels(...args),
+}))
+vi.mock('@/lib/api/catalogApi', () => ({
     listCategories: vi.fn().mockResolvedValue([
         {id: 1, slug: 'news', name: 'News', parentId: null, active: true},
     ]),
     replaceArticleCategories: (...args: unknown[]) => replaceArticleCategories(...args),
+}))
+vi.mock('@/lib/api/mediaApi', () => ({
     listMedia: vi.fn().mockResolvedValue([]),
     getMediaPreviewUrl: vi.fn(),
-    suggestSlug: (title: string) => title.toLowerCase(),
 }))
 
 describe('ArticleEditor tagging', () => {

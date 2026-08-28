@@ -6,7 +6,7 @@ import {listProducts} from '@/lib/api/subscriptionApi'
 
 vi.mock('next/navigation', () => ({useRouter: () => ({replace: vi.fn()})}))
 vi.mock('@/lib/tenant/getClientTenantHost', () => ({getClientTenantHost: () => 'tenant.test'}))
-vi.mock('@/lib/api/tenantApi', () => ({
+vi.mock('@/lib/api/subscriptionApi', () => ({
     listProducts: vi.fn().mockResolvedValue([
         {
             id: 1,

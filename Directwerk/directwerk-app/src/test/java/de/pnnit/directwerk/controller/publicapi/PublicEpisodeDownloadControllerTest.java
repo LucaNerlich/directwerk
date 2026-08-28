@@ -2,7 +2,6 @@ package de.pnnit.directwerk.controller.publicapi;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import de.pnnit.directwerk.modules.core.entity.Tenant;
@@ -15,8 +14,8 @@ import de.pnnit.directwerk.modules.digital.entity.MediaAsset;
 import de.pnnit.directwerk.modules.podcast.entity.Episode;
 import de.pnnit.directwerk.modules.podcast.entity.PodcastSeries;
 import de.pnnit.directwerk.modules.podcast.exception.EpisodeNotFoundException;
-import de.pnnit.directwerk.modules.podcast.service.EpisodeDownloadAnalyticsService;
 import de.pnnit.directwerk.modules.podcast.service.EpisodeEnclosureService;
+import de.pnnit.directwerk.modules.podcast.service.RssFeedDeliveryFacade;
 import de.pnnit.directwerk.multitenancy.TenantContext;
 import jakarta.servlet.http.HttpServletRequest;
 import java.net.URI;
@@ -32,10 +31,7 @@ import org.springframework.http.ResponseEntity;
 class PublicEpisodeDownloadControllerTest {
 
     @Mock
-    private EpisodeEnclosureService episodeEnclosureService;
-
-    @Mock
-    private EpisodeDownloadAnalyticsService episodeDownloadAnalyticsService;
+    private RssFeedDeliveryFacade rssFeedDeliveryFacade;
 
     @Mock
     private HttpServletRequest request;
@@ -50,11 +46,20 @@ class PublicEpisodeDownloadControllerTest {
         TenantContext.setTenantId(10L);
         Episode episode = freeEpisode();
         PublicEpisodeDownloadController controller = controller();
-        when(episodeEnclosureService.resolvePublicRedirect(10L, "episode-1"))
-                .thenReturn(new EpisodeEnclosureService.EnclosureRedirect(
+        when(rssFeedDeliveryFacade.publicEnclosure(
+                10L,
+                "episode-1",
+                "public-download",
+                "alpha.example.test"
+        )).thenReturn(new RssFeedDeliveryFacade.TrackedEnclosureRedirect(
+                new EpisodeEnclosureService.EnclosureRedirect(
                         episode,
                         URI.create("https://cdn.example.test/alpha/public/audio/ep.mp3").toURL()
-                ));
+                ),
+                ResponseEntity.status(HttpStatus.FOUND)
+                        .location(URI.create("https://cdn.example.test/alpha/public/audio/ep.mp3"))
+                        .build()
+        ));
         when(request.getServerName()).thenReturn("alpha.example.test");
 
         ResponseEntity<Void> response = controller.downloadEpisode("episode-1", request);
@@ -62,26 +67,25 @@ class PublicEpisodeDownloadControllerTest {
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.FOUND);
         assertThat(response.getHeaders().getLocation())
                 .hasToString("https://cdn.example.test/alpha/public/audio/ep.mp3");
-        verify(episodeDownloadAnalyticsService)
-                .trackEpisodeDownload(10L, episode, "public-download", "alpha.example.test");
     }
 
     @Test
     void enclosureServiceNotFoundPropagates() {
         TenantContext.setTenantId(10L);
         PublicEpisodeDownloadController controller = controller();
-        when(episodeEnclosureService.resolvePublicRedirect(10L, "episode-1"))
-                .thenThrow(new EpisodeNotFoundException("episode-1"));
+        when(rssFeedDeliveryFacade.publicEnclosure(
+                10L,
+                "episode-1",
+                "public-download",
+                null
+        )).thenThrow(new EpisodeNotFoundException("episode-1"));
 
         assertThatThrownBy(() -> controller.downloadEpisode("episode-1", request))
                 .isInstanceOf(EpisodeNotFoundException.class);
     }
 
     private PublicEpisodeDownloadController controller() {
-        return new PublicEpisodeDownloadController(
-                episodeEnclosureService,
-                episodeDownloadAnalyticsService
-        );
+        return new PublicEpisodeDownloadController(rssFeedDeliveryFacade);
     }
 
     private static Episode freeEpisode() {

@@ -9,8 +9,7 @@ import de.pnnit.directwerk.modules.core.entity.Tenant;
 import de.pnnit.directwerk.modules.podcast.feed.SubscriberFeed;
 import de.pnnit.directwerk.modules.podcast.feed.SubscriberFeedNotFoundException;
 import de.pnnit.directwerk.modules.podcast.service.SubscriberFeedService;
-import de.pnnit.directwerk.modules.podcast.service.EpisodeDownloadAnalyticsService;
-import de.pnnit.directwerk.modules.podcast.service.EpisodeEnclosureService;
+import de.pnnit.directwerk.modules.podcast.service.RssFeedDeliveryFacade;
 import de.pnnit.directwerk.modules.podcast.service.RssFeedSnapshotService;
 import de.pnnit.directwerk.multitenancy.TenantContext;
 import de.pnnit.directwerk.multitenancy.TenantNotFoundException;
@@ -44,10 +43,7 @@ class RssFeedControllerTest {
     private RssFeedSnapshotService rssFeedSnapshotService;
 
     @Mock
-    private EpisodeEnclosureService episodeEnclosureService;
-
-    @Mock
-    private EpisodeDownloadAnalyticsService episodeDownloadAnalyticsService;
+    private RssFeedDeliveryFacade rssFeedDeliveryFacade;
 
     @Mock
     private HttpServletRequest request;
@@ -153,8 +149,7 @@ class RssFeedControllerTest {
                 tenantResolver,
                 subscriberFeedService,
                 rssFeedSnapshotService,
-                episodeEnclosureService,
-                episodeDownloadAnalyticsService
+                rssFeedDeliveryFacade
         );
     }
 

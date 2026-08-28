@@ -1,6 +1,6 @@
 package de.pnnit.directwerk.controller.auth;
 
-import de.pnnit.directwerk.access.SubscriberContentAccessService;
+import de.pnnit.directwerk.modules.podcast.access.SubscriberPortalAccessService;
 import de.pnnit.directwerk.api.dto.CategoryView;
 import de.pnnit.directwerk.api.dto.FormatView;
 import de.pnnit.directwerk.api.response.Response;
@@ -30,11 +30,11 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/v1/me/episodes")
 public class MeEpisodeController {
 
-    private final SubscriberContentAccessService subscriberContentAccessService;
+    private final SubscriberPortalAccessService subscriberContentAccessService;
     private final EpisodeDownloadAnalyticsService episodeDownloadAnalyticsService;
 
     public MeEpisodeController(
-            SubscriberContentAccessService subscriberContentAccessService,
+            SubscriberPortalAccessService subscriberContentAccessService,
             EpisodeDownloadAnalyticsService episodeDownloadAnalyticsService
     ) {
         this.subscriberContentAccessService = subscriberContentAccessService;
@@ -66,7 +66,7 @@ public class MeEpisodeController {
         DirectwerkUserPrincipal user = SecurityUtils.requireTenantPrincipal(principal);
 
         // Gate ordering, READY check, publisher branch and PAID⇒SUBSCRIPTION live in the
-        // access module — see SubscriberContentAccessService.
+        // access module — see SubscriberPortalAccessService.
         var stream = subscriberContentAccessService.resolveStream(user, slug);
         episodeDownloadAnalyticsService.trackEpisodeDownload(
                 TenantContext.requireTenantId(),

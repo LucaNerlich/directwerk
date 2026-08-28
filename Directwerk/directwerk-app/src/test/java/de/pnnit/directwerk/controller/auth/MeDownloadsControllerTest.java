@@ -3,7 +3,7 @@ package de.pnnit.directwerk.controller.auth;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 
-import de.pnnit.directwerk.access.SubscriberContentAccessService;
+import de.pnnit.directwerk.modules.podcast.access.SubscriberPortalAccessService;
 import de.pnnit.directwerk.api.response.Response;
 import de.pnnit.directwerk.controller.auth.MeDownloadsController.DownloadView;
 import de.pnnit.directwerk.modules.digital.entity.AssetStatus;
@@ -25,7 +25,7 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 class MeDownloadsControllerTest {
 
     @Mock
-    private SubscriberContentAccessService subscriberContentAccessService;
+    private SubscriberPortalAccessService subscriberContentAccessService;
 
     private MeDownloadsController controller;
 
@@ -39,7 +39,7 @@ class MeDownloadsControllerTest {
         DirectwerkUserPrincipal principal = principal(1L, 5L);
         MediaAsset ready = asset(71L, AssetStatus.READY, "bonus.pdf");
         when(subscriberContentAccessService.listDownloads(principal)).thenReturn(List.of(
-                new SubscriberContentAccessService.AssetDownload(
+                new SubscriberPortalAccessService.AssetDownload(
                         ready,
                         URI.create("https://cdn.example.test/bonus.pdf").toURL())
         ));
