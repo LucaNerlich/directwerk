@@ -14,12 +14,12 @@ import {
 
 const UPSTREAM_TIMEOUT_MS = 10000
 
-export interface PlatformApiSuccess<T> {
+interface PlatformApiSuccess<T> {
     ok: true
     data: T
 }
 
-export interface PlatformApiFailure {
+interface PlatformApiFailure {
     ok: false
     /** Upstream (or session) failure status, e.g. 401/403/409/502. */
     status: number

@@ -12,7 +12,7 @@ import {
 } from '@directwerk/api/types'
 import {parseTenantHost} from '@directwerk/api/proxy'
 
-export interface LoginCredentials {
+interface LoginCredentials {
     email: string
     password: string
 }

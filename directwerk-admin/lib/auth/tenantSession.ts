@@ -41,12 +41,6 @@ function parseTenantTokens(value: unknown): OAuthTokenResponse | null {
     return null
 }
 
-/**
- * Ends any tenant refresh that is currently in flight so it can no longer
- * write tokens for the previous identity over a freshly logged-in session.
- */
-export const invalidatePendingTenantRefresh = session.invalidatePendingRefresh
-
 export async function refreshTenantAccessToken(): Promise<string> {
     const tenantHost = getTenantSessionHost()
     if (!tenantHost) {
@@ -73,7 +67,7 @@ export async function loginTenantSession(input: {
 }): Promise<void> {
     // A new tenant identity is being established — end any refresh still in
     // flight for the previous one so it cannot overwrite this session.
-    invalidatePendingTenantRefresh()
+    session.invalidatePendingRefresh()
 
     const response = await fetch('/api/auth/tenant-login', {
         method: 'POST',
