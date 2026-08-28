@@ -16,6 +16,9 @@ import type {FormatSummary} from '@directwerk/api/types'
 import {getClientTenantHost} from '@/lib/tenant/getClientTenantHost'
 import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
 
+/**
+ * Lists podcast formats (Formate) as a setup surface for the content-creation flow.
+ */
 export default function FormatListClient(): React.JSX.Element {
     const router = useRouter()
     const authRedirect = useAuthRequired()

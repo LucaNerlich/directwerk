@@ -6,6 +6,7 @@ import {useEffect, useState} from 'react'
 
 import {Button} from '@directwerk/ui/components/button'
 import EmptyState from '@directwerk/ui/components/empty-state'
+import ListPanel, {ListPanelRow} from '@directwerk/ui/components/list-panel'
 import PageHeader from '@directwerk/ui/components/page-header'
 
 import {listMedia} from '@/lib/api/tenantApi'
@@ -93,9 +94,9 @@ export default function BonusLibraryClient(): React.JSX.Element {
                     }
                 />
             ) : (
-                <ul className="overflow-hidden rounded-xl border bg-card divide-y">
+                <ListPanel>
                     {assets.map((asset) => (
-                        <li className="flex items-center justify-between gap-4 p-4" key={asset.id}>
+                        <ListPanelRow key={asset.id}>
                             <div>
                                 <p className="font-medium">
                                     {asset.originalFilename ?? `Datei #${asset.id}`}
@@ -111,9 +112,9 @@ export default function BonusLibraryClient(): React.JSX.Element {
                             >
                                 An Paket hängen
                             </Button>
-                        </li>
+                        </ListPanelRow>
                     ))}
-                </ul>
+                </ListPanel>
             )}
         </div>
     )

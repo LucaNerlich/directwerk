@@ -212,6 +212,16 @@ interface TokenGrantBody {
     client_id: string
 }
 
+function tokenGrantSearchParams(body: TokenGrantBody): URLSearchParams {
+    const params = new URLSearchParams()
+    for (const [key, value] of Object.entries(body)) {
+        if (value !== undefined) {
+            params.set(key, value)
+        }
+    }
+    return params
+}
+
 function createTokenRequest(
     body: TokenGrantBody,
     environment: DirectwerkEnvironment,
@@ -231,7 +241,7 @@ function createTokenRequest(
                 Authorization: `Basic ${basicCredentials}`,
                 'Content-Type': 'application/x-www-form-urlencoded',
             },
-            body: new URLSearchParams(body as unknown as Record<string, string>),
+            body: tokenGrantSearchParams(body),
             cache: 'no-store',
             redirect: 'manual',
         },

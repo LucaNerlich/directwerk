@@ -1,5 +1,6 @@
 import {directwerkFetch, getOAuthClientId, REFRESH_COOKIE} from '@/lib/server/api'
-import {jsonError, parseTenantHost, toClientResponse} from '@directwerk/api/proxy'
+import {jsonError, parseTenantHost, readBoundedBody, toClientResponse} from '@directwerk/api/proxy'
+import {parseJsonText, parseRefreshTokenInput} from '@directwerk/api/validation'
 import {readRequestCookie, sealRefreshToken} from '@directwerk/api/auth/cookies'
 
 export async function POST(request: Request): Promise<Response> {
@@ -8,7 +9,23 @@ export async function POST(request: Request): Promise<Response> {
         return jsonError('A valid tenant is required.', 400)
     }
 
-    const refreshToken = readRequestCookie(request, REFRESH_COOKIE)
+    // Prefer the httpOnly refresh cookie set by login/refresh; the JSON body is
+    // only a fallback for clients that predate cookie-based refresh.
+    let refreshToken = readRequestCookie(request, REFRESH_COOKIE)
+
+    if (refreshToken === null) {
+        const bodyText = await readBoundedBody(request.body)
+        if (bodyText === null) {
+            return jsonError('The request body is invalid.', 400)
+        }
+
+        const input = parseRefreshTokenInput(parseJsonText(bodyText))
+        if (input === null) {
+            return jsonError('A valid refresh token is required.', 400)
+        }
+        refreshToken = input.refresh_token
+    }
+
     if (refreshToken === null) {
         return jsonError('A valid refresh token is required.', 401)
     }

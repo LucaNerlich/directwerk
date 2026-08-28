@@ -25,6 +25,7 @@ export {
     parseEpisodeListEnvelope,
     parseSeriesEnvelope,
     parseSeriesListEnvelope,
+    parseMediaAsset,
     parseMediaAssetEnvelope,
     parseMediaListEnvelope,
     parsePreviewUrlEnvelope,

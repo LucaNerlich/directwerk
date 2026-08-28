@@ -4,7 +4,9 @@ import {
     buildPlatformApiPath,
     safeUpstreamResponse,
 } from '@directwerk/api/server'
+import type {MediaAsset} from '@directwerk/api/types'
 import {ASSET_TYPES, ASSET_VISIBILITIES} from '@directwerk/api/types'
+import {isRecord, parseMediaAssetEnvelope} from '@directwerk/api/validation'
 
 import {createConfiguredPlatformApiRequest} from '@/lib/server/api'
 import {resolvePlatformAuthorization} from '@/lib/server/platform'
@@ -16,20 +18,32 @@ const ASSET_TYPE_VALUES = new Set<string>(ASSET_TYPES)
 const ASSET_VISIBILITY_VALUES = new Set<string>(ASSET_VISIBILITIES)
 
 export type MediaUploadOutcome =
-    | {ok: true; asset: unknown}
+    | {ok: true; asset: MediaAsset}
     | {
           ok: false
           status: number
           body: Record<string, unknown> | null
-          /** Set when the S3 PUT succeeded but confirm failed — retry confirm. */
           assetId?: number
           retryConfirm?: boolean
       }
 
+interface MediaUploadUrlData {
+    assetId: number
+    uploadUrl: string
+    headers?: Record<string, string>
+}
+
+function isMediaUploadUrlData(value: unknown): value is MediaUploadUrlData {
+    return (
+        isRecord(value) &&
+        typeof value.assetId === 'number' &&
+        typeof value.uploadUrl === 'string'
+    )
+}
+
 function isHttpsUrl(value: string): boolean {
     try {
-        const url = new URL(value)
-        return url.protocol === 'https:'
+        return new URL(value).protocol === 'https:'
     } catch {
         return false
     }
@@ -46,13 +60,6 @@ function readEnvelopeData(payload: unknown): unknown {
     return (payload as {data: unknown}).data
 }
 
-/**
- * Server-side tenant media test upload shared by the BFF route and the
- * upload server action. Bunny S3 does not expose CORS on the storage endpoint
- * and admin CSP is connect-src 'self', so the browser cannot PUT the
- * presigned URL directly.
- * Flow: upload-url → Node PUT to S3 → confirm (all with the resolved bearer).
- */
 export async function performTenantMediaUpload(
     tenantId: string,
     formData: FormData
@@ -122,25 +129,14 @@ export async function performTenantMediaUpload(
                 ok: false,
                 status: failure.status,
                 body:
-                    failurePayload && typeof failurePayload === 'object'
-                        ? (failurePayload as Record<string, unknown>)
+                    isRecord(failurePayload)
+                        ? failurePayload
                         : {error: 'Directwerk request failed.'},
             }
         }
 
-        const uploadUrlPayload = await uploadUrlUpstream.json()
-        const uploadData = readEnvelopeData(uploadUrlPayload) as {
-            assetId?: number
-            uploadUrl?: string
-            headers?: Record<string, string>
-        } | null
-
-        if (
-            !uploadData ||
-            typeof uploadData.assetId !== 'number' ||
-            typeof uploadData.uploadUrl !== 'string' ||
-            !isHttpsUrl(uploadData.uploadUrl)
-        ) {
+        const uploadData = readEnvelopeData(await uploadUrlUpstream.json())
+        if (!isMediaUploadUrlData(uploadData) || !isHttpsUrl(uploadData.uploadUrl)) {
             return {
                 ok: false,
                 status: 502,
@@ -195,9 +191,9 @@ export async function performTenantMediaUpload(
                 ok: false,
                 status: failure.status,
                 body:
-                    typeof failurePayload === 'object' && failurePayload !== null
+                    isRecord(failurePayload)
                         ? {
-                              ...(failurePayload as Record<string, unknown>),
+                              ...failurePayload,
                               assetId: uploadData.assetId,
                               retryConfirm: true,
                           }
@@ -211,8 +207,16 @@ export async function performTenantMediaUpload(
             }
         }
 
-        const confirmed = await confirmUpstream.json()
-        return {ok: true, asset: readEnvelopeData(confirmed)}
+        const asset = parseMediaAssetEnvelope(await confirmUpstream.json())?.data
+        if (asset === undefined) {
+            return {
+                ok: false,
+                status: 502,
+                body: {error: 'Invalid confirm response from Directwerk.'},
+            }
+        }
+
+        return {ok: true, asset}
     } catch (error: unknown) {
         if (
             error instanceof Error &&
@@ -233,14 +237,8 @@ export async function performTenantMediaUpload(
 }
 
 function inferAssetType(mimeType: string): string {
-    if (mimeType.startsWith('image/')) {
-        return 'IMAGE'
-    }
-    if (mimeType.startsWith('audio/')) {
-        return 'AUDIO'
-    }
-    if (mimeType.startsWith('video/')) {
-        return 'VIDEO'
-    }
+    if (mimeType.startsWith('image/')) return 'IMAGE'
+    if (mimeType.startsWith('audio/')) return 'AUDIO'
+    if (mimeType.startsWith('video/')) return 'VIDEO'
     return 'DOCUMENT'
 }

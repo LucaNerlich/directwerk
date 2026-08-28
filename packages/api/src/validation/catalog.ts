@@ -369,7 +369,7 @@ export function parseSeriesEnvelope(
 // Media assets — full backend MediaAssetView projection
 // ---------------------------------------------------------------------------
 
-function parseMediaAsset(value: unknown): MediaAsset | null {
+export function parseMediaAsset(value: unknown): MediaAsset | null {
     if (
         !isRecord(value) ||
         !isPositiveSafeInteger(value.id) ||

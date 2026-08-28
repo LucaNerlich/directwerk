@@ -6,6 +6,7 @@ import {useRouter} from 'next/navigation'
 
 import {Button} from '@directwerk/ui/components/button'
 import EmptyState from '@directwerk/ui/components/empty-state'
+import ListPanel, {ListPanelRow} from '@directwerk/ui/components/list-panel'
 import PageHeader from '@directwerk/ui/components/page-header'
 
 import {listSubscribers, revokeSubscription} from '@/lib/api/tenantApi'
@@ -172,9 +173,9 @@ export default function SubscribersClient(): React.JSX.Element {
             ) : null}
 
             {subscribers.length > 0 ? (
-                <ul className="overflow-hidden rounded-xl border bg-card divide-y">
+                <ListPanel>
                     {subscribers.map((subscriber) => (
-                        <li className="flex flex-col gap-3 p-4" key={subscriber.userId}>
+                        <ListPanelRow key={subscriber.userId}>
                             <div>
                                 <p className="font-medium">{subscriber.email}</p>
                                 <p className="text-sm text-muted-foreground">
@@ -241,9 +242,9 @@ export default function SubscribersClient(): React.JSX.Element {
                                     ))}
                                 </ul>
                             )}
-                        </li>
+                        </ListPanelRow>
                     ))}
-                </ul>
+                </ListPanel>
             ) : null}
         </div>
     )
