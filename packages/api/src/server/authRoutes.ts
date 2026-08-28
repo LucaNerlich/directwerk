@@ -3,7 +3,7 @@ import {readBoundedBody} from '../proxy/boundedBody'
 import {parseTenantHost} from '../proxy/tenantHost'
 import {jsonError, toClientResponse} from '../proxy/upstreamResponse'
 import {parseJsonText} from '../validation/json'
-import {parseLoginInput, type LoginInputOptions} from '../validation/input'
+import {parseLoginInput, parseRefreshTokenInput, type LoginInputOptions, type RefreshTokenInputOptions} from '../validation/input'
 
 export interface TenantOAuthFetchRequest {
     path: string
@@ -22,6 +22,10 @@ export interface TenantAuthRouteConfig {
 
 export interface TenantLoginRouteConfig extends TenantAuthRouteConfig {
     parseLoginOptions?: LoginInputOptions
+}
+
+export interface TenantRefreshRouteConfig extends TenantAuthRouteConfig {
+    parseRefreshOptions?: RefreshTokenInputOptions
 }
 
 function applyNoStoreHeaders(response: Response): Response {
@@ -77,7 +81,7 @@ export function createTenantLoginRoute(
 }
 
 export function createTenantRefreshRoute(
-    config: TenantAuthRouteConfig,
+    config: TenantRefreshRouteConfig,
 ): (request: Request) => Promise<Response> {
     return async function POST(request: Request): Promise<Response> {
         const tenantHost = parseTenantHost(request.headers.get('x-tenant-host'))
@@ -85,7 +89,24 @@ export function createTenantRefreshRoute(
             return jsonError('A valid tenant is required.', 400)
         }
 
-        const refreshToken = readRequestCookie(request, config.refreshCookie)
+        let refreshToken = readRequestCookie(request, config.refreshCookie)
+
+        if (refreshToken === null && config.parseRefreshOptions !== undefined) {
+            const bodyText = await readBoundedBody(request.body)
+            if (bodyText === null) {
+                return jsonError('The request body is invalid.', 400)
+            }
+
+            const input = parseRefreshTokenInput(
+                parseJsonText(bodyText),
+                config.parseRefreshOptions,
+            )
+            if (input === null) {
+                return jsonError('A valid refresh token is required.', 400)
+            }
+            refreshToken = input.refresh_token
+        }
+
         if (refreshToken === null) {
             return jsonError('A valid refresh token is required.', 401)
         }
