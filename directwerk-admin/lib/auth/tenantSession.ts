@@ -1,8 +1,8 @@
 'use client'
 
-import type {TokenResponse} from '@directwerk/api/types'
 import {createAuthSession} from '@directwerk/api/auth/session'
 import {AUTH_REQUIRED} from '@directwerk/api/constants'
+import {parseTokenResponse} from '@directwerk/api/validation'
 import {
     clearTenantTokens,
     getTenantAccessToken,
@@ -12,10 +12,6 @@ import {
     tenantTokenStore,
 } from '@/lib/auth/tenantTokenStore'
 
-/**
- * Admin tenant refresh/session coordinator — shared algorithm with the
- * tenant host header.
- */
 const session = createAuthSession({
     store: tenantTokenStore,
     refreshPath: '/api/auth/tenant-refresh',
@@ -23,23 +19,10 @@ const session = createAuthSession({
         const host = getTenantSessionHost()
         return host === null ? {} : {'X-Tenant-Host': host}
     },
-    parseTokens: parseTenantTokens,
+    parseTokens: parseTokenResponse,
 })
 
-function parseTenantTokens(value: unknown): TokenResponse | null {
-    if (typeof value !== 'object' || value === null) {
-        return null
-    }
-
-    const tokens = value as Record<string, unknown>
-    if (
-        typeof tokens.access_token === 'string' &&
-        tokens.access_token.length > 0
-    ) {
-        return value as TokenResponse
-    }
-    return null
-}
+export const invalidatePendingTenantRefresh = session.invalidatePendingRefresh
 
 export async function refreshTenantAccessToken(): Promise<string> {
     const tenantHost = getTenantSessionHost()
@@ -47,7 +30,6 @@ export async function refreshTenantAccessToken(): Promise<string> {
         clearTenantTokens()
         throw new Error(AUTH_REQUIRED)
     }
-
     return session.refreshAccessToken()
 }
 
@@ -56,7 +38,6 @@ export async function getValidTenantAccessToken(): Promise<string> {
     if (existing && !isTenantAccessTokenExpired()) {
         return existing
     }
-
     return refreshTenantAccessToken()
 }
 
@@ -65,31 +46,18 @@ export async function loginTenantSession(input: {
     password: string
     tenantHost: string
 }): Promise<void> {
-    // A new tenant identity is being established — end any refresh still in
-    // flight for the previous one so it cannot overwrite this session.
-    session.invalidatePendingRefresh()
-
+    invalidatePendingTenantRefresh()
     const response = await fetch('/api/auth/tenant-login', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
             'X-Tenant-Host': input.tenantHost,
         },
-        body: JSON.stringify({
-            email: input.email,
-            password: input.password,
-        }),
+        body: JSON.stringify({email: input.email, password: input.password}),
         cache: 'no-store',
     })
-
-    if (!response.ok) {
-        throw new Error(AUTH_REQUIRED)
-    }
-
-    const tokens: unknown = await response.json()
-    if (!parseTenantTokens(tokens)) {
-        throw new Error(AUTH_REQUIRED)
-    }
-
-    storeTenantTokens(tokens as TokenResponse, input.tenantHost)
+    if (!response.ok) throw new Error(AUTH_REQUIRED)
+    const tokens = parseTokenResponse(await response.json())
+    if (tokens === null) throw new Error(AUTH_REQUIRED)
+    storeTenantTokens(tokens, input.tenantHost)
 }

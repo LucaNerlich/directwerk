@@ -1,6 +1,6 @@
 'use server'
 
-import type {MediaAsset, Tenant, TenantCreationResponse} from '@directwerk/api/types'
+import type {MediaAsset, Tenant, TenantCreationResponse, TenantDomain, TenantUser} from '@directwerk/api/types'
 import {ASSET_VISIBILITIES} from '@directwerk/api/types'
 
 import {performTenantMediaUpload} from '@/lib/server/mediaUpload'
@@ -145,7 +145,7 @@ export async function forceVerifyDomainAction(
         return {...INITIAL_DOMAIN_VERIFY_STATE, error: 'Enter a valid domain host.'}
     }
 
-    const result = await callPlatformApi<unknown>(
+    const result = await callPlatformApi<TenantDomain>(
         ['tenants', tenantId, 'domains', host, 'verify'],
         {method: 'POST', body: {}}
     )
@@ -226,7 +226,7 @@ export async function changeTenantUserRoleAction(
 ): Promise<RoleChangeState> {
     const role = String(formData.get('role') ?? '')
 
-    const result = await callPlatformApi<unknown>(
+    const result = await callPlatformApi<TenantUser>(
         ['tenants', tenantId, 'users', String(userId)],
         {method: 'PATCH', body: {role}}
     )
@@ -263,15 +263,6 @@ function formatUploadSuccess(asset: MediaAsset, fallbackName: string): string {
         return `${base} CDN: ${asset.cdnUrl}`
     }
     return base
-}
-
-function isMediaAsset(value: unknown): value is MediaAsset {
-    if (typeof value !== 'object' || value === null) {
-        return false
-    }
-
-    const asset = value as Record<string, unknown>
-    return typeof asset.id === 'number' && typeof asset.s3Key === 'string'
 }
 
 export async function uploadTenantMediaAction(
@@ -330,10 +321,6 @@ export async function uploadTenantMediaAction(
                 ? result.body.error
                 : 'Upload failed. Is Directwerk reachable with storage enabled?'
         return {...INITIAL_UPLOAD_MEDIA_STATE, error: message}
-    }
-
-    if (!isMediaAsset(result.asset)) {
-        return {...INITIAL_UPLOAD_MEDIA_STATE, error: 'Confirm response was invalid.'}
     }
 
     return {

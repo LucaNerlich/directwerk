@@ -11,6 +11,7 @@ import {
     TENANT_INVITABLE_ROLES,
 } from '@directwerk/api/types'
 import {parseTenantHost} from '@directwerk/api/proxy'
+import {isRecord} from '@directwerk/api/validation'
 import type {LoginInput} from '@directwerk/api/validation'
 
 export type LoginCredentials = LoginInput
@@ -80,15 +81,13 @@ const ISO_INSTANT =
 
 export function validateLoginInput(input: unknown): LoginValidationResult {
     if (
-        typeof input !== 'object' ||
-        input === null ||
-        Array.isArray(input) ||
+        !isRecord(input) ||
         Object.keys(input).some((key) => !LOGIN_KEYS.has(key))
     ) {
         return {success: false, error: 'Invalid login request.'}
     }
 
-    const {email, password} = input as Record<string, unknown>
+    const {email, password} = input
     const normalizedEmail = typeof email === 'string' ? email.trim() : ''
 
     if (
@@ -115,15 +114,13 @@ export function validateTenantUserInviteInput(
     input: unknown
 ): TenantUserInviteValidationResult {
     if (
-        typeof input !== 'object' ||
-        input === null ||
-        Array.isArray(input) ||
+        !isRecord(input) ||
         Object.keys(input).some((key) => !TENANT_INVITE_KEYS.has(key))
     ) {
         return {success: false, error: 'Invalid invitation request.'}
     }
 
-    const {email, name, role} = input as Record<string, unknown>
+    const {email, name, role} = input
     const normalizedEmail = typeof email === 'string' ? email.trim() : ''
 
     if (name !== null && typeof name !== 'string') {
@@ -165,15 +162,13 @@ export function validatePlatformAdminInviteInput(
     input: unknown
 ): PlatformAdminInviteValidationResult {
     if (
-        typeof input !== 'object' ||
-        input === null ||
-        Array.isArray(input) ||
+        !isRecord(input) ||
         Object.keys(input).some((key) => !PLATFORM_ADMIN_INVITE_KEYS.has(key))
     ) {
         return {success: false, error: 'Invalid invitation request.'}
     }
 
-    const {email, name} = input as Record<string, unknown>
+    const {email, name} = input
     const normalizedEmail = typeof email === 'string' ? email.trim() : ''
 
     if (name !== null && typeof name !== 'string') {
@@ -277,15 +272,13 @@ export function validateCreateTenantInput(
     input: unknown
 ): CreateTenantValidationResult {
     if (
-        typeof input !== 'object' ||
-        input === null ||
-        Array.isArray(input) ||
+        !isRecord(input) ||
         Object.keys(input).some((key) => !CREATE_TENANT_KEYS.has(key))
     ) {
         return {success: false, error: 'Invalid create-tenant request.'}
     }
 
-    const record = input as Record<string, unknown>
+    const record = input
     const name = typeof record.name === 'string' ? record.name.trim() : ''
     const slug = typeof record.slug === 'string' ? record.slug.trim() : ''
     const primaryDomain = parseOptionalString(record.primaryDomain)
@@ -359,15 +352,13 @@ export function validateJobListQuery(
     input: unknown
 ): JobListQueryValidationResult {
     if (
-        typeof input !== 'object' ||
-        input === null ||
-        Array.isArray(input) ||
+        !isRecord(input) ||
         Object.keys(input).some((key) => !JOB_LIST_QUERY_KEYS.has(key))
     ) {
         return {success: false, error: 'Invalid job list request.'}
     }
 
-    const record = input as Record<string, unknown>
+    const record = input
 
     if (
         record.queue !== undefined &&
