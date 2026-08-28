@@ -1,5 +1,8 @@
-import type { Metadata } from 'next'
-import { Geist, Geist_Mono } from 'next/font/google'
+import type {Metadata} from 'next'
+import {Geist, Geist_Mono} from 'next/font/google'
+
+import MarketingShell from '@/components/marketing/MarketingShell'
+
 import './globals.css'
 
 const geistSans = Geist({
@@ -13,18 +16,24 @@ const geistMono = Geist_Mono({
 })
 
 export const metadata: Metadata = {
-    title: 'Directwerk',
-    description: 'API-first whitelabel podcast SaaS platform',
+    title: {
+        default: 'Directwerk',
+        template: '%s · Directwerk',
+    },
+    description:
+        'API-first Whitelabel-Plattform für Podcast, Abonnements und digitales Publishing.',
 }
 
 export default function RootLayout({
     children,
 }: Readonly<{
     children: React.ReactNode
-}>) {
+}>): React.JSX.Element {
     return (
-        <html lang="en" className={`${geistSans.variable} ${geistMono.variable}`}>
-            <body>{children}</body>
+        <html lang="de" className={`${geistSans.variable} ${geistMono.variable}`}>
+            <body className="min-h-screen antialiased">
+                <MarketingShell>{children}</MarketingShell>
+            </body>
         </html>
     )
 }

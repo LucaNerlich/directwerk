@@ -35,6 +35,7 @@ presign). See [`docs/asset-storage.md`](docs/asset-storage.md). Podcast Phase 3 
 - `projects/directwerk-studio/` — **creator dashboard** (see [`docs/directwerk-studio.md`](docs/directwerk-studio.md))
 - `projects/directwerk-web/` — public site + subscriber portal (Phase 9)
 - `projects/directwerk-admin/` — platform superadmin dashboard (Phase 5)
+- `homepage/` — **platform marketing site** + API excerpt at `/developers` ([`homepage/README.md`](homepage/README.md))
 
 **Deployment**: Docker via Coolify on Hetzner Cloud — see [`Directwerk/docs/build-and-deploy.md`](Directwerk/docs/build-and-deploy.md)
 

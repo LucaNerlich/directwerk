@@ -1,0 +1,11 @@
+export const CONTACT_EMAIL = 'hello@directwerk.de'
+
+export const DOCS_URL =
+    process.env.NEXT_PUBLIC_DOCS_URL ?? 'http://localhost:5173'
+
+export const NAV_ITEMS = [
+    {href: '/#features', label: 'Plattform'},
+    {href: '/#products', label: 'Produkte'},
+    {href: '/developers', label: 'Entwickler'},
+    {href: DOCS_URL, label: 'Dokumentation', external: true},
+] as const

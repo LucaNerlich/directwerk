@@ -1,33 +1,38 @@
 # Homepage
 
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+Platform marketing site for **Directwerk** (`directwerk.de`) — separate from tenant
+[`directwerk-web`](../directwerk-web/) subscriber portals.
 
-## Getting Started
-
-First, run the development server from the homepage directory:
+## Run locally
 
 ```bash
-cd projects/directwerk/homepage
+cd homepage
+pnpm install
 pnpm dev
 ```
 
-Open [http://localhost:3002](http://localhost:3002) with your browser to see the result.
+Open [http://localhost:3005](http://localhost:3005) (port **3005** avoids conflict with
+`directwerk-studio` on 3002).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Routes
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| Path | Purpose |
+|------|---------|
+| `/` | Platform landing — features, product stack, creator journey |
+| `/developers` | API excerpt for integrators (full VitePress docs planned separately) |
 
-## Learn More
+## Optional env
 
-To learn more about Next.js, take a look at the following resources:
+| Variable | Purpose |
+|----------|---------|
+| `NEXT_PUBLIC_SWAGGER_URL` | External link to staging Swagger UI on `/developers` |
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Stack
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Next.js 16 · React 19 · Tailwind v4 · `@directwerk/ui`
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```bash
+pnpm test
+pnpm typecheck
+pnpm build
+```
