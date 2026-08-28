@@ -1,5 +1,6 @@
 'use client'
 
+import {Card, CardContent} from '@directwerk/ui/components/card'
 import {Input} from '@directwerk/ui/components/input'
 import {Textarea} from '@directwerk/ui/components/textarea'
 
@@ -163,7 +164,6 @@ export default function PublicationEditorLayout({
                     <label className="grid gap-2 text-sm font-medium">
                         <span>Titel</span>
                         <Input
-                            className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50"
                             value={title}
                             disabled={fieldsDisabled}
                             onChange={(event) => onTitleChange(event.target.value)}
@@ -181,7 +181,6 @@ export default function PublicationEditorLayout({
                             <label className="grid gap-2 text-sm font-medium">
                                 <span>Slug</span>
                                 <Input
-                                    className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50"
                                     value={slug}
                                     disabled={fieldsDisabled}
                                     onChange={(event) => onSlugChange(event.target.value)}
@@ -196,49 +195,49 @@ export default function PublicationEditorLayout({
                         disabled={fieldsDisabled}
                     />
                 </section>
-                <aside className="flex flex-col gap-4 rounded-xl border bg-muted/20 p-4">
-                    <AccessPolicySelect
-                        value={accessPolicy}
-                        onChange={onAccessPolicyChange}
-                        disabled={fieldsDisabled}
-                    />
-                    {kind === 'article' ? (
-                        <>
-                            <label className="grid gap-2 text-sm font-medium">
-                                <span>Auszug</span>
-                                <Textarea
-                                    className="flex min-h-24 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50"
-                                    rows={4}
-                                    value={excerpt ?? ''}
-                                    disabled={fieldsDisabled}
-                                    onChange={(event) => onExcerptChange?.(event.target.value)}
-                                />
-                                <span className="text-xs font-normal text-muted-foreground">
-                                    Teaser für Karten und E-Mail-Benachrichtigungen.
-                                </span>
-                            </label>
-                            {onSeoDescriptionChange !== undefined ? (
+                <Card className="bg-muted/20 ring-0">
+                    <CardContent className="flex flex-col gap-4 pt-(--card-spacing)">
+                        <AccessPolicySelect
+                            value={accessPolicy}
+                            onChange={onAccessPolicyChange}
+                            disabled={fieldsDisabled}
+                        />
+                        {kind === 'article' ? (
+                            <>
                                 <label className="grid gap-2 text-sm font-medium">
-                                    <span>SEO-Beschreibung</span>
+                                    <span>Auszug</span>
                                     <Textarea
-                                        className="flex min-h-20 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50"
-                                        maxLength={512}
-                                        rows={3}
-                                        value={seoDescription ?? ''}
+                                        rows={4}
+                                        value={excerpt ?? ''}
                                         disabled={fieldsDisabled}
-                                        onChange={(event) =>
-                                            onSeoDescriptionChange(event.target.value)
-                                        }
+                                        onChange={(event) => onExcerptChange?.(event.target.value)}
                                     />
                                     <span className="text-xs font-normal text-muted-foreground">
-                                        Meta-Beschreibung für Suchmaschinen (max. 512 Zeichen).
+                                        Teaser für Karten und E-Mail-Benachrichtigungen.
                                     </span>
                                 </label>
-                            ) : null}
-                        </>
-                    ) : null}
-                    {sidebarExtra}
-                </aside>
+                                {onSeoDescriptionChange !== undefined ? (
+                                    <label className="grid gap-2 text-sm font-medium">
+                                        <span>SEO-Beschreibung</span>
+                                        <Textarea
+                                            maxLength={512}
+                                            rows={3}
+                                            value={seoDescription ?? ''}
+                                            disabled={fieldsDisabled}
+                                            onChange={(event) =>
+                                                onSeoDescriptionChange(event.target.value)
+                                            }
+                                        />
+                                        <span className="text-xs font-normal text-muted-foreground">
+                                            Meta-Beschreibung für Suchmaschinen (max. 512 Zeichen).
+                                        </span>
+                                    </label>
+                                ) : null}
+                            </>
+                        ) : null}
+                        {sidebarExtra}
+                    </CardContent>
+                </Card>
             </div>
         </div>
     )

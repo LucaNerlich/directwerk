@@ -4,6 +4,9 @@ import Link from 'next/link'
 import {useRouter} from 'next/navigation'
 import {useEffect, useState} from 'react'
 
+import ListPanel, {listPanelLinkClassName} from '@directwerk/ui/components/list-panel'
+import SectionHeader from '@directwerk/ui/components/section-header'
+
 import PublicationStatusBadge from '@/components/publication/PublicationStatusBadge'
 import {listArticles, listEpisodes, listSeries} from '@/lib/api/tenantApi'
 import type {ArticleSummary, EpisodeSummary, SeriesSummary, StudioDesk} from '@directwerk/api/types'
@@ -80,7 +83,7 @@ export default function OverviewQueue({desks}: OverviewQueueProps): React.JSX.El
     }
 
     if (isLoading) {
-        return <p>Aktuelle Entwürfe werden geladen…</p>
+        return <p className="text-sm text-muted-foreground">Aktuelle Entwürfe werden geladen…</p>
     }
 
     const awaitingArticles = articles.filter((item) => AWAITING_STATUSES.has(item.status))
@@ -88,8 +91,11 @@ export default function OverviewQueue({desks}: OverviewQueueProps): React.JSX.El
     const draftSeries = series.filter((item) => item.status === 'DRAFT')
 
     return (
-        <section className="flex flex-col gap-4">
-            <h2>Als Nächstes</h2>
+        <section className="flex flex-col gap-6">
+            <SectionHeader
+                description="Entwürfe und geplante Inhalte, die als Nächstes dran sind."
+                title="Als Nächstes"
+            />
             {errorMessage !== null ? (
                 <p className="text-sm text-destructive" role="alert">
                     {errorMessage}
@@ -119,44 +125,59 @@ export default function OverviewQueue({desks}: OverviewQueueProps): React.JSX.El
             ) : null}
 
             {draftSeries.length > 0 ? (
-                <div>
-                    <h3>Sendungen zum Veröffentlichen</h3>
-                    <ul className="overflow-hidden rounded-xl border bg-card divide-y [&>li]:flex [&>li]:items-center [&>li]:justify-between [&>li]:gap-4 [&>li]:p-3">
+                <div className="flex flex-col gap-3">
+                    <SectionHeader as="h3" title="Sendungen zum Veröffentlichen" />
+                    <ListPanel>
                         {draftSeries.map((item) => (
                             <li key={item.id}>
-                                <Link href={`/podcast/series/${item.id}`}>{item.title}</Link>
-                                <PublicationStatusBadge status={item.status} />
+                                <Link
+                                    className={listPanelLinkClassName}
+                                    href={`/podcast/series/${item.id}`}
+                                >
+                                    <span>{item.title}</span>
+                                    <PublicationStatusBadge status={item.status} />
+                                </Link>
                             </li>
                         ))}
-                    </ul>
+                    </ListPanel>
                 </div>
             ) : null}
 
             {awaitingEpisodes.length > 0 ? (
-                <div>
-                    <h3>Folgen-Entwürfe</h3>
-                    <ul className="overflow-hidden rounded-xl border bg-card divide-y [&>li]:flex [&>li]:items-center [&>li]:justify-between [&>li]:gap-4 [&>li]:p-3">
+                <div className="flex flex-col gap-3">
+                    <SectionHeader as="h3" title="Folgen-Entwürfe" />
+                    <ListPanel>
                         {awaitingEpisodes.map((item) => (
                             <li key={item.id}>
-                                <Link href={`/podcast/episodes/${item.id}`}>{item.title}</Link>
-                                <PublicationStatusBadge status={item.status} />
+                                <Link
+                                    className={listPanelLinkClassName}
+                                    href={`/podcast/episodes/${item.id}`}
+                                >
+                                    <span>{item.title}</span>
+                                    <PublicationStatusBadge status={item.status} />
+                                </Link>
                             </li>
                         ))}
-                    </ul>
+                    </ListPanel>
                 </div>
             ) : null}
 
             {awaitingArticles.length > 0 ? (
-                <div>
-                    <h3>Beitrags-Entwürfe</h3>
-                    <ul className="overflow-hidden rounded-xl border bg-card divide-y [&>li]:flex [&>li]:items-center [&>li]:justify-between [&>li]:gap-4 [&>li]:p-3">
+                <div className="flex flex-col gap-3">
+                    <SectionHeader as="h3" title="Beitrags-Entwürfe" />
+                    <ListPanel>
                         {awaitingArticles.map((item) => (
                             <li key={item.id}>
-                                <Link href={`/write/articles/${item.id}`}>{item.title}</Link>
-                                <PublicationStatusBadge status={item.status} />
+                                <Link
+                                    className={listPanelLinkClassName}
+                                    href={`/write/articles/${item.id}`}
+                                >
+                                    <span>{item.title}</span>
+                                    <PublicationStatusBadge status={item.status} />
+                                </Link>
                             </li>
                         ))}
-                    </ul>
+                    </ListPanel>
                 </div>
             ) : null}
         </section>

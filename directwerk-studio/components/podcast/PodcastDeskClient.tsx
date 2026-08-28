@@ -6,7 +6,9 @@ import {useEffect, useState} from 'react'
 
 import {Button} from '@directwerk/ui/components/button'
 import EmptyState from '@directwerk/ui/components/empty-state'
+import ListPanel, {listPanelLinkClassName} from '@directwerk/ui/components/list-panel'
 import PageHeader from '@directwerk/ui/components/page-header'
+import SectionHeader from '@directwerk/ui/components/section-header'
 
 import PublicationStatusBadge from '@/components/publication/PublicationStatusBadge'
 import {listEpisodes, listFormats, listSeries} from '@/lib/api/tenantApi'
@@ -149,14 +151,11 @@ export default function PodcastDeskClient(): React.JSX.Element {
             ) : null}
 
             <section aria-labelledby="podcast-flow-heading" className="flex flex-col gap-4">
-                <div>
-                    <h2 className="text-lg font-semibold" id="podcast-flow-heading">
-                        So entsteht eine Folge
-                    </h2>
-                    <p className="mt-1 text-sm text-muted-foreground">
-                        Erst die Basis, dann regelmäßig Folgen veröffentlichen.
-                    </p>
-                </div>
+                <SectionHeader
+                    description="Erst die Basis, dann regelmäßig Folgen veröffentlichen."
+                    id="podcast-flow-heading"
+                    title="So entsteht eine Folge"
+                />
                 <ol className="grid gap-3">
                     {steps.map((step) => (
                         <li
@@ -213,12 +212,12 @@ export default function PodcastDeskClient(): React.JSX.Element {
 
             {setupComplete && draftEpisodes.length > 0 ? (
                 <section className="flex flex-col gap-3">
-                    <h2 className="text-lg font-semibold">Offene Entwürfe</h2>
-                    <ul className="overflow-hidden rounded-xl border bg-card divide-y">
+                    <SectionHeader title="Offene Entwürfe" />
+                    <ListPanel>
                         {draftEpisodes.slice(0, 5).map((episode) => (
                             <li key={episode.id}>
                                 <Link
-                                    className="flex items-center justify-between gap-4 p-4 text-sm no-underline hover:bg-muted/40"
+                                    className={listPanelLinkClassName}
                                     href={`/podcast/episodes/${episode.id}`}
                                 >
                                     <span>{episode.title}</span>
@@ -226,7 +225,7 @@ export default function PodcastDeskClient(): React.JSX.Element {
                                 </Link>
                             </li>
                         ))}
-                    </ul>
+                    </ListPanel>
                     {draftEpisodes.length > 5 ? (
                         <p className="text-sm text-muted-foreground">
                             <Link href="/podcast/episodes">Alle Folgen anzeigen</Link>

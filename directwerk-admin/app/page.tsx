@@ -8,6 +8,10 @@ import {Alert, AlertDescription} from '@directwerk/ui/components/alert'
 import {Badge} from '@directwerk/ui/components/badge'
 import EmptyState from '@directwerk/ui/components/empty-state'
 import PageHeader from '@directwerk/ui/components/page-header'
+import PageStack from '@directwerk/ui/components/page-stack'
+import ResponsiveTable from '@directwerk/ui/components/responsive-table'
+import SectionHeader from '@directwerk/ui/components/section-header'
+import StatCard from '@directwerk/ui/components/stat-card'
 import {
     Table,
     TableBody,
@@ -72,7 +76,7 @@ export default function HomePage() {
     }, [router, reloadKey])
 
     return (
-        <div className="space-y-8">
+        <PageStack>
             <PageHeader
                 description="Platform operations only — tenant content and subscribers stay in directwerk-studio."
                 eyebrow="Platform administration"
@@ -80,36 +84,24 @@ export default function HomePage() {
             />
             {tenants !== null ? (
                 <section className="grid gap-3 sm:grid-cols-3">
-                    <div className="rounded-xl border bg-card p-4">
-                        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                            Tenants
-                        </p>
-                        <p className="mt-2 text-2xl font-semibold">{tenants.length}</p>
-                        <p className="text-sm text-muted-foreground">
-                            {tenants.filter((tenant) => tenant.status === 'ACTIVE').length} active
-                        </p>
-                    </div>
-                    <div className="rounded-xl border bg-card p-4">
-                        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                            Platform admins
-                        </p>
-                        <p className="mt-2 text-2xl font-semibold">{adminCount ?? '—'}</p>
-                        <p className="text-sm">
-                            <Link href="/admins">Manage admins</Link>
-                        </p>
-                    </div>
-                    <div className="rounded-xl border bg-card p-4">
-                        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                            Queue jobs
-                        </p>
-                        <p className="mt-2 text-2xl font-semibold">{jobCount ?? '—'}</p>
-                        <p className="text-sm">
-                            <Link href="/jobs">View jobs</Link>
-                        </p>
-                    </div>
+                    <StatCard
+                        hint={`${tenants.filter((tenant) => tenant.status === 'ACTIVE').length} active`}
+                        label="Tenants"
+                        value={tenants.length}
+                    />
+                    <StatCard
+                        footer={<Link href="/admins">Manage admins</Link>}
+                        label="Platform admins"
+                        value={adminCount ?? '—'}
+                    />
+                    <StatCard
+                        footer={<Link href="/jobs">View jobs</Link>}
+                        label="Queue jobs"
+                        value={jobCount ?? '—'}
+                    />
                 </section>
             ) : null}
-            <h2 className="text-xl font-semibold">Tenants</h2>
+            <SectionHeader title="Tenants" />
             {error ? (
                 <Alert variant="destructive">
                     <AlertDescription>{error}</AlertDescription>
@@ -122,28 +114,35 @@ export default function HomePage() {
             ) : null}
             {tenants ? (
                 tenants.length > 0 ? (
-                    <Table>
-                    <TableHeader>
-                        <TableRow>
-                            <TableHead scope="col">Name</TableHead>
-                            <TableHead scope="col">Slug</TableHead>
-                            <TableHead scope="col">Status</TableHead>
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                        {tenants.map((tenant) => (
-                            <TableRow key={tenant.id}>
-                                <TableCell>
-                                    <Link className="font-medium underline-offset-4 hover:underline" href={`/tenants/${tenant.id}`}>
-                                        {tenant.name}
-                                    </Link>
-                                </TableCell>
-                                <TableCell>{tenant.slug}</TableCell>
-                                <TableCell><Badge variant="outline">{tenant.status}</Badge></TableCell>
-                            </TableRow>
-                        ))}
-                    </TableBody>
-                </Table>
+                    <ResponsiveTable label="Tenants">
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead scope="col">Name</TableHead>
+                                    <TableHead scope="col">Slug</TableHead>
+                                    <TableHead scope="col">Status</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {tenants.map((tenant) => (
+                                    <TableRow key={tenant.id}>
+                                        <TableCell>
+                                            <Link
+                                                className="font-medium underline-offset-4 hover:underline"
+                                                href={`/tenants/${tenant.id}`}
+                                            >
+                                                {tenant.name}
+                                            </Link>
+                                        </TableCell>
+                                        <TableCell>{tenant.slug}</TableCell>
+                                        <TableCell>
+                                            <Badge variant="outline">{tenant.status}</Badge>
+                                        </TableCell>
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
+                    </ResponsiveTable>
                 ) : (
                     <EmptyState
                         description="Create the first tenant to begin."
@@ -153,6 +152,6 @@ export default function HomePage() {
             ) : null}
 
             <CreateTenantForm onCreated={reloadTenants} />
-        </div>
+        </PageStack>
     )
 }

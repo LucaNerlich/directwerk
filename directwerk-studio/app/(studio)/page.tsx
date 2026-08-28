@@ -1,7 +1,9 @@
 import Link from 'next/link'
 
 import {Button} from '@directwerk/ui/components/button'
+import FeatureCard from '@directwerk/ui/components/feature-card'
 import PageHeader from '@directwerk/ui/components/page-header'
+import PageStack from '@directwerk/ui/components/page-stack'
 
 import OverviewQueue from '@/components/studio/OverviewQueue'
 import {fetchSiteConfigServer} from '@/lib/site/fetchSiteConfigServer'
@@ -13,7 +15,7 @@ export default async function OverviewPage() {
     const desks = new Set(config.studioDesks)
 
     return (
-        <div className="flex flex-col gap-6">
+        <PageStack>
             <PageHeader
                 eyebrow="Directwerk Studio"
                 title="Was möchtest du veröffentlichen?"
@@ -27,13 +29,10 @@ export default async function OverviewPage() {
             />
             <section className="grid gap-4 sm:grid-cols-2">
                 {desks.has('WRITE') ? (
-                    <div className="flex flex-col gap-4 rounded-xl border bg-card p-5">
-                        <div>
-                            <h2 className="text-lg font-semibold">Schreiben</h2>
-                            <p className="mt-1 text-sm text-muted-foreground">
-                                Beitrag schreiben und veröffentlichen.
-                            </p>
-                        </div>
+                    <FeatureCard
+                        description="Beitrag schreiben und veröffentlichen."
+                        title="Schreiben"
+                    >
                         <div className="flex flex-wrap gap-2">
                             <Button nativeButton={false} render={<Link href="/write/articles/new" />}>
                                 Neuer Beitrag
@@ -46,17 +45,13 @@ export default async function OverviewPage() {
                                 Schreib-Übersicht
                             </Button>
                         </div>
-                    </div>
+                    </FeatureCard>
                 ) : null}
                 {desks.has('PODCAST') ? (
-                    <div className="flex flex-col gap-4 rounded-xl border bg-card p-5">
-                        <div>
-                            <h2 className="text-lg font-semibold">Podcast</h2>
-                            <p className="mt-1 text-sm text-muted-foreground">
-                                Folge erstellen — oder Einrichtung (Sendung, Formate)
-                                abschließen.
-                            </p>
-                        </div>
+                    <FeatureCard
+                        description="Folge erstellen — oder Einrichtung (Sendung, Formate) abschließen."
+                        title="Podcast"
+                    >
                         <div className="flex flex-wrap gap-2">
                             <Button nativeButton={false} render={<Link href="/podcast/episodes/new" />}>
                                 Neue Folge
@@ -69,10 +64,10 @@ export default async function OverviewPage() {
                                 Podcast-Übersicht
                             </Button>
                         </div>
-                    </div>
+                    </FeatureCard>
                 ) : null}
             </section>
             <OverviewQueue desks={config.studioDesks} />
-        </div>
+        </PageStack>
     )
 }

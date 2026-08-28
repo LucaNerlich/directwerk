@@ -6,6 +6,7 @@ import {useCallback, useEffect, useRef, useState} from 'react'
 
 import {Button} from '@directwerk/ui/components/button'
 import EmptyState from '@directwerk/ui/components/empty-state'
+import ListPanel, {ListPanelRow} from '@directwerk/ui/components/list-panel'
 import PageHeader from '@directwerk/ui/components/page-header'
 
 import PublicationStatusBadge from '@/components/publication/PublicationStatusBadge'
@@ -157,14 +158,11 @@ export default function ArticleListClient() {
                     }
                 />
             ) : (
-                <ul className="overflow-hidden rounded-xl border bg-card divide-y">
+                <ListPanel>
                     {articles.map((article) => {
                         const isBusy = busyArticleId === article.id
                         return (
-                            <li
-                                key={article.id}
-                                className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between"
-                            >
+                            <ListPanelRow key={article.id}>
                                 <div className="min-w-0 flex-1">
                                     <Link
                                         className="font-medium hover:underline"
@@ -209,10 +207,10 @@ export default function ArticleListClient() {
                                         </Button>
                                     )}
                                 </div>
-                            </li>
+                            </ListPanelRow>
                         )
                     })}
-                </ul>
+                </ListPanel>
             )}
         </div>
     )

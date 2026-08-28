@@ -6,6 +6,8 @@ import {useCallback, useEffect, useState} from 'react'
 import {Alert, AlertDescription} from '@directwerk/ui/components/alert'
 import EmptyState from '@directwerk/ui/components/empty-state'
 import PageHeader from '@directwerk/ui/components/page-header'
+import PageStack from '@directwerk/ui/components/page-stack'
+import ResponsiveTable from '@directwerk/ui/components/responsive-table'
 import {
     Table,
     TableBody,
@@ -54,7 +56,7 @@ export default function PlatformAdminsPage() {
     }, [loadAdmins])
 
     return (
-        <div className="space-y-8">
+        <PageStack>
             <PageHeader
                 description="Invite administrators and revoke platform-level access."
                 eyebrow="Access control"
@@ -73,7 +75,8 @@ export default function PlatformAdminsPage() {
             {admins ? (
                 <>
                     {admins.length > 0 ? (
-                        <Table>
+                        <ResponsiveTable label="Platform admins">
+                            <Table>
                             <TableHeader>
                                 <TableRow>
                                     <TableHead scope="col">Name</TableHead>
@@ -93,12 +96,13 @@ export default function PlatformAdminsPage() {
                                 ))}
                             </TableBody>
                         </Table>
+                        </ResponsiveTable>
                     ) : (
                         <EmptyState title="No platform admins" />
                     )}
                     <InvitePlatformAdminForm onInvited={loadAdmins} />
                 </>
             ) : null}
-        </div>
+        </PageStack>
     )
 }

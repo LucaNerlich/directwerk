@@ -62,12 +62,12 @@ describe('OverviewQueue', () => {
         render(<OverviewQueue desks={['PODCAST']} />)
 
         await waitFor(() =>
-            expect(screen.getByRole('link', {name: 'Entwurfs-Sendung'})).toHaveAttribute(
+            expect(screen.getByRole('link', {name: /Entwurfs-Sendung/})).toHaveAttribute(
                 'href',
                 '/podcast/series/3',
             ),
         )
-        expect(screen.getByRole('link', {name: 'Unveröffentlichte Folge'})).toHaveAttribute(
+        expect(screen.getByRole('link', {name: /Unveröffentlichte Folge/})).toHaveAttribute(
             'href',
             '/podcast/episodes/9',
         )

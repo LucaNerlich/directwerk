@@ -2,6 +2,12 @@
 @source '../**/*.{ts,tsx}';
 @source '../../packages/ui/src/**/*.{ts,tsx}';
 
+@layer base {
+    body {
+        @apply min-w-0;
+    }
+}
+
 .media-asset-row {
     content-visibility: auto;
     contain-intrinsic-size: auto 2.75rem;

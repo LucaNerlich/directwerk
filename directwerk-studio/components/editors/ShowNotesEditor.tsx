@@ -86,8 +86,12 @@ export default function ShowNotesEditor({
     }
 
     return (
-        <div className="grid gap-4">
-            <div className="flex flex-wrap gap-1" aria-hidden={disabled}>
+        <div className="grid gap-2">
+            <label className="text-sm font-medium">{label}</label>
+            <div
+                aria-hidden={disabled}
+                className="flex flex-wrap gap-1 rounded-lg border bg-muted/40 p-1.5"
+            >
                 <Button
                     type="button"
                     size="sm"
@@ -168,7 +172,6 @@ export default function ShowNotesEditor({
                     Link
                 </Button>
             </div>
-            <label className="text-xs text-muted-foreground">{label}</label>
             <EditorContent editor={editor} />
         </div>
     )

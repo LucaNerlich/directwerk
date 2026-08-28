@@ -6,6 +6,7 @@ import {useCallback, useEffect, useState} from 'react'
 
 import {Button} from '@directwerk/ui/components/button'
 import EmptyState from '@directwerk/ui/components/empty-state'
+import ListPanel, {ListPanelRow} from '@directwerk/ui/components/list-panel'
 import PageHeader from '@directwerk/ui/components/page-header'
 
 import PublicationStatusBadge from '@/components/publication/PublicationStatusBadge'
@@ -188,14 +189,11 @@ export default function EpisodeListClient() {
             ) : null}
 
             {episodes.length > 0 ? (
-                <ul className="overflow-hidden rounded-xl border bg-card divide-y">
+                <ListPanel>
                     {episodes.map((episode) => {
                         const isBusy = busyEpisodeId === episode.id
                         return (
-                            <li
-                                key={episode.id}
-                                className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between"
-                            >
+                            <ListPanelRow key={episode.id}>
                                 <div className="min-w-0 flex-1">
                                     <Link
                                         className="font-medium hover:underline"
@@ -240,10 +238,10 @@ export default function EpisodeListClient() {
                                         </Button>
                                     )}
                                 </div>
-                            </li>
+                            </ListPanelRow>
                         )
                     })}
-                </ul>
+                </ListPanel>
             ) : null}
         </div>
     )

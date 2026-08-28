@@ -1,6 +1,7 @@
 'use client'
 
 import {Button} from '@directwerk/ui/components/button'
+import {Checkbox} from '@directwerk/ui/components/checkbox'
 import {Input} from '@directwerk/ui/components/input'
 
 import type {PublicationStatus} from '@directwerk/api/types'
@@ -53,14 +54,13 @@ export default function PublicationWorkflowActions({
             <legend className="sr-only">Veröffentlichung</legend>
             <div className="flex flex-wrap items-end gap-2">
                 {isDraft && (
-                    <Button type="button" className="inline-flex h-9 items-center justify-center rounded-md border bg-background px-4 text-sm font-medium hover:bg-accent disabled:opacity-50" onClick={onSave}>
+                    <Button type="button" variant="outline" onClick={onSave}>
                         {isSaving ? 'Speichert…' : 'Speichern'}
                     </Button>
                 )}
                 {(isDraft || isScheduled) && (
                     <Button
                         type="button"
-                        className="inline-flex h-9 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
                         onClick={onPublish}
                         disabled={!canPublish}
                     >
@@ -68,17 +68,17 @@ export default function PublicationWorkflowActions({
                     </Button>
                 )}
                 {isPublished && (
-                    <Button type="button" className="inline-flex h-9 items-center justify-center rounded-md border bg-background px-4 text-sm font-medium hover:bg-accent disabled:opacity-50" onClick={onUnpublish}>
+                    <Button type="button" variant="outline" onClick={onUnpublish}>
                         Zurückziehen
                     </Button>
                 )}
                 {isPublished && (
-                    <Button type="button" className="inline-flex h-9 items-center justify-center rounded-md border bg-background px-4 text-sm font-medium hover:bg-accent disabled:opacity-50" onClick={onArchive}>
+                    <Button type="button" variant="outline" onClick={onArchive}>
                         Archivieren
                     </Button>
                 )}
                 {isArchived && (
-                    <Button type="button" className="inline-flex h-9 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50" onClick={onUnarchive}>
+                    <Button type="button" onClick={onUnarchive}>
                         Wiederherstellen
                     </Button>
                 )}
@@ -90,7 +90,6 @@ export default function PublicationWorkflowActions({
                         <span>Geplant für</span>
                         <Input
                             type="datetime-local"
-                            className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50"
                             value={scheduledAt}
                             onChange={(event) => onScheduledAtChange(event.target.value)}
                         />
@@ -98,7 +97,7 @@ export default function PublicationWorkflowActions({
                     {isDraft && (
                         <Button
                             type="button"
-                            className="inline-flex h-9 items-center justify-center rounded-md border bg-background px-4 text-sm font-medium hover:bg-accent disabled:opacity-50"
+                            variant="outline"
                             onClick={onSchedule}
                             disabled={!canPublish || scheduledAt.trim().length === 0}
                         >
@@ -106,11 +105,7 @@ export default function PublicationWorkflowActions({
                         </Button>
                     )}
                     {isScheduled && (
-                        <Button
-                            type="button"
-                            className="inline-flex h-9 items-center justify-center rounded-md border bg-background px-4 text-sm font-medium hover:bg-accent disabled:opacity-50"
-                            onClick={onCancelSchedule}
-                        >
+                        <Button type="button" variant="outline" onClick={onCancelSchedule}>
                             Planung aufheben
                         </Button>
                     )}
@@ -118,11 +113,10 @@ export default function PublicationWorkflowActions({
             )}
 
             {showNotify && (isDraft || isScheduled) && (
-                <label className="flex items-center gap-2 text-sm font-normal">
-                    <Input
-                        className="size-4 shrink-0" type="checkbox"
+                <label className="flex cursor-pointer items-center gap-2 text-sm font-normal">
+                    <Checkbox
                         checked={notifySubscribers}
-                        onChange={(event) => onNotifyChange(event.target.checked)}
+                        onCheckedChange={(checked) => onNotifyChange(checked === true)}
                     />
                     <span>Abonnenten benachrichtigen (beim Veröffentlichen)</span>
                 </label>

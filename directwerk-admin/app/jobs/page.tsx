@@ -12,6 +12,8 @@ import EmptyState from '@directwerk/ui/components/empty-state'
 import {Input} from '@directwerk/ui/components/input'
 import {Label} from '@directwerk/ui/components/label'
 import PageHeader from '@directwerk/ui/components/page-header'
+import PageStack from '@directwerk/ui/components/page-stack'
+import ResponsiveTable from '@directwerk/ui/components/responsive-table'
 import {
     Table,
     TableBody,
@@ -146,7 +148,7 @@ export default function JobsPage() {
         page !== null && page.offset + page.limit < page.total
 
     return (
-        <div className="space-y-8">
+        <PageStack>
                 <PageHeader description="Inspect background processing and delivery attempts." eyebrow="Operations" title="Queue jobs" />
 
                 <Card aria-labelledby="job-filters-heading" role="region">
@@ -233,7 +235,8 @@ export default function JobsPage() {
                         </p>
 
                         {page.items.length > 0 ? (
-                            <Table>
+                            <ResponsiveTable label="Queue jobs">
+                                <Table>
                                 <TableHeader>
                                     <TableRow>
                                         <TableHead scope="col">Job ID</TableHead>
@@ -263,6 +266,7 @@ export default function JobsPage() {
                                     ))}
                                 </TableBody>
                             </Table>
+                            </ResponsiveTable>
                         ) : (
                             <EmptyState title="No jobs match the current filters" />
                         )}
@@ -287,6 +291,6 @@ export default function JobsPage() {
                         </div>
                     </>
                 ) : null}
-        </div>
+        </PageStack>
     )
 }

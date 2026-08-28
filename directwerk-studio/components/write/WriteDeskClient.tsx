@@ -6,7 +6,9 @@ import {useEffect, useState} from 'react'
 
 import {Button} from '@directwerk/ui/components/button'
 import EmptyState from '@directwerk/ui/components/empty-state'
+import ListPanel, {listPanelLinkClassName, ListPanelRow} from '@directwerk/ui/components/list-panel'
 import PageHeader from '@directwerk/ui/components/page-header'
+import SectionHeader from '@directwerk/ui/components/section-header'
 
 import PublicationStatusBadge from '@/components/publication/PublicationStatusBadge'
 import {listArticles, listCategories} from '@/lib/api/tenantApi'
@@ -137,14 +139,11 @@ export default function WriteDeskClient(): React.JSX.Element {
             ) : null}
 
             <section aria-labelledby="write-flow-heading" className="flex flex-col gap-4">
-                <div>
-                    <h2 className="text-lg font-semibold" id="write-flow-heading">
-                        So entsteht ein Beitrag
-                    </h2>
-                    <p className="mt-1 text-sm text-muted-foreground">
-                        Optional Kategorien, dann regelmäßig schreiben und veröffentlichen.
-                    </p>
-                </div>
+                <SectionHeader
+                    description="Optional Kategorien, dann regelmäßig schreiben und veröffentlichen."
+                    id="write-flow-heading"
+                    title="So entsteht ein Beitrag"
+                />
                 <ol className="grid gap-3">
                     {steps.map((step) => (
                         <li
@@ -195,12 +194,12 @@ export default function WriteDeskClient(): React.JSX.Element {
 
             {draftArticles.length > 0 ? (
                 <section className="flex flex-col gap-3">
-                    <h2 className="text-lg font-semibold">Offene Entwürfe</h2>
-                    <ul className="overflow-hidden rounded-xl border bg-card divide-y">
+                    <SectionHeader title="Offene Entwürfe" />
+                    <ListPanel>
                         {draftArticles.slice(0, 5).map((article) => (
                             <li key={article.id}>
                                 <Link
-                                    className="flex items-center justify-between gap-4 p-4 text-sm no-underline hover:bg-muted/40"
+                                    className={listPanelLinkClassName}
                                     href={`/write/articles/${article.id}`}
                                 >
                                     <span>{article.title}</span>
@@ -208,7 +207,7 @@ export default function WriteDeskClient(): React.JSX.Element {
                                 </Link>
                             </li>
                         ))}
-                    </ul>
+                    </ListPanel>
                     {draftArticles.length > 5 ? (
                         <p className="text-sm text-muted-foreground">
                             <Link href="/write/articles">Alle Beiträge anzeigen</Link>
