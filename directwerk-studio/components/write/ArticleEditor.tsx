@@ -81,17 +81,18 @@ export default function ArticleEditor({articleId}: {articleId?: number}) {
         let active = true
 
         async function loadSlugIndex(): Promise<void> {
-            try {
-                const loaded = await listArticles(getClientTenantHost())
-                if (active) {
-                    setAllArticles(loaded)
-                }
-            } catch {
-                // Slug hint is optional.
+            const loaded = await listArticles(getClientTenantHost())
+            if (active) {
+                setAllArticles(loaded)
             }
         }
 
-        void loadSlugIndex()
+        void loadSlugIndex().catch((error: unknown) => {
+            if (!active) {
+                return
+            }
+            authRedirect(error)
+        })
 
         if (articleId === undefined) {
             listCategories(getClientTenantHost())
@@ -100,7 +101,17 @@ export default function ArticleEditor({articleId}: {articleId?: number}) {
                         setAvailableCategories(categoryList.filter((item) => item.active))
                     }
                 })
-                .catch(() => {})
+                .catch((error: unknown) => {
+                    if (!active) {
+                        return
+                    }
+                    if (authRedirect(error)) return
+                    setErrorMessage(
+                        error instanceof Error
+                            ? error.message
+                            : 'Kategorien konnten nicht geladen werden.',
+                    )
+                })
             setIsLoading(false)
             return () => {
                 active = false
@@ -246,7 +257,10 @@ export default function ArticleEditor({articleId}: {articleId?: number}) {
             setSaveHint(hint)
             return withTags
         } catch (error) {
-            authRedirect(error)
+            if (authRedirect(error)) return null
+            setErrorMessage(
+                error instanceof Error ? error.message : 'Aktion fehlgeschlagen.',
+            )
             return null
         } finally {
             setIsSaving(false)
@@ -304,7 +318,10 @@ export default function ArticleEditor({articleId}: {articleId?: number}) {
                 setArticle(next)
                 setScheduledAt(toDatetimeLocalValue(next.scheduledAt))
             } catch (error) {
-                authRedirect(error)
+                if (authRedirect(error)) return
+                setErrorMessage(
+                    error instanceof Error ? error.message : 'Aktion fehlgeschlagen.',
+                )
             } finally {
                 setIsSaving(false)
             }
@@ -333,7 +350,10 @@ export default function ArticleEditor({articleId}: {articleId?: number}) {
                 setHeroAssetId(asset.id)
                 markDirty()
             } catch (error) {
-                authRedirect(error)
+                if (authRedirect(error)) return
+                setErrorMessage(
+                    error instanceof Error ? error.message : 'Upload fehlgeschlagen.',
+                )
             } finally {
                 if (mountedRef.current) {
                     setIsUploadingHero(false)

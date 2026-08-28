@@ -89,10 +89,19 @@ export default function CustomFeedsPanel({
                         setPreview(result)
                     }
                 })
-                .catch(() => {
-                    if (active) {
-                        setPreview(null)
+                .catch((error: unknown) => {
+                    if (!active) {
+                        return
                     }
+                    if (handleAuth(error)) {
+                        return
+                    }
+                    setPreview(null)
+                    onError(
+                        error instanceof Error
+                            ? error.message
+                            : 'Vorschau konnte nicht geladen werden.',
+                    )
                 })
         }, 250)
         return () => {

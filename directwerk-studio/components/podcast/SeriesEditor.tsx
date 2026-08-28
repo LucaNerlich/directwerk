@@ -174,7 +174,10 @@ export default function SeriesEditor({seriesId}: SeriesEditorProps): React.JSX.E
             })
             setCoverAssetId(asset.id)
         } catch (error) {
-            authRedirect(error)
+            if (authRedirect(error)) return
+            setErrorMessage(
+                error instanceof Error ? error.message : 'Cover-Upload fehlgeschlagen.',
+            )
         } finally {
             if (mountedRef.current) {
                 setIsUploadingCover(false)
@@ -233,7 +236,10 @@ export default function SeriesEditor({seriesId}: SeriesEditorProps): React.JSX.E
             )
             applySeries(updated)
         } catch (error) {
-            authRedirect(error)
+            if (authRedirect(error)) return
+            setErrorMessage(
+                error instanceof Error ? error.message : 'Veröffentlichung fehlgeschlagen.',
+            )
         } finally {
             setIsSaving(false)
         }
@@ -275,7 +281,10 @@ export default function SeriesEditor({seriesId}: SeriesEditorProps): React.JSX.E
             )
             applySeries(updated)
         } catch (error) {
-            authRedirect(error)
+            if (authRedirect(error)) return
+            setErrorMessage(
+                error instanceof Error ? error.message : 'Aktion fehlgeschlagen.',
+            )
         } finally {
             setIsSaving(false)
         }

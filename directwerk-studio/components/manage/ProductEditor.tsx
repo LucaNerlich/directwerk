@@ -155,7 +155,10 @@ export default function ProductEditor({
             setProduct(updated)
             setStatusMessage('Produkt gespeichert.')
         } catch (error) {
-            authRedirect(error)
+            if (authRedirect(error)) return
+            setErrorMessage(
+                error instanceof Error ? error.message : 'Aktion fehlgeschlagen.',
+            )
         } finally {
             setIsSaving(false)
         }
@@ -172,7 +175,10 @@ export default function ProductEditor({
             setProduct(updated)
             setStatusMessage('Produkt mit Stripe synchronisiert.')
         } catch (error) {
-            authRedirect(error)
+            if (authRedirect(error)) return
+            setErrorMessage(
+                error instanceof Error ? error.message : 'Stripe-Synchronisation fehlgeschlagen.',
+            )
         } finally {
             setIsSaving(false)
         }
@@ -194,7 +200,10 @@ export default function ProductEditor({
             setActive(false)
             setStatusMessage('Produkt deaktiviert.')
         } catch (error) {
-            authRedirect(error)
+            if (authRedirect(error)) return
+            setErrorMessage(
+                error instanceof Error ? error.message : 'Deaktivierung fehlgeschlagen.',
+            )
         } finally {
             setIsSaving(false)
         }

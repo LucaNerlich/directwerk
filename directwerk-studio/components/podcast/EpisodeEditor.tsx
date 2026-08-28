@@ -320,7 +320,10 @@ export default function EpisodeEditor({episodeId}: {episodeId?: number}): React.
             setSaveHint(hint)
             return withTags
         } catch (error) {
-            authRedirect(error)
+            if (authRedirect(error)) return null
+            setErrorMessage(
+                error instanceof Error ? error.message : 'Aktion fehlgeschlagen.',
+            )
             return null
         } finally {
             setIsSaving(false)
@@ -365,7 +368,7 @@ export default function EpisodeEditor({episodeId}: {episodeId?: number}): React.
                 }
                 setRequiredLevelSortOrder(next.requiredLevelSortOrder)
             } catch (error) {
-                authRedirect(error)
+                handleAuthError(error)
             } finally {
                 setIsSaving(false)
             }
@@ -402,7 +405,7 @@ export default function EpisodeEditor({episodeId}: {episodeId?: number}): React.
                 const updated = await attachEpisodeAudio(host, saved.id, asset.id)
                 setEpisode(updated)
             } catch (error) {
-                authRedirect(error)
+                handleAuthError(error)
             } finally {
                 if (mountedRef.current) {
                     setIsUploading(false)
@@ -430,7 +433,7 @@ export default function EpisodeEditor({episodeId}: {episodeId?: number}): React.
                 )
                 setEpisode(updated)
             } catch (error) {
-                authRedirect(error)
+                handleAuthError(error)
             } finally {
                 setIsUploading(false)
             }
@@ -454,7 +457,7 @@ export default function EpisodeEditor({episodeId}: {episodeId?: number}): React.
                 )
                 setEpisode(updated)
             } catch (error) {
-                authRedirect(error)
+                handleAuthError(error)
             } finally {
                 setIsSaving(false)
             }

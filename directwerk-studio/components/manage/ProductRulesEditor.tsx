@@ -74,8 +74,8 @@ export default function ProductRulesEditor({
 
         Promise.all([
             listProductRules(host, productId),
-            listSeries(host).catch(() => [] as SeriesSummary[]),
-            listFormats(host).catch(() => [] as FormatSummary[]),
+            listSeries(host),
+            listFormats(host),
             listCategories(host),
             listMedia(host),
         ])
@@ -104,7 +104,7 @@ export default function ProductRulesEditor({
                 if (!active) {
                     return
                 }
-                authRedirect(error)
+                handleAuthError(error)
                 setIsLoading(false)
             })
 
@@ -158,7 +158,7 @@ export default function ProductRulesEditor({
             )
             setStatusMessage('Regeln gespeichert.')
         } catch (error) {
-            authRedirect(error)
+            handleAuthError(error)
         } finally {
             setIsSaving(false)
         }

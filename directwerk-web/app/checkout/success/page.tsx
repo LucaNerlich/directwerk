@@ -45,7 +45,7 @@ export default function CheckoutSuccessPage(): React.JSX.Element {
                 const tenantHost = getClientTenantHost()
                 const [accessResponse, subscriptions] = await Promise.all([
                     getAccess(tenantHost),
-                    listMySubscriptions(tenantHost).catch(() => []),
+                    listMySubscriptions(tenantHost),
                 ])
                 if (cancelled) {
                     return
