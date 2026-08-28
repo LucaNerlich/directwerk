@@ -42,3 +42,40 @@ export function ListPanelRow({
         </li>
     )
 }
+
+export function ListPanelLinkItem({
+    children,
+    className,
+}: {
+    children: ReactNode
+    className?: string
+}): React.JSX.Element {
+    return <li className={className}>{children}</li>
+}
+
+export function ListPanelSlugContent({
+    name,
+    slug,
+    trailing,
+    trailingClassName,
+}: {
+    name: string
+    slug: string
+    trailing?: ReactNode
+    trailingClassName?: string
+}): React.JSX.Element {
+    return (
+        <>
+            <span>
+                <span className="font-medium">{name}</span>
+                <br />
+                <small className="text-muted-foreground">{slug}</small>
+            </span>
+            {trailing !== undefined ? (
+                <span className={cn('shrink-0 text-muted-foreground', trailingClassName)}>
+                    {trailing}
+                </span>
+            ) : null}
+        </>
+    )
+}

@@ -1,52 +1,27 @@
 'use client'
 
 import Link from 'next/link'
-import {useRouter} from 'next/navigation'
-import {useEffect, useState} from 'react'
 
 import {Button} from '@directwerk/ui/components/button'
 import EmptyState from '@directwerk/ui/components/empty-state'
+import ListPanel, {
+    ListPanelLinkItem,
+    ListPanelSlugContent,
+    listPanelLinkClassName,
+} from '@directwerk/ui/components/list-panel'
 import PageHeader from '@directwerk/ui/components/page-header'
 
 import {listCategories} from '@/lib/api/tenantApi'
 import type {CategorySummary} from '@directwerk/api/types'
 import {getClientTenantHost} from '@/lib/tenant/getClientTenantHost'
-import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
+import {useAuthedQuery} from '@directwerk/api/client'
 
-/**
- * Displays the tenant category management list with loading, empty, and error states.
- */
 export default function CategoryListClient(): React.JSX.Element {
-    const router = useRouter()
-    const authRedirect = useAuthRequired()
-    const [categories, setCategories] = useState<CategorySummary[] | null>(null)
-    const [errorMessage, setErrorMessage] = useState<string | null>(null)
-
-    useEffect(() => {
-        let active = true
-
-        listCategories(getClientTenantHost())
-            .then((result) => {
-                if (active) {
-                    setCategories(result)
-                }
-            })
-            .catch((error: unknown) => {
-                if (!active) {
-                    return
-                }
-                if (authRedirect(error)) return
-                setErrorMessage(
-                    error instanceof Error
-                        ? error.message
-                        : 'Kategorien konnten nicht geladen werden.',
-                )
-            })
-
-        return () => {
-            active = false
-        }
-    }, [router])
+    const {data: categories, error: errorMessage, isLoading} = useAuthedQuery<
+        CategorySummary[]
+    >(() => listCategories(getClientTenantHost()), {
+        fallbackError: 'Kategorien konnten nicht geladen werden.',
+    })
 
     return (
         <div className="flex flex-col gap-6">
@@ -66,7 +41,7 @@ export default function CategoryListClient(): React.JSX.Element {
                     {errorMessage}
                 </p>
             ) : null}
-            {categories === null && !errorMessage ? <p>Laden…</p> : null}
+            {isLoading && !errorMessage ? <p>Laden…</p> : null}
             {categories && categories.length === 0 ? (
                 <EmptyState
                     title="Noch keine Kategorien"
@@ -79,25 +54,22 @@ export default function CategoryListClient(): React.JSX.Element {
                 />
             ) : null}
             {categories && categories.length > 0 ? (
-                <ul className="overflow-hidden rounded-xl border bg-card divide-y">
+                <ListPanel>
                     {categories.map((category) => (
-                        <li key={category.id}>
+                        <ListPanelLinkItem key={category.id}>
                             <Link
-                                className="flex w-full items-center justify-between gap-4 p-4 text-sm no-underline hover:bg-muted/40"
+                                className={listPanelLinkClassName}
                                 href={`/manage/categories/${category.id}`}
                             >
-                                <span>
-                                    <span className="font-medium">{category.name}</span>
-                                    <br />
-                                    <small className="text-muted-foreground">{category.slug}</small>
-                                </span>
-                                <span className="flex shrink-0 items-center gap-3 text-sm text-muted-foreground">
-                                    {category.active ? 'Aktiv' : 'Inaktiv'}
-                                </span>
+                                <ListPanelSlugContent
+                                    name={category.name}
+                                    slug={category.slug}
+                                    trailing={category.active ? 'Aktiv' : 'Inaktiv'}
+                                />
                             </Link>
-                        </li>
+                        </ListPanelLinkItem>
                     ))}
-                </ul>
+                </ListPanel>
             ) : null}
         </div>
     )

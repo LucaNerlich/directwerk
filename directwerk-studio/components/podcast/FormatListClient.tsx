@@ -1,55 +1,28 @@
 'use client'
 
 import Link from 'next/link'
-import {useRouter} from 'next/navigation'
-import {useEffect, useState} from 'react'
 
 import {Alert, AlertDescription} from '@directwerk/ui/components/alert'
 import {Button} from '@directwerk/ui/components/button'
 import EmptyState from '@directwerk/ui/components/empty-state'
-import ListPanel, {listPanelLinkClassName} from '@directwerk/ui/components/list-panel'
+import ListPanel, {
+    ListPanelLinkItem,
+    ListPanelSlugContent,
+    listPanelLinkClassName,
+} from '@directwerk/ui/components/list-panel'
 import PageHeader from '@directwerk/ui/components/page-header'
 import PageStack from '@directwerk/ui/components/page-stack'
 
 import {listFormats} from '@/lib/api/tenantApi'
 import type {FormatSummary} from '@directwerk/api/types'
 import {getClientTenantHost} from '@/lib/tenant/getClientTenantHost'
-import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
+import {useAuthedQuery} from '@directwerk/api/client'
 
-/**
- * Lists podcast formats (Formate) as a setup surface for the content-creation flow.
- */
 export default function FormatListClient(): React.JSX.Element {
-    const router = useRouter()
-    const authRedirect = useAuthRequired()
-    const [formats, setFormats] = useState<FormatSummary[] | null>(null)
-    const [errorMessage, setErrorMessage] = useState<string | null>(null)
-
-    useEffect(() => {
-        let active = true
-
-        listFormats(getClientTenantHost())
-            .then((result) => {
-                if (active) {
-                    setFormats(result)
-                }
-            })
-            .catch((error: unknown) => {
-                if (!active) {
-                    return
-                }
-                if (authRedirect(error)) return
-                setErrorMessage(
-                    error instanceof Error
-                        ? error.message
-                        : 'Formate konnten nicht geladen werden.',
-                )
-            })
-
-        return () => {
-            active = false
-        }
-    }, [router])
+    const {data: formats, error: errorMessage, isLoading} = useAuthedQuery<FormatSummary[]>(
+        () => listFormats(getClientTenantHost()),
+        {fallbackError: 'Formate konnten nicht geladen werden.'},
+    )
 
     return (
         <PageStack>
@@ -69,7 +42,7 @@ export default function FormatListClient(): React.JSX.Element {
                     <AlertDescription>{errorMessage}</AlertDescription>
                 </Alert>
             ) : null}
-            {formats === null && !errorMessage ? (
+            {isLoading && !errorMessage ? (
                 <p className="text-sm text-muted-foreground">Laden…</p>
             ) : null}
             {formats && formats.length === 0 ? (
@@ -86,21 +59,18 @@ export default function FormatListClient(): React.JSX.Element {
             {formats && formats.length > 0 ? (
                 <ListPanel>
                     {formats.map((format) => (
-                        <li key={format.id}>
+                        <ListPanelLinkItem key={format.id}>
                             <Link
                                 className={listPanelLinkClassName}
                                 href={`/podcast/formats/${format.id}`}
                             >
-                                <span>
-                                    <span className="font-medium">{format.name}</span>
-                                    <br />
-                                    <small className="text-muted-foreground">{format.slug}</small>
-                                </span>
-                                <span className="shrink-0 text-muted-foreground">
-                                    {format.active ? 'Aktiv' : 'Inaktiv'}
-                                </span>
+                                <ListPanelSlugContent
+                                    name={format.name}
+                                    slug={format.slug}
+                                    trailing={format.active ? 'Aktiv' : 'Inaktiv'}
+                                />
                             </Link>
-                        </li>
+                        </ListPanelLinkItem>
                     ))}
                 </ListPanel>
             ) : null}
