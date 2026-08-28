@@ -74,3 +74,35 @@ flyway {
     // Leftover R__alpha_dev_seed rows from older local/docker runs.
     ignoreMigrationPatterns = ['repeatable:missing']
 }
+
+def openApiOutputFile = rootProject.layout.projectDirectory.file("../directwerk-docs/docs/openapi/directwerk-api.json")
+
+tasks.register('exportOpenApi', Test) {
+    description = 'Export OpenAPI spec (springdoc) to directwerk-docs/docs/openapi/directwerk-api.json'
+    group = 'documentation'
+    testClassesDirs = testing.suites.test.sources.output.classesDirs
+    classpath = testing.suites.test.sources.runtimeClasspath
+    useJUnitPlatform {
+        includeTags 'openapi-export'
+    }
+    environment 'DIRECTWERK_PLATFORM_CLIENT_SECRET', System.getenv('DIRECTWERK_PLATFORM_CLIENT_SECRET') ?: 'openapi-export'
+    environment 'DIRECTWERK_TENANT_CLIENT_SECRET', System.getenv('DIRECTWERK_TENANT_CLIENT_SECRET') ?: 'openapi-export'
+    systemProperty 'openapi.output', openApiOutputFile.asFile.absolutePath
+    // Always regenerate when invoked — Test result caching would otherwise skip after first run.
+    outputs.file(openApiOutputFile)
+    outputs.upToDateWhen { false }
+
+    doLast {
+        def out = openApiOutputFile.asFile
+        if (!out.isFile()) {
+            throw new GradleException("OpenAPI export failed — expected ${out} to exist")
+        }
+        logger.lifecycle("OpenAPI spec written to ${out} (${out.length()} bytes)")
+    }
+}
+
+tasks.named('test') {
+    useJUnitPlatform {
+        excludeTags 'openapi-export'
+    }
+}

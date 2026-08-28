@@ -1,0 +1,38 @@
+:root {
+  --vp-c-brand-1: oklch(0.45 0.12 250);
+  --vp-c-brand-2: oklch(0.38 0.1 250);
+  --vp-c-brand-3: oklch(0.32 0.09 250);
+  --vp-c-brand-soft: oklch(0.95 0.02 250);
+
+  --vp-c-bg: oklch(0.99 0.004 95);
+  --vp-c-bg-alt: oklch(0.97 0.006 95);
+  --vp-c-text-1: oklch(0.19 0.018 76);
+  --vp-c-text-2: oklch(0.42 0.02 76);
+
+  --vp-font-family-base: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --vp-font-family-mono: ui-monospace, 'Cascadia Code', 'Source Code Pro', Menlo, Consolas, monospace;
+}
+
+.dark {
+  --vp-c-brand-1: oklch(0.65 0.14 250);
+  --vp-c-brand-2: oklch(0.58 0.12 250);
+  --vp-c-brand-3: oklch(0.52 0.11 250);
+  --vp-c-brand-soft: oklch(0.25 0.04 250);
+
+  --vp-c-bg: oklch(0.16 0.015 76);
+  --vp-c-bg-alt: oklch(0.2 0.015 76);
+  --vp-c-text-1: oklch(0.95 0.01 95);
+  --vp-c-text-2: oklch(0.72 0.02 95);
+}
+
+/* Mermaid diagrams (vitepress-plugin-mermaid-diagram) */
+.mermaid-diagram {
+  margin: 1.5rem 0;
+  display: flex;
+  justify-content: center;
+}
+
+.mermaid-diagram svg {
+  max-width: 100%;
+  height: auto;
+}

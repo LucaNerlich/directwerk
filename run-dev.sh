@@ -1,8 +1,8 @@
 #!/bin/bash
 # Starts publish apps in dev mode inside a tmux session.
-# Windows: studio (3003) · homepage (3002) · directwerk-admin (3001) · directwerk-web (3004) · example-fe (3000)
+# Windows: studio (3003) · homepage (3002) · directwerk-admin (3001) · directwerk-web (3004) · docs (5173) · example-fe (3000)
 # Usage: ./run-dev.sh
-# Navigate windows: Ctrl+B [0-4] or Ctrl+B n/p
+# Navigate windows: Ctrl+B [0-5] or Ctrl+B n/p
 
 SESSION="publish-dev"
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -20,6 +20,9 @@ tmux send-keys    -t "$SESSION:directwerk-admin" "pnpm run dev" Enter
 
 tmux new-window   -t "$SESSION"  -n "directwerk-web"  -c "$DIR/directwerk-web"
 tmux send-keys    -t "$SESSION:directwerk-web"  "pnpm run dev" Enter
+
+tmux new-window   -t "$SESSION"  -n "docs"         -c "$DIR/directwerk-docs"
+tmux send-keys    -t "$SESSION:docs"         "pnpm run dev" Enter
 
 tmux new-window   -t "$SESSION"  -n "example-fe"   -c "$DIR/example-fe"
 tmux send-keys    -t "$SESSION:example-fe"   "pnpm run dev" Enter

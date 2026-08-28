@@ -117,6 +117,7 @@ product strategy, and UI — read them before coding a slice.
 
 | Document | Purpose | When to read |
 |----------|---------|--------------|
+| [`directwerk-docs/`](directwerk-docs/) | **Public documentation site** — install, operators, architecture, API integration + OpenAPI reference (VitePress) | **End users and integrators** |
 | [`Directwerk/docs/build-and-deploy.md`](Directwerk/docs/build-and-deploy.md) | **How to run / deploy** — local Gradle + Compose (Postgres, Mailpit), Docker image, Coolify/prod | **Start here to run the API** |
 | [`Directwerk/docs/jobs-and-email.md`](Directwerk/docs/jobs-and-email.md) | Postgres job queue, transactional email, worker scaling | Jobs / SMTP / invites |
 | [`Directwerk/docs/multi-tenancy.md`](Directwerk/docs/multi-tenancy.md) | Host-based tenancy, isolation, proxy headers | Auth / domain routing |
@@ -138,6 +139,30 @@ product strategy, and UI — read them before coding a slice.
 (settings/team) → media upload (Phase 2c) → podcast CRUD + Studio v2 (Phase 3) → RSS,
 subscriptions, billing (post-MVP). See [MVP implementation phases](#mvp-implementation-phases) and
 [`poc-alpha-setup.md` § Recommended work sequence](docs/poc-alpha-setup.md#recommended-work-sequence).
+
+### Regenerating the docs site
+
+Public docs live in [`directwerk-docs/`](directwerk-docs/) (VitePress). From the **monorepo root**:
+
+```sh
+pnpm install
+
+# After REST controller / DTO changes — refresh checked-in OpenAPI + API reference pages
+./Directwerk/gradlew :directwerk-app:exportOpenApi
+pnpm --filter directwerk-docs build
+
+# Local preview (:5173 dev, :4173 after build)
+pnpm --filter directwerk-docs dev
+pnpm --filter directwerk-docs start
+```
+
+| When | What to run |
+|------|-------------|
+| New/changed API endpoints | `exportOpenApi` then `build` (regenerates `docs/openapi/directwerk-api.json` and `docs/_openapi/api/reference/*`) |
+| Edits to guide/install/operators pages only | `pnpm --filter directwerk-docs build` (or `dev`) |
+| Material changes to internal docs in `docs/` or `Directwerk/docs/` | Update the matching public page under `directwerk-docs/docs/` in the same PR |
+
+Details: [`directwerk-docs/README.md`](directwerk-docs/README.md) (Coolify deploy, content workflow, curl-based OpenAPI export).
 
 ---
 
@@ -2636,8 +2661,8 @@ docker compose up -d          # Postgres :5433, Mailpit SMTP :1025 / UI :8025
 | `http://localhost:8080/swagger-ui.html` | OpenAPI UI |
 | `http://127.0.0.1:8025` | Mailpit (captured email) |
 
-Frontends: `example-fe` (:3000), `directwerk-admin` (:3001), `directwerk-studio` (:3003), and
-`directwerk-web` (:3004). HTTP harness: [`Directwerk/http/`](Directwerk/http/).
+Frontends: `example-fe` (:3000), `directwerk-admin` (:3001), `directwerk-studio` (:3003),
+`directwerk-web` (:3004), `directwerk-docs` (:5173). HTTP harness: [`Directwerk/http/`](Directwerk/http/).
 
 Object storage (when implementing uploads) uses Hetzner or Bunny.net (EU) — not a local container.
 See [`docs/asset-storage.md`](docs/asset-storage.md). Stripe webhook forwarding (when billing ships):
@@ -2785,7 +2810,7 @@ Path filter: `projects/directwerk/**`
 - [x] `TenantContext`, `TenantResolver`, Hibernate `tenantFilter` + write guard (see `Directwerk/docs/multi-tenancy.md`)
 - [ ] Global exception handler + `Response` wrapper (+ structured error `code` field)
 - [ ] **OpenAPI 3 + Swagger UI — treat as product deliverable**
-- [ ] **Integration guide stub in `docs/directwerk-api-integration.md`**
+- [x] **Integration guide in `directwerk-docs/docs/api/integration.md`** (public docs site)
 - [ ] Platform admin API for module activate/deactivate
 - [x] `Directwerk/compose.yaml` (Postgres + Mailpit), `Dockerfile`, [`docs/build-and-deploy.md`](Directwerk/docs/build-and-deploy.md), `AGENTS.md`
 - [ ] Actuator health endpoint

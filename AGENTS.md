@@ -8,7 +8,7 @@ is the contract; agencies may build custom frontends against the same endpoints.
 
 See [`README.md`](README.md) for the full design specification. **How to run / deploy the API:**
 [`Directwerk/docs/build-and-deploy.md`](Directwerk/docs/build-and-deploy.md) (Compose Postgres +
-Mailpit, host `bootRun`, Docker image, Coolify/prod). Companion docs: [`docs/poc-alpha-setup.md`](docs/poc-alpha-setup.md),
+Mailpit, host `bootRun`, Docker image, Coolify/prod). **Public docs site:** [`directwerk-docs/`](directwerk-docs/) (VitePress). OpenAPI export: `./Directwerk/gradlew :directwerk-app:exportOpenApi`. Companion docs: [`docs/poc-alpha-setup.md`](docs/poc-alpha-setup.md),
 [`Directwerk/docs/jobs-and-email.md`](Directwerk/docs/jobs-and-email.md),
 [`Directwerk/docs/multi-tenancy.md`](Directwerk/docs/multi-tenancy.md),
 [`docs/user-backend-implementation.md`](docs/user-backend-implementation.md),
@@ -25,6 +25,8 @@ Mailpit, host `bootRun`, Docker image, Coolify/prod). Companion docs: [`docs/poc
 Manual API tests: [`Directwerk/http/`](Directwerk/http/). The retained API demo UI is
 `example-fe`; product UIs are `directwerk-admin`, `directwerk-studio`, and `directwerk-web`.
 
+**Public docs site:** [`directwerk-docs/`](directwerk-docs/) — VitePress site (install guide, operators, API reference). Root [`docs/`](docs/) remains internal/agent source.
+
 **Stack**: Java 21 · Spring Boot 4.1.0 · Gradle 9.x · Flyway 12+ · PostgreSQL 19 (beta) · Hetzner/Bunny S3 (EU) · Stripe Connect · Patreon/Steady API
 
 Alpha storage: `Directwerk/directwerk-digital` (`MediaAsset`, S3, upload-url/confirm, private
@@ -36,6 +38,7 @@ presign). See [`docs/asset-storage.md`](docs/asset-storage.md). Podcast Phase 3 
 - `projects/directwerk-web/` — public site + subscriber portal (Phase 9)
 - `projects/directwerk-admin/` — platform superadmin dashboard (Phase 5)
 - `homepage/` — **platform marketing site** + API excerpt at `/developers` ([`homepage/README.md`](homepage/README.md))
+- `directwerk-docs/` — **public documentation** (VitePress — install, operators, API reference)
 
 **Deployment**: Docker via Coolify on Hetzner Cloud — see [`Directwerk/docs/build-and-deploy.md`](Directwerk/docs/build-and-deploy.md)
 
@@ -69,6 +72,7 @@ docker compose --profile stack up --build
 - Swagger: `http://localhost:8080/swagger-ui.html`
 - Mailpit UI: `http://127.0.0.1:8025`
 - Directwerk admin / example FE: `http://localhost:3001` / `http://localhost:3000`
+- Docs site: `http://localhost:5173` (`pnpm --filter directwerk-docs dev`)
 
 ## Domain Model (summary)
 
