@@ -10,7 +10,9 @@
         "./server": "./src/server/index.ts",
         "./auth/*": "./src/auth/*.ts",
         "./client": "./src/client/index.ts",
+        "./format": "./src/format/money.ts",
         "./proxy": "./src/proxy/index.ts",
+        "./tenant": "./src/tenant/index.ts",
         "./validation": "./src/validation/index.ts"
     },
     "scripts": {

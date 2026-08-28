@@ -1,7 +1,1 @@
-'use client'
-
-import {resolveTenantHost} from '@/lib/tenant/resolveTenantHost'
-
-export function getClientTenantHost(): string {
-    return resolveTenantHost(window.location.hostname)
-}
+export {getClientTenantHost} from '@directwerk/api/tenant'

@@ -236,3 +236,5 @@ export function createJsonRequest(config: {
     }
 }
 
+export {useAuthedQuery, type UseAuthedQueryOptions, type UseAuthedQueryResult} from './useAuthedQuery'
+
