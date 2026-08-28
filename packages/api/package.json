@@ -13,6 +13,7 @@
         "./format": "./src/format/money.ts",
         "./proxy": "./src/proxy/index.ts",
         "./tenant": "./src/tenant/index.ts",
+        "./tenant/server": "./src/tenant/server.ts",
         "./validation": "./src/validation/index.ts"
     },
     "scripts": {

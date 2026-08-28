@@ -5,4 +5,3 @@ export {
     type TenantHostHeaderReader,
 } from './resolveTenantHost'
 export {getClientTenantHost} from './getClientTenantHost'
-export {createGetTenantHost} from './createGetTenantHost'
