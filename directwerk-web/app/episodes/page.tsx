@@ -4,7 +4,13 @@ import Link from 'next/link'
 import {useEffect, useState, useSyncExternalStore} from 'react'
 
 import {Alert, AlertDescription} from '@directwerk/ui/components/alert'
+import {Badge} from '@directwerk/ui/components/badge'
+import {Button} from '@directwerk/ui/components/button'
+import EmptyState from '@directwerk/ui/components/empty-state'
+import ListPanel, {ListPanelRow} from '@directwerk/ui/components/list-panel'
 import PageHeader from '@directwerk/ui/components/page-header'
+import PageStack from '@directwerk/ui/components/page-stack'
+import SectionHeader from '@directwerk/ui/components/section-header'
 
 import {getSiteConfig, listMyEpisodes, listPublicEpisodes, listPublicSeries} from '@/lib/api/client'
 import {AUTH_REQUIRED} from '@directwerk/api/constants'
@@ -23,6 +29,10 @@ function readTokenClient(): string | null {
 
 function readTokenServer(): string | null {
     return null
+}
+
+function accessPolicyLabel(policy: PublicEpisode['accessPolicy']): string {
+    return policy === 'PAID' ? 'Bezahlt' : 'Frei'
 }
 
 export default function EpisodesPage() {
@@ -91,7 +101,7 @@ export default function EpisodesPage() {
     }, [tenantHost, isAuthenticated])
 
     return (
-        <div className="page-container space-y-8">
+        <PageStack className="page-container">
             <PageHeader
                 title="Folgen"
                 description={
@@ -100,17 +110,25 @@ export default function EpisodesPage() {
                         : 'Öffentlich: nur freie Folgen. Anmelden für bezahlte Inhalte.'
                 }
             />
-            {isLoading && <p>Wird geladen…</p>}
-            {errorMessage !== null && <Alert variant="destructive"><AlertDescription>{errorMessage}</AlertDescription></Alert>}
+            {isLoading ? (
+                <p className="text-sm text-muted-foreground">Wird geladen…</p>
+            ) : null}
+            {errorMessage !== null ? (
+                <Alert variant="destructive">
+                    <AlertDescription>{errorMessage}</AlertDescription>
+                </Alert>
+            ) : null}
 
-            {!isLoading && errorMessage === null && (
+            {!isLoading && errorMessage === null ? (
                 <>
-                    <section>
-                        <h2>Sendungen</h2>
+                    <section className="flex flex-col gap-4">
+                        <SectionHeader title="Sendungen" />
                         {series.length === 0 ? (
-                            <p>Noch keine veröffentlichten Sendungen.</p>
+                            <p className="text-sm text-muted-foreground">
+                                Noch keine veröffentlichten Sendungen.
+                            </p>
                         ) : (
-                            <ul>
+                            <ListPanel>
                                 {series.map((item) => {
                                     const feedUrl =
                                         siteConfig === null
@@ -121,78 +139,95 @@ export default function EpisodesPage() {
                                                   item.slug,
                                               )
                                     return (
-                                        <li key={item.id}>
-                                            <strong>{item.title}</strong> ({item.slug})
-                                            {item.language !== null
-                                                ? ` · ${item.language}`
-                                                : ''}
-                                            <br />
-                                            {feedUrl !== null ? (
-                                                <small>
-                                                    Öffentlicher RSS:{' '}
-                                                    <a href={feedUrl} rel="noreferrer">
-                                                        {feedUrl}
-                                                    </a>
-                                                </small>
-                                            ) : null}
-                                        </li>
+                                        <ListPanelRow key={item.id}>
+                                            <div className="min-w-0 flex-1">
+                                                <p className="font-medium">{item.title}</p>
+                                                <p className="mt-1 text-sm text-muted-foreground">
+                                                    {item.slug}
+                                                    {item.language !== null
+                                                        ? ` · ${item.language}`
+                                                        : ''}
+                                                </p>
+                                                {feedUrl !== null ? (
+                                                    <p className="mt-2 break-all text-sm">
+                                                        <a href={feedUrl} rel="noreferrer">
+                                                            {feedUrl}
+                                                        </a>
+                                                    </p>
+                                                ) : null}
+                                            </div>
+                                        </ListPanelRow>
                                     )
                                 })}
-                            </ul>
+                            </ListPanel>
                         )}
                     </section>
 
-                    <section>
-                        <h2>Veröffentlichte Folgen</h2>
+                    <section className="flex flex-col gap-4">
+                        <SectionHeader title="Veröffentlichte Folgen" />
                         {episodes.length === 0 ? (
-                            <p>
-                                {isAuthenticated
-                                    ? 'Keine veröffentlichten Folgen, auf die du Zugriff hast.'
-                                    : 'Noch keine veröffentlichten Folgen.'}
-                            </p>
+                            <EmptyState
+                                description={
+                                    isAuthenticated
+                                        ? 'Keine veröffentlichten Folgen, auf die du Zugriff hast.'
+                                        : 'Noch keine veröffentlichten Folgen.'
+                                }
+                                title="Keine Folgen"
+                            />
                         ) : (
-                            <ul>
+                            <ListPanel>
                                 {episodes.map((episode) => (
-                                    <li key={episode.id}>
-                                        <h3>
-                                            <Link href={`/episodes/${encodeURIComponent(episode.slug)}`}>
+                                    <ListPanelRow key={episode.id}>
+                                        <div className="min-w-0 flex-1">
+                                            <Link
+                                                className="font-medium hover:underline"
+                                                href={`/episodes/${encodeURIComponent(episode.slug)}`}
+                                            >
                                                 {episode.episodeNumber !== null
                                                     ? `#${episode.episodeNumber} `
                                                     : ''}
                                                 {episode.title}
                                             </Link>
-                                        </h3>
-                                        <p>
-                                            <small>
+                                            <p className="mt-1 text-sm text-muted-foreground">
                                                 {episode.seriesSlug} ·{' '}
-                                                {episode.accessPolicy === 'PAID'
-                                                    ? 'Bezahlt'
-                                                    : 'Frei'}{' '}
-                                                · {formatPublishedAt(episode.publishedAt)}
-                                            </small>
-                                        </p>
-                                        {episode.audioCdnUrl !== null ? (
-                                            <p>
-                                                <Link href={`/episodes/${encodeURIComponent(episode.slug)}`}>
+                                                {accessPolicyLabel(episode.accessPolicy)} ·{' '}
+                                                {formatPublishedAt(episode.publishedAt)}
+                                            </p>
+                                        </div>
+                                        <div className="flex shrink-0 items-center gap-2">
+                                            <Badge variant="outline">
+                                                {accessPolicyLabel(episode.accessPolicy)}
+                                            </Badge>
+                                            {episode.audioCdnUrl !== null ? (
+                                                <Button
+                                                    nativeButton={false}
+                                                    render={
+                                                        <Link
+                                                            href={`/episodes/${encodeURIComponent(episode.slug)}`}
+                                                        />
+                                                    }
+                                                    size="sm"
+                                                    variant="outline"
+                                                >
                                                     Anhören
-                                                </Link>
-                                            </p>
-                                        ) : (
-                                            <p>
-                                                {episode.accessPolicy === 'PAID'
-                                                    ? isAuthenticated
-                                                        ? 'Bezahlte Folge — Details für den Zugang öffnen.'
-                                                        : 'Bezahlte Folge — anmelden, um sie zu hören.'
-                                                    : 'Noch keine öffentliche Audio-URL.'}
-                                            </p>
-                                        )}
-                                    </li>
+                                                </Button>
+                                            ) : (
+                                                <span className="text-xs text-muted-foreground">
+                                                    {episode.accessPolicy === 'PAID'
+                                                        ? isAuthenticated
+                                                            ? 'Freischaltung prüfen'
+                                                            : 'Anmelden für Zugang'
+                                                        : 'Kein Audio'}
+                                                </span>
+                                            )}
+                                        </div>
+                                    </ListPanelRow>
                                 ))}
-                            </ul>
+                            </ListPanel>
                         )}
                     </section>
                 </>
-            )}
-        </div>
+            ) : null}
+        </PageStack>
     )
 }

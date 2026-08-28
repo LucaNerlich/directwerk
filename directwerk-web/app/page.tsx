@@ -5,6 +5,9 @@ import {useEffect, useState} from 'react'
 
 import {buttonVariants} from '@directwerk/ui/components/button'
 import EmptyState from '@directwerk/ui/components/empty-state'
+import FeatureCard from '@directwerk/ui/components/feature-card'
+import SectionHeader from '@directwerk/ui/components/section-header'
+import StatCard from '@directwerk/ui/components/stat-card'
 
 import BrandLogo from '@/components/BrandLogo'
 import HowToListen from '@/components/HowToListen'
@@ -139,106 +142,107 @@ export default function HomePage(): React.JSX.Element {
             </section>
 
             <section className="mx-auto mt-4 grid max-w-3xl gap-4 sm:grid-cols-3">
-                <div className="rounded-xl border bg-card p-4">
-                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                        1
-                    </p>
-                    <h2 className="mt-2 font-semibold">Entdecken</h2>
-                    <p className="mt-1 text-sm text-muted-foreground">
-                        {showPodcast
+                <StatCard
+                    hint={
+                        showPodcast
                             ? 'Höre freie Folgen im Browser oder abonniere den öffentlichen Feed.'
-                            : 'Lies freie Beiträge ohne Anmeldung.'}
-                    </p>
-                </div>
-                <div className="rounded-xl border bg-card p-4">
-                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                        2
-                    </p>
-                    <h2 className="mt-2 font-semibold">Anmelden</h2>
-                    <p className="mt-1 text-sm text-muted-foreground">
-                        Ein Konto merkt sich deinen Zugang — auf dieser Domain, ohne
-                        fremde Plattform.
-                    </p>
-                </div>
-                <div className="rounded-xl border bg-card p-4">
-                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                        3
-                    </p>
-                    <h2 className="mt-2 font-semibold">Zugang</h2>
-                    <p className="mt-1 text-sm text-muted-foreground">
-                        {showPricing
+                            : 'Lies freie Beiträge ohne Anmeldung.'
+                    }
+                    label="Schritt 1"
+                    value="Entdecken"
+                />
+                <StatCard
+                    hint="Ein Konto merkt sich deinen Zugang — auf dieser Domain, ohne fremde Plattform."
+                    label="Schritt 2"
+                    value="Anmelden"
+                />
+                <StatCard
+                    hint={
+                        showPricing
                             ? 'Mitgliedschaften schalten bezahlte Folgen, Beiträge und Bonusdateien frei.'
-                            : 'Nach der Anmeldung siehst du alles, was für dich freigeschaltet ist.'}
-                    </p>
-                </div>
+                            : 'Nach der Anmeldung siehst du alles, was für dich freigeschaltet ist.'
+                    }
+                    label="Schritt 3"
+                    value="Zugang"
+                />
             </section>
 
             {latestEpisode !== null || latestArticle !== null ? (
                 <section className="mx-auto mt-10 grid max-w-3xl gap-4 sm:grid-cols-2">
                     {latestEpisode !== null ? (
-                        <article className="rounded-xl border bg-card p-5">
-                            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                                Neueste Folge
-                            </p>
-                            <h2 className="mt-2 text-xl font-semibold">
-                                <Link href={`/episodes/${encodeURIComponent(latestEpisode.slug)}`}>
+                        <FeatureCard
+                            description={
+                                <>
+                                    {latestEpisode.accessPolicy === 'PAID' ? 'Bezahlt' : 'Frei'}
+                                    {' · '}
+                                    {formatPublishedAt(latestEpisode.publishedAt)}
+                                    <span className="mt-3 block">
+                                        <Link href="/episodes">Alle Folgen</Link>
+                                    </span>
+                                </>
+                            }
+                            eyebrow="Neueste Folge"
+                            title={
+                                <Link
+                                    className="hover:underline"
+                                    href={`/episodes/${encodeURIComponent(latestEpisode.slug)}`}
+                                >
                                     {latestEpisode.episodeNumber !== null
                                         ? `#${latestEpisode.episodeNumber} `
                                         : ''}
                                     {latestEpisode.title}
                                 </Link>
-                            </h2>
-                            <p className="mt-1 text-sm text-muted-foreground">
-                                {latestEpisode.accessPolicy === 'PAID' ? 'Bezahlt' : 'Frei'}
-                                {' · '}
-                                {formatPublishedAt(latestEpisode.publishedAt)}
-                            </p>
-                            <p className="mt-3 text-sm">
-                                <Link href="/episodes">Alle Folgen</Link>
-                            </p>
-                        </article>
+                            }
+                        />
                     ) : null}
                     {latestArticle !== null ? (
-                        <article className="rounded-xl border bg-card p-5">
-                            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                                Neuester Beitrag
-                            </p>
-                            <h2 className="mt-2 text-xl font-semibold">
-                                <Link href={`/articles/${encodeURIComponent(latestArticle.slug)}`}>
+                        <FeatureCard
+                            description={
+                                <span className="mt-3 block">
+                                    <Link href="/articles">Alle Beiträge</Link>
+                                </span>
+                            }
+                            eyebrow="Neuester Beitrag"
+                            title={
+                                <Link
+                                    className="hover:underline"
+                                    href={`/articles/${encodeURIComponent(latestArticle.slug)}`}
+                                >
                                     {latestArticle.title}
                                 </Link>
-                            </h2>
-                            <p className="mt-3 text-sm">
-                                <Link href="/articles">Alle Beiträge</Link>
-                            </p>
-                        </article>
+                            }
+                        />
                     ) : null}
                 </section>
             ) : null}
 
             {showPricing && products.length > 0 ? (
-                <section className="mx-auto mt-10 max-w-3xl">
-                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                        Mitgliedschaft
-                    </p>
-                    <h2 className="mt-2 text-2xl font-semibold">Was du freischalten kannst</h2>
-                    <ul className="mt-4 grid gap-3 sm:grid-cols-3">
+                <section className="mx-auto mt-10 max-w-3xl space-y-4">
+                    <SectionHeader
+                        description="Mitgliedschaften und Pakete auf einen Blick."
+                        title="Was du freischalten kannst"
+                    />
+                    <ul className="grid gap-3 sm:grid-cols-3">
                         {products.map((product) => (
-                            <li className="rounded-xl border bg-card p-4" key={product.slug}>
-                                <p className="font-medium">{product.title}</p>
-                                <p className="mt-1 text-sm text-muted-foreground">
-                                    {product.offeringType === 'LEVEL' ? 'Stufe' : 'Paket'}
-                                    {' · '}
-                                    {formatMoney(
-                                        product.priceCents,
-                                        product.currency,
-                                        product.billingInterval,
-                                    )}
-                                </p>
+                            <li key={product.slug}>
+                                <FeatureCard
+                                    description={
+                                        <>
+                                            {product.offeringType === 'LEVEL' ? 'Stufe' : 'Paket'}
+                                            {' · '}
+                                            {formatMoney(
+                                                product.priceCents,
+                                                product.currency,
+                                                product.billingInterval,
+                                            )}
+                                        </>
+                                    }
+                                    title={product.title}
+                                />
                             </li>
                         ))}
                     </ul>
-                    <p className="mt-4 text-sm">
+                    <p className="text-sm">
                         <Link href="/pricing">Zu den Preisen</Link>
                     </p>
                 </section>

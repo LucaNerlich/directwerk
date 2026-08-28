@@ -8,7 +8,17 @@ import {useActionState, useEffect, useState} from 'react'
 import {Alert, AlertDescription} from '@directwerk/ui/components/alert'
 import {Button} from '@directwerk/ui/components/button'
 import PageHeader from '@directwerk/ui/components/page-header'
-import {Table, TableBody, TableCell, TableHead, TableHeader, TableRow} from '@directwerk/ui/components/table'
+import PageStack from '@directwerk/ui/components/page-stack'
+import ResponsiveTable from '@directwerk/ui/components/responsive-table'
+import SectionHeader from '@directwerk/ui/components/section-header'
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+} from '@directwerk/ui/components/table'
 
 import HowToListen from '@/components/HowToListen'
 import {
@@ -245,12 +255,12 @@ export default function AccountPage() {
     const hasStripeMembership = subscriptions.some((item) => item.source === 'STRIPE')
 
     return (
-        <div className="page-container space-y-8">
+        <PageStack className="page-container">
             <PageHeader
                 title="Konto"
                 description="Profil, Zugang, privater Feed und Benachrichtigungen."
             />
-            {isLoading && <p>Wird geladen…</p>}
+            {isLoading && <p className="text-sm text-muted-foreground">Wird geladen…</p>}
             {error !== null && (
                 <Alert variant="destructive">
                     <AlertDescription>{error}</AlertDescription>
@@ -258,8 +268,9 @@ export default function AccountPage() {
             )}
 
             {me !== null && (
-                <section>
-                    <h2>Profil</h2>
+                <section className="flex flex-col gap-4">
+                    <SectionHeader title="Profil" />
+                    <ResponsiveTable label="Profil">
                     <Table>
                         <TableBody>
                             <TableRow>
@@ -276,7 +287,8 @@ export default function AccountPage() {
                             </TableRow>
                         </TableBody>
                     </Table>
-                    <p className="mt-3 text-sm">
+                    </ResponsiveTable>
+                    <p className="text-sm text-muted-foreground">
                         <Link href="/episodes">Meine Folgen</Link>
                         {' · '}
                         <Link href="/feeds">Feeds verwalten</Link>
@@ -298,12 +310,12 @@ export default function AccountPage() {
             ) : null}
 
             {access !== null && (
-                <section className="space-y-3">
-                    <h2>Zugang</h2>
-                    <p className="text-sm text-muted-foreground">
-                        Freie Folgen sind ohne Abo hörbar. Bezahlte Folgen und der
-                        private Feed brauchen eine aktive Stufe oder ein Paket.
-                    </p>
+                <section className="flex flex-col gap-4">
+                    <SectionHeader
+                        description="Freie Folgen sind ohne Abo hörbar. Bezahlte Folgen und der private Feed brauchen eine aktive Stufe oder ein Paket."
+                        title="Zugang"
+                    />
+                    <ResponsiveTable label="Zugang">
                     <Table>
                         <TableBody>
                             <TableRow>
@@ -314,12 +326,14 @@ export default function AccountPage() {
                             </TableRow>
                         </TableBody>
                     </Table>
-                    <h3>Aktive Stufen</h3>
+                    </ResponsiveTable>
+                    <SectionHeader as="h3" title="Aktive Stufen" />
                     {access.activeLevels.length === 0 ? (
-                        <p>
+                        <p className="text-sm text-muted-foreground">
                             Keine — <Link href="/pricing">Mitgliedschaft wählen</Link>
                         </p>
                     ) : (
+                        <ResponsiveTable label="Aktive Stufen">
                         <Table>
                             <TableHeader>
                                 <TableRow>
@@ -336,11 +350,13 @@ export default function AccountPage() {
                                 ))}
                             </TableBody>
                         </Table>
+                        </ResponsiveTable>
                     )}
-                    <h3>Aktive Pakete</h3>
+                    <SectionHeader as="h3" title="Aktive Pakete" />
                     {access.activePackages.length === 0 ? (
-                        <p>Keine Pakete freigeschaltet.</p>
+                        <p className="text-sm text-muted-foreground">Keine Pakete freigeschaltet.</p>
                     ) : (
+                        <ResponsiveTable label="Aktive Pakete">
                         <Table>
                             <TableHeader>
                                 <TableRow>
@@ -357,18 +373,20 @@ export default function AccountPage() {
                                 ))}
                             </TableBody>
                         </Table>
+                        </ResponsiveTable>
                     )}
                 </section>
             )}
 
-            <section className="space-y-3">
-                <h2>Mitgliedschaften</h2>
+            <section className="flex flex-col gap-4">
+                <SectionHeader title="Mitgliedschaften" />
                 {subscriptions.length === 0 ? (
-                    <p>
+                    <p className="text-sm text-muted-foreground">
                         Keine.{' '}
                         <Link href="/pricing">Mitgliedschaft wählen</Link>
                     </p>
                 ) : (
+                    <ResponsiveTable label="Mitgliedschaften">
                     <Table>
                         <TableHeader>
                             <TableRow>
@@ -397,6 +415,7 @@ export default function AccountPage() {
                             ))}
                         </TableBody>
                     </Table>
+                    </ResponsiveTable>
                 )}
                 {hasStripeMembership ? (
                     <div className="space-y-2">
@@ -430,9 +449,9 @@ export default function AccountPage() {
             />
 
             {emailNotificationsEnabled !== null && (
-                <section>
-                    <h2>Benachrichtigungen</h2>
-                    <p>
+                <section className="flex flex-col gap-3">
+                    <SectionHeader title="Benachrichtigungen" />
+                    <p className="text-sm text-muted-foreground">
                         E-Mail bei neuen Inhalten:{' '}
                         <strong>
                             {emailNotificationsEnabled ? 'an' : 'aus'}
@@ -458,9 +477,9 @@ export default function AccountPage() {
             )}
 
             {me !== null && (
-                <section>
-                    <h2>Passwort</h2>
-                    <p>
+                <section className="flex flex-col gap-3">
+                    <SectionHeader title="Passwort" />
+                    <p className="text-sm text-muted-foreground">
                         Sende eine Reset-Mail an <strong>{me.email}</strong>.
                     </p>
                     <Form action={changePasswordAction}>
@@ -498,9 +517,9 @@ export default function AccountPage() {
                     {isLoggingOut ? 'Abmelden…' : 'Abmelden'}
                 </Button>
             </Form>
-            <p>
+            <p className="text-sm text-muted-foreground">
                 <Link href="/">Zur Startseite</Link>
             </p>
-        </div>
+        </PageStack>
     )
 }

@@ -6,6 +6,7 @@ import {useEffect, useState} from 'react'
 
 import {buttonVariants} from '@directwerk/ui/components/button'
 import PageHeader from '@directwerk/ui/components/page-header'
+import PageStack from '@directwerk/ui/components/page-stack'
 
 import {getAccess, listMySubscriptions} from '@/lib/api/client'
 import {AUTH_REQUIRED} from '@directwerk/api/constants'
@@ -82,7 +83,7 @@ export default function CheckoutSuccessPage(): React.JSX.Element {
     }, [router])
 
     return (
-        <div className="page-container space-y-6">
+        <PageStack className="page-container">
             <PageHeader
                 title="Zahlung eingegangen"
                 description={
@@ -106,6 +107,6 @@ export default function CheckoutSuccessPage(): React.JSX.Element {
                     Bonusdateien
                 </Link>
             </div>
-        </div>
+        </PageStack>
     )
 }

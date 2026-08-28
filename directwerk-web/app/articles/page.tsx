@@ -8,6 +8,7 @@ import {Badge} from '@directwerk/ui/components/badge'
 import {Card, CardContent, CardHeader, CardTitle} from '@directwerk/ui/components/card'
 import EmptyState from '@directwerk/ui/components/empty-state'
 import PageHeader from '@directwerk/ui/components/page-header'
+import PageStack from '@directwerk/ui/components/page-stack'
 
 import {listPublicArticles} from '@/lib/api/client'
 import type {PublicArticle} from '@directwerk/api/types'
@@ -53,9 +54,9 @@ export default function ArticlesPage() {
     }, [tenantHost])
 
     return (
-        <div className="page-container space-y-8">
+        <PageStack className="page-container">
             <PageHeader eyebrow="Magazin" title="Beiträge" description="Veröffentlichte Geschichten und Hintergründe." />
-            {isLoading && <p className="text-muted-foreground">Wird geladen…</p>}
+            {isLoading && <p className="text-sm text-muted-foreground">Wird geladen…</p>}
             {errorMessage !== null && <Alert variant="destructive"><AlertDescription>{errorMessage}</AlertDescription></Alert>}
             {!isLoading && errorMessage === null && articles.length === 0 && (
                 <EmptyState title="Noch keine Beiträge" description="Veröffentlichte Beiträge erscheinen hier." />
@@ -78,6 +79,6 @@ export default function ArticlesPage() {
                     ))}
                 </div>
             )}
-        </div>
+        </PageStack>
     )
 }

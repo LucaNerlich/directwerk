@@ -3,11 +3,13 @@ import type {ReactNode} from 'react'
 import {cn} from '#lib/utils'
 
 export default function FeatureCard({
+    eyebrow,
     title,
     description,
     children,
     className,
 }: {
+    eyebrow?: ReactNode
     title: ReactNode
     description?: ReactNode
     children?: ReactNode
@@ -21,7 +23,19 @@ export default function FeatureCard({
             )}
         >
             <div>
-                <h2 className="text-lg font-semibold tracking-tight">{title}</h2>
+                {eyebrow !== undefined ? (
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                        {eyebrow}
+                    </p>
+                ) : null}
+                <h2
+                    className={cn(
+                        'text-lg font-semibold tracking-tight',
+                        eyebrow !== undefined ? 'mt-2' : undefined,
+                    )}
+                >
+                    {title}
+                </h2>
                 {description !== undefined ? (
                     <p className="mt-1 text-sm text-muted-foreground">{description}</p>
                 ) : null}

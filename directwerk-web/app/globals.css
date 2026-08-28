@@ -1,6 +1,20 @@
 @import '@directwerk/ui/theme.css';
 @source '../app/**/*.{ts,tsx}';
 @source '../components/**/*.{ts,tsx}';
+@source '../../packages/ui/src/**/*.{ts,tsx}';
+
+@layer base {
+    body {
+        @apply min-w-0;
+    }
+
+    h1,
+    h2,
+    h3,
+    p {
+        margin-top: 0;
+    }
+}
 
 @layer utilities {
     .page-container {

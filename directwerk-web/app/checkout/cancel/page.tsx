@@ -2,10 +2,11 @@ import Link from 'next/link'
 
 import {buttonVariants} from '@directwerk/ui/components/button'
 import PageHeader from '@directwerk/ui/components/page-header'
+import PageStack from '@directwerk/ui/components/page-stack'
 
 export default function CheckoutCancelPage(): React.JSX.Element {
     return (
-        <div className="page-container space-y-6">
+        <PageStack className="page-container">
             <PageHeader
                 title="Checkout abgebrochen"
                 description="Es wurde nichts berechnet. Du kannst später ein anderes Produkt wählen."
@@ -18,6 +19,6 @@ export default function CheckoutCancelPage(): React.JSX.Element {
                     Zum Konto
                 </Link>
             </div>
-        </div>
+        </PageStack>
     )
 }

@@ -9,6 +9,9 @@ import {Button} from '@directwerk/ui/components/button'
 import {Card, CardContent, CardFooter, CardHeader, CardTitle} from '@directwerk/ui/components/card'
 import EmptyState from '@directwerk/ui/components/empty-state'
 import PageHeader from '@directwerk/ui/components/page-header'
+import PageStack from '@directwerk/ui/components/page-stack'
+import SectionHeader from '@directwerk/ui/components/section-header'
+import StatCard from '@directwerk/ui/components/stat-card'
 
 import {
     createCheckoutSession,
@@ -143,7 +146,7 @@ export default function PricingPage(): React.JSX.Element {
     }
 
     return (
-        <div className="page-container space-y-8">
+        <PageStack className="page-container">
             <PageHeader
                 title="Preise"
                 description={
@@ -154,25 +157,30 @@ export default function PricingPage(): React.JSX.Element {
                     </>
                 }
             />
-            <ol className="grid gap-3 text-sm text-muted-foreground sm:grid-cols-3">
-                <li className="rounded-xl border bg-card p-4">
-                    <strong className="text-foreground">1. Anmelden</strong>
-                    <p className="mt-1">Konto auf dieser Domain — ohne fremde Plattform.</p>
-                </li>
-                <li className="rounded-xl border bg-card p-4">
-                    <strong className="text-foreground">2. Produkt wählen</strong>
-                    <p className="mt-1">Stufe oder Paket mit Preis — Zahlung über Stripe.</p>
-                </li>
-                <li className="rounded-xl border bg-card p-4">
-                    <strong className="text-foreground">3. Zur Kasse</strong>
-                    <p className="mt-1">
-                        Danach landest du auf{' '}
-                        <Link href="/checkout/success">Erfolg</Link> oder{' '}
-                        <Link href="/checkout/cancel">Abbruch</Link>.
-                    </p>
-                </li>
-            </ol>
-            {isLoading ? <p>Wird geladen…</p> : null}
+            <section className="grid gap-3 sm:grid-cols-3">
+                <StatCard
+                    hint="Konto auf dieser Domain — ohne fremde Plattform."
+                    label="Schritt 1"
+                    value="Anmelden"
+                />
+                <StatCard
+                    hint="Stufe oder Paket mit Preis — Zahlung über Stripe."
+                    label="Schritt 2"
+                    value="Produkt wählen"
+                />
+                <StatCard
+                    footer={
+                        <>
+                            Danach landest du auf{' '}
+                            <Link href="/checkout/success">Erfolg</Link> oder{' '}
+                            <Link href="/checkout/cancel">Abbruch</Link>.
+                        </>
+                    }
+                    label="Schritt 3"
+                    value="Zur Kasse"
+                />
+            </section>
+            {isLoading ? <p className="text-sm text-muted-foreground">Wird geladen…</p> : null}
             {error !== null ? (
                 <Alert variant="destructive">
                     <AlertDescription>{error}</AlertDescription>
@@ -184,22 +192,19 @@ export default function PricingPage(): React.JSX.Element {
                 </Alert>
             ) : null}
             {!isLoading && levels.length > 0 ? (
-                <section className="space-y-3">
-                    <h2 className="text-lg font-semibold">Stufen</h2>
-                    <p className="text-sm text-muted-foreground">
-                        Höhere Stufen schalten mehr bezahlte Folgen frei (sortiert nach
-                        Rang).
-                    </p>
-                    <ol className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                <section className="flex flex-col gap-4">
+                    <SectionHeader
+                        description="Höhere Stufen schalten mehr bezahlte Folgen frei (sortiert nach Rang)."
+                        title="Stufen"
+                    />
+                    <ol className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                         {levels.map((level) => (
-                            <li
-                                className="rounded-xl border bg-card px-4 py-3 text-sm"
-                                key={level.id}
-                            >
-                                <strong>{level.title}</strong>
-                                <span className="mt-1 block text-muted-foreground">
-                                    Rang {level.sortOrder} · {level.slug}
-                                </span>
+                            <li key={level.id}>
+                                <StatCard
+                                    hint={`Rang ${level.sortOrder} · ${level.slug}`}
+                                    label="Stufe"
+                                    value={level.title}
+                                />
                             </li>
                         ))}
                     </ol>
@@ -253,13 +258,13 @@ export default function PricingPage(): React.JSX.Element {
                     </div>
                 )
             ) : null}
-            <p>
+            <p className="text-sm text-muted-foreground">
                 <Link href="/register">Registrieren</Link>
                 {' · '}
                 <Link href="/account">Konto</Link>
                 {' · '}
                 <Link href="/downloads">Bonusdateien</Link>
             </p>
-        </div>
+        </PageStack>
     )
 }

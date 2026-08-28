@@ -13,7 +13,7 @@ export default function HowToListen({
     isAuthenticated: boolean
 }): React.JSX.Element {
     return (
-        <section className="space-y-3 rounded-xl border bg-card p-5">
+        <section className="space-y-3 rounded-xl border bg-card p-5 shadow-sm">
             <h2 className="text-lg font-semibold">So hörst du in der Podcast-App</h2>
             <ol className="list-decimal space-y-2 pl-5 text-sm leading-6 text-muted-foreground">
                 <li>Kopiere die Feed-URL (öffentlich oder privat).</li>

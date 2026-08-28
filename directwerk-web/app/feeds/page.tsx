@@ -7,6 +7,9 @@ import useSWR from 'swr'
 import {Alert, AlertDescription} from '@directwerk/ui/components/alert'
 import {Button} from '@directwerk/ui/components/button'
 import PageHeader from '@directwerk/ui/components/page-header'
+import PageStack from '@directwerk/ui/components/page-stack'
+import ListPanel, {ListPanelRow} from '@directwerk/ui/components/list-panel'
+import SectionHeader from '@directwerk/ui/components/section-header'
 
 import HowToListen from '@/components/HowToListen'
 import CustomFeedsPanel from '@/components/CustomFeedsPanel'
@@ -170,7 +173,7 @@ export default function FeedsPage() {
     }
 
     return (
-        <div className="page-container space-y-8">
+        <PageStack className="page-container">
             <PageHeader
                 title="RSS-Feeds"
                 description="Öffentliche Feeds für freie Folgen. Nach der Anmeldung kommt der private Feed für bezahlte Inhalte."
@@ -184,7 +187,9 @@ export default function FeedsPage() {
                 publicFeedUrl={podcastFeedUrl}
             />
 
-            {isLoading && <p>Öffentliche Feeds werden geladen…</p>}
+            {isLoading && (
+                <p className="text-sm text-muted-foreground">Öffentliche Feeds werden geladen…</p>
+            )}
             {errorMessage !== null && (
                 <Alert variant="destructive">
                     <AlertDescription>{errorMessage}</AlertDescription>
@@ -192,29 +197,32 @@ export default function FeedsPage() {
             )}
 
             {!isLoading && errorMessage === null && (
-                <section className="space-y-4">
-                    <h2>Öffentliche Feeds</h2>
-                    <p className="text-sm text-muted-foreground">
-                        Nur veröffentlichte <strong>freie</strong> Folgen. Bezahlte
-                        Folgen erscheinen im privaten Feed.
-                    </p>
-                    <ul className="space-y-4">
-                        <li>
-                            <h3>Alle freien Folgen</h3>
-                            <p>
-                                {podcastFeedUrl !== null ? (
-                                    <a href={podcastFeedUrl} rel="noreferrer">
-                                        {podcastFeedUrl}
-                                    </a>
-                                ) : (
-                                    'Kein öffentlicher Feed (PODCAST_RSS aus).'
-                                )}
-                            </p>
-                        </li>
+                <section className="flex flex-col gap-4">
+                    <SectionHeader
+                        description="Nur veröffentlichte freie Folgen. Bezahlte Folgen erscheinen im privaten Feed."
+                        title="Öffentliche Feeds"
+                    />
+                    <ListPanel>
+                        <ListPanelRow>
+                            <div className="min-w-0 flex-1">
+                                <p className="font-medium">Alle freien Folgen</p>
+                                <p className="mt-2 break-all text-sm text-muted-foreground">
+                                    {podcastFeedUrl !== null ? (
+                                        <a href={podcastFeedUrl} rel="noreferrer">
+                                            {podcastFeedUrl}
+                                        </a>
+                                    ) : (
+                                        'Kein öffentlicher Feed (PODCAST_RSS aus).'
+                                    )}
+                                </p>
+                            </div>
+                        </ListPanelRow>
                         {series.length === 0 ? (
-                            <li>
-                                <p>Noch keine veröffentlichten Sendungen.</p>
-                            </li>
+                            <ListPanelRow>
+                                <p className="text-sm text-muted-foreground">
+                                    Noch keine veröffentlichten Sendungen.
+                                </p>
+                            </ListPanelRow>
                         ) : (
                             series.map((item) => {
                                 const feedUrl =
@@ -226,74 +234,86 @@ export default function FeedsPage() {
                                               item.slug,
                                           )
                                 return (
-                                    <li key={item.id}>
-                                        <h3>
-                                            {item.title}{' '}
-                                            <small>({item.slug})</small>
-                                        </h3>
-                                        <p>
-                                            {feedUrl !== null ? (
-                                                <a href={feedUrl} rel="noreferrer">
-                                                    {feedUrl}
-                                                </a>
-                                            ) : (
-                                                '—'
-                                            )}
-                                        </p>
-                                    </li>
+                                    <ListPanelRow key={item.id}>
+                                        <div className="min-w-0 flex-1">
+                                            <p className="font-medium">
+                                                {item.title}{' '}
+                                                <span className="font-normal text-muted-foreground">
+                                                    ({item.slug})
+                                                </span>
+                                            </p>
+                                            <p className="mt-2 break-all text-sm text-muted-foreground">
+                                                {feedUrl !== null ? (
+                                                    <a href={feedUrl} rel="noreferrer">
+                                                        {feedUrl}
+                                                    </a>
+                                                ) : (
+                                                    '—'
+                                                )}
+                                            </p>
+                                        </div>
+                                    </ListPanelRow>
                                 )
                             })
                         )}
-                    </ul>
+                    </ListPanel>
                 </section>
             )}
 
-            <section className="space-y-4">
-                <h2>Dein privater Feed</h2>
+            <section className="flex flex-col gap-4">
+                <SectionHeader title="Dein privater Feed" />
                 {!isAuthenticated ? (
-                    <p>
+                    <p className="text-sm text-muted-foreground">
                         <Link href="/login">Anmelden</Link>, um den privaten Feed für
                         Folgen zu sehen, die du freigeschaltet hast.
                     </p>
                 ) : (
                     <>
-                        {isPrivateLoading && <p>Private Feeds werden geladen…</p>}
+                        {isPrivateLoading && (
+                            <p className="text-sm text-muted-foreground">
+                                Private Feeds werden geladen…
+                            </p>
+                        )}
                         {privateError !== null && (
-                            <p role="alert">{privateError}</p>
+                            <Alert variant="destructive">
+                                <AlertDescription>{privateError}</AlertDescription>
+                            </Alert>
                         )}
                         {!isPrivateLoading && privateError === null && (
                             privateFeeds.length === 0 ? (
-                                <p>Noch kein privater Feed für dieses Konto.</p>
+                                <p className="text-sm text-muted-foreground">
+                                    Noch kein privater Feed für dieses Konto.
+                                </p>
                             ) : (
-                                <ul className="space-y-4">
+                                <ListPanel>
                                     {privateFeeds
                                         .filter((feed) => feed.isDefault)
                                         .map((feed) => (
-                                        <li key={feed.id}>
-                                            <h3>
-                                                {feed.title}
-                                                {feed.isDefault ? ' (Standard)' : ''}
-                                            </h3>
-                                            <p>
-                                                <small>
-                                                    {feed.enabled
-                                                        ? 'Aktiv'
-                                                        : 'Deaktiviert'}{' '}
-                                                    · aktualisiert{' '}
-                                                    {formatPublishedAt(feed.updatedAt)}
-                                                </small>
-                                            </p>
-                                            {feed.enabled ? (
-                                                <p className="break-all">
-                                                    <a href={feed.url} rel="noreferrer">
-                                                        {feed.url}
-                                                    </a>
+                                        <ListPanelRow key={feed.id}>
+                                            <div className="min-w-0 flex-1">
+                                                <p className="font-medium">
+                                                    {feed.title}
+                                                    {feed.isDefault ? ' (Standard)' : ''}
                                                 </p>
-                                            ) : (
-                                                <p>Dieser Feed ist derzeit deaktiviert.</p>
-                                            )}
+                                                <p className="mt-1 text-sm text-muted-foreground">
+                                                    {feed.enabled ? 'Aktiv' : 'Deaktiviert'} ·
+                                                    aktualisiert{' '}
+                                                    {formatPublishedAt(feed.updatedAt)}
+                                                </p>
+                                                {feed.enabled ? (
+                                                    <p className="mt-2 break-all text-sm">
+                                                        <a href={feed.url} rel="noreferrer">
+                                                            {feed.url}
+                                                        </a>
+                                                    </p>
+                                                ) : (
+                                                    <p className="mt-2 text-sm text-muted-foreground">
+                                                        Dieser Feed ist derzeit deaktiviert.
+                                                    </p>
+                                                )}
+                                            </div>
                                             {feed.isDefault ? (
-                                                <div className="mt-2 flex flex-wrap gap-2">
+                                                <div className="flex flex-wrap gap-2">
                                                     <Button
                                                         disabled={feedActionBusy}
                                                         onClick={() =>
@@ -320,9 +340,9 @@ export default function FeedsPage() {
                                                     </Button>
                                                 </div>
                                             ) : null}
-                                        </li>
+                                        </ListPanelRow>
                                     ))}
-                                </ul>
+                                </ListPanel>
                             )
                         )}
                     </>
@@ -343,6 +363,6 @@ export default function FeedsPage() {
                     tenantHost={tenantHost}
                 />
             ) : null}
-        </div>
+        </PageStack>
     )
 }

@@ -4,6 +4,10 @@ import Link from 'next/link'
 import {useEffect, useState, useSyncExternalStore} from 'react'
 
 import {Alert, AlertDescription} from '@directwerk/ui/components/alert'
+import {Badge} from '@directwerk/ui/components/badge'
+import PageHeader from '@directwerk/ui/components/page-header'
+import PageStack from '@directwerk/ui/components/page-stack'
+import SectionHeader from '@directwerk/ui/components/section-header'
 
 import {listMyEpisodes, listPublicEpisodes} from '@/lib/api/client'
 import {AUTH_REQUIRED} from '@directwerk/api/constants'
@@ -106,46 +110,54 @@ export default function EpisodeDetailClient({
         }
     }, [tenantHost, isAuthenticated, slug, initialPublicEpisode])
 
+    const title =
+        episode !== null
+            ? `${episode.episodeNumber !== null ? `#${episode.episodeNumber} ` : ''}${episode.title}`
+            : ''
+
     return (
-        <div className="page-container space-y-6">
-            <Link className="text-sm text-muted-foreground hover:text-foreground" href="/episodes">← Alle Folgen</Link>
-            {isLoading ? <p>Wird geladen…</p> : null}
-            {errorMessage !== null ? <Alert variant="destructive"><AlertDescription>{errorMessage}</AlertDescription></Alert> : null}
+        <PageStack className="page-container">
+            <Link className="text-sm text-muted-foreground hover:text-foreground" href="/episodes">
+                ← Alle Folgen
+            </Link>
+            {isLoading ? <p className="text-sm text-muted-foreground">Wird geladen…</p> : null}
+            {errorMessage !== null ? (
+                <Alert variant="destructive">
+                    <AlertDescription>{errorMessage}</AlertDescription>
+                </Alert>
+            ) : null}
 
             {episode !== null ? (
                 <article className="max-w-3xl space-y-6">
-                    <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">
-                        {episode.episodeNumber !== null
-                            ? `#${episode.episodeNumber} `
-                            : ''}
-                        {episode.title}
-                    </h1>
-                    <p>
-                        <small>
-                            {episode.seriesSlug} ·{' '}
-                            {episode.accessPolicy === 'PAID' ? 'Bezahlt' : 'Frei'} ·{' '}
-                            {formatPublishedAt(episode.publishedAt)}
-                        </small>
-                    </p>
-                    {episode.description !== null &&
-                    episode.description.length > 0 ? (
+                    <PageHeader
+                        actions={
+                            <Badge variant="outline">
+                                {episode.accessPolicy === 'PAID' ? 'Bezahlt' : 'Frei'}
+                            </Badge>
+                        }
+                        description={`${episode.seriesSlug} · ${formatPublishedAt(episode.publishedAt)}`}
+                        title={title}
+                    />
+                    {episode.description !== null && episode.description.length > 0 ? (
                         <div
                             className="editorial-copy"
                             dangerouslySetInnerHTML={{__html: episode.description}}
                         />
                     ) : null}
 
-                    {episode.audioCdnUrl !== null ? (
-                        <section>
-                            <h2>Player</h2>
-                            <audio className="media-player" controls preload="metadata" src={episode.audioCdnUrl}>
+                    <section className="flex flex-col gap-3">
+                        <SectionHeader title="Player" />
+                        {episode.audioCdnUrl !== null ? (
+                            <audio
+                                className="media-player"
+                                controls
+                                preload="metadata"
+                                src={episode.audioCdnUrl}
+                            >
                                 Audio nicht verfügbar
                             </audio>
-                        </section>
-                    ) : (
-                        <section>
-                            <h2>Player</h2>
-                            <p>
+                        ) : (
+                            <p className="text-sm text-muted-foreground">
                                 {episode.accessPolicy === 'PAID' ? (
                                     isAuthenticated ? (
                                         <>
@@ -164,10 +176,10 @@ export default function EpisodeDetailClient({
                                     'Noch keine öffentliche Audio-URL.'
                                 )}
                             </p>
-                        </section>
-                    )}
+                        )}
+                    </section>
                 </article>
             ) : null}
-        </div>
+        </PageStack>
     )
 }

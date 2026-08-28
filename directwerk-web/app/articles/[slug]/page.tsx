@@ -5,6 +5,7 @@ import {notFound} from 'next/navigation'
 import {Alert, AlertDescription} from '@directwerk/ui/components/alert'
 import {Badge} from '@directwerk/ui/components/badge'
 import PageHeader from '@directwerk/ui/components/page-header'
+import PageStack from '@directwerk/ui/components/page-stack'
 
 import {formatPublishedAt} from '@/lib/format'
 import {fetchPublicArticleServer} from '@/lib/site/fetchPublicContentServer'
@@ -74,7 +75,7 @@ export default async function ArticleDetailPage({params}: ArticlePageProps) {
     }
 
     return (
-        <div className="page-container space-y-6">
+        <PageStack className="page-container">
             <Link className="text-sm text-muted-foreground hover:text-foreground" href="/articles">← Beiträge</Link>
             {loadError !== null && (
                 <Alert variant="destructive">
@@ -105,6 +106,6 @@ export default async function ArticleDetailPage({params}: ArticlePageProps) {
                     )}
                 </article>
             )}
-        </div>
+        </PageStack>
     )
 }
