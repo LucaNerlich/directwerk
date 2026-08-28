@@ -4,7 +4,8 @@
     "scripts": {
         "build": "pnpm -r --if-present build",
         "test": "pnpm -r --if-present test",
-        "typecheck": "pnpm -r --if-present typecheck"
+        "typecheck": "pnpm -r --if-present typecheck",
+        "check:circular": "node scripts/check-circular-deps.mjs"
     },
     "devDependencies": {
         "@tailwindcss/postcss": "latest",
