@@ -117,37 +117,6 @@ export function validateLoginInput(input: unknown): LoginValidationResult {
     }
 }
 
-const REFRESH_TOKEN_KEYS = new Set(['refresh_token'])
-const MAX_OAUTH_TOKEN_LENGTH = 8192
-
-export type RefreshTokenValidationResult =
-    | {success: true; data: {refresh_token: string}}
-    | {success: false; error: string}
-
-export function validateRefreshTokenInput(
-    input: unknown
-): RefreshTokenValidationResult {
-    if (
-        typeof input !== 'object' ||
-        input === null ||
-        Array.isArray(input) ||
-        Object.keys(input).some((key) => !REFRESH_TOKEN_KEYS.has(key))
-    ) {
-        return {success: false, error: 'Invalid refresh request.'}
-    }
-
-    const refreshToken = (input as Record<string, unknown>).refresh_token
-    if (
-        typeof refreshToken !== 'string' ||
-        refreshToken.length === 0 ||
-        refreshToken.length > MAX_OAUTH_TOKEN_LENGTH ||
-        /\s/.test(refreshToken)
-    ) {
-        return {success: false, error: 'A valid refresh token is required.'}
-    }
-
-    return {success: true, data: {refresh_token: refreshToken}}
-}
 
 export function validateTenantUserInviteInput(
     input: unknown

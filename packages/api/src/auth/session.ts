@@ -15,12 +15,7 @@ export interface AuthSessionConfig {
      * Evaluated per refresh call.
      */
     refreshHeaders?: () => Record<string, string>
-    /**
-     * Extra JSON body for the refresh request (legacy migration fallback).
-     * Evaluated per refresh call.
-     */
-    refreshBody?: () => string
-    /**
+/**
      * Validates the refresh response body. Return null to treat the reply as
      * an unusable token payload.
      */
@@ -87,7 +82,7 @@ export function createAuthSession(config: AuthSessionConfig) {
                     'Content-Type': 'application/json',
                     ...(config.refreshHeaders?.() ?? {}),
                 },
-                body: config.refreshBody?.() ?? '{}',
+                body: '{}',
                 signal: abortController.signal,
             })
 

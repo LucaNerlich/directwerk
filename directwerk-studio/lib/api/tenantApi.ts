@@ -66,7 +66,7 @@ import type {
     SeriesSummary,
     BillingDashboard,
     StripeStatus,
-    SubscriberFeedSummary,
+    SubscriberFeedAdminView,
     SubscriptionGrant,
     SubscriptionProduct,
     TenantBranding,
@@ -964,7 +964,7 @@ export async function revokeSubscription(
 
 export async function listSubscriberFeeds(
     tenantHost: string,
-): Promise<SubscriberFeedSummary[]> {
+): Promise<SubscriberFeedAdminView[]> {
     return proxyRequest(
         '/api/proxy/tenant/subscriber-feeds',
         tenantHost,
@@ -978,7 +978,7 @@ export async function setSubscriberFeedEnabled(
     tenantHost: string,
     feedId: number,
     enabled: boolean,
-): Promise<SubscriberFeedSummary> {
+): Promise<SubscriberFeedAdminView> {
     return proxyRequest(
         `/api/proxy/tenant/subscriber-feeds/${feedId}/enabled`,
         tenantHost,

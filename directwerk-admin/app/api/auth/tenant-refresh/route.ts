@@ -1,12 +1,8 @@
 import {safeUpstreamResponse} from '@directwerk/api/server'
 import {requestTenantRefresh} from '@/lib/server/api'
-import {readBoundedRequestBody} from '@directwerk/api/proxy'
 import {parseTenantHost} from '@directwerk/api/proxy'
 import {TENANT_REFRESH_COOKIE} from '@/lib/server/api'
 import {readRequestCookie, sealRefreshToken} from '@directwerk/api/auth/cookies'
-import {validateRefreshTokenInput} from '@/lib/validation'
-
-const MAX_REFRESH_BODY_SIZE = 16 * 1024
 
 export async function POST(request: Request): Promise<Response> {
     const tenantHost = parseTenantHost(request.headers.get('x-tenant-host'))
@@ -17,60 +13,15 @@ export async function POST(request: Request): Promise<Response> {
         )
     }
 
-    if (!request.headers.get('content-type')?.includes('application/json')) {
+    const refreshToken = readRequestCookie(request, TENANT_REFRESH_COOKIE)
+    if (!refreshToken) {
         return Response.json(
-            {error: 'Content-Type must be application/json.'},
-            {status: 415}
+            {error: 'A valid refresh token is required.'},
+            {status: 401}
         )
     }
 
-    const contentLength = request.headers.get('content-length')
-    if (contentLength && Number(contentLength) > MAX_REFRESH_BODY_SIZE) {
-        return Response.json({error: 'Request body is too large.'}, {status: 413})
-    }
-
     try {
-        // Prefer the httpOnly refresh cookie set by login/refresh; the JSON body
-        // is only a fallback for clients that predate cookie-based refresh.
-        let refreshToken = readRequestCookie(request, TENANT_REFRESH_COOKIE)
-
-        if (!refreshToken) {
-            if (!request.body) {
-                return Response.json({error: 'Invalid request body.'}, {status: 400})
-            }
-
-            const bounded = await readBoundedRequestBody(
-                request,
-                MAX_REFRESH_BODY_SIZE
-            )
-            if (!bounded.ok) {
-                return Response.json(
-                    {error: bounded.error},
-                    {status: bounded.status}
-                )
-            }
-
-            let input: unknown
-            try {
-                input = JSON.parse(bounded.text)
-            } catch {
-                return Response.json({error: 'Invalid JSON request.'}, {status: 400})
-            }
-
-            const validation = validateRefreshTokenInput(input)
-            if (!validation.success) {
-                return Response.json({error: validation.error}, {status: 400})
-            }
-            refreshToken = validation.data.refresh_token
-        }
-
-        if (!refreshToken) {
-            return Response.json(
-                {error: 'A valid refresh token is required.'},
-                {status: 401}
-            )
-        }
-
         const upstream = await requestTenantRefresh(refreshToken, tenantHost)
         const sealed = await sealRefreshToken(
             await safeUpstreamResponse(upstream),

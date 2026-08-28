@@ -3,7 +3,8 @@
 import {safeUpstreamResponse} from '@directwerk/api/server'
 import {sealRefreshToken} from '@directwerk/api/auth/cookies'
 
-import type {OAuthTokenResponse} from '@directwerk/api/types'
+import type {TokenResponse} from '@directwerk/api/types'
+import {parseTokenResponse} from '@directwerk/api/validation'
 import {
     createConfiguredPlatformTokenRequest,
     PLATFORM_REFRESH_COOKIE,
@@ -16,7 +17,7 @@ const UPSTREAM_TIMEOUT_MS = 10000
 export interface LoginActionState {
     error: string | null
     /** OAuth token response without the refresh token (sealed into a cookie). */
-    tokens: OAuthTokenResponse | null
+    tokens: TokenResponse | null
 }
 
 export async function loginAction(
@@ -61,7 +62,10 @@ export async function loginAction(
             return {error: 'Login failed. Check your credentials.', tokens: null}
         }
 
-        const tokens = (await sealed.json()) as OAuthTokenResponse
+        const tokens = parseTokenResponse(await sealed.json())
+        if (tokens === null) {
+            return {error: 'Login failed. Check your credentials.', tokens: null}
+        }
         await storeSealedRefreshCookie(sealed.headers.get('set-cookie'))
 
         return {error: null, tokens}

@@ -10,9 +10,6 @@ export interface LoginInput {
     password: string
 }
 
-export interface RefreshTokenInput {
-    refresh_token: string
-}
 
 function parseEmail(value: unknown, normalize: boolean): string | null {
     if (typeof value !== 'string') {
@@ -69,48 +66,6 @@ export function parseLoginInput(
     return {email, password}
 }
 
-export interface RefreshTokenInputOptions {
-    /** Maximum refresh-token length. Studio allows 8192, web 512. */
-    maxLength?: number
-    /**
-     * Trim surrounding whitespace instead of rejecting any whitespace.
-     * Web trims (migration fallback), studio rejects whitespace outright.
-     */
-    trim?: boolean
-}
-
-/**
- * Validates a legacy JSON-body refresh token for the BFF refresh route.
- * The httpOnly cookie is preferred; this is only the migration fallback.
- */
-export function parseRefreshTokenInput(
-    value: unknown,
-    options: RefreshTokenInputOptions = {},
-): RefreshTokenInput | null {
-    if (!isRecord(value) || typeof value.refresh_token !== 'string') {
-        return null
-    }
-
-    const maxLength = options.maxLength ?? 8192
-    if (options.trim === true) {
-        const refreshToken = value.refresh_token.trim()
-        if (refreshToken.length === 0 || refreshToken.length > maxLength) {
-            return null
-        }
-        return {refresh_token: refreshToken}
-    }
-
-    const refreshToken = value.refresh_token
-    if (
-        refreshToken.length === 0 ||
-        refreshToken.length > maxLength ||
-        /\s/.test(refreshToken)
-    ) {
-        return null
-    }
-
-    return {refresh_token: refreshToken}
-}
 
 // ---------------------------------------------------------------------------
 // Subscriber self-service inputs (directwerk-web BFF routes)

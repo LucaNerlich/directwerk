@@ -21,7 +21,7 @@ import {
     setDefaultFeedEnabled,
 } from '@/lib/api/client'
 import {AUTH_REQUIRED} from '@directwerk/api/constants'
-import type {PublicSeries, PublicSiteConfig, SubscriberFeed} from '@directwerk/api/types'
+import type {PublicSeries, PublicSiteConfig, SubscriberFeedView} from '@directwerk/api/types'
 import {
     getAccessToken,
     subscribeToTokenStore,
@@ -68,7 +68,7 @@ export default function FeedsPage() {
               ? 'Öffentliche Sendungen konnten nicht geladen werden.'
               : null
 
-    const [privateFeeds, setPrivateFeeds] = useState<SubscriberFeed[]>([])
+    const [privateFeeds, setPrivateFeeds] = useState<SubscriberFeedView[]>([])
     const [privateError, setPrivateError] = useState<string | null>(null)
     const [isPrivateLoading, setIsPrivateLoading] = useState(false)
     const [feedActionBusy, setFeedActionBusy] = useState(false)

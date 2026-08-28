@@ -1,6 +1,6 @@
 'use client'
 
-import type {OAuthTokenResponse} from '@directwerk/api/types'
+import type {TokenResponse} from '@directwerk/api/types'
 import {createAuthSession} from '@directwerk/api/auth/session'
 import {AUTH_REQUIRED} from '@directwerk/api/constants'
 import {
@@ -26,7 +26,7 @@ const session = createAuthSession({
     parseTokens: parseTenantTokens,
 })
 
-function parseTenantTokens(value: unknown): OAuthTokenResponse | null {
+function parseTenantTokens(value: unknown): TokenResponse | null {
     if (typeof value !== 'object' || value === null) {
         return null
     }
@@ -36,7 +36,7 @@ function parseTenantTokens(value: unknown): OAuthTokenResponse | null {
         typeof tokens.access_token === 'string' &&
         tokens.access_token.length > 0
     ) {
-        return value as OAuthTokenResponse
+        return value as TokenResponse
     }
     return null
 }
@@ -91,5 +91,5 @@ export async function loginTenantSession(input: {
         throw new Error(AUTH_REQUIRED)
     }
 
-    storeTenantTokens(tokens as OAuthTokenResponse, input.tenantHost)
+    storeTenantTokens(tokens as TokenResponse, input.tenantHost)
 }

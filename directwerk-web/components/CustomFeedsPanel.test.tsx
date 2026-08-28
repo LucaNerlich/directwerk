@@ -2,7 +2,7 @@ import {cleanup, render, screen, waitFor} from '@testing-library/react'
 import {afterEach, describe, expect, it, vi} from 'vitest'
 
 import CustomFeedsPanel from '@/components/CustomFeedsPanel'
-import type {SubscriberFeed} from '@directwerk/api/types'
+import type {SubscriberFeedView} from '@directwerk/api/types'
 
 const listPublicFormatsMock = vi.fn()
 const previewCustomFeedMock = vi.fn()
@@ -22,7 +22,7 @@ afterEach(() => {
     vi.clearAllMocks()
 })
 
-function feed(overrides: Partial<SubscriberFeed> = {}): SubscriberFeed {
+function feed(overrides: Partial<SubscriberFeedView> = {}): SubscriberFeedView {
     return {
         id: 1,
         title: 'Default',

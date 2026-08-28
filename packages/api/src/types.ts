@@ -48,8 +48,6 @@ export interface TokenResponse {
     expires_in?: number
 }
 
-/** Deprecated alias — use {@link TokenResponse}. */
-export type OAuthTokenResponse = TokenResponse
 
 export interface Me {
     email: string
@@ -351,8 +349,6 @@ export interface LevelSummary {
     sortOrder: number
 }
 
-/** Deprecated alias — same resource as {@link LevelSummary}. */
-export type AccessLevel = LevelSummary
 
 export interface CreateFormatInput {
     slug: string
@@ -556,8 +552,6 @@ export interface SubscriberFeedView {
     updatedAt: string
 }
 
-/** Deprecated alias — use {@link SubscriberFeedView}. */
-export type SubscriberFeed = SubscriberFeedView
 
 export interface FeedPreview {
     episodeCount: number
@@ -747,8 +741,6 @@ export interface SubscriberFeedAdminView {
     updatedAt: string
 }
 
-/** Deprecated alias — use {@link SubscriberFeedAdminView}. */
-export type SubscriberFeedSummary = SubscriberFeedAdminView
 
 // ---------------------------------------------------------------------------
 // Platform administration (directwerk-admin)

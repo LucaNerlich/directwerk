@@ -20,14 +20,14 @@ import {
     updateCustomFeed,
 } from '@/lib/api/client'
 import {AUTH_REQUIRED} from '@directwerk/api/constants'
-import type {FeedPreview, PublicFormat, SubscriberFeed} from '@directwerk/api/types'
+import type {FeedPreview, PublicFormat, SubscriberFeedView} from '@directwerk/api/types'
 import {formatPublishedAt} from '@/lib/format'
 
 interface CustomFeedsPanelProps {
     tenantHost: string
-    feeds: SubscriberFeed[]
+    feeds: SubscriberFeedView[]
     canBuild: boolean
-    onFeedsChange: (feeds: SubscriberFeed[]) => void
+    onFeedsChange: (feeds: SubscriberFeedView[]) => void
     onError: (message: string) => void
     onAuthRequired: () => void
 }
@@ -126,7 +126,7 @@ export default function CustomFeedsPanel({
         )
     }
 
-    function startEdit(feed: SubscriberFeed): void {
+    function startEdit(feed: SubscriberFeedView): void {
         setEditingId(feed.id)
         setTitle(feed.title)
         setSelectedIds(feed.formatIds)
@@ -169,7 +169,7 @@ export default function CustomFeedsPanel({
         }
     }
 
-    async function handleToggle(feed: SubscriberFeed): Promise<void> {
+    async function handleToggle(feed: SubscriberFeedView): Promise<void> {
         setBusy(true)
         try {
             const updated = await setFeedEnabled(tenantHost, feed.id, !feed.enabled)
@@ -188,7 +188,7 @@ export default function CustomFeedsPanel({
         }
     }
 
-    async function handleRotate(feed: SubscriberFeed): Promise<void> {
+    async function handleRotate(feed: SubscriberFeedView): Promise<void> {
         if (
             !window.confirm(
                 'Token erneuern? Podcast-Apps müssen die neue URL speichern.',
@@ -214,7 +214,7 @@ export default function CustomFeedsPanel({
         }
     }
 
-    async function handleDelete(feed: SubscriberFeed): Promise<void> {
+    async function handleDelete(feed: SubscriberFeedView): Promise<void> {
         if (!window.confirm(`Feed „${feed.title}“ wirklich löschen?`)) {
             return
         }

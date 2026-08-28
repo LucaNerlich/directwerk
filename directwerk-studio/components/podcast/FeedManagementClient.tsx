@@ -18,7 +18,7 @@ import {
     listSubscriberFeeds,
     setSubscriberFeedEnabled,
 } from '@/lib/api/tenantApi'
-import type {SeriesSummary, SubscriberFeedSummary} from '@directwerk/api/types'
+import type {SeriesSummary, SubscriberFeedAdminView} from '@directwerk/api/types'
 import {useSiteConfig} from '@/lib/site/SiteConfigProvider'
 import {getClientTenantHost} from '@/lib/tenant/getClientTenantHost'
 import {safeLinkHref} from '@/lib/url/safeUrl'
@@ -65,7 +65,7 @@ export default function FeedManagementClient(): React.JSX.Element {
     const authRedirect = useAuthRequired()
     const config = useSiteConfig()
     const [series, setSeries] = useState<SeriesSummary[]>([])
-    const [subscriberFeeds, setSubscriberFeeds] = useState<SubscriberFeedSummary[]>([])
+    const [subscriberFeeds, setSubscriberFeeds] = useState<SubscriberFeedAdminView[]>([])
     const [errorMessage, setErrorMessage] = useState<string | null>(null)
     const [isLoading, setIsLoading] = useState(true)
     const [busyFeedId, setBusyFeedId] = useState<number | null>(null)
@@ -127,7 +127,7 @@ export default function FeedManagementClient(): React.JSX.Element {
     }
 
     async function handleToggleFeed(
-        feed: SubscriberFeedSummary,
+        feed: SubscriberFeedAdminView,
     ): Promise<void> {
         setBusyFeedId(feed.id)
         setErrorMessage(null)

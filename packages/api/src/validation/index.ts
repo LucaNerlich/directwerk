@@ -72,7 +72,6 @@ export {
     parseAcceptInviteInput,
     parseForgotPasswordInput,
     parseLoginInput,
-    parseRefreshTokenInput,
     parseRegisterInput,
     parseResetPasswordInput,
     type AcceptInviteInput,

@@ -34,7 +34,7 @@ import {
     updateNotificationPreferences,
 } from '@/lib/api/client'
 import {AUTH_REQUIRED} from '@directwerk/api/constants'
-import type {Access, Me, SubscriberFeed, SubscriptionSummary} from '@directwerk/api/types'
+import type {Access, Me, SubscriberFeedView, SubscriptionSummary} from '@directwerk/api/types'
 import {parseForgotPasswordInput} from '@directwerk/api/validation'
 import {clearTokens} from '@/lib/auth/tokenStore'
 import {getClientTenantHost} from '@/lib/tenant/getClientTenantHost'
@@ -59,7 +59,7 @@ export default function AccountPage() {
     const router = useRouter()
     const [me, setMe] = useState<Me | null>(null)
     const [access, setAccess] = useState<Access | null>(null)
-    const [feeds, setFeeds] = useState<SubscriberFeed[]>([])
+    const [feeds, setFeeds] = useState<SubscriberFeedView[]>([])
     const [subscriptions, setSubscriptions] = useState<SubscriptionSummary[]>([])
     const [publicRssUrl, setPublicRssUrl] = useState<string | null>(null)
     const [portalMessage, setPortalMessage] = useState<string | null>(null)

@@ -14,9 +14,9 @@ import {
     parseTokenResponse,
 } from '@directwerk/api/validation'
 import {
-    parseSubscriberDownloadListEnvelope as parseSubscriberDownloadListEnvelopeAlias,
-    parseSubscriberFeedEnvelope as parseSubscriberFeedEnvelopeAlias,
-    parseSubscriberFeedListEnvelope as parseSubscriberFeedListEnvelopeAlias,
+    parseSubscriberDownloadListEnvelope,
+    parseSubscriberFeedEnvelope,
+    parseSubscriberFeedListEnvelope,
 } from '@directwerk/api/validation'
 import type {ErrorMessageCatalog} from '@directwerk/api/envelope'
 import {sanitizeContentHtml} from '@/lib/sanitizeContentHtml'
@@ -272,7 +272,7 @@ export async function listMyFeeds(
     tenantHost: string,
 ): Promise<SubscriberFeedView[]> {
     return envelopeResult(
-        parseSubscriberFeedListEnvelopeAlias,
+        parseSubscriberFeedListEnvelope,
         await authenticatedRequest('/api/proxy/me/feeds', tenantHost),
         'The server returned an invalid feed list.',
     ).data
@@ -282,7 +282,7 @@ export async function rotateDefaultFeedToken(
     tenantHost: string,
 ): Promise<SubscriberFeedView> {
     return envelopeResult(
-        parseSubscriberFeedEnvelopeAlias,
+        parseSubscriberFeedEnvelope,
         await authenticatedRequest('/api/proxy/me/feeds/default/rotate-token', tenantHost, {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
@@ -297,7 +297,7 @@ export async function setDefaultFeedEnabled(
     enabled: boolean,
 ): Promise<SubscriberFeedView> {
     return envelopeResult(
-        parseSubscriberFeedEnvelopeAlias,
+        parseSubscriberFeedEnvelope,
         await authenticatedRequest('/api/proxy/me/feeds/default/enabled', tenantHost, {
             method: 'PUT',
             headers: {'Content-Type': 'application/json'},
@@ -323,7 +323,7 @@ export async function createCustomFeed(
     formatIds: number[],
 ): Promise<SubscriberFeedView> {
     return envelopeResult(
-        parseSubscriberFeedEnvelopeAlias,
+        parseSubscriberFeedEnvelope,
         await authenticatedRequest('/api/proxy/me/feeds', tenantHost, {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
@@ -340,7 +340,7 @@ export async function updateCustomFeed(
     formatIds: number[],
 ): Promise<SubscriberFeedView> {
     return envelopeResult(
-        parseSubscriberFeedEnvelopeAlias,
+        parseSubscriberFeedEnvelope,
         await authenticatedRequest(`/api/proxy/me/feeds/${feedId}`, tenantHost, {
             method: 'PUT',
             headers: {'Content-Type': 'application/json'},
@@ -374,7 +374,7 @@ export async function setFeedEnabled(
     enabled: boolean,
 ): Promise<SubscriberFeedView> {
     return envelopeResult(
-        parseSubscriberFeedEnvelopeAlias,
+        parseSubscriberFeedEnvelope,
         await authenticatedRequest(`/api/proxy/me/feeds/${feedId}/enabled`, tenantHost, {
             method: 'PUT',
             headers: {'Content-Type': 'application/json'},
@@ -389,7 +389,7 @@ export async function rotateFeedToken(
     feedId: number,
 ): Promise<SubscriberFeedView> {
     return envelopeResult(
-        parseSubscriberFeedEnvelopeAlias,
+        parseSubscriberFeedEnvelope,
         await authenticatedRequest(`/api/proxy/me/feeds/${feedId}/rotate-token`, tenantHost, {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
@@ -516,7 +516,7 @@ export async function listMyDownloads(
     tenantHost: string,
 ): Promise<SubscriberDownload[]> {
     return envelopeResult(
-        parseSubscriberDownloadListEnvelopeAlias,
+        parseSubscriberDownloadListEnvelope,
         await authenticatedRequest('/api/proxy/me/downloads', tenantHost),
         'Der Server hat eine ungültige Download-Liste geliefert.',
     ).data
