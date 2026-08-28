@@ -2,13 +2,8 @@
 
 import {createAuthedRequest} from '@directwerk/api/client'
 import {parseApiEnvelope} from '@directwerk/api/envelope'
-import {
-    API_CONTRACT_ERROR,
-    AUTH_REQUIRED,
-    CONFLICT,
-    FORBIDDEN,
-    REQUEST_FAILED,
-} from '@directwerk/api/constants'
+import {platformTenantAdminPolicy} from '@directwerk/api/client/policies'
+import {API_CONTRACT_ERROR, AUTH_REQUIRED} from '@directwerk/api/constants'
 import {
     clearTenantTokens,
     getTenantSessionHost,
@@ -29,15 +24,7 @@ const tenantFetch = createAuthedRequest({
         if (host === null) return {}
         return {'X-Tenant-Host': host}
     },
-    authFailureMode: 'auth-required',
-    finalUnauthorized: 'clear-and-auth-required',
-    fixedErrorMessagesOnly: true,
-    fixedErrorMessage: REQUEST_FAILED,
-    statusErrors: {
-        // Authorization denied with a valid token — the session is fine.
-        '403': FORBIDDEN,
-        '409': CONFLICT,
-    },
+    ...platformTenantAdminPolicy,
 })
 
 async function tenantRequest<T>(

@@ -1,4 +1,5 @@
-import {createAuthedRequest} from '@directwerk/api/client'
+import {createAuthedRequest, createJsonRequest} from '@directwerk/api/client'
+import {subscriberPortalPolicy} from '@directwerk/api/client/policies'
 import {extractApiErrorMessage} from '@directwerk/api/envelope'
 import {
     createPublicContentParsers,
@@ -98,10 +99,7 @@ const authedFetch = createAuthedRequest({
     session: {getValidAccessToken, refreshAccessToken},
     clearTokens,
     baseHeaders: () => ({'X-Tenant-Host': getClientTenantHost()}),
-    authFailureMode: 'preserve-transient',
-    transientMessage: 'Der Server ist derzeit nicht erreichbar.',
-    finalUnauthorized: 'clear-and-auth-required',
-    invalidResponseMessage: INVALID_RESPONSE,
+    ...subscriberPortalPolicy,
     catalog: ERROR_CATALOG,
 })
 

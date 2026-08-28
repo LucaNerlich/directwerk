@@ -1,27 +1,18 @@
 import {createAuthedRequest} from '@directwerk/api/client'
+import {platformAdminPolicy} from '@directwerk/api/client/policies'
 import {
     parseApiEnvelope,
     parsePaginatedApiEnvelope,
 } from '@directwerk/api/envelope'
-import {FORBIDDEN, REQUEST_FAILED, CONFLICT, AUTH_REQUIRED} from '@directwerk/api/constants'
-import {isQueueJob} from '@directwerk/api/validation'
 import type {JobListPage, JobListQuery, PlatformAuditEvent} from '@directwerk/api/types'
+import {isQueueJob} from '@directwerk/api/validation'
 import {clearTokens} from '../auth/tokenStore'
 import {getValidAccessToken, refreshAccessToken} from '../auth/session'
 
 const authedFetch = createAuthedRequest({
     session: {getValidAccessToken, refreshAccessToken},
     clearTokens,
-    authFailureMode: 'auth-required',
-    finalUnauthorized: 'clear-and-auth-required',
-    fixedErrorMessagesOnly: true,
-    fixedErrorMessage: REQUEST_FAILED,
-    statusErrors: {
-        // Authorization denied with a valid token — the session is fine.
-        '403': FORBIDDEN,
-        '409': CONFLICT,
-    },
-    nullForEmptyResponses: true,
+    ...platformAdminPolicy,
 })
 
 async function platformRequest<T>(

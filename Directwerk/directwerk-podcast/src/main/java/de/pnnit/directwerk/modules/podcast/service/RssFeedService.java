@@ -1,17 +1,16 @@
 package de.pnnit.directwerk.modules.podcast.service;
 
-import de.pnnit.directwerk.modules.core.util.TenantAssetKeys;
 import de.pnnit.directwerk.modules.core.entity.Tenant;
 import de.pnnit.directwerk.modules.core.util.PublicUrlBuilder;
 import de.pnnit.directwerk.modules.digital.entity.AccessPolicy;
 import de.pnnit.directwerk.modules.digital.entity.AssetStatus;
 import de.pnnit.directwerk.modules.digital.entity.AssetType;
-import de.pnnit.directwerk.modules.digital.entity.AssetVisibility;
+import de.pnnit.directwerk.modules.digital.policy.PublicAssetPolicy;
 import de.pnnit.directwerk.modules.digital.entity.MediaAsset;
 import de.pnnit.directwerk.modules.podcast.entity.Episode;
 import de.pnnit.directwerk.modules.podcast.entity.PodcastSeries;
 import de.pnnit.directwerk.modules.podcast.feed.SubscriberFeed;
-import de.pnnit.directwerk.modules.podcast.feed.SubscriberFeedFormatMatcher;
+import de.pnnit.directwerk.modules.podcast.access.SubscriberFeedAccess;
 import java.util.List;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
@@ -24,6 +23,7 @@ public class RssFeedService {
 
     private final PublicPodcastQueryService publicPodcastQueryService;
     private final SubscriberEpisodeService subscriberEpisodeService;
+    private final SubscriberFeedAccess subscriberFeedAccess;
     private final RssXmlBuilder rssXmlBuilder;
     private final EpisodeDownloadAnalyticsService episodeDownloadAnalyticsService;
 
@@ -69,11 +69,10 @@ public class RssFeedService {
             throw new de.pnnit.directwerk.modules.podcast.feed.SubscriberFeedNotFoundException();
         }
         String originBaseUrl = PublicUrlBuilder.baseUrl(scheme, host, port);
-        List<RssXmlBuilder.RssEpisode> episodes = subscriberEpisodeService
-                .listEntitledEpisodes(tenant.getId(), feed.getUser().getId())
+        List<RssXmlBuilder.RssEpisode> episodes = subscriberFeedAccess
+                .listEntitledEpisodes(tenant.getId(), feed.getUser().getId(), feed)
                 .stream()
                 .filter(Episode::isEnclosureEnabled)
-                .filter(episode -> SubscriberFeedFormatMatcher.includes(feed, episode))
                 .map(episode -> toPrivateRssEpisode(episode, tenant, feed.getFeedToken(), scheme, host, port))
                 .flatMap(Optional::stream)
                 .toList();
@@ -98,7 +97,7 @@ public class RssFeedService {
             int port
     ) {
         MediaAsset asset = episode.getAudioAsset();
-        if (!isReadyAudio(asset) || !isPublicCdnEligible(asset, tenant.getSlug())) {
+        if (!isReadyAudio(asset) || !PublicAssetPolicy.isPublicCdnEligible(tenant.getSlug(), asset)) {
             return Optional.empty();
         }
         // Always use the stable public enclosure proxy (Umami + CDN redirect); never embed CDN/S3.
@@ -155,17 +154,6 @@ public class RssFeedService {
         return asset != null
                 && asset.getStatus() == AssetStatus.READY
                 && asset.getAssetType() == AssetType.AUDIO;
-    }
-
-    /**
-     * PUBLIC visibility plus the shared key grammar — parity with
-     * {@code EpisodeMediaService.publicCdnUrl} by construction, not by comment.
-     */
-    private static boolean isPublicCdnEligible(MediaAsset asset, String tenantSlug) {
-        if (asset.getVisibility() != AssetVisibility.PUBLIC || asset.getS3Key() == null) {
-            return false;
-        }
-        return TenantAssetKeys.isPublicKey(tenantSlug, asset.getS3Key());
     }
 
     private static RssXmlBuilder.RssEpisode toRssEpisode(Episode episode, MediaAsset asset, String url) {

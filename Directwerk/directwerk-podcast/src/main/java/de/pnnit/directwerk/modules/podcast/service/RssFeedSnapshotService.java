@@ -5,7 +5,7 @@ import de.pnnit.directwerk.config.DirectwerkProperties;
 import de.pnnit.directwerk.modules.core.entity.Tenant;
 import de.pnnit.directwerk.modules.core.entity.TenantDomain;
 import de.pnnit.directwerk.modules.core.repository.TenantDomainRepository;
-import de.pnnit.directwerk.modules.core.repository.TenantModuleActivationRepository;
+import de.pnnit.directwerk.modules.core.service.ModuleGateService;
 import de.pnnit.directwerk.modules.core.repository.TenantRepository;
 import de.pnnit.directwerk.modules.core.util.TenantAssetKeys;
 import de.pnnit.directwerk.modules.digital.api.CdnPurgeClient;
@@ -52,7 +52,7 @@ public class RssFeedSnapshotService {
     private final RssFeedService rssFeedService;
     private final TenantRepository tenantRepository;
     private final TenantDomainRepository tenantDomainRepository;
-    private final TenantModuleActivationRepository tenantModuleActivationRepository;
+    private final ModuleGateService moduleGateService;
     private final PodcastSeriesRepository podcastSeriesRepository;
     private final SubscriberFeedRepository subscriberFeedRepository;
     private final RssSnapshotStateStore snapshotStateStore;
@@ -66,7 +66,7 @@ public class RssFeedSnapshotService {
             RssFeedService rssFeedService,
             TenantRepository tenantRepository,
             TenantDomainRepository tenantDomainRepository,
-            TenantModuleActivationRepository tenantModuleActivationRepository,
+            ModuleGateService moduleGateService,
             PodcastSeriesRepository podcastSeriesRepository,
             SubscriberFeedRepository subscriberFeedRepository,
             RssSnapshotStateStore snapshotStateStore,
@@ -79,7 +79,7 @@ public class RssFeedSnapshotService {
         this.rssFeedService = rssFeedService;
         this.tenantRepository = tenantRepository;
         this.tenantDomainRepository = tenantDomainRepository;
-        this.tenantModuleActivationRepository = tenantModuleActivationRepository;
+        this.moduleGateService = moduleGateService;
         this.podcastSeriesRepository = podcastSeriesRepository;
         this.subscriberFeedRepository = subscriberFeedRepository;
         this.snapshotStateStore = snapshotStateStore;
@@ -306,9 +306,7 @@ public class RssFeedSnapshotService {
     }
 
     private boolean moduleActive(Long tenantId, String moduleKey) {
-        return tenantModuleActivationRepository.findByTenantIdAndModuleKey(tenantId, moduleKey)
-                .map(activation -> activation.isActive())
-                .orElse(false);
+        return moduleGateService.isModuleActive(tenantId, moduleKey);
     }
 
     private S3Client s3Client() {

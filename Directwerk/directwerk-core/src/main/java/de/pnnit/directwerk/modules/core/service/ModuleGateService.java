@@ -41,4 +41,12 @@ public class ModuleGateService {
                 .map(activation -> activation.getModuleKey())
                 .collect(Collectors.toUnmodifiableSet());
     }
+
+    /** Worker-safe module check without {@link TenantContext}. */
+    @Transactional(readOnly = true)
+    public boolean isModuleActive(Long tenantId, String moduleKey) {
+        return tenantModuleActivationRepository.findByTenantIdAndModuleKey(tenantId, moduleKey)
+                .map(activation -> activation.isActive())
+                .orElse(false);
+    }
 }

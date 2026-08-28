@@ -10,8 +10,11 @@
         "./server": "./src/server/index.ts",
         "./auth/*": "./src/auth/*.ts",
         "./client": "./src/client/index.ts",
+        "./client/policies": "./src/client/policies.ts",
         "./format": "./src/format/money.ts",
+        "./media/browserUpload": "./src/media/browserUpload.ts",
         "./proxy": "./src/proxy/index.ts",
+        "./proxy/platformRouteHandler": "./src/proxy/platformRouteHandler.ts",
         "./tenant": "./src/tenant/index.ts",
         "./tenant/server": "./src/tenant/server.ts",
         "./validation": "./src/validation/index.ts"

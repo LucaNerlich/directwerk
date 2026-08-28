@@ -16,7 +16,7 @@ import de.pnnit.directwerk.modules.core.entity.TenantDomain;
 import de.pnnit.directwerk.modules.core.entity.TenantModuleActivation;
 import de.pnnit.directwerk.modules.core.entity.User;
 import de.pnnit.directwerk.modules.core.repository.TenantDomainRepository;
-import de.pnnit.directwerk.modules.core.repository.TenantModuleActivationRepository;
+import de.pnnit.directwerk.modules.core.service.ModuleGateService;
 import de.pnnit.directwerk.modules.core.repository.TenantRepository;
 import de.pnnit.directwerk.modules.digital.api.CdnPurgeClient;
 import de.pnnit.directwerk.modules.digital.storage.S3PublicUrlBuilder;
@@ -116,8 +116,8 @@ class RssFeedSnapshotServiceTest {
     void refreshWhenRssModuleOffDeletesPublicSnapshotAndPurgesCdn() {
         Fixture fixture = fixture();
         when(fixture.tenantRepository.findById(10L)).thenReturn(Optional.of(fixture.tenant));
-        when(fixture.moduleActivations.findByTenantIdAndModuleKey(10L, "PODCAST_RSS"))
-                .thenReturn(Optional.empty());
+        when(fixture.moduleGateService.isModuleActive(10L, "PODCAST_RSS"))
+                .thenReturn(false);
         when(fixture.podcastSeriesRepository.findByTenantIdOrderByTitleAscIdAsc(10L)).thenReturn(List.of());
         when(fixture.subscriberFeedRepository.findByTenantIdOrderByIdAsc(10L)).thenReturn(List.of());
 
@@ -215,7 +215,7 @@ class RssFeedSnapshotServiceTest {
         RssFeedService rssFeedService = mock(RssFeedService.class);
         TenantRepository tenantRepository = mock(TenantRepository.class);
         TenantDomainRepository tenantDomainRepository = mock(TenantDomainRepository.class);
-        TenantModuleActivationRepository moduleActivations = mock(TenantModuleActivationRepository.class);
+        ModuleGateService moduleGateService = mock(ModuleGateService.class);
         PodcastSeriesRepository podcastSeriesRepository = mock(PodcastSeriesRepository.class);
         SubscriberFeedRepository subscriberFeedRepository = mock(SubscriberFeedRepository.class);
         RssSnapshotStateStore stateStore = mock(RssSnapshotStateStore.class);
@@ -238,7 +238,7 @@ class RssFeedSnapshotServiceTest {
                 rssFeedService,
                 tenantRepository,
                 tenantDomainRepository,
-                moduleActivations,
+                moduleGateService,
                 podcastSeriesRepository,
                 subscriberFeedRepository,
                 stateStore,
@@ -257,7 +257,7 @@ class RssFeedSnapshotServiceTest {
                 tenant,
                 tenantRepository,
                 tenantDomainRepository,
-                moduleActivations,
+                moduleGateService,
                 podcastSeriesRepository,
                 subscriberFeedRepository,
                 stateStore
@@ -265,10 +265,8 @@ class RssFeedSnapshotServiceTest {
     }
 
     private static void enableRss(Fixture fixture) {
-        TenantModuleActivation activation = new TenantModuleActivation();
-        activation.setActive(true);
-        when(fixture.moduleActivations.findByTenantIdAndModuleKey(10L, "PODCAST_RSS"))
-                .thenReturn(Optional.of(activation));
+        when(fixture.moduleGateService.isModuleActive(10L, "PODCAST_RSS"))
+                .thenReturn(true);
         when(fixture.tenantRepository.findById(10L)).thenReturn(Optional.of(fixture.tenant));
     }
 
@@ -289,7 +287,7 @@ class RssFeedSnapshotServiceTest {
             Tenant tenant,
             TenantRepository tenantRepository,
             TenantDomainRepository tenantDomainRepository,
-            TenantModuleActivationRepository moduleActivations,
+            ModuleGateService moduleGateService,
             PodcastSeriesRepository podcastSeriesRepository,
             SubscriberFeedRepository subscriberFeedRepository,
             RssSnapshotStateStore stateStore
