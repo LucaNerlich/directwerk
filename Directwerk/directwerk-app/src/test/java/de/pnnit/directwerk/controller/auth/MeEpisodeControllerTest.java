@@ -14,8 +14,7 @@ import de.pnnit.directwerk.modules.digital.entity.MediaAsset;
 import de.pnnit.directwerk.modules.digital.entity.AccessPolicy;
 import de.pnnit.directwerk.modules.podcast.entity.Episode;
 import de.pnnit.directwerk.modules.podcast.entity.PodcastSeries;
-import de.pnnit.directwerk.modules.podcast.service.EpisodeDownloadAnalyticsService;
-import de.pnnit.directwerk.modules.podcast.service.SubscriberEpisodeService;
+import de.pnnit.directwerk.modules.podcast.service.PortalStreamDeliveryFacade;
 import de.pnnit.directwerk.multitenancy.TenantContext;
 import de.pnnit.directwerk.security.DirectwerkUserPrincipal;
 import de.pnnit.directwerk.security.RoleConstants;
@@ -38,7 +37,7 @@ class MeEpisodeControllerTest {
     private SubscriberPortalAccessService subscriberContentAccessService;
 
     @Mock
-    private EpisodeDownloadAnalyticsService episodeDownloadAnalyticsService;
+    private PortalStreamDeliveryFacade portalStreamDeliveryFacade;
 
     @Mock
     private HttpServletRequest request;
@@ -53,13 +52,19 @@ class MeEpisodeControllerTest {
         TenantContext.setTenantId(10L);
         MeEpisodeController controller = new MeEpisodeController(
                 subscriberContentAccessService,
-                episodeDownloadAnalyticsService
+                portalStreamDeliveryFacade
         );
         DirectwerkUserPrincipal principal = subscriber();
         Episode episode = freeEpisode();
-        when(subscriberContentAccessService.resolveStream(principal, "episode-1"))
-                .thenReturn(new SubscriberPortalAccessService.EpisodeStream(
-                        episode, URI.create("https://cdn.example.test/alpha/public/audio/ep.mp3").toURL()));
+        var stream = new SubscriberPortalAccessService.EpisodeStream(
+                episode, URI.create("https://cdn.example.test/alpha/public/audio/ep.mp3").toURL());
+        when(portalStreamDeliveryFacade.streamEpisode(principal, "episode-1", "alpha.example.test"))
+                .thenReturn(new PortalStreamDeliveryFacade.TrackedStreamRedirect(
+                        stream,
+                        ResponseEntity.status(HttpStatus.FOUND)
+                                .location(URI.create("https://cdn.example.test/alpha/public/audio/ep.mp3"))
+                                .build()
+                ));
         when(request.getServerName()).thenReturn("alpha.example.test");
 
         ResponseEntity<Void> response = controller.streamEpisode("episode-1", principal, request);
@@ -67,8 +72,7 @@ class MeEpisodeControllerTest {
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.FOUND);
         assertThat(response.getHeaders().getLocation())
                 .hasToString("https://cdn.example.test/alpha/public/audio/ep.mp3");
-        verify(episodeDownloadAnalyticsService)
-                .trackEpisodeDownload(10L, episode, "stream", "alpha.example.test");
+        verify(portalStreamDeliveryFacade).streamEpisode(principal, "episode-1", "alpha.example.test");
     }
 
     private static DirectwerkUserPrincipal subscriber() {

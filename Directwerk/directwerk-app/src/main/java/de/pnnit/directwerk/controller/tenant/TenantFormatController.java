@@ -27,6 +27,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequiresModule(PodcastModule.KEY)
+@PreAuthorize("hasRole('TENANT_ADMIN')")
 @RequestMapping("/api/v1/formats")
 public class TenantFormatController {
 

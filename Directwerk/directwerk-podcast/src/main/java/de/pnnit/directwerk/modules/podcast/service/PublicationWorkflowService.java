@@ -2,6 +2,8 @@ package de.pnnit.directwerk.modules.podcast.service;
 
 import de.pnnit.directwerk.config.DirectwerkConfig;
 import de.pnnit.directwerk.modules.content.ContentPublishedEvent;
+import de.pnnit.directwerk.modules.content.PublicationLifecycleSupport;
+import de.pnnit.directwerk.modules.core.notification.PublicationNotificationSupport;
 import de.pnnit.directwerk.modules.content.PublicationTexts;
 import de.pnnit.directwerk.modules.content.ScheduledPublishing;
 import de.pnnit.directwerk.modules.content.ScheduledPublishing.DueItem;
@@ -70,11 +72,17 @@ public class PublicationWorkflowService {
     @RequiresModule(PodcastModule.KEY)
     public Episode schedule(Long tenantId, Long episodeId, Instant scheduledAt, boolean notifySubscribers) {
         Episode episode = episodeService.requireEpisode(tenantId, episodeId);
-        PublicationTransitions.requireDraftStatus(episode.getStatus() == EpisodeStatus.DRAFT, "episodes");
-        PublicationTransitions.requireFutureInstant(scheduledAt, "scheduledAt");
-        episode.setStatus(EpisodeStatus.SCHEDULED);
-        episode.setScheduledAt(scheduledAt);
-        episode.setNotifySubscribersOnPublish(notifySubscribers);
+        PublicationLifecycleSupport.schedule(
+                scheduledAt,
+                notifySubscribers,
+                () -> episode.getStatus() == EpisodeStatus.DRAFT,
+                "episodes",
+                () -> {
+                    episode.setStatus(EpisodeStatus.SCHEDULED);
+                    episode.setScheduledAt(scheduledAt);
+                    episode.setNotifySubscribersOnPublish(notifySubscribers);
+                }
+        );
         return episodeRepository.save(episode);
     }
 
@@ -92,14 +100,18 @@ public class PublicationWorkflowService {
     @RequiresModule(PodcastModule.KEY)
     public Episode unpublish(Long tenantId, Long episodeId) {
         Episode episode = episodeService.requireEpisode(tenantId, episodeId);
-        PublicationTransitions.requirePublishedStatus(episode.getStatus() == EpisodeStatus.PUBLISHED, "episodes");
-        demotePublicAudioIfNeeded(episode);
-        episode.setStatus(EpisodeStatus.DRAFT);
-        episode.setPublishedAt(null);
-        episode.setScheduledAt(null);
-        Episode unpublished = episodeRepository.save(episode);
-        rssFeedRefreshScheduler.requestRefreshAfterCommit(tenantId);
-        return unpublished;
+        PublicationLifecycleSupport.unpublish(
+                () -> episode.getStatus() == EpisodeStatus.PUBLISHED,
+                "episodes",
+                () -> {
+                    demotePublicAudioIfNeeded(episode);
+                    episode.setStatus(EpisodeStatus.DRAFT);
+                    episode.setPublishedAt(null);
+                    episode.setScheduledAt(null);
+                },
+                () -> rssFeedRefreshScheduler.requestRefreshAfterCommit(tenantId)
+        );
+        return episodeRepository.save(episode);
     }
 
     @Transactional
@@ -207,24 +219,20 @@ public class PublicationWorkflowService {
     }
 
     private void maybeNotifySubscribers(Long tenantId, Episode published, boolean notifySubscribers) {
-        if (!notifySubscribers || !notificationGate.enabled(tenantId, ContentType.EPISODE, published.getId())) {
-            return;
-        }
         Instant notifiedAt = Instant.now();
-        int claimed = episodeRepository.claimEmailNotification(tenantId, published.getId(), notifiedAt);
-        if (claimed == 0) {
-            log.debug("Skipping episode notification tenant={} episode={} — already notified", tenantId, published.getId());
-            return;
-        }
-        published.setEmailNotifiedAt(notifiedAt);
-        contentPublishedNotifier.notifyContentPublished(new ContentPublishedEvent(
+        PublicationNotificationSupport.maybeNotify(
                 tenantId,
                 ContentType.EPISODE,
                 published.getId(),
                 published.getTitle(),
                 PublicationTexts.htmlExcerpt(published.getDescription()),
                 published.getSlug(),
-                published.getAccessPolicy().name()
-        ));
+                published.getAccessPolicy().name(),
+                notifySubscribers,
+                notificationGate,
+                contentPublishedNotifier,
+                () -> episodeRepository.claimEmailNotification(tenantId, published.getId(), notifiedAt),
+                () -> published.setEmailNotifiedAt(notifiedAt)
+        );
     }
 }

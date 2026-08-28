@@ -1,11 +1,12 @@
 import {createAuthedRequest, createJsonRequest} from '@directwerk/api/client'
 import {subscriberPortalPolicy, SUBSCRIBER_PORTAL_CATALOG} from '@directwerk/api/client/policies'
-import {extractApiErrorMessage} from '@directwerk/api/envelope'
+import {envelopeResult} from '@directwerk/api/envelope'
 import type {ErrorMessageCatalog} from '@directwerk/api/envelope'
-import type {ApiEnvelope} from '@directwerk/api/types'
 import {clearTokens} from '@/lib/auth/tokenStore'
 import {getClientTenantHost} from '@/lib/tenant/getClientTenantHost'
 import {getValidAccessToken, refreshAccessToken} from '@/lib/auth/session'
+
+export {envelopeResult}
 
 export const INVALID_RESPONSE = subscriberPortalPolicy.invalidResponseMessage!
 
@@ -25,36 +26,24 @@ export const authedFetch = createAuthedRequest({
     catalog: ERROR_CATALOG,
 })
 
-export async function parseJsonResponse(response: Response): Promise<unknown> {
-    const contentType = response.headers.get('content-type') ?? ''
-    if (!contentType.toLowerCase().includes('application/json')) {
-        throw new Error(INVALID_RESPONSE)
-    }
-
-    return response.json()
-}
-
-export async function request(
+/**
+ * Unauthenticated JSON request.
+ *
+ * @param _tenantHost Deprecated — ignored; tenant binding comes from getClientTenantHost.
+ */
+export function request(
     path: string,
-    tenantHost: string | null,
+    _tenantHost: string | null,
     init?: RequestInit,
 ): Promise<unknown> {
-    const response = await fetch(path, {
-        ...init,
-        headers: {
-            Accept: 'application/json',
-            ...(tenantHost === null ? {} : {'X-Tenant-Host': tenantHost}),
-            ...init?.headers,
-        },
-    })
-    const value = await parseJsonResponse(response)
-    if (!response.ok) {
-        throw new Error(extractApiErrorMessage(value, response.status, ERROR_CATALOG))
-    }
-
-    return value
+    return jsonRequest(path, init)
 }
 
+/**
+ * Authenticated JSON request.
+ *
+ * @param _tenantHost Deprecated — ignored; tenant binding comes from getClientTenantHost.
+ */
 export function authenticatedRequest(
     path: string,
     _tenantHost: string,
@@ -63,6 +52,9 @@ export function authenticatedRequest(
     return authedFetch(path, init)
 }
 
+/**
+ * @param tenantHost Deprecated — ignored; tenant binding comes from getClientTenantHost.
+ */
 export async function postJson(
     path: string,
     tenantHost: string | null,
@@ -75,16 +67,10 @@ export async function postJson(
     })
 }
 
-export function envelopeResult<T>(
-    parser: (value: unknown) => ApiEnvelope<T> | null,
-    value: unknown,
-    invalidMessage: string,
-): ApiEnvelope<T> {
-    const parsed = parser(value)
-    if (parsed === null) {
-        throw new Error(invalidMessage)
+export function jsonInit(method: 'POST' | 'PUT' | 'PATCH', body: unknown): RequestInit {
+    return {
+        method,
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(body),
     }
-
-    return parsed
 }
-

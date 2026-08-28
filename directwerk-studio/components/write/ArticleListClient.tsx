@@ -1,8 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import {useRouter} from 'next/navigation'
-import {useCallback, useEffect, useRef, useState} from 'react'
+import {useCallback, useEffect, useState} from 'react'
 
 import {Button} from '@directwerk/ui/components/button'
 import EmptyState from '@directwerk/ui/components/empty-state'
@@ -10,22 +9,22 @@ import ListPanel, {ListPanelRow} from '@directwerk/ui/components/list-panel'
 import PageHeader from '@directwerk/ui/components/page-header'
 
 import PublicationStatusBadge from '@/components/publication/PublicationStatusBadge'
-import {cancelScheduleArticle, listArticles, unarchiveArticle, unpublishArticle} from '@/lib/api/writeApi'
+import {
+    cancelScheduleArticle,
+    listArticles,
+    unarchiveArticle,
+    unpublishArticle,
+} from '@/lib/api/writeApi'
 import type {ArticleDetail} from '@directwerk/api/types'
+import {usePublicationListActions} from '@/lib/publication/usePublicationListActions'
 import {getClientTenantHost} from '@/lib/tenant/getClientTenantHost'
 import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
 
 export default function ArticleListClient() {
-    const router = useRouter()
     const authRedirect = useAuthRequired()
-    const routerRef = useRef(router)
-    routerRef.current = router
-
     const [articles, setArticles] = useState<ArticleDetail[]>([])
-    const [errorMessage, setErrorMessage] = useState<string | null>(null)
-    const [statusMessage, setStatusMessage] = useState<string | null>(null)
     const [isLoading, setIsLoading] = useState(true)
-    const [busyArticleId, setBusyArticleId] = useState<number | null>(null)
+    const [listError, setListError] = useState<string | null>(null)
 
     const load = useCallback(async (): Promise<void> => {
         try {
@@ -33,7 +32,7 @@ export default function ArticleListClient() {
             setArticles(loaded)
         } catch (error) {
             if (authRedirect(error)) return
-            setErrorMessage(
+            setListError(
                 error instanceof Error
                     ? error.message
                     : 'Beiträge konnten nicht geladen werden.',
@@ -43,78 +42,37 @@ export default function ArticleListClient() {
         }
     }, [])
 
+    const {
+        busyItemId: busyArticleId,
+        errorMessage,
+        statusMessage,
+        handleUnpublish,
+        handleCancelSchedule,
+        handleUnarchive,
+    } = usePublicationListActions({
+        setItems: setArticles,
+        unpublish: (id) => unpublishArticle(getClientTenantHost(), id),
+        cancelSchedule: (id) => cancelScheduleArticle(getClientTenantHost(), id),
+        unarchive: (id) => unarchiveArticle(getClientTenantHost(), id),
+        labels: {
+            unpublishSuccess: (title) =>
+                `Beitrag „${title}“ wurde zurückgezogen (Entwurf).`,
+            cancelScheduleSuccess: (title) =>
+                `Planung für „${title}“ wurde aufgehoben (Entwurf).`,
+            unarchiveSuccess: (title) =>
+                `Beitrag „${title}“ wurde wiederhergestellt (Entwurf).`,
+            unpublishError: 'Beitrag konnte nicht zurückgezogen werden.',
+            cancelScheduleError: 'Planung konnte nicht aufgehoben werden.',
+            unarchiveError: 'Beitrag konnte nicht wiederhergestellt werden.',
+        },
+        authRedirect,
+    })
+
+    const displayError = listError ?? errorMessage
+
     useEffect(() => {
         void load()
     }, [load])
-
-    const handleUnpublish = async (article: ArticleDetail): Promise<void> => {
-        setBusyArticleId(article.id)
-        setErrorMessage(null)
-        setStatusMessage(null)
-        try {
-            const host = getClientTenantHost()
-            const updated = await unpublishArticle(host, article.id)
-            setArticles((current) =>
-                current.map((item) => (item.id === article.id ? updated : item)),
-            )
-            setStatusMessage(`Beitrag „${article.title}“ wurde zurückgezogen (Entwurf).`)
-        } catch (error) {
-            if (authRedirect(error)) return
-            setErrorMessage(
-                error instanceof Error
-                    ? error.message
-                    : 'Beitrag konnte nicht zurückgezogen werden.',
-            )
-        } finally {
-            setBusyArticleId(null)
-        }
-    }
-
-    const handleCancelSchedule = async (article: ArticleDetail): Promise<void> => {
-        setBusyArticleId(article.id)
-        setErrorMessage(null)
-        setStatusMessage(null)
-        try {
-            const host = getClientTenantHost()
-            const updated = await cancelScheduleArticle(host, article.id)
-            setArticles((current) =>
-                current.map((item) => (item.id === article.id ? updated : item)),
-            )
-            setStatusMessage(`Planung für „${article.title}“ wurde aufgehoben (Entwurf).`)
-        } catch (error) {
-            if (authRedirect(error)) return
-            setErrorMessage(
-                error instanceof Error
-                    ? error.message
-                    : 'Planung konnte nicht aufgehoben werden.',
-            )
-        } finally {
-            setBusyArticleId(null)
-        }
-    }
-
-    const handleUnarchive = async (article: ArticleDetail): Promise<void> => {
-        setBusyArticleId(article.id)
-        setErrorMessage(null)
-        setStatusMessage(null)
-        try {
-            const host = getClientTenantHost()
-            const updated = await unarchiveArticle(host, article.id)
-            setArticles((current) =>
-                current.map((item) => (item.id === article.id ? updated : item)),
-            )
-            setStatusMessage(`Beitrag „${article.title}“ wurde wiederhergestellt (Entwurf).`)
-        } catch (error) {
-            if (authRedirect(error)) return
-            setErrorMessage(
-                error instanceof Error
-                    ? error.message
-                    : 'Beitrag konnte nicht wiederhergestellt werden.',
-            )
-        } finally {
-            setBusyArticleId(null)
-        }
-    }
 
     if (isLoading) {
         return <p>Beiträge werden geladen…</p>
@@ -132,9 +90,9 @@ export default function ArticleListClient() {
                     </Button>
                 }
             />
-            {errorMessage !== null && (
+            {displayError !== null && (
                 <p className="text-sm text-destructive" role="alert">
-                    {errorMessage}
+                    {displayError}
                 </p>
             )}
             {statusMessage !== null && (

@@ -8,8 +8,18 @@ export const INVALID_RESPONSE = studioCreatorPolicy.invalidResponseMessage!
 
 export const ERROR_CATALOG: ErrorMessageCatalog = studioCreatorPolicy.catalog!
 
+let resolveTenantHost: () => string = getClientTenantHost
+
+/**
+ * Binds the tenant host resolver used for `X-Tenant-Host` on every request.
+ * Defaults to {@link getClientTenantHost}.
+ */
+export function bindTenantHost(getHost: () => string): void {
+    resolveTenantHost = getHost
+}
+
 function baseHeaders(): Record<string, string> {
-    return {'X-Tenant-Host': getClientTenantHost()}
+    return {'X-Tenant-Host': resolveTenantHost()}
 }
 
 export const jsonRequest = createJsonRequest({
@@ -25,6 +35,11 @@ export const authedFetch = createAuthedRequest({
     ...studioCreatorPolicy,
 })
 
+/**
+ * Unauthenticated JSON request.
+ *
+ * @param _tenantHost Deprecated — ignored; tenant binding comes from {@link bindTenantHost}.
+ */
 export function request(
     path: string,
     _tenantHost: string,
@@ -33,6 +48,11 @@ export function request(
     return jsonRequest(path, init)
 }
 
+/**
+ * Authenticated JSON request.
+ *
+ * @param _tenantHost Deprecated — ignored; tenant binding comes from {@link bindTenantHost}.
+ */
 export function authenticatedRequest(
     path: string,
     _tenantHost: string,
@@ -41,6 +61,9 @@ export function authenticatedRequest(
     return authedFetch(path, init)
 }
 
+/**
+ * @param tenantHost Deprecated — ignored; tenant binding comes from {@link bindTenantHost}.
+ */
 export async function postJson(
     path: string,
     tenantHost: string,
@@ -57,6 +80,9 @@ export function jsonInit(method: 'POST' | 'PUT', body: unknown): RequestInit {
     }
 }
 
+/**
+ * @param tenantHost Deprecated — ignored; tenant binding comes from {@link bindTenantHost}.
+ */
 export async function proxyRequest<T>(
     path: string,
     tenantHost: string,
@@ -71,4 +97,3 @@ export async function proxyRequest<T>(
 
     return parsed.data
 }
-

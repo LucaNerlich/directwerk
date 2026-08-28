@@ -1,22 +1,19 @@
 package de.pnnit.directwerk.controller.auth;
 
-import de.pnnit.directwerk.modules.podcast.access.SubscriberPortalAccessService;
 import de.pnnit.directwerk.api.dto.CategoryView;
 import de.pnnit.directwerk.api.dto.FormatView;
 import de.pnnit.directwerk.api.response.Response;
 import de.pnnit.directwerk.modules.core.RequiresModule;
 import de.pnnit.directwerk.modules.podcast.PodcastModule;
+import de.pnnit.directwerk.modules.podcast.access.SubscriberPortalAccessService;
 import de.pnnit.directwerk.modules.podcast.entity.Episode;
-import de.pnnit.directwerk.modules.podcast.service.EpisodeDownloadAnalyticsService;
-import de.pnnit.directwerk.multitenancy.TenantContext;
+import de.pnnit.directwerk.modules.podcast.service.PortalStreamDeliveryFacade;
 import de.pnnit.directwerk.security.DirectwerkUserPrincipal;
 import de.pnnit.directwerk.security.SecurityUtils;
 import jakarta.servlet.http.HttpServletRequest;
-import java.net.URI;
 import java.net.URL;
 import java.time.Instant;
 import java.util.List;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -31,14 +28,14 @@ import org.springframework.web.bind.annotation.RestController;
 public class MeEpisodeController {
 
     private final SubscriberPortalAccessService subscriberContentAccessService;
-    private final EpisodeDownloadAnalyticsService episodeDownloadAnalyticsService;
+    private final PortalStreamDeliveryFacade portalStreamDeliveryFacade;
 
     public MeEpisodeController(
             SubscriberPortalAccessService subscriberContentAccessService,
-            EpisodeDownloadAnalyticsService episodeDownloadAnalyticsService
+            PortalStreamDeliveryFacade portalStreamDeliveryFacade
     ) {
         this.subscriberContentAccessService = subscriberContentAccessService;
-        this.episodeDownloadAnalyticsService = episodeDownloadAnalyticsService;
+        this.portalStreamDeliveryFacade = portalStreamDeliveryFacade;
     }
 
     @GetMapping
@@ -67,16 +64,8 @@ public class MeEpisodeController {
 
         // Gate ordering, READY check, publisher branch and PAID⇒SUBSCRIPTION live in the
         // access module — see SubscriberPortalAccessService.
-        var stream = subscriberContentAccessService.resolveStream(user, slug);
-        episodeDownloadAnalyticsService.trackEpisodeDownload(
-                TenantContext.requireTenantId(),
-                stream.episode(),
-                "stream",
-                request.getServerName()
-        );
-        return ResponseEntity.status(HttpStatus.FOUND)
-                .location(URI.create(stream.url().toString()))
-                .build();
+        var tracked = portalStreamDeliveryFacade.streamEpisode(user, slug, request.getServerName());
+        return tracked.response();
     }
 
     private static MeEpisodeView toView(Episode episode, URL audioUrl) {

@@ -96,6 +96,73 @@ Domain glossary and deepening modules for AI navigation. Terms here name **seams
 **Interface:** `resolve(MediaAsset)` via `PublicAssetPolicy`.  
 **Seam:** `EpisodeMediaService.publicCdnUrl` and RSS paths share eligibility.
 
+## Wave 4 deepened modules
+
+### 16. MediaAsset view mapper (`MediaAssetViewMapper` in app)
+
+**Interface:** `toView(MediaAsset)`, `resolveCdnUrlString(MediaAsset)`.  
+**Seam:** Controllers delegate CDN eligibility to `PublicCdnUrlResolver`.
+
+### 17. Publication lifecycle support (`PublicationLifecycleSupport` + `PublicationNotificationSupport`)
+
+**Interface:** Shared schedule/unpublish/archive transitions and subscriber notification claim.  
+**Seam:** Episode and article workflow services call shared helpers.
+
+### 18. Subscription membership provisioning (`SubscriptionMembershipActivatedEvent`)
+
+**Interface:** Published on manual grant; listener ensures default SubscriberFeed.  
+**Seam:** Replaces scattered `ensureDefaultFeed` calls from controllers.
+
+### 19. Subscription revoke orchestration (`SubscriptionService.revokeSubscription`)
+
+**Interface:** Local revoke + external Stripe cancel in one module.  
+**Seam:** Controllers no longer scan subscriptions for STRIPE source.
+
+### 20. Subscriber directory query (`SubscriberDirectoryQueryService`)
+
+**Interface:** `listSubscribers(tenantId)` read model.  
+**Seam:** Tenant admin subscriber list no longer merges in controller.
+
+### 21. Feed URL resolver (`FeedUrlResolver` + extended `FeedUrls`)
+
+**Interface:** Absolute subscriber/series/enclosure URLs from origin + slug.  
+**Seam:** Studio feeds, RSS enclosures share URL grammar.
+
+### 22. Public content projection (`PublicContentProjection`)
+
+**Interface:** FREE-only body/audio/RSS exposure rules.  
+**Seam:** Public HTTP and enclosure services share redaction policy.
+
+### 23. Portal stream delivery (`PortalStreamDeliveryFacade`)
+
+**Interface:** JWT stream resolve + analytics + redirect.  
+**Seam:** Mirrors `RssFeedDeliveryFacade` for subscriber portal playback.
+
+### 24. Episode access port (`EpisodeAccessApi.hasAccess`)
+
+**Interface:** Single point check aligned with batch `filterAccessible`.  
+**Seam:** `SubscriberFeedAccessService` uses podcast port, not cross-module `EntitlementApi`.
+
+### 25. Studio API core (`studioApiCore.ts`)
+
+**Interface:** `studioGet`, `studioMutate`, `createPublicationWorkflowApi`.  
+**Seam:** Domain `*Api.ts` modules import only their parsers + core helpers.
+
+### 26. Publication editor/list hooks (`usePublicationEditorWorkflow`, `usePublicationListActions`)
+
+**Interface:** Shared save/workflow/autosave and list row mutations.  
+**Seam:** Article and episode UIs share controller logic.
+
+### 27. Web transport + parsers (`envelopeResult`, `createWebPublicParsers`, shared site-config)
+
+**Interface:** Unified fetch/envelope unwrap; single public content parser factory.  
+**Seam:** `publicApi`, `subscriberApi`, server fetch share one stack.
+
+### 28. Account dashboard hook (`useAccountDashboard`)
+
+**Interface:** Parallel load of subscriber account view model.  
+**Seam:** Account page is presentation-only.
+
 ## Migration order
 
 1. Transport policies (#3)  

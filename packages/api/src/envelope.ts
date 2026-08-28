@@ -1,5 +1,7 @@
 import {API_CONTRACT_ERROR} from './constants'
 
+export {envelopeResult} from './envelope/envelopeResult'
+
 function isRecord(value: unknown): value is Record<string, unknown> {
     return typeof value === 'object' && value !== null && !Array.isArray(value)
 }

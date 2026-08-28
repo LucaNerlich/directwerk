@@ -3,7 +3,7 @@
 import Form from 'next/form'
 import Link from 'next/link'
 import {useRouter} from 'next/navigation'
-import {useActionState, useEffect, useState} from 'react'
+import {useActionState} from 'react'
 
 import {Alert, AlertDescription} from '@directwerk/ui/components/alert'
 import {Button} from '@directwerk/ui/components/button'
@@ -21,20 +21,8 @@ import {
 } from '@directwerk/ui/components/table'
 
 import HowToListen from '@/components/HowToListen'
-import {userFacingBillingError} from '@/lib/billing/userFacingBillingError'
-import {
-    createPortalSession,
-    forgotPassword,
-    getAccess,
-    getMe,
-    getNotificationPreferences,
-    getSiteConfig,
-    listMyFeeds,
-    listMySubscriptions,
-    updateNotificationPreferences,
-} from '@/lib/api/client'
-import {AUTH_REQUIRED} from '@directwerk/api/constants'
-import type {Access, Me, SubscriberFeedView, SubscriptionSummary} from '@directwerk/api/types'
+import {useAccountDashboard} from '@/lib/account/useAccountDashboard'
+import {forgotPassword} from '@/lib/api/client'
 import {parseForgotPasswordInput} from '@directwerk/api/validation'
 import {clearTokens} from '@/lib/auth/tokenStore'
 import {getClientTenantHost} from '@/lib/tenant/getClientTenantHost'
@@ -57,20 +45,22 @@ const CHANGE_PASSWORD_INITIAL: ChangePasswordState = {
 
 export default function AccountPage() {
     const router = useRouter()
-    const [me, setMe] = useState<Me | null>(null)
-    const [access, setAccess] = useState<Access | null>(null)
-    const [feeds, setFeeds] = useState<SubscriberFeedView[]>([])
-    const [subscriptions, setSubscriptions] = useState<SubscriptionSummary[]>([])
-    const [publicRssUrl, setPublicRssUrl] = useState<string | null>(null)
-    const [portalMessage, setPortalMessage] = useState<string | null>(null)
-    const [portalBusy, setPortalBusy] = useState(false)
-    const [emailNotificationsEnabled, setEmailNotificationsEnabled] = useState<
-        boolean | null
-    >(null)
-    const [prefsMessage, setPrefsMessage] = useState<string | null>(null)
-    const [prefsBusy, setPrefsBusy] = useState(false)
-    const [error, setError] = useState<string | null>(null)
-    const [isLoading, setIsLoading] = useState(true)
+    const {
+        me,
+        access,
+        feeds,
+        subscriptions,
+        publicRssUrl,
+        emailNotificationsEnabled,
+        error,
+        isLoading,
+        prefsMessage,
+        prefsBusy,
+        portalMessage,
+        portalBusy,
+        handleToggleNotifications,
+        handlePortal,
+    } = useAccountDashboard()
     const [, logoutAction, isLoggingOut] = useActionState(
         async (): Promise<LogoutState> => {
             // Best-effort server-side revocation before clearing local state;
@@ -133,115 +123,6 @@ export default function AccountPage() {
             },
             CHANGE_PASSWORD_INITIAL,
         )
-
-    useEffect(() => {
-        let isCurrent = true
-        const tenantHost = getClientTenantHost()
-        Promise.all([
-            getMe(tenantHost),
-            getAccess(tenantHost),
-            getNotificationPreferences(tenantHost),
-            listMyFeeds(tenantHost),
-            listMySubscriptions(tenantHost),
-            getSiteConfig(tenantHost),
-        ])
-            .then(([meResponse, accessResponse, prefs, feedList, subscriptionList, siteConfig]) => {
-                if (isCurrent) {
-                    setMe(meResponse.data)
-                    setAccess(accessResponse.data)
-                    setEmailNotificationsEnabled(prefs.emailNotificationsEnabled)
-                    setFeeds(feedList)
-                    setSubscriptions(subscriptionList)
-                    setPublicRssUrl(siteConfig.data.publicRssUrl ?? null)
-                }
-            })
-            .catch((requestError: unknown) => {
-                if (!isCurrent) {
-                    return
-                }
-
-                if (
-                    requestError instanceof Error &&
-                    requestError.message === AUTH_REQUIRED
-                ) {
-                    router.replace('/login')
-                    return
-                }
-
-                setError(
-                    requestError instanceof Error
-                        ? requestError.message
-                        : 'Konto konnte nicht geladen werden.',
-                )
-            })
-            .finally(() => {
-                if (isCurrent) {
-                    setIsLoading(false)
-                }
-            })
-
-        return () => {
-            isCurrent = false
-        }
-    }, [router])
-
-    async function handleToggleNotifications(
-        nextValue: boolean,
-    ): Promise<void> {
-        setPrefsBusy(true)
-        setPrefsMessage(null)
-        try {
-            const result = await updateNotificationPreferences(
-                getClientTenantHost(),
-                nextValue,
-            )
-            setEmailNotificationsEnabled(result.emailNotificationsEnabled)
-            setPrefsMessage('Benachrichtigungen gespeichert.')
-        } catch (requestError: unknown) {
-            if (
-                requestError instanceof Error &&
-                requestError.message === AUTH_REQUIRED
-            ) {
-                router.replace('/login')
-                return
-            }
-            setPrefsMessage(
-                requestError instanceof Error
-                    ? requestError.message
-                    : 'Einstellungen konnten nicht gespeichert werden.',
-            )
-        } finally {
-            setPrefsBusy(false)
-        }
-    }
-
-    async function handlePortal(): Promise<void> {
-        setPortalBusy(true)
-        setPortalMessage(null)
-        try {
-            const returnUrl = `${window.location.origin}/account`
-            const portalUrl = await createPortalSession(
-                getClientTenantHost(),
-                returnUrl,
-            )
-            if (portalUrl === null) {
-                setPortalMessage('Kundenportal ist gerade nicht verfügbar.')
-                return
-            }
-            window.location.assign(portalUrl)
-        } catch (requestError: unknown) {
-            if (
-                requestError instanceof Error &&
-                requestError.message === AUTH_REQUIRED
-            ) {
-                router.replace('/login')
-                return
-            }
-            setPortalMessage(userFacingBillingError(requestError, 'portal'))
-        } finally {
-            setPortalBusy(false)
-        }
-    }
 
     const defaultFeed = feeds.find((feed) => feed.isDefault) ?? null
     const hasPastDue = subscriptions.some((item) => item.status === 'PAST_DUE')

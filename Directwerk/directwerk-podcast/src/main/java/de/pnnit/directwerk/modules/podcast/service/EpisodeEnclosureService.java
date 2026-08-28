@@ -1,7 +1,9 @@
 package de.pnnit.directwerk.modules.podcast.service;
 
+import de.pnnit.directwerk.modules.content.PublicContentProjection;
 import de.pnnit.directwerk.modules.core.entity.TenantDomain;
 import de.pnnit.directwerk.modules.core.repository.TenantDomainRepository;
+import de.pnnit.directwerk.modules.core.util.FeedUrls;
 import de.pnnit.directwerk.modules.core.util.PublicUrlBuilder;
 import de.pnnit.directwerk.modules.digital.api.AssetAccessApi;
 import de.pnnit.directwerk.modules.digital.api.EpisodeMediaApi;
@@ -45,7 +47,7 @@ public class EpisodeEnclosureService {
     @Transactional(readOnly = true)
     public EnclosureRedirect resolvePublicRedirect(Long tenantId, String episodeSlug) {
         Episode episode = requirePublishedPlayableEpisode(tenantId, episodeSlug);
-        if (episode.getAccessPolicy() != AccessPolicy.FREE) {
+        if (!PublicContentProjection.includesInPublicRss(episode.getAccessPolicy().name())) {
             throw new EpisodeNotFoundException(episodeSlug);
         }
         URL target = episodeMediaApi.publicCdnUrl(episode.getAudioAsset())
@@ -98,9 +100,11 @@ public class EpisodeEnclosureService {
             String episodeSlug
     ) {
         String host = requireTrustedPublicHost(tenantId, requestedHostname);
-        return PublicUrlBuilder.baseUrl(scheme, host, port)
-                + "/feeds/" + tenantSlug
-                + "/e/" + episodeSlug + ".mp3";
+        return FeedUrls.publicEnclosure(
+                PublicUrlBuilder.baseUrl(scheme, host, port),
+                tenantSlug,
+                episodeSlug
+        );
     }
 
     /**
@@ -120,10 +124,12 @@ public class EpisodeEnclosureService {
             String episodeSlug
     ) {
         String host = requireTrustedPublicHost(tenantId, requestedHostname);
-        return PublicUrlBuilder.baseUrl(scheme, host, port)
-                + "/feeds/" + tenantSlug
-                + "/u/" + feedToken
-                + "/e/" + episodeSlug + ".mp3";
+        return FeedUrls.privateEnclosure(
+                PublicUrlBuilder.baseUrl(scheme, host, port),
+                tenantSlug,
+                feedToken,
+                episodeSlug
+        );
     }
 
     private String requireTrustedPublicHost(Long tenantId, String requestedHostname) {

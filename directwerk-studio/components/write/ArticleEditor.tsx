@@ -14,12 +14,23 @@ import PublicationEditorLayout from '@/components/publication/PublicationEditorL
 import LevelSelect from '@/components/studio/LevelSelect'
 import {listCategories, replaceArticleCategories} from '@/lib/api/catalogApi'
 import {getMediaPreviewUrl} from '@/lib/api/mediaApi'
-import {archiveArticle, cancelScheduleArticle, createArticle, getArticle, listArticles, publishArticle, scheduleArticle, unarchiveArticle, unpublishArticle, updateArticle} from '@/lib/api/writeApi'
+import {
+    archiveArticle,
+    cancelScheduleArticle,
+    createArticle,
+    getArticle,
+    listArticles,
+    publishArticle,
+    scheduleArticle,
+    unarchiveArticle,
+    unpublishArticle,
+    updateArticle,
+} from '@/lib/api/writeApi'
 import type {AccessPolicy, ArticleDetail, CategorySummary} from '@directwerk/api/types'
 import {fromDatetimeLocalValue, toDatetimeLocalValue} from '@/lib/datetime'
-import {useDraftAutosave} from '@/lib/editor/useDraftAutosave'
 import {mediaLimitLabel} from '@/lib/media/limits'
 import {uploadMediaFile} from '@/lib/media/upload'
+import {usePublicationEditorWorkflow} from '@/lib/publication/usePublicationEditorWorkflow'
 import {isSlugTaken} from '@/lib/publication/slugAvailability'
 import {useNotifyAudienceHint} from '@/lib/studio/useNotifyAudienceHint'
 import {useSiteConfig} from '@/lib/site/SiteConfigProvider'
@@ -54,15 +65,91 @@ export default function ArticleEditor({articleId}: {articleId?: number}) {
     const mountedRef = useRef(true)
     const [notifySubscribers, setNotifySubscribers] = useState(false)
     const [scheduledAt, setScheduledAt] = useState('')
-    const [isSaving, setIsSaving] = useState(false)
     const [isLoading, setIsLoading] = useState(articleId !== undefined)
-    const [errorMessage, setErrorMessage] = useState<string | null>(null)
     const [loadError, setLoadError] = useState(false)
     const [availableCategories, setAvailableCategories] = useState<CategorySummary[]>([])
     const [selectedCategoryIds, setSelectedCategoryIds] = useState<Set<number>>(new Set())
-    const [isDirty, setIsDirty] = useState(false)
-    const [dirtyRevision, setDirtyRevision] = useState(0)
-    const [saveHint, setSaveHint] = useState<string | null>(null)
+
+    const persistTags = useCallback(
+        async (current: ArticleDetail): Promise<ArticleDetail> => {
+            const updated = await replaceArticleCategories(
+                getClientTenantHost(),
+                current.id,
+                Array.from(selectedCategoryIds),
+            )
+            setArticle(updated)
+            setSelectedCategoryIds(new Set(updated.categories.map((tag) => tag.id)))
+            return updated
+        },
+        [selectedCategoryIds],
+    )
+
+    const saveImpl = useCallback(
+        async (): Promise<ArticleDetail | null> => {
+            const host = getClientTenantHost()
+            const resolvedSlug = slug.trim() || suggestSlug(title) || 'beitrag'
+            const payload = {
+                title: title.trim() || 'Ohne Titel',
+                slug: resolvedSlug,
+                body,
+                excerpt: excerpt.trim() || undefined,
+                seoDescription: seoDescription.trim() || undefined,
+                accessPolicy,
+                heroAssetId: heroAssetId ?? undefined,
+                requiredLevelSortOrder: requiredLevelSortOrder ?? undefined,
+            }
+
+            if (articleId === undefined) {
+                const created = await createArticle(host, payload)
+                setArticle(created)
+                setAllArticles((current) => [...current, created])
+                routerRef.current.replace(`/write/articles/${created.id}`)
+                return created
+            }
+
+            const updated = await updateArticle(host, articleId, payload)
+            const withTags = await persistTags(updated)
+            setArticle(withTags)
+            setAllArticles((current) =>
+                current.map((item) => (item.id === withTags.id ? withTags : item)),
+            )
+            return withTags
+        },
+        [
+            accessPolicy,
+            articleId,
+            body,
+            excerpt,
+            heroAssetId,
+            persistTags,
+            requiredLevelSortOrder,
+            seoDescription,
+            slug,
+            title,
+        ],
+    )
+
+    const {
+        isSaving,
+        errorMessage,
+        setErrorMessage: setWorkflowError,
+        saveHint,
+        markDirty,
+        save,
+        runWorkflow,
+    } = usePublicationEditorWorkflow({
+        publicationId: articleId,
+        publication: article,
+        loadError,
+        persistTags,
+        saveImpl,
+        onWorkflowComplete: (next) => {
+            setArticle(next)
+            setScheduledAt(toDatetimeLocalValue(next.scheduledAt))
+        },
+        autosaveBlocked: isUploadingHero,
+        authRedirect,
+    })
 
     useEffect(() => {
         mountedRef.current = true
@@ -94,7 +181,7 @@ export default function ArticleEditor({articleId}: {articleId?: number}) {
                         return
                     }
                     if (authRedirect(error)) return
-                    setErrorMessage(
+                    setWorkflowError(
                         error instanceof Error
                             ? error.message
                             : 'Kategorien konnten nicht geladen werden.',
@@ -134,7 +221,7 @@ export default function ArticleEditor({articleId}: {articleId?: number}) {
             } catch (error) {
                 if (active) {
                     setLoadError(true)
-                    setErrorMessage(
+                    setWorkflowError(
                         error instanceof Error
                             ? error.message
                             : 'Beitrag konnte nicht geladen werden.',
@@ -153,7 +240,7 @@ export default function ArticleEditor({articleId}: {articleId?: number}) {
             active = false
             mountedRef.current = false
         }
-    }, [articleId])
+    }, [articleId, authRedirect, setWorkflowError])
 
     useEffect(() => {
         let active = true
@@ -180,142 +267,11 @@ export default function ArticleEditor({articleId}: {articleId?: number}) {
         return () => {
             active = false
         }
-    }, [authRedirect, heroAssetId])
-
-    const markDirty = useCallback(() => {
-        setIsDirty(true)
-        setDirtyRevision((current) => current + 1)
-        setSaveHint('Ungespeicherte Änderungen')
-    }, [])
-
-    const persistTags = useCallback(
-        async (current: ArticleDetail): Promise<ArticleDetail> => {
-            const updated = await replaceArticleCategories(
-                getClientTenantHost(),
-                current.id,
-                Array.from(selectedCategoryIds),
-            )
-            setArticle(updated)
-            setSelectedCategoryIds(new Set(updated.categories.map((tag) => tag.id)))
-            return updated
-        },
-        [selectedCategoryIds],
-    )
-
-    const save = useCallback(async (options?: {autosave?: boolean}): Promise<ArticleDetail | null> => {
-        if (loadError) {
-            return null
-        }
-
-        setIsSaving(true)
-        setErrorMessage(null)
-
-        try {
-            const host = getClientTenantHost()
-            const resolvedSlug = slug.trim() || suggestSlug(title) || 'beitrag'
-            const payload = {
-                title: title.trim() || 'Ohne Titel',
-                slug: resolvedSlug,
-                body,
-                excerpt: excerpt.trim() || undefined,
-                seoDescription: seoDescription.trim() || undefined,
-                accessPolicy,
-                heroAssetId: heroAssetId ?? undefined,
-                requiredLevelSortOrder: requiredLevelSortOrder ?? undefined,
-            }
-            const hint = options?.autosave === true ? 'Automatisch gespeichert' : 'Gespeichert'
-
-            if (articleId === undefined) {
-                const created = await createArticle(host, payload)
-                setArticle(created)
-                setAllArticles((current) => [...current, created])
-                setIsDirty(false)
-                setSaveHint(hint)
-                routerRef.current.replace(`/write/articles/${created.id}`)
-                return created
-            }
-
-            const updated = await updateArticle(host, articleId, payload)
-            const withTags = await persistTags(updated)
-            setArticle(withTags)
-            setAllArticles((current) =>
-                current.map((item) => (item.id === withTags.id ? withTags : item)),
-            )
-            setIsDirty(false)
-            setSaveHint(hint)
-            return withTags
-        } catch (error) {
-            if (authRedirect(error)) return null
-            setErrorMessage(
-                error instanceof Error ? error.message : 'Aktion fehlgeschlagen.',
-            )
-            return null
-        } finally {
-            setIsSaving(false)
-        }
-    }, [
-        accessPolicy,
-        articleId,
-        body,
-        excerpt,
-        heroAssetId,
-        loadError,
-        persistTags,
-        requiredLevelSortOrder,
-        seoDescription,
-        slug,
-        title,
-        authRedirect,
-    ])
-
-    useDraftAutosave({
-        enabled: (article?.status ?? 'DRAFT') === 'DRAFT' && articleId !== undefined,
-        isDirty,
-        isSaving: isSaving || isUploadingHero,
-        onSave: () => save({autosave: true}),
-        revision: dirtyRevision,
-    })
+    }, [authRedirect, heroAssetId, setWorkflowError])
 
     const handleAuthRequired = useCallback(() => {
         routerRef.current.replace('/login')
     }, [])
-
-    const runWorkflow = useCallback(
-        async (
-            action: (current: ArticleDetail) => Promise<ArticleDetail>,
-            options?: {persistTags?: boolean},
-        ) => {
-            const status = article?.status ?? 'DRAFT'
-            let current: ArticleDetail | null
-            if (articleId === undefined || status === 'DRAFT') {
-                current = await save()
-            } else {
-                current = article
-            }
-            if (current === null) {
-                return
-            }
-
-            setIsSaving(true)
-            setErrorMessage(null)
-            try {
-                if (options?.persistTags === true) {
-                    current = await persistTags(current)
-                }
-                const next = await action(current)
-                setArticle(next)
-                setScheduledAt(toDatetimeLocalValue(next.scheduledAt))
-            } catch (error) {
-                if (authRedirect(error)) return
-                setErrorMessage(
-                    error instanceof Error ? error.message : 'Aktion fehlgeschlagen.',
-                )
-            } finally {
-                setIsSaving(false)
-            }
-        },
-        [article, articleId, authRedirect, persistTags, save],
-    )
 
     const handleHeroUpload = useCallback(
         async (file: File | null) => {
@@ -323,7 +279,7 @@ export default function ArticleEditor({articleId}: {articleId?: number}) {
                 return
             }
             setIsUploadingHero(true)
-            setErrorMessage(null)
+            setWorkflowError(null)
             setUploadProgress({file, progress: 0})
             try {
                 const asset = await uploadMediaFile(getClientTenantHost(), file, {
@@ -339,7 +295,7 @@ export default function ArticleEditor({articleId}: {articleId?: number}) {
                 markDirty()
             } catch (error) {
                 if (authRedirect(error)) return
-                setErrorMessage(
+                setWorkflowError(
                     error instanceof Error ? error.message : 'Upload fehlgeschlagen.',
                 )
             } finally {
@@ -349,7 +305,7 @@ export default function ArticleEditor({articleId}: {articleId?: number}) {
                 }
             }
         },
-        [authRedirect, markDirty],
+        [authRedirect, markDirty, setWorkflowError],
     )
 
     const slugTaken = useCallback(
@@ -431,7 +387,7 @@ export default function ArticleEditor({articleId}: {articleId?: number}) {
             onSchedule={() => {
                 const iso = fromDatetimeLocalValue(scheduledAt)
                 if (iso === null) {
-                    setErrorMessage('Bitte einen gültigen Zeitpunkt wählen.')
+                    setWorkflowError('Bitte einen gültigen Zeitpunkt wählen.')
                     return
                 }
                 void runWorkflow(

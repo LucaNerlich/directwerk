@@ -12,10 +12,9 @@ import de.pnnit.directwerk.modules.digital.api.MediaAssetQueryApi;
 import de.pnnit.directwerk.modules.digital.api.UploadApi;
 import de.pnnit.directwerk.modules.digital.entity.AssetStatus;
 import de.pnnit.directwerk.modules.digital.entity.AssetType;
-import de.pnnit.directwerk.modules.digital.entity.AssetVisibility;
 import de.pnnit.directwerk.modules.digital.entity.MediaAsset;
 import de.pnnit.directwerk.modules.digital.exception.MediaAssetNotFoundException;
-import de.pnnit.directwerk.modules.digital.storage.S3PublicUrlBuilder;
+import de.pnnit.directwerk.api.MediaAssetViewMapper;
 import de.pnnit.directwerk.security.DirectwerkUserPrincipal;
 import de.pnnit.directwerk.security.SecurityUtils;
 import jakarta.validation.Valid;
@@ -45,20 +44,20 @@ public class MediaController {
     private final MediaAssetQueryApi mediaAssetQueryApi;
     private final AssetAccessApi assetAccessApi;
     private final MediaAssetLifecycleApi mediaAssetLifecycleApi;
-    private final S3PublicUrlBuilder publicUrlBuilder;
+    private final MediaAssetViewMapper mediaAssetViewMapper;
 
     public MediaController(
             UploadApi uploadApi,
             MediaAssetQueryApi mediaAssetQueryApi,
             AssetAccessApi assetAccessApi,
             MediaAssetLifecycleApi mediaAssetLifecycleApi,
-            S3PublicUrlBuilder publicUrlBuilder
+            MediaAssetViewMapper mediaAssetViewMapper
     ) {
         this.uploadApi = uploadApi;
         this.mediaAssetQueryApi = mediaAssetQueryApi;
         this.assetAccessApi = assetAccessApi;
         this.mediaAssetLifecycleApi = mediaAssetLifecycleApi;
-        this.publicUrlBuilder = publicUrlBuilder;
+        this.mediaAssetViewMapper = mediaAssetViewMapper;
     }
 
     @PostMapping("/upload-url")
@@ -88,7 +87,7 @@ public class MediaController {
         UploadApi.ConfirmUploadResult result = uploadApi.confirmUpload(new UploadApi.ConfirmUploadCommand(id));
         MediaAsset asset = mediaAssetQueryApi.findById(result.mediaAssetId())
                 .orElseThrow(() -> new MediaAssetNotFoundException(id));
-        return ResponseEntity.ok(Response.ok(toView(asset)));
+        return ResponseEntity.ok(Response.ok(mediaAssetViewMapper.toView(asset)));
     }
 
     @GetMapping
@@ -98,7 +97,7 @@ public class MediaController {
             @RequestParam(defaultValue = "50") @Min(1) @Max(100) int limit
     ) {
         List<MediaAssetView> assets = mediaAssetQueryApi.list(assetType, status, limit).stream()
-                .map(this::toView)
+                .map(mediaAssetViewMapper::toView)
                 .toList();
         return ResponseEntity.ok(Response.ok(assets));
     }
@@ -107,7 +106,7 @@ public class MediaController {
     ResponseEntity<Response<MediaAssetView>> get(@PathVariable("id") Long id) {
         MediaAsset asset = mediaAssetQueryApi.findById(id)
                 .orElseThrow(() -> new MediaAssetNotFoundException(id));
-        return ResponseEntity.ok(Response.ok(toView(asset)));
+        return ResponseEntity.ok(Response.ok(mediaAssetViewMapper.toView(asset)));
     }
 
     @GetMapping("/{id}/preview-url")
@@ -128,48 +127,7 @@ public class MediaController {
         MediaAsset deleted = mediaAssetLifecycleApi.delete(
                 new MediaAssetLifecycleApi.DeleteCommand(id, principal, false)
         );
-        return ResponseEntity.ok(Response.ok(toView(deleted)));
-    }
-
-    private MediaAssetView toView(MediaAsset asset) {
-        return new MediaAssetView(
-                asset.getId(),
-                asset.getS3Key(),
-                asset.getVisibility().name(),
-                asset.getScope().name(),
-                asset.getAssetType().name(),
-                asset.getStatus().name(),
-                asset.getMimeType(),
-                asset.getSizeBytes(),
-                asset.getOriginalFilename(),
-                asset.getEpisodeId(),
-                asset.getOwnerUserId(),
-                resolveCdnUrl(asset),
-                asset.getCreatedAt(),
-                asset.getUpdatedAt()
-        );
-    }
-
-    private String resolveCdnUrl(MediaAsset asset) {
-        return resolveCdnUrl(asset.getVisibility(), asset.getStatus(), asset.getS3Key());
-    }
-
-    /**
-     * Stable CDN URL for public READY objects only. Private assets stay null —
-     * they must not be served via the public pull zone.
-     */
-    private String resolveCdnUrl(AssetVisibility visibility, AssetStatus status, String s3Key) {
-        if (visibility != AssetVisibility.PUBLIC
-                || status != AssetStatus.READY
-                || s3Key == null
-                || s3Key.isBlank()) {
-            return null;
-        }
-        String normalized = s3Key.startsWith("/") ? s3Key.substring(1) : s3Key;
-        if (!normalized.contains("/public/")) {
-            return null;
-        }
-        return publicUrlBuilder.cdnUrl(normalized).toString();
+        return ResponseEntity.ok(Response.ok(mediaAssetViewMapper.toView(deleted)));
     }
 
     public record PreviewUrlResponse(String url) {

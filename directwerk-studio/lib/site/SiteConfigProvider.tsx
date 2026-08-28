@@ -1,27 +1,8 @@
 'use client'
 
-import {createContext, useContext, type ReactNode} from 'react'
-
+import {createSiteConfigProvider} from '@directwerk/api/site/createSiteConfigProvider'
 import type {SiteConfig} from '@directwerk/api/types'
 
-const SiteConfigContext = createContext<SiteConfig | null>(null)
+const {SiteConfigProvider, useSiteConfig} = createSiteConfigProvider<SiteConfig>()
 
-export function SiteConfigProvider({
-    config,
-    children,
-}: {
-    config: SiteConfig
-    children: ReactNode
-}) {
-    return (
-        <SiteConfigContext.Provider value={config}>{children}</SiteConfigContext.Provider>
-    )
-}
-
-export function useSiteConfig(): SiteConfig {
-    const config = useContext(SiteConfigContext)
-    if (!config) {
-        throw new Error('SiteConfigProvider is missing')
-    }
-    return config
-}
+export {SiteConfigProvider, useSiteConfig}

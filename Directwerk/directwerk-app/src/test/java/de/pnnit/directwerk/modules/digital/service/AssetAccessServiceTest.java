@@ -60,6 +60,9 @@ class AssetAccessServiceTest {
     @Mock
     private MediaAssetRepository mediaAssetRepository;
 
+    @Mock
+    private PublicCdnUrlResolver publicCdnUrlResolver;
+
     private AssetAccessService service;
 
     @BeforeEach
@@ -67,7 +70,7 @@ class AssetAccessServiceTest {
         service = new AssetAccessService(
                 entitlementApi,
                 moduleGateService,
-                new S3PublicUrlBuilder("https://cdn.example.test"),
+                publicCdnUrlResolver,
                 privateObjectUrlSigner,
                 directwerkConfig,
                 mediaAssetRepository
@@ -83,6 +86,8 @@ class AssetAccessServiceTest {
     @Test
     void resolveDownloadUrlReturnsCdnUrlForPublicAsset() throws Exception {
         MediaAsset asset = givenLoaded(publicAsset(10L, "alpha-show-a", "alpha-show-a/public/images/test.jpg"));
+        URL cdn = URI.create("https://cdn.example.test/alpha-show-a/public/images/test.jpg").toURL();
+        when(publicCdnUrlResolver.resolve(asset)).thenReturn(Optional.of(cdn));
 
         URL url = service.resolveDownloadUrl(asset, subscriber(42L, 10L));
 

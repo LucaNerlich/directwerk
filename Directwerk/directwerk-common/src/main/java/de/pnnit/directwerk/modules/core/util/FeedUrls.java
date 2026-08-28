@@ -24,4 +24,19 @@ public final class FeedUrls {
     public static String subscriberFeed(String origin, String tenantSlug, String feedToken) {
         return origin + "/feeds/" + tenantSlug + "/u/" + feedToken + ".xml";
     }
+
+    /** Public episode enclosure proxy: {@code /feeds/{tenantSlug}/e/{episodeSlug}.mp3}. */
+    public static String publicEnclosure(String origin, String tenantSlug, String episodeSlug) {
+        return origin + "/feeds/" + tenantSlug + "/e/" + episodeSlug + ".mp3";
+    }
+
+    /** Private episode enclosure proxy: {@code /feeds/{tenantSlug}/u/{feedToken}/e/{episodeSlug}.mp3}. */
+    public static String privateEnclosure(
+            String origin,
+            String tenantSlug,
+            String feedToken,
+            String episodeSlug
+    ) {
+        return origin + "/feeds/" + tenantSlug + "/u/" + feedToken + "/e/" + episodeSlug + ".mp3";
+    }
 }

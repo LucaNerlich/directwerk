@@ -12,6 +12,7 @@ import de.pnnit.directwerk.controller.auth.MeFeedController.SubscriberFeedView;
 import de.pnnit.directwerk.modules.core.entity.Tenant;
 import de.pnnit.directwerk.modules.podcast.entity.Format;
 import de.pnnit.directwerk.modules.podcast.feed.SubscriberFeed;
+import de.pnnit.directwerk.modules.core.util.FeedUrlResolver;
 import de.pnnit.directwerk.modules.podcast.service.SubscriberFeedService;
 import de.pnnit.directwerk.security.DirectwerkUserPrincipal;
 import de.pnnit.directwerk.security.RoleConstants;
@@ -39,7 +40,7 @@ class MeFeedControllerTest {
 
     @BeforeEach
     void setUp() {
-        controller = new MeFeedController(subscriberFeedService);
+        controller = new MeFeedController(subscriberFeedService, new FeedUrlResolver());
     }
 
     @Test

@@ -5,7 +5,7 @@ import de.pnnit.directwerk.api.response.Response;
 import de.pnnit.directwerk.modules.core.RequiresModule;
 import de.pnnit.directwerk.modules.digital.api.EpisodeMediaApi;
 import de.pnnit.directwerk.modules.podcast.PodcastModule;
-import de.pnnit.directwerk.modules.digital.entity.AccessPolicy;
+import de.pnnit.directwerk.modules.content.PublicContentProjection;
 import de.pnnit.directwerk.modules.digital.entity.Category;
 import de.pnnit.directwerk.modules.podcast.entity.Episode;
 import de.pnnit.directwerk.modules.podcast.entity.Format;
@@ -92,7 +92,8 @@ public class PublicPodcastController {
 
     private PublicEpisodeView toEpisodeView(Episode episode) {
         String audioCdnUrl = null;
-        if (episode.getAccessPolicy() == AccessPolicy.FREE && episode.getAudioAsset() != null) {
+        if (PublicContentProjection.exposesFullContent(episode.getAccessPolicy().name())
+                && episode.getAudioAsset() != null) {
             audioCdnUrl = episodeMediaApi.publicCdnUrl(episode.getAudioAsset())
                     .map(URL::toString)
                     .orElse(null);

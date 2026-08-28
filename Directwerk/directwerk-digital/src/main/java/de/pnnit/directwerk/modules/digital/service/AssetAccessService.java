@@ -2,6 +2,7 @@ package de.pnnit.directwerk.modules.digital.service;
 
 import de.pnnit.directwerk.config.DirectwerkConfig;
 import de.pnnit.directwerk.config.DirectwerkProperties;
+import de.pnnit.directwerk.modules.core.FeatureModuleKeys;
 import de.pnnit.directwerk.modules.core.service.ModuleGateService;
 import de.pnnit.directwerk.modules.core.util.TenantAssetKeys;
 import de.pnnit.directwerk.modules.digital.DigitalContentModule;
@@ -15,7 +16,6 @@ import de.pnnit.directwerk.modules.digital.exception.EntitlementDeniedException;
 import de.pnnit.directwerk.modules.digital.exception.MediaAssetNotFoundException;
 import de.pnnit.directwerk.modules.digital.repository.MediaAssetRepository;
 import de.pnnit.directwerk.modules.digital.storage.PrivateObjectUrlSigner;
-import de.pnnit.directwerk.modules.digital.storage.S3PublicUrlBuilder;
 import de.pnnit.directwerk.security.DirectwerkUserPrincipal;
 import de.pnnit.directwerk.security.RoleConstants;
 import java.net.URL;
@@ -42,11 +42,9 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class AssetAccessService implements AssetAccessApi {
 
-    private static final String PODCAST_MODULE = "PODCAST";
-
     private final EntitlementApi entitlementApi;
     private final ModuleGateService moduleGateService;
-    private final S3PublicUrlBuilder publicUrlBuilder;
+    private final PublicCdnUrlResolver publicCdnUrlResolver;
     private final PrivateObjectUrlSigner privateObjectUrlSigner;
     private final DirectwerkConfig directwerkConfig;
     private final MediaAssetRepository mediaAssetRepository;
@@ -59,7 +57,7 @@ public class AssetAccessService implements AssetAccessApi {
         TenantAssetKeys.requireTenantPrefix(managed.getTenant().getSlug(), managed.getS3Key());
 
         if (managed.getVisibility() == AssetVisibility.PUBLIC) {
-            return publicUrlBuilder.cdnUrl(managed.getS3Key());
+            return resolvePublicCdnUrl(managed);
         }
 
         authorizePrivateAsset(managed, principal, false);
@@ -74,7 +72,7 @@ public class AssetAccessService implements AssetAccessApi {
         TenantAssetKeys.requireTenantPrefix(managed.getTenant().getSlug(), managed.getS3Key());
 
         if (managed.getVisibility() == AssetVisibility.PUBLIC) {
-            return publicUrlBuilder.cdnUrl(managed.getS3Key());
+            return resolvePublicCdnUrl(managed);
         }
 
         authorizeRssContentAsset(managed, subscriberUserId);
@@ -93,7 +91,7 @@ public class AssetAccessService implements AssetAccessApi {
         }
 
         if (managed.getVisibility() == AssetVisibility.PUBLIC) {
-            return publicUrlBuilder.cdnUrl(managed.getS3Key());
+            return resolvePublicCdnUrl(managed);
         }
 
         // Publisher in-tenant preview: editors bypass CONTENT entitlements (including drafts)
@@ -136,7 +134,7 @@ public class AssetAccessService implements AssetAccessApi {
             MediaAssetTenantCheck.assertTenantMatch(managed);
             TenantAssetKeys.requireTenantPrefix(managed.getTenant().getSlug(), managed.getS3Key());
             if (managed.getVisibility() == AssetVisibility.PUBLIC) {
-                resolved.add(new AssetAccessApi.ResolvedDownload(managed, publicUrlBuilder.cdnUrl(managed.getS3Key())));
+                resolved.add(new AssetAccessApi.ResolvedDownload(managed, resolvePublicCdnUrl(managed)));
             } else if (managed.getScope() == AssetScope.CONTENT && managed.getEpisodeId() == null) {
                 privateStandalone.add(managed);
             } else {
@@ -164,6 +162,11 @@ public class AssetAccessService implements AssetAccessApi {
             }
         }
         return resolved;
+    }
+
+    private URL resolvePublicCdnUrl(MediaAsset asset) {
+        return publicCdnUrlResolver.resolve(asset)
+                .orElseThrow(() -> new EntitlementDeniedException(asset.getId()));
     }
 
     private MediaAsset requireLoadedAsset(MediaAsset asset) {
@@ -231,7 +234,7 @@ public class AssetAccessService implements AssetAccessApi {
     private void authorizeContentAsset(MediaAsset asset, DirectwerkUserPrincipal principal) {
         moduleGateService.requireModule(DigitalContentModule.KEY);
         if (asset.getEpisodeId() != null) {
-            moduleGateService.requireModule(PODCAST_MODULE);
+            moduleGateService.requireModule(FeatureModuleKeys.PODCAST);
             if (!entitlementApi.hasAccess(asset.getTenant().getId(), principal.userId(), asset.getEpisodeId())) {
                 throw new EntitlementDeniedException(asset.getId());
             }
@@ -253,7 +256,7 @@ public class AssetAccessService implements AssetAccessApi {
         }
 
         moduleGateService.requireModule(DigitalContentModule.KEY);
-        moduleGateService.requireModule(PODCAST_MODULE);
+        moduleGateService.requireModule(FeatureModuleKeys.PODCAST);
         if (!entitlementApi.hasAccess(asset.getTenant().getId(), subscriberUserId, asset.getEpisodeId())) {
             throw new EntitlementDeniedException(asset.getId());
         }

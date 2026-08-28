@@ -2,19 +2,13 @@ package de.pnnit.directwerk.controller.tenant;
 
 import de.pnnit.directwerk.api.response.Response;
 import de.pnnit.directwerk.modules.core.RequiresModule;
-import de.pnnit.directwerk.modules.core.entity.Role;
-import de.pnnit.directwerk.modules.core.service.TenantUserQueryService;
-import de.pnnit.directwerk.modules.core.service.TenantUserQueryService.TenantUserView;
 import de.pnnit.directwerk.modules.subscription.SubscriptionModule;
-import de.pnnit.directwerk.modules.subscription.entity.Subscription;
-import de.pnnit.directwerk.modules.subscription.entity.SubscriptionProduct;
-import de.pnnit.directwerk.modules.subscription.service.SubscriptionService;
+import de.pnnit.directwerk.modules.subscription.service.SubscriberDirectoryQueryService;
+import de.pnnit.directwerk.modules.subscription.service.SubscriberDirectoryQueryService.SubscriberDirectoryEntry;
+import de.pnnit.directwerk.modules.subscription.service.SubscriberDirectoryQueryService.SubscriptionSummary;
 import de.pnnit.directwerk.multitenancy.TenantContext;
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
@@ -29,84 +23,45 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/v1/tenant/subscribers")
 public class TenantSubscriberController {
 
-    private final TenantUserQueryService tenantUserQueryService;
-    private final SubscriptionService subscriptionService;
+    private final SubscriberDirectoryQueryService subscriberDirectoryQueryService;
 
-    public TenantSubscriberController(
-            TenantUserQueryService tenantUserQueryService,
-            SubscriptionService subscriptionService
-    ) {
-        this.tenantUserQueryService = tenantUserQueryService;
-        this.subscriptionService = subscriptionService;
+    public TenantSubscriberController(SubscriberDirectoryQueryService subscriberDirectoryQueryService) {
+        this.subscriberDirectoryQueryService = subscriberDirectoryQueryService;
     }
 
     @GetMapping
     ResponseEntity<Response<List<SubscriberView>>> listSubscribers() {
         Long tenantId = TenantContext.requireTenantId();
-        Map<Long, SubscriberViewBuilder> byUserId = new LinkedHashMap<>();
-
-        for (TenantUserView user : tenantUserQueryService.listTenantUsers(tenantId)) {
-            if (!user.roles().contains(Role.SUBSCRIBER.name())) {
-                continue;
-            }
-            byUserId.put(
-                    user.userId(),
-                    new SubscriberViewBuilder(user.userId(), user.email(), user.name(), user.status())
-            );
-        }
-
-        for (Subscription subscription : subscriptionService.listSubscriptionsForTenant(tenantId)) {
-            Long userId = subscription.getUser().getId();
-            SubscriberViewBuilder builder = byUserId.computeIfAbsent(
-                    userId,
-                    id -> new SubscriberViewBuilder(
-                            id,
-                            subscription.getUser().getEmail(),
-                            subscription.getUser().getName(),
-                            "ACTIVE"
-                    )
-            );
-            builder.subscriptions.add(toSubscriptionSummary(subscription));
-        }
-
-        List<SubscriberView> subscribers = byUserId.values().stream()
-                .map(SubscriberViewBuilder::build)
+        List<SubscriberView> subscribers = subscriberDirectoryQueryService.listSubscribers(tenantId).stream()
+                .map(TenantSubscriberController::toView)
                 .toList();
         return ResponseEntity.ok(Response.ok(subscribers));
     }
 
-    private static SubscriptionSummary toSubscriptionSummary(Subscription subscription) {
-        SubscriptionProduct product = subscription.getProduct();
-        return new SubscriptionSummary(
-                subscription.getId(),
-                product.getId(),
-                product.getSlug(),
-                product.getTitle(),
-                subscription.getStatus().name(),
-                subscription.getSource().name(),
-                subscription.getStartedAt(),
-                subscription.getEndsAt(),
-                subscription.getExternalSubscriptionId()
+    private static SubscriberView toView(SubscriberDirectoryEntry entry) {
+        return new SubscriberView(
+                entry.userId(),
+                entry.email(),
+                entry.name(),
+                entry.status(),
+                entry.subscriptions().stream()
+                        .map(TenantSubscriberController::toSubscriptionSummary)
+                        .toList()
         );
     }
 
-    private static final class SubscriberViewBuilder {
-        private final Long userId;
-        private final String email;
-        private final String name;
-        private final String status;
-        private final List<SubscriptionSummary> subscriptions = new ArrayList<>();
-
-        private SubscriberViewBuilder(Long userId, String email, String name, String status) {
-            this.userId = userId;
-            this.email = email;
-            this.name = name;
-            this.status = status;
-        }
-
-        private SubscriberView build() {
-            return new SubscriberView(userId, email, name, status, List.copyOf(subscriptions));
-        }
+    private static SubscriptionSummaryView toSubscriptionSummary(SubscriptionSummary summary) {
+        return new SubscriptionSummaryView(
+                summary.id(),
+                summary.productId(),
+                summary.productSlug(),
+                summary.productTitle(),
+                summary.status(),
+                summary.source(),
+                summary.startedAt(),
+                summary.endsAt(),
+                summary.externalSubscriptionId()
+        );
     }
 
     public record SubscriberView(
@@ -114,11 +69,11 @@ public class TenantSubscriberController {
             String email,
             String name,
             String status,
-            List<SubscriptionSummary> subscriptions
+            List<SubscriptionSummaryView> subscriptions
     ) {
     }
 
-    public record SubscriptionSummary(
+    public record SubscriptionSummaryView(
             Long id,
             Long productId,
             String productSlug,

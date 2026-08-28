@@ -1,105 +1,46 @@
 'use client'
 
-import {createAuthedRequest, createJsonRequest} from '@directwerk/api/client'
-import type {ErrorMessageCatalog} from '@directwerk/api/envelope'
 import {
-    parseArticleEnvelope,
-    parseArticleListEnvelope,
-    parseBrandingEnvelope,
-    parseCategoryEnvelope,
-    parseCategoryListEnvelope,
-    parseContentEmailTemplateEnvelope,
-    parseDomainEnvelope,
-    parseDomainListEnvelope,
-    parseDomainVerificationEnvelope,
-    parseEpisodeEnvelope,
-    parseEpisodeListEnvelope,
-    parseFormatEnvelope,
-    parseFormatListEnvelope,
-    parseInviteTenantUserEnvelope,
+    parseBillingDashboardEnvelope,
     parseLevelListEnvelope,
-    parseMeEnvelope,
-    parseMediaAssetEnvelope,
-    parseMediaListEnvelope,
-    parsePreviewUrlEnvelope,
     parseProductEnvelope,
     parseProductListEnvelope,
     parseProductRuleListEnvelope,
-    parseSeriesEnvelope,
-    parseSeriesListEnvelope,
-    parseBillingDashboardEnvelope,
     parseStripeOnboardEnvelope,
     parseStripeStatusEnvelope,
     parseSubscriptionGrantEnvelope,
-    parseSubscriberListEnvelope,
-    parseTenantUserEnvelope,
-    parseTenantUserListEnvelope,
-    parseTokenResponse,
     parseSubscriberFeedAdminEnvelope,
     parseSubscriberFeedAdminListEnvelope,
 } from '@directwerk/api/validation'
 import type {
-    ArticleDetail,
-    CategorySummary,
-    ContentEmailTemplate,
-    ContentEmailTemplateType,
-    CreateArticleInput,
-    CreateCategoryInput,
-    CreateEpisodeInput,
-    CreateFormatInput,
-    CreateProductInput,
-    CreateSeriesInput,
-    DomainVerificationChallenge,
-    EpisodeDetail,
-    FormatSummary,
+    BillingDashboard,
     GrantSubscriptionInput,
-    InviteTenantUserInput,
-    InviteTenantUserResponse,
     LevelSummary,
-    Me,
-    MediaAsset,
     ProductAccessRule,
     ProductAccessRuleInput,
-    PublishOptions,
-    ScheduleOptions,
-    SeriesDetail,
-    SeriesSummary,
-    BillingDashboard,
     StripeStatus,
     SubscriberFeedAdminView,
     SubscriptionGrant,
     SubscriptionProduct,
-    TenantBranding,
-    TenantDomain,
-    TenantSubscriber,
-    TenantUser,
-    TokenResponse,
-    UpdateArticleInput,
-    UpdateCategoryInput,
-    UpdateEpisodeInput,
-    UpdateFormatInput,
+    CreateProductInput,
     UpdateProductInput,
-    UpdateSeriesInput,
-    UpdateTenantBrandingInput,
-    UpsertContentEmailTemplateInput,
-    AddTenantDomainInput,
 } from '@directwerk/api/types'
-import type {LoginInput} from '@directwerk/api/validation'
-import {getValidAccessToken, refreshAccessToken} from '@/lib/auth/session'
-import {getClientTenantHost} from '@/lib/tenant/getClientTenantHost'
 import {
     authenticatedRequest,
     jsonInit,
-    postJson,
-    proxyRequest,
     request,
-} from './transport'
+    studioGet,
+    studioMutate,
+} from './studioApiCore'
+
+const invalidProductMessage = 'Der Server hat ein ungültiges Produkt gesendet.'
+const invalidGrantMessage = 'Der Server hat eine ungültige Freischaltung gesendet.'
+const invalidFeedMessage = 'Der Server hat ein ungültiges Feed gesendet.'
 
 export async function getStripeStatus(tenantHost: string): Promise<StripeStatus> {
-    return proxyRequest(
+    return studioGet(
         '/api/proxy/tenant/stripe/status',
         tenantHost,
-        undefined,
         parseStripeStatusEnvelope,
         'Der Server hat ungültigen Stripe-Status gesendet.',
     )
@@ -124,10 +65,9 @@ export async function startStripeOnboard(
 }
 
 export async function getBillingDashboard(tenantHost: string): Promise<BillingDashboard> {
-    return proxyRequest(
+    return studioGet(
         '/api/proxy/tenant/billing/dashboard',
         tenantHost,
-        undefined,
         parseBillingDashboardEnvelope,
         'Der Server hat ungültige Zahlungsdaten gesendet.',
     )
@@ -137,22 +77,21 @@ export async function syncProductStripe(
     tenantHost: string,
     productId: number,
 ): Promise<SubscriptionProduct> {
-    return proxyRequest(
+    return studioMutate(
         `/api/proxy/tenant/products/${productId}/sync-stripe`,
         tenantHost,
         jsonInit('POST', {}),
         parseProductEnvelope,
-        'Der Server hat ein ungültiges Produkt gesendet.',
+        invalidProductMessage,
     )
 }
 
 export async function listProducts(
     tenantHost: string,
 ): Promise<SubscriptionProduct[]> {
-    return proxyRequest(
+    return studioGet(
         '/api/proxy/tenant/products',
         tenantHost,
-        undefined,
         parseProductListEnvelope,
         'Der Server hat eine ungültige Produktliste gesendet.',
     )
@@ -176,12 +115,12 @@ export async function createProduct(
     tenantHost: string,
     input: CreateProductInput,
 ): Promise<SubscriptionProduct> {
-    return proxyRequest(
+    return studioMutate(
         '/api/proxy/tenant/products',
         tenantHost,
         jsonInit('POST', input),
         parseProductEnvelope,
-        'Der Server hat ein ungültiges Produkt gesendet.',
+        invalidProductMessage,
     )
 }
 
@@ -190,12 +129,12 @@ export async function updateProduct(
     productId: number,
     input: UpdateProductInput,
 ): Promise<SubscriptionProduct> {
-    return proxyRequest(
+    return studioMutate(
         `/api/proxy/tenant/products/${productId}`,
         tenantHost,
         jsonInit('PUT', input),
         parseProductEnvelope,
-        'Der Server hat ein ungültiges Produkt gesendet.',
+        invalidProductMessage,
     )
 }
 
@@ -203,12 +142,12 @@ export async function deactivateProduct(
     tenantHost: string,
     productId: number,
 ): Promise<SubscriptionProduct> {
-    return proxyRequest(
+    return studioMutate(
         `/api/proxy/tenant/products/${productId}`,
         tenantHost,
         {method: 'DELETE'},
         parseProductEnvelope,
-        'Der Server hat ein ungültiges Produkt gesendet.',
+        invalidProductMessage,
     )
 }
 
@@ -216,10 +155,9 @@ export async function listProductRules(
     tenantHost: string,
     productId: number,
 ): Promise<ProductAccessRule[]> {
-    return proxyRequest(
+    return studioGet(
         `/api/proxy/tenant/products/${productId}/rules`,
         tenantHost,
-        undefined,
         parseProductRuleListEnvelope,
         'Der Server hat ungültige Produktregeln gesendet.',
     )
@@ -230,7 +168,7 @@ export async function replaceProductRules(
     productId: number,
     rules: ProductAccessRuleInput[],
 ): Promise<ProductAccessRule[]> {
-    return proxyRequest(
+    return studioMutate(
         `/api/proxy/tenant/products/${productId}/rules`,
         tenantHost,
         jsonInit('PUT', {rules}),
@@ -243,12 +181,12 @@ export async function grantSubscription(
     tenantHost: string,
     input: GrantSubscriptionInput,
 ): Promise<SubscriptionGrant> {
-    return proxyRequest(
+    return studioMutate(
         '/api/proxy/tenant/subscriptions',
         tenantHost,
         jsonInit('POST', input),
         parseSubscriptionGrantEnvelope,
-        'Der Server hat eine ungültige Freischaltung gesendet.',
+        invalidGrantMessage,
     )
 }
 
@@ -256,22 +194,21 @@ export async function revokeSubscription(
     tenantHost: string,
     subscriptionId: number,
 ): Promise<SubscriptionGrant> {
-    return proxyRequest(
+    return studioMutate(
         `/api/proxy/tenant/subscriptions/${subscriptionId}`,
         tenantHost,
         {method: 'DELETE'},
         parseSubscriptionGrantEnvelope,
-        'Der Server hat eine ungültige Freischaltung gesendet.',
+        invalidGrantMessage,
     )
 }
 
 export async function listSubscriberFeeds(
     tenantHost: string,
 ): Promise<SubscriberFeedAdminView[]> {
-    return proxyRequest(
+    return studioGet(
         '/api/proxy/tenant/subscriber-feeds',
         tenantHost,
-        undefined,
         parseSubscriberFeedAdminListEnvelope,
         'Der Server hat eine ungültige Feed-Liste gesendet.',
     )
@@ -282,12 +219,11 @@ export async function setSubscriberFeedEnabled(
     feedId: number,
     enabled: boolean,
 ): Promise<SubscriberFeedAdminView> {
-    return proxyRequest(
+    return studioMutate(
         `/api/proxy/tenant/subscriber-feeds/${feedId}/enabled`,
         tenantHost,
         jsonInit('PUT', {enabled}),
         parseSubscriberFeedAdminEnvelope,
-        'Der Server hat ein ungültiges Feed gesendet.',
+        invalidFeedMessage,
     )
 }
-

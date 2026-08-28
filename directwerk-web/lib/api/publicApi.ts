@@ -1,8 +1,6 @@
 'use client'
 
-import {sanitizeContentHtml} from '@/lib/sanitizeContentHtml'
 import {
-    createPublicContentParsers,
     parseLevelListEnvelope,
     parsePublicFormatListEnvelope,
     parsePublicProductListEnvelope,
@@ -18,14 +16,10 @@ import type {
     PublicSeries,
     PublicSiteConfig,
 } from '@directwerk/api/types'
-import {
-    envelopeResult,
-    request,
-} from './transport'
+import {createWebPublicParsers} from '@/lib/publicContent/parsers'
+import {envelopeResult, jsonRequest} from './transport'
 
-const publicParsers = createPublicContentParsers({
-    sanitizeHtml: sanitizeContentHtml,
-})
+const publicParsers = createWebPublicParsers()
 const parsePublicArticleListEnvelope = publicParsers.parsePublicArticleListEnvelope
 const parsePublicSeriesListEnvelope = publicParsers.parsePublicSeriesListEnvelope
 const parsePublicEpisodeListEnvelope = publicParsers.parsePublicEpisodeListEnvelope
@@ -35,16 +29,17 @@ export async function getSiteConfig(
 ): Promise<ApiEnvelope<PublicSiteConfig>> {
     return envelopeResult(
         parsePublicSiteConfigEnvelope,
-        await request('/api/proxy/public/site-config', tenantHost),
+        await jsonRequest('/api/proxy/public/site-config'),
         'The server returned an invalid site configuration.',
     )
 }
+
 export async function listPublicArticles(
     tenantHost: string,
 ): Promise<PublicArticle[]> {
     return envelopeResult(
         parsePublicArticleListEnvelope,
-        await request('/api/proxy/public/articles', tenantHost),
+        await jsonRequest('/api/proxy/public/articles'),
         'The server returned an invalid article list.',
     ).data
 }
@@ -54,7 +49,7 @@ export async function listPublicSeries(
 ): Promise<PublicSeries[]> {
     return envelopeResult(
         parsePublicSeriesListEnvelope,
-        await request('/api/proxy/public/series', tenantHost),
+        await jsonRequest('/api/proxy/public/series'),
         'The server returned an invalid series list.',
     ).data
 }
@@ -64,7 +59,7 @@ export async function listPublicEpisodes(
 ): Promise<PublicEpisode[]> {
     return envelopeResult(
         parsePublicEpisodeListEnvelope,
-        await request('/api/proxy/public/episodes', tenantHost),
+        await jsonRequest('/api/proxy/public/episodes'),
         'The server returned an invalid episode list.',
     ).data
 }
@@ -74,7 +69,7 @@ export async function listPublicLevels(
 ): Promise<LevelSummary[]> {
     return envelopeResult(
         parseLevelListEnvelope,
-        await request('/api/proxy/public/levels', tenantHost),
+        await jsonRequest('/api/proxy/public/levels'),
         'The server returned an invalid level list.',
     ).data
 }
@@ -84,16 +79,17 @@ export async function listPublicFormats(
 ): Promise<PublicFormat[]> {
     return envelopeResult(
         parsePublicFormatListEnvelope,
-        await request('/api/proxy/public/formats', tenantHost),
+        await jsonRequest('/api/proxy/public/formats'),
         'The server returned an invalid format list.',
     ).data
 }
+
 export async function listPublicProducts(
     tenantHost: string,
 ): Promise<PublicProduct[]> {
     return envelopeResult(
         parsePublicProductListEnvelope,
-        await request('/api/proxy/public/products', tenantHost),
+        await jsonRequest('/api/proxy/public/products'),
         'The server returned an invalid product list.',
     ).data
 }

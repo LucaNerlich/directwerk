@@ -19,6 +19,7 @@ import de.pnnit.directwerk.modules.digital.entity.AssetStatus;
 import de.pnnit.directwerk.modules.digital.entity.AssetType;
 import de.pnnit.directwerk.modules.digital.entity.AssetVisibility;
 import de.pnnit.directwerk.modules.digital.entity.MediaAsset;
+import de.pnnit.directwerk.modules.digital.repository.MediaAssetRepository;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
@@ -54,6 +55,9 @@ class PlatformTenantMediaControllerTest {
     @MockitoBean
     private MediaAssetLifecycleApi mediaAssetLifecycleApi;
 
+    @MockitoBean
+    private MediaAssetRepository mediaAssetRepository;
+
     @DynamicPropertySource
     static void registerEphemeralSecrets(DynamicPropertyRegistry registry) {
         String platformClientSecret = "test-platform-" + UUID.randomUUID();
@@ -69,6 +73,7 @@ class PlatformTenantMediaControllerTest {
 
         when(mediaAssetQueryApi.listForTenant(42L, AssetType.IMAGE, AssetStatus.READY, 20))
                 .thenReturn(List.of(asset));
+        when(mediaAssetRepository.findById(7L)).thenReturn(Optional.of(asset));
 
         mockMvc.perform(get("/api/v1/platform/tenants/42/media")
                         .param("assetType", "IMAGE")
@@ -152,6 +157,7 @@ class PlatformTenantMediaControllerTest {
                 "image/jpeg"
         ));
         when(mediaAssetQueryApi.findById(55L)).thenReturn(Optional.of(asset));
+        when(mediaAssetRepository.findById(55L)).thenReturn(Optional.of(asset));
 
         mockMvc.perform(post("/api/v1/platform/tenants/42/media/55/confirm"))
                 .andExpect(status().isOk())

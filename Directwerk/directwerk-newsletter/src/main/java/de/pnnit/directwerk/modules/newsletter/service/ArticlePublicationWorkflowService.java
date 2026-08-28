@@ -2,6 +2,8 @@ package de.pnnit.directwerk.modules.newsletter.service;
 
 import de.pnnit.directwerk.config.DirectwerkConfig;
 import de.pnnit.directwerk.modules.content.ContentPublishedEvent;
+import de.pnnit.directwerk.modules.content.PublicationLifecycleSupport;
+import de.pnnit.directwerk.modules.core.notification.PublicationNotificationSupport;
 import de.pnnit.directwerk.modules.content.PublicationTexts;
 import de.pnnit.directwerk.modules.content.ScheduledPublishing;
 import de.pnnit.directwerk.modules.content.ScheduledPublishing.DueItem;
@@ -63,11 +65,17 @@ public class ArticlePublicationWorkflowService {
     @RequiresModule(DigitalContentModule.KEY)
     public Article schedule(Long tenantId, Long articleId, Instant scheduledAt, boolean notifySubscribers) {
         Article article = articleService.requireArticle(tenantId, articleId);
-        PublicationTransitions.requireDraftStatus(article.getStatus() == ArticleStatus.DRAFT, "articles");
-        PublicationTransitions.requireFutureInstant(scheduledAt, "scheduledAt");
-        article.setStatus(ArticleStatus.SCHEDULED);
-        article.setScheduledAt(scheduledAt);
-        article.setNotifySubscribersOnPublish(notifySubscribers);
+        PublicationLifecycleSupport.schedule(
+                scheduledAt,
+                notifySubscribers,
+                () -> article.getStatus() == ArticleStatus.DRAFT,
+                "articles",
+                () -> {
+                    article.setStatus(ArticleStatus.SCHEDULED);
+                    article.setScheduledAt(scheduledAt);
+                    article.setNotifySubscribersOnPublish(notifySubscribers);
+                }
+        );
         return articleRepository.save(article);
     }
 
@@ -75,9 +83,14 @@ public class ArticlePublicationWorkflowService {
     @RequiresModule(DigitalContentModule.KEY)
     public Article cancelSchedule(Long tenantId, Long articleId) {
         Article article = articleService.requireArticle(tenantId, articleId);
-        PublicationTransitions.requireScheduledStatus(article.getStatus() == ArticleStatus.SCHEDULED, "articles");
-        article.setStatus(ArticleStatus.DRAFT);
-        article.setScheduledAt(null);
+        PublicationLifecycleSupport.cancelSchedule(
+                () -> article.getStatus() == ArticleStatus.SCHEDULED,
+                "articles",
+                () -> {
+                    article.setStatus(ArticleStatus.DRAFT);
+                    article.setScheduledAt(null);
+                }
+        );
         return articleRepository.save(article);
     }
 
@@ -85,10 +98,16 @@ public class ArticlePublicationWorkflowService {
     @RequiresModule(DigitalContentModule.KEY)
     public Article unpublish(Long tenantId, Long articleId) {
         Article article = articleService.requireArticle(tenantId, articleId);
-        PublicationTransitions.requirePublishedStatus(article.getStatus() == ArticleStatus.PUBLISHED, "articles");
-        article.setStatus(ArticleStatus.DRAFT);
-        article.setPublishedAt(null);
-        article.setScheduledAt(null);
+        PublicationLifecycleSupport.unpublish(
+                () -> article.getStatus() == ArticleStatus.PUBLISHED,
+                "articles",
+                () -> {
+                    article.setStatus(ArticleStatus.DRAFT);
+                    article.setPublishedAt(null);
+                    article.setScheduledAt(null);
+                },
+                null
+        );
         return articleRepository.save(article);
     }
 
@@ -164,24 +183,20 @@ public class ArticlePublicationWorkflowService {
     }
 
     private void maybeNotifySubscribers(Long tenantId, Article published, boolean notifySubscribers) {
-        if (!notifySubscribers || !notificationGate.enabled(tenantId, ContentType.ARTICLE, published.getId())) {
-            return;
-        }
         Instant notifiedAt = Instant.now();
-        int claimed = articleRepository.claimEmailNotification(tenantId, published.getId(), notifiedAt);
-        if (claimed == 0) {
-            log.debug("Skipping article notification tenant={} article={} — already notified", tenantId, published.getId());
-            return;
-        }
-        published.setEmailNotifiedAt(notifiedAt);
-        contentPublishedNotifier.notifyContentPublished(new ContentPublishedEvent(
+        PublicationNotificationSupport.maybeNotify(
                 tenantId,
                 ContentType.ARTICLE,
                 published.getId(),
                 published.getTitle(),
                 PublicationTexts.excerptOr(published.getExcerpt(), published.getBody()),
                 published.getSlug(),
-                published.getAccessPolicy().name()
-        ));
+                published.getAccessPolicy().name(),
+                notifySubscribers,
+                notificationGate,
+                contentPublishedNotifier,
+                () -> articleRepository.claimEmailNotification(tenantId, published.getId(), notifiedAt),
+                () -> published.setEmailNotifiedAt(notifiedAt)
+        );
     }
 }

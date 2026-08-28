@@ -15,4 +15,7 @@ public interface EpisodeAccessApi {
      * paid episodes according to active LEVEL/PACKAGE entitlements. Order is preserved.
      */
     List<Episode> filterAccessible(Long tenantId, Long userId, List<Episode> episodes);
+
+    /** Point check for a single published episode. */
+    boolean hasAccess(Long tenantId, Long userId, Long episodeId);
 }

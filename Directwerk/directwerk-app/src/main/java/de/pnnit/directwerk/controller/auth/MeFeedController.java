@@ -4,8 +4,7 @@ import de.pnnit.directwerk.api.dto.FeedEnabledRequest;
 import de.pnnit.directwerk.api.dto.FormatView;
 import de.pnnit.directwerk.api.response.Response;
 import de.pnnit.directwerk.modules.core.RequiresModule;
-import de.pnnit.directwerk.modules.core.util.FeedUrls;
-import de.pnnit.directwerk.modules.core.util.PublicUrlBuilder;
+import de.pnnit.directwerk.modules.core.util.FeedUrlResolver;
 import de.pnnit.directwerk.modules.podcast.FeedBuilderModule;
 import de.pnnit.directwerk.modules.podcast.PodcastRssModule;
 import de.pnnit.directwerk.modules.podcast.entity.Format;
@@ -40,11 +39,14 @@ import org.springframework.web.bind.annotation.RestController;
 public class MeFeedController {
 
     private final SubscriberFeedService subscriberFeedService;
+    private final FeedUrlResolver feedUrlResolver;
 
     public MeFeedController(
-            SubscriberFeedService subscriberFeedService
+            SubscriberFeedService subscriberFeedService,
+            FeedUrlResolver feedUrlResolver
     ) {
         this.subscriberFeedService = subscriberFeedService;
+        this.feedUrlResolver = feedUrlResolver;
     }
 
     @GetMapping
@@ -204,13 +206,14 @@ public class MeFeedController {
         return ResponseEntity.ok(Response.ok(toView(feed, request)));
     }
 
-    private static SubscriberFeedView toView(SubscriberFeed feed, HttpServletRequest request) {
-        String origin = PublicUrlBuilder.baseUrl(
+    private SubscriberFeedView toView(SubscriberFeed feed, HttpServletRequest request) {
+        String url = feedUrlResolver.subscriberFeedUrl(
                 request.getScheme(),
                 request.getServerName(),
-                request.getServerPort()
+                request.getServerPort(),
+                feed.getTenant().getSlug(),
+                feed.getFeedToken()
         );
-        String url = FeedUrls.subscriberFeed(origin, feed.getTenant().getSlug(), feed.getFeedToken());
         List<FormatView> formats = feed.getFormats() == null
                 ? List.of()
                 : feed.getFormats().stream()

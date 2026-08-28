@@ -27,9 +27,9 @@ import {uploadMediaFile} from '@/lib/media/upload'
 import {episodePublishBlockReason} from '@/lib/podcast/episodePreflight'
 import {publicEpisodePageUrl} from '@/lib/podcast/publicUrls'
 import {isSlugTaken} from '@/lib/publication/slugAvailability'
+import {usePublicationEditorWorkflow} from '@/lib/publication/usePublicationEditorWorkflow'
 import {useNotifyAudienceHint} from '@/lib/studio/useNotifyAudienceHint'
 import {useSiteConfig} from '@/lib/site/SiteConfigProvider'
-import {useDraftAutosave} from '@/lib/editor/useDraftAutosave'
 import {getClientTenantHost} from '@/lib/tenant/getClientTenantHost'
 import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
 
@@ -63,13 +63,12 @@ export default function EpisodeEditor({episodeId}: {episodeId?: number}): React.
     const [requiredLevelSortOrder, setRequiredLevelSortOrder] = useState<number | null>(null)
     const [notifySubscribers, setNotifySubscribers] = useState(false)
     const [scheduledAt, setScheduledAt] = useState('')
-    const [isSaving, setIsSaving] = useState(false)
     const [isUploading, setIsUploading] = useState(false)
+    const [isEnclosureSaving, setIsEnclosureSaving] = useState(false)
     const [uploadProgress, setUploadProgress] = useState<{file: File; progress: number} | null>(
         null,
     )
     const [isLoading, setIsLoading] = useState(true)
-    const [errorMessage, setErrorMessage] = useState<string | null>(null)
     const mountedRef = useRef(true)
     const [audioPreviewUrl, setAudioPreviewUrl] = useState<string | null>(null)
     const [audioPreviewError, setAudioPreviewError] = useState<string | null>(null)
@@ -79,15 +78,105 @@ export default function EpisodeEditor({episodeId}: {episodeId?: number}): React.
     const [availableCategories, setAvailableCategories] = useState<CategorySummary[]>([])
     const [selectedFormatIds, setSelectedFormatIds] = useState<Set<number>>(new Set())
     const [selectedCategoryIds, setSelectedCategoryIds] = useState<Set<number>>(new Set())
-    const [isDirty, setIsDirty] = useState(false)
-    const [dirtyRevision, setDirtyRevision] = useState(0)
-    const [saveHint, setSaveHint] = useState<string | null>(null)
     const audioAssetId = episode?.audioAssetId ?? null
     const hasDigitalContent = hasModule(config, 'DIGITAL_CONTENT')
 
     const redirectToLogin = useEffectEvent(() => {
         router.replace('/login')
     })
+
+    const episodeFields = useCallback(() => {
+        const resolvedSlug = slug.trim() || suggestSlug(title) || 'folge'
+        return {
+            title: title.trim() || 'Ohne Titel',
+            slug: resolvedSlug,
+            description: body,
+            accessPolicy,
+            episodeNumber: optionalMinInt(episodeNumber, 1),
+            requiredLevelSortOrder: requiredLevelSortOrder ?? undefined,
+        }
+    }, [accessPolicy, body, episodeNumber, requiredLevelSortOrder, slug, title])
+
+    const persistTags = useCallback(
+        async (current: EpisodeDetail): Promise<EpisodeDetail> => {
+            const host = getClientTenantHost()
+            const [afterFormats, afterCategories] = await Promise.all([
+                replaceEpisodeFormats(host, current.id, Array.from(selectedFormatIds)),
+                replaceEpisodeCategories(host, current.id, Array.from(selectedCategoryIds)),
+            ])
+            const merged = {
+                ...afterCategories,
+                formats: afterFormats.formats,
+            }
+            setEpisode(merged)
+            setSelectedFormatIds(new Set(afterFormats.formats.map((tag) => tag.id)))
+            setSelectedCategoryIds(new Set(afterCategories.categories.map((tag) => tag.id)))
+            return merged
+        },
+        [selectedCategoryIds, selectedFormatIds],
+    )
+
+    const saveImpl = useCallback(async (): Promise<EpisodeDetail | null> => {
+        if (seriesId === null) {
+            throw new Error('Bitte zuerst eine Sendung anlegen.')
+        }
+
+        const host = getClientTenantHost()
+        const payload = episodeFields()
+
+        if (episodeId === undefined) {
+            const created = await createEpisode(host, {
+                ...payload,
+                seriesId,
+            })
+            setEpisode(created)
+            router.replace(`/podcast/episodes/${created.id}`)
+            return created
+        }
+
+        const updated = await updateEpisode(host, episodeId, payload)
+        const withTags = await persistTags(updated)
+        setEpisode(withTags)
+        setAllEpisodes((current) =>
+            current.map((item) => (item.id === withTags.id ? withTags : item)),
+        )
+        return withTags
+    }, [episodeFields, episodeId, persistTags, router, seriesId])
+
+    const {
+        isSaving,
+        errorMessage,
+        setErrorMessage,
+        saveHint,
+        markDirty,
+        save,
+        runWorkflow,
+    } = usePublicationEditorWorkflow({
+        publicationId: episodeId,
+        publication: episode,
+        persistTags,
+        saveImpl,
+        onWorkflowComplete: (next) => {
+            setEpisode(next)
+            setScheduledAt(toDatetimeLocalValue(next.scheduledAt))
+            if (next.episodeNumber !== null) {
+                setEpisodeNumber(String(next.episodeNumber))
+            }
+            setRequiredLevelSortOrder(next.requiredLevelSortOrder)
+        },
+        autosaveBlocked: isUploading,
+        authRedirect,
+    })
+
+    const handleAuthError = useCallback(
+        (error: unknown) => {
+            if (authRedirect(error)) return
+            setErrorMessage(
+                error instanceof Error ? error.message : 'Aktion fehlgeschlagen.',
+            )
+        },
+        [authRedirect, setErrorMessage],
+    )
 
     useEffect(() => {
         let active = true
@@ -207,150 +296,11 @@ export default function EpisodeEditor({episodeId}: {episodeId?: number}): React.
             active = false
             mountedRef.current = false
         }
-    }, [episodeId, router])
-
-    const handleAuthError = useCallback(
-        (error: unknown) => {
-            if (authRedirect(error)) return
-            setErrorMessage(
-                error instanceof Error ? error.message : 'Aktion fehlgeschlagen.',
-            )
-        },
-        [router],
-    )
+    }, [episodeId, authRedirect, setErrorMessage])
 
     const handleAuthRequired = useCallback(() => {
         router.replace('/login')
     }, [router])
-
-    const episodeFields = useCallback(() => {
-        const resolvedSlug = slug.trim() || suggestSlug(title) || 'folge'
-        return {
-            title: title.trim() || 'Ohne Titel',
-            slug: resolvedSlug,
-            description: body,
-            accessPolicy,
-            episodeNumber: optionalMinInt(episodeNumber, 1),
-            requiredLevelSortOrder: requiredLevelSortOrder ?? undefined,
-        }
-    }, [accessPolicy, body, episodeNumber, requiredLevelSortOrder, slug, title])
-
-    const markDirty = useCallback(() => {
-        setIsDirty(true)
-        setDirtyRevision((current) => current + 1)
-        setSaveHint('Ungespeicherte Änderungen')
-    }, [])
-
-    const persistTags = useCallback(
-        async (current: EpisodeDetail): Promise<EpisodeDetail> => {
-            const host = getClientTenantHost()
-            const [afterFormats, afterCategories] = await Promise.all([
-                replaceEpisodeFormats(host, current.id, Array.from(selectedFormatIds)),
-                replaceEpisodeCategories(host, current.id, Array.from(selectedCategoryIds)),
-            ])
-            const merged = {
-                ...afterCategories,
-                formats: afterFormats.formats,
-            }
-            setEpisode(merged)
-            setSelectedFormatIds(new Set(afterFormats.formats.map((tag) => tag.id)))
-            setSelectedCategoryIds(new Set(afterCategories.categories.map((tag) => tag.id)))
-            return merged
-        },
-        [selectedCategoryIds, selectedFormatIds],
-    )
-
-    const save = useCallback(async (options?: {autosave?: boolean}): Promise<EpisodeDetail | null> => {
-        if (seriesId === null) {
-            setErrorMessage('Bitte zuerst eine Sendung anlegen.')
-            return null
-        }
-
-        setIsSaving(true)
-        setErrorMessage(null)
-
-        try {
-            const host = getClientTenantHost()
-            const payload = episodeFields()
-            const hint = options?.autosave === true ? 'Automatisch gespeichert' : 'Gespeichert'
-
-            if (episodeId === undefined) {
-                const created = await createEpisode(host, {
-                    ...payload,
-                    seriesId,
-                })
-                setEpisode(created)
-                setIsDirty(false)
-                setSaveHint(hint)
-                router.replace(`/podcast/episodes/${created.id}`)
-                return created
-            }
-
-            const updated = await updateEpisode(host, episodeId, payload)
-            const withTags = await persistTags(updated)
-            setEpisode(withTags)
-            setAllEpisodes((current) =>
-                current.map((item) => (item.id === withTags.id ? withTags : item)),
-            )
-            setIsDirty(false)
-            setSaveHint(hint)
-            return withTags
-        } catch (error) {
-            if (authRedirect(error)) return null
-            setErrorMessage(
-                error instanceof Error ? error.message : 'Aktion fehlgeschlagen.',
-            )
-            return null
-        } finally {
-            setIsSaving(false)
-        }
-    }, [episodeFields, episodeId, handleAuthError, persistTags, router, seriesId])
-
-    useDraftAutosave({
-        enabled: (episode?.status ?? 'DRAFT') === 'DRAFT' && episodeId !== undefined,
-        isDirty,
-        isSaving: isSaving || isUploading,
-        onSave: () => save({autosave: true}),
-        revision: dirtyRevision,
-    })
-
-    const runWorkflow = useCallback(
-        async (
-            action: (current: EpisodeDetail) => Promise<EpisodeDetail>,
-            options?: {persistTags?: boolean},
-        ) => {
-            const status = episode?.status ?? 'DRAFT'
-            let current: EpisodeDetail | null
-            if (episodeId === undefined || status === 'DRAFT') {
-                current = await save()
-            } else {
-                current = episode
-            }
-            if (current === null) {
-                return
-            }
-
-            setIsSaving(true)
-            setErrorMessage(null)
-            try {
-                if (options?.persistTags === true) {
-                    current = await persistTags(current)
-                }
-                const next = await action(current)
-                setEpisode(next)
-                setScheduledAt(toDatetimeLocalValue(next.scheduledAt))
-                if (next.episodeNumber !== null) {
-                    setEpisodeNumber(String(next.episodeNumber))
-                }
-                setRequiredLevelSortOrder(next.requiredLevelSortOrder)
-            } catch (error) {
-                handleAuthError(error)
-            } finally {
-                setIsSaving(false)
-            }
-        },
-        [episode, episodeId, handleAuthError, persistTags, save],
-    )
 
     const handleAudioUpload = useCallback(
         async (file: File | null) => {
@@ -423,7 +373,7 @@ export default function EpisodeEditor({episodeId}: {episodeId?: number}): React.
                 return
             }
 
-            setIsSaving(true)
+            setIsEnclosureSaving(true)
             setErrorMessage(null)
             try {
                 const updated = await setEpisodeEnclosureEnabled(
@@ -435,10 +385,10 @@ export default function EpisodeEditor({episodeId}: {episodeId?: number}): React.
             } catch (error) {
                 handleAuthError(error)
             } finally {
-                setIsSaving(false)
+                setIsEnclosureSaving(false)
             }
         },
-        [episode, handleAuthError],
+        [episode, handleAuthError, setErrorMessage],
     )
 
     const slugTaken = useCallback(
@@ -466,7 +416,7 @@ export default function EpisodeEditor({episodeId}: {episodeId?: number}): React.
         )
     }
 
-    const busy = isSaving || isUploading
+    const busy = isSaving || isUploading || isEnclosureSaving
     const hasAudio = audioAssetId !== null
     const selectedSeries = series.find((item) => item.id === seriesId) ?? null
     const publishBlockedReason = episodePublishBlockReason({

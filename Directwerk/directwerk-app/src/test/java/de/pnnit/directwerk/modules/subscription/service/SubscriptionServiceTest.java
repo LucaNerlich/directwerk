@@ -19,6 +19,8 @@ import de.pnnit.directwerk.modules.subscription.entity.SubscriptionProduct;
 import de.pnnit.directwerk.modules.subscription.entity.SubscriptionSource;
 import de.pnnit.directwerk.modules.subscription.entity.SubscriptionStatus;
 import de.pnnit.directwerk.modules.subscription.repository.SubscriptionRepository;
+import de.pnnit.directwerk.modules.subscription.stripe.StripeConnectService;
+import de.pnnit.directwerk.modules.subscription.stripe.StripeOperations;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -51,6 +53,12 @@ class SubscriptionServiceTest {
 
     @Mock
     private ApplicationEventPublisher eventPublisher;
+
+    @Mock
+    private StripeOperations stripeOperations;
+
+    @Mock
+    private StripeConnectService stripeConnectService;
 
     @InjectMocks
     private SubscriptionService service;

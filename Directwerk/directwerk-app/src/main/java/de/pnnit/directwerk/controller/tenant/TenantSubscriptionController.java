@@ -1,14 +1,9 @@
 package de.pnnit.directwerk.controller.tenant;
 
 import de.pnnit.directwerk.api.response.Response;
-import de.pnnit.directwerk.modules.podcast.service.SubscriberFeedService;
 import de.pnnit.directwerk.modules.subscription.entity.Subscription;
 import de.pnnit.directwerk.modules.subscription.entity.SubscriptionProduct;
-import de.pnnit.directwerk.modules.subscription.entity.SubscriptionSource;
-import de.pnnit.directwerk.modules.subscription.exception.StripeNotConfiguredException;
 import de.pnnit.directwerk.modules.subscription.service.SubscriptionService;
-import de.pnnit.directwerk.modules.subscription.stripe.StripeConnectService;
-import de.pnnit.directwerk.modules.subscription.stripe.StripeOperations;
 import de.pnnit.directwerk.multitenancy.TenantContext;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Email;
@@ -33,20 +28,9 @@ import org.springframework.web.bind.annotation.RestController;
 public class TenantSubscriptionController {
 
     private final SubscriptionService subscriptionService;
-    private final SubscriberFeedService subscriberFeedService;
-    private final StripeOperations stripeOperations;
-    private final StripeConnectService stripeConnectService;
 
-    public TenantSubscriptionController(
-            SubscriptionService subscriptionService,
-            SubscriberFeedService subscriberFeedService,
-            StripeOperations stripeOperations,
-            StripeConnectService stripeConnectService
-    ) {
+    public TenantSubscriptionController(SubscriptionService subscriptionService) {
         this.subscriptionService = subscriptionService;
-        this.subscriberFeedService = subscriberFeedService;
-        this.stripeOperations = stripeOperations;
-        this.stripeConnectService = stripeConnectService;
     }
 
     @PostMapping
@@ -57,7 +41,6 @@ public class TenantSubscriptionController {
                 request.email(),
                 request.productId()
         );
-        subscriberFeedService.ensureDefaultFeed(tenantId, subscription.getUser().getId());
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(Response.created(toView(subscription)));
     }
@@ -67,26 +50,6 @@ public class TenantSubscriptionController {
             @PathVariable @Positive Long subscriptionId
     ) {
         Long tenantId = TenantContext.requireTenantId();
-        Subscription current = subscriptionService.listSubscriptionsForTenant(tenantId).stream()
-                .filter((item) -> item.getId().equals(subscriptionId))
-                .findFirst()
-                .orElse(null);
-        if (current != null
-                && current.getSource() == SubscriptionSource.STRIPE
-                && current.getExternalSubscriptionId() != null
-                && stripeOperations.isConfigured()) {
-            try {
-                var account = stripeConnectService.findByTenantId(tenantId);
-                if (account != null) {
-                    stripeOperations.cancelSubscription(
-                            account.getStripeAccountId(),
-                            current.getExternalSubscriptionId()
-                    );
-                }
-            } catch (StripeNotConfiguredException ignored) {
-                // Local revoke still applies when the platform key is missing.
-            }
-        }
         Subscription subscription = subscriptionService.revokeSubscription(tenantId, subscriptionId);
         return ResponseEntity.ok(Response.ok(toView(subscription)));
     }

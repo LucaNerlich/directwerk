@@ -7,7 +7,7 @@ import de.pnnit.directwerk.modules.podcast.entity.Episode;
 import de.pnnit.directwerk.modules.podcast.feed.SubscriberFeed;
 import de.pnnit.directwerk.modules.podcast.feed.SubscriberFeedFormatMatcher;
 import de.pnnit.directwerk.modules.podcast.service.SubscriberEpisodeService;
-import de.pnnit.directwerk.modules.content.api.EntitlementApi;
+import de.pnnit.directwerk.modules.podcast.api.EpisodeAccessApi;
 import java.util.List;
 import java.util.Set;
 import lombok.RequiredArgsConstructor;
@@ -19,7 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class SubscriberFeedAccessService implements SubscriberFeedAccess {
 
     private final SubscriberEpisodeService subscriberEpisodeService;
-    private final EntitlementApi entitlementApi;
+    private final EpisodeAccessApi episodeAccessApi;
 
     @Override
     @Transactional(readOnly = true)
@@ -51,7 +51,7 @@ public class SubscriberFeedAccessService implements SubscriberFeedAccess {
             SubscriberFeed feed,
             Episode episode) {
         return SubscriberFeedFormatMatcher.includes(feed, episode)
-                && entitlementApi.hasAccess(tenantId, userId, episode.getId());
+                && episodeAccessApi.hasAccess(tenantId, userId, episode.getId());
     }
 
     @Override

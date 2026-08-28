@@ -12,6 +12,7 @@ import de.pnnit.directwerk.modules.digital.entity.AssetType;
 import de.pnnit.directwerk.modules.digital.entity.AssetVisibility;
 import de.pnnit.directwerk.modules.digital.entity.MediaAsset;
 import de.pnnit.directwerk.modules.digital.exception.MediaAssetNotFoundException;
+import de.pnnit.directwerk.api.MediaAssetViewMapper;
 import de.pnnit.directwerk.modules.digital.storage.S3PublicUrlBuilder;
 import de.pnnit.directwerk.multitenancy.TenantContext;
 import jakarta.validation.Valid;
@@ -48,17 +49,20 @@ public class PlatformTenantMediaController {
     private final UploadApi uploadApi;
     private final MediaAssetLifecycleApi mediaAssetLifecycleApi;
     private final S3PublicUrlBuilder publicUrlBuilder;
+    private final MediaAssetViewMapper mediaAssetViewMapper;
 
     public PlatformTenantMediaController(
             MediaAssetQueryApi mediaAssetQueryApi,
             UploadApi uploadApi,
             MediaAssetLifecycleApi mediaAssetLifecycleApi,
-            S3PublicUrlBuilder publicUrlBuilder
+            S3PublicUrlBuilder publicUrlBuilder,
+            MediaAssetViewMapper mediaAssetViewMapper
     ) {
         this.mediaAssetQueryApi = mediaAssetQueryApi;
         this.uploadApi = uploadApi;
         this.mediaAssetLifecycleApi = mediaAssetLifecycleApi;
         this.publicUrlBuilder = publicUrlBuilder;
+        this.mediaAssetViewMapper = mediaAssetViewMapper;
     }
 
     @GetMapping
@@ -71,7 +75,7 @@ public class PlatformTenantMediaController {
         List<MediaAssetView> assets = mediaAssetQueryApi
                 .listForTenant(tenantId, assetType, status, limit)
                 .stream()
-                .map(this::toView)
+                .map(mediaAssetViewMapper::toView)
                 .toList();
         return ResponseEntity.ok(Response.ok(new TenantMediaListResponse(
                 assets,
@@ -116,16 +120,7 @@ public class PlatformTenantMediaController {
             );
             MediaAsset asset = mediaAssetQueryApi.findById(result.mediaAssetId())
                     .orElseThrow(() -> new MediaAssetNotFoundException(assetId));
-            // Prefer confirm result for CDN — authoritative post-promote key/visibility.
-            String cdnUrl = resolveCdnUrl(
-                    result.visibility(),
-                    AssetStatus.valueOf(result.status()),
-                    result.s3Key()
-            );
-            if (cdnUrl == null) {
-                cdnUrl = resolveCdnUrl(asset);
-            }
-            return toView(asset, cdnUrl);
+            return mediaAssetViewMapper.toView(asset);
         });
         return ResponseEntity.ok(Response.ok(view));
     }
@@ -140,55 +135,9 @@ public class PlatformTenantMediaController {
                     new MediaAssetLifecycleApi.DeleteCommand(assetId, null, true)
             );
             // Pending/archived assets must not expose CDN URLs.
-            return toView(deleted, null);
+            return mediaAssetViewMapper.toView(deleted, null);
         });
         return ResponseEntity.ok(Response.ok(view));
-    }
-
-    private MediaAssetView toView(MediaAsset asset) {
-        return toView(asset, resolveCdnUrl(asset));
-    }
-
-    private MediaAssetView toView(MediaAsset asset, String cdnUrl) {
-        return new MediaAssetView(
-                asset.getId(),
-                asset.getS3Key(),
-                asset.getVisibility().name(),
-                asset.getScope().name(),
-                asset.getAssetType().name(),
-                asset.getStatus().name(),
-                asset.getMimeType(),
-                asset.getSizeBytes(),
-                asset.getOriginalFilename(),
-                asset.getEpisodeId(),
-                asset.getOwnerUserId(),
-                cdnUrl,
-                asset.getCreatedAt(),
-                asset.getUpdatedAt()
-        );
-    }
-
-    private String resolveCdnUrl(MediaAsset asset) {
-        return resolveCdnUrl(asset.getVisibility(), asset.getStatus(), asset.getS3Key());
-    }
-
-    /**
-     * Stable CDN URL for public READY objects only. Private assets stay null —
-     * they must not be served via the public pull zone.
-     */
-    private String resolveCdnUrl(AssetVisibility visibility, AssetStatus status, String s3Key) {
-        if (visibility != AssetVisibility.PUBLIC
-                || status != AssetStatus.READY
-                || s3Key == null
-                || s3Key.isBlank()) {
-            return null;
-        }
-        // Public assets must live under the public/ prefix after confirm.
-        String normalized = s3Key.startsWith("/") ? s3Key.substring(1) : s3Key;
-        if (!normalized.contains("/public/")) {
-            return null;
-        }
-        return publicUrlBuilder.cdnUrl(normalized).toString();
     }
 
     public record TenantMediaListResponse(

@@ -1,105 +1,34 @@
 'use client'
 
-import {createAuthedRequest, createJsonRequest} from '@directwerk/api/client'
-import type {ErrorMessageCatalog} from '@directwerk/api/envelope'
 import {
     parseArticleEnvelope,
-    parseArticleListEnvelope,
-    parseBrandingEnvelope,
     parseCategoryEnvelope,
     parseCategoryListEnvelope,
-    parseContentEmailTemplateEnvelope,
-    parseDomainEnvelope,
-    parseDomainListEnvelope,
-    parseDomainVerificationEnvelope,
     parseEpisodeEnvelope,
-    parseEpisodeListEnvelope,
     parseFormatEnvelope,
     parseFormatListEnvelope,
-    parseInviteTenantUserEnvelope,
-    parseLevelListEnvelope,
-    parseMeEnvelope,
-    parseMediaAssetEnvelope,
-    parseMediaListEnvelope,
-    parsePreviewUrlEnvelope,
-    parseProductEnvelope,
-    parseProductListEnvelope,
-    parseProductRuleListEnvelope,
-    parseSeriesEnvelope,
-    parseSeriesListEnvelope,
-    parseBillingDashboardEnvelope,
-    parseStripeOnboardEnvelope,
-    parseStripeStatusEnvelope,
-    parseSubscriptionGrantEnvelope,
-    parseSubscriberListEnvelope,
-    parseTenantUserEnvelope,
-    parseTenantUserListEnvelope,
-    parseTokenResponse,
-    parseSubscriberFeedAdminEnvelope,
-    parseSubscriberFeedAdminListEnvelope,
 } from '@directwerk/api/validation'
 import type {
     ArticleDetail,
     CategorySummary,
-    ContentEmailTemplate,
-    ContentEmailTemplateType,
-    CreateArticleInput,
     CreateCategoryInput,
-    CreateEpisodeInput,
     CreateFormatInput,
-    CreateProductInput,
-    CreateSeriesInput,
-    DomainVerificationChallenge,
     EpisodeDetail,
     FormatSummary,
-    GrantSubscriptionInput,
-    InviteTenantUserInput,
-    InviteTenantUserResponse,
-    LevelSummary,
-    Me,
-    MediaAsset,
-    ProductAccessRule,
-    ProductAccessRuleInput,
-    PublishOptions,
-    ScheduleOptions,
-    SeriesDetail,
-    SeriesSummary,
-    BillingDashboard,
-    StripeStatus,
-    SubscriberFeedAdminView,
-    SubscriptionGrant,
-    SubscriptionProduct,
-    TenantBranding,
-    TenantDomain,
-    TenantSubscriber,
-    TenantUser,
-    TokenResponse,
-    UpdateArticleInput,
     UpdateCategoryInput,
-    UpdateEpisodeInput,
     UpdateFormatInput,
-    UpdateProductInput,
-    UpdateSeriesInput,
-    UpdateTenantBrandingInput,
-    UpsertContentEmailTemplateInput,
-    AddTenantDomainInput,
 } from '@directwerk/api/types'
-import type {LoginInput} from '@directwerk/api/validation'
-import {getValidAccessToken, refreshAccessToken} from '@/lib/auth/session'
-import {getClientTenantHost} from '@/lib/tenant/getClientTenantHost'
-import {
-    authenticatedRequest,
-    jsonInit,
-    postJson,
-    proxyRequest,
-    request,
-} from './transport'
+import {jsonInit, studioGet, studioMutate} from './studioApiCore'
+
+const invalidFormatMessage = 'Der Server hat ein ungültiges Format gesendet.'
+const invalidCategoryMessage = 'Der Server hat eine ungültige Kategorie gesendet.'
+const invalidEpisodeMessage = 'Der Server hat eine ungültige Folge gesendet.'
+const invalidArticleMessage = 'Der Server hat einen ungültigen Beitrag gesendet.'
 
 export async function listFormats(tenantHost: string): Promise<FormatSummary[]> {
-    return proxyRequest(
+    return studioGet(
         '/api/proxy/formats',
         tenantHost,
-        undefined,
         parseFormatListEnvelope,
         'Der Server hat eine ungültige Formatliste gesendet.',
     )
@@ -108,10 +37,9 @@ export async function listFormats(tenantHost: string): Promise<FormatSummary[]> 
 export async function listCategories(
     tenantHost: string,
 ): Promise<CategorySummary[]> {
-    return proxyRequest(
+    return studioGet(
         '/api/proxy/categories',
         tenantHost,
-        undefined,
         parseCategoryListEnvelope,
         'Der Server hat eine ungültige Kategorieliste gesendet.',
     )
@@ -121,16 +49,12 @@ export async function createFormat(
     tenantHost: string,
     input: CreateFormatInput,
 ): Promise<FormatSummary> {
-    return proxyRequest(
+    return studioMutate(
         '/api/proxy/formats',
         tenantHost,
-        {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify(input),
-        },
+        jsonInit('POST', input),
         parseFormatEnvelope,
-        'Der Server hat ein ungültiges Format gesendet.',
+        invalidFormatMessage,
     )
 }
 
@@ -139,16 +63,12 @@ export async function updateFormat(
     formatId: number,
     input: UpdateFormatInput,
 ): Promise<FormatSummary> {
-    return proxyRequest(
+    return studioMutate(
         `/api/proxy/formats/${formatId}`,
         tenantHost,
-        {
-            method: 'PUT',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify(input),
-        },
+        jsonInit('PUT', input),
         parseFormatEnvelope,
-        'Der Server hat ein ungültiges Format gesendet.',
+        invalidFormatMessage,
     )
 }
 
@@ -156,14 +76,12 @@ export async function deactivateFormat(
     tenantHost: string,
     formatId: number,
 ): Promise<FormatSummary> {
-    return proxyRequest(
+    return studioMutate(
         `/api/proxy/formats/${formatId}`,
         tenantHost,
-        {
-            method: 'DELETE',
-        },
+        {method: 'DELETE'},
         parseFormatEnvelope,
-        'Der Server hat ein ungültiges Format gesendet.',
+        invalidFormatMessage,
     )
 }
 
@@ -171,16 +89,12 @@ export async function createCategory(
     tenantHost: string,
     input: CreateCategoryInput,
 ): Promise<CategorySummary> {
-    return proxyRequest(
+    return studioMutate(
         '/api/proxy/categories',
         tenantHost,
-        {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify(input),
-        },
+        jsonInit('POST', input),
         parseCategoryEnvelope,
-        'Der Server hat eine ungültige Kategorie gesendet.',
+        invalidCategoryMessage,
     )
 }
 
@@ -189,16 +103,12 @@ export async function updateCategory(
     categoryId: number,
     input: UpdateCategoryInput,
 ): Promise<CategorySummary> {
-    return proxyRequest(
+    return studioMutate(
         `/api/proxy/categories/${categoryId}`,
         tenantHost,
-        {
-            method: 'PUT',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify(input),
-        },
+        jsonInit('PUT', input),
         parseCategoryEnvelope,
-        'Der Server hat eine ungültige Kategorie gesendet.',
+        invalidCategoryMessage,
     )
 }
 
@@ -206,14 +116,12 @@ export async function deactivateCategory(
     tenantHost: string,
     categoryId: number,
 ): Promise<CategorySummary> {
-    return proxyRequest(
+    return studioMutate(
         `/api/proxy/categories/${categoryId}`,
         tenantHost,
-        {
-            method: 'DELETE',
-        },
+        {method: 'DELETE'},
         parseCategoryEnvelope,
-        'Der Server hat eine ungültige Kategorie gesendet.',
+        invalidCategoryMessage,
     )
 }
 
@@ -222,16 +130,12 @@ export async function replaceEpisodeFormats(
     episodeId: number,
     formatIds: number[],
 ): Promise<EpisodeDetail> {
-    return proxyRequest(
+    return studioMutate(
         `/api/proxy/episodes/${episodeId}/formats`,
         tenantHost,
-        {
-            method: 'PUT',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({formatIds}),
-        },
+        jsonInit('PUT', {formatIds}),
         parseEpisodeEnvelope,
-        'Der Server hat eine ungültige Folge gesendet.',
+        invalidEpisodeMessage,
     )
 }
 
@@ -240,16 +144,12 @@ export async function replaceEpisodeCategories(
     episodeId: number,
     categoryIds: number[],
 ): Promise<EpisodeDetail> {
-    return proxyRequest(
+    return studioMutate(
         `/api/proxy/episodes/${episodeId}/categories`,
         tenantHost,
-        {
-            method: 'PUT',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({categoryIds}),
-        },
+        jsonInit('PUT', {categoryIds}),
         parseEpisodeEnvelope,
-        'Der Server hat eine ungültige Folge gesendet.',
+        invalidEpisodeMessage,
     )
 }
 
@@ -258,15 +158,11 @@ export async function replaceArticleCategories(
     articleId: number,
     categoryIds: number[],
 ): Promise<ArticleDetail> {
-    return proxyRequest(
+    return studioMutate(
         `/api/proxy/articles/${articleId}/categories`,
         tenantHost,
-        {
-            method: 'PUT',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({categoryIds}),
-        },
+        jsonInit('PUT', {categoryIds}),
         parseArticleEnvelope,
-        'Der Server hat einen ungültigen Beitrag gesendet.',
+        invalidArticleMessage,
     )
 }

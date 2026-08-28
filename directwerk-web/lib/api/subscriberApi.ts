@@ -1,8 +1,6 @@
 'use client'
 
-import {sanitizeContentHtml} from '@/lib/sanitizeContentHtml'
 import {
-    createPublicContentParsers,
     parseMeEnvelope,
     parseAccessEnvelope,
     parseFeedPreviewEnvelope,
@@ -20,20 +18,16 @@ import type {
     SubscriberDownload,
     SubscriberFeedView,
 } from '@directwerk/api/types'
-import {
-    authenticatedRequest,
-    envelopeResult,
-} from './transport'
+import {createWebPublicParsers} from '@/lib/publicContent/parsers'
+import {authedFetch, envelopeResult, jsonInit} from './transport'
 
-const publicParsers = createPublicContentParsers({
-    sanitizeHtml: sanitizeContentHtml,
-})
+const publicParsers = createWebPublicParsers()
 const parsePublicEpisodeListEnvelope = publicParsers.parsePublicEpisodeListEnvelope
 
 export async function getMe(tenantHost: string): Promise<ApiEnvelope<Me>> {
     return envelopeResult(
         parseMeEnvelope,
-        await authenticatedRequest('/api/proxy/me', tenantHost),
+        await authedFetch('/api/proxy/me'),
         'The server returned an invalid account response.',
     )
 }
@@ -43,7 +37,7 @@ export async function getAccess(
 ): Promise<ApiEnvelope<Access>> {
     return envelopeResult(
         parseAccessEnvelope,
-        await authenticatedRequest('/api/proxy/me/access', tenantHost),
+        await authedFetch('/api/proxy/me/access'),
         'The server returned an invalid access response.',
     )
 }
@@ -53,7 +47,7 @@ export async function listMyEpisodes(
 ): Promise<PublicEpisode[]> {
     return envelopeResult(
         parsePublicEpisodeListEnvelope,
-        await authenticatedRequest('/api/proxy/me/episodes', tenantHost),
+        await authedFetch('/api/proxy/me/episodes'),
         'The server returned an invalid episode list.',
     ).data
 }
@@ -64,7 +58,7 @@ export async function listMyFeeds(
 ): Promise<SubscriberFeedView[]> {
     return envelopeResult(
         parseSubscriberFeedListEnvelope,
-        await authenticatedRequest('/api/proxy/me/feeds', tenantHost),
+        await authedFetch('/api/proxy/me/feeds'),
         'The server returned an invalid feed list.',
     ).data
 }
@@ -74,11 +68,7 @@ export async function rotateDefaultFeedToken(
 ): Promise<SubscriberFeedView> {
     return envelopeResult(
         parseSubscriberFeedEnvelope,
-        await authenticatedRequest('/api/proxy/me/feeds/default/rotate-token', tenantHost, {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({}),
-        }),
+        await authedFetch('/api/proxy/me/feeds/default/rotate-token', jsonInit('POST', {})),
         'Der Server hat eine ungültige Feed-Antwort geliefert.',
     ).data
 }
@@ -89,11 +79,10 @@ export async function setDefaultFeedEnabled(
 ): Promise<SubscriberFeedView> {
     return envelopeResult(
         parseSubscriberFeedEnvelope,
-        await authenticatedRequest('/api/proxy/me/feeds/default/enabled', tenantHost, {
-            method: 'PUT',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({enabled}),
-        }),
+        await authedFetch(
+            '/api/proxy/me/feeds/default/enabled',
+            jsonInit('PUT', {enabled}),
+        ),
         'Der Server hat eine ungültige Feed-Antwort geliefert.',
     ).data
 }
@@ -105,11 +94,7 @@ export async function createCustomFeed(
 ): Promise<SubscriberFeedView> {
     return envelopeResult(
         parseSubscriberFeedEnvelope,
-        await authenticatedRequest('/api/proxy/me/feeds', tenantHost, {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({title, formatIds}),
-        }),
+        await authedFetch('/api/proxy/me/feeds', jsonInit('POST', {title, formatIds})),
         'Der Server hat eine ungültige Feed-Antwort geliefert.',
     ).data
 }
@@ -122,11 +107,10 @@ export async function updateCustomFeed(
 ): Promise<SubscriberFeedView> {
     return envelopeResult(
         parseSubscriberFeedEnvelope,
-        await authenticatedRequest(`/api/proxy/me/feeds/${feedId}`, tenantHost, {
-            method: 'PUT',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({title, formatIds}),
-        }),
+        await authedFetch(
+            `/api/proxy/me/feeds/${feedId}`,
+            jsonInit('PUT', {title, formatIds}),
+        ),
         'Der Server hat eine ungültige Feed-Antwort geliefert.',
     ).data
 }
@@ -141,10 +125,7 @@ export async function previewCustomFeed(
     }
     return envelopeResult(
         parseFeedPreviewEnvelope,
-        await authenticatedRequest(
-            `/api/proxy/me/feeds/preview?${params.toString()}`,
-            tenantHost,
-        ),
+        await authedFetch(`/api/proxy/me/feeds/preview?${params.toString()}`),
         'Der Server hat eine ungültige Vorschau geliefert.',
     ).data
 }
@@ -156,11 +137,10 @@ export async function setFeedEnabled(
 ): Promise<SubscriberFeedView> {
     return envelopeResult(
         parseSubscriberFeedEnvelope,
-        await authenticatedRequest(`/api/proxy/me/feeds/${feedId}/enabled`, tenantHost, {
-            method: 'PUT',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({enabled}),
-        }),
+        await authedFetch(
+            `/api/proxy/me/feeds/${feedId}/enabled`,
+            jsonInit('PUT', {enabled}),
+        ),
         'Der Server hat eine ungültige Feed-Antwort geliefert.',
     ).data
 }
@@ -171,11 +151,10 @@ export async function rotateFeedToken(
 ): Promise<SubscriberFeedView> {
     return envelopeResult(
         parseSubscriberFeedEnvelope,
-        await authenticatedRequest(`/api/proxy/me/feeds/${feedId}/rotate-token`, tenantHost, {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({}),
-        }),
+        await authedFetch(
+            `/api/proxy/me/feeds/${feedId}/rotate-token`,
+            jsonInit('POST', {}),
+        ),
         'Der Server hat eine ungültige Feed-Antwort geliefert.',
     ).data
 }
@@ -184,18 +163,14 @@ export async function deleteCustomFeed(
     tenantHost: string,
     feedId: number,
 ): Promise<void> {
-    await authenticatedRequest(`/api/proxy/me/feeds/${feedId}`, tenantHost, {
-        method: 'DELETE',
-    })
+    await authedFetch(`/api/proxy/me/feeds/${feedId}`, {method: 'DELETE'})
 }
+
 export async function getNotificationPreferences(
     tenantHost: string,
 ): Promise<{emailNotificationsEnabled: boolean}> {
     const prefs = parseNotificationPreferencesEnvelope(
-        await authenticatedRequest(
-            '/api/proxy/me/notification-preferences',
-            tenantHost,
-        ),
+        await authedFetch('/api/proxy/me/notification-preferences'),
     )
     if (prefs === null) {
         throw new Error('The server returned invalid notification preferences.')
@@ -209,14 +184,9 @@ export async function updateNotificationPreferences(
     emailNotificationsEnabled: boolean,
 ): Promise<{emailNotificationsEnabled: boolean}> {
     const prefs = parseNotificationPreferencesEnvelope(
-        await authenticatedRequest(
+        await authedFetch(
             '/api/proxy/me/notification-preferences',
-            tenantHost,
-            {
-                method: 'PATCH',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({emailNotificationsEnabled}),
-            },
+            jsonInit('PATCH', {emailNotificationsEnabled}),
         ),
     )
     if (prefs === null) {
@@ -225,12 +195,13 @@ export async function updateNotificationPreferences(
 
     return prefs
 }
+
 export async function listMyDownloads(
     tenantHost: string,
 ): Promise<SubscriberDownload[]> {
     return envelopeResult(
         parseSubscriberDownloadListEnvelope,
-        await authenticatedRequest('/api/proxy/me/downloads', tenantHost),
+        await authedFetch('/api/proxy/me/downloads'),
         'Der Server hat eine ungültige Download-Liste geliefert.',
     ).data
 }
