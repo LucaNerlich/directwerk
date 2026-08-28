@@ -63,6 +63,7 @@ export default function FormatEditor({formatId}: FormatEditorProps): React.JSX.E
     const [loadError, setLoadError] = useState<string | null>(null)
     const [isLoading, setIsLoading] = useState(!isNew)
     const [isDeactivating, setIsDeactivating] = useState(false)
+    const [deactivateError, setDeactivateError] = useState<string | null>(null)
 
     useEffect(() => {
         if (formatId === undefined) {
@@ -158,11 +159,15 @@ export default function FormatEditor({formatId}: FormatEditorProps): React.JSX.E
             return
         }
         setIsDeactivating(true)
+        setDeactivateError(null)
         try {
             const updated = await deactivateFormat(getClientTenantHost(), formatId)
             setFormat(updated)
         } catch (error) {
             if (authRedirect(error)) return
+            setDeactivateError(
+                error instanceof Error ? error.message : 'Deaktivierung fehlgeschlagen.',
+            )
         } finally {
             setIsDeactivating(false)
         }
@@ -203,6 +208,11 @@ export default function FormatEditor({formatId}: FormatEditorProps): React.JSX.E
             {state.error ? (
                 <p className="text-sm text-destructive" role="alert">
                     {state.error}
+                </p>
+            ) : null}
+            {deactivateError ? (
+                <p className="text-sm text-destructive" role="alert">
+                    {deactivateError}
                 </p>
             ) : null}
             {state.success ? <p role="status">{state.success}</p> : null}

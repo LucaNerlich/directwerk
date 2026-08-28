@@ -59,7 +59,7 @@ export default function PricingPage(): React.JSX.Element {
         Promise.all([
             getSiteConfig(tenantHost),
             listPublicProducts(tenantHost),
-            listPublicLevels(tenantHost).catch(() => []),
+            listPublicLevels(tenantHost),
         ])
             .then(([siteConfig, productList, levelList]) => {
                 if (!active) {

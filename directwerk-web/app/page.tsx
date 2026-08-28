@@ -64,9 +64,7 @@ export default function HomePage(): React.JSX.Element {
                 }),
             )
         }
-        void Promise.all(loads).catch(() => {
-            /* homepage still works without latest items */
-        })
+        void Promise.allSettled(loads)
         return () => {
             active = false
         }
