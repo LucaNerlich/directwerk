@@ -164,8 +164,8 @@ See [`asset-storage.md` § Group entitlements](asset-storage.md#group-entitlemen
 
 | Step | What to do |
 |------|------------|
-| H.1 | `STRIPE_BILLING` — Connect onboard, checkout, webhooks |
-| H.2 | `PATREON_SYNC` / `STEADY_SYNC` — OAuth, shadow users, entitlement mapping |
+| H.1 | [x] `STRIPE_BILLING` — Connect onboard, checkout, webhooks — see [`payment.md`](payment.md) |
+| H.2 | [ ] `PATREON_SYNC` / `STEADY_SYNC` — OAuth, shadow users, entitlement mapping — see [`patreon-steady-integration.md`](patreon-steady-integration.md) |
 | H.3 | `directwerk-admin` minimal UI for platform ops (Phase 5) |
 
 ---
@@ -1306,11 +1306,10 @@ stream, public RSS, real entitlements, private subscriber RSS — see
 [`phase-2e-4-4b-implementation.md`](phase-2e-4-4b-implementation.md)) are all shipped. Remaining
 backend track:
 
-1. **Feed builder** (Phase 7) — subscriber-composed private feeds by format/category
-2. **Real billing** — Stripe Connect (Phase 8), Patreon/Steady sync + shadow-user claim (Phase 6)
-3. **`EMAIL_NOTIFY`** send-on-publish (post-MVP)
-4. **`DigitalPublication`** full CRUD
-5. **Studio v0 / C.3 / D.4** — frontend tracks (settings, media UI, podcast UI)
+1. **Real billing** — Stripe Connect shipped ([`payment.md`](payment.md)); Patreon/Steady dual-run next ([`patreon-steady-integration.md`](patreon-steady-integration.md))
+2. **`EMAIL_NOTIFY`** send-on-publish (post-MVP)
+3. **`DigitalPublication`** full CRUD
+4. **Studio polish** — optional SideNav module gates, one-time product copy on web/pricing
 
 Episode / RSS / entitlement HTTP fixtures live in [`../Directwerk/http/`](../Directwerk/http/)
 (`20-episode-stream.http`, `21-public-rss.http`, …).

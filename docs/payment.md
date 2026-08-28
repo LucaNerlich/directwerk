@@ -68,35 +68,31 @@ See [`content-subscriptions-and-entitlements.md`](content-subscriptions-and-enti
 | `STRIPE_BILLING` feature | `V3__create_feature_modules.sql`, `ModulePreset.PRO` / `ENTERPRISE` | Module key exists |
 | `StripeBillingModule.KEY` | `StripeBillingModule.java` | Constant only |
 
-### Scaffolding (stubs)
+### Shipped Stripe stack (2026-08-13)
 
 | Piece | Path | Behavior |
 |-------|------|----------|
-| `TenantStripeController` | `GET /api/v1/tenant/stripe/status` | Always `status: "NOT_CONNECTED"` + `moduleEnabled` |
-| | `POST /api/v1/tenant/stripe/onboard` | **501** `STRIPE_NOT_IMPLEMENTED` |
-| `MeBillingController` | `POST /api/v1/me/billing/checkout-sessions` | Body: `{ "productSlug" }` → **501** |
-| Studio UI | `/settings/stripe` | Shows stub status; onboard button expects failure |
-| directwerk-web | `/pricing` | CTA calls checkout stub; surfaces 501 message |
-| Bruno | `07-Tenant-Admin/Stripe/*`, `02-Me/9 - Create Checkout Session` | Asserts stub behaviour |
-| http | `Directwerk/http/04-me.http` | Checkout stub assertion |
+| Connect + status | `TenantStripeController` | Real Express onboarding; `tenant_stripe_accounts` (`V41`) |
+| Catalog sync | `StripeCatalogSyncService` + `POST …/products/{id}/sync-stripe` | Money fields on `SubscriptionProduct`; connected-account Product/Price |
+| Checkout | `MeBillingController` → `StripeCheckoutService` | `MONTH`/`YEAR`/`ONE_TIME`; `allow_promotion_codes=true` |
+| Portal | `POST /api/v1/me/billing/portal` | Customer Portal on connected account |
+| Webhooks | `StripeWebhookController` + `StripeWebhookService` | Signature verify; `processed_webhook_events`; maps to `Subscription` |
+| Revoke | `TenantSubscriptionController` | Local cancel + Stripe cancel for `source=STRIPE` |
+| Dashboard | `GET /api/v1/tenant/billing/dashboard` | Studio **Abos → Zahlungen** stats + filters |
+| Studio / web | `/settings/stripe`, `/pricing`, `/account` | Live redirects; **501** only when platform `STRIPE_*` keys absent |
+| Harness | Bruno `07-Tenant-Admin/Stripe`, `12-Webhooks`, `02-Me`; `http/26-stripe-billing.http` | Live-path coverage |
 
-### Explicitly missing
+Migration: `V41__stripe_connect_and_prices.sql` (`tenant_stripe_accounts`, `stripe_customers`, product money columns, `processed_webhook_events`, `PAST_DUE`/`INCOMPLETE` statuses).
+
+### Remaining gaps (post–slice 1–7)
 
 | Area | Status |
 |------|--------|
-| `stripe-java` (or equivalent) dependency | Absent |
-| Stripe env vars in `.env.example` | Absent (`STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_CONNECT_CLIENT_ID`, …) |
-| Connect account id on `Tenant` (or side table) | Absent |
-| Stripe Customer id per user/tenant membership | Absent |
-| Product `price_cents`, `currency`, `billing_interval`, `stripe_product_id`, `stripe_price_id` | Absent in shipped schema |
-| `Subscription.external_subscription_id`, `current_period_end` | Design only; shipped uses `endsAt` |
-| `POST .../products/{id}/sync-stripe` | Design only |
-| `POST /api/v1/webhooks/stripe` | Absent; SecurityConfig has no Stripe signature path |
-| `processed_webhook_events` (idempotency) | Design only |
-| Customer Portal endpoint | Design: `POST /api/v1/billing/portal` — absent |
-| Coupons / Promotion Codes | Absent |
-| One-time purchase offering | Absent |
+| Studio promotion-code CRUD | Deferred — codes created in Stripe Dashboard; Checkout already accepts them |
+| Application / platform fee on Connect charges | Business decision; architecture supports optional fee later |
 | Stripe Tax / VAT | Explicitly non-MVP (`content-platform-strategy.md`) |
+| Platform SaaS billing (tenants pay Directwerk) | Separate from creator→listener Connect; post-MVP |
+| Proration / plan upgrades / dunning UX polish | Follow-up after production traffic |
 
 ### Do not confuse
 
@@ -174,40 +170,40 @@ Rules:
 
 ### A. Connect onboarding (tenant admin)
 
-- [ ] Persist Connect account id + capabilities (`charges_enabled`, `payouts_enabled`, `details_submitted`)
-- [ ] `POST /tenant/stripe/onboard` → Account Link URL (return/refresh URLs to studio)
-- [ ] `GET /tenant/stripe/status` → real status (`NOT_CONNECTED` \| `PENDING` \| `RESTRICTED` \| `CONNECTED`, …)
-- [ ] `@RequiresModule(STRIPE_BILLING)` on Stripe admin + checkout endpoints
-- [ ] Studio: redirect to Stripe, refresh status, clear empty-state copy
+- [x] Persist Connect account id + capabilities (`charges_enabled`, `payouts_enabled`, `details_submitted`)
+- [x] `POST /tenant/stripe/onboard` → Account Link URL (return/refresh URLs to studio)
+- [x] `GET /tenant/stripe/status` → real status (`NOT_CONNECTED` \| `PENDING` \| `RESTRICTED` \| `CONNECTED`, …)
+- [x] `@RequiresModule(STRIPE_BILLING)` on Stripe admin + checkout endpoints
+- [x] Studio: redirect to Stripe, refresh status, clear empty-state copy
 - [ ] Gate SideNav “Stripe” on module (optional: still show with “module off” empty state)
 
 ### B. Catalog sync
 
-- [ ] Migration for money + Stripe id columns
-- [ ] Studio product editor: amount, currency, interval
-- [ ] `POST /tenant/products/{id}/sync-stripe`
-- [ ] Public products API returns price fields
-- [ ] Bruno + `http/` coverage for sync + public shape
+- [x] Migration for money + Stripe id columns
+- [x] Studio product editor: amount, currency, interval
+- [x] `POST /tenant/products/{id}/sync-stripe`
+- [x] Public products API returns price fields
+- [x] Bruno + `http/` coverage for sync + public shape
 
 ### C. Checkout (subscriptions)
 
-- [ ] Ensure Stripe Customer exists for membership (create on first checkout)
-- [ ] `POST /me/billing/checkout-sessions`:
+- [x] Ensure Stripe Customer exists for membership (create on first checkout)
+- [x] `POST /me/billing/checkout-sessions`:
   - validate auth + tenant + product
   - `mode=subscription` for `MONTH`/`YEAR`
   - metadata: `tenant_id`, `user_id`, `product_id` (and slug)
   - `success_url` / `cancel_url` (body or server-derived from tenant primary domain)
   - Create on **connected account**
-- [ ] directwerk-web: success/cancel pages; show money on pricing
-- [ ] Rate-limit checkout; never trust client for entitlement
+- [x] directwerk-web: success/cancel pages; show money on pricing
+- [x] Rate-limit checkout; never trust client for entitlement
 
 ### D. Webhooks (source of truth)
 
-- [ ] `POST /api/v1/webhooks/stripe` — **no JWT**; signature verify via `Stripe-Signature`
-- [ ] SecurityConfig permit + dedicated filter (see `user-backend-implementation.md`)
-- [ ] Idempotency table `processed_webhook_events` (`event_id` unique)
-- [ ] Resolve tenant via Connect account id and/or metadata (never trust Host header alone)
-- [ ] Map events → `Subscription` with `source=STRIPE`:
+- [x] `POST /api/v1/webhooks/stripe` — **no JWT**; signature verify via `Stripe-Signature`
+- [x] SecurityConfig permit + dedicated filter (see `user-backend-implementation.md`)
+- [x] Idempotency table `processed_webhook_events` (`event_id` unique)
+- [x] Resolve tenant via Connect account id and/or metadata (never trust Host header alone)
+- [x] Map events → `Subscription` with `source=STRIPE`:
 
 | Event family | Effect |
 |--------------|--------|
@@ -217,32 +213,32 @@ Rules:
 | `invoice.paid` | Renew period end; ensure ACTIVE |
 | `invoice.payment_failed` | PAST_DUE; optional dunning UX later |
 
-- [ ] Return 200 quickly after durable processing (or enqueue via existing queue module)
-- [ ] **Never** log full webhook bodies / card data
+- [x] Return 200 quickly after durable processing (or enqueue via existing queue module)
+- [x] **Never** log full webhook bodies / card data
 
 ### E. Cancellation & self-service
 
-- [ ] Cancel at period end vs immediate (Stripe Subscription cancel APIs)
-- [ ] `POST /me/billing/portal` → Customer Portal session (Stripe-sourced only)
-- [ ] Account UI: open portal; show Stripe vs MANUAL subs differently in studio subscribers list
-- [ ] On cancel/expire: entitlement drops automatically when status ≠ ACTIVE; optional feed token rotation policy (README suggests grace then invalidate)
+- [x] Cancel at period end vs immediate (Stripe Subscription cancel APIs)
+- [x] `POST /me/billing/portal` → Customer Portal session (Stripe-sourced only)
+- [x] Account UI: open portal; show Stripe vs MANUAL subs differently in studio subscribers list
+- [x] On cancel/expire: entitlement drops automatically when status ≠ ACTIVE; optional feed token rotation policy (README suggests grace then invalidate)
 
 ### F. One-time purchases
 
 Required for “buy this bonus” / non-recurring packages.
 
-- [ ] `billing_interval = ONE_TIME` (or dedicated offering flag)
-- [ ] Checkout `mode=payment`
-- [ ] Webhook: `checkout.session.completed` / `payment_intent.succeeded`
-- [ ] Entitlement shape (choose and document one):
+- [x] `billing_interval = ONE_TIME` (or dedicated offering flag)
+- [x] Checkout `mode=payment`
+- [x] Webhook: `checkout.session.completed` / `payment_intent.succeeded`
+- [x] Entitlement shape (choose and document one):
   - **Permanent PACKAGE grant** (Subscription ACTIVE, `endsAt=null`), or
   - **Time-boxed grant** (`endsAt` set), or
   - **Digital download only** (PACKAGE rule `DIGITAL_ASSET`) without podcast LEVEL bump
-- [ ] Studio + public copy must distinguish recurring vs one-time
+- [ ] Studio + public copy must distinguish recurring vs one-time (copy polish)
 
 ### G. Discounts, coupons, promotion codes
 
-Nothing exists today. Target Stripe-native:
+Target Stripe-native:
 
 | Stripe object | Use |
 |---------------|-----|
@@ -253,7 +249,7 @@ Nothing exists today. Target Stripe-native:
 Implementation sketch:
 
 - [ ] Tenant-admin APIs to create/list/deactivate promotion codes (wrapping Stripe on connected account) **or** manage in Stripe Dashboard first (MVP shortcut) then add studio UI
-- [ ] Checkout: enable `allow_promotion_codes` for self-serve codes
+- [x] Checkout: enable `allow_promotion_codes` for self-serve codes
 - [ ] Optional: staff-applied coupon on Checkout Session for support comps (prefer MANUAL grant for pure comps — no money movement)
 - [ ] Webhook/invoice line items: store discount summary on Subscription metadata if needed for support
 - [ ] Decide first-invoice-only vs forever for LEVEL upgrades
@@ -412,5 +408,6 @@ Gradle: add official Stripe Java SDK; pin version in BOM/catalog if used.
 | 2026-08-13 | Owner UX: product copy, TENANT_ADMIN gates, subscriber Stripe ids, charge.refunded for one-time, portal + success poll + PAST_DUE on web/example-fe. |
 | 2026-08-13 | Bruno + http harnesses aligned with live billing controllers (prices, dashboard stats, checkout/portal, webhook signature). |
 | 2026-08-13 | Studio Zahlungen: past-due/incomplete stats, filters, revoke from the membership list. |
+| 2026-08-28 | Reconciled inventory + feature checklist with shipped Connect/checkout/webhooks/dashboard. Remaining: SideNav module gate, one-time copy polish, studio promo CRUD. |
 | 2026-08-13 | Live Connect, prices, checkout, webhooks, studio Zahlungen dashboard. 501 without platform keys. |
 | 2026-08-12 | Initial brief from gap analysis after stub controllers/UI landed; no live Stripe yet |
