@@ -27,6 +27,9 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Circular dependencies
+        run: pnpm check:circular
+
       - name: Test
         run: pnpm test
 
