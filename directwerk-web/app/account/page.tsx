@@ -21,6 +21,7 @@ import {
 } from '@directwerk/ui/components/table'
 
 import HowToListen from '@/components/HowToListen'
+import {userFacingBillingError} from '@/lib/billing/userFacingBillingError'
 import {
     createPortalSession,
     forgotPassword,
@@ -236,15 +237,7 @@ export default function AccountPage() {
                 router.replace('/login')
                 return
             }
-            const message =
-                requestError instanceof Error
-                    ? requestError.message
-                    : 'Kundenportal konnte nicht geöffnet werden.'
-            setPortalMessage(
-                message.toLowerCase().includes('not implemented')
-                    ? 'Stripe ist auf diesem Server noch nicht eingerichtet.'
-                    : message,
-            )
+            setPortalMessage(userFacingBillingError(requestError, 'portal'))
         } finally {
             setPortalBusy(false)
         }

@@ -6,4 +6,12 @@
     .media-player {
         @apply mt-4 block w-full max-w-2xl;
     }
+
+    .marketing-container {
+        @apply mx-auto w-full max-w-7xl px-5 sm:px-8;
+    }
+
+    .marketing-section {
+        @apply py-16 sm:py-20;
+    }
 }

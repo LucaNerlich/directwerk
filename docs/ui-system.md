@@ -33,7 +33,7 @@ Each app imports the shared theme from its `app/globals.css`:
 | `theme.css` | Tailwind setup, semantic tokens (`:root`), `@theme inline` mapping |
 | `app-base.css` | Shared resets (`min-w-0`, heading margins, alert color) |
 | `content.css` | `.content-prose` for article/episode HTML bodies |
-| `layout.css` | `.page-container`, `.media-player` |
+| `layout.css` | `.page-container`, `.media-player`, `.marketing-container`, `.marketing-section` |
 | `forms.css` | `.native-select` for admin filter forms |
 
 App `globals.css` should only add **app-specific** utilities (e.g. studio
@@ -98,4 +98,6 @@ Do not create a package barrel file.
 2. Replace native controls with shared components where behavior is unchanged.
 3. Preserve accessible names and existing test semantics.
 4. Verify keyboard focus, narrow-screen layout, loading, errors, and empty data.
-5. Run `pnpm test`, `pnpm typecheck`, and `pnpm build` from `projects/directwerk`.
+5. Run `pnpm test`, `pnpm typecheck`, and `pnpm build` from the repo root (see [`.github/workflows/ci.yml`](../.github/workflows/ci.yml)).
+
+New pages: [`frontend-pages.md`](frontend-pages.md).

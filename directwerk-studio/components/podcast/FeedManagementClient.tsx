@@ -272,11 +272,11 @@ export default function FeedManagementClient(): React.JSX.Element {
                                     </span>
                                     <span className="flex shrink-0 items-center gap-3 text-sm text-muted-foreground">
                                         <span
-                                            style={{
-                                                color: feed.enabled
-                                                    ? undefined
-                                                    : 'var(--muted)',
-                                            }}
+                                            className={
+                                                feed.enabled
+                                                    ? 'text-foreground'
+                                                    : 'text-muted-foreground'
+                                            }
                                         >
                                             {feed.enabled ? 'Aktiv' : 'Deaktiviert'}
                                         </span>

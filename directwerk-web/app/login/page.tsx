@@ -2,7 +2,7 @@
 
 import Form from 'next/form'
 import Link from 'next/link'
-import {useRouter} from 'next/navigation'
+import {useRouter, useSearchParams} from 'next/navigation'
 import {useActionState} from 'react'
 
 import {Alert, AlertDescription} from '@directwerk/ui/components/alert'
@@ -14,6 +14,7 @@ import {Label} from '@directwerk/ui/components/label'
 import {login} from '@/lib/api/client'
 import {parseLoginInput} from '@directwerk/api/validation'
 import {setTokens} from '@/lib/auth/tokenStore'
+import {safeReturnTo} from '@/lib/auth/safeReturnTo'
 import {getClientTenantHost} from '@/lib/tenant/getClientTenantHost'
 
 interface LoginState {
@@ -24,6 +25,8 @@ const INITIAL_STATE: LoginState = {error: null}
 
 export default function LoginPage() {
     const router = useRouter()
+    const searchParams = useSearchParams()
+    const returnTo = safeReturnTo(searchParams.get('returnTo'))
     const [state, formAction, isPending] = useActionState(
         async (_previousState: LoginState, formData: FormData) => {
             const input = parseLoginInput({
@@ -37,7 +40,7 @@ export default function LoginPage() {
             try {
                 const tokens = await login(getClientTenantHost(), input)
                 setTokens(tokens)
-                router.push('/account')
+                router.push(returnTo)
                 return INITIAL_STATE
             } catch (error) {
                 return {
@@ -57,7 +60,19 @@ export default function LoginPage() {
             description="Melde dich an, um deine Inhalte und Mitgliedschaften zu verwalten."
             footer={
                 <div className="space-y-2">
-                    <p>Noch kein Konto? <Link className="underline" href="/register">Registrieren</Link></p>
+                    <p>
+                        Noch kein Konto?{' '}
+                        <Link
+                            className="underline"
+                            href={
+                                returnTo === '/account'
+                                    ? '/register'
+                                    : `/register?returnTo=${encodeURIComponent(returnTo)}`
+                            }
+                        >
+                            Registrieren
+                        </Link>
+                    </p>
                     <Link className="underline" href="/">Zur Startseite</Link>
                 </div>
             }

@@ -676,14 +676,15 @@ export default function EpisodeEditor({episodeId}: {episodeId?: number}): React.
                             </span>
                         </label>
                         {episode !== null ? (
-                            <label className="grid gap-2 text-sm font-medium" style={{display: 'block'}}>
+                            <label className="flex cursor-pointer items-center gap-2 text-sm font-medium">
                                 <Input
                                     checked={episode.enclosureEnabled !== false}
+                                    className="size-4 shrink-0"
                                     onChange={(event) => {
                                         void handleEnclosureChange(event.target.checked)
                                     }}
-                                    className="size-4 shrink-0" type="checkbox"
-                                />{' '}
+                                    type="checkbox"
+                                />
                                 Audio im Feed (Enclosure)
                             </label>
                         ) : null}

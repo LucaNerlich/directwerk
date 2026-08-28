@@ -372,7 +372,11 @@ export default function SeriesEditor({seriesId}: SeriesEditorProps): React.JSX.E
                 <div className="grid gap-2 text-sm font-medium">
                     <span>Titelbild</span>
                     {coverPreviewUrl !== null ? (
-                        <img alt="" src={coverPreviewUrl} style={{maxWidth: '12rem', display: 'block'}} />
+                        <img
+                            alt=""
+                            className="block max-w-48"
+                            src={coverPreviewUrl}
+                        />
                     ) : null}
                     <Input
                         accept="image/png,image/jpeg,image/webp"
@@ -429,12 +433,13 @@ export default function SeriesEditor({seriesId}: SeriesEditorProps): React.JSX.E
                     </p>
                 ) : null}
                 {isNew ? (
-                    <label className="grid gap-2 text-sm font-medium" style={{display: 'block'}}>
+                    <label className="flex cursor-pointer items-center gap-2 text-sm font-medium">
                         <Input
                             checked={publishOnCreate}
+                            className="size-4 shrink-0"
                             onChange={(event) => setPublishOnCreate(event.target.checked)}
-                            className="size-4 shrink-0" type="checkbox"
-                        />{' '}
+                            type="checkbox"
+                        />
                         Sendung sofort veröffentlichen
                     </label>
                 ) : (

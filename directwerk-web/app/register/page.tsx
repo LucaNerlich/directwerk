@@ -2,7 +2,7 @@
 
 import Form from 'next/form'
 import Link from 'next/link'
-import {useRouter} from 'next/navigation'
+import {useRouter, useSearchParams} from 'next/navigation'
 import {useActionState} from 'react'
 
 import {Alert, AlertDescription} from '@directwerk/ui/components/alert'
@@ -14,6 +14,7 @@ import {Label} from '@directwerk/ui/components/label'
 import {login, register} from '@/lib/api/client'
 import {parseRegisterInput} from '@directwerk/api/validation'
 import {setTokens} from '@/lib/auth/tokenStore'
+import {safeReturnTo} from '@/lib/auth/safeReturnTo'
 import {getClientTenantHost} from '@/lib/tenant/getClientTenantHost'
 
 interface RegisterState {
@@ -24,6 +25,8 @@ const INITIAL_STATE: RegisterState = {error: null}
 
 export default function RegisterPage() {
     const router = useRouter()
+    const searchParams = useSearchParams()
+    const returnTo = safeReturnTo(searchParams.get('returnTo'))
     const [state, formAction, isPending] = useActionState(
         async (_previousState: RegisterState, formData: FormData) => {
             const input = parseRegisterInput({
@@ -46,7 +49,7 @@ export default function RegisterPage() {
                     password: input.password,
                 })
                 setTokens(tokens)
-                router.push('/account')
+                router.push(returnTo)
                 return INITIAL_STATE
             } catch (error) {
                 return {
@@ -61,7 +64,25 @@ export default function RegisterPage() {
     )
 
     return (
-        <AuthCard title="Registrieren" description="Erstelle dein Konto für exklusive Inhalte." footer={<><span>Bereits registriert? </span><Link className="underline" href="/login">Anmelden</Link></>}>
+        <AuthCard
+            title="Registrieren"
+            description="Erstelle dein Konto für exklusive Inhalte."
+            footer={
+                <>
+                    <span>Bereits registriert? </span>
+                    <Link
+                        className="underline"
+                        href={
+                            returnTo === '/account'
+                                ? '/login'
+                                : `/login?returnTo=${encodeURIComponent(returnTo)}`
+                        }
+                    >
+                        Anmelden
+                    </Link>
+                </>
+            }
+        >
             <Form action={formAction} className="space-y-4">
                 <div className="space-y-2">
                     <Label htmlFor="name">Name <span className="text-muted-foreground">(optional)</span></Label>

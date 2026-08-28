@@ -2,8 +2,13 @@
 
 import {useEffect, useState} from 'react'
 
+import {Alert, AlertDescription} from '@directwerk/ui/components/alert'
 import {Button} from '@directwerk/ui/components/button'
+import {Card, CardContent, CardHeader, CardTitle} from '@directwerk/ui/components/card'
+import {Checkbox} from '@directwerk/ui/components/checkbox'
 import {Input} from '@directwerk/ui/components/input'
+import ListPanel, {ListPanelRow} from '@directwerk/ui/components/list-panel'
+import SectionHeader from '@directwerk/ui/components/section-header'
 
 import {
     createCustomFeed,
@@ -231,105 +236,120 @@ export default function CustomFeedsPanel({
     const canSave = title.trim().length > 0 && selectedIds.length > 0 && !busy
 
     return (
-        <section className="space-y-4">
-            <h2>Eigene Feeds (Formate)</h2>
-            <p className="text-sm text-muted-foreground">
-                Baue private RSS-Feeds nur mit den Formaten, die du hören willst.
-                Es erscheinen nur Folgen, die du freigeschaltet hast.
-            </p>
-            {formatsError !== null && <p role="alert">{formatsError}</p>}
+        <section className="flex flex-col gap-4">
+            <SectionHeader
+                description="Baue private RSS-Feeds nur mit den Formaten, die du hören willst. Es erscheinen nur Folgen, die du freigeschaltet hast."
+                title="Eigene Feeds (Formate)"
+            />
+            {formatsError !== null ? (
+                <Alert variant="destructive">
+                    <AlertDescription>{formatsError}</AlertDescription>
+                </Alert>
+            ) : null}
             {canBuild && formats.length === 0 && formatsError === null ? (
-                <p>Der Verlag hat noch keine Formate angelegt.</p>
+                <p className="text-sm text-muted-foreground">
+                    Der Verlag hat noch keine Formate angelegt.
+                </p>
             ) : null}
             {canBuild && atFeedLimit && editingId === null ? (
-                <p>Du kannst höchstens {MAX_CUSTOM_FEEDS} eigene Feeds anlegen.</p>
+                <p className="text-sm text-muted-foreground">
+                    Du kannst höchstens {MAX_CUSTOM_FEEDS} eigene Feeds anlegen.
+                </p>
             ) : null}
             {showCreateForm ? (
-                <form
-                    className="space-y-3 rounded-lg border p-4"
-                    onSubmit={(event) => {
-                        event.preventDefault()
-                        void handleSave()
-                    }}
-                >
-                    <h3>{editingId === null ? 'Neuen Feed anlegen' : 'Feed bearbeiten'}</h3>
-                    <label className="block space-y-1 text-sm">
-                        <span>Name</span>
-                        <Input
-                            maxLength={80}
-                            onChange={(event) => setTitle(event.target.value)}
-                            value={title}
-                        />
-                    </label>
-                    <fieldset className="space-y-2">
-                        <legend className="text-sm">Formate</legend>
-                        {formats.map((format) => (
-                            <label className="flex items-center gap-2 text-sm" key={format.id}>
-                                <input
-                                    checked={selectedIds.includes(format.id)}
-                                    onChange={() => toggleFormat(format.id)}
-                                    type="checkbox"
+                <Card>
+                    <CardHeader>
+                        <CardTitle>
+                            {editingId === null ? 'Neuen Feed anlegen' : 'Feed bearbeiten'}
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <form
+                            className="flex flex-col gap-4"
+                            onSubmit={(event) => {
+                                event.preventDefault()
+                                void handleSave()
+                            }}
+                        >
+                            <label className="grid gap-2 text-sm font-medium">
+                                <span>Name</span>
+                                <Input
+                                    maxLength={80}
+                                    onChange={(event) => setTitle(event.target.value)}
+                                    value={title}
                                 />
-                                <span>
-                                    {format.name}
-                                    {format.requiredLevelSortOrder !== null
-                                        ? ` (ab Stufe ${format.requiredLevelSortOrder})`
-                                        : null}
-                                </span>
                             </label>
-                        ))}
-                    </fieldset>
-                    {preview !== null ? (
-                        <p className="text-sm text-muted-foreground">
-                            Dieser Feed enthält aktuell {preview.episodeCount}{' '}
-                            {preview.episodeCount === 1 ? 'Folge' : 'Folgen'}
-                            {preview.sampleTitles.length > 0
-                                ? `: ${preview.sampleTitles.join(', ')}`
-                                : '.'}
-                        </p>
-                    ) : null}
-                    <div className="flex flex-wrap gap-2">
-                        <Button disabled={!canSave} type="submit">
-                            {editingId === null ? 'Feed speichern' : 'Änderungen speichern'}
-                        </Button>
-                        {editingId !== null ? (
-                            <Button
-                                onClick={resetForm}
-                                type="button"
-                                variant="outline"
-                            >
-                                Abbrechen
-                            </Button>
-                        ) : null}
-                    </div>
-                </form>
+                            <fieldset className="flex flex-col gap-2 border-0 p-0">
+                                <legend className="mb-1 text-sm font-medium">Formate</legend>
+                                {formats.map((format) => (
+                                    <label
+                                        className="flex cursor-pointer items-center gap-2 text-sm font-normal"
+                                        key={format.id}
+                                    >
+                                        <Checkbox
+                                            checked={selectedIds.includes(format.id)}
+                                            onCheckedChange={() => toggleFormat(format.id)}
+                                        />
+                                        <span>
+                                            {format.name}
+                                            {format.requiredLevelSortOrder !== null
+                                                ? ` (ab Stufe ${format.requiredLevelSortOrder})`
+                                                : null}
+                                        </span>
+                                    </label>
+                                ))}
+                            </fieldset>
+                            {preview !== null ? (
+                                <p className="text-sm text-muted-foreground">
+                                    Dieser Feed enthält aktuell {preview.episodeCount}{' '}
+                                    {preview.episodeCount === 1 ? 'Folge' : 'Folgen'}
+                                    {preview.sampleTitles.length > 0
+                                        ? `: ${preview.sampleTitles.join(', ')}`
+                                        : '.'}
+                                </p>
+                            ) : null}
+                            <div className="flex flex-wrap gap-2">
+                                <Button disabled={!canSave} type="submit">
+                                    {editingId === null ? 'Feed speichern' : 'Änderungen speichern'}
+                                </Button>
+                                {editingId !== null ? (
+                                    <Button onClick={resetForm} type="button" variant="outline">
+                                        Abbrechen
+                                    </Button>
+                                ) : null}
+                            </div>
+                        </form>
+                    </CardContent>
+                </Card>
             ) : null}
             {customFeeds.length === 0 ? (
-                <p>Noch keine eigenen Feeds.</p>
+                <p className="text-sm text-muted-foreground">Noch keine eigenen Feeds.</p>
             ) : (
-                <ul className="space-y-4">
+                <ListPanel>
                     {customFeeds.map((feed) => (
-                        <li key={feed.id}>
-                            <h3>{feed.title}</h3>
-                            <p>
-                                <small>
+                        <ListPanelRow key={feed.id}>
+                            <div className="min-w-0 flex-1">
+                                <p className="font-medium">{feed.title}</p>
+                                <p className="mt-1 text-sm text-muted-foreground">
                                     {feed.enabled ? 'Aktiv' : 'Deaktiviert'}
                                     {feed.formats.length > 0
                                         ? ` · ${feed.formats.map((item) => item.name).join(', ')}`
                                         : ''}{' '}
                                     · aktualisiert {formatPublishedAt(feed.updatedAt)}
-                                </small>
-                            </p>
-                            {feed.enabled ? (
-                                <p className="break-all">
-                                    <a href={feed.url} rel="noreferrer">
-                                        {feed.url}
-                                    </a>
                                 </p>
-                            ) : (
-                                <p>Dieser Feed ist derzeit deaktiviert.</p>
-                            )}
-                            <div className="mt-2 flex flex-wrap gap-2">
+                                {feed.enabled ? (
+                                    <p className="mt-2 break-all text-sm">
+                                        <a href={feed.url} rel="noreferrer">
+                                            {feed.url}
+                                        </a>
+                                    </p>
+                                ) : (
+                                    <p className="mt-2 text-sm text-muted-foreground">
+                                        Dieser Feed ist derzeit deaktiviert.
+                                    </p>
+                                )}
+                            </div>
+                            <div className="flex flex-wrap gap-2">
                                 <Button
                                     disabled={busy}
                                     onClick={() => void handleToggle(feed)}
@@ -369,9 +389,9 @@ export default function CustomFeedsPanel({
                                     Löschen
                                 </Button>
                             </div>
-                        </li>
+                        </ListPanelRow>
                     ))}
-                </ul>
+                </ListPanel>
             )}
         </section>
     )

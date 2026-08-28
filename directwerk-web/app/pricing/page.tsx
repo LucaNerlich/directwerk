@@ -26,6 +26,7 @@ import {
     subscribeToTokenStore,
 } from '@/lib/auth/tokenStore'
 import {formatMoney} from '@/lib/format/money'
+import {userFacingBillingError} from '@/lib/billing/userFacingBillingError'
 import {getClientTenantHost} from '@/lib/tenant/getClientTenantHost'
 
 interface PublicProduct {
@@ -45,20 +46,6 @@ function readTokenClient(): string | null {
 
 function readTokenServer(): string | null {
     return null
-}
-
-function checkoutErrorMessage(error: unknown): string {
-    if (!(error instanceof Error)) {
-        return 'Checkout ist noch nicht verfügbar.'
-    }
-    if (
-        error.message.includes('STRIPE_NOT_IMPLEMENTED') ||
-        error.message.includes('STRIPE_NOT_CONNECTED') ||
-        error.message.toLowerCase().includes('not implemented')
-    ) {
-        return 'Online-Zahlung ist noch nicht aktiv. Du kannst das Produkt merken und später zurückkommen — oder die Redaktion schaltet dich im Studio frei.'
-    }
-    return error.message
 }
 
 export default function PricingPage(): React.JSX.Element {
@@ -114,7 +101,7 @@ export default function PricingPage(): React.JSX.Element {
     async function handleCheckout(productSlug: string): Promise<void> {
         setCheckoutMessage(null)
         if (!isAuthenticated) {
-            router.push('/login')
+            router.push(`/login?returnTo=${encodeURIComponent('/pricing')}`)
             return
         }
 
@@ -136,10 +123,10 @@ export default function PricingPage(): React.JSX.Element {
                 requestError instanceof Error &&
                 requestError.message === AUTH_REQUIRED
             ) {
-                router.push('/login')
+                router.push(`/login?returnTo=${encodeURIComponent('/pricing')}`)
                 return
             }
-            setCheckoutMessage(checkoutErrorMessage(requestError))
+            setCheckoutMessage(userFacingBillingError(requestError, 'checkout'))
         } finally {
             setBusySlug(null)
         }
