@@ -1,7 +1,7 @@
 'use client'
 
 import Form from 'next/form'
-import {useActionState} from 'react'
+import {useActionState, useEffect, useRef} from 'react'
 
 import {Alert, AlertDescription} from '@directwerk/ui/components/alert'
 import {Button} from '@directwerk/ui/components/button'
@@ -9,146 +9,34 @@ import {Card, CardContent, CardHeader, CardTitle} from '@directwerk/ui/component
 import {Input} from '@directwerk/ui/components/input'
 import {Label} from '@directwerk/ui/components/label'
 
-import {postPlatformData} from '@/lib/api/client'
-import {AUTH_REQUIRED, CONFLICT, REQUEST_FAILED} from '@directwerk/api/constants'
-import type {TenantCreationResponse} from '@directwerk/api/types'
 import {MODULE_PRESETS} from '@directwerk/api/types'
-import {validateCreateTenantInput} from '@/lib/validation'
+
+import {
+    createTenantAction,
+    INITIAL_CREATE_TENANT_STATE,
+} from '@/app/tenants/actions'
 
 interface CreateTenantFormProps {
     onCreated?: () => void
 }
 
-interface CreateTenantState {
-    error: string | null
-    success: string | null
-    inviteToken: string | null
-}
-
-const INITIAL_STATE: CreateTenantState = {
-    error: null,
-    success: null,
-    inviteToken: null,
-}
-
-function isTenantCreationResponse(
-    value: unknown
-): value is TenantCreationResponse {
-    if (typeof value !== 'object' || value === null) {
-        return false
-    }
-
-    const response = value as Record<string, unknown>
-    if (
-        typeof response.id !== 'number' ||
-        typeof response.slug !== 'string' ||
-        typeof response.name !== 'string' ||
-        typeof response.status !== 'string'
-    ) {
-        return false
-    }
-
-    if (response.adminInvitation == null) {
-        return true
-    }
-
-    if (typeof response.adminInvitation !== 'object') {
-        return false
-    }
-
-    const invitation = response.adminInvitation as Record<string, unknown>
-    return (
-        typeof invitation.email === 'string' &&
-        typeof invitation.status === 'string' &&
-        (invitation.inviteToken === null ||
-            invitation.inviteToken === undefined ||
-            typeof invitation.inviteToken === 'string')
-    )
-}
-
 export default function CreateTenantForm({onCreated}: CreateTenantFormProps) {
-    async function createAction(
-        _previousState: CreateTenantState,
-        formData: FormData
-    ): Promise<CreateTenantState> {
-        const validation = validateCreateTenantInput({
-            name: formData.get('name'),
-            slug: formData.get('slug'),
-            primaryDomain: formData.get('primaryDomain'),
-            modulePreset: formData.get('modulePreset'),
-            adminEmail: formData.get('adminEmail'),
-            adminName: formData.get('adminName'),
-        })
-
-        if (!validation.success) {
-            return {
-                ...INITIAL_STATE,
-                error: validation.error,
-            }
-        }
-
-        try {
-            const response = await postPlatformData<TenantCreationResponse>(
-                'tenants',
-                validation.data
-            )
-
-            if (!isTenantCreationResponse(response)) {
-                return {
-                    ...INITIAL_STATE,
-                    error: 'Tenant creation failed. Try again later.',
-                }
-            }
-
-            onCreated?.()
-
-            return {
-                error: null,
-                success: `Created tenant ${response.name} (${response.slug}).`,
-                inviteToken: response.adminInvitation?.inviteToken ?? null,
-            }
-        } catch (requestError: unknown) {
-            if (
-                requestError instanceof Error &&
-                requestError.message === AUTH_REQUIRED
-            ) {
-                return {
-                    ...INITIAL_STATE,
-                    error: 'Your session expired. Sign in again.',
-                }
-            }
-
-            if (
-                requestError instanceof Error &&
-                requestError.message === CONFLICT
-            ) {
-                return {
-                    ...INITIAL_STATE,
-                    error: 'A tenant with this slug already exists.',
-                }
-            }
-
-            if (
-                requestError instanceof Error &&
-                requestError.message === REQUEST_FAILED
-            ) {
-                return {
-                    ...INITIAL_STATE,
-                    error: 'Tenant creation failed. Check the details and try again.',
-                }
-            }
-
-            return {
-                ...INITIAL_STATE,
-                error: 'Tenant creation is unavailable. Try again later.',
-            }
-        }
-    }
-
     const [state, formAction, pending] = useActionState(
-        createAction,
-        INITIAL_STATE
+        createTenantAction,
+        INITIAL_CREATE_TENANT_STATE
     )
+
+    // Notify the parent once per completed action result (never on mount).
+    const handledState = useRef(state)
+    useEffect(() => {
+        if (state === handledState.current) {
+            return
+        }
+        handledState.current = state
+        if (state.success !== null) {
+            onCreated?.()
+        }
+    }, [state, onCreated])
 
     return (
         <Card aria-labelledby="create-tenant-heading" role="region">

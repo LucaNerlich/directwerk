@@ -2,82 +2,40 @@
 
 import Form from 'next/form'
 import {useRouter} from 'next/navigation'
-import {useActionState} from 'react'
+import {useActionState, useEffect} from 'react'
 
 import {Alert, AlertDescription} from '@directwerk/ui/components/alert'
 import {Button} from '@directwerk/ui/components/button'
 import {Input} from '@directwerk/ui/components/input'
 import {Label} from '@directwerk/ui/components/label'
 
-import type {OAuthTokenResponse} from '@directwerk/api/types'
 import {invalidatePendingRefresh} from '@/lib/auth/session'
 import {storeTokens} from '@/lib/auth/tokenStore'
 
-interface LoginState {
-    error: string | null
-}
+import {loginAction, type LoginActionState} from './actions'
 
-const INITIAL_STATE: LoginState = {error: null}
-
-function isOAuthTokenResponse(value: unknown): value is OAuthTokenResponse {
-    if (typeof value !== 'object' || value === null) {
-        return false
-    }
-
-    const token = value as Record<string, unknown>
-    return (
-        typeof token.access_token === 'string' &&
-        token.access_token.length > 0 &&
-        token.access_token.length <= 8192 &&
-        typeof token.token_type === 'string' &&
-        token.token_type.toLowerCase() === 'bearer' &&
-        (token.refresh_token === undefined ||
-            (typeof token.refresh_token === 'string' &&
-                token.refresh_token.length <= 8192))
-    )
-}
+const INITIAL_STATE: LoginActionState = {error: null, tokens: null}
 
 export default function LoginForm() {
     const router = useRouter()
-
-    async function loginAction(
-        _previousState: LoginState,
-        formData: FormData
-    ): Promise<LoginState> {
-        const email = formData.get('email')
-        const password = formData.get('password')
-
-        if (typeof email !== 'string' || typeof password !== 'string') {
-            return {error: 'Enter your email address and password.'}
-        }
-
-        try {
-            const response = await fetch('/api/auth/login', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({email, password}),
-            })
-            const body: unknown = await response.json()
-
-            if (!response.ok || !isOAuthTokenResponse(body)) {
-                return {error: 'Login failed. Check your credentials.'}
-            }
-
-            // End any refresh that is still in flight for the previous
-            // identity so it cannot overwrite this fresh login.
-            invalidatePendingRefresh()
-            storeTokens(body)
-            router.replace('/')
-            return INITIAL_STATE
-        } catch {
-            return {error: 'Login is unavailable. Try again later.'}
-        }
-    }
 
     const [state, formAction, pending] = useActionState(
         loginAction,
         INITIAL_STATE
     )
+
+    // Client-side effects after a successful server action: store the access
+    // token, reset any in-flight refresh for the previous identity, and enter
+    // the admin area.
+    useEffect(() => {
+        if (state.tokens === null) {
+            return
+        }
+
+        invalidatePendingRefresh()
+        storeTokens(state.tokens)
+        router.replace('/')
+    }, [state.tokens, router])
 
     return (
         <Form action={formAction} className="space-y-4">

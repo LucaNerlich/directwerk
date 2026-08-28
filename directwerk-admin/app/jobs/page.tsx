@@ -1,6 +1,5 @@
 'use client'
 
-import Form from 'next/form'
 import Link from 'next/link'
 import {useRouter} from 'next/navigation'
 import {useCallback, useEffect, useState} from 'react'
@@ -153,7 +152,14 @@ export default function JobsPage() {
                 <Card aria-labelledby="job-filters-heading" role="region">
                     <CardHeader><CardTitle id="job-filters-heading">Filters</CardTitle></CardHeader>
                     <CardContent>
-                    <Form action={applyFilters} className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4" key={`${query.offset}-${query.limit}`}>
+                    <form
+                        className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4"
+                        key={`${query.offset}-${query.limit}`}
+                        onSubmit={(event) => {
+                            event.preventDefault()
+                            applyFilters(new FormData(event.currentTarget))
+                        }}
+                    >
                         <div className="space-y-2">
                             <Label htmlFor="job-queue">Queue</Label>
                             <select
@@ -212,7 +218,7 @@ export default function JobsPage() {
                             <Alert aria-live="polite" className="sm:col-span-2 lg:col-span-4" variant="destructive"><AlertDescription>{filterError}</AlertDescription></Alert>
                         ) : null}
                         <Button className="w-fit sm:col-span-2 lg:col-span-4" type="submit">Apply filters</Button>
-                    </Form>
+                    </form>
                     </CardContent>
                 </Card>
 

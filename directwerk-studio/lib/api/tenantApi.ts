@@ -110,6 +110,7 @@ const jsonRequest = createJsonRequest({
 const authedFetch = createAuthedRequest({
     session: {getValidAccessToken, refreshAccessToken},
     clearTokens: () => {},
+    baseHeaders: () => ({'X-Tenant-Host': getClientTenantHost()}),
     authFailureMode: 'preserve-transient',
     transientMessage: 'Der Server ist derzeit nicht erreichbar.',
     finalUnauthorized: 'localized-error',

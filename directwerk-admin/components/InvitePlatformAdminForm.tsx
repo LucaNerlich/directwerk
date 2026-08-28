@@ -1,7 +1,7 @@
 'use client'
 
 import Form from 'next/form'
-import {useActionState} from 'react'
+import {useActionState, useEffect, useRef} from 'react'
 
 import {Alert, AlertDescription} from '@directwerk/ui/components/alert'
 import {Button} from '@directwerk/ui/components/button'
@@ -9,136 +9,34 @@ import {Card, CardContent, CardHeader, CardTitle} from '@directwerk/ui/component
 import {Input} from '@directwerk/ui/components/input'
 import {Label} from '@directwerk/ui/components/label'
 
-import {postPlatformData} from '@/lib/api/client'
-import {AUTH_REQUIRED, CONFLICT, FORBIDDEN, REQUEST_FAILED} from '@directwerk/api/constants'
-import type {InvitePlatformAdminResponse} from '@directwerk/api/types'
-import {validatePlatformAdminInviteInput} from '@/lib/validation'
+import {
+    INITIAL_INVITE_PLATFORM_ADMIN_STATE,
+    invitePlatformAdminAction,
+} from '@/app/admins/actions'
 
 interface InvitePlatformAdminFormProps {
     onInvited?: () => void
 }
 
-interface InvitePlatformAdminState {
-    error: string | null
-    success: string | null
-    inviteToken: string | null
-}
-
-const INITIAL_STATE: InvitePlatformAdminState = {
-    error: null,
-    success: null,
-    inviteToken: null,
-}
-
-function isInvitePlatformAdminResponse(
-    value: unknown
-): value is InvitePlatformAdminResponse {
-    if (typeof value !== 'object' || value === null) {
-        return false
-    }
-
-    const response = value as Record<string, unknown>
-    return (
-        typeof response.userId === 'number' &&
-        typeof response.email === 'string' &&
-        (response.name === null || typeof response.name === 'string') &&
-        typeof response.status === 'string' &&
-        (response.inviteToken === null ||
-            typeof response.inviteToken === 'string')
-    )
-}
-
 export default function InvitePlatformAdminForm({
     onInvited,
 }: InvitePlatformAdminFormProps) {
-    async function inviteAction(
-        _previousState: InvitePlatformAdminState,
-        formData: FormData
-    ): Promise<InvitePlatformAdminState> {
-        const validation = validatePlatformAdminInviteInput({
-            email: formData.get('email'),
-            name: formData.get('name'),
-        })
-
-        if (!validation.success) {
-            return {
-                ...INITIAL_STATE,
-                error: validation.error,
-            }
-        }
-
-        try {
-            const response = await postPlatformData<InvitePlatformAdminResponse>(
-                'admins/invite',
-                validation.data
-            )
-
-            if (!isInvitePlatformAdminResponse(response)) {
-                return {
-                    ...INITIAL_STATE,
-                    error: 'Invitation failed. Try again later.',
-                }
-            }
-
-            onInvited?.()
-
-            return {
-                error: null,
-                success: `Invitation sent to ${response.email}.`,
-                inviteToken: response.inviteToken,
-            }
-        } catch (requestError: unknown) {
-            if (
-                requestError instanceof Error &&
-                requestError.message === AUTH_REQUIRED
-            ) {
-                return {
-                    ...INITIAL_STATE,
-                    error: 'Your session expired. Sign in again.',
-                }
-            }
-
-            if (
-                requestError instanceof Error &&
-                requestError.message === FORBIDDEN
-            ) {
-                return {
-                    ...INITIAL_STATE,
-                    error: 'You do not have permission for this action.',
-                }
-            }
-
-            if (
-                requestError instanceof Error &&
-                requestError.message === CONFLICT
-            ) {
-                return {
-                    ...INITIAL_STATE,
-                    error: 'This user is already a platform admin.',
-                }
-            }
-
-            if (
-                requestError instanceof Error &&
-                requestError.message === REQUEST_FAILED
-            ) {
-                return {
-                    ...INITIAL_STATE,
-                    error: 'Invitation failed. Check the details and try again.',
-                }
-            }
-
-            return {
-                ...INITIAL_STATE,
-                error: 'Invitation is unavailable. Try again later.',
-            }
-        }
-    }
-
     const [state, formAction, pending] = useActionState(
-        inviteAction,
-        INITIAL_STATE
+        invitePlatformAdminAction,
+        INITIAL_INVITE_PLATFORM_ADMIN_STATE
     )
+
+    // Notify the parent once per completed action result (never on mount).
+    const handledState = useRef(state)
+    useEffect(() => {
+        if (state === handledState.current) {
+            return
+        }
+        handledState.current = state
+        if (state.success !== null) {
+            onInvited?.()
+        }
+    }, [state, onInvited])
 
     return (
         <Card aria-labelledby="invite-platform-admin-heading" role="region">

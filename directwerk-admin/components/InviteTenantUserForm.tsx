@@ -1,7 +1,7 @@
 'use client'
 
 import Form from 'next/form'
-import {useActionState} from 'react'
+import {useActionState, useEffect, useRef} from 'react'
 
 import {Alert, AlertDescription} from '@directwerk/ui/components/alert'
 import {Button} from '@directwerk/ui/components/button'
@@ -9,140 +9,39 @@ import {Card, CardContent, CardHeader, CardTitle} from '@directwerk/ui/component
 import {Input} from '@directwerk/ui/components/input'
 import {Label} from '@directwerk/ui/components/label'
 
-import {postPlatformData} from '@/lib/api/client'
-import {AUTH_REQUIRED, CONFLICT, FORBIDDEN, REQUEST_FAILED} from '@directwerk/api/constants'
-import type {InviteTenantUserResponse} from '@directwerk/api/types'
 import {TENANT_INVITABLE_ROLES} from '@directwerk/api/types'
 import {getTenantRoleLabel} from '@/lib/roles'
-import {validateTenantUserInviteInput} from '@/lib/validation'
+
+import {
+    INITIAL_INVITE_TENANT_USER_STATE,
+    inviteTenantUserAction,
+} from '@/app/tenants/actions'
 
 interface InviteTenantUserFormProps {
     tenantId: string
     onInvited?: () => void
 }
 
-interface InviteTenantUserState {
-    error: string | null
-    success: string | null
-    inviteToken: string | null
-}
-
-const INITIAL_STATE: InviteTenantUserState = {
-    error: null,
-    success: null,
-    inviteToken: null,
-}
-
-function isInviteTenantUserResponse(
-    value: unknown
-): value is InviteTenantUserResponse {
-    if (typeof value !== 'object' || value === null) {
-        return false
-    }
-
-    const response = value as Record<string, unknown>
-    return (
-        typeof response.email === 'string' &&
-        typeof response.role === 'string' &&
-        typeof response.status === 'string' &&
-        (response.inviteToken === null ||
-            typeof response.inviteToken === 'string')
-    )
-}
-
 export default function InviteTenantUserForm({
     tenantId,
     onInvited,
 }: InviteTenantUserFormProps) {
-    async function inviteAction(
-        _previousState: InviteTenantUserState,
-        formData: FormData
-    ): Promise<InviteTenantUserState> {
-        const validation = validateTenantUserInviteInput({
-            email: formData.get('email'),
-            name: formData.get('name'),
-            role: formData.get('role'),
-        })
-
-        if (!validation.success) {
-            return {
-                ...INITIAL_STATE,
-                error: validation.error,
-            }
-        }
-
-        try {
-            const response = await postPlatformData<InviteTenantUserResponse>(
-                `tenants/${tenantId}/users/invite`,
-                validation.data
-            )
-
-            if (!isInviteTenantUserResponse(response)) {
-                return {
-                    ...INITIAL_STATE,
-                    error: 'Invitation failed. Try again later.',
-                }
-            }
-
-            onInvited?.()
-
-            return {
-                error: null,
-                success: `Invitation sent to ${response.email} as ${getTenantRoleLabel(validation.data.role)}.`,
-                inviteToken: response.inviteToken,
-            }
-        } catch (requestError: unknown) {
-            if (
-                requestError instanceof Error &&
-                requestError.message === AUTH_REQUIRED
-            ) {
-                return {
-                    ...INITIAL_STATE,
-                    error: 'Your session expired. Sign in again.',
-                }
-            }
-
-            if (
-                requestError instanceof Error &&
-                requestError.message === FORBIDDEN
-            ) {
-                return {
-                    ...INITIAL_STATE,
-                    error: 'You do not have permission for this action.',
-                }
-            }
-
-            if (
-                requestError instanceof Error &&
-                requestError.message === CONFLICT
-            ) {
-                return {
-                    ...INITIAL_STATE,
-                    error: 'This user is already a member of the tenant.',
-                }
-            }
-
-            if (
-                requestError instanceof Error &&
-                requestError.message === REQUEST_FAILED
-            ) {
-                return {
-                    ...INITIAL_STATE,
-                    error: 'Invitation failed. Check the details and try again.',
-                }
-            }
-
-            return {
-                ...INITIAL_STATE,
-                error: 'Invitation is unavailable. Try again later.',
-            }
-        }
-    }
-
     const [state, formAction, pending] = useActionState(
-        inviteAction,
-        INITIAL_STATE
+        inviteTenantUserAction.bind(null, tenantId),
+        INITIAL_INVITE_TENANT_USER_STATE
     )
+
+    // Notify the parent once per completed action result (never on mount).
+    const handledState = useRef(state)
+    useEffect(() => {
+        if (state === handledState.current) {
+            return
+        }
+        handledState.current = state
+        if (state.success !== null) {
+            onInvited?.()
+        }
+    }, [state, onInvited])
 
     return (
         <Card aria-labelledby="invite-tenant-user-heading" role="region">

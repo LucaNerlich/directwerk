@@ -1,7 +1,7 @@
 'use client'
 
 import Form from 'next/form'
-import {useActionState} from 'react'
+import {useActionState, useEffect, useRef} from 'react'
 
 import {Alert, AlertDescription} from '@directwerk/ui/components/alert'
 import {Button} from '@directwerk/ui/components/button'
@@ -9,38 +9,20 @@ import {Card, CardContent, CardDescription, CardHeader, CardTitle} from '@direct
 import {Input} from '@directwerk/ui/components/input'
 import {Label} from '@directwerk/ui/components/label'
 
-import {postPlatformData} from '@/lib/api/client'
-import {clearTokens, getAccessToken} from '@/lib/auth/tokenStore'
-import {AUTH_REQUIRED} from '@directwerk/api/constants'
 import {
     ASSET_TYPES,
     ASSET_VISIBILITIES,
-    type AssetVisibility,
     type MediaAsset,
 } from '@directwerk/api/types'
+
+import {
+    INITIAL_UPLOAD_MEDIA_STATE,
+    uploadTenantMediaAction,
+} from '@/app/tenants/actions'
 
 interface TenantStorageUploadFormProps {
     tenantId: string
     onUploaded?: (asset?: MediaAsset) => void
-}
-
-interface UploadFormState {
-    error: string | null
-    success: string | null
-}
-
-const INITIAL_STATE: UploadFormState = {
-    error: null,
-    success: null,
-}
-
-function isMediaAsset(value: unknown): value is MediaAsset {
-    if (typeof value !== 'object' || value === null) {
-        return false
-    }
-
-    const asset = value as Record<string, unknown>
-    return typeof asset.id === 'number' && typeof asset.s3Key === 'string'
 }
 
 function formatUploadSuccess(asset: MediaAsset, fallbackName: string): string {
@@ -52,162 +34,26 @@ function formatUploadSuccess(asset: MediaAsset, fallbackName: string): string {
     return base
 }
 
-function readEnvelopeData(payload: unknown): unknown {
-    if (
-        typeof payload !== 'object' ||
-        payload === null ||
-        !Object.hasOwn(payload, 'data')
-    ) {
-        return null
-    }
-    return (payload as {data: unknown}).data
-}
-
-function isConfirmRetryPayload(
-    payload: unknown
-): payload is {assetId: number; retryConfirm: true; error?: string} {
-    if (typeof payload !== 'object' || payload === null) {
-        return false
-    }
-    const body = payload as Record<string, unknown>
-    return (
-        body.retryConfirm === true &&
-        typeof body.assetId === 'number' &&
-        Number.isSafeInteger(body.assetId) &&
-        body.assetId > 0
-    )
-}
-
 export default function TenantStorageUploadForm({
     tenantId,
     onUploaded,
 }: TenantStorageUploadFormProps) {
-    async function uploadAction(
-        _previousState: UploadFormState,
-        formData: FormData
-    ): Promise<UploadFormState> {
-        const fileEntry = formData.get('file')
-        const visibilityRaw = String(formData.get('visibility') ?? 'PUBLIC').trim()
-
-        if (!(fileEntry instanceof File) || fileEntry.size === 0) {
-            return {...INITIAL_STATE, error: 'Choose a non-empty file to upload.'}
-        }
-
-        if (
-            !ASSET_VISIBILITIES.includes(
-                visibilityRaw as AssetVisibility
-            )
-        ) {
-            return {...INITIAL_STATE, error: 'Choose a valid visibility.'}
-        }
-
-        const token = getAccessToken()
-        if (!token) {
-            return {...INITIAL_STATE, error: 'Session expired. Log in again.'}
-        }
-
-        const body = new FormData()
-        body.set('file', fileEntry)
-        body.set('visibility', visibilityRaw)
-        const assetTypeRaw = String(formData.get('assetType') ?? '').trim()
-        if (assetTypeRaw) {
-            body.set('assetType', assetTypeRaw)
-        }
-
-        try {
-            // Server route performs upload-url → PUT to S3 → confirm.
-            // Browser cannot PUT Bunny S3 directly (no storage CORS; CSP connect-src self).
-            const response = await fetch(
-                `/api/tenants/${tenantId}/media/upload`,
-                {
-                    method: 'POST',
-                    headers: {
-                        Authorization: `Bearer ${token}`,
-                    },
-                    body,
-                    cache: 'no-store',
-                }
-            )
-
-            if (response.status === 401 || response.status === 403) {
-                clearTokens()
-                return {
-                    ...INITIAL_STATE,
-                    error: 'Session expired. Log in again.',
-                }
-            }
-
-            const payload = await response.json().catch(() => null)
-
-            if (!response.ok) {
-                // PUT succeeded but confirm failed — retry confirm only (same assetId).
-                if (isConfirmRetryPayload(payload)) {
-                    try {
-                        const confirmed = await postPlatformData<MediaAsset>(
-                            `tenants/${tenantId}/media/${payload.assetId}/confirm`,
-                            {}
-                        )
-                        if (!isMediaAsset(confirmed)) {
-                            return {
-                                ...INITIAL_STATE,
-                                error: `Upload reached storage (asset ${payload.assetId}) but confirm retry returned an invalid response.`,
-                            }
-                        }
-                        onUploaded?.(confirmed)
-                        return {
-                            error: null,
-                            success: formatUploadSuccess(confirmed, fileEntry.name),
-                        }
-                    } catch {
-                        return {
-                            ...INITIAL_STATE,
-                            error: `Upload reached storage (asset ${payload.assetId}) but confirmation failed. Retry confirm for that asset id.`,
-                        }
-                    }
-                }
-
-                const message =
-                    payload &&
-                    typeof payload === 'object' &&
-                    typeof (payload as {error?: unknown}).error === 'string'
-                        ? (payload as {error: string}).error
-                        : 'Upload failed.'
-                return {...INITIAL_STATE, error: message}
-            }
-
-            const asset = readEnvelopeData(payload)
-            if (!isMediaAsset(asset)) {
-                return {
-                    ...INITIAL_STATE,
-                    error: 'Confirm response was invalid.',
-                }
-            }
-
-            onUploaded?.(asset)
-
-            return {
-                error: null,
-                success: formatUploadSuccess(asset, fileEntry.name),
-            }
-        } catch (error: unknown) {
-            if (error instanceof Error && error.message === AUTH_REQUIRED) {
-                return {
-                    ...INITIAL_STATE,
-                    error: 'Session expired. Log in again.',
-                }
-            }
-
-            return {
-                ...INITIAL_STATE,
-                error: 'Upload failed. Is Directwerk reachable with storage enabled?',
-            }
-        }
-    }
-
     const [state, formAction, isPending] = useActionState(
-        uploadAction,
-        INITIAL_STATE
+        uploadTenantMediaAction.bind(null, tenantId),
+        INITIAL_UPLOAD_MEDIA_STATE
     )
+
+    // Notify the parent once per completed action result (never on mount).
+    const handledState = useRef(state)
+    useEffect(() => {
+        if (state === handledState.current) {
+            return
+        }
+        handledState.current = state
+        if (state.error === null && state.asset !== null) {
+            onUploaded?.(state.asset)
+        }
+    }, [state, onUploaded])
 
     return (
         <Card aria-labelledby="tenant-storage-upload-heading" role="region">

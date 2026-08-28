@@ -4,19 +4,25 @@ import {afterEach, describe, expect, it, vi} from 'vitest'
 
 import TenantUserActions from '@/components/TenantUserActions'
 
-const patchPlatformData = vi.fn().mockResolvedValue({})
+const changeTenantUserRoleAction = vi.fn()
+vi.mock('@/app/tenants/actions', () => ({
+    INITIAL_ROLE_CHANGE_STATE: {error: null},
+    changeTenantUserRoleAction: (...args: unknown[]) =>
+        changeTenantUserRoleAction(...args),
+}))
+
 const postPlatformData = vi.fn().mockResolvedValue({})
 vi.mock('@/lib/api/client', () => ({
-    patchPlatformData: (...args: unknown[]) => patchPlatformData(...args),
     postPlatformData: (...args: unknown[]) => postPlatformData(...args),
 }))
 
 afterEach(cleanup)
 
 describe('TenantUserActions', () => {
-    it('submits a role change', async () => {
+    it('submits a role change through the server action', async () => {
         const user = userEvent.setup()
         const onChanged = vi.fn()
+        changeTenantUserRoleAction.mockResolvedValue({error: null})
         render(
             <TenantUserActions
                 onChanged={onChanged}
@@ -28,10 +34,13 @@ describe('TenantUserActions', () => {
         await user.selectOptions(screen.getByRole('combobox'), 'TENANT_ADMIN')
         await user.click(screen.getByRole('button', {name: /Change role/}))
 
-        await waitFor(() =>
-            expect(patchPlatformData).toHaveBeenCalledWith('tenants/1/users/2', {role: 'TENANT_ADMIN'}),
-        )
-        expect(onChanged).toHaveBeenCalled()
+        await waitFor(() => expect(changeTenantUserRoleAction).toHaveBeenCalled())
+        expect(changeTenantUserRoleAction.mock.calls[0][0]).toBe('1')
+        expect(changeTenantUserRoleAction.mock.calls[0][1]).toBe(2)
+        const formData = changeTenantUserRoleAction.mock.calls[0][3] as FormData
+        expect(formData.get('role')).toBe('TENANT_ADMIN')
+
+        await waitFor(() => expect(onChanged).toHaveBeenCalled())
     })
 
     it('deactivates an active user', async () => {

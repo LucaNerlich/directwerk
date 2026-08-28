@@ -1,7 +1,7 @@
 'use client'
 
 import Form from 'next/form'
-import {useActionState} from 'react'
+import {useActionState, useEffect, useRef} from 'react'
 
 import {Alert, AlertDescription} from '@directwerk/ui/components/alert'
 import {Button} from '@directwerk/ui/components/button'
@@ -9,24 +9,18 @@ import {Card, CardContent, CardHeader, CardTitle} from '@directwerk/ui/component
 import {Input} from '@directwerk/ui/components/input'
 import {Label} from '@directwerk/ui/components/label'
 
-import {patchPlatformData} from '@/lib/api/client'
-import {AUTH_REQUIRED, CONFLICT, REQUEST_FAILED} from '@directwerk/api/constants'
 import type {Tenant} from '@directwerk/api/types'
+
+import {
+    INITIAL_TENANT_EDIT_STATE,
+    updateTenantAction,
+} from '@/app/tenants/actions'
 
 interface TenantEditFormProps {
     tenantId: string
     tenant: Tenant
     onUpdated?: (tenant: Tenant) => void
 }
-
-interface TenantEditState {
-    error: string | null
-    success: string | null
-}
-
-const INITIAL_STATE: TenantEditState = {error: null, success: null}
-
-const SLUG_PATTERN = /^[a-z0-9](?:[a-z0-9-]{0,62}[a-z0-9])?$/
 
 /**
  * Renders a form for updating a tenant's name or slug.
@@ -40,57 +34,22 @@ export default function TenantEditForm({
     tenant,
     onUpdated,
 }: TenantEditFormProps) {
-    async function updateAction(
-        _previousState: TenantEditState,
-        formData: FormData
-    ): Promise<TenantEditState> {
-        const name = String(formData.get('name') ?? '').trim()
-        const slug = String(formData.get('slug') ?? '').trim()
+    const [state, formAction, pending] = useActionState(
+        updateTenantAction.bind(null, tenantId),
+        INITIAL_TENANT_EDIT_STATE
+    )
 
-        if (name.length === 0 && slug.length === 0) {
-            return {...INITIAL_STATE, error: 'Enter a name or slug to update.'}
+    // Notify the parent once per completed action result (never on mount).
+    const handledState = useRef(state)
+    useEffect(() => {
+        if (state === handledState.current) {
+            return
         }
-        if (slug.length > 0 && !SLUG_PATTERN.test(slug)) {
-            return {
-                ...INITIAL_STATE,
-                error: 'Slug must be lowercase letters, numbers, and hyphens.',
-            }
+        handledState.current = state
+        if (state.tenant !== null) {
+            onUpdated?.(state.tenant)
         }
-
-        try {
-            const updated = await patchPlatformData<Tenant>(`tenants/${tenantId}`, {
-                name: name.length > 0 ? name : undefined,
-                slug: slug.length > 0 ? slug : undefined,
-            })
-            onUpdated?.(updated)
-            return {error: null, success: 'Tenant updated.'}
-        } catch (requestError: unknown) {
-            if (
-                requestError instanceof Error &&
-                requestError.message === AUTH_REQUIRED
-            ) {
-                return {...INITIAL_STATE, error: 'Your session expired. Sign in again.'}
-            }
-            if (
-                requestError instanceof Error &&
-                requestError.message === CONFLICT
-            ) {
-                return {...INITIAL_STATE, error: 'That slug is already in use.'}
-            }
-            if (
-                requestError instanceof Error &&
-                requestError.message === REQUEST_FAILED
-            ) {
-                return {
-                    ...INITIAL_STATE,
-                    error: 'Update failed. Check the details and try again.',
-                }
-            }
-            return {...INITIAL_STATE, error: 'Update is unavailable. Try again later.'}
-        }
-    }
-
-    const [state, formAction, pending] = useActionState(updateAction, INITIAL_STATE)
+    }, [state, onUpdated])
 
     return (
         <Card aria-labelledby="tenant-edit-heading" role="region">

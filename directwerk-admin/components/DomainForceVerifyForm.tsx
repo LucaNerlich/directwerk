@@ -9,19 +9,14 @@ import {Card, CardContent, CardHeader, CardTitle} from '@directwerk/ui/component
 import {Input} from '@directwerk/ui/components/input'
 import {Label} from '@directwerk/ui/components/label'
 
-import {postPlatformData} from '@/lib/api/client'
-import {AUTH_REQUIRED} from '@directwerk/api/constants'
+import {
+    forceVerifyDomainAction,
+    INITIAL_DOMAIN_VERIFY_STATE,
+} from '@/app/tenants/actions'
 
 interface DomainForceVerifyFormProps {
     tenantId: string
 }
-
-interface DomainVerifyState {
-    error: string | null
-    success: string | null
-}
-
-const INITIAL_STATE: DomainVerifyState = {error: null, success: null}
 
 /**
  * Renders a form for force-verifying a tenant domain.
@@ -32,46 +27,10 @@ const INITIAL_STATE: DomainVerifyState = {error: null, success: null}
 export default function DomainForceVerifyForm({
     tenantId,
 }: DomainForceVerifyFormProps) {
-    async function verifyAction(
-        _previousState: DomainVerifyState,
-        formData: FormData
-    ): Promise<DomainVerifyState> {
-        const host = String(formData.get('host') ?? '').trim()
-        if (host.length === 0) {
-            return {...INITIAL_STATE, error: 'Enter a domain host.'}
-        }
-
-        if (
-            host.includes('/') ||
-            host === '.' ||
-            host === '..' ||
-            host.startsWith('.') ||
-            host.endsWith('.')
-        ) {
-            return {...INITIAL_STATE, error: 'Enter a valid domain host.'}
-        }
-
-        try {
-            await postPlatformData(
-                `tenants/${tenantId}/domains/${host}/verify`,
-                {}
-            )
-            return {error: null, success: `${host} force-verified.`}
-        } catch (requestError: unknown) {
-            if (
-                requestError instanceof Error &&
-                requestError.message === AUTH_REQUIRED
-            ) {
-                return {...INITIAL_STATE, error: 'Your session expired. Sign in again.'}
-            }
-            return {
-                ...INITIAL_STATE,
-                error: 'Force verify failed. Check the host and try again.',
-            }
-        }
-    }
-
-    const [state, formAction, pending] = useActionState(verifyAction, INITIAL_STATE)
+    const [state, formAction, pending] = useActionState(
+        forceVerifyDomainAction.bind(null, tenantId),
+        INITIAL_DOMAIN_VERIFY_STATE
+    )
 
     return (
         <Card aria-labelledby="domain-verify-heading" role="region">

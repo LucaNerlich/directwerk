@@ -1,28 +1,26 @@
 'use client'
 
-import Form from 'next/form'
-import {useActionState, useState} from 'react'
+import {useActionState, useEffect, useRef, useState} from 'react'
 
 import {Alert, AlertDescription} from '@directwerk/ui/components/alert'
 import {Button} from '@directwerk/ui/components/button'
 
-import {patchPlatformData, postPlatformData} from '@/lib/api/client'
-import {AUTH_REQUIRED, CONFLICT, FORBIDDEN, REQUEST_FAILED} from '@directwerk/api/constants'
+import {postPlatformData} from '@/lib/api/client'
+import {AUTH_REQUIRED, CONFLICT, FORBIDDEN} from '@directwerk/api/constants'
 import type {TenantUser} from '@directwerk/api/types'
 import {TENANT_INVITABLE_ROLES} from '@directwerk/api/types'
 import {getTenantRoleLabel} from '@/lib/roles'
+
+import {
+    changeTenantUserRoleAction,
+    INITIAL_ROLE_CHANGE_STATE,
+} from '@/app/tenants/actions'
 
 interface TenantUserActionsProps {
     tenantId: string
     user: TenantUser
     onChanged: () => void
 }
-
-interface RoleChangeState {
-    error: string | null
-}
-
-const INITIAL_ROLE_STATE: RoleChangeState = {error: null}
 
 /**
  * Renders controls for changing a tenant user's role and activation status.
@@ -40,52 +38,22 @@ export default function TenantUserActions({
     const [statusError, setStatusError] = useState<string | null>(null)
     const [isTogglingStatus, setIsTogglingStatus] = useState(false)
 
-    async function changeRoleAction(
-        _previousState: RoleChangeState,
-        formData: FormData
-    ): Promise<RoleChangeState> {
-        const role = String(formData.get('role') ?? '')
-
-        try {
-            await patchPlatformData(`tenants/${tenantId}/users/${user.userId}`, {role})
-            onChanged()
-            return {error: null}
-        } catch (requestError: unknown) {
-            if (
-                requestError instanceof Error &&
-                requestError.message === AUTH_REQUIRED
-            ) {
-                return {error: 'Your session expired. Sign in again.'}
-            }
-            if (
-                requestError instanceof Error &&
-                requestError.message === FORBIDDEN
-            ) {
-                return {error: 'You do not have permission for this action.'}
-            }
-            if (
-                requestError instanceof Error &&
-                requestError.message === CONFLICT
-            ) {
-                return {
-                    error:
-                        "This would leave the tenant without an active admin, or you're trying to change your own access.",
-                }
-            }
-            if (
-                requestError instanceof Error &&
-                requestError.message === REQUEST_FAILED
-            ) {
-                return {error: 'Role change failed. Try again.'}
-            }
-            return {error: 'Role change is unavailable.'}
-        }
-    }
-
     const [roleState, roleAction, rolePending] = useActionState(
-        changeRoleAction,
-        INITIAL_ROLE_STATE
+        changeTenantUserRoleAction.bind(null, tenantId, user.userId),
+        INITIAL_ROLE_CHANGE_STATE
     )
+
+    // Notify the parent once per completed action result (never on mount).
+    const handledRoleState = useRef(roleState)
+    useEffect(() => {
+        if (roleState === handledRoleState.current) {
+            return
+        }
+        handledRoleState.current = roleState
+        if (roleState.error === null) {
+            onChanged()
+        }
+    }, [roleState, onChanged])
 
     async function handleToggleStatus(): Promise<void> {
         const deactivating = user.status === 'ACTIVE'
@@ -139,7 +107,7 @@ export default function TenantUserActions({
 
     return (
         <>
-            <Form action={roleAction} className="flex min-w-64 flex-wrap gap-2">
+            <form action={roleAction} className="flex min-w-64 flex-wrap gap-2">
                 <select className="native-select w-auto flex-1" aria-label="User role" defaultValue={user.roles[0] ?? 'GUEST'} name="role">
                     {TENANT_INVITABLE_ROLES.map((role) => (
                         <option key={role} value={role}>
@@ -150,7 +118,7 @@ export default function TenantUserActions({
                 <Button disabled={rolePending} type="submit" variant="outline">
                     {rolePending ? 'Saving…' : 'Change role'}
                 </Button>
-            </Form>
+            </form>
             {roleState.error ? <Alert variant="destructive"><AlertDescription>{roleState.error}</AlertDescription></Alert> : null}
             <Button
                 className="mt-2"

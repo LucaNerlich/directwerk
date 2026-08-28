@@ -1,6 +1,5 @@
 'use client'
 
-import Form from 'next/form'
 import Link from 'next/link'
 import {useRouter} from 'next/navigation'
 import {use, useCallback, useEffect, useState} from 'react'
@@ -342,7 +341,13 @@ export default function TenantStoragePage({params}: TenantStoragePageProps) {
                         <Card>
                             <CardHeader><CardTitle>Filter assets</CardTitle></CardHeader>
                             <CardContent>
-                        <Form action={applyFilters} className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                        <form
+                            className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4"
+                            onSubmit={(event) => {
+                                event.preventDefault()
+                                applyFilters(new FormData(event.currentTarget))
+                            }}
+                        >
                             <div className="space-y-2">
                                 <Label htmlFor="asset-type-filter">Type</Label>
                                 <select
@@ -387,7 +392,7 @@ export default function TenantStoragePage({params}: TenantStoragePageProps) {
                                 />
                             </div>
                             <Button className="self-end" type="submit">Apply</Button>
-                        </Form>
+                        </form>
                             </CardContent>
                         </Card>
 
