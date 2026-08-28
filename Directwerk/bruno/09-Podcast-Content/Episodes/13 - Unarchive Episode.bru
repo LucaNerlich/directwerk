@@ -1,0 +1,27 @@
+meta {
+  name: 13 - Unarchive Episode
+  type: http
+  seq: 13
+}
+
+post {
+  url: {{baseUrl}}/api/v1/episodes/{{podcastEpisodeId}}/unarchive
+  body: none
+  auth: inherit
+}
+
+tests {
+  test("returns expected status", function() {
+    expect(res.getStatus() === 200 || res.getStatus() === 400 || res.getStatus() === 404).to.equal(true);
+  });
+  test("restores draft status when successful", function() {
+    if (res.getStatus() === 200) {
+      expect(res.body.data.status).to.equal("DRAFT");
+    }
+  });
+}
+
+docs {
+  Requires an ARCHIVED episode — run 12 - Archive Episode first.
+  400 INVALID_PUBLICATION_TRANSITION if status is not ARCHIVED.
+}

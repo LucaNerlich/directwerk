@@ -176,3 +176,57 @@ Accept: application/json
         client.assert(Array.isArray(response.body.data), "Expected public episodes array");
     });
 %}
+
+###
+
+### @name unpublishPodcastEpisode
+POST {{baseUrl}}/api/v1/episodes/{{podcastEpisodeId}}/unpublish
+Host: {{tenantAHost}}
+Authorization: Bearer {{tenantAAccessToken}}
+Accept: application/json
+
+> {%
+    client.test("Unpublish podcast episode", function() {
+        client.assert(
+            response.status === 200 || response.status === 400 || response.status === 404,
+            "Expected unpublish response"
+        );
+    });
+%}
+
+###
+
+### @name archivePodcastEpisode
+POST {{baseUrl}}/api/v1/episodes/{{podcastEpisodeNotifyId}}/archive
+Host: {{tenantAHost}}
+Authorization: Bearer {{tenantAAccessToken}}
+Accept: application/json
+
+> {%
+    client.test("Archive podcast episode", function() {
+        client.assert(
+            response.status === 200 || response.status === 400 || response.status === 404,
+            "Expected archive response (run publishPodcastEpisodeNotifySubscribers first)"
+        );
+    });
+%}
+
+###
+
+### @name unarchivePodcastEpisode
+POST {{baseUrl}}/api/v1/episodes/{{podcastEpisodeNotifyId}}/unarchive
+Host: {{tenantAHost}}
+Authorization: Bearer {{tenantAAccessToken}}
+Accept: application/json
+
+> {%
+    client.test("Unarchive podcast episode", function() {
+        client.assert(
+            response.status === 200 || response.status === 400 || response.status === 404,
+            "Expected unarchive response"
+        );
+        if (response.status === 200) {
+            client.assert(response.body.data.status === "DRAFT", "Expected DRAFT after unarchive");
+        }
+    });
+%}

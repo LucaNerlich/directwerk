@@ -48,3 +48,20 @@ Accept: */*
         );
     });
 %}
+
+###
+
+### @name listMeDownloads
+GET {{baseUrl}}/api/v1/me/downloads
+Host: {{tenantAHost}}
+Authorization: Bearer {{subscriberAccessToken}}
+Accept: application/json
+
+> {%
+    client.test("List subscriber digital downloads", function() {
+        client.assert(response.status === 200 || response.status === 403, "Expected 200 or module gate 403");
+        if (response.status === 200) {
+            client.assert(Array.isArray(response.body.data), "Expected downloads array");
+        }
+    });
+%}

@@ -1,0 +1,27 @@
+meta {
+  name: 11 - Unarchive Article
+  type: http
+  seq: 11
+}
+
+post {
+  url: {{baseUrl}}/api/v1/articles/{{articleId}}/unarchive
+  body: none
+  auth: inherit
+}
+
+tests {
+  test("returns expected status", function() {
+    expect(res.getStatus() === 200 || res.getStatus() === 400 || res.getStatus() === 404).to.equal(true);
+  });
+  test("restores draft status when successful", function() {
+    if (res.getStatus() === 200) {
+      expect(res.body.data.status).to.equal("DRAFT");
+    }
+  });
+}
+
+docs {
+  Requires an ARCHIVED article — run 10 - Archive Article first.
+  400 INVALID_PUBLICATION_TRANSITION if status is not ARCHIVED.
+}

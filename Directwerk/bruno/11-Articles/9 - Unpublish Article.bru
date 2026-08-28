@@ -1,0 +1,22 @@
+meta {
+  name: 9 - Unpublish Article
+  type: http
+  seq: 9
+}
+
+post {
+  url: {{baseUrl}}/api/v1/articles/{{articleId}}/unpublish
+  body: none
+  auth: inherit
+}
+
+tests {
+  test("returns expected status", function() {
+    expect(res.getStatus() === 200 || res.getStatus() === 400 || res.getStatus() === 404).to.equal(true);
+  });
+}
+
+docs {
+  Requires a PUBLISHED article — run 6 - Publish Article first.
+  400 INVALID_PUBLICATION_TRANSITION if status is not PUBLISHED.
+}

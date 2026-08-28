@@ -31,7 +31,7 @@
 ### | 17-media-upload.http | MediaController (2c/2d) |
 ### | 18-platform-tenant-media.http | PlatformTenantMediaController |
 ### | 19-podcast-content.http | Podcast content controllers (Phase 3) |
-### | 20-episode-stream.http | MeEpisodeController, PublicEpisodeDownloadController |
+### | 20-episode-stream.http | MeEpisodeController, MeDownloadsController, PublicEpisodeDownloadController |
 ### | 21-public-rss.http | RssFeedController public feeds/enclosures + FEATURE_NOT_ENABLED |
 ### | 22-private-rss.http | MeFeed + private feed/enclosure + FEATURE_NOT_ENABLED (after 21) |
 ### | 23-entitlements.http | Product access rules and subscriber entitlements |
