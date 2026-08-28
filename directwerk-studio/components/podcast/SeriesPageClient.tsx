@@ -1,26 +1,58 @@
 'use client'
 
 import Link from 'next/link'
+import {useRouter} from 'next/navigation'
+import {useEffect, useState} from 'react'
 
 import {Button} from '@directwerk/ui/components/button'
 import EmptyState from '@directwerk/ui/components/empty-state'
-import ListPanel, {
-    ListPanelLinkItem,
-    listPanelLinkClassName,
-} from '@directwerk/ui/components/list-panel'
 import PageHeader from '@directwerk/ui/components/page-header'
 
 import PublicationStatusBadge from '@/components/publication/PublicationStatusBadge'
 import {listSeries} from '@/lib/api/tenantApi'
 import type {SeriesSummary} from '@directwerk/api/types'
 import {getClientTenantHost} from '@/lib/tenant/getClientTenantHost'
-import {useAuthedQuery} from '@directwerk/api/client'
+import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
 
 export default function SeriesPageClient(): React.JSX.Element {
-    const {data: series, error: errorMessage, isLoading} = useAuthedQuery<SeriesSummary[]>(
-        () => listSeries(getClientTenantHost()),
-        {fallbackError: 'Sendungen konnten nicht geladen werden.'},
-    )
+    const router = useRouter()
+    const authRedirect = useAuthRequired()
+    const [series, setSeries] = useState<SeriesSummary[]>([])
+    const [errorMessage, setErrorMessage] = useState<string | null>(null)
+    const [isLoading, setIsLoading] = useState(true)
+
+    useEffect(() => {
+        let active = true
+
+        async function load(): Promise<void> {
+            try {
+                const loaded = await listSeries(getClientTenantHost())
+                if (active) {
+                    setSeries(loaded)
+                }
+            } catch (error) {
+                if (!active) {
+                    return
+                }
+                if (authRedirect(error)) return
+                setErrorMessage(
+                    error instanceof Error
+                        ? error.message
+                        : 'Sendungen konnten nicht geladen werden.',
+                )
+            } finally {
+                if (active) {
+                    setIsLoading(false)
+                }
+            }
+        }
+
+        load()
+
+        return () => {
+            active = false
+        }
+    }, [router])
 
     if (isLoading) {
         return <p>Sendungen werden geladen…</p>
@@ -45,7 +77,7 @@ export default function SeriesPageClient(): React.JSX.Element {
                 </p>
             )}
 
-            {series && series.length === 0 ? (
+            {series.length === 0 ? (
                 <EmptyState
                     title="Noch keine Sendung"
                     description="Lege deine erste Sendung an, danach Formate und die erste Folge."
@@ -55,13 +87,12 @@ export default function SeriesPageClient(): React.JSX.Element {
                         </Button>
                     }
                 />
-            ) : null}
-            {series && series.length > 0 ? (
-                <ListPanel>
+            ) : (
+                <ul className="overflow-hidden rounded-xl border bg-card divide-y">
                     {series.map((item) => (
-                        <ListPanelLinkItem key={item.id}>
+                        <li key={item.id}>
                             <Link
-                                className={listPanelLinkClassName}
+                                className="flex w-full items-center justify-between gap-4 p-4 text-sm no-underline hover:bg-muted/40"
                                 href={`/podcast/series/${item.id}`}
                             >
                                 <span>
@@ -72,12 +103,12 @@ export default function SeriesPageClient(): React.JSX.Element {
                                     <PublicationStatusBadge status={item.status} />
                                 </span>
                             </Link>
-                        </ListPanelLinkItem>
+                        </li>
                     ))}
-                </ListPanel>
-            ) : null}
+                </ul>
+            )}
 
-            {series && series.length > 0 ? (
+            {series.length > 0 ? (
                 <p className="text-sm text-muted-foreground">
                     Nächster Schritt:{' '}
                     <Link href="/podcast/formats">Formate festlegen</Link>

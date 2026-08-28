@@ -73,11 +73,13 @@ export {
     parseAcceptInviteInput,
     parseForgotPasswordInput,
     parseLoginInput,
+    parseRefreshTokenInput,
     parseRegisterInput,
     parseResetPasswordInput,
     type AcceptInviteInput,
     type ForgotPasswordInput,
     type LoginInput,
+    type RefreshTokenInput,
     type RegisterInput,
     type ResetPasswordInput,
 } from './input'
