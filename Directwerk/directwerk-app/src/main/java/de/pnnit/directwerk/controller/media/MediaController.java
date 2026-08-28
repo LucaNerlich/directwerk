@@ -1,5 +1,6 @@
 package de.pnnit.directwerk.controller.media;
 
+import de.pnnit.directwerk.api.MediaUploadCommandMapper;
 import de.pnnit.directwerk.api.dto.CreateUploadUrlRequest;
 import de.pnnit.directwerk.api.dto.MediaAssetView;
 import de.pnnit.directwerk.api.dto.UploadUrlResponse;
@@ -45,35 +46,29 @@ public class MediaController {
     private final AssetAccessApi assetAccessApi;
     private final MediaAssetLifecycleApi mediaAssetLifecycleApi;
     private final MediaAssetViewMapper mediaAssetViewMapper;
+    private final MediaUploadCommandMapper mediaUploadCommandMapper;
 
     public MediaController(
             UploadApi uploadApi,
             MediaAssetQueryApi mediaAssetQueryApi,
             AssetAccessApi assetAccessApi,
             MediaAssetLifecycleApi mediaAssetLifecycleApi,
-            MediaAssetViewMapper mediaAssetViewMapper
+            MediaAssetViewMapper mediaAssetViewMapper,
+            MediaUploadCommandMapper mediaUploadCommandMapper
     ) {
         this.uploadApi = uploadApi;
         this.mediaAssetQueryApi = mediaAssetQueryApi;
         this.assetAccessApi = assetAccessApi;
         this.mediaAssetLifecycleApi = mediaAssetLifecycleApi;
         this.mediaAssetViewMapper = mediaAssetViewMapper;
+        this.mediaUploadCommandMapper = mediaUploadCommandMapper;
     }
 
     @PostMapping("/upload-url")
     ResponseEntity<Response<UploadUrlResponse>> createUploadUrl(
             @Valid @RequestBody CreateUploadUrlRequest request
     ) {
-        UploadApi.UploadUrlResult result = uploadApi.createUploadUrl(new UploadApi.CreateUploadUrlCommand(
-                request.filename(),
-                request.mimeType(),
-                request.sizeBytes(),
-                request.assetType(),
-                request.intendedVisibility(),
-                request.scope(),
-                request.episodeId(),
-                request.ownerUserId()
-        ));
+        UploadApi.UploadUrlResult result = uploadApi.createUploadUrl(mediaUploadCommandMapper.toCommand(request));
         return ResponseEntity.status(HttpStatus.CREATED).body(Response.created(new UploadUrlResponse(
                 result.assetId(),
                 result.uploadUrl(),

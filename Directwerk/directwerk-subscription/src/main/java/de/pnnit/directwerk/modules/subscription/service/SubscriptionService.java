@@ -182,6 +182,7 @@ public class SubscriptionService {
             }
             subscription = byUserAndProduct != null ? byUserAndProduct : newSubscription(tenantId, user, product);
         }
+        SubscriptionStatus previousStatus = subscription.getStatus();
         subscription.setUser(user);
         subscription.setProduct(product);
         subscription.setSource(SubscriptionSource.STRIPE);
@@ -204,6 +205,10 @@ public class SubscriptionService {
         }
         subscription = subscriptionRepository.save(subscription);
         eventPublisher.publishEvent(new TenantEntitlementsChangedEvent(tenantId));
+        if (subscription.getStatus() == SubscriptionStatus.ACTIVE
+                && previousStatus != SubscriptionStatus.ACTIVE) {
+            eventPublisher.publishEvent(new SubscriptionMembershipActivatedEvent(tenantId, userId));
+        }
         return subscription;
     }
 

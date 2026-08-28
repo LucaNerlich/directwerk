@@ -3,18 +3,14 @@
 import Link from 'next/link'
 import {usePathname, useRouter} from 'next/navigation'
 import type {ReactNode} from 'react'
-import {useSyncExternalStore} from 'react'
 
 import {Button, buttonVariants} from '@directwerk/ui/components/button'
 import SiteShell from '@directwerk/ui/components/layout/site-shell'
 
 import BrandLogo from '@/components/BrandLogo'
 import SiteFooter from '@/components/SiteFooter'
-import {
-    clearTokens,
-    getAccessToken,
-    subscribeToTokenStore,
-} from '@/lib/auth/tokenStore'
+import {clearTokens} from '@/lib/auth/tokenStore'
+import {useSubscriberAuth} from '@/lib/auth/useSubscriberAuth'
 import {getClientTenantHost} from '@/lib/tenant/getClientTenantHost'
 import {useSiteConfig} from '@/lib/site/SiteConfigProvider'
 
@@ -34,18 +30,6 @@ const NAV_ITEMS: readonly NavItem[] = [
     {href: '/account', label: 'Konto'},
 ]
 
-function subscribeToken(callback: () => void): () => void {
-    return subscribeToTokenStore(callback)
-}
-
-function readToken(): string | null {
-    return getAccessToken()
-}
-
-function readTokenServer(): string | null {
-    return null
-}
-
 export default function SiteHeader({
     children,
 }: {
@@ -54,12 +38,10 @@ export default function SiteHeader({
     const config = useSiteConfig()
     const pathname = usePathname()
     const router = useRouter()
-    const token = useSyncExternalStore(subscribeToken, readToken, readTokenServer)
+    const {isAuthenticated} = useSubscriberAuth()
     const brand = config.branding.siteTitle ?? config.tenant.name
 
     async function handleLogout(): Promise<void> {
-        // Best-effort server-side revocation before clearing local state;
-        // failure here must not block the local logout.
         try {
             await fetch('/api/auth/logout', {
                 method: 'POST',
@@ -76,7 +58,6 @@ export default function SiteHeader({
         router.replace('/login')
     }
 
-    const isAuthenticated = token !== null
     const items = NAV_ITEMS.filter(
         (item) =>
             item.module === undefined ||

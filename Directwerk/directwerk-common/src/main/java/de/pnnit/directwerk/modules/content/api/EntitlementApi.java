@@ -1,6 +1,7 @@
 package de.pnnit.directwerk.modules.content.api;
 
 import java.util.Collection;
+import java.util.List;
 import java.util.Set;
 
 /**
@@ -14,4 +15,7 @@ public interface EntitlementApi {
     boolean hasDigitalAssetAccess(Long tenantId, Long userId, Long mediaAssetId);
 
     Set<Long> filterAccessibleDigitalAssets(Long tenantId, Long userId, Collection<Long> mediaAssetIds);
+
+    /** Distinct PACKAGE-scoped digital asset ids the user may download. */
+    List<Long> listEntitledDigitalAssetIds(Long tenantId, Long userId);
 }

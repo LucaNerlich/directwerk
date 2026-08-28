@@ -12,6 +12,7 @@ import de.pnnit.directwerk.modules.content.ContentType;
 import de.pnnit.directwerk.modules.core.RequiresModule;
 import de.pnnit.directwerk.modules.core.notification.SubscriberNotificationGate;
 import de.pnnit.directwerk.modules.core.service.ModuleGateService;
+import de.pnnit.directwerk.modules.core.service.ScheduledPublicationExecutor;
 import de.pnnit.directwerk.modules.digital.api.EpisodeMediaApi;
 import de.pnnit.directwerk.modules.digital.entity.AssetVisibility;
 import de.pnnit.directwerk.modules.digital.entity.MediaAsset;
@@ -44,6 +45,7 @@ public class PublicationWorkflowService {
     private final EpisodeMediaApi episodeMediaApi;
     private final HtmlSanitizer htmlSanitizer;
     private final ModuleGateService moduleGateService;
+    private final ScheduledPublicationExecutor scheduledPublicationExecutor;
     private final ContentPublishedNotifier contentPublishedNotifier;
     private final SubscriberNotificationGate notificationGate;
     private final RssFeedRefreshScheduler rssFeedRefreshScheduler;
@@ -154,10 +156,12 @@ public class PublicationWorkflowService {
                 .map(episode -> new DueItem(episode.getTenant().getId(), episode.getId()))
                 .toList();
         PublicationWorkflowService proxy = self.getObject();
-        return ScheduledPublishing.publishDue(dueItems, (tenantId, episodeId) -> {
-            moduleGateService.requireModule(PodcastModule.KEY);
-            proxy.publishScheduledEpisode(tenantId, episodeId);
-        }, "episodes");
+        return scheduledPublicationExecutor.publishDue(
+                PodcastModule.KEY,
+                dueItems,
+                proxy::publishScheduledEpisode,
+                "episodes"
+        );
     }
 
     @Transactional

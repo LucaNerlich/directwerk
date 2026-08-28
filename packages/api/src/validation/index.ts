@@ -87,6 +87,11 @@ export {
 } from './input'
 export {isQueueJob} from './admin'
 export {
+    isModuleDescriptor,
+    isModuleCatalog,
+    isTenantModules,
+} from './adminModules'
+export {
     validateLoginInput,
     validateTenantUserInviteInput,
     validatePlatformAdminInviteInput,

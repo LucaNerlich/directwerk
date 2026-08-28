@@ -5,7 +5,7 @@ import de.pnnit.directwerk.api.response.Response;
 import de.pnnit.directwerk.modules.core.service.UserAccountService;
 import de.pnnit.directwerk.modules.subscription.entity.Subscription;
 import de.pnnit.directwerk.modules.subscription.entity.SubscriptionProduct;
-import de.pnnit.directwerk.modules.subscription.service.EntitlementService;
+import de.pnnit.directwerk.modules.subscription.service.SubscriberAccessQueryService;
 import de.pnnit.directwerk.modules.subscription.service.SubscriptionService;
 import de.pnnit.directwerk.security.DirectwerkUserPrincipal;
 import de.pnnit.directwerk.security.SecurityUtils;
@@ -24,16 +24,16 @@ import org.springframework.web.bind.annotation.RestController;
 public class MeController {
 
     private final UserAccountService userAccountService;
-    private final EntitlementService entitlementService;
+    private final SubscriberAccessQueryService subscriberAccessQueryService;
     private final SubscriptionService subscriptionService;
 
     public MeController(
             UserAccountService userAccountService,
-            EntitlementService entitlementService,
+            SubscriberAccessQueryService subscriberAccessQueryService,
             SubscriptionService subscriptionService
     ) {
         this.userAccountService = userAccountService;
-        this.entitlementService = entitlementService;
+        this.subscriberAccessQueryService = subscriberAccessQueryService;
         this.subscriptionService = subscriptionService;
     }
 
@@ -62,14 +62,12 @@ public class MeController {
 
         return userAccountService.findAccount(user.userId())
                 .map(account -> {
-                    EntitlementService.AccessSummary summary = entitlementService.resolveAccess(
-                            tenantId,
-                            account.id()
-                    );
-                    List<LevelView> levels = summary.activeLevels().stream()
+                    SubscriberAccessQueryService.SubscriberAccessView access =
+                            subscriberAccessQueryService.resolveAccessView(tenantId, account.id());
+                    List<LevelView> levels = access.activeLevels().stream()
                             .map(level -> new LevelView(level.id(), level.slug(), level.title(), level.sortOrder()))
                             .toList();
-                    List<PackageView> packages = summary.activePackages().stream()
+                    List<PackageView> packages = access.activePackages().stream()
                             .map(packageEntitlement -> new PackageView(
                                     packageEntitlement.id(),
                                     packageEntitlement.slug(),
@@ -78,7 +76,7 @@ public class MeController {
                             .toList();
                     return ResponseEntity.ok(Response.ok(new AccessResponse(
                             levels,
-                            summary.maxLevelSortOrder(),
+                            access.maxLevelSortOrder(),
                             packages,
                             user.roleNames(),
                             tenantId

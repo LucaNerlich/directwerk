@@ -12,10 +12,9 @@ import static org.mockito.Mockito.when;
 import de.pnnit.directwerk.config.DirectwerkConfig;
 import de.pnnit.directwerk.config.DirectwerkProperties;
 import de.pnnit.directwerk.modules.core.entity.Tenant;
-import de.pnnit.directwerk.modules.core.entity.TenantDomain;
 import de.pnnit.directwerk.modules.core.entity.TenantModuleActivation;
 import de.pnnit.directwerk.modules.core.entity.User;
-import de.pnnit.directwerk.modules.core.repository.TenantDomainRepository;
+import de.pnnit.directwerk.modules.core.service.TenantPublicHostResolver;
 import de.pnnit.directwerk.modules.core.service.ModuleGateService;
 import de.pnnit.directwerk.modules.core.repository.TenantRepository;
 import de.pnnit.directwerk.modules.digital.api.CdnPurgeClient;
@@ -214,7 +213,7 @@ class RssFeedSnapshotServiceTest {
     private Fixture fixture() {
         RssFeedService rssFeedService = mock(RssFeedService.class);
         TenantRepository tenantRepository = mock(TenantRepository.class);
-        TenantDomainRepository tenantDomainRepository = mock(TenantDomainRepository.class);
+        TenantPublicHostResolver tenantPublicHostResolver = mock(TenantPublicHostResolver.class);
         ModuleGateService moduleGateService = mock(ModuleGateService.class);
         PodcastSeriesRepository podcastSeriesRepository = mock(PodcastSeriesRepository.class);
         SubscriberFeedRepository subscriberFeedRepository = mock(SubscriberFeedRepository.class);
@@ -237,7 +236,7 @@ class RssFeedSnapshotServiceTest {
         RssFeedSnapshotService service = new RssFeedSnapshotService(
                 rssFeedService,
                 tenantRepository,
-                tenantDomainRepository,
+                tenantPublicHostResolver,
                 moduleGateService,
                 podcastSeriesRepository,
                 subscriberFeedRepository,
@@ -256,7 +255,7 @@ class RssFeedSnapshotServiceTest {
                 storage,
                 tenant,
                 tenantRepository,
-                tenantDomainRepository,
+                tenantPublicHostResolver,
                 moduleGateService,
                 podcastSeriesRepository,
                 subscriberFeedRepository,
@@ -271,11 +270,11 @@ class RssFeedSnapshotServiceTest {
     }
 
     private static void stubCanonicalDomain(Fixture fixture) {
-        TenantDomain domain = new TenantDomain();
-        domain.setVerified(true);
-        domain.setPrimary(true);
-        domain.setHost("alpha.example.test");
-        when(fixture.tenantDomainRepository.findByTenantId(10L)).thenReturn(List.of(domain));
+        when(fixture.tenantPublicHostResolver.resolve(
+                10L,
+                null,
+                TenantPublicHostResolver.HostPolicy.PRIMARY
+        )).thenReturn("alpha.example.test");
     }
 
     private record Fixture(
@@ -286,7 +285,7 @@ class RssFeedSnapshotServiceTest {
             DirectwerkProperties.Storage storage,
             Tenant tenant,
             TenantRepository tenantRepository,
-            TenantDomainRepository tenantDomainRepository,
+            TenantPublicHostResolver tenantPublicHostResolver,
             ModuleGateService moduleGateService,
             PodcastSeriesRepository podcastSeriesRepository,
             SubscriberFeedRepository subscriberFeedRepository,

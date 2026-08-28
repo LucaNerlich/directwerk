@@ -2,7 +2,6 @@
 
 import Link from 'next/link'
 import {useEffect, useState} from 'react'
-import {useRouter} from 'next/navigation'
 
 import {Button} from '@directwerk/ui/components/button'
 import EmptyState from '@directwerk/ui/components/empty-state'
@@ -12,8 +11,9 @@ import PageHeader from '@directwerk/ui/components/page-header'
 import {revokeSubscription} from '@/lib/api/subscriptionApi'
 import {listSubscribers} from '@/lib/api/tenantSettingsApi'
 import type {TenantSubscriber, TenantSubscriberSubscription} from '@directwerk/api/types'
-import {getClientTenantHost} from '@/lib/tenant/getClientTenantHost'
+import {useCachedTenantQuery} from '@directwerk/api/client'
 import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
+import {getClientTenantHost} from '@/lib/tenant/getClientTenantHost'
 
 const REVOCABLE = new Set(['ACTIVE', 'PAST_DUE', 'INCOMPLETE'])
 
@@ -55,43 +55,36 @@ function periodLabel(item: TenantSubscriberSubscription): string {
 }
 
 export default function SubscribersClient(): React.JSX.Element {
-    const router = useRouter()
     const authRedirect = useAuthRequired()
+    const tenantHost = getClientTenantHost()
+    const {
+        data: loadedSubscribers,
+        error: loadError,
+        isLoading,
+        reload,
+    } = useCachedTenantQuery(
+        (host) => listSubscribers(host),
+        {
+            namespace: 'tenant-subscribers',
+            tenantHost,
+            fallbackError: 'Abonnenten konnten nicht geladen werden.',
+        },
+    )
     const [subscribers, setSubscribers] = useState<TenantSubscriber[]>([])
     const [errorMessage, setErrorMessage] = useState<string | null>(null)
     const [statusMessage, setStatusMessage] = useState<string | null>(null)
-    const [isLoading, setIsLoading] = useState(true)
     const [isBusy, setIsBusy] = useState(false)
     const [pendingRevokeId, setPendingRevokeId] = useState<number | null>(null)
 
     useEffect(() => {
-        let active = true
-
-        listSubscribers(getClientTenantHost())
-            .then((result) => {
-                if (!active) {
-                    return
-                }
-                setSubscribers(result)
-                setIsLoading(false)
-            })
-            .catch((error: unknown) => {
-                if (!active) {
-                    return
-                }
-                if (authRedirect(error)) return
-                setErrorMessage(
-                    error instanceof Error
-                        ? error.message
-                        : 'Abonnenten konnten nicht geladen werden.',
-                )
-                setIsLoading(false)
-            })
-
-        return () => {
-            active = false
+        if (loadedSubscribers !== null) {
+            setSubscribers(loadedSubscribers)
         }
-    }, [router])
+    }, [loadedSubscribers])
+
+    useEffect(() => {
+        setErrorMessage(loadError)
+    }, [loadError])
 
     async function handleRevoke(item: TenantSubscriberSubscription, email: string): Promise<void> {
         if (pendingRevokeId !== item.id) {
@@ -123,6 +116,7 @@ export default function SubscribersClient(): React.JSX.Element {
                 })),
             )
             setStatusMessage(`Zugang beendet: ${email}`)
+            reload()
         } catch (error: unknown) {
             if (authRedirect(error)) return
             setErrorMessage(

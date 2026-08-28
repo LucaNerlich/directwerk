@@ -163,6 +163,98 @@ Domain glossary and deepening modules for AI navigation. Terms here name **seams
 **Interface:** Parallel load of subscriber account view model.  
 **Seam:** Account page is presentation-only.
 
+## Wave 5 deepened modules
+
+### 29. Entitlement batch listing (`EntitlementApi.listEntitledDigitalAssetIds`)
+
+**Interface:** Batch entitled digital-asset IDs for portal downloads.  
+**Seam:** `SubscriberPortalAccessService` no longer calls `EntitlementService` directly.
+
+### 30. Subscriber access read model (`SubscriberAccessQueryService`)
+
+**Interface:** Active levels, max sort order, packages for `/me/access`.  
+**Seam:** `MeController` delegates entitlement mapping to subscription module.
+
+### 31. Tenant public host resolver (`TenantPublicHostResolver`)
+
+**Interface:** Verified host selection (trust request vs primary domain).  
+**Seam:** Enclosures, RSS snapshots, and email links share one host policy.
+
+### 32. Episode view mapper (`PublicEpisodeViewMapper`)
+
+**Interface:** `toPublicView`, `toPortalView`, `toStudioView`.  
+**Seam:** Public site, subscriber portal, and studio share projection rules.
+
+### 33. RSS CDN eligibility (`PublicCdnUrlResolver` in `RssFeedService`)
+
+**Interface:** Public RSS items use same CDN resolver as API/enclosures.  
+**Seam:** `PublicAssetPolicy` cannot drift between RSS and other surfaces.
+
+### 34. Feed provisioning seam (`SubscriberFeedProvisioningService`)
+
+**Interface:** `provisionOnMembershipActivated(tenantId, userId)`.  
+**Seam:** Default feed created on membership activation, not lazy list.
+
+### 35. Unified membership activation (`SubscriptionMembershipActivatedEvent`)
+
+**Interface:** Published when Stripe/manual subscription becomes ACTIVE.  
+**Seam:** Deleted `StripeMembershipActivatedEvent`; one listener path.
+
+### 36. Validated product rules (`ProductAccessRuleService.replaceRules`)
+
+**Interface:** Scope validation via `ProductAccessRuleScopeValidator` before replace.  
+**Seam:** Controller no longer loops validation before service call.
+
+### 37. Upload command mapper (`MediaUploadCommandMapper`)
+
+**Interface:** `CreateUploadUrlRequest` → `UploadApi.CreateUploadUrlCommand`.  
+**Seam:** Tenant and platform media controllers share command assembly.
+
+### 38. Scheduled publication executor (`ScheduledPublicationExecutor`)
+
+**Interface:** `publishDue(moduleKey, dueItems, publishOne, label)`.  
+**Seam:** Episode and article Quartz jobs share due-item loop + module gate.
+
+### 39. Shared feed URL grammar (`packages/api/src/urls/feedUrls.ts`)
+
+**Interface:** TS mirror of Java `FeedUrls` + public content URL helpers.  
+**Seam:** Studio and web build the same RSS/enclosure paths.
+
+### 40. Admin platform modules API (`platformModulesApi.ts` + validators)
+
+**Interface:** Typed platform module enable/disable with shared validation.  
+**Seam:** `TenantModulesPanel` no longer inlines fetch paths and validators.
+
+### 41. Platform API core (`platformApiCore.ts`)
+
+**Interface:** `platformGet` / `platformMutate` envelope helpers.  
+**Seam:** Admin pages use stable typed exports instead of raw paths.
+
+### 42. Browser transport factory (`createBrowserTransport.ts`)
+
+**Interface:** Shared fetch wrapper with policy injection.  
+**Seam:** Studio and web transports differ only in tenant-host binding.
+
+### 43. Publication list page hook (`usePublicationListPage`)
+
+**Interface:** Auth, load, error state, and action wiring for list clients.  
+**Seam:** Article and episode list pages are thin shells.
+
+### 44. Publication editor fields (`usePublicationEditorFields` + schedule helpers)
+
+**Interface:** Shared title/slug/access/schedule state and payload builder.  
+**Seam:** Editors focus on domain-only preflight (audio, series, categories).
+
+### 45. Web catalog hooks (`useSubscriberAuth`, `usePublicCatalog`)
+
+**Interface:** Auth-aware public vs subscriber catalog with one caching strategy.  
+**Seam:** Episodes/feeds/pricing pages stop duplicating token-store logic.
+
+### 46. Cached tenant query (`useCachedTenantQuery`)
+
+**Interface:** SWR-style reference data fetch with in-flight dedupe.  
+**Seam:** Levels, products, subscribers clients drop hand-rolled effects.
+
 ## Migration order
 
 1. Transport policies (#3)  

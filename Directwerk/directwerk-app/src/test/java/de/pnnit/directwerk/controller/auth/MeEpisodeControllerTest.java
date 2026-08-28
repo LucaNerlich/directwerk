@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import de.pnnit.directwerk.api.PublicEpisodeViewMapper;
 import de.pnnit.directwerk.modules.podcast.access.SubscriberPortalAccessService;
 import de.pnnit.directwerk.modules.core.entity.Tenant;
 import de.pnnit.directwerk.modules.digital.entity.AssetScope;
@@ -40,6 +41,9 @@ class MeEpisodeControllerTest {
     private PortalStreamDeliveryFacade portalStreamDeliveryFacade;
 
     @Mock
+    private PublicEpisodeViewMapper publicEpisodeViewMapper;
+
+    @Mock
     private HttpServletRequest request;
 
     @AfterEach
@@ -52,7 +56,8 @@ class MeEpisodeControllerTest {
         TenantContext.setTenantId(10L);
         MeEpisodeController controller = new MeEpisodeController(
                 subscriberContentAccessService,
-                portalStreamDeliveryFacade
+                portalStreamDeliveryFacade,
+                publicEpisodeViewMapper
         );
         DirectwerkUserPrincipal principal = subscriber();
         Episode episode = freeEpisode();

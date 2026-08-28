@@ -1,27 +1,23 @@
 package de.pnnit.directwerk.controller.auth;
 
-import de.pnnit.directwerk.modules.podcast.service.SubscriberFeedService;
+import de.pnnit.directwerk.modules.podcast.service.SubscriberFeedProvisioningService;
 import de.pnnit.directwerk.modules.subscription.event.SubscriptionMembershipActivatedEvent;
-import de.pnnit.directwerk.modules.subscription.stripe.StripeMembershipActivatedEvent;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.event.TransactionalEventListener;
 
 @Component
 public class SubscriptionMembershipActivatedListener {
 
-    private final SubscriberFeedService subscriberFeedService;
+    private final SubscriberFeedProvisioningService subscriberFeedProvisioningService;
 
-    public SubscriptionMembershipActivatedListener(SubscriberFeedService subscriberFeedService) {
-        this.subscriberFeedService = subscriberFeedService;
+    public SubscriptionMembershipActivatedListener(
+            SubscriberFeedProvisioningService subscriberFeedProvisioningService
+    ) {
+        this.subscriberFeedProvisioningService = subscriberFeedProvisioningService;
     }
 
     @TransactionalEventListener
     public void onMembershipActivated(SubscriptionMembershipActivatedEvent event) {
-        subscriberFeedService.ensureDefaultFeed(event.tenantId(), event.userId());
-    }
-
-    @TransactionalEventListener
-    public void onStripeMembershipActivated(StripeMembershipActivatedEvent event) {
-        subscriberFeedService.ensureDefaultFeed(event.tenantId(), event.userId());
+        subscriberFeedProvisioningService.provisionOnMembershipActivated(event.tenantId(), event.userId());
     }
 }

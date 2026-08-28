@@ -5,6 +5,7 @@ import de.pnnit.directwerk.modules.podcast.entity.EpisodeStatus;
 import de.pnnit.directwerk.modules.podcast.repository.EpisodeRepository;
 import de.pnnit.directwerk.modules.subscription.service.EntitlementService;
 import java.util.Collection;
+import java.util.List;
 import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Primary;
@@ -34,5 +35,10 @@ public class EntitlementApiAdapter implements EntitlementApi {
     @Override
     public Set<Long> filterAccessibleDigitalAssets(Long tenantId, Long userId, Collection<Long> mediaAssetIds) {
         return entitlementService.filterAccessibleDigitalAssetIds(tenantId, userId, mediaAssetIds);
+    }
+
+    @Override
+    public List<Long> listEntitledDigitalAssetIds(Long tenantId, Long userId) {
+        return entitlementService.listEntitledDigitalAssetIds(tenantId, userId);
     }
 }

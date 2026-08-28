@@ -12,6 +12,7 @@ import de.pnnit.directwerk.modules.content.ContentType;
 import de.pnnit.directwerk.modules.core.RequiresModule;
 import de.pnnit.directwerk.modules.core.notification.SubscriberNotificationGate;
 import de.pnnit.directwerk.modules.core.service.ModuleGateService;
+import de.pnnit.directwerk.modules.core.service.ScheduledPublicationExecutor;
 import de.pnnit.directwerk.modules.digital.DigitalContentModule;
 import de.pnnit.directwerk.modules.newsletter.entity.Article;
 import de.pnnit.directwerk.modules.newsletter.entity.ArticleStatus;
@@ -38,6 +39,7 @@ public class ArticlePublicationWorkflowService {
     private final ArticleService articleService;
     private final HtmlSanitizer htmlSanitizer;
     private final ModuleGateService moduleGateService;
+    private final ScheduledPublicationExecutor scheduledPublicationExecutor;
     private final ContentPublishedNotifier contentPublishedNotifier;
     private final SubscriberNotificationGate notificationGate;
     private final ObjectProvider<ArticlePublicationWorkflowService> self;
@@ -140,10 +142,12 @@ public class ArticlePublicationWorkflowService {
                 .map(article -> new DueItem(article.getTenant().getId(), article.getId()))
                 .toList();
         ArticlePublicationWorkflowService proxy = self.getObject();
-        return ScheduledPublishing.publishDue(dueItems, (tenantId, articleId) -> {
-            moduleGateService.requireModule(DigitalContentModule.KEY);
-            proxy.publishScheduledArticle(tenantId, articleId);
-        }, "articles");
+        return scheduledPublicationExecutor.publishDue(
+                DigitalContentModule.KEY,
+                dueItems,
+                proxy::publishScheduledArticle,
+                "articles"
+        );
     }
 
     @Transactional

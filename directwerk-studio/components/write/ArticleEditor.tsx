@@ -26,10 +26,10 @@ import {
     unpublishArticle,
     updateArticle,
 } from '@/lib/api/writeApi'
-import type {AccessPolicy, ArticleDetail, CategorySummary} from '@directwerk/api/types'
-import {fromDatetimeLocalValue, toDatetimeLocalValue} from '@/lib/datetime'
+import type {ArticleDetail, CategorySummary} from '@directwerk/api/types'
 import {mediaLimitLabel} from '@/lib/media/limits'
 import {uploadMediaFile} from '@/lib/media/upload'
+import {usePublicationEditorFields} from '@/lib/publication/usePublicationEditorFields'
 import {usePublicationEditorWorkflow} from '@/lib/publication/usePublicationEditorWorkflow'
 import {isSlugTaken} from '@/lib/publication/slugAvailability'
 import {useNotifyAudienceHint} from '@/lib/studio/useNotifyAudienceHint'
@@ -54,17 +54,26 @@ export default function ArticleEditor({articleId}: {articleId?: number}) {
     const [body, setBody] = useState('')
     const [excerpt, setExcerpt] = useState('')
     const [seoDescription, setSeoDescription] = useState('')
-    const [accessPolicy, setAccessPolicy] = useState<AccessPolicy>('FREE')
+    const {
+        accessPolicy,
+        setAccessPolicy,
+        requiredLevelSortOrder,
+        setRequiredLevelSortOrder,
+        notifySubscribers,
+        setNotifySubscribers,
+        scheduledAt,
+        setScheduledAt,
+        applyPublicationSchedule,
+        parseScheduledAt,
+        setScheduleValidationError,
+    } = usePublicationEditorFields()
     const [heroAssetId, setHeroAssetId] = useState<number | null>(null)
-    const [requiredLevelSortOrder, setRequiredLevelSortOrder] = useState<number | null>(null)
     const [heroPreviewUrl, setHeroPreviewUrl] = useState<string | null>(null)
     const [isUploadingHero, setIsUploadingHero] = useState(false)
     const [uploadProgress, setUploadProgress] = useState<{file: File; progress: number} | null>(
         null,
     )
     const mountedRef = useRef(true)
-    const [notifySubscribers, setNotifySubscribers] = useState(false)
-    const [scheduledAt, setScheduledAt] = useState('')
     const [isLoading, setIsLoading] = useState(articleId !== undefined)
     const [loadError, setLoadError] = useState(false)
     const [availableCategories, setAvailableCategories] = useState<CategorySummary[]>([])
@@ -145,7 +154,7 @@ export default function ArticleEditor({articleId}: {articleId?: number}) {
         saveImpl,
         onWorkflowComplete: (next) => {
             setArticle(next)
-            setScheduledAt(toDatetimeLocalValue(next.scheduledAt))
+            applyPublicationSchedule(next.scheduledAt)
         },
         autosaveBlocked: isUploadingHero,
         authRedirect,
@@ -216,7 +225,7 @@ export default function ArticleEditor({articleId}: {articleId?: number}) {
                 setAccessPolicy(loaded.accessPolicy)
                 setHeroAssetId(loaded.heroAssetId)
                 setRequiredLevelSortOrder(loaded.requiredLevelSortOrder)
-                setScheduledAt(toDatetimeLocalValue(loaded.scheduledAt))
+                applyPublicationSchedule(loaded.scheduledAt)
                 setSelectedCategoryIds(new Set(loaded.categories.map((tag) => tag.id)))
             } catch (error) {
                 if (active) {
@@ -385,11 +394,13 @@ export default function ArticleEditor({articleId}: {articleId?: number}) {
                 )
             }}
             onSchedule={() => {
-                const iso = fromDatetimeLocalValue(scheduledAt)
+                const iso = parseScheduledAt()
                 if (iso === null) {
+                    setScheduleValidationError('Bitte einen gültigen Zeitpunkt wählen.')
                     setWorkflowError('Bitte einen gültigen Zeitpunkt wählen.')
                     return
                 }
+                setScheduleValidationError(null)
                 void runWorkflow(
                     (saved) =>
                         scheduleArticle(getClientTenantHost(), saved.id, {

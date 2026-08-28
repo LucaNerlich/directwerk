@@ -5,9 +5,8 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.when;
 
 import de.pnnit.directwerk.modules.core.entity.Tenant;
-import de.pnnit.directwerk.modules.core.entity.TenantDomain;
 import de.pnnit.directwerk.modules.core.entity.User;
-import de.pnnit.directwerk.modules.core.repository.TenantDomainRepository;
+import de.pnnit.directwerk.modules.core.service.TenantPublicHostResolver;
 import de.pnnit.directwerk.modules.digital.api.AssetAccessApi;
 import de.pnnit.directwerk.modules.podcast.access.SubscriberFeedAccess;
 import de.pnnit.directwerk.modules.digital.api.EpisodeMediaApi;
@@ -50,7 +49,7 @@ class EpisodeEnclosureServiceTest {
     private SubscriberFeedAccess subscriberFeedAccess;
 
     @Mock
-    private TenantDomainRepository tenantDomainRepository;
+    private TenantPublicHostResolver tenantPublicHostResolver;
 
     @InjectMocks
     private EpisodeEnclosureService service;
@@ -144,9 +143,11 @@ class EpisodeEnclosureServiceTest {
 
     @Test
     void publicEnclosureUrlUsesAllowListedVerifiedHost() {
-        TenantDomain domain = verifiedDomain("alpha.example.test", true);
-        when(tenantDomainRepository.findByTenantIdAndHostIgnoreCase(10L, "alpha.example.test"))
-                .thenReturn(Optional.of(domain));
+        when(tenantPublicHostResolver.resolve(
+                10L,
+                "Alpha.Example.Test",
+                TenantPublicHostResolver.HostPolicy.TRUST_REQUEST
+        )).thenReturn("alpha.example.test");
 
         String url = service.publicEnclosureUrl(10L, "https", "Alpha.Example.Test", 443, "alpha", "episode-1");
 
@@ -155,12 +156,11 @@ class EpisodeEnclosureServiceTest {
 
     @Test
     void publicEnclosureUrlFallsBackToPrimaryVerifiedHostWhenRequestedHostUntrusted() {
-        when(tenantDomainRepository.findByTenantIdAndHostIgnoreCase(10L, "evil.example.test"))
-                .thenReturn(Optional.empty());
-        when(tenantDomainRepository.findByTenantId(10L)).thenReturn(java.util.List.of(
-                verifiedDomain("secondary.example.test", false),
-                verifiedDomain("primary.example.test", true)
-        ));
+        when(tenantPublicHostResolver.resolve(
+                10L,
+                "evil.example.test",
+                TenantPublicHostResolver.HostPolicy.TRUST_REQUEST
+        )).thenReturn("primary.example.test");
 
         String url = service.publicEnclosureUrl(10L, "https", "evil.example.test", 443, "alpha", "episode-1");
 
@@ -169,9 +169,11 @@ class EpisodeEnclosureServiceTest {
 
     @Test
     void publicEnclosureUrlKeepsNonDefaultPortFromRequest() {
-        TenantDomain domain = verifiedDomain("alpha.example.test", true);
-        when(tenantDomainRepository.findByTenantIdAndHostIgnoreCase(10L, "alpha.example.test"))
-                .thenReturn(Optional.of(domain));
+        when(tenantPublicHostResolver.resolve(
+                10L,
+                "alpha.example.test",
+                TenantPublicHostResolver.HostPolicy.TRUST_REQUEST
+        )).thenReturn("alpha.example.test");
 
         String url = service.publicEnclosureUrl(10L, "http", "alpha.example.test", 8080, "alpha", "episode-1");
 
@@ -180,22 +182,15 @@ class EpisodeEnclosureServiceTest {
 
     @Test
     void privateEnclosureUrlKeepsNonDefaultPortFromRequest() {
-        TenantDomain domain = verifiedDomain("alpha.example.test", true);
-        when(tenantDomainRepository.findByTenantIdAndHostIgnoreCase(10L, "alpha.example.test"))
-                .thenReturn(Optional.of(domain));
+        when(tenantPublicHostResolver.resolve(
+                10L,
+                "alpha.example.test",
+                TenantPublicHostResolver.HostPolicy.TRUST_REQUEST
+        )).thenReturn("alpha.example.test");
 
         String url = service.privateEnclosureUrl(10L, "http", "alpha.example.test", 8080, "alpha", "tok", "episode-1");
 
         assertThat(url).isEqualTo("http://alpha.example.test:8080/feeds/alpha/u/tok/e/episode-1.mp3");
-    }
-
-    private static TenantDomain verifiedDomain(String host, boolean primary) {
-        TenantDomain domain = new TenantDomain();
-        domain.setId(primary ? 1L : 2L);
-        domain.setHost(host);
-        domain.setVerified(true);
-        domain.setPrimary(primary);
-        return domain;
     }
 
     private static SubscriberFeed feed() {

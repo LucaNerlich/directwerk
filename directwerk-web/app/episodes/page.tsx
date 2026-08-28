@@ -1,7 +1,6 @@
 'use client'
 
 import Link from 'next/link'
-import {useEffect, useState, useSyncExternalStore} from 'react'
 
 import {Alert, AlertDescription} from '@directwerk/ui/components/alert'
 import {Badge} from '@directwerk/ui/components/badge'
@@ -12,24 +11,12 @@ import PageHeader from '@directwerk/ui/components/page-header'
 import PageStack from '@directwerk/ui/components/page-stack'
 import SectionHeader from '@directwerk/ui/components/section-header'
 
-import {getSiteConfig, listMyEpisodes, listPublicEpisodes, listPublicSeries} from '@/lib/api/client'
-import {AUTH_REQUIRED} from '@directwerk/api/constants'
-import type {PublicEpisode, PublicSeries, PublicSiteConfig} from '@directwerk/api/types'
-import {
-    getAccessToken,
-    subscribeToTokenStore,
-} from '@/lib/auth/tokenStore'
-import {formatPublishedAt} from '@/lib/format'
 import {publicSeriesFeedUrl} from '@/lib/feeds'
+import {usePublicCatalog} from '@/lib/catalog/usePublicCatalog'
+import {useSubscriberAuth} from '@/lib/auth/useSubscriberAuth'
+import type {PublicEpisode} from '@directwerk/api/types'
+import {formatPublishedAt} from '@/lib/format'
 import {getClientTenantHost} from '@/lib/tenant/getClientTenantHost'
-
-function readTokenClient(): string | null {
-    return getAccessToken()
-}
-
-function readTokenServer(): string | null {
-    return null
-}
 
 function accessPolicyLabel(policy: PublicEpisode['accessPolicy']): string {
     return policy === 'PAID' ? 'Bezahlt' : 'Frei'
@@ -37,68 +24,11 @@ function accessPolicyLabel(policy: PublicEpisode['accessPolicy']): string {
 
 export default function EpisodesPage() {
     const tenantHost = getClientTenantHost()
-    const accessToken = useSyncExternalStore(
-        subscribeToTokenStore,
-        readTokenClient,
-        readTokenServer,
-    )
-    const [series, setSeries] = useState<PublicSeries[]>([])
-    const [episodes, setEpisodes] = useState<PublicEpisode[]>([])
-    const [siteConfig, setSiteConfig] = useState<PublicSiteConfig | null>(null)
-    const [errorMessage, setErrorMessage] = useState<string | null>(null)
-    const [isLoading, setIsLoading] = useState(true)
-    const isAuthenticated = accessToken !== null
-
-    useEffect(() => {
-        let active = true
-        setIsLoading(true)
-        setErrorMessage(null)
-
-        const episodesPromise = isAuthenticated
-            ? listMyEpisodes(tenantHost)
-            : listPublicEpisodes(tenantHost)
-
-        Promise.all([
-            getSiteConfig(tenantHost),
-            listPublicSeries(tenantHost),
-            episodesPromise,
-        ])
-            .then(([configEnvelope, seriesList, episodeList]) => {
-                if (!active) {
-                    return
-                }
-                setSiteConfig(configEnvelope.data)
-                setSeries(seriesList)
-                setEpisodes(episodeList)
-            })
-            .catch((error: unknown) => {
-                if (!active) {
-                    return
-                }
-                setSeries([])
-                setEpisodes([])
-                if (error instanceof Error && error.message === AUTH_REQUIRED) {
-                    setErrorMessage(
-                        'Sitzung abgelaufen — bitte erneut anmelden, um freigeschaltete Folgen zu hören.',
-                    )
-                    return
-                }
-                setErrorMessage(
-                    error instanceof Error
-                        ? error.message
-                        : 'Podcast-Inhalte konnten nicht geladen werden.',
-                )
-            })
-            .finally(() => {
-                if (active) {
-                    setIsLoading(false)
-                }
-            })
-
-        return () => {
-            active = false
-        }
-    }, [tenantHost, isAuthenticated])
+    const {isAuthenticated} = useSubscriberAuth()
+    const {siteConfig, series, episodes, errorMessage, isLoading} = usePublicCatalog({
+        tenantHost,
+        isAuthenticated,
+    })
 
     return (
         <PageStack className="page-container">

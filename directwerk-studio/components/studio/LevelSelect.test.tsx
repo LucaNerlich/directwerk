@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event'
 import {beforeEach, describe, expect, it, vi} from 'vitest'
 
 import LevelSelect from '@/components/studio/LevelSelect'
+import {clearCachedTenantData} from '@directwerk/api/client'
 
 const {host, listPublicLevels} = vi.hoisted(() => ({
     host: {value: 'tenant-0.test'},
@@ -11,6 +12,9 @@ const {host, listPublicLevels} = vi.hoisted(() => ({
 
 vi.mock('@/lib/tenant/getClientTenantHost', () => ({
     getClientTenantHost: () => host.value,
+}))
+vi.mock('@directwerk/api/auth/useAuthRequired', () => ({
+    useAuthRequired: () => () => false,
 }))
 vi.mock('@/lib/api/subscriptionApi', () => ({
     listPublicLevels: (...args: unknown[]) => listPublicLevels(...args),
@@ -26,6 +30,7 @@ let counter = 0
 beforeEach(() => {
     counter += 1
     host.value = `tenant-${counter}.test`
+    clearCachedTenantData('public-levels', host.value)
     listPublicLevels.mockReset()
 })
 

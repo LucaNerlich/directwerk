@@ -1,8 +1,7 @@
 package de.pnnit.directwerk.modules.podcast.service;
 
 import de.pnnit.directwerk.modules.content.PublicContentProjection;
-import de.pnnit.directwerk.modules.core.entity.TenantDomain;
-import de.pnnit.directwerk.modules.core.repository.TenantDomainRepository;
+import de.pnnit.directwerk.modules.core.service.TenantPublicHostResolver;
 import de.pnnit.directwerk.modules.core.util.FeedUrls;
 import de.pnnit.directwerk.modules.core.util.PublicUrlBuilder;
 import de.pnnit.directwerk.modules.digital.api.AssetAccessApi;
@@ -20,12 +19,9 @@ import de.pnnit.directwerk.modules.podcast.access.SubscriberFeedAccess;
 import de.pnnit.directwerk.modules.podcast.feed.SubscriberFeedNotFoundException;
 import de.pnnit.directwerk.modules.podcast.repository.EpisodeRepository;
 import java.net.URL;
-import java.util.Comparator;
-import java.util.Locale;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.util.StringUtils;
 
 /**
  * Resolves stable RSS enclosure proxy URLs to a short-lived CDN or S3 target.
@@ -39,7 +35,7 @@ public class EpisodeEnclosureService {
     private final SubscriberFeedAccess subscriberFeedAccess;
     private final EpisodeMediaApi episodeMediaApi;
     private final AssetAccessApi assetAccessApi;
-    private final TenantDomainRepository tenantDomainRepository;
+    private final TenantPublicHostResolver tenantPublicHostResolver;
 
     public record EnclosureRedirect(Episode episode, URL targetUrl) {
     }
@@ -99,7 +95,11 @@ public class EpisodeEnclosureService {
             String tenantSlug,
             String episodeSlug
     ) {
-        String host = requireTrustedPublicHost(tenantId, requestedHostname);
+        String host = tenantPublicHostResolver.resolve(
+                tenantId,
+                requestedHostname,
+                TenantPublicHostResolver.HostPolicy.TRUST_REQUEST
+        );
         return FeedUrls.publicEnclosure(
                 PublicUrlBuilder.baseUrl(scheme, host, port),
                 tenantSlug,
@@ -123,40 +123,17 @@ public class EpisodeEnclosureService {
             String feedToken,
             String episodeSlug
     ) {
-        String host = requireTrustedPublicHost(tenantId, requestedHostname);
+        String host = tenantPublicHostResolver.resolve(
+                tenantId,
+                requestedHostname,
+                TenantPublicHostResolver.HostPolicy.TRUST_REQUEST
+        );
         return FeedUrls.privateEnclosure(
                 PublicUrlBuilder.baseUrl(scheme, host, port),
                 tenantSlug,
                 feedToken,
                 episodeSlug
         );
-    }
-
-    private String requireTrustedPublicHost(Long tenantId, String requestedHostname) {
-        if (tenantId == null) {
-            throw new IllegalArgumentException("tenantId is required for enclosure URL host resolution");
-        }
-        if (StringUtils.hasText(requestedHostname)) {
-            String normalized = normalizeHost(requestedHostname);
-            boolean allowListed = tenantDomainRepository
-                    .findByTenantIdAndHostIgnoreCase(tenantId, normalized)
-                    .filter(TenantDomain::isVerified)
-                    .isPresent();
-            if (allowListed) {
-                return normalized;
-            }
-        }
-        return tenantDomainRepository.findByTenantId(tenantId).stream()
-                .filter(TenantDomain::isVerified)
-                .sorted(Comparator
-                        .comparing(TenantDomain::isPrimary).reversed()
-                        .thenComparing(TenantDomain::getId))
-                .map(TenantDomain::getHost)
-                .map(EpisodeEnclosureService::normalizeHost)
-                .findFirst()
-                .orElseThrow(() -> new IllegalStateException(
-                        "No verified tenant domain available for enclosure URLs (tenantId=" + tenantId + ")"
-                ));
     }
 
     private Episode requirePublishedPlayableEpisode(Long tenantId, String episodeSlug) {
@@ -178,9 +155,5 @@ public class EpisodeEnclosureService {
             throw new EpisodeNotFoundException(episodeSlug);
         }
         return episode;
-    }
-
-    private static String normalizeHost(String hostname) {
-        return hostname.trim().toLowerCase(Locale.ROOT);
     }
 }

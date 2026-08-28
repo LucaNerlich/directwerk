@@ -18,52 +18,58 @@ import {
     unpublishEpisode,
 } from '@/lib/api/podcastApi'
 import type {EpisodeDetail, FormatSummary, SeriesSummary} from '@directwerk/api/types'
-import {usePublicationListActions} from '@/lib/publication/usePublicationListActions'
+import {usePublicationListPage} from '@/lib/publication/usePublicationListPage'
 import {getClientTenantHost} from '@/lib/tenant/getClientTenantHost'
 import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
 
 export default function EpisodeListClient() {
     const authRedirect = useAuthRequired()
-    const [episodes, setEpisodes] = useState<EpisodeDetail[]>([])
     const [series, setSeries] = useState<SeriesSummary[]>([])
     const [formats, setFormats] = useState<FormatSummary[]>([])
-    const [isLoading, setIsLoading] = useState(true)
-    const [listError, setListError] = useState<string | null>(null)
+    const [prereqError, setPrereqError] = useState<string | null>(null)
+    const [prereqLoading, setPrereqLoading] = useState(true)
 
-    const load = useCallback(async (): Promise<void> => {
+    const loadPrerequisites = useCallback(async (): Promise<void> => {
         try {
             const host = getClientTenantHost()
-            const [loadedEpisodes, loadedSeries, loadedFormats] = await Promise.all([
-                listEpisodes(host),
+            const [loadedSeries, loadedFormats] = await Promise.all([
                 listSeries(host),
                 listFormats(host),
             ])
-            setEpisodes(loadedEpisodes)
             setSeries(loadedSeries)
             setFormats(loadedFormats)
         } catch (error) {
-            if (authRedirect(error)) return
-            setListError(
+            if (authRedirect(error)) {
+                return
+            }
+            setPrereqError(
                 error instanceof Error ? error.message : 'Folgen konnten nicht geladen werden.',
             )
         } finally {
-            setIsLoading(false)
+            setPrereqLoading(false)
         }
     }, [authRedirect])
 
+    useEffect(() => {
+        void loadPrerequisites()
+    }, [loadPrerequisites])
+
     const {
-        busyItemId: busyEpisodeId,
-        errorMessage,
+        items: episodes,
+        isLoading: episodesLoading,
+        displayError: episodeError,
         statusMessage,
+        busyItemId: busyEpisodeId,
         handleUnpublish,
         handleCancelSchedule,
         handleUnarchive,
-    } = usePublicationListActions({
-        setItems: setEpisodes,
+    } = usePublicationListPage<EpisodeDetail>({
+        load: () => listEpisodes(getClientTenantHost()),
         unpublish: (id) => unpublishEpisode(getClientTenantHost(), id),
         cancelSchedule: (id) => cancelScheduleEpisode(getClientTenantHost(), id),
         unarchive: (id) => unarchiveEpisode(getClientTenantHost(), id),
         labels: {
+            loadError: 'Folgen konnten nicht geladen werden.',
             unpublishSuccess: (title) =>
                 `Folge „${title}“ wurde zurückgezogen (Entwurf).`,
             cancelScheduleSuccess: (title) =>
@@ -74,14 +80,10 @@ export default function EpisodeListClient() {
             cancelScheduleError: 'Planung konnte nicht aufgehoben werden.',
             unarchiveError: 'Folge konnte nicht wiederhergestellt werden.',
         },
-        authRedirect,
     })
 
-    const displayError = listError ?? errorMessage
-
-    useEffect(() => {
-        void load()
-    }, [load])
+    const isLoading = prereqLoading || episodesLoading
+    const displayError = prereqError ?? episodeError
 
     if (isLoading) {
         return <p>Folgen werden geladen…</p>

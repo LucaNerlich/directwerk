@@ -14,6 +14,10 @@ vi.mock('next/navigation', () => ({
     }),
 }))
 
+vi.mock('@directwerk/api/auth/useAuthRequired', () => ({
+    useAuthRequired: () => () => false,
+}))
+
 vi.mock('@/lib/tenant/getClientTenantHost', () => ({
     getClientTenantHost: () => 'tenant.test',
 }))
@@ -106,7 +110,7 @@ describe('ArticleListClient', () => {
             expect(screen.getByText('Archived Post')).toBeInTheDocument()
         })
 
-        expect(listArticles).toHaveBeenCalledTimes(1)
+        expect(listArticles).toHaveBeenCalledWith('tenant.test')
         expect(screen.getByRole('button', {name: 'Zurückziehen'})).toBeInTheDocument()
         expect(screen.getByRole('button', {name: 'Planung aufheben'})).toBeInTheDocument()
         expect(screen.getByRole('button', {name: 'Wiederherstellen'})).toBeInTheDocument()

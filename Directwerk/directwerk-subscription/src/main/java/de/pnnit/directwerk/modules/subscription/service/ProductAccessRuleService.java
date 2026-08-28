@@ -21,6 +21,7 @@ public class ProductAccessRuleService {
 
     private final ProductAccessRuleRepository productAccessRuleRepository;
     private final SubscriptionProductService subscriptionProductService;
+    private final ProductAccessRuleScopeValidator productAccessRuleScopeValidator;
     private final ApplicationEventPublisher eventPublisher;
 
     @Transactional(readOnly = true)
@@ -38,6 +39,9 @@ public class ProductAccessRuleService {
         }
 
         List<RuleInput> safeInputs = inputs == null ? List.of() : List.copyOf(inputs);
+        for (RuleInput input : safeInputs) {
+            productAccessRuleScopeValidator.validateScope(tenantId, input.scopeType(), input.scopeId());
+        }
         productAccessRuleRepository.deleteByTenantIdAndProductId(tenantId, productId);
         List<ProductAccessRule> rules = safeInputs.stream()
                 .map(input -> toRule(product, input))

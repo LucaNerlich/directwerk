@@ -2,6 +2,7 @@ package de.pnnit.directwerk.controller.podcast;
 
 import de.pnnit.directwerk.api.dto.CategoryView;
 import de.pnnit.directwerk.api.dto.FormatView;
+import de.pnnit.directwerk.api.PublicEpisodeViewMapper;
 import de.pnnit.directwerk.api.dto.PublishOptionsRequest;
 import de.pnnit.directwerk.api.dto.ReplaceCategoriesRequest;
 import de.pnnit.directwerk.api.response.Response;
@@ -43,20 +44,23 @@ public class EpisodeController {
 
     private final EpisodeService episodeService;
     private final PublicationWorkflowService publicationWorkflowService;
+    private final PublicEpisodeViewMapper publicEpisodeViewMapper;
 
     public EpisodeController(
             EpisodeService episodeService,
-            PublicationWorkflowService publicationWorkflowService
+            PublicationWorkflowService publicationWorkflowService,
+            PublicEpisodeViewMapper publicEpisodeViewMapper
     ) {
         this.episodeService = episodeService;
         this.publicationWorkflowService = publicationWorkflowService;
+        this.publicEpisodeViewMapper = publicEpisodeViewMapper;
     }
 
     @GetMapping
     ResponseEntity<Response<List<EpisodeView>>> listEpisodes() {
         Long tenantId = TenantContext.requireTenantId();
         List<EpisodeView> episodes = episodeService.listEpisodes(tenantId).stream()
-                .map(EpisodeController::toView)
+                .map(publicEpisodeViewMapper::toStudioView)
                 .toList();
         return ResponseEntity.ok(Response.ok(episodes));
     }
@@ -64,7 +68,7 @@ public class EpisodeController {
     @GetMapping("/{episodeId}")
     ResponseEntity<Response<EpisodeView>> getEpisode(@PathVariable Long episodeId) {
         Long tenantId = TenantContext.requireTenantId();
-        return ResponseEntity.ok(Response.ok(toView(episodeService.requireEpisode(tenantId, episodeId))));
+        return ResponseEntity.ok(Response.ok(publicEpisodeViewMapper.toStudioView(episodeService.requireEpisode(tenantId, episodeId))));
     }
 
     @PostMapping
@@ -84,7 +88,7 @@ public class EpisodeController {
                 request.formatIds(),
                 request.categoryIds()
         );
-        return ResponseEntity.status(HttpStatus.CREATED).body(Response.created(toView(episode)));
+        return ResponseEntity.status(HttpStatus.CREATED).body(Response.created(publicEpisodeViewMapper.toStudioView(episode)));
     }
 
     @PutMapping("/{episodeId}")
@@ -104,7 +108,7 @@ public class EpisodeController {
                 request.accessPolicy(),
                 request.requiredLevelSortOrder()
         );
-        return ResponseEntity.ok(Response.ok(toView(episode)));
+        return ResponseEntity.ok(Response.ok(publicEpisodeViewMapper.toStudioView(episode)));
     }
 
     @PutMapping("/{episodeId}/formats")
@@ -113,7 +117,7 @@ public class EpisodeController {
             @Valid @RequestBody ReplaceFormatsRequest request
     ) {
         Long tenantId = TenantContext.requireTenantId();
-        return ResponseEntity.ok(Response.ok(toView(
+        return ResponseEntity.ok(Response.ok(publicEpisodeViewMapper.toStudioView(
                 episodeService.replaceFormats(tenantId, episodeId, request.formatIds())
         )));
     }
@@ -124,7 +128,7 @@ public class EpisodeController {
             @Valid @RequestBody ReplaceCategoriesRequest request
     ) {
         Long tenantId = TenantContext.requireTenantId();
-        return ResponseEntity.ok(Response.ok(toView(
+        return ResponseEntity.ok(Response.ok(publicEpisodeViewMapper.toStudioView(
                 episodeService.replaceCategories(tenantId, episodeId, request.categoryIds())
         )));
     }
@@ -135,7 +139,7 @@ public class EpisodeController {
             @Valid @RequestBody AttachAudioRequest request
     ) {
         Long tenantId = TenantContext.requireTenantId();
-        return ResponseEntity.ok(Response.ok(toView(
+        return ResponseEntity.ok(Response.ok(publicEpisodeViewMapper.toStudioView(
                 episodeService.attachAudio(tenantId, episodeId, request.audioAssetId())
         )));
     }
@@ -146,7 +150,7 @@ public class EpisodeController {
             @Valid @RequestBody EnclosureEnabledRequest request
     ) {
         Long tenantId = TenantContext.requireTenantId();
-        return ResponseEntity.ok(Response.ok(toView(
+        return ResponseEntity.ok(Response.ok(publicEpisodeViewMapper.toStudioView(
                 episodeService.setEnclosureEnabled(tenantId, episodeId, request.enabled())
         )));
     }
@@ -158,7 +162,7 @@ public class EpisodeController {
     ) {
         Long tenantId = TenantContext.requireTenantId();
         boolean notifySubscribers = request != null && Boolean.TRUE.equals(request.notifySubscribers());
-        return ResponseEntity.ok(Response.ok(toView(
+        return ResponseEntity.ok(Response.ok(publicEpisodeViewMapper.toStudioView(
                 publicationWorkflowService.publish(tenantId, episodeId, notifySubscribers)
         )));
     }
@@ -175,13 +179,13 @@ public class EpisodeController {
                 request.scheduledAt(),
                 Boolean.TRUE.equals(request.notifySubscribers())
         );
-        return ResponseEntity.ok(Response.ok(toView(episode)));
+        return ResponseEntity.ok(Response.ok(publicEpisodeViewMapper.toStudioView(episode)));
     }
 
     @PostMapping("/{episodeId}/cancel-schedule")
     ResponseEntity<Response<EpisodeView>> cancelSchedule(@PathVariable Long episodeId) {
         Long tenantId = TenantContext.requireTenantId();
-        return ResponseEntity.ok(Response.ok(toView(
+        return ResponseEntity.ok(Response.ok(publicEpisodeViewMapper.toStudioView(
                 publicationWorkflowService.cancelSchedule(tenantId, episodeId)
         )));
     }
@@ -189,49 +193,19 @@ public class EpisodeController {
     @PostMapping("/{episodeId}/unpublish")
     ResponseEntity<Response<EpisodeView>> unpublish(@PathVariable Long episodeId) {
         Long tenantId = TenantContext.requireTenantId();
-        return ResponseEntity.ok(Response.ok(toView(publicationWorkflowService.unpublish(tenantId, episodeId))));
+        return ResponseEntity.ok(Response.ok(publicEpisodeViewMapper.toStudioView(publicationWorkflowService.unpublish(tenantId, episodeId))));
     }
 
     @PostMapping("/{episodeId}/archive")
     ResponseEntity<Response<EpisodeView>> archive(@PathVariable Long episodeId) {
         Long tenantId = TenantContext.requireTenantId();
-        return ResponseEntity.ok(Response.ok(toView(publicationWorkflowService.archive(tenantId, episodeId))));
+        return ResponseEntity.ok(Response.ok(publicEpisodeViewMapper.toStudioView(publicationWorkflowService.archive(tenantId, episodeId))));
     }
 
     @PostMapping("/{episodeId}/unarchive")
     ResponseEntity<Response<EpisodeView>> unarchive(@PathVariable Long episodeId) {
         Long tenantId = TenantContext.requireTenantId();
-        return ResponseEntity.ok(Response.ok(toView(publicationWorkflowService.unarchive(tenantId, episodeId))));
-    }
-
-    public static EpisodeView toView(Episode episode) {
-        return new EpisodeView(
-                episode.getId(),
-                episode.getSeries().getId(),
-                episode.getSeries().getSlug(),
-                episode.getEpisodeNumber(),
-                episode.getSlug(),
-                episode.getTitle(),
-                episode.getDescription(),
-                episode.getAudioAsset() != null ? episode.getAudioAsset().getId() : null,
-                episode.getDurationSeconds(),
-                episode.getAccessPolicy().name(),
-                episode.getRequiredLevelSortOrder(),
-                episode.getStatus().name(),
-                episode.isEnclosureEnabled(),
-                episode.getPublishedAt(),
-                episode.getScheduledAt(),
-                episode.getFormats().stream()
-                        .sorted(FormatView.DISPLAY_ORDER)
-                        .map(FormatView::of)
-                        .toList(),
-                episode.getCategories().stream()
-                        .sorted(CategoryView.DISPLAY_ORDER)
-                        .map(CategoryView::of)
-                        .toList(),
-                episode.getCreatedAt(),
-                episode.getUpdatedAt()
-        );
+        return ResponseEntity.ok(Response.ok(publicEpisodeViewMapper.toStudioView(publicationWorkflowService.unarchive(tenantId, episodeId))));
     }
 
     public record CreateEpisodeRequest(

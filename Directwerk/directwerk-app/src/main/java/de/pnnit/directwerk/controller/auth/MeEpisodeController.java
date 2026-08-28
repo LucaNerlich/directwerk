@@ -1,17 +1,16 @@
 package de.pnnit.directwerk.controller.auth;
 
+import de.pnnit.directwerk.api.PublicEpisodeViewMapper;
 import de.pnnit.directwerk.api.dto.CategoryView;
 import de.pnnit.directwerk.api.dto.FormatView;
 import de.pnnit.directwerk.api.response.Response;
 import de.pnnit.directwerk.modules.core.RequiresModule;
 import de.pnnit.directwerk.modules.podcast.PodcastModule;
 import de.pnnit.directwerk.modules.podcast.access.SubscriberPortalAccessService;
-import de.pnnit.directwerk.modules.podcast.entity.Episode;
 import de.pnnit.directwerk.modules.podcast.service.PortalStreamDeliveryFacade;
 import de.pnnit.directwerk.security.DirectwerkUserPrincipal;
 import de.pnnit.directwerk.security.SecurityUtils;
 import jakarta.servlet.http.HttpServletRequest;
-import java.net.URL;
 import java.time.Instant;
 import java.util.List;
 import org.springframework.http.ResponseEntity;
@@ -29,13 +28,16 @@ public class MeEpisodeController {
 
     private final SubscriberPortalAccessService subscriberContentAccessService;
     private final PortalStreamDeliveryFacade portalStreamDeliveryFacade;
+    private final PublicEpisodeViewMapper publicEpisodeViewMapper;
 
     public MeEpisodeController(
             SubscriberPortalAccessService subscriberContentAccessService,
-            PortalStreamDeliveryFacade portalStreamDeliveryFacade
+            PortalStreamDeliveryFacade portalStreamDeliveryFacade,
+            PublicEpisodeViewMapper publicEpisodeViewMapper
     ) {
         this.subscriberContentAccessService = subscriberContentAccessService;
         this.portalStreamDeliveryFacade = portalStreamDeliveryFacade;
+        this.publicEpisodeViewMapper = publicEpisodeViewMapper;
     }
 
     @GetMapping
@@ -48,7 +50,7 @@ public class MeEpisodeController {
         // Publisher branch, entitlement filter and per-episode URL resolution live in the
         // access module.
         List<MeEpisodeView> views = subscriberContentAccessService.listMyEpisodes(user).stream()
-                .map(stream -> toView(stream.episode(), stream.url()))
+                .map(stream -> publicEpisodeViewMapper.toPortalView(stream.episode(), stream.url()))
                 .toList();
         return ResponseEntity.ok(Response.ok(views));
     }
@@ -66,31 +68,6 @@ public class MeEpisodeController {
         // access module — see SubscriberPortalAccessService.
         var tracked = portalStreamDeliveryFacade.streamEpisode(user, slug, request.getServerName());
         return tracked.response();
-    }
-
-    private static MeEpisodeView toView(Episode episode, URL audioUrl) {
-        return new MeEpisodeView(
-                episode.getId(),
-                episode.getSeries().getId(),
-                episode.getSeries().getSlug(),
-                episode.getEpisodeNumber(),
-                episode.getSlug(),
-                episode.getTitle(),
-                episode.getDescription(),
-                episode.getDurationSeconds(),
-                episode.getAccessPolicy().name(),
-                episode.getRequiredLevelSortOrder(),
-                episode.getPublishedAt(),
-                audioUrl != null ? audioUrl.toString() : null,
-                episode.getFormats().stream()
-                        .sorted(FormatView.DISPLAY_ORDER)
-                        .map(FormatView::of)
-                        .toList(),
-                episode.getCategories().stream()
-                        .sorted(CategoryView.DISPLAY_ORDER)
-                        .map(CategoryView::of)
-                        .toList()
-        );
     }
 
     public record MeEpisodeView(

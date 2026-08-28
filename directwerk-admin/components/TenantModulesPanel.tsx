@@ -11,53 +11,20 @@ import EmptyState from '@directwerk/ui/components/empty-state'
 import {Table, TableBody, TableCell, TableHead, TableHeader, TableRow} from '@directwerk/ui/components/table'
 
 import {
-    deletePlatformData,
-    getPlatformData,
-    postPlatformData,
-} from '@/lib/api/client'
+    activateTenantModule,
+    applyTenantModulePreset,
+    deactivateTenantModule,
+    loadTenantModulesPanelData,
+} from '@/lib/api/platformModulesApi'
 import {AUTH_REQUIRED, REQUEST_FAILED} from '@directwerk/api/constants'
 import type {
     ModuleDescriptor,
     ModulePresetKey,
-    TenantModules,
 } from '@directwerk/api/types'
 import {MODULE_PRESETS} from '@directwerk/api/types'
-import {isRecord} from '@directwerk/api/validation'
 
 interface TenantModulesPanelProps {
     tenantId: string
-}
-
-function isModuleDescriptor(value: unknown): value is ModuleDescriptor {
-    if (!isRecord(value)) {
-        return false
-    }
-
-    return (
-        typeof value.moduleKey === 'string' &&
-        typeof value.name === 'string' &&
-        (value.description === undefined ||
-            value.description === null ||
-            typeof value.description === 'string') &&
-        Array.isArray(value.dependsOn) &&
-        value.dependsOn.every((item) => typeof item === 'string') &&
-        typeof value.core === 'boolean'
-    )
-}
-
-function isModuleCatalog(value: unknown): value is ModuleDescriptor[] {
-    return Array.isArray(value) && value.every(isModuleDescriptor)
-}
-
-function isTenantModules(value: unknown): value is TenantModules {
-    if (!isRecord(value)) {
-        return false
-    }
-
-    return (
-        Array.isArray(value.enabledModules) &&
-        value.enabledModules.every((item) => typeof item === 'string')
-    )
 }
 
 function presetLabel(preset: ModulePresetKey): string {
@@ -84,25 +51,14 @@ export default function TenantModulesPanel({tenantId}: TenantModulesPanelProps) 
         setError(null)
         setIsLoading(true)
 
-        Promise.all([
-            getPlatformData<ModuleDescriptor[]>('modules'),
-            getPlatformData<TenantModules>(`tenants/${tenantId}/modules`),
-        ])
-            .then(([modules, tenantModules]) => {
+        loadTenantModulesPanelData(tenantId)
+            .then(({catalog: modules, enabledModules}) => {
                 if (!isCurrent) {
                     return
                 }
 
-                if (!isModuleCatalog(modules) || !isTenantModules(tenantModules)) {
-                    setError('Could not load modules.')
-                    setCatalog([])
-                    setEnabled(new Set())
-                    setIsLoading(false)
-                    return
-                }
-
                 setCatalog(modules)
-                setEnabled(new Set(tenantModules.enabledModules))
+                setEnabled(enabledModules)
                 setIsLoading(false)
             })
             .catch((requestError: unknown) => {
@@ -133,8 +89,8 @@ export default function TenantModulesPanel({tenantId}: TenantModulesPanelProps) 
 
     async function runMutation(
         key: string,
-        action: () => Promise<TenantModules>,
-        successMessage: string
+        action: () => Promise<{enabledModules: string[]}>,
+        successMessage: string,
     ): Promise<void> {
         setBusyKey(key)
         setError(null)
@@ -142,11 +98,6 @@ export default function TenantModulesPanel({tenantId}: TenantModulesPanelProps) 
 
         try {
             const result = await action()
-            if (!isTenantModules(result)) {
-                setError('Module update failed. Try again later.')
-                return
-            }
-
             setEnabled(new Set(result.enabledModules))
             setStatus(successMessage)
         } catch (requestError: unknown) {
@@ -163,7 +114,7 @@ export default function TenantModulesPanel({tenantId}: TenantModulesPanelProps) 
                 requestError.message === REQUEST_FAILED
             ) {
                 setError(
-                    'Module update failed. Check dependencies or try again.'
+                    'Module update failed. Check dependencies or try again.',
                 )
                 return
             }
@@ -177,35 +128,24 @@ export default function TenantModulesPanel({tenantId}: TenantModulesPanelProps) 
     function handleActivate(moduleKey: string): void {
         void runMutation(
             moduleKey,
-            () =>
-                postPlatformData<TenantModules>(
-                    `tenants/${tenantId}/modules/${moduleKey}/activate`,
-                    {}
-                ),
-            `Activated ${moduleKey}.`
+            () => activateTenantModule(tenantId, moduleKey),
+            `Activated ${moduleKey}.`,
         )
     }
 
     function handleDeactivate(moduleKey: string): void {
         void runMutation(
             moduleKey,
-            () =>
-                deletePlatformData<TenantModules>(
-                    `tenants/${tenantId}/modules/${moduleKey}`
-                ),
-            `Deactivated ${moduleKey} (and any dependents).`
+            () => deactivateTenantModule(tenantId, moduleKey),
+            `Deactivated ${moduleKey} (and any dependents).`,
         )
     }
 
     function handleApplyPreset(preset: ModulePresetKey): void {
         void runMutation(
             `preset:${preset}`,
-            () =>
-                postPlatformData<TenantModules>(
-                    `tenants/${tenantId}/modules/preset/${preset}`,
-                    {}
-                ),
-            `Applied preset ${preset}.`
+            () => applyTenantModulePreset(tenantId, preset),
+            `Applied preset ${preset}.`,
         )
     }
 
@@ -246,7 +186,7 @@ export default function TenantModulesPanel({tenantId}: TenantModulesPanelProps) 
                             {catalog.map((module) => {
                                 const isEnabled = enabled.has(module.moduleKey)
                                 const missingDeps = module.dependsOn.filter(
-                                    (dep) => !enabled.has(dep)
+                                    (dep) => !enabled.has(dep),
                                 )
                                 const rowBusy = busyKey === module.moduleKey
 
@@ -295,7 +235,7 @@ export default function TenantModulesPanel({tenantId}: TenantModulesPanelProps) 
                                                     }
                                                     onClick={() =>
                                                         handleDeactivate(
-                                                            module.moduleKey
+                                                            module.moduleKey,
                                                         )
                                                     }
                                                     type="button"
@@ -313,7 +253,7 @@ export default function TenantModulesPanel({tenantId}: TenantModulesPanelProps) 
                                                     }
                                                     onClick={() =>
                                                         handleActivate(
-                                                            module.moduleKey
+                                                            module.moduleKey,
                                                         )
                                                     }
                                                     type="button"

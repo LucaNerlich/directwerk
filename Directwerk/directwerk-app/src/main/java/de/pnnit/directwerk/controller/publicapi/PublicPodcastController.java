@@ -1,20 +1,16 @@
 package de.pnnit.directwerk.controller.publicapi;
 
+import de.pnnit.directwerk.api.PublicEpisodeViewMapper;
 import de.pnnit.directwerk.api.dto.PublicCategoryView;
 import de.pnnit.directwerk.api.response.Response;
 import de.pnnit.directwerk.modules.core.RequiresModule;
-import de.pnnit.directwerk.modules.digital.api.EpisodeMediaApi;
 import de.pnnit.directwerk.modules.podcast.PodcastModule;
-import de.pnnit.directwerk.modules.content.PublicContentProjection;
 import de.pnnit.directwerk.modules.digital.entity.Category;
-import de.pnnit.directwerk.modules.podcast.entity.Episode;
 import de.pnnit.directwerk.modules.podcast.entity.Format;
 import de.pnnit.directwerk.modules.podcast.entity.PodcastSeries;
 import de.pnnit.directwerk.modules.podcast.service.PublicPodcastQueryService;
 import de.pnnit.directwerk.multitenancy.TenantContext;
-import java.net.URL;
 import java.time.Instant;
-import java.util.Comparator;
 import java.util.List;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -28,14 +24,14 @@ import org.springframework.web.bind.annotation.RestController;
 public class PublicPodcastController {
 
     private final PublicPodcastQueryService publicPodcastQueryService;
-    private final EpisodeMediaApi episodeMediaApi;
+    private final PublicEpisodeViewMapper publicEpisodeViewMapper;
 
     public PublicPodcastController(
             PublicPodcastQueryService publicPodcastQueryService,
-            EpisodeMediaApi episodeMediaApi
+            PublicEpisodeViewMapper publicEpisodeViewMapper
     ) {
         this.publicPodcastQueryService = publicPodcastQueryService;
-        this.episodeMediaApi = episodeMediaApi;
+        this.publicEpisodeViewMapper = publicEpisodeViewMapper;
     }
 
     @GetMapping("/series")
@@ -55,7 +51,7 @@ public class PublicPodcastController {
         List<PublicEpisodeView> episodes = publicPodcastQueryService
                 .listPublishedEpisodes(tenantId, seriesId)
                 .stream()
-                .map(this::toEpisodeView)
+                .map(publicEpisodeViewMapper::toPublicView)
                 .toList();
         return ResponseEntity.ok(Response.ok(episodes));
     }
@@ -87,38 +83,6 @@ public class PublicPodcastController {
                 series.getCoverAsset() != null ? series.getCoverAsset().getId() : null,
                 series.getLanguage(),
                 series.getItunesCategory()
-        );
-    }
-
-    private PublicEpisodeView toEpisodeView(Episode episode) {
-        String audioCdnUrl = null;
-        if (PublicContentProjection.exposesFullContent(episode.getAccessPolicy().name())
-                && episode.getAudioAsset() != null) {
-            audioCdnUrl = episodeMediaApi.publicCdnUrl(episode.getAudioAsset())
-                    .map(URL::toString)
-                    .orElse(null);
-        }
-        return new PublicEpisodeView(
-                episode.getId(),
-                episode.getSeries().getId(),
-                episode.getSeries().getSlug(),
-                episode.getEpisodeNumber(),
-                episode.getSlug(),
-                episode.getTitle(),
-                episode.getDescription(),
-                episode.getDurationSeconds(),
-                episode.getAccessPolicy().name(),
-                episode.getRequiredLevelSortOrder(),
-                episode.getPublishedAt(),
-                audioCdnUrl,
-                episode.getFormats().stream()
-                        .sorted(Comparator.comparingInt(Format::getSortOrder).thenComparing(Format::getId))
-                        .map(PublicPodcastController::toFormatView)
-                        .toList(),
-                episode.getCategories().stream()
-                        .sorted(Comparator.comparing(Category::getName).thenComparing(Category::getId))
-                        .map(PublicPodcastController::toCategoryView)
-                        .toList()
         );
     }
 

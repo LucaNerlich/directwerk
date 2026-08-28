@@ -20,13 +20,13 @@ import {hasModule} from '@/lib/api/client'
 import {listCategories, listFormats, replaceEpisodeCategories, replaceEpisodeFormats} from '@/lib/api/catalogApi'
 import {getMedia, getMediaPreviewUrl} from '@/lib/api/mediaApi'
 import {archiveEpisode, attachEpisodeAudio, cancelScheduleEpisode, createEpisode, getEpisode, listEpisodes, listSeries, publishEpisode, scheduleEpisode, setEpisodeEnclosureEnabled, unarchiveEpisode, unpublishEpisode, updateEpisode} from '@/lib/api/podcastApi'
-import type {AccessPolicy, CategorySummary, EpisodeDetail, FormatSummary, SeriesSummary} from '@directwerk/api/types'
-import {fromDatetimeLocalValue, toDatetimeLocalValue} from '@/lib/datetime'
+import type {CategorySummary, EpisodeDetail, FormatSummary, SeriesSummary} from '@directwerk/api/types'
 import {mediaLimitLabel} from '@/lib/media/limits'
 import {uploadMediaFile} from '@/lib/media/upload'
 import {episodePublishBlockReason} from '@/lib/podcast/episodePreflight'
 import {publicEpisodePageUrl} from '@/lib/podcast/publicUrls'
 import {isSlugTaken} from '@/lib/publication/slugAvailability'
+import {usePublicationEditorFields} from '@/lib/publication/usePublicationEditorFields'
 import {usePublicationEditorWorkflow} from '@/lib/publication/usePublicationEditorWorkflow'
 import {useNotifyAudienceHint} from '@/lib/studio/useNotifyAudienceHint'
 import {useSiteConfig} from '@/lib/site/SiteConfigProvider'
@@ -58,11 +58,20 @@ export default function EpisodeEditor({episodeId}: {episodeId?: number}): React.
     const [title, setTitle] = useState('')
     const [slug, setSlug] = useState('')
     const [body, setBody] = useState('')
-    const [accessPolicy, setAccessPolicy] = useState<AccessPolicy>('FREE')
+    const {
+        accessPolicy,
+        setAccessPolicy,
+        requiredLevelSortOrder,
+        setRequiredLevelSortOrder,
+        notifySubscribers,
+        setNotifySubscribers,
+        scheduledAt,
+        setScheduledAt,
+        applyPublicationSchedule,
+        parseScheduledAt,
+        setScheduleValidationError,
+    } = usePublicationEditorFields()
     const [episodeNumber, setEpisodeNumber] = useState('')
-    const [requiredLevelSortOrder, setRequiredLevelSortOrder] = useState<number | null>(null)
-    const [notifySubscribers, setNotifySubscribers] = useState(false)
-    const [scheduledAt, setScheduledAt] = useState('')
     const [isUploading, setIsUploading] = useState(false)
     const [isEnclosureSaving, setIsEnclosureSaving] = useState(false)
     const [uploadProgress, setUploadProgress] = useState<{file: File; progress: number} | null>(
@@ -158,7 +167,7 @@ export default function EpisodeEditor({episodeId}: {episodeId?: number}): React.
         saveImpl,
         onWorkflowComplete: (next) => {
             setEpisode(next)
-            setScheduledAt(toDatetimeLocalValue(next.scheduledAt))
+            applyPublicationSchedule(next.scheduledAt)
             if (next.episodeNumber !== null) {
                 setEpisodeNumber(String(next.episodeNumber))
             }
@@ -269,7 +278,7 @@ export default function EpisodeEditor({episodeId}: {episodeId?: number}): React.
                             : '',
                     )
                     setRequiredLevelSortOrder(loadedEpisode.requiredLevelSortOrder)
-                    setScheduledAt(toDatetimeLocalValue(loadedEpisode.scheduledAt))
+                    applyPublicationSchedule(loadedEpisode.scheduledAt)
                     setSelectedFormatIds(new Set(loadedEpisode.formats.map((tag) => tag.id)))
                     setSelectedCategoryIds(new Set(loadedEpisode.categories.map((tag) => tag.id)))
                 }
@@ -530,11 +539,13 @@ export default function EpisodeEditor({episodeId}: {episodeId?: number}): React.
                     )
                 }}
                 onSchedule={() => {
-                    const iso = fromDatetimeLocalValue(scheduledAt)
+                    const iso = parseScheduledAt()
                     if (iso === null) {
+                        setScheduleValidationError('Bitte einen gültigen Zeitpunkt wählen.')
                         setErrorMessage('Bitte einen gültigen Zeitpunkt wählen.')
                         return
                     }
+                    setScheduleValidationError(null)
                     void runWorkflow(
                         (saved) =>
                             scheduleEpisode(getClientTenantHost(), saved.id, {

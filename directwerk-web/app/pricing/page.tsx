@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import {useRouter} from 'next/navigation'
-import {useEffect, useState, useSyncExternalStore} from 'react'
+import {useEffect, useState} from 'react'
 
 import {Alert, AlertDescription} from '@directwerk/ui/components/alert'
 import {Button} from '@directwerk/ui/components/button'
@@ -21,31 +21,15 @@ import {
 } from '@/lib/api/client'
 import {AUTH_REQUIRED} from '@directwerk/api/constants'
 import type {LevelSummary, PublicProduct, PublicSiteConfig} from '@directwerk/api/types'
-import {
-    getAccessToken,
-    subscribeToTokenStore,
-} from '@/lib/auth/tokenStore'
+import {useSubscriberAuth} from '@/lib/auth/useSubscriberAuth'
 import {formatMoney} from '@/lib/format/money'
 import {userFacingBillingError} from '@/lib/billing/userFacingBillingError'
 import {getClientTenantHost} from '@/lib/tenant/getClientTenantHost'
 
-function readTokenClient(): string | null {
-    return getAccessToken()
-}
-
-function readTokenServer(): string | null {
-    return null
-}
-
 export default function PricingPage(): React.JSX.Element {
     const router = useRouter()
     const tenantHost = getClientTenantHost()
-    const accessToken = useSyncExternalStore(
-        subscribeToTokenStore,
-        readTokenClient,
-        readTokenServer,
-    )
-    const isAuthenticated = accessToken !== null
+    const {isAuthenticated} = useSubscriberAuth()
     const [products, setProducts] = useState<PublicProduct[]>([])
     const [levels, setLevels] = useState<LevelSummary[]>([])
     const [config, setConfig] = useState<PublicSiteConfig | null>(null)
@@ -101,8 +85,6 @@ export default function PricingPage(): React.JSX.Element {
                 window.location.assign(checkoutUrl)
                 return
             }
-            // A missing/invalid URL is an API contract violation, not a completed
-            // payment or grant — never route to the "payment received" screen.
             setCheckoutMessage(
                 'Es konnte keine gültige Checkout-Adresse erstellt werden. '
                     + 'Bitte versuche es später erneut oder wende dich an die Redaktion.',

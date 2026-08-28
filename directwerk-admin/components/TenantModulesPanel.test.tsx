@@ -4,9 +4,10 @@ import {afterEach, describe, expect, it, vi} from 'vitest'
 
 import TenantModulesPanel from '@/components/TenantModulesPanel'
 
-const getPlatformData = vi.fn()
-const postPlatformData = vi.fn()
-const deletePlatformData = vi.fn()
+const loadTenantModulesPanelData = vi.fn()
+const activateTenantModule = vi.fn()
+const deactivateTenantModule = vi.fn()
+const applyTenantModulePreset = vi.fn()
 const mockReplace = vi.fn()
 
 vi.mock('next/navigation', () => ({
@@ -15,10 +16,11 @@ vi.mock('next/navigation', () => ({
     }),
 }))
 
-vi.mock('@/lib/api/client', () => ({
-    getPlatformData: (...args: unknown[]) => getPlatformData(...args),
-    postPlatformData: (...args: unknown[]) => postPlatformData(...args),
-    deletePlatformData: (...args: unknown[]) => deletePlatformData(...args),
+vi.mock('@/lib/api/platformModulesApi', () => ({
+    loadTenantModulesPanelData: (...args: unknown[]) => loadTenantModulesPanelData(...args),
+    activateTenantModule: (...args: unknown[]) => activateTenantModule(...args),
+    deactivateTenantModule: (...args: unknown[]) => deactivateTenantModule(...args),
+    applyTenantModulePreset: (...args: unknown[]) => applyTenantModulePreset(...args),
 }))
 
 const mockModulesCatalog = [
@@ -52,14 +54,9 @@ describe('TenantModulesPanel', () => {
     })
 
     it('renders module list with active and inactive statuses', async () => {
-        getPlatformData.mockImplementation((path: string) => {
-            if (path === 'modules') {
-                return Promise.resolve(mockModulesCatalog)
-            }
-            if (path === 'tenants/1/modules') {
-                return Promise.resolve({enabledModules: ['CORE_AUTH', 'PODCAST']})
-            }
-            return Promise.reject(new Error('Unknown path'))
+        loadTenantModulesPanelData.mockResolvedValue({
+            catalog: mockModulesCatalog,
+            enabledModules: new Set(['CORE_AUTH', 'PODCAST']),
         })
 
         render(<TenantModulesPanel tenantId="1" />)
@@ -76,16 +73,11 @@ describe('TenantModulesPanel', () => {
 
     it('activates an inactive module when clicking Activate', async () => {
         const user = userEvent.setup()
-        getPlatformData.mockImplementation((path: string) => {
-            if (path === 'modules') {
-                return Promise.resolve(mockModulesCatalog)
-            }
-            if (path === 'tenants/1/modules') {
-                return Promise.resolve({enabledModules: ['CORE_AUTH', 'PODCAST']})
-            }
-            return Promise.reject(new Error('Unknown path'))
+        loadTenantModulesPanelData.mockResolvedValue({
+            catalog: mockModulesCatalog,
+            enabledModules: new Set(['CORE_AUTH', 'PODCAST']),
         })
-        postPlatformData.mockResolvedValue({
+        activateTenantModule.mockResolvedValue({
             enabledModules: ['CORE_AUTH', 'PODCAST', 'PODCAST_RSS'],
         })
 
@@ -98,10 +90,7 @@ describe('TenantModulesPanel', () => {
         await user.click(screen.getByRole('button', {name: 'Activate'}))
 
         await waitFor(() => {
-            expect(postPlatformData).toHaveBeenCalledWith(
-                'tenants/1/modules/PODCAST_RSS/activate',
-                {}
-            )
+            expect(activateTenantModule).toHaveBeenCalledWith('1', 'PODCAST_RSS')
         })
 
         await waitFor(() => {
@@ -112,16 +101,11 @@ describe('TenantModulesPanel', () => {
 
     it('deactivates an active non-core module when clicking Deactivate', async () => {
         const user = userEvent.setup()
-        getPlatformData.mockImplementation((path: string) => {
-            if (path === 'modules') {
-                return Promise.resolve(mockModulesCatalog)
-            }
-            if (path === 'tenants/1/modules') {
-                return Promise.resolve({enabledModules: ['CORE_AUTH', 'PODCAST']})
-            }
-            return Promise.reject(new Error('Unknown path'))
+        loadTenantModulesPanelData.mockResolvedValue({
+            catalog: mockModulesCatalog,
+            enabledModules: new Set(['CORE_AUTH', 'PODCAST']),
         })
-        deletePlatformData.mockResolvedValue({
+        deactivateTenantModule.mockResolvedValue({
             enabledModules: ['CORE_AUTH'],
         })
 
@@ -131,35 +115,29 @@ describe('TenantModulesPanel', () => {
             expect(screen.getAllByRole('button', {name: 'Deactivate'})).toHaveLength(2)
         })
 
-        // Click the non-core module's Deactivate button (the enabled one)
         const buttons = screen.getAllByRole('button', {name: 'Deactivate'})
         const podcastDeactivateButton = buttons.find((btn) => !btn.hasAttribute('disabled'))
         expect(podcastDeactivateButton).toBeDefined()
         await user.click(podcastDeactivateButton!)
 
         await waitFor(() => {
-            expect(deletePlatformData).toHaveBeenCalledWith('tenants/1/modules/PODCAST')
+            expect(deactivateTenantModule).toHaveBeenCalledWith('1', 'PODCAST')
         })
 
         await waitFor(() => {
             expect(screen.getByRole('status')).toHaveTextContent(
-                'Deactivated PODCAST (and any dependents).'
+                'Deactivated PODCAST (and any dependents).',
             )
         })
     })
 
     it('applies a module preset when clicking preset button', async () => {
         const user = userEvent.setup()
-        getPlatformData.mockImplementation((path: string) => {
-            if (path === 'modules') {
-                return Promise.resolve(mockModulesCatalog)
-            }
-            if (path === 'tenants/1/modules') {
-                return Promise.resolve({enabledModules: ['CORE_AUTH']})
-            }
-            return Promise.reject(new Error('Unknown path'))
+        loadTenantModulesPanelData.mockResolvedValue({
+            catalog: mockModulesCatalog,
+            enabledModules: new Set(['CORE_AUTH']),
         })
-        postPlatformData.mockResolvedValue({
+        applyTenantModulePreset.mockResolvedValue({
             enabledModules: ['CORE_AUTH', 'PODCAST', 'PODCAST_RSS'],
         })
 
@@ -172,10 +150,7 @@ describe('TenantModulesPanel', () => {
         await user.click(screen.getByRole('button', {name: 'Free Podcast'}))
 
         await waitFor(() => {
-            expect(postPlatformData).toHaveBeenCalledWith(
-                'tenants/1/modules/preset/FREE_PODCAST',
-                {}
-            )
+            expect(applyTenantModulePreset).toHaveBeenCalledWith('1', 'FREE_PODCAST')
         })
 
         await waitFor(() => {

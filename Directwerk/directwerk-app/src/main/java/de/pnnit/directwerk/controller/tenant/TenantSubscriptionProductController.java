@@ -12,7 +12,6 @@ import de.pnnit.directwerk.modules.subscription.service.ProductAccessRuleService
 import de.pnnit.directwerk.modules.subscription.service.SubscriptionProductService;
 import de.pnnit.directwerk.modules.subscription.stripe.StripeCatalogSyncService;
 import de.pnnit.directwerk.multitenancy.TenantContext;
-import de.pnnit.directwerk.modules.subscription.service.ProductAccessRuleScopeValidator;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
@@ -40,18 +39,15 @@ public class TenantSubscriptionProductController {
 
     private final SubscriptionProductService subscriptionProductService;
     private final ProductAccessRuleService productAccessRuleService;
-    private final ProductAccessRuleScopeValidator productAccessRuleScopeValidator;
     private final StripeCatalogSyncService stripeCatalogSyncService;
 
     public TenantSubscriptionProductController(
             SubscriptionProductService subscriptionProductService,
             ProductAccessRuleService productAccessRuleService,
-            ProductAccessRuleScopeValidator productAccessRuleScopeValidator,
             StripeCatalogSyncService stripeCatalogSyncService
     ) {
         this.subscriptionProductService = subscriptionProductService;
         this.productAccessRuleService = productAccessRuleService;
-        this.productAccessRuleScopeValidator = productAccessRuleScopeValidator;
         this.stripeCatalogSyncService = stripeCatalogSyncService;
     }
 
@@ -125,10 +121,7 @@ public class TenantSubscriptionProductController {
     ) {
         Long tenantId = TenantContext.requireTenantId();
         List<ProductAccessRuleService.RuleInput> inputs = request.rules() == null ? List.of() : request.rules().stream()
-                .map(rule -> {
-                    productAccessRuleScopeValidator.validateScope(tenantId, rule.scopeType(), rule.scopeId());
-                    return new ProductAccessRuleService.RuleInput(rule.scopeType(), rule.scopeId());
-                })
+                .map(rule -> new ProductAccessRuleService.RuleInput(rule.scopeType(), rule.scopeId()))
                 .toList();
         List<ProductAccessRuleView> rules = productAccessRuleService.replaceRules(tenantId, productId, inputs).stream()
                 .map(TenantSubscriptionProductController::toRuleView)

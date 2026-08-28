@@ -1,9 +1,11 @@
-import {createAuthedRequest} from '@directwerk/api/client'
-import {platformAdminPolicy} from '@directwerk/api/client/policies'
+'use client'
+
 import {
-    parseApiEnvelope,
+    createAuthedRequest,
+    createPlatformApiCore,
     parsePaginatedApiEnvelope,
-} from '@directwerk/api/envelope'
+} from '@directwerk/api/client'
+import {platformAdminPolicy} from '@directwerk/api/client/policies'
 import type {JobListPage, JobListQuery, PlatformAuditEvent} from '@directwerk/api/types'
 import {isQueueJob} from '@directwerk/api/validation'
 import {clearTokens} from '../auth/tokenStore'
@@ -15,54 +17,32 @@ const authedFetch = createAuthedRequest({
     ...platformAdminPolicy,
 })
 
-async function platformRequest<T>(
-    path: string,
-    init: RequestInit,
-): Promise<T> {
-    const raw = await authedFetch(`/api/proxy/${path}`, {
-        ...init,
-        cache: 'no-store',
-    })
-
-    if (raw === null) {
-        return null as T
-    }
-
-    return parseApiEnvelope<T>(raw)
-}
+const platformApi = createPlatformApiCore(authedFetch)
 
 export async function getPlatformData<T>(path: string): Promise<T> {
-    return platformRequest<T>(path, {method: 'GET'})
+    return platformApi.get<T>(path)
 }
 
 export async function postPlatformData<T>(
     path: string,
-    body: unknown
+    body: unknown,
 ): Promise<T> {
-    return platformRequest<T>(path, {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify(body),
-    })
-}
-
-export async function getPlatformAuditLog(limit = 50): Promise<PlatformAuditEvent[]> {
-    return getPlatformData(`audit?limit=${limit}`)
+    return platformApi.post<T>(path, body)
 }
 
 export async function patchPlatformData<T>(
     path: string,
-    body: unknown
+    body: unknown,
 ): Promise<T> {
-    return platformRequest<T>(path, {
-        method: 'PATCH',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify(body),
-    })
+    return platformApi.patch<T>(path, body)
 }
 
 export async function deletePlatformData<T>(path: string): Promise<T> {
-    return platformRequest<T>(path, {method: 'DELETE'})
+    return platformApi.delete<T>(path)
+}
+
+export async function getPlatformAuditLog(limit = 50): Promise<PlatformAuditEvent[]> {
+    return getPlatformData(`audit?limit=${limit}`)
 }
 
 function buildJobListQueryString(query: JobListQuery): string {
@@ -97,7 +77,7 @@ function buildJobListQueryString(query: JobListQuery): string {
 }
 
 export async function getPlatformJobList(
-    query: JobListQuery
+    query: JobListQuery,
 ): Promise<JobListPage> {
     const raw = await authedFetch(
         `/api/proxy/queue/jobs${buildJobListQueryString(query)}`,

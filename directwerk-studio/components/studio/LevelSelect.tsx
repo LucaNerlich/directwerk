@@ -1,28 +1,11 @@
 'use client'
 
-import {useEffect, useState} from 'react'
-
 import {listPublicLevels} from '@/lib/api/subscriptionApi'
 import type {LevelSummary} from '@directwerk/api/types'
+import {useCachedTenantQuery} from '@directwerk/api/client'
 import {getClientTenantHost} from '@/lib/tenant/getClientTenantHost'
 
 const PUBLIC_VALUE = ''
-
-const levelCache = new Map<string, Promise<LevelSummary[]>>()
-
-function loadLevels(host: string): Promise<LevelSummary[]> {
-    const cached = levelCache.get(host)
-    if (cached !== undefined) {
-        return cached
-    }
-
-    const pending = listPublicLevels(host).catch((error: unknown) => {
-        levelCache.delete(host)
-        throw error
-    })
-    levelCache.set(host, pending)
-    return pending
-}
 
 interface LevelSelectProps {
     value: number | null
@@ -42,35 +25,23 @@ export default function LevelSelect({
     id,
     disabled,
 }: LevelSelectProps): React.JSX.Element {
-    const [levels, setLevels] = useState<LevelSummary[]>([])
-    const [state, setState] = useState<'loading' | 'ready' | 'error'>('loading')
+    const tenantHost = getClientTenantHost()
+    const {data: levels, error, isLoading} = useCachedTenantQuery<LevelSummary[]>(
+        (host) => listPublicLevels(host),
+        {
+            namespace: 'public-levels',
+            tenantHost,
+            fallbackError: 'Stufen konnten nicht geladen werden.',
+        },
+    )
 
-    useEffect(() => {
-        let active = true
-        setState('loading')
-        loadLevels(getClientTenantHost())
-            .then((loaded) => {
-                if (active) {
-                    setLevels(loaded)
-                    setState('ready')
-                }
-            })
-            .catch(() => {
-                if (active) {
-                    setState('error')
-                }
-            })
-
-        return () => {
-            active = false
-        }
-    }, [])
-
+    const resolvedLevels = levels ?? []
+    const state = isLoading ? 'loading' : error !== null ? 'error' : 'ready'
     const selectedValue = value === null ? PUBLIC_VALUE : String(value)
     const hasMissingValue =
         state === 'ready' &&
         value !== null &&
-        !levels.some((level) => level.sortOrder === value)
+        !resolvedLevels.some((level) => level.sortOrder === value)
 
     return (
         <select
@@ -93,7 +64,7 @@ export default function LevelSelect({
                     {hasMissingValue ? (
                         <option value={selectedValue}>Stufe {selectedValue}</option>
                     ) : null}
-                    {levels.map((level) => (
+                    {resolvedLevels.map((level) => (
                         <option key={level.id} value={level.sortOrder}>
                             {level.title} ({level.sortOrder})
                         </option>

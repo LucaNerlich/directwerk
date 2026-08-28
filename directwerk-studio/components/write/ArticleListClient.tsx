@@ -1,7 +1,6 @@
 'use client'
 
 import Link from 'next/link'
-import {useCallback, useEffect, useState} from 'react'
 
 import {Button} from '@directwerk/ui/components/button'
 import EmptyState from '@directwerk/ui/components/empty-state'
@@ -16,45 +15,26 @@ import {
     unpublishArticle,
 } from '@/lib/api/writeApi'
 import type {ArticleDetail} from '@directwerk/api/types'
-import {usePublicationListActions} from '@/lib/publication/usePublicationListActions'
+import {usePublicationListPage} from '@/lib/publication/usePublicationListPage'
 import {getClientTenantHost} from '@/lib/tenant/getClientTenantHost'
-import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
 
 export default function ArticleListClient() {
-    const authRedirect = useAuthRequired()
-    const [articles, setArticles] = useState<ArticleDetail[]>([])
-    const [isLoading, setIsLoading] = useState(true)
-    const [listError, setListError] = useState<string | null>(null)
-
-    const load = useCallback(async (): Promise<void> => {
-        try {
-            const loaded = await listArticles(getClientTenantHost())
-            setArticles(loaded)
-        } catch (error) {
-            if (authRedirect(error)) return
-            setListError(
-                error instanceof Error
-                    ? error.message
-                    : 'Beiträge konnten nicht geladen werden.',
-            )
-        } finally {
-            setIsLoading(false)
-        }
-    }, [])
-
     const {
-        busyItemId: busyArticleId,
-        errorMessage,
+        items: articles,
+        isLoading,
+        displayError,
         statusMessage,
+        busyItemId: busyArticleId,
         handleUnpublish,
         handleCancelSchedule,
         handleUnarchive,
-    } = usePublicationListActions({
-        setItems: setArticles,
+    } = usePublicationListPage<ArticleDetail>({
+        load: () => listArticles(getClientTenantHost()),
         unpublish: (id) => unpublishArticle(getClientTenantHost(), id),
         cancelSchedule: (id) => cancelScheduleArticle(getClientTenantHost(), id),
         unarchive: (id) => unarchiveArticle(getClientTenantHost(), id),
         labels: {
+            loadError: 'Beiträge konnten nicht geladen werden.',
             unpublishSuccess: (title) =>
                 `Beitrag „${title}“ wurde zurückgezogen (Entwurf).`,
             cancelScheduleSuccess: (title) =>
@@ -65,14 +45,7 @@ export default function ArticleListClient() {
             cancelScheduleError: 'Planung konnte nicht aufgehoben werden.',
             unarchiveError: 'Beitrag konnte nicht wiederhergestellt werden.',
         },
-        authRedirect,
     })
-
-    const displayError = listError ?? errorMessage
-
-    useEffect(() => {
-        void load()
-    }, [load])
 
     if (isLoading) {
         return <p>Beiträge werden geladen…</p>

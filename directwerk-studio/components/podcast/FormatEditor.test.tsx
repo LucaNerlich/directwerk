@@ -1,11 +1,15 @@
 import {render, screen, waitFor} from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import {describe, expect, it, vi} from 'vitest'
+import {beforeEach, describe, expect, it, vi} from 'vitest'
 
 import FormatEditor from '@/components/podcast/FormatEditor'
+import {clearCachedTenantData} from '@directwerk/api/client'
 
 const replace = vi.fn()
 vi.mock('next/navigation', () => ({useRouter: () => ({replace})}))
+vi.mock('@directwerk/api/auth/useAuthRequired', () => ({
+    useAuthRequired: () => () => false,
+}))
 vi.mock('@/lib/tenant/getClientTenantHost', () => ({getClientTenantHost: () => 'tenant.test'}))
 
 const createFormat = vi.fn().mockResolvedValue({
@@ -31,6 +35,10 @@ vi.mock('@/lib/api/subscriptionApi', () => ({
 }))
 
 describe('FormatEditor', () => {
+    beforeEach(() => {
+        clearCachedTenantData('public-levels', 'tenant.test')
+    })
+
     it('renders Mindest-Stufe and Sortierung labels with helper texts', () => {
         render(<FormatEditor />)
 
@@ -52,8 +60,12 @@ describe('FormatEditor', () => {
         expect(
             await screen.findByRole('option', {name: 'Öffentlich / Keine Mindeststufe'}),
         ).toBeInTheDocument()
-        expect(screen.getByRole('option', {name: 'Fan (10)'})).toBeInTheDocument()
-        expect(screen.getByRole('option', {name: 'Supporter (20)'})).toBeInTheDocument()
+        expect(
+            await screen.findByRole('option', {name: 'Fan (10)'}),
+        ).toBeInTheDocument()
+        expect(
+            await screen.findByRole('option', {name: 'Supporter (20)'}),
+        ).toBeInTheDocument()
     })
 
     it('creates a new format and redirects to its detail page', async () => {

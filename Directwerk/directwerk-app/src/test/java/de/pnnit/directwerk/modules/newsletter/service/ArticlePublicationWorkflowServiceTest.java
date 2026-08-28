@@ -16,6 +16,7 @@ import de.pnnit.directwerk.modules.content.ContentPublishedEvent;
 import de.pnnit.directwerk.modules.content.ContentPublishedNotifier;
 import de.pnnit.directwerk.modules.content.ContentType;
 import de.pnnit.directwerk.modules.core.service.ModuleGateService;
+import de.pnnit.directwerk.modules.core.service.ScheduledPublicationExecutor;
 import de.pnnit.directwerk.modules.digital.entity.AccessPolicy;
 import de.pnnit.directwerk.modules.newsletter.entity.Article;
 import de.pnnit.directwerk.modules.newsletter.entity.ArticleStatus;
@@ -57,13 +58,17 @@ class ArticlePublicationWorkflowServiceTest {
     @Mock
     private ObjectProvider<ArticlePublicationWorkflowService> selfProvider;
 
+    private ScheduledPublicationExecutor scheduledPublicationExecutor;
+
     @BeforeEach
     void setUp() {
+        scheduledPublicationExecutor = new ScheduledPublicationExecutor(moduleGateService);
         articlePublicationWorkflowService = new ArticlePublicationWorkflowService(
                 articleRepository,
                 articleService,
                 new de.pnnit.directwerk.modules.digital.service.HtmlSanitizer(),
                 moduleGateService,
+                scheduledPublicationExecutor,
                 contentPublishedNotifier,
                 notificationGate,
                 selfProvider

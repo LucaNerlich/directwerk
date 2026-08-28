@@ -15,6 +15,7 @@ import de.pnnit.directwerk.config.DirectwerkConfig;
 import de.pnnit.directwerk.modules.content.ContentPublishedNotifier;
 import de.pnnit.directwerk.modules.core.entity.Tenant;
 import de.pnnit.directwerk.modules.core.service.ModuleGateService;
+import de.pnnit.directwerk.modules.core.service.ScheduledPublicationExecutor;
 import de.pnnit.directwerk.modules.digital.api.EpisodeMediaApi;
 import de.pnnit.directwerk.modules.digital.entity.AssetScope;
 import de.pnnit.directwerk.modules.digital.entity.AssetStatus;
@@ -74,8 +75,11 @@ class PublicationWorkflowServiceTest {
     @Mock
     private ObjectProvider<PublicationWorkflowService> selfProvider;
 
+    private ScheduledPublicationExecutor scheduledPublicationExecutor;
+
     @BeforeEach
     void setUp() {
+        scheduledPublicationExecutor = new ScheduledPublicationExecutor(moduleGateService);
         publicationWorkflowService = new PublicationWorkflowService(
                 episodeRepository,
                 episodeService,
@@ -83,6 +87,7 @@ class PublicationWorkflowServiceTest {
                 episodeMediaApi,
                 new HtmlSanitizer(),
                 moduleGateService,
+                scheduledPublicationExecutor,
                 contentPublishedNotifier,
                 notificationGate,
                 rssFeedRefreshScheduler,

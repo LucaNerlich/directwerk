@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import {useEffect, useState, useSyncExternalStore} from 'react'
+import {useEffect, useState} from 'react'
 import useSWR from 'swr'
 
 import {Alert, AlertDescription} from '@directwerk/ui/components/alert'
@@ -22,30 +22,14 @@ import {
 } from '@/lib/api/client'
 import {AUTH_REQUIRED} from '@directwerk/api/constants'
 import type {PublicSeries, PublicSiteConfig, SubscriberFeedView} from '@directwerk/api/types'
-import {
-    getAccessToken,
-    subscribeToTokenStore,
-} from '@/lib/auth/tokenStore'
+import {useSubscriberAuth} from '@/lib/auth/useSubscriberAuth'
 import {publicPodcastFeedUrl, publicSeriesFeedUrl} from '@/lib/feeds'
 import {formatPublishedAt} from '@/lib/format'
 import {getClientTenantHost} from '@/lib/tenant/getClientTenantHost'
 
-function readTokenClient(): string | null {
-    return getAccessToken()
-}
-
-function readTokenServer(): string | null {
-    return null
-}
-
 export default function FeedsPage() {
     const tenantHost = getClientTenantHost()
-    const accessToken = useSyncExternalStore(
-        subscribeToTokenStore,
-        readTokenClient,
-        readTokenServer,
-    )
-    const isAuthenticated = accessToken !== null
+    const {isAuthenticated} = useSubscriberAuth()
 
     const {
         data: seriesData,

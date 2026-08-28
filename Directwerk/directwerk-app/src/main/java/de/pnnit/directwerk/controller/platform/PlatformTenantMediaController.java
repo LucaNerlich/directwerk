@@ -13,6 +13,7 @@ import de.pnnit.directwerk.modules.digital.entity.AssetVisibility;
 import de.pnnit.directwerk.modules.digital.entity.MediaAsset;
 import de.pnnit.directwerk.modules.digital.exception.MediaAssetNotFoundException;
 import de.pnnit.directwerk.api.MediaAssetViewMapper;
+import de.pnnit.directwerk.api.MediaUploadCommandMapper;
 import de.pnnit.directwerk.modules.digital.storage.S3PublicUrlBuilder;
 import de.pnnit.directwerk.multitenancy.TenantContext;
 import jakarta.validation.Valid;
@@ -50,19 +51,22 @@ public class PlatformTenantMediaController {
     private final MediaAssetLifecycleApi mediaAssetLifecycleApi;
     private final S3PublicUrlBuilder publicUrlBuilder;
     private final MediaAssetViewMapper mediaAssetViewMapper;
+    private final MediaUploadCommandMapper mediaUploadCommandMapper;
 
     public PlatformTenantMediaController(
             MediaAssetQueryApi mediaAssetQueryApi,
             UploadApi uploadApi,
             MediaAssetLifecycleApi mediaAssetLifecycleApi,
             S3PublicUrlBuilder publicUrlBuilder,
-            MediaAssetViewMapper mediaAssetViewMapper
+            MediaAssetViewMapper mediaAssetViewMapper,
+            MediaUploadCommandMapper mediaUploadCommandMapper
     ) {
         this.mediaAssetQueryApi = mediaAssetQueryApi;
         this.uploadApi = uploadApi;
         this.mediaAssetLifecycleApi = mediaAssetLifecycleApi;
         this.publicUrlBuilder = publicUrlBuilder;
         this.mediaAssetViewMapper = mediaAssetViewMapper;
+        this.mediaUploadCommandMapper = mediaUploadCommandMapper;
     }
 
     @GetMapping
@@ -90,16 +94,7 @@ public class PlatformTenantMediaController {
     ) {
         UploadApi.UploadUrlResult result = TenantContext.callWithTenant(
                 tenantId,
-                () -> uploadApi.createUploadUrl(new UploadApi.CreateUploadUrlCommand(
-                        request.filename(),
-                        request.mimeType(),
-                        request.sizeBytes(),
-                        request.assetType(),
-                        request.intendedVisibility(),
-                        request.scope(),
-                        request.episodeId(),
-                        request.ownerUserId()
-                ))
+                () -> uploadApi.createUploadUrl(mediaUploadCommandMapper.toCommand(request))
         );
         return ResponseEntity.status(HttpStatus.CREATED).body(Response.created(new UploadUrlResponse(
                 result.assetId(),

@@ -1,8 +1,6 @@
 'use client'
 
 import Link from 'next/link'
-import {useRouter} from 'next/navigation'
-import {useEffect, useState} from 'react'
 
 import {Button} from '@directwerk/ui/components/button'
 import EmptyState from '@directwerk/ui/components/empty-state'
@@ -10,9 +8,9 @@ import PageHeader from '@directwerk/ui/components/page-header'
 
 import {listProducts} from '@/lib/api/subscriptionApi'
 import type {SubscriptionProduct} from '@directwerk/api/types'
+import {useCachedTenantQuery} from '@directwerk/api/client'
 import {formatMoney} from '@/lib/format/money'
 import {getClientTenantHost} from '@/lib/tenant/getClientTenantHost'
-import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
 
 function ProductGroups({products}: {products: SubscriptionProduct[]}): React.JSX.Element {
     const levels = products
@@ -102,36 +100,15 @@ function ProductGroups({products}: {products: SubscriptionProduct[]}): React.JSX
 }
 
 export default function ProductListClient(): React.JSX.Element {
-    const router = useRouter()
-    const authRedirect = useAuthRequired()
-    const [products, setProducts] = useState<SubscriptionProduct[] | null>(null)
-    const [errorMessage, setErrorMessage] = useState<string | null>(null)
-
-    useEffect(() => {
-        let active = true
-
-        listProducts(getClientTenantHost())
-            .then((result) => {
-                if (active) {
-                    setProducts(result)
-                }
-            })
-            .catch((error: unknown) => {
-                if (!active) {
-                    return
-                }
-                if (authRedirect(error)) return
-                setErrorMessage(
-                    error instanceof Error
-                        ? error.message
-                        : 'Produkte konnten nicht geladen werden.',
-                )
-            })
-
-        return () => {
-            active = false
-        }
-    }, [router])
+    const tenantHost = getClientTenantHost()
+    const {data: products, error: errorMessage, isLoading} = useCachedTenantQuery(
+        (host) => listProducts(host),
+        {
+            namespace: 'tenant-products',
+            tenantHost,
+            fallbackError: 'Produkte konnten nicht geladen werden.',
+        },
+    )
 
     return (
         <div className="flex flex-col gap-6">
@@ -151,7 +128,7 @@ export default function ProductListClient(): React.JSX.Element {
                     {errorMessage}
                 </p>
             ) : null}
-            {products === null && !errorMessage ? <p>Laden…</p> : null}
+            {isLoading && !errorMessage ? <p>Laden…</p> : null}
             {products && products.length === 0 ? (
                 <EmptyState
                     title="Noch keine Produkte"

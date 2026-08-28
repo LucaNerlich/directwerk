@@ -12,7 +12,6 @@ import de.pnnit.directwerk.modules.subscription.service.SubscriptionService;
 import de.pnnit.directwerk.multitenancy.TenantContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -27,7 +26,6 @@ public class StripeWebhookService {
     private final SubscriptionProductRepository subscriptionProductRepository;
     private final ProcessedWebhookEventRepository processedWebhookEventRepository;
     private final SubscriptionRepository subscriptionRepository;
-    private final ApplicationEventPublisher eventPublisher;
 
     public StripeWebhookService(
             StripeOperations stripeOperations,
@@ -35,8 +33,7 @@ public class StripeWebhookService {
             SubscriptionService subscriptionService,
             SubscriptionProductRepository subscriptionProductRepository,
             ProcessedWebhookEventRepository processedWebhookEventRepository,
-            SubscriptionRepository subscriptionRepository,
-            ApplicationEventPublisher eventPublisher
+            SubscriptionRepository subscriptionRepository
     ) {
         this.stripeOperations = stripeOperations;
         this.stripeConnectService = stripeConnectService;
@@ -44,7 +41,6 @@ public class StripeWebhookService {
         this.subscriptionProductRepository = subscriptionProductRepository;
         this.processedWebhookEventRepository = processedWebhookEventRepository;
         this.subscriptionRepository = subscriptionRepository;
-        this.eventPublisher = eventPublisher;
     }
 
     @Transactional
@@ -145,9 +141,6 @@ public class StripeWebhookService {
                 event.currentPeriodEnd(),
                 event.paymentIntentId()
         );
-        if (status == SubscriptionStatus.ACTIVE) {
-            eventPublisher.publishEvent(new StripeMembershipActivatedEvent(tenantId, userId));
-        }
     }
 
     private void applySubscriptionSync(Long tenantId, StripeOperations.StripeWebhookPayload event) {

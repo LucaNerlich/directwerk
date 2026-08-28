@@ -1,7 +1,8 @@
 import {render, screen, waitFor} from '@testing-library/react'
-import {describe, expect, it, vi} from 'vitest'
+import {beforeEach, describe, expect, it, vi} from 'vitest'
 
 import SeriesEditor from '@/components/podcast/SeriesEditor'
+import {clearCachedTenantData} from '@directwerk/api/client'
 
 // `useRouter()` in Next.js returns a stable/memoized object across re-renders.
 // The load effect depends on `router` (see SeriesEditor.tsx), so the mock must
@@ -9,6 +10,9 @@ import SeriesEditor from '@/components/podcast/SeriesEditor'
 // re-trigger that effect on every render.
 const mockRouter = {replace: vi.fn()}
 vi.mock('next/navigation', () => ({useRouter: () => mockRouter}))
+vi.mock('@directwerk/api/auth/useAuthRequired', () => ({
+    useAuthRequired: () => () => false,
+}))
 vi.mock('@/lib/tenant/getClientTenantHost', () => ({getClientTenantHost: () => 'tenant.test'}))
 vi.mock('@/lib/api/podcastApi', () => ({
     getSeries: vi.fn().mockResolvedValue({
@@ -31,6 +35,10 @@ vi.mock('@/lib/api/mediaApi', () => ({
 vi.mock('@/lib/media/upload', () => ({uploadMediaFile: vi.fn()}))
 
 describe('SeriesEditor RSS URL', () => {
+    beforeEach(() => {
+        clearCachedTenantData('public-levels', 'tenant.test')
+    })
+
     it('renders Mindest-Stufe label and hint', async () => {
         render(<SeriesEditor seriesId={1} />)
 
@@ -51,8 +59,12 @@ describe('SeriesEditor RSS URL', () => {
         expect(
             await screen.findByRole('option', {name: 'Öffentlich / Keine Mindeststufe'}),
         ).toBeInTheDocument()
-        expect(screen.getByRole('option', {name: 'Fan (10)'})).toBeInTheDocument()
-        expect(screen.getByRole('option', {name: 'Supporter (20)'})).toBeInTheDocument()
+        expect(
+            await screen.findByRole('option', {name: 'Fan (10)'}),
+        ).toBeInTheDocument()
+        expect(
+            await screen.findByRole('option', {name: 'Supporter (20)'}),
+        ).toBeInTheDocument()
     })
 
     it('shows the series RSS feed URL when present', async () => {

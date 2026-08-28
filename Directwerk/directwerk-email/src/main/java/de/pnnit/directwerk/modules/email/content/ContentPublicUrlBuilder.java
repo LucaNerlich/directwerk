@@ -3,8 +3,7 @@ package de.pnnit.directwerk.modules.email.content;
 import de.pnnit.directwerk.config.DirectwerkConfig;
 import de.pnnit.directwerk.modules.content.ContentType;
 import de.pnnit.directwerk.modules.core.entity.Tenant;
-import de.pnnit.directwerk.modules.core.entity.TenantDomain;
-import de.pnnit.directwerk.modules.core.repository.TenantDomainRepository;
+import de.pnnit.directwerk.modules.core.service.TenantPublicHostResolver;
 import de.pnnit.directwerk.modules.core.repository.TenantRepository;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
@@ -16,16 +15,16 @@ public class ContentPublicUrlBuilder {
 
     private final DirectwerkConfig directwerkConfig;
     private final TenantRepository tenantRepository;
-    private final TenantDomainRepository tenantDomainRepository;
+    private final TenantPublicHostResolver tenantPublicHostResolver;
 
     public ContentPublicUrlBuilder(
             DirectwerkConfig directwerkConfig,
             TenantRepository tenantRepository,
-            TenantDomainRepository tenantDomainRepository
+            TenantPublicHostResolver tenantPublicHostResolver
     ) {
         this.directwerkConfig = directwerkConfig;
         this.tenantRepository = tenantRepository;
-        this.tenantDomainRepository = tenantDomainRepository;
+        this.tenantPublicHostResolver = tenantPublicHostResolver;
     }
 
     public String buildPublicContentUrl(Long tenantId, ContentType contentType, String slug) {
@@ -41,11 +40,8 @@ public class ContentPublicUrlBuilder {
     }
 
     private String buildUrlWithPath(Long tenantId, String path) {
-        return tenantDomainRepository.findByTenantId(tenantId).stream()
-                .filter(TenantDomain::isPrimary)
-                .filter(TenantDomain::isVerified)
-                .map(domain -> "https://" + domain.getHost() + path)
-                .findFirst()
+        return tenantPublicHostResolver.findPrimaryVerifiedHost(tenantId)
+                .map(host -> "https://" + host + path)
                 .orElseGet(() -> {
                     Tenant tenant = tenantRepository.findById(tenantId).orElse(null);
                     String studioBase = trimTrailingSlash(directwerkConfig.email().studioBaseUrl());

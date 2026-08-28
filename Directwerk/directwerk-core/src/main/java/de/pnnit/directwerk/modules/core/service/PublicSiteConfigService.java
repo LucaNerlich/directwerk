@@ -2,6 +2,7 @@ package de.pnnit.directwerk.modules.core.service;
 
 import de.pnnit.directwerk.config.DirectwerkCacheNames;
 import de.pnnit.directwerk.config.DirectwerkConfig;
+import de.pnnit.directwerk.modules.core.FeatureModuleKeys;
 import de.pnnit.directwerk.modules.core.AnalyticsModule;
 import de.pnnit.directwerk.modules.core.entity.Tenant;
 import de.pnnit.directwerk.modules.core.entity.TenantBranding;
@@ -21,7 +22,6 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class PublicSiteConfigService {
 
-    private static final String PODCAST_RSS_MODULE_KEY = "PODCAST_RSS";
     private static final String EMAIL_NOTIFY_MODULE_KEY = "EMAIL_NOTIFY";
 
     private final DirectwerkConfig directwerkConfig;
@@ -96,7 +96,7 @@ public class PublicSiteConfigService {
      * @return the podcast RSS feed URL, or {@code null} when the module is disabled
      */
     private static String publicRssUrl(String scheme, String host, int port, Tenant tenant, List<String> enabledModules) {
-        if (!enabledModules.contains(PODCAST_RSS_MODULE_KEY)) {
+        if (!enabledModules.contains(FeatureModuleKeys.PODCAST_RSS)) {
             return null;
         }
         String origin = de.pnnit.directwerk.modules.core.util.PublicUrlBuilder.baseUrl(

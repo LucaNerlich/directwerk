@@ -24,7 +24,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.context.ApplicationEventPublisher;
 
 @ExtendWith(MockitoExtension.class)
 class StripeWebhookServiceTest {
@@ -47,9 +46,6 @@ class StripeWebhookServiceTest {
     @Mock
     private SubscriptionRepository subscriptionRepository;
 
-    @Mock
-    private ApplicationEventPublisher eventPublisher;
-
     private StripeWebhookService service;
 
     @BeforeEach
@@ -60,13 +56,12 @@ class StripeWebhookServiceTest {
                 subscriptionService,
                 subscriptionProductRepository,
                 processedWebhookEventRepository,
-                subscriptionRepository,
-                eventPublisher
+                subscriptionRepository
         );
     }
 
     @Test
-    void checkoutCompletedCreatesStripeSubscriptionAndFeedEvent() {
+    void checkoutCompletedCreatesStripeSubscription() {
         StripeOperations.StripeWebhookPayload payload = new StripeOperations.StripeWebhookPayload(
                 "evt_1",
                 "checkout.session.completed",
@@ -104,7 +99,6 @@ class StripeWebhookServiceTest {
                 Instant.parse("2026-09-01T00:00:00Z"),
                 "pi_1"
         );
-        verify(eventPublisher).publishEvent(new StripeMembershipActivatedEvent(7L, 3L));
     }
 
     @Test

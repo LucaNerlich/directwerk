@@ -5,8 +5,8 @@ import de.pnnit.directwerk.modules.core.util.PublicUrlBuilder;
 import de.pnnit.directwerk.modules.digital.entity.AccessPolicy;
 import de.pnnit.directwerk.modules.digital.entity.AssetStatus;
 import de.pnnit.directwerk.modules.digital.entity.AssetType;
-import de.pnnit.directwerk.modules.digital.policy.PublicAssetPolicy;
 import de.pnnit.directwerk.modules.digital.entity.MediaAsset;
+import de.pnnit.directwerk.modules.digital.service.PublicCdnUrlResolver;
 import de.pnnit.directwerk.modules.podcast.entity.Episode;
 import de.pnnit.directwerk.modules.podcast.entity.PodcastSeries;
 import de.pnnit.directwerk.modules.podcast.feed.SubscriberFeed;
@@ -26,6 +26,7 @@ public class RssFeedService {
     private final SubscriberFeedAccess subscriberFeedAccess;
     private final RssXmlBuilder rssXmlBuilder;
     private final EpisodeDownloadAnalyticsService episodeDownloadAnalyticsService;
+    private final PublicCdnUrlResolver publicCdnUrlResolver;
 
     /**
      * Builds a public RSS feed containing eligible free episodes for a tenant or series.
@@ -97,7 +98,7 @@ public class RssFeedService {
             int port
     ) {
         MediaAsset asset = episode.getAudioAsset();
-        if (!isReadyAudio(asset) || !PublicAssetPolicy.isPublicCdnEligible(tenant.getSlug(), asset)) {
+        if (!isReadyAudio(asset) || publicCdnUrlResolver.resolve(asset).isEmpty()) {
             return Optional.empty();
         }
         // Always use the stable public enclosure proxy (Umami + CDN redirect); never embed CDN/S3.

@@ -2,12 +2,15 @@ package de.pnnit.directwerk.modules.podcast.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import de.pnnit.directwerk.modules.core.entity.Tenant;
 import de.pnnit.directwerk.modules.core.entity.User;
+import de.pnnit.directwerk.modules.digital.service.PublicCdnUrlResolver;
 import de.pnnit.directwerk.modules.digital.entity.AccessPolicy;
 import de.pnnit.directwerk.modules.digital.entity.AssetScope;
 import de.pnnit.directwerk.modules.digital.entity.AssetStatus;
@@ -20,6 +23,7 @@ import de.pnnit.directwerk.modules.podcast.entity.PodcastSeries;
 import de.pnnit.directwerk.modules.podcast.access.SubscriberFeedAccess;
 import de.pnnit.directwerk.modules.podcast.feed.SubscriberFeed;
 import de.pnnit.directwerk.modules.podcast.feed.SubscriberFeedNotFoundException;
+import java.net.URI;
 import java.time.Instant;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
@@ -43,6 +47,9 @@ class RssFeedServiceTest {
     @Mock
     private EpisodeDownloadAnalyticsService episodeDownloadAnalyticsService;
 
+    @Mock
+    private PublicCdnUrlResolver publicCdnUrlResolver;
+
     private RssFeedService rssFeedService;
 
     @BeforeEach
@@ -52,8 +59,16 @@ class RssFeedServiceTest {
                 subscriberEpisodeService,
                 subscriberFeedAccess,
                 new RssXmlBuilder(),
-                episodeDownloadAnalyticsService
+                episodeDownloadAnalyticsService,
+                publicCdnUrlResolver
         );
+        lenient().when(publicCdnUrlResolver.resolve(any())).thenAnswer(invocation -> {
+            MediaAsset asset = invocation.getArgument(0);
+            if (asset != null && asset.getVisibility() == AssetVisibility.PUBLIC) {
+                return java.util.Optional.of(URI.create("https://cdn.example.test/" + asset.getS3Key()).toURL());
+            }
+            return java.util.Optional.empty();
+        });
     }
 
     @Test

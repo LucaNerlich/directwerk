@@ -12,7 +12,7 @@ import de.pnnit.directwerk.modules.podcast.entity.Episode;
 import de.pnnit.directwerk.modules.podcast.exception.EpisodeValidationException;
 import de.pnnit.directwerk.modules.podcast.service.SubscriberEpisodeService;
 import de.pnnit.directwerk.modules.subscription.SubscriptionModule;
-import de.pnnit.directwerk.modules.subscription.service.EntitlementService;
+import de.pnnit.directwerk.modules.content.api.EntitlementApi;
 import de.pnnit.directwerk.multitenancy.TenantContext;
 import de.pnnit.directwerk.security.DirectwerkUserPrincipal;
 import de.pnnit.directwerk.security.RoleConstants;
@@ -37,7 +37,7 @@ public class SubscriberPortalAccessService {
     private final AssetAccessApi assetAccessApi;
     private final MediaAssetQueryApi mediaAssetQueryApi;
     private final ModuleGateService moduleGateService;
-    private final EntitlementService entitlementService;
+    private final EntitlementApi entitlementApi;
 
     public record EpisodeStream(Episode episode, URL url) {
     }
@@ -63,7 +63,7 @@ public class SubscriberPortalAccessService {
         moduleGateService.requireModule(DigitalContentModule.KEY);
         moduleGateService.requireModule(SubscriptionModule.MODULE_KEY);
 
-        List<Long> entitledIds = entitlementService.listEntitledDigitalAssetIds(user.tenantId(), user.userId());
+        List<Long> entitledIds = entitlementApi.listEntitledDigitalAssetIds(user.tenantId(), user.userId());
         List<MediaAsset> readyAssets = entitledIds.stream()
                 .flatMap(assetId -> mediaAssetQueryApi.findById(assetId).stream())
                 .filter(asset -> asset.getStatus() == AssetStatus.READY)

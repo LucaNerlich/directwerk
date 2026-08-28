@@ -3,9 +3,8 @@ package de.pnnit.directwerk.modules.podcast.service;
 import de.pnnit.directwerk.config.DirectwerkConfig;
 import de.pnnit.directwerk.config.DirectwerkProperties;
 import de.pnnit.directwerk.modules.core.entity.Tenant;
-import de.pnnit.directwerk.modules.core.entity.TenantDomain;
-import de.pnnit.directwerk.modules.core.repository.TenantDomainRepository;
 import de.pnnit.directwerk.modules.core.service.ModuleGateService;
+import de.pnnit.directwerk.modules.core.service.TenantPublicHostResolver;
 import de.pnnit.directwerk.modules.core.repository.TenantRepository;
 import de.pnnit.directwerk.modules.core.util.TenantAssetKeys;
 import de.pnnit.directwerk.modules.digital.api.CdnPurgeClient;
@@ -51,7 +50,7 @@ public class RssFeedSnapshotService {
 
     private final RssFeedService rssFeedService;
     private final TenantRepository tenantRepository;
-    private final TenantDomainRepository tenantDomainRepository;
+    private final TenantPublicHostResolver tenantPublicHostResolver;
     private final ModuleGateService moduleGateService;
     private final PodcastSeriesRepository podcastSeriesRepository;
     private final SubscriberFeedRepository subscriberFeedRepository;
@@ -65,7 +64,7 @@ public class RssFeedSnapshotService {
     public RssFeedSnapshotService(
             RssFeedService rssFeedService,
             TenantRepository tenantRepository,
-            TenantDomainRepository tenantDomainRepository,
+            TenantPublicHostResolver tenantPublicHostResolver,
             ModuleGateService moduleGateService,
             PodcastSeriesRepository podcastSeriesRepository,
             SubscriberFeedRepository subscriberFeedRepository,
@@ -78,7 +77,7 @@ public class RssFeedSnapshotService {
     ) {
         this.rssFeedService = rssFeedService;
         this.tenantRepository = tenantRepository;
-        this.tenantDomainRepository = tenantDomainRepository;
+        this.tenantPublicHostResolver = tenantPublicHostResolver;
         this.moduleGateService = moduleGateService;
         this.podcastSeriesRepository = podcastSeriesRepository;
         this.subscriberFeedRepository = subscriberFeedRepository;
@@ -320,14 +319,12 @@ public class RssFeedSnapshotService {
 
 
     private Origin canonicalOrigin(Long tenantId) {
-        TenantDomain domain = tenantDomainRepository.findByTenantId(tenantId).stream()
-                .filter(TenantDomain::isVerified)
-                .sorted((left, right) -> Boolean.compare(right.isPrimary(), left.isPrimary()))
-                .findFirst()
-                .orElseThrow(() -> new IllegalStateException(
-                        "Cannot refresh RSS snapshots without a verified tenant domain"
-                ));
-        return new Origin("https", domain.getHost(), 443);
+        String host = tenantPublicHostResolver.resolve(
+                tenantId,
+                null,
+                TenantPublicHostResolver.HostPolicy.PRIMARY
+        );
+        return new Origin("https", host, 443);
     }
 
     private SnapshotRef publicTenantRef(Tenant tenant) {

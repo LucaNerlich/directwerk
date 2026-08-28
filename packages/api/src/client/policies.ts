@@ -1,4 +1,4 @@
-import type {AuthedRequestConfig} from './index'
+import type {AuthedRequestConfig} from './authedRequest'
 import {AUTH_REQUIRED, CONFLICT, FORBIDDEN, REQUEST_FAILED} from '../constants'
 import type {ErrorMessageCatalog} from '../envelope'
 

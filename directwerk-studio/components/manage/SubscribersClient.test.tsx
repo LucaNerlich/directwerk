@@ -2,9 +2,13 @@ import {cleanup, render, screen, waitFor} from '@testing-library/react'
 import {afterEach, describe, expect, it, vi} from 'vitest'
 
 import SubscribersClient from '@/components/manage/SubscribersClient'
+import {clearCachedTenantData} from '@directwerk/api/client'
 import {listSubscribers} from '@/lib/api/tenantSettingsApi'
 
 vi.mock('next/navigation', () => ({useRouter: () => ({replace: vi.fn()})}))
+vi.mock('@directwerk/api/auth/useAuthRequired', () => ({
+    useAuthRequired: () => () => false,
+}))
 vi.mock('@/lib/tenant/getClientTenantHost', () => ({getClientTenantHost: () => 'tenant.test'}))
 vi.mock('@/lib/api/tenantSettingsApi', () => ({
     listSubscribers: vi.fn(),
@@ -15,6 +19,7 @@ vi.mock('@/lib/api/subscriptionApi', () => ({
 
 afterEach(() => {
     cleanup()
+    clearCachedTenantData('tenant-subscribers', 'tenant.test')
     vi.mocked(listSubscribers).mockReset()
 })
 

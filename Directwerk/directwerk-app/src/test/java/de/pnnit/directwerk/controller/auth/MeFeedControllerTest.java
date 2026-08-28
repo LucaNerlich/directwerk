@@ -59,7 +59,7 @@ class MeFeedControllerTest {
         assertThat(view.url()).isEqualTo("https://alpha.example.test/feeds/alpha/u/tok-123.xml");
         assertThat(view.formatIds()).isEmpty();
         assertThat(view.formats()).isEmpty();
-        verify(subscriberFeedService).ensureDefaultFeed(5L, 1L);
+        verify(subscriberFeedService, never()).ensureDefaultFeed(5L, 1L);
     }
 
     @Test
