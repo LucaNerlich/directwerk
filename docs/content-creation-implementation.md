@@ -584,7 +584,7 @@ Phase 1 (integrators): webhook only. Phase 2 (creators): native adapter + studio
 
 ### Manual regression
 
-Extend [`http/`](../http/) with `11-media-upload.http`, `12-episodes.http`, `13-articles.http` when APIs ship.
+Extend [`Directwerk/http/`](../Directwerk/http/) with `11-media-upload.http`, `12-episodes.http`, `13-articles.http` when APIs ship.
 
 ---
 
@@ -651,7 +651,7 @@ Extend [`http/`](../http/) with `11-media-upload.http`, `12-episodes.http`, `13-
 
 ## 10. Library summary (copy-paste starters)
 
-### `projects/directwerk-studio/package.json` (recommended)
+### `directwerk-studio/package.json` (recommended)
 
 ```json
 {
@@ -680,7 +680,7 @@ Extend [`http/`](../http/) with `11-media-upload.http`, `12-episodes.http`, `13-
 }
 ```
 
-### `projects/directwerk/build.gradle.kts` (additions)
+### `Directwerk/build.gradle.kts` (additions)
 
 ```kotlin
 dependencies {

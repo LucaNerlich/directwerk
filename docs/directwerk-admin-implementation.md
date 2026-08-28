@@ -2,7 +2,7 @@
 
 Companion to [`README.md`](../README.md) § Platform Superadmin Dashboard and
 [`poc-alpha-setup.md`](poc-alpha-setup.md). This document is the **step-by-step engineering guide**
-for building the platform operations console at `projects/directwerk/directwerk-admin/`.
+for building the platform operations console at `directwerk-admin/`.
 
 | Document | Purpose |
 |----------|---------|
@@ -10,9 +10,9 @@ for building the platform operations console at `projects/directwerk/directwerk-
 | [`user-backend-implementation.md`](user-backend-implementation.md) | Spring Security backend this app consumes |
 | [`directwerk-studio-implementation.md`](directwerk-studio-implementation.md) | Tenant dashboard (contrast — different auth boundary) |
 | **This document** | **How to scaffold and implement** `directwerk-admin` |
-| [`http/`](../http/) | Executable API acceptance criteria |
+| [`Directwerk/http/`](../Directwerk/http/) | Executable API acceptance criteria |
 
-**Status (2026-08):** Implemented at `projects/directwerk/directwerk-admin/`, promoted from the
+**Status (2026-08):** Implemented at `directwerk-admin/`, promoted from the
 former `example-admin` application. The application code and
 [`ui-system.md`](ui-system.md) are authoritative where this original scaffold guide differs.
 **Prerequisite:** Phase A backend complete — platform API routes and `01-platform-auth.http` green.
@@ -91,7 +91,7 @@ flowchart LR
 | Roles | `PLATFORM_ADMIN` only | `TENANT_ADMIN`, `EDITOR` |
 
 Platform admin tokens **must not** access tenant routes like `GET /api/v1/me` — verified in
-[`01-platform-auth.http`](../http/01-platform-auth.http).
+[`01-platform-auth.http`](../Directwerk/http/01-platform-auth.http).
 
 ---
 
@@ -119,7 +119,7 @@ Keep dependencies minimal — admin UI is data tables and forms, not rich editor
 ### 3.3 Directory structure
 
 ```
-projects/directwerk/directwerk-admin/
+directwerk-admin/
   package.json
   tsconfig.json
   next.config.ts
@@ -219,7 +219,7 @@ sequenceDiagram
     App->>App: Redirect to Overview
 ```
 
-Dev credentials: [`http/http-client.env.json`](../http/http-client.env.json).
+Dev credentials: [`Directwerk/http/http-client.env.json`](../Directwerk/http/http-client.env.json).
 
 ### 4.2 `lib/auth/platformTokenStore.ts`
 
@@ -547,7 +547,7 @@ Used for destructive actions:
 
 ### Manual E2E (against local backend)
 
-Using seed from [`http/http-client.env.json`](../http/http-client.env.json):
+Using seed from [`Directwerk/http/http-client.env.json`](../Directwerk/http/http-client.env.json):
 
 1. Login as `platform-admin@directwerk.local`
 2. List tenants — see `alpha-show-a`, `alpha-show-b`
@@ -572,8 +572,8 @@ Run platform files before UI work:
 
 | Concern | Value |
 |---------|-------|
-| Project | `projects/directwerk/directwerk-admin/` |
-| Stack | Next.js 16, React 19, TypeScript, CSS Modules |
+| Project | `directwerk-admin/` |
+| Stack | Next.js 16, React 19, TypeScript, Tailwind v4, `@directwerk/ui` |
 | Host | `admin.{platform-domain}.de` |
 | API target | `https://api.{platform-domain}.de` |
 | Coolify | Separate app from API and `directwerk-web` / `directwerk-studio` |
@@ -612,49 +612,51 @@ Execute after Phase A backend is green:
 
 ---
 
-## 12. Implementation checklist
+## 12. Implementation status (2026-08)
 
-### Scaffold + auth
+MVP shipped at `directwerk-admin/`. Remaining: production deploy checklist, expanded audit filters.
 
-- [x] Next.js 16 project under `projects/directwerk/directwerk-admin/`
-- [ ] `AGENTS.md` with build commands
-- [ ] Login page
-- [ ] `platformTokenStore` + refresh logic
-- [ ] `PlatformAuthGuard`
-- [ ] `platformApi` client
+### Scaffold + auth — shipped
 
-### Tenant management
+- [x] Next.js 16 project under `directwerk-admin/`
+- [x] `AGENTS.md` with build commands
+- [x] Login page
+- [x] `platformTokenStore` + refresh logic
+- [x] `PlatformAuthGuard` / session bootstrap
+- [x] `platformApi` client
 
-- [ ] Tenant list with search, filter, pagination
-- [ ] Create tenant form with preset selector
-- [ ] Tenant detail page
-- [ ] Suspend / reactivate actions
+### Tenant management — shipped
 
-### Module management
+- [x] Tenant list with search, filter, pagination
+- [x] Create tenant form with preset selector
+- [x] Tenant detail page
+- [x] Suspend / reactivate actions
 
-- [ ] Module catalog fetch
-- [ ] `ModuleGrid` with dependency hints
-- [ ] Activate / deactivate with cascade confirmation
-- [ ] Preset buttons
+### Module management — shipped
 
-### User management
+- [x] Module catalog fetch
+- [x] `TenantModulesPanel` with dependency hints
+- [x] Activate / deactivate with cascade confirmation
+- [x] Preset buttons
 
-- [ ] Tenant users list + invite modal
-- [ ] Role patch + remove
-- [ ] Platform admins list + invite + revoke
+### User management — shipped
 
-### Audit + overview
+- [x] Tenant users list + invite modal
+- [x] Role patch + remove
+- [x] Platform admins list + invite + revoke
 
-- [ ] Audit log table with filters
-- [ ] Overview tenant count widgets
-- [ ] Recent audit events widget
+### Audit + overview — partial
+
+- [x] Audit log table
+- [x] Overview dashboard widgets
+- [ ] Advanced audit filters / export
 
 ### Production readiness
 
-- [ ] `NEXT_PUBLIC_PLATFORM_API_URL` documented
-- [ ] Coolify deploy config
-- [ ] CORS verified with backend team
-- [ ] No secrets in client bundle
+- [x] `NEXT_PUBLIC_PLATFORM_API_URL` documented (`.env.local.example`)
+- [ ] Coolify deploy config documented in ops runbook
+- [x] CORS via API proxy routes
+- [x] No secrets in client bundle
 
 ---
 
@@ -664,11 +666,11 @@ Execute after Phase A backend is green:
 - Backend auth: [`user-backend-implementation.md`](user-backend-implementation.md)
 - Tenant dashboard contrast: [`directwerk-studio-implementation.md`](directwerk-studio-implementation.md)
 - Alpha backend: [`poc-alpha-setup.md`](poc-alpha-setup.md)
-- HTTP tests: [`http/01-platform-auth.http`](../http/01-platform-auth.http),
-  [`http/02-platform-tenants.http`](../http/02-platform-tenants.http),
-  [`http/03-platform-modules.http`](../http/03-platform-modules.http),
-  [`http/04-platform-users.http`](../http/04-platform-users.http)
+- HTTP tests: [`Directwerk/http/01-platform-auth.http`](../Directwerk/http/01-platform-auth.http),
+  [`Directwerk/http/02-platform-tenants.http`](../Directwerk/http/02-platform-tenants.http),
+  [`Directwerk/http/03-platform-modules.http`](../Directwerk/http/03-platform-modules.http),
+  [`Directwerk/http/04-platform-users.http`](../Directwerk/http/04-platform-users.http)
 
 ---
 
-*Last updated: 2026-07-17*
+*Last updated: 2026-08-28*

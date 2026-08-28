@@ -2,7 +2,7 @@
 
 This is the authoritative guide for building, running, and deploying the Directwerk Spring Boot API.
 
-The project is a Gradle multi-module build under `projects/directwerk/Directwerk/`. Only `directwerk-app` produces the runnable fat JAR (`directwerk-app.jar`). Other modules are libraries on the classpath.
+The project is a Gradle multi-module build under `Directwerk/`. Only `directwerk-app` produces the runnable fat JAR (`directwerk-app.jar`). Other modules are libraries on the classpath.
 
 Related docs:
 
@@ -17,7 +17,7 @@ Related docs:
 |------|-------------|
 | **Java 21** | Host `./gradlew` builds, tests, and `bootRun` |
 | **Docker** + **Compose v2** | Local Postgres + Mailpit (recommended); full container stack; image builds |
-| **pnpm 12** (optional) | Example Next.js apps under `projects/directwerk/example-*` |
+| **pnpm 12** (optional) | Next.js apps: `directwerk-studio/`, `directwerk-web/`, `directwerk-admin/` |
 | **`.env` file** | Copy from [`.env.example`](../.env.example); never commit `.env` |
 
 ## Project layout (build-relevant)
@@ -57,7 +57,7 @@ Preferred workflow for day-to-day API work: Compose for infrastructure, Gradle f
 ### 1.1 Configure environment
 
 ```sh
-cd projects/directwerk/Directwerk
+cd Directwerk
 cp .env.example .env
 ```
 
@@ -226,10 +226,10 @@ Local default keeps `server.forward-headers-strategy=none`. Details: [multi-tena
 
 ## 2. Build the Docker image
 
-Build context is **`projects/directwerk/Directwerk/`** (the directory containing `Dockerfile`).
+Build context is **`Directwerk/`** (the directory containing `Dockerfile`).
 
 ```sh
-cd projects/directwerk/Directwerk
+cd Directwerk
 docker build -t directwerk:local .
 ```
 
@@ -252,7 +252,7 @@ docker push registry.example.com/directwerk:$(git rev-parse --short HEAD)
 Run **Postgres + Mailpit + Directwerk** entirely in containers with the Compose `stack` profile:
 
 ```sh
-cd projects/directwerk/Directwerk
+cd Directwerk
 cp .env.example .env   # secrets required — see below
 docker compose --profile stack up --build
 ```
@@ -406,7 +406,7 @@ docker run --rm -p 8080:8080 \
 This monorepo deploys other services via [Coolify](https://coolify.io) on Hetzner Cloud (see repo `deployment/`). For Directwerk:
 
 1. Create a **Dockerfile** application in Coolify.
-2. Set **build context** to `projects/directwerk/Directwerk`.
+2. Set **build context** to `Directwerk`.
 3. Set **Dockerfile** to `Dockerfile`.
 4. Configure the environment variables above as Coolify secrets.
 5. Attach managed **PostgreSQL 18+**; point `SPRING_DATASOURCE_*` at it.
@@ -469,7 +469,7 @@ Startup runs Flyway (and may seed local data). Cold databases can take up to ~90
 
 ### Build fails in Docker
 
-Build context must be `projects/directwerk/Directwerk` (not the monorepo root). The Dockerfile copies every Gradle subproject listed in `settings.gradle`.
+Build context must be `Directwerk` (not the monorepo root). The Dockerfile copies every Gradle subproject listed in `settings.gradle`.
 
 ### Port already in use
 

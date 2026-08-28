@@ -25,7 +25,7 @@ Mailpit, host `bootRun`, Docker image, Coolify/prod). **Public docs site:** [`di
 Manual API tests: [`Directwerk/http/`](Directwerk/http/). The retained API demo UI is
 `example-fe`; product UIs are `directwerk-admin`, `directwerk-studio`, and `directwerk-web`.
 
-**Public docs site:** [`directwerk-docs/`](directwerk-docs/) — VitePress site (install guide, operators, API reference). Root [`docs/`](docs/) remains internal/agent source.
+**Public docs site:** [`directwerk-docs/`](directwerk-docs/) (VitePress). Internal doc index: [`docs/README.md`](docs/README.md).
 
 **Stack**: Java 21 · Spring Boot 4.1.0 · Gradle 9.x · Flyway 12+ · PostgreSQL 19 (beta) · Hetzner/Bunny S3 (EU) · Stripe Connect · Patreon/Steady API
 
@@ -34,9 +34,9 @@ presign). See [`docs/asset-storage.md`](docs/asset-storage.md). Podcast Phase 3 
 [`Directwerk/directwerk-podcast/README.md`](Directwerk/directwerk-podcast/README.md).
 
 **Reference frontends (default bundled apps for creators):**
-- `projects/directwerk-studio/` — **creator dashboard** (see [`docs/directwerk-studio.md`](docs/directwerk-studio.md))
-- `projects/directwerk-web/` — public site + subscriber portal (Phase 9)
-- `projects/directwerk-admin/` — platform superadmin dashboard (Phase 5)
+- `directwerk-studio/` — **creator dashboard** (see [`docs/directwerk-studio.md`](docs/directwerk-studio.md))
+- `directwerk-web/` — public site + subscriber portal (Phase 9)
+- `directwerk-admin/` — platform superadmin dashboard (Phase 5)
 - `homepage/` — **platform marketing site** + API excerpt at `/developers` ([`homepage/README.md`](homepage/README.md))
 - `directwerk-docs/` — **public documentation** (VitePress — install, operators, API reference)
 
@@ -46,11 +46,11 @@ presign). See [`docs/asset-storage.md`](docs/asset-storage.md). Podcast Phase 3 
 
 ## Build / Dev / Test Commands
 
-All Directwerk commands run from `projects/directwerk/Directwerk/` (not the parent `directwerk/` folder).
+All Directwerk commands run from `Directwerk/` (not the parent `directwerk/` folder).
 Full detail: [`Directwerk/docs/build-and-deploy.md`](Directwerk/docs/build-and-deploy.md).
 
 ```sh
-cd projects/directwerk/Directwerk
+cd Directwerk
 cp .env.example .env                    # set secrets once
 docker compose up -d                    # Postgres :5433 + Mailpit :1025 / UI :8025
 ./gradlew :directwerk-app:bootRun       # profile=local from .env

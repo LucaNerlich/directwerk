@@ -19,7 +19,7 @@ All other Directwerk Gradle modules.
 
 ## Build
 
-From `projects/directwerk/Directwerk/`:
+From `Directwerk/`:
 
 ```sh
 ./gradlew :directwerk-common:build

@@ -1,6 +1,6 @@
 # Directwerk UI system
 
-All Next.js apps in `projects/directwerk` use the shared `@directwerk/ui` package.
+All Next.js apps in this monorepo use the shared `@directwerk/ui` package.
 It is based on shadcn/ui, Base UI, Tailwind CSS v4, and a common neutral,
 editorial visual language.
 

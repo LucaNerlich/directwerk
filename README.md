@@ -133,11 +133,12 @@ product strategy, and UI — read them before coding a slice.
 | [`docs/product-naming.md`](docs/product-naming.md) | Public product name strategy and naming history | Before public marketing |
 | [`Directwerk/http/`](Directwerk/http/) | JetBrains HTTP Client manual API tests | After the API runs locally |
 | [`Directwerk/bruno/`](Directwerk/bruno/) | Bruno API collection (full REST surface) — **update on/after every controller or API change** | Manual API testing; keep in sync with controllers |
+| [`docs/README.md`](docs/README.md) | **Internal doc index** — what is current vs historical | Before editing or adding docs |
 | [`AGENTS.md`](AGENTS.md) | Agent-oriented summary — commands, security, domain model | AI assistants / quick reference |
 
-**Implementation order:** Alpha backend ([`poc-alpha-setup.md`](docs/poc-alpha-setup.md)) → Studio v0
-(settings/team) → media upload (Phase 2c) → podcast CRUD + Studio v2 (Phase 3) → RSS,
-subscriptions, billing (post-MVP). See [MVP implementation phases](#mvp-implementation-phases) and
+**Implementation status (2026-08):** Alpha backend, studio, web, RSS, entitlements, and Stripe scaffold
+are shipped. Remaining work: live billing in production, `EMAIL_NOTIFY`, Patreon/Steady dual-run, and
+polish. Historical phase breakdown: [MVP implementation phases](#mvp-implementation-phases) and
 [`poc-alpha-setup.md` § Recommended work sequence](docs/poc-alpha-setup.md#recommended-work-sequence).
 
 ### Regenerating the docs site
@@ -379,7 +380,7 @@ storage **plumbing** in one runnable backend — **no** podcast CRUD, upload end
 | `MediaAsset` schema + S3 beans + `AssetAccessApi` stub | `directwerk-studio` / `directwerk-web` UI |
 | Platform + tenant admin API surface | Private signed URLs, RSS feeds |
 
-Alpha success = all [`http/*.http`](http/) scenarios green against local dev seed.
+Alpha success = all [`Directwerk/http/*.http`](Directwerk/http/) scenarios green against local dev seed.
 
 #### MVP implementation phases
 
@@ -445,10 +446,10 @@ Record decisions here before implementation begins.
 
 | # | Decision | Recommended | Alternative | Chosen |
 |---|----------|-------------|-------------|--------|
-| 1 | Project placement | New `projects/directwerk/` | Extend `projects/courses/` | TBD |
+| 1 | Project placement | Dedicated `directwerk/` monorepo | Extend `projects/courses/` | **`directwerk/`** |
 | 2 | Tenant payouts | Stripe Connect | Platform Stripe account + manual settlement | TBD |
 | 3 | Tenant-facing UI | **`directwerk-studio` + `directwerk-web` bundled default**; API for agencies/custom frontends | API-only; customer builds everything | **Bundled default** |
-| 4 | Superadmin dashboard | **Separate app** (`projects/directwerk-admin/`) | Section inside directwerk-web | **Separate app** |
+| 4 | Superadmin dashboard | **Separate app** (`directwerk-admin/`) | Section inside directwerk-web | **Separate app** |
 | 5 | Publisher admin for tenants | **`directwerk-studio`** (default); API for integrators | Customer builds via API only | **`directwerk-studio`** |
 | 6 | Premium distribution | **Per-subscriber private feed URL** (token) + public free-only feed | Signed enclosure URLs in public feed | **Private feeds** |
 | 7 | Patreon/Steady during migration | **Dual-run sync** — OAuth + webhook membership sync while billing transitions | Big-bang cutover with CSV import only | TBD |
@@ -559,7 +560,7 @@ flowchart TB
 
 | Component | Role | Required? |
 |-----------|------|-----------|
-| **Spring Boot API** (`projects/directwerk/`) | **Core backend** — business logic, feeds, billing, entitlements, jobs, cache | Yes |
+| **Spring Boot API** (`Directwerk/`) | **Core backend** — business logic, feeds, billing, entitlements, jobs, cache | Yes |
 | **`directwerk-studio`** | Creator content management — part of the backend product | Yes (shipped with platform) |
 | **`directwerk-admin`** | Platform superadmin operations | Yes (for platform team) |
 | **PostgreSQL, S3, CDN** | Database, asset storage, public media delivery | Yes |
@@ -787,7 +788,7 @@ subscription checks, module gating — must be fully operable via HTTP without a
 
 ### Reference Frontends
 
-`projects/directwerk-studio/`, `projects/directwerk-web/`, and `projects/directwerk-admin/` are **not** the
+`directwerk-studio/`, `directwerk-web/`, and `directwerk-admin/` are **not** the
 API contract — they prove it works and ship the **default creator experience**. See
 [`docs/directwerk-studio.md`](docs/directwerk-studio.md) for the creator dashboard in detail.
 
@@ -1202,7 +1203,7 @@ Cross-module calls go through public service interfaces in `modules/{name}/api/`
 }
 ```
 
-Next.js (`projects/directwerk-web/`) uses `enabledModules` to:
+Next.js (`directwerk-web/`) uses `enabledModules` to:
 
 - Show/hide nav items (Feed Builder, Pricing, Integrations)
 - Guard routes (`/account/feeds` requires `FEED_BUILDER`)
@@ -2312,11 +2313,11 @@ Tenant isolation: `TenantContext` from JWT `tenant_id` claim + `Host` cross-chec
 **Not the API contract** — default **public site and subscriber portal** for non-technical creators.
 Agencies may replace with a custom frontend against the same API.
 
-**Planned location:** `projects/directwerk-web/` (Phase 9 — after core API; may ship earlier for MVP demo)
+**Location:** `directwerk-web/` — shipped MVP (public site + subscriber portal).
 
 | Area | Pages |
 |------|-------|
-| **Public** | Show landing, free episode list, article archive (post-MVP), product pricing, register/login |
+| **Public** | Show landing, free episode list, article archive, product pricing, register/login |
 | **Subscriber portal** | Access dashboard (`/me/access`), feed URLs, **feed builder**, subscription management |
 
 Publisher back-office lives in **`directwerk-studio`** — not `directwerk-web`. See
@@ -2327,7 +2328,7 @@ Publisher back-office lives in **`directwerk-studio`** — not `directwerk-web`.
 | Data source | 100% via `/api/v1/` — no direct DB, no BFF bypassing public API |
 | Tenant resolution | Middleware reads `Host` → `GET /api/v1/public/site-config` |
 | Feed builder UI | Thin client over `/api/v1/me/feeds` |
-| Styling | CSS Modules; customer frontends may use any stack |
+| Styling | Tailwind v4 + `@directwerk/ui` (bundled apps); customer frontends may use any stack |
 | Deploy | Bundled with `directwerk-studio` on tenant domain by default |
 
 Reference static-site patterns: [`projects/complete/pilates/src/site/identity.ts`](../complete/pilates/src/site/identity.ts)
@@ -2345,12 +2346,12 @@ valid. **`directwerk-studio` can remain the creator dashboard.**
 [`docs/directwerk-studio-implementation.md`](docs/directwerk-studio-implementation.md). Content backend
 (libraries, workflow): [`docs/content-creation-implementation.md`](docs/content-creation-implementation.md).
 
-**Planned location:** `projects/directwerk-studio/` (dedicated app) or `/studio/**` in `directwerk-web`
+**Location:** `directwerk-studio/` — dedicated publisher app (shipped).
 
 | Area | Screens |
 |------|---------|
 | **Overview** | Drafts awaiting publish, recent activity, integration health |
-| **Content** | Podcast series/episodes, articles (post-MVP), bonus files |
+| **Content** | Podcast series/episodes, articles (Write desk), bonus files |
 | **Media library** | Upload audio/images, attach to content |
 | **Audience** | Subscribers (admin), team invites |
 | **Monetization** | Products, Stripe/Patreon/Steady, email ESP |
@@ -2376,9 +2377,9 @@ tenants, module assignments, tenant admins, and platform health — separate fro
 
 | App | Path | Audience | Tenant resolution |
 |-----|------|----------|-------------------|
-| `projects/directwerk-admin/` | `https://admin.{platform-domain}.de` | Platform superadmins | **None** — platform-scoped only |
-| `projects/directwerk-studio/` | `https://studio.{tenant-domain}.de` | Publishers, editors | Host-based |
-| `projects/directwerk-web/` | `https://{tenant-domain}.de` | Subscribers, guests | Host-based |
+| `directwerk-admin/` | `https://admin.{platform-domain}.de` | Platform superadmins | **None** — platform-scoped only |
+| `directwerk-studio/` | `https://studio.{tenant-domain}.de` | Publishers, editors | Host-based |
+| `directwerk-web/` | `https://{tenant-domain}.de` | Subscribers, guests | Host-based |
 
 **Why a separate app?**
 
@@ -2562,15 +2563,15 @@ Superadmin accounts are **never** created via public registration — invite-onl
 
 | Concern | Value |
 |---------|-------|
-| Project | `projects/directwerk-admin/` |
-| Stack | Next.js 16, React 19, TypeScript, CSS Modules (no Tailwind) |
+| Project | `directwerk-admin/` |
+| Stack | Next.js 16, React 19, TypeScript, Tailwind v4, `@directwerk/ui` |
 | Host | `admin.{platform-domain}.de` (single fixed domain) |
 | API target | `https://api.{platform-domain}.de/api/v1/platform` |
 | Coolify | Separate app from `directwerk-web` and Spring API |
 | Env | `NEXT_PUBLIC_PLATFORM_API_URL`, no tenant env vars |
 
 ```
-projects/directwerk-admin/
+directwerk-admin/
   app/
     (auth)/login/
     (dashboard)/
@@ -2649,7 +2650,7 @@ See [Flyway](#flyway) for full integration guide, configuration, development wor
 ### Quick start
 
 ```sh
-cd projects/directwerk/Directwerk
+cd Directwerk
 cp .env.example .env          # set DB password + OAuth / seed secrets
 docker compose up -d          # Postgres :5433, Mailpit SMTP :1025 / UI :8025
 ./gradlew :directwerk-app:bootRun
@@ -2709,35 +2710,15 @@ and the build-and-deploy guide.
 
 ## CI/CD
 
-Extend [`.github/workflows/projects-ci.yml`](../../.github/workflows/projects-ci.yml):
+[`.github/workflows/ci.yml`](.github/workflows/ci.yml) runs on push/PR to `main`:
 
-```yaml
-publish:
-  needs: changes
-  if: needs.changes.outputs.publish == 'true'
-  runs-on: ubuntu-latest
-  defaults:
-    run:
-      working-directory: projects/directwerk
-  services:
-    postgres:
-      image: postgres:19beta1-alpine
-      env:
-        POSTGRES_DB: publishdb_test
-        POSTGRES_USER: test
-        POSTGRES_PASSWORD: test
-      ports:
-        - 5432:5432
-  steps:
-    - uses: actions/checkout@v4
-    - uses: actions/setup-java@v4
-      with:
-        distribution: temurin
-        java-version: '21'
-    - run: ./gradlew test build
-```
+- `pnpm install --frozen-lockfile`
+- `pnpm test` — Vitest across workspace packages
+- `pnpm typecheck`
+- `pnpm build` — all Next.js apps (placeholder API URLs)
 
-Path filter: `projects/directwerk/**`
+Backend tests run locally via `./gradlew test` from `Directwerk/` (PostgreSQL via Compose).
+Add a Gradle job to CI when you want API tests on every PR.
 
 ---
 
@@ -2854,7 +2835,7 @@ Path filter: `projects/directwerk/**`
 
 ### Phase 5 — Platform superadmin dashboard
 
-- [ ] `projects/directwerk-admin/` Next.js scaffold (fixed domain, no tenant middleware)
+- [ ] `directwerk-admin/` Next.js scaffold (fixed domain, no tenant middleware)
 - [ ] Superadmin login (PLATFORM_ADMIN JWT)
 - [ ] Tenant list + create + detail views
 - [ ] Module management UI (toggles, presets, dependency hints, cascade confirm)
@@ -2894,7 +2875,7 @@ Path filter: `projects/directwerk/**`
 
 ### Phase 9 — Reference frontend (optional)
 
-- [ ] `projects/directwerk-web/` — optional reference; **customer-built frontends are the primary model**
+- [ ] `directwerk-web/` — optional reference; **customer-built frontends are the primary model**
 - [ ] Demonstrate Project X journey: register, catalog, checkout, portal, feed builder
 - [ ] Per-customer fork/customize as needed
 
@@ -2904,7 +2885,8 @@ Path filter: `projects/directwerk/**`
 - [ ] Rate limiting on feed token endpoints and webhooks
 - [ ] Domain verification flow
 - [ ] PostgreSQL backup automation
-- [ ] CI job in `projects-ci.yml`
+- [x] Frontend CI (`.github/workflows/ci.yml` — test, typecheck, build)
+- [ ] Backend CI job (`./gradlew test` with PostgreSQL service)
 - [ ] OpenAPI contract tests (snapshot or schemathesis)
 - [ ] API integration examples (cURL collection or `.http` files)
 
@@ -2923,7 +2905,7 @@ Path filter: `projects/directwerk/**`
 ## Flyway
 
 [Flyway](https://documentation.red-gate.com/flyway/) manages all PostgreSQL schema changes for
-`projects/directwerk/`. **Flyway owns the schema; Hibernate only validates against it.**
+`Directwerk/`. **Flyway owns the schema; Hibernate only validates against it.**
 
 Stack: Flyway 12+ (version from Spring Boot 4.1.0 BOM) · PostgreSQL 19 (beta) ·
 `spring-boot-starter-flyway`
@@ -3166,7 +3148,7 @@ flowchart LR
 **Reset local database** (dev only — `clean-disabled: false` on profile `local`):
 
 ```sh
-cd projects/directwerk/Directwerk
+cd Directwerk
 set -a && source .env && set +a
 ./gradlew :directwerk-app:flywayClean :directwerk-app:flywayMigrate
 # or: docker compose down -v && docker compose up -d
@@ -3239,7 +3221,8 @@ class FlywayMigrationIT {
 }
 ```
 
-CI (`projects-ci.yml`) runs `./gradlew test build` with a PostgreSQL service container — migrations
+[`.github/workflows/ci.yml`](.github/workflows/ci.yml) runs frontend `pnpm test`, `typecheck`, and
+`build`. Run `./gradlew test build` from `Directwerk/` locally (PostgreSQL via Compose) — migrations
 must pass before merge.
 
 ### Production and CI
@@ -3281,12 +3264,12 @@ Reference: [`projects/courses/README.md`](../courses/README.md) — Flyway Integ
 | [`projects/strapi/cffc-v3`](../strapi/cffc-v3) | Reference Stripe `payment-data` naming; do not port Strapi |
 | [`projects/strapi/cffc-v5`](../strapi/cffc-v5) | S3 upload configuration reference |
 | [`projects/complete/pilates`](../complete/pilates/), [`projects/cffc`](../cffc/) | Whitelabel UI conventions (`identity`, CSS modules, SEO) |
-| [`projects/directwerk-admin/`](../directwerk-admin/) | Platform superadmin dashboard (not yet created) |
-| [`projects/directwerk-studio/`](../directwerk-studio/) | Default creator dashboard — see [`docs/directwerk-studio.md`](docs/directwerk-studio.md) |
-| [`projects/directwerk-web/`](../directwerk-web/) | Default public site + subscriber portal — agencies may replace |
+| [`directwerk-admin/`](directwerk-admin/) | Platform superadmin dashboard — shipped MVP |
+| [`directwerk-studio/`](directwerk-studio/) | Default creator dashboard — see [`docs/directwerk-studio.md`](docs/directwerk-studio.md) |
+| [`directwerk-web/`](directwerk-web/) | Default public site + subscriber portal — agencies may replace |
 | [`docs/ghost-positioning.md`](docs/ghost-positioning.md) | Competitive positioning vs Ghost — not a feature-parity target |
-| Root [`AGENTS.md`](../../AGENTS.md) | Monorepo conventions; independent subproject build |
+| [`AGENTS.md`](AGENTS.md) | Monorepo conventions; independent subproject build |
 
 ---
 
-*Last updated: 2026-07-19 — Stack: Spring Boot 4.1.0, Gradle 9.x, Flyway 12+, PostgreSQL 19 beta. Run/deploy: [`Directwerk/docs/build-and-deploy.md`](Directwerk/docs/build-and-deploy.md). Doc index: [Documentation](#documentation).*
+*Last updated: 2026-08-28 — Stack: Spring Boot 4.1.0, Gradle 9.x, Flyway 12+, PostgreSQL 19 beta. Run/deploy: [`Directwerk/docs/build-and-deploy.md`](Directwerk/docs/build-and-deploy.md). Doc index: [`docs/README.md`](docs/README.md).*

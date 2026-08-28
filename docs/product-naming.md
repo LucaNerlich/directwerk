@@ -149,7 +149,7 @@ Full parked / rejected tables kept below for reference.
 | Layer | Value |
 |-------|-------|
 | **Marketing / legal** | Directwerk |
-| **Repo folders** | `projects/directwerk/` |
+| **Repo folders** | `directwerk/` monorepo (`Directwerk/`, `directwerk-studio/`, …) |
 | **Java package** | `de.pnnit.directwerk` |
 | **Reference apps** | `directwerk-web`, `directwerk-studio`, `directwerk-admin` |
 | **API Host** | `api.directwerk.de` (or chosen TLD) — still TODO, see [Validation checklist](#validation-checklist-before-public-launch) |

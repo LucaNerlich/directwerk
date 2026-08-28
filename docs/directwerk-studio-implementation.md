@@ -2,7 +2,7 @@
 
 Companion to [`directwerk-studio.md`](directwerk-studio.md) (product overview) and
 [`README.md`](../README.md) (full platform design). This document is the **single implementation
-spec** for the creator dashboard at `projects/directwerk-studio/` — product context, screen-by-screen
+spec** for the creator dashboard at `directwerk-studio/` — product context, screen-by-screen
 UI spec, API mappings, scaffold, auth, and phased checklist.
 
 | Document | Purpose |
@@ -15,10 +15,10 @@ UI spec, API mappings, scaffold, auth, and phased checklist.
 | [`poc-alpha-setup.md`](poc-alpha-setup.md) § Phase B | When to start studio relative to backend |
 | [`asset-storage.md`](asset-storage.md) | Upload, confirm, S3 layout, asset retrieval |
 
-**Status (2026-08):** Usable MVP at `projects/directwerk/directwerk-studio/` on `@directwerk/ui`. Write and
+**Status (2026-08):** Usable MVP at `directwerk-studio/` on `@directwerk/ui`. Write and
 Podcast desks, media library, products/subscribers/grants, and `directwerk-web` subscriber feeds/account
 are shipped. Backend articles API and site-config desk metadata remain the contract.
-**Prerequisite:** Phase A backend complete — all [`http/`](../http/) files green.
+**Prerequisite:** Phase A backend complete — all [`Directwerk/http/`](../Directwerk/http/) files green.
 
 **The dashboard is a consumer of the REST API** — same contract customer-built frontends use. No
 private BFF shortcuts, no direct database access.
@@ -46,9 +46,8 @@ flowchart LR
     API --> S3
 ```
 
-**Planned location:** `projects/directwerk-studio/` (dedicated publisher app) **or** `/studio/**`
-routes inside `projects/directwerk-web/`. Prefer a dedicated app when a customer wants publisher tools
-without the public marketing site on the same deployable.
+**Location:** `directwerk-studio/` — dedicated publisher app (shipped). Agencies may replace it
+with a custom frontend against the same API.
 
 **Tenant resolution:** Dashboard runs on the tenant domain (`https://alpha-a.localhost/studio` or
 `https://studio.alpha-show.de`). Every API call sends `Host` + JWT with `tenant_id` claim.
@@ -81,7 +80,7 @@ A **Next.js 16 creator dashboard** where non-technical German podcasters:
 - Log in on their tenant domain
 - Manage branding, domains, and team (Studio v0)
 - Upload media and publish podcast episodes (Studio v1–v2)
-- Manage subscribers and products (Studio v3, post-MVP)
+- Manage subscribers and products (Studio v3 — shipped; live billing when Stripe keys are set)
 
 ### Hard constraints
 
@@ -93,7 +92,7 @@ A **Next.js 16 creator dashboard** where non-technical German podcasters:
 | **Bootstrap from `site-config`** | Branding theme + `enabledModules[]` nav gating |
 | **No secrets in frontend** | Stripe/Patreon/ESP keys server-only |
 | **German UI first** | i18n when studio ships |
-| **CSS Modules only** | Monorepo convention — no Tailwind |
+| **Tailwind v4 + `@directwerk/ui`** | Shared shadcn primitives and theme tokens — see [`ui-system.md`](ui-system.md) |
 
 ### What studio is not
 
@@ -135,7 +134,7 @@ the dashboard is no longer a scaffold.
 
 | Phase | Dashboard deliverable | Backend dependency |
 |-------|----------------------|-------------------|
-| **Alpha** | None (API exercised via [`../http/`](../http/)) | Tenancy, auth, module probes, `MediaAsset` schema |
+| **Alpha** | None (API exercised via [`../Directwerk/http/`](../Directwerk/http/)) | Tenancy, auth, module probes, `MediaAsset` schema |
 | **MVP — Studio v0** | Settings + Team | `/api/v1/tenant/*` branding, domains, users |
 | **MVP — Studio v1** | Media library | Phase 2c upload/confirm per [`asset-storage.md`](asset-storage.md) |
 | **MVP — Studio v2** | Podcast content + publication | Phase 3 series/episodes, publish workflow |
@@ -232,7 +231,7 @@ Full library rationale and backend deps: [`content-creation-implementation.md`](
 ### Directory structure
 
 ```
-projects/directwerk-studio/
+directwerk-studio/
   package.json
   tsconfig.json
   next.config.ts
@@ -798,8 +797,8 @@ Backend content tests: [`content-creation-implementation.md` § 8](content-creat
 
 | Concern | Value |
 |---------|-------|
-| Project | `projects/directwerk-studio/` |
-| Stack | Next.js 16, React 19, TypeScript, CSS Modules |
+| Project | `directwerk-studio/` |
+| Stack | Next.js 16, React 19, TypeScript, Tailwind v4, `@directwerk/ui` |
 | Host | `studio.{tenant-domain}` or `{tenant-domain}/studio` |
 | Coolify | Separate app per reference frontend |
 | Build | `pnpm build` from project directory |
@@ -807,42 +806,47 @@ Backend content tests: [`content-creation-implementation.md` § 8](content-creat
 
 ---
 
-## Implementation checklist
+## Implementation status (2026-08)
 
-### Studio v0
+Most checklist items below shipped in the MVP. Remaining gaps: live Stripe money in production,
+`EMAIL_NOTIFY` send-on-publish, analytics widgets, and polish (module-gated SideNav labels).
 
-- [ ] Next.js scaffold + `AGENTS.md`
-- [ ] Login page + OAuth2 token storage
-- [ ] `AuthGuard` + `StudioShell`
-- [ ] `site-config` bootstrap + branding CSS variables
-- [ ] `ModuleGate` + `SideNav`
-- [ ] Branding editor (`GET/PUT /tenant/branding`)
-- [ ] Domain list/add (`GET/POST /tenant/domains`)
-- [ ] Team list, invite, role patch
-- [ ] Role-based route guards for settings
+### Studio v0 — shipped
 
-### Studio v1
+- [x] Next.js scaffold + `README.md` / `AGENTS.md`
+- [x] Login page + OAuth2 token storage
+- [x] `AuthGuard` + `StudioShell`
+- [x] `site-config` bootstrap + branding theme (`BrandTheme`)
+- [x] `ModuleGate` + `SideNav`
+- [x] Branding editor (`GET/PUT /tenant/branding`)
+- [x] Domain list/add (`GET/POST /tenant/domains`)
+- [x] Team list, invite, role patch
+- [x] Role-based route guards for settings
 
-- [ ] `tenantApi` client + `useTenantApi` hook
-- [ ] `UploadDropzone` + `directToS3`
-- [ ] Media library grid + filters
-- [ ] `MediaPickerModal`
+### Studio v1 — shipped
 
-### Studio v2 (MVP)
+- [x] `tenantApi` client + hooks
+- [x] Media upload (pre-signed PUT via API route proxy)
+- [x] Media library grid + filters (`/media`)
+- [x] `MediaLibraryPicker` for episode/article attachments
 
-- [ ] Series CRUD UI
-- [ ] Episode editor + TipTap show notes
-- [ ] Publication workflow actions
-- [x] Format/category taxonomy manager (`/podcast/formats`, `/manage/categories`)
-- [ ] Overview widgets
+### Studio v2 (MVP) — shipped
 
-### Studio v3+
+- [x] Series CRUD UI
+- [x] Episode editor + show notes
+- [x] Publication workflow actions
+- [x] Format/category taxonomy manager
+- [x] Overview queue widgets
 
-- [ ] Products CRUD + PACKAGE rule builder
-- [ ] Subscriber list + detail + manual grant
-- [ ] Integration connect flows (Stripe, Patreon, Steady)
-- [ ] Article editor (Markdown)
-- [ ] Digital publications
+### Studio v3+ — mostly shipped
+
+- [x] Products CRUD + PACKAGE rule builder
+- [x] Subscriber list + detail + manual grant
+- [x] Stripe connect UI (live checkout when keys configured)
+- [x] Article editor (Write desk)
+- [ ] Patreon/Steady connect flows (backend partial)
+- [ ] Digital publications desk (backend partial)
+- [ ] Notify subscribers on publish (`EMAIL_NOTIFY`)
 
 ---
 
@@ -857,4 +861,4 @@ Backend content tests: [`content-creation-implementation.md` § 8](content-creat
 
 ---
 
-*Last updated: 2026-07-17*
+*Last updated: 2026-08-28*

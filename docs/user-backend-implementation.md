@@ -2,7 +2,7 @@
 
 Companion to [`README.md`](../README.md) and [`poc-alpha-setup.md`](poc-alpha-setup.md). This document
 is the **step-by-step engineering guide** for implementing user accounts, authentication, authorization,
-and account management in the Spring Boot backend (`projects/directwerk/`).
+and account management in the Spring Boot backend (`Directwerk/`).
 
 | Document | Purpose |
 |----------|---------|
@@ -13,7 +13,7 @@ and account management in the Spring Boot backend (`projects/directwerk/`).
 | [`directwerk-admin-implementation.md`](directwerk-admin-implementation.md) | Platform admin dashboard consuming this API |
 | [`Directwerk/http/`](../Directwerk/http/) | Executable acceptance criteria (controller-mapped harness) |
 
-**Status (2026-07):** Implemented in `projects/directwerk/Directwerk/`. Controllers live under
+**Status (2026-07):** Implemented in `Directwerk/`. Controllers live under
 `de.pnnit.directwerk.controller.*` (auth under `controller/auth/`). Public self-registration
 creates `SUBSCRIBER` via `POST /api/v1/auth/register` (tenant from `Host`). Invited users set a
 password via `POST /api/v1/auth/accept-invite`. Local profile exposes `inviteToken` /

@@ -319,7 +319,7 @@ No Media-library-first requirement; library is for reuse.
 | Entitlements | Already publication-agnostic via LEVEL/PACKAGE — `ARTICLE` scopes supported |
 | Overview API | Optional cross-type “drafts awaiting publish” read model later |
 
-### Studio (`projects/directwerk/directwerk-studio/` — usable MVP)
+### Studio (`directwerk-studio/` — usable MVP)
 
 | Item | Status |
 |------|--------|

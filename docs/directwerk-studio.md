@@ -124,9 +124,7 @@ flowchart TB
 **Bundled default:** New tenants get `directwerk-studio` + `directwerk-web` on their domain. Custom
 frontends remain supported for agencies — they replace `directwerk-web`, not the entitlement engine.
 
-**Planned location:** `projects/directwerk-studio/` (dedicated app) **or** `/studio/**` routes inside
-`projects/directwerk-web/`. Prefer a dedicated app when a customer wants publisher tools without the
-public marketing site on the same deployable. See
+**Location:** `directwerk-studio/` — dedicated publisher app (shipped). See
 [`directwerk-studio-implementation.md` § What this is](directwerk-studio-implementation.md#what-this-is-and-is-not).
 
 ---
@@ -239,7 +237,7 @@ If non-technical creators are the primary buyer, ship in this order:
 | **Studio v2 (podcast)** before advanced API features | Creators need a UI on day one |
 | **`directwerk-web` as default tenant site** | They need a public website without hiring an agency |
 | **Native `EMAIL_NOTIFY` in studio** before outbound-only webhooks | “Publish + email subscribers” must be one click |
-| **Articles in studio v4** with paste-from-Docs | Blog without Notion/Zapier |
+| **Articles in studio (Write desk)** | Shipped — blog/show-notes without Notion/Zapier |
 | Tier B–D (API, Strapi, Ghost) | Power-user / agency upsell — not MVP |
 
 ---
@@ -247,8 +245,8 @@ If non-technical creators are the primary buyer, ship in this order:
 ## Technical constraints (for implementers)
 
 Studio follows the same rules as any API consumer — 100% via `/api/v1/`, OAuth2 JWT on tenant
-domain, bootstrap from `site-config`, German UI first, Next.js 16 + CSS Modules. Full scaffold,
-auth, and architecture: [`directwerk-studio-implementation.md`](directwerk-studio-implementation.md).
+domain, bootstrap from `site-config`, German UI first, Next.js 16 + Tailwind v4 + `@directwerk/ui`.
+Full scaffold, auth, and architecture: [`directwerk-studio-implementation.md`](directwerk-studio-implementation.md).
 
 ---
 

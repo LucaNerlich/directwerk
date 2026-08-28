@@ -1,8 +1,9 @@
 # Directwerk — Alpha / Proof-of-Concept Setup
 
 Companion to [`README.md`](../README.md) (full platform design spec). This document defines the
-**alpha POC slice**: the smallest runnable backend that proves the four MVP pillars end-to-end
-before podcast content, RSS, billing, or reference frontends ship.
+**alpha POC slice** — the smallest runnable backend that proved tenancy, auth, module gates, and
+storage before reference frontends shipped. **Historical reference** — the full stack is now shipped;
+use it for local API setup and HTTP harness order.
 
 | Document | Purpose |
 |----------|---------|
@@ -16,6 +17,9 @@ before podcast content, RSS, billing, or reference frontends ship.
 | [`product-naming.md`](product-naming.md) | Public product name strategy |
 | [`directwerk-studio.md`](directwerk-studio.md) | Creator dashboard — primary non-technical UX |
 | **This document** | Alpha implementation blueprint + manual API test harness |
+
+**Status (2026-08):** Phases A–G are shipped (backend, studio, web, RSS, entitlements, Stripe
+scaffold). Use this doc for local setup and HTTP harness order — not as a greenfield backlog.
 
 ---
 
@@ -37,9 +41,9 @@ flowchart LR
     G --> H[Phase H Billing 6-8]
 ```
 
-### Phase A — Alpha backend (you are here)
+### Phase A — Alpha backend (completed)
 
-**Goal:** Runnable Spring Boot app; all [`http/*.http`](../http/) files green. **No UI.**
+**Goal:** Runnable Spring Boot app; all [`Directwerk/http/*.http`](../Directwerk/http/) files green. **No UI.**
 
 | Step | What to do | Verify |
 |------|------------|--------|
@@ -66,7 +70,7 @@ flowchart LR
 
 | Step | What to do | Doc reference |
 |------|------------|---------------|
-| B.1 | Create `projects/directwerk-studio/` — Next.js 16, login on tenant domain, OAuth2 token storage | [`directwerk-studio-implementation.md` § Frontend](directwerk-studio-implementation.md#frontend-architecture) |
+| B.1 | Create `directwerk-studio/` — Next.js 16, login on tenant domain, OAuth2 token storage | [`directwerk-studio-implementation.md` § Frontend](directwerk-studio-implementation.md#frontend-architecture) |
 | B.2 | Bootstrap from `GET /api/v1/public/site-config` — theme + `ModuleGate` nav | [`directwerk-studio.md`](directwerk-studio.md) |
 | B.3 | Settings: branding editor, domain list/add | [`directwerk-studio-implementation.md` § Settings](directwerk-studio-implementation.md#10-settings) |
 | B.4 | Team: list, invite editor, role patch | [`directwerk-studio-implementation.md` § Team](directwerk-studio-implementation.md#2-audience--team) |
@@ -81,18 +85,18 @@ flowchart LR
 
 **Depends on:** Phase A. Can parallel Phase B.
 
-**Status:** Backend API + HTTP harness **shipped** (C.1, C.2, C.4) — tracked under
-[Phase 2c / 2d status](#phase-2c--2d-status-post-alpha--already-shipped). Studio UI (C.3) remains open.
+**Status:** Backend API + HTTP harness **shipped** (C.1, C.2, C.4). Studio media UI (C.3) **shipped**
+(`/media`, upload, `MediaLibraryPicker`).
 
 | Step | What to do | Doc reference |
 |------|------------|---------------|
 | C.1 | [x] `UploadService` — upload-url, confirm, promote `staging/` → `public\|private/` | [`asset-storage.md` § Upload flow](asset-storage.md#upload-flow) |
 | C.2 | [x] `MediaController` — list, preview-url (signed for private) | [`content-creation-implementation.md` § 4.2](content-creation-implementation.md#42-rest-endpoints-publisher) |
-| C.3 | [ ] Studio v1: `UploadDropzone`, media library grid, `MediaPickerModal` | [`content-creation-implementation.md` § 5](content-creation-implementation.md#5-frontend-implementation-directwerk-studio) |
-| C.4 | [x] Add `17-media-upload.http` to harness | [`http/`](../Directwerk/http/) |
+| C.3 | [x] Studio v1: media library, upload, picker | [`content-creation-implementation.md` § 5](content-creation-implementation.md#5-frontend-implementation-directwerk-studio) |
+| C.4 | [x] Add `17-media-upload.http` to harness | [`Directwerk/http/`](../Directwerk/http/) |
 
-**Verify (API done):** Upload MP3 → confirm → `GET` preview returns URL; cross-tenant denied
-(`17-media-upload.http`). Studio verify waits on C.3.
+**Verify:** Upload MP3 → confirm → `GET` preview returns URL; cross-tenant denied
+(`17-media-upload.http`). Studio: upload from `/media` and attach via picker in episode editor.
 
 ---
 
@@ -107,7 +111,7 @@ flowchart LR
 | D.1 | [x] Flyway `V28__create_podcast_content.sql` — series, episodes, formats, categories | [`Directwerk/directwerk-podcast/README.md`](../Directwerk/directwerk-podcast/README.md) |
 | D.2 | [x] CRUD controllers + `PublicationWorkflowService` + `HtmlSanitizer` | [`content-creation-implementation.md` § 4.1](content-creation-implementation.md#41-core-services) |
 | D.3 | [x] Publish / schedule endpoints; asset promotion on publish | [`asset-storage.md`](asset-storage.md) |
-| D.4 | [ ] Studio v2: series list, episode editor (TipTap show notes), workflow actions, taxonomy | [`directwerk-studio-implementation.md` § Podcasts](directwerk-studio-implementation.md#7-content--podcasts) |
+| D.4 | [x] Studio v2: series list, episode editor, workflow actions, taxonomy | [`directwerk-studio-implementation.md` § Podcasts](directwerk-studio-implementation.md#7-content--podcasts) |
 | D.5 | [x] Add `19-podcast-content.http` | [`Directwerk/http/`](../Directwerk/http/) |
 
 **Verify:** [MVP success in directwerk-studio.md](directwerk-studio.md#mvp-success-creator-can-complete-without-api-knowledge).
@@ -122,7 +126,7 @@ flowchart LR
 
 | Step | What to do | Doc reference |
 |------|------------|---------------|
-| E.1 | Scaffold `projects/directwerk-web/` — `site-config` branding, episode list/detail | [README § directwerk-web](../README.md#reference-frontend-directwerk-web) |
+| E.1 | Scaffold `directwerk-web/` — `site-config` branding, episode list/detail | [README § directwerk-web](../README.md#reference-frontend-directwerk-web) |
 | E.2 | Register/login flows via same OAuth2 client | README Auth API |
 | E.3 | Subscriber portal shell (`/me/*`) — stub until Phase G | README Subscriber API |
 
@@ -200,7 +204,7 @@ Do **not** start `directwerk-studio` or podcast CRUD until **Phase A** checklist
 3. **Composition-first codebase** — small reusable `api/` interfaces; no shared controller/service base classes
 4. **Full Spring Security account handling** — OAuth2 Authorization Server + Resource Server, all five roles
 5. **Storage foundation** — Hetzner/Bunny S3 client beans, `MediaAsset` schema, `AssetAccessApi` (see below)
-6. **JetBrains HTTP Client** — [`../http/`](../http/) files to exercise every alpha flow locally
+6. **JetBrains HTTP Client** — [`../Directwerk/http/`](../Directwerk/http/) files to exercise every alpha flow locally
 
 **Alpha explicitly defers:** Full upload/confirm pipeline, podcast CRUD, real entitlements (LEVEL /
 PACKAGE), private signed URLs, RSS feeds, subscriptions, Stripe/Patreon/Steady, `directwerk-admin` UI,
@@ -480,7 +484,7 @@ See [Key layout and asset scopes](asset-storage.md#key-layout-and-asset-scopes).
 > alpha sketch; prefer the Directwerk guide.
 
 ```sh
-cd projects/directwerk/Directwerk
+cd Directwerk
 cp .env.example .env
 docker compose up -d
 ./gradlew :directwerk-app:bootRun
@@ -534,7 +538,7 @@ Platform admin login uses the API host directly (`localhost:8080`) — no tenant
 | Tenant A editor (pre-invited) | `editor@alpha-show.local` / `ChangeMe-Editor!` |
 | Tenant A subscriber (register via HTTP) | `subscriber@alpha-show.local` / `ChangeMe-Subscriber!` |
 
-Seed credentials match [`http/http-client.env.json`](../http/http-client.env.json). Tenant A starts
+Seed credentials match [`Directwerk/http/http-client.env.json`](../Directwerk/http/http-client.env.json). Tenant A starts
 with `DIGITAL_CONTENT` + `PODCAST` active (for probe tests); tenant B starts with
 `DIGITAL_CONTENT` only (for dependency / isolation tests).
 
@@ -864,7 +868,7 @@ exercises activation, dependencies, presets, and gating even when a module has n
 | `DIGITAL_CONTENT` | true | `[]` | `GET /api/v1/probes/digital` |
 | `PODCAST` | false | `["DIGITAL_CONTENT"]` | `GET /api/v1/probes/podcast` |
 | `PODCAST_RSS` | false | `["PODCAST"]` | *(deferred — no RSS in alpha)* |
-| `FEED_BUILDER` | false | `["PODCAST_RSS", "SUBSCRIPTION"]` | Dependency tests only ([`03-platform-modules.http`](../http/03-platform-modules.http)) |
+| `FEED_BUILDER` | false | `["PODCAST_RSS", "SUBSCRIPTION"]` | Dependency tests only ([`03-platform-modules.http`](../Directwerk/http/03-platform-modules.http)) |
 | `SUBSCRIPTION` | false | `["DIGITAL_CONTENT"]` | Activation toggle only |
 | `STRIPE_BILLING` | false | `["SUBSCRIPTION"]` | Activation toggle only |
 | `PATREON_SYNC` | false | `["SUBSCRIPTION"]` | Activation toggle only |
@@ -935,7 +939,7 @@ uses `ModuleGateApi` / `ModuleActivationApi` instead of a monolithic `ModuleServ
 5. Activate `PODCAST` without `DIGITAL_CONTENT` → `DependencyNotActiveException` (should be impossible — core always on)
 6. Deactivate `DIGITAL_CONTENT` → rejected (`CannotDeactivateCoreModuleException`)
 7. Deactivate `PODCAST` → cascades to `PODCAST_RSS`; `/probes/podcast` = 403 again
-8. Re-activate `PODCAST` after probe test → `/probes/podcast` = 200 ([`08-module-probes.http`](../http/08-module-probes.http))
+8. Re-activate `PODCAST` after probe test → `/probes/podcast` = 200 ([`08-module-probes.http`](../Directwerk/http/08-module-probes.http))
 
 ---
 
@@ -1146,8 +1150,8 @@ Structured `errors[].code` values integrators and HTTP tests rely on:
 
 | Code | HTTP | When |
 |------|------|------|
-| `FEATURE_NOT_ENABLED` | 403 | Module inactive for tenant ([`08-module-probes.http`](../http/08-module-probes.http)) |
-| `MODULE_DEPENDENCY_MISSING` | 400/409 | Activate module without prerequisites ([`03-platform-modules.http`](../http/03-platform-modules.http)) |
+| `FEATURE_NOT_ENABLED` | 403 | Module inactive for tenant ([`08-module-probes.http`](../Directwerk/http/08-module-probes.http)) |
+| `MODULE_DEPENDENCY_MISSING` | 400/409 | Activate module without prerequisites ([`03-platform-modules.http`](../Directwerk/http/03-platform-modules.http)) |
 | `ENTITLEMENT_DENIED` | 403 | Private asset without subscription (alpha stub) |
 | `TENANT_MISMATCH` | 403 | JWT `tenant_id` ≠ resolved `Host` tenant |
 | `TENANT_NOT_FOUND` | 404 | Unknown `Host` on tenant-scoped route |
@@ -1160,7 +1164,7 @@ per [`asset-storage.md` § Error codes](asset-storage.md#error-codes).
 ## Publisher dashboard (deferred)
 
 Alpha proves the **backend contract** that [`directwerk-studio-implementation.md`](directwerk-studio-implementation.md)
-will consume. No UI ships in alpha — all flows run through [`../http/`](../http/).
+will consume. No UI ships in alpha — all flows run through [`../Directwerk/http/`](../Directwerk/http/).
 
 | Dashboard phase | Backend in alpha? | Key routes |
 |-----------------|-------------------|------------|
@@ -1176,58 +1180,53 @@ customer-built frontends, OAuth2 JWT on tenant domain, `site-config.enabledModul
 
 ## JetBrains HTTP Client test harness
 
-Manual API documentation and regression tests live in [`../http/`](../http/).
+Manual API documentation and regression tests live in [`../Directwerk/http/`](../Directwerk/http/).
 
 ### File map
 
+Canonical list: [`Directwerk/http/00-index.http`](../Directwerk/http/00-index.http) (27 scenario
+files, `01-health` through `27-custom-feeds`). Credentials:
+[`http-client.private.env.json`](../Directwerk/http/http-client.private.env.example.json) (copy from
+example; match `Directwerk/.env`).
+
 | File | Covers |
 |------|--------|
-| [`http-client.env.json`](../http/http-client.env.json) | Dev URLs, client credentials, test passwords |
-| [`00-health.http`](../http/00-health.http) | Actuator, OpenAPI |
-| [`01-platform-auth.http`](../http/01-platform-auth.http) | Platform admin login, token refresh |
-| [`02-platform-tenants.http`](../http/02-platform-tenants.http) | Tenant CRUD, suspend/reactivate |
-| [`03-platform-modules.http`](../http/03-platform-modules.http) | Module list, activate/deactivate, presets |
-| [`04-platform-users.http`](../http/04-platform-users.http) | Platform admin invite, tenant admin invite |
-| [`05-tenant-auth.http`](../http/05-tenant-auth.http) | Register, login, `/me`, password reset |
-| [`06-tenant-admin.http`](../http/06-tenant-admin.http) | Branding, domains, invite editor |
-| [`07-public-api.http`](../http/07-public-api.http) | `site-config` per `Host` |
-| [`08-module-probes.http`](../http/08-module-probes.http) | Module gating positive/negative |
-| [`09-multi-tenant-isolation.http`](../http/09-multi-tenant-isolation.http) | Cross-tenant rejection |
-| [`10-role-enforcement.http`](../http/10-role-enforcement.http) | Role matrix (403/200) — editor vs subscriber vs tenant admin |
-
-Credentials and tenant hosts are defined in [`http-client.env.json`](../http/http-client.env.json)
-(gitignored in production repos — see [`../.gitignore`](../.gitignore)). Seed data in
-[`R__alpha_dev_seed.sql`](#database-migrations-alpha) must match those values.
+| [`01-health.http`](../Directwerk/http/01-health.http) | Actuator smoke |
+| [`02-oauth2.http`](../Directwerk/http/02-oauth2.http) | Token endpoint |
+| [`03-auth.http`](../Directwerk/http/03-auth.http) | Register, login, password reset |
+| [`06-platform-tenants.http`](../Directwerk/http/06-platform-tenants.http) | Tenant CRUD |
+| [`17-media-upload.http`](../Directwerk/http/17-media-upload.http) | Pre-signed upload + confirm |
+| [`19-podcast-content.http`](../Directwerk/http/19-podcast-content.http) | Series, episodes, publish |
+| [`21-public-rss.http`](../Directwerk/http/21-public-rss.http) | Public RSS (run before 22) |
+| [`22-private-rss.http`](../Directwerk/http/22-private-rss.http) | Private subscriber RSS |
+| [`23-entitlements.http`](../Directwerk/http/23-entitlements.http) | LEVEL/PACKAGE rules |
+| [`26-stripe-billing.http`](../Directwerk/http/26-stripe-billing.http) | Stripe Connect (optional keys) |
 
 ### Running tests
 
-1. Open `projects/directwerk/http/` as a folder in IntelliJ IDEA or WebStorm
-2. Select environment **`dev`** in the HTTP Client gutter
-3. Run [`01-platform-auth.http`](../http/01-platform-auth.http) first — subsequent files use
-   `{{platformAccessToken}}`, `{{tenantAAccessToken}}`, etc. captured via `client.global.set`
-4. Execute [`09-multi-tenant-isolation.http`](../http/09-multi-tenant-isolation.http) last
+1. Open `Directwerk/http/` in IntelliJ IDEA or WebStorm
+2. Copy `http-client.private.env.example.json` → `http-client.private.env.json` and set passwords
+3. Select environment **`dev`** in the HTTP Client gutter
+4. Run files in the order listed in [`00-index.http`](../Directwerk/http/00-index.http)
 
 Scripts use `> {% client.global.set("...", ...); %}` response handlers to chain tokens across files.
 
 ### Recommended run order
 
-```
-00-health → 01-platform-auth → 02-platform-tenants → 03-platform-modules
-→ 04-platform-users → 05-tenant-auth → 06-tenant-admin → 07-public-api
-→ 08-module-probes → 09-multi-tenant-isolation → 10-role-enforcement
-```
+See the ordered table in [`00-index.http`](../Directwerk/http/00-index.http). Do not run
+`21-public-rss.http` and `22-private-rss.http` concurrently against the same tenant.
 
 ---
 
 ## Implementation checklist (alpha)
 
-Status refreshed **2026-07-19** against `projects/directwerk/Directwerk/`. Package layout uses **Gradle
+Status refreshed **2026-08** against `Directwerk/`. Package layout uses **Gradle
 modules** (`directwerk-core`, `directwerk-digital`, `directwerk-subscription`, …) rather than the
 original `{module}/api|internal|web` folders — behaviour matches; paths differ.
 
 ### Bootstrap
 
-- [x] Gradle 9 + Spring Boot 4.1.0 project under `projects/directwerk/Directwerk/`
+- [x] Gradle 9 + Spring Boot 4.1.0 project under `Directwerk/`
 - [x] Compose Postgres (+ Mailpit) — no MinIO; Hetzner/Bunny via `directwerk.storage.*` / `S3_*`
 - [x] `.env.example` documents storage / `S3_*` vars (see [`asset-storage.md`](asset-storage.md))
 - [x] Flyway migrations + local seed (`R__alpha_dev_seed.sql`); `media_assets` = **V25**
@@ -1295,7 +1294,7 @@ Upload, confirm, private delivery, and editor preview are **not** alpha A.8 scop
 - [x] C.1 — `UploadApi` + `UploadService` — pre-signed PUT, confirm, promote (`/api/v1/media/**`)
 - [x] C.2 — `MediaController` list / preview-url; private pre-signed GET via `AssetAccessService` (Phase 2d)
 - [x] C.4 — `17-media-upload.http` (+ `UploadServiceTest`, private/preview `AssetAccessServiceTest`)
-- [ ] C.3 — Studio v1 media UI (still open)
+- [x] C.3 — Studio v1 media UI (`/media`, upload, picker)
 
 ---
 
@@ -1316,4 +1315,4 @@ Episode / RSS / entitlement HTTP fixtures live in [`../Directwerk/http/`](../Dir
 
 ---
 
-*Last updated: 2026-07-21*
+*Last updated: 2026-08-28*
