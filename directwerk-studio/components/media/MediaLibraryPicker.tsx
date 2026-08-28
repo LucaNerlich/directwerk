@@ -5,7 +5,7 @@ import SelectControl from '@/components/studio/SelectControl'
 import {useEffect, useState} from 'react'
 
 import {AUTH_REQUIRED} from '@directwerk/api/constants'
-import {listMedia} from '@/lib/api/tenantApi'
+import {listMedia} from '@/lib/api/mediaApi'
 import type {AssetType, MediaAsset} from '@directwerk/api/types'
 import {getClientTenantHost} from '@/lib/tenant/getClientTenantHost'
 

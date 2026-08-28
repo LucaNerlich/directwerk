@@ -14,7 +14,7 @@ import PageStack from '@directwerk/ui/components/page-stack'
 import StatCard from '@directwerk/ui/components/stat-card'
 
 import SelectControl from '@/components/studio/SelectControl'
-import {getBillingDashboard, revokeSubscription} from '@/lib/api/tenantApi'
+import {getBillingDashboard, revokeSubscription} from '@/lib/api/subscriptionApi'
 import type {BillingDashboard, BillingMembership} from '@directwerk/api/types'
 import {formatMoney} from '@/lib/format/money'
 import {getClientTenantHost} from '@/lib/tenant/getClientTenantHost'

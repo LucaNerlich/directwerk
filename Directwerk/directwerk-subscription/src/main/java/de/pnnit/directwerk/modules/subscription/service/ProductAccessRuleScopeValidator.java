@@ -1,4 +1,4 @@
-package de.pnnit.directwerk.service;
+package de.pnnit.directwerk.modules.subscription.service;
 
 import de.pnnit.directwerk.modules.digital.exception.MediaAssetNotFoundException;
 import de.pnnit.directwerk.modules.digital.repository.MediaAssetRepository;

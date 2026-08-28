@@ -4,6 +4,7 @@ import de.pnnit.directwerk.modules.digital.entity.MediaAsset;
 import de.pnnit.directwerk.modules.podcast.entity.Episode;
 import de.pnnit.directwerk.modules.podcast.feed.SubscriberFeed;
 import java.util.List;
+import java.util.Set;
 
 /**
  * Deep module: what episodes and assets a subscriber may see on a given feed.
@@ -15,6 +16,11 @@ public interface SubscriberFeedAccess {
             Long tenantId,
             Long userId,
             SubscriberFeed feed);
+
+    List<Episode> listEntitledEpisodesForFormats(
+            Long tenantId,
+            Long userId,
+            Set<Long> activeFormatIds);
 
     boolean hasEpisodeAccess(
             Long tenantId,

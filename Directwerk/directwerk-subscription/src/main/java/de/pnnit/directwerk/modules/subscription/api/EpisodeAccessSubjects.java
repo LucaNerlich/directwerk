@@ -1,4 +1,4 @@
-package de.pnnit.directwerk.api;
+package de.pnnit.directwerk.modules.subscription.api;
 
 import de.pnnit.directwerk.modules.digital.entity.AccessPolicy;
 import de.pnnit.directwerk.modules.podcast.entity.Episode;

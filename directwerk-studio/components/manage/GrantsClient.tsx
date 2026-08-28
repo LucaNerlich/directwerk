@@ -12,12 +12,8 @@ import Link from 'next/link'
 import {useEffect, useState, type FormEvent} from 'react'
 import {useRouter} from 'next/navigation'
 
-import {
-    grantSubscription,
-    listProducts,
-    listSubscribers,
-    revokeSubscription,
-} from '@/lib/api/tenantApi'
+import {grantSubscription, listProducts, revokeSubscription} from '@/lib/api/subscriptionApi'
+import {listSubscribers} from '@/lib/api/tenantSettingsApi'
 import type {
     SubscriptionGrant,
     SubscriptionProduct,

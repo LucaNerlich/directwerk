@@ -2,7 +2,7 @@ import {cleanup, render, screen, waitFor} from '@testing-library/react'
 import {afterEach, describe, expect, it, vi} from 'vitest'
 
 import SubscribersClient from '@/components/manage/SubscribersClient'
-import {listSubscribers} from '@/lib/api/tenantApi'
+import {listSubscribers} from '@/lib/api/tenantSettingsApi'
 
 vi.mock('next/navigation', () => ({useRouter: () => ({replace: vi.fn()})}))
 vi.mock('@/lib/tenant/getClientTenantHost', () => ({getClientTenantHost: () => 'tenant.test'}))

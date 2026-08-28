@@ -2,7 +2,7 @@ import {fireEvent, render, screen, waitFor} from '@testing-library/react'
 import {beforeEach, describe, expect, it, vi} from 'vitest'
 
 import PaymentsDashboardClient from '@/components/manage/PaymentsDashboardClient'
-import {getBillingDashboard, revokeSubscription} from '@/lib/api/tenantApi'
+import {getBillingDashboard, revokeSubscription} from '@/lib/api/subscriptionApi'
 import type {BillingDashboard, BillingMembership} from '@directwerk/api/types'
 
 vi.mock('next/navigation', () => ({useRouter: () => ({replace: vi.fn()})}))

@@ -1,4 +1,5 @@
 dependencies {
     api project(':directwerk-core')
+    implementation project(':directwerk-podcast')
     implementation 'com.stripe:stripe-java:28.4.0'
 }

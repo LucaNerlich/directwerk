@@ -9,7 +9,7 @@ import EmptyState from '@directwerk/ui/components/empty-state'
 import ListPanel, {ListPanelRow} from '@directwerk/ui/components/list-panel'
 import PageHeader from '@directwerk/ui/components/page-header'
 
-import {listMedia} from '@/lib/api/tenantApi'
+import {listMedia} from '@/lib/api/mediaApi'
 import type {MediaAsset} from '@directwerk/api/types'
 import {getClientTenantHost} from '@/lib/tenant/getClientTenantHost'
 import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'

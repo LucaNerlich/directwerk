@@ -8,7 +8,8 @@ import ListPanel, {listPanelLinkClassName} from '@directwerk/ui/components/list-
 import SectionHeader from '@directwerk/ui/components/section-header'
 
 import PublicationStatusBadge from '@/components/publication/PublicationStatusBadge'
-import {listArticles, listEpisodes, listSeries} from '@/lib/api/tenantApi'
+import {listEpisodes, listSeries} from '@/lib/api/podcastApi'
+import {listArticles} from '@/lib/api/writeApi'
 import type {ArticleSummary, EpisodeSummary, SeriesSummary, StudioDesk} from '@directwerk/api/types'
 import {getClientTenantHost} from '@/lib/tenant/getClientTenantHost'
 import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'

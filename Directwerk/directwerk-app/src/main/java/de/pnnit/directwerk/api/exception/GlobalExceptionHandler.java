@@ -23,7 +23,7 @@ import de.pnnit.directwerk.modules.digital.exception.CategoryNotFoundException;
 import de.pnnit.directwerk.modules.podcast.exception.EpisodeNotFoundException;
 import de.pnnit.directwerk.modules.podcast.exception.EpisodeValidationException;
 import de.pnnit.directwerk.modules.podcast.exception.FormatNotFoundException;
-import de.pnnit.directwerk.modules.digital.exception.InvalidPublicationTransitionException;
+import de.pnnit.directwerk.modules.content.InvalidPublicationTransitionException;
 import de.pnnit.directwerk.modules.podcast.exception.SeriesNotFoundException;
 import de.pnnit.directwerk.modules.podcast.feed.FeedBuilderException;
 import de.pnnit.directwerk.modules.podcast.feed.SubscriberFeedNotFoundException;

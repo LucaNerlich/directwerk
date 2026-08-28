@@ -2,7 +2,7 @@ import {render, screen, waitFor} from '@testing-library/react'
 import {beforeEach, describe, expect, it, vi} from 'vitest'
 
 import CategoryListClient from '@/components/manage/CategoryListClient'
-import {listCategories} from '@/lib/api/tenantApi'
+import {listCategories} from '@/lib/api/catalogApi'
 
 vi.mock('next/navigation', () => ({useRouter: () => ({replace: vi.fn()})}))
 vi.mock('@/lib/tenant/getClientTenantHost', () => ({getClientTenantHost: () => 'tenant.test'}))

@@ -27,7 +27,7 @@ import de.pnnit.directwerk.modules.podcast.entity.EpisodeStatus;
 import de.pnnit.directwerk.modules.podcast.entity.Format;
 import de.pnnit.directwerk.modules.podcast.entity.PodcastSeries;
 import de.pnnit.directwerk.modules.podcast.exception.EpisodeValidationException;
-import de.pnnit.directwerk.modules.digital.exception.InvalidPublicationTransitionException;
+import de.pnnit.directwerk.modules.content.InvalidPublicationTransitionException;
 import de.pnnit.directwerk.modules.digital.service.HtmlSanitizer;
 import de.pnnit.directwerk.modules.podcast.repository.EpisodeRepository;
 import java.time.Instant;

@@ -8,7 +8,7 @@ import {Button} from '@directwerk/ui/components/button'
 import EmptyState from '@directwerk/ui/components/empty-state'
 import PageHeader from '@directwerk/ui/components/page-header'
 
-import {listProducts} from '@/lib/api/tenantApi'
+import {listProducts} from '@/lib/api/subscriptionApi'
 import type {SubscriptionProduct} from '@directwerk/api/types'
 import {formatMoney} from '@/lib/format/money'
 import {getClientTenantHost} from '@/lib/tenant/getClientTenantHost'

@@ -4,7 +4,6 @@ import de.pnnit.directwerk.modules.core.entity.TenantDomain;
 import de.pnnit.directwerk.modules.core.repository.TenantDomainRepository;
 import de.pnnit.directwerk.modules.core.util.PublicUrlBuilder;
 import de.pnnit.directwerk.modules.digital.api.AssetAccessApi;
-import de.pnnit.directwerk.modules.digital.api.EntitlementApi;
 import de.pnnit.directwerk.modules.digital.api.EpisodeMediaApi;
 import de.pnnit.directwerk.modules.digital.entity.AccessPolicy;
 import de.pnnit.directwerk.modules.digital.entity.AssetStatus;
@@ -15,7 +14,7 @@ import de.pnnit.directwerk.modules.podcast.entity.EpisodeStatus;
 import de.pnnit.directwerk.modules.podcast.entity.SeriesStatus;
 import de.pnnit.directwerk.modules.podcast.exception.EpisodeNotFoundException;
 import de.pnnit.directwerk.modules.podcast.feed.SubscriberFeed;
-import de.pnnit.directwerk.modules.podcast.feed.SubscriberFeedFormatMatcher;
+import de.pnnit.directwerk.modules.podcast.access.SubscriberFeedAccess;
 import de.pnnit.directwerk.modules.podcast.feed.SubscriberFeedNotFoundException;
 import de.pnnit.directwerk.modules.podcast.repository.EpisodeRepository;
 import java.net.URL;
@@ -35,9 +34,9 @@ import org.springframework.util.StringUtils;
 public class EpisodeEnclosureService {
 
     private final EpisodeRepository episodeRepository;
+    private final SubscriberFeedAccess subscriberFeedAccess;
     private final EpisodeMediaApi episodeMediaApi;
     private final AssetAccessApi assetAccessApi;
-    private final EntitlementApi entitlementApi;
     private final TenantDomainRepository tenantDomainRepository;
 
     public record EnclosureRedirect(Episode episode, URL targetUrl) {
@@ -61,11 +60,8 @@ public class EpisodeEnclosureService {
         }
         Long tenantId = feed.getTenant().getId();
         Episode episode = requirePublishedPlayableEpisode(tenantId, episodeSlug);
-        if (episode.getAccessPolicy() == AccessPolicy.PAID
-                && !entitlementApi.hasAccess(tenantId, feed.getUser().getId(), episode.getId())) {
-            throw new EpisodeNotFoundException(episodeSlug);
-        }
-        if (!SubscriberFeedFormatMatcher.includes(feed, episode)) {
+        if (!subscriberFeedAccess.hasEpisodeAccess(
+                tenantId, feed.getUser().getId(), feed, episode)) {
             throw new EpisodeNotFoundException(episodeSlug);
         }
         MediaAsset audio = episode.getAudioAsset();

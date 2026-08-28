@@ -13,11 +13,8 @@ import SectionHeader from '@directwerk/ui/components/section-header'
 
 import PublicationStatusBadge from '@/components/publication/PublicationStatusBadge'
 import {hasModule} from '@/lib/api/client'
-import {
-    listSeries,
-    listSubscriberFeeds,
-    setSubscriberFeedEnabled,
-} from '@/lib/api/tenantApi'
+import {listSeries} from '@/lib/api/podcastApi'
+import {listSubscriberFeeds, setSubscriberFeedEnabled} from '@/lib/api/subscriptionApi'
 import type {SeriesSummary, SubscriberFeedAdminView} from '@directwerk/api/types'
 import {useSiteConfig} from '@/lib/site/SiteConfigProvider'
 import {getClientTenantHost} from '@/lib/tenant/getClientTenantHost'

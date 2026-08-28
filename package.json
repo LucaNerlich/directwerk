@@ -5,7 +5,8 @@
         "build": "pnpm -r --if-present build",
         "test": "pnpm -r --if-present test",
         "typecheck": "pnpm -r --if-present typecheck",
-        "check:circular": "node scripts/check-circular-deps.mjs"
+        "check:circular": "node scripts/check-circular-deps.mjs",
+        "check:openapi": "node scripts/check-openapi-contract.mjs"
     },
     "devDependencies": {
         "@tailwindcss/postcss": "latest",

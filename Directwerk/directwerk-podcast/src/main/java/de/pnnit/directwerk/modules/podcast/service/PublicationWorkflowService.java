@@ -18,7 +18,8 @@ import de.pnnit.directwerk.modules.digital.entity.AccessPolicy;
 import de.pnnit.directwerk.modules.podcast.entity.Episode;
 import de.pnnit.directwerk.modules.podcast.entity.EpisodeStatus;
 import de.pnnit.directwerk.modules.podcast.exception.EpisodeValidationException;
-import de.pnnit.directwerk.modules.digital.exception.InvalidPublicationTransitionException;
+import de.pnnit.directwerk.modules.content.PublicationTransitions;
+import de.pnnit.directwerk.modules.content.InvalidPublicationTransitionException;
 import de.pnnit.directwerk.modules.digital.service.HtmlSanitizer;
 import de.pnnit.directwerk.modules.podcast.repository.EpisodeRepository;
 import de.pnnit.directwerk.multitenancy.TenantContext;
@@ -69,12 +70,8 @@ public class PublicationWorkflowService {
     @RequiresModule(PodcastModule.KEY)
     public Episode schedule(Long tenantId, Long episodeId, Instant scheduledAt, boolean notifySubscribers) {
         Episode episode = episodeService.requireEpisode(tenantId, episodeId);
-        if (episode.getStatus() != EpisodeStatus.DRAFT) {
-            throw new InvalidPublicationTransitionException("Only DRAFT episodes can be scheduled");
-        }
-        if (scheduledAt == null || !scheduledAt.isAfter(Instant.now())) {
-            throw new EpisodeValidationException("scheduledAt must be in the future");
-        }
+        PublicationTransitions.requireDraftStatus(episode.getStatus() == EpisodeStatus.DRAFT, "episodes");
+        PublicationTransitions.requireFutureInstant(scheduledAt, "scheduledAt");
         episode.setStatus(EpisodeStatus.SCHEDULED);
         episode.setScheduledAt(scheduledAt);
         episode.setNotifySubscribersOnPublish(notifySubscribers);

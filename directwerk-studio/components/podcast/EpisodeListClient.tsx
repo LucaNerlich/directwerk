@@ -10,14 +10,8 @@ import ListPanel, {ListPanelRow} from '@directwerk/ui/components/list-panel'
 import PageHeader from '@directwerk/ui/components/page-header'
 
 import PublicationStatusBadge from '@/components/publication/PublicationStatusBadge'
-import {
-    cancelScheduleEpisode,
-    listEpisodes,
-    listFormats,
-    listSeries,
-    unarchiveEpisode,
-    unpublishEpisode,
-} from '@/lib/api/tenantApi'
+import {listFormats} from '@/lib/api/catalogApi'
+import {cancelScheduleEpisode, listEpisodes, listSeries, unarchiveEpisode, unpublishEpisode} from '@/lib/api/podcastApi'
 import type {EpisodeDetail, FormatSummary, SeriesSummary} from '@directwerk/api/types'
 import {getClientTenantHost} from '@/lib/tenant/getClientTenantHost'
 import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'

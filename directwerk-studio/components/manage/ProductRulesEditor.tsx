@@ -7,14 +7,10 @@ import {Button} from '@directwerk/ui/components/button'
 import {useCallback, useEffect, useState} from 'react'
 import {useRouter} from 'next/navigation'
 
-import {
-    listCategories,
-    listFormats,
-    listMedia,
-    listProductRules,
-    listSeries,
-    replaceProductRules,
-} from '@/lib/api/tenantApi'
+import {listCategories, listFormats} from '@/lib/api/catalogApi'
+import {listMedia} from '@/lib/api/mediaApi'
+import {listSeries} from '@/lib/api/podcastApi'
+import {listProductRules, replaceProductRules} from '@/lib/api/subscriptionApi'
 import type {
     CategorySummary,
     FormatSummary,

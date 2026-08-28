@@ -12,7 +12,7 @@ import {
 } from '@directwerk/ui/components/sidebar'
 
 import {hasModule} from '@/lib/api/client'
-import {isTenantAdminRole} from '@/lib/api/tenantApi'
+import {isTenantAdminRole} from '@/lib/api/studioHelpers'
 import {useActiveDesk} from '@/lib/studio/useActiveDesk'
 import type {SiteConfig} from '@directwerk/api/types'
 import {useOptionalMe} from '@/lib/auth/MeProvider'

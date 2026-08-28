@@ -24,7 +24,7 @@ import type {
     SubscriptionGrant,
     SubscriptionProduct,
 } from '@directwerk/api/types'
-import {parseSubscriptionProductList} from '@directwerk/api/validation'
+import {listTenantProducts} from '@/lib/api/tenantProductsApi'
 import {
     clearTenantTokens,
     getTenantSessionHost,
@@ -70,14 +70,8 @@ export default function TenantProductsPanel({
         setIsLoading(true)
         setError(null)
 
-        getTenantData<unknown>('tenant/products')
-            .then((result) => {
-                const products = parseSubscriptionProductList(result)
-                if (products === null) {
-                    setError('Could not load products.')
-                    setProducts([])
-                    return
-                }
+        listTenantProducts()
+            .then((products) => {
                 setProducts(products)
                 const activeProducts = products.filter((product) => product.active)
                 const firstActive = activeProducts[0]

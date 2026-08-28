@@ -1,6 +1,7 @@
 'use client'
 
 import SelectControl from '@/components/studio/SelectControl'
+import {suggestSlug} from '@/lib/api/studioHelpers'
 
 import {Button} from '@directwerk/ui/components/button'
 import {Input} from '@directwerk/ui/components/input'
@@ -10,14 +11,7 @@ import {useRouter} from 'next/navigation'
 import {useCallback, useEffect, useState, type FormEvent} from 'react'
 
 import ProductRulesEditor from '@/components/manage/ProductRulesEditor'
-import {
-    createProduct,
-    deactivateProduct,
-    listProducts,
-    suggestSlug,
-    syncProductStripe,
-    updateProduct,
-} from '@/lib/api/tenantApi'
+import {createProduct, deactivateProduct, listProducts, syncProductStripe, updateProduct} from '@/lib/api/subscriptionApi'
 import type {BillingInterval, OfferingType, SubscriptionProduct} from '@directwerk/api/types'
 import {formatMoney} from '@/lib/format/money'
 import {getClientTenantHost} from '@/lib/tenant/getClientTenantHost'

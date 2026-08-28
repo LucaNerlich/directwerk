@@ -6,7 +6,7 @@ import PageHeader from '@directwerk/ui/components/page-header'
 import {useEffect, useState} from 'react'
 import {useRouter} from 'next/navigation'
 
-import {getStripeStatus, startStripeOnboard} from '@/lib/api/tenantApi'
+import {getStripeStatus, startStripeOnboard} from '@/lib/api/subscriptionApi'
 import type {StripeStatus} from '@directwerk/api/types'
 import {getClientTenantHost} from '@/lib/tenant/getClientTenantHost'
 import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'

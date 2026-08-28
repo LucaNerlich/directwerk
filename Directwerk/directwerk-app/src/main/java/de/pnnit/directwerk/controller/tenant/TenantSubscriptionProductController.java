@@ -12,7 +12,7 @@ import de.pnnit.directwerk.modules.subscription.service.ProductAccessRuleService
 import de.pnnit.directwerk.modules.subscription.service.SubscriptionProductService;
 import de.pnnit.directwerk.modules.subscription.stripe.StripeCatalogSyncService;
 import de.pnnit.directwerk.multitenancy.TenantContext;
-import de.pnnit.directwerk.service.ProductAccessRuleScopeValidator;
+import de.pnnit.directwerk.modules.subscription.service.ProductAccessRuleScopeValidator;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;

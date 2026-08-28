@@ -14,12 +14,7 @@ import PageHeader from '@directwerk/ui/components/page-header'
 import PageStack from '@directwerk/ui/components/page-stack'
 
 import SelectControl from '@/components/studio/SelectControl'
-import {
-    deactivateTenantUser,
-    inviteTenantUser,
-    listTenantUsers,
-    reactivateTenantUser,
-} from '@/lib/api/tenantApi'
+import {deactivateTenantUser, inviteTenantUser, listTenantUsers, reactivateTenantUser} from '@/lib/api/tenantSettingsApi'
 import {
     TENANT_INVITABLE_ROLES,
     type TenantInvitableRole,

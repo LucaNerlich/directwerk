@@ -10,7 +10,7 @@ import PageHeader from '@directwerk/ui/components/page-header'
 import {useEffect, useRef, useState, type ChangeEvent, type DragEvent} from 'react'
 import {useRouter} from 'next/navigation'
 
-import {deleteMedia, getMediaPreviewUrl, listMedia} from '@/lib/api/tenantApi'
+import {deleteMedia, getMediaPreviewUrl, listMedia} from '@/lib/api/mediaApi'
 import type {MediaAsset} from '@directwerk/api/types'
 import {MEDIA_TYPE_LIMITS} from '@/lib/media/limits'
 import {uploadMediaFile} from '@/lib/media/upload'

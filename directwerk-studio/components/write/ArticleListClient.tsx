@@ -10,12 +10,7 @@ import ListPanel, {ListPanelRow} from '@directwerk/ui/components/list-panel'
 import PageHeader from '@directwerk/ui/components/page-header'
 
 import PublicationStatusBadge from '@/components/publication/PublicationStatusBadge'
-import {
-    cancelScheduleArticle,
-    listArticles,
-    unarchiveArticle,
-    unpublishArticle,
-} from '@/lib/api/tenantApi'
+import {cancelScheduleArticle, listArticles, unarchiveArticle, unpublishArticle} from '@/lib/api/writeApi'
 import type {ArticleDetail} from '@directwerk/api/types'
 import {getClientTenantHost} from '@/lib/tenant/getClientTenantHost'
 import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'

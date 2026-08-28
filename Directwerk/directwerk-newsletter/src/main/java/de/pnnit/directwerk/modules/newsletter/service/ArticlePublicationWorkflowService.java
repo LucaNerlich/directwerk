@@ -14,7 +14,8 @@ import de.pnnit.directwerk.modules.digital.DigitalContentModule;
 import de.pnnit.directwerk.modules.newsletter.entity.Article;
 import de.pnnit.directwerk.modules.newsletter.entity.ArticleStatus;
 import de.pnnit.directwerk.modules.newsletter.exception.ArticleValidationException;
-import de.pnnit.directwerk.modules.digital.exception.InvalidPublicationTransitionException;
+import de.pnnit.directwerk.modules.content.PublicationTransitions;
+import de.pnnit.directwerk.modules.content.InvalidPublicationTransitionException;
 import de.pnnit.directwerk.modules.digital.service.HtmlSanitizer;
 import de.pnnit.directwerk.modules.newsletter.repository.ArticleRepository;
 import de.pnnit.directwerk.multitenancy.TenantContext;
@@ -62,12 +63,8 @@ public class ArticlePublicationWorkflowService {
     @RequiresModule(DigitalContentModule.KEY)
     public Article schedule(Long tenantId, Long articleId, Instant scheduledAt, boolean notifySubscribers) {
         Article article = articleService.requireArticle(tenantId, articleId);
-        if (article.getStatus() != ArticleStatus.DRAFT) {
-            throw new InvalidPublicationTransitionException("Only DRAFT articles can be scheduled");
-        }
-        if (scheduledAt == null || !scheduledAt.isAfter(Instant.now())) {
-            throw new ArticleValidationException("scheduledAt must be in the future");
-        }
+        PublicationTransitions.requireDraftStatus(article.getStatus() == ArticleStatus.DRAFT, "articles");
+        PublicationTransitions.requireFutureInstant(scheduledAt, "scheduledAt");
         article.setStatus(ArticleStatus.SCHEDULED);
         article.setScheduledAt(scheduledAt);
         article.setNotifySubscribersOnPublish(notifySubscribers);

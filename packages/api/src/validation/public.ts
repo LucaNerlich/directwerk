@@ -653,3 +653,21 @@ export function parseSubscriptionListEnvelope(
         parseBoundedArray(data, 200, parseSubscriptionSummary),
     )
 }
+
+export interface NotificationPreferences {
+    emailNotificationsEnabled: boolean
+}
+
+function parseNotificationPreferences(value: unknown): NotificationPreferences | null {
+    if (!isRecord(value) || typeof value.emailNotificationsEnabled !== 'boolean') {
+        return null
+    }
+
+    return {emailNotificationsEnabled: value.emailNotificationsEnabled}
+}
+
+export function parseNotificationPreferencesEnvelope(
+    value: unknown,
+): NotificationPreferences | null {
+    return parseEnvelope(value, parseNotificationPreferences)?.data ?? null
+}

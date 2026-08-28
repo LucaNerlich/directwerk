@@ -2,7 +2,7 @@
 
 import {useEffect, useState} from 'react'
 
-import {listPublicLevels} from '@/lib/api/tenantApi'
+import {listPublicLevels} from '@/lib/api/subscriptionApi'
 import type {LevelSummary} from '@directwerk/api/types'
 import {getClientTenantHost} from '@/lib/tenant/getClientTenantHost'
 

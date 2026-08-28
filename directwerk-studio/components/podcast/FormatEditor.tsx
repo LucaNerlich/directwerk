@@ -1,6 +1,7 @@
 'use client'
 
 import {Button} from '@directwerk/ui/components/button'
+import {suggestSlug} from '@/lib/api/studioHelpers'
 import {Textarea} from '@directwerk/ui/components/textarea'
 import {Input} from '@directwerk/ui/components/input'
 
@@ -12,13 +13,7 @@ import {useRouter} from 'next/navigation'
 import {useActionState, useEffect, useState} from 'react'
 
 import {AUTH_REQUIRED} from '@directwerk/api/constants'
-import {
-    createFormat,
-    deactivateFormat,
-    listFormats,
-    suggestSlug,
-    updateFormat,
-} from '@/lib/api/tenantApi'
+import {createFormat, deactivateFormat, listFormats, updateFormat} from '@/lib/api/catalogApi'
 import type {FormatSummary} from '@directwerk/api/types'
 import {getClientTenantHost} from '@/lib/tenant/getClientTenantHost'
 import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'

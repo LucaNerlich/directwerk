@@ -11,10 +11,7 @@ import {useRouter} from 'next/navigation'
 import {useActionState, useEffect, useState} from 'react'
 
 import {AUTH_REQUIRED} from '@directwerk/api/constants'
-import {
-    getContentEmailTemplate,
-    upsertContentEmailTemplate,
-} from '@/lib/api/tenantApi'
+import {getContentEmailTemplate, upsertContentEmailTemplate} from '@/lib/api/tenantSettingsApi'
 import type {ContentEmailTemplate, ContentEmailTemplateType} from '@directwerk/api/types'
 import {getClientTenantHost} from '@/lib/tenant/getClientTenantHost'
 import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'

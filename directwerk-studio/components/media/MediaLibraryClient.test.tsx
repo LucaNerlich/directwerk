@@ -2,7 +2,7 @@ import {cleanup, fireEvent, render, screen, waitFor} from '@testing-library/reac
 import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest'
 
 import MediaLibraryClient from '@/components/media/MediaLibraryClient'
-import {listMedia} from '@/lib/api/tenantApi'
+import {listMedia} from '@/lib/api/mediaApi'
 import {uploadMediaFile} from '@/lib/media/upload'
 import type {MediaAsset} from '@directwerk/api/types'
 

@@ -1,6 +1,7 @@
 'use client'
 
 import SelectControl from '@/components/studio/SelectControl'
+import {suggestSlug} from '@/lib/api/studioHelpers'
 
 import {Button} from '@directwerk/ui/components/button'
 import {Input} from '@directwerk/ui/components/input'
@@ -11,13 +12,7 @@ import {useRouter} from 'next/navigation'
 import {useActionState, useEffect, useState} from 'react'
 
 import {AUTH_REQUIRED} from '@directwerk/api/constants'
-import {
-    createCategory,
-    deactivateCategory,
-    listCategories,
-    suggestSlug,
-    updateCategory,
-} from '@/lib/api/tenantApi'
+import {createCategory, deactivateCategory, listCategories, updateCategory} from '@/lib/api/catalogApi'
 import type {CategorySummary} from '@directwerk/api/types'
 import {getClientTenantHost} from '@/lib/tenant/getClientTenantHost'
 import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'

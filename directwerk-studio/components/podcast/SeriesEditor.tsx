@@ -1,6 +1,7 @@
 'use client'
 
 import SelectControl from '@/components/studio/SelectControl'
+import {suggestSlug} from '@/lib/api/studioHelpers'
 import LevelSelect from '@/components/studio/LevelSelect'
 
 import {Button} from '@directwerk/ui/components/button'
@@ -15,13 +16,8 @@ import MediaLibraryPicker from '@/components/media/MediaLibraryPicker'
 import UploadProgress from '@/components/media/UploadProgress'
 import PublicationStatusBadge from '@/components/publication/PublicationStatusBadge'
 import PublishedLinksPanel from '@/components/publication/PublishedLinksPanel'
-import {
-    createSeries,
-    getMediaPreviewUrl,
-    getSeries,
-    suggestSlug,
-    updateSeries,
-} from '@/lib/api/tenantApi'
+import {getMediaPreviewUrl} from '@/lib/api/mediaApi'
+import {createSeries, getSeries, updateSeries} from '@/lib/api/podcastApi'
 import type {SeriesStatus} from '@directwerk/api/types'
 import {mediaLimitLabel} from '@/lib/media/limits'
 import {uploadMediaFile} from '@/lib/media/upload'

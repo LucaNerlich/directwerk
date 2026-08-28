@@ -11,7 +11,7 @@ import ListPanel, {
 } from '@directwerk/ui/components/list-panel'
 import PageHeader from '@directwerk/ui/components/page-header'
 
-import {listCategories} from '@/lib/api/tenantApi'
+import {listCategories} from '@/lib/api/catalogApi'
 import type {CategorySummary} from '@directwerk/api/types'
 import {getClientTenantHost} from '@/lib/tenant/getClientTenantHost'
 import {useAuthedQuery} from '@directwerk/api/client'

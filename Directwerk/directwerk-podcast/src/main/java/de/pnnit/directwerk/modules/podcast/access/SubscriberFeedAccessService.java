@@ -9,6 +9,7 @@ import de.pnnit.directwerk.modules.podcast.feed.SubscriberFeedFormatMatcher;
 import de.pnnit.directwerk.modules.podcast.service.SubscriberEpisodeService;
 import de.pnnit.directwerk.modules.digital.api.EntitlementApi;
 import java.util.List;
+import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -28,6 +29,17 @@ public class SubscriberFeedAccessService implements SubscriberFeedAccess {
             SubscriberFeed feed) {
         return subscriberEpisodeService.listEntitledEpisodes(tenantId, userId).stream()
                 .filter(episode -> SubscriberFeedFormatMatcher.includes(feed, episode))
+                .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<Episode> listEntitledEpisodesForFormats(
+            Long tenantId,
+            Long userId,
+            Set<Long> activeFormatIds) {
+        return subscriberEpisodeService.listEntitledEpisodes(tenantId, userId).stream()
+                .filter(episode -> SubscriberFeedFormatMatcher.episodeMatchesSelectedFormats(episode, activeFormatIds))
                 .toList();
     }
 

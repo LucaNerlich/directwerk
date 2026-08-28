@@ -3,7 +3,7 @@
 import {useRouter} from 'next/navigation'
 import {useEffect, type ReactNode} from 'react'
 
-import {isTenantAdminRole} from '@/lib/api/tenantApi'
+import {isTenantAdminRole} from '@/lib/api/studioHelpers'
 import {useMe} from '@/lib/auth/MeProvider'
 
 export default function TenantAdminGuard({

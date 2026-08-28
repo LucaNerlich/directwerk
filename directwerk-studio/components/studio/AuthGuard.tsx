@@ -5,7 +5,8 @@ import {useEffect, useState} from 'react'
 
 import {Button} from '@directwerk/ui/components/button'
 
-import {fetchMe, isEditorRole} from '@/lib/api/tenantApi'
+import {isEditorRole} from '@/lib/api/studioHelpers'
+import {fetchMe} from '@/lib/api/authApi'
 import {MeProvider} from '@/lib/auth/MeProvider'
 import {ensureAuthenticated} from '@/lib/auth/session'
 import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'

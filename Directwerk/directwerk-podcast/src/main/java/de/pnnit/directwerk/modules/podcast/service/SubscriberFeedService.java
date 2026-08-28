@@ -13,6 +13,7 @@ import de.pnnit.directwerk.modules.podcast.repository.FormatRepository;
 import de.pnnit.directwerk.modules.podcast.feed.FeedBuilderException;
 import de.pnnit.directwerk.modules.podcast.feed.FeedTokenGenerator;
 import de.pnnit.directwerk.modules.podcast.feed.SubscriberFeed;
+import de.pnnit.directwerk.modules.podcast.access.SubscriberFeedAccess;
 import de.pnnit.directwerk.modules.podcast.feed.SubscriberFeedFormatMatcher;
 import de.pnnit.directwerk.modules.podcast.feed.SubscriberFeedNotFoundException;
 import de.pnnit.directwerk.modules.podcast.feed.SubscriberFeedRepository;
@@ -40,7 +41,7 @@ public class SubscriberFeedService {
     private final TenantRepository tenantRepository;
     private final UserRepository userRepository;
     private final FormatRepository formatRepository;
-    private final SubscriberEpisodeService subscriberEpisodeService;
+    private final SubscriberFeedAccess subscriberFeedAccess;
     private final FeedTokenGenerator feedTokenGenerator;
     private final ModuleGateService moduleGateService;
     private final RssFeedSnapshotService rssFeedSnapshotService;
@@ -246,9 +247,8 @@ public class SubscriberFeedService {
     }
 
     private FeedPreview previewMatching(Long tenantId, Long userId, Set<Long> activeFormatIds) {
-        List<Episode> matches = subscriberEpisodeService.listEntitledEpisodes(tenantId, userId).stream()
+        List<Episode> matches = subscriberFeedAccess.listEntitledEpisodesForFormats(tenantId, userId, activeFormatIds).stream()
                 .filter(Episode::isEnclosureEnabled)
-                .filter(episode -> SubscriberFeedFormatMatcher.episodeMatchesSelectedFormats(episode, activeFormatIds))
                 .toList();
         List<String> samples = matches.stream()
                 .limit(PREVIEW_SAMPLE_SIZE)

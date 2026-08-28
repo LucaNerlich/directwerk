@@ -3,12 +3,7 @@ import userEvent from '@testing-library/user-event'
 import {afterEach, describe, expect, it, vi} from 'vitest'
 
 import ArticleListClient from '@/components/write/ArticleListClient'
-import {
-    cancelScheduleArticle,
-    listArticles,
-    unarchiveArticle,
-    unpublishArticle,
-} from '@/lib/api/tenantApi'
+import {cancelScheduleArticle, listArticles, unarchiveArticle, unpublishArticle} from '@/lib/api/writeApi'
 import type {ArticleDetail} from '@directwerk/api/types'
 
 const mockReplace = vi.fn()

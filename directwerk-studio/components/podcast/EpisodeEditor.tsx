@@ -1,6 +1,7 @@
 'use client'
 
 import SelectControl from '@/components/studio/SelectControl'
+import {suggestSlug} from '@/lib/api/studioHelpers'
 import LevelSelect from '@/components/studio/LevelSelect'
 
 import {Button} from '@directwerk/ui/components/button'
@@ -16,28 +17,9 @@ import FormatCategoryPicker from '@/components/publication/FormatCategoryPicker'
 import PublicationEditorLayout from '@/components/publication/PublicationEditorLayout'
 import PublishedLinksPanel from '@/components/publication/PublishedLinksPanel'
 import {hasModule} from '@/lib/api/client'
-import {
-    archiveEpisode,
-    attachEpisodeAudio,
-    cancelScheduleEpisode,
-    createEpisode,
-    getEpisode,
-    getMedia,
-    getMediaPreviewUrl,
-    listCategories,
-    listEpisodes,
-    listFormats,
-    listSeries,
-    publishEpisode,
-    replaceEpisodeCategories,
-    replaceEpisodeFormats,
-    scheduleEpisode,
-    setEpisodeEnclosureEnabled,
-    suggestSlug,
-    unarchiveEpisode,
-    unpublishEpisode,
-    updateEpisode,
-} from '@/lib/api/tenantApi'
+import {listCategories, listFormats, replaceEpisodeCategories, replaceEpisodeFormats} from '@/lib/api/catalogApi'
+import {getMedia, getMediaPreviewUrl} from '@/lib/api/mediaApi'
+import {archiveEpisode, attachEpisodeAudio, cancelScheduleEpisode, createEpisode, getEpisode, listEpisodes, listSeries, publishEpisode, scheduleEpisode, setEpisodeEnclosureEnabled, unarchiveEpisode, unpublishEpisode, updateEpisode} from '@/lib/api/podcastApi'
 import type {AccessPolicy, CategorySummary, EpisodeDetail, FormatSummary, SeriesSummary} from '@directwerk/api/types'
 import {fromDatetimeLocalValue, toDatetimeLocalValue} from '@/lib/datetime'
 import {mediaLimitLabel} from '@/lib/media/limits'

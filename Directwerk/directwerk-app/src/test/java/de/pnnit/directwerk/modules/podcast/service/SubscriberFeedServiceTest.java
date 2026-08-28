@@ -50,7 +50,7 @@ class SubscriberFeedServiceTest {
     private FormatRepository formatRepository;
 
     @Mock
-    private SubscriberEpisodeService subscriberEpisodeService;
+    private de.pnnit.directwerk.modules.podcast.access.SubscriberFeedAccess subscriberFeedAccess;
 
     @Mock
     private RssFeedSnapshotService rssFeedSnapshotService;

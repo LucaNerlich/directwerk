@@ -1,4 +1,4 @@
-package de.pnnit.directwerk.modules.digital.exception;
+package de.pnnit.directwerk.modules.content;
 
 public class InvalidPublicationTransitionException extends RuntimeException {
 

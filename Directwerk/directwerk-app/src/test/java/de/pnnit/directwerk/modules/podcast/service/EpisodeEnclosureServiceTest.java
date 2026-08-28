@@ -9,7 +9,7 @@ import de.pnnit.directwerk.modules.core.entity.TenantDomain;
 import de.pnnit.directwerk.modules.core.entity.User;
 import de.pnnit.directwerk.modules.core.repository.TenantDomainRepository;
 import de.pnnit.directwerk.modules.digital.api.AssetAccessApi;
-import de.pnnit.directwerk.modules.digital.api.EntitlementApi;
+import de.pnnit.directwerk.modules.podcast.access.SubscriberFeedAccess;
 import de.pnnit.directwerk.modules.digital.api.EpisodeMediaApi;
 import de.pnnit.directwerk.modules.digital.entity.AccessPolicy;
 import de.pnnit.directwerk.modules.digital.entity.AssetScope;
@@ -47,7 +47,7 @@ class EpisodeEnclosureServiceTest {
     private AssetAccessApi assetAccessApi;
 
     @Mock
-    private EntitlementApi entitlementApi;
+    private SubscriberFeedAccess subscriberFeedAccess;
 
     @Mock
     private TenantDomainRepository tenantDomainRepository;
@@ -98,7 +98,7 @@ class EpisodeEnclosureServiceTest {
         when(episodeRepository.findByTenantIdAndSlugAndStatusAndSeriesStatus(
                 10L, "episode-2", EpisodeStatus.PUBLISHED, SeriesStatus.PUBLISHED
         )).thenReturn(Optional.of(episode));
-        when(entitlementApi.hasAccess(10L, 99L, 50L)).thenReturn(true);
+        when(subscriberFeedAccess.hasEpisodeAccess(10L, 99L, feed, episode)).thenReturn(true);
         when(assetAccessApi.resolveRssEnclosureUrl(episode.getAudioAsset(), 99L))
                 .thenReturn(URI.create("https://s3.example.test/signed?X-Amz-Expires=86400").toURL());
 
@@ -114,7 +114,7 @@ class EpisodeEnclosureServiceTest {
         when(episodeRepository.findByTenantIdAndSlugAndStatusAndSeriesStatus(
                 10L, "episode-2", EpisodeStatus.PUBLISHED, SeriesStatus.PUBLISHED
         )).thenReturn(Optional.of(episode));
-        when(entitlementApi.hasAccess(10L, 99L, 50L)).thenReturn(false);
+        when(subscriberFeedAccess.hasEpisodeAccess(10L, 99L, feed, episode)).thenReturn(false);
 
         assertThatThrownBy(() -> service.resolvePrivateRedirect(feed, "episode-2"))
                 .isInstanceOf(EpisodeNotFoundException.class);
@@ -136,7 +136,7 @@ class EpisodeEnclosureServiceTest {
         when(episodeRepository.findByTenantIdAndSlugAndStatusAndSeriesStatus(
                 10L, "episode-2", EpisodeStatus.PUBLISHED, SeriesStatus.PUBLISHED
         )).thenReturn(Optional.of(episode));
-        when(entitlementApi.hasAccess(10L, 99L, 50L)).thenReturn(true);
+        when(subscriberFeedAccess.hasEpisodeAccess(10L, 99L, feed, episode)).thenReturn(false);
 
         assertThatThrownBy(() -> service.resolvePrivateRedirect(feed, "episode-2"))
                 .isInstanceOf(EpisodeNotFoundException.class);

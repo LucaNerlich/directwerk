@@ -8,12 +8,7 @@ import {useRouter} from 'next/navigation'
 import {useActionState, useCallback, useEffect, useState} from 'react'
 
 import {AUTH_REQUIRED} from '@directwerk/api/constants'
-import {
-    addDomain,
-    getDomainVerification,
-    listDomains,
-    verifyDomain,
-} from '@/lib/api/tenantApi'
+import {addDomain, getDomainVerification, listDomains, verifyDomain} from '@/lib/api/tenantSettingsApi'
 import type {DomainVerificationChallenge, TenantDomain} from '@directwerk/api/types'
 import {getClientTenantHost} from '@/lib/tenant/getClientTenantHost'
 import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'

@@ -1,6 +1,7 @@
 'use client'
 
 import {Input} from '@directwerk/ui/components/input'
+import {suggestSlug} from '@/lib/api/studioHelpers'
 
 import {useRouter} from 'next/navigation'
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react'
@@ -11,22 +12,9 @@ import FormatCategoryPicker from '@/components/publication/FormatCategoryPicker'
 import PublishedLinksPanel from '@/components/publication/PublishedLinksPanel'
 import PublicationEditorLayout from '@/components/publication/PublicationEditorLayout'
 import LevelSelect from '@/components/studio/LevelSelect'
-import {
-    archiveArticle,
-    cancelScheduleArticle,
-    createArticle,
-    getArticle,
-    getMediaPreviewUrl,
-    listArticles,
-    listCategories,
-    publishArticle,
-    replaceArticleCategories,
-    scheduleArticle,
-    suggestSlug,
-    unarchiveArticle,
-    unpublishArticle,
-    updateArticle,
-} from '@/lib/api/tenantApi'
+import {listCategories, replaceArticleCategories} from '@/lib/api/catalogApi'
+import {getMediaPreviewUrl} from '@/lib/api/mediaApi'
+import {archiveArticle, cancelScheduleArticle, createArticle, getArticle, listArticles, publishArticle, scheduleArticle, unarchiveArticle, unpublishArticle, updateArticle} from '@/lib/api/writeApi'
 import type {AccessPolicy, ArticleDetail, CategorySummary} from '@directwerk/api/types'
 import {fromDatetimeLocalValue, toDatetimeLocalValue} from '@/lib/datetime'
 import {useDraftAutosave} from '@/lib/editor/useDraftAutosave'
