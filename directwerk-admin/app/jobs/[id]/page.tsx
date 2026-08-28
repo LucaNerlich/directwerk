@@ -6,10 +6,11 @@ import {use, useEffect, useState} from 'react'
 
 import {Alert, AlertDescription, AlertTitle} from '@directwerk/ui/components/alert'
 import {Badge} from '@directwerk/ui/components/badge'
+import {Button} from '@directwerk/ui/components/button'
 import {Card, CardContent, CardHeader, CardTitle} from '@directwerk/ui/components/card'
 import PageHeader from '@directwerk/ui/components/page-header'
 
-import {getPlatformData} from '@/lib/api/client'
+import {getPlatformData, postPlatformData} from '@/lib/api/client'
 import {AUTH_REQUIRED} from '@directwerk/api/constants'
 import type {QueueJob} from '@directwerk/api/types'
 
@@ -42,12 +43,16 @@ function formatPayload(payload: unknown): string {
     }
 }
 
+const ADMIN_WORKER = 'platform-admin-ui'
+
 export default function JobPage({params}: JobPageProps) {
     const {id} = use(params)
     const router = useRouter()
     const [job, setJob] = useState<QueueJob | null>(null)
     const [error, setError] = useState<string | null>(null)
     const [isInitialLoad, setIsInitialLoad] = useState(true)
+    const [actionBusy, setActionBusy] = useState(false)
+    const [actionMessage, setActionMessage] = useState<string | null>(null)
 
     useEffect(() => {
         if (!UUID_PATTERN.test(id)) {
@@ -93,6 +98,54 @@ export default function JobPage({params}: JobPageProps) {
         }
     }, [id, router])
 
+    async function handleComplete(): Promise<void> {
+        if (job === null) {
+            return
+        }
+        setActionBusy(true)
+        setActionMessage(null)
+        try {
+            const updated = await postPlatformData<QueueJob>(
+                `queue/jobs/${job.id}/complete`,
+                {worker: job.lockedBy ?? ADMIN_WORKER},
+            )
+            setJob(updated)
+            setActionMessage('Job marked complete.')
+        } catch {
+            setActionMessage('Could not complete job.')
+        } finally {
+            setActionBusy(false)
+        }
+    }
+
+    async function handleFail(): Promise<void> {
+        if (job === null) {
+            return
+        }
+        setActionBusy(true)
+        setActionMessage(null)
+        try {
+            const updated = await postPlatformData<QueueJob>(
+                `queue/jobs/${job.id}/fail`,
+                {
+                    worker: job.lockedBy ?? ADMIN_WORKER,
+                    error: 'Manually failed from platform admin UI',
+                    retryDelaySeconds: 0,
+                },
+            )
+            setJob(updated)
+            setActionMessage('Job marked failed.')
+        } catch {
+            setActionMessage('Could not fail job.')
+        } finally {
+            setActionBusy(false)
+        }
+    }
+
+    const canOperate =
+        job !== null &&
+        (job.status === 'PROCESSING' || job.status === 'QUEUED' || job.status === 'FAILED')
+
     return (
         <div className="space-y-8">
                 <Link className="text-sm font-medium underline-offset-4 hover:underline" href="/jobs">← Back to queue jobs</Link>
@@ -106,6 +159,35 @@ export default function JobPage({params}: JobPageProps) {
 
                         {job.status === 'FAILED' && job.lastError ? (
                             <Alert variant="destructive"><AlertTitle>Last error</AlertTitle><AlertDescription>{job.lastError}</AlertDescription></Alert>
+                        ) : null}
+
+                        {canOperate ? (
+                            <div className="flex flex-wrap items-center gap-3">
+                                <Button
+                                    disabled={actionBusy}
+                                    onClick={() => {
+                                        void handleComplete()
+                                    }}
+                                    type="button"
+                                >
+                                    Mark complete
+                                </Button>
+                                <Button
+                                    disabled={actionBusy}
+                                    onClick={() => {
+                                        void handleFail()
+                                    }}
+                                    type="button"
+                                    variant="outline"
+                                >
+                                    Mark failed
+                                </Button>
+                                {actionMessage !== null ? (
+                                    <p className="text-sm text-muted-foreground" role="status">
+                                        {actionMessage}
+                                    </p>
+                                ) : null}
+                            </div>
                         ) : null}
 
                         <Card>

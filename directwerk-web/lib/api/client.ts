@@ -5,7 +5,9 @@ import {
     parseAccessEnvelope,
     parseCheckoutSessionEnvelope,
     parseFeedPreviewEnvelope,
+    parseLevelListEnvelope,
     parseMeEnvelope,
+    parsePublicCategoryListEnvelope,
     parsePublicFormatListEnvelope,
     parsePublicSiteConfigEnvelope,
     parseSubscriptionListEnvelope,
@@ -22,8 +24,10 @@ import type {
     Access,
     ApiEnvelope,
     FeedPreview,
+    LevelSummary,
     Me,
     PublicArticle,
+    PublicCategory,
     PublicEpisode,
     PublicFormat,
     PublicSeries,
@@ -239,6 +243,26 @@ export async function listPublicEpisodes(
         parsePublicEpisodeListEnvelope,
         await request('/api/proxy/public/episodes', tenantHost),
         'The server returned an invalid episode list.',
+    ).data
+}
+
+export async function listPublicLevels(
+    tenantHost: string,
+): Promise<LevelSummary[]> {
+    return envelopeResult(
+        parseLevelListEnvelope,
+        await request('/api/proxy/public/levels', tenantHost),
+        'The server returned an invalid level list.',
+    ).data
+}
+
+export async function listPublicCategories(
+    tenantHost: string,
+): Promise<PublicCategory[]> {
+    return envelopeResult(
+        parsePublicCategoryListEnvelope,
+        await request('/api/proxy/public/categories', tenantHost),
+        'The server returned an invalid category list.',
     ).data
 }
 

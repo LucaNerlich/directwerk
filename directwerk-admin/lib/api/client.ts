@@ -5,7 +5,7 @@ import {
 } from '@directwerk/api/envelope'
 import {FORBIDDEN, REQUEST_FAILED, CONFLICT, AUTH_REQUIRED} from '@directwerk/api/constants'
 import {isQueueJob} from '@directwerk/api/validation'
-import type {JobListPage, JobListQuery} from '@directwerk/api/types'
+import type {JobListPage, JobListQuery, PlatformAuditEvent} from '@directwerk/api/types'
 import {clearTokens} from '../auth/tokenStore'
 import {getValidAccessToken, refreshAccessToken} from '../auth/session'
 
@@ -60,6 +60,10 @@ export async function postPlatformData<T>(
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify(body),
     })
+}
+
+export async function getPlatformAuditLog(limit = 50): Promise<PlatformAuditEvent[]> {
+    return getPlatformData(`audit?limit=${limit}`)
 }
 
 /**

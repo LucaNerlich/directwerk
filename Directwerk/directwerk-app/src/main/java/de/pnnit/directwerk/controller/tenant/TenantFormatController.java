@@ -27,7 +27,6 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequiresModule(PodcastModule.KEY)
-@PreAuthorize("hasRole('TENANT_ADMIN')")
 @RequestMapping("/api/v1/formats")
 public class TenantFormatController {
 
@@ -38,6 +37,7 @@ public class TenantFormatController {
     }
 
     @GetMapping
+    @PreAuthorize("hasAnyRole('EDITOR', 'TENANT_ADMIN')")
     ResponseEntity<Response<List<FormatView>>> listFormats() {
         Long tenantId = TenantContext.requireTenantId();
         List<FormatView> formats = formatService.listFormats(tenantId, false).stream()
@@ -47,6 +47,7 @@ public class TenantFormatController {
     }
 
     @PostMapping
+    @PreAuthorize("hasRole('TENANT_ADMIN')")
     ResponseEntity<Response<FormatView>> createFormat(@Valid @RequestBody CreateFormatRequest request) {
         Long tenantId = TenantContext.requireTenantId();
                 Format format = formatService.createFormat(
@@ -61,6 +62,7 @@ public class TenantFormatController {
     }
 
     @PutMapping("/{formatId}")
+    @PreAuthorize("hasRole('TENANT_ADMIN')")
     ResponseEntity<Response<FormatView>> updateFormat(
             @PathVariable Long formatId,
             @Valid @RequestBody UpdateFormatRequest request
@@ -80,6 +82,7 @@ public class TenantFormatController {
     }
 
     @DeleteMapping("/{formatId}")
+    @PreAuthorize("hasRole('TENANT_ADMIN')")
     ResponseEntity<Response<FormatView>> deactivateFormat(@PathVariable Long formatId) {
         Long tenantId = TenantContext.requireTenantId();
         return ResponseEntity.ok(Response.ok(toView(formatService.deactivateFormat(tenantId, formatId))));

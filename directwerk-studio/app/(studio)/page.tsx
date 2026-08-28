@@ -4,7 +4,6 @@ import {Button} from '@directwerk/ui/components/button'
 import PageHeader from '@directwerk/ui/components/page-header'
 
 import OverviewQueue from '@/components/studio/OverviewQueue'
-import {defaultHomePath} from '@/lib/api/client'
 import {fetchSiteConfigServer} from '@/lib/site/fetchSiteConfigServer'
 import {getTenantHost} from '@/lib/site/getTenantHost'
 
@@ -65,9 +64,6 @@ export default async function OverviewPage() {
                 ) : null}
             </section>
             <OverviewQueue desks={config.studioDesks} />
-            <p className="text-sm text-muted-foreground">
-                Standard-Start: <code>{defaultHomePath(config.studioHome)}</code>
-            </p>
         </div>
     )
 }

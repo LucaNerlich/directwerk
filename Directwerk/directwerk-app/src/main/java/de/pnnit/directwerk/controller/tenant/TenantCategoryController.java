@@ -27,7 +27,6 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequiresModule(DigitalContentModule.KEY)
-@PreAuthorize("hasRole('TENANT_ADMIN')")
 @RequestMapping("/api/v1/categories")
 public class TenantCategoryController {
 
@@ -38,6 +37,7 @@ public class TenantCategoryController {
     }
 
     @GetMapping
+    @PreAuthorize("hasAnyRole('EDITOR', 'TENANT_ADMIN')")
     ResponseEntity<Response<List<CategoryView>>> listCategories() {
         Long tenantId = TenantContext.requireTenantId();
         List<CategoryView> categories = categoryService.listCategories(tenantId, false).stream()
@@ -47,6 +47,7 @@ public class TenantCategoryController {
     }
 
     @PostMapping
+    @PreAuthorize("hasRole('TENANT_ADMIN')")
     ResponseEntity<Response<CategoryView>> createCategory(@Valid @RequestBody CreateCategoryRequest request) {
         Long tenantId = TenantContext.requireTenantId();
                 Category category = categoryService.createCategory(
@@ -59,6 +60,7 @@ public class TenantCategoryController {
     }
 
     @PutMapping("/{categoryId}")
+    @PreAuthorize("hasRole('TENANT_ADMIN')")
     ResponseEntity<Response<CategoryView>> updateCategory(
             @PathVariable Long categoryId,
             @Valid @RequestBody UpdateCategoryRequest request
@@ -76,6 +78,7 @@ public class TenantCategoryController {
     }
 
     @DeleteMapping("/{categoryId}")
+    @PreAuthorize("hasRole('TENANT_ADMIN')")
     ResponseEntity<Response<CategoryView>> deactivateCategory(@PathVariable Long categoryId) {
         Long tenantId = TenantContext.requireTenantId();
         return ResponseEntity.ok(Response.ok(toView(categoryService.deactivateCategory(tenantId, categoryId))));

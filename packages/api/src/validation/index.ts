@@ -57,6 +57,7 @@ export {
     parseAccessEnvelope,
     parseCheckoutSessionEnvelope,
     parseFeedPreviewEnvelope,
+    parsePublicCategoryListEnvelope,
     parsePublicFormatListEnvelope,
     parsePublicSiteConfigEnvelope,
     parseSubscriberDownloadListEnvelope,

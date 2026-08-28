@@ -15,11 +15,44 @@ import {useRouter} from 'next/navigation'
 import {
     grantSubscription,
     listProducts,
+    listSubscribers,
     revokeSubscription,
 } from '@/lib/api/tenantApi'
-import type {SubscriptionGrant, SubscriptionProduct} from '@directwerk/api/types'
+import type {
+    SubscriptionGrant,
+    SubscriptionProduct,
+    TenantSubscriber,
+} from '@directwerk/api/types'
 import {getClientTenantHost} from '@/lib/tenant/getClientTenantHost'
 import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
+
+const REVOCABLE_GRANT_STATUSES = new Set(['ACTIVE', 'PAST_DUE', 'INCOMPLETE'])
+
+function manualGrantsFromSubscribers(
+    subscribers: TenantSubscriber[],
+): SubscriptionGrant[] {
+    const grants: SubscriptionGrant[] = []
+    for (const subscriber of subscribers) {
+        for (const subscription of subscriber.subscriptions) {
+            if (
+                subscription.source === 'MANUAL' &&
+                REVOCABLE_GRANT_STATUSES.has(subscription.status)
+            ) {
+                grants.push({
+                    id: subscription.id,
+                    userId: subscriber.userId,
+                    email: subscriber.email,
+                    productId: subscription.productId,
+                    productSlug: subscription.productSlug,
+                    productTitle: subscription.productTitle,
+                    status: subscription.status,
+                    source: subscription.source,
+                })
+            }
+        }
+    }
+    return grants.sort((left, right) => right.id - left.id)
+}
 
 export default function GrantsClient(): React.JSX.Element {
     const router = useRouter()
@@ -36,16 +69,20 @@ export default function GrantsClient(): React.JSX.Element {
     useEffect(() => {
         let active = true
 
-        listProducts(getClientTenantHost())
-            .then((result) => {
+        Promise.all([
+            listProducts(getClientTenantHost()),
+            listSubscribers(getClientTenantHost()),
+        ])
+            .then(([productResult, subscriberResult]) => {
                 if (!active) {
                     return
                 }
-                const activeProducts = result.filter((product) => product.active)
+                const activeProducts = productResult.filter((product) => product.active)
                 setProducts(activeProducts)
                 if (activeProducts[0]) {
                     setProductId(String(activeProducts[0].id))
                 }
+                setGrants(manualGrantsFromSubscribers(subscriberResult))
                 setIsLoading(false)
             })
             .catch((error: unknown) => {
@@ -132,7 +169,7 @@ export default function GrantsClient(): React.JSX.Element {
             <PageHeader
                 eyebrow="Abos"
                 title="Freischaltungen"
-                description="Zugang manuell vergeben. Die dauerhafte Liste und Widerrufe findest du unter Zahlungen."
+                description="Zugang manuell vergeben oder widerrufen. Aktive Freischaltungen werden aus der Abonnentenliste geladen."
                 actions={
                     <Button nativeButton={false} render={<Link href="/manage" />} variant="outline">
                         Zu Zahlungen

@@ -13,10 +13,11 @@ import PageHeader from '@directwerk/ui/components/page-header'
 import {
     createCheckoutSession,
     getSiteConfig,
+    listPublicLevels,
     listPublicProducts,
 } from '@/lib/api/client'
 import {AUTH_REQUIRED} from '@directwerk/api/constants'
-import type {PublicSiteConfig} from '@directwerk/api/types'
+import type {LevelSummary, PublicSiteConfig} from '@directwerk/api/types'
 import {
     getAccessToken,
     subscribeToTokenStore,
@@ -67,6 +68,7 @@ export default function PricingPage(): React.JSX.Element {
     )
     const isAuthenticated = accessToken !== null
     const [products, setProducts] = useState<PublicProduct[]>([])
+    const [levels, setLevels] = useState<LevelSummary[]>([])
     const [config, setConfig] = useState<PublicSiteConfig | null>(null)
     const [error, setError] = useState<string | null>(null)
     const [checkoutMessage, setCheckoutMessage] = useState<string | null>(null)
@@ -75,13 +77,18 @@ export default function PricingPage(): React.JSX.Element {
 
     useEffect(() => {
         let active = true
-        Promise.all([getSiteConfig(tenantHost), listPublicProducts(tenantHost)])
-            .then(([siteConfig, productList]) => {
+        Promise.all([
+            getSiteConfig(tenantHost),
+            listPublicProducts(tenantHost),
+            listPublicLevels(tenantHost).catch(() => []),
+        ])
+            .then(([siteConfig, productList, levelList]) => {
                 if (!active) {
                     return
                 }
                 setConfig(siteConfig.data)
                 setProducts(productList)
+                setLevels(levelList)
                 setIsLoading(false)
             })
             .catch((requestError: unknown) => {
@@ -175,6 +182,28 @@ export default function PricingPage(): React.JSX.Element {
                 <Alert role="status">
                     <AlertDescription>{checkoutMessage}</AlertDescription>
                 </Alert>
+            ) : null}
+            {!isLoading && levels.length > 0 ? (
+                <section className="space-y-3">
+                    <h2 className="text-lg font-semibold">Stufen</h2>
+                    <p className="text-sm text-muted-foreground">
+                        Höhere Stufen schalten mehr bezahlte Folgen frei (sortiert nach
+                        Rang).
+                    </p>
+                    <ol className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                        {levels.map((level) => (
+                            <li
+                                className="rounded-xl border bg-card px-4 py-3 text-sm"
+                                key={level.id}
+                            >
+                                <strong>{level.title}</strong>
+                                <span className="mt-1 block text-muted-foreground">
+                                    Rang {level.sortOrder} · {level.slug}
+                                </span>
+                            </li>
+                        ))}
+                    </ol>
+                </section>
             ) : null}
             {!isLoading && error === null ? (
                 products.length === 0 ? (

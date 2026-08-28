@@ -337,6 +337,27 @@ export default function AccountPage() {
                             </TableBody>
                         </Table>
                     )}
+                    <h3>Aktive Pakete</h3>
+                    {access.activePackages.length === 0 ? (
+                        <p>Keine Pakete freigeschaltet.</p>
+                    ) : (
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead scope="col">Titel</TableHead>
+                                    <TableHead scope="col">Kürzel</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {access.activePackages.map((pkg) => (
+                                    <TableRow key={pkg.id}>
+                                        <TableCell>{pkg.title}</TableCell>
+                                        <TableCell>{pkg.slug}</TableCell>
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
+                    )}
                 </section>
             )}
 

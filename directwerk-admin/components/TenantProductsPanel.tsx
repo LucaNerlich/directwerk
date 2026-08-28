@@ -176,6 +176,18 @@ export default function TenantProductsPanel({
         }
     }
 
+    async function handleDeactivate(productId: number): Promise<void> {
+        setError(null)
+        setStatus(null)
+        try {
+            await deleteTenantData<SubscriptionProduct>(`tenant/products/${productId}`)
+            setStatus('Product deactivated.')
+            loadProducts()
+        } catch {
+            setError('Could not deactivate product.')
+        }
+    }
+
     async function loadRules(productId: number): Promise<void> {
         setSelectedProductId(productId)
         setError(null)
@@ -351,6 +363,7 @@ export default function TenantProductsPanel({
                             <TableHead scope="col">Sort</TableHead>
                             <TableHead scope="col">Active</TableHead>
                             <TableHead scope="col">Rules</TableHead>
+                            <TableHead scope="col">Actions</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -374,6 +387,21 @@ export default function TenantProductsPanel({
                                             variant="outline"
                                         >
                                             Edit rules
+                                        </Button>
+                                    ) : (
+                                        '—'
+                                    )}
+                                </TableCell>
+                                <TableCell>
+                                    {product.active ? (
+                                        <Button
+                                            onClick={() => {
+                                                void handleDeactivate(product.id)
+                                            }}
+                                            type="button"
+                                            variant="outline"
+                                        >
+                                            Deactivate
                                         </Button>
                                     ) : (
                                         '—'

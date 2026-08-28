@@ -87,6 +87,7 @@ export default function SideNav({config}: {config: SiteConfig}) {
     const activeDesk = resolveActiveDesk(pathname, config)
     const showWrite = activeDesk === 'WRITE'
     const showPodcast = activeDesk === 'PODCAST'
+    const showPodcastRss = hasModule(config, 'PODCAST_RSS')
     const showSubscription = hasModule(config, 'SUBSCRIPTION')
     const showMedia =
         hasModule(config, 'DIGITAL_CONTENT') || hasModule(config, 'PODCAST')
@@ -102,7 +103,7 @@ export default function SideNav({config}: {config: SiteConfig}) {
         {href: '/podcast/series', label: 'Sendungen'},
         {href: '/podcast/formats', label: 'Formate'},
     ]
-    if (config.publicRssUrl !== null) {
+    if (showPodcastRss || config.publicRssUrl !== null) {
         podcastSetupItems.push({href: '/podcast/feeds', label: 'Feeds'})
     }
 

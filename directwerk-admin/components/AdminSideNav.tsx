@@ -19,6 +19,7 @@ interface NavigationItem {
 const NAV_ITEMS: readonly NavigationItem[] = [
     {href: '/', label: 'Overview'},
     {href: '/admins', label: 'Platform admins'},
+    {href: '/audit', label: 'Audit log'},
     {href: '/jobs', label: 'Jobs'},
 ] as const
 

@@ -522,9 +522,16 @@ export interface BillingDashboard {
 // Subscriber access / feeds / downloads (web)
 // ---------------------------------------------------------------------------
 
+export interface PackageSummary {
+    id: number
+    slug: string
+    title: string
+}
+
 export interface Access {
     activeLevels: LevelSummary[]
     maxLevelSortOrder: number | null
+    activePackages: PackageSummary[]
     roles: string[]
     tenantId: number
 }
@@ -810,6 +817,15 @@ export interface QueueJob {
     lastError: string | null
     createdAt: string
     updatedAt: string
+}
+
+export interface PlatformAuditEvent {
+    id: number
+    action: string
+    actorUserId: number | null
+    tenantId: number | null
+    details: Record<string, unknown>
+    createdAt: string
 }
 
 // ---------------------------------------------------------------------------

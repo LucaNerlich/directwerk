@@ -3,6 +3,7 @@ import type {
     ApiEnvelope,
     FeedFormat,
     FeedPreview,
+    PackageSummary,
     PublicArticle,
     PublicCategory,
     PublicEpisode,
@@ -98,6 +99,23 @@ function parseAccessLevel(value: unknown): Access['activeLevels'][number] | null
     }
 }
 
+function parsePackageSummary(value: unknown): PackageSummary | null {
+    if (
+        !isRecord(value) ||
+        !isPositiveSafeInteger(value.id) ||
+        !isBoundedString(value.slug) ||
+        !isBoundedString(value.title)
+    ) {
+        return null
+    }
+
+    return {
+        id: value.id,
+        slug: value.slug,
+        title: value.title,
+    }
+}
+
 export function parseAccessEnvelope(value: unknown): ApiEnvelope<Access> | null {
     return parseEnvelope(value, (data) => {
         if (
@@ -121,9 +139,19 @@ export function parseAccessEnvelope(value: unknown): ApiEnvelope<Access> | null 
             return null
         }
 
+        const activePackages = parseBoundedArray(
+            data.activePackages,
+            100,
+            parsePackageSummary,
+        )
+        if (activePackages === null) {
+            return null
+        }
+
         return {
             activeLevels,
             maxLevelSortOrder: data.maxLevelSortOrder,
+            activePackages,
             roles: data.roles,
             tenantId: data.tenantId,
         }
@@ -163,6 +191,14 @@ function parsePublicCategoryInternal(value: unknown): PublicCategory | null {
         name: value.name,
         parentId: value.parentId,
     }
+}
+
+export function parsePublicCategoryListEnvelope(
+    value: unknown,
+): ApiEnvelope<PublicCategory[]> | null {
+    return parseEnvelope(value, (data) =>
+        parseBoundedArray(data, 500, parsePublicCategoryInternal),
+    )
 }
 
 /**
