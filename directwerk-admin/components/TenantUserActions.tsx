@@ -22,14 +22,6 @@ interface TenantUserActionsProps {
     onChanged: () => void
 }
 
-/**
- * Renders controls for changing a tenant user's role and activation status.
- *
- * @param tenantId - The tenant containing the user
- * @param user - The tenant user whose role or status can be changed
- * @param onChanged - Callback invoked after a successful update
- * @returns Controls for updating the user's role and activation status
- */
 export default function TenantUserActions({
     tenantId,
     user,

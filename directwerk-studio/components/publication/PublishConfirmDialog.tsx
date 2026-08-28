@@ -24,9 +24,6 @@ interface PublishConfirmDialogProps {
     onConfirm: () => void
 }
 
-/**
- * Confirmation dialog before publishing a publication.
- */
 export default function PublishConfirmDialog({
     open,
     onOpenChange,

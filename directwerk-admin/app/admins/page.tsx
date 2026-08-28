@@ -23,9 +23,6 @@ import {getPlatformData} from '@/lib/api/client'
 import {AUTH_REQUIRED} from '@directwerk/api/constants'
 import type {PlatformAdmin} from '@directwerk/api/types'
 
-/**
- * Displays platform administrators and provides controls to invite or revoke administrators.
- */
 export default function PlatformAdminsPage() {
     const router = useRouter()
     const [admins, setAdmins] = useState<PlatformAdmin[] | null>(null)

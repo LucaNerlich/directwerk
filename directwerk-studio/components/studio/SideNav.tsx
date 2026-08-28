@@ -75,9 +75,6 @@ function NavigationGroup({
     )
 }
 
-/**
- * Renders the tenant's side navigation, ordered around the content-creation journey.
- */
 export default function SideNav({config}: {config: SiteConfig}) {
     const pathname = usePathname()
     const me = useOptionalMe()

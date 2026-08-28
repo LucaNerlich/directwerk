@@ -17,9 +17,6 @@ interface FormatCategoryPickerProps {
     formatsNewHref?: string
 }
 
-/**
- * Shared multi-select for podcast formats and content categories.
- */
 export default function FormatCategoryPicker({
     formats,
     categories,

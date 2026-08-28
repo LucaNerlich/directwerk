@@ -22,9 +22,6 @@ async function copyUrl(url: string): Promise<void> {
     await navigator.clipboard.writeText(url)
 }
 
-/**
- * Shows copyable public URLs after a publication is live.
- */
 export default function PublishedLinksPanel({
     title,
     links,

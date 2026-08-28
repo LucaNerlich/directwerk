@@ -44,13 +44,6 @@ export async function getPlatformData<T>(path: string): Promise<T> {
     return platformRequest<T>(path, {method: 'GET'})
 }
 
-/**
- * Sends a JSON-encoded POST request to the platform API.
- *
- * @param path - The platform API path
- * @param body - The request payload
- * @returns The parsed API response
- */
 export async function postPlatformData<T>(
     path: string,
     body: unknown
@@ -66,12 +59,17 @@ export async function getPlatformAuditLog(limit = 50): Promise<PlatformAuditEven
     return getPlatformData(`audit?limit=${limit}`)
 }
 
-/**
- * Deletes platform data at the specified path.
- *
- * @param path - The platform API path
- * @returns The parsed API response
- */
+export async function patchPlatformData<T>(
+    path: string,
+    body: unknown
+): Promise<T> {
+    return platformRequest<T>(path, {
+        method: 'PATCH',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(body),
+    })
+}
+
 export async function deletePlatformData<T>(path: string): Promise<T> {
     return platformRequest<T>(path, {method: 'DELETE'})
 }
@@ -117,4 +115,3 @@ export async function getPlatformJobList(
 
     return parsePaginatedApiEnvelope(raw, isQueueJob)
 }
-

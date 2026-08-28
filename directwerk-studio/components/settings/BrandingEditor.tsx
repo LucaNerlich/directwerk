@@ -31,9 +31,6 @@ function normalizeColor(value: FormDataEntryValue | null): string | null | undef
     return text
 }
 
-/**
- * Tenant branding editor (site title, colors, logo URL, Umami website id).
- */
 export default function BrandingEditor(): React.JSX.Element {
     const router = useRouter()
     const authRedirect = useAuthRequired()

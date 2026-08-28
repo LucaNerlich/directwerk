@@ -4,12 +4,6 @@ interface CategoryPageProps {
     params: Promise<{categoryId: string}>
 }
 
-/**
- * Renders the category editor for a valid category ID.
- *
- * @param params - Route parameters containing the category ID.
- * @returns The category editor for a valid ID, or an invalid-ID message otherwise.
- */
 export default async function CategoryPage({
     params,
 }: CategoryPageProps): Promise<React.JSX.Element> {

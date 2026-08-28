@@ -18,12 +18,6 @@ interface DomainForceVerifyFormProps {
     tenantId: string
 }
 
-/**
- * Renders a form for force-verifying a tenant domain.
- *
- * @param tenantId - The tenant whose domain should be verified
- * @returns The domain verification form
- */
 export default function DomainForceVerifyForm({
     tenantId,
 }: DomainForceVerifyFormProps) {

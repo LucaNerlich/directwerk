@@ -18,9 +18,6 @@ function tabClassName(active: boolean): string {
         .join(' ')
 }
 
-/**
- * Switcher toggle between Write desk and Podcast desk for hybrid tenants.
- */
 export default function DeskSwitcher({config}: {config: SiteConfig}): React.JSX.Element | null {
     const pathname = usePathname()
     if (!hasDesk(config, 'WRITE') || !hasDesk(config, 'PODCAST')) {

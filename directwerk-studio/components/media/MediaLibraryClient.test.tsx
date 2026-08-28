@@ -16,7 +16,6 @@ vi.mock('@/lib/media/upload', () => ({
     uploadMediaFile: vi.fn().mockResolvedValue({id: 8}),
 }))
 
-/** Full MediaAssetView fixture (shared DTO now carries all 14 fields). */
 const coverAsset = {
     id: 7,
     s3Key: 'tenant/staging/cover.png',

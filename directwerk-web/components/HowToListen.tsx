@@ -1,8 +1,5 @@
 import Link from 'next/link'
 
-/**
- * Explains how to subscribe to public vs private RSS in podcast apps.
- */
 export default function HowToListen({
     publicFeedUrl,
     privateFeedUrl,

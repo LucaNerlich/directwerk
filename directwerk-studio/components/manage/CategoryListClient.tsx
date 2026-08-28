@@ -13,9 +13,6 @@ import type {CategorySummary} from '@directwerk/api/types'
 import {getClientTenantHost} from '@/lib/tenant/getClientTenantHost'
 import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
 
-/**
- * Displays the tenant category management list with loading, empty, and error states.
- */
 export default function CategoryListClient(): React.JSX.Element {
     const router = useRouter()
     const authRedirect = useAuthRequired()

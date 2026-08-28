@@ -1,8 +1,6 @@
 import {isAllowedFeedUrl} from '@directwerk/api/validation'
 
-/**
- * Renders a tenant logo only when the URL is https or loopback http.
- */
+/** Only render when the URL is https or loopback http. */
 export default function BrandLogo({
     logoUrl,
     name,

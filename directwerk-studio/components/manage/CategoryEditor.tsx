@@ -37,12 +37,6 @@ interface DeactivateState {
 
 const INITIAL_STATE: CategoryFormState = {error: null, success: null}
 
-/**
- * Parses an optional positive integer identifier from a form value.
- *
- * @param value - The form value to parse.
- * @returns The parsed identifier when it is a safe positive integer; otherwise, `undefined`.
- */
 function parseOptionalId(value: FormDataEntryValue | null): number | undefined {
     const text = String(value ?? '').trim()
     if (text.length === 0) {
@@ -52,12 +46,6 @@ function parseOptionalId(value: FormDataEntryValue | null): number | undefined {
     return Number.isSafeInteger(parsed) && parsed >= 1 ? parsed : undefined
 }
 
-/**
- * Renders a form for creating or editing a category, including optional deactivation of an active category.
- *
- * @param categoryId - The identifier of the category to edit; omit to create a new category.
- * @returns The category editor interface.
- */
 export default function CategoryEditor({categoryId}: CategoryEditorProps): React.JSX.Element {
     const router = useRouter()
     const authRedirect = useAuthRequired()

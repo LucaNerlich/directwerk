@@ -34,12 +34,6 @@ interface FormatFormState {
 
 const INITIAL_STATE: FormatFormState = {error: null, success: null}
 
-/**
- * Parses an optional non-negative integer from a form value.
- *
- * @param value - The form value to parse.
- * @returns The parsed integer, or `undefined` when the value is empty, invalid, or negative.
- */
 function parseOptionalInt(value: FormDataEntryValue | null): number | undefined {
     const text = String(value ?? '').trim()
     if (text.length === 0) {
@@ -49,11 +43,6 @@ function parseOptionalInt(value: FormDataEntryValue | null): number | undefined 
     return Number.isSafeInteger(parsed) && parsed >= 0 ? parsed : undefined
 }
 
-/**
- * Provides a form for creating, editing, and deactivating a format.
- *
- * @param formatId - The identifier of the format to edit; omit to create a new format.
- */
 export default function FormatEditor({formatId}: FormatEditorProps): React.JSX.Element {
     const router = useRouter()
     const authRedirect = useAuthRequired()

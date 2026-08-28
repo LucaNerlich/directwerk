@@ -22,13 +22,6 @@ interface TenantEditFormProps {
     onUpdated?: (tenant: Tenant) => void
 }
 
-/**
- * Renders a form for updating a tenant's name or slug.
- *
- * @param tenantId - The identifier of the tenant to update
- * @param tenant - The tenant whose current values populate the form
- * @param onUpdated - Optional callback invoked with the updated tenant
- */
 export default function TenantEditForm({
     tenantId,
     tenant,

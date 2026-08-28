@@ -27,9 +27,6 @@ const INITIAL_ADD_STATE: AddDomainState = {error: null, success: null}
 
 const HOST_PATTERN = /^[a-z0-9]([a-z0-9.-]*[a-z0-9])?$/i
 
-/**
- * Domain list, add, and DNS verification for the current tenant.
- */
 export default function DomainsClient(): React.JSX.Element {
     const router = useRouter()
     const authRedirect = useAuthRequired()

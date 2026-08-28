@@ -855,12 +855,7 @@ export async function listProducts(
     )
 }
 
-/**
- * Lists the tenant's active LEVEL subscription products without authentication.
- *
- * @param tenantHost - The tenant's host identifier
- * @returns The tenant's active level summaries, sorted by sortOrder ascending
- */
+/** Unauthenticated; results are sorted by sortOrder ascending. */
 export async function listPublicLevels(
     tenantHost: string,
 ): Promise<LevelSummary[]> {
@@ -967,12 +962,6 @@ export async function revokeSubscription(
     )
 }
 
-/**
- * Lists the subscriber feeds of the current tenant.
- *
- * @param tenantHost - The tenant's host identifier
- * @returns The tenant's subscriber feed summaries
- */
 export async function listSubscriberFeeds(
     tenantHost: string,
 ): Promise<SubscriberFeedSummary[]> {
@@ -985,14 +974,6 @@ export async function listSubscriberFeeds(
     )
 }
 
-/**
- * Enables or disables a subscriber feed of the current tenant.
- *
- * @param tenantHost - The tenant's host identifier
- * @param feedId - The identifier of the feed to toggle
- * @param enabled - Whether the feed should be enabled
- * @returns The updated subscriber feed
- */
 export async function setSubscriberFeedEnabled(
     tenantHost: string,
     feedId: number,
@@ -1007,12 +988,6 @@ export async function setSubscriberFeedEnabled(
     )
 }
 
-/**
- * Lists the formats available to the tenant.
- *
- * @param tenantHost - The tenant's host identifier
- * @returns The tenant's available format summaries
- */
 export async function listFormats(tenantHost: string): Promise<FormatSummary[]> {
     return proxyRequest(
         '/api/proxy/formats',
@@ -1023,16 +998,6 @@ export async function listFormats(tenantHost: string): Promise<FormatSummary[]> 
     )
 }
 
-/**
- * Executes an authenticated request and extracts its validated response data.
- *
- * @param path - The API request path
- * @param tenantHost - The tenant host associated with the request
- * @param init - Optional request configuration
- * @param parser - Parses and validates the response value
- * @param errorMessage - Message used when response validation fails
- * @returns The parsed response data
- */
 async function proxyRequest<T>(
     path: string,
     tenantHost: string,
@@ -1048,11 +1013,6 @@ async function proxyRequest<T>(
     return parsed.data
 }
 
-/**
- * Lists the categories available for a tenant.
- *
- * @returns The tenant's category summaries
- */
 export async function listCategories(
     tenantHost: string,
 ): Promise<CategorySummary[]> {
@@ -1065,12 +1025,6 @@ export async function listCategories(
     )
 }
 
-/**
- * Creates a format for the tenant.
- *
- * @param input - The format data to create
- * @returns The created format
- */
 export async function createFormat(
     tenantHost: string,
     input: CreateFormatInput,
@@ -1088,13 +1042,6 @@ export async function createFormat(
     )
 }
 
-/**
- * Updates a format for the tenant.
- *
- * @param formatId - The identifier of the format to update
- * @param input - The format fields to update
- * @returns The updated format
- */
 export async function updateFormat(
     tenantHost: string,
     formatId: number,
@@ -1113,12 +1060,6 @@ export async function updateFormat(
     )
 }
 
-/**
- * Deactivates a format for the tenant.
- *
- * @param formatId - The identifier of the format to deactivate
- * @returns The deactivated format
- */
 export async function deactivateFormat(
     tenantHost: string,
     formatId: number,
@@ -1134,12 +1075,6 @@ export async function deactivateFormat(
     )
 }
 
-/**
- * Creates a category for the tenant.
- *
- * @param input - The category details to create
- * @returns The created category
- */
 export async function createCategory(
     tenantHost: string,
     input: CreateCategoryInput,
@@ -1157,13 +1092,6 @@ export async function createCategory(
     )
 }
 
-/**
- * Updates a category.
- *
- * @param categoryId - The identifier of the category to update
- * @param input - The category fields to update
- * @returns The updated category
- */
 export async function updateCategory(
     tenantHost: string,
     categoryId: number,
@@ -1182,12 +1110,6 @@ export async function updateCategory(
     )
 }
 
-/**
- * Deactivates a category.
- *
- * @param categoryId - The identifier of the category to deactivate
- * @returns The deactivated category
- */
 export async function deactivateCategory(
     tenantHost: string,
     categoryId: number,
@@ -1203,13 +1125,6 @@ export async function deactivateCategory(
     )
 }
 
-/**
- * Replaces the formats associated with an episode.
- *
- * @param episodeId - The episode whose format associations are replaced
- * @param formatIds - The IDs of the formats to associate with the episode
- * @returns The updated episode
- */
 export async function replaceEpisodeFormats(
     tenantHost: string,
     episodeId: number,
@@ -1228,13 +1143,6 @@ export async function replaceEpisodeFormats(
     )
 }
 
-/**
- * Replaces the categories associated with an episode.
- *
- * @param episodeId - The episode whose category associations are replaced
- * @param categoryIds - The category IDs to associate with the episode
- * @returns The updated episode
- */
 export async function replaceEpisodeCategories(
     tenantHost: string,
     episodeId: number,
@@ -1253,12 +1161,6 @@ export async function replaceEpisodeCategories(
     )
 }
 
-/**
- * Replaces the categories assigned to an article.
- *
- * @param categoryIds - The identifiers of the categories to assign to the article
- * @returns The updated article
- */
 export async function replaceArticleCategories(
     tenantHost: string,
     articleId: number,

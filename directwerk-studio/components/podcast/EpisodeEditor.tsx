@@ -63,12 +63,6 @@ function optionalMinInt(value: string, minimum: number): number | undefined {
     return parsed
 }
 
-/**
- * Provides an editor for creating or managing a podcast episode, including metadata, publication workflow, audio, and tags.
- *
- * @param episodeId - The ID of the episode to edit; omit to create a new episode.
- * @returns The episode editor interface.
- */
 export default function EpisodeEditor({episodeId}: {episodeId?: number}): React.JSX.Element {
     const router = useRouter()
     const authRedirect = useAuthRequired()
