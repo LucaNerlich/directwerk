@@ -1,3 +1,5 @@
+import StatCard from '@directwerk/ui/components/stat-card'
+
 import SectionLabel from '@/components/marketing/SectionLabel'
 
 const STEPS = [
@@ -33,17 +35,12 @@ export default function CreatorJourneySection(): React.JSX.Element {
                 </h2>
                 <ol className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                     {STEPS.map((item) => (
-                        <li
-                            className="relative rounded-xl border bg-card p-6"
-                            key={item.step}
-                        >
-                            <span className="font-mono text-xs font-semibold text-muted-foreground">
-                                {item.step}
-                            </span>
-                            <h3 className="mt-3 font-semibold">{item.title}</h3>
-                            <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                                {item.copy}
-                            </p>
+                        <li key={item.step}>
+                            <StatCard
+                                hint={item.copy}
+                                label={item.step}
+                                value={item.title}
+                            />
                         </li>
                     ))}
                 </ol>

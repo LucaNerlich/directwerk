@@ -1,3 +1,5 @@
+import StatCard from '@directwerk/ui/components/stat-card'
+
 import SectionLabel from '@/components/marketing/SectionLabel'
 
 const PRODUCTS = [
@@ -25,7 +27,7 @@ const PRODUCTS = [
 
 export default function ProductStackSection(): React.JSX.Element {
     return (
-        <section className="marketing-section">
+        <section className="marketing-section" id="products">
             <div className="marketing-container">
                 <SectionLabel>Produktstack</SectionLabel>
                 <h2 className="mt-4 max-w-2xl text-balance text-3xl font-semibold tracking-tight sm:text-4xl">
@@ -37,18 +39,12 @@ export default function ProductStackSection(): React.JSX.Element {
                 </p>
                 <div className="mt-10 grid gap-4 sm:grid-cols-2">
                     {PRODUCTS.map((product) => (
-                        <article
-                            className="rounded-xl border bg-card p-6"
+                        <StatCard
+                            hint={product.copy}
                             key={product.name}
-                        >
-                            <p className="font-mono text-sm font-semibold">{product.name}</p>
-                            <p className="mt-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                                {product.role}
-                            </p>
-                            <p className="mt-3 text-sm leading-6 text-muted-foreground">
-                                {product.copy}
-                            </p>
-                        </article>
+                            label={product.role}
+                            value={product.name}
+                        />
                     ))}
                 </div>
             </div>

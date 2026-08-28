@@ -1,6 +1,6 @@
 import {Button} from '@directwerk/ui/components/button'
 
-import {CONTACT_EMAIL} from '@/lib/marketing/constants'
+import {CONTACT_EMAIL, DOCS_URL} from '@/lib/marketing/constants'
 
 export default function CtaSection(): React.JSX.Element {
     return (
@@ -32,6 +32,20 @@ export default function CtaSection(): React.JSX.Element {
                             variant="outline"
                         >
                             API-Auszug
+                        </Button>
+                        <Button
+                            className="border-primary-foreground/30 bg-transparent text-primary-foreground hover:bg-primary-foreground/10"
+                            render={
+                                <a
+                                    href={DOCS_URL}
+                                    rel="noopener noreferrer"
+                                    target="_blank"
+                                />
+                            }
+                            size="lg"
+                            variant="outline"
+                        >
+                            Dokumentation
                         </Button>
                     </div>
                 </div>

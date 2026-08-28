@@ -4,7 +4,7 @@ import {describe, expect, it} from 'vitest'
 import DevelopersPage from '@/app/developers/page'
 
 describe('DevelopersPage', () => {
-    it('shows API pitch, highlights, curl example, and coming-soon notice', () => {
+    it('shows API pitch, highlights, curl example, and docs CTA', () => {
         render(<DevelopersPage />)
 
         expect(
@@ -16,9 +16,12 @@ describe('DevelopersPage', () => {
         expect(screen.getByText('GET /api/v1/public/site-config')).toBeInTheDocument()
         expect(
             screen.getByRole('heading', {
-                name: /Vollständige API-Dokumentation folgt/,
+                name: /Vollständige Dokumentation/,
             }),
         ).toBeInTheDocument()
+        expect(
+            screen.getByRole('link', {name: 'Dokumentation öffnen'}),
+        ).toHaveAttribute('href', 'http://localhost:5173')
         expect(
             screen.getByRole('button', {name: 'OAuth-Token-Beispiel anzeigen'}),
         ).toBeInTheDocument()

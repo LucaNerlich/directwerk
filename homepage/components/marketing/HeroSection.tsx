@@ -2,7 +2,7 @@ import {Button} from '@directwerk/ui/components/button'
 import {Card, CardContent} from '@directwerk/ui/components/card'
 
 import SectionLabel from '@/components/marketing/SectionLabel'
-import {CONTACT_EMAIL} from '@/lib/marketing/constants'
+import {CONTACT_EMAIL, DOCS_URL} from '@/lib/marketing/constants'
 
 export default function HeroSection(): React.JSX.Element {
     return (
@@ -24,12 +24,24 @@ export default function HeroSection(): React.JSX.Element {
                     <p className="mt-8 max-w-xl text-pretty text-lg leading-8 text-muted-foreground">
                         Directwerk ist die API-first Whitelabel-Plattform für Podcast,
                         Abonnements und digitales Publishing — mit Creator-Studio,
-                        optionaler Endkunden-Website und voller Kontrolle über Domain
-                        und Daten.
+                        Endkunden-Website und voller Kontrolle über Domain und Daten.
                     </p>
                     <div className="mt-8 flex flex-wrap gap-3">
                         <Button render={<a href="#products" />} size="lg">
                             Plattform entdecken
+                        </Button>
+                        <Button
+                            render={
+                                <a
+                                    href={DOCS_URL}
+                                    rel="noopener noreferrer"
+                                    target="_blank"
+                                />
+                            }
+                            size="lg"
+                            variant="outline"
+                        >
+                            Dokumentation
                         </Button>
                         <Button
                             render={<a href={`mailto:${CONTACT_EMAIL}`} />}
@@ -42,7 +54,6 @@ export default function HeroSection(): React.JSX.Element {
                 </div>
                 <Card
                     className="relative overflow-hidden border-foreground/10 bg-card/85 shadow-2xl shadow-foreground/10 backdrop-blur"
-                    id="products"
                 >
                     <CardContent className="p-0">
                         <div className="border-b bg-primary p-7 text-primary-foreground">

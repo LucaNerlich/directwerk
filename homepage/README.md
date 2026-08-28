@@ -19,12 +19,15 @@ Open [http://localhost:3005](http://localhost:3005) (port **3005** avoids confli
 | Path | Purpose |
 |------|---------|
 | `/` | Platform landing — features, product stack, creator journey |
-| `/developers` | API excerpt for integrators (full VitePress docs planned separately) |
+| `/developers` | API excerpt for integrators — links to full VitePress docs |
 
 ## Optional env
 
+Copy [`.env.local.example`](.env.local.example) to `.env.local`.
+
 | Variable | Purpose |
 |----------|---------|
+| `NEXT_PUBLIC_DOCS_URL` | Public VitePress docs (default `http://localhost:5173`) |
 | `NEXT_PUBLIC_SWAGGER_URL` | External link to staging Swagger UI on `/developers` |
 
 ## Stack

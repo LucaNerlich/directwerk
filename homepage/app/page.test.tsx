@@ -13,6 +13,7 @@ describe('Home', () => {
         expect(
             screen.getByRole('link', {name: 'API-Auszug ansehen'}),
         ).toHaveAttribute('href', '/developers')
+        expect(screen.getAllByRole('link', {name: 'Dokumentation'}).length).toBeGreaterThan(0)
         expect(screen.getByRole('link', {name: 'Kontakt'})).toHaveAttribute(
             'href',
             'mailto:hello@directwerk.de',

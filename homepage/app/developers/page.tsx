@@ -2,7 +2,7 @@ import type {Metadata} from 'next'
 
 import ApiHighlightTable from '@/components/marketing/ApiHighlightTable'
 import CodeBlock from '@/components/marketing/CodeBlock'
-import DocsComingSoon from '@/components/marketing/DocsComingSoon'
+import DocsCta from '@/components/marketing/DocsCta'
 import OptionalOAuthSnippet from '@/components/marketing/OptionalOAuthSnippet'
 import SectionLabel from '@/components/marketing/SectionLabel'
 import {
@@ -33,7 +33,8 @@ export default function DevelopersPage(): React.JSX.Element {
                         Mandantenauflösung, OAuth2 und modulare Feature-Gates mit
                         maschinenlesbaren Fehlercodes. Diese Seite ist ein{' '}
                         <strong className="font-medium text-foreground">Auszug</strong>{' '}
-                        — die vollständige Dokumentation folgt als VitePress-Site.
+                        — Installationsanleitung, OpenAPI-Referenz und Integrationsguides
+                        stehen in der öffentlichen Dokumentation.
                     </p>
                 </div>
             </section>
@@ -119,7 +120,7 @@ export default function DevelopersPage(): React.JSX.Element {
 
             <section className="marketing-section border-t bg-muted/20">
                 <div className="marketing-container max-w-4xl">
-                    <DocsComingSoon />
+                    <DocsCta />
                 </div>
             </section>
         </div>

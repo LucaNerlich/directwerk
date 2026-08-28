@@ -4,6 +4,7 @@ import {Button} from '@directwerk/ui/components/button'
 import {Card, CardContent} from '@directwerk/ui/components/card'
 
 import SectionLabel from '@/components/marketing/SectionLabel'
+import {DOCS_URL} from '@/lib/marketing/constants'
 
 export default function DeveloperTeaserSection(): React.JSX.Element {
     return (
@@ -22,9 +23,24 @@ export default function DeveloperTeaserSection(): React.JSX.Element {
                                 Mandantenauflösung und demselben Vertrag wie Studio und Web.
                             </p>
                         </div>
-                        <Button render={<Link href="/developers" />} size="lg">
-                            API-Auszug ansehen
-                        </Button>
+                        <div className="flex flex-wrap gap-2 lg:justify-end">
+                            <Button render={<Link href="/developers" />} size="lg">
+                                API-Auszug ansehen
+                            </Button>
+                            <Button
+                                render={
+                                    <a
+                                        href={DOCS_URL}
+                                        rel="noopener noreferrer"
+                                        target="_blank"
+                                    />
+                                }
+                                size="lg"
+                                variant="outline"
+                            >
+                                Vollständige Docs
+                            </Button>
+                        </div>
                     </CardContent>
                 </Card>
             </div>

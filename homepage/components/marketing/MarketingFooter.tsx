@@ -18,15 +18,21 @@ export default function MarketingFooter(): React.JSX.Element {
                     aria-label="Footer"
                     className="flex flex-col gap-2 text-sm"
                 >
-                    {NAV_ITEMS.map((item) => (
-                        <a
-                            className="text-muted-foreground transition-colors hover:text-foreground"
-                            href={item.href}
-                            key={item.href}
-                        >
-                            {item.label}
-                        </a>
-                    ))}
+                    {NAV_ITEMS.map((item) => {
+                        const external = 'external' in item && item.external
+                        return (
+                            <a
+                                className="text-muted-foreground transition-colors hover:text-foreground"
+                                href={item.href}
+                                key={item.href}
+                                {...(external
+                                    ? {rel: 'noopener noreferrer', target: '_blank'}
+                                    : {})}
+                            >
+                                {item.label}
+                            </a>
+                        )
+                    })}
                     <a
                         className="text-muted-foreground transition-colors hover:text-foreground"
                         href={`mailto:${CONTACT_EMAIL}`}
