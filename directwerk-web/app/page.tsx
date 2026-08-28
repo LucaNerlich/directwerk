@@ -16,22 +16,11 @@ import {
     listPublicEpisodes,
     listPublicProducts,
 } from '@/lib/api/client'
-import type {PublicArticle, PublicEpisode} from '@directwerk/api/types'
+import type {PublicArticle, PublicEpisode, PublicProduct} from '@directwerk/api/types'
 import {formatPublishedAt} from '@/lib/format'
 import {formatMoney} from '@/lib/format/money'
 import {useSiteConfig} from '@/lib/site/SiteConfigProvider'
 import {getClientTenantHost} from '@/lib/tenant/getClientTenantHost'
-
-interface PublicProduct {
-    slug: string
-    title: string
-    offeringType: string
-    sortOrder: number
-    description: string | null
-    priceCents: number | null
-    currency: string
-    billingInterval: string
-}
 
 export default function HomePage(): React.JSX.Element {
     const config = useSiteConfig()

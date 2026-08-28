@@ -578,6 +578,18 @@ export interface SubscriberDownload {
 // Public content (web)
 // ---------------------------------------------------------------------------
 
+/** Public product listing from GET /api/v1/public/products. */
+export interface PublicProduct {
+    slug: string
+    title: string
+    offeringType: OfferingType
+    sortOrder: number
+    description: string | null
+    priceCents: number | null
+    currency: string
+    billingInterval: BillingInterval
+}
+
 export interface PublicArticle {
     id: number
     slug: string

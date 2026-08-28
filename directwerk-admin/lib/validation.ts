@@ -11,11 +11,9 @@ import {
     TENANT_INVITABLE_ROLES,
 } from '@directwerk/api/types'
 import {parseTenantHost} from '@directwerk/api/proxy'
+import type {LoginInput} from '@directwerk/api/validation'
 
-export interface LoginCredentials {
-    email: string
-    password: string
-}
+export type LoginCredentials = LoginInput
 
 export type LoginValidationResult =
     | {success: true; data: LoginCredentials}

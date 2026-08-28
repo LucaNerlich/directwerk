@@ -1,13 +1,16 @@
 import type {
     Access,
     ApiEnvelope,
+    BillingInterval,
     FeedFormat,
     FeedPreview,
+    OfferingType,
     PackageSummary,
     PublicArticle,
     PublicCategory,
     PublicEpisode,
     PublicFormat,
+    PublicProduct,
     PublicSeries,
     PublicSiteConfig,
     SubscriberDownload,
@@ -17,6 +20,7 @@ import type {
 import {
     isAllowedFeedUrl,
     isBoundedString,
+    isNonNegativeSafeInteger,
     isNullableNonNegativeSafeInteger,
     isNullableSafeInteger,
     isNullableString,
@@ -558,6 +562,46 @@ export function parseSubscriberDownloadListEnvelope(
 ): ApiEnvelope<SubscriberDownload[]> | null {
     return parseEnvelope(value, (data) =>
         parseBoundedArray(data, 50, parseSubscriberDownload),
+    )
+}
+
+
+function isOfferingType(value: unknown): value is OfferingType {
+    return value === 'LEVEL' || value === 'PACKAGE'
+}
+function isBillingInterval(value: unknown): value is BillingInterval {
+    return value === 'MONTH' || value === 'YEAR' || value === 'ONE_TIME'
+}
+function parsePublicProduct(value: unknown): PublicProduct | null {
+    if (
+        !isRecord(value) ||
+        !isBoundedString(value.slug) ||
+        !isBoundedString(value.title) ||
+        !isOfferingType(value.offeringType) ||
+        !isNonNegativeSafeInteger(value.sortOrder) ||
+        !isNullableString(value.description, 2000) ||
+        !(value.priceCents === null || isNonNegativeSafeInteger(value.priceCents)) ||
+        !isBoundedString(value.currency, 3) ||
+        !isBillingInterval(value.billingInterval)
+    ) {
+        return null
+    }
+    return {
+        slug: value.slug,
+        title: value.title,
+        offeringType: value.offeringType,
+        sortOrder: value.sortOrder,
+        description: value.description,
+        priceCents: value.priceCents,
+        currency: value.currency,
+        billingInterval: value.billingInterval,
+    }
+}
+export function parsePublicProductListEnvelope(
+    value: unknown,
+): ApiEnvelope<PublicProduct[]> | null {
+    return parseEnvelope(value, (data) =>
+        parseBoundedArray(data, 200, parsePublicProduct),
     )
 }
 

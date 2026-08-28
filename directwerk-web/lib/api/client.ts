@@ -9,6 +9,7 @@ import {
     parseMeEnvelope,
     parsePublicCategoryListEnvelope,
     parsePublicFormatListEnvelope,
+    parsePublicProductListEnvelope,
     parsePublicSiteConfigEnvelope,
     parseSubscriptionListEnvelope,
     parseTokenResponse,
@@ -30,6 +31,7 @@ import type {
     PublicCategory,
     PublicEpisode,
     PublicFormat,
+    PublicProduct,
     PublicSeries,
     PublicSiteConfig,
     SubscriberDownload,
@@ -537,36 +539,10 @@ export async function listMyDownloads(
 
 export async function listPublicProducts(
     tenantHost: string,
-): Promise<Array<{
-    slug: string
-    title: string
-    offeringType: string
-    sortOrder: number
-    description: string | null
-    priceCents: number | null
-    currency: string
-    billingInterval: string
-}>> {
-    const value = await request('/api/proxy/public/products', tenantHost)
-    if (
-        typeof value !== 'object' ||
-        value === null ||
-        !('data' in value) ||
-        !Array.isArray((value as {data: unknown}).data)
-    ) {
-        throw new Error('The server returned an invalid product list.')
-    }
-
-    return (value as {
-        data: Array<{
-            slug: string
-            title: string
-            offeringType: string
-            sortOrder: number
-            description: string | null
-            priceCents: number | null
-            currency: string
-            billingInterval: string
-        }>
-    }).data
+): Promise<PublicProduct[]> {
+    return envelopeResult(
+        parsePublicProductListEnvelope,
+        await request('/api/proxy/public/products', tenantHost),
+        'The server returned an invalid product list.',
+    ).data
 }

@@ -20,7 +20,7 @@ import {
     listPublicProducts,
 } from '@/lib/api/client'
 import {AUTH_REQUIRED} from '@directwerk/api/constants'
-import type {LevelSummary, PublicSiteConfig} from '@directwerk/api/types'
+import type {LevelSummary, PublicProduct, PublicSiteConfig} from '@directwerk/api/types'
 import {
     getAccessToken,
     subscribeToTokenStore,
@@ -28,17 +28,6 @@ import {
 import {formatMoney} from '@/lib/format/money'
 import {userFacingBillingError} from '@/lib/billing/userFacingBillingError'
 import {getClientTenantHost} from '@/lib/tenant/getClientTenantHost'
-
-interface PublicProduct {
-    slug: string
-    title: string
-    offeringType: string
-    sortOrder: number
-    description: string | null
-    priceCents: number | null
-    currency: string
-    billingInterval: string
-}
 
 function readTokenClient(): string | null {
     return getAccessToken()

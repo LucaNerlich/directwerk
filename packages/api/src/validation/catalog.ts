@@ -553,6 +553,13 @@ export function parseProductListEnvelope(
     )
 }
 
+/** Validates an unwrapped tenant product array (post-envelope). */
+export function parseSubscriptionProductList(
+    value: unknown,
+): SubscriptionProduct[] | null {
+    return parseBoundedArray(value, 500, parseSubscriptionProduct)
+}
+
 export function parseProductEnvelope(
     value: unknown,
 ): ApiEnvelope<SubscriptionProduct> | null {

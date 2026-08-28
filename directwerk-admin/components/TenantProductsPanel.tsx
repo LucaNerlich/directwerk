@@ -18,6 +18,13 @@ import {
     putTenantData,
 } from '@/lib/api/tenantClient'
 import {AUTH_REQUIRED, CONFLICT, REQUEST_FAILED} from '@directwerk/api/constants'
+import type {
+    OfferingType,
+    ProductAccessRule,
+    SubscriptionGrant,
+    SubscriptionProduct,
+} from '@directwerk/api/types'
+import {parseSubscriptionProductList} from '@directwerk/api/validation'
 import {
     clearTenantTokens,
     getTenantSessionHost,
@@ -25,47 +32,6 @@ import {
 
 interface TenantProductsPanelProps {
     sessionKey: number
-}
-
-interface SubscriptionProduct {
-    id: number
-    slug: string
-    title: string
-    offeringType: 'LEVEL' | 'PACKAGE'
-    sortOrder: number
-    active: boolean
-}
-
-interface ProductAccessRule {
-    id: number
-    productId: number
-    scopeType: string
-    scopeId: number | null
-    effect: string
-}
-
-interface SubscriptionGrant {
-    id: number
-    email: string
-    productId: number
-    productSlug: string
-    productTitle: string
-    status: string
-}
-
-function isProduct(value: unknown): value is SubscriptionProduct {
-    if (typeof value !== 'object' || value === null) {
-        return false
-    }
-    const product = value as Record<string, unknown>
-    return (
-        typeof product.id === 'number' &&
-        typeof product.slug === 'string' &&
-        typeof product.title === 'string' &&
-        (product.offeringType === 'LEVEL' || product.offeringType === 'PACKAGE') &&
-        typeof product.sortOrder === 'number' &&
-        typeof product.active === 'boolean'
-    )
 }
 
 export default function TenantProductsPanel({
@@ -85,7 +51,7 @@ export default function TenantProductsPanel({
     const [newSlug, setNewSlug] = useState('')
     const [newTitle, setNewTitle] = useState('')
     const [newSortOrder, setNewSortOrder] = useState('0')
-    const [newOfferingType, setNewOfferingType] = useState<'LEVEL' | 'PACKAGE'>(
+    const [newOfferingType, setNewOfferingType] = useState<OfferingType>(
         'LEVEL'
     )
     const [grantEmail, setGrantEmail] = useState('')
@@ -104,15 +70,16 @@ export default function TenantProductsPanel({
         setIsLoading(true)
         setError(null)
 
-        getTenantData<SubscriptionProduct[]>('tenant/products')
+        getTenantData<unknown>('tenant/products')
             .then((result) => {
-                if (!Array.isArray(result) || !result.every(isProduct)) {
+                const products = parseSubscriptionProductList(result)
+                if (products === null) {
                     setError('Could not load products.')
                     setProducts([])
                     return
                 }
-                setProducts(result)
-                const activeProducts = result.filter((product) => product.active)
+                setProducts(products)
+                const activeProducts = products.filter((product) => product.active)
                 const firstActive = activeProducts[0]
                 setGrantProductId((current) => {
                     if (
@@ -339,7 +306,7 @@ export default function TenantProductsPanel({
                         id="admin-product-type"
                         onChange={(event) =>
                             setNewOfferingType(
-                                event.target.value as 'LEVEL' | 'PACKAGE'
+                                event.target.value as OfferingType
                             )
                         }
                         value={newOfferingType}
