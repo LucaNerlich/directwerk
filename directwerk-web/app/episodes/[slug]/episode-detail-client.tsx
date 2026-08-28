@@ -140,7 +140,7 @@ export default function EpisodeDetailClient({
                     />
                     {episode.description !== null && episode.description.length > 0 ? (
                         <div
-                            className="editorial-copy"
+                            className="content-prose"
                             dangerouslySetInnerHTML={{__html: episode.description}}
                         />
                     ) : null}

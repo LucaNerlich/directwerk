@@ -23,7 +23,40 @@ Each app imports the shared theme from its `app/globals.css`:
 ```css
 @import '@directwerk/ui/theme.css';
 @source '../**/*.{ts,tsx}';
+@source '../../packages/ui/src/**/*.{ts,tsx}';
 ```
+
+`theme.css` chains shared style layers from `packages/ui/src/styles/`:
+
+| File | Purpose |
+|------|---------|
+| `theme.css` | Tailwind setup, semantic tokens (`:root`), `@theme inline` mapping |
+| `app-base.css` | Shared resets (`min-w-0`, heading margins, alert color) |
+| `content.css` | `.content-prose` for article/episode HTML bodies |
+| `layout.css` | `.page-container`, `.media-player` |
+| `forms.css` | `.native-select` for admin filter forms |
+
+App `globals.css` should only add **app-specific** utilities (e.g. studio
+`.editor-surface`, admin `.media-asset-row`, homepage `.marketing-container`).
+
+### Semantic tokens
+
+Components and utilities reference tokens, not raw colors:
+
+- Surfaces: `background`, `card`, `muted`, `accent`
+- Text: `foreground`, `muted-foreground`, `primary-foreground`
+- Chrome: `border`, `input`, `ring`
+- Sidebar shell: `sidebar`, `sidebar-accent`, …
+- Radius: `--radius` → `rounded-lg`, etc.
+
+Tenant branding overrides `--primary` and `--ring` at runtime via `BrandTheme`
+(web layout, studio shell). Fallback primary is defined in `:root`.
+
+### Layout and content utilities
+
+- `PageStack` — vertical page rhythm (`gap-8`)
+- `page-container` — centered public-site content width
+- `content-prose` — sanitized HTML from articles/episodes/shownotes
 
 Each Next.js config includes:
 
@@ -43,8 +76,13 @@ pnpm dlx shadcn@latest add component-name
 - `AppShell`: authenticated application areas with responsive sidebar navigation.
 - `AdminShell`: platform administration wrapper around `AppShell`, with English accessibility labels.
 - `PageHeader`: page title, context, and primary action.
+- `PageStack`: consistent vertical spacing between page sections.
+- `SectionHeader`: section title, optional description and action.
+- `StatCard`, `FeatureCard`: KPI tiles and action/desk cards.
+- `ListPanel`, `ListPanelRow`: bordered list rows with hover states.
 - `EmptyState`: empty collections and first-run guidance.
 - `AuthCard`: login, registration, invitation, and password flows.
+- `ResponsiveTable`: horizontally scrollable table wrapper.
 
 Use direct imports to preserve bundle splitting:
 

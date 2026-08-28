@@ -1,6 +1,10 @@
 @import 'tailwindcss';
 @source '../**/*.{ts,tsx}';
 @import 'tw-animate-css';
+@import './app-base.css';
+@import './content.css';
+@import './layout.css';
+@import './forms.css';
 
 @theme inline {
     --color-background: var(--background);
@@ -90,20 +94,5 @@
 
     :focus-visible {
         @apply outline-2 outline-offset-2 outline-ring;
-    }
-}
-
-@layer utilities {
-    .content-prose {
-        color: var(--foreground);
-        line-height: 1.75;
-    }
-
-    .content-prose :where(p, ul, ol, blockquote) {
-        margin-block: 0.75rem;
-    }
-
-    .content-prose :where(ul, ol) {
-        padding-inline-start: 1.5rem;
     }
 }

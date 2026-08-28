@@ -98,7 +98,7 @@ export default async function ArticleDetailPage({params}: ArticlePageProps) {
                         </AlertDescription></Alert>
                     ) : article.body !== null && article.body.length > 0 ? (
                         <div
-                            className="editorial-copy"
+                            className="content-prose"
                             dangerouslySetInnerHTML={{__html: article.body}}
                         />
                     ) : (

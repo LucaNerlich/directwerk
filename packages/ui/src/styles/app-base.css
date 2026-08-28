@@ -1,0 +1,16 @@
+@layer base {
+    body {
+        @apply min-w-0;
+    }
+
+    h1,
+    h2,
+    h3,
+    p {
+        margin-top: 0;
+    }
+
+    [role='alert'] {
+        @apply text-destructive;
+    }
+}
