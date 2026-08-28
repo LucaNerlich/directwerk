@@ -1,9 +1,53 @@
-import {createTenantLoginRoute} from '@directwerk/api/server'
-import {directwerkFetch, getOAuthClientId, REFRESH_COOKIE} from '@/lib/server/api'
+import {directwerkFetch, getOAuthClientId} from '@/lib/server/api'
+import {parseTenantHost} from '@directwerk/api/proxy'
+import {jsonError, toClientResponse} from '@directwerk/api/proxy'
+import {readBoundedBody} from '@directwerk/api/proxy'
+import {parseJsonText, parseLoginInput} from '@directwerk/api/validation'
+import {REFRESH_COOKIE} from '@/lib/server/api'
+import {sealRefreshToken} from '@directwerk/api/auth/cookies'
 
-export const POST = createTenantLoginRoute({
-    directwerkFetch,
-    getOAuthClientId,
-    refreshCookie: REFRESH_COOKIE,
-    parseLoginOptions: {normalizeEmail: true},
-})
+export async function POST(request: Request): Promise<Response> {
+    const tenantHost = parseTenantHost(request.headers.get('x-tenant-host'))
+    if (tenantHost === null) {
+        return jsonError('A valid tenant is required.', 400)
+    }
+
+    const bodyText = await readBoundedBody(request.body)
+    if (bodyText === null) {
+        return jsonError('The request body is invalid.', 400)
+    }
+
+    const input = parseLoginInput(parseJsonText(bodyText), {normalizeEmail: true})
+    if (input === null) {
+        return jsonError('A valid email and password are required.', 400)
+    }
+
+    try {
+        const body = new URLSearchParams({
+            grant_type: 'password',
+            username: input.email,
+            password: input.password,
+            client_id: getOAuthClientId(),
+        })
+        const response = await directwerkFetch({
+            path: '/oauth2/token',
+            tenantHost,
+            method: 'POST',
+            body: body.toString(),
+            contentType: 'application/x-www-form-urlencoded',
+            useOAuthClient: true,
+        })
+
+        // Move the refresh token into an httpOnly cookie so it never reaches
+        // client-side JavaScript.
+        const clientResponse = await sealRefreshToken(
+            await toClientResponse(response),
+            REFRESH_COOKIE,
+        )
+        clientResponse.headers.set('Cache-Control', 'no-store')
+        clientResponse.headers.set('Pragma', 'no-cache')
+        return clientResponse
+    } catch {
+        return jsonError('The upstream service is unavailable.', 502)
+    }
+}

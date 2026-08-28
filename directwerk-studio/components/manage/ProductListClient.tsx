@@ -6,11 +6,6 @@ import {useEffect, useState} from 'react'
 
 import {Button} from '@directwerk/ui/components/button'
 import EmptyState from '@directwerk/ui/components/empty-state'
-import ListPanel, {
-    ListPanelLinkItem,
-    ListPanelSlugContent,
-    listPanelLinkClassName,
-} from '@directwerk/ui/components/list-panel'
 import PageHeader from '@directwerk/ui/components/page-header'
 
 import {listProducts} from '@/lib/api/tenantApi'
@@ -74,27 +69,32 @@ function ProductGroups({products}: {products: SubscriptionProduct[]}): React.JSX
                     <h2 className="mb-3 text-sm font-semibold text-muted-foreground">
                         Pakete
                     </h2>
-                    <ListPanel>
+                    <ul className="overflow-hidden rounded-xl border bg-card divide-y">
                         {packages.map((product) => (
-                            <ListPanelLinkItem key={product.id}>
+                            <li key={product.id}>
                                 <Link
-                                    className={listPanelLinkClassName}
+                                    className="flex w-full items-center justify-between gap-4 p-4 text-sm no-underline hover:bg-muted/40"
                                     href={`/manage/products/${product.id}`}
                                 >
-                                    <ListPanelSlugContent
-                                        name={product.title}
-                                        slug={`${product.slug} · ${formatMoney(
-                                            product.priceCents,
-                                            product.currency,
-                                            product.billingInterval,
-                                        )}`}
-                                        trailing={product.active ? 'Aktiv' : 'Inaktiv'}
-                                        trailingClassName="flex shrink-0 items-center gap-2"
-                                    />
+                                    <span>
+                                        <span className="font-medium">{product.title}</span>
+                                        <br />
+                                        <small className="text-muted-foreground">
+                                            {product.slug} ·{' '}
+                                            {formatMoney(
+                                                product.priceCents,
+                                                product.currency,
+                                                product.billingInterval,
+                                            )}
+                                        </small>
+                                    </span>
+                                    <span className="flex shrink-0 items-center gap-2 text-sm text-muted-foreground">
+                                        {product.active ? 'Aktiv' : 'Inaktiv'}
+                                    </span>
                                 </Link>
-                            </ListPanelLinkItem>
+                            </li>
                         ))}
-                    </ListPanel>
+                    </ul>
                 </section>
             ) : null}
         </div>
