@@ -25,13 +25,13 @@ describe('site helpers', () => {
     })
 
     it('maps studio home to default paths', () => {
-        expect(defaultHomePath('WRITE_DESK')).toBe('/write/articles')
+        expect(defaultHomePath('WRITE_DESK')).toBe('/write')
         expect(defaultHomePath('PODCAST_DESK')).toBe('/podcast')
         expect(defaultHomePath('OVERVIEW')).toBe('/')
     })
 
     it('maps desks to their home paths', () => {
-        expect(deskHome('WRITE')).toBe('/write/articles')
+        expect(deskHome('WRITE')).toBe('/write')
         expect(deskHome('PODCAST')).toBe('/podcast')
     })
 

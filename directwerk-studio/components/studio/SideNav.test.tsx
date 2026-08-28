@@ -20,6 +20,7 @@ vi.mock('next/link', () => ({
 
 beforeEach(() => {
     currentPathname = '/'
+    window.sessionStorage.clear()
 })
 
 afterEach(cleanup)
@@ -252,6 +253,7 @@ describe('SideNav', () => {
             renderNavigation(<SideNav config={hybridConfig} />)
 
             expect(screen.getByRole('link', {name: 'Studio'})).toHaveAttribute('href', '/')
+            expect(screen.getByRole('link', {name: 'Start'})).toHaveAttribute('href', '/write')
             expect(screen.getByRole('link', {name: 'Beiträge'})).toHaveAttribute(
                 'href',
                 '/write/articles',
@@ -269,7 +271,6 @@ describe('SideNav', () => {
                 '/manage/categories',
             )
 
-            expect(screen.queryByRole('link', {name: 'Start'})).not.toBeInTheDocument()
             expect(screen.queryByRole('link', {name: 'Folgen'})).not.toBeInTheDocument()
             expect(screen.queryByRole('link', {name: 'Sendungen'})).not.toBeInTheDocument()
             expect(screen.queryByRole('link', {name: 'Formate'})).not.toBeInTheDocument()
@@ -310,6 +311,19 @@ describe('SideNav', () => {
             expect(screen.queryByRole('link', {name: 'Bonusdateien'})).not.toBeInTheDocument()
         })
 
+        it('restores the last active desk on shared routes for hybrid tenants', () => {
+            window.sessionStorage.setItem('directwerk-studio:last-desk', 'WRITE')
+            currentPathname = '/media'
+            renderNavigation(<SideNav config={hybridConfig} />)
+
+            expect(screen.getByRole('link', {name: 'Start'})).toHaveAttribute('href', '/write')
+            expect(screen.getByRole('link', {name: 'Beiträge'})).toHaveAttribute(
+                'href',
+                '/write/articles',
+            )
+            expect(screen.queryByRole('link', {name: 'Folgen'})).not.toBeInTheDocument()
+        })
+
         it('shows only shared groups and Studio when hybrid tenant is on /', () => {
             currentPathname = '/'
             renderNavigation(<SideNav config={hybridConfig} />)
@@ -344,6 +358,7 @@ describe('SideNav', () => {
                 />,
             )
 
+            expect(screen.getByRole('link', {name: 'Start'})).toHaveAttribute('href', '/write')
             expect(screen.getByRole('link', {name: 'Beiträge'})).toHaveAttribute(
                 'href',
                 '/write/articles',
@@ -352,7 +367,6 @@ describe('SideNav', () => {
                 'href',
                 '/write/bonus',
             )
-            expect(screen.queryByRole('link', {name: 'Start'})).not.toBeInTheDocument()
             expect(screen.queryByRole('link', {name: 'Folgen'})).not.toBeInTheDocument()
         })
     })

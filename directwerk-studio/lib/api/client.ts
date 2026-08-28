@@ -27,7 +27,7 @@ export function resolveActiveDesk(
 export function deskHome(desk: SiteConfig['studioDesks'][number]): string {
     switch (desk) {
         case 'WRITE':
-            return '/write/articles'
+            return '/write'
         case 'PODCAST':
             return '/podcast'
     }

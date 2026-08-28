@@ -11,8 +11,9 @@ import {
     SidebarMenuItem,
 } from '@directwerk/ui/components/sidebar'
 
-import {hasModule, resolveActiveDesk} from '@/lib/api/client'
+import {hasModule} from '@/lib/api/client'
 import {isTenantAdminRole} from '@/lib/api/tenantApi'
+import {useActiveDesk} from '@/lib/studio/useActiveDesk'
 import type {SiteConfig} from '@directwerk/api/types'
 import {useOptionalMe} from '@/lib/auth/MeProvider'
 
@@ -35,9 +36,7 @@ function linkClassName(active: boolean): string {
 }
 
 function isActivePath(pathname: string, href: string): boolean {
-    // Hub/index links must stay exact so child routes (e.g. /podcast/episodes)
-    // do not keep "Übersicht" highlighted.
-    if (href === '/' || href === '/podcast' || href === '/manage') {
+    if (href === '/' || href === '/write' || href === '/podcast' || href === '/manage') {
         return pathname === href
     }
     return pathname === href || pathname.startsWith(`${href}/`)
@@ -78,13 +77,11 @@ function NavigationGroup({
 
 /**
  * Renders the tenant's side navigation, ordered around the content-creation journey.
- *
- * @param config - Site configuration used to determine the tenant name and available navigation items
  */
 export default function SideNav({config}: {config: SiteConfig}) {
     const pathname = usePathname()
     const me = useOptionalMe()
-    const activeDesk = resolveActiveDesk(pathname, config)
+    const activeDesk = useActiveDesk(config)
     const showWrite = activeDesk === 'WRITE'
     const showPodcast = activeDesk === 'PODCAST'
     const showPodcastRss = hasModule(config, 'PODCAST_RSS')
@@ -129,6 +126,7 @@ export default function SideNav({config}: {config: SiteConfig}) {
                 <NavigationGroup
                     label="Schreiben"
                     items={[
+                        {href: '/write', label: 'Start'},
                         {href: '/write/articles', label: 'Beiträge'},
                         ...(showCategories
                             ? [{href: '/write/bonus', label: 'Bonusdateien'}]

@@ -1,4 +1,4 @@
-import {cleanup, render, screen, waitFor} from '@testing-library/react'
+import {cleanup, render, screen, waitFor, within} from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import {afterEach, describe, expect, it, vi} from 'vitest'
 
@@ -69,6 +69,7 @@ vi.mock('@/lib/api/tenantApi', () => ({
         {id: 1, slug: 'interview', name: 'Interview', active: true, description: null, requiredLevelSortOrder: null, sortOrder: 0},
     ]),
     listCategories: vi.fn().mockResolvedValue([]),
+    listEpisodes: vi.fn().mockResolvedValue([]),
     listMedia: vi.fn().mockResolvedValue([]),
     getMedia: vi.fn().mockResolvedValue({
         id: 10,
@@ -132,7 +133,7 @@ describe('EpisodeEditor tagging', () => {
 
         await waitFor(() => expect(screen.getByLabelText('Interview')).toBeInTheDocument())
         await user.click(screen.getByLabelText('Interview'))
-        await user.click(screen.getByRole('button', {name: /Formate.*Kategorien speichern/}))
+        await user.click(screen.getByRole('button', {name: 'Speichern'}))
 
         await waitFor(() => expect(replaceEpisodeFormats).toHaveBeenCalledWith('tenant.test', 1, [1]))
         expect(replaceEpisodeCategories).toHaveBeenCalledWith('tenant.test', 1, [])
@@ -145,9 +146,11 @@ describe('EpisodeEditor tagging', () => {
         await waitFor(() => expect(screen.getByLabelText('Interview')).toBeInTheDocument())
         await user.click(screen.getByLabelText('Interview'))
         await waitFor(() =>
-            expect(screen.getByRole('button', {name: 'Veröffentlichen'})).toBeEnabled(),
+            expect(screen.getAllByRole('button', {name: 'Veröffentlichen'})[0]).toBeEnabled(),
         )
-        await user.click(screen.getByRole('button', {name: 'Veröffentlichen'}))
+        await user.click(screen.getAllByRole('button', {name: 'Veröffentlichen'})[0])
+        const dialog = await screen.findByRole('dialog')
+        await user.click(within(dialog).getByRole('button', {name: 'Veröffentlichen'}))
 
         await waitFor(() => expect(replaceEpisodeFormats).toHaveBeenCalledWith('tenant.test', 1, [1]))
         expect(publishEpisode).toHaveBeenCalledWith('tenant.test', 1, {notifySubscribers: false})

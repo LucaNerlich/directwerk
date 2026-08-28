@@ -12,6 +12,7 @@ import {useCallback, useEffect, useEffectEvent, useRef, useState} from 'react'
 
 import MediaLibraryPicker from '@/components/media/MediaLibraryPicker'
 import UploadProgress from '@/components/media/UploadProgress'
+import FormatCategoryPicker from '@/components/publication/FormatCategoryPicker'
 import PublicationEditorLayout from '@/components/publication/PublicationEditorLayout'
 import PublishedLinksPanel from '@/components/publication/PublishedLinksPanel'
 import {hasModule} from '@/lib/api/client'
@@ -24,6 +25,7 @@ import {
     getMedia,
     getMediaPreviewUrl,
     listCategories,
+    listEpisodes,
     listFormats,
     listSeries,
     publishEpisode,
@@ -42,6 +44,8 @@ import {mediaLimitLabel} from '@/lib/media/limits'
 import {uploadMediaFile} from '@/lib/media/upload'
 import {episodePublishBlockReason} from '@/lib/podcast/episodePreflight'
 import {publicEpisodePageUrl} from '@/lib/podcast/publicUrls'
+import {isSlugTaken} from '@/lib/publication/slugAvailability'
+import {useNotifyAudienceHint} from '@/lib/studio/useNotifyAudienceHint'
 import {useSiteConfig} from '@/lib/site/SiteConfigProvider'
 import {useDraftAutosave} from '@/lib/editor/useDraftAutosave'
 import {getClientTenantHost} from '@/lib/tenant/getClientTenantHost'
@@ -70,7 +74,9 @@ export default function EpisodeEditor({episodeId}: {episodeId?: number}): React.
     const authRedirect = useAuthRequired()
     const config = useSiteConfig()
     const showNotify = config.emailNotifyAvailable === true
+    const notifyAudienceHint = useNotifyAudienceHint(showNotify)
     const [episode, setEpisode] = useState<EpisodeDetail | null>(null)
+    const [allEpisodes, setAllEpisodes] = useState<EpisodeDetail[]>([])
     const [series, setSeries] = useState<SeriesSummary[]>([])
     const [seriesId, setSeriesId] = useState<number | null>(null)
     const [title, setTitle] = useState('')
@@ -97,8 +103,6 @@ export default function EpisodeEditor({episodeId}: {episodeId?: number}): React.
     const [availableCategories, setAvailableCategories] = useState<CategorySummary[]>([])
     const [selectedFormatIds, setSelectedFormatIds] = useState<Set<number>>(new Set())
     const [selectedCategoryIds, setSelectedCategoryIds] = useState<Set<number>>(new Set())
-    const [isTagsSaving, setIsTagsSaving] = useState(false)
-    const [tagsStatusMessage, setTagsStatusMessage] = useState<string | null>(null)
     const [isDirty, setIsDirty] = useState(false)
     const [dirtyRevision, setDirtyRevision] = useState(0)
     const [saveHint, setSaveHint] = useState<string | null>(null)
@@ -167,10 +171,12 @@ export default function EpisodeEditor({episodeId}: {episodeId?: number}): React.
         async function load(): Promise<void> {
             try {
                 const host = getClientTenantHost()
-                const [seriesList, formatList, categoryList, loadedEpisode] = await Promise.all([
+                const [seriesList, formatList, categoryList, episodeList, loadedEpisode] =
+                    await Promise.all([
                     listSeries(host),
                     listFormats(host),
                     listCategories(host),
+                    listEpisodes(host),
                     episodeId === undefined ? null : getEpisode(host, episodeId),
                 ])
 
@@ -179,6 +185,7 @@ export default function EpisodeEditor({episodeId}: {episodeId?: number}): React.
                 }
 
                 setSeries(seriesList)
+                setAllEpisodes(episodeList)
                 setAvailableFormats(formatList.filter((item) => item.active))
                 setAvailableCategories(categoryList.filter((item) => item.active))
                 if (seriesList.length > 0) {
@@ -258,6 +265,25 @@ export default function EpisodeEditor({episodeId}: {episodeId?: number}): React.
         setSaveHint('Ungespeicherte Änderungen')
     }, [])
 
+    const persistTags = useCallback(
+        async (current: EpisodeDetail): Promise<EpisodeDetail> => {
+            const host = getClientTenantHost()
+            const [afterFormats, afterCategories] = await Promise.all([
+                replaceEpisodeFormats(host, current.id, Array.from(selectedFormatIds)),
+                replaceEpisodeCategories(host, current.id, Array.from(selectedCategoryIds)),
+            ])
+            const merged = {
+                ...afterCategories,
+                formats: afterFormats.formats,
+            }
+            setEpisode(merged)
+            setSelectedFormatIds(new Set(afterFormats.formats.map((tag) => tag.id)))
+            setSelectedCategoryIds(new Set(afterCategories.categories.map((tag) => tag.id)))
+            return merged
+        },
+        [selectedCategoryIds, selectedFormatIds],
+    )
+
     const save = useCallback(async (options?: {autosave?: boolean}): Promise<EpisodeDetail | null> => {
         if (seriesId === null) {
             setErrorMessage('Bitte zuerst eine Sendung anlegen.')
@@ -285,44 +311,29 @@ export default function EpisodeEditor({episodeId}: {episodeId?: number}): React.
             }
 
             const updated = await updateEpisode(host, episodeId, payload)
-            setEpisode(updated)
+            const withTags = await persistTags(updated)
+            setEpisode(withTags)
+            setAllEpisodes((current) =>
+                current.map((item) => (item.id === withTags.id ? withTags : item)),
+            )
             setIsDirty(false)
             setSaveHint(hint)
-            return updated
+            return withTags
         } catch (error) {
             authRedirect(error)
             return null
         } finally {
             setIsSaving(false)
         }
-    }, [episodeFields, episodeId, handleAuthError, router, seriesId])
+    }, [episodeFields, episodeId, handleAuthError, persistTags, router, seriesId])
 
     useDraftAutosave({
         enabled: (episode?.status ?? 'DRAFT') === 'DRAFT' && episodeId !== undefined,
         isDirty,
-        isSaving: isSaving || isUploading || isTagsSaving,
+        isSaving: isSaving || isUploading,
         onSave: () => save({autosave: true}),
         revision: dirtyRevision,
     })
-
-    const persistTags = useCallback(
-        async (current: EpisodeDetail): Promise<EpisodeDetail> => {
-            const host = getClientTenantHost()
-            const [afterFormats, afterCategories] = await Promise.all([
-                replaceEpisodeFormats(host, current.id, Array.from(selectedFormatIds)),
-                replaceEpisodeCategories(host, current.id, Array.from(selectedCategoryIds)),
-            ])
-            const merged = {
-                ...afterCategories,
-                formats: afterFormats.formats,
-            }
-            setEpisode(merged)
-            setSelectedFormatIds(new Set(afterFormats.formats.map((tag) => tag.id)))
-            setSelectedCategoryIds(new Set(afterCategories.categories.map((tag) => tag.id)))
-            return merged
-        },
-        [selectedCategoryIds, selectedFormatIds],
-    )
 
     const runWorkflow = useCallback(
         async (
@@ -427,23 +438,6 @@ export default function EpisodeEditor({episodeId}: {episodeId?: number}): React.
         [handleAuthError, save],
     )
 
-    const handleSaveTags = useCallback(async (): Promise<void> => {
-        if (episode === null) {
-            return
-        }
-
-        setIsTagsSaving(true)
-        setTagsStatusMessage(null)
-        try {
-            await persistTags(episode)
-            setTagsStatusMessage('Formate & Kategorien gespeichert.')
-        } catch (error) {
-            authRedirect(error)
-        } finally {
-            setIsTagsSaving(false)
-        }
-    }, [episode, handleAuthError, persistTags])
-
     const handleEnclosureChange = useCallback(
         async (enabled: boolean) => {
             if (episode === null) {
@@ -466,6 +460,11 @@ export default function EpisodeEditor({episodeId}: {episodeId?: number}): React.
             }
         },
         [episode, handleAuthError],
+    )
+
+    const slugTaken = useCallback(
+        (candidate: string) => isSlugTaken(allEpisodes, candidate, episodeId),
+        [allEpisodes, episodeId],
     )
 
     if (isLoading) {
@@ -558,6 +557,7 @@ export default function EpisodeEditor({episodeId}: {episodeId?: number}): React.
                 body={body}
                 accessPolicy={accessPolicy}
                 slug={slug}
+                slugTaken={slugTaken}
                 onTitleChange={(value) => {
                     setTitle(value)
                     markDirty()
@@ -585,6 +585,7 @@ export default function EpisodeEditor({episodeId}: {episodeId?: number}): React.
                 showNotify={showNotify}
                 notifySubscribers={notifySubscribers}
                 onNotifyChange={setNotifySubscribers}
+                notifyAudienceHint={notifyAudienceHint}
                 scheduledAt={scheduledAt}
                 onScheduledAtChange={setScheduledAt}
                 onSave={() => {
@@ -758,75 +759,21 @@ export default function EpisodeEditor({episodeId}: {episodeId?: number}): React.
                             ) : null}
                         </div>
                         {episode !== null ? (
-                            <div className="grid gap-2">
-                                <p className="text-sm font-semibold">Formate</p>
-                                {availableFormats.length === 0 ? (
-                                    <p className="text-xs text-muted-foreground">
-                                        Keine Formate angelegt.{' '}
-                                        <Link href="/podcast/formats/new">
-                                            Formate einrichten
-                                        </Link>
-                                    </p>
-                                ) : (
-                                    availableFormats.map((format) => (
-                                        <label key={format.id} className="grid gap-2 text-sm font-medium" style={{display: 'block'}}>
-                                            <Input
-                                                checked={selectedFormatIds.has(format.id)}
-                                                onChange={(event) => {
-                                                    setSelectedFormatIds((current) => {
-                                                        const next = new Set(current)
-                                                        if (event.target.checked) {
-                                                            next.add(format.id)
-                                                        } else {
-                                                            next.delete(format.id)
-                                                        }
-                                                        return next
-                                                    })
-                                                }}
-                                                className="size-4 shrink-0" type="checkbox"
-                                            />{' '}
-                                            {format.name}
-                                        </label>
-                                    ))
-                                )}
-                                <p className="text-sm font-semibold">Kategorien</p>
-                                {availableCategories.length === 0 ? (
-                                    <p className="text-xs text-muted-foreground">Keine Kategorien angelegt.</p>
-                                ) : (
-                                    availableCategories.map((category) => (
-                                        <label key={category.id} className="grid gap-2 text-sm font-medium" style={{display: 'block'}}>
-                                            <Input
-                                                checked={selectedCategoryIds.has(category.id)}
-                                                onChange={(event) => {
-                                                    setSelectedCategoryIds((current) => {
-                                                        const next = new Set(current)
-                                                        if (event.target.checked) {
-                                                            next.add(category.id)
-                                                        } else {
-                                                            next.delete(category.id)
-                                                        }
-                                                        return next
-                                                    })
-                                                }}
-                                                className="size-4 shrink-0" type="checkbox"
-                                            />{' '}
-                                            {category.name}
-                                        </label>
-                                    ))
-                                )}
-                                {tagsStatusMessage !== null ? (
-                                    <p className="text-xs text-muted-foreground" role="status">
-                                        {tagsStatusMessage}
-                                    </p>
-                                ) : null}
-                                <Button
-                                    disabled={isTagsSaving}
-                                    onClick={() => void handleSaveTags()}
-                                    type="button"
-                                >
-                                    {isTagsSaving ? 'Speichert…' : 'Formate & Kategorien speichern'}
-                                </Button>
-                            </div>
+                            <FormatCategoryPicker
+                                categories={availableCategories}
+                                disabled={busy}
+                                formats={availableFormats}
+                                onCategoryChange={(ids) => {
+                                    setSelectedCategoryIds(ids)
+                                    markDirty()
+                                }}
+                                onFormatChange={(ids) => {
+                                    setSelectedFormatIds(ids)
+                                    markDirty()
+                                }}
+                                selectedCategoryIds={selectedCategoryIds}
+                                selectedFormatIds={selectedFormatIds}
+                            />
                         ) : null}
                     </>
                 }

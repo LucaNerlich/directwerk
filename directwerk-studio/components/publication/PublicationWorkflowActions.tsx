@@ -13,6 +13,7 @@ interface PublicationWorkflowActionsProps {
     showNotify: boolean
     notifySubscribers: boolean
     onNotifyChange: (value: boolean) => void
+    notifyAudienceHint?: string | null
     scheduledAt: string
     onScheduledAtChange: (value: string) => void
     onSave: () => void
@@ -123,7 +124,7 @@ export default function PublicationWorkflowActions({
                         checked={notifySubscribers}
                         onChange={(event) => onNotifyChange(event.target.checked)}
                     />
-                    <span>Abonnenten benachrichtigen</span>
+                    <span>Abonnenten benachrichtigen (beim Veröffentlichen)</span>
                 </label>
             )}
             {publishBlockedReason !== null && (isDraft || isScheduled) ? (

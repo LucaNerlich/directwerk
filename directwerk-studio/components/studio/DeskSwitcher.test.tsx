@@ -30,6 +30,7 @@ vi.mock('next/link', () => ({
 
 beforeEach(() => {
     currentPathname = '/'
+    window.sessionStorage.clear()
 })
 
 afterEach(cleanup)
@@ -54,7 +55,7 @@ describe('DeskSwitcher', () => {
         const writeLink = screen.getByRole('link', {name: 'Schreiben'})
         const podcastLink = screen.getByRole('link', {name: 'Podcast'})
 
-        expect(writeLink).toHaveAttribute('href', '/write/articles')
+        expect(writeLink).toHaveAttribute('href', '/write')
         expect(podcastLink).toHaveAttribute('href', '/podcast')
     })
 
@@ -80,12 +81,16 @@ describe('DeskSwitcher', () => {
         expect(screen.getByRole('link', {name: 'Schreiben'})).not.toHaveAttribute('aria-current')
     })
 
-    it('does not mark either desk active on shared routes', () => {
-        currentPathname = '/'
+    it('restores last active desk on shared routes when remembered', () => {
+        window.sessionStorage.setItem('directwerk-studio:last-desk', 'PODCAST')
+        currentPathname = '/media'
         render(<DeskSwitcher config={config()} />)
 
+        expect(screen.getByRole('link', {name: 'Podcast'})).toHaveAttribute(
+            'aria-current',
+            'page',
+        )
         expect(screen.getByRole('link', {name: 'Schreiben'})).not.toHaveAttribute('aria-current')
-        expect(screen.getByRole('link', {name: 'Podcast'})).not.toHaveAttribute('aria-current')
     })
 
     it('does not render for single-desk WRITE tenants', () => {

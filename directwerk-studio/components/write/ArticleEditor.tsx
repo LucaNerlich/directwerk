@@ -1,13 +1,14 @@
 'use client'
 
-import {Button} from '@directwerk/ui/components/button'
 import {Input} from '@directwerk/ui/components/input'
 
 import {useRouter} from 'next/navigation'
-import {useCallback, useEffect, useRef, useState} from 'react'
+import {useCallback, useEffect, useMemo, useRef, useState} from 'react'
 
 import MediaLibraryPicker from '@/components/media/MediaLibraryPicker'
 import UploadProgress from '@/components/media/UploadProgress'
+import FormatCategoryPicker from '@/components/publication/FormatCategoryPicker'
+import PublishedLinksPanel from '@/components/publication/PublishedLinksPanel'
 import PublicationEditorLayout from '@/components/publication/PublicationEditorLayout'
 import LevelSelect from '@/components/studio/LevelSelect'
 import {
@@ -16,6 +17,7 @@ import {
     createArticle,
     getArticle,
     getMediaPreviewUrl,
+    listArticles,
     listCategories,
     publishArticle,
     replaceArticleCategories,
@@ -30,15 +32,14 @@ import {fromDatetimeLocalValue, toDatetimeLocalValue} from '@/lib/datetime'
 import {useDraftAutosave} from '@/lib/editor/useDraftAutosave'
 import {mediaLimitLabel} from '@/lib/media/limits'
 import {uploadMediaFile} from '@/lib/media/upload'
+import {isSlugTaken} from '@/lib/publication/slugAvailability'
+import {useNotifyAudienceHint} from '@/lib/studio/useNotifyAudienceHint'
 import {useSiteConfig} from '@/lib/site/SiteConfigProvider'
 import {getClientTenantHost} from '@/lib/tenant/getClientTenantHost'
+import {articlePublishBlockReason} from '@/lib/write/articlePreflight'
+import {publicArticlePageUrl} from '@/lib/write/publicUrls'
 import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
 
-/**
- * Edits an article and manages its publication workflow and category assignments.
- *
- * @param articleId - The ID of the article to edit; omit to create a new article.
- */
 export default function ArticleEditor({articleId}: {articleId?: number}) {
     const router = useRouter()
     const authRedirect = useAuthRequired()
@@ -46,11 +47,14 @@ export default function ArticleEditor({articleId}: {articleId?: number}) {
     routerRef.current = router
     const config = useSiteConfig()
     const showNotify = config.emailNotifyAvailable === true
+    const notifyAudienceHint = useNotifyAudienceHint(showNotify)
     const [article, setArticle] = useState<ArticleDetail | null>(null)
+    const [allArticles, setAllArticles] = useState<ArticleDetail[]>([])
     const [title, setTitle] = useState('')
     const [slug, setSlug] = useState('')
     const [body, setBody] = useState('')
     const [excerpt, setExcerpt] = useState('')
+    const [seoDescription, setSeoDescription] = useState('')
     const [accessPolicy, setAccessPolicy] = useState<AccessPolicy>('FREE')
     const [heroAssetId, setHeroAssetId] = useState<number | null>(null)
     const [requiredLevelSortOrder, setRequiredLevelSortOrder] = useState<number | null>(null)
@@ -68,21 +72,43 @@ export default function ArticleEditor({articleId}: {articleId?: number}) {
     const [loadError, setLoadError] = useState(false)
     const [availableCategories, setAvailableCategories] = useState<CategorySummary[]>([])
     const [selectedCategoryIds, setSelectedCategoryIds] = useState<Set<number>>(new Set())
-    const [isTagsSaving, setIsTagsSaving] = useState(false)
-    const [tagsStatusMessage, setTagsStatusMessage] = useState<string | null>(null)
     const [isDirty, setIsDirty] = useState(false)
     const [dirtyRevision, setDirtyRevision] = useState(0)
     const [saveHint, setSaveHint] = useState<string | null>(null)
 
     useEffect(() => {
         mountedRef.current = true
+        let active = true
+
+        async function loadSlugIndex(): Promise<void> {
+            try {
+                const loaded = await listArticles(getClientTenantHost())
+                if (active) {
+                    setAllArticles(loaded)
+                }
+            } catch {
+                // Slug hint is optional.
+            }
+        }
+
+        void loadSlugIndex()
+
         if (articleId === undefined) {
+            listCategories(getClientTenantHost())
+                .then((categoryList) => {
+                    if (active) {
+                        setAvailableCategories(categoryList.filter((item) => item.active))
+                    }
+                })
+                .catch(() => {})
             setIsLoading(false)
-            return
+            return () => {
+                active = false
+                mountedRef.current = false
+            }
         }
 
         const resolvedArticleId = articleId
-        let active = true
 
         async function load(): Promise<void> {
             try {
@@ -100,6 +126,7 @@ export default function ArticleEditor({articleId}: {articleId?: number}) {
                 setSlug(loaded.slug)
                 setBody(loaded.body ?? '')
                 setExcerpt(loaded.excerpt ?? '')
+                setSeoDescription(loaded.seoDescription ?? '')
                 setAccessPolicy(loaded.accessPolicy)
                 setHeroAssetId(loaded.heroAssetId)
                 setRequiredLevelSortOrder(loaded.requiredLevelSortOrder)
@@ -121,7 +148,7 @@ export default function ArticleEditor({articleId}: {articleId?: number}) {
             }
         }
 
-        load()
+        void load()
 
         return () => {
             active = false
@@ -154,23 +181,27 @@ export default function ArticleEditor({articleId}: {articleId?: number}) {
         return () => {
             active = false
         }
-    }, [heroAssetId])
-
-    const handleAuthError = useCallback(
-        (error: unknown) => {
-            if (authRedirect(error)) return
-            setErrorMessage(
-                error instanceof Error ? error.message : 'Aktion fehlgeschlagen.',
-            )
-        },
-        [],
-    )
+    }, [authRedirect, heroAssetId])
 
     const markDirty = useCallback(() => {
         setIsDirty(true)
         setDirtyRevision((current) => current + 1)
         setSaveHint('Ungespeicherte Änderungen')
     }, [])
+
+    const persistTags = useCallback(
+        async (current: ArticleDetail): Promise<ArticleDetail> => {
+            const updated = await replaceArticleCategories(
+                getClientTenantHost(),
+                current.id,
+                Array.from(selectedCategoryIds),
+            )
+            setArticle(updated)
+            setSelectedCategoryIds(new Set(updated.categories.map((tag) => tag.id)))
+            return updated
+        },
+        [selectedCategoryIds],
+    )
 
     const save = useCallback(async (options?: {autosave?: boolean}): Promise<ArticleDetail | null> => {
         if (loadError) {
@@ -188,6 +219,7 @@ export default function ArticleEditor({articleId}: {articleId?: number}) {
                 slug: resolvedSlug,
                 body,
                 excerpt: excerpt.trim() || undefined,
+                seoDescription: seoDescription.trim() || undefined,
                 accessPolicy,
                 heroAssetId: heroAssetId ?? undefined,
                 requiredLevelSortOrder: requiredLevelSortOrder ?? undefined,
@@ -197,6 +229,7 @@ export default function ArticleEditor({articleId}: {articleId?: number}) {
             if (articleId === undefined) {
                 const created = await createArticle(host, payload)
                 setArticle(created)
+                setAllArticles((current) => [...current, created])
                 setIsDirty(false)
                 setSaveHint(hint)
                 routerRef.current.replace(`/write/articles/${created.id}`)
@@ -204,10 +237,14 @@ export default function ArticleEditor({articleId}: {articleId?: number}) {
             }
 
             const updated = await updateArticle(host, articleId, payload)
-            setArticle(updated)
+            const withTags = await persistTags(updated)
+            setArticle(withTags)
+            setAllArticles((current) =>
+                current.map((item) => (item.id === withTags.id ? withTags : item)),
+            )
             setIsDirty(false)
             setSaveHint(hint)
-            return updated
+            return withTags
         } catch (error) {
             authRedirect(error)
             return null
@@ -219,18 +256,20 @@ export default function ArticleEditor({articleId}: {articleId?: number}) {
         articleId,
         body,
         excerpt,
-        handleAuthError,
         heroAssetId,
         loadError,
+        persistTags,
         requiredLevelSortOrder,
+        seoDescription,
         slug,
         title,
+        authRedirect,
     ])
 
     useDraftAutosave({
         enabled: (article?.status ?? 'DRAFT') === 'DRAFT' && articleId !== undefined,
         isDirty,
-        isSaving: isSaving || isUploadingHero || isTagsSaving,
+        isSaving: isSaving || isUploadingHero,
         onSave: () => save({autosave: true}),
         revision: dirtyRevision,
     })
@@ -239,27 +278,11 @@ export default function ArticleEditor({articleId}: {articleId?: number}) {
         routerRef.current.replace('/login')
     }, [])
 
-    const persistTags = useCallback(
-        async (current: ArticleDetail): Promise<ArticleDetail> => {
-            const updated = await replaceArticleCategories(
-                getClientTenantHost(),
-                current.id,
-                Array.from(selectedCategoryIds),
-            )
-            setArticle(updated)
-            setSelectedCategoryIds(new Set(updated.categories.map((tag) => tag.id)))
-            return updated
-        },
-        [selectedCategoryIds],
-    )
-
     const runWorkflow = useCallback(
         async (
             action: (current: ArticleDetail) => Promise<ArticleDetail>,
             options?: {persistTags?: boolean},
         ) => {
-            // Content updates are only allowed for DRAFT. Workflow verbs on other
-            // statuses must not call update first (e.g. unarchive from ARCHIVED).
             const status = article?.status ?? 'DRAFT'
             let current: ArticleDetail | null
             if (articleId === undefined || status === 'DRAFT') {
@@ -286,25 +309,8 @@ export default function ArticleEditor({articleId}: {articleId?: number}) {
                 setIsSaving(false)
             }
         },
-        [article, articleId, handleAuthError, persistTags, save],
+        [article, articleId, authRedirect, persistTags, save],
     )
-
-    const handleSaveTags = useCallback(async (): Promise<void> => {
-        if (article === null) {
-            return
-        }
-
-        setIsTagsSaving(true)
-        setTagsStatusMessage(null)
-        try {
-            await persistTags(article)
-            setTagsStatusMessage('Kategorien gespeichert.')
-        } catch (error) {
-            authRedirect(error)
-        } finally {
-            setIsTagsSaving(false)
-        }
-    }, [article, handleAuthError, persistTags])
 
     const handleHeroUpload = useCallback(
         async (file: File | null) => {
@@ -335,8 +341,21 @@ export default function ArticleEditor({articleId}: {articleId?: number}) {
                 }
             }
         },
-        [handleAuthError, markDirty],
+        [authRedirect, markDirty],
     )
+
+    const slugTaken = useCallback(
+        (candidate: string) => isSlugTaken(allArticles, candidate, articleId),
+        [allArticles, articleId],
+    )
+
+    const publishBlockedReason = articlePublishBlockReason({title, body})
+    const publishedUrl = useMemo(() => {
+        if (article?.status !== 'PUBLISHED') {
+            return null
+        }
+        return publicArticlePageUrl(config.publicRssUrl, article.slug)
+    }, [article, config.publicRssUrl])
 
     if (isLoading) {
         return <p>Beitrag wird geladen…</p>
@@ -351,6 +370,7 @@ export default function ArticleEditor({articleId}: {articleId?: number}) {
             accessPolicy={accessPolicy}
             slug={slug}
             excerpt={excerpt}
+            seoDescription={seoDescription}
             onTitleChange={(value) => {
                 setTitle(value)
                 markDirty()
@@ -374,12 +394,20 @@ export default function ArticleEditor({articleId}: {articleId?: number}) {
                 setExcerpt(value)
                 markDirty()
             }}
+            onSeoDescriptionChange={(value) => {
+                setSeoDescription(value)
+                markDirty()
+            }}
+            slugTaken={slugTaken}
             isSaving={isSaving}
             saveHint={saveHint}
             errorMessage={errorMessage}
+            canPublish={publishBlockedReason === null}
+            publishBlockedReason={publishBlockedReason}
             showNotify={showNotify}
             notifySubscribers={notifySubscribers}
             onNotifyChange={setNotifySubscribers}
+            notifyAudienceHint={notifyAudienceHint}
             scheduledAt={scheduledAt}
             onScheduledAtChange={setScheduledAt}
             onSave={() => {
@@ -429,6 +457,12 @@ export default function ArticleEditor({articleId}: {articleId?: number}) {
             }}
             sidebarExtra={
                 <>
+                    {publishedUrl !== null ? (
+                        <PublishedLinksPanel
+                            title="Öffentliche Links"
+                            links={[{label: 'Beitragsseite', url: publishedUrl}]}
+                        />
+                    ) : null}
                     <label className="grid gap-2 text-sm font-medium">
                         <span>Mindest-Stufe</span>
                         <LevelSelect
@@ -448,15 +482,15 @@ export default function ArticleEditor({articleId}: {articleId?: number}) {
                         </span>
                     </label>
                     <div>
-                        <p>Titelbild</p>
+                        <p className="text-sm font-semibold">Titelbild</p>
                         {heroPreviewUrl !== null ? (
                             <img
                                 alt=""
+                                className="mt-2 max-w-[12rem] rounded-md"
                                 src={heroPreviewUrl}
-                                style={{maxWidth: '12rem', display: 'block'}}
                             />
                         ) : null}
-                        <label>
+                        <label className="mt-2 grid gap-2 text-sm">
                             <span>{heroAssetId === null ? 'Bild hochladen' : 'Bild ersetzen'}</span>
                             <Input
                                 accept="image/png,image/jpeg,image/webp"
@@ -491,37 +525,16 @@ export default function ArticleEditor({articleId}: {articleId?: number}) {
                         />
                     </div>
                     {article !== null ? (
-                    <div>
-                        <p>Kategorien</p>
-                        {availableCategories.length === 0 ? (
-                            <p>Keine Kategorien angelegt.</p>
-                        ) : (
-                            availableCategories.map((category) => (
-                                <label key={category.id} style={{display: 'block'}}>
-                                    <Input
-                                        checked={selectedCategoryIds.has(category.id)}
-                                        onChange={(event) => {
-                                            setSelectedCategoryIds((current) => {
-                                                const next = new Set(current)
-                                                if (event.target.checked) {
-                                                    next.add(category.id)
-                                                } else {
-                                                    next.delete(category.id)
-                                                }
-                                                return next
-                                            })
-                                        }}
-                                        className="size-4 shrink-0" type="checkbox"
-                                    />{' '}
-                                    {category.name}
-                                </label>
-                            ))
-                        )}
-                        {tagsStatusMessage !== null ? <p role="status">{tagsStatusMessage}</p> : null}
-                        <Button disabled={isTagsSaving} onClick={() => void handleSaveTags()} type="button">
-                            {isTagsSaving ? 'Speichert…' : 'Kategorien speichern'}
-                        </Button>
-                    </div>
+                        <FormatCategoryPicker
+                            categories={availableCategories}
+                            disabled={isSaving}
+                            onCategoryChange={(ids) => {
+                                setSelectedCategoryIds(ids)
+                                markDirty()
+                            }}
+                            selectedCategoryIds={selectedCategoryIds}
+                            selectedFormatIds={new Set()}
+                        />
                     ) : null}
                 </>
             }

@@ -2,14 +2,21 @@
 
 import Link from 'next/link'
 import {useRouter} from 'next/navigation'
-import {useEffect, useState} from 'react'
+import {useCallback, useEffect, useState} from 'react'
 
 import {Button} from '@directwerk/ui/components/button'
 import EmptyState from '@directwerk/ui/components/empty-state'
 import PageHeader from '@directwerk/ui/components/page-header'
 
 import PublicationStatusBadge from '@/components/publication/PublicationStatusBadge'
-import {listEpisodes, listFormats, listSeries} from '@/lib/api/tenantApi'
+import {
+    cancelScheduleEpisode,
+    listEpisodes,
+    listFormats,
+    listSeries,
+    unarchiveEpisode,
+    unpublishEpisode,
+} from '@/lib/api/tenantApi'
 import type {EpisodeDetail, FormatSummary, SeriesSummary} from '@directwerk/api/types'
 import {getClientTenantHost} from '@/lib/tenant/getClientTenantHost'
 import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
@@ -21,47 +28,98 @@ export default function EpisodeListClient() {
     const [series, setSeries] = useState<SeriesSummary[]>([])
     const [formats, setFormats] = useState<FormatSummary[]>([])
     const [errorMessage, setErrorMessage] = useState<string | null>(null)
+    const [statusMessage, setStatusMessage] = useState<string | null>(null)
     const [isLoading, setIsLoading] = useState(true)
+    const [busyEpisodeId, setBusyEpisodeId] = useState<number | null>(null)
+
+    const load = useCallback(async (): Promise<void> => {
+        try {
+            const host = getClientTenantHost()
+            const [loadedEpisodes, loadedSeries, loadedFormats] = await Promise.all([
+                listEpisodes(host),
+                listSeries(host),
+                listFormats(host),
+            ])
+            setEpisodes(loadedEpisodes)
+            setSeries(loadedSeries)
+            setFormats(loadedFormats)
+        } catch (error) {
+            if (authRedirect(error)) return
+            setErrorMessage(
+                error instanceof Error ? error.message : 'Folgen konnten nicht geladen werden.',
+            )
+        } finally {
+            setIsLoading(false)
+        }
+    }, [authRedirect])
 
     useEffect(() => {
-        let active = true
+        void load()
+    }, [load])
 
-        async function load(): Promise<void> {
-            try {
-                const host = getClientTenantHost()
-                const [loadedEpisodes, loadedSeries, loadedFormats] = await Promise.all([
-                    listEpisodes(host),
-                    listSeries(host),
-                    listFormats(host),
-                ])
-                if (active) {
-                    setEpisodes(loadedEpisodes)
-                    setSeries(loadedSeries)
-                    setFormats(loadedFormats)
-                }
-            } catch (error) {
-                if (!active) {
-                    return
-                }
-                if (authRedirect(error)) return
-                setErrorMessage(
-                    error instanceof Error
-                        ? error.message
-                        : 'Folgen konnten nicht geladen werden.',
-                )
-            } finally {
-                if (active) {
-                    setIsLoading(false)
-                }
-            }
+    const handleUnpublish = async (episode: EpisodeDetail): Promise<void> => {
+        setBusyEpisodeId(episode.id)
+        setErrorMessage(null)
+        setStatusMessage(null)
+        try {
+            const updated = await unpublishEpisode(getClientTenantHost(), episode.id)
+            setEpisodes((current) =>
+                current.map((item) => (item.id === episode.id ? updated : item)),
+            )
+            setStatusMessage(`Folge „${episode.title}“ wurde zurückgezogen (Entwurf).`)
+        } catch (error) {
+            if (authRedirect(error)) return
+            setErrorMessage(
+                error instanceof Error
+                    ? error.message
+                    : 'Folge konnte nicht zurückgezogen werden.',
+            )
+        } finally {
+            setBusyEpisodeId(null)
         }
+    }
 
-        load()
-
-        return () => {
-            active = false
+    const handleCancelSchedule = async (episode: EpisodeDetail): Promise<void> => {
+        setBusyEpisodeId(episode.id)
+        setErrorMessage(null)
+        setStatusMessage(null)
+        try {
+            const updated = await cancelScheduleEpisode(getClientTenantHost(), episode.id)
+            setEpisodes((current) =>
+                current.map((item) => (item.id === episode.id ? updated : item)),
+            )
+            setStatusMessage(`Planung für „${episode.title}“ wurde aufgehoben (Entwurf).`)
+        } catch (error) {
+            if (authRedirect(error)) return
+            setErrorMessage(
+                error instanceof Error ? error.message : 'Planung konnte nicht aufgehoben werden.',
+            )
+        } finally {
+            setBusyEpisodeId(null)
         }
-    }, [router])
+    }
+
+    const handleUnarchive = async (episode: EpisodeDetail): Promise<void> => {
+        setBusyEpisodeId(episode.id)
+        setErrorMessage(null)
+        setStatusMessage(null)
+        try {
+            const updated = await unarchiveEpisode(getClientTenantHost(), episode.id)
+            setEpisodes((current) =>
+                current.map((item) => (item.id === episode.id ? updated : item)),
+            )
+            setStatusMessage(`Folge „${episode.title}“ wurde wiederhergestellt (Entwurf).`)
+        } catch (error) {
+            if (authRedirect(error)) return
+            setErrorMessage(
+                error instanceof Error
+                    ? error.message
+                    : 'Folge konnte nicht wiederhergestellt werden.',
+            )
+        } finally {
+            setBusyEpisodeId(null)
+        }
+    }
 
     if (isLoading) {
         return <p>Folgen werden geladen…</p>
@@ -88,6 +146,11 @@ export default function EpisodeListClient() {
             {errorMessage !== null && (
                 <p className="text-sm text-destructive" role="alert">
                     {errorMessage}
+                </p>
+            )}
+            {statusMessage !== null && (
+                <p className="text-sm text-muted-foreground" role="status">
+                    {statusMessage}
                 </p>
             )}
 
@@ -126,17 +189,60 @@ export default function EpisodeListClient() {
 
             {episodes.length > 0 ? (
                 <ul className="overflow-hidden rounded-xl border bg-card divide-y">
-                    {episodes.map((episode) => (
-                        <li key={episode.id}>
-                            <Link
-                                className="flex items-center justify-between gap-4 p-4 text-sm no-underline hover:bg-muted/40"
-                                href={`/podcast/episodes/${episode.id}`}
+                    {episodes.map((episode) => {
+                        const isBusy = busyEpisodeId === episode.id
+                        return (
+                            <li
+                                key={episode.id}
+                                className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between"
                             >
-                                <span className="font-medium">{episode.title}</span>
-                                <PublicationStatusBadge status={episode.status} />
-                            </Link>
-                        </li>
-                    ))}
+                                <div className="min-w-0 flex-1">
+                                    <Link
+                                        className="font-medium hover:underline"
+                                        href={`/podcast/episodes/${episode.id}`}
+                                    >
+                                        {episode.title}
+                                    </Link>
+                                </div>
+                                <div className="flex shrink-0 items-center gap-3">
+                                    <PublicationStatusBadge status={episode.status} />
+                                    {episode.status === 'PUBLISHED' && (
+                                        <Button
+                                            disabled={isBusy}
+                                            onClick={() => void handleUnpublish(episode)}
+                                            size="sm"
+                                            type="button"
+                                            variant="outline"
+                                        >
+                                            {isBusy ? 'Wird zurückgezogen…' : 'Zurückziehen'}
+                                        </Button>
+                                    )}
+                                    {episode.status === 'SCHEDULED' && (
+                                        <Button
+                                            disabled={isBusy}
+                                            onClick={() => void handleCancelSchedule(episode)}
+                                            size="sm"
+                                            type="button"
+                                            variant="outline"
+                                        >
+                                            {isBusy ? 'Wird abgebrochen…' : 'Planung aufheben'}
+                                        </Button>
+                                    )}
+                                    {episode.status === 'ARCHIVED' && (
+                                        <Button
+                                            disabled={isBusy}
+                                            onClick={() => void handleUnarchive(episode)}
+                                            size="sm"
+                                            type="button"
+                                            variant="outline"
+                                        >
+                                            {isBusy ? 'Wird wiederhergestellt…' : 'Wiederherstellen'}
+                                        </Button>
+                                    )}
+                                </div>
+                            </li>
+                        )
+                    })}
                 </ul>
             ) : null}
         </div>

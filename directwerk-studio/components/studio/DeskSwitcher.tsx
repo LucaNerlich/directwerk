@@ -3,7 +3,8 @@
 import Link from 'next/link'
 import {usePathname} from 'next/navigation'
 
-import {deskHome, hasDesk, resolveActiveDesk} from '@/lib/api/client'
+import {deskHome, hasDesk} from '@/lib/api/client'
+import {useActiveDesk} from '@/lib/studio/useActiveDesk'
 import type {SiteConfig} from '@directwerk/api/types'
 
 function tabClassName(active: boolean): string {
@@ -19,7 +20,6 @@ function tabClassName(active: boolean): string {
 
 /**
  * Switcher toggle between Write desk and Podcast desk for hybrid tenants.
- * Only rendered when both desks are available in site configuration.
  */
 export default function DeskSwitcher({config}: {config: SiteConfig}): React.JSX.Element | null {
     const pathname = usePathname()
@@ -27,7 +27,7 @@ export default function DeskSwitcher({config}: {config: SiteConfig}): React.JSX.
         return null
     }
 
-    const activeDesk = resolveActiveDesk(pathname, config)
+    const activeDesk = useActiveDesk(config)
 
     return (
         <nav

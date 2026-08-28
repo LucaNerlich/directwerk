@@ -102,6 +102,8 @@ export default function MediaLibraryClient(): React.JSX.Element {
     const [isBusy, setIsBusy] = useState(false)
     const [isDragging, setIsDragging] = useState(false)
     const [typeFilter, setTypeFilter] = useState('')
+    const [statusFilter, setStatusFilter] = useState('')
+    const [orphanOnly, setOrphanOnly] = useState(false)
     const [uploadProgress, setUploadProgress] = useState<{file: File; progress: number} | null>(
         null,
     )
@@ -237,6 +239,40 @@ export default function MediaLibraryClient(): React.JSX.Element {
         void uploadFile(event.dataTransfer.files[0])
     }
 
+    async function handleBulkDeletePending(): Promise<void> {
+        const pending = assets.filter((asset) => asset.status === 'PENDING')
+        if (pending.length === 0) {
+            setStatusMessage('Keine ausstehenden Uploads zum Entfernen.')
+            return
+        }
+        if (
+            !window.confirm(
+                `${pending.length} ausstehende Upload(s) endgültig löschen?`,
+            )
+        ) {
+            return
+        }
+
+        setIsBusy(true)
+        setErrorMessage(null)
+        setStatusMessage(null)
+        try {
+            const host = getClientTenantHost()
+            await Promise.all(pending.map((asset) => deleteMedia(host, asset.id)))
+            setAssets((current) => current.filter((item) => item.status !== 'PENDING'))
+            setStatusMessage(`${pending.length} ausstehende Upload(s) entfernt.`)
+        } catch (error: unknown) {
+            if (authRedirect(error)) return
+            setErrorMessage(
+                error instanceof Error
+                    ? error.message
+                    : 'Ausstehende Uploads konnten nicht entfernt werden.',
+            )
+        } finally {
+            setIsBusy(false)
+        }
+    }
+
     async function handleDelete(assetId: number): Promise<void> {
         setIsBusy(true)
         setErrorMessage(null)
@@ -255,10 +291,20 @@ export default function MediaLibraryClient(): React.JSX.Element {
         }
     }
 
-    const visibleAssets =
-        typeFilter.length === 0
-            ? assets
-            : assets.filter((asset) => asset.assetType === typeFilter)
+    const visibleAssets = assets.filter((asset) => {
+        if (typeFilter.length > 0 && asset.assetType !== typeFilter) {
+            return false
+        }
+        if (statusFilter.length > 0 && asset.status !== statusFilter) {
+            return false
+        }
+        if (orphanOnly && asset.episodeId !== null) {
+            return false
+        }
+        return true
+    })
+
+    const pendingCount = assets.filter((asset) => asset.status === 'PENDING').length
 
     if (isLoading) {
         return <p>Wird geladen…</p>
@@ -323,21 +369,62 @@ export default function MediaLibraryClient(): React.JSX.Element {
                 />
             ) : null}
 
-            <label className="grid gap-2 text-sm font-medium" htmlFor="typeFilter">
-                Typ filtern
-                <SelectControl
-                    className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50"
-                    id="typeFilter"
-                    onChange={(event) => setTypeFilter(event.target.value)}
-                    value={typeFilter}
-                >
-                    <option value="">Alle</option>
-                    <option value="AUDIO">Audio</option>
-                    <option value="IMAGE">Bild</option>
-                    <option value="VIDEO">Video</option>
-                    <option value="DOCUMENT">Dokument</option>
-                </SelectControl>
-            </label>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                <label className="grid gap-2 text-sm font-medium" htmlFor="typeFilter">
+                    Typ filtern
+                    <SelectControl
+                        className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50"
+                        id="typeFilter"
+                        onChange={(event) => setTypeFilter(event.target.value)}
+                        value={typeFilter}
+                    >
+                        <option value="">Alle</option>
+                        <option value="AUDIO">Audio</option>
+                        <option value="IMAGE">Bild</option>
+                        <option value="VIDEO">Video</option>
+                        <option value="DOCUMENT">Dokument</option>
+                    </SelectControl>
+                </label>
+                <label className="grid gap-2 text-sm font-medium" htmlFor="statusFilter">
+                    Status filtern
+                    <SelectControl
+                        className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50"
+                        id="statusFilter"
+                        onChange={(event) => setStatusFilter(event.target.value)}
+                        value={statusFilter}
+                    >
+                        <option value="">Alle</option>
+                        <option value="PENDING">Ausstehend</option>
+                        <option value="READY">Bereit</option>
+                        <option value="ARCHIVED">Archiviert</option>
+                    </SelectControl>
+                </label>
+                <label className="flex items-end gap-2 text-sm font-medium">
+                    <input
+                        checked={orphanOnly}
+                        className="size-4 shrink-0"
+                        id="orphanFilter"
+                        onChange={(event) => setOrphanOnly(event.target.checked)}
+                        type="checkbox"
+                    />
+                    <span>Nur unverknüpfte Dateien</span>
+                </label>
+            </div>
+
+            {pendingCount > 0 ? (
+                <div className="flex flex-wrap items-center gap-3 rounded-xl border border-dashed bg-muted/30 px-4 py-3 text-sm">
+                    <span>{pendingCount} ausstehende Upload(s)</span>
+                    <Button
+                        disabled={isBusy}
+                        onClick={() => void handleBulkDeletePending()}
+                        size="sm"
+                        type="button"
+                        variant="outline"
+                    >
+                        Alle ausstehenden entfernen
+                    </Button>
+                </div>
+            ) : null}
 
             {errorMessage !== null ? (
                 <p className="text-sm text-destructive" role="alert">
@@ -353,7 +440,7 @@ export default function MediaLibraryClient(): React.JSX.Element {
                     action={uploadButton}
                 />
             ) : visibleAssets.length === 0 ? (
-                <p className="text-sm text-muted-foreground">Keine Medien dieses Typs.</p>
+                <p className="text-sm text-muted-foreground">Keine Medien für diesen Filter.</p>
             ) : (
                 <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                     {visibleAssets.map((asset) => {

@@ -159,6 +159,7 @@ export interface CreateArticleInput {
     title: string
     body?: string
     excerpt?: string
+    seoDescription?: string
     accessPolicy: AccessPolicy
     heroAssetId?: number
     requiredLevelSortOrder?: number
@@ -169,6 +170,7 @@ export interface UpdateArticleInput {
     title?: string
     body?: string
     excerpt?: string
+    seoDescription?: string
     accessPolicy?: AccessPolicy
     heroAssetId?: number
     requiredLevelSortOrder?: number

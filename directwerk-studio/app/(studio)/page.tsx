@@ -34,9 +34,18 @@ export default async function OverviewPage() {
                                 Beitrag schreiben und veröffentlichen.
                             </p>
                         </div>
-                        <Button nativeButton={false} render={<Link href="/write/articles/new" />}>
-                            Neuer Beitrag
-                        </Button>
+                        <div className="flex flex-wrap gap-2">
+                            <Button nativeButton={false} render={<Link href="/write/articles/new" />}>
+                                Neuer Beitrag
+                            </Button>
+                            <Button
+                                nativeButton={false}
+                                render={<Link href="/write" />}
+                                variant="outline"
+                            >
+                                Schreib-Übersicht
+                            </Button>
+                        </div>
                     </div>
                 ) : null}
                 {desks.has('PODCAST') ? (
