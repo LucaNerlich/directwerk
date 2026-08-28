@@ -1,6 +1,3 @@
-/**
- * Returns the public site origin derived from a Directwerk feed URL.
- */
 export function publicSiteOrigin(publicRssUrl: string | null): string | null {
     if (publicRssUrl === null || publicRssUrl.trim().length === 0) {
         return null
@@ -13,9 +10,6 @@ export function publicSiteOrigin(publicRssUrl: string | null): string | null {
     }
 }
 
-/**
- * Builds the public episode page URL on directwerk-web.
- */
 export function publicEpisodePageUrl(
     publicRssUrl: string | null,
     episodeSlug: string,

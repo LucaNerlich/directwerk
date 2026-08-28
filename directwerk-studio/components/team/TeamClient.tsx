@@ -71,9 +71,6 @@ function statusLabel(status: string): string {
     }
 }
 
-/**
- * Team list with invite + deactivate/reactivate for TENANT_ADMIN.
- */
 export default function TeamClient(): React.JSX.Element {
     const router = useRouter()
     const authRedirect = useAuthRequired()

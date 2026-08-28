@@ -1,8 +1,5 @@
 import {publicSiteOrigin} from '@/lib/podcast/publicUrls'
 
-/**
- * Builds the public article page URL on directwerk-web.
- */
 export function publicArticlePageUrl(
     publicRssUrl: string | null,
     articleSlug: string,

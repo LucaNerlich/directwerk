@@ -18,9 +18,6 @@ interface MediaLibraryPickerProps {
     onAuthRequired: () => void
 }
 
-/**
- * Lets editors attach an existing READY media asset instead of uploading again.
- */
 export default function MediaLibraryPicker({
     assetType,
     label,

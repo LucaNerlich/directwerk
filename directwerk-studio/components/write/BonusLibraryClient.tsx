@@ -13,9 +13,6 @@ import type {MediaAsset} from '@directwerk/api/types'
 import {getClientTenantHost} from '@/lib/tenant/getClientTenantHost'
 import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
 
-/**
- * Lists READY document assets as the studio bonus-file library.
- */
 export default function BonusLibraryClient(): React.JSX.Element {
     const router = useRouter()
     const authRedirect = useAuthRequired()

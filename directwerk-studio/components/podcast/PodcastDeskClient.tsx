@@ -26,9 +26,6 @@ interface SetupStep {
     primary?: boolean
 }
 
-/**
- * Podcast desk home: guides creators through setup, then into weekly episode authoring.
- */
 export default function PodcastDeskClient(): React.JSX.Element {
     const router = useRouter()
     const authRedirect = useAuthRequired()

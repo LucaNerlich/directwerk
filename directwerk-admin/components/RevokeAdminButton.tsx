@@ -13,12 +13,6 @@ interface RevokeAdminButtonProps {
     onRevoked: () => void
 }
 
-/**
- * Renders a button for revoking an administrator's access.
- *
- * @param userId - Identifier of the administrator to revoke
- * @param onRevoked - Callback invoked after the revocation succeeds
- */
 export default function RevokeAdminButton({
     userId,
     onRevoked,

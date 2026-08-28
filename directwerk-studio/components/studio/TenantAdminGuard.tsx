@@ -6,9 +6,6 @@ import {useEffect, type ReactNode} from 'react'
 import {isTenantAdminRole} from '@/lib/api/tenantApi'
 import {useMe} from '@/lib/auth/MeProvider'
 
-/**
- * Restricts children to TENANT_ADMIN users; editors are redirected home.
- */
 export default function TenantAdminGuard({
     children,
 }: {

@@ -4,9 +4,6 @@ interface FormatPageProps {
     params: Promise<{formatId: string}>
 }
 
-/**
- * Renders the format editor for a valid format route identifier.
- */
 export default async function FormatPage({
     params,
 }: FormatPageProps): Promise<React.JSX.Element> {

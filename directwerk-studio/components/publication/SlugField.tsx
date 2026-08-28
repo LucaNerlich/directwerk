@@ -11,9 +11,6 @@ interface SlugFieldProps {
     checkTaken: (slug: string) => boolean
 }
 
-/**
- * Slug input with debounced uniqueness feedback.
- */
 export default function SlugField({
     value,
     onChange,

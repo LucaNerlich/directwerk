@@ -97,12 +97,6 @@ function isPublicationStatus(value: unknown): value is PublicationStatus {
 // Articles
 // ---------------------------------------------------------------------------
 
-/**
- * Parses an article summary from an unknown value.
- *
- * @param value - The value to parse
- * @returns The parsed article summary, or `null` if the value is invalid
- */
 function parseArticleSummary(value: unknown): ArticleSummary | null {
     if (
         !isRecord(value) ||
@@ -125,12 +119,6 @@ function parseArticleSummary(value: unknown): ArticleSummary | null {
     }
 }
 
-/**
- * Parses an unknown value as a tag.
- *
- * @param value - The value to validate and parse
- * @returns A parsed tag, or `null` if the value is invalid
- */
 function parseTag(value: unknown): Tag | null {
     if (
         !isRecord(value) ||
@@ -144,12 +132,6 @@ function parseTag(value: unknown): Tag | null {
     return {id: value.id, slug: value.slug, name: value.name}
 }
 
-/**
- * Parses an array of validated tags.
- *
- * @param value - The value to parse as an array containing at most 100 tags
- * @returns The parsed tags, or `null` if the value is not a valid tag array
- */
 function parseTagArray(value: unknown): Tag[] | null {
     if (!Array.isArray(value) || value.length > 100) {
         return null
@@ -167,12 +149,6 @@ function parseTagArray(value: unknown): Tag[] | null {
     return parsed
 }
 
-/**
- * Parses an article detail from an unknown value.
- *
- * @param value - The value to parse
- * @returns The parsed article detail, or `null` if the value is invalid
- */
 function parseArticleDetail(value: unknown): ArticleDetail | null {
     const summary = parseArticleSummary(value)
     if (summary === null || !isRecord(value)) {
@@ -250,12 +226,6 @@ function parseEpisodeSummary(value: unknown): EpisodeSummary | null {
     }
 }
 
-/**
- * Parses an API response into an episode detail object.
- *
- * @param value - The value to validate and parse
- * @returns The parsed episode detail, or `null` when validation fails
- */
 function parseEpisodeDetail(value: unknown): EpisodeDetail | null {
     const summary = parseEpisodeSummary(value)
     if (summary === null || !isRecord(value)) {
@@ -349,12 +319,6 @@ function parseSeriesSummary(value: unknown): SeriesSummary | null {
     }
 }
 
-/**
- * Parses a series detail response into a validated series object.
- *
- * @param value - The unknown response value to parse
- * @returns A validated `SeriesDetail` object, or `null` when the value is invalid
- */
 function parseSeriesDetail(value: unknown): SeriesDetail | null {
     const summary = parseSeriesSummary(value)
     if (summary === null || !isRecord(value)) {
@@ -653,11 +617,6 @@ export function parseSubscriptionGrantEnvelope(
 // Formats / categories
 // ---------------------------------------------------------------------------
 
-/**
- * Parses an unknown value as a format summary.
- *
- * @returns A validated `FormatSummary`, or `null` if the value is invalid.
- */
 function parseFormatSummary(value: unknown): FormatSummary | null {
     if (
         !isRecord(value) ||
@@ -692,11 +651,6 @@ function parseFormatSummary(value: unknown): FormatSummary | null {
     }
 }
 
-/**
- * Parses an API response containing a list of format summaries.
- *
- * @returns A validated envelope containing up to 500 format summaries, or `null` if the response or any format is invalid.
- */
 export function parseFormatListEnvelope(
     value: unknown,
 ): ApiEnvelope<FormatSummary[]> | null {
@@ -705,12 +659,6 @@ export function parseFormatListEnvelope(
     )
 }
 
-/**
- * Parses an API response containing a format summary.
- *
- * @param value - The unknown API response to parse
- * @returns A validated format summary envelope, or `null` when the response is invalid
- */
 export function parseFormatEnvelope(
     value: unknown,
 ): ApiEnvelope<FormatSummary> | null {
@@ -738,12 +686,6 @@ function parseCategorySummary(value: unknown): CategorySummary | null {
     }
 }
 
-/**
- * Parses an API response containing a list of category summaries.
- *
- * @param value - The unknown API response to validate
- * @returns The parsed category list envelope, or `null` when validation fails
- */
 export function parseCategoryListEnvelope(
     value: unknown,
 ): ApiEnvelope<CategorySummary[]> | null {
@@ -752,12 +694,6 @@ export function parseCategoryListEnvelope(
     )
 }
 
-/**
- * Parses a category response wrapped in an API envelope.
- *
- * @param value - The unknown response value to parse
- * @returns A validated category API envelope, or `null` if the response is invalid
- */
 export function parseCategoryEnvelope(
     value: unknown,
 ): ApiEnvelope<CategorySummary> | null {

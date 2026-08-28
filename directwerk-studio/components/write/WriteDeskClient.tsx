@@ -26,9 +26,6 @@ interface SetupStep {
     primary?: boolean
 }
 
-/**
- * Write desk home: guides creators through setup, then into weekly article authoring.
- */
 export default function WriteDeskClient(): React.JSX.Element {
     const router = useRouter()
     const authRedirect = useAuthRequired()

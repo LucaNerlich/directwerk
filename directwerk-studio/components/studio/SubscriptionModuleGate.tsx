@@ -2,9 +2,6 @@ import {hasModule} from '@/lib/api/client'
 import {fetchSiteConfigServer} from '@/lib/site/fetchSiteConfigServer'
 import {getTenantHost} from '@/lib/site/getTenantHost'
 
-/**
- * Renders children only when SUBSCRIPTION is enabled for the tenant.
- */
 export default async function SubscriptionModuleGate({
     children,
 }: {

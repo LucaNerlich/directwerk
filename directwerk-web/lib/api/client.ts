@@ -480,9 +480,6 @@ export async function updateNotificationPreferences(
     }
 }
 
-/**
- * Starts Stripe checkout for a product. Returns a hosted URL when billing is live.
- */
 export async function createCheckoutSession(
     tenantHost: string,
     productSlug: string,

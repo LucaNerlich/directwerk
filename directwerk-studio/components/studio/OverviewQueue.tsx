@@ -19,9 +19,6 @@ interface OverviewQueueProps {
     desks: StudioDesk[]
 }
 
-/**
- * Shows drafts waiting to publish and first-run empty states on the studio overview.
- */
 export default function OverviewQueue({desks}: OverviewQueueProps): React.JSX.Element {
     const router = useRouter()
     const authRedirect = useAuthRequired()

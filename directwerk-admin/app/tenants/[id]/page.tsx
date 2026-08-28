@@ -32,11 +32,6 @@ interface TenantPageData {
     users: TenantUser[]
 }
 
-/**
- * Renders the administration page for a tenant, including its details, lifecycle controls, products, sessions, domains, and users.
- *
- * @param params - Route parameters containing the tenant identifier.
- */
 export default function TenantPage({params}: TenantPageProps) {
     const {id} = use(params)
     const router = useRouter()
