@@ -5,6 +5,7 @@ import {cookies} from 'next/headers'
 import {safeUpstreamResponse} from '@directwerk/api/server'
 import {parseApiEnvelope} from '@directwerk/api/envelope'
 import {sealRefreshToken} from '@directwerk/api/auth/cookies'
+import {parseTokenResponse} from '@directwerk/api/validation'
 
 import {
     createConfiguredPlatformApiRequest,
@@ -63,20 +64,11 @@ export async function resolvePlatformAuthorization(): Promise<
         return {ok: false, status: sealed.status}
     }
 
-    const payload = (await sealed.json().catch(() => null)) as
-        | (Record<string, unknown> & {access_token?: unknown})
-        | null
-
-    if (
-        payload === null ||
-        typeof payload.access_token !== 'string' ||
-        payload.access_token.length === 0
-    ) {
+    const payload = parseTokenResponse(await sealed.json().catch(() => null))
+    if (payload === null) {
         return {ok: false, status: 502}
     }
-
     await storeSealedRefreshCookie(sealed.headers.get('set-cookie'))
-
     return {ok: true, authorization: `Bearer ${payload.access_token}`}
 }
 

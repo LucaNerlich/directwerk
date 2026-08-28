@@ -22,26 +22,26 @@ import type {
     TenantModules,
 } from '@directwerk/api/types'
 import {MODULE_PRESETS} from '@directwerk/api/types'
+import {isRecord} from '@directwerk/api/validation'
 
 interface TenantModulesPanelProps {
     tenantId: string
 }
 
 function isModuleDescriptor(value: unknown): value is ModuleDescriptor {
-    if (typeof value !== 'object' || value === null) {
+    if (!isRecord(value)) {
         return false
     }
 
-    const module = value as Record<string, unknown>
     return (
-        typeof module.moduleKey === 'string' &&
-        typeof module.name === 'string' &&
-        (module.description === undefined ||
-            module.description === null ||
-            typeof module.description === 'string') &&
-        Array.isArray(module.dependsOn) &&
-        module.dependsOn.every((item) => typeof item === 'string') &&
-        typeof module.core === 'boolean'
+        typeof value.moduleKey === 'string' &&
+        typeof value.name === 'string' &&
+        (value.description === undefined ||
+            value.description === null ||
+            typeof value.description === 'string') &&
+        Array.isArray(value.dependsOn) &&
+        value.dependsOn.every((item) => typeof item === 'string') &&
+        typeof value.core === 'boolean'
     )
 }
 
@@ -50,14 +50,13 @@ function isModuleCatalog(value: unknown): value is ModuleDescriptor[] {
 }
 
 function isTenantModules(value: unknown): value is TenantModules {
-    if (typeof value !== 'object' || value === null) {
+    if (!isRecord(value)) {
         return false
     }
 
-    const modules = value as Record<string, unknown>
     return (
-        Array.isArray(modules.enabledModules) &&
-        modules.enabledModules.every((item) => typeof item === 'string')
+        Array.isArray(value.enabledModules) &&
+        value.enabledModules.every((item) => typeof item === 'string')
     )
 }
 
