@@ -44,6 +44,7 @@ class DevDataInitializerTest {
             null,
             null,
             null,
+            null,
             null
     );
 
@@ -159,6 +160,7 @@ class DevDataInitializerTest {
         DirectwerkConfig blankPasswordConfig = new DirectwerkConfig(new DirectwerkProperties(
                 null,
                 new DirectwerkProperties.Dev("tenant-seed-password", "custom-platform-admin@directwerk.local", "  "),
+                null,
                 null,
                 null,
                 null,

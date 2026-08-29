@@ -1,0 +1,27 @@
+meta {
+  name: Contact Form (invalid captcha)
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/api/v1/public/contact
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "name": "Test User",
+    "email": "test@example.com",
+    "message": "Hello from Bruno",
+    "altcha": "invalid-payload"
+  }
+}
+
+tests {
+  test("rejects invalid ALTCHA payload", function() {
+    expect(res.status).to.equal(400);
+    expect(res.body.errors[0].code).to.equal("CAPTCHA_INVALID");
+  });
+}

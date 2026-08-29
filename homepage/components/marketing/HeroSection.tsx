@@ -2,7 +2,7 @@ import {Button} from '@directwerk/ui/components/button'
 import {Card, CardContent} from '@directwerk/ui/components/card'
 
 import SectionLabel from '@/components/marketing/SectionLabel'
-import {CONTACT_EMAIL, DOCS_URL} from '@/lib/marketing/constants'
+import {DOCS_URL} from '@/lib/marketing/constants'
 
 export default function HeroSection(): React.JSX.Element {
     return (
@@ -43,11 +43,7 @@ export default function HeroSection(): React.JSX.Element {
                         >
                             Dokumentation
                         </Button>
-                        <Button
-                            render={<a href={`mailto:${CONTACT_EMAIL}`} />}
-                            size="lg"
-                            variant="outline"
-                        >
+                        <Button render={<a href="#contact" />} size="lg" variant="outline">
                             Kontakt
                         </Button>
                     </div>

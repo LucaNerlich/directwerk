@@ -54,3 +54,11 @@ directwerk:
         from-address: ${DIRECTWERK_EMAIL_FROM:noreply@directwerk.local}
         studio-base-url: ${DIRECTWERK_EMAIL_STUDIO_BASE_URL:http://localhost:3004}
         admin-base-url: ${DIRECTWERK_EMAIL_ADMIN_BASE_URL:http://localhost:3001}
+    marketing:
+        contact:
+            enabled: true
+            inbox-email: ${DIRECTWERK_CONTACT_INBOX_EMAIL:hello@directwerk.de}
+            allowed-origins:
+                - http://localhost:3005
+            altcha:
+                hmac-key: ${DIRECTWERK_ALTCHA_HMAC_KEY:local-dev-altcha-hmac-key-change-me}

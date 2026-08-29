@@ -94,6 +94,11 @@ public class EmailJobHandler implements JobHandler {
                 requireVariable(variables, "preferencesUrl", 2048);
                 requireVariable(variables, "primaryColor", 32);
             }
+            case CONTACT_FORM -> {
+                requireVariable(variables, "name", 120);
+                requireVariable(variables, "email", 254);
+                requireVariable(variables, "message", 5000);
+            }
         }
     }
 

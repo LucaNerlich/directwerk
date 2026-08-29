@@ -49,7 +49,11 @@ public class SmtpEmailSender implements EmailSender {
             if (email.headers() != null) {
                 for (var header : email.headers().entrySet()) {
                     if (StringUtils.hasText(header.getKey()) && header.getValue() != null) {
-                        message.setHeader(header.getKey(), header.getValue());
+                        if ("Reply-To".equalsIgnoreCase(header.getKey())) {
+                            helper.setReplyTo(header.getValue());
+                        } else {
+                            message.setHeader(header.getKey(), header.getValue());
+                        }
                     }
                 }
             }

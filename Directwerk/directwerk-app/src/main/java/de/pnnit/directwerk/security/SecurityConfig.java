@@ -122,6 +122,7 @@ public class SecurityConfig {
     ) throws Exception {
 
         http.securityMatcher("/**")
+                .cors(Customizer.withDefaults())
                 .csrf(csrf -> csrf.disable())
                 .headers(headers -> headers.contentSecurityPolicy(csp -> csp.policyDirectives(
                         "default-src 'self'; "
@@ -242,6 +243,7 @@ public class SecurityConfig {
         int oauthLimit = security.oauthTokenRateLimitPerMinute() != null ? security.oauthTokenRateLimitPerMinute() : 10;
         int forgotPasswordLimit = security.forgotPasswordRateLimitPerMinute() != null ? security.forgotPasswordRateLimitPerMinute() : 5;
         int authLimit = security.authRateLimitPerMinute() != null ? security.authRateLimitPerMinute() : 20;
+        int contactLimit = directwerkConfig.marketing().contact().rateLimitPerMinute();
 
         if (oauthLimit <= 0) {
             throw new IllegalStateException("OAuth token rate limit must be positive, got: " + oauthLimit);
@@ -252,11 +254,15 @@ public class SecurityConfig {
         if (authLimit <= 0) {
             throw new IllegalStateException("Auth rate limit must be positive, got: " + authLimit);
         }
+        if (contactLimit <= 0) {
+            throw new IllegalStateException("Contact form rate limit must be positive, got: " + contactLimit);
+        }
 
         registration.setFilter(new AuthRateLimitFilter(
                 oauthLimit,
                 forgotPasswordLimit,
                 authLimit,
+                contactLimit,
                 security.trustedProxies()
         ));
         registration.addUrlPatterns("/oauth2/token", "/api/v1/auth/*", "/api/v1/me/billing/*");

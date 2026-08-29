@@ -7,6 +7,9 @@ import {extraOptimizePackageImports} from '../packages/next-config/optimizePacka
 
 const monorepoRoot = path.join(path.dirname(fileURLToPath(import.meta.url)), '..')
 
+const apiOrigin =
+    (process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8080').replace(/\/$/, '')
+
 const nextConfig: NextConfig = {
     reactCompiler: true,
     transpilePackages: ['@directwerk/ui'],
@@ -28,7 +31,8 @@ const nextConfig: NextConfig = {
                             "style-src 'self'",
                             "img-src 'self' data: https:",
                             "font-src 'self'",
-                            "connect-src 'self'",
+                            "connect-src 'self' " + apiOrigin,
+                            "worker-src 'self' blob:",
                             "frame-ancestors 'none'",
                             "base-uri 'self'",
                             "form-action 'self'",

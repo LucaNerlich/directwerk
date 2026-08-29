@@ -137,6 +137,18 @@ directwerk:
         publishable-key: ${STRIPE_PUBLISHABLE_KEY:}
         webhook-secret: ${STRIPE_WEBHOOK_SECRET:}
         connect-client-id: ${STRIPE_CONNECT_CLIENT_ID:}
+    marketing:
+        contact:
+            enabled: ${DIRECTWERK_CONTACT_FORM_ENABLED:true}
+            inbox-email: ${DIRECTWERK_CONTACT_INBOX_EMAIL:hello@directwerk.de}
+            rate-limit-per-minute: ${DIRECTWERK_CONTACT_RATE_LIMIT_PER_MINUTE:5}
+            allowed-origins:
+                - http://localhost:3005
+                - https://directwerk.de
+                - https://www.directwerk.de
+            altcha:
+                hmac-key: ${DIRECTWERK_ALTCHA_HMAC_KEY:}
+                expires-seconds: ${DIRECTWERK_ALTCHA_EXPIRES_SECONDS:300}
 
 springdoc:
     api-docs:
