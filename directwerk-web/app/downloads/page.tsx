@@ -11,6 +11,8 @@ import FeatureCard from '@directwerk/ui/components/feature-card'
 import PageHeader from '@directwerk/ui/components/page-header'
 import PageStack from '@directwerk/ui/components/page-stack'
 
+import {CardGridSkeleton} from '@/components/ContentLoadingSkeleton'
+import {assetTypeLabel, formatFileSize} from '@/lib/format/content'
 import {listMyDownloads} from '@/lib/api/client'
 import {AUTH_REQUIRED} from '@directwerk/api/constants'
 import type {SubscriberDownload} from '@directwerk/api/types'
@@ -49,15 +51,15 @@ export default function DownloadsPage(): React.JSX.Element {
         return () => {
             active = false
         }
-    }, [router, tenantHost])
+    }, [router, tenantHost, authRedirect])
 
     return (
         <PageStack className="page-container">
             <PageHeader
                 title="Bonusdateien"
-                description="PDFs und andere Dateien, die dein Abo freischaltet."
+                description="PDFs und andere Dateien, die dein Abo freischaltet. Downloads sind an dein Konto gebunden."
             />
-            {isLoading ? <p className="text-sm text-muted-foreground">Wird geladen…</p> : null}
+            {isLoading ? <CardGridSkeleton cards={4} columns={2} /> : null}
             {errorMessage !== null ? (
                 <Alert variant="destructive">
                     <AlertDescription>{errorMessage}</AlertDescription>
@@ -75,34 +77,42 @@ export default function DownloadsPage(): React.JSX.Element {
                 />
             ) : null}
             {downloads.length > 0 ? (
-                <ul className="grid gap-4 sm:grid-cols-2">
-                    {downloads.map((item) => (
-                        <li key={item.id}>
-                            <FeatureCard
-                                description={
-                                    <>
-                                        {item.assetType}
-                                        {item.sizeBytes !== null
-                                            ? ` · ${Math.max(1, Math.round(item.sizeBytes / 1024))} KB`
-                                            : ''}
-                                    </>
-                                }
-                                title={item.title}
-                            >
-                                <Button
-                                    nativeButton={false}
-                                    render={
-                                        <a href={item.downloadUrl} rel="noreferrer" />
-                                    }
-                                    size="sm"
-                                    variant="outline"
-                                >
-                                    Herunterladen
-                                </Button>
-                            </FeatureCard>
-                        </li>
-                    ))}
-                </ul>
+                <>
+                    <p className="text-sm text-muted-foreground">
+                        {downloads.length}{' '}
+                        {downloads.length === 1 ? 'Datei' : 'Dateien'} verfügbar.
+                    </p>
+                    <ul className="grid gap-4 sm:grid-cols-2">
+                        {downloads.map((item) => {
+                            const sizeLabel = formatFileSize(item.sizeBytes)
+                            return (
+                                <li key={item.id}>
+                                    <FeatureCard
+                                        description={
+                                            <>
+                                                {assetTypeLabel(item.assetType)}
+                                                {item.mimeType !== null ? ` · ${item.mimeType}` : ''}
+                                                {sizeLabel !== null ? ` · ${sizeLabel}` : ''}
+                                            </>
+                                        }
+                                        title={item.title}
+                                    >
+                                        <Button
+                                            nativeButton={false}
+                                            render={
+                                                <a href={item.downloadUrl} rel="noreferrer" />
+                                            }
+                                            size="sm"
+                                            variant="outline"
+                                        >
+                                            Herunterladen
+                                        </Button>
+                                    </FeatureCard>
+                                </li>
+                            )
+                        })}
+                    </ul>
+                </>
             ) : null}
         </PageStack>
     )

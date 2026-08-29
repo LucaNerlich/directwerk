@@ -18,6 +18,7 @@ interface NavItem {
     href: string
     label: string
     module?: string
+    requiresAuth?: boolean
 }
 
 const NAV_ITEMS: readonly NavItem[] = [
@@ -25,8 +26,8 @@ const NAV_ITEMS: readonly NavItem[] = [
     {href: '/episodes', label: 'Podcast', module: 'PODCAST'},
     {href: '/articles', label: 'Beiträge', module: 'DIGITAL_CONTENT'},
     {href: '/pricing', label: 'Preise', module: 'SUBSCRIPTION'},
-    {href: '/downloads', label: 'Bonusdateien', module: 'DIGITAL_CONTENT'},
     {href: '/feeds', label: 'Feeds', module: 'PODCAST_RSS'},
+    {href: '/downloads', label: 'Bonusdateien', module: 'DIGITAL_CONTENT', requiresAuth: true},
     {href: '/account', label: 'Konto'},
 ]
 
@@ -58,19 +59,27 @@ export default function SiteHeader({
         router.replace('/login')
     }
 
-    const items = NAV_ITEMS.filter(
-        (item) =>
-            item.module === undefined ||
+    const items = NAV_ITEMS.filter((item) => {
+        if (item.requiresAuth === true && !isAuthenticated) {
+            return false
+        }
+        if (item.module === undefined) {
+            return true
+        }
+        return (
             config.enabledModules.includes(item.module) ||
             (item.module === 'DIGITAL_CONTENT' &&
-                config.enabledModules.includes('PODCAST')),
-    )
+                config.enabledModules.includes('PODCAST'))
+        )
+    })
 
     const navigation = items.map((item) => {
         const isActive =
             item.href === '/'
                 ? pathname === '/'
                 : pathname === item.href || pathname.startsWith(`${item.href}/`)
+        const label =
+            item.href === '/account' && isAuthenticated ? 'Mein Konto' : item.label
         return (
             <Link
                 key={item.href}
@@ -81,22 +90,38 @@ export default function SiteHeader({
                 })}
                 aria-current={isActive ? 'page' : undefined}
             >
-                {item.label}
+                {label}
             </Link>
         )
     })
     const actions = isAuthenticated ? (
-        <Button type="button" variant="outline" onClick={handleLogout}>
-            Abmelden
-        </Button>
+        <>
+            <Link
+                className={buttonVariants({variant: 'ghost', size: 'sm'})}
+                href="/account"
+            >
+                Mein Konto
+            </Link>
+            <Button type="button" variant="outline" onClick={handleLogout}>
+                Abmelden
+            </Button>
+        </>
     ) : (
-        <Link
-            href="/login"
-            className={buttonVariants({variant: 'outline'})}
-            aria-current={pathname === '/login' ? 'page' : undefined}
-        >
-            Anmelden
-        </Link>
+        <>
+            <Link
+                className={buttonVariants({variant: 'ghost', size: 'sm'})}
+                href="/register"
+            >
+                Registrieren
+            </Link>
+            <Link
+                href="/login"
+                className={buttonVariants({variant: 'outline'})}
+                aria-current={pathname === '/login' ? 'page' : undefined}
+            >
+                Anmelden
+            </Link>
+        </>
     )
 
     return (

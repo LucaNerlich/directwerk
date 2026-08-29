@@ -3,7 +3,6 @@
 import Link from 'next/link'
 
 import {Alert, AlertDescription} from '@directwerk/ui/components/alert'
-import {Badge} from '@directwerk/ui/components/badge'
 import {Button} from '@directwerk/ui/components/button'
 import EmptyState from '@directwerk/ui/components/empty-state'
 import ListPanel, {ListPanelRow} from '@directwerk/ui/components/list-panel'
@@ -11,15 +10,16 @@ import PageHeader from '@directwerk/ui/components/page-header'
 import PageStack from '@directwerk/ui/components/page-stack'
 import SectionHeader from '@directwerk/ui/components/section-header'
 
+import AccessPolicyBadge from '@/components/AccessPolicyBadge'
+import ContentMetaLine from '@/components/ContentMetaLine'
+import {ListPanelSkeleton} from '@/components/ContentLoadingSkeleton'
+import FeedUrlDisplay from '@/components/FeedUrlDisplay'
+import SubscriberContextBanner from '@/components/SubscriberContextBanner'
 import {usePublicCatalog} from '@/lib/catalog/usePublicCatalog'
 import {useSubscriberAuth} from '@/lib/auth/useSubscriberAuth'
-import type {PublicEpisode} from '@directwerk/api/types'
-import {formatPublishedAt} from '@directwerk/api/format/datetime'
+import {accessPolicyLabel, formatDuration} from '@/lib/format/content'
 import {getClientTenantHost} from '@directwerk/api/tenant'
-
-function accessPolicyLabel(policy: PublicEpisode['accessPolicy']): string {
-    return policy === 'PAID' ? 'Bezahlt' : 'Frei'
-}
+import {formatPublishedAt} from '@directwerk/api/format/datetime'
 
 export default function EpisodesPage() {
     const tenantHost = getClientTenantHost()
@@ -39,9 +39,9 @@ export default function EpisodesPage() {
                         : 'Öffentlich: nur freie Folgen. Anmelden für bezahlte Inhalte.'
                 }
             />
-            {isLoading ? (
-                <p className="text-sm text-muted-foreground">Wird geladen…</p>
-            ) : null}
+            <SubscriberContextBanner showWhenAuthenticated={false} />
+
+            {isLoading ? <ListPanelSkeleton rows={5} /> : null}
             {errorMessage !== null ? (
                 <Alert variant="destructive">
                     <AlertDescription>{errorMessage}</AlertDescription>
@@ -50,43 +50,55 @@ export default function EpisodesPage() {
 
             {!isLoading && errorMessage === null ? (
                 <>
-                    <section className="flex flex-col gap-4">
-                        <SectionHeader title="Sendungen" />
-                        {series.length === 0 ? (
-                            <p className="text-sm text-muted-foreground">
-                                Noch keine veröffentlichten Sendungen.
-                            </p>
-                        ) : (
+                    {series.length > 0 ? (
+                        <section className="flex flex-col gap-4">
+                            <SectionHeader
+                                description="Sendungen und ihre öffentlichen RSS-Feeds."
+                                title="Sendungen"
+                            />
                             <ListPanel>
                                 {series.map((item) => {
                                     const feedUrl = item.rssUrl
                                     return (
                                         <ListPanelRow key={item.id}>
-                                            <div className="min-w-0 flex-1">
+                                            <div className="min-w-0 flex-1 space-y-2">
                                                 <p className="font-medium">{item.title}</p>
-                                                <p className="mt-1 text-sm text-muted-foreground">
-                                                    {item.slug}
-                                                    {item.language !== null
-                                                        ? ` · ${item.language}`
-                                                        : ''}
-                                                </p>
-                                                {feedUrl !== null ? (
-                                                    <p className="mt-2 break-all text-sm">
-                                                        <a href={feedUrl} rel="noreferrer">
-                                                            {feedUrl}
-                                                        </a>
+                                                <ContentMetaLine
+                                                    items={[
+                                                        item.language !== null
+                                                            ? item.language
+                                                            : null,
+                                                        item.itunesCategory !== null
+                                                            ? item.itunesCategory
+                                                            : null,
+                                                    ]}
+                                                />
+                                                {item.description !== null &&
+                                                item.description.length > 0 ? (
+                                                    <p className="line-clamp-2 text-sm text-muted-foreground">
+                                                        {item.description}
                                                     </p>
                                                 ) : null}
+                                                {feedUrl !== null ? (
+                                                    <FeedUrlDisplay url={feedUrl} />
+                                                ) : (
+                                                    <p className="text-sm text-muted-foreground">
+                                                        Kein öffentlicher Feed für diese Sendung.
+                                                    </p>
+                                                )}
                                             </div>
                                         </ListPanelRow>
                                     )
                                 })}
                             </ListPanel>
-                        )}
-                    </section>
+                        </section>
+                    ) : null}
 
                     <section className="flex flex-col gap-4">
-                        <SectionHeader title="Veröffentlichte Folgen" />
+                        <SectionHeader
+                            description={`${episodes.length} ${episodes.length === 1 ? 'Folge' : 'Folgen'} sichtbar.`}
+                            title="Veröffentlichte Folgen"
+                        />
                         {episodes.length === 0 ? (
                             <EmptyState
                                 description={
@@ -95,6 +107,13 @@ export default function EpisodesPage() {
                                         : 'Noch keine veröffentlichten Folgen.'
                                 }
                                 title="Keine Folgen"
+                                action={
+                                    !isAuthenticated ? (
+                                        <Button nativeButton={false} render={<Link href="/login" />}>
+                                            Anmelden
+                                        </Button>
+                                    ) : undefined
+                                }
                             />
                         ) : (
                             <ListPanel>
@@ -110,16 +129,17 @@ export default function EpisodesPage() {
                                                     : ''}
                                                 {episode.title}
                                             </Link>
-                                            <p className="mt-1 text-sm text-muted-foreground">
-                                                {episode.seriesSlug} ·{' '}
-                                                {accessPolicyLabel(episode.accessPolicy)} ·{' '}
-                                                {formatPublishedAt(episode.publishedAt)}
-                                            </p>
+                                            <ContentMetaLine
+                                                items={[
+                                                    episode.seriesSlug,
+                                                    accessPolicyLabel(episode.accessPolicy),
+                                                    formatPublishedAt(episode.publishedAt),
+                                                    formatDuration(episode.durationSeconds),
+                                                ]}
+                                            />
                                         </div>
                                         <div className="flex shrink-0 items-center gap-2">
-                                            <Badge variant="outline">
-                                                {accessPolicyLabel(episode.accessPolicy)}
-                                            </Badge>
+                                            <AccessPolicyBadge policy={episode.accessPolicy} />
                                             {episode.audioCdnUrl !== null ? (
                                                 <Button
                                                     nativeButton={false}
@@ -134,7 +154,7 @@ export default function EpisodesPage() {
                                                     Anhören
                                                 </Button>
                                             ) : (
-                                                <span className="text-xs text-muted-foreground">
+                                                <span className="max-w-32 text-right text-xs text-muted-foreground">
                                                     {episode.accessPolicy === 'PAID'
                                                         ? isAuthenticated
                                                             ? 'Freischaltung prüfen'
@@ -148,6 +168,20 @@ export default function EpisodesPage() {
                             </ListPanel>
                         )}
                     </section>
+
+                    {siteConfig?.publicRssUrl !== null &&
+                    siteConfig?.publicRssUrl !== undefined ? (
+                        <section className="flex flex-col gap-4">
+                            <SectionHeader
+                                description="Alle freien Folgen in einer Podcast-App abonnieren."
+                                title="Gesamt-Feed"
+                            />
+                            <FeedUrlDisplay
+                                title="Öffentlicher Feed"
+                                url={siteConfig.publicRssUrl}
+                            />
+                        </section>
+                    ) : null}
                 </>
             ) : null}
         </PageStack>

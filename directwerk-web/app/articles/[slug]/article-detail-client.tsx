@@ -4,10 +4,10 @@ import Link from 'next/link'
 import {useEffect, useState, useSyncExternalStore} from 'react'
 
 import {Alert, AlertDescription} from '@directwerk/ui/components/alert'
-import {Badge} from '@directwerk/ui/components/badge'
 import PageHeader from '@directwerk/ui/components/page-header'
 import PageStack from '@directwerk/ui/components/page-stack'
 
+import AccessPolicyBadge from '@/components/AccessPolicyBadge'
 import {listMyArticles, listPublicArticles} from '@/lib/api/client'
 import {AUTH_REQUIRED} from '@directwerk/api/constants'
 import type {PublicArticle} from '@directwerk/api/types'
@@ -120,15 +120,21 @@ export default function ArticleDetailClient({
             ) : null}
 
             {article !== null ? (
-                <article className="space-y-8">
+                <article className="max-w-3xl space-y-8">
                     <PageHeader
                         title={article.title}
-                        description={formatPublishedAt(article.publishedAt)}
-                        actions={
-                            <Badge variant="outline">
-                                {article.accessPolicy === 'PAID' ? 'Bezahlt' : 'Frei'}
-                            </Badge>
+                        description={
+                            <>
+                                {formatPublishedAt(article.publishedAt)}
+                                {article.categories.length > 0 ? (
+                                    <>
+                                        {' · '}
+                                        {article.categories.map((category) => category.name).join(', ')}
+                                    </>
+                                ) : null}
+                            </>
                         }
+                        actions={<AccessPolicyBadge policy={article.accessPolicy} />}
                     />
                     {article.accessPolicy === 'PAID' && article.body === null ? (
                         <Alert>
@@ -156,7 +162,9 @@ export default function ArticleDetailClient({
                             dangerouslySetInnerHTML={{__html: article.body}}
                         />
                     ) : (
-                        <p>No body content.</p>
+                        <p className="text-sm text-muted-foreground">
+                            Für diesen Beitrag ist noch kein Text verfügbar.
+                        </p>
                     )}
                 </article>
             ) : null}
