@@ -3,14 +3,14 @@ package de.pnnit.directwerk.modules.podcast.importrss;
 import java.util.Locale;
 import java.util.regex.Pattern;
 
-final class ImportSlugSuggester {
+public final class ImportSlugSuggester {
 
     private static final Pattern NON_SLUG = Pattern.compile("[^a-z0-9]+");
 
     private ImportSlugSuggester() {
     }
 
-    static String suggest(String title) {
+    public static String suggest(String title) {
         if (title == null || title.isBlank()) {
             return "folge";
         }
@@ -43,7 +43,7 @@ final class ImportSlugSuggester {
                 .replace("ß", "ss");
     }
 
-    static String withSuffix(String base, int attempt) {
+    public static String withSuffix(String base, int attempt) {
         if (attempt <= 1) {
             return base;
         }
