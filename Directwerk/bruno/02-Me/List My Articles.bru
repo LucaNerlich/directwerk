@@ -1,0 +1,21 @@
+meta {
+  name: List My Articles
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{baseUrl}}/api/v1/me/articles
+  body: none
+  auth: inherit
+}
+
+tests {
+  test("returns expected status", function() {
+    expect(res.getStatus() === 200 || res.getStatus() === 403).to.equal(true);
+  });
+}
+
+docs {
+  403 if DIGITAL_CONTENT module is off for the tenant.
+}

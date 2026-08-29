@@ -14,12 +14,14 @@ import de.pnnit.directwerk.modules.core.repository.TenantRepository;
 import de.pnnit.directwerk.modules.core.repository.UserRepository;
 import de.pnnit.directwerk.modules.core.util.EmailNormalizer;
 import de.pnnit.directwerk.modules.core.util.PasswordPolicy;
+import de.pnnit.directwerk.modules.content.TenantMembershipActivatedEvent;
 import de.pnnit.directwerk.multitenancy.TenantSuspendedException;
 import de.pnnit.directwerk.security.DirectwerkUserPrincipal;
 import de.pnnit.directwerk.security.SecurityUtils;
 import java.util.EnumSet;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -36,6 +38,7 @@ public class UserAccountService {
     private final PasswordEncoder passwordEncoder;
     private final DirectwerkConfig directwerkConfig;
     private final EmailVerificationService emailVerificationService;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Transactional(readOnly = true)
     public java.util.Optional<AccountView> findAccount(Long userId) {
@@ -85,6 +88,9 @@ public class UserAccountService {
                 applyRegistrationCredentials(user, password, name);
                 TenantMembership membership = createSubscriberMembership(user, tenant);
                 notifyVerificationIfRequired(user, membership, tenant);
+                if (membership.getStatus() == MembershipStatus.ACTIVE) {
+                    publishMembershipActivated(tenant.getId(), user.getId());
+                }
             }
             return user;
         }
@@ -103,6 +109,9 @@ public class UserAccountService {
         }
         TenantMembership membership = createSubscriberMembership(user, tenant);
         notifyVerificationIfRequired(user, membership, tenant);
+        if (membership.getStatus() == MembershipStatus.ACTIVE) {
+            publishMembershipActivated(tenant.getId(), user.getId());
+        }
         return user;
     }
 
@@ -164,6 +173,11 @@ public class UserAccountService {
         applyRegistrationCredentials(user, password, name);
         membership.setStatus(MembershipStatus.ACTIVE);
         tenantMembershipRepository.save(membership);
+        publishMembershipActivated(membership.getTenant().getId(), user.getId());
+    }
+
+    private void publishMembershipActivated(Long tenantId, Long userId) {
+        eventPublisher.publishEvent(new TenantMembershipActivatedEvent(tenantId, userId));
     }
 
     private boolean isAuthenticatedAs(User user) {

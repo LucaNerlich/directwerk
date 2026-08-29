@@ -1,7 +1,6 @@
 package de.pnnit.directwerk.controller.auth;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -69,7 +68,7 @@ class MeFeedControllerTest {
         assertThat(view.url()).isEqualTo("https://alpha.example.test/feeds/alpha/u/tok-123.xml");
         assertThat(view.formatIds()).isEmpty();
         assertThat(view.formats()).isEmpty();
-        verify(subscriberFeedService, never()).ensureDefaultFeed(5L, 1L);
+        verify(subscriberFeedService).ensureDefaultFeed(5L, 1L);
     }
 
     @Test
@@ -92,11 +91,13 @@ class MeFeedControllerTest {
     @Test
     void listFeedsReturnsEmptyListWhenUserHasNoFeeds() {
         DirectwerkUserPrincipal principal = principal(1L, 5L);
+        when(subscriberFeedService.ensureDefaultFeed(5L, 1L)).thenReturn(feed("alpha", "tok-new"));
         when(subscriberFeedService.listFeeds(5L, 1L)).thenReturn(List.of());
 
         ResponseEntity<Response<List<SubscriberFeedView>>> response = controller.listFeeds(principal, request);
 
         assertThat(response.getBody().data()).isEmpty();
+        verify(subscriberFeedService).ensureDefaultFeed(5L, 1L);
     }
 
     @Test

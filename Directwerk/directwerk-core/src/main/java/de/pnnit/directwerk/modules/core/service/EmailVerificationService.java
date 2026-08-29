@@ -7,12 +7,14 @@ import de.pnnit.directwerk.modules.core.entity.Tenant;
 import de.pnnit.directwerk.modules.core.entity.TenantMembership;
 import de.pnnit.directwerk.modules.core.entity.User;
 import de.pnnit.directwerk.modules.core.entity.UserStatus;
+import de.pnnit.directwerk.modules.content.TenantMembershipActivatedEvent;
 import de.pnnit.directwerk.modules.core.repository.InvitationTokenRepository;
 import de.pnnit.directwerk.modules.core.repository.TenantMembershipRepository;
 import de.pnnit.directwerk.modules.core.repository.UserRepository;
 import de.pnnit.directwerk.modules.email.TransactionalEmailNotifier;
 import java.time.Clock;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -29,6 +31,7 @@ public class EmailVerificationService {
     private final UserRepository userRepository;
     private final TenantMembershipRepository tenantMembershipRepository;
     private final Clock clock;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Transactional
     public void issueVerificationEmail(User user, TenantMembership membership, Tenant tenant) {
@@ -64,6 +67,10 @@ public class EmailVerificationService {
         if (membership != null && membership.getStatus() == MembershipStatus.INVITED) {
             membership.setStatus(MembershipStatus.ACTIVE);
             tenantMembershipRepository.save(membership);
+            eventPublisher.publishEvent(new TenantMembershipActivatedEvent(
+                    membership.getTenant().getId(),
+                    user.getId()
+            ));
         }
 
         token.setUsedAt(clock.instant());

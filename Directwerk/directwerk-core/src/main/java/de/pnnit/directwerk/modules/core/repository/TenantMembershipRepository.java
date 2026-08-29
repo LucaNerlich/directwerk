@@ -30,4 +30,14 @@ public interface TenantMembershipRepository extends JpaRepository<TenantMembersh
             @Param("tenantId") Long tenantId,
             @Param("status") MembershipStatus status
     );
+
+    @Query("""
+            select membership.user.id from TenantMembership membership
+            where membership.tenant.id = :tenantId
+              and membership.status = :status
+            """)
+    List<Long> findActiveUserIdsByTenantId(
+            @Param("tenantId") Long tenantId,
+            @Param("status") MembershipStatus status
+    );
 }

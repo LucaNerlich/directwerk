@@ -11,9 +11,11 @@ import de.pnnit.directwerk.modules.core.entity.InvitationToken;
 import de.pnnit.directwerk.modules.core.entity.InvitationType;
 import de.pnnit.directwerk.modules.core.entity.MembershipStatus;
 import de.pnnit.directwerk.modules.core.entity.PlatformAdmin;
+import de.pnnit.directwerk.modules.core.entity.Tenant;
 import de.pnnit.directwerk.modules.core.entity.TenantMembership;
 import de.pnnit.directwerk.modules.core.entity.User;
 import de.pnnit.directwerk.modules.core.entity.UserStatus;
+import de.pnnit.directwerk.modules.content.TenantMembershipActivatedEvent;
 import de.pnnit.directwerk.modules.core.repository.InvitationTokenRepository;
 import de.pnnit.directwerk.modules.core.repository.PlatformAdminRepository;
 import de.pnnit.directwerk.modules.core.repository.TenantMembershipRepository;
@@ -27,6 +29,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 @ExtendWith(MockitoExtension.class)
@@ -49,6 +52,9 @@ class InvitationAcceptanceServiceTest {
     @Mock
     private PasswordEncoder passwordEncoder;
 
+    @Mock
+    private ApplicationEventPublisher eventPublisher;
+
     private InvitationAcceptanceService service;
 
     @BeforeEach
@@ -59,14 +65,18 @@ class InvitationAcceptanceServiceTest {
                 tenantMembershipRepository,
                 platformAdminRepository,
                 passwordEncoder,
-                Clock.fixed(NOW, ZoneOffset.UTC)
+                Clock.fixed(NOW, ZoneOffset.UTC),
+                eventPublisher
         );
     }
 
     @Test
     void acceptActivatesUserAndTenantMembershipAndConsumesToken() {
         User user = pendingUser();
+        Tenant tenant = new Tenant();
+        tenant.setId(5L);
         TenantMembership membership = new TenantMembership();
+        membership.setTenant(tenant);
         membership.setStatus(MembershipStatus.INVITED);
         InvitationToken token = token(user, membership, InvitationType.TENANT_MEMBER, NOW.plusSeconds(60), null);
         when(invitationTokenRepository.findByTokenHash(InvitationTokenService.hashToken("raw-token")))
@@ -83,6 +93,7 @@ class InvitationAcceptanceServiceTest {
         verify(userRepository).save(user);
         verify(tenantMembershipRepository).save(membership);
         verify(invitationTokenRepository).save(token);
+        verify(eventPublisher).publishEvent(new TenantMembershipActivatedEvent(5L, 10L));
     }
 
     @Test
@@ -156,7 +167,10 @@ class InvitationAcceptanceServiceTest {
         user.setEmail("active@example.com");
         user.setPasswordHash("existing-hash");
         user.setStatus(UserStatus.ACTIVE);
+        Tenant tenant = new Tenant();
+        tenant.setId(5L);
         TenantMembership membership = new TenantMembership();
+        membership.setTenant(tenant);
         membership.setStatus(MembershipStatus.INVITED);
         InvitationToken token = token(user, membership, InvitationType.TENANT_JOIN, NOW.plusSeconds(60), null);
         when(invitationTokenRepository.findByTokenHash(InvitationTokenService.hashToken("join-token")))

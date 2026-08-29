@@ -7,6 +7,7 @@ import de.pnnit.directwerk.modules.core.entity.PlatformAdmin;
 import de.pnnit.directwerk.modules.core.entity.TenantMembership;
 import de.pnnit.directwerk.modules.core.entity.User;
 import de.pnnit.directwerk.modules.core.entity.UserStatus;
+import de.pnnit.directwerk.modules.content.TenantMembershipActivatedEvent;
 import de.pnnit.directwerk.modules.core.repository.InvitationTokenRepository;
 import de.pnnit.directwerk.modules.core.repository.PlatformAdminRepository;
 import de.pnnit.directwerk.modules.core.repository.TenantMembershipRepository;
@@ -14,6 +15,7 @@ import de.pnnit.directwerk.modules.core.repository.UserRepository;
 import de.pnnit.directwerk.modules.core.util.PasswordPolicy;
 import java.time.Clock;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -31,6 +33,7 @@ public class InvitationAcceptanceService {
     private final PlatformAdminRepository platformAdminRepository;
     private final PasswordEncoder passwordEncoder;
     private final Clock clock;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Transactional
     public User accept(String rawToken, String password, String name) {
@@ -72,6 +75,10 @@ public class InvitationAcceptanceService {
             }
             membership.setStatus(MembershipStatus.ACTIVE);
             tenantMembershipRepository.save(membership);
+            eventPublisher.publishEvent(new TenantMembershipActivatedEvent(
+                    membership.getTenant().getId(),
+                    user.getId()
+            ));
         }
 
         if (token.getType() == InvitationType.PLATFORM_ADMIN) {

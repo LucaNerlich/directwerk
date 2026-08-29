@@ -8,6 +8,7 @@ import type {
     ApiEnvelope,
     FeedPreview,
     Me,
+    PublicArticle,
     PublicEpisode,
     SubscriberDownload,
     SubscriberFeedView,
@@ -43,6 +44,16 @@ export async function listMyEpisodes(
         parsePublicEpisodeListEnvelope,
         await authedFetch('/api/proxy/me/episodes'),
         'The server returned an invalid episode list.',
+    ).data
+}
+
+export async function listMyArticles(
+    tenantHost: string,
+): Promise<PublicArticle[]> {
+    return envelopeResult(
+        publicParsers.parsePublicArticleListEnvelope,
+        await authedFetch('/api/proxy/me/articles'),
+        'The server returned an invalid article list.',
     ).data
 }
 

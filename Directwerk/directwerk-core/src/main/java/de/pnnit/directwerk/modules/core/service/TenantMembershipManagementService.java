@@ -5,12 +5,14 @@ import de.pnnit.directwerk.modules.core.audit.PlatformAuditService;
 import de.pnnit.directwerk.modules.core.entity.MembershipStatus;
 import de.pnnit.directwerk.modules.core.entity.Role;
 import de.pnnit.directwerk.modules.core.entity.TenantMembership;
+import de.pnnit.directwerk.modules.content.TenantMembershipActivatedEvent;
 import de.pnnit.directwerk.modules.core.repository.TenantMembershipRepository;
 import de.pnnit.directwerk.security.SecurityUtils;
 import jakarta.persistence.EntityManager;
 import java.util.EnumSet;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -33,6 +35,7 @@ public class TenantMembershipManagementService {
     private final TenantMembershipRepository tenantMembershipRepository;
     private final PlatformAuditService platformAuditService;
     private final EntityManager entityManager;
+    private final ApplicationEventPublisher eventPublisher;
 
     /**
      * Deactivates (disables) a user's membership in a tenant.
@@ -80,6 +83,7 @@ public class TenantMembershipManagementService {
         TenantMembership membership = requireMembership(tenantId, userId);
         membership.setStatus(MembershipStatus.ACTIVE);
         TenantMembership saved = tenantMembershipRepository.save(membership);
+        eventPublisher.publishEvent(new TenantMembershipActivatedEvent(tenantId, userId));
         platformAuditService.record(
                 PlatformAuditActions.MEMBERSHIP_REACTIVATED,
                 tenantId,

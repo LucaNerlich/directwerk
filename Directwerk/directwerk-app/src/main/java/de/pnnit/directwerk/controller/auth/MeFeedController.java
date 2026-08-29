@@ -56,6 +56,7 @@ public class MeFeedController {
     ) {
         DirectwerkUserPrincipal user = SecurityUtils.requireTenantPrincipal(principal);
 
+        subscriberFeedService.ensureDefaultFeed(user.tenantId(), user.userId());
         List<SubscriberFeedView> feeds = subscriberFeedService.listFeeds(user.tenantId(), user.userId()).stream()
                 .map(feed -> toView(feed, request))
                 .toList();

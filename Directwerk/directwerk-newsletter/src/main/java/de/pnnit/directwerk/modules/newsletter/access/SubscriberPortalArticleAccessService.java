@@ -1,0 +1,34 @@
+package de.pnnit.directwerk.modules.newsletter.access;
+
+import de.pnnit.directwerk.modules.digital.DigitalContentModule;
+import de.pnnit.directwerk.modules.newsletter.entity.Article;
+import de.pnnit.directwerk.modules.newsletter.service.SubscriberArticleService;
+import de.pnnit.directwerk.modules.core.service.ModuleGateService;
+import de.pnnit.directwerk.multitenancy.TenantContext;
+import de.pnnit.directwerk.security.DirectwerkUserPrincipal;
+import de.pnnit.directwerk.security.RoleConstants;
+import java.util.List;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+/**
+ * JWT subscriber portal access: entitled article library listing.
+ */
+@Service
+@RequiredArgsConstructor
+public class SubscriberPortalArticleAccessService {
+
+    private final SubscriberArticleService subscriberArticleService;
+    private final ModuleGateService moduleGateService;
+
+    @Transactional(readOnly = true)
+    public List<Article> listMyArticles(DirectwerkUserPrincipal user) {
+        Long tenantId = TenantContext.requireTenantId();
+        moduleGateService.requireModule(DigitalContentModule.KEY);
+
+        return RoleConstants.isEditorOrTenantAdmin(user)
+                ? subscriberArticleService.listPublishedArticles(tenantId)
+                : subscriberArticleService.listEntitledArticles(tenantId, user.userId());
+    }
+}

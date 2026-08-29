@@ -131,6 +131,60 @@ class EntitlementServiceTest {
     }
 
     @Test
+    void hasArticleAccessAllowsFreeSubjectWithoutSubscriptions() {
+        EntitlementService.ArticleAccessSubject subject = new EntitlementService.ArticleAccessSubject(
+                true,
+                3,
+                Set.of(50L)
+        );
+
+        assertThat(entitlementService.hasArticleAccess(10L, 20L, subject)).isTrue();
+    }
+
+    @Test
+    void hasArticleAccessUsesLevelSortOrder() {
+        SubscriptionProduct supporter = product(1L, "supporter", 1);
+        Subscription subscription = activeSubscription(supporter);
+        when(subscriptionRepository.findActiveWithProducts(10L, 20L, SubscriptionStatus.ACTIVE))
+                .thenReturn(List.of(subscription));
+
+        EntitlementService.ArticleAccessSubject allowed = new EntitlementService.ArticleAccessSubject(
+                false,
+                1,
+                Set.of()
+        );
+        EntitlementService.ArticleAccessSubject denied = new EntitlementService.ArticleAccessSubject(
+                false,
+                2,
+                Set.of()
+        );
+
+        assertThat(entitlementService.hasArticleAccess(10L, 20L, allowed)).isTrue();
+        assertThat(entitlementService.hasArticleAccess(10L, 20L, denied)).isFalse();
+    }
+
+    @Test
+    void hasArticleAccessUsesPackageCategoryGrant() {
+        SubscriptionProduct packageProduct = product(9L, "category-package", 0);
+        packageProduct.setOfferingType(OfferingType.PACKAGE);
+        Subscription subscription = activeSubscription(packageProduct);
+        ProductAccessRule rule = rule(packageProduct, ProductAccessScopeType.CATEGORY, 50L);
+
+        when(subscriptionRepository.findActiveWithProducts(10L, 20L, SubscriptionStatus.ACTIVE))
+                .thenReturn(List.of(subscription));
+        when(productAccessRuleRepository.findByTenantIdAndProductIdInOrderByProductIdAscIdAsc(10L, List.of(9L)))
+                .thenReturn(List.of(rule));
+
+        EntitlementService.ArticleAccessSubject subject = new EntitlementService.ArticleAccessSubject(
+                false,
+                10,
+                Set.of(50L)
+        );
+
+        assertThat(entitlementService.hasArticleAccess(10L, 20L, subject)).isTrue();
+    }
+
+    @Test
     void listEntitledDigitalAssetIdsReturnsDistinctPackageScopes() {
         SubscriptionProduct packageProduct = product(9L, "bonus-pack", 0);
         packageProduct.setOfferingType(OfferingType.PACKAGE);

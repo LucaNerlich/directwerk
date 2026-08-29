@@ -84,6 +84,11 @@ public class SubscriberFeedService {
         return subscriberFeedRepository.findByTenantIdOrderByIdAsc(tenantId);
     }
 
+    @Transactional(readOnly = true)
+    public boolean hasDefaultFeed(Long tenantId, Long userId) {
+        return subscriberFeedRepository.findByTenantIdAndUserIdAndDefaultFeedTrue(tenantId, userId).isPresent();
+    }
+
     @Transactional
     public SubscriberFeed ensureDefaultFeed(Long tenantId, Long userId) {
         return subscriberFeedRepository.findByTenantIdAndUserIdAndDefaultFeedTrue(tenantId, userId)
