@@ -1,4 +1,4 @@
-import ArticleEditor from '@/components/write/ArticleEditor'
+import {ArticleEditor} from '@/lib/dynamic/studioHeavy'
 
 export default function NewArticlePage() {
     return <ArticleEditor />

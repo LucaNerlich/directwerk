@@ -1,4 +1,4 @@
-import EpisodeEditor from '@/components/podcast/EpisodeEditor'
+import {EpisodeEditor} from '@/lib/dynamic/studioHeavy'
 
 export default function NewEpisodePage() {
     return <EpisodeEditor />

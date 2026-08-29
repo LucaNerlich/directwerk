@@ -12,7 +12,7 @@ import PublishConfirmDialog from '@/components/publication/PublishConfirmDialog'
 import PublicationStatusBadge from '@/components/publication/PublicationStatusBadge'
 import PublicationWorkflowActions from '@/components/publication/PublicationWorkflowActions'
 import SlugField from '@/components/publication/SlugField'
-import ShowNotesEditor from '@/components/editors/ShowNotesEditor'
+import {ShowNotesEditor} from '@/lib/dynamic/studioHeavy'
 import type {AccessPolicy, PublicationStatus} from '@directwerk/api/types'
 
 interface PublicationEditorLayoutProps {
