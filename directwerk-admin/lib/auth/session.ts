@@ -5,10 +5,7 @@ import {parseTokenResponse} from '@directwerk/api/validation/token'
 
 import {tokenStore} from '@/lib/auth/tokenStore'
 
-/**
- * Admin platform refresh/session coordinator — the shared algorithm
- * (generation guard + abort timeout) with no extra headers.
- */
+
 const session = createAuthSession({
     store: tokenStore,
     refreshPath: '/api/auth/refresh',

@@ -10,9 +10,7 @@ export interface EpisodePublishChecklistInput {
     formatSelected: boolean
 }
 
-/**
- * Returns the first missing publish requirement, or `null` when the episode can be published.
- */
+
 export function episodePublishBlockReason(
     input: EpisodePublishChecklistInput,
 ): string | null {

@@ -2,9 +2,7 @@
 
 import {useEffect, useRef} from 'react'
 
-/**
- * Debounced autosave for DRAFT publications after the first persist.
- */
+
 export function useDraftAutosave({
     enabled,
     isDirty,

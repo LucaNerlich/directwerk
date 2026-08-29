@@ -9,10 +9,7 @@ public interface TenantRepository extends JpaRepository<Tenant, Long> {
 
     Optional<Tenant> findBySlug(String slug);
 
-    /**
-     * Loads a tenant or fails with the typed not-found exception — the one idiom every
-     * service previously re-implemented (some via an untyped IllegalArgumentException).
-     */
+    /** Loads a tenant or throws {@link TenantNotFoundException}. */
     default Tenant requireById(Long tenantId) {
         return findById(tenantId).orElseThrow(() -> new TenantNotFoundException(tenantId));
     }

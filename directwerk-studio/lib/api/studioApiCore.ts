@@ -3,11 +3,7 @@
 import type {PublishOptions, ScheduleOptions} from '@directwerk/api/types'
 import {jsonInit, postJson, proxyRequest, request} from './studioTransport'
 
-/**
- * Authenticated GET with envelope parsing.
- *
- * @param tenantHost Deprecated — ignored; tenant binding comes from transport headers.
- */
+
 export async function studioGet<T>(
     path: string,
     tenantHost: string,
@@ -17,11 +13,7 @@ export async function studioGet<T>(
     return proxyRequest(path, tenantHost, undefined, parser, errorMessage)
 }
 
-/**
- * Authenticated mutation with envelope parsing.
- *
- * @param tenantHost Deprecated — ignored; tenant binding comes from transport headers.
- */
+
 export async function studioMutate<T>(
     path: string,
     tenantHost: string,

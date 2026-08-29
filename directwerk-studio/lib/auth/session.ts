@@ -6,10 +6,7 @@ import {parseTokenResponse} from '@directwerk/api/validation/token'
 import {getClientTenantHost} from '@/lib/tenant/getClientTenantHost'
 import {tokenStore} from '@/lib/auth/tokenStore'
 
-/**
- * Studio refresh/session coordinator — shared algorithm with a per-app
- * refresh endpoint header (`X-Tenant-Host`).
- */
+/** Refresh requests include `X-Tenant-Host`. */
 const session = createAuthSession({
     store: tokenStore,
     refreshPath: '/api/auth/refresh',

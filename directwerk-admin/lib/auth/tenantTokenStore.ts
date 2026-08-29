@@ -2,10 +2,7 @@
 
 import {createSessionTokenStore} from '@directwerk/api/auth/tokenStore'
 
-/**
- * Admin tenant session token store configuration. Tracks the tenant host the
- * tokens belong to alongside the tokens themselves.
- */
+
 export const tenantTokenStore = createSessionTokenStore({
     accessTokenKey: 'publish_admin_tenant_access',
     accessTokenExpiresAtKey: 'publish_admin_tenant_access_expires_at',

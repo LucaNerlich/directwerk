@@ -7,10 +7,7 @@ import {defaultActiveDesk, hasDesk, resolveActiveDesk} from '@/lib/api/client'
 import {getLastActiveDesk, setLastActiveDesk} from '@/lib/studio/activeDeskStorage'
 import type {SiteConfig, StudioDesk} from '@directwerk/api/types'
 
-/**
- * Resolves the active studio desk for navigation, including hybrid-tenant
- * fallbacks on shared routes via session-persisted last desk.
- */
+
 export function useActiveDesk(config: SiteConfig): StudioDesk | null {
     const pathname = usePathname()
     const [lastDesk, setLastDesk] = useState<StudioDesk | null>(() => getLastActiveDesk())

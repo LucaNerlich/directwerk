@@ -8,9 +8,7 @@ import {useOptionalMe} from '@/lib/auth/MeProvider'
 import {getClientTenantHost} from '@/lib/tenant/getClientTenantHost'
 import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
 
-/**
- * Loads a short subscriber-count hint for publish notify UI (tenant admins only).
- */
+
 export function useNotifyAudienceHint(enabled: boolean): string | null {
     const me = useOptionalMe()
     const authRedirect = useAuthRequired()

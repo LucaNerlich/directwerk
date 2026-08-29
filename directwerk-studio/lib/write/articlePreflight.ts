@@ -3,9 +3,7 @@ export interface ArticlePublishChecklistInput {
     body: string
 }
 
-/**
- * Returns the first missing publish requirement, or `null` when the article can be published.
- */
+
 export function articlePublishBlockReason(
     input: ArticlePublishChecklistInput,
 ): string | null {

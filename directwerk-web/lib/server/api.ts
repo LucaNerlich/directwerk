@@ -8,11 +8,8 @@ import {
 /**
  * Web BFF upstream configuration.
  *
- * FIX: the response cap was raised from 1 MiB to 16 MiB to match
- * directwerk-studio. List endpoints return full detail rows (episode
- * descriptions and article bodies can be up to 512 KB each), so a growing
- * catalog easily exceeds a 1 MiB cap and would permanently break list pages.
- * The backend has no pagination yet.
+ * 16 MiB response cap: public list endpoints return full article/episode bodies
+ * (up to 512 KB each) and the backend has no pagination yet.
  */
 const transport = createServerTransport({maxResponseBytes: 16_777_216})
 

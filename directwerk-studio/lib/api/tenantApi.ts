@@ -1,4 +1,3 @@
-// Domain-split studio API — see CONTEXT.md §1.
 export * from './authApi'
 export * from './writeApi'
 export * from './podcastApi'
