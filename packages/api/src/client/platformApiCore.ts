@@ -5,8 +5,8 @@ import type {AuthedRequestFn} from './authedRequest'
 
 export interface PlatformApiCore {
     get<T>(path: string, invalidMessage?: string): Promise<T>
-    post<T>(path: string, body: unknown, invalidMessage?: string): Promise<T>
-    patch<T>(path: string, body: unknown, invalidMessage?: string): Promise<T>
+    post<T>(path: string, body: object, invalidMessage?: string): Promise<T>
+    patch<T>(path: string, body: object, invalidMessage?: string): Promise<T>
     delete<T>(path: string, invalidMessage?: string): Promise<T>
     getEnvelope<T>(
         path: string,
@@ -58,14 +58,14 @@ export function createPlatformApiCore(
                 unwrap<T>(raw, invalidMessage),
             )
         },
-        post<T>(path: string, body: unknown, invalidMessage?: string): Promise<T> {
+        post<T>(path: string, body: object, invalidMessage?: string): Promise<T> {
             return platformRequest(path, {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify(body),
             }).then((raw) => unwrap<T>(raw, invalidMessage))
         },
-        patch<T>(path: string, body: unknown, invalidMessage?: string): Promise<T> {
+        patch<T>(path: string, body: object, invalidMessage?: string): Promise<T> {
             return platformRequest(path, {
                 method: 'PATCH',
                 headers: {'Content-Type': 'application/json'},

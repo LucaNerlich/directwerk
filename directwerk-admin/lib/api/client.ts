@@ -26,14 +26,14 @@ export async function getPlatformData<T>(path: string): Promise<T> {
 
 export async function postPlatformData<T>(
     path: string,
-    body: unknown,
+    body: object,
 ): Promise<T> {
     return platformApi.post<T>(path, body)
 }
 
 export async function patchPlatformData<T>(
     path: string,
-    body: unknown,
+    body: object,
 ): Promise<T> {
     return platformApi.patch<T>(path, body)
 }

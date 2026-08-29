@@ -1,36 +1,36 @@
 'use client'
 
-import {parseProductRuleListEnvelope, parseSubscriptionGrantEnvelope, parseSubscriptionProductList} from '@directwerk/api/validation/catalog'
-
-import {envelopeResult} from '@directwerk/api/envelope'
+import {
+    parseProductListEnvelope,
+    parseProductRuleListEnvelope,
+    parseSubscriptionGrantEnvelope,
+} from '@directwerk/api/validation/catalog'
 import type {
+    GrantSubscriptionInput,
     ProductAccessRule,
     SubscriptionGrant,
     SubscriptionProduct,
 } from '@directwerk/api/types'
-import {getTenantData, postTenantData} from '@/lib/api/tenantClient'
+
+import {getTenantEnvelope, postTenantEnvelope} from '@/lib/api/tenantClient'
 
 export async function listTenantProducts(): Promise<SubscriptionProduct[]> {
-    const raw = await getTenantData<unknown>('tenant/products')
-    return parseSubscriptionProductList(raw) ?? []
+    return getTenantEnvelope('tenant/products', parseProductListEnvelope, 'Could not load products.')
 }
 
-export async function listTenantProductRules(
-    productId: number,
-): Promise<ProductAccessRule[]> {
-    return envelopeResult(
+export async function listTenantProductRules(productId: number): Promise<ProductAccessRule[]> {
+    return getTenantEnvelope(
+        `tenant/products/${productId}/rules`,
         parseProductRuleListEnvelope,
-        await getTenantData<unknown>(`tenant/products/${productId}/rules`),
         'Could not load product rules.',
-    ).data
+    )
 }
 
-export async function grantTenantSubscription(
-    body: unknown,
-): Promise<SubscriptionGrant> {
-    return envelopeResult(
+export async function grantTenantSubscription(body: GrantSubscriptionInput): Promise<SubscriptionGrant> {
+    return postTenantEnvelope(
+        'tenant/subscriptions/grants',
+        body,
         parseSubscriptionGrantEnvelope,
-        await postTenantData<unknown>('tenant/subscriptions/grants', body),
         'Could not grant subscription.',
-    ).data
+    )
 }

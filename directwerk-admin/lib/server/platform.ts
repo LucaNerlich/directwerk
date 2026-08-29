@@ -115,7 +115,7 @@ export async function callPlatformApi<T>(
     segments: string[],
     init: {
         method: 'POST' | 'PATCH' | 'PUT' | 'DELETE'
-        body?: unknown
+        body?: object
     }
 ): Promise<PlatformApiResult<T>> {
     const auth = await resolvePlatformAuthorization()

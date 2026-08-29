@@ -1,9 +1,10 @@
 'use client'
 
 import {createAuthedRequest} from '@directwerk/api/client/authedRequest'
-import {parseApiEnvelope} from '@directwerk/api/envelope'
+import {envelopeResult, parseApiEnvelope} from '@directwerk/api/envelope'
 import {platformTenantAdminPolicy} from '@directwerk/api/client/policies'
 import {API_CONTRACT_ERROR, AUTH_REQUIRED} from '@directwerk/api/constants'
+import type {ApiEnvelope} from '@directwerk/api/types'
 import {
     clearTenantTokens,
     getTenantSessionHost,
@@ -27,35 +28,56 @@ const tenantFetch = createAuthedRequest({
     ...platformTenantAdminPolicy,
 })
 
-async function tenantRequest<T>(
-    path: string,
-    init: RequestInit,
-): Promise<T> {
+async function tenantFetchRaw(path: string, init: RequestInit): Promise<unknown> {
     const tenantHost = getTenantSessionHost()
     if (!tenantHost) {
         throw new Error(AUTH_REQUIRED)
     }
 
-    const raw = await tenantFetch(`/api/tenant-proxy/${path}`, {
+    return tenantFetch(`/api/tenant-proxy/${path}`, {
         ...init,
         cache: 'no-store',
     })
+}
 
+async function tenantRequest<T>(path: string, init: RequestInit): Promise<T> {
     try {
-        return parseApiEnvelope<T>(raw)
+        return parseApiEnvelope<T>(await tenantFetchRaw(path, init))
     } catch {
         throw new Error(API_CONTRACT_ERROR)
     }
+}
+
+export async function getTenantEnvelope<T>(
+    path: string,
+    parser: (value: unknown) => ApiEnvelope<T> | null,
+    invalidMessage: string,
+): Promise<T> {
+    return envelopeResult(parser, await tenantFetchRaw(path, {method: 'GET'}), invalidMessage).data
+}
+
+export async function postTenantEnvelope<T>(
+    path: string,
+    body: object,
+    parser: (value: unknown) => ApiEnvelope<T> | null,
+    invalidMessage: string,
+): Promise<T> {
+    return envelopeResult(
+        parser,
+        await tenantFetchRaw(path, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(body),
+        }),
+        invalidMessage,
+    ).data
 }
 
 export async function getTenantData<T>(path: string): Promise<T> {
     return tenantRequest<T>(path, {method: 'GET'})
 }
 
-export async function postTenantData<T>(
-    path: string,
-    body: unknown
-): Promise<T> {
+export async function postTenantData<T>(path: string, body: object): Promise<T> {
     return tenantRequest<T>(path, {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
@@ -63,10 +85,7 @@ export async function postTenantData<T>(
     })
 }
 
-export async function putTenantData<T>(
-    path: string,
-    body: unknown
-): Promise<T> {
+export async function putTenantData<T>(path: string, body: object): Promise<T> {
     return tenantRequest<T>(path, {
         method: 'PUT',
         headers: {'Content-Type': 'application/json'},

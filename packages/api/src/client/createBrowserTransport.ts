@@ -19,8 +19,8 @@ export interface BrowserTransport {
         tenantHost: string | null,
         init?: RequestInit,
     ) => Promise<unknown>
-    postJson: (path: string, tenantHost: string | null, body: unknown) => Promise<unknown>
-    jsonInit: (method: 'POST' | 'PUT' | 'PATCH', body: unknown) => RequestInit
+    postJson: (path: string, tenantHost: string | null, body: object) => Promise<unknown>
+    jsonInit: (method: 'POST' | 'PUT' | 'PATCH', body: object) => RequestInit
     proxyRequest?: <T>(
         path: string,
         tenantHost: string,
@@ -90,14 +90,14 @@ export function createBrowserTransport(
     async function postJson(
         path: string,
         tenantHost: string | null,
-        body: unknown,
+        body: object,
     ): Promise<unknown> {
         return request(path, tenantHost, jsonInit('POST', body))
     }
 
     const allowedMethods = new Set(config.jsonInitMethods ?? ['POST', 'PUT'])
 
-    function jsonInit(method: 'POST' | 'PUT' | 'PATCH', body: unknown): RequestInit {
+    function jsonInit(method: 'POST' | 'PUT' | 'PATCH', body: object): RequestInit {
         if (!allowedMethods.has(method)) {
             throw new Error(`Unsupported JSON method: ${method}`)
         }

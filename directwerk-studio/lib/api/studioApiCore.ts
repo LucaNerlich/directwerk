@@ -45,7 +45,7 @@ export interface PublicationWorkflowApi<T, TCreate, TUpdate> {
     unarchive(tenantHost: string, id: number): Promise<T>
 }
 
-export function createPublicationWorkflowApi<T, TCreate, TUpdate>(config: {
+export function createPublicationWorkflowApi<T, TCreate extends object, TUpdate extends object>(config: {
     basePath: string
     parseEnvelope: (value: unknown) => {data: T} | null
     parseListEnvelope: (value: unknown) => {data: T[]} | null
