@@ -1,6 +1,9 @@
 package de.pnnit.directwerk.modules.marketing;
 
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import de.pnnit.directwerk.config.DirectwerkConfig;
+import java.time.Duration;
 import org.altcha.altcha.v2.Altcha;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
@@ -9,9 +12,15 @@ import org.springframework.util.StringUtils;
 public class AltchaService {
 
     private final DirectwerkConfig directwerkConfig;
+    private final Cache<String, Boolean> consumedChallenges;
 
     public AltchaService(DirectwerkConfig directwerkConfig) {
         this.directwerkConfig = directwerkConfig;
+        int expiresSeconds = directwerkConfig.marketing().contact().altcha().expiresSeconds();
+        this.consumedChallenges = Caffeine.newBuilder()
+                .expireAfterWrite(Duration.ofSeconds(expiresSeconds))
+                .maximumSize(100_000)
+                .build();
     }
 
     public String createChallengeJson() {
@@ -36,8 +45,14 @@ public class AltchaService {
         }
         String hmacKey = directwerkConfig.marketing().contact().altcha().hmacKey();
         try {
-            Altcha.VerifySolutionResult result = Altcha.verifySolution(payload.trim(), hmacKey, Altcha.pbkdf2());
+            String normalizedPayload = payload.trim();
+            Altcha.VerifySolutionResult result =
+                    Altcha.verifySolution(normalizedPayload, hmacKey, Altcha.pbkdf2());
             if (!result.verified() || result.expired()) {
+                throw new CaptchaVerificationException();
+            }
+            String challengeId = Altcha.parsePayload(normalizedPayload).challenge().signature();
+            if (consumedChallenges.asMap().putIfAbsent(challengeId, Boolean.TRUE) != null) {
                 throw new CaptchaVerificationException();
             }
         } catch (CaptchaVerificationException ex) {

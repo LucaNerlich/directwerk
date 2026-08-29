@@ -61,4 +61,4 @@ directwerk:
             allowed-origins:
                 - http://localhost:3005
             altcha:
-                hmac-key: ${DIRECTWERK_ALTCHA_HMAC_KEY:local-dev-altcha-hmac-key-change-me}
+                hmac-key: ${DIRECTWERK_ALTCHA_HMAC_KEY:?DIRECTWERK_ALTCHA_HMAC_KEY must be set for local profile}

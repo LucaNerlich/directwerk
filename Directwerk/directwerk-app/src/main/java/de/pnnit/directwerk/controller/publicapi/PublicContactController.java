@@ -1,6 +1,7 @@
 package de.pnnit.directwerk.controller.publicapi;
 
 import de.pnnit.directwerk.api.response.Response;
+import de.pnnit.directwerk.modules.marketing.ContactFormLimits;
 import de.pnnit.directwerk.modules.marketing.ContactFormService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Email;
@@ -29,10 +30,10 @@ public class PublicContactController {
     }
 
     public record ContactRequest(
-            @NotBlank @Size(max = 120) String name,
-            @NotBlank @Email @Size(max = 254) String email,
-            @NotBlank @Size(max = 5000) String message,
-            @NotBlank String altcha
+            @NotBlank @Size(max = ContactFormLimits.NAME_MAX) String name,
+            @NotBlank @Email @Size(max = ContactFormLimits.EMAIL_MAX) String email,
+            @NotBlank @Size(max = ContactFormLimits.MESSAGE_MAX) String message,
+            @NotBlank @Size(max = ContactFormLimits.ALTCHA_PAYLOAD_MAX) String altcha
     ) {
     }
 

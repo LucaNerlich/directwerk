@@ -39,6 +39,17 @@ class AltchaServiceTest {
     }
 
     @Test
+    void verifyPayloadRejectsReplayedChallenge() throws Exception {
+        AltchaService service = serviceWithKey("integration-test-hmac-key");
+        String payload = AltchaTestSupport.createValidPayload("integration-test-hmac-key");
+
+        service.verifyPayload(payload);
+
+        assertThatThrownBy(() -> service.verifyPayload(payload))
+                .isInstanceOf(CaptchaVerificationException.class);
+    }
+
+    @Test
     void createChallengeFailsWhenDisabled() {
         DirectwerkConfig config = new DirectwerkConfig(new DirectwerkProperties(
                 null,
@@ -74,7 +85,7 @@ class AltchaServiceTest {
                 .isInstanceOf(ContactFormDisabledException.class);
     }
 
-    private static AltchaService serviceWithKey(String hmacKey) {
+    static AltchaService serviceWithKey(String hmacKey) {
         DirectwerkConfig config = new DirectwerkConfig(new DirectwerkProperties(
                 null,
                 null,

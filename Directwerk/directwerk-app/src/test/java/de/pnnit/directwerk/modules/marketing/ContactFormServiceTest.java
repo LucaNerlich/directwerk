@@ -2,6 +2,7 @@ package de.pnnit.directwerk.modules.marketing;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -56,6 +57,30 @@ class ContactFormServiceTest {
 
         assertThatThrownBy(() -> service.submit("Jane", "jane@example.com", "Hi", "payload"))
                 .isInstanceOf(ContactFormDisabledException.class);
+    }
+
+    @Test
+    void submitEnqueuesEmailOnlyOnceForReplayedAltchaPayload() throws Exception {
+        stubEnabledContactForm();
+        AltchaService realAltchaService = AltchaServiceTest.serviceWithKey("test-key");
+        ContactFormService replayAwareService =
+                new ContactFormService(directwerkConfig, realAltchaService, emailJobProducer);
+        String payload = AltchaTestSupport.createValidPayload("test-key");
+
+        replayAwareService.submit("Jane Doe", "jane@example.com", "Hello there", payload);
+
+        assertThatThrownBy(() ->
+                        replayAwareService.submit("Jane Doe", "jane@example.com", "Hello there", payload))
+                .isInstanceOf(CaptchaVerificationException.class);
+
+        verify(emailJobProducer, times(1)).enqueueContactForm(
+                "hello@directwerk.de",
+                java.util.Map.of(
+                        "name", "Jane Doe",
+                        "email", "jane@example.com",
+                        "message", "Hello there"
+                )
+        );
     }
 
     private void stubEnabledContactForm() {

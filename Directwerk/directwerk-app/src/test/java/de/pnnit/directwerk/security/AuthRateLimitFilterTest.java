@@ -99,4 +99,55 @@ class AuthRateLimitFilterTest {
         assertThat(first.getStatus()).isEqualTo(200);
         assertThat(second.getStatus()).isEqualTo(429);
     }
+
+    @Test
+    void rateLimitsPublicContactSubmissions() throws Exception {
+        AuthRateLimitFilter filter = new AuthRateLimitFilter(100, 100, 100, 1, List.of());
+        FilterChain chain = mock(FilterChain.class);
+
+        MockHttpServletResponse first = new MockHttpServletResponse();
+        filter.doFilter(publicContactRequest("203.0.113.1"), first, chain);
+
+        MockHttpServletResponse second = new MockHttpServletResponse();
+        filter.doFilter(publicContactRequest("203.0.113.1"), second, chain);
+
+        assertThat(first.getStatus()).isEqualTo(200);
+        assertThat(second.getStatus()).isEqualTo(429);
+    }
+
+    @Test
+    void rateLimitsPublicAltchaChallengeRequests() throws Exception {
+        AuthRateLimitFilter filter = new AuthRateLimitFilter(100, 100, 100, 1, List.of());
+        FilterChain chain = mock(FilterChain.class);
+
+        MockHttpServletResponse first = new MockHttpServletResponse();
+        filter.doFilter(altchaChallengeRequest("203.0.113.2"), first, chain);
+        MockHttpServletResponse second = new MockHttpServletResponse();
+        filter.doFilter(altchaChallengeRequest("203.0.113.2"), second, chain);
+        MockHttpServletResponse third = new MockHttpServletResponse();
+        filter.doFilter(altchaChallengeRequest("203.0.113.2"), third, chain);
+        MockHttpServletResponse fourth = new MockHttpServletResponse();
+        filter.doFilter(altchaChallengeRequest("203.0.113.2"), fourth, chain);
+
+        assertThat(first.getStatus()).isEqualTo(200);
+        assertThat(second.getStatus()).isEqualTo(200);
+        assertThat(third.getStatus()).isEqualTo(200);
+        assertThat(fourth.getStatus()).isEqualTo(429);
+    }
+
+    private HttpServletRequest publicContactRequest(String remoteAddr) {
+        HttpServletRequest request = mock(HttpServletRequest.class);
+        when(request.getMethod()).thenReturn("POST");
+        when(request.getRequestURI()).thenReturn("/api/v1/public/contact");
+        when(request.getRemoteAddr()).thenReturn(remoteAddr);
+        return request;
+    }
+
+    private HttpServletRequest altchaChallengeRequest(String remoteAddr) {
+        HttpServletRequest request = mock(HttpServletRequest.class);
+        when(request.getMethod()).thenReturn("GET");
+        when(request.getRequestURI()).thenReturn("/api/v1/public/altcha/challenge");
+        when(request.getRemoteAddr()).thenReturn(remoteAddr);
+        return request;
+    }
 }
