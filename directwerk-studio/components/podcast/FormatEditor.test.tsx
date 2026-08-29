@@ -1,6 +1,6 @@
-import {render, screen, waitFor} from '@testing-library/react'
+import {cleanup, render, screen, waitFor} from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import {beforeEach, describe, expect, it, vi} from 'vitest'
+import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest'
 
 import FormatEditor from '@/components/podcast/FormatEditor'
 import {clearCachedTenantData} from '@directwerk/api/client/useCachedTenantQuery'
@@ -39,6 +39,10 @@ describe('FormatEditor', () => {
         clearCachedTenantData('public-levels', 'tenant.test')
     })
 
+    afterEach(() => {
+        cleanup()
+    })
+
     it('renders Mindest-Stufe and Sortierung labels with helper texts', () => {
         render(<FormatEditor />)
 
@@ -60,12 +64,10 @@ describe('FormatEditor', () => {
         expect(
             await screen.findByRole('option', {name: 'Öffentlich / Keine Mindeststufe'}),
         ).toBeInTheDocument()
-        expect(
-            await screen.findByRole('option', {name: 'Fan (10)'}),
-        ).toBeInTheDocument()
-        expect(
-            await screen.findByRole('option', {name: 'Supporter (20)'}),
-        ).toBeInTheDocument()
+        await waitFor(() => {
+            expect(screen.getByRole('option', {name: 'Fan (10)'})).toBeInTheDocument()
+            expect(screen.getByRole('option', {name: 'Supporter (20)'})).toBeInTheDocument()
+        })
     })
 
     it('creates a new format and redirects to its detail page', async () => {
