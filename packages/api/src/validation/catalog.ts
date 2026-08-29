@@ -264,6 +264,12 @@ function parseEpisodeDetail(value: unknown): EpisodeDetail | null {
                 : isPositiveSafeInteger(value.audioAssetId)
                   ? value.audioAssetId
                   : null,
+        coverAssetId:
+            value.coverAssetId === null || value.coverAssetId === undefined
+                ? null
+                : isPositiveSafeInteger(value.coverAssetId)
+                  ? value.coverAssetId
+                  : null,
         enclosureEnabled: value.enclosureEnabled === false ? false : true,
         requiredLevelSortOrder:
             value.requiredLevelSortOrder === null ||
@@ -680,7 +686,12 @@ function parseFormatSummary(value: unknown): FormatSummary | null {
             (isSafeInteger(value.requiredLevelSortOrder) &&
                 value.requiredLevelSortOrder >= 0)
         ) ||
-        !isNonNegativeSafeInteger(value.sortOrder)
+        !isNonNegativeSafeInteger(value.sortOrder) ||
+        !(
+            value.coverAssetId === null ||
+            value.coverAssetId === undefined ||
+            isPositiveSafeInteger(value.coverAssetId)
+        )
     ) {
         return null
     }
@@ -697,6 +708,10 @@ function parseFormatSummary(value: unknown): FormatSummary | null {
                 ? null
                 : value.requiredLevelSortOrder,
         sortOrder: value.sortOrder,
+        coverAssetId:
+            value.coverAssetId === null || value.coverAssetId === undefined
+                ? null
+                : value.coverAssetId,
     }
 }
 

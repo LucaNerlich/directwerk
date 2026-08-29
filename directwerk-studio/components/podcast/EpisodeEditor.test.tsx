@@ -32,6 +32,7 @@ const draftEpisode = {
     description: 'Shownotes',
     episodeNumber: null,
     audioAssetId: 10,
+    coverAssetId: null,
     enclosureEnabled: true,
     requiredLevelSortOrder: null,
     scheduledAt: null,
@@ -76,7 +77,7 @@ vi.mock('@/lib/api/subscriptionApi', () => ({
 }))
 vi.mock('@/lib/api/catalogApi', () => ({
     listFormats: vi.fn().mockResolvedValue([
-        {id: 1, slug: 'interview', name: 'Interview', active: true, description: null, requiredLevelSortOrder: null, sortOrder: 0},
+        {id: 1, slug: 'interview', name: 'Interview', active: true, description: null, requiredLevelSortOrder: null, sortOrder: 0, coverAssetId: null},
     ]),
     listCategories: vi.fn().mockResolvedValue([]),
     replaceEpisodeFormats: (...args: unknown[]) => replaceEpisodeFormats(...args),

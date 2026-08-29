@@ -6,6 +6,7 @@ import de.pnnit.directwerk.modules.core.RequiresModule;
 import de.pnnit.directwerk.modules.core.repository.TenantRepository;
 import de.pnnit.directwerk.modules.core.util.FieldConstraints;
 import de.pnnit.directwerk.modules.core.util.SlugNormalizer;
+import de.pnnit.directwerk.modules.digital.entity.MediaAsset;
 import de.pnnit.directwerk.modules.podcast.PodcastModule;
 import de.pnnit.directwerk.modules.podcast.entity.Format;
 import de.pnnit.directwerk.modules.podcast.exception.FormatNotFoundException;
@@ -24,6 +25,7 @@ public class FormatService {
 
     private final FormatRepository formatRepository;
     private final TenantRepository tenantRepository;
+    private final PodcastCoverAssetResolver podcastCoverAssetResolver;
     private final RssFeedRefreshScheduler rssFeedRefreshScheduler;
 
     @Transactional(readOnly = true)
@@ -53,7 +55,8 @@ public class FormatService {
             String name,
             String description,
             Integer requiredLevelSortOrder,
-            Integer sortOrder
+            Integer sortOrder,
+            Long coverAssetId
     ) {
         String slug = SlugNormalizer.normalize(rawSlug);
         if (formatRepository.existsByTenantIdAndSlug(tenantId, slug)) {
@@ -68,6 +71,7 @@ public class FormatService {
         format.setRequiredLevelSortOrder(FieldConstraints.requireNonNegative(requiredLevelSortOrder, "requiredLevelSortOrder"));
         format.setSortOrder(sortOrder != null ? FieldConstraints.requireNonNegative(sortOrder, "sortOrder") : 0);
         format.setActive(true);
+        format.setCoverAsset(podcastCoverAssetResolver.resolveCoverAsset(tenantId, coverAssetId));
         return formatRepository.save(format);
     }
 
@@ -81,11 +85,13 @@ public class FormatService {
             String description,
             Integer requiredLevelSortOrder,
             Integer sortOrder,
-            Boolean active
+            Boolean active,
+            Long coverAssetId
     ) {
         Format format = requireFormat(tenantId, formatId);
         Integer previousRequiredLevel = format.getRequiredLevelSortOrder();
         boolean previousActive = format.isActive();
+        MediaAsset previousCover = format.getCoverAsset();
         if (rawSlug != null) {
             String slug = SlugNormalizer.normalize(rawSlug);
             if (formatRepository.existsByTenantIdAndSlugAndIdNot(tenantId, slug, formatId)) {
@@ -108,10 +114,14 @@ public class FormatService {
         if (active != null) {
             format.setActive(active);
         }
+        if (coverAssetId != null) {
+            format.setCoverAsset(podcastCoverAssetResolver.resolveCoverAsset(tenantId, coverAssetId));
+        }
         Format saved = formatRepository.save(format);
         boolean levelChanged = !Objects.equals(previousRequiredLevel, saved.getRequiredLevelSortOrder());
         boolean activeChanged = previousActive != saved.isActive();
-        if (levelChanged || activeChanged) {
+        boolean coverChanged = !Objects.equals(previousCover, saved.getCoverAsset());
+        if (levelChanged || activeChanged || coverChanged) {
             rssFeedRefreshScheduler.requestRefreshAfterCommit(tenantId);
         }
         return saved;
@@ -120,7 +130,7 @@ public class FormatService {
     @Transactional
     @RequiresModule(PodcastModule.KEY)
     public Format deactivateFormat(Long tenantId, Long formatId) {
-        return updateFormat(tenantId, formatId, null, null, null, null, null, false);
+        return updateFormat(tenantId, formatId, null, null, null, null, null, false, null);
     }
 
     private static String normalizeName(String name) {

@@ -1,6 +1,6 @@
 ### Directwerk — Podcast content (Phase 3)
 ### Prerequisites: 02-oauth2.http (tenantAAccessToken), 07-platform-modules.http (PODCAST active),
-###                17-media-upload.http (mediaAssetId optional for attach audio).
+###                17-media-upload.http (mediaAssetId optional for attach audio; use a READY PUBLIC IMAGE id for coverAssetId on series/format/episode).
 ### Publish may return EPISODE_VALIDATION_FAILED until a READY audio asset is attached.
 
 ### @name listPodcastFormats

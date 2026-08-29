@@ -41,6 +41,7 @@ public class EpisodeService {
     private final TenantRepository tenantRepository;
     private final EpisodeMediaApi episodeMediaApi;
     private final HtmlSanitizer htmlSanitizer;
+    private final PodcastCoverAssetResolver podcastCoverAssetResolver;
     private final RssFeedRefreshScheduler rssFeedRefreshScheduler;
 
     @Transactional(readOnly = true)
@@ -64,6 +65,7 @@ public class EpisodeService {
             String title,
             String description,
             Long audioAssetId,
+            Long coverAssetId,
             Integer durationSeconds,
             AccessPolicy accessPolicy,
             Integer requiredLevelSortOrder,
@@ -83,6 +85,7 @@ public class EpisodeService {
         episode.setSlug(slug);
         episode.setTitle(TitleNormalizer.normalize(title, "Episode"));
         episode.setDescription(htmlSanitizer.sanitize(description));
+        episode.setCoverAsset(podcastCoverAssetResolver.resolveCoverAsset(tenantId, coverAssetId));
         episode.setDurationSeconds(FieldConstraints.requirePositive(durationSeconds, "durationSeconds"));
         episode.setAccessPolicy(accessPolicy != null ? accessPolicy : AccessPolicy.FREE);
         episode.setRequiredLevelSortOrder(FieldConstraints.requireNonNegative(
@@ -109,6 +112,7 @@ public class EpisodeService {
             String rawSlug,
             String title,
             String description,
+            Long coverAssetId,
             Integer durationSeconds,
             AccessPolicy accessPolicy,
             Integer requiredLevelSortOrder
@@ -129,6 +133,9 @@ public class EpisodeService {
         }
         if (description != null) {
             episode.setDescription(htmlSanitizer.sanitize(description));
+        }
+        if (coverAssetId != null) {
+            episode.setCoverAsset(podcastCoverAssetResolver.resolveCoverAsset(tenantId, coverAssetId));
         }
         if (durationSeconds != null) {
             episode.setDurationSeconds(FieldConstraints.requirePositive(durationSeconds, "durationSeconds"));

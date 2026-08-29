@@ -17,16 +17,19 @@ import org.springframework.stereotype.Repository;
 public interface EpisodeRepository extends JpaRepository<Episode, Long> {
 
     // Keep graphs complete for open-in-view=false: controllers map series.slug, formats,
-    // categories.parent, and publicCdnUrl needs audioAsset.tenant.slug after the repo tx ends.
-    // tenant is required for scheduled publish (getTenant().getId()).
+    // categories.parent, cover fallback (episode/format/series), and publicCdnUrl needs audioAsset.tenant.slug.
 
     @EntityGraph(attributePaths = {
-            "tenant", "series", "audioAsset", "audioAsset.tenant", "formats", "categories", "categories.parent"
+            "tenant", "series", "series.coverAsset", "coverAsset", "coverAsset.tenant",
+            "audioAsset", "audioAsset.tenant", "formats", "formats.coverAsset",
+            "categories", "categories.parent"
     })
     List<Episode> findByTenantIdOrderByCreatedAtDescIdDesc(Long tenantId);
 
     @EntityGraph(attributePaths = {
-            "tenant", "series", "audioAsset", "audioAsset.tenant", "formats", "categories", "categories.parent"
+            "tenant", "series", "series.coverAsset", "coverAsset", "coverAsset.tenant",
+            "audioAsset", "audioAsset.tenant", "formats", "formats.coverAsset",
+            "categories", "categories.parent"
     })
     List<Episode> findByTenantIdAndStatusAndSeriesStatusOrderByPublishedAtDescIdDesc(
             Long tenantId,
@@ -35,7 +38,9 @@ public interface EpisodeRepository extends JpaRepository<Episode, Long> {
     );
 
     @EntityGraph(attributePaths = {
-            "tenant", "series", "audioAsset", "audioAsset.tenant", "formats", "categories", "categories.parent"
+            "tenant", "series", "series.coverAsset", "coverAsset", "coverAsset.tenant",
+            "audioAsset", "audioAsset.tenant", "formats", "formats.coverAsset",
+            "categories", "categories.parent"
     })
     List<Episode> findByTenantIdAndSeriesIdAndStatusAndSeriesStatusOrderByPublishedAtDescIdDesc(
             Long tenantId,
@@ -45,17 +50,23 @@ public interface EpisodeRepository extends JpaRepository<Episode, Long> {
     );
 
     @EntityGraph(attributePaths = {
-            "tenant", "series", "audioAsset", "audioAsset.tenant", "formats", "categories", "categories.parent"
+            "tenant", "series", "series.coverAsset", "coverAsset", "coverAsset.tenant",
+            "audioAsset", "audioAsset.tenant", "formats", "formats.coverAsset",
+            "categories", "categories.parent"
     })
     Optional<Episode> findByIdAndTenantId(Long id, Long tenantId);
 
     @EntityGraph(attributePaths = {
-            "tenant", "series", "audioAsset", "audioAsset.tenant", "formats", "categories", "categories.parent"
+            "tenant", "series", "series.coverAsset", "coverAsset", "coverAsset.tenant",
+            "audioAsset", "audioAsset.tenant", "formats", "formats.coverAsset",
+            "categories", "categories.parent"
     })
     Optional<Episode> findBySeriesIdAndSlugAndTenantId(Long seriesId, String slug, Long tenantId);
 
     @EntityGraph(attributePaths = {
-            "tenant", "series", "audioAsset", "audioAsset.tenant", "formats", "categories", "categories.parent"
+            "tenant", "series", "series.coverAsset", "coverAsset", "coverAsset.tenant",
+            "audioAsset", "audioAsset.tenant", "formats", "formats.coverAsset",
+            "categories", "categories.parent"
     })
     Optional<Episode> findByTenantIdAndSlugAndStatusAndSeriesStatus(
             Long tenantId,
@@ -75,7 +86,9 @@ public interface EpisodeRepository extends JpaRepository<Episode, Long> {
     long countByTenantId(Long tenantId);
 
     @EntityGraph(attributePaths = {
-            "tenant", "series", "audioAsset", "audioAsset.tenant", "formats", "categories", "categories.parent"
+            "tenant", "series", "series.coverAsset", "coverAsset", "coverAsset.tenant",
+            "audioAsset", "audioAsset.tenant", "formats", "formats.coverAsset",
+            "categories", "categories.parent"
     })
     List<Episode> findByStatusAndScheduledAtLessThanEqualOrderByScheduledAtAscIdAsc(
             EpisodeStatus status,

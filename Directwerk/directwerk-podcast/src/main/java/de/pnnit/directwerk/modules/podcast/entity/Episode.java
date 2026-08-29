@@ -62,6 +62,10 @@ public class Episode extends BaseEntity implements TenantOwned {
     @JoinColumn(name = "audio_asset_id")
     private MediaAsset audioAsset;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "cover_asset_id")
+    private MediaAsset coverAsset;
+
     @Column(name = "duration_seconds")
     private Integer durationSeconds;
 
