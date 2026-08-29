@@ -23,7 +23,9 @@ const session = createAuthSession({
     parseTokens: parseTokenResponse,
 })
 
-export const invalidatePendingTenantRefresh = session.invalidatePendingRefresh
+function invalidatePendingTenantRefresh(): void {
+    session.invalidatePendingRefresh()
+}
 
 export async function refreshTenantAccessToken(): Promise<string> {
     const tenantHost = getTenantSessionHost()

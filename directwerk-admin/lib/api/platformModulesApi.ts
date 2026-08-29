@@ -12,7 +12,7 @@ import {
     postPlatformData,
 } from '@/lib/api/client'
 
-export async function listPlatformModules(): Promise<ModuleDescriptor[]> {
+async function listPlatformModules(): Promise<ModuleDescriptor[]> {
     const modules = await getPlatformData<ModuleDescriptor[]>('modules')
     if (!isModuleCatalog(modules)) {
         throw new Error('Could not load modules.')
@@ -20,7 +20,7 @@ export async function listPlatformModules(): Promise<ModuleDescriptor[]> {
     return modules
 }
 
-export async function getTenantModules(tenantId: string): Promise<TenantModules> {
+async function getTenantModules(tenantId: string): Promise<TenantModules> {
     const modules = await getPlatformData<TenantModules>(`tenants/${tenantId}/modules`)
     if (!isTenantModules(modules)) {
         throw new Error('Could not load modules.')

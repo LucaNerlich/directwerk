@@ -4,13 +4,6 @@ import {buildProxyPath, hasUnsupportedProxyQuery, readBearerToken} from './path'
 import {parseTenantHost} from './tenantHost'
 import {jsonError, toClientResponse} from './upstreamResponse'
 
-export {buildProxyPath, hasUnsupportedProxyQuery, readBearerToken} from './path'
-export {parseTenantHost} from './tenantHost'
-export {jsonError, toClientResponse, NO_STORE_HEADERS} from './upstreamResponse'
-export {readBoundedBody, readBoundedRequestBody} from './boundedBody'
-
-export type {HttpMethod}
-
 export interface UpstreamFetchRequest {
     path: string
     tenantHost: string

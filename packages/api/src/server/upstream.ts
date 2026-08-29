@@ -2,9 +2,6 @@ import 'server-only'
 
 import type {ServerTransportRequest} from './transport'
 
-export type {HttpMethod, ServerTransportConfig, ServerTransportRequest} from './transport'
-export {createServerTransport} from './transport'
-
 type DirectwerkMethod = 'GET' | 'HEAD' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'
 
 export interface DirectwerkServerClientConfig {

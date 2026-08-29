@@ -7,7 +7,7 @@ import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
 
 import {usePublicationListActions} from './usePublicationListActions'
 
-export interface PublicationListPageLabels {
+interface PublicationListPageLabels {
     loadError: string
     unpublishSuccess: (title: string) => string
     cancelScheduleSuccess: (title: string) => string

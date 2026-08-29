@@ -8,8 +8,6 @@ export const tokenStore = createSessionTokenStore({
 })
 
 export const getAccessToken = tokenStore.getAccessToken.bind(tokenStore)
-export const getAccessTokenExpiresAt = tokenStore.getAccessTokenExpiresAt.bind(tokenStore)
-export const isAccessTokenExpired = tokenStore.isAccessTokenExpired.bind(tokenStore)
 export const setTokens = tokenStore.setTokens.bind(tokenStore)
 export const clearTokens = tokenStore.clearTokens.bind(tokenStore)
 export const subscribeToTokenStore = tokenStore.subscribeToTokenStore.bind(tokenStore)
