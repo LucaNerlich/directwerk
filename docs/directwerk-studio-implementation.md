@@ -1,7 +1,7 @@
 # Directwerk — `directwerk-studio` Implementation Guide
 
 Companion to [`directwerk-studio.md`](directwerk-studio.md) (product overview) and
-[`README.md`](../README.md) (full platform design). This document is the **single implementation
+[`README.md`](platform-design.md) (full platform design). This document is the **single implementation
 spec** for the creator dashboard at `directwerk-studio/` — product context, screen-by-screen
 UI spec, API mappings, scaffold, auth, and phased checklist.
 

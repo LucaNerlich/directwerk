@@ -15,7 +15,7 @@ Companion docs:
 | [`../../docs/phase-2e-4-4b-implementation.md`](../../docs/phase-2e-4-4b-implementation.md) | **Next backend plan** — stream (2e), RSS (4), entitlements (4b) |
 | [`../../docs/content-creation-implementation.md`](../../docs/content-creation-implementation.md) | Studio + content blueprint |
 | [`../../docs/asset-storage.md`](../../docs/asset-storage.md) | S3, promote, group entitlements |
-| [`../../README.md`](../../README.md) | Full platform design |
+| [`../../docs/platform-design.md`](../../docs/platform-design.md) | Full platform design |
 
 ---
 

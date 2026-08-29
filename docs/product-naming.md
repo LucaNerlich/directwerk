@@ -1,13 +1,13 @@
 # Directwerk — Product Naming Strategy
 
-Companion to [`README.md`](../README.md). **Directwerk** is the chosen public product name —
+Companion to [`README.md`](platform-design.md). **Directwerk** is the chosen public product name —
 an international spelling of the Direktwerk idea (*direct* + *Werk*): craft/infrastructure for
 publishing straight to your audience. **Publish** was the internal codename used before the
 rename below; it no longer appears in repo folders, packages, or identifiers.
 
 | Document | Purpose |
 |----------|---------|
-| [`README.md`](../README.md) | Full platform design |
+| [`README.md`](platform-design.md) | Full platform design |
 | [`content-platform-strategy.md`](content-platform-strategy.md) | Product scope — publication platform, not CMS |
 | [`directwerk-studio.md`](directwerk-studio.md) | Creator dashboard — primary non-technical UX |
 | [`ghost-positioning.md`](ghost-positioning.md) | Competitive positioning |
@@ -176,7 +176,7 @@ Full technical rename (see [Rename impact](#rename-impact-checklist)) is done �
 | 9 | “Powered by” test | Tenant footer | Passes internally |
 | 10 | Lawyer sign-off | Written clearance | **TODO before public launch** |
 
-Recorded in [`README.md` § Open Decisions](../README.md#open-decisions).
+Recorded in [`README.md` § Open Decisions](platform-design.md#open-decisions).
 
 ---
 

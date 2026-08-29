@@ -1,12 +1,12 @@
 # Directwerk — `directwerk-studio` (Creator Dashboard)
 
-Companion to [`README.md`](../README.md) (full platform design). This document defines **`directwerk-studio`**
+Companion to [`README.md`](platform-design.md) (full platform design). This document defines **`directwerk-studio`**
 — the **primary creator-facing app** for non-technical podcasters and digital publishers who create
 content, manage members, and publish to their domain **without touching APIs or external tools**.
 
 | Document | Purpose |
 |----------|---------|
-| [`README.md`](../README.md) | Full platform design — entities, APIs, phases |
+| [`README.md`](platform-design.md) | Full platform design — entities, APIs, phases |
 | **This document** | What `directwerk-studio` is, who it serves, creator journeys |
 | [`directwerk-studio-implementation.md`](directwerk-studio-implementation.md) | **Implementation guide** — screens, API mappings, scaffold, auth, checklist |
 | [`content-creation-implementation.md`](content-creation-implementation.md) | Content backend — libraries, services, workflow engine |
@@ -270,7 +270,7 @@ publications, entitlements, headless JSON. Bring your editor and frontend.
 
 - Implementation guide: [`directwerk-studio-implementation.md`](directwerk-studio-implementation.md)
 - Content vs CMS strategy: [`content-platform-strategy.md`](content-platform-strategy.md)
-- Public + subscriber site: [`README.md` § Reference Frontend (directwerk-web)](../README.md#reference-frontend-directwerk-web)
+- Public + subscriber site: [`README.md` § Reference Frontend (directwerk-web)](platform-design.md#reference-frontend-directwerk-web)
 - Ghost comparison: [`ghost-positioning.md`](ghost-positioning.md)
 - Alpha backend: [`poc-alpha-setup.md`](poc-alpha-setup.md)
 

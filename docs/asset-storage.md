@@ -1,6 +1,6 @@
 # Directwerk — Asset Storage & Retrieval
 
-Companion to [`README.md`](../README.md) (full design),
+Companion to [`README.md`](platform-design.md) (full design),
 [`poc-alpha-setup.md`](poc-alpha-setup.md) (alpha bootstrap), and
 [`product-naming.md`](product-naming.md) (public product name history).
 
@@ -216,7 +216,7 @@ Unique index: `(tenant_id, s3_key)`. Never reuse `s3_key` across tenants or asse
 ## Module gating
 
 Per-tenant feature modules control **which asset flows are reachable** before any S3 presign runs.
-See [`README.md` § Feature Modules](../README.md#feature-modules) for the full catalog and
+See [`README.md` § Feature Modules](platform-design.md#feature-modules) for the full catalog and
 dependency graph; this section covers storage implications only.
 
 **There is no separate `ASSET_STORAGE` module.** S3 upload, `MediaAsset`, and the media library
@@ -1014,7 +1014,7 @@ Group entitlement scenarios (13–18): see [Group entitlements](#group-entitleme
 
 ## Related documents
 
-- [`README.md`](../README.md) — Media Storage, S3 Layout, Upload Flow, Entitlements, Feature Modules
+- [`README.md`](platform-design.md) — Media Storage, S3 Layout, Upload Flow, Entitlements, Feature Modules
 - [`poc-alpha-setup.md`](poc-alpha-setup.md) — Alpha bootstrap + storage foundation (`MediaAsset` schema, Hetzner/Bunny dev bucket)
 - [`product-naming.md`](product-naming.md) — Directwerk public product name
 - [Hetzner Object Storage docs](https://docs.hetzner.com/storage/object-storage/)

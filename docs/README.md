@@ -1,13 +1,13 @@
 # Internal documentation index
 
 Agent and operator docs for the Directwerk monorepo. **Public integrator docs** live in
-[`directwerk-docs/`](../directwerk-docs/). **Product design spec:** [`README.md`](../README.md).
+[`directwerk-docs/`](../directwerk-docs/). **Product design spec:** [`platform-design.md`](platform-design.md).
 
 ## Start here
 
 | Document | Use when |
 |----------|----------|
-| [`ui-system.md`](ui-system.md) | Building or changing Next.js UI (`@directwerk/ui`, tokens, components) |
+| [`platform-design.md`](platform-design.md) | Full product/architecture design spec (entities, APIs, phases) |
 | [`frontend-pages.md`](frontend-pages.md) | Adding a route/page in studio, web, or admin |
 | [`directwerk-studio.md`](directwerk-studio.md) | Product context for the creator dashboard |
 | [`directwerk-studio-implementation.md`](directwerk-studio-implementation.md) | Studio screens, API mappings, shipped checklist |
