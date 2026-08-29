@@ -1,0 +1,125 @@
+### Directwerk — PlatformQueueController
+### Prerequisites: 02-oauth2.http (platformAccessToken), 06-platform-tenants.http (tenantAId)
+### Operational/manual escape hatch — prefer typed producers in normal app flow.
+
+### @name enqueuePlatformJob
+POST {{baseUrl}}/api/v1/platform/queue/jobs
+Authorization: Bearer {{platformAccessToken}}
+Content-Type: application/json
+Accept: application/json
+
+{
+  "queue": "email",
+  "payload": {
+    "note": "created by the HTTP harness"
+  },
+  "priority": 5,
+  "tenantId": {{tenantAId}},
+  "correlationId": "http-harness",
+  "metadata": {
+    "source": "http"
+  }
+}
+
+> {%
+    client.test("Enqueue platform job", function() {
+        client.assert(response.status === 201, "Expected 201");
+        if (response.body.data && response.body.data.id) {
+            client.global.set("queueJobId", response.body.data.id);
+        }
+    });
+%}
+
+###
+
+### @name listPlatformJobs
+GET {{baseUrl}}/api/v1/platform/queue/jobs?limit=20
+Authorization: Bearer {{platformAccessToken}}
+Accept: application/json
+
+> {%
+    client.test("List platform jobs", function() {
+        client.assert(response.status === 200, "Expected 200");
+        client.assert(Array.isArray(response.body.data), "Expected jobs array");
+    });
+%}
+
+###
+
+### @name getPlatformJob
+GET {{baseUrl}}/api/v1/platform/queue/jobs/{{queueJobId}}
+Authorization: Bearer {{platformAccessToken}}
+Accept: application/json
+
+> {%
+    client.test("Get platform job", function() {
+        client.assert(response.status === 200 || response.status === 404,
+            "Expected 200 when queueJobId set, else 404");
+    });
+%}
+
+###
+
+### @name claimPlatformJobs
+POST {{baseUrl}}/api/v1/platform/queue/jobs/claim
+Authorization: Bearer {{platformAccessToken}}
+Content-Type: application/json
+Accept: application/json
+
+{
+  "queue": "email",
+  "worker": "http-harness-worker",
+  "limit": 5,
+  "leaseSeconds": 60
+}
+
+> {%
+    client.test("Claim platform jobs", function() {
+        client.assert(response.status === 200, "Expected 200");
+    });
+%}
+
+###
+
+### @name completePlatformJob
+POST {{baseUrl}}/api/v1/platform/queue/jobs/{{queueJobId}}/complete
+Authorization: Bearer {{platformAccessToken}}
+Content-Type: application/json
+Accept: application/json
+
+{
+  "worker": "http-harness-worker"
+}
+
+> {%
+    client.test("Complete platform job", function() {
+        client.assert(response.status === 200 || response.status === 404,
+            "Expected 200 when queueJobId claimable, else 404");
+    });
+%}
+
+###
+
+### @name failPlatformJob
+< {%
+  client.global.set("queueJobIdForFail", client.global.get("queueJobId"));
+%}
+POST {{baseUrl}}/api/v1/platform/queue/jobs/{{queueJobIdForFail}}/fail
+Authorization: Bearer {{platformAccessToken}}
+Content-Type: application/json
+Accept: application/json
+
+{
+  "worker": "http-harness-worker",
+  "error": "harness test failure",
+  "retryDelaySeconds": 30
+}
+
+> {%
+    client.test("Fail platform job", function() {
+        client.assert(
+            response.status === 200 || response.status === 404 || response.status === 409,
+            "Expected 200/404/409 depending on job state"
+        );
+    });
+%}

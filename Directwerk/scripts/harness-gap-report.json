@@ -1,0 +1,111 @@
+{
+  "summary": {
+    "bruno_request_count": 203,
+    "http_request_count": 218,
+    "bruno_unique_method_path": 161,
+    "http_unique_method_path": 163,
+    "matched_method_path": 161,
+    "bruno_only_method_path": 0,
+    "http_only_method_path": 2,
+    "bruno_only_request_entries": 0,
+    "http_only_request_entries": 6
+  },
+  "structural_gaps": {
+    "bruno_folders_without_http_file": [
+      {
+        "folder": "06-Platform-Admin/Overview",
+        "note": "28-platform-overview.http (missing)"
+      },
+      {
+        "folder": "06-Platform-Admin/Queue",
+        "note": "29-platform-queue.http (missing)"
+      },
+      {
+        "folder": "12-Webhooks",
+        "note": "partial in 26-stripe-billing.http"
+      }
+    ],
+    "http_files_without_bruno_folder": []
+  },
+  "bruno_only": [],
+  "http_only": [
+    {
+      "source": "http",
+      "file": "27-custom-feeds.http",
+      "folder": "",
+      "name": "deactivateFeedBuilderForCustomFeedOff",
+      "method": "DELETE",
+      "url_raw": "{{baseUrl}}/api/v1/platform/tenants/{{tenantAId}}/modules/FEED_BUILDER",
+      "path_norm": "/api/v1/platform/tenants/{param}/modules/FEED_BUILDER",
+      "key": [
+        "DELETE",
+        "/api/v1/platform/tenants/{param}/modules/FEED_BUILDER"
+      ]
+    },
+    {
+      "source": "http",
+      "file": "21-public-rss.http",
+      "folder": "",
+      "name": "deactivatePodcastRssForPublicPodcastOff",
+      "method": "DELETE",
+      "url_raw": "{{baseUrl}}/api/v1/platform/tenants/{{tenantAId}}/modules/PODCAST_RSS",
+      "path_norm": "/api/v1/platform/tenants/{param}/modules/PODCAST_RSS",
+      "key": [
+        "DELETE",
+        "/api/v1/platform/tenants/{param}/modules/PODCAST_RSS"
+      ]
+    },
+    {
+      "source": "http",
+      "file": "21-public-rss.http",
+      "folder": "",
+      "name": "deactivatePodcastRssForPublicSeriesOff",
+      "method": "DELETE",
+      "url_raw": "{{baseUrl}}/api/v1/platform/tenants/{{tenantAId}}/modules/PODCAST_RSS",
+      "path_norm": "/api/v1/platform/tenants/{param}/modules/PODCAST_RSS",
+      "key": [
+        "DELETE",
+        "/api/v1/platform/tenants/{param}/modules/PODCAST_RSS"
+      ]
+    },
+    {
+      "source": "http",
+      "file": "21-public-rss.http",
+      "folder": "",
+      "name": "deactivatePodcastRssForPublicEnclosureOff",
+      "method": "DELETE",
+      "url_raw": "{{baseUrl}}/api/v1/platform/tenants/{{tenantAId}}/modules/PODCAST_RSS",
+      "path_norm": "/api/v1/platform/tenants/{param}/modules/PODCAST_RSS",
+      "key": [
+        "DELETE",
+        "/api/v1/platform/tenants/{param}/modules/PODCAST_RSS"
+      ]
+    },
+    {
+      "source": "http",
+      "file": "22-private-rss.http",
+      "folder": "",
+      "name": "deactivatePodcastRssForPrivateFeedOff",
+      "method": "DELETE",
+      "url_raw": "{{baseUrl}}/api/v1/platform/tenants/{{tenantAId}}/modules/PODCAST_RSS",
+      "path_norm": "/api/v1/platform/tenants/{param}/modules/PODCAST_RSS",
+      "key": [
+        "DELETE",
+        "/api/v1/platform/tenants/{param}/modules/PODCAST_RSS"
+      ]
+    },
+    {
+      "source": "http",
+      "file": "22-private-rss.http",
+      "folder": "",
+      "name": "deactivatePodcastRssForPrivateEnclosureOff",
+      "method": "DELETE",
+      "url_raw": "{{baseUrl}}/api/v1/platform/tenants/{{tenantAId}}/modules/PODCAST_RSS",
+      "path_norm": "/api/v1/platform/tenants/{param}/modules/PODCAST_RSS",
+      "key": [
+        "DELETE",
+        "/api/v1/platform/tenants/{param}/modules/PODCAST_RSS"
+      ]
+    }
+  ]
+}

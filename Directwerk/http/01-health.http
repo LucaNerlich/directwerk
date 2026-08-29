@@ -14,6 +14,18 @@ Accept: application/json
 
 ###
 
+### @name actuatorInfo
+GET {{baseUrl}}/actuator/info
+Accept: application/json
+
+> {%
+    client.test("Actuator info available", function() {
+        client.assert(response.status === 200, "Expected 200");
+    });
+%}
+
+###
+
 ### @name openApiDocs
 GET {{baseUrl}}/v3/api-docs
 Accept: application/json

@@ -39,6 +39,7 @@
 ### | 25-tenant-subscriber-feeds.http | TenantSubscriberFeedController (list/enable/disable) |
 ### | 26-stripe-billing.http | Stripe Connect, checkout, portal, dashboard, webhook |
 ### | 27-custom-feeds.http | MeFeed custom feeds + private RSS format filter (after 19 + 22) |
+### | 28-platform-queue.http | PlatformQueueController (enqueue/claim/complete) |
 ###
 ### Controllers live under de.pnnit.directwerk.controller.*
 

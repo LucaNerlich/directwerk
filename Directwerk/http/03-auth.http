@@ -23,6 +23,76 @@ Accept: application/json
 
 ###
 
+### @name autoVerifyEmailMailpit
+# Local only — reads verification email from Mailpit (docker compose) and calls verify-email.
+# Requires mailpitUrl in the dev environment. On dev/cloud use verifyEmail with a manual token.
+GET {{mailpitUrl}}/api/v1/messages
+Accept: application/json
+
+> {%
+    const mailpitUrl = client.global.get("mailpitUrl");
+    const baseUrl = client.global.get("baseUrl") || "http://localhost:8080";
+    const targetEmail = client.global.get("subscriberEmail");
+
+    if (!mailpitUrl) {
+        client.log("mailpitUrl not set — skip auto-verify (use verifyEmail with a manual token)");
+        return;
+    }
+
+    client.test("Auto-verify email via Mailpit", function() {
+        client.assert(response.status === 200, "Expected 200 from Mailpit");
+
+        const messages = response.body.messages || [];
+        const candidates = messages.filter(function(m) {
+            return m.Subject && m.Subject.toLowerCase().includes("verify") &&
+                m.To && m.To.some(function(t) {
+                    return t.Address && t.Address.toLowerCase() === String(targetEmail).toLowerCase();
+                });
+        });
+        candidates.sort(function(a, b) {
+            return new Date(b.Created) - new Date(a.Created);
+        });
+        client.assert(candidates.length > 0,
+            "No verification email in Mailpit for " + targetEmail + " — run registerSubscriber first");
+
+        const detail = client.send("GET", mailpitUrl + "/api/v1/message/" + candidates[0].ID);
+        client.assert(detail.status === 200, "Expected Mailpit message detail");
+        const html = (detail.body && detail.body.HTML) || "";
+        const match = /token=([^"&\s]+)/.exec(html);
+        client.assert(match, "Could not find verification token in Mailpit HTML");
+
+        const verifyRes = client.send("POST", baseUrl + "/api/v1/auth/verify-email", JSON.stringify({
+            token: match[1]
+        }), {
+            header: { "Content-Type": "application/json", Accept: "application/json" }
+        });
+        client.assert(verifyRes.status === 200 || verifyRes.status === 400,
+            "Expected verify-email 200/400, got " + verifyRes.status);
+        client.global.set("emailVerificationToken", match[1]);
+    });
+%}
+
+###
+
+### @name verifyEmail
+# Manual/dev-cloud path — set emailVerificationToken from the inbox verification link (?token=...)
+POST {{baseUrl}}/api/v1/auth/verify-email
+Content-Type: application/json
+Accept: application/json
+
+{
+  "token": "{{emailVerificationToken}}"
+}
+
+> {%
+    client.test("Verify email", function() {
+        client.assert(response.status === 200 || response.status === 400,
+            "Expected 200 when emailVerificationToken set, else 400");
+    });
+%}
+
+###
+
 ### @name subscriberLoginAfterRegister
 POST {{baseUrl}}/oauth2/token
 Content-Type: application/x-www-form-urlencoded

@@ -71,6 +71,27 @@ Accept: application/json
             "Expected create or conflict on re-run");
         if (response.status === 201) {
             client.assert(response.body.data.verified === false, "New domains start unverified");
+            client.global.set("newDomainHost", response.body.data.host);
+        }
+    });
+%}
+
+###
+
+### @name forceVerifyTenantDomain
+# Platform override of DNS/token verification — also in Bruno 06-Platform-Admin/Tenants
+POST {{baseUrl}}/api/v1/platform/tenants/{{tenantAId}}/domains/{{newDomainHost}}/verify
+Authorization: Bearer {{platformAccessToken}}
+Accept: application/json
+
+> {%
+    client.test("Force verify tenant domain (platform)", function() {
+        client.assert(
+            response.status === 200 || response.status === 400 || response.status === 404,
+            "Expected 200 when newDomainHost set, else 400/404"
+        );
+        if (response.status === 200) {
+            client.assert(response.body.data.verified === true, "Expected verified domain");
         }
     });
 %}
@@ -123,6 +144,40 @@ Accept: application/json
 
 ###
 
+### @name deactivateTenantUser
+POST {{baseUrl}}/api/v1/tenant/users/{{editorUserId}}/deactivate
+Host: {{tenantAHost}}
+Authorization: Bearer {{tenantAAccessToken}}
+Accept: application/json
+
+> {%
+    client.test("Deactivate tenant user", function() {
+        client.assert(
+            response.status === 200 || response.status === 404 || response.status === 409,
+            "Expected 200/404/409"
+        );
+    });
+%}
+
+###
+
+### @name reactivateTenantUser
+POST {{baseUrl}}/api/v1/tenant/users/{{editorUserId}}/reactivate
+Host: {{tenantAHost}}
+Authorization: Bearer {{tenantAAccessToken}}
+Accept: application/json
+
+> {%
+    client.test("Reactivate tenant user", function() {
+        client.assert(
+            response.status === 200 || response.status === 404 || response.status === 409,
+            "Expected 200/404/409"
+        );
+    });
+%}
+
+###
+
 ### @name getContentEmailTemplateArticle
 GET {{baseUrl}}/api/v1/tenant/content-email-templates/ARTICLE
 Host: {{tenantAHost}}
@@ -151,6 +206,40 @@ Accept: application/json
 
 > {%
     client.test("Put article content email template", function() {
+        client.assert(response.status === 200 || response.status === 403, "Expected 200 or 403");
+    });
+%}
+
+###
+
+### @name getContentEmailTemplateEpisode
+GET {{baseUrl}}/api/v1/tenant/content-email-templates/EPISODE
+Host: {{tenantAHost}}
+Authorization: Bearer {{tenantAAccessToken}}
+Accept: application/json
+
+> {%
+    client.test("Get episode content email template", function() {
+        client.assert(response.status === 200 || response.status === 403, "Expected 200 or 403");
+    });
+%}
+
+###
+
+### @name putContentEmailTemplateEpisode
+PUT {{baseUrl}}/api/v1/tenant/content-email-templates/EPISODE
+Host: {{tenantAHost}}
+Authorization: Bearer {{tenantAAccessToken}}
+Content-Type: application/json
+Accept: application/json
+
+{
+  "subjectTemplate": "New episode: {{title}}",
+  "bodyHtml": "<p>Hi {{recipientName}},</p><p>{{siteTitle}} published <strong>{{title}}</strong>.</p><p>{{excerpt}}</p><p><a href=\"{{contentUrl}}\">Listen now</a></p><p><a href=\"{{preferencesUrl}}\">Manage preferences</a></p>"
+}
+
+> {%
+    client.test("Put episode content email template", function() {
         client.assert(response.status === 200 || response.status === 403, "Expected 200 or 403");
     });
 %}
