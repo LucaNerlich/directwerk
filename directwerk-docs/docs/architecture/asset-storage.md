@@ -276,7 +276,7 @@ AssetAccess: require SUBSCRIPTION before EntitlementService on paid CONTENT asse
 Alpha implementation: [`ModuleGateService`](../Directwerk/src/main/java/de/pnnit/directwerk/modules/core/service/ModuleGateService.java),
 [`ModuleManagementService.deactivateModule()`](../Directwerk/src/main/java/de/pnnit/directwerk/modules/core/service/ModuleManagementService.java)
 (rejects `is_core` modules with `CannotDeactivateCoreModuleException`), and
-[`poc-alpha-setup.md` § Module system](/install/local-development#multi-tenancy-alpha).
+[`Directwerk/docs/multi-tenancy.md`](../Directwerk/docs/multi-tenancy.md).
 
 ### S3 objects when module deactivated
 
