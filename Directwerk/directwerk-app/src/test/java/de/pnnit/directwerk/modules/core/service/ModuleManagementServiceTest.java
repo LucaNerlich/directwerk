@@ -80,8 +80,8 @@ class ModuleManagementServiceTest {
         activation.setActive(true);
         when(tenantModuleActivationRepository.findByTenantIdAndModuleKey(1L, "PODCAST"))
                 .thenReturn(Optional.of(activation));
-        when(tenantModuleActivationRepository.findByTenantIdAndActiveTrue(1L))
-                .thenReturn(List.of());
+        when(tenantModuleActivationRepository.findByTenantIdOrderByModuleKeyAsc(1L))
+                .thenReturn(List.of(activation));
 
         ModuleManagementService.TenantModulesView result = service.deactivateModule(1L, "PODCAST");
 
@@ -110,7 +110,7 @@ class ModuleManagementServiceTest {
                 .thenReturn(Optional.empty());
         when(tenantModuleActivationRepository.save(any(TenantModuleActivation.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
-        when(tenantModuleActivationRepository.findByTenantIdAndActiveTrue(1L)).thenReturn(List.of());
+        when(tenantModuleActivationRepository.findByTenantIdOrderByModuleKeyAsc(1L)).thenReturn(List.of());
 
         service.activateModule(1L, "PODCAST_RSS");
 
@@ -131,7 +131,8 @@ class ModuleManagementServiceTest {
         activation.setActive(true);
         when(tenantModuleActivationRepository.findByTenantIdAndModuleKey(1L, "PODCAST_RSS"))
                 .thenReturn(Optional.of(activation));
-        when(tenantModuleActivationRepository.findByTenantIdAndActiveTrue(1L)).thenReturn(List.of());
+        when(tenantModuleActivationRepository.findByTenantIdOrderByModuleKeyAsc(1L))
+                .thenReturn(List.of(activation));
 
         service.deactivateModule(1L, "PODCAST_RSS");
 
@@ -163,7 +164,7 @@ class ModuleManagementServiceTest {
                 .thenReturn(Optional.empty());
         when(tenantModuleActivationRepository.save(any(TenantModuleActivation.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
-        when(tenantModuleActivationRepository.findByTenantIdAndActiveTrue(1L)).thenReturn(List.of());
+        when(tenantModuleActivationRepository.findByTenantIdOrderByModuleKeyAsc(1L)).thenReturn(List.of());
 
         service.activateModule(1L, "FEED_BUILDER");
 
@@ -184,7 +185,8 @@ class ModuleManagementServiceTest {
         activation.setActive(true);
         when(tenantModuleActivationRepository.findByTenantIdAndModuleKey(1L, "FEED_BUILDER"))
                 .thenReturn(Optional.of(activation));
-        when(tenantModuleActivationRepository.findByTenantIdAndActiveTrue(1L)).thenReturn(List.of());
+        when(tenantModuleActivationRepository.findByTenantIdOrderByModuleKeyAsc(1L))
+                .thenReturn(List.of(activation));
 
         service.deactivateModule(1L, "FEED_BUILDER");
 

@@ -25,6 +25,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 @ExtendWith(MockitoExtension.class)
@@ -44,6 +45,12 @@ class UserAccountServiceTest {
 
     @Mock
     private DirectwerkConfig directwerkConfig;
+
+    @Mock
+    private EmailVerificationService emailVerificationService;
+
+    @Mock
+    private ApplicationEventPublisher eventPublisher;
 
     @InjectMocks
     private UserAccountService userAccountService;
@@ -97,6 +104,7 @@ class UserAccountServiceTest {
         when(tenantMembershipRepository.findByUserIdAndTenantId(10L, 2L)).thenReturn(Optional.empty());
         when(passwordEncoder.matches("correct-password", "hash")).thenReturn(true);
         when(directwerkConfig.isEmailVerificationRequired()).thenReturn(false);
+        when(tenantMembershipRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
         User registered = userAccountService.register(
                 "member@example.com",
