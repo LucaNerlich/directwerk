@@ -12,7 +12,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Architecture
 
-PostgreSQL-backed background job queue with Quartz-driven polling and cleanup. Depends only on `directwerk-common`; consumed by `directwerk-email` (mail jobs) and `directwerk-webhook` (outbound webhook jobs), plus `directwerk-app` (admin HTTP API and integration tests).
+PostgreSQL-backed background job queue with Quartz-driven polling and cleanup. Depends only on `directwerk-common`; consumed by `directwerk-email` (mail jobs), plus `directwerk-app` (admin HTTP API and integration tests).
 
 - `de.pnnit.directwerk.modules.queue` — the core queue API: `QueueService` (enqueue/claim/complete), `QueueRepository`, `QueueWorker` (claims and dispatches leased jobs), `QueueJob`/`JobEnqueueMetadata`/`JobListPage`/`JobListQuery` DTOs, `JobStatus`.
 - `JobHandler` is the extension point: any module implements it to consume a named queue (`queueName()` + `handle(QueueJob)`), and can override lease duration, retry delay, and max attempts via `settings()`. `JobHandlerRegistry` collects all `JobHandler` beans at startup — **the set of valid queue names is derived from whichever handlers are registered on the classpath**, not a static list, so adding a new queue means adding a new `JobHandler` bean in the owning module, not editing this module.

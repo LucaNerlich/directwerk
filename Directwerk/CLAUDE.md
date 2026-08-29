@@ -45,8 +45,7 @@ Detailed run/deploy instructions, environment variables, and profiles: see `docs
 directwerk-common → directwerk-core → directwerk-subscription
         ↓                  ├────────→ directwerk-email
 directwerk-queue ──────────┼────────→ directwerk-digital → directwerk-podcast
-        ↓                  │                              → directwerk-newsletter
-directwerk-webhook         └── (`email` and `digital` also depend on `queue`)
+                           │                              → directwerk-newsletter
 
 all modules → directwerk-app
 ```
@@ -54,7 +53,6 @@ all modules → directwerk-app
 - **directwerk-common** — shared config/util, no internal dependencies. Everything depends on it (directly or transitively).
 - **directwerk-queue** — Postgres-backed job queue + Quartz polling. Depends only on `common`.
 - **directwerk-email** — transactional and content email via the queue. Depends on `queue`, `common`, and `core`; core itself only sees the `TransactionalEmailNotifier` port in `common`.
-- **directwerk-webhook** — outbound webhook delivery stub. Depends on `queue`, `common`.
 - **directwerk-core** — domain layer (tenants, users, memberships, module gating, multitenancy). Depends only on `common`; email notifications are invoked through the `TransactionalEmailNotifier` port declared there.
 - **directwerk-subscription** — subscription products and entitlements. Depends on `core`.
 - **directwerk-digital** — media assets + S3 storage foundation (`AssetAccessApi`, fail-closed storage entitlements). Depends on `core` and `queue`.

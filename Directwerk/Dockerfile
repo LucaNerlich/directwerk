@@ -13,7 +13,6 @@ COPY directwerk-newsletter ./directwerk-newsletter
 COPY directwerk-podcast ./directwerk-podcast
 COPY directwerk-queue ./directwerk-queue
 COPY directwerk-subscription ./directwerk-subscription
-COPY directwerk-webhook ./directwerk-webhook
 COPY directwerk-app ./directwerk-app
 
 RUN chmod +x gradlew \

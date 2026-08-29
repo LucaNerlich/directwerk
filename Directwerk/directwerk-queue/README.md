@@ -26,7 +26,6 @@ Each handler may override lease duration, retry delay, and default max attempts 
 ## Used by
 
 - `directwerk-email` — mail jobs on `QueueNames.EMAIL`
-- `directwerk-webhook` — outbound webhook stub on `QueueNames.WEBHOOK`
 - `directwerk-app` — HTTP admin API and integration tests
 
 ## Build
