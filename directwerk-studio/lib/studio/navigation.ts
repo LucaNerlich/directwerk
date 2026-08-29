@@ -1,11 +1,9 @@
 import {hasModule} from '@/lib/api/client'
 import {isTenantAdminRole} from '@/lib/api/studioHelpers'
 import type {Me, SiteConfig} from '@directwerk/api/types'
+import type {NavigationItem} from '@directwerk/ui/lib/navigation'
 
-export interface NavigationItem {
-    href: string
-    label: string
-}
+export type {NavigationItem} from '@directwerk/ui/lib/navigation'
 
 export interface NavigationGroupConfig {
     label?: string

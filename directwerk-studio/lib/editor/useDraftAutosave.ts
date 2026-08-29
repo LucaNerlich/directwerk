@@ -16,7 +16,7 @@ export function useDraftAutosave({
     enabled: boolean
     isDirty: boolean
     isSaving: boolean
-    onSave: () => Promise<unknown>
+    onSave: () => Promise<void>
     delayMs?: number
     revision?: number
 }): void {

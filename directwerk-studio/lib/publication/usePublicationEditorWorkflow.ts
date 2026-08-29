@@ -93,7 +93,7 @@ export function usePublicationEditorWorkflow<T extends {
             (publication?.status ?? 'DRAFT') === 'DRAFT' && publicationId !== undefined,
         isDirty,
         isSaving: isSaving || autosaveBlocked,
-        onSave: () => save({autosave: true}),
+        onSave: async () => { await save({autosave: true}) },
         revision: dirtyRevision,
     })
 
