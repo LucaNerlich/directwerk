@@ -72,7 +72,6 @@ directwerk:
         jwt-private-key: ${DIRECTWERK_JWT_PRIVATE_KEY:}
         jwt-public-key: ${DIRECTWERK_JWT_PUBLIC_KEY:}
         authorization-store: ${DIRECTWERK_OAUTH2_AUTHORIZATION_STORE:jdbc}
-        allow-token-domain-verification: ${DIRECTWERK_ALLOW_TOKEN_DOMAIN_VERIFICATION:false}
     dev:
         seed-password: ${DIRECTWERK_DEV_SEED_PASSWORD:}
         platform-admin-email: ${DIRECTWERK_DEV_PLATFORM_ADMIN_EMAIL:}

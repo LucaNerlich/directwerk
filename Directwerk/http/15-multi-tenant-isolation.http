@@ -119,20 +119,14 @@ Accept: application/json
 
 ###
 
-### @name verifyDomainWithToken
+### @name verifyDomainWithoutDns
 POST {{baseUrl}}/api/v1/tenant/domains/{{isolationUnverifiedHost}}/verify
 Host: {{tenantAHost}}
 Authorization: Bearer {{tenantAAccessToken}}
-Content-Type: application/json
 Accept: application/json
 
-{
-  "token": "{{isolationVerifyToken}}"
-}
-
 > {%
-    client.test("Token verification (local allow-token mode)", function() {
-        client.assert(response.status === 200, "Expected 200");
-        client.assert(response.body.data.verified === true, "Expected verified");
+    client.test("DNS verification required without TXT record", function() {
+        client.assert(response.status === 400, "Expected 400 without DNS TXT record");
     });
 %}

@@ -71,17 +71,18 @@ class TenantDomainServiceTest {
     }
 
     @Test
-    void verifyDomainAcceptsMatchingTokenWhenFallbackAllowed() {
+    void verifyDomainAcceptsMatchingDnsTxtRecord() {
         TenantDomain domain = new TenantDomain();
         domain.setHost("pending.example.com");
         domain.setVerified(false);
         domain.setVerificationToken("abc123");
         when(tenantDomainRepository.findByTenantIdAndHostIgnoreCase(1L, "pending.example.com"))
                 .thenReturn(Optional.of(domain));
-        when(domainDnsLookup.lookupTxt("pending.example.com")).thenReturn(List.of());
+        when(domainDnsLookup.lookupTxt("pending.example.com"))
+                .thenReturn(List.of(TenantDomainService.DNS_TXT_PREFIX + "abc123"));
         when(tenantDomainRepository.saveAndFlush(domain)).thenReturn(domain);
 
-        TenantDomain verified = service.verifyDomain(1L, "pending.example.com", "abc123", true);
+        TenantDomain verified = service.verifyDomain(1L, "pending.example.com");
 
         assertThat(verified.isVerified()).isTrue();
         assertThat(verified.getVerifiedAt()).isNotNull();
@@ -90,7 +91,7 @@ class TenantDomainServiceTest {
     }
 
     @Test
-    void verifyDomainRejectsMissingDnsAndToken() {
+    void verifyDomainRejectsMissingDnsRecord() {
         TenantDomain domain = new TenantDomain();
         domain.setHost("pending.example.com");
         domain.setVerified(false);
@@ -99,7 +100,7 @@ class TenantDomainServiceTest {
                 .thenReturn(Optional.of(domain));
         when(domainDnsLookup.lookupTxt("pending.example.com")).thenReturn(List.of());
 
-        assertThatThrownBy(() -> service.verifyDomain(1L, "pending.example.com", null, false))
+        assertThatThrownBy(() -> service.verifyDomain(1L, "pending.example.com"))
                 .isInstanceOf(DomainVerificationException.class);
     }
 

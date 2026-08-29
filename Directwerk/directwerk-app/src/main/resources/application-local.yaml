@@ -43,7 +43,6 @@ directwerk:
         issuer: http://localhost:8080
         platform-client-secret: ${DIRECTWERK_PLATFORM_CLIENT_SECRET}
         tenant-client-secret: ${DIRECTWERK_TENANT_CLIENT_SECRET}
-        allow-token-domain-verification: true
     dev:
         seed-password: ${DIRECTWERK_DEV_SEED_PASSWORD}
         platform-admin-email: ${DIRECTWERK_DEV_PLATFORM_ADMIN_EMAIL:platform-admin@directwerk.local}

@@ -38,16 +38,10 @@ public record DirectwerkProperties(
             @Positive Integer oauthTokenRateLimitPerMinute,
             @Positive Integer forgotPasswordRateLimitPerMinute,
             @Positive Integer authRateLimitPerMinute,
-            List<String> trustedProxies,
-            /**
-             * When true, domain verify accepts the stored token in the request body
-             * (local/HTTP harness). Production should leave this false and use DNS TXT.
-             */
-            Boolean allowTokenDomainVerification
+            List<String> trustedProxies
     ) {
         public Security {
             trustedProxies = trustedProxies == null ? List.of() : List.copyOf(trustedProxies);
-            allowTokenDomainVerification = allowTokenDomainVerification != null && allowTokenDomainVerification;
         }
     }
 

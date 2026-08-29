@@ -31,7 +31,6 @@ class ProdSecurityPropertiesValidatorTest {
                 null,
                 null,
                 null,
-                null,
                 null
         ));
         when(directwerkConfig.isExposeDevTokens()).thenReturn(false);
@@ -55,7 +54,6 @@ class ProdSecurityPropertiesValidatorTest {
                 "private-key",
                 "public-key",
                 "jdbc",
-                null,
                 null,
                 null,
                 null,
