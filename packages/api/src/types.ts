@@ -7,15 +7,7 @@ import type {
 } from './constants'
 import {MODULE_PRESETS} from './constants'
 
-/**
- * Consolidated hand-written DTO types for the Directwerk REST API.
- *
- * One definition per REST resource, reconciled against the backend Java
- * records (`directwerk-app/src/main/java/de/pnnit/directwerk/api/**`). Where
- * apps previously disagreed, the backend record is authoritative; genuinely
- * different projections of the same entity keep distinct names matching the
- * backend record names.
- */
+/** Hand-written DTO types for the Directwerk REST API (backend records are authoritative). */
 
 // ---------------------------------------------------------------------------
 // Envelope + auth
@@ -227,13 +219,7 @@ export interface ScheduleOptions {
 // Media assets
 // ---------------------------------------------------------------------------
 
-/**
- * Mirrors the backend `MediaAssetView` record (14 fields).
- *
- * Reconciliation history: directwerk-studio previously typed only 5 of the
- * fields while directwerk-admin typed all 14; the backend view always
- * serializes every field, so the full record is the single truth.
- */
+
 export interface MediaAsset {
     id: number
     s3Key: string
@@ -543,12 +529,7 @@ export interface Access {
     tenantId: number
 }
 
-/**
- * A private subscriber RSS feed owned by the current user.
- *
- * Canonical name mirrors the backend record
- * `MeFeedController.SubscriberFeedView`.
- */
+
 export interface SubscriberFeedView {
     id: number
     title: string
@@ -730,14 +711,7 @@ export interface InviteTenantUserResponse {
     inviteToken: string | null
 }
 
-/**
- * Tenant-admin feed listing from GET /api/v1/tenant/subscriber-feeds.
- *
- * Canonical name mirrors the backend record
- * `TenantSubscriberFeedController.SubscriberFeedAdminView`. This is a
- * different projection than {@link SubscriberFeedView} (owner identity
- * instead of feed URL).
- */
+/** Tenant-admin feed listing; owner identity instead of feed URL. */
 export interface SubscriberFeedAdminView {
     id: number
     userId: number

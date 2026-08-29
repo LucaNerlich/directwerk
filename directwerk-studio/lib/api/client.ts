@@ -44,10 +44,7 @@ export function defaultHomePath(home: SiteConfig['studioHome']): string {
     }
 }
 
-/**
- * Default desk for hybrid tenants when path and session do not resolve one.
- * Single-desk tenants always return their only desk.
- */
+
 export function defaultActiveDesk(config: SiteConfig): StudioDesk | null {
     if (config.studioDesks.length === 0) {
         return null

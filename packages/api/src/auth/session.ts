@@ -163,5 +163,4 @@ export function createAuthSession(config: AuthSessionConfig) {
     }
 }
 
-/** Re-exported so app wiring modules can build on the exact shape. */
 export type {StoredTokens}

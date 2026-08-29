@@ -1046,42 +1046,7 @@ function parseSubscriberFeedAdminView(value: unknown): SubscriberFeedAdminView |
               ? value.formatIds
               : null
     const formats =
-        value.formats === undefined
-            ? []
-            : Array.isArray(value.formats) && value.formats.length <= 50
-              ? (() => {
-                    const result: {id: number; slug: string; name: string}[] = []
-                    for (const item of value.formats) {
-                        if (
-                            typeof item !== 'object' ||
-                            item === null ||
-                            !('id' in item) ||
-                            !('name' in item)
-                        ) {
-                            return null
-                        }
-                        const record = item as {
-                            id: unknown
-                            slug?: unknown
-                            name: unknown
-                        }
-                        if (
-                            typeof record.id !== 'number' ||
-                            !Number.isSafeInteger(record.id) ||
-                            record.id < 1 ||
-                            typeof record.name !== 'string'
-                        ) {
-                            return null
-                        }
-                        result.push({
-                            id: record.id,
-                            slug: typeof record.slug === 'string' ? record.slug : '',
-                            name: record.name,
-                        })
-                    }
-                    return result
-                })()
-              : null
+        value.formats === undefined ? [] : parseTagArray(value.formats)
     if (formatIds === null || formats === null) {
         return null
     }

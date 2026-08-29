@@ -1,4 +1,3 @@
-/** Studio-local helpers kept out of domain API modules. */
 export function suggestSlug(title: string): string {
     return title
         .trim()

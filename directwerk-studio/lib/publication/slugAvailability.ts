@@ -3,9 +3,7 @@ export interface SlugEntry {
     slug: string
 }
 
-/**
- * Returns true when another publication already uses the slug.
- */
+
 export function isSlugTaken(
     entries: SlugEntry[],
     slug: string,

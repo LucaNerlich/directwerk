@@ -1,5 +1,5 @@
-import {parseUploadUrlResponse} from '/api/validation/catalog'
 import {parseJsonText} from '@directwerk/api/validation/json'
+import {parseUploadUrlResponse} from '@directwerk/api/validation/catalog'
 
 import {readBearerToken} from '@directwerk/api/proxy'
 import {jsonError, toClientResponse} from '@directwerk/api/proxy'
@@ -117,13 +117,8 @@ function limitStreamToSize(
 }
 
 /**
- * Tenant media upload for studio.
- *
- * The browser sends the raw file bytes as the request body (no multipart) with
- * metadata in headers, so the BFF can stream the body straight through to the
- * presigned object-storage URL without buffering the file in memory.
- *
- * Flow: upload-url → stream request body to S3 → confirm (caller's Bearer).
+ * Browser sends raw file bytes (no multipart); BFF streams to presigned S3 URL.
+ * Flow: upload-url → PUT body to S3 → confirm.
  */
 export async function POST(request: Request): Promise<Response> {
     const tenantHost = parseTenantHost(request.headers.get('x-tenant-host'))
@@ -206,18 +201,9 @@ export async function POST(request: Request): Promise<Response> {
         }
 
         const uploadUrlPayload: unknown = await uploadUrlUpstream.json()
-        const uploadData = readEnvelopeData(uploadUrlPayload) as {
-            assetId?: number
-            uploadUrl?: string
-            headers?: Record<string, string>
-        } | null
+        const uploadData = parseUploadUrlResponse(readEnvelopeData(uploadUrlPayload))
 
-        if (
-            uploadData === null ||
-            typeof uploadData.assetId !== 'number' ||
-            typeof uploadData.uploadUrl !== 'string' ||
-            !isAllowedUploadUrl(uploadData.uploadUrl)
-        ) {
+        if (uploadData === null || !isAllowedUploadUrl(uploadData.uploadUrl)) {
             return jsonError('Invalid upload-url response from Directwerk.', 502)
         }
 

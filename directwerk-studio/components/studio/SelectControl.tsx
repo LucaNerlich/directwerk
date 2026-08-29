@@ -27,9 +27,7 @@ interface SelectControlProps
     onChange?: (event: ChangeEvent<HTMLSelectElement>) => void
 }
 
-/**
- * Adapts existing form-select behavior to the shared shadcn Select primitives.
- */
+
 export default function SelectControl({
     children,
     className,

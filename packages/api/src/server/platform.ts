@@ -91,12 +91,7 @@ export function buildTenantApiPath(segments: string[]): string {
     return `/api/v1/${segments.join('/')}`
 }
 
-/**
- * Determines whether a queue name meets the allowed format and length requirements.
- *
- * @param value - The queue name to validate
- * @returns `true` if the queue name is valid, `false` otherwise
- */
+
 function isSafeQueueName(value: string): boolean {
     return (
         value.length > 0 &&

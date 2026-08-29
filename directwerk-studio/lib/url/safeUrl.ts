@@ -9,9 +9,7 @@
 
 const SAFE_LINK_PROTOCOLS = new Set(['http:', 'https:', 'mailto:', 'tel:'])
 
-/**
- * Returns the URL unchanged when it may safely become an `<a href>` value, otherwise null.
- */
+
 export function safeLinkHref(value: string | null | undefined): string | null {
     if (value == null || value.length === 0 || value.length > 4096) {
         return null
@@ -23,10 +21,7 @@ export function safeLinkHref(value: string | null | undefined): string | null {
     }
 }
 
-/**
- * Returns the URL unchanged when it may safely become an `<img src>` / CDN asset URL,
- * otherwise null. Images are restricted to https.
- */
+
 export function safeImageSrc(value: string | null | undefined): string | null {
     if (value == null || value.length === 0 || value.length > 4096) {
         return null

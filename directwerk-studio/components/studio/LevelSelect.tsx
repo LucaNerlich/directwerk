@@ -14,11 +14,7 @@ interface LevelSelectProps {
     disabled?: boolean
 }
 
-/**
- * Selects a minimum access level from the tenant's active LEVEL products.
- *
- * The value is the level's `sortOrder`; `null` means "no floor" (public).
- */
+/** `sortOrder` value; `null` = no floor (public). */
 export default function LevelSelect({
     value,
     onChange,

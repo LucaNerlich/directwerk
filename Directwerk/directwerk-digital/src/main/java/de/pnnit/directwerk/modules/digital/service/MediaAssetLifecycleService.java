@@ -107,11 +107,7 @@ public class MediaAssetLifecycleService implements MediaAssetLifecycleApi {
         }
     }
 
-    /**
-     * Public-CDN eligibility via the shared key grammar — previously a weaker
-     * {@code contains("/public/")} check that could skip a purge for keys like
-     * {@code slug/public-bar/x}.
-     */
+    /** Public-CDN eligibility via {@link TenantAssetKeys#isPublicKey}. */
     private URL resolvePublicCdnUrl(MediaAsset asset) {
         if (asset.getVisibility() != AssetVisibility.PUBLIC) {
             return null;

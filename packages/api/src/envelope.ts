@@ -6,11 +6,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
     return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
 
-/**
- * Unwraps `{data: ...}` API envelopes, mirroring the guard previously
- * duplicated in directwerk-admin. Throws `API_CONTRACT_ERROR` on malformed
- * envelopes so callers can surface a stable error code.
- */
+/** Unwraps `{data: ...}` API envelopes; throws `API_CONTRACT_ERROR` when malformed. */
 export function parseApiEnvelope<T>(
     value: unknown,
     validator?: (data: unknown) => data is T,

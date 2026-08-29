@@ -18,11 +18,7 @@ import org.springframework.test.context.TestPropertySource;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.presigner.S3Presigner;
 
-/**
- * Regression: enabling storage must wire {@link UploadService} as {@link UploadApi}.
- * A {@code @ConditionalOnBean(S3Client)} on the scanned service previously left no
- * UploadApi when S3 beans were registered later in the same context refresh.
- */
+/** Regression: storage enabled must wire {@link UploadService} as {@link UploadApi}. */
 @SpringBootTest
 @ActiveProfiles("test")
 @TestPropertySource(properties = {
