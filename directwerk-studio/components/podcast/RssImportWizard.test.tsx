@@ -127,7 +127,9 @@ function renderWizard(me: Me = adminMe()): void {
 
 async function loadFeed(): Promise<void> {
     const user = userEvent.setup()
-    await user.type(screen.getByPlaceholderText('https://example.com/podcast.xml'), preview.feedUrl)
+    const feedInput = screen.getByPlaceholderText('https://example.com/podcast.xml')
+    await waitFor(() => expect(feedInput).toBeEnabled())
+    await user.type(feedInput, preview.feedUrl)
     const loadButton = screen.getByRole('button', {name: 'Feed laden'})
     await waitFor(() => expect(loadButton).toBeEnabled())
     await user.click(loadButton)
