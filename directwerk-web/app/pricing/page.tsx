@@ -5,6 +5,7 @@ import {useRouter} from 'next/navigation'
 import {useEffect, useState} from 'react'
 
 import {Alert, AlertDescription} from '@directwerk/ui/components/alert'
+import {Badge} from '@directwerk/ui/components/badge'
 import {Button} from '@directwerk/ui/components/button'
 import {Card, CardContent, CardFooter, CardHeader, CardTitle} from '@directwerk/ui/components/card'
 import EmptyState from '@directwerk/ui/components/empty-state'
@@ -13,6 +14,8 @@ import PageStack from '@directwerk/ui/components/page-stack'
 import SectionHeader from '@directwerk/ui/components/section-header'
 import StatCard from '@directwerk/ui/components/stat-card'
 
+import {CardGridSkeleton} from '@/components/ContentLoadingSkeleton'
+import SubscriberContextBanner from '@/components/SubscriberContextBanner'
 import {
     createCheckoutSession,
     getSiteConfig,
@@ -115,6 +118,8 @@ export default function PricingPage(): React.JSX.Element {
                     </>
                 }
             />
+            <SubscriberContextBanner showWhenAuthenticated={false} />
+
             <section className="grid gap-3 sm:grid-cols-3">
                 <StatCard
                     hint="Konto auf dieser Domain — ohne fremde Plattform."
@@ -138,7 +143,7 @@ export default function PricingPage(): React.JSX.Element {
                     value="Zur Kasse"
                 />
             </section>
-            {isLoading ? <p className="text-sm text-muted-foreground">Wird geladen…</p> : null}
+            {isLoading ? <CardGridSkeleton cards={3} columns={3} /> : null}
             {error !== null ? (
                 <Alert variant="destructive">
                     <AlertDescription>{error}</AlertDescription>
@@ -159,7 +164,7 @@ export default function PricingPage(): React.JSX.Element {
                         {levels.map((level) => (
                             <li key={level.id}>
                                 <StatCard
-                                    hint={`Rang ${level.sortOrder} · ${level.slug}`}
+                                    hint={`Rang ${level.sortOrder}`}
                                     label="Stufe"
                                     value={level.title}
                                 />
@@ -177,14 +182,17 @@ export default function PricingPage(): React.JSX.Element {
                 ) : (
                     <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
                         {products.map((product) => (
-                            <Card key={product.slug}>
-                                <CardHeader>
+                            <Card key={product.slug} className="flex flex-col">
+                                <CardHeader className="space-y-3">
+                                    <div className="flex flex-wrap items-center gap-2">
+                                        <Badge variant="outline">
+                                            {product.offeringType === 'LEVEL' ? 'Stufe' : 'Paket'}
+                                        </Badge>
+                                    </div>
                                     <CardTitle className="text-xl">{product.title}</CardTitle>
                                 </CardHeader>
-                                <CardContent className="text-sm text-muted-foreground">
-                                    <p>
-                                        {product.offeringType === 'LEVEL' ? 'Stufe' : 'Paket'}
-                                        {' · '}
+                                <CardContent className="flex-1 text-sm text-muted-foreground">
+                                    <p className="text-lg font-semibold text-foreground">
                                         {formatMoney(
                                             product.priceCents,
                                             product.currency,
@@ -193,7 +201,7 @@ export default function PricingPage(): React.JSX.Element {
                                         )}
                                     </p>
                                     {product.description !== null && product.description !== '' ? (
-                                        <p className="mt-2">{product.description}</p>
+                                        <p className="mt-3 leading-6">{product.description}</p>
                                     ) : null}
                                 </CardContent>
                                 <CardFooter>

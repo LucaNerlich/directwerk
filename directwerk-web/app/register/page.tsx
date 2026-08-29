@@ -38,7 +38,7 @@ export default function RegisterPage() {
             if (input === null) {
                 return {
                     error:
-                        'Enter a valid email, a password of at least 12 characters, and an optional name.',
+                        'Bitte gültige E-Mail, ein Passwort mit mindestens 12 Zeichen und optional einen Namen eingeben.',
                 }
             }
 
@@ -57,7 +57,7 @@ export default function RegisterPage() {
                     error:
                         error instanceof Error
                             ? error.message
-                            : 'Registration failed. Please try again.',
+                            : 'Registrierung fehlgeschlagen. Bitte erneut versuchen.',
                 }
             }
         },

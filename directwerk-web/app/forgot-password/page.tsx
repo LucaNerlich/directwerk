@@ -33,7 +33,7 @@ export default function ForgotPasswordPage() {
             })
             if (input === null) {
                 return {
-                    error: 'Enter a valid email address.',
+                    error: 'Bitte eine gültige E-Mail-Adresse eingeben.',
                     success: false,
                     resetHref: null,
                 }
@@ -54,7 +54,7 @@ export default function ForgotPasswordPage() {
                     error:
                         error instanceof Error
                             ? error.message
-                            : 'Could not start the password reset. Please try again.',
+                            : 'Passwort-Reset konnte nicht gestartet werden. Bitte erneut versuchen.',
                     success: false,
                     resetHref: null,
                 }

@@ -35,7 +35,7 @@ export default function LoginPage() {
                 password: formData.get('password'),
             })
             if (input === null) {
-                return {error: 'Enter a valid email and a password of at least 12 characters.'}
+                return {error: 'Bitte gültige E-Mail und ein Passwort mit mindestens 12 Zeichen eingeben.'}
             }
 
             try {
@@ -48,7 +48,7 @@ export default function LoginPage() {
                     error:
                         error instanceof Error
                             ? error.message
-                            : 'Login failed. Please try again.',
+                            : 'Anmeldung fehlgeschlagen. Bitte erneut versuchen.',
                 }
             }
         },

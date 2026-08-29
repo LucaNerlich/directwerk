@@ -5,14 +5,18 @@ import {useState} from 'react'
 import useSWR from 'swr'
 
 import {Alert, AlertDescription} from '@directwerk/ui/components/alert'
+import {Badge} from '@directwerk/ui/components/badge'
 import {Button} from '@directwerk/ui/components/button'
 import PageHeader from '@directwerk/ui/components/page-header'
 import PageStack from '@directwerk/ui/components/page-stack'
 import ListPanel, {ListPanelRow} from '@directwerk/ui/components/list-panel'
 import SectionHeader from '@directwerk/ui/components/section-header'
 
-import HowToListen from '@/components/HowToListen'
 import CustomFeedsPanel from '@/components/CustomFeedsPanel'
+import FeedUrlDisplay from '@/components/FeedUrlDisplay'
+import HowToListen from '@/components/HowToListen'
+import {ListPanelSkeleton} from '@/components/ContentLoadingSkeleton'
+import SubscriberContextBanner from '@/components/SubscriberContextBanner'
 import {
     getSiteConfig,
     listPublicSeries,
@@ -117,6 +121,8 @@ export default function FeedsPage() {
                 description="Öffentliche Feeds für freie Folgen. Nach der Anmeldung kommt der private Feed für bezahlte Inhalte."
             />
 
+            <SubscriberContextBanner showWhenAuthenticated={false} />
+
             <HowToListen
                 isAuthenticated={isAuthenticated}
                 privateFeedUrl={
@@ -125,9 +131,9 @@ export default function FeedsPage() {
                 publicFeedUrl={podcastFeedUrl}
             />
 
-            {isLoading && (
-                <p className="text-sm text-muted-foreground">Öffentliche Feeds werden geladen…</p>
-            )}
+            {isLoading ? (
+                <ListPanelSkeleton rows={3} />
+            ) : null}
             {errorMessage !== null && (
                 <Alert variant="destructive">
                     <AlertDescription>{errorMessage}</AlertDescription>
@@ -144,15 +150,15 @@ export default function FeedsPage() {
                         <ListPanelRow>
                             <div className="min-w-0 flex-1">
                                 <p className="font-medium">Alle freien Folgen</p>
-                                <p className="mt-2 break-all text-sm text-muted-foreground">
-                                    {podcastFeedUrl !== null ? (
-                                        <a href={podcastFeedUrl} rel="noreferrer">
-                                            {podcastFeedUrl}
-                                        </a>
-                                    ) : (
-                                        'Kein öffentlicher Feed (PODCAST_RSS aus).'
-                                    )}
-                                </p>
+                                {podcastFeedUrl !== null ? (
+                                    <div className="mt-3">
+                                        <FeedUrlDisplay url={podcastFeedUrl} />
+                                    </div>
+                                ) : (
+                                    <p className="mt-2 text-sm text-muted-foreground">
+                                        Kein öffentlicher Feed (PODCAST_RSS aus).
+                                    </p>
+                                )}
                             </div>
                         </ListPanelRow>
                         {series.length === 0 ? (
@@ -167,21 +173,16 @@ export default function FeedsPage() {
                                 return (
                                     <ListPanelRow key={item.id}>
                                         <div className="min-w-0 flex-1">
-                                            <p className="font-medium">
-                                                {item.title}{' '}
-                                                <span className="font-normal text-muted-foreground">
-                                                    ({item.slug})
-                                                </span>
-                                            </p>
-                                            <p className="mt-2 break-all text-sm text-muted-foreground">
-                                                {feedUrl !== null ? (
-                                                    <a href={feedUrl} rel="noreferrer">
-                                                        {feedUrl}
-                                                    </a>
-                                                ) : (
-                                                    '—'
-                                                )}
-                                            </p>
+                                            <p className="font-medium">{item.title}</p>
+                                            {feedUrl !== null ? (
+                                                <div className="mt-3">
+                                                    <FeedUrlDisplay url={feedUrl} />
+                                                </div>
+                                            ) : (
+                                                <p className="mt-2 text-sm text-muted-foreground">
+                                                    Kein Feed für diese Sendung.
+                                                </p>
+                                            )}
                                         </div>
                                     </ListPanelRow>
                                 )
@@ -192,18 +193,21 @@ export default function FeedsPage() {
             )}
 
             <section className="flex flex-col gap-4">
-                <SectionHeader title="Dein privater Feed" />
+                <SectionHeader
+                    description="Enthält Folgen, die dein Abo freischaltet. Teile die URL nicht — sie ist persönlich."
+                    title="Dein privater Feed"
+                />
                 {!isAuthenticated ? (
-                    <p className="text-sm text-muted-foreground">
-                        <Link href="/login">Anmelden</Link>, um den privaten Feed für
-                        Folgen zu sehen, die du freigeschaltet hast.
-                    </p>
+                    <Alert>
+                        <AlertDescription>
+                            <Link href="/login">Anmelden</Link>, um den privaten Feed für
+                            Folgen zu sehen, die du freigeschaltet hast.
+                        </AlertDescription>
+                    </Alert>
                 ) : (
                     <>
                         {isPrivateLoading && (
-                            <p className="text-sm text-muted-foreground">
-                                Private Feeds werden geladen…
-                            </p>
+                            <ListPanelSkeleton rows={1} />
                         )}
                         {(privateError ?? feedActionError) !== null && (
                             <Alert variant="destructive">
@@ -223,24 +227,23 @@ export default function FeedsPage() {
                                         .filter((feed) => feed.isDefault)
                                         .map((feed) => (
                                         <ListPanelRow key={feed.id}>
-                                            <div className="min-w-0 flex-1">
-                                                <p className="font-medium">
-                                                    {feed.title}
-                                                    {feed.isDefault ? ' (Standard)' : ''}
-                                                </p>
-                                                <p className="mt-1 text-sm text-muted-foreground">
-                                                    {feed.enabled ? 'Aktiv' : 'Deaktiviert'} ·
-                                                    aktualisiert{' '}
+                                            <div className="min-w-0 flex-1 space-y-3">
+                                                <div className="flex flex-wrap items-center gap-2">
+                                                    <p className="font-medium">
+                                                        {feed.title}
+                                                    </p>
+                                                    <Badge variant={feed.enabled ? 'secondary' : 'outline'}>
+                                                        {feed.enabled ? 'Aktiv' : 'Deaktiviert'}
+                                                    </Badge>
+                                                </div>
+                                                <p className="text-sm text-muted-foreground">
+                                                    Aktualisiert{' '}
                                                     {formatPublishedAt(feed.updatedAt)}
                                                 </p>
                                                 {feed.enabled ? (
-                                                    <p className="mt-2 break-all text-sm">
-                                                        <a href={feed.url} rel="noreferrer">
-                                                            {feed.url}
-                                                        </a>
-                                                    </p>
+                                                    <FeedUrlDisplay url={feed.url} />
                                                 ) : (
-                                                    <p className="mt-2 text-sm text-muted-foreground">
+                                                    <p className="text-sm text-muted-foreground">
                                                         Dieser Feed ist derzeit deaktiviert.
                                                     </p>
                                                 )}

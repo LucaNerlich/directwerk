@@ -3,6 +3,7 @@
 import {useEffect, useState} from 'react'
 
 import {Alert, AlertDescription} from '@directwerk/ui/components/alert'
+import {Badge} from '@directwerk/ui/components/badge'
 import {Button} from '@directwerk/ui/components/button'
 import {Card, CardContent, CardHeader, CardTitle} from '@directwerk/ui/components/card'
 import {Checkbox} from '@directwerk/ui/components/checkbox'
@@ -10,6 +11,7 @@ import {Input} from '@directwerk/ui/components/input'
 import ListPanel, {ListPanelRow} from '@directwerk/ui/components/list-panel'
 import SectionHeader from '@directwerk/ui/components/section-header'
 
+import FeedUrlDisplay from '@/components/FeedUrlDisplay'
 import {
     createCustomFeed,
     deleteCustomFeed,
@@ -337,23 +339,23 @@ export default function CustomFeedsPanel({
                 <ListPanel>
                     {customFeeds.map((feed) => (
                         <ListPanelRow key={feed.id}>
-                            <div className="min-w-0 flex-1">
-                                <p className="font-medium">{feed.title}</p>
-                                <p className="mt-1 text-sm text-muted-foreground">
-                                    {feed.enabled ? 'Aktiv' : 'Deaktiviert'}
+                            <div className="min-w-0 flex-1 space-y-3">
+                                <div className="flex flex-wrap items-center gap-2">
+                                    <p className="font-medium">{feed.title}</p>
+                                    <Badge variant={feed.enabled ? 'secondary' : 'outline'}>
+                                        {feed.enabled ? 'Aktiv' : 'Deaktiviert'}
+                                    </Badge>
+                                </div>
+                                <p className="text-sm text-muted-foreground">
                                     {feed.formats.length > 0
-                                        ? ` · ${feed.formats.map((item) => item.name).join(', ')}`
-                                        : ''}{' '}
+                                        ? feed.formats.map((item) => item.name).join(', ')
+                                        : 'Keine Formate'}{' '}
                                     · aktualisiert {formatPublishedAt(feed.updatedAt)}
                                 </p>
                                 {feed.enabled ? (
-                                    <p className="mt-2 break-all text-sm">
-                                        <a href={feed.url} rel="noreferrer">
-                                            {feed.url}
-                                        </a>
-                                    </p>
+                                    <FeedUrlDisplay url={feed.url} />
                                 ) : (
-                                    <p className="mt-2 text-sm text-muted-foreground">
+                                    <p className="text-sm text-muted-foreground">
                                         Dieser Feed ist derzeit deaktiviert.
                                     </p>
                                 )}
