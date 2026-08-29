@@ -5,30 +5,24 @@ import {useRouter} from 'next/navigation'
 import {useCallback, useEffect, useState} from 'react'
 
 import {Alert, AlertDescription} from '@directwerk/ui/components/alert'
-import {Badge} from '@directwerk/ui/components/badge'
 import EmptyState from '@directwerk/ui/components/empty-state'
 import PageHeader from '@directwerk/ui/components/page-header'
 import PageStack from '@directwerk/ui/components/page-stack'
 import ResponsiveTable from '@directwerk/ui/components/responsive-table'
 import SectionHeader from '@directwerk/ui/components/section-header'
 import StatCard from '@directwerk/ui/components/stat-card'
-import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
-} from '@directwerk/ui/components/table'
 
 import CreateTenantForm from '@/components/CreateTenantForm'
-import {getPlatformData, getPlatformJobList} from '@/lib/api/client'
+import RecentAuditTable from '@/components/RecentAuditTable'
+import TenantListTable from '@/components/TenantListTable'
+import {getPlatformData, getPlatformJobList, getPlatformOverview} from '@/lib/api/client'
 import {AUTH_REQUIRED} from '@directwerk/api/constants'
-import type {PlatformAdmin, Tenant, TenantList} from '@directwerk/api/types'
+import type {PlatformOverview, TenantList} from '@directwerk/api/types'
 
-export default function HomePage() {
+export default function HomePage(): React.JSX.Element {
     const router = useRouter()
-    const [tenants, setTenants] = useState<Tenant[] | null>(null)
+    const [overview, setOverview] = useState<PlatformOverview | null>(null)
+    const [tenants, setTenants] = useState<TenantList['content'] | null>(null)
     const [adminCount, setAdminCount] = useState<number | null>(null)
     const [jobCount, setJobCount] = useState<number | null>(null)
     const [error, setError] = useState<string | null>(null)
@@ -42,13 +36,15 @@ export default function HomePage() {
         let active = true
 
         Promise.all([
+            getPlatformOverview(8),
             getPlatformData<TenantList>('tenants'),
-            getPlatformData<PlatformAdmin[]>('admins'),
+            getPlatformData<Array<{userId: number}>>('admins'),
             getPlatformJobList({limit: 1, offset: 0}),
         ])
-            .then(([result, admins, jobs]) => {
+            .then(([overviewResult, tenantResult, admins, jobs]) => {
                 if (active) {
-                    setTenants(result.content)
+                    setOverview(overviewResult)
+                    setTenants(tenantResult.content)
                     setAdminCount(admins.length)
                     setJobCount(jobs.total)
                     setError(null)
@@ -82,12 +78,18 @@ export default function HomePage() {
                 eyebrow="Platform administration"
                 title="Overview"
             />
-            {tenants !== null ? (
-                <section className="grid gap-3 sm:grid-cols-3">
+
+            {overview ? (
+                <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                     <StatCard
-                        hint={`${tenants.filter((tenant) => tenant.status === 'ACTIVE').length} active`}
-                        label="Tenants"
-                        value={tenants.length}
+                        footer={<Link href="/tenants">View tenants</Link>}
+                        label="Active tenants"
+                        value={overview.tenantCounts.active}
+                    />
+                    <StatCard
+                        footer={<Link href="/tenants">View suspended</Link>}
+                        label="Suspended tenants"
+                        value={overview.tenantCounts.suspended}
                     />
                     <StatCard
                         footer={<Link href="/admins">Manage admins</Link>}
@@ -101,48 +103,69 @@ export default function HomePage() {
                     />
                 </section>
             ) : null}
-            <SectionHeader title="Tenants" />
+
+            {overview && overview.moduleAdoption.length > 0 ? (
+                <section className="space-y-3">
+                    <SectionHeader title="Module adoption" />
+                    <ResponsiveTable label="Module adoption">
+                        <table className="w-full text-sm">
+                            <thead>
+                                <tr className="border-b text-left">
+                                    <th className="py-2 pr-4" scope="col">
+                                        Module
+                                    </th>
+                                    <th className="py-2" scope="col">
+                                        Tenants
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {overview.moduleAdoption.map((entry) => (
+                                    <tr key={entry.moduleKey} className="border-b">
+                                        <td className="py-2 pr-4">{entry.moduleKey}</td>
+                                        <td className="py-2">{entry.tenantCount}</td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </ResponsiveTable>
+                </section>
+            ) : null}
+
+            {overview ? (
+                <section className="space-y-3">
+                    <SectionHeader
+                        actions={<Link href="/audit">Full audit log</Link>}
+                        title="Recent audit events"
+                    />
+                    {overview.recentAudit.length > 0 ? (
+                        <RecentAuditTable compact events={overview.recentAudit} />
+                    ) : (
+                        <EmptyState title="No audit events yet" />
+                    )}
+                </section>
+            ) : null}
+
+            <SectionHeader
+                actions={<Link href="/tenants">All tenants</Link>}
+                title="Tenants"
+            />
+
             {error ? (
                 <Alert variant="destructive">
                     <AlertDescription>{error}</AlertDescription>
                 </Alert>
             ) : null}
+
             {!error && tenants === null ? (
                 <p aria-live="polite" className="text-sm text-muted-foreground">
                     Loading tenants…
                 </p>
             ) : null}
+
             {tenants ? (
                 tenants.length > 0 ? (
-                    <ResponsiveTable label="Tenants">
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead scope="col">Name</TableHead>
-                                    <TableHead scope="col">Slug</TableHead>
-                                    <TableHead scope="col">Status</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {tenants.map((tenant) => (
-                                    <TableRow key={tenant.id}>
-                                        <TableCell>
-                                            <Link
-                                                className="font-medium underline-offset-4 hover:underline"
-                                                href={`/tenants/${tenant.id}`}
-                                            >
-                                                {tenant.name}
-                                            </Link>
-                                        </TableCell>
-                                        <TableCell>{tenant.slug}</TableCell>
-                                        <TableCell>
-                                            <Badge variant="outline">{tenant.status}</Badge>
-                                        </TableCell>
-                                    </TableRow>
-                                ))}
-                            </TableBody>
-                        </Table>
-                    </ResponsiveTable>
+                    <TenantListTable showFilters={false} tenants={tenants} />
                 ) : (
                     <EmptyState
                         description="Create the first tenant to begin."

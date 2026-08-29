@@ -6,8 +6,17 @@ import {
     parsePaginatedApiEnvelope,
 } from '@directwerk/api/client/platformApiCore'
 import {platformAdminPolicy} from '@directwerk/api/client/policies'
-import type {JobListPage, JobListQuery, PlatformAuditEvent} from '@directwerk/api/types'
+import {parseApiEnvelope} from '@directwerk/api/envelope'
+import type {
+    JobListPage,
+    JobListQuery,
+    PlatformAuditEvent,
+    PlatformAuditPage,
+    PlatformAuditQuery,
+    PlatformOverview,
+} from '@directwerk/api/types'
 import {isQueueJob} from '@directwerk/api/validation/admin'
+import {isRecord} from '@directwerk/api/validation/primitives'
 
 import {clearTokens} from '../auth/tokenStore'
 import {getValidAccessToken, refreshAccessToken} from '../auth/session'
@@ -35,8 +44,78 @@ export async function deletePlatformData<T>(path: string): Promise<T> {
     return platformApi.delete<T>(path)
 }
 
-export async function getPlatformAuditLog(limit = 50): Promise<PlatformAuditEvent[]> {
-    return getPlatformData(`audit?limit=${limit}`)
+function isPlatformAuditEvent(value: unknown): value is PlatformAuditEvent {
+    return (
+        isRecord(value) &&
+        typeof value.id === 'number' &&
+        typeof value.action === 'string' &&
+        typeof value.createdAt === 'string'
+    )
+}
+
+function buildAuditQueryString(query: PlatformAuditQuery): string {
+    const params = new URLSearchParams()
+
+    if (query.page !== undefined) {
+        params.set('page', String(query.page))
+    }
+
+    if (query.size !== undefined) {
+        params.set('size', String(query.size))
+    }
+
+    if (query.tenantId !== undefined) {
+        params.set('tenantId', String(query.tenantId))
+    }
+
+    if (query.action !== undefined && query.action.length > 0) {
+        params.set('action', query.action)
+    }
+
+    if (query.actorEmail !== undefined && query.actorEmail.length > 0) {
+        params.set('actorEmail', query.actorEmail)
+    }
+
+    const queryString = params.toString()
+    return queryString.length > 0 ? `?${queryString}` : ''
+}
+
+export async function getPlatformAuditPage(
+    query: PlatformAuditQuery,
+): Promise<PlatformAuditPage> {
+    const raw = await authedFetch(
+        `/api/proxy/audit${buildAuditQueryString(query)}`,
+        {cache: 'no-store'},
+    )
+
+    if (raw === null) {
+        return {content: [], totalElements: 0, page: 0, size: query.size ?? 50}
+    }
+
+    const envelope = parseApiEnvelope<PlatformAuditEvent[]>(raw)
+    const metadata = isRecord(envelope.metadata) ? envelope.metadata : {}
+
+    const content = Array.isArray(envelope.data)
+        ? envelope.data.filter(isPlatformAuditEvent)
+        : []
+
+    return {
+        content,
+        totalElements:
+            typeof metadata.totalElements === 'number'
+                ? metadata.totalElements
+                : content.length,
+        page: typeof metadata.page === 'number' ? metadata.page : query.page ?? 0,
+        size: typeof metadata.size === 'number' ? metadata.size : query.size ?? 50,
+    }
+}
+
+export async function getPlatformOverview(
+    recentAuditLimit = 10,
+): Promise<PlatformOverview> {
+    return getPlatformData<PlatformOverview>(
+        `overview?recentAuditLimit=${recentAuditLimit}`,
+    )
 }
 
 function buildJobListQueryString(query: JobListQuery): string {

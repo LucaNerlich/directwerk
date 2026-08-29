@@ -18,4 +18,5 @@ public final class ConflictCodes {
     public static final String PRODUCT_SLUG_EXISTS = "PRODUCT_SLUG_EXISTS";
     public static final String USER_EXISTS = "USER_EXISTS";
     public static final String USER_ALREADY_MEMBER = "USER_ALREADY_MEMBER";
+    public static final String INVALID_MEMBERSHIP_STATE = "INVALID_MEMBERSHIP_STATE";
 }

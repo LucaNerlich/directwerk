@@ -31,6 +31,7 @@ async function getTenantModules(tenantId: string): Promise<TenantModules> {
 export async function loadTenantModulesPanelData(tenantId: string): Promise<{
     catalog: ModuleDescriptor[]
     enabledModules: Set<string>
+    activations: TenantModuleActivation[]
 }> {
     const [catalog, tenantModules] = await Promise.all([
         listPlatformModules(),
@@ -39,6 +40,7 @@ export async function loadTenantModulesPanelData(tenantId: string): Promise<{
     return {
         catalog,
         enabledModules: new Set(tenantModules.enabledModules),
+        activations: tenantModules.activations ?? [],
     }
 }
 

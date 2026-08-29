@@ -20,6 +20,8 @@ import {AUTH_REQUIRED, REQUEST_FAILED} from '@directwerk/api/constants'
 import type {
     ModuleDescriptor,
     ModulePresetKey,
+    TenantModuleActivation,
+    TenantModules,
 } from '@directwerk/api/types'
 import {MODULE_PRESETS} from '@directwerk/api/types'
 
@@ -41,6 +43,7 @@ export default function TenantModulesPanel({tenantId}: TenantModulesPanelProps) 
     routerRef.current = router
     const [catalog, setCatalog] = useState<ModuleDescriptor[]>([])
     const [enabled, setEnabled] = useState<Set<string>>(new Set())
+    const [activations, setActivations] = useState<TenantModuleActivation[]>([])
     const [error, setError] = useState<string | null>(null)
     const [status, setStatus] = useState<string | null>(null)
     const [isLoading, setIsLoading] = useState(true)
@@ -52,13 +55,14 @@ export default function TenantModulesPanel({tenantId}: TenantModulesPanelProps) 
         setIsLoading(true)
 
         loadTenantModulesPanelData(tenantId)
-            .then(({catalog: modules, enabledModules}) => {
+            .then(({catalog: modules, enabledModules, activations: activationRows}) => {
                 if (!isCurrent) {
                     return
                 }
 
                 setCatalog(modules)
                 setEnabled(enabledModules)
+                setActivations(activationRows)
                 setIsLoading(false)
             })
             .catch((requestError: unknown) => {
@@ -89,7 +93,7 @@ export default function TenantModulesPanel({tenantId}: TenantModulesPanelProps) 
 
     async function runMutation(
         key: string,
-        action: () => Promise<{enabledModules: string[]}>,
+        action: () => Promise<TenantModules>,
         successMessage: string,
     ): Promise<void> {
         setBusyKey(key)
@@ -98,8 +102,9 @@ export default function TenantModulesPanel({tenantId}: TenantModulesPanelProps) 
 
         try {
             const result = await action()
-            setEnabled(new Set(result.enabledModules))
-            setStatus(successMessage)
+                setEnabled(new Set(result.enabledModules))
+                setActivations(result.activations ?? [])
+                setStatus(successMessage)
         } catch (requestError: unknown) {
             if (
                 requestError instanceof Error &&
@@ -291,6 +296,38 @@ export default function TenantModulesPanel({tenantId}: TenantModulesPanelProps) 
                             </Button>
                         ))}
                     </div>
+
+                    {activations.length > 0 ? (
+                        <>
+                            <h3>Activation log</h3>
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead scope="col">Module</TableHead>
+                                        <TableHead scope="col">Active</TableHead>
+                                        <TableHead scope="col">Source</TableHead>
+                                        <TableHead scope="col">Activated</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {activations.map((activation) => (
+                                        <TableRow key={activation.moduleKey}>
+                                            <TableCell>{activation.moduleKey}</TableCell>
+                                            <TableCell>
+                                                <Badge variant={activation.active ? 'default' : 'outline'}>
+                                                    {activation.active ? 'Yes' : 'No'}
+                                                </Badge>
+                                            </TableCell>
+                                            <TableCell>{activation.source}</TableCell>
+                                            <TableCell>
+                                                {new Date(activation.activatedAt).toLocaleString()}
+                                            </TableCell>
+                                        </TableRow>
+                                    ))}
+                                </TableBody>
+                            </Table>
+                        </>
+                    ) : null}
                 </>
             ) : null}
             </CardContent>

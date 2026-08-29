@@ -7,6 +7,7 @@ import de.pnnit.directwerk.modules.core.entity.PlatformAdmin;
 import de.pnnit.directwerk.modules.core.entity.User;
 import de.pnnit.directwerk.modules.core.entity.UserStatus;
 import de.pnnit.directwerk.modules.core.repository.PlatformAdminRepository;
+import de.pnnit.directwerk.modules.core.repository.TenantMembershipRepository;
 import de.pnnit.directwerk.modules.core.repository.UserRepository;
 import de.pnnit.directwerk.modules.core.util.EmailNormalizer;
 import de.pnnit.directwerk.modules.email.TransactionalEmailNotifier;
@@ -24,6 +25,7 @@ public class PlatformAdminManagementService {
 
     private final PlatformAdminRepository platformAdminRepository;
     private final UserRepository userRepository;
+    private final TenantMembershipRepository tenantMembershipRepository;
     private final InvitationTokenService invitationTokenService;
     private final TransactionalEmailNotifier transactionalEmailNotifier;
     private final UserProvisioningService userProvisioningService;
@@ -40,7 +42,8 @@ public class PlatformAdminManagementService {
                 .map(admin -> new PlatformAdminView(
                         admin.getUser().getId(),
                         admin.getUser().getEmail(),
-                        admin.getUser().getName()
+                        admin.getUser().getName(),
+                        tenantMembershipRepository.findMaxLastLoginAtByUserId(admin.getUser().getId()).orElse(null)
                 ))
                 .toList();
     }
@@ -62,7 +65,7 @@ public class PlatformAdminManagementService {
         User user = userProvisioningService.findOrCreatePendingUser(normalizedEmail, name);
 
         if (platformAdminRepository.findByUserId(user.getId()).isPresent()) {
-            return new PlatformAdminInvitation(view(user), user.getStatus().name(), null);
+            return new PlatformAdminInvitation(viewWithLastLogin(user), user.getStatus().name(), null);
         }
 
         // Never promote solely on an email match. The PlatformAdmin row is created only when the
@@ -83,11 +86,15 @@ public class PlatformAdminManagementService {
                 inviteToken,
                 InvitationTokenService.tokenLifetime()
         );
-        return new PlatformAdminInvitation(view(user), user.getStatus().name(), inviteToken);
+        return new PlatformAdminInvitation(viewWithLastLogin(user), user.getStatus().name(), inviteToken);
     }
 
-    private static PlatformAdminView view(User user) {
-        return new PlatformAdminView(user.getId(), user.getEmail(), user.getName());
+    private static PlatformAdminView view(User user, java.time.Instant lastLoginAt) {
+        return new PlatformAdminView(user.getId(), user.getEmail(), user.getName(), lastLoginAt);
+    }
+
+    private PlatformAdminView viewWithLastLogin(User user) {
+        return view(user, tenantMembershipRepository.findMaxLastLoginAtByUserId(user.getId()).orElse(null));
     }
 
     /**
@@ -112,21 +119,22 @@ public class PlatformAdminManagementService {
             throw new CannotRevokeLastPlatformAdminException(userId);
         }
 
-        PlatformAdminView view = new PlatformAdminView(
-                admin.getUser().getId(),
-                admin.getUser().getEmail(),
-                admin.getUser().getName()
-        );
+        PlatformAdminView revokedView = viewWithLastLogin(admin.getUser());
         platformAdminRepository.delete(admin);
         platformAuditService.record(
                 PlatformAuditActions.PLATFORM_ADMIN_REVOKED,
                 null,
                 Map.of("userId", userId, "email", admin.getUser().getEmail())
         );
-        return view;
+        return revokedView;
     }
 
-    public record PlatformAdminView(Long userId, String email, String name) {
+    public record PlatformAdminView(
+            Long userId,
+            String email,
+            String name,
+            java.time.Instant lastLoginAt
+    ) {
     }
 
     public record PlatformAdminInvitation(PlatformAdminView admin, String status, String inviteToken) {

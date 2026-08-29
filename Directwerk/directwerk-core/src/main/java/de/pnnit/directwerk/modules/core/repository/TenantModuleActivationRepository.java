@@ -14,7 +14,18 @@ public interface TenantModuleActivationRepository extends JpaRepository<TenantMo
 
     List<TenantModuleActivation> findByTenantIdAndActiveTrue(Long tenantId);
 
+    List<TenantModuleActivation> findByTenantIdOrderByModuleKeyAsc(Long tenantId);
+
     Optional<TenantModuleActivation> findByTenantIdAndModuleKey(Long tenantId, String moduleKey);
+
+    @Query("""
+            select activation.moduleKey, count(distinct activation.tenant.id)
+            from TenantModuleActivation activation
+            where activation.active = true
+            group by activation.moduleKey
+            order by activation.moduleKey asc
+            """)
+    List<Object[]> countActiveTenantsGroupedByModule();
 
     @Query("""
             select distinct activation.tenant.id

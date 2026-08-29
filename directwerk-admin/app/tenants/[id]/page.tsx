@@ -21,14 +21,16 @@ import TenantSessionPanel from '@/components/TenantSessionPanel'
 import TenantUserActions from '@/components/TenantUserActions'
 import {getPlatformData, postPlatformData} from '@/lib/api/client'
 import {AUTH_REQUIRED, REQUEST_FAILED} from '@directwerk/api/constants'
-import type {Tenant, TenantUser, TenantUsers} from '@directwerk/api/types'
+import type {TenantDetail, TenantDetailResponse, TenantUser, TenantUsers} from '@directwerk/api/types'
 
 interface TenantPageProps {
     params: Promise<{id: string}>
 }
 
 interface TenantPageData {
-    tenant: Tenant
+    tenant: TenantDetail
+    episodeCount: number
+    subscriberCount: number
     users: TenantUser[]
 }
 
@@ -56,16 +58,18 @@ export default function TenantPage({params}: TenantPageProps) {
         let isCurrent = true
 
         Promise.all([
-            getPlatformData<Tenant>(`tenants/${id}`),
+            getPlatformData<TenantDetailResponse>(`tenants/${id}`),
             getPlatformData<TenantUsers>(`tenants/${id}/users`),
         ])
-            .then(([tenant, users]) => {
+            .then(([tenantResponse, users]) => {
                 if (!isCurrent) {
                     return
                 }
 
                 setData({
-                    tenant,
+                    tenant: tenantResponse.tenant,
+                    episodeCount: tenantResponse.episodeCount,
+                    subscriberCount: tenantResponse.subscriberCount,
                     users: users.content,
                 })
                 setIsInitialLoad(false)
@@ -105,12 +109,12 @@ export default function TenantPage({params}: TenantPageProps) {
         setLifecycleStatus(null)
 
         try {
-            const tenant = await postPlatformData<Tenant>(path, {})
+            const tenantResponse = await postPlatformData<TenantDetail>(path, {})
             setData((current) =>
                 current
                     ? {
                           ...current,
-                          tenant,
+                          tenant: tenantResponse,
                       }
                     : current
             )
@@ -159,8 +163,42 @@ export default function TenantPage({params}: TenantPageProps) {
                             <dd>{data.tenant.slug}</dd>
                             <dt>Status</dt>
                             <dd><Badge variant="outline">{data.tenant.status}</Badge></dd>
+                            <dt>Created</dt>
+                            <dd>{new Date(data.tenant.createdAt).toLocaleString()}</dd>
+                            <dt>Primary domain</dt>
+                            <dd>{data.tenant.primaryDomain ?? '—'}</dd>
+                            <dt>Episodes</dt>
+                            <dd>{data.episodeCount}</dd>
+                            <dt>Subscribers</dt>
+                            <dd>{data.subscriberCount}</dd>
                             </dl></CardContent>
                         </Card>
+
+                        {data.tenant.domains.length > 0 ? (
+                            <Card>
+                                <CardHeader><CardTitle>Domains</CardTitle></CardHeader>
+                                <CardContent>
+                                    <Table>
+                                        <TableHeader>
+                                            <TableRow>
+                                                <TableHead scope="col">Host</TableHead>
+                                                <TableHead scope="col">Primary</TableHead>
+                                                <TableHead scope="col">Verified</TableHead>
+                                            </TableRow>
+                                        </TableHeader>
+                                        <TableBody>
+                                            {data.tenant.domains.map((domain) => (
+                                                <TableRow key={domain.host}>
+                                                    <TableCell>{domain.host}</TableCell>
+                                                    <TableCell>{domain.primary ? 'Yes' : 'No'}</TableCell>
+                                                    <TableCell>{domain.verified ? 'Yes' : 'No'}</TableCell>
+                                                </TableRow>
+                                            ))}
+                                        </TableBody>
+                                    </Table>
+                                </CardContent>
+                            </Card>
+                        ) : null}
 
                         <TenantEditForm
                             onUpdated={(tenant) =>
@@ -243,6 +281,7 @@ export default function TenantPage({params}: TenantPageProps) {
                                         <TableHead scope="col">Email</TableHead>
                                         <TableHead scope="col">Roles</TableHead>
                                         <TableHead scope="col">Status</TableHead>
+                                        <TableHead scope="col">Last login</TableHead>
                                         <TableHead scope="col">Actions</TableHead>
                                     </TableRow>
                                 </TableHeader>
@@ -253,6 +292,11 @@ export default function TenantPage({params}: TenantPageProps) {
                                             <TableCell>{user.email}</TableCell>
                                             <TableCell>{user.roles.join(', ')}</TableCell>
                                             <TableCell><Badge variant="outline">{user.status}</Badge></TableCell>
+                                            <TableCell>
+                                                {user.lastLoginAt
+                                                    ? new Date(user.lastLoginAt).toLocaleString()
+                                                    : '—'}
+                                            </TableCell>
                                             <TableCell>
                                                 <TenantUserActions
                                                     onChanged={loadTenantData}

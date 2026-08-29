@@ -183,7 +183,9 @@ public class TenantMembershipManagementService {
                 membership.getUser().getEmail(),
                 membership.getUser().getName(),
                 membership.getRoles().stream().map(Enum::name).sorted().toList(),
-                membership.getStatus().name()
+                membership.getStatus().name(),
+                membership.getInvitedAt(),
+                membership.getLastLoginAt()
         );
     }
 }
