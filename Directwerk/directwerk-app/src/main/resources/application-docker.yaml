@@ -56,7 +56,6 @@ directwerk:
         issuer: ${DIRECTWERK_ISSUER}
         platform-client-secret: ${DIRECTWERK_PLATFORM_CLIENT_SECRET}
         tenant-client-secret: ${DIRECTWERK_TENANT_CLIENT_SECRET}
-        allow-token-domain-verification: ${DIRECTWERK_ALLOW_TOKEN_DOMAIN_VERIFICATION:true}
     account:
         email-verification-required: ${DIRECTWERK_ACCOUNT_EMAIL_VERIFICATION_REQUIRED:false}
         expose-dev-tokens: ${DIRECTWERK_ACCOUNT_EXPOSE_DEV_TOKENS:true}

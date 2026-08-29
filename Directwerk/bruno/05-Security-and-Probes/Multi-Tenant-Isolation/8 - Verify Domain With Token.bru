@@ -1,36 +1,4 @@
-meta {
-  name: 8 - Verify Domain With Token
-  type: http
-  seq: 8
-}
-
-post {
-  url: {{baseUrl}}/api/v1/tenant/domains/{{isolationUnverifiedHost}}/verify
-  body: json
-  auth: bearer
-}
-
-headers {
-  Host: {{tenantAHost}}
-  Content-Type: application/json
-}
-
-auth:bearer {
-  token: {{tenantAAccessToken}}
-}
-
-body:json {
-  {
-    "token": "{{isolationVerifyToken}}"
-  }
-}
-
-tests {
-  test("returns expected status", function() {
-    expect(res.getStatus() === 200 || res.getStatus() === 400).to.equal(true);
-  });
-}
-
-docs {
-  200 requires directwerk.security.allow-token-domain-verification=true (local profile); 400 if that's off (falls back to a genuine DNS TXT check). Note: as of the current controller implementation, the token body field is accepted but not actually read -- verifyDomain always does a DNS-style check with forceVerify=false; sent here for forward-compat / documentation.
-}
+meta { name: Verify Domain type: http seq: 4 }
+post { url: {{baseUrl}}/api/v1/tenant/domains/{{isolationUnverifiedHost}}/verify body: none auth: inherit }
+tests { test("status", function() { expect(res.getStatus()===200||res.getStatus()===400).to.equal(true); }); }
+docs { DNS TXT required; use platform force-verify locally without DNS. }

@@ -24,15 +24,7 @@ public class DirectwerkConfig {
         return properties.security();
     }
 
-    /**
-     * Whether domain verification may succeed by presenting the stored token (local/dev).
-     */
-    public boolean isAllowTokenDomainVerification() {
-        return properties.security() != null
-                && Boolean.TRUE.equals(properties.security().allowTokenDomainVerification());
-    }
-
-    public DirectwerkProperties.Dev dev() {
+public DirectwerkProperties.Dev dev() {
         return properties.dev();
     }
 

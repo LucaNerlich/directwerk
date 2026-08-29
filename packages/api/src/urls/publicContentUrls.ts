@@ -13,6 +13,7 @@ export function publicEpisodePageUrl(
     if (origin === null || episodeSlug.trim().length === 0) {
         return null
     }
+
     return `${origin}/episodes/${encodeURIComponent(episodeSlug.trim())}`
 }
 
@@ -24,5 +25,6 @@ export function publicArticlePageUrl(
     if (origin === null || articleSlug.trim().length === 0) {
         return null
     }
+
     return `${origin}/articles/${encodeURIComponent(articleSlug.trim())}`
 }

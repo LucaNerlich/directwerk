@@ -132,15 +132,10 @@ public class TenantAdminController {
      * @return the verified domain details
      */
     @PostMapping("/domains/{host:.+}/verify")
-    ResponseEntity<Response<DomainView>> verifyDomain(
-            @PathVariable String host,
-            @RequestBody(required = false) VerifyDomainRequest request
-    ) {
+    ResponseEntity<Response<DomainView>> verifyDomain(@PathVariable String host) {
         TenantDomain domain = tenantDomainService.verifyDomain(
                 TenantContext.requireTenantId(),
-                host,
-                null,
-                false
+                host
         );
         return ResponseEntity.ok(Response.ok(new DomainView(domain.getHost(), domain.isPrimary(), domain.isVerified())));
     }
@@ -235,8 +230,6 @@ public class TenantAdminController {
     public record AddDomainRequest(@NotBlank String host, boolean isPrimary) {
     }
 
-    public record VerifyDomainRequest(String token) {
-    }
 
     public record DomainVerificationView(
             String host,

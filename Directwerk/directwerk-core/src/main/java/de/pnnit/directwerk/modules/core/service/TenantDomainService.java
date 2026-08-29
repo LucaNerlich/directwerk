@@ -128,47 +128,18 @@ public class TenantDomainService {
         );
     }
 
-    /**
-     * Verifies domain ownership using a DNS TXT record or, when enabled, the presented verification token.
-     *
-     * @param tenantId            the tenant identifier
-     * @param host                the domain host to verify
-     * @param presentedToken      the verification token supplied for optional fallback verification
-     * @param allowTokenFallback  whether token-based verification is permitted
-     * @return the verified domain
-     */
-    // Transactional because the protected helper methods below are invoked on `this`
-    // (self-invocation bypasses the Spring proxy, so their own annotations are dead).
-    // Wrapping verifyDomain makes verification state and audit record commit atomically.
-    // The DNS lookup now sits inside the transaction - an accepted trade-off for this rare
-    // admin operation.
+    /** Verifies domain ownership using a DNS TXT record. */
     @Transactional
-    public TenantDomain verifyDomain(
-            Long tenantId,
-            String host,
-            String presentedToken,
-            boolean allowTokenFallback
-    ) {
+    public TenantDomain verifyDomain(Long tenantId, String host) {
         TenantDomain domain = requireDomainForVerification(tenantId, host);
-        if (domain.isVerified()) {
-            return domain;
-        }
-
+        if (domain.isVerified()) return domain;
         boolean dnsMatched = domainDnsLookup.lookupTxt(domain.getHost()).stream()
                 .anyMatch(value -> matchesVerificationRecord(value, domain.getVerificationToken()));
-        boolean tokenMatched = allowTokenFallback
-                && StringUtils.hasText(presentedToken)
-                && domain.getVerificationToken().equals(presentedToken.trim());
-
-        if (!dnsMatched && !tokenMatched) {
-            throw new DomainVerificationException(
-                    "Domain verification failed for " + domain.getHost()
-                            + ". Publish a TXT record with value "
-                            + DNS_TXT_PREFIX + domain.getVerificationToken()
-            );
-        }
-
-        return persistVerification(tenantId, host, dnsMatched);
+        if (!dnsMatched) throw new DomainVerificationException(
+                "Domain verification failed for " + domain.getHost()
+                        + ". Publish a TXT record with value "
+                        + DNS_TXT_PREFIX + domain.getVerificationToken());
+        return persistVerification(tenantId, host, true);
     }
 
     /**
