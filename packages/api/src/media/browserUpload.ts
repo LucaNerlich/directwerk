@@ -154,11 +154,7 @@ export async function uploadMediaFileBrowser(
                 return
             }
 
-            try {
-                resolve(parseUploadedMediaAsset(value))
-            } catch (error) {
-                reject(error)
-            }
+            resolve(parseUploadedMediaAsset(value))
         }
 
         xhr.onerror = () => {

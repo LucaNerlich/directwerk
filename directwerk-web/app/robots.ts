@@ -9,17 +9,11 @@ function originFromHost(raw: string): string {
 export const dynamic = 'force-dynamic'
 
 export default async function robots(): Promise<MetadataRoute.Robots> {
-    let origin = 'https://localhost'
-    try {
-        const headerStore = await headers()
-        const rawHost =
-            headerStore.get('x-forwarded-host') ?? headerStore.get('host')
-        if (rawHost !== null) {
-            origin = originFromHost(rawHost)
-        }
-    } catch {
-        // Fall through with the default origin.
-    }
+    const headerStore = await headers()
+    const rawHost =
+        headerStore.get('x-forwarded-host') ?? headerStore.get('host')
+    const origin =
+        rawHost !== null ? originFromHost(rawHost) : 'https://localhost'
 
     return {
         rules: {

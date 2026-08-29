@@ -12,17 +12,11 @@ function originFromHost(raw: string): string {
 export const dynamic = 'force-dynamic'
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-    let origin = 'https://localhost'
-    try {
-        const headerStore = await headers()
-        const rawHost =
-            headerStore.get('x-forwarded-host') ?? headerStore.get('host')
-        if (rawHost !== null) {
-            origin = originFromHost(rawHost)
-        }
-    } catch {
-        // Fall through with the default origin.
-    }
+    const headerStore = await headers()
+    const rawHost =
+        headerStore.get('x-forwarded-host') ?? headerStore.get('host')
+    const origin =
+        rawHost !== null ? originFromHost(rawHost) : 'https://localhost'
 
     const staticRoutes: MetadataRoute.Sitemap = [
         '',

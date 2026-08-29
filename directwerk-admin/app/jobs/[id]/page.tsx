@@ -36,11 +36,7 @@ function formatTimestamp(value: string | null): string {
 }
 
 function formatPayload(payload: unknown): string {
-    try {
-        return JSON.stringify(payload, null, 2)
-    } catch {
-        return String(payload)
-    }
+    return JSON.stringify(payload, null, 2)
 }
 
 const ADMIN_WORKER = 'platform-admin-ui'
