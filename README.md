@@ -147,8 +147,7 @@ Stripe scaffold.
 **In progress / env-dependent:** live Stripe billing in production, Patreon/Steady dual-run,
 subscriber email notifications, backend CI on every PR.
 
-Historical phase notes: [`docs/poc-alpha-setup.md`](docs/poc-alpha-setup.md),
-[`docs/phase-2e-4-4b-implementation.md`](docs/phase-2e-4-4b-implementation.md).
+Historical phase notes: [`docs/poc-alpha-setup.md`](docs/poc-alpha-setup.md).
 
 ---
 
