@@ -1,12 +1,9 @@
 import 'server-only'
 
-import {
-    buildPlatformApiPath,
-    safeUpstreamResponse,
-} from '@directwerk/api/server'
+import {safeUpstreamResponse} from '@directwerk/api/server'
 import type {MediaAsset} from '@directwerk/api/types'
 import {ASSET_TYPES, ASSET_VISIBILITIES} from '@directwerk/api/types'
-import {parseMediaAssetEnvelope} from '@directwerk/api/validation/catalog'
+import {parseMediaAssetEnvelope, parseUploadUrlResponse} from '@directwerk/api/validation/catalog'
 import {isRecord} from '@directwerk/api/validation/primitives'
 
 import {createConfiguredPlatformApiRequest} from '@/lib/server/api'
@@ -28,19 +25,6 @@ export type MediaUploadOutcome =
           retryConfirm?: boolean
       }
 
-interface MediaUploadUrlData {
-    assetId: number
-    uploadUrl: string
-    headers?: Record<string, string>
-}
-
-function isMediaUploadUrlData(value: unknown): value is MediaUploadUrlData {
-    return (
-        isRecord(value) &&
-        typeof value.assetId === 'number' &&
-        typeof value.uploadUrl === 'string'
-    )
-}
 
 function isHttpsUrl(value: string): boolean {
     try {
@@ -104,12 +88,6 @@ export async function performTenantMediaUpload(
     }
 
     try {
-        buildPlatformApiPath(['tenants', tenantId, 'media', 'upload-url'])
-    } catch {
-        return {ok: false, status: 400, body: {error: 'Invalid platform API path.'}}
-    }
-
-    try {
         const uploadUrlRequest = createConfiguredPlatformApiRequest(
             ['tenants', tenantId, 'media', 'upload-url'],
             new Request('http://admin.local/api/internal', {
@@ -136,8 +114,8 @@ export async function performTenantMediaUpload(
             }
         }
 
-        const uploadData = readEnvelopeData(await uploadUrlUpstream.json())
-        if (!isMediaUploadUrlData(uploadData) || !isHttpsUrl(uploadData.uploadUrl)) {
+        const uploadData = parseUploadUrlResponse(readEnvelopeData(await uploadUrlUpstream.json()))
+        if (uploadData === null || !isHttpsUrl(uploadData.uploadUrl)) {
             return {
                 ok: false,
                 status: 502,

@@ -22,12 +22,7 @@ export function formatMoney(
         return nullLabel
     }
     const code = currency && currency.length === 3 ? currency : 'EUR'
-    let amount: string
-    try {
-        amount = formatCurrencyCents(priceCents, code)
-    } catch {
-        amount = formatCurrencyCents(priceCents, 'EUR')
-    }
+    const amount = formatCurrencyCents(priceCents, code)
     if (interval === 'MONTH') {
         return `${amount} / Monat`
     }
