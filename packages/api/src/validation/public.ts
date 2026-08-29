@@ -73,6 +73,7 @@ export function parsePublicSiteConfigEnvelope(
                 isAllowedFeedUrl(data.publicRssUrl)
                     ? data.publicRssUrl
                     : null,
+            emailNotifyAvailable: data.emailNotifyAvailable === true,
         }
     })
 }
@@ -655,14 +656,22 @@ export function parseSubscriptionListEnvelope(
 
 export interface NotificationPreferences {
     emailNotificationsEnabled: boolean
+    emailNotifyAvailable: boolean
 }
 
 function parseNotificationPreferences(value: unknown): NotificationPreferences | null {
-    if (!isRecord(value) || typeof value.emailNotificationsEnabled !== 'boolean') {
+    if (
+        !isRecord(value) ||
+        typeof value.emailNotificationsEnabled !== 'boolean' ||
+        typeof value.emailNotifyAvailable !== 'boolean'
+    ) {
         return null
     }
 
-    return {emailNotificationsEnabled: value.emailNotificationsEnabled}
+    return {
+        emailNotificationsEnabled: value.emailNotificationsEnabled,
+        emailNotifyAvailable: value.emailNotifyAvailable,
+    }
 }
 
 export function parseNotificationPreferencesEnvelope(

@@ -31,8 +31,9 @@ public class MeNotificationPreferencesController {
             @AuthenticationPrincipal DirectwerkUserPrincipal principal
     ) {
         DirectwerkUserPrincipal user = SecurityUtils.requireTenantPrincipal(principal);
+        boolean available = notificationPreferenceService.isEmailNotifyAvailable(user.tenantId());
         boolean enabled = notificationPreferenceService.isEmailNotificationsEnabled(user.tenantId(), user.userId());
-        return ResponseEntity.ok(Response.ok(new NotificationPreferencesView(enabled)));
+        return ResponseEntity.ok(Response.ok(new NotificationPreferencesView(enabled, available)));
     }
 
     @PatchMapping
@@ -46,10 +47,16 @@ public class MeNotificationPreferencesController {
                 user.userId(),
                 request.emailNotificationsEnabled()
         );
-        return ResponseEntity.ok(Response.ok(new NotificationPreferencesView(request.emailNotificationsEnabled())));
+        boolean available = notificationPreferenceService.isEmailNotifyAvailable(user.tenantId());
+        return ResponseEntity.ok(Response.ok(
+                new NotificationPreferencesView(request.emailNotificationsEnabled(), available)
+        ));
     }
 
-    public record NotificationPreferencesView(boolean emailNotificationsEnabled) {
+    public record NotificationPreferencesView(
+            boolean emailNotificationsEnabled,
+            boolean emailNotifyAvailable
+    ) {
     }
 
     public record UpdateNotificationPreferencesRequest(@NotNull Boolean emailNotificationsEnabled) {

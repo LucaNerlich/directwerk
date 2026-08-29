@@ -23,18 +23,28 @@ public class SubscriberNotificationGate {
     private final ModuleGateService moduleGateService;
 
     /**
+     * Whether this tenant can offer or deliver subscriber email notifications right now.
+     */
+    public boolean availableForTenant(Long tenantId) {
+        if (!directwerkConfig.isEmailEnabled()) {
+            return false;
+        }
+        return moduleGateService.enabledModuleKeys(tenantId).contains(EMAIL_NOTIFY_MODULE_KEY);
+    }
+
+    /**
      * Whether subscriber notifications may go out for this tenant right now.
      * Logs the skip reason at debug, mirroring previous per-workflow behaviour.
      */
     public boolean enabled(Long tenantId, ContentType contentType, Long contentId) {
-        if (!directwerkConfig.isEmailEnabled()) {
-            log.debug("Skipping {} notification tenant={} content={} — email delivery disabled",
-                    contentType, tenantId, contentId);
-            return false;
-        }
-        if (!moduleGateService.enabledModuleKeys(tenantId).contains(EMAIL_NOTIFY_MODULE_KEY)) {
-            log.debug("Skipping {} notification tenant={} content={} — EMAIL_NOTIFY module not enabled",
-                    contentType, tenantId, contentId);
+        if (!availableForTenant(tenantId)) {
+            if (!directwerkConfig.isEmailEnabled()) {
+                log.debug("Skipping {} notification tenant={} content={} — email delivery disabled",
+                        contentType, tenantId, contentId);
+            } else {
+                log.debug("Skipping {} notification tenant={} content={} — EMAIL_NOTIFY module not enabled",
+                        contentType, tenantId, contentId);
+            }
             return false;
         }
         return true;

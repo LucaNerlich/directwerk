@@ -29,6 +29,7 @@ import {isSlugTaken} from '@/lib/publication/slugAvailability'
 import {usePublicationEditorFields} from '@/lib/publication/usePublicationEditorFields'
 import {usePublicationEditorWorkflow} from '@/lib/publication/usePublicationEditorWorkflow'
 import {useNotifyAudienceHint} from '@/lib/studio/useNotifyAudienceHint'
+import {useDefaultNotifySubscribers} from '@/lib/publication/useDefaultNotifySubscribers'
 import {useSiteConfig} from '@/lib/site/SiteConfigProvider'
 import {getClientTenantHost} from '@directwerk/api/tenant'
 import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
@@ -71,6 +72,7 @@ export default function EpisodeEditor({episodeId}: {episodeId?: number}): React.
         parseScheduledAt,
         setScheduleValidationError,
     } = usePublicationEditorFields()
+    useDefaultNotifySubscribers(showNotify, setNotifySubscribers)
     const [episodeNumber, setEpisodeNumber] = useState('')
     const [isUploading, setIsUploading] = useState(false)
     const [isEnclosureSaving, setIsEnclosureSaving] = useState(false)

@@ -33,6 +33,7 @@ import {usePublicationEditorFields} from '@/lib/publication/usePublicationEditor
 import {usePublicationEditorWorkflow} from '@/lib/publication/usePublicationEditorWorkflow'
 import {isSlugTaken} from '@/lib/publication/slugAvailability'
 import {useNotifyAudienceHint} from '@/lib/studio/useNotifyAudienceHint'
+import {useDefaultNotifySubscribers} from '@/lib/publication/useDefaultNotifySubscribers'
 import {useSiteConfig} from '@/lib/site/SiteConfigProvider'
 import {getClientTenantHost} from '@directwerk/api/tenant'
 import {articlePublishBlockReason} from '@/lib/write/articlePreflight'
@@ -67,6 +68,7 @@ export default function ArticleEditor({articleId}: {articleId?: number}) {
         parseScheduledAt,
         setScheduleValidationError,
     } = usePublicationEditorFields()
+    useDefaultNotifySubscribers(showNotify, setNotifySubscribers)
     const [heroAssetId, setHeroAssetId] = useState<number | null>(null)
     const [heroPreviewUrl, setHeroPreviewUrl] = useState<string | null>(null)
     const [isUploadingHero, setIsUploadingHero] = useState(false)

@@ -25,6 +25,7 @@ export interface AccountDashboardState {
     subscriptions: SubscriptionSummary[]
     publicRssUrl: string | null
     emailNotificationsEnabled: boolean | null
+    emailNotifyAvailable: boolean
     error: string | null
     isLoading: boolean
     prefsMessage: string | null
@@ -45,6 +46,7 @@ export function useAccountDashboard(): AccountDashboardState {
     const [emailNotificationsEnabled, setEmailNotificationsEnabled] = useState<
         boolean | null
     >(null)
+    const [emailNotifyAvailable, setEmailNotifyAvailable] = useState(false)
     const [error, setError] = useState<string | null>(null)
     const [isLoading, setIsLoading] = useState(true)
     const [prefsMessage, setPrefsMessage] = useState<string | null>(null)
@@ -68,6 +70,7 @@ export function useAccountDashboard(): AccountDashboardState {
                     setMe(meResponse.data)
                     setAccess(accessResponse.data)
                     setEmailNotificationsEnabled(prefs.emailNotificationsEnabled)
+                    setEmailNotifyAvailable(prefs.emailNotifyAvailable)
                     setFeeds(feedList)
                     setSubscriptions(subscriptionList)
                     setPublicRssUrl(siteConfig.data.publicRssUrl ?? null)
@@ -104,6 +107,9 @@ export function useAccountDashboard(): AccountDashboardState {
     }, [router])
 
     const handleToggleNotifications = useCallback(async (nextValue: boolean) => {
+        if (!emailNotifyAvailable && nextValue) {
+            return
+        }
         setPrefsBusy(true)
         setPrefsMessage(null)
         try {
@@ -129,7 +135,7 @@ export function useAccountDashboard(): AccountDashboardState {
         } finally {
             setPrefsBusy(false)
         }
-    }, [router])
+    }, [emailNotifyAvailable, router])
 
     const handlePortal = useCallback(async () => {
         setPortalBusy(true)
@@ -166,6 +172,7 @@ export function useAccountDashboard(): AccountDashboardState {
         subscriptions,
         publicRssUrl,
         emailNotificationsEnabled,
+        emailNotifyAvailable,
         error,
         isLoading,
         prefsMessage,

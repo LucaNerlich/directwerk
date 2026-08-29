@@ -173,7 +173,7 @@ export async function deleteCustomFeed(
 
 export async function getNotificationPreferences(
     tenantHost: string,
-): Promise<{emailNotificationsEnabled: boolean}> {
+): Promise<{emailNotificationsEnabled: boolean; emailNotifyAvailable: boolean}> {
     const prefs = parseNotificationPreferencesEnvelope(
         await authedFetch('/api/proxy/me/notification-preferences'),
     )
@@ -187,7 +187,7 @@ export async function getNotificationPreferences(
 export async function updateNotificationPreferences(
     tenantHost: string,
     emailNotificationsEnabled: boolean,
-): Promise<{emailNotificationsEnabled: boolean}> {
+): Promise<{emailNotificationsEnabled: boolean; emailNotifyAvailable: boolean}> {
     const prefs = parseNotificationPreferencesEnvelope(
         await authedFetch(
             '/api/proxy/me/notification-preferences',

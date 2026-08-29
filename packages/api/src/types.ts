@@ -274,6 +274,8 @@ export interface PublicSiteConfig {
     }
     publicRssUrl: string | null
     publicSiteUrl: string | null
+    /** True when the tenant has EMAIL_NOTIFY and platform email delivery is enabled. */
+    emailNotifyAvailable: boolean
 }
 
 /**
@@ -284,7 +286,6 @@ export interface PublicSiteConfig {
 export interface SiteConfig extends PublicSiteConfig {
     studioHome: StudioHome
     studioDesks: StudioDesk[]
-    emailNotifyAvailable: boolean
 }
 
 // ---------------------------------------------------------------------------

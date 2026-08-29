@@ -58,6 +58,7 @@ Accept: application/json
     client.test("GET /me/notification-preferences", function() {
         client.assert(response.status === 200, "Expected 200");
         client.assert(typeof response.body.data.emailNotificationsEnabled === "boolean", "Expected boolean field");
+        client.assert(typeof response.body.data.emailNotifyAvailable === "boolean", "Expected emailNotifyAvailable");
     });
 %}
 

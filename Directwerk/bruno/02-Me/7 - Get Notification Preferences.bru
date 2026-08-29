@@ -17,5 +17,6 @@ tests {
 }
 
 docs {
-  Default emailNotificationsEnabled is false until the subscriber opts in.
+  Returns the stored preference plus whether EMAIL_NOTIFY is currently available for this tenant.
+  Opt-in via PATCH is rejected with 403 FEATURE_NOT_ENABLED when emailNotifyAvailable is false.
 }

@@ -53,6 +53,7 @@ export default function AccountPage() {
         subscriptions,
         publicRssUrl,
         emailNotificationsEnabled,
+        emailNotifyAvailable,
         error,
         isLoading,
         prefsMessage,
@@ -323,7 +324,7 @@ export default function AccountPage() {
                 publicFeedUrl={publicRssUrl}
             />
 
-            {emailNotificationsEnabled !== null && (
+            {emailNotifyAvailable && emailNotificationsEnabled !== null && (
                 <section className="flex flex-col gap-3">
                     <SectionHeader title="Benachrichtigungen" />
                     <p className="text-sm text-muted-foreground">
@@ -331,6 +332,11 @@ export default function AccountPage() {
                         <strong>
                             {emailNotificationsEnabled ? 'an' : 'aus'}
                         </strong>
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                        Du erhältst eine E-Mail, wenn neue Beiträge oder Folgen
+                        veröffentlicht werden und der Creator die Benachrichtigung
+                        beim Veröffentlichen aktiviert.
                     </p>
                     <Button
                         disabled={prefsBusy}

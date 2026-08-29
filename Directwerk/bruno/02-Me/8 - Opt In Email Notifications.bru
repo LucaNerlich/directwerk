@@ -24,9 +24,11 @@ tests {
   test("returns expected status", function() {
     expect(res.getStatus() === 200).to.equal(true);
     expect(res.body.data.emailNotificationsEnabled).to.equal(true);
+    expect(typeof res.body.data.emailNotifyAvailable).to.equal("boolean");
   });
 }
 
 docs {
-  Required before a subscriber receives content publish emails (EMAIL_NOTIFY module).
+  Requires EMAIL_NOTIFY on the tenant and platform email delivery enabled (emailNotifyAvailable).
+  Returns 403 FEATURE_NOT_ENABLED when opting in while emailNotifyAvailable is false.
 }

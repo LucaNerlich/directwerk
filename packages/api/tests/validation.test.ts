@@ -61,6 +61,18 @@ describe('site-config envelopes', () => {
     it('public shape ignores studio desks', () => {
         const parsed = parsePublicSiteConfigEnvelope(base)
         expect(parsed?.data.enabledModules).toEqual(['PODCAST'])
+        expect(parsed?.data.emailNotifyAvailable).toBe(false)
+    })
+
+    it('public shape exposes emailNotifyAvailable when enabled', () => {
+        const parsed = parsePublicSiteConfigEnvelope({
+            ...base,
+            data: {
+                ...base.data,
+                emailNotifyAvailable: true,
+            },
+        })
+        expect(parsed?.data.emailNotifyAvailable).toBe(true)
     })
 
     it('studio shape requires the desk configuration', () => {
