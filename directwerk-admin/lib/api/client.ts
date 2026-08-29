@@ -31,16 +31,6 @@ export async function postPlatformData<T>(
     return platformApi.post<T>(path, body)
 }
 
-<<<<<<< HEAD
-=======
-export async function patchPlatformData<T>(
-    path: string,
-    body: object,
-): Promise<T> {
-    return platformApi.patch<T>(path, body)
-}
-
->>>>>>> cleanup/5-weak-types
 export async function deletePlatformData<T>(path: string): Promise<T> {
     return platformApi.delete<T>(path)
 }
