@@ -21,6 +21,7 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -44,7 +45,6 @@ import org.springframework.transaction.annotation.Transactional;
 public class PodcastImportService {
 
     private static final int MAX_FEED_BYTES = 5 * 1024 * 1024;
-    private static final int MAX_EPISODES = 500;
     private static final Duration FEED_TIMEOUT = Duration.ofSeconds(30);
 
     private final RemoteContentClient remoteContentClient;
@@ -59,9 +59,7 @@ public class PodcastImportService {
         Long tenantId = TenantContext.requireTenantId();
         ParsedRssFeed parsed = fetchAndParse(feedUrl);
         List<PreviewEpisode> episodes = new ArrayList<>();
-        int limit = Math.min(parsed.items().size(), MAX_EPISODES);
-        for (int i = 0; i < limit; i++) {
-            ParsedRssFeed.Item item = parsed.items().get(i);
+        for (ParsedRssFeed.Item item : parsed.items()) {
             String importIdentity = importIdentity(parsed.feedUrl(), item.guid());
             Long existingId = episodeRepository.findByTenantIdAndImportIdentity(tenantId, importIdentity)
                     .map(Episode::getId)
@@ -94,7 +92,7 @@ public class PodcastImportService {
                         ImportSlugSuggester.suggest(channel.title())
                 ),
                 episodes,
-                parsed.items().size() > MAX_EPISODES
+                false
         );
     }
 
@@ -118,9 +116,10 @@ public class PodcastImportService {
         }
 
         List<Long> ingestedAssetIds = new ArrayList<>(2);
+        AccessPolicy accessPolicy = command.accessPolicy() == null ? AccessPolicy.FREE : command.accessPolicy();
+        Long audioAssetId = null;
+        Long coverAssetId = command.coverAssetId();
         try {
-            AccessPolicy accessPolicy = command.accessPolicy() == null ? AccessPolicy.FREE : command.accessPolicy();
-            Long audioAssetId = null;
             if (command.audioUrl() != null && !command.audioUrl().isBlank()) {
                 MediaAsset audio = ingestAsset(
                         command.audioUrl(),
@@ -131,7 +130,6 @@ public class PodcastImportService {
                 audioAssetId = audio.getId();
                 ingestedAssetIds.add(audioAssetId);
             }
-            Long coverAssetId = command.coverAssetId();
             if (command.imageUrl() != null && !command.imageUrl().isBlank()) {
                 MediaAsset cover = ingestAsset(
                         command.imageUrl(),
@@ -164,10 +162,46 @@ public class PodcastImportService {
         } catch (DataIntegrityViolationException ex) {
             // A concurrent request may win the unique import-identity race after
             // this request streamed its assets. Never create a duplicate episode.
-            discardIngestedAssets(ingestedAssetIds);
-            return episodeRepository.findByTenantIdAndImportIdentity(tenantId, importIdentity)
-                    .map(episode -> new ImportedEpisode(episode, true))
-                    .orElseThrow(() -> ex);
+            var importedByOtherRequest =
+                    episodeRepository.findByTenantIdAndImportIdentity(tenantId, importIdentity);
+            if (importedByOtherRequest.isPresent()) {
+                discardIngestedAssets(ingestedAssetIds);
+                return new ImportedEpisode(importedByOtherRequest.get(), true);
+            }
+
+            // A different episode may have claimed the selected slug between
+            // allocation and commit. Allocate once more while retaining the
+            // already-streamed assets.
+            String retrySlug = uniqueSlug(tenantId, command.slug(), command.title());
+            try {
+                Episode episode = episodeService.createImportedDraft(
+                        tenantId,
+                        command.seriesId(),
+                        command.episodeNumber(),
+                        retrySlug,
+                        command.title(),
+                        command.description(),
+                        audioAssetId,
+                        coverAssetId,
+                        command.durationSeconds(),
+                        accessPolicy,
+                        command.requiredLevelSortOrder(),
+                        command.formatIds(),
+                        command.categoryIds(),
+                        importIdentity
+                );
+                return new ImportedEpisode(episode, false);
+            } catch (DataIntegrityViolationException retryFailure) {
+                discardIngestedAssets(ingestedAssetIds);
+                return episodeRepository.findByTenantIdAndImportIdentity(tenantId, importIdentity)
+                        .map(episode -> new ImportedEpisode(episode, true))
+                        .orElseThrow(() -> new RssImportException(
+                                409,
+                                "EPISODE_SLUG_EXISTS",
+                                "The episode slug was claimed concurrently",
+                                retryFailure
+                        ));
+            }
         } catch (RuntimeException ex) {
             discardIngestedAssets(ingestedAssetIds);
             throw ex;
@@ -258,10 +292,45 @@ public class PodcastImportService {
         }
         try {
             MessageDigest digest = MessageDigest.getInstance("SHA-256");
-            byte[] value = (feedUrl.trim() + "\n" + guid.trim()).getBytes(StandardCharsets.UTF_8);
+            byte[] value = (canonicalFeedUrl(feedUrl) + "\n" + guid.trim()).getBytes(StandardCharsets.UTF_8);
             return HexFormat.of().formatHex(digest.digest(value));
         } catch (NoSuchAlgorithmException ex) {
             throw new IllegalStateException("SHA-256 is not available", ex);
+        }
+    }
+
+    private static String canonicalFeedUrl(String feedUrl) {
+        try {
+            URI parsed = URI.create(feedUrl.trim());
+            String scheme = parsed.getScheme();
+            String host = parsed.getHost();
+            if (scheme == null || host == null || parsed.getUserInfo() != null) {
+                throw new IllegalArgumentException("feedUrl must be an absolute public URL");
+            }
+            String normalizedScheme = scheme.toLowerCase(Locale.ROOT);
+            if (!"http".equals(normalizedScheme) && !"https".equals(normalizedScheme)) {
+                throw new IllegalArgumentException("feedUrl must use http or https");
+            }
+            int port = parsed.getPort();
+            if (("http".equals(normalizedScheme) && port == 80)
+                    || ("https".equals(normalizedScheme) && port == 443)) {
+                port = -1;
+            }
+            String path = parsed.getRawPath();
+            if (path == null || path.isBlank()) {
+                path = "/";
+            }
+            return new URI(
+                    normalizedScheme,
+                    null,
+                    host.toLowerCase(Locale.ROOT),
+                    port,
+                    path,
+                    parsed.getRawQuery(),
+                    null
+            ).normalize().toASCIIString();
+        } catch (IllegalArgumentException | URISyntaxException ex) {
+            throw new RssImportException(400, "RSS_FEED_INVALID", "feedUrl is not valid", ex);
         }
     }
 

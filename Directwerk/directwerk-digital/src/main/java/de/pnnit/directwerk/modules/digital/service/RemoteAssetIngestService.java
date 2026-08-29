@@ -108,8 +108,13 @@ public class RemoteAssetIngestService implements RemoteAssetIngestApi {
             mediaAssetRepository.saveAndFlush(asset);
 
             String finalKey = buildFinalKey(tenant.getSlug(), asset);
-            LimitedInputStream limited = new LimitedInputStream(remote.body(), maxBytes);
             try {
+                // Persist the exact upload target while the row is still PENDING.
+                // A process crash can then leave a recoverable pending record, not
+                // an S3 object whose key is unknown to the database.
+                asset.setS3Key(finalKey);
+                mediaAssetRepository.saveAndFlush(asset);
+                LimitedInputStream limited = new LimitedInputStream(remote.body(), maxBytes);
                 long written = streamToS3(
                         storage.bucket(),
                         finalKey,
@@ -117,7 +122,6 @@ public class RemoteAssetIngestService implements RemoteAssetIngestApi {
                         remote.contentLength(),
                         limited
                 );
-                asset.setS3Key(finalKey);
                 asset.setSizeBytes(written);
                 asset.setStatus(AssetStatus.READY);
                 return mediaAssetRepository.saveAndFlush(asset);
@@ -155,18 +159,15 @@ public class RemoteAssetIngestService implements RemoteAssetIngestApi {
         }
 
         String key = asset.getS3Key();
-        mediaAssetRepository.delete(asset);
         try {
             s3Client.deleteObject(DeleteObjectRequest.builder()
                     .bucket(storage.bucket())
                     .key(key)
                     .build());
         } catch (RuntimeException ex) {
-            // The metadata is already gone, so the inaccessible S3 object is an
-            // orphan rather than a broken media record. Surface the failure for
-            // diagnostics without re-creating the DB row.
             throw new UploadValidationException("REMOTE_ASSET_FAILED", "Could not discard remote asset", ex);
         }
+        mediaAssetRepository.delete(asset);
     }
 
     private long streamToS3(

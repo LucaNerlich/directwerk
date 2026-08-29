@@ -335,7 +335,15 @@ function parseRssImportEpisodePreview(
         !isNullableString(value.audioUrl, 2048) ||
         !isNullableString(value.audioMimeType, 128) ||
         !isNullableString(value.imageUrl, 2048) ||
-        !isBoundedString(value.suggestedSlug, 64)
+        !isBoundedString(value.suggestedSlug, 64) ||
+        (value.durationSeconds != null &&
+            (!isSafeInteger(value.durationSeconds) || value.durationSeconds < 1)) ||
+        (value.episodeNumber != null &&
+            (!isSafeInteger(value.episodeNumber) || value.episodeNumber < 1)) ||
+        (value.audioSizeBytes != null &&
+            (!isSafeInteger(value.audioSizeBytes) || value.audioSizeBytes < 1)) ||
+        (value.alreadyImportedEpisodeId != null &&
+            !isPositiveSafeInteger(value.alreadyImportedEpisodeId))
     ) {
         return null
     }
@@ -344,35 +352,14 @@ function parseRssImportEpisodePreview(
         title: value.title,
         description: value.description,
         publishedAt: value.publishedAt,
-        durationSeconds:
-            value.durationSeconds === null || value.durationSeconds === undefined
-                ? null
-                : isSafeInteger(value.durationSeconds) && value.durationSeconds >= 1
-                  ? value.durationSeconds
-                  : null,
-        episodeNumber:
-            value.episodeNumber === null || value.episodeNumber === undefined
-                ? null
-                : isSafeInteger(value.episodeNumber) && value.episodeNumber >= 1
-                  ? value.episodeNumber
-                  : null,
+        durationSeconds: value.durationSeconds ?? null,
+        episodeNumber: value.episodeNumber ?? null,
         audioUrl: value.audioUrl,
         audioMimeType: value.audioMimeType,
-        audioSizeBytes:
-            value.audioSizeBytes === null || value.audioSizeBytes === undefined
-                ? null
-                : isSafeInteger(value.audioSizeBytes) && value.audioSizeBytes > 0
-                  ? value.audioSizeBytes
-                  : null,
+        audioSizeBytes: value.audioSizeBytes ?? null,
         imageUrl: value.imageUrl,
         suggestedSlug: value.suggestedSlug,
-        alreadyImportedEpisodeId:
-            value.alreadyImportedEpisodeId === null ||
-            value.alreadyImportedEpisodeId === undefined
-                ? null
-                : isPositiveSafeInteger(value.alreadyImportedEpisodeId)
-                  ? value.alreadyImportedEpisodeId
-                  : null,
+        alreadyImportedEpisodeId: value.alreadyImportedEpisodeId ?? null,
     }
 }
 
@@ -381,7 +368,9 @@ function parseRssImportPreview(value: unknown): RssImportPreview | null {
         return null
     }
     const channel = parseRssImportChannel(value.channel)
-    const episodes = parseBoundedArray(value.episodes, 500, parseRssImportEpisodePreview)
+    // The feed document itself is bounded by the API, so keep every parsed item
+    // instead of silently dropping a creator's back catalog.
+    const episodes = parseBoundedArray(value.episodes, 50_000, parseRssImportEpisodePreview)
     if (channel === null || episodes === null || typeof value.truncated !== 'boolean') {
         return null
     }

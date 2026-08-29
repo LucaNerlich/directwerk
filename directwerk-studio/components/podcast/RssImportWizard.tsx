@@ -1,8 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import {useRouter} from 'next/navigation'
-import {useEffect, useState} from 'react'
+import {useEffect, useRef, useState} from 'react'
 
 import {Button} from '@directwerk/ui/components/button'
 import {Input} from '@directwerk/ui/components/input'
@@ -15,6 +14,7 @@ import LevelSelect from '@/components/studio/LevelSelect'
 import {createFormat, listFormats} from '@/lib/api/catalogApi'
 import {createSeries, listSeries} from '@/lib/api/podcastApi'
 import {ingestRemoteAsset, importRssEpisode, previewRssFeed} from '@/lib/api/podcastImportApi'
+import {deleteMedia} from '@/lib/api/mediaApi'
 import {isTenantAdminRole, suggestSlug} from '@/lib/api/studioHelpers'
 import {useOptionalMe} from '@/lib/auth/MeProvider'
 import type {
@@ -53,8 +53,9 @@ function formatBytes(bytes: number | null): string {
 }
 
 export default function RssImportWizard(): React.JSX.Element {
-    const router = useRouter()
     const authRedirect = useAuthRequired()
+    const authRedirectRef = useRef(authRedirect)
+    authRedirectRef.current = authRedirect
     const me = useOptionalMe()
     const canCreateFormats = me !== null && isTenantAdminRole(me.roles)
     const [step, setStep] = useState<WizardStep>('url')
@@ -66,6 +67,7 @@ export default function RssImportWizard(): React.JSX.Element {
     const [selectedSeriesId, setSelectedSeriesId] = useState<number | null>(null)
     const [seriesTitle, setSeriesTitle] = useState('')
     const [seriesSlug, setSeriesSlug] = useState('')
+    const [seriesSlugDirty, setSeriesSlugDirty] = useState(false)
     const [seriesDescription, setSeriesDescription] = useState('')
     const [seriesLanguage, setSeriesLanguage] = useState('de')
     const [seriesItunesCategory, setSeriesItunesCategory] = useState('')
@@ -88,9 +90,16 @@ export default function RssImportWizard(): React.JSX.Element {
     const [alreadyImportedCount, setAlreadyImportedCount] = useState(0)
     const [errorMessage, setErrorMessage] = useState<string | null>(null)
     const [busy, setBusy] = useState(false)
+    const [prerequisitesStatus, setPrerequisitesStatus] = useState<
+        'loading' | 'ready' | 'error'
+    >('loading')
+    const [prerequisitesError, setPrerequisitesError] = useState<string | null>(null)
+    const [prerequisitesReload, setPrerequisitesReload] = useState(0)
 
     useEffect(() => {
         let active = true
+        setPrerequisitesStatus('loading')
+        setPrerequisitesError(null)
         Promise.all([listSeries(getClientTenantHost()), listFormats(getClientTenantHost())])
             .then(([loadedSeries, loadedFormats]) => {
                 if (!active) {
@@ -102,19 +111,21 @@ export default function RssImportWizard(): React.JSX.Element {
                     setSeriesMode('existing')
                     setSelectedSeriesId(loadedSeries[0].id)
                 }
+                setPrerequisitesStatus('ready')
             })
             .catch((error: unknown) => {
-                if (authRedirect(error)) {
+                if (authRedirectRef.current(error)) {
                     return
                 }
-                setErrorMessage(
+                setPrerequisitesError(
                     error instanceof Error ? error.message : 'Sendungen konnten nicht geladen werden.',
                 )
+                setPrerequisitesStatus('error')
             })
         return () => {
             active = false
         }
-    }, [authRedirect, router])
+    }, [prerequisitesReload])
 
     function applyEpisode(
         item: RssImportEpisodePreview,
@@ -139,6 +150,7 @@ export default function RssImportWizard(): React.JSX.Element {
             setPreview(loaded)
             setSeriesTitle(loaded.channel.title)
             setSeriesSlug(loaded.channel.suggestedSlug)
+            setSeriesSlugDirty(false)
             setSeriesDescription(loaded.channel.description ?? '')
             setSeriesLanguage(loaded.channel.language ?? 'de')
             setSeriesItunesCategory(loaded.channel.itunesCategory ?? '')
@@ -160,6 +172,8 @@ export default function RssImportWizard(): React.JSX.Element {
     async function handleSeriesContinue(): Promise<void> {
         setErrorMessage(null)
         setBusy(true)
+        let unreferencedCoverAssetId: number | null = null
+        let host: string | null = null
         try {
             if (seriesMode === 'existing') {
                 if (selectedSeriesId == null) {
@@ -170,7 +184,7 @@ export default function RssImportWizard(): React.JSX.Element {
                 setStep('formats')
                 return
             }
-            const host = getClientTenantHost()
+            host = getClientTenantHost()
             let coverAssetId: number | undefined
             if (importSeriesCover && preview?.channel.imageUrl) {
                 const cover = await ingestRemoteAsset(host, {
@@ -180,6 +194,7 @@ export default function RssImportWizard(): React.JSX.Element {
                     filename: 'series-cover.jpg',
                 })
                 coverAssetId = cover.id
+                unreferencedCoverAssetId = cover.id
             }
             const created = await createSeries(host, {
                 slug: seriesSlug.trim() || suggestSlug(seriesTitle) || 'sendung',
@@ -193,8 +208,17 @@ export default function RssImportWizard(): React.JSX.Element {
             setSeries((current) => [...current, created])
             setSeriesMode('existing')
             setSelectedSeriesId(created.id)
+            unreferencedCoverAssetId = null
             setStep('formats')
         } catch (error) {
+            if (unreferencedCoverAssetId !== null && host !== null) {
+                try {
+                    await deleteMedia(host, unreferencedCoverAssetId)
+                } catch {
+                    // Keep the original series error. The asset remains visible
+                    // in the media library so it can be reused or removed.
+                }
+            }
             if (authRedirect(error)) {
                 return
             }
@@ -306,6 +330,7 @@ export default function RssImportWizard(): React.JSX.Element {
         setSelectedSeriesId(series[0]?.id ?? null)
         setSeriesTitle('')
         setSeriesSlug('')
+        setSeriesSlugDirty(false)
         setSeriesDescription('')
         setSeriesLanguage('de')
         setSeriesItunesCategory('')
@@ -350,6 +375,7 @@ export default function RssImportWizard(): React.JSX.Element {
                     ['done', '5. Fertig'],
                 ].map(([id, label]) => (
                     <li
+                        aria-current={step === id ? 'step' : undefined}
                         key={id}
                         className={
                             step === id
@@ -361,6 +387,18 @@ export default function RssImportWizard(): React.JSX.Element {
                     </li>
                 ))}
             </ol>
+            <p aria-live="polite" className="sr-only">
+                Aktueller Schritt:{' '}
+                {step === 'url'
+                    ? 'Feed'
+                    : step === 'series'
+                      ? 'Sendung'
+                      : step === 'formats'
+                        ? 'Formate'
+                        : step === 'episode'
+                          ? `Folge ${episodeIndex + 1}`
+                          : 'Fertig'}
+            </p>
 
             {errorMessage !== null ? (
                 <p className="text-sm text-destructive" role="alert">
@@ -377,13 +415,41 @@ export default function RssImportWizard(): React.JSX.Element {
                     <label className="grid gap-1.5">
                         <span className="text-sm font-medium">RSS-URL</span>
                         <Input
+                            disabled={busy || prerequisitesStatus !== 'ready'}
+                            maxLength={2048}
                             onChange={(event) => setFeedUrl(event.target.value)}
                             placeholder="https://example.com/podcast.xml"
                             type="url"
                             value={feedUrl}
                         />
                     </label>
-                    <Button disabled={busy || feedUrl.trim().length === 0} onClick={() => void handlePreview()}>
+                    {prerequisitesStatus === 'loading' ? (
+                        <p className="text-sm text-muted-foreground" role="status">
+                            Sendungen und Formate werden geladen…
+                        </p>
+                    ) : null}
+                    {prerequisitesStatus === 'error' ? (
+                        <div className="grid gap-2">
+                            <p className="text-sm text-destructive" role="alert">
+                                {prerequisitesError}
+                            </p>
+                            <Button
+                                onClick={() => setPrerequisitesReload((value) => value + 1)}
+                                type="button"
+                                variant="outline"
+                            >
+                                Erneut laden
+                            </Button>
+                        </div>
+                    ) : null}
+                    <Button
+                        disabled={
+                            busy ||
+                            prerequisitesStatus !== 'ready' ||
+                            feedUrl.trim().length === 0
+                        }
+                        onClick={() => void handlePreview()}
+                    >
                         {busy ? 'Feed wird gelesen…' : 'Feed laden'}
                     </Button>
                 </section>
@@ -397,6 +463,7 @@ export default function RssImportWizard(): React.JSX.Element {
                     />
                     <SelectControl
                         aria-label="Sendungszuordnung"
+                        disabled={busy}
                         onChange={(event) =>
                             setSeriesMode(event.target.value === 'existing' ? 'existing' : 'new')
                         }
@@ -410,6 +477,7 @@ export default function RssImportWizard(): React.JSX.Element {
                     {seriesMode === 'existing' ? (
                         <SelectControl
                             aria-label="Bestehende Sendung"
+                            disabled={busy}
                             onChange={(event) => setSelectedSeriesId(Number.parseInt(event.target.value, 10))}
                             value={selectedSeriesId ?? ''}
                         >
@@ -424,20 +492,34 @@ export default function RssImportWizard(): React.JSX.Element {
                             <label className="grid gap-1.5">
                                 <span className="text-sm font-medium">Titel</span>
                                 <Input
+                                    disabled={busy}
+                                    maxLength={255}
                                     onChange={(event) => {
                                         setSeriesTitle(event.target.value)
-                                        setSeriesSlug(suggestSlug(event.target.value))
+                                        if (!seriesSlugDirty) {
+                                            setSeriesSlug(suggestSlug(event.target.value))
+                                        }
                                     }}
                                     value={seriesTitle}
                                 />
                             </label>
                             <label className="grid gap-1.5">
                                 <span className="text-sm font-medium">Slug</span>
-                                <Input onChange={(event) => setSeriesSlug(event.target.value)} value={seriesSlug} />
+                                <Input
+                                    disabled={busy}
+                                    maxLength={64}
+                                    onChange={(event) => {
+                                        setSeriesSlug(event.target.value)
+                                        setSeriesSlugDirty(true)
+                                    }}
+                                    pattern="^[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,62}[a-zA-Z0-9])?$"
+                                    value={seriesSlug}
+                                />
                             </label>
                             <label className="grid gap-1.5">
                                 <span className="text-sm font-medium">Beschreibung</span>
                                 <Textarea
+                                    disabled={busy}
                                     onChange={(event) => setSeriesDescription(event.target.value)}
                                     rows={4}
                                     value={seriesDescription}
@@ -446,6 +528,8 @@ export default function RssImportWizard(): React.JSX.Element {
                             <label className="grid gap-1.5">
                                 <span className="text-sm font-medium">Sprache</span>
                                 <Input
+                                    disabled={busy}
+                                    maxLength={8}
                                     onChange={(event) => setSeriesLanguage(event.target.value)}
                                     value={seriesLanguage}
                                 />
@@ -453,6 +537,8 @@ export default function RssImportWizard(): React.JSX.Element {
                             <label className="grid gap-1.5">
                                 <span className="text-sm font-medium">iTunes-Kategorie</span>
                                 <Input
+                                    disabled={busy}
+                                    maxLength={128}
                                     onChange={(event) => setSeriesItunesCategory(event.target.value)}
                                     value={seriesItunesCategory}
                                 />
@@ -461,6 +547,7 @@ export default function RssImportWizard(): React.JSX.Element {
                                 <label className="flex items-center gap-2 text-sm">
                                     <input
                                         checked={importSeriesCover}
+                                        disabled={busy}
                                         onChange={(event) => setImportSeriesCover(event.target.checked)}
                                         type="checkbox"
                                     />
@@ -470,7 +557,7 @@ export default function RssImportWizard(): React.JSX.Element {
                         </div>
                     )}
                     <div className="flex gap-2">
-                        <Button onClick={() => setStep('url')} type="button" variant="outline">
+                        <Button disabled={busy} onClick={() => setStep('url')} type="button" variant="outline">
                             Zurück
                         </Button>
                         <Button disabled={busy} onClick={() => void handleSeriesContinue()}>
@@ -495,6 +582,7 @@ export default function RssImportWizard(): React.JSX.Element {
                                     <label className="flex items-center gap-2 text-sm">
                                         <input
                                             checked={defaultFormatIds.has(format.id)}
+                                            disabled={busy}
                                             onChange={(event) => {
                                                 const next = new Set(defaultFormatIds)
                                                 if (event.target.checked) {
@@ -516,6 +604,8 @@ export default function RssImportWizard(): React.JSX.Element {
                         <label className="grid gap-1.5">
                             <span className="text-sm font-medium">Neues Format anlegen (optional)</span>
                             <Input
+                                disabled={busy}
+                                maxLength={255}
                                 onChange={(event) => setNewFormatName(event.target.value)}
                                 placeholder="z. B. Hauptfolge"
                                 value={newFormatName}
@@ -528,7 +618,7 @@ export default function RssImportWizard(): React.JSX.Element {
                         </p>
                     )}
                     <div className="flex gap-2">
-                        <Button onClick={() => setStep('series')} type="button" variant="outline">
+                        <Button disabled={busy} onClick={() => setStep('series')} type="button" variant="outline">
                             Zurück
                         </Button>
                         <Button disabled={busy} onClick={() => void handleFormatsContinue()}>
@@ -560,15 +650,27 @@ export default function RssImportWizard(): React.JSX.Element {
                     ) : null}
                     <label className="grid gap-1.5">
                         <span className="text-sm font-medium">Titel</span>
-                        <Input onChange={(event) => setEpisodeTitle(event.target.value)} value={episodeTitle} />
+                        <Input
+                            disabled={busy}
+                            maxLength={255}
+                            onChange={(event) => setEpisodeTitle(event.target.value)}
+                            value={episodeTitle}
+                        />
                     </label>
                     <label className="grid gap-1.5">
                         <span className="text-sm font-medium">Slug</span>
-                        <Input onChange={(event) => setEpisodeSlug(event.target.value)} value={episodeSlug} />
+                        <Input
+                            disabled={busy}
+                            maxLength={64}
+                            onChange={(event) => setEpisodeSlug(event.target.value)}
+                            pattern="^[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,62}[a-zA-Z0-9])?$"
+                            value={episodeSlug}
+                        />
                     </label>
                     <label className="grid gap-1.5">
                         <span className="text-sm font-medium">Shownotes</span>
                         <Textarea
+                            disabled={busy}
                             onChange={(event) => setEpisodeDescription(event.target.value)}
                             rows={6}
                             value={episodeDescription}
@@ -577,13 +679,17 @@ export default function RssImportWizard(): React.JSX.Element {
                     <label className="grid gap-1.5">
                         <span className="text-sm font-medium">Folgennummer</span>
                         <Input
+                            disabled={busy}
+                            min={1}
                             onChange={(event) => setEpisodeNumber(event.target.value)}
+                            step={1}
                             type="number"
                             value={episodeNumber}
                         />
                     </label>
                     <SelectControl
                         aria-label="Zugriff"
+                        disabled={busy}
                         onChange={(event) =>
                             setAccessPolicy(event.target.value === 'PAID' ? 'PAID' : 'FREE')
                         }
@@ -596,6 +702,7 @@ export default function RssImportWizard(): React.JSX.Element {
                         <label className="grid gap-1.5">
                             <span className="text-sm font-medium">Mindest-Stufe</span>
                             <LevelSelect
+                                disabled={busy}
                                 onChange={setRequiredLevelSortOrder}
                                 value={requiredLevelSortOrder}
                             />
@@ -611,7 +718,7 @@ export default function RssImportWizard(): React.JSX.Element {
                     <label className="flex items-center gap-2 text-sm">
                         <input
                             checked={importAudio}
-                            disabled={currentEpisode.audioUrl == null}
+                            disabled={busy || currentEpisode.audioUrl == null}
                             onChange={(event) => setImportAudio(event.target.checked)}
                             type="checkbox"
                         />
@@ -620,7 +727,7 @@ export default function RssImportWizard(): React.JSX.Element {
                     <label className="flex items-center gap-2 text-sm">
                         <input
                             checked={importImage}
-                            disabled={currentEpisode.imageUrl == null}
+                            disabled={busy || currentEpisode.imageUrl == null}
                             onChange={(event) => setImportImage(event.target.checked)}
                             type="checkbox"
                         />
@@ -633,6 +740,7 @@ export default function RssImportWizard(): React.JSX.Element {
                                     <label className="flex items-center gap-2 text-sm">
                                         <input
                                             checked={episodeFormatIds.has(format.id)}
+                                            disabled={busy}
                                             onChange={(event) => {
                                                 const next = new Set(episodeFormatIds)
                                                 if (event.target.checked) {

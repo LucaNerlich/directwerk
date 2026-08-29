@@ -67,6 +67,10 @@ class PodcastImportServiceTest {
         assertThat(first).hasSize(64);
         assertThat(PodcastImportService.importIdentity(" https://example.com/one.xml ", " episode-1 "))
                 .isEqualTo(first);
+        assertThat(PodcastImportService.importIdentity(
+                "HTTPS://EXAMPLE.COM:443/path/../one.xml#fragment",
+                "episode-1"
+        )).isEqualTo(first);
         assertThat(PodcastImportService.importIdentity("https://example.com/two.xml", "episode-1"))
                 .isNotEqualTo(first);
     }

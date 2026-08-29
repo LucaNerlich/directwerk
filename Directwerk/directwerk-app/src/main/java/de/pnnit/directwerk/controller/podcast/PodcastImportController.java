@@ -58,7 +58,7 @@ public class PodcastImportController {
         MediaAsset asset = podcastImportService.ingestAsset(
                 request.sourceUrl(),
                 request.assetType(),
-                request.visibility() == null ? AssetVisibility.PUBLIC : request.visibility(),
+                request.visibility() == null ? AssetVisibility.PRIVATE : request.visibility(),
                 request.filename()
         );
         return ResponseEntity.status(HttpStatus.CREATED).body(Response.created(mediaAssetViewMapper.toView(asset)));

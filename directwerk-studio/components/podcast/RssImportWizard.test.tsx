@@ -13,6 +13,7 @@ const createSeries = vi.fn()
 const createFormat = vi.fn()
 const listSeries = vi.fn()
 const listFormats = vi.fn()
+const deleteMedia = vi.fn()
 
 vi.mock('next/navigation', () => ({useRouter: () => ({replace: vi.fn()})}))
 vi.mock('next/link', () => ({
@@ -36,6 +37,9 @@ vi.mock('@/lib/api/podcastImportApi', () => ({
     previewRssFeed: (...args: unknown[]) => previewRssFeed(...args),
     importRssEpisode: (...args: unknown[]) => importRssEpisode(...args),
     ingestRemoteAsset: (...args: unknown[]) => ingestRemoteAsset(...args),
+}))
+vi.mock('@/lib/api/mediaApi', () => ({
+    deleteMedia: (...args: unknown[]) => deleteMedia(...args),
 }))
 vi.mock('@/lib/api/subscriptionApi', () => ({
     listPublicLevels: vi.fn().mockResolvedValue([
@@ -124,7 +128,9 @@ function renderWizard(me: Me = adminMe()): void {
 async function loadFeed(): Promise<void> {
     const user = userEvent.setup()
     await user.type(screen.getByPlaceholderText('https://example.com/podcast.xml'), preview.feedUrl)
-    await user.click(screen.getByRole('button', {name: 'Feed laden'}))
+    const loadButton = screen.getByRole('button', {name: 'Feed laden'})
+    await waitFor(() => expect(loadButton).toBeEnabled())
+    await user.click(loadButton)
     await waitFor(() => expect(screen.getByText('Sendung festlegen')).toBeInTheDocument())
 }
 
@@ -161,6 +167,7 @@ beforeEach(() => {
         coverAssetId: null,
     })
     ingestRemoteAsset.mockResolvedValue({id: 99})
+    deleteMedia.mockResolvedValue({id: 99})
     importRssEpisode.mockResolvedValue({
         alreadyImported: false,
         episode: {
@@ -268,6 +275,20 @@ describe('RssImportWizard', () => {
                 coverAssetId: 99,
             }),
         )
+    })
+
+    it('discards a streamed series cover when sendung creation fails', async () => {
+        listSeries.mockResolvedValue([])
+        createSeries.mockRejectedValueOnce(new Error('Slug ist bereits vergeben.'))
+        const user = userEvent.setup()
+        renderWizard()
+        await loadFeed()
+
+        await user.click(screen.getByRole('button', {name: 'Weiter zu Formaten'}))
+
+        await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent('Slug ist bereits vergeben.'))
+        expect(deleteMedia).toHaveBeenCalledWith('tenant.test', 99)
+        expect(screen.getByText('Sendung festlegen')).toBeInTheDocument()
     })
 
     it('hides format creation for editors', async () => {
