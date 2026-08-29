@@ -11,7 +11,7 @@ import PageHeader from '@directwerk/ui/components/page-header'
 import {revokeSubscription} from '@/lib/api/subscriptionApi'
 import {listSubscribers} from '@/lib/api/tenantSettingsApi'
 import type {TenantSubscriber, TenantSubscriberSubscription} from '@directwerk/api/types'
-import {useCachedTenantQuery} from '@directwerk/api/client'
+import {useCachedTenantQuery} from '@directwerk/api/client/useCachedTenantQuery'
 import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
 import {getClientTenantHost} from '@/lib/tenant/getClientTenantHost'
 

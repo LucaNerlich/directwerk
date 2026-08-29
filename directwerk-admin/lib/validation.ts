@@ -10,4 +10,4 @@ export {
     type PlatformAdminInviteValidationResult,
     type CreateTenantValidationResult,
     type JobListQueryValidationResult,
-} from '@directwerk/api/validation'
+} from '@directwerk/api/validation/adminForms'

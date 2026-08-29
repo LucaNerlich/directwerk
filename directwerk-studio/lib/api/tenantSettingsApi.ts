@@ -1,16 +1,7 @@
 'use client'
 
-import {
-    parseBrandingEnvelope,
-    parseContentEmailTemplateEnvelope,
-    parseDomainEnvelope,
-    parseDomainListEnvelope,
-    parseDomainVerificationEnvelope,
-    parseInviteTenantUserEnvelope,
-    parseSubscriberListEnvelope,
-    parseTenantUserEnvelope,
-    parseTenantUserListEnvelope,
-} from '@directwerk/api/validation'
+import {parseBrandingEnvelope, parseContentEmailTemplateEnvelope, parseDomainEnvelope, parseDomainListEnvelope, parseDomainVerificationEnvelope, parseInviteTenantUserEnvelope, parseSubscriberListEnvelope, parseTenantUserEnvelope, parseTenantUserListEnvelope} from '@directwerk/api/validation/catalog'
+
 import type {
     ContentEmailTemplate,
     ContentEmailTemplateType,

@@ -12,7 +12,8 @@ import {Label} from '@directwerk/ui/components/label'
 
 import {defaultHomePath} from '@/lib/api/client'
 import {login} from '@/lib/api/authApi'
-import {parseLoginInput} from '@directwerk/api/validation'
+import {parseLoginInput} from '@directwerk/api/validation/input'
+
 import {setTokens} from '@/lib/auth/tokenStore'
 import {useSiteConfig} from '@/lib/site/SiteConfigProvider'
 import {getClientTenantHost} from '@/lib/tenant/getClientTenantHost'

@@ -1,13 +1,14 @@
 'use client'
 
+import {createAuthedRequest} from '@directwerk/api/client/authedRequest'
 import {
-    createAuthedRequest,
     createPlatformApiCore,
     parsePaginatedApiEnvelope,
-} from '@directwerk/api/client'
+} from '@directwerk/api/client/platformApiCore'
 import {platformAdminPolicy} from '@directwerk/api/client/policies'
 import type {JobListPage, JobListQuery, PlatformAuditEvent} from '@directwerk/api/types'
-import {isQueueJob} from '@directwerk/api/validation'
+import {isQueueJob} from '@directwerk/api/validation/admin'
+
 import {clearTokens} from '../auth/tokenStore'
 import {getValidAccessToken, refreshAccessToken} from '../auth/session'
 

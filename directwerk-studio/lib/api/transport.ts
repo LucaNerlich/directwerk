@@ -1,4 +1,4 @@
-import {createBrowserTransport} from '@directwerk/api/client'
+import {createBrowserTransport} from '@directwerk/api/client/createBrowserTransport'
 import {studioCreatorPolicy} from '@directwerk/api/client/policies'
 import type {ErrorMessageCatalog} from '@directwerk/api/envelope'
 import {getValidAccessToken, refreshAccessToken} from '@/lib/auth/session'

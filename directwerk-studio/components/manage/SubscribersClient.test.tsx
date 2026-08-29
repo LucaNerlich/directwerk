@@ -2,7 +2,7 @@ import {cleanup, render, screen, waitFor} from '@testing-library/react'
 import {afterEach, describe, expect, it, vi} from 'vitest'
 
 import SubscribersClient from '@/components/manage/SubscribersClient'
-import {clearCachedTenantData} from '@directwerk/api/client'
+import {clearCachedTenantData} from '@directwerk/api/client/useCachedTenantQuery'
 import {listSubscribers} from '@/lib/api/tenantSettingsApi'
 
 vi.mock('next/navigation', () => ({useRouter: () => ({replace: vi.fn()})}))

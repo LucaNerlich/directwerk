@@ -1,7 +1,8 @@
 import 'server-only'
 
 import {fetchSiteConfigServer as fetchSiteConfigShared} from '@directwerk/api/server'
-import {parsePublicSiteConfigEnvelope} from '@directwerk/api/validation'
+import {parsePublicSiteConfigEnvelope} from '@directwerk/api/validation/public'
+
 import type {PublicSiteConfig} from '@directwerk/api/types'
 import {directwerkFetch} from '@/lib/server/api'
 

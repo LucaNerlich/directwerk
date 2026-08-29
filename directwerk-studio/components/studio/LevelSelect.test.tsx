@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event'
 import {beforeEach, describe, expect, it, vi} from 'vitest'
 
 import LevelSelect from '@/components/studio/LevelSelect'
-import {clearCachedTenantData} from '@directwerk/api/client'
+import {clearCachedTenantData} from '@directwerk/api/client/useCachedTenantQuery'
 
 const {host, listPublicLevels} = vi.hoisted(() => ({
     host: {value: 'tenant-0.test'},

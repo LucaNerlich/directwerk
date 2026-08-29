@@ -1,9 +1,7 @@
 'use client'
 
-import {
-    parseCheckoutSessionEnvelope,
-    parseSubscriptionListEnvelope,
-} from '@directwerk/api/validation'
+import {parseCheckoutSessionEnvelope, parseSubscriptionListEnvelope} from '@directwerk/api/validation/public'
+
 import type {
     SubscriptionSummary,
 } from '@directwerk/api/types'

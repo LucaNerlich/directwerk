@@ -1,10 +1,7 @@
 'use client'
 
-import {
-    parseProductRuleListEnvelope,
-    parseSubscriptionGrantEnvelope,
-    parseSubscriptionProductList,
-} from '@directwerk/api/validation'
+import {parseProductRuleListEnvelope, parseSubscriptionGrantEnvelope, parseSubscriptionProductList} from '@directwerk/api/validation/catalog'
+
 import {envelopeResult} from '@directwerk/api/envelope'
 import type {
     ProductAccessRule,

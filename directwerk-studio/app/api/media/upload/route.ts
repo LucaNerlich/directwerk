@@ -1,4 +1,5 @@
-import {parseJsonText} from '@directwerk/api/validation'
+import {parseJsonText} from '@directwerk/api/validation/json'
+
 import {readBearerToken} from '@directwerk/api/proxy'
 import {jsonError, toClientResponse} from '@directwerk/api/proxy'
 import {directwerkFetch} from '@/lib/server/api'

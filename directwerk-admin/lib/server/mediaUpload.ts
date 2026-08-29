@@ -6,7 +6,8 @@ import {
 } from '@directwerk/api/server'
 import type {MediaAsset} from '@directwerk/api/types'
 import {ASSET_TYPES, ASSET_VISIBILITIES} from '@directwerk/api/types'
-import {isRecord, parseMediaAssetEnvelope} from '@directwerk/api/validation'
+import {parseMediaAssetEnvelope} from '@directwerk/api/validation/catalog'
+import {isRecord} from '@directwerk/api/validation/primitives'
 
 import {createConfiguredPlatformApiRequest} from '@/lib/server/api'
 import {resolvePlatformAuthorization} from '@/lib/server/platform'

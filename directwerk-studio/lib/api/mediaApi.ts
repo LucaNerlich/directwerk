@@ -1,10 +1,7 @@
 'use client'
 
-import {
-    parseMediaAssetEnvelope,
-    parseMediaListEnvelope,
-    parsePreviewUrlEnvelope,
-} from '@directwerk/api/validation'
+import {parseMediaAssetEnvelope, parseMediaListEnvelope, parsePreviewUrlEnvelope} from '@directwerk/api/validation/catalog'
+
 import type {MediaAsset} from '@directwerk/api/types'
 import {authenticatedRequest, studioGet, studioMutate} from './studioApiCore'
 

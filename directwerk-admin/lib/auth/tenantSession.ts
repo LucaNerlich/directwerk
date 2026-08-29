@@ -2,7 +2,8 @@
 
 import {createAuthSession} from '@directwerk/api/auth/session'
 import {AUTH_REQUIRED} from '@directwerk/api/constants'
-import {parseTokenResponse} from '@directwerk/api/validation'
+import {parseTokenResponse} from '@directwerk/api/validation/token'
+
 import {
     clearTenantTokens,
     getTenantAccessToken,

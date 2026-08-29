@@ -1,7 +1,8 @@
 'use client'
 
 import {createAuthSession} from '@directwerk/api/auth/session'
-import {parseTokenResponse} from '@directwerk/api/validation'
+import {parseTokenResponse} from '@directwerk/api/validation/token'
+
 import {tokenStore} from '@/lib/auth/tokenStore'
 
 /**

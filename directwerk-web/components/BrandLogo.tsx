@@ -1,4 +1,4 @@
-import {isAllowedFeedUrl} from '@directwerk/api/validation'
+import {isAllowedFeedUrl} from '@directwerk/api/validation/primitives'
 
 /** Only render when the URL is https or loopback http. */
 export default function BrandLogo({

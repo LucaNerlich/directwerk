@@ -14,7 +14,7 @@ import PageHeader from '@directwerk/ui/components/page-header'
 import {listCategories} from '@/lib/api/catalogApi'
 import type {CategorySummary} from '@directwerk/api/types'
 import {getClientTenantHost} from '@/lib/tenant/getClientTenantHost'
-import {useAuthedQuery} from '@directwerk/api/client'
+import {useAuthedQuery} from '@directwerk/api/client/useAuthedQuery'
 
 export default function CategoryListClient(): React.JSX.Element {
     const {data: categories, error: errorMessage, isLoading} = useAuthedQuery<

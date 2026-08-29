@@ -1,11 +1,8 @@
 'use client'
 
-import {
-    parseLevelListEnvelope,
-    parsePublicFormatListEnvelope,
-    parsePublicProductListEnvelope,
-    parsePublicSiteConfigEnvelope,
-} from '@directwerk/api/validation'
+import {parseLevelListEnvelope} from '@directwerk/api/validation/catalog'
+import {parsePublicFormatListEnvelope, parsePublicProductListEnvelope, parsePublicSiteConfigEnvelope} from '@directwerk/api/validation/public'
+
 import type {
     ApiEnvelope,
     LevelSummary,

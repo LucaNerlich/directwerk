@@ -1,4 +1,4 @@
-import {createBrowserTransport} from '@directwerk/api/client'
+import {createBrowserTransport} from '@directwerk/api/client/createBrowserTransport'
 import {subscriberPortalPolicy, SUBSCRIBER_PORTAL_CATALOG} from '@directwerk/api/client/policies'
 import {envelopeResult} from '@directwerk/api/envelope'
 import type {ErrorMessageCatalog} from '@directwerk/api/envelope'

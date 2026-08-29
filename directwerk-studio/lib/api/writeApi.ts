@@ -1,9 +1,7 @@
 'use client'
 
-import {
-    parseArticleEnvelope,
-    parseArticleListEnvelope,
-} from '@directwerk/api/validation'
+import {parseArticleEnvelope, parseArticleListEnvelope} from '@directwerk/api/validation/catalog'
+
 import type {
     ArticleDetail,
     CreateArticleInput,

@@ -12,7 +12,7 @@ import {Input} from '@directwerk/ui/components/input'
 import {Label} from '@directwerk/ui/components/label'
 
 import {resetPassword} from '@/lib/api/client'
-import {parseResetPasswordInput} from '@directwerk/api/validation'
+import {parseResetPasswordInput} from '@directwerk/api/validation/input'
 
 interface ResetPasswordState {
     error: string | null

@@ -1,14 +1,8 @@
 'use client'
 
-import {
-    parseMeEnvelope,
-    parseAccessEnvelope,
-    parseFeedPreviewEnvelope,
-    parseSubscriberDownloadListEnvelope,
-    parseSubscriberFeedEnvelope,
-    parseSubscriberFeedListEnvelope,
-    parseNotificationPreferencesEnvelope,
-} from '@directwerk/api/validation'
+import {parseMeEnvelope} from '@directwerk/api/validation/catalog'
+import {parseAccessEnvelope, parseFeedPreviewEnvelope, parseSubscriberDownloadListEnvelope, parseSubscriberFeedEnvelope, parseSubscriberFeedListEnvelope, parseNotificationPreferencesEnvelope} from '@directwerk/api/validation/public'
+
 import type {
     Access,
     ApiEnvelope,

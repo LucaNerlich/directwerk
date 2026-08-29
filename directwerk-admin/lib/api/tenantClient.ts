@@ -1,6 +1,6 @@
 'use client'
 
-import {createAuthedRequest} from '@directwerk/api/client'
+import {createAuthedRequest} from '@directwerk/api/client/authedRequest'
 import {parseApiEnvelope} from '@directwerk/api/envelope'
 import {platformTenantAdminPolicy} from '@directwerk/api/client/policies'
 import {API_CONTRACT_ERROR, AUTH_REQUIRED} from '@directwerk/api/constants'

@@ -1,7 +1,8 @@
 import {directwerkFetch} from '@/lib/server/api'
 import {jsonError, toClientResponse} from '@directwerk/api/proxy'
 import {readBoundedBody} from '@directwerk/api/proxy'
-import {parseForgotPasswordInput, parseJsonText} from '@directwerk/api/validation'
+import {parseForgotPasswordInput} from '@directwerk/api/validation/input'
+import {parseJsonText} from '@directwerk/api/validation/json'
 
 export async function POST(request: Request): Promise<Response> {
     const bodyText = await readBoundedBody(request.body)

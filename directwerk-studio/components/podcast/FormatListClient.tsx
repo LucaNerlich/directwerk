@@ -16,7 +16,7 @@ import PageStack from '@directwerk/ui/components/page-stack'
 import {listFormats} from '@/lib/api/catalogApi'
 import type {FormatSummary} from '@directwerk/api/types'
 import {getClientTenantHost} from '@/lib/tenant/getClientTenantHost'
-import {useAuthedQuery} from '@directwerk/api/client'
+import {useAuthedQuery} from '@directwerk/api/client/useAuthedQuery'
 
 export default function FormatListClient(): React.JSX.Element {
     const {data: formats, error: errorMessage, isLoading} = useAuthedQuery<FormatSummary[]>(

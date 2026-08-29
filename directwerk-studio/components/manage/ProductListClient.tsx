@@ -8,7 +8,7 @@ import PageHeader from '@directwerk/ui/components/page-header'
 
 import {listProducts} from '@/lib/api/subscriptionApi'
 import type {SubscriptionProduct} from '@directwerk/api/types'
-import {useCachedTenantQuery} from '@directwerk/api/client'
+import {useCachedTenantQuery} from '@directwerk/api/client/useCachedTenantQuery'
 import {formatMoney} from '@/lib/format/money'
 import {getClientTenantHost} from '@/lib/tenant/getClientTenantHost'
 

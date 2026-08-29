@@ -1,4 +1,5 @@
-import {createPublicContentParsers} from '@directwerk/api/validation'
+import {createPublicContentParsers} from '@directwerk/api/validation/public'
+
 import {sanitizeContentHtml} from '@/lib/sanitizeContentHtml'
 
 export function createWebPublicParsers() {

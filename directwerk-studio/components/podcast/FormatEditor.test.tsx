@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event'
 import {beforeEach, describe, expect, it, vi} from 'vitest'
 
 import FormatEditor from '@/components/podcast/FormatEditor'
-import {clearCachedTenantData} from '@directwerk/api/client'
+import {clearCachedTenantData} from '@directwerk/api/client/useCachedTenantQuery'
 
 const replace = vi.fn()
 vi.mock('next/navigation', () => ({useRouter: () => ({replace})}))

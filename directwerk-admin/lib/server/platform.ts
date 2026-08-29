@@ -5,7 +5,7 @@ import {cookies} from 'next/headers'
 import {safeUpstreamResponse} from '@directwerk/api/server'
 import {parseApiEnvelope} from '@directwerk/api/envelope'
 import {sealRefreshToken} from '@directwerk/api/auth/cookies'
-import {parseTokenResponse} from '@directwerk/api/validation'
+import {parseTokenResponse} from '@directwerk/api/validation/token'
 
 import {
     createConfiguredPlatformApiRequest,

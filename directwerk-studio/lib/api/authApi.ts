@@ -1,7 +1,9 @@
 'use client'
 
-import {parseTokenResponse, parseMeEnvelope} from '@directwerk/api/validation'
-import type {LoginInput} from '@directwerk/api/validation'
+import {parseMeEnvelope} from '@directwerk/api/validation/catalog'
+import {parseTokenResponse} from '@directwerk/api/validation/token'
+
+import type {LoginInput} from '@directwerk/api/validation/input'
 import type {Me, TokenResponse} from '@directwerk/api/types'
 import {jsonInit, postJson, studioGet} from './studioApiCore'
 

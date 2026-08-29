@@ -1,8 +1,7 @@
 'use client'
 
-import {
-    parseTokenResponse,
-} from '@directwerk/api/validation'
+import {parseTokenResponse} from '@directwerk/api/validation/token'
+
 import type {
     TokenResponse,
 } from '@directwerk/api/types'
@@ -12,7 +11,7 @@ import type {
     LoginInput,
     RegisterInput,
     ResetPasswordInput,
-} from '@directwerk/api/validation'
+} from '@directwerk/api/validation/input'
 import {
     postJson,
 } from './transport'

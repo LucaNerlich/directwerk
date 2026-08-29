@@ -2,7 +2,8 @@ import {directwerkFetch} from '@/lib/server/api'
 import {parseTenantHost} from '@directwerk/api/proxy'
 import {jsonError, toClientResponse} from '@directwerk/api/proxy'
 import {readBoundedBody} from '@directwerk/api/proxy'
-import {parseJsonText, parseRegisterInput} from '@directwerk/api/validation'
+import {parseRegisterInput} from '@directwerk/api/validation/input'
+import {parseJsonText} from '@directwerk/api/validation/json'
 
 export async function POST(request: Request): Promise<Response> {
     const tenantHost = parseTenantHost(request.headers.get('x-tenant-host'))

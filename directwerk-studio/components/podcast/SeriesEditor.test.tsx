@@ -2,7 +2,7 @@ import {render, screen, waitFor} from '@testing-library/react'
 import {beforeEach, describe, expect, it, vi} from 'vitest'
 
 import SeriesEditor from '@/components/podcast/SeriesEditor'
-import {clearCachedTenantData} from '@directwerk/api/client'
+import {clearCachedTenantData} from '@directwerk/api/client/useCachedTenantQuery'
 
 // `useRouter()` in Next.js returns a stable/memoized object across re-renders.
 // The load effect depends on `router` (see SeriesEditor.tsx), so the mock must

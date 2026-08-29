@@ -2,7 +2,7 @@ import {render, screen, waitFor} from '@testing-library/react'
 import {beforeEach, describe, expect, it, vi} from 'vitest'
 
 import ProductListClient from '@/components/manage/ProductListClient'
-import {clearCachedTenantData} from '@directwerk/api/client'
+import {clearCachedTenantData} from '@directwerk/api/client/useCachedTenantQuery'
 import {listProducts} from '@/lib/api/subscriptionApi'
 
 vi.mock('next/navigation', () => ({useRouter: () => ({replace: vi.fn()})}))

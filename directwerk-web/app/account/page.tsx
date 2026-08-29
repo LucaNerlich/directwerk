@@ -23,7 +23,8 @@ import {
 import HowToListen from '@/components/HowToListen'
 import {useAccountDashboard} from '@/lib/account/useAccountDashboard'
 import {forgotPassword} from '@/lib/api/client'
-import {parseForgotPasswordInput} from '@directwerk/api/validation'
+import {parseForgotPasswordInput} from '@directwerk/api/validation/input'
+
 import {clearTokens} from '@/lib/auth/tokenStore'
 import {getClientTenantHost} from '@/lib/tenant/getClientTenantHost'
 

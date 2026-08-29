@@ -4,7 +4,8 @@ import {safeUpstreamResponse} from '@directwerk/api/server'
 import {sealRefreshToken} from '@directwerk/api/auth/cookies'
 
 import type {TokenResponse} from '@directwerk/api/types'
-import {parseTokenResponse} from '@directwerk/api/validation'
+import {parseTokenResponse} from '@directwerk/api/validation/token'
+
 import {
     createConfiguredPlatformTokenRequest,
     PLATFORM_REFRESH_COOKIE,

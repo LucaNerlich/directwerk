@@ -12,7 +12,8 @@ import {Input} from '@directwerk/ui/components/input'
 import {Label} from '@directwerk/ui/components/label'
 
 import {login} from '@/lib/api/client'
-import {parseLoginInput} from '@directwerk/api/validation'
+import {parseLoginInput} from '@directwerk/api/validation/input'
+
 import {setTokens} from '@/lib/auth/tokenStore'
 import {safeReturnTo} from '@/lib/auth/safeReturnTo'
 import {getClientTenantHost} from '@/lib/tenant/getClientTenantHost'

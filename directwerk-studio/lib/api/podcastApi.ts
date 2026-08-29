@@ -1,11 +1,7 @@
 'use client'
 
-import {
-    parseEpisodeEnvelope,
-    parseEpisodeListEnvelope,
-    parseSeriesEnvelope,
-    parseSeriesListEnvelope,
-} from '@directwerk/api/validation'
+import {parseEpisodeEnvelope, parseEpisodeListEnvelope, parseSeriesEnvelope, parseSeriesListEnvelope} from '@directwerk/api/validation/catalog'
+
 import type {
     CreateEpisodeInput,
     CreateSeriesInput,
