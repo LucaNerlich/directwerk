@@ -19,4 +19,11 @@ tests {
   test("returns expected status", function() {
     expect(res.getStatus() === 200).to.equal(true);
   });
+
+  test("includes list metadata fields", function() {
+    const tenant = res.body.data.content.find(t => t.slug === "alpha-show-a");
+    expect(tenant).to.be.an("object");
+    expect(tenant.createdAt).to.be.a("string");
+    expect(tenant.primaryDomain).to.be.a("string");
+  });
 }

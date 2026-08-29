@@ -1,7 +1,7 @@
 meta {
-  name: List Audit Events
+  name: Filter Audit Events
   type: http
-  seq: 1
+  seq: 2
 }
 
 get {
@@ -12,7 +12,8 @@ get {
 
 params:query {
   page: 0
-  size: 20
+  size: 10
+  action: TENANT_CREATED
 }
 
 tests {
@@ -20,10 +21,8 @@ tests {
     expect(res.getStatus() === 200).to.equal(true);
   });
 
-  test("returns paginated audit payload", function() {
+  test("returns filtered audit payload", function() {
     expect(res.body.data).to.be.an("array");
     expect(res.body.metadata.totalElements).to.be.a("number");
-    expect(res.body.metadata.page).to.equal(0);
-    expect(res.body.metadata.size).to.equal(20);
   });
 }

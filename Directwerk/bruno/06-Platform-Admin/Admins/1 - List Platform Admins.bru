@@ -14,4 +14,11 @@ tests {
   test("returns expected status", function() {
     expect(res.getStatus() === 200).to.equal(true);
   });
+
+  test("includes last login field", function() {
+    expect(res.body.data).to.be.an("array");
+    if (res.body.data.length > 0) {
+      expect(res.body.data[0]).to.have.property("lastLoginAt");
+    }
+  });
 }

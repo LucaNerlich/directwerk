@@ -66,7 +66,7 @@ token's 15-minute TTL expires, or when switching environments).
 | 03-Public | `PublicSiteConfigController`, `PublicSubscriptionProductController`, `PublicPodcastController`, `PublicEpisodeDownloadController`, `PublicArticleController` (no auth) |
 | 04-RSS-Feeds | `RssFeedController` — public/private feeds + enclosures; PODCAST_RSS-off → 403 `FEATURE_NOT_ENABLED` with per-request restore (pre-flight + cleanup ensures) |
 | 05-Security-and-Probes | `SecurityProbeController`, `ModuleProbeController`, and a `Multi-Tenant-Isolation` subfolder covering Host/JWT mismatch, platform-vs-tenant denial, and domain verification |
-| 06-Platform-Admin | Tenants, Modules, Admins, Tenant-Users (incl. deactivate/reactivate), Audit, Tenant-Media, Queue — `PLATFORM_ADMIN` role, no `Host` header |
+| 06-Platform-Admin | Tenants, Modules, Admins, Tenant-Users (incl. deactivate/reactivate/resend-invite), Audit, Overview, Tenant-Media, Queue — `PLATFORM_ADMIN` role, no `Host` header |
 | 07-Tenant-Admin | Branding, Domains, Users, Products, Subscriptions (incl. subscribers list), Content-Email-Templates, Stripe Connect + billing dashboard — `TENANT_ADMIN` role |
 | 12-Webhooks | `StripeWebhookController` — inbound Stripe signature path (missing + invalid `Stripe-Signature`), no JWT |
 | 08-Media | `MediaController` upload-url → confirm → preview-url → delete flow |
