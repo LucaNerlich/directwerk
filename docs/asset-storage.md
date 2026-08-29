@@ -30,6 +30,11 @@ Never: prefix-wide credentials, ListObjects for clients, logging presigned URLs
 grant access to any other private asset — enforcement is **per asset**, via `AssetAccessService`,
 not via bucket policies or user-prefix browsing.
 
+**Remote RSS ingest:** The API resolves and rejects private, loopback, link-local, and special-use
+targets before every request and redirect. Production deployments must additionally restrict
+application egress to public destinations at the network/proxy layer. Application-level DNS checks
+alone cannot eliminate DNS-rebinding races between validation and socket connection.
+
 ---
 
 ## Goals

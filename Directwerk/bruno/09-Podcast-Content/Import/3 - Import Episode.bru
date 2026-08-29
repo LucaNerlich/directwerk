@@ -1,0 +1,39 @@
+meta {
+  name: 3 - Import Episode
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{baseUrl}}/api/v1/podcast/import/episodes
+  body: json
+  auth: inherit
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "seriesId": {{podcastSeriesId}},
+    "feedUrl": "https://example.com/podcast.xml",
+    "guid": "import-guid-{{podcastEpisodeSlug}}",
+    "slug": "{{podcastEpisodeSlug}}-import",
+    "title": "Imported Harness Episode",
+    "description": "<p>Imported from RSS.</p>",
+    "accessPolicy": "FREE",
+    "audioUrl": "https://example.com/episode.mp3"
+  }
+}
+
+tests {
+  test("returns expected status", function() {
+    expect([201, 200, 400, 403, 404, 503]).to.include(res.getStatus());
+  });
+}
+
+docs {
+  Streams the episode audio (and optional cover) to S3, then creates a draft episode.
+  Re-importing the same guid returns 200 with alreadyImported=true.
+}

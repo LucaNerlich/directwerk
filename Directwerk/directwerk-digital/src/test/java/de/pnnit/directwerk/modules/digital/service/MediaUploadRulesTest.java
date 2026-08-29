@@ -52,6 +52,16 @@ class MediaUploadRulesTest {
     }
 
     @Test
+    void infersMimeFromFilename() {
+        assertThat(MediaUploadRules.inferMimeFromFilename(AssetType.AUDIO, "show.mp3"))
+                .isEqualTo("audio/mpeg");
+        assertThat(MediaUploadRules.inferMimeFromFilename(AssetType.IMAGE, "cover.JPG"))
+                .isEqualTo("image/jpeg");
+        assertThat(MediaUploadRules.normalizeMime("audio/mp3; charset=binary"))
+                .isEqualTo("audio/mpeg");
+    }
+
+    @Test
     void capsOverlongFilenameStem() {
         String longName = "a".repeat(150) + ".mp3";
         assertThat(MediaUploadRules.sanitizeFilenameStem(longName))

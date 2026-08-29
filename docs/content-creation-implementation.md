@@ -228,6 +228,9 @@ Listeners (post-MVP):
 | `/api/v1/media/*` | upload-url, confirm, list, preview-url | `EDITOR+` | `DIGITAL_CONTENT` |
 | `/api/v1/series` | CRUD | `EDITOR+` | `PODCAST` |
 | `/api/v1/episodes` | CRUD | `EDITOR+` | `PODCAST` |
+| `/api/v1/podcast/import/preview` | POST | `EDITOR+` | `PODCAST` |
+| `/api/v1/podcast/import/assets` | POST | `EDITOR+` | `PODCAST` |
+| `/api/v1/podcast/import/episodes` | POST | `EDITOR+` | `PODCAST` |
 | `/api/v1/episodes/{id}/publish` | POST | `EDITOR+` | `PODCAST` |
 | `/api/v1/episodes/{id}/schedule` | POST | `EDITOR+` | `PODCAST` |
 | `/api/v1/formats` | CRUD | `TENANT_ADMIN` | `PODCAST` |

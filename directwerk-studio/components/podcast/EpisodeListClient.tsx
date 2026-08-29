@@ -22,6 +22,9 @@ import {usePublicationListPage} from '@/lib/publication/usePublicationListPage'
 import {getClientTenantHost} from '@directwerk/api/tenant'
 import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
 
+/**
+ * Displays the podcast episode list and provides publication management actions.
+ */
 export default function EpisodeListClient() {
     const authRedirect = useAuthRequired()
     const [series, setSeries] = useState<SeriesSummary[]>([])
@@ -100,9 +103,14 @@ export default function EpisodeListClient() {
                 description="Hier entsteht dein laufender Output: Audio, Shownotes, Format, Veröffentlichen."
                 actions={
                     canCreate ? (
-                        <Button nativeButton={false} render={<Link href="/podcast/episodes/new" />} size="lg">
-                            Neue Folge
-                        </Button>
+                        <div className="flex flex-wrap gap-2">
+                            <Button nativeButton={false} render={<Link href="/podcast/import" />} size="lg" variant="outline">
+                                RSS importieren
+                            </Button>
+                            <Button nativeButton={false} render={<Link href="/podcast/episodes/new" />} size="lg">
+                                Neue Folge
+                            </Button>
+                        </div>
                     ) : null
                 }
             />

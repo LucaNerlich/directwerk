@@ -18,6 +18,11 @@ import type {EpisodeSummary, FormatSummary, SeriesSummary} from '@directwerk/api
 import {getClientTenantHost} from '@directwerk/api/tenant'
 import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
 
+/**
+ * Displays the podcast overview and guides users through setting up and publishing podcast content.
+ *
+ * @returns The rendered podcast overview.
+ */
 export default function PodcastDeskClient(): React.JSX.Element {
     const router = useRouter()
     const authRedirect = useAuthRequired()
@@ -122,9 +127,14 @@ export default function PodcastDeskClient(): React.JSX.Element {
                 description="Folge für Folge veröffentlichen. Sendung und Formate sind Einrichtung — der wöchentliche Weg führt über die Folgen."
                 actions={
                     setupComplete ? (
-                        <Button nativeButton={false} render={<Link href="/podcast/episodes/new" />} size="lg">
-                            Neue Folge
-                        </Button>
+                        <div className="flex flex-wrap gap-2">
+                            <Button nativeButton={false} render={<Link href="/podcast/import" />} size="lg" variant="outline">
+                                RSS importieren
+                            </Button>
+                            <Button nativeButton={false} render={<Link href="/podcast/episodes/new" />} size="lg">
+                                Neue Folge
+                            </Button>
+                        </div>
                     ) : (
                         <Button nativeButton={false} render={<Link href={nextStep.href} />} size="lg">
                             {nextStep.actionLabel}
@@ -236,6 +246,8 @@ export default function PodcastDeskClient(): React.JSX.Element {
             {setupComplete ? (
                 <p className="text-sm text-muted-foreground">
                     <Link href="/podcast/episodes">Zur Folgenliste</Link>
+                    {' · '}
+                    <Link href="/podcast/import">RSS importieren</Link>
                     {' · '}
                     <Link href="/podcast/series">Sendungen</Link>
                     {' · '}

@@ -452,6 +452,70 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/public/contact": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["submit"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/podcast/import/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["preview"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/podcast/import/episodes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["importEpisode"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/podcast/import/assets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["ingestAsset"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/platform/tenants": {
         parameters: {
             query?: never;
@@ -462,6 +526,22 @@ export interface paths {
         get: operations["listTenants"];
         put?: never;
         post: operations["createTenant"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/platform/tenants/{tenantId}/users/{userId}/resend-invite": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["resendInvite"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1636,6 +1716,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/public/altcha/challenge": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["challenge"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/probes/podcast": {
         parameters: {
             query?: never;
@@ -1724,6 +1820,22 @@ export interface paths {
             cookie?: never;
         };
         get: operations["get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/platform/overview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getOverview"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1932,6 +2044,22 @@ export interface paths {
             cookie?: never;
         };
         get: operations["listDownloads"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/articles": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["listArticles_2"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2262,6 +2390,8 @@ export interface components {
             /** Format: int32 */
             sortOrder?: number;
             active?: boolean;
+            /** Format: int64 */
+            coverAssetId?: number;
         };
         ResponseFormatView: {
             /** Format: int32 */
@@ -2279,6 +2409,8 @@ export interface components {
             slug?: string;
             title?: string;
             description?: string;
+            /** Format: int64 */
+            coverAssetId?: number;
             /** Format: int32 */
             durationSeconds?: number;
             /** @enum {string} */
@@ -2307,6 +2439,8 @@ export interface components {
             description?: string;
             /** Format: int64 */
             audioAssetId?: number;
+            /** Format: int64 */
+            coverAssetId?: number;
             /** Format: int32 */
             durationSeconds?: number;
             accessPolicy?: string;
@@ -2436,6 +2570,10 @@ export interface components {
             name?: string;
             roles?: string[];
             status?: string;
+            /** Format: date-time */
+            invitedAt?: string;
+            /** Format: date-time */
+            lastLoginAt?: string;
         };
         InviteRequest: {
             email: string;
@@ -2536,9 +2674,6 @@ export interface components {
                 [key: string]: unknown;
             };
         };
-        VerifyDomainRequest: {
-            token?: string;
-        };
         CreateSeriesRequest: {
             slug: string;
             title: string;
@@ -2549,6 +2684,148 @@ export interface components {
             itunesCategory?: string;
             /** Format: int32 */
             defaultRequiredLevelSortOrder?: number;
+        };
+        ContactRequest: {
+            name: string;
+            email: string;
+            message: string;
+            altcha: string;
+        };
+        ContactAcceptedResponse: {
+            accepted?: boolean;
+        };
+        ResponseContactAcceptedResponse: {
+            /** Format: int32 */
+            statusCode?: number;
+            statusMessage?: string;
+            data?: components["schemas"]["ContactAcceptedResponse"];
+            errors?: components["schemas"]["ErrorDetail"][];
+            metadata?: {
+                [key: string]: unknown;
+            };
+        };
+        PreviewRequest: {
+            feedUrl: string;
+        };
+        ChannelView: {
+            title?: string;
+            description?: string;
+            language?: string;
+            itunesCategory?: string;
+            imageUrl?: string;
+            link?: string;
+            suggestedSlug?: string;
+        };
+        EpisodePreviewView: {
+            guid?: string;
+            title?: string;
+            description?: string;
+            publishedAt?: string;
+            /** Format: int32 */
+            durationSeconds?: number;
+            /** Format: int32 */
+            episodeNumber?: number;
+            audioUrl?: string;
+            audioMimeType?: string;
+            /** Format: int64 */
+            audioSizeBytes?: number;
+            imageUrl?: string;
+            suggestedSlug?: string;
+            /** Format: int64 */
+            alreadyImportedEpisodeId?: number;
+        };
+        PreviewView: {
+            feedUrl?: string;
+            channel?: components["schemas"]["ChannelView"];
+            episodes?: components["schemas"]["EpisodePreviewView"][];
+            truncated?: boolean;
+        };
+        ResponsePreviewView: {
+            /** Format: int32 */
+            statusCode?: number;
+            statusMessage?: string;
+            data?: components["schemas"]["PreviewView"];
+            errors?: components["schemas"]["ErrorDetail"][];
+            metadata?: {
+                [key: string]: unknown;
+            };
+        };
+        ImportEpisodeRequest: {
+            /** Format: int64 */
+            seriesId: number;
+            feedUrl: string;
+            guid: string;
+            slug?: string;
+            title: string;
+            description?: string;
+            /** Format: int32 */
+            episodeNumber?: number;
+            /** Format: int32 */
+            durationSeconds?: number;
+            /** @enum {string} */
+            accessPolicy?: "FREE" | "PAID";
+            /** Format: int32 */
+            requiredLevelSortOrder?: number;
+            formatIds?: number[];
+            categoryIds?: number[];
+            audioUrl?: string;
+            imageUrl?: string;
+            /** Format: int64 */
+            coverAssetId?: number;
+        };
+        ImportedEpisodeView: {
+            episode?: components["schemas"]["EpisodeView"];
+            alreadyImported?: boolean;
+        };
+        ResponseImportedEpisodeView: {
+            /** Format: int32 */
+            statusCode?: number;
+            statusMessage?: string;
+            data?: components["schemas"]["ImportedEpisodeView"];
+            errors?: components["schemas"]["ErrorDetail"][];
+            metadata?: {
+                [key: string]: unknown;
+            };
+        };
+        IngestAssetRequest: {
+            sourceUrl: string;
+            /** @enum {string} */
+            assetType: "AUDIO" | "IMAGE" | "VIDEO" | "DOCUMENT";
+            /** @enum {string} */
+            visibility?: "PUBLIC" | "PRIVATE";
+            filename?: string;
+        };
+        MediaAssetView: {
+            /** Format: int64 */
+            id?: number;
+            s3Key?: string;
+            visibility?: string;
+            scope?: string;
+            assetType?: string;
+            status?: string;
+            mimeType?: string;
+            /** Format: int64 */
+            sizeBytes?: number;
+            originalFilename?: string;
+            /** Format: int64 */
+            episodeId?: number;
+            /** Format: int64 */
+            ownerUserId?: number;
+            cdnUrl?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string;
+        };
+        ResponseMediaAssetView: {
+            /** Format: int32 */
+            statusCode?: number;
+            statusMessage?: string;
+            data?: components["schemas"]["MediaAssetView"];
+            errors?: components["schemas"]["ErrorDetail"][];
+            metadata?: {
+                [key: string]: unknown;
+            };
         };
         CreateTenantRequest: {
             name: string;
@@ -2602,6 +2879,15 @@ export interface components {
             slug?: string;
             name?: string;
             status?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            primaryDomain?: string;
+            domains?: components["schemas"]["TenantDomainView"][];
+        };
+        TenantDomainView: {
+            host?: string;
+            primary?: boolean;
+            verified?: boolean;
         };
         ResponseTenantModulesView: {
             /** Format: int32 */
@@ -2613,40 +2899,16 @@ export interface components {
                 [key: string]: unknown;
             };
         };
+        TenantModuleActivationView: {
+            moduleKey?: string;
+            active?: boolean;
+            /** Format: date-time */
+            activatedAt?: string;
+            source?: string;
+        };
         TenantModulesView: {
             enabledModules?: string[];
-        };
-        MediaAssetView: {
-            /** Format: int64 */
-            id?: number;
-            s3Key?: string;
-            visibility?: string;
-            scope?: string;
-            assetType?: string;
-            status?: string;
-            mimeType?: string;
-            /** Format: int64 */
-            sizeBytes?: number;
-            originalFilename?: string;
-            /** Format: int64 */
-            episodeId?: number;
-            /** Format: int64 */
-            ownerUserId?: number;
-            cdnUrl?: string;
-            /** Format: date-time */
-            createdAt?: string;
-            /** Format: date-time */
-            updatedAt?: string;
-        };
-        ResponseMediaAssetView: {
-            /** Format: int32 */
-            statusCode?: number;
-            statusMessage?: string;
-            data?: components["schemas"]["MediaAssetView"];
-            errors?: components["schemas"]["ErrorDetail"][];
-            metadata?: {
-                [key: string]: unknown;
-            };
+            activations?: components["schemas"]["TenantModuleActivationView"][];
         };
         CreateUploadUrlRequest: {
             filename: string;
@@ -2846,6 +3108,8 @@ export interface components {
             requiredLevelSortOrder?: number;
             /** Format: int32 */
             sortOrder?: number;
+            /** Format: int64 */
+            coverAssetId?: number;
         };
         CreateEpisodeRequest: {
             /** Format: int64 */
@@ -2857,6 +3121,8 @@ export interface components {
             description?: string;
             /** Format: int64 */
             audioAssetId?: number;
+            /** Format: int64 */
+            coverAssetId?: number;
             /** Format: int32 */
             durationSeconds?: number;
             /** @enum {string} */
@@ -2993,6 +3259,7 @@ export interface components {
         };
         NotificationPreferencesView: {
             emailNotificationsEnabled?: boolean;
+            emailNotifyAvailable?: boolean;
         };
         ResponseNotificationPreferencesView: {
             /** Format: int32 */
@@ -3038,9 +3305,9 @@ export interface components {
             email?: string;
             name?: string;
             status?: string;
-            subscriptions?: components["schemas"]["SubscriptionSummary"][];
+            subscriptions?: components["schemas"]["SubscriptionSummaryView"][];
         };
-        SubscriptionSummary: {
+        SubscriptionSummaryView: {
             /** Format: int64 */
             id?: number;
             /** Format: int64 */
@@ -3250,6 +3517,7 @@ export interface components {
             tenant?: components["schemas"]["TenantResponse"];
             enabledModules?: string[];
             branding?: components["schemas"]["BrandingResponse"];
+            publicSiteUrl?: string;
             publicRssUrl?: string;
             analytics?: components["schemas"]["AnalyticsResponse"];
             /** @enum {string} */
@@ -3271,6 +3539,7 @@ export interface components {
             coverAssetId?: number;
             language?: string;
             itunesCategory?: string;
+            rssUrl?: string;
         };
         ResponseListPublicSeriesView: {
             /** Format: int32 */
@@ -3432,15 +3701,35 @@ export interface components {
                 [key: string]: unknown;
             };
         };
-        TenantListResponse: {
-            content?: components["schemas"]["TenantView"][];
-        };
-        TenantView: {
+        TenantListItemView: {
             /** Format: int64 */
             id?: number;
             slug?: string;
             name?: string;
             status?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            primaryDomain?: string;
+        };
+        TenantListResponse: {
+            content?: components["schemas"]["TenantListItemView"][];
+        };
+        ResponseTenantDetailResponse: {
+            /** Format: int32 */
+            statusCode?: number;
+            statusMessage?: string;
+            data?: components["schemas"]["TenantDetailResponse"];
+            errors?: components["schemas"]["ErrorDetail"][];
+            metadata?: {
+                [key: string]: unknown;
+            };
+        };
+        TenantDetailResponse: {
+            tenant?: components["schemas"]["TenantDetailView"];
+            /** Format: int64 */
+            episodeCount?: number;
+            /** Format: int64 */
+            subscriberCount?: number;
         };
         ResponseTenantUserListResponse: {
             /** Format: int32 */
@@ -3469,6 +3758,47 @@ export interface components {
             content?: components["schemas"]["MediaAssetView"][];
             publicCdnBaseUrl?: string;
         };
+        ModuleAdoptionView: {
+            moduleKey?: string;
+            /** Format: int64 */
+            tenantCount?: number;
+        };
+        PlatformAuditView: {
+            /** Format: int64 */
+            id?: number;
+            action?: string;
+            /** Format: int64 */
+            actorUserId?: number;
+            actorEmail?: string;
+            /** Format: int64 */
+            tenantId?: number;
+            details?: {
+                [key: string]: unknown;
+            };
+            /** Format: date-time */
+            createdAt?: string;
+        };
+        PlatformOverviewView: {
+            tenantCounts?: components["schemas"]["TenantCountSummary"];
+            moduleAdoption?: components["schemas"]["ModuleAdoptionView"][];
+            recentAudit?: components["schemas"]["PlatformAuditView"][];
+        };
+        ResponsePlatformOverviewView: {
+            /** Format: int32 */
+            statusCode?: number;
+            statusMessage?: string;
+            data?: components["schemas"]["PlatformOverviewView"];
+            errors?: components["schemas"]["ErrorDetail"][];
+            metadata?: {
+                [key: string]: unknown;
+            };
+        };
+        TenantCountSummary: {
+            /** Format: int64 */
+            active?: number;
+            /** Format: int64 */
+            suspended?: number;
+        };
         ModuleView: {
             moduleKey?: string;
             name?: string;
@@ -3486,20 +3816,6 @@ export interface components {
                 [key: string]: unknown;
             };
         };
-        PlatformAuditView: {
-            /** Format: int64 */
-            id?: number;
-            action?: string;
-            /** Format: int64 */
-            actorUserId?: number;
-            /** Format: int64 */
-            tenantId?: number;
-            details?: {
-                [key: string]: unknown;
-            };
-            /** Format: date-time */
-            createdAt?: string;
-        };
         ResponseListPlatformAuditView: {
             /** Format: int32 */
             statusCode?: number;
@@ -3515,6 +3831,8 @@ export interface components {
             userId?: number;
             email?: string;
             name?: string;
+            /** Format: date-time */
+            lastLoginAt?: string;
         };
         ResponseListPlatformAdminView: {
             /** Format: int32 */
@@ -3648,6 +3966,33 @@ export interface components {
             statusCode?: number;
             statusMessage?: string;
             data?: components["schemas"]["DownloadView"][];
+            errors?: components["schemas"]["ErrorDetail"][];
+            metadata?: {
+                [key: string]: unknown;
+            };
+        };
+        MeArticleView: {
+            /** Format: int64 */
+            id?: number;
+            slug?: string;
+            title?: string;
+            body?: string;
+            excerpt?: string;
+            seoDescription?: string;
+            /** Format: int64 */
+            heroAssetId?: number;
+            accessPolicy?: string;
+            /** Format: int32 */
+            requiredLevelSortOrder?: number;
+            /** Format: date-time */
+            publishedAt?: string;
+            categories?: components["schemas"]["PublicCategoryView"][];
+        };
+        ResponseListMeArticleView: {
+            /** Format: int32 */
+            statusCode?: number;
+            statusMessage?: string;
+            data?: components["schemas"]["MeArticleView"][];
             errors?: components["schemas"]["ErrorDetail"][];
             metadata?: {
                 [key: string]: unknown;
@@ -4654,11 +4999,7 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: {
-            content: {
-                "application/json": components["schemas"]["VerifyDomainRequest"];
-            };
-        };
+        requestBody?: never;
         responses: {
             /** @description OK */
             200: {
@@ -4715,6 +5056,102 @@ export interface operations {
             };
         };
     };
+    submit: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ContactRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ResponseContactAcceptedResponse"];
+                };
+            };
+        };
+    };
+    preview: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PreviewRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ResponsePreviewView"];
+                };
+            };
+        };
+    };
+    importEpisode: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ImportEpisodeRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ResponseImportedEpisodeView"];
+                };
+            };
+        };
+    };
+    ingestAsset: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["IngestAssetRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ResponseMediaAssetView"];
+                };
+            };
+        };
+    };
     listTenants: {
         parameters: {
             query?: never;
@@ -4755,6 +5192,29 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["ResponseTenantCreationResponse"];
+                };
+            };
+        };
+    };
+    resendInvite: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tenantId: number;
+                userId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ResponseInviteUserResponse"];
                 };
             };
         };
@@ -5944,7 +6404,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["ResponseTenantDetailView"];
+                    "*/*": components["schemas"]["ResponseTenantDetailResponse"];
                 };
             };
         };
@@ -6583,6 +7043,26 @@ export interface operations {
             };
         };
     };
+    challenge: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": string;
+                };
+            };
+        };
+    };
     podcastProbe: {
         parameters: {
             query?: never;
@@ -6715,6 +7195,28 @@ export interface operations {
             };
         };
     };
+    getOverview: {
+        parameters: {
+            query?: {
+                recentAuditLimit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ResponsePlatformOverviewView"];
+                };
+            };
+        };
+    };
     listModules: {
         parameters: {
             query?: never;
@@ -6738,7 +7240,12 @@ export interface operations {
     listRecent: {
         parameters: {
             query?: {
-                limit?: number;
+                page?: number;
+                size?: number;
+                tenantId?: number;
+                action?: string;
+                actorEmail?: string;
+                actorUserId?: number;
             };
             header?: never;
             path?: never;
@@ -7009,6 +7516,26 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["ResponseListDownloadView"];
+                };
+            };
+        };
+    };
+    listArticles_2: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ResponseListMeArticleView"];
                 };
             };
         };

@@ -14,6 +14,8 @@ import type {
     DomainVerificationChallenge,
     EpisodeDetail,
     EpisodeSummary,
+    ImportedEpisodeResult,
+    RssImportPreview,
     FormatSummary,
     FormatTag,
     InviteTenantUserResponse,
@@ -295,6 +297,148 @@ export function parseEpisodeEnvelope(
     value: unknown,
 ): ApiEnvelope<EpisodeDetail> | null {
     return parseEnvelope(value, parseEpisodeDetail)
+}
+
+/**
+ * Parses an RSS import channel into a validated channel object.
+ *
+ * @param value - The value to validate and parse
+ * @returns The parsed RSS import channel, or `null` for an invalid value
+ */
+function parseRssImportChannel(value: unknown): RssImportPreview['channel'] | null {
+    if (
+        !isRecord(value) ||
+        !isBoundedString(value.title, 512) ||
+        !isNullableString(value.description, 20000) ||
+        !isNullableString(value.language, 8) ||
+        !isNullableString(value.itunesCategory, 128) ||
+        !isNullableString(value.imageUrl, 2048) ||
+        !isNullableString(value.link, 2048) ||
+        !isBoundedString(value.suggestedSlug, 64)
+    ) {
+        return null
+    }
+    return {
+        title: value.title,
+        description: value.description,
+        language: value.language,
+        itunesCategory: value.itunesCategory,
+        imageUrl: value.imageUrl,
+        link: value.link,
+        suggestedSlug: value.suggestedSlug,
+    }
+}
+
+/**
+ * Parses an RSS episode preview into a validated episode record.
+ *
+ * @param value - The value to validate and parse
+ * @returns The parsed episode preview, or `null` when the value is invalid
+ */
+function parseRssImportEpisodePreview(
+    value: unknown,
+): RssImportPreview['episodes'][number] | null {
+    if (
+        !isRecord(value) ||
+        !isBoundedString(value.guid, 512) ||
+        !isBoundedString(value.title, 512) ||
+        !isNullableString(value.description, 512_000) ||
+        !isNullableString(value.publishedAt, 64) ||
+        !isNullableString(value.audioUrl, 2048) ||
+        !isNullableString(value.audioMimeType, 128) ||
+        !isNullableString(value.imageUrl, 2048) ||
+        !isBoundedString(value.suggestedSlug, 64) ||
+        (value.durationSeconds != null &&
+            (!isSafeInteger(value.durationSeconds) || value.durationSeconds < 1)) ||
+        (value.episodeNumber != null &&
+            (!isSafeInteger(value.episodeNumber) || value.episodeNumber < 1)) ||
+        (value.audioSizeBytes != null &&
+            (!isSafeInteger(value.audioSizeBytes) || value.audioSizeBytes < 1)) ||
+        (value.alreadyImportedEpisodeId != null &&
+            !isPositiveSafeInteger(value.alreadyImportedEpisodeId))
+    ) {
+        return null
+    }
+    return {
+        guid: value.guid,
+        title: value.title,
+        description: value.description,
+        publishedAt: value.publishedAt,
+        durationSeconds: value.durationSeconds ?? null,
+        episodeNumber: value.episodeNumber ?? null,
+        audioUrl: value.audioUrl,
+        audioMimeType: value.audioMimeType,
+        audioSizeBytes: value.audioSizeBytes ?? null,
+        imageUrl: value.imageUrl,
+        suggestedSlug: value.suggestedSlug,
+        alreadyImportedEpisodeId: value.alreadyImportedEpisodeId ?? null,
+    }
+}
+
+/**
+ * Parses an RSS import preview into a validated domain object.
+ *
+ * @param value - The value to validate and parse
+ * @returns The parsed RSS import preview, or `null` for an invalid value
+ */
+function parseRssImportPreview(value: unknown): RssImportPreview | null {
+    if (!isRecord(value) || !isBoundedString(value.feedUrl, 2048)) {
+        return null
+    }
+    const channel = parseRssImportChannel(value.channel)
+    // The feed document itself is bounded by the API, so keep every parsed item
+    // instead of silently dropping a creator's back catalog.
+    const episodes = parseBoundedArray(value.episodes, 50_000, parseRssImportEpisodePreview)
+    if (channel === null || episodes === null || typeof value.truncated !== 'boolean') {
+        return null
+    }
+    return {
+        feedUrl: value.feedUrl,
+        channel,
+        episodes,
+        truncated: value.truncated,
+    }
+}
+
+/**
+ * Parses an API response envelope containing an RSS import preview.
+ *
+ * @param value - The value to validate and parse
+ * @returns The parsed RSS import preview envelope, or `null` for an invalid value
+ */
+export function parseRssImportPreviewEnvelope(
+    value: unknown,
+): ApiEnvelope<RssImportPreview> | null {
+    return parseEnvelope(value, parseRssImportPreview)
+}
+
+/**
+ * Parses an imported episode result.
+ *
+ * @param value - The value to validate and parse
+ * @returns The imported episode result, or `null` if the value is invalid
+ */
+function parseImportedEpisodeResult(value: unknown): ImportedEpisodeResult | null {
+    if (!isRecord(value) || typeof value.alreadyImported !== 'boolean') {
+        return null
+    }
+    const episode = parseEpisodeDetail(value.episode)
+    if (episode === null) {
+        return null
+    }
+    return {episode, alreadyImported: value.alreadyImported}
+}
+
+/**
+ * Parses an API envelope containing an imported episode result.
+ *
+ * @param value - The value to validate and parse
+ * @returns The parsed API envelope, or `null` if the value is invalid
+ */
+export function parseImportedEpisodeEnvelope(
+    value: unknown,
+): ApiEnvelope<ImportedEpisodeResult> | null {
+    return parseEnvelope(value, parseImportedEpisodeResult)
 }
 
 // ---------------------------------------------------------------------------

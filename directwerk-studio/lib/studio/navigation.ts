@@ -21,10 +21,17 @@ export function buildWriteDeskItems(config: SiteConfig): NavigationItem[] {
     return items
 }
 
+/**
+ * Builds the Podcast desk navigation items available for the site.
+ *
+ * @param config - Site configuration used to determine whether RSS feeds are available
+ * @returns The Podcast desk navigation items
+ */
 export function buildPodcastDeskItems(config: SiteConfig): NavigationItem[] {
     const items: NavigationItem[] = [
         {href: '/podcast', label: 'Start'},
         {href: '/podcast/episodes', label: 'Folgen'},
+        {href: '/podcast/import', label: 'Import'},
         {href: '/podcast/series', label: 'Sendungen'},
         {href: '/podcast/formats', label: 'Formate'},
     ]

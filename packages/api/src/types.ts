@@ -209,6 +209,68 @@ export interface UpdateSeriesInput {
     status?: SeriesStatus
 }
 
+export interface RssImportChannel {
+    title: string
+    description: string | null
+    language: string | null
+    itunesCategory: string | null
+    imageUrl: string | null
+    link: string | null
+    suggestedSlug: string
+}
+
+export interface RssImportEpisodePreview {
+    guid: string
+    title: string
+    description: string | null
+    publishedAt: string | null
+    durationSeconds: number | null
+    episodeNumber: number | null
+    audioUrl: string | null
+    audioMimeType: string | null
+    audioSizeBytes: number | null
+    imageUrl: string | null
+    suggestedSlug: string
+    alreadyImportedEpisodeId: number | null
+}
+
+export interface RssImportPreview {
+    feedUrl: string
+    channel: RssImportChannel
+    episodes: RssImportEpisodePreview[]
+    truncated: boolean
+}
+
+export interface ImportEpisodeInput {
+    seriesId: number
+    feedUrl: string
+    guid: string
+    slug?: string
+    title: string
+    description?: string
+    episodeNumber?: number
+    durationSeconds?: number
+    accessPolicy?: AccessPolicy
+    requiredLevelSortOrder?: number
+    formatIds?: number[]
+    categoryIds?: number[]
+    audioUrl?: string
+    imageUrl?: string
+    coverAssetId?: number
+}
+
+export interface ImportedEpisodeResult {
+    episode: EpisodeDetail
+    alreadyImported: boolean
+}
+
+export interface IngestRemoteAssetInput {
+    sourceUrl: string
+    assetType: AssetType
+    visibility?: AssetVisibility
+    filename?: string
+}
+
 export interface PublishOptions {
     notifySubscribers?: boolean
 }

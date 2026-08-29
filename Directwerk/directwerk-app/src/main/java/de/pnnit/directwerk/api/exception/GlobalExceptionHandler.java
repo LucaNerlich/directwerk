@@ -23,6 +23,7 @@ import de.pnnit.directwerk.modules.digital.exception.CategoryNotFoundException;
 import de.pnnit.directwerk.modules.podcast.exception.EpisodeNotFoundException;
 import de.pnnit.directwerk.modules.podcast.exception.EpisodeValidationException;
 import de.pnnit.directwerk.modules.podcast.exception.FormatNotFoundException;
+import de.pnnit.directwerk.modules.podcast.exception.RssImportException;
 import de.pnnit.directwerk.modules.content.InvalidPublicationTransitionException;
 import de.pnnit.directwerk.modules.podcast.exception.SeriesNotFoundException;
 import de.pnnit.directwerk.modules.podcast.feed.FeedBuilderException;
@@ -324,12 +325,36 @@ public class GlobalExceptionHandler {
         return conflict("PUBLICATION_INVALID_TRANSITION", ex);
     }
 
+    /**
+     * Handles episode validation failures by returning a standardized bad-request response.
+     *
+     * @param ex the episode validation exception
+     * @return a response containing the validation error code and message
+     */
     @ExceptionHandler(EpisodeValidationException.class)
     ResponseEntity<Response<Void>> handleEpisodeValidation(EpisodeValidationException ex) {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                 .body(Response.error(400, "EPISODE_VALIDATION_FAILED", ex.getMessage()));
     }
 
+    /**
+     * Handles RSS import failures by returning an error response with the status, code, and message from the exception.
+     *
+     * @param ex the RSS import exception to convert into an error response
+     * @return the corresponding error response
+     */
+    @ExceptionHandler(RssImportException.class)
+    ResponseEntity<Response<Void>> handleRssImport(RssImportException ex) {
+        return ResponseEntity.status(ex.getStatus())
+                .body(Response.error(ex.getStatus(), ex.getCode(), ex.getMessage()));
+    }
+
+    /**
+     * Handles article validation failures by returning a bad-request error response.
+     *
+     * @param ex the article validation exception
+     * @return a response containing the article validation error details
+     */
     @ExceptionHandler(ArticleValidationException.class)
     ResponseEntity<Response<Void>> handleArticleValidation(ArticleValidationException ex) {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)

@@ -111,7 +111,7 @@ High-level navigation. Items hidden when the backing module is not in `enabledMo
 |----------|--------------|-------------|---------|
 | **Studio** (`/`) | Both | — | Overview, desk chooser, drafts queue |
 | **Schreiben → Start / Beiträge / Bonusdateien** | Editor+ | `DIGITAL_CONTENT`, Write desk | Write desk authoring |
-| **Podcast → Start / Folgen / Sendungen / Formate / Feeds** | Editor+ | `PODCAST`, Podcast desk | Podcast desk authoring + setup |
+| **Podcast → Start / Folgen / Import / Sendungen / Formate / Feeds** | Editor+ | `PODCAST`, Podcast desk | Podcast desk authoring + RSS import + setup |
 | **Verwaltung → Medien → Bibliothek** | Editor+ | `DIGITAL_CONTENT` or `PODCAST` | All tenant assets — upload, browse, archive |
 | **Verwaltung → Organisation → Kategorien** | Editor+ | `DIGITAL_CONTENT` | Category taxonomy (shared axis); `/manage/categories` |
 | **Verwaltung → Abos → Zahlungen / Produkte / Freischaltungen / Abonnenten** | Tenant admin | `SUBSCRIPTION` | Subscriber accounts, products, manual grants |

@@ -9,6 +9,7 @@ import de.pnnit.directwerk.config.DirectwerkConfig;
 import de.pnnit.directwerk.config.DirectwerkProperties;
 import de.pnnit.directwerk.modules.core.entity.TenantDomain;
 import de.pnnit.directwerk.modules.core.repository.TenantDomainRepository;
+import de.pnnit.directwerk.modules.stripebilling.BillingRedirectUrlValidator;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;

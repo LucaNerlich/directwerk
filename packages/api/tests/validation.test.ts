@@ -2,13 +2,65 @@ import {describe, expect, it} from 'vitest'
 
 import {
     createPublicContentParsers,
+    parseImportedEpisodeEnvelope,
     parseMeEnvelope,
+    parseRssImportPreviewEnvelope,
     parseStudioSiteConfigEnvelope,
     parsePublicSiteConfigEnvelope,
     parseSubscriberFeedAdminEnvelope,
     parseTokenResponse,
     isQueueJob,
 } from '../src/validation'
+
+const rssEpisodePreview = {
+    guid: 'episode-guid-1',
+    title: 'Episode 1',
+    description: 'Shownotes',
+    publishedAt: '2026-08-29T12:00:00Z',
+    durationSeconds: 3600,
+    episodeNumber: 1,
+    audioUrl: 'https://cdn.example.com/episode-1.mp3',
+    audioMimeType: 'audio/mpeg',
+    audioSizeBytes: 12_345,
+    imageUrl: 'https://cdn.example.com/episode-1.jpg',
+    suggestedSlug: 'episode-1',
+    alreadyImportedEpisodeId: null,
+}
+
+const rssImportPreview = {
+    feedUrl: 'https://cdn.example.com/feed.xml',
+    channel: {
+        title: 'Example Show',
+        description: 'About the show',
+        language: 'de-DE',
+        itunesCategory: 'News',
+        imageUrl: 'https://cdn.example.com/show.jpg',
+        link: 'https://example.com',
+        suggestedSlug: 'example-show',
+    },
+    episodes: [rssEpisodePreview],
+    truncated: false,
+}
+
+const importedEpisode = {
+    id: 42,
+    slug: 'episode-1',
+    title: 'Episode 1',
+    status: 'DRAFT',
+    accessPolicy: 'FREE',
+    publishedAt: null,
+    seriesId: 7,
+    seriesSlug: 'example-show',
+    description: 'Shownotes',
+    episodeNumber: 1,
+    audioAssetId: 11,
+    coverAssetId: null,
+    enclosureEnabled: true,
+    requiredLevelSortOrder: null,
+    scheduledAt: null,
+    formats: [],
+    categories: [],
+}
 
 describe('parseTokenResponse', () => {
     it('accepts minimal bearer payloads and rejects whitespace tokens', () => {
@@ -37,6 +89,104 @@ describe('parseMeEnvelope', () => {
         expect(envelope?.data.roles).toEqual(['EDITOR'])
         expect(
             parseMeEnvelope({statusCode: 200, data: {email: 'nope', roles: []}}),
+        ).toBeNull()
+    })
+})
+
+describe('RSS import envelopes', () => {
+    it('parses a complete feed preview without dropping import metadata', () => {
+        const parsed = parseRssImportPreviewEnvelope({
+            statusCode: 200,
+            statusMessage: 'OK',
+            data: rssImportPreview,
+        })
+
+        expect(parsed?.data).toEqual(rssImportPreview)
+        expect(parsed?.statusMessage).toBe('OK')
+    })
+
+    it('normalizes omitted optional episode numbers to null', () => {
+        const {durationSeconds, episodeNumber, audioSizeBytes, alreadyImportedEpisodeId, ...required} =
+            rssEpisodePreview
+        const parsed = parseRssImportPreviewEnvelope({
+            statusCode: 200,
+            data: {...rssImportPreview, episodes: [required]},
+        })
+
+        expect(parsed?.data.episodes[0]).toMatchObject({
+            durationSeconds: null,
+            episodeNumber: null,
+            audioSizeBytes: null,
+            alreadyImportedEpisodeId: null,
+        })
+    })
+
+    it.each([
+        ['zero duration', {...rssEpisodePreview, durationSeconds: 0}],
+        ['negative episode number', {...rssEpisodePreview, episodeNumber: -1}],
+        ['fractional audio size', {...rssEpisodePreview, audioSizeBytes: 1.5}],
+        ['unsafe existing episode id', {...rssEpisodePreview, alreadyImportedEpisodeId: Number.MAX_VALUE}],
+    ])('rejects an episode with %s', (_label, episode) => {
+        expect(
+            parseRssImportPreviewEnvelope({
+                statusCode: 200,
+                data: {...rssImportPreview, episodes: [episode]},
+            }),
+        ).toBeNull()
+    })
+
+    it('rejects malformed nested records and values beyond API bounds', () => {
+        expect(
+            parseRssImportPreviewEnvelope({
+                statusCode: 200,
+                data: {...rssImportPreview, channel: null},
+            }),
+        ).toBeNull()
+        expect(
+            parseRssImportPreviewEnvelope({
+                statusCode: 200,
+                data: {
+                    ...rssImportPreview,
+                    episodes: [{...rssEpisodePreview, guid: 'x'.repeat(513)}],
+                },
+            }),
+        ).toBeNull()
+        expect(
+            parseRssImportPreviewEnvelope({
+                statusCode: 200,
+                data: {
+                    ...rssImportPreview,
+                    channel: {...rssImportPreview.channel, suggestedSlug: 'x'.repeat(65)},
+                },
+            }),
+        ).toBeNull()
+    })
+
+    it('parses imported episodes and requires the idempotency flag to be boolean', () => {
+        const parsed = parseImportedEpisodeEnvelope({
+            statusCode: 200,
+            data: {episode: importedEpisode, alreadyImported: true},
+        })
+
+        expect(parsed?.data.episode.id).toBe(42)
+        expect(parsed?.data.alreadyImported).toBe(true)
+        expect(
+            parseImportedEpisodeEnvelope({
+                statusCode: 200,
+                data: {episode: importedEpisode, alreadyImported: 'true'},
+            }),
+        ).toBeNull()
+    })
+
+    it('rejects imported results containing an invalid episode', () => {
+        expect(
+            parseImportedEpisodeEnvelope({
+                statusCode: 200,
+                data: {
+                    episode: {...importedEpisode, seriesId: 0},
+                    alreadyImported: false,
+                },
+            }),
         ).toBeNull()
     })
 })
