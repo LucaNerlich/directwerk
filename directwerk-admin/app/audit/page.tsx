@@ -30,11 +30,7 @@ function formatTimestamp(value: string): string {
 }
 
 function formatDetails(details: Record<string, unknown>): string {
-    try {
-        return JSON.stringify(details)
-    } catch {
-        return String(details)
-    }
+    return JSON.stringify(details)
 }
 
 export default function AuditPage() {
