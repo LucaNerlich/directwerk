@@ -42,6 +42,8 @@ import de.pnnit.directwerk.multitenancy.TenantNotFoundException;
 import de.pnnit.directwerk.multitenancy.TenantSuspendedException;
 import de.pnnit.directwerk.modules.core.service.DomainAlreadyExistsException;
 import de.pnnit.directwerk.modules.core.service.DomainVerificationException;
+import de.pnnit.directwerk.modules.marketing.CaptchaVerificationException;
+import de.pnnit.directwerk.modules.marketing.ContactFormDisabledException;
 import jakarta.validation.ConstraintViolationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -408,6 +410,18 @@ public class GlobalExceptionHandler {
     ResponseEntity<Response<Void>> handleBadCredentials(BadCredentialsException ex) {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                 .body(Response.error(401, "INVALID_CREDENTIALS", "Invalid credentials"));
+    }
+
+    @ExceptionHandler(CaptchaVerificationException.class)
+    ResponseEntity<Response<Void>> handleCaptchaVerification(CaptchaVerificationException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(Response.error(400, "CAPTCHA_INVALID", ex.getMessage()));
+    }
+
+    @ExceptionHandler(ContactFormDisabledException.class)
+    ResponseEntity<Response<Void>> handleContactFormDisabled(ContactFormDisabledException ex) {
+        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+                .body(Response.error(503, "CONTACT_FORM_DISABLED", ex.getMessage()));
     }
 
     /**

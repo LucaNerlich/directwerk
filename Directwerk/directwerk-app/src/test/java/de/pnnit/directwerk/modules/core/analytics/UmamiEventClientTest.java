@@ -118,7 +118,8 @@ class UmamiEventClientTest {
                 null,
                 null,
                 null,
-                new DirectwerkProperties.Analytics(enabled, umamiHostUrl, userAgent)
+                new DirectwerkProperties.Analytics(enabled, umamiHostUrl, userAgent),
+                null
         ));
     }
 

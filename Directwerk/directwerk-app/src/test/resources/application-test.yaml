@@ -68,4 +68,12 @@ directwerk:
         presign-download-ttl-rss: 24h
         staging-lifecycle-hours: 24
         staging-cleanup-interval-ms: 3600000
+    marketing:
+        contact:
+            enabled: false
+            inbox-email: hello@directwerk.de
+            allowed-origins:
+                - http://localhost:3005
+            altcha:
+                hmac-key: test-altcha-hmac-key
 

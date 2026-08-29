@@ -1,6 +1,7 @@
 package de.pnnit.directwerk.config;
 
 import org.springframework.stereotype.Component;
+import org.springframework.util.StringUtils;
 
 @Component
 public class DirectwerkConfig {
@@ -131,5 +132,29 @@ public DirectwerkProperties.Dev dev() {
      */
     public boolean isStorageEnabled() {
         return properties.storage() != null && properties.storage().enabled();
+    }
+
+    /**
+     * Provides access to platform marketing configuration (homepage contact form, ALTCHA).
+     *
+     * @return the marketing configuration
+     */
+    public DirectwerkProperties.Marketing marketing() {
+        return properties.marketing();
+    }
+
+    /**
+     * Determines whether the public homepage contact form can accept submissions.
+     *
+     * @return {@code true} when contact form, ALTCHA, inbox, and email delivery are configured
+     */
+    public boolean isContactFormEnabled() {
+        DirectwerkProperties.Contact contact = properties.marketing().contact();
+        DirectwerkProperties.Altcha altcha = contact.altcha();
+        return contact.enabled()
+                && StringUtils.hasText(contact.inboxEmail())
+                && altcha != null
+                && StringUtils.hasText(altcha.hmacKey())
+                && isEmailEnabled();
     }
 }

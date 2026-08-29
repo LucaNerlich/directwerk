@@ -135,7 +135,7 @@ export default function HomePage(): React.JSX.Element {
             {overview ? (
                 <section className="space-y-3">
                     <SectionHeader
-                        actions={<Link href="/audit">Full audit log</Link>}
+                        action={<Link href="/audit">Full audit log</Link>}
                         title="Recent audit events"
                     />
                     {overview.recentAudit.length > 0 ? (
@@ -147,7 +147,7 @@ export default function HomePage(): React.JSX.Element {
             ) : null}
 
             <SectionHeader
-                actions={<Link href="/tenants">All tenants</Link>}
+                action={<Link href="/tenants">All tenants</Link>}
                 title="Tenants"
             />
 

@@ -28,7 +28,15 @@ describe('TenantEditForm', () => {
         render(
             <TenantEditForm
                 onUpdated={onUpdated}
-                tenant={{id: 1, slug: 'original-slug', name: 'Original', status: 'ACTIVE'}}
+                tenant={{
+                    id: 1,
+                    slug: 'original-slug',
+                    name: 'Original',
+                    status: 'ACTIVE',
+                    createdAt: '2026-01-01T00:00:00Z',
+                    primaryDomain: 'original.example.com',
+                    domains: [],
+                }}
                 tenantId="1"
             />,
         )
@@ -58,7 +66,15 @@ describe('TenantEditForm', () => {
         render(
             <TenantEditForm
                 onUpdated={onUpdated}
-                tenant={{id: 1, slug: 'original-slug', name: 'Original', status: 'ACTIVE'}}
+                tenant={{
+                    id: 1,
+                    slug: 'original-slug',
+                    name: 'Original',
+                    status: 'ACTIVE',
+                    createdAt: '2026-01-01T00:00:00Z',
+                    primaryDomain: 'original.example.com',
+                    domains: [],
+                }}
                 tenantId="1"
             />,
         )

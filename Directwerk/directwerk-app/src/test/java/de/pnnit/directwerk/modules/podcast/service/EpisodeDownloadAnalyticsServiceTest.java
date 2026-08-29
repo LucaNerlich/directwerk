@@ -166,7 +166,8 @@ class EpisodeDownloadAnalyticsServiceTest {
                                 analyticsEnabled,
                                 "https://umami.example.test",
                                 "Directwerk-Test/1.0"
-                        )
+                        ),
+                        null
                 )),
                 moduleGateService,
                 tenantBrandingService,

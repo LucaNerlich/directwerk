@@ -30,6 +30,7 @@ public class AuthRateLimitFilter extends OncePerRequestFilter {
     private final int oauthTokenLimitPerMinute;
     private final int forgotPasswordLimitPerMinute;
     private final int authLimitPerMinute;
+    private final int contactLimitPerMinute;
     private final Set<String> trustedProxies;
     private static final int MAX_USERNAME_KEY_LENGTH = 255;
 
@@ -37,11 +38,13 @@ public class AuthRateLimitFilter extends OncePerRequestFilter {
             int oauthTokenLimitPerMinute,
             int forgotPasswordLimitPerMinute,
             int authLimitPerMinute,
+            int contactLimitPerMinute,
             List<String> trustedProxies
     ) {
         this.oauthTokenLimitPerMinute = oauthTokenLimitPerMinute;
         this.forgotPasswordLimitPerMinute = forgotPasswordLimitPerMinute;
         this.authLimitPerMinute = authLimitPerMinute;
+        this.contactLimitPerMinute = contactLimitPerMinute;
         this.trustedProxies = trustedProxies == null
                 ? Set.of()
                 : Set.copyOf(trustedProxies.stream().filter(StringUtils::hasText).map(String::trim).toList());
@@ -66,10 +69,13 @@ public class AuthRateLimitFilter extends OncePerRequestFilter {
     }
 
     private RateLimitRule resolveRule(HttpServletRequest request) {
+        String path = request.getRequestURI();
+        if ("GET".equalsIgnoreCase(request.getMethod()) && "/api/v1/public/altcha/challenge".equals(path)) {
+            return new RateLimitRule("contact-challenge", contactLimitPerMinute * 3);
+        }
         if (!"POST".equalsIgnoreCase(request.getMethod())) {
             return null;
         }
-        String path = request.getRequestURI();
         if ("/oauth2/token".equals(path)) {
             return new RateLimitRule("oauth", oauthTokenLimitPerMinute);
         }
@@ -78,6 +84,9 @@ public class AuthRateLimitFilter extends OncePerRequestFilter {
         }
         if (path.startsWith("/api/v1/auth/")) {
             return new RateLimitRule("auth", authLimitPerMinute);
+        }
+        if ("/api/v1/public/contact".equals(path)) {
+            return new RateLimitRule("contact", contactLimitPerMinute);
         }
         if (path.startsWith("/api/v1/me/billing/")) {
             return new RateLimitRule("billing", 10);

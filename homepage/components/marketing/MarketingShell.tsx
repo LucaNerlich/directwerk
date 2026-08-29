@@ -8,7 +8,7 @@ import SiteShell from '@directwerk/ui/components/layout/site-shell'
 import {cn} from '@directwerk/ui/lib/utils'
 
 import MarketingFooter from '@/components/marketing/MarketingFooter'
-import {CONTACT_EMAIL, NAV_ITEMS} from '@/lib/marketing/constants'
+import {NAV_ITEMS} from '@/lib/marketing/constants'
 
 function NavLink({
     href,
@@ -78,7 +78,7 @@ export default function MarketingShell({
     ))
 
     const actions = (
-        <Button render={<a href={`mailto:${CONTACT_EMAIL}`} />} variant="outline">
+        <Button render={<a href="/#contact" />} variant="outline">
             Kontakt
         </Button>
     )

@@ -1,12 +1,8 @@
 'use client'
 
 import {createAuthedRequest} from '@directwerk/api/client/authedRequest'
-import {
-    createPlatformApiCore,
-    parsePaginatedApiEnvelope,
-} from '@directwerk/api/client/platformApiCore'
 import {platformAdminPolicy} from '@directwerk/api/client/policies'
-import {parseApiEnvelope} from '@directwerk/api/envelope'
+import {createPlatformApiCore, parsePaginatedApiEnvelope} from '@directwerk/api/client/platformApiCore'
 import type {
     JobListPage,
     JobListQuery,
@@ -92,12 +88,13 @@ export async function getPlatformAuditPage(
         return {content: [], totalElements: 0, page: 0, size: query.size ?? 50}
     }
 
-    const envelope = parseApiEnvelope<PlatformAuditEvent[]>(raw)
-    const metadata = isRecord(envelope.metadata) ? envelope.metadata : {}
+    if (!isRecord(raw) || !Array.isArray(raw.data)) {
+        return {content: [], totalElements: 0, page: 0, size: query.size ?? 50}
+    }
 
-    const content = Array.isArray(envelope.data)
-        ? envelope.data.filter(isPlatformAuditEvent)
-        : []
+    const metadata = isRecord(raw.metadata) ? raw.metadata : {}
+
+    const content = raw.data.filter(isPlatformAuditEvent)
 
     return {
         content,

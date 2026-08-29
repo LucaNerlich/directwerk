@@ -36,7 +36,7 @@ class QueueWorkerTenantContextTest {
         DirectwerkProperties.Queue queueProps = new DirectwerkProperties.Queue(
                 true, 1000, 10, 100, 60, 3600, 5, 30, 3600, 10000, "test-worker", 7, 3600000, 100
         );
-        DirectwerkProperties properties = new DirectwerkProperties(null, null, null, null, null, queueProps, null, null);
+        DirectwerkProperties properties = new DirectwerkProperties(null, null, null, null, null, queueProps, null, null, null);
         DirectwerkConfig config = new DirectwerkConfig(properties);
 
         AtomicReference<Long> seenTenantId = new AtomicReference<>();
@@ -200,7 +200,7 @@ class QueueWorkerTenantContextTest {
         DirectwerkProperties.Queue queueProps = new DirectwerkProperties.Queue(
                 true, 1000, 10, 100, 60, 3600, 5, 30, 3600, 10000, "test-worker", 7, 3600000, 100
         );
-        DirectwerkProperties properties = new DirectwerkProperties(null, null, null, null, null, queueProps, null, null);
+        DirectwerkProperties properties = new DirectwerkProperties(null, null, null, null, null, queueProps, null, null, null);
         return new DirectwerkConfig(properties);
     }
 }

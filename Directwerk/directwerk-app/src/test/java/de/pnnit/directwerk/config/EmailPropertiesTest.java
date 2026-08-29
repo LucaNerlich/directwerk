@@ -48,6 +48,7 @@ class EmailPropertiesTest {
                 email,
                 null,
                 null,
+                null,
                 null
         ));
         assertThat(config.isEmailEnabled()).isFalse();

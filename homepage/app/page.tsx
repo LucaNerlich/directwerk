@@ -1,6 +1,6 @@
 import type {Metadata} from 'next'
 
-import CtaSection from '@/components/marketing/CtaSection'
+import ContactFormSection from '@/components/marketing/ContactFormSection'
 import CreatorJourneySection from '@/components/marketing/CreatorJourneySection'
 import DeveloperTeaserSection from '@/components/marketing/DeveloperTeaserSection'
 import FeaturesGridSection from '@/components/marketing/FeaturesGridSection'
@@ -23,7 +23,7 @@ export default function Home(): React.JSX.Element {
             <FeaturesGridSection />
             <CreatorJourneySection />
             <DeveloperTeaserSection />
-            <CtaSection />
+            <ContactFormSection />
         </>
     )
 }

@@ -132,6 +132,10 @@ public class EmailJobProducer implements TransactionalEmailNotifier {
         enqueue(tenantId, null, correlationId, () -> payload(template, to, variables, null));
     }
 
+    public void enqueueContactForm(String inbox, Map<String, String> variables) {
+        enqueue(null, null, null, () -> payload(EmailTemplate.CONTACT_FORM, inbox, variables, null));
+    }
+
     private EmailJobPayload payload(
             EmailTemplate template,
             String to,

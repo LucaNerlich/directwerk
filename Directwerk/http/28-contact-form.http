@@ -1,0 +1,33 @@
+### Directwerk — Public contact form (ALTCHA + email queue)
+
+### @name altchaChallenge
+GET {{baseUrl}}/api/v1/public/altcha/challenge
+Accept: application/json
+
+> {%
+    client.test("ALTCHA challenge", function() {
+        client.assert(response.status === 200, "Expected 200");
+        client.assert(response.body.includes("challenge"), "Expected challenge JSON");
+    });
+%}
+
+###
+
+### @name contactFormSubmit
+POST {{baseUrl}}/api/v1/public/contact
+Content-Type: application/json
+Accept: application/json
+
+{
+  "name": "Test User",
+  "email": "test@example.com",
+  "message": "Hello from Bruno",
+  "altcha": "invalid-payload"
+}
+
+> {%
+    client.test("Invalid ALTCHA payload rejected", function() {
+        client.assert(response.status === 400, "Expected 400");
+        client.assert(response.body.errors[0].code === "CAPTCHA_INVALID", "Expected CAPTCHA_INVALID");
+    });
+%}

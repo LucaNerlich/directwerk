@@ -21,8 +21,13 @@ public record DirectwerkProperties(
         @Valid Email email,
         @Valid Queue queue,
         @Valid Storage storage,
-        @Valid Analytics analytics
+        @Valid Analytics analytics,
+        @Valid Marketing marketing
 ) {
+
+    public DirectwerkProperties {
+        marketing = marketing == null ? new Marketing(null) : marketing;
+    }
 
     public record Security(
             String issuer,
@@ -131,6 +136,34 @@ public record DirectwerkProperties(
             } catch (IllegalArgumentException ex) {
                 return false;
             }
+        }
+    }
+
+    public record Marketing(Contact contact) {
+        public Marketing {
+            contact = contact == null ? new Contact(false, null, 5, List.of(), null) : contact;
+        }
+    }
+
+    public record Contact(
+            boolean enabled,
+            String inboxEmail,
+            @Positive Integer rateLimitPerMinute,
+            List<String> allowedOrigins,
+            Altcha altcha
+    ) {
+        public Contact {
+            rateLimitPerMinute = rateLimitPerMinute == null ? 5 : rateLimitPerMinute;
+            allowedOrigins = allowedOrigins == null ? List.of() : List.copyOf(allowedOrigins);
+        }
+    }
+
+    public record Altcha(
+            String hmacKey,
+            @Positive Integer expiresSeconds
+    ) {
+        public Altcha {
+            expiresSeconds = expiresSeconds == null ? 300 : expiresSeconds;
         }
     }
 

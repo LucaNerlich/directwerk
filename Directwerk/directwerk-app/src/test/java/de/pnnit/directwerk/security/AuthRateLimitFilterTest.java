@@ -15,7 +15,7 @@ class AuthRateLimitFilterTest {
 
     @Test
     void usesForwardedClientIpOnlyWhenPeerIsTrustedProxy() throws Exception {
-        AuthRateLimitFilter filter = new AuthRateLimitFilter(100, 100, 1, List.of("10.0.0.1"));
+        AuthRateLimitFilter filter = new AuthRateLimitFilter(100, 100, 1, 100, List.of("10.0.0.1"));
         HttpServletRequest request = mock(HttpServletRequest.class);
         when(request.getMethod()).thenReturn("POST");
         when(request.getRequestURI()).thenReturn("/api/v1/auth/register");
@@ -34,7 +34,7 @@ class AuthRateLimitFilterTest {
 
     @Test
     void ignoresForwardedHeaderFromUntrustedPeer() throws Exception {
-        AuthRateLimitFilter filter = new AuthRateLimitFilter(100, 100, 1, List.of("10.0.0.1"));
+        AuthRateLimitFilter filter = new AuthRateLimitFilter(100, 100, 1, 100, List.of("10.0.0.1"));
         HttpServletRequest request = mock(HttpServletRequest.class);
         when(request.getMethod()).thenReturn("POST");
         when(request.getRequestURI()).thenReturn("/api/v1/auth/register");
@@ -52,7 +52,7 @@ class AuthRateLimitFilterTest {
 
     @Test
     void blocksLoginAttemptsAgainstSameUsernameAcrossDifferentIps() throws Exception {
-        AuthRateLimitFilter filter = new AuthRateLimitFilter(2, 100, 100, List.of());
+        AuthRateLimitFilter filter = new AuthRateLimitFilter(2, 100, 100, 100, List.of());
         FilterChain chain = mock(FilterChain.class);
 
         MockHttpServletResponse first = new MockHttpServletResponse();
@@ -80,7 +80,7 @@ class AuthRateLimitFilterTest {
 
     @Test
     void ignoresLeftMostForwardedAddressWhenChainIncludesTrustedProxies() throws Exception {
-        AuthRateLimitFilter filter = new AuthRateLimitFilter(100, 100, 1, List.of("10.0.0.1", "10.0.0.2"));
+        AuthRateLimitFilter filter = new AuthRateLimitFilter(100, 100, 1, 100, List.of("10.0.0.1", "10.0.0.2"));
         HttpServletRequest request = mock(HttpServletRequest.class);
         when(request.getMethod()).thenReturn("POST");
         when(request.getRequestURI()).thenReturn("/api/v1/auth/register");

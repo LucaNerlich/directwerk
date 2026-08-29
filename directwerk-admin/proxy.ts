@@ -1,12 +1,40 @@
 import {NextResponse} from 'next/server'
 import type {NextRequest} from 'next/server'
 
+const REFRESH_COOKIE = 'dw_admin_refresh'
+
+const PUBLIC_PATH_PREFIXES = [
+    '/login',
+    '/api/auth/login',
+    '/api/auth/refresh',
+]
+
+function isPublicPath(pathname: string): boolean {
+    return PUBLIC_PATH_PREFIXES.some(
+        (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
+    )
+}
+
 // Nonce-based strict CSP (per the Next.js Content Security Policy guide). Next.js
 // automatically applies the nonce from the request's CSP header to its own scripts
 // and styles, so production needs neither script-src nor style-src 'unsafe-inline'.
 // Dev tooling still needs eval(); React hot reloading additionally requires
 // style-src unsafe-inline in dev.
 export function proxy(request: NextRequest) {
+    const {pathname} = request.nextUrl
+
+    if (
+        !isPublicPath(pathname) &&
+        !pathname.startsWith('/_next/') &&
+        pathname !== '/favicon.ico' &&
+        !request.cookies.has(REFRESH_COOKIE)
+    ) {
+        const loginUrl = request.nextUrl.clone()
+        loginUrl.pathname = '/login'
+        loginUrl.searchParams.set('next', pathname)
+        return NextResponse.redirect(loginUrl)
+    }
+
     const nonce = Buffer.from(crypto.randomUUID()).toString('base64')
     const isDev = process.env.NODE_ENV === 'development'
 
@@ -38,7 +66,6 @@ export function proxy(request: NextRequest) {
 
 export const config = {
     matcher: [
-        // Run on pages, not on API routes or static assets (which need no CSP).
         {
             source: '/((?!api|_next/static|_next/image|favicon.ico).*)',
             missing: [

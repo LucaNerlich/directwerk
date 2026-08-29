@@ -30,6 +30,11 @@ public enum EmailTemplate {
             "email/content-article-published.html",
             "New post: {{title}}",
             null
+    ),
+    CONTACT_FORM(
+            "email/contact-form.html",
+            "Contact form: {{name}}",
+            null
     );
 
     private final String classpathPath;

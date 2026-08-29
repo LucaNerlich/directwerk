@@ -89,7 +89,7 @@ export default function TenantsPage(): React.JSX.Element {
             ) : null}
 
             <SectionHeader
-                actions={<Link href="/">Back to overview</Link>}
+                action={<Link href="/">Back to overview</Link>}
                 title="Create tenant"
             />
             <CreateTenantForm onCreated={reloadTenants} />

@@ -1,6 +1,6 @@
 'use client'
 
-import type {ModuleDescriptor, ModulePresetKey, TenantModules} from '@directwerk/api/types'
+import type {ModuleDescriptor, ModulePresetKey, TenantModuleActivation, TenantModules} from '@directwerk/api/types'
 import {
     isModuleCatalog,
     isTenantModules,

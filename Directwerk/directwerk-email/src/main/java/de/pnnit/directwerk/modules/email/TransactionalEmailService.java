@@ -78,6 +78,13 @@ public class TransactionalEmailService {
             return;
         }
         Map<String, String> renderVariables = new HashMap<>(variables == null ? Map.of() : variables);
+        Map<String, String> headers = Map.of();
+        if (template == EmailTemplate.CONTACT_FORM) {
+            String replyTo = renderVariables.get("email");
+            if (org.springframework.util.StringUtils.hasText(replyTo)) {
+                headers = Map.of("Reply-To", replyTo.trim());
+            }
+        }
         try {
             emailSender.send(new OutboundEmail(
                     to,
@@ -88,7 +95,7 @@ public class TransactionalEmailService {
                     templateRenderer.renderPlainTextBody(template, tenantId, renderVariables),
                     jobId.toString(),
                     template.name(),
-                    Map.of()
+                    headers
             ));
             log.info("Sent email template={} job={} provider={}", template.name(), jobId, emailSender.providerId());
         } catch (RuntimeException ex) {
