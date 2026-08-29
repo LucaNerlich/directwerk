@@ -5,18 +5,15 @@ import de.pnnit.directwerk.modules.core.service.TenantPublicHostResolver;
 import de.pnnit.directwerk.modules.core.util.FeedUrls;
 import de.pnnit.directwerk.modules.core.util.PublicUrlBuilder;
 import de.pnnit.directwerk.modules.digital.api.EpisodeMediaApi;
-import de.pnnit.directwerk.modules.digital.entity.AssetStatus;
-import de.pnnit.directwerk.modules.digital.entity.AssetType;
 import de.pnnit.directwerk.modules.digital.entity.MediaAsset;
 import de.pnnit.directwerk.modules.podcast.entity.Episode;
-import de.pnnit.directwerk.modules.podcast.entity.EpisodeStatus;
-import de.pnnit.directwerk.modules.podcast.entity.SeriesStatus;
 import de.pnnit.directwerk.modules.podcast.exception.EpisodeNotFoundException;
 import de.pnnit.directwerk.modules.podcast.feed.SubscriberFeed;
+import de.pnnit.directwerk.modules.podcast.access.PublishedPlayableEpisodeGuard;
+import de.pnnit.directwerk.modules.podcast.access.PublishedPlayableEpisodeGuard.PlaybackSurface;
 import de.pnnit.directwerk.modules.podcast.access.SubscriberFeedAccess;
 import de.pnnit.directwerk.modules.podcast.access.SubscriberPlaybackService;
 import de.pnnit.directwerk.modules.podcast.feed.SubscriberFeedNotFoundException;
-import de.pnnit.directwerk.modules.podcast.repository.EpisodeRepository;
 import java.net.URL;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -30,9 +27,9 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class EpisodeEnclosureService {
 
-    private final EpisodeRepository episodeRepository;
     private final SubscriberFeedAccess subscriberFeedAccess;
     private final SubscriberPlaybackService subscriberPlaybackService;
+    private final PublishedPlayableEpisodeGuard publishedPlayableEpisodeGuard;
     private final EpisodeMediaApi episodeMediaApi;
     private final TenantPublicHostResolver tenantPublicHostResolver;
 
@@ -41,7 +38,11 @@ public class EpisodeEnclosureService {
 
     @Transactional(readOnly = true)
     public EnclosureRedirect resolvePublicRedirect(Long tenantId, String episodeSlug) {
-        Episode episode = requirePublishedPlayableEpisode(tenantId, episodeSlug);
+        Episode episode = publishedPlayableEpisodeGuard.requirePlayable(
+                tenantId,
+                episodeSlug,
+                PlaybackSurface.ENCLOSURE
+        );
         if (!PublicSurfacePolicy.includesInPublicRss(episode.getAccessPolicy().name())) {
             throw new EpisodeNotFoundException(episodeSlug);
         }
@@ -56,7 +57,11 @@ public class EpisodeEnclosureService {
             throw new SubscriberFeedNotFoundException();
         }
         Long tenantId = feed.getTenant().getId();
-        Episode episode = requirePublishedPlayableEpisode(tenantId, episodeSlug);
+        Episode episode = publishedPlayableEpisodeGuard.requirePlayable(
+                tenantId,
+                episodeSlug,
+                PlaybackSurface.ENCLOSURE
+        );
         if (!subscriberFeedAccess.hasEpisodeAccess(
                 tenantId, feed.getUser().getId(), feed, episode)) {
             throw new EpisodeNotFoundException(episodeSlug);
@@ -132,26 +137,5 @@ public class EpisodeEnclosureService {
                 feedToken,
                 episodeSlug
         );
-    }
-
-    private Episode requirePublishedPlayableEpisode(Long tenantId, String episodeSlug) {
-        Episode episode = episodeRepository.findByTenantIdAndSlugAndStatusAndSeriesStatus(
-                tenantId,
-                episodeSlug,
-                EpisodeStatus.PUBLISHED,
-                SeriesStatus.PUBLISHED
-        ).orElseThrow(() -> new EpisodeNotFoundException(episodeSlug));
-
-        if (!episode.isEnclosureEnabled()) {
-            throw new EpisodeNotFoundException(episodeSlug);
-        }
-
-        MediaAsset audio = episode.getAudioAsset();
-        if (audio == null
-                || audio.getStatus() != AssetStatus.READY
-                || audio.getAssetType() != AssetType.AUDIO) {
-            throw new EpisodeNotFoundException(episodeSlug);
-        }
-        return episode;
     }
 }

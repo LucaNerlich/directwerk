@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import {useEffect, useState} from 'react'
+import {useState} from 'react'
 import useSWR from 'swr'
 
 import {Alert, AlertDescription} from '@directwerk/ui/components/alert'
@@ -15,20 +15,25 @@ import HowToListen from '@/components/HowToListen'
 import CustomFeedsPanel from '@/components/CustomFeedsPanel'
 import {
     getSiteConfig,
-    listMyFeeds,
     listPublicSeries,
     rotateDefaultFeedToken,
     setDefaultFeedEnabled,
 } from '@/lib/api/client'
-import {AUTH_REQUIRED} from '@directwerk/api/constants'
 import type {PublicSeries, PublicSiteConfig, SubscriberFeedView} from '@directwerk/api/types'
 import {useSubscriberAuth} from '@/lib/auth/useSubscriberAuth'
+import {useSubscriberFeeds} from '@/lib/auth/useSubscriberFeeds'
 import {formatPublishedAt} from '@/lib/format'
 import {getClientTenantHost} from '@/lib/tenant/getClientTenantHost'
 
 export default function FeedsPage() {
     const tenantHost = getClientTenantHost()
     const {isAuthenticated} = useSubscriberAuth()
+    const {
+        feeds: privateFeeds,
+        error: privateError,
+        isLoading: isPrivateLoading,
+        setFeeds: setPrivateFeeds,
+    } = useSubscriberFeeds(isAuthenticated)
 
     const {
         data: seriesData,
@@ -51,55 +56,8 @@ export default function FeedsPage() {
               ? 'Öffentliche Sendungen konnten nicht geladen werden.'
               : null
 
-    const [privateFeeds, setPrivateFeeds] = useState<SubscriberFeedView[]>([])
-    const [privateError, setPrivateError] = useState<string | null>(null)
-    const [isPrivateLoading, setIsPrivateLoading] = useState(false)
     const [feedActionBusy, setFeedActionBusy] = useState(false)
-
-    useEffect(() => {
-        let active = true
-        if (!isAuthenticated) {
-            setPrivateFeeds([])
-            setPrivateError(null)
-            setIsPrivateLoading(false)
-            return
-        }
-
-        setIsPrivateLoading(true)
-        setPrivateError(null)
-
-        listMyFeeds(tenantHost)
-            .then((feedList) => {
-                if (!active) {
-                    return
-                }
-                setPrivateFeeds(feedList)
-            })
-            .catch((error: unknown) => {
-                if (!active) {
-                    return
-                }
-                setPrivateFeeds([])
-                if (error instanceof Error && error.message === AUTH_REQUIRED) {
-                    setPrivateError('Bitte erneut anmelden, um private Feeds zu sehen.')
-                    return
-                }
-                setPrivateError(
-                    error instanceof Error
-                        ? error.message
-                        : 'Private Feeds konnten nicht geladen werden.',
-                )
-            })
-            .finally(() => {
-                if (active) {
-                    setIsPrivateLoading(false)
-                }
-            })
-
-        return () => {
-            active = false
-        }
-    }, [tenantHost, isAuthenticated])
+    const [feedActionError, setFeedActionError] = useState<string | null>(null)
 
     const podcastFeedUrl =
         siteConfig === undefined ? null : siteConfig.publicRssUrl
@@ -116,14 +74,14 @@ export default function FeedsPage() {
 
     async function handleRotate(): Promise<void> {
         setFeedActionBusy(true)
-        setPrivateError(null)
+        setFeedActionError(null)
         try {
             const updated = await rotateDefaultFeedToken(tenantHost)
             setPrivateFeeds((current) =>
                 current.map((feed) => (feed.isDefault ? updated : feed)),
             )
         } catch (error: unknown) {
-            setPrivateError(
+            setFeedActionError(
                 error instanceof Error
                     ? error.message
                     : 'Token konnte nicht erneuert werden.',
@@ -135,14 +93,14 @@ export default function FeedsPage() {
 
     async function handleToggleDefault(enabled: boolean): Promise<void> {
         setFeedActionBusy(true)
-        setPrivateError(null)
+        setFeedActionError(null)
         try {
             const updated = await setDefaultFeedEnabled(tenantHost, enabled)
             setPrivateFeeds((current) =>
                 current.map((feed) => (feed.isDefault ? updated : feed)),
             )
         } catch (error: unknown) {
-            setPrivateError(
+            setFeedActionError(
                 error instanceof Error
                     ? error.message
                     : 'Feed konnte nicht aktualisiert werden.',
@@ -247,12 +205,14 @@ export default function FeedsPage() {
                                 Private Feeds werden geladen…
                             </p>
                         )}
-                        {privateError !== null && (
+                        {(privateError ?? feedActionError) !== null && (
                             <Alert variant="destructive">
-                                <AlertDescription>{privateError}</AlertDescription>
+                                <AlertDescription>
+                                    {privateError ?? feedActionError}
+                                </AlertDescription>
                             </Alert>
                         )}
-                        {!isPrivateLoading && privateError === null && (
+                        {!isPrivateLoading && privateError === null && feedActionError === null && (
                             privateFeeds.length === 0 ? (
                                 <p className="text-sm text-muted-foreground">
                                     Noch kein privater Feed für dieses Konto.
@@ -327,11 +287,11 @@ export default function FeedsPage() {
                     canBuild={canBuildFeeds}
                     feeds={privateFeeds}
                     onAuthRequired={() =>
-                        setPrivateError(
+                        setFeedActionError(
                             'Bitte erneut anmelden, um private Feeds zu sehen.',
                         )
                     }
-                    onError={setPrivateError}
+                    onError={setFeedActionError}
                     onFeedsChange={setPrivateFeeds}
                     tenantHost={tenantHost}
                 />

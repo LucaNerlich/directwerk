@@ -27,7 +27,10 @@ class PublicSiteConfigControllerTest {
         when(request.getScheme()).thenReturn("http");
         when(request.getServerName()).thenReturn("alpha.example.test");
         when(request.getServerPort()).thenReturn(8080);
-        SiteConfigView view = siteConfigView("http://alpha.example.test:8080/feeds/alpha/podcast.xml");
+        SiteConfigView view = siteConfigView(
+                "http://alpha.example.test:8080",
+                "http://alpha.example.test:8080/feeds/alpha/podcast.xml"
+        );
         when(publicSiteConfigService.loadSiteConfig("http", "alpha.example.test", 8080)).thenReturn(view);
 
         ResponseEntity<Response<PublicSiteConfigController.SiteConfigResponse>> response =
@@ -35,16 +38,19 @@ class PublicSiteConfigControllerTest {
 
         verify(publicSiteConfigService).loadSiteConfig("http", "alpha.example.test", 8080);
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getBody().data().publicSiteUrl())
+                .isEqualTo("http://alpha.example.test:8080");
         assertThat(response.getBody().data().publicRssUrl())
                 .isEqualTo("http://alpha.example.test:8080/feeds/alpha/podcast.xml");
         assertThat(response.getBody().data().emailNotifyAvailable()).isFalse();
     }
 
-    private static SiteConfigView siteConfigView(String publicRssUrl) {
+    private static SiteConfigView siteConfigView(String publicSiteUrl, String publicRssUrl) {
         return new SiteConfigView(
                 new TenantView("alpha", "Alpha Podcast"),
                 List.of("DIGITAL_CONTENT", "PODCAST", "PODCAST_RSS"),
                 new PublicSiteConfigService.BrandingView(null, null, null, null),
+                publicSiteUrl,
                 publicRssUrl,
                 null,
                 StudioHome.PODCAST_DESK,

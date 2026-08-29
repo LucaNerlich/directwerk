@@ -4,7 +4,7 @@ import de.pnnit.directwerk.modules.core.entity.Tenant;
 import de.pnnit.directwerk.modules.podcast.entity.Episode;
 import de.pnnit.directwerk.modules.podcast.feed.SubscriberFeed;
 import de.pnnit.directwerk.modules.podcast.service.EpisodeEnclosureService.EnclosureRedirect;
-import java.net.URI;
+import de.pnnit.directwerk.modules.podcast.service.EpisodePlaybackDeliveryFacade.TrackedRedirect;
 import java.net.URL;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.CacheControl;
@@ -21,7 +21,7 @@ public class RssFeedDeliveryFacade {
 
     private final SubscriberFeedService subscriberFeedService;
     private final EpisodeEnclosureService episodeEnclosureService;
-    private final EpisodeDownloadAnalyticsService episodeDownloadAnalyticsService;
+    private final EpisodePlaybackDeliveryFacade episodePlaybackDeliveryFacade;
 
     public record TrackedEnclosureRedirect(EnclosureRedirect redirect, ResponseEntity<Void> response) {
     }
@@ -33,18 +33,14 @@ public class RssFeedDeliveryFacade {
             String requestHost
     ) {
         EnclosureRedirect redirect = episodeEnclosureService.resolvePublicRedirect(tenantId, episodeSlug);
-        episodeDownloadAnalyticsService.trackEpisodeDownload(
+        TrackedRedirect tracked = episodePlaybackDeliveryFacade.deliverEnclosure(
                 tenantId,
-                redirect.episode(),
-                analyticsSource,
-                requestHost
-        );
-        return new TrackedEnclosureRedirect(
                 redirect,
-                ResponseEntity.status(HttpStatus.FOUND)
-                        .location(URI.create(redirect.targetUrl().toString()))
-                        .build()
+                analyticsSource,
+                requestHost,
+                false
         );
+        return new TrackedEnclosureRedirect(redirect, tracked.response());
     }
 
     public TrackedEnclosureRedirect publicEnclosure(
@@ -65,19 +61,14 @@ public class RssFeedDeliveryFacade {
     ) {
         SubscriberFeed feed = subscriberFeedService.requireDeliverableFeed(tenant.getId(), feedToken);
         EnclosureRedirect redirect = episodeEnclosureService.resolvePrivateRedirect(feed, episodeSlug);
-        episodeDownloadAnalyticsService.trackEpisodeDownload(
+        TrackedRedirect tracked = episodePlaybackDeliveryFacade.deliverEnclosure(
                 tenant.getId(),
-                redirect.episode(),
-                analyticsSource,
-                requestHost
-        );
-        return new TrackedEnclosureRedirect(
                 redirect,
-                ResponseEntity.status(HttpStatus.FOUND)
-                        .cacheControl(CacheControl.noStore())
-                        .location(URI.create(redirect.targetUrl().toString()))
-                        .build()
+                analyticsSource,
+                requestHost,
+                true
         );
+        return new TrackedEnclosureRedirect(redirect, tracked.response());
     }
 
     public static ResponseEntity<String> rssRedirect(URL redirectUrl, boolean ready) {
@@ -87,7 +78,7 @@ public class RssFeedDeliveryFacade {
                     .build();
         }
         return ResponseEntity.status(HttpStatus.FOUND)
-                .location(URI.create(redirectUrl.toString()))
+                .location(java.net.URI.create(redirectUrl.toString()))
                 .cacheControl(CacheControl.noStore())
                 .build();
     }

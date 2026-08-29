@@ -42,6 +42,7 @@ class PublicSiteConfigServiceTest {
         PublicSiteConfigService.SiteConfigView config =
                 service().loadSiteConfig("https", "alpha.example.test", 443);
 
+        assertThat(config.publicSiteUrl()).isEqualTo("https://alpha.example.test");
         assertThat(config.publicRssUrl()).isEqualTo("https://alpha.example.test/feeds/alpha/podcast.xml");
     }
 
@@ -56,6 +57,7 @@ class PublicSiteConfigServiceTest {
         PublicSiteConfigService.SiteConfigView config =
                 service().loadSiteConfig("http", "localhost", 8080);
 
+        assertThat(config.publicSiteUrl()).isEqualTo("http://localhost:8080");
         assertThat(config.publicRssUrl()).isEqualTo("http://localhost:8080/feeds/alpha/podcast.xml");
     }
 
@@ -69,6 +71,7 @@ class PublicSiteConfigServiceTest {
         PublicSiteConfigService.SiteConfigView config =
                 service().loadSiteConfig("https", "alpha.example.test", 443);
 
+        assertThat(config.publicSiteUrl()).isEqualTo("https://alpha.example.test");
         assertThat(config.publicRssUrl()).isNull();
         assertThat(config.emailNotifyAvailable()).isFalse();
     }

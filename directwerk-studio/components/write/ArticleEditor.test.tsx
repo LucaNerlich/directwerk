@@ -8,7 +8,12 @@ const mockRouter = {replace: vi.fn()}
 vi.mock('next/navigation', () => ({useRouter: () => mockRouter}))
 vi.mock('@/lib/tenant/getClientTenantHost', () => ({getClientTenantHost: () => 'tenant.test'}))
 vi.mock('@/lib/site/SiteConfigProvider', () => ({
-    useSiteConfig: () => ({enabledModules: [], emailNotifyAvailable: false, publicRssUrl: null}),
+    useSiteConfig: () => ({
+        enabledModules: [],
+        emailNotifyAvailable: false,
+        publicSiteUrl: null,
+        publicRssUrl: null,
+    }),
 }))
 vi.mock('@/lib/auth/MeProvider', () => ({
     useOptionalMe: () => null,

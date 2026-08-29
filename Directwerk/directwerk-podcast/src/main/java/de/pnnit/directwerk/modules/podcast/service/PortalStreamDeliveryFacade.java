@@ -2,9 +2,8 @@ package de.pnnit.directwerk.modules.podcast.service;
 
 import de.pnnit.directwerk.modules.podcast.access.SubscriberPortalAccessService;
 import de.pnnit.directwerk.modules.podcast.access.SubscriberPortalAccessService.EpisodeStream;
-import java.net.URI;
+import de.pnnit.directwerk.modules.podcast.service.EpisodePlaybackDeliveryFacade.TrackedRedirect;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import de.pnnit.directwerk.security.DirectwerkUserPrincipal;
@@ -18,7 +17,7 @@ import de.pnnit.directwerk.security.DirectwerkUserPrincipal;
 public class PortalStreamDeliveryFacade {
 
     private final SubscriberPortalAccessService subscriberPortalAccessService;
-    private final EpisodeDownloadAnalyticsService episodeDownloadAnalyticsService;
+    private final EpisodePlaybackDeliveryFacade episodePlaybackDeliveryFacade;
 
     public record TrackedStreamRedirect(EpisodeStream stream, ResponseEntity<Void> response) {
     }
@@ -29,17 +28,11 @@ public class PortalStreamDeliveryFacade {
             String requestHost
     ) {
         EpisodeStream stream = subscriberPortalAccessService.resolveStream(user, episodeSlug);
-        episodeDownloadAnalyticsService.trackEpisodeDownload(
+        TrackedRedirect tracked = episodePlaybackDeliveryFacade.deliverStream(
                 user.tenantId(),
-                stream.episode(),
-                "stream",
+                stream,
                 requestHost
         );
-        return new TrackedStreamRedirect(
-                stream,
-                ResponseEntity.status(HttpStatus.FOUND)
-                        .location(URI.create(stream.url().toString()))
-                        .build()
-        );
+        return new TrackedStreamRedirect(stream, tracked.response());
     }
 }

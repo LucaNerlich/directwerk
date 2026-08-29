@@ -51,6 +51,7 @@ public class PublicSiteConfigController {
                         branding.secondaryColor(),
                         branding.logoUrl()
                 ),
+                config.publicSiteUrl(),
                 config.publicRssUrl(),
                 analytics == null ? null : new AnalyticsResponse(
                         analytics.umamiWebsiteId(),
@@ -67,6 +68,7 @@ public class PublicSiteConfigController {
             TenantResponse tenant,
             java.util.List<String> enabledModules,
             BrandingResponse branding,
+            String publicSiteUrl,
             String publicRssUrl,
             AnalyticsResponse analytics,
             StudioHome studioHome,

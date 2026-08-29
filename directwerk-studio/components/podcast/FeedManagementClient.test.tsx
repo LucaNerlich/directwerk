@@ -36,6 +36,7 @@ function config(overrides: Partial<SiteConfig> = {}): SiteConfig {
         tenant: {slug: 'tenant', name: 'Demo'},
         enabledModules: ['PODCAST', 'PODCAST_RSS', 'SUBSCRIPTION'],
         branding: {siteTitle: null, primaryColor: null, secondaryColor: null, logoUrl: null},
+        publicSiteUrl: 'https://demo.example',
         publicRssUrl: 'https://demo.example/feeds/demo/podcast.xml',
         studioHome: 'PODCAST_DESK',
         studioDesks: ['PODCAST'],

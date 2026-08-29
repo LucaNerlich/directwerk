@@ -1,16 +1,13 @@
 package de.pnnit.directwerk.controller.publicapi;
 
+import de.pnnit.directwerk.api.PublicArticleViewMapper;
 import de.pnnit.directwerk.api.dto.PublicCategoryView;
 import de.pnnit.directwerk.api.response.Response;
 import de.pnnit.directwerk.modules.core.RequiresModule;
-import de.pnnit.directwerk.modules.content.PublicSurfacePolicy;
 import de.pnnit.directwerk.modules.digital.DigitalContentModule;
-import de.pnnit.directwerk.modules.newsletter.entity.Article;
-import de.pnnit.directwerk.modules.digital.entity.Category;
 import de.pnnit.directwerk.modules.newsletter.service.PublicArticleQueryService;
 import de.pnnit.directwerk.multitenancy.TenantContext;
 import java.time.Instant;
-import java.util.Comparator;
 import java.util.List;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -24,18 +21,21 @@ import org.springframework.web.bind.annotation.RestController;
 public class PublicArticleController {
 
     private final PublicArticleQueryService publicArticleQueryService;
+    private final PublicArticleViewMapper publicArticleViewMapper;
 
     public PublicArticleController(
-            PublicArticleQueryService publicArticleQueryService
+            PublicArticleQueryService publicArticleQueryService,
+            PublicArticleViewMapper publicArticleViewMapper
     ) {
         this.publicArticleQueryService = publicArticleQueryService;
+        this.publicArticleViewMapper = publicArticleViewMapper;
     }
 
     @GetMapping("/articles")
     ResponseEntity<Response<List<PublicArticleView>>> listArticles() {
         Long tenantId = TenantContext.getTenantId();
         List<PublicArticleView> articles = publicArticleQueryService.listPublishedArticles(tenantId).stream()
-                .map(PublicArticleController::toPublicView)
+                .map(publicArticleViewMapper::toPublicView)
                 .toList();
         return ResponseEntity.ok(Response.ok(articles));
     }
@@ -43,37 +43,9 @@ public class PublicArticleController {
     @GetMapping("/articles/{slug}")
     ResponseEntity<Response<PublicArticleView>> getArticle(@PathVariable String slug) {
         Long tenantId = TenantContext.getTenantId();
-        return ResponseEntity.ok(Response.ok(toPublicView(
+        return ResponseEntity.ok(Response.ok(publicArticleViewMapper.toPublicView(
                 publicArticleQueryService.requirePublishedArticle(tenantId, slug)
         )));
-    }
-
-    private static PublicArticleView toPublicView(Article article) {
-        return new PublicArticleView(
-                article.getId(),
-                article.getSlug(),
-                article.getTitle(),
-                PublicSurfacePolicy.articleBody(article.getBody(), article.getAccessPolicy().name()),
-                article.getExcerpt(),
-                article.getSeoDescription(),
-                article.getHeroAsset() != null ? article.getHeroAsset().getId() : null,
-                article.getAccessPolicy().name(),
-                article.getRequiredLevelSortOrder(),
-                article.getPublishedAt(),
-                article.getCategories().stream()
-                        .sorted(Comparator.comparing(Category::getName).thenComparing(Category::getId))
-                        .map(PublicArticleController::toCategoryView)
-                        .toList()
-        );
-    }
-
-    private static PublicCategoryView toCategoryView(Category category) {
-        return new PublicCategoryView(
-                category.getId(),
-                category.getSlug(),
-                category.getName(),
-                category.getParent() != null ? category.getParent().getId() : null
-        );
     }
 
     public record PublicArticleView(

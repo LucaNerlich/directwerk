@@ -279,6 +279,7 @@ export interface PublicSiteConfig {
         logoUrl: string | null
     }
     publicRssUrl: string | null
+    publicSiteUrl: string | null
 }
 
 /**

@@ -7,8 +7,6 @@ import static org.mockito.Mockito.when;
 import de.pnnit.directwerk.modules.core.entity.Tenant;
 import de.pnnit.directwerk.modules.core.entity.User;
 import de.pnnit.directwerk.modules.core.service.TenantPublicHostResolver;
-import de.pnnit.directwerk.modules.digital.api.AssetAccessApi;
-import de.pnnit.directwerk.modules.podcast.access.SubscriberFeedAccess;
 import de.pnnit.directwerk.modules.digital.api.EpisodeMediaApi;
 import de.pnnit.directwerk.modules.digital.entity.AccessPolicy;
 import de.pnnit.directwerk.modules.digital.entity.AssetScope;
@@ -20,12 +18,15 @@ import de.pnnit.directwerk.modules.podcast.entity.Episode;
 import de.pnnit.directwerk.modules.podcast.entity.EpisodeStatus;
 import de.pnnit.directwerk.modules.podcast.entity.Format;
 import de.pnnit.directwerk.modules.podcast.entity.PodcastSeries;
-import de.pnnit.directwerk.modules.podcast.entity.SeriesStatus;
 import de.pnnit.directwerk.modules.podcast.exception.EpisodeNotFoundException;
+import de.pnnit.directwerk.modules.podcast.access.PublishedPlayableEpisodeGuard;
+import de.pnnit.directwerk.modules.podcast.access.PublishedPlayableEpisodeGuard.PlaybackSurface;
+import de.pnnit.directwerk.modules.podcast.access.SubscriberFeedAccess;
+import de.pnnit.directwerk.modules.podcast.access.SubscriberPlaybackService;
 import de.pnnit.directwerk.modules.podcast.feed.SubscriberFeed;
 import de.pnnit.directwerk.modules.podcast.feed.SubscriberFeedNotFoundException;
-import de.pnnit.directwerk.modules.podcast.repository.EpisodeRepository;
 import java.net.URI;
+import java.net.URL;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -37,13 +38,13 @@ import org.mockito.junit.jupiter.MockitoExtension;
 class EpisodeEnclosureServiceTest {
 
     @Mock
-    private EpisodeRepository episodeRepository;
+    private PublishedPlayableEpisodeGuard publishedPlayableEpisodeGuard;
 
     @Mock
     private EpisodeMediaApi episodeMediaApi;
 
     @Mock
-    private AssetAccessApi assetAccessApi;
+    private SubscriberPlaybackService subscriberPlaybackService;
 
     @Mock
     private SubscriberFeedAccess subscriberFeedAccess;
@@ -57,9 +58,8 @@ class EpisodeEnclosureServiceTest {
     @Test
     void publicRedirectUsesCdn() throws Exception {
         Episode episode = freeEpisode();
-        when(episodeRepository.findByTenantIdAndSlugAndStatusAndSeriesStatus(
-                10L, "episode-1", EpisodeStatus.PUBLISHED, SeriesStatus.PUBLISHED
-        )).thenReturn(Optional.of(episode));
+        when(publishedPlayableEpisodeGuard.requirePlayable(10L, "episode-1", PlaybackSurface.ENCLOSURE))
+                .thenReturn(episode);
         when(episodeMediaApi.publicCdnUrl(episode.getAudioAsset()))
                 .thenReturn(Optional.of(URI.create("https://cdn.example.test/free.mp3").toURL()));
 
@@ -71,11 +71,8 @@ class EpisodeEnclosureServiceTest {
 
     @Test
     void publicRedirectFailsWhenEnclosureDisabled() {
-        Episode episode = freeEpisode();
-        episode.setEnclosureEnabled(false);
-        when(episodeRepository.findByTenantIdAndSlugAndStatusAndSeriesStatus(
-                10L, "episode-1", EpisodeStatus.PUBLISHED, SeriesStatus.PUBLISHED
-        )).thenReturn(Optional.of(episode));
+        when(publishedPlayableEpisodeGuard.requirePlayable(10L, "episode-1", PlaybackSurface.ENCLOSURE))
+                .thenThrow(new EpisodeNotFoundException("episode-1"));
 
         assertThatThrownBy(() -> service.resolvePublicRedirect(10L, "episode-1"))
                 .isInstanceOf(EpisodeNotFoundException.class);
@@ -94,12 +91,16 @@ class EpisodeEnclosureServiceTest {
     void privatePaidRedirectPresignsWhenEntitled() throws Exception {
         Episode episode = paidEpisode();
         SubscriberFeed feed = feed();
-        when(episodeRepository.findByTenantIdAndSlugAndStatusAndSeriesStatus(
-                10L, "episode-2", EpisodeStatus.PUBLISHED, SeriesStatus.PUBLISHED
-        )).thenReturn(Optional.of(episode));
+        when(publishedPlayableEpisodeGuard.requirePlayable(10L, "episode-2", PlaybackSurface.ENCLOSURE))
+                .thenReturn(episode);
         when(subscriberFeedAccess.hasEpisodeAccess(10L, 99L, feed, episode)).thenReturn(true);
-        when(assetAccessApi.resolveRssEnclosureUrl(episode.getAudioAsset(), 99L))
-                .thenReturn(URI.create("https://s3.example.test/signed?X-Amz-Expires=86400").toURL());
+        URL signed = URI.create("https://s3.example.test/signed?X-Amz-Expires=86400").toURL();
+        when(subscriberPlaybackService.resolveRssPlayback(
+                episode.getAudioAsset(),
+                episode,
+                99L,
+                "episode-2"
+        )).thenReturn(signed);
 
         var redirect = service.resolvePrivateRedirect(feed, "episode-2");
 
@@ -110,9 +111,8 @@ class EpisodeEnclosureServiceTest {
     void privatePaidRedirectFailsWithoutEntitlement() {
         Episode episode = paidEpisode();
         SubscriberFeed feed = feed();
-        when(episodeRepository.findByTenantIdAndSlugAndStatusAndSeriesStatus(
-                10L, "episode-2", EpisodeStatus.PUBLISHED, SeriesStatus.PUBLISHED
-        )).thenReturn(Optional.of(episode));
+        when(publishedPlayableEpisodeGuard.requirePlayable(10L, "episode-2", PlaybackSurface.ENCLOSURE))
+                .thenReturn(episode);
         when(subscriberFeedAccess.hasEpisodeAccess(10L, 99L, feed, episode)).thenReturn(false);
 
         assertThatThrownBy(() -> service.resolvePrivateRedirect(feed, "episode-2"))
@@ -132,9 +132,8 @@ class EpisodeEnclosureServiceTest {
         bonus.setId(8L);
         bonus.setActive(true);
         feed.getFormats().add(bonus);
-        when(episodeRepository.findByTenantIdAndSlugAndStatusAndSeriesStatus(
-                10L, "episode-2", EpisodeStatus.PUBLISHED, SeriesStatus.PUBLISHED
-        )).thenReturn(Optional.of(episode));
+        when(publishedPlayableEpisodeGuard.requirePlayable(10L, "episode-2", PlaybackSurface.ENCLOSURE))
+                .thenReturn(episode);
         when(subscriberFeedAccess.hasEpisodeAccess(10L, 99L, feed, episode)).thenReturn(false);
 
         assertThatThrownBy(() -> service.resolvePrivateRedirect(feed, "episode-2"))

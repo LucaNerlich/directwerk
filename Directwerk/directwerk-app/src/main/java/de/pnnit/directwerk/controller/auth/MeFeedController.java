@@ -207,8 +207,9 @@ public class MeFeedController {
 
     private SubscriberFeedView toView(SubscriberFeed feed, HttpServletRequest request) {
         String url = feedUrlResolver.subscriberFeedUrl(
-                request.getScheme(),
+                feed.getTenant().getId(),
                 request.getServerName(),
+                request.getScheme(),
                 request.getServerPort(),
                 feed.getTenant().getSlug(),
                 feed.getFeedToken()

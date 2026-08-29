@@ -12,7 +12,9 @@ import de.pnnit.directwerk.modules.core.service.StudioNavigationService.StudioNa
 import de.pnnit.directwerk.multitenancy.TenantNotFoundException;
 import de.pnnit.directwerk.multitenancy.TenantResolver;
 import de.pnnit.directwerk.modules.core.util.FeedUrls;
+import de.pnnit.directwerk.modules.core.util.PublicUrlBuilder;
 import java.util.List;
+import java.util.Locale;
 import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
@@ -55,11 +57,13 @@ public class PublicSiteConfigService {
                 .sorted()
                 .toList();
         StudioNavigationView studioNavigation = studioNavigationService.resolve(enabledModules);
+        String origin = publicSiteOrigin(scheme, host, port);
         return new SiteConfigView(
                 new TenantView(tenant.getSlug(), tenant.getName()),
                 enabledModules,
                 brandingView(branding),
-                publicRssUrl(scheme, host, port, tenant, enabledModules),
+                origin,
+                publicRssUrl(origin, tenant, enabledModules),
                 analyticsView(branding, enabledModules),
                 studioNavigation.home(),
                 studioNavigation.desks(),
@@ -95,13 +99,14 @@ public class PublicSiteConfigService {
      * @param enabledModules  the module keys enabled for the tenant
      * @return the podcast RSS feed URL, or {@code null} when the module is disabled
      */
-    private static String publicRssUrl(String scheme, String host, int port, Tenant tenant, List<String> enabledModules) {
+    private static String publicSiteOrigin(String scheme, String host, int port) {
+        return PublicUrlBuilder.baseUrl(scheme, host.trim().toLowerCase(Locale.ROOT), port);
+    }
+
+    private static String publicRssUrl(String origin, Tenant tenant, List<String> enabledModules) {
         if (!enabledModules.contains(FeatureModuleKeys.PODCAST_RSS)) {
             return null;
         }
-        String origin = de.pnnit.directwerk.modules.core.util.PublicUrlBuilder.baseUrl(
-                scheme, host.trim().toLowerCase(java.util.Locale.ROOT), port
-        );
         return FeedUrls.tenantPodcastFeed(origin, tenant.getSlug());
     }
 
@@ -150,6 +155,7 @@ public class PublicSiteConfigService {
             TenantView tenant,
             List<String> enabledModules,
             BrandingView branding,
+            String publicSiteUrl,
             String publicRssUrl,
             AnalyticsView analytics,
             StudioHome studioHome,

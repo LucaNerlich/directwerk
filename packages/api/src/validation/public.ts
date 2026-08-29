@@ -70,6 +70,7 @@ export function parsePublicSiteConfigEnvelope(
             tenant: {slug: data.tenant.slug, name: data.tenant.name},
             enabledModules: data.enabledModules,
             branding,
+            publicSiteUrl: isNullableString(data.publicSiteUrl) ? data.publicSiteUrl : null,
             publicRssUrl:
                 isNullableString(data.publicRssUrl) &&
                 data.publicRssUrl !== null &&

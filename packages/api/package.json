@@ -28,7 +28,8 @@
     "scripts": {
         "test": "vitest run",
         "typecheck": "tsc --noEmit",
-        "generate:openapi": "openapi-typescript ../../directwerk-docs/docs/openapi/directwerk-api.json -o src/generated/openapi.ts"
+        "generate:openapi": "openapi-typescript ../../directwerk-docs/docs/openapi/directwerk-api.json -o src/generated/openapi.ts",
+        "check:openapi": "pnpm generate:openapi && git diff --exit-code -- src/generated/openapi.ts"
     },
     "dependencies": {
         "server-only": "^0.0.1"

@@ -53,6 +53,7 @@ describe('site-config envelopes', () => {
                 secondaryColor: null,
                 logoUrl: null,
             },
+            publicSiteUrl: null,
             publicRssUrl: null,
         },
     }

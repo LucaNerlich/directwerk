@@ -14,6 +14,7 @@ vi.mock('@/lib/tenant/getClientTenantHost', () => ({getClientTenantHost: () => '
 vi.mock('@/lib/site/SiteConfigProvider', () => ({
     useSiteConfig: () => ({
         enabledModules: ['DIGITAL_CONTENT'],
+        publicSiteUrl: 'https://demo.example',
         publicRssUrl: 'https://demo.example/feeds/demo/podcast.xml',
         emailNotifyAvailable: false,
     }),

@@ -27,6 +27,7 @@ describe('SiteHeader', () => {
                         secondaryColor: null,
                         logoUrl: null,
                     },
+                    publicSiteUrl: null,
                     publicRssUrl: null,
                 }}
             >

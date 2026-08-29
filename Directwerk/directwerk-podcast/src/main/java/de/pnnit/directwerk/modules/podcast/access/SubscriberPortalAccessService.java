@@ -7,8 +7,8 @@ import de.pnnit.directwerk.modules.digital.api.MediaAssetQueryApi;
 import de.pnnit.directwerk.modules.digital.entity.AssetStatus;
 import de.pnnit.directwerk.modules.digital.entity.MediaAsset;
 import de.pnnit.directwerk.modules.podcast.PodcastModule;
+import de.pnnit.directwerk.modules.podcast.access.PublishedPlayableEpisodeGuard.PlaybackSurface;
 import de.pnnit.directwerk.modules.podcast.entity.Episode;
-import de.pnnit.directwerk.modules.podcast.exception.EpisodeValidationException;
 import de.pnnit.directwerk.modules.podcast.service.SubscriberEpisodeService;
 import de.pnnit.directwerk.modules.subscription.SubscriptionModule;
 import de.pnnit.directwerk.modules.content.api.EntitlementApi;
@@ -37,6 +37,7 @@ public class SubscriberPortalAccessService {
     private final ModuleGateService moduleGateService;
     private final EntitlementApi entitlementApi;
     private final SubscriberPlaybackService subscriberPlaybackService;
+    private final PublishedPlayableEpisodeGuard publishedPlayableEpisodeGuard;
 
     public record EpisodeStream(Episode episode, URL url) {
     }
@@ -49,14 +50,14 @@ public class SubscriberPortalAccessService {
         Long tenantId = TenantContext.requireTenantId();
         moduleGateService.requireModule(PodcastModule.KEY);
 
-        Episode episode = subscriberEpisodeService.requirePublishedEpisode(tenantId, episodeSlug);
-        MediaAsset audioAsset = episode.getAudioAsset();
-        if (audioAsset == null || audioAsset.getStatus() != AssetStatus.READY) {
-            throw new EpisodeValidationException("Episode audio asset must be READY");
-        }
+        Episode episode = publishedPlayableEpisodeGuard.requirePlayable(
+                tenantId,
+                episodeSlug,
+                PlaybackSurface.PORTAL_STREAM
+        );
         return new EpisodeStream(
                 episode,
-                subscriberPlaybackService.resolvePortalPlayback(audioAsset, episode, user)
+                subscriberPlaybackService.resolvePortalPlayback(episode.getAudioAsset(), episode, user)
         );
     }
 
@@ -92,7 +93,7 @@ public class SubscriberPortalAccessService {
     }
 
     private URL playableUrlIfReady(MediaAsset audioAsset, Episode episode, DirectwerkUserPrincipal user) {
-        if (audioAsset == null || audioAsset.getStatus() != AssetStatus.READY) {
+        if (!publishedPlayableEpisodeGuard.hasReadyAudio(audioAsset)) {
             return null;
         }
         return subscriberPlaybackService.resolvePortalPlayback(audioAsset, episode, user);

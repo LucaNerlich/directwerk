@@ -298,6 +298,48 @@ Domain glossary and deepening modules for AI navigation. Terms here name **seams
 **Interface:** `scopeType`, `scopeId`, message when ProductAccessRule target missing.  
 **Seam:** `ContentScopeLookupAdapter` raises structured errors at the port boundary.
 
+## Wave 7 deepened modules
+
+### 55. Public content URL resolver (`PublicContentUrlResolver` + `PublicContentPaths`)
+
+**Interface:** `episodePageUrl`, `articlePageUrl`, `notificationPreferencesUrl` via verified host policy.  
+**Seam:** Email (`ContentPublicUrlBuilder`), Studio previews, and future API surfaces share one Java module.
+
+### 56. Public site origin (`SiteConfigView.publicSiteUrl`)
+
+**Interface:** Absolute tenant public-site origin in site config.  
+**Seam:** Studio `publicEpisodePageUrl` / `publicArticlePageUrl` use server origin instead of RSS feed URL hack.
+
+### 57. Published playable Episode guard (`PublishedPlayableEpisodeGuard`)
+
+**Interface:** `requirePlayable(tenantId, slug, ENCLOSURE|PORTAL_STREAM)`, `hasReadyAudio`.  
+**Seam:** Enclosure, portal stream, and RSS audio access share playability rules.
+
+### 58. SubscriberFeed URL host policy (`FeedUrlResolver.subscriberFeedUrl` + `TenantPublicHostResolver`)
+
+**Interface:** Private feed URLs resolve verified host, not raw `HttpServletRequest` host.  
+**Seam:** `MeFeedController` matches public RSS/enclosure host policy (#31).
+
+### 59. Public article view mapper (`PublicArticleViewMapper`)
+
+**Interface:** `toPublicView(Article)` with `PublicSurfacePolicy` redaction.  
+**Seam:** `PublicArticleController` delegates; mirrors `PublicEpisodeViewMapper` (#32).
+
+### 60. Episode playback delivery (`EpisodePlaybackDeliveryFacade`)
+
+**Interface:** `deliverEnclosure`, `deliverStream` — analytics + redirect choreography.  
+**Seam:** `RssFeedDeliveryFacade` and `PortalStreamDeliveryFacade` delegate here.
+
+### 61. OpenAPI generated contract (`packages/api/src/generated/openapi.ts`)
+
+**Interface:** Real types from exported spec; `pnpm generate:openapi` + `check:openapi`.  
+**Seam:** Incremental migration off hand-written parsers (#51 → active).
+
+### 62. Subscriber feeds hook (`useSubscriberFeeds`)
+
+**Interface:** Auth-aware private feed list with shared error handling.  
+**Seam:** `/feeds` page is presentation-only; matches account dashboard loading pattern (#28).
+
 ## Migration order
 
 1. Transport policies (#3)  

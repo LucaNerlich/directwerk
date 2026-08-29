@@ -812,6 +812,7 @@ export function parseStudioSiteConfigEnvelope(
             tenant,
             enabledModules: data.enabledModules,
             branding,
+            publicSiteUrl: isNullableString(data.publicSiteUrl) ? data.publicSiteUrl : null,
             publicRssUrl: isNullableString(data.publicRssUrl)
                 ? data.publicRssUrl
                 : null,

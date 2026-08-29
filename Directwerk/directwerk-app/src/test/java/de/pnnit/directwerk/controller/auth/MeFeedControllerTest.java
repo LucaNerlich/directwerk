@@ -10,9 +10,11 @@ import de.pnnit.directwerk.api.dto.FormatView;
 import de.pnnit.directwerk.api.response.Response;
 import de.pnnit.directwerk.controller.auth.MeFeedController.SubscriberFeedView;
 import de.pnnit.directwerk.modules.core.entity.Tenant;
+import de.pnnit.directwerk.modules.core.service.TenantPublicHostResolver;
+import de.pnnit.directwerk.modules.core.service.TenantPublicHostResolver.HostPolicy;
+import de.pnnit.directwerk.modules.core.util.FeedUrlResolver;
 import de.pnnit.directwerk.modules.podcast.entity.Format;
 import de.pnnit.directwerk.modules.podcast.feed.SubscriberFeed;
-import de.pnnit.directwerk.modules.core.util.FeedUrlResolver;
 import de.pnnit.directwerk.modules.podcast.service.SubscriberFeedService;
 import de.pnnit.directwerk.security.DirectwerkUserPrincipal;
 import de.pnnit.directwerk.security.RoleConstants;
@@ -34,22 +36,30 @@ class MeFeedControllerTest {
     private SubscriberFeedService subscriberFeedService;
 
     @Mock
+    private TenantPublicHostResolver tenantPublicHostResolver;
+
+    @Mock
     private HttpServletRequest request;
 
     private MeFeedController controller;
 
     @BeforeEach
     void setUp() {
-        controller = new MeFeedController(subscriberFeedService, new FeedUrlResolver());
+        controller = new MeFeedController(
+                subscriberFeedService,
+                new FeedUrlResolver(tenantPublicHostResolver)
+        );
     }
 
     @Test
-    void listFeedsBuildsFeedUrlFromRequestSchemeAndPort() {
+    void listFeedsUsesVerifiedHostPolicyInsteadOfRawRequestHost() {
         DirectwerkUserPrincipal principal = principal(1L, 5L);
         SubscriberFeed feed = feed("alpha", "tok-123");
         when(request.getScheme()).thenReturn("https");
-        when(request.getServerName()).thenReturn("alpha.example.test");
+        when(request.getServerName()).thenReturn("alias.example.test");
         when(request.getServerPort()).thenReturn(443);
+        when(tenantPublicHostResolver.resolve(5L, "alias.example.test", HostPolicy.TRUST_REQUEST))
+                .thenReturn("alpha.example.test");
         when(subscriberFeedService.listFeeds(5L, 1L)).thenReturn(List.of(feed));
 
         ResponseEntity<Response<List<SubscriberFeedView>>> response = controller.listFeeds(principal, request);
@@ -69,6 +79,8 @@ class MeFeedControllerTest {
         when(request.getScheme()).thenReturn("http");
         when(request.getServerName()).thenReturn("alpha-a.localhost");
         when(request.getServerPort()).thenReturn(8080);
+        when(tenantPublicHostResolver.resolve(5L, "alpha-a.localhost", HostPolicy.TRUST_REQUEST))
+                .thenReturn("alpha-a.localhost");
         when(subscriberFeedService.listFeeds(5L, 1L)).thenReturn(List.of(feed));
 
         ResponseEntity<Response<List<SubscriberFeedView>>> response = controller.listFeeds(principal, request);
@@ -94,6 +106,8 @@ class MeFeedControllerTest {
         when(request.getScheme()).thenReturn("https");
         when(request.getServerName()).thenReturn("alpha.example.test");
         when(request.getServerPort()).thenReturn(443);
+        when(tenantPublicHostResolver.resolve(5L, "alpha.example.test", HostPolicy.TRUST_REQUEST))
+                .thenReturn("alpha.example.test");
         when(subscriberFeedService.rotateDefaultFeedToken(5L, 1L)).thenReturn(feed);
 
         ResponseEntity<Response<SubscriberFeedView>> response = controller.rotateDefaultToken(principal, request);
@@ -110,6 +124,8 @@ class MeFeedControllerTest {
         when(request.getScheme()).thenReturn("https");
         when(request.getServerName()).thenReturn("alpha.example.test");
         when(request.getServerPort()).thenReturn(443);
+        when(tenantPublicHostResolver.resolve(5L, "alpha.example.test", HostPolicy.TRUST_REQUEST))
+                .thenReturn("alpha.example.test");
         when(subscriberFeedService.setDefaultFeedEnabled(5L, 1L, false)).thenReturn(feed);
 
         ResponseEntity<Response<SubscriberFeedView>> response =
@@ -129,6 +145,8 @@ class MeFeedControllerTest {
         when(request.getScheme()).thenReturn("https");
         when(request.getServerName()).thenReturn("alpha.example.test");
         when(request.getServerPort()).thenReturn(443);
+        when(tenantPublicHostResolver.resolve(5L, "alpha.example.test", HostPolicy.TRUST_REQUEST))
+                .thenReturn("alpha.example.test");
         when(subscriberFeedService.createCustomFeed(5L, 1L, "Nur Bonus", List.of(3L))).thenReturn(feed);
 
         ResponseEntity<Response<SubscriberFeedView>> response = controller.createCustomFeed(
@@ -154,6 +172,8 @@ class MeFeedControllerTest {
         when(request.getScheme()).thenReturn("https");
         when(request.getServerName()).thenReturn("alpha.example.test");
         when(request.getServerPort()).thenReturn(443);
+        when(tenantPublicHostResolver.resolve(5L, "alpha.example.test", HostPolicy.TRUST_REQUEST))
+                .thenReturn("alpha.example.test");
         when(subscriberFeedService.deleteCustomFeed(5L, 1L, 12L)).thenReturn(feed);
 
         ResponseEntity<Response<SubscriberFeedView>> response = controller.deleteCustomFeed(principal, 12L, request);

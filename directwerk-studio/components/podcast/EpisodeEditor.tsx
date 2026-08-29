@@ -437,7 +437,11 @@ export default function EpisodeEditor({episodeId}: {episodeId?: number}): React.
         formatRequired: availableFormats.length > 0,
         formatSelected: selectedFormatIds.size > 0,
     })
-    const episodePageUrl = publicEpisodePageUrl(config.publicRssUrl, slug)
+    const episodePageUrl = publicEpisodePageUrl(
+        config.publicSiteUrl,
+        slug,
+        config.publicRssUrl,
+    )
     const publishedLinks = [
         config.publicRssUrl !== null
             ? {label: 'Allgemeiner Feed', url: config.publicRssUrl}

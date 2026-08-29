@@ -327,8 +327,12 @@ export default function ArticleEditor({articleId}: {articleId?: number}) {
         if (article?.status !== 'PUBLISHED') {
             return null
         }
-        return publicArticlePageUrl(config.publicRssUrl, article.slug)
-    }, [article, config.publicRssUrl])
+        return publicArticlePageUrl(
+            config.publicSiteUrl,
+            article.slug,
+            config.publicRssUrl,
+        )
+    }, [article, config.publicSiteUrl, config.publicRssUrl])
 
     if (isLoading) {
         return <p>Beitrag wird geladen…</p>

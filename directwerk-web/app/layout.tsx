@@ -51,6 +51,7 @@ export default async function RootLayout({
                 secondaryColor: null,
                 logoUrl: null,
             },
+            publicSiteUrl: null,
             publicRssUrl: null,
         }
     }

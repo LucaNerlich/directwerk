@@ -1,5 +1,7 @@
 package de.pnnit.directwerk.modules.core.util;
 
+import de.pnnit.directwerk.modules.core.service.TenantPublicHostResolver;
+import de.pnnit.directwerk.modules.core.service.TenantPublicHostResolver.HostPolicy;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -10,8 +12,22 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class FeedUrlResolver {
 
+    private final TenantPublicHostResolver tenantPublicHostResolver;
+
     public String origin(String scheme, String serverName, int serverPort) {
         return PublicUrlBuilder.baseUrl(scheme, serverName, serverPort);
+    }
+
+    public String subscriberFeedUrl(
+            Long tenantId,
+            String requestedHostname,
+            String scheme,
+            int serverPort,
+            String tenantSlug,
+            String feedToken
+    ) {
+        String host = tenantPublicHostResolver.resolve(tenantId, requestedHostname, HostPolicy.TRUST_REQUEST);
+        return FeedUrls.subscriberFeed(origin(scheme, host, serverPort), tenantSlug, feedToken);
     }
 
     public String subscriberFeedUrl(String scheme, String serverName, int serverPort, String tenantSlug, String feedToken) {
