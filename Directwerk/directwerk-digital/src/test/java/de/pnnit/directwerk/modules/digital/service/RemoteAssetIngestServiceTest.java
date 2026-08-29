@@ -33,6 +33,8 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.AbortMultipartUploadRequest;
+import software.amazon.awssdk.services.s3.model.CreateMultipartUploadRequest;
 import software.amazon.awssdk.services.s3.model.CreateMultipartUploadResponse;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 
@@ -159,7 +161,7 @@ class RemoteAssetIngestServiceTest {
             asset.setId(42L);
             return asset;
         });
-        when(s3Client.createMultipartUpload(any())).thenReturn(
+        when(s3Client.createMultipartUpload(any(CreateMultipartUploadRequest.class))).thenReturn(
                 CreateMultipartUploadResponse.builder().uploadId("upload-1").build()
         );
 
@@ -170,7 +172,7 @@ class RemoteAssetIngestServiceTest {
                 null
         ))).isInstanceOf(de.pnnit.directwerk.modules.digital.exception.UploadValidationException.class);
 
-        verify(s3Client).abortMultipartUpload(any());
+        verify(s3Client).abortMultipartUpload(any(AbortMultipartUploadRequest.class));
         verify(mediaAssetRepository).delete(any(MediaAsset.class));
     }
 
