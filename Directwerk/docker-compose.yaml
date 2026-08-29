@@ -11,7 +11,7 @@
 # Or set COMPOSE_PROFILES=stack in .env so profile flags are optional.
 services:
     postgres:
-        image: 'postgres:19beta2-alpine'
+        image: 'postgres:19beta3-alpine'
         environment:
             - 'POSTGRES_DB=mydatabase'
             - 'POSTGRES_PASSWORD=${SPRING_DATASOURCE_PASSWORD:?Set SPRING_DATASOURCE_PASSWORD in .env}'
