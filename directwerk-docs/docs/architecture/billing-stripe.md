@@ -398,7 +398,7 @@ Gradle: add official Stripe Java SDK; pin version in BOM/catalog if used.
 |-----|-----|
 | [`../README.md`](../../../docs/platform-design.md#payments-and-billing) | Original product design (Connect, checkout sequence, webhooks) |
 | [`content-subscriptions-and-entitlements.md`](/operators/subscriptions-and-entitlements) | LEVEL/PACKAGE access rules (must keep working) |
-| [`poc-alpha-setup.md`](/install/local-development) | Phase H checklist |
+| [`poc-alpha-setup.md`](/install/local-development) | HTTP harness run order |
 | [`directwerk-studio-implementation.md`](directwerk-studio-implementation.md) | Studio integrations / sync-stripe UI notes |
 | [`user-backend-implementation.md`](user-backend-implementation.md) | `/api/v1/webhooks/**` signature filter pattern |
 | [`../Directwerk/bruno/README.md`](../Directwerk/bruno/README.md) | Bruno maintenance rule |

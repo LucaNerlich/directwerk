@@ -853,7 +853,7 @@ Group entitlement scenarios (13–18): see [Group entitlements](#group-entitleme
 ## Related documents
 
 - [`README.md`](../../../docs/platform-design.md) — Media Storage, S3 Layout, Upload Flow, Entitlements, Feature Modules
-- [`poc-alpha-setup.md`](/install/local-development) — Alpha bootstrap + storage foundation (`MediaAsset` schema, Hetzner/Bunny dev bucket)
+- [`poc-alpha-setup.md`](/install/local-development) — HTTP harness run order
 - [`product-naming.md`](product-naming.md) — Directwerk public product name
 - [Hetzner Object Storage docs](https://docs.hetzner.com/storage/object-storage/)
 - [Bunny.net S3 compatibility](https://docs.bunny.net/storage/s3)

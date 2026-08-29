@@ -11,8 +11,9 @@ Companion docs:
 
 | Doc | Role |
 |-----|------|
-| [`../docs/poc-alpha-setup.md`](../docs/poc-alpha-setup.md) | Alpha status; Phase D / next steps |
+| [`../docs/poc-alpha-setup.md`](../docs/poc-alpha-setup.md) | HTTP harness + local API setup |
 | [`../../docs/platform-design.md`](../../docs/platform-design.md) | Full platform design |
+| [`../../docs/content-creation-implementation.md`](../../docs/content-creation-implementation.md) | Studio + content blueprint |
 | [`../../docs/asset-storage.md`](../../docs/asset-storage.md) | S3, promote, entitlements |
 
 ---
