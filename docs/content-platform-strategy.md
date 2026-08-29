@@ -1,6 +1,6 @@
 # Directwerk — Content Platform Strategy (Not a CMS)
 
-Companion to [`README.md`](../README.md) (full product design). This document answers a strategic
+Companion to [`README.md`](platform-design.md) (full product design). This document answers a strategic
 question that comes up when positioning Directwerk as a **German Substack alternative**:
 
 > *The whole app is about content management — but building a CMS ourselves sounds stupid.*
@@ -12,7 +12,7 @@ WordPress, or Strapi on their home turf.
 
 | Document | Purpose |
 |----------|---------|
-| [`README.md`](../README.md) | Full platform design — entities, APIs, phases |
+| [`README.md`](platform-design.md) | Full platform design — entities, APIs, phases |
 | [`directwerk-studio.md`](directwerk-studio.md) | Creator dashboard — primary non-technical user experience |
 | [`ghost-positioning.md`](ghost-positioning.md) | Competitive positioning vs Ghost |
 | [`product-naming.md`](product-naming.md) | Public product name strategy and naming history |
@@ -36,7 +36,7 @@ sync.
 
 | Audience | Default experience | “Write where you like” applies? |
 |----------|-------------------|--------------------------------|
-| **Non-technical creators** (default) | [`directwerk-studio`](directwerk-studio.md) + [`directwerk-web`](../README.md#reference-frontend-directwerk-web) | **No** — they write in studio |
+| **Non-technical creators** (default) | [`directwerk-studio`](directwerk-studio.md) + [`directwerk-web`](platform-design.md#reference-frontend-directwerk-web) | **No** — they write in studio |
 | **Agencies / developers** | REST API + custom or headless frontend | **Yes** — Tier B–D below |
 
 **API-first is architecture, not the creator pitch.** Studio and customer frontends both call the
@@ -112,7 +112,7 @@ Directwerk already plans substantial “content management” that is **not** CM
 - Publication workflow (`DRAFT` → `SCHEDULED` → `PUBLISHED` → `ARCHIVED`)
 - Tenant-scoped slugs, metadata, taxonomy (formats, categories)
 - Media library with S3 upload/confirm ([`asset-storage.md`](asset-storage.md))
-- Entitlement-gated APIs and RSS ([`README.md` § Entitlements](../README.md#entitlements))
+- Entitlement-gated APIs and RSS ([`README.md` § Entitlements](platform-design.md#entitlements))
 - Multi-tenant isolation and module gating
 
 None of that requires a block editor, theme system, or plugin marketplace.
@@ -172,7 +172,7 @@ Directwerk becomes a sync target — acceptable for some tenants, but not the de
 
 ## What we explicitly do not build
 
-From [`README.md` § Non-Goals](../README.md#non-goals-mvp) and [`ghost-positioning.md`](ghost-positioning.md):
+From [`README.md` § Non-Goals](platform-design.md#non-goals-mvp) and [`ghost-positioning.md`](ghost-positioning.md):
 
 | Out of scope | Rationale |
 |--------------|-----------|
@@ -238,7 +238,7 @@ not the default creator story.
 
 ### Articles as publications, not pages
 
-Post-MVP `ARTICLE` type ([`README.md` § Publication Types](../README.md#publication-types)) is a
+Post-MVP `ARTICLE` type ([`README.md` § Publication Types](platform-design.md#publication-types)) is a
 **structured record**, not a free-form page tree:
 
 | Field | Purpose |
@@ -364,7 +364,7 @@ only.
 
 ### Recommended: ESP integration module (`EMAIL_NOTIFY`)
 
-Post-MVP module ([`README.md` § Optional addons](../README.md#optional-addons-enable-per-tenant-later-phases)).
+Post-MVP module ([`README.md` § Optional addons](platform-design.md#optional-addons-enable-per-tenant-later-phases)).
 Capabilities:
 
 | Feature | Implementation |
@@ -462,7 +462,7 @@ flowchart TB
 | Topic | Directwerk approach |
 |-------|------------------|
 | **GDPR / DPA** | EU hosting (Hetzner); tenant data export; ESP with EU processing |
-| **Steady** | First-class sync module — German Patreon alternative ([`README.md`](../README.md)) |
+| **Steady** | First-class sync module — German Patreon alternative ([`README.md`](platform-design.md)) |
 | **Impressum / legal pages** | Tenant frontend responsibility — `site-config` may expose footer links JSON |
 | **VAT / invoicing** | Stripe Tax or tenant accountant — not in MVP |
 | **Language** | API locale-agnostic; `directwerk-studio` i18n DE first when UI ships |
@@ -487,13 +487,13 @@ Compete on **data sovereignty and billing flexibility**, not on Substack’s dis
 | 9 | Substack parity as goal? | **No** | Wedge is whitelabel + EU + Patreon/Steady exit + podcast |
 | 10 | Default tenant UI | **`directwerk-studio` + `directwerk-web`** | Creators need dashboard + public site without an agency |
 
-Add row to [`README.md` § Open Decisions](../README.md#open-decisions) when implementing email module.
+Add row to [`README.md` § Open Decisions](platform-design.md#open-decisions) when implementing email module.
 
 ---
 
 ## Implementation phasing
 
-Aligns with [`README.md` § MVP implementation phases](../README.md#mvp-implementation-phases),
+Aligns with [`platform-design.md` § Implementation Checklist](platform-design.md#implementation-checklist),
 [`directwerk-studio.md` § Phased delivery](directwerk-studio.md#phased-delivery), and
 [`directwerk-studio-implementation.md` § Phased delivery](directwerk-studio-implementation.md#phased-delivery).
 
@@ -577,7 +577,7 @@ publications, entitlements, headless JSON. Bring your editor and frontend.
 - Studio screen-by-screen spec: [`directwerk-studio-implementation.md`](directwerk-studio-implementation.md)
 - Ghost comparison: [`ghost-positioning.md`](ghost-positioning.md)
 - Entitlements and storage: [`asset-storage.md`](asset-storage.md)
-- Publication types and workflow: [`README.md` § Content Model](../README.md#content-model)
+- Publication types and workflow: [`README.md` § Content Model](platform-design.md#content-model)
 - Strapi in monorepo (reference only): [`projects/strapi/cffc-v5/`](../../strapi/cffc-v5/)
 
 ---

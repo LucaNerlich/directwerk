@@ -2,7 +2,7 @@
 
 Companion to [`poc-alpha-setup.md`](poc-alpha-setup.md), [`asset-storage.md`](asset-storage.md),
 [`Directwerk/directwerk-podcast/README.md`](../Directwerk/directwerk-podcast/README.md), and
-[`README.md`](../README.md).
+[`README.md`](platform-design.md).
 
 **Status:** Shipped (2026-07-20, commit `5bdf7786`). Phase 2e (episode stream), 4a (public RSS), 4b
 (real LEVEL/PACKAGE entitlements), and 4c (private subscriber RSS) are all implemented — this plan is

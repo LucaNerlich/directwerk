@@ -1,12 +1,12 @@
 # Directwerk — User Backend & Spring Security Implementation Guide
 
-Companion to [`README.md`](../README.md) and [`poc-alpha-setup.md`](poc-alpha-setup.md). This document
+Companion to [`README.md`](platform-design.md) and [`poc-alpha-setup.md`](poc-alpha-setup.md). This document
 is the **step-by-step engineering guide** for implementing user accounts, authentication, authorization,
 and account management in the Spring Boot backend (`Directwerk/`).
 
 | Document | Purpose |
 |----------|---------|
-| [`README.md`](../README.md) § Authentication and Authorization | Product-level auth design |
+| [`README.md`](platform-design.md) § Authentication and Authorization | Product-level auth design |
 | [`poc-alpha-setup.md`](poc-alpha-setup.md) § Spring Security | Alpha scope and checklist |
 | **This document** | **How to implement** the user/security backend |
 | [`directwerk-studio-implementation.md`](directwerk-studio-implementation.md) | Creator dashboard consuming this API |
@@ -710,7 +710,7 @@ Execute in this order within Phase A (alpha backend):
 - Alpha blueprint: [`poc-alpha-setup.md`](poc-alpha-setup.md)
 - Studio frontend auth client: [`directwerk-studio-implementation.md` § Auth](directwerk-studio-implementation.md#4-authentication)
 - Admin frontend auth: [`directwerk-admin-implementation.md` § Auth](directwerk-admin-implementation.md#4-authentication)
-- Product auth design: [`README.md` § Authentication and Authorization](../README.md#authentication-and-authorization)
+- Product auth design: [`README.md` § Authentication and Authorization](platform-design.md#authentication-and-authorization)
 
 ---
 

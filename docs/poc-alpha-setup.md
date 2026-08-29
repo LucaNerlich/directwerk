@@ -1,13 +1,13 @@
 # Directwerk — Alpha / Proof-of-Concept Setup
 
-Companion to [`README.md`](../README.md) (full platform design spec). This document defines the
+Companion to [`README.md`](platform-design.md) (full platform design spec). This document defines the
 **alpha POC slice** — the smallest runnable backend that proved tenancy, auth, module gates, and
 storage before reference frontends shipped. **Historical reference** — the full stack is now shipped;
 use it for local API setup and HTTP harness order.
 
 | Document | Purpose |
 |----------|---------|
-| [`README.md`](../README.md) | Full product design — entities, phases, post-MVP addons |
+| [`README.md`](platform-design.md) | Full product design — entities, phases, post-MVP addons |
 | [`user-backend-implementation.md`](user-backend-implementation.md) | Spring Security / user account step-by-step guide |
 | [`directwerk-studio-implementation.md`](directwerk-studio-implementation.md) | Studio implementation — screens, scaffold, auth, checklist |
 | [`directwerk-admin-implementation.md`](directwerk-admin-implementation.md) | Platform admin dashboard step-by-step guide |
@@ -126,7 +126,7 @@ flowchart LR
 
 | Step | What to do | Doc reference |
 |------|------------|---------------|
-| E.1 | Scaffold `directwerk-web/` — `site-config` branding, episode list/detail | [README § directwerk-web](../README.md#reference-frontend-directwerk-web) |
+| E.1 | Scaffold `directwerk-web/` — `site-config` branding, episode list/detail | [README § directwerk-web](platform-design.md#reference-frontend-directwerk-web) |
 | E.2 | Register/login flows via same OAuth2 client | README Auth API |
 | E.3 | Subscriber portal shell (`/me/*`) — stub until Phase G | README Subscriber API |
 
@@ -224,7 +224,7 @@ Full storage behaviour is specified in [`asset-storage.md`](asset-storage.md). A
 | Modular architecture (#197) | Vertical slices (`api` / `internal` / `web`), `ModuleGateApi` + `ModuleActivationApi` split | Extracting modules to separate deployables |
 | README module catalog + presets | Full `feature_modules` seed, dependency graph, onboarding presets (`FREE_PODCAST`, etc.) | Billing modules beyond activation toggles |
 
-**Naming note:** [`README.md`](../README.md) uses `ModuleService` for the runtime gate. In alpha code,
+**Naming note:** [`README.md`](platform-design.md) uses `ModuleService` for the runtime gate. In alpha code,
 split responsibilities into **`ModuleGateApi`** (read-only: `isEnabled`, `enabledModuleKeys`) and
 **`ModuleActivationApi`** (mutations: activate, deactivate, presets, cascade). Both live in
 `modules/core/internal/`; consumers depend on the interfaces only.
@@ -860,7 +860,7 @@ Runtime gating in a single monolith — modules are **not** separate deployables
 
 ### Seed modules (Flyway `V3`)
 
-Seed the **full MVP catalog** from README [Module Catalog](../README.md#module-catalog) — alpha
+Seed the **full MVP catalog** from README [Module Catalog](platform-design.md#module-catalog) — alpha
 exercises activation, dependencies, presets, and gating even when a module has no probe endpoint yet.
 
 | module_key | is_core | depends_on | Alpha probe / behaviour |
@@ -883,7 +883,7 @@ On tenant creation, `DIGITAL_CONTENT` is auto-activated. Platform admin activate
 ### Onboarding presets (alpha)
 
 Presets bundle module activations for common onboarding paths (see README
-[Dashboard API](../README.md#modules)). Alpha HTTP tests use `FREE_PODCAST`:
+[Dashboard API](platform-design.md#modules)). Alpha HTTP tests use `FREE_PODCAST`:
 
 | Preset | Modules activated |
 |--------|-------------------|
@@ -898,7 +898,7 @@ before activation; partial failures roll back the batch.
 ### Deactivation cascades
 
 When deactivating a module, `ModuleActivationApi` disables **dependents first** (see README
-[Deactivation cascades](../README.md#module-dependencies)):
+[Deactivation cascades](platform-design.md#module-dependencies)):
 
 | Deactivate | Also disables |
 |------------|---------------|
@@ -909,7 +909,7 @@ When deactivating a module, `ModuleActivationApi` disables **dependents first** 
 
 ### ModuleGateApi + aspect
 
-Implement gating as specified in README [Feature Modules](../README.md#feature-modules) — alpha code
+Implement gating as specified in README [Feature Modules](platform-design.md#feature-modules) — alpha code
 uses `ModuleGateApi` / `ModuleActivationApi` instead of a monolithic `ModuleService`:
 
 - `ModuleGateService` implements `ModuleGateApi` in `modules/core/internal/`
@@ -1124,7 +1124,7 @@ sequenceDiagram
 | V5 | `V5__create_media_assets.sql` | `media_assets` — see [Asset storage foundation](#asset-storage-foundation-alpha) |
 | R | `R__alpha_dev_seed.sql` | Dev tenants, platform admin, editor, sample branding, module activations |
 
-Platform audit events follow README [Platform Superadmin Dashboard](../README.md#platform-superadmin-dashboard)
+Platform audit events follow README [Platform Superadmin Dashboard](platform-design.md#platform-superadmin-dashboard)
 (`action`, `actor_user_id`, `tenant_id`, `details` JSON). Alpha requires writes on create/suspend/
 module toggle/invite — `GET /api/v1/platform/audit` is optional in alpha but recommended.
 
