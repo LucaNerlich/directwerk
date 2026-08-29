@@ -1,8 +1,5 @@
 dependencies {
     api project(':directwerk-core')
-    api project(':directwerk-queue')
-    implementation 'com.stripe:stripe-java:28.4.0'
-    implementation 'tools.jackson.core:jackson-databind'
 
     testImplementation 'org.junit.jupiter:junit-jupiter'
     testImplementation 'org.mockito:mockito-core'

@@ -1,9 +1,9 @@
 package de.pnnit.directwerk.controller.webhook;
 
 import de.pnnit.directwerk.api.response.Response;
-import de.pnnit.directwerk.modules.subscription.stripe.StripeOperations;
-import de.pnnit.directwerk.modules.subscription.stripe.StripeWebhookService;
-import de.pnnit.directwerk.modules.subscription.stripe.job.StripeWebhookJobProducer;
+import de.pnnit.directwerk.modules.stripebilling.StripeOperations;
+import de.pnnit.directwerk.modules.stripebilling.StripeWebhookService;
+import de.pnnit.directwerk.modules.stripebilling.job.StripeWebhookJobProducer;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;

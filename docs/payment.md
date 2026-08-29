@@ -359,30 +359,20 @@ Studio owners get `GET /api/v1/tenant/billing/dashboard` (counts including past-
 Suggested layout (adjust to monorepo norms):
 
 ```text
-directwerk-subscription/
+directwerk-subscription/          # products, subscriptions, entitlements (no Stripe SDK)
+  SubscriptionModule.java
+  billing/ExternalSubscriptionBillingGateway.java   # port for provider modules
+  service/SubscriptionService.java, EntitlementService.java, …
+
+directwerk-stripe-billing/        # Stripe Connect integration (depends on subscription)
   StripeBillingModule.java
-  stripe/
-    StripeProperties.java
-    StripeSdkOperations.java
-    StripeConnectService.java
-    StripeCatalogSyncService.java
-    StripeCheckoutService.java
-    StripeCustomerPortalService.java
-    StripeWebhookService.java
-    BillingDashboardService.java
-    job/
-      StripeWebhookJobProducer.java
-      StripeWebhookJobHandler.java
+  StripeConnectService, StripeCheckoutService, StripeWebhookService, …
+  service/StripeSubscriptionSyncService.java
+  job/StripeWebhookJobHandler.java
 
 directwerk-app/
-  controller/tenant/TenantStripeController.java
-  controller/auth/MeBillingController.java
-  controller/webhook/StripeWebhookController.java
+  controller/…/MeBillingController.java, StripeWebhookController.java
   security/BillingRateLimitFilter.java
-
-Flyway:
-  V41__stripe_connect_and_prices.sql
-  V42__subscription_external_payment_id.sql
 ```
 
 Gradle: add official Stripe Java SDK; pin version in BOM/catalog if used.
@@ -413,7 +403,7 @@ Gradle: add official Stripe Java SDK; pin version in BOM/catalog if used.
 | 2026-08-13 | Owner UX: product copy, TENANT_ADMIN gates, subscriber Stripe ids, charge.refunded for one-time, portal + success poll + PAST_DUE on web/example-fe. |
 | 2026-08-13 | Bruno + http harnesses aligned with live billing controllers (prices, dashboard stats, checkout/portal, webhook signature). |
 | 2026-08-13 | Studio Zahlungen: past-due/incomplete stats, filters, revoke from the membership list. |
-| 2026-08-29 | Async Stripe webhooks via `stripe-webhook` queue; billing per-user rate limit; SideNav Stripe gated on `STRIPE_BILLING`; doc inventory reconciled. |
+| 2026-08-29 | Split Stripe into `directwerk-stripe-billing` Gradle module; subscription stays Stripe-agnostic via `ExternalSubscriptionBillingGateway`. |
 | 2026-08-28 | Reconciled inventory + feature checklist with shipped Connect/checkout/webhooks/dashboard. Remaining: one-time copy polish, studio promo CRUD. |
 | 2026-08-13 | Live Connect, prices, checkout, webhooks, studio Zahlungen dashboard. 501 without platform keys. |
 | 2026-08-12 | Initial brief from gap analysis after stub controllers/UI landed; no live Stripe yet |

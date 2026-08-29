@@ -9,6 +9,7 @@ include(
         'directwerk-email',
         'directwerk-core',
         'directwerk-subscription',
+        'directwerk-stripe-billing',
         'directwerk-digital',
         'directwerk-podcast',
         'directwerk-newsletter',

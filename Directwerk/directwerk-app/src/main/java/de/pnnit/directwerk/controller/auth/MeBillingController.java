@@ -1,8 +1,8 @@
 package de.pnnit.directwerk.controller.auth;
 
 import de.pnnit.directwerk.api.response.Response;
-import de.pnnit.directwerk.modules.subscription.stripe.StripeCheckoutService;
-import de.pnnit.directwerk.modules.subscription.stripe.StripeCustomerPortalService;
+import de.pnnit.directwerk.modules.stripebilling.StripeCheckoutService;
+import de.pnnit.directwerk.modules.stripebilling.StripeCustomerPortalService;
 import de.pnnit.directwerk.security.DirectwerkUserPrincipal;
 import de.pnnit.directwerk.security.SecurityUtils;
 import jakarta.validation.Valid;

@@ -16,7 +16,7 @@ Tests run in `directwerk-app` (no test sources of its own), notably `Entitlement
 
 ## Architecture
 
-The optional subscription/entitlement module — subscription products, tenant subscriptions, and access-rule evaluation. Depends on `directwerk-core` (and transitively everything below it). Used by `directwerk-app`'s tenant and public HTTP controllers; nothing else in the module graph depends on it.
+The optional subscription/entitlement module — subscription products, tenant subscriptions, and access-rule evaluation. Depends on `directwerk-core` only (no Stripe SDK). Used by `directwerk-podcast`, `directwerk-newsletter`, and `directwerk-app`. **Stripe Connect** lives in sibling module `directwerk-stripe-billing`.
 
 - `de.pnnit.directwerk.modules.subscription.entity` — `Subscription`, `SubscriptionProduct`, and enums `OfferingType`, `SubscriptionSource`, `SubscriptionStatus`.
 - `de.pnnit.directwerk.modules.subscription.repository` — `SubscriptionRepository`, `SubscriptionProductRepository`.

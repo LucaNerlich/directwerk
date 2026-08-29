@@ -3,7 +3,7 @@ package de.pnnit.directwerk.controller.tenant;
 import de.pnnit.directwerk.api.response.Response;
 import de.pnnit.directwerk.modules.core.RequiresModule;
 import de.pnnit.directwerk.modules.subscription.SubscriptionModule;
-import de.pnnit.directwerk.modules.subscription.stripe.BillingDashboardService;
+import de.pnnit.directwerk.modules.stripebilling.BillingDashboardService;
 import de.pnnit.directwerk.multitenancy.TenantContext;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;

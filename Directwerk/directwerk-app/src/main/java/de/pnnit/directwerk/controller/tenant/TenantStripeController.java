@@ -2,9 +2,9 @@ package de.pnnit.directwerk.controller.tenant;
 
 import de.pnnit.directwerk.api.response.Response;
 import de.pnnit.directwerk.modules.core.RequiresModule;
-import de.pnnit.directwerk.modules.subscription.StripeBillingModule;
-import de.pnnit.directwerk.modules.subscription.stripe.BillingRedirectUrlValidator;
-import de.pnnit.directwerk.modules.subscription.stripe.StripeConnectService;
+import de.pnnit.directwerk.modules.stripebilling.StripeBillingModule;
+import de.pnnit.directwerk.modules.stripebilling.BillingRedirectUrlValidator;
+import de.pnnit.directwerk.modules.stripebilling.StripeConnectService;
 import de.pnnit.directwerk.multitenancy.TenantContext;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Size;
