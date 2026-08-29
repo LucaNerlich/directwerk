@@ -746,7 +746,7 @@ export interface SubscriberFeedAdminView {
     isDefault: boolean
     enabled: boolean
     formatIds: number[]
-    formats: Array<{id: number; slug: string; name: string}>
+    formats: FormatTag[]
     createdAt: string
     updatedAt: string
 }

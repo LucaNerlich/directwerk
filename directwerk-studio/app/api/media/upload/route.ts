@@ -1,3 +1,4 @@
+import {parseUploadUrlResponse} from '/api/validation/catalog'
 import {parseJsonText} from '@directwerk/api/validation/json'
 
 import {readBearerToken} from '@directwerk/api/proxy'

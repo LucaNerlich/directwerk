@@ -11,10 +11,7 @@ import {
     SidebarMenuItem,
 } from '@directwerk/ui/components/sidebar'
 
-interface NavigationItem {
-    href: string
-    label: string
-}
+import type {NavigationItem} from '/ui/lib/navigation'
 
 const NAV_ITEMS: readonly NavigationItem[] = [
     {href: '/', label: 'Overview'},

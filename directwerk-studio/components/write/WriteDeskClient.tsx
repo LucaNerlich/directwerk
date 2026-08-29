@@ -13,19 +13,10 @@ import SectionHeader from '@directwerk/ui/components/section-header'
 import PublicationStatusBadge from '@/components/publication/PublicationStatusBadge'
 import {listCategories} from '@/lib/api/catalogApi'
 import {listArticles} from '@/lib/api/writeApi'
+import type {SetupStep} from '@/lib/studio/setupStep'
 import type {ArticleSummary, CategorySummary} from '@directwerk/api/types'
 import {getClientTenantHost} from '@directwerk/api/tenant'
 import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
-
-interface SetupStep {
-    id: string
-    title: string
-    description: string
-    done: boolean
-    href: string
-    actionLabel: string
-    primary?: boolean
-}
 
 export default function WriteDeskClient(): React.JSX.Element {
     const router = useRouter()
