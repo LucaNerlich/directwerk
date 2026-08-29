@@ -39,6 +39,7 @@ import type {
     TenantSubscriber,
     TenantSubscriberSubscription,
     TenantUser,
+    UploadUrlResponse,
 } from '../types'
 import {
     isBoundedString,
@@ -408,6 +409,47 @@ export function parseMediaAsset(value: unknown): MediaAsset | null {
         cdnUrl: isNullableString(value.cdnUrl, 4096) ? value.cdnUrl : null,
         createdAt: value.createdAt,
         updatedAt: value.updatedAt,
+    }
+}
+
+function parseStringRecord(value: unknown): Record<string, string> | null {
+    if (!isRecord(value)) {
+        return null
+    }
+
+    const result: Record<string, string> = {}
+    for (const [key, entry] of Object.entries(value)) {
+        if (typeof entry !== 'string') {
+            return null
+        }
+        result[key] = entry
+    }
+
+    return result
+}
+
+export function parseUploadUrlResponse(value: unknown): UploadUrlResponse | null {
+    if (
+        !isRecord(value) ||
+        !isPositiveSafeInteger(value.assetId) ||
+        !isBoundedString(value.uploadUrl, 4096)
+    ) {
+        return null
+    }
+
+    const headers =
+        value.headers === undefined || value.headers === null
+            ? null
+            : parseStringRecord(value.headers)
+    if (value.headers !== undefined && value.headers !== null && headers === null) {
+        return null
+    }
+
+    return {
+        assetId: value.assetId,
+        uploadUrl: value.uploadUrl,
+        expiresAt: isNullableString(value.expiresAt, 64) ? value.expiresAt : null,
+        headers,
     }
 }
 

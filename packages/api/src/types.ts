@@ -252,6 +252,14 @@ export interface MediaAsset {
     updatedAt: string
 }
 
+/** Presigned upload target from POST /api/v1/media/upload-url. */
+export interface UploadUrlResponse {
+    assetId: number
+    uploadUrl: string
+    expiresAt: string | null
+    headers: Record<string, string> | null
+}
+
 export interface TenantMediaList {
     content: MediaAsset[]
     /** CDN origin from Directwerk storage config; used to derive links if needed. */
