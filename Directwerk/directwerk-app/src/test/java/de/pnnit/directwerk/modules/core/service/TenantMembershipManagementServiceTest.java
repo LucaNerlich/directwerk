@@ -30,6 +30,7 @@ import org.mockito.ArgumentMatchers;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -48,6 +49,9 @@ class TenantMembershipManagementServiceTest {
 
     @Mock
     private EntityManager entityManager;
+
+    @Mock
+    private ApplicationEventPublisher eventPublisher;
 
     @Mock
     private jakarta.persistence.Query lockQuery;
