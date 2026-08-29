@@ -319,6 +319,47 @@ Wipe DB and Mailpit storage (destructive):
 docker compose --profile stack down -v
 ```
 
+### 3.1 Prod-like full stack (API + all frontends)
+
+For integration testing or demos without running `pnpm dev` on the host, use
+[`docker-compose.full-stack.yaml`](../../docker-compose.full-stack.yaml) at the **monorepo root**.
+It starts Postgres, Mailpit, the API, **directwerk-admin**, **directwerk-studio**,
+**directwerk-web**, **homepage**, and **directwerk-docs** as production-built containers.
+
+```sh
+# from monorepo root
+cp Directwerk/.env.example Directwerk/.env   # same secrets as §3
+docker compose --env-file Directwerk/.env -f docker-compose.full-stack.yaml up --build
+```
+
+Stop (keeps Postgres + Mailpit data):
+
+```sh
+docker compose --env-file Directwerk/.env -f docker-compose.full-stack.yaml down
+```
+
+| Service | Host URL |
+|---------|----------|
+| **directwerk** (API) | [http://localhost:8080](http://localhost:8080) |
+| **directwerk-admin** | [http://localhost:3001](http://localhost:3001) |
+| **directwerk-studio** | [http://localhost:3003](http://localhost:3003) |
+| **directwerk-web** | [http://localhost:3004](http://localhost:3004) |
+| **homepage** | [http://localhost:3005](http://localhost:3005) |
+| **directwerk-docs** | [http://localhost:8088](http://localhost:8088) |
+| **mailpit UI** | [http://127.0.0.1:8025](http://127.0.0.1:8025) |
+
+Frontends call the API over the Compose network (`http://directwerk:8080`); browsers still
+reach the API on `localhost:8080` (feeds, tenant hosts). For multi-tenant demos on
+**directwerk-web** / **directwerk-studio**, map seeded hosts in `/etc/hosts` (or run
+`Directwerk/scripts/setup-local-hosts.sh`):
+
+```hosts
+127.0.0.1 alpha-a.localhost alpha-b.localhost
+```
+
+Day-to-day API work should still use §1 (host `bootRun` + infra-only Compose). The full-stack
+file is intentionally separate so it does not slow the default `docker compose up -d` workflow.
+
 ---
 
 ## 4. Production (and stage) deployment
@@ -495,4 +536,9 @@ docker compose up -d
 
 # Full containerized stack
 docker compose --profile stack up --build
+
+# Prod-like full stack (API + all frontends + docs) — from monorepo root:
+#   cp Directwerk/.env.example Directwerk/.env
+#   docker compose --env-file Directwerk/.env -f docker-compose.full-stack.yaml up --build
+# See ../../docker-compose.full-stack.yaml
 ```

@@ -2672,6 +2672,52 @@ See [`docs/asset-storage.md`](docs/asset-storage.md). Stripe webhook forwarding 
 stripe listen --forward-to localhost:8080/api/v1/webhooks/stripe
 ```
 
+### Prod-like full stack (Docker)
+
+For integration testing or demos without running `pnpm dev` on the host, use
+[`docker-compose.full-stack.yaml`](docker-compose.full-stack.yaml) at the **monorepo root**.
+It starts Postgres, Mailpit, the API, and production-built containers for **directwerk-admin**,
+**directwerk-studio**, **directwerk-web**, **homepage**, and **directwerk-docs**.
+
+Uses the same secrets as day-to-day API dev — configure `Directwerk/.env` once
+(`cp Directwerk/.env.example Directwerk/.env`).
+
+```sh
+# from monorepo root
+docker compose --env-file Directwerk/.env -f docker-compose.full-stack.yaml up --build
+```
+
+Stop (keeps Postgres + Mailpit data):
+
+```sh
+docker compose --env-file Directwerk/.env -f docker-compose.full-stack.yaml down
+```
+
+Wipe DB + Mailpit storage:
+
+```sh
+docker compose --env-file Directwerk/.env -f docker-compose.full-stack.yaml down -v
+```
+
+| Service | URL |
+|---------|-----|
+| API / Swagger | http://localhost:8080 |
+| Platform admin | http://localhost:3001 |
+| Creator studio | http://localhost:3003 |
+| Tenant web | http://localhost:3004 |
+| Marketing homepage | http://localhost:3005 |
+| Docs site | http://localhost:8088 |
+| Mailpit | http://127.0.0.1:8025 |
+
+Seeded accounts match host `local` dev (see [`Directwerk/docs/build-and-deploy.md`](Directwerk/docs/build-and-deploy.md)).
+For multi-tenant demos on studio/web, map `alpha-a.localhost` / `alpha-b.localhost` in `/etc/hosts`
+(or run `Directwerk/scripts/setup-local-hosts.sh`).
+
+Day-to-day API work should still use the quick start above (`Directwerk/docker-compose.yaml` infra
+only + host `bootRun`). The full-stack file is separate so it does not affect the default workflow.
+
+More detail: [`Directwerk/docs/build-and-deploy.md`](Directwerk/docs/build-and-deploy.md) §3.1.
+
 ---
 
 ## Deployment

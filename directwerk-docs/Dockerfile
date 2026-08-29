@@ -3,7 +3,12 @@
 FROM node:22-alpine AS build
 WORKDIR /workspace
 
-RUN corepack enable && corepack prepare pnpm@12.0.0-rc.5 --activate
+ENV PNPM_HOME="/root/.local/share/pnpm"
+ENV PATH="${PNPM_HOME}/bin:${PATH}"
+# https://pnpm.io/installation#in-a-docker-container
+RUN apk add --no-cache bash \
+    && wget -qO- https://get.pnpm.io/install.sh \
+        | env PNPM_VERSION=12.0.0-rc.5 ENV="$HOME/.bashrc" SHELL="$(which bash)" bash -
 
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
 COPY directwerk-docs/package.json ./directwerk-docs/

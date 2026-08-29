@@ -1,0 +1,177 @@
+# Full prod-like stack: Postgres + Mailpit + API + all Next.js frontends + docs.
+#
+# One-time setup (same secrets as host dev):
+#   cp Directwerk/.env.example Directwerk/.env
+#   # fill SPRING_DATASOURCE_PASSWORD, OAuth secrets, dev seed passwords
+#
+# Start everything:
+#   docker compose --env-file Directwerk/.env -f docker-compose.full-stack.yaml up --build
+#
+# Stop (keeps Postgres + Mailpit data):
+#   docker compose --env-file Directwerk/.env -f docker-compose.full-stack.yaml down
+#
+# Wipe DB + Mailpit storage:
+#   docker compose --env-file Directwerk/.env -f docker-compose.full-stack.yaml down -v
+#
+# Host URLs after startup:
+#   API / Swagger   http://localhost:8080  (Swagger: /swagger-ui.html)
+#   Platform admin  http://localhost:3001
+#   Creator studio  http://localhost:3003
+#   Tenant web      http://localhost:3004  (also alpha-a.localhost:3004 with /etc/hosts)
+#   Marketing site  http://localhost:3005
+#   Docs site       http://localhost:8088
+#   Mailpit UI      http://127.0.0.1:8025
+#
+# Tenant hosts for multi-tenant demos — add to /etc/hosts (or run Directwerk/scripts/setup-local-hosts.sh):
+#   127.0.0.1 alpha-a.localhost alpha-b.localhost
+#
+# Infra-only dev (host bootRun) still uses Directwerk/docker-compose.yaml.
+
+x-nextjs-service: &nextjs-service
+    restart: unless-stopped
+    env_file:
+        - Directwerk/.env
+    depends_on:
+        directwerk:
+            condition: service_healthy
+
+services:
+    postgres:
+        image: postgres:19beta2-alpine
+        restart: unless-stopped
+        environment:
+            POSTGRES_DB: mydatabase
+            POSTGRES_PASSWORD: ${SPRING_DATASOURCE_PASSWORD:?Set SPRING_DATASOURCE_PASSWORD in Directwerk/.env}
+            POSTGRES_USER: myuser
+        ports:
+            - '${DIRECTWERK_POSTGRES_PORT:-5433}:5432'
+        volumes:
+            - postgres_data:/var/lib/postgresql
+        healthcheck:
+            test: ['CMD-SHELL', 'pg_isready -U myuser -d mydatabase']
+            interval: 5s
+            timeout: 5s
+            retries: 10
+            start_period: 10s
+
+    mailpit:
+        image: axllent/mailpit
+        restart: unless-stopped
+        ports:
+            - '127.0.0.1:${DIRECTWERK_MAILPIT_SMTP_PORT:-1025}:1025'
+            - '127.0.0.1:${DIRECTWERK_MAILPIT_UI_PORT:-8025}:8025'
+        volumes:
+            - mailpit_data:/data
+        environment:
+            MP_DATABASE: /data/mailpit.db
+            MP_SMTP_AUTH_ACCEPT_ANY: 1
+            MP_SMTP_AUTH_ALLOW_INSECURE: 1
+
+    directwerk:
+        build:
+            context: Directwerk
+            dockerfile: Dockerfile
+        restart: unless-stopped
+        ports:
+            - '${DIRECTWERK_APP_PORT:-8080}:8080'
+        stop_grace_period: 15s
+        stop_signal: SIGTERM
+        env_file:
+            - Directwerk/.env
+        environment:
+            SPRING_PROFILES_ACTIVE: docker
+            SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/mydatabase
+            SPRING_DATASOURCE_USERNAME: myuser
+            DIRECTWERK_MAIL_HOST: mailpit
+            DIRECTWERK_MAIL_PORT: 1025
+            DIRECTWERK_MAIL_SMTP_AUTH: 'false'
+            DIRECTWERK_MAIL_SMTP_STARTTLS: 'false'
+            DIRECTWERK_ISSUER: http://localhost:${DIRECTWERK_APP_PORT:-8080}
+            DIRECTWERK_EMAIL_STUDIO_BASE_URL: http://localhost:3004
+            DIRECTWERK_EMAIL_ADMIN_BASE_URL: http://localhost:3001
+        depends_on:
+            postgres:
+                condition: service_healthy
+            mailpit:
+                condition: service_started
+        healthcheck:
+            test: ['CMD', 'curl', '-fsS', 'http://127.0.0.1:8080/actuator/health']
+            interval: 30s
+            timeout: 5s
+            retries: 5
+            start_period: 90s
+
+    directwerk-admin:
+        <<: *nextjs-service
+        build:
+            context: .
+            dockerfile: docker/nextjs.Dockerfile
+            args:
+                APP_NAME: directwerk-admin
+                APP_PORT: 3001
+        ports:
+            - '3001:3001'
+        environment:
+            DIRECTWERK_API_URL: http://directwerk:8080
+            OAUTH_CLIENT_ID: directwerk-platform-admin
+            OAUTH_CLIENT_SECRET: ${DIRECTWERK_PLATFORM_CLIENT_SECRET:?Set DIRECTWERK_PLATFORM_CLIENT_SECRET in Directwerk/.env}
+            TENANT_OAUTH_CLIENT_ID: directwerk-tenant-frontend
+            TENANT_OAUTH_CLIENT_SECRET: ${DIRECTWERK_TENANT_CLIENT_SECRET:?Set DIRECTWERK_TENANT_CLIENT_SECRET in Directwerk/.env}
+
+    directwerk-studio:
+        <<: *nextjs-service
+        build:
+            context: .
+            dockerfile: docker/nextjs.Dockerfile
+            args:
+                APP_NAME: directwerk-studio
+                APP_PORT: 3003
+        ports:
+            - '3003:3003'
+        environment:
+            DIRECTWERK_API_URL: http://directwerk:8080
+            OAUTH_CLIENT_ID: directwerk-tenant-frontend
+            OAUTH_CLIENT_SECRET: ${DIRECTWERK_TENANT_CLIENT_SECRET:?Set DIRECTWERK_TENANT_CLIENT_SECRET in Directwerk/.env}
+            NEXT_PUBLIC_DIRECTWERK_DEFAULT_TENANT_HOST: alpha-a.localhost
+
+    directwerk-web:
+        <<: *nextjs-service
+        build:
+            context: .
+            dockerfile: docker/nextjs.Dockerfile
+            args:
+                APP_NAME: directwerk-web
+                APP_PORT: 3004
+        ports:
+            - '3004:3004'
+        environment:
+            DIRECTWERK_API_URL: http://directwerk:8080
+            OAUTH_CLIENT_ID: directwerk-tenant-frontend
+            OAUTH_CLIENT_SECRET: ${DIRECTWERK_TENANT_CLIENT_SECRET:?Set DIRECTWERK_TENANT_CLIENT_SECRET in Directwerk/.env}
+            NEXT_PUBLIC_DIRECTWERK_DEFAULT_TENANT_HOST: alpha-a.localhost
+
+    homepage:
+        <<: *nextjs-service
+        build:
+            context: .
+            dockerfile: docker/nextjs.Dockerfile
+            args:
+                APP_NAME: homepage
+                APP_PORT: 3005
+        ports:
+            - '3005:3005'
+        environment:
+            NEXT_PUBLIC_DOCS_URL: http://localhost:8088
+            NEXT_PUBLIC_SWAGGER_URL: http://localhost:${DIRECTWERK_APP_PORT:-8080}/swagger-ui.html
+
+    directwerk-docs:
+        <<: *nextjs-service
+        build:
+            context: .
+            dockerfile: directwerk-docs/Dockerfile
+        ports:
+            - '8088:80'
+
+volumes:
+    postgres_data:
+    mailpit_data:
