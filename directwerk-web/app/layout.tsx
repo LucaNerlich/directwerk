@@ -53,6 +53,7 @@ export default async function RootLayout({
             },
             publicSiteUrl: null,
             publicRssUrl: null,
+            emailNotifyAvailable: false,
         }
     }
     const primary = config.branding.primaryColor
