@@ -41,6 +41,8 @@ When you change a canonical doc below that has a public mirror, update the match
 | [`asset-storage.md`](asset-storage.md) | Shipped | `directwerk-docs/.../architecture/asset-storage` |
 | [`content-subscriptions-and-entitlements.md`](content-subscriptions-and-entitlements.md) | Shipped | `directwerk-docs/.../operators/subscriptions-and-entitlements` |
 | [`payment.md`](payment.md) | Shipped (501 without Stripe keys) | `directwerk-docs/.../architecture/billing-stripe` |
+| [`stripe-advanced-billing.md`](stripe-advanced-billing.md) | Planned | — |
+| [`platform-saas-billing.md`](platform-saas-billing.md) | Planned | — |
 | [`content-creation-implementation.md`](content-creation-implementation.md) | Reference | — |
 | [`patreon-steady-integration.md`](patreon-steady-integration.md) | Planned / partial | — |
 | [`bunny-net-integration.md`](bunny-net-integration.md) | Operator CDN guide | — |

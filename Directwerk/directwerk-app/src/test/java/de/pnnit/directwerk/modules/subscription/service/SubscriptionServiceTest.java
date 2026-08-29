@@ -3,6 +3,7 @@ package de.pnnit.directwerk.modules.subscription.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -18,6 +19,8 @@ import de.pnnit.directwerk.modules.subscription.entity.Subscription;
 import de.pnnit.directwerk.modules.subscription.entity.SubscriptionProduct;
 import de.pnnit.directwerk.modules.subscription.entity.SubscriptionSource;
 import de.pnnit.directwerk.modules.subscription.entity.SubscriptionStatus;
+import de.pnnit.directwerk.modules.subscription.entity.TenantStripeAccount;
+import de.pnnit.directwerk.modules.subscription.exception.StripeApiException;
 import de.pnnit.directwerk.modules.subscription.repository.SubscriptionRepository;
 import de.pnnit.directwerk.modules.subscription.stripe.StripeConnectService;
 import de.pnnit.directwerk.modules.subscription.stripe.StripeOperations;
@@ -155,6 +158,28 @@ class SubscriptionServiceTest {
         assertThat(result.getSource()).isEqualTo(SubscriptionSource.STRIPE);
         assertThat(result.getStatus()).isEqualTo(SubscriptionStatus.ACTIVE);
         assertThat(result.getExternalSubscriptionId()).isEqualTo("sub_new");
+    }
+
+    @Test
+    void revokeSubscriptionDoesNotApplyLocalCancelWhenStripeCancelFails() {
+        Subscription stripe = subscription(SubscriptionSource.STRIPE, SubscriptionStatus.ACTIVE);
+        stripe.setId(99L);
+        stripe.setExternalSubscriptionId("sub_123");
+        when(subscriptionRepository.findByIdAndTenantId(99L, TENANT_ID)).thenReturn(Optional.of(stripe));
+        when(stripeOperations.isConfigured()).thenReturn(true);
+        TenantStripeAccount account = new TenantStripeAccount();
+        account.setStripeAccountId("acct_1");
+        when(stripeConnectService.findByTenantId(TENANT_ID)).thenReturn(account);
+        doThrow(new StripeApiException("Stripe unavailable"))
+                .when(stripeOperations)
+                .cancelSubscription("acct_1", "sub_123");
+
+        assertThatThrownBy(() -> service.revokeSubscription(TENANT_ID, 99L))
+                .isInstanceOf(StripeApiException.class)
+                .hasMessageContaining("Stripe unavailable");
+
+        verify(subscriptionRepository, never()).save(any());
+        verify(eventPublisher, never()).publishEvent(any());
     }
 
     private void mockUserAndMembership() {

@@ -192,7 +192,11 @@ describe('SideNav', () => {
     it('shows Settings and Team links for TENANT_ADMIN', () => {
         renderNavigation(
             <MeProvider me={adminMe()}>
-                <SideNav config={config()} />
+                <SideNav
+                    config={config({
+                        enabledModules: ['PODCAST', 'STRIPE_BILLING'],
+                    })}
+                />
             </MeProvider>,
         )
         expect(screen.getByRole('link', {name: 'Branding'})).toHaveAttribute(
@@ -211,6 +215,16 @@ describe('SideNav', () => {
             'href',
             '/team',
         )
+    })
+
+    it('hides Stripe settings when STRIPE_BILLING is off', () => {
+        renderNavigation(
+            <MeProvider me={adminMe()}>
+                <SideNav config={config()} />
+            </MeProvider>,
+        )
+        expect(screen.getByRole('link', {name: 'Branding'})).toBeInTheDocument()
+        expect(screen.queryByRole('link', {name: 'Stripe'})).not.toBeInTheDocument()
     })
 
     it('shows media library and email templates for TENANT_ADMIN with modules', () => {

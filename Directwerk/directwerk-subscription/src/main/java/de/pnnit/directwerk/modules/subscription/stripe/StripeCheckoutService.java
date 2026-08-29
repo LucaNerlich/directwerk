@@ -12,6 +12,7 @@ import de.pnnit.directwerk.modules.subscription.exception.StripeNotConfiguredExc
 import de.pnnit.directwerk.modules.subscription.repository.StripeCustomerRepository;
 import de.pnnit.directwerk.modules.subscription.service.SubscriptionProductService;
 import java.util.Map;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -111,23 +112,33 @@ public class StripeCheckoutService {
     private String ensureCustomer(Long tenantId, Long userId, String accountId) {
         return stripeCustomerRepository.findByTenantIdAndUserId(tenantId, userId)
                 .map(StripeCustomer::getStripeCustomerId)
-                .orElseGet(() -> {
-                    User user = userRepository.findById(userId)
-                            .orElseThrow(() -> new IllegalArgumentException("User not found"));
-                    String customerId = stripeOperations.createCustomer(
-                            accountId,
-                            user.getEmail(),
-                            Map.of(
-                                    "tenant_id", tenantId.toString(),
-                                    "user_id", userId.toString()
-                            )
-                    );
-                    StripeCustomer created = new StripeCustomer();
-                    created.setTenant(tenantRepository.getReferenceById(tenantId));
-                    created.setUser(user);
-                    created.setStripeCustomerId(customerId);
-                    stripeCustomerRepository.save(created);
-                    return customerId;
-                });
+                .orElseGet(() -> createCustomerRow(tenantId, userId, accountId));
+    }
+
+    private String createCustomerRow(Long tenantId, Long userId, String accountId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+        String customerId = stripeOperations.createCustomer(
+                accountId,
+                user.getEmail(),
+                Map.of(
+                        "tenant_id", tenantId.toString(),
+                        "user_id", userId.toString()
+                )
+        );
+        StripeCustomer created = new StripeCustomer();
+        created.setTenant(tenantRepository.getReferenceById(tenantId));
+        created.setUser(user);
+        created.setStripeCustomerId(customerId);
+        try {
+            stripeCustomerRepository.save(created);
+            return customerId;
+        } catch (DataIntegrityViolationException ex) {
+            // Concurrent first checkout for the same user: the unique (tenant_id, user_id)
+            // row was inserted by another request after our initial find.
+            return stripeCustomerRepository.findByTenantIdAndUserId(tenantId, userId)
+                    .map(StripeCustomer::getStripeCustomerId)
+                    .orElseThrow(() -> ex);
+        }
     }
 }

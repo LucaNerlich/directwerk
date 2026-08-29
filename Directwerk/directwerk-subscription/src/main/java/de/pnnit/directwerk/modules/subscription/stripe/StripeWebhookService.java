@@ -43,12 +43,24 @@ public class StripeWebhookService {
         this.subscriptionRepository = subscriptionRepository;
     }
 
-    @Transactional
-    public void handle(String payload, String signature) {
+    public StripeOperations.StripeWebhookPayload parseAndValidate(String payload, String signature) {
         if (signature == null || signature.isBlank()) {
             throw new StripeSignatureException("Stripe-Signature header is required");
         }
-        StripeOperations.StripeWebhookPayload event = stripeOperations.parseWebhook(payload, signature);
+        return stripeOperations.parseWebhook(payload, signature);
+    }
+
+    @Transactional
+    public void handle(String payload, String signature) {
+        applyParsedEvent(parseAndValidate(payload, signature));
+    }
+
+    /**
+     * Applies a signature-verified webhook event. Idempotent via {@code processed_webhook_events}.
+     * Used by the HTTP controller (inline when the queue is off) and {@code StripeWebhookJobHandler}.
+     */
+    @Transactional
+    public void applyParsedEvent(StripeOperations.StripeWebhookPayload event) {
         // Insert-first idempotency: the unique event_id constraint is enforced before any money
         // side effects, so a concurrent duplicate (Stripe retry after a timed-out first response)
         // aborts here instead of double-applying the event.

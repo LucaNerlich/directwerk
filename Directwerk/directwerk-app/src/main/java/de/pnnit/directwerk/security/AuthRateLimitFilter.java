@@ -88,9 +88,6 @@ public class AuthRateLimitFilter extends OncePerRequestFilter {
         if ("/api/v1/public/contact".equals(path)) {
             return new RateLimitRule("contact", contactLimitPerMinute);
         }
-        if (path.startsWith("/api/v1/me/billing/")) {
-            return new RateLimitRule("billing", 10);
-        }
         return null;
     }
 
