@@ -80,4 +80,28 @@ describe('useDraftAutosave', () => {
         })
         expect(onSave).toHaveBeenCalledTimes(1)
     })
+
+    it('does not save when canSave becomes false before the debounce fires', () => {
+        const onSave = vi.fn().mockResolvedValue(undefined)
+        let allowed = true
+        renderHook(() =>
+            useDraftAutosave({
+                enabled: true,
+                isDirty: true,
+                isSaving: false,
+                canSave: () => allowed,
+                onSave,
+            }),
+        )
+
+        act(() => {
+            vi.advanceTimersByTime(1500)
+        })
+        allowed = false
+        act(() => {
+            vi.advanceTimersByTime(500)
+        })
+
+        expect(onSave).not.toHaveBeenCalled()
+    })
 })

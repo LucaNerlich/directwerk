@@ -1,6 +1,6 @@
 'use client'
 
-import {useCallback, useState} from 'react'
+import {useCallback, useRef, useState} from 'react'
 
 import {useDraftAutosave} from '@/lib/editor/useDraftAutosave'
 import type {PublicationStatus} from '@directwerk/api/types'
@@ -46,20 +46,42 @@ export function usePublicationEditorWorkflow<T extends {
     const [saveHint, setSaveHint] = useState<string | null>(null)
     const [isDirty, setIsDirty] = useState(false)
     const [dirtyRevision, setDirtyRevision] = useState(0)
+    const publicationRef = useRef(publication)
+    publicationRef.current = publication
+
+    const isDraftPublication = useCallback((): boolean => {
+        const current = publicationRef.current
+        return publicationId !== undefined && (current?.status ?? 'DRAFT') === 'DRAFT'
+    }, [publicationId])
 
     const markDirty = useCallback(() => {
+        if (!isDraftPublication()) {
+            return
+        }
         setIsDirty(true)
         setDirtyRevision((current) => current + 1)
         setSaveHint('Ungespeicherte Änderungen')
-    }, [])
+    }, [isDraftPublication])
 
     const save = useCallback(
-        async (options?: {autosave?: boolean}): Promise<T | null> => {
+        async (options?: {
+            autosave?: boolean
+            fromWorkflow?: boolean
+        }): Promise<T | null> => {
             if (loadError) {
                 return null
             }
 
-            setIsSaving(true)
+            if (!isDraftPublication()) {
+                if (options?.autosave === true) {
+                    setIsDirty(false)
+                }
+                return publicationRef.current
+            }
+
+            if (!options?.fromWorkflow) {
+                setIsSaving(true)
+            }
             setErrorMessage(null)
 
             try {
@@ -82,18 +104,22 @@ export function usePublicationEditorWorkflow<T extends {
                 )
                 return null
             } finally {
-                setIsSaving(false)
+                if (!options?.fromWorkflow) {
+                    setIsSaving(false)
+                }
             }
         },
-        [authRedirect, loadError, saveImpl],
+        [authRedirect, isDraftPublication, loadError, saveImpl],
     )
 
     useDraftAutosave({
-        enabled:
-            (publication?.status ?? 'DRAFT') === 'DRAFT' && publicationId !== undefined,
+        enabled: isDraftPublication(),
         isDirty,
         isSaving: isSaving || autosaveBlocked,
-        onSave: async () => { await save({autosave: true}) },
+        canSave: isDraftPublication,
+        onSave: async () => {
+            await save({autosave: true})
+        },
         revision: dirtyRevision,
     })
 
@@ -102,25 +128,27 @@ export function usePublicationEditorWorkflow<T extends {
             action: (current: T) => Promise<T>,
             options?: {persistTags?: boolean},
         ) => {
-            const status = publication?.status ?? 'DRAFT'
-            let current: T | null
-            if (publicationId === undefined || status === 'DRAFT') {
-                current = await save()
-            } else {
-                current = publication
-            }
-            if (current === null) {
-                return
-            }
-
             setIsSaving(true)
             setErrorMessage(null)
             try {
+                const status = publicationRef.current?.status ?? 'DRAFT'
+                let current: T | null
+                if (publicationId === undefined || status === 'DRAFT') {
+                    current = await save({fromWorkflow: true})
+                } else {
+                    current = publicationRef.current
+                }
+                if (current === null) {
+                    return
+                }
+
                 if (options?.persistTags === true && persistTags !== undefined) {
                     current = await persistTags(current)
                 }
                 const next = await action(current)
                 onWorkflowComplete?.(next)
+                publicationRef.current = next
+                setIsDirty(false)
             } catch (error) {
                 if (authRedirect(error)) {
                     return
@@ -132,7 +160,7 @@ export function usePublicationEditorWorkflow<T extends {
                 setIsSaving(false)
             }
         },
-        [authRedirect, onWorkflowComplete, persistTags, publication, publicationId, save],
+        [authRedirect, onWorkflowComplete, persistTags, publicationId, save],
     )
 
     return {
