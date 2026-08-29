@@ -41,7 +41,7 @@ class EmailJobHandlerTest {
     void handlesTenantInvitation() {
         when(emailTokenProtector.revealFromQueue("encrypted-invite")).thenReturn("raw-invite");
         when(linkBuilder.buildTokenUrl(EmailTemplate.TENANT_INVITATION, "raw-invite"))
-                .thenReturn("http://localhost:3000/accept-invite?token=raw-invite");
+                .thenReturn("http://localhost:3004/accept-invite?token=raw-invite");
 
         handler.handle(job("TENANT_INVITATION", node -> {
             node.put("to", "a@example.com");
@@ -69,7 +69,7 @@ class EmailJobHandlerTest {
     void handlesPasswordReset() {
         when(emailTokenProtector.revealFromQueue("encrypted-reset")).thenReturn("raw-reset");
         when(linkBuilder.buildTokenUrl(EmailTemplate.PASSWORD_RESET, "raw-reset"))
-                .thenReturn("http://localhost:3000/reset-password?token=raw-reset");
+                .thenReturn("http://localhost:3004/reset-password?token=raw-reset");
 
         handler.handle(job("PASSWORD_RESET", node -> {
             node.put("to", "a@example.com");
@@ -90,7 +90,7 @@ class EmailJobHandlerTest {
     void handlesEmailVerification() {
         when(emailTokenProtector.revealFromQueue("encrypted-verify")).thenReturn("raw-verify");
         when(linkBuilder.buildTokenUrl(EmailTemplate.EMAIL_VERIFICATION, "raw-verify"))
-                .thenReturn("http://localhost:3000/verify-email?token=raw-verify");
+                .thenReturn("http://localhost:3004/verify-email?token=raw-verify");
 
         handler.handle(job("EMAIL_VERIFICATION", node -> {
             node.put("to", "a@example.com");

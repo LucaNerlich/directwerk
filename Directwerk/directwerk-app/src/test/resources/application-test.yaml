@@ -32,7 +32,7 @@ directwerk:
         enabled: false
         from-address: noreply@directwerk.local
         from-name: Directwerk
-        studio-base-url: http://localhost:3000
+        studio-base-url: http://localhost:3004
         admin-base-url: http://localhost:3001
         accept-invite-path: /accept-invite
         reset-password-path: /reset-password

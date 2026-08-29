@@ -113,7 +113,7 @@ class TransactionalEmailServiceTest {
                 "user@example.com",
                 EmailTemplate.PASSWORD_RESET,
                 Map.of(
-                        "resetUrl", "http://localhost:3000/reset-password?token=reset-token",
+                        "resetUrl", "http://localhost:3004/reset-password?token=reset-token",
                         "expiresIn", "1 hour"
                 )
         );
@@ -124,7 +124,7 @@ class TransactionalEmailServiceTest {
         assertThat(sent.to()).isEqualTo("user@example.com");
         assertThat(sent.fromAddress()).isEqualTo("noreply@directwerk.local");
         assertThat(sent.subject()).isEqualTo("Reset your password");
-        assertThat(sent.htmlBody()).contains("http://localhost:3000/reset-password?token=reset-token");
+        assertThat(sent.htmlBody()).contains("http://localhost:3004/reset-password?token=reset-token");
         assertThat(sent.template()).isEqualTo("PASSWORD_RESET");
         assertThat(sent.jobId()).isEqualTo(JOB_ID.toString());
     }
@@ -177,7 +177,7 @@ class TransactionalEmailServiceTest {
                 "smtp",
                 "noreply@directwerk.local",
                 "Directwerk",
-                "http://localhost:3000",
+                "http://localhost:3004",
                 "http://localhost:3001",
                 "/accept-invite",
                 "/reset-password",

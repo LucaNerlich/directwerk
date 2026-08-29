@@ -177,7 +177,7 @@ cp .env.local.example .env.local
 pnpm install && pnpm dev
 ```
 
-Email link bases default to these ports (`DIRECTWERK_EMAIL_STUDIO_BASE_URL=http://localhost:3000`, `DIRECTWERK_EMAIL_ADMIN_BASE_URL=http://localhost:3001`).
+Email link bases default to these ports (`DIRECTWERK_EMAIL_STUDIO_BASE_URL=http://localhost:3004` for tenant auth pages on **directwerk-web**, `DIRECTWERK_EMAIL_ADMIN_BASE_URL=http://localhost:3001`).
 
 ### 1.7 Optional: HTTP API harness
 
@@ -290,7 +290,7 @@ SPRING_DATASOURCE_PASSWORD=your-local-db-password
 DIRECTWERK_PLATFORM_CLIENT_SECRET=your-platform-client-secret
 DIRECTWERK_TENANT_CLIENT_SECRET=your-tenant-client-secret
 DIRECTWERK_EMAIL_FROM=noreply@directwerk.local
-DIRECTWERK_EMAIL_STUDIO_BASE_URL=http://localhost:3000
+DIRECTWERK_EMAIL_STUDIO_BASE_URL=http://localhost:3004
 DIRECTWERK_EMAIL_ADMIN_BASE_URL=http://localhost:3001
 DIRECTWERK_DEV_SEED_PASSWORD=ChangeMe-Dev-Seed!
 DIRECTWERK_DEV_PLATFORM_ADMIN_PASSWORD=ChangeMe-Dev-Seed!
@@ -343,7 +343,7 @@ Validated at startup by `ProdSecurityPropertiesValidator`, `ProdEmailPropertiesV
 | `DIRECTWERK_JWT_PUBLIC_KEY` | yes (prod) | RSA public key PEM |
 | `DIRECTWERK_EMAIL_PROVIDER` | if email enabled | `smtp` (default) or `none`. HTTP ESPs are not wired yet. |
 | `DIRECTWERK_EMAIL_FROM` | if email enabled | Verified sender address |
-| `DIRECTWERK_EMAIL_STUDIO_BASE_URL` | if email enabled | Absolute **HTTPS** studio URL |
+| `DIRECTWERK_EMAIL_STUDIO_BASE_URL` | if email enabled | Absolute **HTTPS** tenant public site URL (auth links: accept-invite, reset-password) |
 | `DIRECTWERK_EMAIL_ADMIN_BASE_URL` | if email enabled | Absolute **HTTPS** admin URL |
 | `DIRECTWERK_STORAGE_ENABLED` | yes (prod) | Must be `true` |
 | `DIRECTWERK_STORAGE_BUCKET` | yes (prod) | Object-storage bucket |

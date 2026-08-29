@@ -1,5 +1,6 @@
 import {afterAll, beforeAll, describe, expect, it} from 'vitest'
 
+import {getClientTenantHost} from '../src/tenant/getClientTenantHost'
 import {
     resolveTenantHost,
     resolveTenantHostFromHeaders,
@@ -35,6 +36,27 @@ describe('resolveTenantHost', () => {
 
     it('rejects malformed hosts instead of falling back', () => {
         expect(() => resolveTenantHost('../evil')).toThrow('Invalid tenant host')
+    })
+})
+
+describe('getClientTenantHost', () => {
+    let previousEnv: string | undefined
+
+    beforeAll(() => {
+        previousEnv = process.env[ENV_KEY]
+        process.env[ENV_KEY] = FALLBACK_HOST
+    })
+
+    afterAll(() => {
+        if (previousEnv === undefined) {
+            delete process.env[ENV_KEY]
+        } else {
+            process.env[ENV_KEY] = previousEnv
+        }
+    })
+
+    it('falls back when window is unavailable during SSR', () => {
+        expect(getClientTenantHost()).toBe(FALLBACK_HOST)
     })
 })
 

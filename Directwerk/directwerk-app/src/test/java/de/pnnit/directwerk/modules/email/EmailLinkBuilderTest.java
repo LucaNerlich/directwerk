@@ -26,7 +26,7 @@ class EmailLinkBuilderTest {
                 "smtp",
                 "noreply@directwerk.local",
                 "Directwerk",
-                "http://localhost:3000/",
+                "http://localhost:3004/",
                 "http://localhost:3001",
                 "/accept-invite",
                 "/reset-password",
@@ -40,7 +40,7 @@ class EmailLinkBuilderTest {
     void buildStudioAcceptInviteUrlNormalizesBaseUrlAndEncodesToken() {
         String url = linkBuilder.buildStudioAcceptInviteUrl("token+value");
 
-        assertThat(url).isEqualTo("http://localhost:3000/accept-invite?token=token%2Bvalue");
+        assertThat(url).isEqualTo("http://localhost:3004/accept-invite?token=token%2Bvalue");
     }
 
     @Test
@@ -54,13 +54,13 @@ class EmailLinkBuilderTest {
     void buildResetPasswordUrlUsesStudioBaseUrl() {
         String url = linkBuilder.buildResetPasswordUrl("reset-token");
 
-        assertThat(url).isEqualTo("http://localhost:3000/reset-password?token=reset-token");
+        assertThat(url).isEqualTo("http://localhost:3004/reset-password?token=reset-token");
     }
 
     @Test
     void buildVerifyEmailUrlEncodesToken() {
         String url = linkBuilder.buildVerifyEmailUrl("token+with spaces&special=chars");
 
-        assertThat(url).isEqualTo("http://localhost:3000/verify-email?token=token%2Bwith+spaces%26special%3Dchars");
+        assertThat(url).isEqualTo("http://localhost:3004/verify-email?token=token%2Bwith+spaces%26special%3Dchars");
     }
 }

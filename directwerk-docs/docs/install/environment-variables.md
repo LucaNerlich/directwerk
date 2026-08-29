@@ -54,7 +54,7 @@ Copy `Directwerk/.env.example` to `Directwerk/.env`. With profile `local`, Sprin
 | `DIRECTWERK_EMAIL_ENABLED` | `true` | |
 | `DIRECTWERK_EMAIL_PROVIDER` | `smtp` | `none` skips delivery |
 | `DIRECTWERK_EMAIL_FROM` | `noreply@directwerk.local` | Verified sender in prod |
-| `DIRECTWERK_EMAIL_STUDIO_BASE_URL` | `http://localhost:3000` | HTTPS in prod |
+| `DIRECTWERK_EMAIL_STUDIO_BASE_URL` | `http://localhost:3004` | HTTPS tenant site URL for auth links in prod |
 | `DIRECTWERK_EMAIL_ADMIN_BASE_URL` | `http://localhost:3001` | HTTPS in prod |
 | `DIRECTWERK_MAIL_HOST` | `localhost` | Mailpit locally |
 | `DIRECTWERK_MAIL_PORT` | `1025` | |

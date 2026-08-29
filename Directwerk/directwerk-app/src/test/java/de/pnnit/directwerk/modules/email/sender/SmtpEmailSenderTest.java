@@ -46,8 +46,8 @@ class SmtpEmailSenderTest {
                 "noreply@directwerk.local",
                 "Directwerk",
                 "Reset your password",
-                "<p>http://localhost:3000/reset-password?token=reset-token</p>",
-                "http://localhost:3000/reset-password?token=reset-token",
+                "<p>http://localhost:3004/reset-password?token=reset-token</p>",
+                "http://localhost:3004/reset-password?token=reset-token",
                 "00000000-0000-0000-0000-000000000001",
                 "PASSWORD_RESET",
                 Map.of()
@@ -59,7 +59,7 @@ class SmtpEmailSenderTest {
         assertThat(sentMessage.getSubject()).isEqualTo("Reset your password");
         assertThat(sentMessage.getHeader("X-Directwerk-Job-Id")[0])
                 .isEqualTo("00000000-0000-0000-0000-000000000001");
-        assertThat(readBody(sentMessage)).contains("http://localhost:3000/reset-password?token=reset-token");
+        assertThat(readBody(sentMessage)).contains("http://localhost:3004/reset-password?token=reset-token");
     }
 
     @Test
