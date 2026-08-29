@@ -24,13 +24,13 @@ import type {CategorySummary, EpisodeDetail, FormatSummary, SeriesSummary} from 
 import {mediaLimitLabel} from '@/lib/media/limits'
 import {uploadMediaFile} from '@/lib/media/upload'
 import {episodePublishBlockReason} from '@/lib/podcast/episodePreflight'
-import {publicEpisodePageUrl} from '@/lib/podcast/publicUrls'
+import {publicEpisodePageUrl} from '@directwerk/api/urls/publicContentUrls'
 import {isSlugTaken} from '@/lib/publication/slugAvailability'
 import {usePublicationEditorFields} from '@/lib/publication/usePublicationEditorFields'
 import {usePublicationEditorWorkflow} from '@/lib/publication/usePublicationEditorWorkflow'
 import {useNotifyAudienceHint} from '@/lib/studio/useNotifyAudienceHint'
 import {useSiteConfig} from '@/lib/site/SiteConfigProvider'
-import {getClientTenantHost} from '@/lib/tenant/getClientTenantHost'
+import {getClientTenantHost} from '@directwerk/api/tenant'
 import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
 
 function optionalMinInt(value: string, minimum: number): number | undefined {

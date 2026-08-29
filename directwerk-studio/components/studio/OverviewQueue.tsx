@@ -11,7 +11,7 @@ import PublicationStatusBadge from '@/components/publication/PublicationStatusBa
 import {listEpisodes, listSeries} from '@/lib/api/podcastApi'
 import {listArticles} from '@/lib/api/writeApi'
 import type {ArticleSummary, EpisodeSummary, SeriesSummary, StudioDesk} from '@directwerk/api/types'
-import {getClientTenantHost} from '@/lib/tenant/getClientTenantHost'
+import {getClientTenantHost} from '@directwerk/api/tenant'
 import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
 
 const AWAITING_STATUSES = new Set(['DRAFT', 'SCHEDULED'])

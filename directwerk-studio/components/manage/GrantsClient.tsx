@@ -19,7 +19,7 @@ import type {
     SubscriptionProduct,
     TenantSubscriber,
 } from '@directwerk/api/types'
-import {getClientTenantHost} from '@/lib/tenant/getClientTenantHost'
+import {getClientTenantHost} from '@directwerk/api/tenant'
 import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
 
 const REVOCABLE_GRANT_STATUSES = new Set(['ACTIVE', 'PAST_DUE', 'INCOMPLETE'])

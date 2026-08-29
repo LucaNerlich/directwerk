@@ -6,7 +6,7 @@ import ArticleEditor from '@/components/write/ArticleEditor'
 
 const mockRouter = {replace: vi.fn()}
 vi.mock('next/navigation', () => ({useRouter: () => mockRouter}))
-vi.mock('@/lib/tenant/getClientTenantHost', () => ({getClientTenantHost: () => 'tenant.test'}))
+vi.mock('@directwerk/api/tenant', () => ({getClientTenantHost: () => 'tenant.test'}))
 vi.mock('@/lib/site/SiteConfigProvider', () => ({
     useSiteConfig: () => ({
         enabledModules: [],

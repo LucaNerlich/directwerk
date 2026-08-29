@@ -21,7 +21,7 @@ import {
 } from '@/lib/api/client'
 import {AUTH_REQUIRED} from '@directwerk/api/constants'
 import type {FeedPreview, PublicFormat, SubscriberFeedView} from '@directwerk/api/types'
-import {formatPublishedAt} from '@/lib/format'
+import {formatPublishedAt} from '@directwerk/api/format/datetime'
 
 interface CustomFeedsPanelProps {
     tenantHost: string

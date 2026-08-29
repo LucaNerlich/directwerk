@@ -7,8 +7,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.cache.Cache;
 import org.springframework.cache.CacheManager;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.support.TransactionSynchronization;
-import org.springframework.transaction.support.TransactionSynchronizationManager;
+import de.pnnit.directwerk.modules.core.transaction.TransactionAfterCommit;
 import org.springframework.util.StringUtils;
 
 @Component
@@ -49,28 +48,15 @@ public class DirectwerkCacheEviction {
     }
 
     public void evictHostAfterCommit(String host) {
-        runAfterCommit(() -> evictHost(host));
+        TransactionAfterCommit.run(() -> evictHost(host));
     }
 
     public void evictTenantPublicCachesAfterCommit(Long tenantId) {
-        runAfterCommit(() -> evictTenantPublicCaches(tenantId));
+        TransactionAfterCommit.run(() -> evictTenantPublicCaches(tenantId));
     }
 
     public void evictPublicProductsAfterCommit(Long tenantId) {
-        runAfterCommit(() -> evictPublicProducts(tenantId));
-    }
-
-    private void runAfterCommit(Runnable action) {
-        if (TransactionSynchronizationManager.isSynchronizationActive()) {
-            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
-                @Override
-                public void afterCommit() {
-                    action.run();
-                }
-            });
-            return;
-        }
-        action.run();
+        TransactionAfterCommit.run(() -> evictPublicProducts(tenantId));
     }
 
     private void evict(String cacheName, Object key) {

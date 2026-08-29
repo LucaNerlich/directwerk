@@ -12,8 +12,8 @@ import PageStack from '@directwerk/ui/components/page-stack'
 
 import {listPublicArticles} from '@/lib/api/client'
 import type {PublicArticle} from '@directwerk/api/types'
-import {formatPublishedAt} from '@/lib/format'
-import {getClientTenantHost} from '@/lib/tenant/getClientTenantHost'
+import {formatPublishedAt} from '@directwerk/api/format/datetime'
+import {getClientTenantHost} from '@directwerk/api/tenant'
 
 export default function ArticlesPage() {
     const tenantHost = getClientTenantHost()

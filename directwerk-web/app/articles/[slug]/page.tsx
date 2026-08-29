@@ -7,7 +7,7 @@ import {Badge} from '@directwerk/ui/components/badge'
 import PageHeader from '@directwerk/ui/components/page-header'
 import PageStack from '@directwerk/ui/components/page-stack'
 
-import {formatPublishedAt} from '@/lib/format'
+import {formatPublishedAt} from '@directwerk/api/format/datetime'
 import {fetchPublicArticleServer} from '@/lib/site/fetchPublicContentServer'
 import {getTenantHost} from '@/lib/site/getTenantHost'
 

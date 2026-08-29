@@ -3,7 +3,7 @@ import {subscriberPortalPolicy, SUBSCRIBER_PORTAL_CATALOG} from '@directwerk/api
 import {envelopeResult} from '@directwerk/api/envelope'
 import type {ErrorMessageCatalog} from '@directwerk/api/envelope'
 import {clearTokens} from '@/lib/auth/tokenStore'
-import {getClientTenantHost} from '@/lib/tenant/getClientTenantHost'
+import {getClientTenantHost} from '@directwerk/api/tenant'
 import {getValidAccessToken, refreshAccessToken} from '@/lib/auth/session'
 
 export {envelopeResult}

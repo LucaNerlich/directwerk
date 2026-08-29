@@ -10,7 +10,10 @@ import de.pnnit.directwerk.modules.digital.entity.Category;
 import de.pnnit.directwerk.modules.digital.exception.CategoryNotFoundException;
 import de.pnnit.directwerk.modules.digital.repository.CategoryRepository;
 import jakarta.persistence.EntityManager;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
+import java.util.function.LongConsumer;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -102,6 +105,26 @@ public class CategoryService {
     @RequiresModule(DigitalContentModule.KEY)
     public Category deactivateCategory(Long tenantId, Long categoryId) {
         return updateCategory(tenantId, categoryId, null, null, null, false);
+    }
+
+
+    public Set<Category> resolveActiveCategories(
+            Long tenantId,
+            Set<Long> categoryIds,
+            LongConsumer onInactive
+    ) {
+        if (categoryIds == null || categoryIds.isEmpty()) {
+            return Set.of();
+        }
+        Set<Category> categories = new LinkedHashSet<>();
+        for (Long categoryId : categoryIds) {
+            Category category = requireCategory(tenantId, categoryId);
+            if (!category.isActive()) {
+                onInactive.accept(categoryId);
+            }
+            categories.add(category);
+        }
+        return categories;
     }
 
     private Category resolveParent(Long tenantId, Long parentId) {

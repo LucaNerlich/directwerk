@@ -4,6 +4,7 @@ import de.pnnit.directwerk.modules.core.exception.ConflictException;
 import de.pnnit.directwerk.modules.core.exception.ConflictCodes;
 import de.pnnit.directwerk.modules.core.RequiresModule;
 import de.pnnit.directwerk.modules.core.repository.TenantRepository;
+import de.pnnit.directwerk.modules.core.util.FieldConstraints;
 import de.pnnit.directwerk.modules.core.util.SlugNormalizer;
 import de.pnnit.directwerk.modules.podcast.PodcastModule;
 import de.pnnit.directwerk.modules.podcast.entity.Format;
@@ -64,8 +65,8 @@ public class FormatService {
         format.setSlug(slug);
         format.setName(normalizeName(name));
         format.setDescription(normalizeText(description));
-        format.setRequiredLevelSortOrder(validateNonNegative(requiredLevelSortOrder, "requiredLevelSortOrder"));
-        format.setSortOrder(sortOrder != null ? validateNonNegative(sortOrder, "sortOrder") : 0);
+        format.setRequiredLevelSortOrder(FieldConstraints.requireNonNegative(requiredLevelSortOrder, "requiredLevelSortOrder"));
+        format.setSortOrder(sortOrder != null ? FieldConstraints.requireNonNegative(sortOrder, "sortOrder") : 0);
         format.setActive(true);
         return formatRepository.save(format);
     }
@@ -99,10 +100,10 @@ public class FormatService {
             format.setDescription(normalizeText(description));
         }
         if (requiredLevelSortOrder != null) {
-            format.setRequiredLevelSortOrder(validateNonNegative(requiredLevelSortOrder, "requiredLevelSortOrder"));
+            format.setRequiredLevelSortOrder(FieldConstraints.requireNonNegative(requiredLevelSortOrder, "requiredLevelSortOrder"));
         }
         if (sortOrder != null) {
-            format.setSortOrder(validateNonNegative(sortOrder, "sortOrder"));
+            format.setSortOrder(FieldConstraints.requireNonNegative(sortOrder, "sortOrder"));
         }
         if (active != null) {
             format.setActive(active);
@@ -140,10 +141,4 @@ public class FormatService {
         return value.trim();
     }
 
-    private static Integer validateNonNegative(Integer value, String field) {
-        if (value != null && value < 0) {
-            throw new IllegalArgumentException(field + " must be non-negative");
-        }
-        return value;
-    }
 }

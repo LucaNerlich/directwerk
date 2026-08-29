@@ -3,7 +3,7 @@
 import {createAuthSession} from '@directwerk/api/auth/session'
 import {parseTokenResponse} from '@directwerk/api/validation/token'
 
-import {getClientTenantHost} from '@/lib/tenant/getClientTenantHost'
+import {getClientTenantHost} from '@directwerk/api/tenant'
 import {tokenStore} from '@/lib/auth/tokenStore'
 
 const session = createAuthSession({

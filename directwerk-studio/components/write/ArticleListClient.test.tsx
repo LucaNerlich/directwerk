@@ -18,7 +18,7 @@ vi.mock('@directwerk/api/auth/useAuthRequired', () => ({
     useAuthRequired: () => () => false,
 }))
 
-vi.mock('@/lib/tenant/getClientTenantHost', () => ({
+vi.mock('@directwerk/api/tenant', () => ({
     getClientTenantHost: () => 'tenant.test',
 }))
 

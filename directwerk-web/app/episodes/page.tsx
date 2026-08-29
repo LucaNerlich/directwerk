@@ -14,8 +14,8 @@ import SectionHeader from '@directwerk/ui/components/section-header'
 import {usePublicCatalog} from '@/lib/catalog/usePublicCatalog'
 import {useSubscriberAuth} from '@/lib/auth/useSubscriberAuth'
 import type {PublicEpisode} from '@directwerk/api/types'
-import {formatPublishedAt} from '@/lib/format'
-import {getClientTenantHost} from '@/lib/tenant/getClientTenantHost'
+import {formatPublishedAt} from '@directwerk/api/format/datetime'
+import {getClientTenantHost} from '@directwerk/api/tenant'
 
 function accessPolicyLabel(policy: PublicEpisode['accessPolicy']): string {
     return policy === 'PAID' ? 'Bezahlt' : 'Frei'

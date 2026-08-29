@@ -15,7 +15,7 @@ import {useActionState, useEffect, useState} from 'react'
 import {AUTH_REQUIRED} from '@directwerk/api/constants'
 import {createFormat, deactivateFormat, listFormats, updateFormat} from '@/lib/api/catalogApi'
 import type {FormatSummary} from '@directwerk/api/types'
-import {getClientTenantHost} from '@/lib/tenant/getClientTenantHost'
+import {getClientTenantHost} from '@directwerk/api/tenant'
 import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
 
 interface FormatEditorProps {

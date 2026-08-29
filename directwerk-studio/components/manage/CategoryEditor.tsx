@@ -14,7 +14,7 @@ import {useActionState, useEffect, useState} from 'react'
 import {AUTH_REQUIRED} from '@directwerk/api/constants'
 import {createCategory, deactivateCategory, listCategories, updateCategory} from '@/lib/api/catalogApi'
 import type {CategorySummary} from '@directwerk/api/types'
-import {getClientTenantHost} from '@/lib/tenant/getClientTenantHost'
+import {getClientTenantHost} from '@directwerk/api/tenant'
 import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
 
 interface CategoryEditorProps {

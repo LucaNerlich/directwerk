@@ -10,7 +10,7 @@ const {host, listPublicLevels} = vi.hoisted(() => ({
     listPublicLevels: vi.fn(),
 }))
 
-vi.mock('@/lib/tenant/getClientTenantHost', () => ({
+vi.mock('@directwerk/api/tenant', () => ({
     getClientTenantHost: () => host.value,
 }))
 vi.mock('@directwerk/api/auth/useAuthRequired', () => ({

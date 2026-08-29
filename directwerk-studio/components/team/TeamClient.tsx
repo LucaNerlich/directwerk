@@ -21,7 +21,7 @@ import {
     type TenantUser,
 } from '@directwerk/api/types'
 import {useMe} from '@/lib/auth/MeProvider'
-import {getClientTenantHost} from '@/lib/tenant/getClientTenantHost'
+import {getClientTenantHost} from '@directwerk/api/tenant'
 import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
 
 interface InviteState {

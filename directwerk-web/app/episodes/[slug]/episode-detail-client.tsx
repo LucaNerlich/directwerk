@@ -16,8 +16,8 @@ import {
     getAccessToken,
     subscribeToTokenStore,
 } from '@/lib/auth/tokenStore'
-import {formatPublishedAt} from '@/lib/format'
-import {getClientTenantHost} from '@/lib/tenant/getClientTenantHost'
+import {formatPublishedAt} from '@directwerk/api/format/datetime'
+import {getClientTenantHost} from '@directwerk/api/tenant'
 
 function readTokenClient(): string | null {
     return getAccessToken()

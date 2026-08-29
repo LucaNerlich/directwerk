@@ -19,7 +19,7 @@ import type {
     ProductAccessScopeType,
     SeriesSummary,
 } from '@directwerk/api/types'
-import {getClientTenantHost} from '@/lib/tenant/getClientTenantHost'
+import {getClientTenantHost} from '@directwerk/api/tenant'
 import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
 
 interface ProductRulesEditorProps {

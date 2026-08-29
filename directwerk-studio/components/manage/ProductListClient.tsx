@@ -9,8 +9,8 @@ import PageHeader from '@directwerk/ui/components/page-header'
 import {listProducts} from '@/lib/api/subscriptionApi'
 import type {SubscriptionProduct} from '@directwerk/api/types'
 import {useCachedTenantQuery} from '@directwerk/api/client/useCachedTenantQuery'
-import {formatMoney} from '@/lib/format/money'
-import {getClientTenantHost} from '@/lib/tenant/getClientTenantHost'
+import {formatMoney} from '@directwerk/api/format'
+import {getClientTenantHost} from '@directwerk/api/tenant'
 
 function ProductGroups({products}: {products: SubscriptionProduct[]}): React.JSX.Element {
     const levels = products

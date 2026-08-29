@@ -26,7 +26,7 @@ import {forgotPassword} from '@/lib/api/client'
 import {parseForgotPasswordInput} from '@directwerk/api/validation/input'
 
 import {clearTokens} from '@/lib/auth/tokenStore'
-import {getClientTenantHost} from '@/lib/tenant/getClientTenantHost'
+import {getClientTenantHost} from '@directwerk/api/tenant'
 
 interface LogoutState {
     complete: boolean

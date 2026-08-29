@@ -14,7 +14,7 @@ import PageStack from '@directwerk/ui/components/page-stack'
 import {listMyDownloads} from '@/lib/api/client'
 import {AUTH_REQUIRED} from '@directwerk/api/constants'
 import type {SubscriberDownload} from '@directwerk/api/types'
-import {getClientTenantHost} from '@/lib/tenant/getClientTenantHost'
+import {getClientTenantHost} from '@directwerk/api/tenant'
 import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
 
 export default function DownloadsPage(): React.JSX.Element {

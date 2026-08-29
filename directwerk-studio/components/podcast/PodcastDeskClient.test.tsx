@@ -4,7 +4,7 @@ import {describe, expect, it, vi} from 'vitest'
 import PodcastDeskClient from '@/components/podcast/PodcastDeskClient'
 
 vi.mock('next/navigation', () => ({useRouter: () => ({replace: vi.fn()})}))
-vi.mock('@/lib/tenant/getClientTenantHost', () => ({getClientTenantHost: () => 'tenant.test'}))
+vi.mock('@directwerk/api/tenant', () => ({getClientTenantHost: () => 'tenant.test'}))
 vi.mock('@/lib/api/podcastApi', () => ({
     listSeries: vi.fn().mockResolvedValue([]),
     listFormats: vi.fn().mockResolvedValue([]),

@@ -23,6 +23,11 @@ export {
     type DirectwerkServerClientConfig,
 } from './upstream'
 export {
+    createTenantBffClient,
+    type CreateTenantBffClientOptions,
+    type TenantBffClient,
+} from './createTenantBffClient'
+export {
     buildPlatformApiPath,
     buildSafePlatformQueryString,
     buildTenantApiPath,

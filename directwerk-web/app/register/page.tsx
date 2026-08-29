@@ -16,7 +16,7 @@ import {parseRegisterInput} from '@directwerk/api/validation/input'
 
 import {setTokens} from '@/lib/auth/tokenStore'
 import {safeReturnTo} from '@/lib/auth/safeReturnTo'
-import {getClientTenantHost} from '@/lib/tenant/getClientTenantHost'
+import {getClientTenantHost} from '@directwerk/api/tenant'
 
 interface RegisterState {
     error: string | null

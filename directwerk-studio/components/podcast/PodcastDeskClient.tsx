@@ -14,7 +14,7 @@ import PublicationStatusBadge from '@/components/publication/PublicationStatusBa
 import {listFormats} from '@/lib/api/catalogApi'
 import {listEpisodes, listSeries} from '@/lib/api/podcastApi'
 import type {EpisodeSummary, FormatSummary, SeriesSummary} from '@directwerk/api/types'
-import {getClientTenantHost} from '@/lib/tenant/getClientTenantHost'
+import {getClientTenantHost} from '@directwerk/api/tenant'
 import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
 
 interface SetupStep {

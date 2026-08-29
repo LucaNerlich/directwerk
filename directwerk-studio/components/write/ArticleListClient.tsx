@@ -16,7 +16,7 @@ import {
 } from '@/lib/api/writeApi'
 import type {ArticleDetail} from '@directwerk/api/types'
 import {usePublicationListPage} from '@/lib/publication/usePublicationListPage'
-import {getClientTenantHost} from '@/lib/tenant/getClientTenantHost'
+import {getClientTenantHost} from '@directwerk/api/tenant'
 
 export default function ArticleListClient() {
     const {

@@ -17,7 +17,7 @@ import {listSeries} from '@/lib/api/podcastApi'
 import {listSubscriberFeeds, setSubscriberFeedEnabled} from '@/lib/api/subscriptionApi'
 import type {SeriesSummary, SubscriberFeedAdminView} from '@directwerk/api/types'
 import {useSiteConfig} from '@/lib/site/SiteConfigProvider'
-import {getClientTenantHost} from '@/lib/tenant/getClientTenantHost'
+import {getClientTenantHost} from '@directwerk/api/tenant'
 import {safeLinkHref} from '@/lib/url/safeUrl'
 import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
 

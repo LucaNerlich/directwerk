@@ -4,6 +4,7 @@ import de.pnnit.directwerk.modules.core.exception.ConflictException;
 import de.pnnit.directwerk.modules.core.exception.ConflictCodes;
 import de.pnnit.directwerk.modules.core.RequiresModule;
 import de.pnnit.directwerk.modules.core.repository.TenantRepository;
+import de.pnnit.directwerk.modules.core.util.FieldConstraints;
 import de.pnnit.directwerk.modules.core.util.SlugNormalizer;
 import de.pnnit.directwerk.modules.core.util.TitleNormalizer;
 import de.pnnit.directwerk.modules.digital.entity.AssetStatus;
@@ -76,7 +77,7 @@ public class SeriesService {
         series.setCoverAsset(resolveCoverAsset(tenantId, coverAssetId));
         series.setLanguage(normalizeLanguage(language));
         series.setItunesCategory(normalizeItunesCategory(itunesCategory));
-        series.setDefaultRequiredLevelSortOrder(validateNonNegative(
+        series.setDefaultRequiredLevelSortOrder(FieldConstraints.requireNonNegative(
                 defaultRequiredLevelSortOrder,
                 "defaultRequiredLevelSortOrder"
         ));
@@ -124,7 +125,7 @@ public class SeriesService {
             series.setItunesCategory(normalizeItunesCategory(itunesCategory));
         }
         if (defaultRequiredLevelSortOrder != null) {
-            series.setDefaultRequiredLevelSortOrder(validateNonNegative(
+            series.setDefaultRequiredLevelSortOrder(FieldConstraints.requireNonNegative(
                     defaultRequiredLevelSortOrder,
                     "defaultRequiredLevelSortOrder"
             ));
@@ -184,10 +185,4 @@ public class SeriesService {
         return value.trim();
     }
 
-    private static Integer validateNonNegative(Integer value, String field) {
-        if (value != null && value < 0) {
-            throw new IllegalArgumentException(field + " must be non-negative");
-        }
-        return value;
-    }
 }

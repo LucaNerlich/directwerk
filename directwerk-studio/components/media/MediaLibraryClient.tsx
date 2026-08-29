@@ -14,7 +14,7 @@ import {deleteMedia, getMediaPreviewUrl, listMedia} from '@/lib/api/mediaApi'
 import type {MediaAsset} from '@directwerk/api/types'
 import {MEDIA_TYPE_LIMITS} from '@/lib/media/limits'
 import {uploadMediaFile} from '@/lib/media/upload'
-import {getClientTenantHost} from '@/lib/tenant/getClientTenantHost'
+import {getClientTenantHost} from '@directwerk/api/tenant'
 import {safeImageSrc} from '@/lib/url/safeUrl'
 import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
 

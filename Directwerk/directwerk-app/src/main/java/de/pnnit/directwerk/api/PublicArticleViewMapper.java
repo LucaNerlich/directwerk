@@ -3,9 +3,8 @@ package de.pnnit.directwerk.api;
 import de.pnnit.directwerk.api.dto.PublicCategoryView;
 import de.pnnit.directwerk.controller.publicapi.PublicArticleController;
 import de.pnnit.directwerk.modules.content.PublicSurfacePolicy;
-import de.pnnit.directwerk.modules.digital.entity.Category;
+import de.pnnit.directwerk.api.dto.CategoryView;
 import de.pnnit.directwerk.modules.newsletter.entity.Article;
-import java.util.Comparator;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -29,18 +28,10 @@ public class PublicArticleViewMapper {
                 article.getRequiredLevelSortOrder(),
                 article.getPublishedAt(),
                 article.getCategories().stream()
-                        .sorted(Comparator.comparing(Category::getName).thenComparing(Category::getId))
-                        .map(PublicArticleViewMapper::toCategoryView)
+                        .sorted(CategoryView.DISPLAY_ORDER)
+                        .map(PublicCategoryView::of)
                         .toList()
         );
     }
 
-    private static PublicCategoryView toCategoryView(Category category) {
-        return new PublicCategoryView(
-                category.getId(),
-                category.getSlug(),
-                category.getName(),
-                category.getParent() != null ? category.getParent().getId() : null
-        );
-    }
 }

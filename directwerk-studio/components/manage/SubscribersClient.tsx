@@ -13,7 +13,7 @@ import {listSubscribers} from '@/lib/api/tenantSettingsApi'
 import type {TenantSubscriber, TenantSubscriberSubscription} from '@directwerk/api/types'
 import {useCachedTenantQuery} from '@directwerk/api/client/useCachedTenantQuery'
 import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
-import {getClientTenantHost} from '@/lib/tenant/getClientTenantHost'
+import {getClientTenantHost} from '@directwerk/api/tenant'
 
 const REVOCABLE = new Set(['ACTIVE', 'PAST_DUE', 'INCOMPLETE'])
 
