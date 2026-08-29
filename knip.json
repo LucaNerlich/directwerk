@@ -1,0 +1,32 @@
+{
+    "$schema": "https://unpkg.com/knip@6/schema.json",
+    "ignore": [
+        "**/build/**",
+        "Directwerk/**",
+        "example-fe/**"
+    ],
+    "workspaces": {
+        ".": {"entry": ["scripts/*.mjs"]},
+        "packages/api": {"project": ["src/**/*.ts", "tests/**/*.ts"]},
+        "packages/ui": {"project": ["src/**/*.{ts,tsx}"]},
+        "directwerk-studio": {
+            "entry": ["app/**/*.{ts,tsx}", "components/**/*.{ts,tsx}", "next.config.ts"],
+            "project": ["app/**/*.{ts,tsx}", "components/**/*.{ts,tsx}", "lib/**/*.{ts,tsx}"]
+        },
+        "directwerk-web": {
+            "entry": ["app/**/*.{ts,tsx}", "components/**/*.{ts,tsx}", "next.config.ts"],
+            "project": ["app/**/*.{ts,tsx}", "components/**/*.{ts,tsx}", "lib/**/*.{ts,tsx}"]
+        },
+        "directwerk-admin": {
+            "entry": ["app/**/*.{ts,tsx}", "components/**/*.{ts,tsx}", "next.config.ts"],
+            "project": ["app/**/*.{ts,tsx}", "components/**/*.{ts,tsx}", "lib/**/*.{ts,tsx}"]
+        },
+        "homepage": {
+            "entry": ["app/**/*.{ts,tsx}", "components/**/*.{ts,tsx}", "next.config.ts"],
+            "project": ["app/**/*.{ts,tsx}", "components/**/*.{ts,tsx}", "lib/**/*.{ts,tsx}"]
+        },
+        "directwerk-docs": {
+            "entry": ["docs/.vitepress/config.ts", "docs/.vitepress/theme/index.ts"]
+        }
+    }
+}

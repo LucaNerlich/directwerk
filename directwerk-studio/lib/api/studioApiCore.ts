@@ -133,4 +133,4 @@ export function createPublicationWorkflowApi<T, TCreate, TUpdate>(config: {
     }
 }
 
-export {authenticatedRequest, jsonInit, postJson, proxyRequest, request} from './studioTransport'
+export {authenticatedRequest, jsonInit, postJson, request} from './studioTransport'

@@ -31,10 +31,6 @@ import {
     parseBoundedArray,
     parseEnvelope,
 } from './primitives'
-import {parseMeEnvelope} from './catalog'
-
-export {parseMeEnvelope}
-
 // ---------------------------------------------------------------------------
 // Site configuration (public shape)
 // ---------------------------------------------------------------------------
