@@ -1,4 +1,4 @@
-import {cleanup, render, screen} from '@testing-library/react'
+import {cleanup, fireEvent, render, screen} from '@testing-library/react'
 import type {ComponentProps, ReactNode} from 'react'
 import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest'
 
@@ -16,13 +16,23 @@ vi.mock('next/link', () => ({
         children,
         href,
         className,
+        onClick,
     }: {
         'aria-current'?: ComponentProps<'a'>['aria-current']
         children: ReactNode
         href: string
         className?: string
+        onClick?: ComponentProps<'a'>['onClick']
     }) => (
-        <a aria-current={ariaCurrent} className={className} href={href}>
+        <a
+            aria-current={ariaCurrent}
+            className={className}
+            href={href}
+            onClick={(event) => {
+                event.preventDefault()
+                onClick?.(event)
+            }}
+        >
             {children}
         </a>
     ),
@@ -40,6 +50,7 @@ function config(overrides: Partial<SiteConfig> = {}): SiteConfig {
         tenant: {slug: 'tenant', name: 'Tenant'},
         enabledModules: ['DIGITAL_CONTENT', 'PODCAST'],
         branding: {siteTitle: null, primaryColor: null, secondaryColor: null, logoUrl: null},
+        publicSiteUrl: 'http://localhost:3000',
         publicRssUrl: 'http://localhost:8080/feeds/tenant/podcast.xml',
         studioHome: 'OVERVIEW',
         studioDesks: ['WRITE', 'PODCAST'],
@@ -91,6 +102,14 @@ describe('DeskSwitcher', () => {
             'page',
         )
         expect(screen.getByRole('link', {name: 'Schreiben'})).not.toHaveAttribute('aria-current')
+    })
+
+    it('persists desk choice on click', () => {
+        currentPathname = '/media'
+        render(<DeskSwitcher config={config()} />)
+
+        fireEvent.click(screen.getByRole('link', {name: 'Podcast'}))
+        expect(window.sessionStorage.getItem('directwerk-studio:last-desk')).toBe('PODCAST')
     })
 
     it('does not render for single-desk WRITE tenants', () => {

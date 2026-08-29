@@ -1,4 +1,4 @@
-import type {SiteConfig} from '@directwerk/api/types'
+import type {SiteConfig, StudioDesk} from '@directwerk/api/types'
 
 export function hasModule(config: SiteConfig, moduleKey: string): boolean {
     return config.enabledModules.includes(moduleKey)
@@ -41,5 +41,33 @@ export function defaultHomePath(home: SiteConfig['studioHome']): string {
             return deskHome('PODCAST')
         default:
             return '/'
+    }
+}
+
+/**
+ * Default desk for hybrid tenants when path and session do not resolve one.
+ * Single-desk tenants always return their only desk.
+ */
+export function defaultActiveDesk(config: SiteConfig): StudioDesk | null {
+    if (config.studioDesks.length === 0) {
+        return null
+    }
+    if (config.studioDesks.length === 1) {
+        return config.studioDesks[0]
+    }
+
+    switch (config.studioHome) {
+        case 'WRITE_DESK':
+            return hasDesk(config, 'WRITE') ? 'WRITE' : null
+        case 'PODCAST_DESK':
+            return hasDesk(config, 'PODCAST') ? 'PODCAST' : null
+        default:
+            if (hasDesk(config, 'WRITE')) {
+                return 'WRITE'
+            }
+            if (hasDesk(config, 'PODCAST')) {
+                return 'PODCAST'
+            }
+            return null
     }
 }

@@ -1,6 +1,6 @@
 import {describe, expect, it} from 'vitest'
 
-import {defaultHomePath, deskHome, hasDesk, hasModule, resolveActiveDesk} from '@/lib/api/client'
+import {defaultActiveDesk, defaultHomePath, deskHome, hasDesk, hasModule, resolveActiveDesk} from '@/lib/api/client'
 import type {SiteConfig} from '@directwerk/api/types'
 
 const sampleConfig: SiteConfig = {
@@ -12,6 +12,7 @@ const sampleConfig: SiteConfig = {
         secondaryColor: null,
         logoUrl: null,
     },
+    publicSiteUrl: null,
     publicRssUrl: null,
     studioHome: 'OVERVIEW',
     studioDesks: ['WRITE', 'PODCAST'],
@@ -74,5 +75,22 @@ describe('site helpers', () => {
         expect(resolveActiveDesk('/write/articles', noDesks)).toBeNull()
         expect(resolveActiveDesk('/podcast', noDesks)).toBeNull()
         expect(resolveActiveDesk('/', noDesks)).toBeNull()
+    })
+
+    it('derives default active desk for hybrid tenants', () => {
+        expect(defaultActiveDesk(sampleConfig)).toBe('WRITE')
+
+        expect(
+            defaultActiveDesk({...sampleConfig, studioHome: 'WRITE_DESK'}),
+        ).toBe('WRITE')
+        expect(
+            defaultActiveDesk({...sampleConfig, studioHome: 'PODCAST_DESK'}),
+        ).toBe('PODCAST')
+
+        const podcastOnly: SiteConfig = {
+            ...sampleConfig,
+            studioDesks: ['PODCAST'],
+        }
+        expect(defaultActiveDesk(podcastOnly)).toBe('PODCAST')
     })
 })

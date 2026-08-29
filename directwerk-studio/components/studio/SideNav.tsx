@@ -9,18 +9,18 @@ import {
     SidebarGroupLabel,
     SidebarMenu,
     SidebarMenuItem,
+    SidebarSeparator,
 } from '@directwerk/ui/components/sidebar'
 
-import {hasModule} from '@/lib/api/client'
-import {isTenantAdminRole} from '@/lib/api/studioHelpers'
 import {useActiveDesk} from '@/lib/studio/useActiveDesk'
+import {
+    buildPodcastDeskItems,
+    buildVerwaltungSections,
+    buildWriteDeskItems,
+    type NavigationItem,
+} from '@/lib/studio/navigation'
 import type {SiteConfig} from '@directwerk/api/types'
 import {useOptionalMe} from '@/lib/auth/MeProvider'
-
-interface NavigationItem {
-    href: string
-    label: string
-}
 
 function linkClassName(active: boolean): string {
     return [
@@ -79,39 +79,10 @@ export default function SideNav({config}: {config: SiteConfig}) {
     const pathname = usePathname()
     const me = useOptionalMe()
     const activeDesk = useActiveDesk(config)
-    const showWrite = activeDesk === 'WRITE'
-    const showPodcast = activeDesk === 'PODCAST'
-    const showPodcastRss = hasModule(config, 'PODCAST_RSS')
-    const showSubscription = hasModule(config, 'SUBSCRIPTION')
-    const showMedia =
-        hasModule(config, 'DIGITAL_CONTENT') || hasModule(config, 'PODCAST')
-    const showCategories = hasModule(config, 'DIGITAL_CONTENT')
-    const showEmailNotify = hasModule(config, 'EMAIL_NOTIFY')
-    const showAdmin = me !== null && isTenantAdminRole(me.roles)
+    const verwaltungSections = buildVerwaltungSections(config, me)
 
-    const podcastCreateItems: NavigationItem[] = [
-        {href: '/podcast', label: 'Start'},
-        {href: '/podcast/episodes', label: 'Folgen'},
-    ]
-    const podcastSetupItems: NavigationItem[] = [
-        {href: '/podcast/series', label: 'Sendungen'},
-        {href: '/podcast/formats', label: 'Formate'},
-    ]
-    if (showPodcastRss || config.publicRssUrl !== null) {
-        podcastSetupItems.push({href: '/podcast/feeds', label: 'Feeds'})
-    }
-
-    const audienceItems: NavigationItem[] = []
-    if (showSubscription) {
-        if (showAdmin) {
-            audienceItems.push(
-                {href: '/manage', label: 'Zahlungen'},
-                {href: '/manage/products', label: 'Produkte'},
-                {href: '/manage/grants', label: 'Freischaltungen'},
-                {href: '/manage/subscribers', label: 'Abonnenten'},
-            )
-        }
-    }
+    const showDeskZone = activeDesk === 'WRITE' || activeDesk === 'PODCAST'
+    const showVerwaltung = verwaltungSections.length > 0
 
     return (
         <nav aria-label="Hauptnavigation">
@@ -119,73 +90,36 @@ export default function SideNav({config}: {config: SiteConfig}) {
                 items={[{href: '/', label: 'Studio'}]}
                 pathname={pathname}
             />
-            {showWrite ? (
+            {activeDesk === 'WRITE' ? (
                 <NavigationGroup
                     label="Schreiben"
-                    items={[
-                        {href: '/write', label: 'Start'},
-                        {href: '/write/articles', label: 'Beiträge'},
-                        ...(showCategories
-                            ? [{href: '/write/bonus', label: 'Bonusdateien'}]
-                            : []),
-                    ]}
+                    items={buildWriteDeskItems(config)}
                     pathname={pathname}
                 />
             ) : null}
-            {showPodcast ? (
+            {activeDesk === 'PODCAST' ? (
+                <NavigationGroup
+                    label="Podcast"
+                    items={buildPodcastDeskItems(config)}
+                    pathname={pathname}
+                />
+            ) : null}
+            {showDeskZone && showVerwaltung ? (
+                <SidebarSeparator className="my-2" />
+            ) : null}
+            {showVerwaltung ? (
                 <>
-                    <NavigationGroup
-                        label="Podcast · Erstellen"
-                        items={podcastCreateItems}
-                        pathname={pathname}
-                    />
-                    <NavigationGroup
-                        label="Podcast · Einrichtung"
-                        items={podcastSetupItems}
-                        pathname={pathname}
-                    />
-                </>
-            ) : null}
-            {showMedia ? (
-                <NavigationGroup
-                    label="Medien"
-                    items={[{href: '/media', label: 'Bibliothek'}]}
-                    pathname={pathname}
-                />
-            ) : null}
-            {showCategories ? (
-                <NavigationGroup
-                    label="Organisation"
-                    items={[{href: '/manage/categories', label: 'Kategorien'}]}
-                    pathname={pathname}
-                />
-            ) : null}
-            {audienceItems.length > 0 ? (
-                <NavigationGroup
-                    label="Abos"
-                    items={audienceItems}
-                    pathname={pathname}
-                />
-            ) : null}
-            {showAdmin ? (
-                <>
-                    <NavigationGroup
-                        label="Team"
-                        items={[{href: '/team', label: 'Mitglieder'}]}
-                        pathname={pathname}
-                    />
-                    <NavigationGroup
-                        label="Einstellungen"
-                        items={[
-                            {href: '/settings/branding', label: 'Branding'},
-                            {href: '/settings/domains', label: 'Domains'},
-                            ...(showEmailNotify
-                                ? [{href: '/settings/email', label: 'E-Mail-Vorlagen'}]
-                                : []),
-                            {href: '/settings/stripe', label: 'Stripe'},
-                        ]}
-                        pathname={pathname}
-                    />
+                    <SidebarGroup>
+                        <SidebarGroupLabel>Verwaltung</SidebarGroupLabel>
+                    </SidebarGroup>
+                    {verwaltungSections.map((section) => (
+                        <NavigationGroup
+                            key={section.label ?? section.items[0]?.href}
+                            label={section.label}
+                            items={section.items}
+                            pathname={pathname}
+                        />
+                    ))}
                 </>
             ) : null}
         </nav>

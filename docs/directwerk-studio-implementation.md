@@ -109,20 +109,14 @@ High-level navigation. Items hidden when the backing module is not in `enabledMo
 
 | Nav item | Primary role | Module gate | Purpose |
 |----------|--------------|-------------|---------|
-| **Overview** | Both | — | KPIs, drafts awaiting publish, integration health |
-| **Content → Podcasts** | Editor+ | `PODCAST` | Series and episodes — create, schedule, publish |
-| **Podcast → Feeds** | Editor+ | `PODCAST_RSS` | Feed overview: tenant + per-series public feeds, subscriber feed enable/disable (`SUBSCRIPTION`) |
-| **Content → Articles** | Editor+ | `DIGITAL_CONTENT` | Blog / show-notes pages — shipped |
-| **Content → Digital files** | Editor+ | `DIGITAL_CONTENT` + `SUBSCRIPTION` | Bonus PDFs, ebooks behind products |
-| **Media library** | Editor+ | `DIGITAL_CONTENT` | All tenant assets — upload, browse, archive |
-| **Audience → Subscribers** | Tenant admin | `SUBSCRIPTION` | Subscriber accounts, active products, manual grants |
-| **Audience → Team** | Tenant admin | — | Editors and tenant admins — invite, roles |
-| **Monetization → Products** | Tenant admin | `SUBSCRIPTION` | LEVEL / PACKAGE products, access rules |
-| **Monetization → Integrations** | Tenant admin | `STRIPE_BILLING`, `PATREON_SYNC`, `STEADY_SYNC` | Connect billing sources, force sync |
-| **Settings → Branding** | Tenant admin | `WHITELABEL` | Logo, colors, site copy |
-| **Settings → Domains** | Tenant admin | `WHITELABEL` | Custom domains, primary host |
-| **Podcast · Einrichtung → Formate** | Editor+ | `PODCAST` | Format taxonomy (feed builder axis); routes under `/podcast/formats` |
-| **Organisation → Kategorien** | Editor+ | `DIGITAL_CONTENT` | Category taxonomy (shared axis); `/manage/categories` |
+| **Studio** (`/`) | Both | — | Overview, desk chooser, drafts queue |
+| **Schreiben → Start / Beiträge / Bonusdateien** | Editor+ | `DIGITAL_CONTENT`, Write desk | Write desk authoring |
+| **Podcast → Start / Folgen / Sendungen / Formate / Feeds** | Editor+ | `PODCAST`, Podcast desk | Podcast desk authoring + setup |
+| **Verwaltung → Medien → Bibliothek** | Editor+ | `DIGITAL_CONTENT` or `PODCAST` | All tenant assets — upload, browse, archive |
+| **Verwaltung → Organisation → Kategorien** | Editor+ | `DIGITAL_CONTENT` | Category taxonomy (shared axis); `/manage/categories` |
+| **Verwaltung → Abos → Zahlungen / Produkte / Freischaltungen / Abonnenten** | Tenant admin | `SUBSCRIPTION` | Subscriber accounts, products, manual grants |
+| **Verwaltung → Team → Mitglieder** | Tenant admin | — | Editors and tenant admins — invite, roles |
+| **Verwaltung → Einstellungen → Branding / Domains / E-Mail-Vorlagen / Stripe** | Tenant admin | `WHITELABEL`, `EMAIL_NOTIFY` | Tenant branding, domains, email templates, Stripe |
 
 ---
 
@@ -375,7 +369,7 @@ feeds `enabledModules[]` to `<ModuleGate>` and `<SideNav>`.
 |-----------|---------|
 | `StudioShell` | Sidebar, top bar, branding CSS variables |
 | `DeskSwitcher` | Write desk ↔ Podcast desk toggle for hybrid creators |
-| `SideNav` | Desk-scoped sidebar navigation (active desk authoring + shared rails) |
+| `SideNav` | Two-zone sidebar: desk authoring (active desk only) + **Verwaltung** shared rails |
 | `ModuleGate` | Renders children only when module in `enabledModules[]` |
 | `PublicationStatusBadge` | `DRAFT` / `SCHEDULED` / `PUBLISHED` / `ARCHIVED` |
 | `PublicationWorkflowActions` | Publish, schedule, unpublish buttons |

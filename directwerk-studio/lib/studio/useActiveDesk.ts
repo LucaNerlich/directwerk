@@ -3,7 +3,7 @@
 import {usePathname} from 'next/navigation'
 import {useEffect, useState} from 'react'
 
-import {hasDesk, resolveActiveDesk} from '@/lib/api/client'
+import {defaultActiveDesk, hasDesk, resolveActiveDesk} from '@/lib/api/client'
 import {getLastActiveDesk, setLastActiveDesk} from '@/lib/studio/activeDeskStorage'
 import type {SiteConfig, StudioDesk} from '@directwerk/api/types'
 
@@ -37,5 +37,5 @@ export function useActiveDesk(config: SiteConfig): StudioDesk | null {
         return lastDesk
     }
 
-    return null
+    return defaultActiveDesk(config)
 }

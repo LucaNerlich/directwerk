@@ -121,17 +121,28 @@ erDiagram
 
 ## Two studio desks
 
-The studio navigation is **desk-scoped**: creators work in focused workspaces rather than a flat, mixed menu.
-A visible **`DeskSwitcher`** toggle at the top of the sidebar allows hybrid creators (`hasDesk('WRITE') && hasDesk('PODCAST')`) to switch between the Write desk (`/write/articles`) and Podcast desk (`/podcast`). Single-desk tenants stay focused in their primary desk without switcher noise.
+The studio sidebar has **two zones**:
 
-Shared publication rails (Medien `/media`, Organisation `/manage/categories`, Abos `/manage/*`, Team `/team`, Einstellungen `/settings/*`) persist across desks, while desk-specific authoring and setup groups render only for the active desk. The top-level **Studio** entry (`/`) serves as the overview and desk chooser for hybrid tenants.
+1. **Desk zone** — authoring for the active desk only (`Schreiben` or `Podcast`), controlled by
+   **`DeskSwitcher`** for hybrid tenants (`hasDesk('WRITE') && hasDesk('PODCAST')`). Single-desk
+   tenants always see their desk group without switcher noise.
+2. **Verwaltung zone** — shared admin rails separated by a visual divider: Medien (`/media`),
+   Organisation (`/manage/categories`), Abos (`/manage/*`), Team (`/team`), Einstellungen
+   (`/settings/*`). These persist regardless of which desk is active.
+
+The top-level **Studio** entry (`/`) is neutral overview / desk chooser. On hybrid tenants the desk
+zone defaults to Write when no path or session preference is set; `DeskSwitcher` and session storage
+keep the choice consistent on shared routes like `/media`.
+
+Desk-specific items never mix into Verwaltung; podcast setup (Sendungen, Formate, Feeds) lives in
+one flat **Podcast** group rather than split create/setup sub-groups.
 
 ### 1. Podcast desk (Episodes) — podcast tenants
 
 **Mental model:** “I’m shipping a Folge.”
 
-**Primary nav:** Podcast · Erstellen → Start / Folgen; Sendungen, Formate und Feeds under
-**Podcast · Einrichtung** (not mixed with Abos).
+**Primary nav:** **Podcast** → Start, Folgen, Sendungen, Formate, Feeds (single group; not mixed
+with Abos or Verwaltung).
 
 | Zone | Fields | Notes |
 |------|--------|-------|
