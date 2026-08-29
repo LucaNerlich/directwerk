@@ -16,8 +16,8 @@ import StatCard from '@directwerk/ui/components/stat-card'
 import SelectControl from '@/components/studio/SelectControl'
 import {getBillingDashboard, revokeSubscription} from '@/lib/api/subscriptionApi'
 import type {BillingDashboard, BillingMembership} from '@directwerk/api/types'
-import {formatMoney} from '@/lib/format/money'
-import {getClientTenantHost} from '@/lib/tenant/getClientTenantHost'
+import {formatMoney} from '@directwerk/api/format'
+import {getClientTenantHost} from '@directwerk/api/tenant'
 import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
 
 const REVOCABLE_STATUSES = new Set(['ACTIVE', 'PAST_DUE', 'INCOMPLETE'])

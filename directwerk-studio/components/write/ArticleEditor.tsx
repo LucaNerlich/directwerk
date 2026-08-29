@@ -34,9 +34,9 @@ import {usePublicationEditorWorkflow} from '@/lib/publication/usePublicationEdit
 import {isSlugTaken} from '@/lib/publication/slugAvailability'
 import {useNotifyAudienceHint} from '@/lib/studio/useNotifyAudienceHint'
 import {useSiteConfig} from '@/lib/site/SiteConfigProvider'
-import {getClientTenantHost} from '@/lib/tenant/getClientTenantHost'
+import {getClientTenantHost} from '@directwerk/api/tenant'
 import {articlePublishBlockReason} from '@/lib/write/articlePreflight'
-import {publicArticlePageUrl} from '@/lib/write/publicUrls'
+import {publicArticlePageUrl} from '@directwerk/api/urls/publicContentUrls'
 import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
 
 export default function ArticleEditor({articleId}: {articleId?: number}) {

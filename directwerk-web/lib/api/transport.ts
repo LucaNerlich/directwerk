@@ -2,7 +2,7 @@ import {createBrowserTransport} from '@directwerk/api/client/createBrowserTransp
 import {subscriberPortalPolicy} from '@directwerk/api/client/policies'
 import {envelopeResult} from '@directwerk/api/envelope'
 import {clearTokens} from '@/lib/auth/tokenStore'
-import {getClientTenantHost} from '@/lib/tenant/getClientTenantHost'
+import {getClientTenantHost} from '@directwerk/api/tenant'
 import {getValidAccessToken, refreshAccessToken} from '@/lib/auth/session'
 
 export {envelopeResult}

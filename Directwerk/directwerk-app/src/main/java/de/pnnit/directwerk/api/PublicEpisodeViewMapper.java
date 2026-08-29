@@ -51,8 +51,8 @@ public class PublicEpisodeViewMapper {
                         .map(PublicEpisodeViewMapper::toPublicFormatView)
                         .toList(),
                 episode.getCategories().stream()
-                        .sorted(Comparator.comparing(Category::getName).thenComparing(Category::getId))
-                        .map(PublicEpisodeViewMapper::toPublicCategoryView)
+                        .sorted(CategoryView.DISPLAY_ORDER)
+                        .map(PublicCategoryView::of)
                         .toList()
         );
     }
@@ -123,12 +123,4 @@ public class PublicEpisodeViewMapper {
         );
     }
 
-    private static PublicCategoryView toPublicCategoryView(Category category) {
-        return new PublicCategoryView(
-                category.getId(),
-                category.getSlug(),
-                category.getName(),
-                category.getParent() != null ? category.getParent().getId() : null
-        );
-    }
 }

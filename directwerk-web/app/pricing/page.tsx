@@ -22,9 +22,9 @@ import {
 import {AUTH_REQUIRED} from '@directwerk/api/constants'
 import type {LevelSummary, PublicProduct, PublicSiteConfig} from '@directwerk/api/types'
 import {useSubscriberAuth} from '@/lib/auth/useSubscriberAuth'
-import {formatMoney} from '@/lib/format/money'
+import {formatMoney} from '@directwerk/api/format'
 import {userFacingBillingError} from '@/lib/billing/userFacingBillingError'
-import {getClientTenantHost} from '@/lib/tenant/getClientTenantHost'
+import {getClientTenantHost} from '@directwerk/api/tenant'
 
 export default function PricingPage(): React.JSX.Element {
     const router = useRouter()
@@ -189,6 +189,7 @@ export default function PricingPage(): React.JSX.Element {
                                             product.priceCents,
                                             product.currency,
                                             product.billingInterval,
+                                            {nullLabel: 'Preis folgt'},
                                         )}
                                     </p>
                                     {product.description !== null && product.description !== '' ? (

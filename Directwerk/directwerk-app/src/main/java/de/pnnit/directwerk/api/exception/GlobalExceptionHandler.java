@@ -58,6 +58,16 @@ public class GlobalExceptionHandler {
 
     private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
+    private static ResponseEntity<Response<Void>> notFound(String code, Exception ex) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(Response.error(404, code, ex.getMessage()));
+    }
+
+    private static ResponseEntity<Response<Void>> conflict(String code, Exception ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(Response.error(409, code, ex.getMessage()));
+    }
+
     @ExceptionHandler(TenantContextMissingException.class)
     ResponseEntity<Response<Void>> handleTenantContextMissing(TenantContextMissingException ex) {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
@@ -89,8 +99,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(DomainAlreadyExistsException.class)
     ResponseEntity<Response<Void>> handleDomainAlreadyExists(DomainAlreadyExistsException ex) {
-        return ResponseEntity.status(HttpStatus.CONFLICT)
-                .body(Response.error(409, "DOMAIN_ALREADY_EXISTS", ex.getMessage()));
+        return conflict("DOMAIN_ALREADY_EXISTS", ex);
     }
 
     /**
@@ -113,8 +122,7 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(TenantNotFoundException.class)
     ResponseEntity<Response<Void>> handleTenantNotFound(TenantNotFoundException ex) {
-        return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                .body(Response.error(404, "TENANT_NOT_FOUND", ex.getMessage()));
+        return notFound("TENANT_NOT_FOUND", ex);
     }
 
     @ExceptionHandler(TenantMismatchException.class)
@@ -149,8 +157,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(MediaAssetNotFoundException.class)
     ResponseEntity<Response<Void>> handleMediaAssetNotFound(MediaAssetNotFoundException ex) {
-        return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                .body(Response.error(404, "MEDIA_ASSET_NOT_FOUND", ex.getMessage()));
+        return notFound("MEDIA_ASSET_NOT_FOUND", ex);
     }
 
     @ExceptionHandler(UploadValidationException.class)
@@ -173,8 +180,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(StripeConnectNotReadyException.class)
     ResponseEntity<Response<Void>> handleStripeConnectNotReady(StripeConnectNotReadyException ex) {
-        return ResponseEntity.status(HttpStatus.CONFLICT)
-                .body(Response.error(409, "STRIPE_NOT_CONNECTED", ex.getMessage()));
+        return conflict("STRIPE_NOT_CONNECTED", ex);
     }
 
     @ExceptionHandler(StripeSignatureException.class)
@@ -191,14 +197,12 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(ModuleDependencyMissingException.class)
     ResponseEntity<Response<Void>> handleModuleDependencyMissing(ModuleDependencyMissingException ex) {
-        return ResponseEntity.status(HttpStatus.CONFLICT)
-                .body(Response.error(409, "MODULE_DEPENDENCY_MISSING", ex.getMessage()));
+        return conflict("MODULE_DEPENDENCY_MISSING", ex);
     }
 
     @ExceptionHandler(CannotDeactivateCoreModuleException.class)
     ResponseEntity<Response<Void>> handleCannotDeactivateCoreModule(CannotDeactivateCoreModuleException ex) {
-        return ResponseEntity.status(HttpStatus.CONFLICT)
-                .body(Response.error(409, "CANNOT_DEACTIVATE_CORE_MODULE", ex.getMessage()));
+        return conflict("CANNOT_DEACTIVATE_CORE_MODULE", ex);
     }
 
     /**
@@ -209,8 +213,7 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(CannotDeactivateSelfException.class)
     ResponseEntity<Response<Void>> handleCannotDeactivateSelf(CannotDeactivateSelfException ex) {
-        return ResponseEntity.status(HttpStatus.CONFLICT)
-                .body(Response.error(409, "CANNOT_DEACTIVATE_SELF", ex.getMessage()));
+        return conflict("CANNOT_DEACTIVATE_SELF", ex);
     }
 
     /**
@@ -221,8 +224,7 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(CannotDeactivateLastAdminException.class)
     ResponseEntity<Response<Void>> handleCannotDeactivateLastAdmin(CannotDeactivateLastAdminException ex) {
-        return ResponseEntity.status(HttpStatus.CONFLICT)
-                .body(Response.error(409, "CANNOT_DEACTIVATE_LAST_ADMIN", ex.getMessage()));
+        return conflict("CANNOT_DEACTIVATE_LAST_ADMIN", ex);
     }
 
     /**
@@ -233,8 +235,7 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(TenantMembershipNotFoundException.class)
     ResponseEntity<Response<Void>> handleTenantMembershipNotFound(TenantMembershipNotFoundException ex) {
-        return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                .body(Response.error(404, "TENANT_MEMBERSHIP_NOT_FOUND", ex.getMessage()));
+        return notFound("TENANT_MEMBERSHIP_NOT_FOUND", ex);
     }
 
     /**
@@ -244,8 +245,7 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(PlatformAdminNotFoundException.class)
     ResponseEntity<Response<Void>> handlePlatformAdminNotFound(PlatformAdminNotFoundException ex) {
-        return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                .body(Response.error(404, "PLATFORM_ADMIN_NOT_FOUND", ex.getMessage()));
+        return notFound("PLATFORM_ADMIN_NOT_FOUND", ex);
     }
 
     /**
@@ -256,8 +256,7 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(CannotRevokeSelfException.class)
     ResponseEntity<Response<Void>> handleCannotRevokeSelf(CannotRevokeSelfException ex) {
-        return ResponseEntity.status(HttpStatus.CONFLICT)
-                .body(Response.error(409, "CANNOT_REVOKE_SELF", ex.getMessage()));
+        return conflict("CANNOT_REVOKE_SELF", ex);
     }
 
     /**
@@ -268,8 +267,7 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(CannotRevokeLastPlatformAdminException.class)
     ResponseEntity<Response<Void>> handleCannotRevokeLastPlatformAdmin(CannotRevokeLastPlatformAdminException ex) {
-        return ResponseEntity.status(HttpStatus.CONFLICT)
-                .body(Response.error(409, "CANNOT_REVOKE_LAST_ADMIN", ex.getMessage()));
+        return conflict("CANNOT_REVOKE_LAST_ADMIN", ex);
     }
 
     /**
@@ -280,44 +278,37 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(SubscriptionProductNotFoundException.class)
     ResponseEntity<Response<Void>> handleSubscriptionProductNotFound(SubscriptionProductNotFoundException ex) {
-        return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                .body(Response.error(404, "PRODUCT_NOT_FOUND", ex.getMessage()));
+        return notFound("PRODUCT_NOT_FOUND", ex);
     }
 
     @ExceptionHandler(SeriesNotFoundException.class)
     ResponseEntity<Response<Void>> handleSeriesNotFound(SeriesNotFoundException ex) {
-        return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                .body(Response.error(404, "SERIES_NOT_FOUND", ex.getMessage()));
+        return notFound("SERIES_NOT_FOUND", ex);
     }
 
     @ExceptionHandler(EpisodeNotFoundException.class)
     ResponseEntity<Response<Void>> handleEpisodeNotFound(EpisodeNotFoundException ex) {
-        return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                .body(Response.error(404, "EPISODE_NOT_FOUND", ex.getMessage()));
+        return notFound("EPISODE_NOT_FOUND", ex);
     }
 
     @ExceptionHandler(ArticleNotFoundException.class)
     ResponseEntity<Response<Void>> handleArticleNotFound(ArticleNotFoundException ex) {
-        return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                .body(Response.error(404, "ARTICLE_NOT_FOUND", ex.getMessage()));
+        return notFound("ARTICLE_NOT_FOUND", ex);
     }
 
     @ExceptionHandler(FormatNotFoundException.class)
     ResponseEntity<Response<Void>> handleFormatNotFound(FormatNotFoundException ex) {
-        return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                .body(Response.error(404, "FORMAT_NOT_FOUND", ex.getMessage()));
+        return notFound("FORMAT_NOT_FOUND", ex);
     }
 
     @ExceptionHandler(CategoryNotFoundException.class)
     ResponseEntity<Response<Void>> handleCategoryNotFound(CategoryNotFoundException ex) {
-        return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                .body(Response.error(404, "CATEGORY_NOT_FOUND", ex.getMessage()));
+        return notFound("CATEGORY_NOT_FOUND", ex);
     }
 
     @ExceptionHandler(SubscriberFeedNotFoundException.class)
     ResponseEntity<Response<Void>> handleSubscriberFeedNotFound(SubscriberFeedNotFoundException ex) {
-        return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                .body(Response.error(404, "SUBSCRIBER_FEED_NOT_FOUND", ex.getMessage()));
+        return notFound("SUBSCRIBER_FEED_NOT_FOUND", ex);
     }
 
     @ExceptionHandler(FeedBuilderException.class)
@@ -328,8 +319,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(InvalidPublicationTransitionException.class)
     ResponseEntity<Response<Void>> handleInvalidPublicationTransition(InvalidPublicationTransitionException ex) {
-        return ResponseEntity.status(HttpStatus.CONFLICT)
-                .body(Response.error(409, "PUBLICATION_INVALID_TRANSITION", ex.getMessage()));
+        return conflict("PUBLICATION_INVALID_TRANSITION", ex);
     }
 
     @ExceptionHandler(EpisodeValidationException.class)
@@ -352,8 +342,7 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(SubscriptionNotFoundException.class)
     ResponseEntity<Response<Void>> handleSubscriptionNotFound(SubscriptionNotFoundException ex) {
-        return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                .body(Response.error(404, "SUBSCRIPTION_NOT_FOUND", ex.getMessage()));
+        return notFound("SUBSCRIPTION_NOT_FOUND", ex);
     }
 
     /**
@@ -364,8 +353,7 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(JobNotFoundException.class)
     ResponseEntity<Response<Void>> handleJobNotFound(JobNotFoundException ex) {
-        return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                .body(Response.error(404, "JOB_NOT_FOUND", ex.getMessage()));
+        return notFound("JOB_NOT_FOUND", ex);
     }
 
     /**
@@ -376,8 +364,7 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(JobConflictException.class)
     ResponseEntity<Response<Void>> handleJobConflict(JobConflictException ex) {
-        return ResponseEntity.status(HttpStatus.CONFLICT)
-                .body(Response.error(409, "JOB_CONFLICT", ex.getMessage()));
+        return conflict("JOB_CONFLICT", ex);
     }
 
     /**

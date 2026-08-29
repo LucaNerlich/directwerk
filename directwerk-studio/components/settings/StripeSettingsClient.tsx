@@ -8,7 +8,7 @@ import {useRouter} from 'next/navigation'
 
 import {getStripeStatus, startStripeOnboard} from '@/lib/api/subscriptionApi'
 import type {StripeStatus} from '@directwerk/api/types'
-import {getClientTenantHost} from '@/lib/tenant/getClientTenantHost'
+import {getClientTenantHost} from '@directwerk/api/tenant'
 import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
 
 export default function StripeSettingsClient(): React.JSX.Element {

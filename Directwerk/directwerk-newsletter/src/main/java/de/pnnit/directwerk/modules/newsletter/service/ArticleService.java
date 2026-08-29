@@ -4,6 +4,7 @@ import de.pnnit.directwerk.modules.core.exception.ConflictException;
 import de.pnnit.directwerk.modules.core.exception.ConflictCodes;
 import de.pnnit.directwerk.modules.core.RequiresModule;
 import de.pnnit.directwerk.modules.core.repository.TenantRepository;
+import de.pnnit.directwerk.modules.core.util.FieldConstraints;
 import de.pnnit.directwerk.modules.core.util.SlugNormalizer;
 import de.pnnit.directwerk.modules.core.util.TitleNormalizer;
 import de.pnnit.directwerk.modules.digital.DigitalContentModule;
@@ -15,12 +16,10 @@ import de.pnnit.directwerk.modules.digital.exception.MediaAssetNotFoundException
 import de.pnnit.directwerk.modules.digital.entity.AccessPolicy;
 import de.pnnit.directwerk.modules.newsletter.entity.Article;
 import de.pnnit.directwerk.modules.newsletter.entity.ArticleStatus;
-import de.pnnit.directwerk.modules.digital.entity.Category;
 import de.pnnit.directwerk.modules.newsletter.exception.ArticleNotFoundException;
 import de.pnnit.directwerk.modules.newsletter.exception.ArticleValidationException;
-import de.pnnit.directwerk.modules.digital.exception.CategoryNotFoundException;
 import de.pnnit.directwerk.modules.newsletter.repository.ArticleRepository;
-import de.pnnit.directwerk.modules.digital.repository.CategoryRepository;
+import de.pnnit.directwerk.modules.digital.service.CategoryService;
 import de.pnnit.directwerk.modules.digital.service.HtmlSanitizer;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -36,7 +35,7 @@ public class ArticleService {
     private static final int MAX_SEO_DESCRIPTION_LENGTH = 512;
 
     private final ArticleRepository articleRepository;
-    private final CategoryRepository categoryRepository;
+    private final CategoryService categoryService;
     private final TenantRepository tenantRepository;
     private final MediaAssetQueryApi mediaAssetQueryApi;
     private final HtmlSanitizer htmlSanitizer;
@@ -80,9 +79,10 @@ public class ArticleService {
         article.setSeoDescription(normalizeSeoDescription(seoDescription));
         article.setHeroAsset(resolveHeroAsset(tenantId, heroAssetId));
         article.setAccessPolicy(accessPolicy != null ? accessPolicy : AccessPolicy.FREE);
-        article.setRequiredLevelSortOrder(validateNonNegative(requiredLevelSortOrder, "requiredLevelSortOrder"));
+        article.setRequiredLevelSortOrder(FieldConstraints.requireNonNegative(requiredLevelSortOrder, "requiredLevelSortOrder"));
         article.setStatus(ArticleStatus.DRAFT);
-        article.getCategories().addAll(resolveCategories(tenantId, categoryIds));
+        article.getCategories().addAll(categoryService.resolveActiveCategories(tenantId, categoryIds,
+                id -> { throw new ArticleValidationException("Category is inactive: " + id); }));
         Article saved = articleRepository.save(article);
         return requireArticle(tenantId, saved.getId());
     }
@@ -131,7 +131,7 @@ public class ArticleService {
             article.setAccessPolicy(accessPolicy);
         }
         if (requiredLevelSortOrder != null) {
-            article.setRequiredLevelSortOrder(validateNonNegative(requiredLevelSortOrder, "requiredLevelSortOrder"));
+            article.setRequiredLevelSortOrder(FieldConstraints.requireNonNegative(requiredLevelSortOrder, "requiredLevelSortOrder"));
         }
         articleRepository.save(article);
         return requireArticle(tenantId, articleId);
@@ -142,7 +142,8 @@ public class ArticleService {
     public Article replaceCategories(Long tenantId, Long articleId, Set<Long> categoryIds) {
         Article article = requireDraftArticle(tenantId, articleId);
         article.getCategories().clear();
-        article.getCategories().addAll(resolveCategories(tenantId, categoryIds));
+        article.getCategories().addAll(categoryService.resolveActiveCategories(tenantId, categoryIds,
+                id -> { throw new ArticleValidationException("Category is inactive: " + id); }));
         articleRepository.save(article);
         return requireArticle(tenantId, articleId);
     }
@@ -170,22 +171,6 @@ public class ArticleService {
         return asset;
     }
 
-    private Set<Category> resolveCategories(Long tenantId, Set<Long> categoryIds) {
-        if (categoryIds == null || categoryIds.isEmpty()) {
-            return Set.of();
-        }
-        Set<Category> categories = new LinkedHashSet<>();
-        for (Long categoryId : categoryIds) {
-            Category category = categoryRepository.findByIdAndTenantId(categoryId, tenantId)
-                    .orElseThrow(() -> new CategoryNotFoundException(categoryId));
-            if (!category.isActive()) {
-                throw new ArticleValidationException("Category is inactive: " + categoryId);
-            }
-            categories.add(category);
-        }
-        return categories;
-    }
-
     private static String normalizeOptionalText(String value) {
         if (value == null || value.isBlank()) {
             return null;
@@ -201,10 +186,4 @@ public class ArticleService {
         return normalized;
     }
 
-    private static Integer validateNonNegative(Integer value, String field) {
-        if (value != null && value < 0) {
-            throw new IllegalArgumentException(field + " must be non-negative");
-        }
-        return value;
-    }
 }

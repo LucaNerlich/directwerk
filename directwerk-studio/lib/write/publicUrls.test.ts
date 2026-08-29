@@ -1,6 +1,6 @@
 import {describe, expect, it} from 'vitest'
 
-import {publicArticlePageUrl} from '@/lib/write/publicUrls'
+import {publicArticlePageUrl} from '@directwerk/api/urls/publicContentUrls'
 
 describe('publicArticlePageUrl', () => {
     it('builds article URL from public site origin', () => {

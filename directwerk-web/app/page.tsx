@@ -17,10 +17,10 @@ import {
     listPublicProducts,
 } from '@/lib/api/client'
 import type {PublicArticle, PublicEpisode, PublicProduct} from '@directwerk/api/types'
-import {formatPublishedAt} from '@/lib/format'
-import {formatMoney} from '@/lib/format/money'
+import {formatPublishedAt} from '@directwerk/api/format/datetime'
+import {formatMoney} from '@directwerk/api/format'
 import {useSiteConfig} from '@/lib/site/SiteConfigProvider'
-import {getClientTenantHost} from '@/lib/tenant/getClientTenantHost'
+import {getClientTenantHost} from '@directwerk/api/tenant'
 
 export default function HomePage(): React.JSX.Element {
     const config = useSiteConfig()
@@ -221,6 +221,7 @@ export default function HomePage(): React.JSX.Element {
                                                 product.priceCents,
                                                 product.currency,
                                                 product.billingInterval,
+                                                {nullLabel: 'Preis folgt'},
                                             )}
                                         </>
                                     }

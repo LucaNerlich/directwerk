@@ -16,7 +16,7 @@ import {parseLoginInput} from '@directwerk/api/validation/input'
 
 import {setTokens} from '@/lib/auth/tokenStore'
 import {useSiteConfig} from '@/lib/site/SiteConfigProvider'
-import {getClientTenantHost} from '@/lib/tenant/getClientTenantHost'
+import {getClientTenantHost} from '@directwerk/api/tenant'
 
 interface LoginState {
     error: string | null

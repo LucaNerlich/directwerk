@@ -21,7 +21,7 @@ import {createSeries, getSeries, updateSeries} from '@/lib/api/podcastApi'
 import type {SeriesStatus} from '@directwerk/api/types'
 import {mediaLimitLabel} from '@/lib/media/limits'
 import {uploadMediaFile} from '@/lib/media/upload'
-import {getClientTenantHost} from '@/lib/tenant/getClientTenantHost'
+import {getClientTenantHost} from '@directwerk/api/tenant'
 import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
 
 interface SeriesEditorProps {

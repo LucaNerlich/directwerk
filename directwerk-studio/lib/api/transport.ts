@@ -1,7 +1,7 @@
 import {createBrowserTransport} from '@directwerk/api/client/createBrowserTransport'
 import {studioCreatorPolicy} from '@directwerk/api/client/policies'
 import {getValidAccessToken, refreshAccessToken} from '@/lib/auth/session'
-import {getClientTenantHost} from '@/lib/tenant/getClientTenantHost'
+import {getClientTenantHost} from '@directwerk/api/tenant'
 
 const transport = createBrowserTransport({
     policy: studioCreatorPolicy,

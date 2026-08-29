@@ -9,7 +9,7 @@ vi.mock('next/navigation', () => ({useRouter: () => ({replace: vi.fn()})}))
 vi.mock('@directwerk/api/auth/useAuthRequired', () => ({
     useAuthRequired: () => () => false,
 }))
-vi.mock('@/lib/tenant/getClientTenantHost', () => ({getClientTenantHost: () => 'tenant.test'}))
+vi.mock('@directwerk/api/tenant', () => ({getClientTenantHost: () => 'tenant.test'}))
 vi.mock('@/lib/api/subscriptionApi', () => ({
     listProducts: vi.fn().mockResolvedValue([
         {

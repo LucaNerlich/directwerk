@@ -10,7 +10,7 @@ import EpisodeEditor from '@/components/podcast/EpisodeEditor'
 // re-trigger that effect on every render and reset in-progress tag selections.
 const mockRouter = {replace: vi.fn()}
 vi.mock('next/navigation', () => ({useRouter: () => mockRouter}))
-vi.mock('@/lib/tenant/getClientTenantHost', () => ({getClientTenantHost: () => 'tenant.test'}))
+vi.mock('@directwerk/api/tenant', () => ({getClientTenantHost: () => 'tenant.test'}))
 vi.mock('@/lib/site/SiteConfigProvider', () => ({
     useSiteConfig: () => ({
         enabledModules: ['DIGITAL_CONTENT'],

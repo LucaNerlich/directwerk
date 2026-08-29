@@ -3,7 +3,7 @@
 import {listPublicLevels} from '@/lib/api/subscriptionApi'
 import type {LevelSummary} from '@directwerk/api/types'
 import {useCachedTenantQuery} from '@directwerk/api/client/useCachedTenantQuery'
-import {getClientTenantHost} from '@/lib/tenant/getClientTenantHost'
+import {getClientTenantHost} from '@directwerk/api/tenant'
 
 const PUBLIC_VALUE = ''
 

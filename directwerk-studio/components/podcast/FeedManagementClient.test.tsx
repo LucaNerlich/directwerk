@@ -15,7 +15,7 @@ const listSeriesMock = vi.fn()
 const listSubscriberFeedsMock = vi.fn()
 const setSubscriberFeedEnabledMock = vi.fn()
 
-vi.mock('@/lib/tenant/getClientTenantHost', () => ({
+vi.mock('@directwerk/api/tenant', () => ({
     getClientTenantHost: () => 'tenant.test',
 }))
 vi.mock('@/lib/api/podcastApi', () => ({

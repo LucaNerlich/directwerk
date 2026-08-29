@@ -6,7 +6,7 @@ import CategoryEditor from '@/components/manage/CategoryEditor'
 
 const replace = vi.fn()
 vi.mock('next/navigation', () => ({useRouter: () => ({replace})}))
-vi.mock('@/lib/tenant/getClientTenantHost', () => ({getClientTenantHost: () => 'tenant.test'}))
+vi.mock('@directwerk/api/tenant', () => ({getClientTenantHost: () => 'tenant.test'}))
 
 const createCategory = vi.fn().mockResolvedValue({
     id: 1,

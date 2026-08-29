@@ -19,7 +19,7 @@ import {
 } from '@/lib/api/podcastApi'
 import type {EpisodeDetail, FormatSummary, SeriesSummary} from '@directwerk/api/types'
 import {usePublicationListPage} from '@/lib/publication/usePublicationListPage'
-import {getClientTenantHost} from '@/lib/tenant/getClientTenantHost'
+import {getClientTenantHost} from '@directwerk/api/tenant'
 import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
 
 export default function EpisodeListClient() {

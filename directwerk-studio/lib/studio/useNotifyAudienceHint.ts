@@ -5,7 +5,7 @@ import {useEffect, useState} from 'react'
 import {listSubscribers} from '@/lib/api/tenantSettingsApi'
 import {isTenantAdminRole} from '@/lib/api/studioHelpers'
 import {useOptionalMe} from '@/lib/auth/MeProvider'
-import {getClientTenantHost} from '@/lib/tenant/getClientTenantHost'
+import {getClientTenantHost} from '@directwerk/api/tenant'
 import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
 
 

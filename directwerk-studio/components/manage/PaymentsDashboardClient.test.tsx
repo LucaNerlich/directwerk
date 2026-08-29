@@ -6,7 +6,7 @@ import {getBillingDashboard, revokeSubscription} from '@/lib/api/subscriptionApi
 import type {BillingDashboard, BillingMembership} from '@directwerk/api/types'
 
 vi.mock('next/navigation', () => ({useRouter: () => ({replace: vi.fn()})}))
-vi.mock('@/lib/tenant/getClientTenantHost', () => ({getClientTenantHost: () => 'tenant.test'}))
+vi.mock('@directwerk/api/tenant', () => ({getClientTenantHost: () => 'tenant.test'}))
 vi.mock('@/lib/api/subscriptionApi', () => ({
     getBillingDashboard: vi.fn(),
     revokeSubscription: vi.fn(),

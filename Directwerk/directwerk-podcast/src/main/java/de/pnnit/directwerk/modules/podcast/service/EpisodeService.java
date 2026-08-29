@@ -4,22 +4,21 @@ import de.pnnit.directwerk.modules.core.exception.ConflictException;
 import de.pnnit.directwerk.modules.core.exception.ConflictCodes;
 import de.pnnit.directwerk.modules.core.RequiresModule;
 import de.pnnit.directwerk.modules.core.repository.TenantRepository;
+import de.pnnit.directwerk.modules.core.util.FieldConstraints;
 import de.pnnit.directwerk.modules.core.util.SlugNormalizer;
 import de.pnnit.directwerk.modules.core.util.TitleNormalizer;
 import de.pnnit.directwerk.modules.digital.api.EpisodeMediaApi;
 import de.pnnit.directwerk.modules.digital.entity.MediaAsset;
 import de.pnnit.directwerk.modules.podcast.PodcastModule;
 import de.pnnit.directwerk.modules.digital.entity.AccessPolicy;
-import de.pnnit.directwerk.modules.digital.entity.Category;
 import de.pnnit.directwerk.modules.podcast.entity.Episode;
 import de.pnnit.directwerk.modules.podcast.entity.EpisodeStatus;
 import de.pnnit.directwerk.modules.podcast.entity.Format;
 import de.pnnit.directwerk.modules.podcast.entity.PodcastSeries;
-import de.pnnit.directwerk.modules.digital.exception.CategoryNotFoundException;
 import de.pnnit.directwerk.modules.podcast.exception.EpisodeNotFoundException;
 import de.pnnit.directwerk.modules.podcast.exception.EpisodeValidationException;
 import de.pnnit.directwerk.modules.podcast.exception.FormatNotFoundException;
-import de.pnnit.directwerk.modules.digital.repository.CategoryRepository;
+import de.pnnit.directwerk.modules.digital.service.CategoryService;
 import de.pnnit.directwerk.modules.digital.service.HtmlSanitizer;
 import de.pnnit.directwerk.modules.podcast.repository.EpisodeRepository;
 import de.pnnit.directwerk.modules.podcast.repository.FormatRepository;
@@ -38,7 +37,7 @@ public class EpisodeService {
     private final EpisodeRepository episodeRepository;
     private final SeriesService seriesService;
     private final FormatRepository formatRepository;
-    private final CategoryRepository categoryRepository;
+    private final CategoryService categoryService;
     private final TenantRepository tenantRepository;
     private final EpisodeMediaApi episodeMediaApi;
     private final HtmlSanitizer htmlSanitizer;
@@ -80,19 +79,20 @@ public class EpisodeService {
         Episode episode = new Episode();
         episode.setTenant(tenantRepository.getReferenceById(tenantId));
         episode.setSeries(series);
-        episode.setEpisodeNumber(validatePositive(episodeNumber, "episodeNumber"));
+        episode.setEpisodeNumber(FieldConstraints.requirePositive(episodeNumber, "episodeNumber"));
         episode.setSlug(slug);
         episode.setTitle(TitleNormalizer.normalize(title, "Episode"));
         episode.setDescription(htmlSanitizer.sanitize(description));
-        episode.setDurationSeconds(validatePositive(durationSeconds, "durationSeconds"));
+        episode.setDurationSeconds(FieldConstraints.requirePositive(durationSeconds, "durationSeconds"));
         episode.setAccessPolicy(accessPolicy != null ? accessPolicy : AccessPolicy.FREE);
-        episode.setRequiredLevelSortOrder(validateNonNegative(
+        episode.setRequiredLevelSortOrder(FieldConstraints.requireNonNegative(
                 requiredLevelSortOrder != null ? requiredLevelSortOrder : series.getDefaultRequiredLevelSortOrder(),
                 "requiredLevelSortOrder"
         ));
         episode.setStatus(EpisodeStatus.DRAFT);
         episode.getFormats().addAll(resolveFormats(tenantId, formatIds));
-        episode.getCategories().addAll(resolveCategories(tenantId, categoryIds));
+        episode.getCategories().addAll(categoryService.resolveActiveCategories(tenantId, categoryIds,
+                id -> { throw new EpisodeValidationException("Category is inactive: " + id); }));
         Episode saved = episodeRepository.save(episode);
         if (audioAssetId != null) {
             attachAudio(tenantId, saved.getId(), audioAssetId);
@@ -115,7 +115,7 @@ public class EpisodeService {
     ) {
         Episode episode = requireDraftEpisode(tenantId, episodeId);
         if (episodeNumber != null) {
-            episode.setEpisodeNumber(validatePositive(episodeNumber, "episodeNumber"));
+            episode.setEpisodeNumber(FieldConstraints.requirePositive(episodeNumber, "episodeNumber"));
         }
         if (rawSlug != null) {
             String slug = SlugNormalizer.normalize(rawSlug);
@@ -131,13 +131,13 @@ public class EpisodeService {
             episode.setDescription(htmlSanitizer.sanitize(description));
         }
         if (durationSeconds != null) {
-            episode.setDurationSeconds(validatePositive(durationSeconds, "durationSeconds"));
+            episode.setDurationSeconds(FieldConstraints.requirePositive(durationSeconds, "durationSeconds"));
         }
         if (accessPolicy != null) {
             episode.setAccessPolicy(accessPolicy);
         }
         if (requiredLevelSortOrder != null) {
-            episode.setRequiredLevelSortOrder(validateNonNegative(requiredLevelSortOrder, "requiredLevelSortOrder"));
+            episode.setRequiredLevelSortOrder(FieldConstraints.requireNonNegative(requiredLevelSortOrder, "requiredLevelSortOrder"));
         }
         episodeRepository.save(episode);
         return requireEpisode(tenantId, episodeId);
@@ -158,7 +158,8 @@ public class EpisodeService {
     public Episode replaceCategories(Long tenantId, Long episodeId, Set<Long> categoryIds) {
         Episode episode = requireDraftEpisode(tenantId, episodeId);
         episode.getCategories().clear();
-        episode.getCategories().addAll(resolveCategories(tenantId, categoryIds));
+        episode.getCategories().addAll(categoryService.resolveActiveCategories(tenantId, categoryIds,
+                id -> { throw new EpisodeValidationException("Category is inactive: " + id); }));
         episodeRepository.save(episode);
         return requireEpisode(tenantId, episodeId);
     }
@@ -211,33 +212,5 @@ public class EpisodeService {
         return formats;
     }
 
-    private Set<Category> resolveCategories(Long tenantId, Set<Long> categoryIds) {
-        if (categoryIds == null || categoryIds.isEmpty()) {
-            return Set.of();
-        }
-        Set<Category> categories = new LinkedHashSet<>();
-        for (Long categoryId : categoryIds) {
-            Category category = categoryRepository.findByIdAndTenantId(categoryId, tenantId)
-                    .orElseThrow(() -> new CategoryNotFoundException(categoryId));
-            if (!category.isActive()) {
-                throw new EpisodeValidationException("Category is inactive: " + categoryId);
-            }
-            categories.add(category);
-        }
-        return categories;
-    }
 
-    private static Integer validatePositive(Integer value, String field) {
-        if (value != null && value <= 0) {
-            throw new IllegalArgumentException(field + " must be positive");
-        }
-        return value;
-    }
-
-    private static Integer validateNonNegative(Integer value, String field) {
-        if (value != null && value < 0) {
-            throw new IllegalArgumentException(field + " must be non-negative");
-        }
-        return value;
-    }
 }

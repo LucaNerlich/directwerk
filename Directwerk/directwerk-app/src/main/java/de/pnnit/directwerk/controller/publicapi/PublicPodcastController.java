@@ -79,7 +79,7 @@ public class PublicPodcastController {
     ResponseEntity<Response<List<PublicCategoryView>>> listCategories() {
         Long tenantId = TenantContext.getTenantId();
         List<PublicCategoryView> categories = publicPodcastQueryService.listActiveCategories(tenantId).stream()
-                .map(PublicPodcastController::toCategoryView)
+                .map(PublicCategoryView::of)
                 .toList();
         return ResponseEntity.ok(Response.ok(categories));
     }
@@ -118,14 +118,6 @@ public class PublicPodcastController {
         );
     }
 
-    private static PublicCategoryView toCategoryView(Category category) {
-        return new PublicCategoryView(
-                category.getId(),
-                category.getSlug(),
-                category.getName(),
-                category.getParent() != null ? category.getParent().getId() : null
-        );
-    }
 
     public record PublicSeriesView(
             Long id,

@@ -11,7 +11,7 @@ import {MeProvider} from '@/lib/auth/MeProvider'
 import {ensureAuthenticated} from '@/lib/auth/session'
 import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
 import {clearTokens, getAccessToken} from '@/lib/auth/tokenStore'
-import {getClientTenantHost} from '@/lib/tenant/getClientTenantHost'
+import {getClientTenantHost} from '@directwerk/api/tenant'
 import type {Me} from '@directwerk/api/types'
 
 export default function AuthGuard({children}: Readonly<{children: React.ReactNode}>) {

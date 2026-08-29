@@ -13,8 +13,8 @@ import {useCallback, useEffect, useState, type FormEvent} from 'react'
 import ProductRulesEditor from '@/components/manage/ProductRulesEditor'
 import {createProduct, deactivateProduct, listProducts, syncProductStripe, updateProduct} from '@/lib/api/subscriptionApi'
 import type {BillingInterval, OfferingType, SubscriptionProduct} from '@directwerk/api/types'
-import {formatMoney} from '@/lib/format/money'
-import {getClientTenantHost} from '@/lib/tenant/getClientTenantHost'
+import {formatMoney} from '@directwerk/api/format'
+import {getClientTenantHost} from '@directwerk/api/tenant'
 import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
 
 interface ProductEditorProps {

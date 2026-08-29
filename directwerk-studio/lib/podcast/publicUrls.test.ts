@@ -1,6 +1,6 @@
 import {describe, expect, it} from 'vitest'
 
-import {publicEpisodePageUrl, publicSiteOrigin} from '@/lib/podcast/publicUrls'
+import {publicEpisodePageUrl, publicSiteOrigin} from '@directwerk/api/urls/publicContentUrls'
 
 describe('public episode URLs', () => {
     it('uses public site URL', () => {
