@@ -97,6 +97,21 @@ public class PlatformTenantUserController {
     }
 
     /**
+     * Re-sends an invitation email for a pending tenant membership.
+     */
+    @PostMapping("/{userId}/resend-invite")
+    ResponseEntity<Response<de.pnnit.directwerk.api.dto.InviteUserResponse>> resendInvite(
+            @PathVariable Long tenantId,
+            @PathVariable Long userId
+    ) {
+        TenantInvitationService.InvitationResult invitation = tenantInvitationService.resendInvite(
+                tenantId,
+                userId
+        );
+        return invitationResponseMapper.toCreatedResponse(invitation);
+    }
+
+    /**
      * Updates a tenant user's role.
      *
      * @param tenantId the tenant containing the membership

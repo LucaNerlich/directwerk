@@ -1,7 +1,7 @@
 # Directwerk — Publication Model & Two Studio Desks
 
 Companion to [`content-platform-strategy.md`](content-platform-strategy.md),
-[`directwerk-studio.md`](directwerk-studio.md), and [`README.md`](../README.md) § Publication Types.
+[`directwerk-studio.md`](directwerk-studio.md), and [`README.md`](platform-design.md) § Publication Types.
 
 **Purpose:** Resolve the “are we a CMS / Substack / podcast host?” fog into one concrete domain
 shape: **typed publications on shared rails**, with **two creator desks** in `directwerk-studio`.
@@ -375,4 +375,4 @@ delivery channels for the same newsletter/article publication.)*
 | [`directwerk-studio.md`](directwerk-studio.md) | Creator journeys — desks map to Content → Podcasts / Articles |
 | [`directwerk-studio-implementation.md`](directwerk-studio-implementation.md) | Screen specs should reference Write vs Podcast desk |
 | [`ghost-positioning.md`](ghost-positioning.md) | Still valid: not rebuilding Ghost Admin |
-| [`README.md`](../README.md) § Publication Types | Keep type list; pattern described here |
+| [`README.md`](platform-design.md) § Publication Types | Keep type list; pattern described here |

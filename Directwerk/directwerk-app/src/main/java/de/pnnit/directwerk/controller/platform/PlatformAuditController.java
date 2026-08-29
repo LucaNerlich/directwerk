@@ -2,10 +2,13 @@ package de.pnnit.directwerk.controller.platform;
 
 import de.pnnit.directwerk.api.response.Response;
 import de.pnnit.directwerk.modules.core.service.PlatformAuditQueryService;
+import de.pnnit.directwerk.modules.core.service.PlatformAuditQueryService.AuditPage;
+import de.pnnit.directwerk.modules.core.service.PlatformAuditQueryService.AuditQuery;
 import de.pnnit.directwerk.modules.core.service.PlatformAuditQueryService.PlatformAuditView;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import java.util.List;
+import java.util.Map;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
@@ -26,16 +29,25 @@ public class PlatformAuditController {
         this.platformAuditQueryService = platformAuditQueryService;
     }
 
-    /**
-     * Lists recent platform audit events (newest first).
-     *
-     * @param limit max rows (1–100, default 50)
-     * @return audit event views
-     */
     @GetMapping
     ResponseEntity<Response<List<PlatformAuditView>>> listRecent(
-            @RequestParam(defaultValue = "50") @Min(1) @Max(100) int limit
+            @RequestParam(defaultValue = "0") @Min(0) int page,
+            @RequestParam(defaultValue = "50") @Min(1) @Max(100) int size,
+            @RequestParam(required = false) Long tenantId,
+            @RequestParam(required = false) String action,
+            @RequestParam(required = false) String actorEmail,
+            @RequestParam(required = false) Long actorUserId
     ) {
-        return ResponseEntity.ok(Response.ok(platformAuditQueryService.listRecent(limit)));
+        AuditPage auditPage = platformAuditQueryService.list(
+                new AuditQuery(page, size, tenantId, action, actorEmail, actorUserId)
+        );
+        return ResponseEntity.ok(Response.ok(
+                auditPage.content(),
+                Map.of(
+                        "page", auditPage.page(),
+                        "size", auditPage.size(),
+                        "totalElements", auditPage.totalElements()
+                )
+        ));
     }
 }

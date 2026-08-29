@@ -14,4 +14,14 @@ tests {
   test("returns expected status", function() {
     expect(res.getStatus() === 200).to.equal(true);
   });
+
+  test("includes enabled modules and activation log", function() {
+    expect(res.body.data.enabledModules).to.be.an("array");
+    expect(res.body.data.activations).to.be.an("array");
+    if (res.body.data.activations.length > 0) {
+      expect(res.body.data.activations[0].moduleKey).to.be.a("string");
+      expect(res.body.data.activations[0].activatedAt).to.be.a("string");
+      expect(res.body.data.activations[0].source).to.be.a("string");
+    }
+  });
 }

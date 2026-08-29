@@ -78,6 +78,7 @@ export default function PlatformAdminsPage() {
                                 <TableRow>
                                     <TableHead scope="col">Name</TableHead>
                                     <TableHead scope="col">Email</TableHead>
+                                    <TableHead scope="col">Last login</TableHead>
                                     <TableHead scope="col">Actions</TableHead>
                                 </TableRow>
                             </TableHeader>
@@ -86,6 +87,11 @@ export default function PlatformAdminsPage() {
                                     <TableRow key={admin.userId}>
                                         <TableCell>{admin.name ?? '—'}</TableCell>
                                         <TableCell>{admin.email}</TableCell>
+                                        <TableCell>
+                                            {admin.lastLoginAt
+                                                ? new Date(admin.lastLoginAt).toLocaleString()
+                                                : '—'}
+                                        </TableCell>
                                         <TableCell>
                                             <RevokeAdminButton onRevoked={loadAdmins} userId={admin.userId} />
                                         </TableCell>

@@ -6,7 +6,7 @@ Multi-tenant **API-first** podcast SaaS. **Primary audience:** non-technical cre
 **`directwerk-studio`** (dashboard) and **`directwerk-web`** (public site) on their domain. The REST API
 is the contract; agencies may build custom frontends against the same endpoints.
 
-See [`README.md`](README.md) for the full design specification. **How to run / deploy the API:**
+See [`docs/platform-design.md`](docs/platform-design.md) for the full design specification. **How to run / deploy the API:**
 [`Directwerk/docs/build-and-deploy.md`](Directwerk/docs/build-and-deploy.md) (Compose Postgres +
 Mailpit, host `bootRun`, Docker image, Coolify/prod). **Public docs site:** [`directwerk-docs/`](directwerk-docs/) (VitePress). OpenAPI export: `./Directwerk/gradlew :directwerk-app:exportOpenApi`. Companion docs: [`docs/poc-alpha-setup.md`](docs/poc-alpha-setup.md),
 [`Directwerk/docs/jobs-and-email.md`](Directwerk/docs/jobs-and-email.md),
@@ -20,7 +20,6 @@ Mailpit, host `bootRun`, Docker image, Coolify/prod). **Public docs site:** [`di
 [`docs/content-subscriptions-and-entitlements.md`](docs/content-subscriptions-and-entitlements.md),
 [`docs/payment.md`](docs/payment.md),
 [`docs/patreon-steady-integration.md`](docs/patreon-steady-integration.md),
-[`docs/phase-2e-4-4b-implementation.md`](docs/phase-2e-4-4b-implementation.md),
 [`docs/product-naming.md`](docs/product-naming.md), [`docs/asset-storage.md`](docs/asset-storage.md).
 Manual API tests: [`Directwerk/http/`](Directwerk/http/). The retained API demo UI is
 `example-fe`; product UIs are `directwerk-admin`, `directwerk-studio`, and `directwerk-web`.

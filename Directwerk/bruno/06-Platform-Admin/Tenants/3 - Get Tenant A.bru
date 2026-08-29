@@ -14,4 +14,13 @@ tests {
   test("returns expected status", function() {
     expect(res.getStatus() === 200).to.equal(true);
   });
+
+  test("includes tenant detail and stats", function() {
+    expect(res.body.data.tenant).to.be.an("object");
+    expect(res.body.data.tenant.slug).to.equal("alpha-show-a");
+    expect(res.body.data.tenant.domains).to.be.an("array");
+    expect(res.body.data.tenant.createdAt).to.be.a("string");
+    expect(res.body.data.episodeCount).to.be.a("number");
+    expect(res.body.data.subscriberCount).to.be.a("number");
+  });
 }

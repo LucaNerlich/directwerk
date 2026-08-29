@@ -1,6 +1,6 @@
 'use server'
 
-import type {MediaAsset, Tenant, TenantCreationResponse, TenantDomain, TenantUser} from '@directwerk/api/types'
+import type {MediaAsset, TenantCreationResponse, TenantDetail, TenantDomain, TenantUser} from '@directwerk/api/types'
 import {ASSET_VISIBILITIES} from '@directwerk/api/types'
 
 import {performTenantMediaUpload} from '@/lib/server/mediaUpload'
@@ -65,7 +65,7 @@ export async function createTenantAction(
 export interface TenantEditState {
     error: string | null
     success: string | null
-    tenant: Tenant | null
+    tenant: TenantDetail | null
 }
 
 export const INITIAL_TENANT_EDIT_STATE: TenantEditState = {
@@ -94,7 +94,7 @@ export async function updateTenantAction(
         }
     }
 
-    const result = await callPlatformApi<Tenant>(['tenants', tenantId], {
+    const result = await callPlatformApi<TenantDetail>(['tenants', tenantId], {
         method: 'PATCH',
         body: {
             name: name.length > 0 ? name : undefined,

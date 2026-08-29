@@ -1,11 +1,11 @@
 # Directwerk vs Ghost — Positioning
 
-Companion to [`README.md`](../README.md) (full product design). This document answers a recurring
+Companion to [`README.md`](platform-design.md) (full product design). This document answers a recurring
 strategic question: **are we rebuilding Ghost, and if not, how do we position Directwerk against it?**
 
 | Document | Purpose |
 |----------|---------|
-| [`README.md`](../README.md) | Full platform design — entities, APIs, phases |
+| [`README.md`](platform-design.md) | Full platform design — entities, APIs, phases |
 | [`poc-alpha-setup.md`](poc-alpha-setup.md) | Alpha POC implementation blueprint |
 | [`content-platform-strategy.md`](content-platform-strategy.md) | Blog + newsletter without building a CMS (“German Substack” framing) |
 | [`product-naming.md`](product-naming.md) | Public product name — criteria, shortlist, and naming history |
@@ -16,8 +16,8 @@ infrastructure** sold as an API. Ghost is an **integrated publishing product** (
 memberships) with podcast as a secondary channel via third-party hosting. Overlap exists in
 “members-only content + RSS,” but the buyer, architecture, and go-to-market are different.
 
-**Status (2026-07):** Directwerk is in **pre-implementation** (alpha POC spec only). Ghost is a mature,
-shipping product. This doc guides product and engineering decisions — not a feature-parity checklist.
+**Status (2026-08):** Alpha through RSS, entitlements, and reference UIs are shipped. This doc
+guides product positioning — not a feature-parity checklist against Ghost.
 
 ---
 
@@ -28,7 +28,7 @@ shipping product. This doc guides product and engineering decisions — not a fe
 | **Ghost** | Open-source CMS for professional publishers — website, newsletter, and paid memberships in one app |
 | **Directwerk** | API-first, multi-tenant whitelabel infrastructure — tenants bring brand and frontend; we provide podcast content, entitlements, private RSS, and Patreon/Steady/Stripe plumbing |
 
-**Directwerk in a sentence for customers:** *“Own your podcast membership stack on your domain — without renting Patreon, Steady, or a closed CMS.”* (from [`README.md` § Intro](../README.md#intro))
+**Directwerk in a sentence for customers:** *“Own your podcast membership stack on your domain — without renting Patreon, Steady, or a closed CMS.”* (from [`README.md` § Intro](platform-design.md#intro))
 
 ---
 
@@ -100,7 +100,7 @@ Directwerk’s surface area, not the whole product.
 ### Where Directwerk is intentionally different (our moat)
 
 These are **design goals**, not shipped features yet — see implementation phases in
-[`README.md`](../README.md) and [`poc-alpha-setup.md`](poc-alpha-setup.md).
+[`README.md`](platform-design.md) and [`poc-alpha-setup.md`](poc-alpha-setup.md).
 
 | Differentiator | Why it matters vs Ghost |
 |----------------|-------------------------|
@@ -138,7 +138,7 @@ These are **design goals**, not shipped features yet — see implementation phas
 
 Directwerk’s README already rejects that shape:
 
-- **“The product is the API.”** — [`README.md` § API as Primary Product](../README.md#api-as-primary-product)
+- **“The product is the API.”** — [`README.md` § API as Primary Product](platform-design.md#api-as-primary-product)
 - **Non-goal:** “Shipping a mandatory bundled UI for every tenant — API is sufficient”
 - **Non-goal:** “Replacing Patreon/Steady community features (comments, DMs, polls)”
 - **Non-goal:** “Built-in email marketing” (post-MVP webhooks only)
@@ -223,7 +223,7 @@ if podcast membership infrastructure is essential, Directwerk wins. Pick a prima
 
 ## What we explicitly do not build (vs Ghost parity)
 
-From [`README.md` § Non-Goals (MVP)](../README.md#non-goals-mvp) — still valid for positioning:
+From [`README.md` § Non-Goals (MVP)](platform-design.md#non-goals-mvp) — still valid for positioning:
 
 | Out of scope | Rationale |
 |--------------|-----------|
@@ -268,7 +268,7 @@ feature-parity with Ghost Admin.
 3. **Podcast + entitlements + RSS before articles** — articles are optional seasoning, not the meal.
 4. **Migration modules are strategic** — `PATREON_SYNC` / `STEADY_SYNC` are acquisition features Ghost
    does not optimize for.
-5. **Reference UI is sales acceleration, not the product** — per [`README.md` § Reference Frontends](../README.md#reference-frontends).
+5. **Reference UI is sales acceleration, not the product** — per [`README.md` § Reference Frontends](platform-design.md#reference-frontends).
 
 ---
 
@@ -301,10 +301,10 @@ who outgrew closed platforms.
 
 ## Related reading
 
-- Product goals and non-goals: [`README.md` § Overview](../README.md#overview)
-- API-first principles: [`README.md` § API as Primary Product](../README.md#api-as-primary-product)
-- Patreon/Steady migration: [`README.md` § Patreon and Steady Onboarding](../README.md#patreon-and-steady-onboarding)
-- Feed builder: [`README.md` § Feed Builder](../README.md#feed-builder)
+- Product goals and non-goals: [`README.md` § Overview](platform-design.md#overview)
+- API-first principles: [`README.md` § API as Primary Product](platform-design.md#api-as-primary-product)
+- Patreon/Steady migration: [`README.md` § Patreon and Steady Onboarding](platform-design.md#patreon-and-steady-onboarding)
+- Feed builder: [`README.md` § Feed Builder](platform-design.md#feed-builder)
 - Private RSS and entitlements: [`asset-storage.md`](asset-storage.md)
 - Publisher dashboard (ops UI, not CMS): [`directwerk-studio-implementation.md`](directwerk-studio-implementation.md)
 - Content vs CMS strategy (blog/newsletter): [`content-platform-strategy.md`](content-platform-strategy.md)

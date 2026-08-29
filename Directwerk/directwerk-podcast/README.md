@@ -11,11 +11,10 @@ Companion docs:
 
 | Doc | Role |
 |-----|------|
-| [`../docs/poc-alpha-setup.md`](../docs/poc-alpha-setup.md) | Alpha status; Phase D / next steps |
-| [`../../docs/phase-2e-4-4b-implementation.md`](../../docs/phase-2e-4-4b-implementation.md) | **Next backend plan** — stream (2e), RSS (4), entitlements (4b) |
+| [`../docs/poc-alpha-setup.md`](../docs/poc-alpha-setup.md) | HTTP harness + local API setup |
+| [`../../docs/platform-design.md`](../../docs/platform-design.md) | Full platform design |
 | [`../../docs/content-creation-implementation.md`](../../docs/content-creation-implementation.md) | Studio + content blueprint |
-| [`../../docs/asset-storage.md`](../../docs/asset-storage.md) | S3, promote, group entitlements |
-| [`../../README.md`](../../README.md) | Full platform design |
+| [`../../docs/asset-storage.md`](../../docs/asset-storage.md) | S3, promote, entitlements |
 
 ---
 
@@ -216,9 +215,7 @@ publication workflow, public catalog endpoints, tests, and HTTP harness coverage
 
 ### Explicitly out of this module’s first delivery
 
-Phase 2e, 4a, 4b, and 4c below have since shipped (see
-[`phase-2e-4-4b-implementation.md`](../../docs/phase-2e-4-4b-implementation.md), now a historical
-reference). Remaining open items:
+Phase 2e, 4a, 4b, and 4c (stream, public RSS, entitlements, private RSS) are **shipped**. Remaining open items:
 
 | Item | When |
 |------|------|

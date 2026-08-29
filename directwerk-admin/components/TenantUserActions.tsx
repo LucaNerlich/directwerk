@@ -8,7 +8,7 @@ import {Button} from '@directwerk/ui/components/button'
 import {postPlatformData} from '@/lib/api/client'
 import {AUTH_REQUIRED, CONFLICT, FORBIDDEN} from '@directwerk/api/constants'
 import type {TenantUser} from '@directwerk/api/types'
-import {TENANT_INVITABLE_ROLES} from '@directwerk/api/types'
+import {PLATFORM_TENANT_INVITABLE_ROLES} from '@directwerk/api/types'
 import {getTenantRoleLabel} from '@/lib/roles'
 
 import {
@@ -29,6 +29,8 @@ export default function TenantUserActions({
 }: TenantUserActionsProps) {
     const [statusError, setStatusError] = useState<string | null>(null)
     const [isTogglingStatus, setIsTogglingStatus] = useState(false)
+    const [isResendingInvite, setIsResendingInvite] = useState(false)
+    const [resendStatus, setResendStatus] = useState<string | null>(null)
 
     const [roleState, roleAction, rolePending] = useActionState(
         changeTenantUserRoleAction.bind(null, tenantId, user.userId),
@@ -97,11 +99,41 @@ export default function TenantUserActions({
         }
     }
 
+    async function handleResendInvite(): Promise<void> {
+        setIsResendingInvite(true)
+        setResendStatus(null)
+        setStatusError(null)
+
+        try {
+            await postPlatformData(`tenants/${tenantId}/users/${user.userId}/resend-invite`, {})
+            setResendStatus('Invitation resent.')
+            onChanged()
+        } catch (requestError: unknown) {
+            if (
+                requestError instanceof Error &&
+                requestError.message === AUTH_REQUIRED
+            ) {
+                setStatusError('Your session expired. Sign in again.')
+                return
+            }
+            if (
+                requestError instanceof Error &&
+                requestError.message === CONFLICT
+            ) {
+                setStatusError('Only invited users can receive a resent invitation.')
+                return
+            }
+            setStatusError('Could not resend invitation.')
+        } finally {
+            setIsResendingInvite(false)
+        }
+    }
+
     return (
         <>
             <form action={roleAction} className="flex min-w-64 flex-wrap gap-2">
-                <select className="native-select w-auto flex-1" aria-label="User role" defaultValue={user.roles[0] ?? 'GUEST'} name="role">
-                    {TENANT_INVITABLE_ROLES.map((role) => (
+                <select className="native-select w-auto flex-1" aria-label="User role" defaultValue={user.roles[0] ?? 'EDITOR'} name="role">
+                    {PLATFORM_TENANT_INVITABLE_ROLES.map((role) => (
                         <option key={role} value={role}>
                             {getTenantRoleLabel(role)}
                         </option>
@@ -112,6 +144,22 @@ export default function TenantUserActions({
                 </Button>
             </form>
             {roleState.error ? <Alert variant="destructive"><AlertDescription>{roleState.error}</AlertDescription></Alert> : null}
+            {user.status === 'INVITED' ? (
+                <Button
+                    className="mt-2"
+                    disabled={isResendingInvite}
+                    onClick={() => void handleResendInvite()}
+                    type="button"
+                    variant="outline"
+                >
+                    {isResendingInvite ? 'Sending…' : 'Resend invite'}
+                </Button>
+            ) : null}
+            {resendStatus ? (
+                <p aria-live="polite" className="mt-2 text-sm text-muted-foreground" role="status">
+                    {resendStatus}
+                </p>
+            ) : null}
             <Button
                 className="mt-2"
                 disabled={isTogglingStatus}

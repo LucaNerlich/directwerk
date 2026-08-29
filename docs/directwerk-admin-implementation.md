@@ -1,12 +1,12 @@
 # Directwerk — `directwerk-admin` Implementation Guide
 
-Companion to [`README.md`](../README.md) § Platform Superadmin Dashboard and
+Companion to [`README.md`](platform-design.md) § Platform Superadmin Dashboard and
 [`poc-alpha-setup.md`](poc-alpha-setup.md). This document is the **step-by-step engineering guide**
 for building the platform operations console at `directwerk-admin/`.
 
 | Document | Purpose |
 |----------|---------|
-| [`README.md`](../README.md) § Platform Superadmin Dashboard | Product-level spec |
+| [`README.md`](platform-design.md) § Platform Superadmin Dashboard | Product-level spec |
 | [`user-backend-implementation.md`](user-backend-implementation.md) | Spring Security backend this app consumes |
 | [`directwerk-studio-implementation.md`](directwerk-studio-implementation.md) | Tenant dashboard (contrast — different auth boundary) |
 | **This document** | **How to scaffold and implement** `directwerk-admin` |
@@ -662,7 +662,7 @@ MVP shipped at `directwerk-admin/`. Remaining: production deploy checklist, expa
 
 ## 13. Related reading
 
-- Product spec: [`README.md` § Platform Superadmin Dashboard](../README.md#platform-superadmin-dashboard)
+- Product spec: [`README.md` § Platform Superadmin Dashboard](platform-design.md#platform-superadmin-dashboard)
 - Backend auth: [`user-backend-implementation.md`](user-backend-implementation.md)
 - Tenant dashboard contrast: [`directwerk-studio-implementation.md`](directwerk-studio-implementation.md)
 - Alpha backend: [`poc-alpha-setup.md`](poc-alpha-setup.md)

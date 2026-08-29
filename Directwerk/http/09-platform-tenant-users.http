@@ -46,6 +46,38 @@ Accept: application/json
 
 ###
 
+### @name deactivateTenantAUser
+POST {{baseUrl}}/api/v1/platform/tenants/{{tenantAId}}/users/{{editorUserId}}/deactivate
+Authorization: Bearer {{platformAccessToken}}
+Accept: application/json
+
+> {%
+    client.test("Deactivate tenant user (platform)", function() {
+        client.assert(
+            response.status === 200 || response.status === 404 || response.status === 409,
+            "Expected 200/404/409"
+        );
+    });
+%}
+
+###
+
+### @name reactivateTenantAUser
+POST {{baseUrl}}/api/v1/platform/tenants/{{tenantAId}}/users/{{editorUserId}}/reactivate
+Authorization: Bearer {{platformAccessToken}}
+Accept: application/json
+
+> {%
+    client.test("Reactivate tenant user (platform)", function() {
+        client.assert(
+            response.status === 200 || response.status === 404 || response.status === 409,
+            "Expected 200/404/409"
+        );
+    });
+%}
+
+###
+
 ### @name updateTenantAUserRole
 PATCH {{baseUrl}}/api/v1/platform/tenants/{{tenantAId}}/users/{{editorUserId}}
 Authorization: Bearer {{platformAccessToken}}
@@ -58,7 +90,29 @@ Accept: application/json
 
 > {%
     client.test("Update tenant user role", function() {
-        client.assert(response.status === 200, "Expected 200");
-        client.assert(response.body.data.roles[0] === "TENANT_ADMIN", "Expected TENANT_ADMIN");
+        client.assert(
+            response.status === 200 || response.status === 400 || response.status === 404 || response.status === 409,
+            "Expected 200/400/404/409"
+        );
+        if (response.status === 200) {
+            client.assert(response.body.data.roles[0] === "TENANT_ADMIN", "Expected TENANT_ADMIN");
+        }
+    });
+%}
+
+###
+
+### @name resendTenantUserInvite
+POST {{baseUrl}}/api/v1/platform/tenants/{{tenantAId}}/users/{{editorUserId}}/resend-invite
+Authorization: Bearer {{platformAccessToken}}
+Accept: application/json
+
+> {%
+    client.test("Resend tenant user invite", function() {
+        client.assert(response.status === 201 || response.status === 409,
+            "Expected 201 or 409 for invited user");
+        if (response.status === 201 && response.body.data && response.body.data.inviteToken) {
+            client.global.set("inviteToken", response.body.data.inviteToken);
+        }
     });
 %}

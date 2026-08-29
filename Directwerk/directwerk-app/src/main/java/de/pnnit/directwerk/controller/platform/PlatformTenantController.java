@@ -3,13 +3,13 @@ package de.pnnit.directwerk.controller.platform;
 import de.pnnit.directwerk.api.dto.DomainView;
 import de.pnnit.directwerk.api.response.Response;
 import de.pnnit.directwerk.config.DirectwerkConfig;
-import de.pnnit.directwerk.modules.core.entity.Tenant;
 import de.pnnit.directwerk.modules.core.entity.TenantDomain;
 import de.pnnit.directwerk.modules.core.service.TenantDomainService;
-import de.pnnit.directwerk.modules.core.service.TenantManagementService;
 import de.pnnit.directwerk.modules.core.service.TenantInvitationService;
+import de.pnnit.directwerk.modules.core.service.TenantManagementService;
 import de.pnnit.directwerk.modules.core.service.TenantManagementService.TenantCreationResult;
 import de.pnnit.directwerk.modules.core.service.TenantManagementService.TenantDetailView;
+import de.pnnit.directwerk.modules.core.service.TenantManagementService.TenantListItemView;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
@@ -35,6 +35,7 @@ public class PlatformTenantController {
     private final TenantManagementService tenantManagementService;
     private final TenantDomainService tenantDomainService;
     private final DirectwerkConfig directwerkConfig;
+    private final PlatformTenantStatsService platformTenantStatsService;
 
     /**
      * Creates a controller for platform tenant lifecycle endpoints.
@@ -42,15 +43,18 @@ public class PlatformTenantController {
      * @param tenantManagementService service used to manage tenant lifecycle operations
      * @param tenantDomainService      service used for platform domain operations
      * @param directwerkConfig         configuration controlling development token exposure
+     * @param platformTenantStatsService service used to load tenant usage stats
      */
     public PlatformTenantController(
             TenantManagementService tenantManagementService,
             TenantDomainService tenantDomainService,
-            DirectwerkConfig directwerkConfig
+            DirectwerkConfig directwerkConfig,
+            PlatformTenantStatsService platformTenantStatsService
     ) {
         this.tenantManagementService = tenantManagementService;
         this.tenantDomainService = tenantDomainService;
         this.directwerkConfig = directwerkConfig;
+        this.platformTenantStatsService = platformTenantStatsService;
     }
 
     /**
@@ -60,9 +64,7 @@ public class PlatformTenantController {
      */
     @GetMapping
     ResponseEntity<Response<TenantListResponse>> listTenants() {
-        List<TenantView> tenants = tenantManagementService.listTenants().stream()
-                .map(this::toView)
-                .toList();
+        List<TenantListItemView> tenants = tenantManagementService.listTenants();
         return ResponseEntity.ok(Response.ok(new TenantListResponse(tenants)));
     }
 
@@ -109,8 +111,10 @@ public class PlatformTenantController {
      * @return the tenant details
      */
     @GetMapping("/{tenantId}")
-    ResponseEntity<Response<TenantDetailView>> getTenant(@PathVariable Long tenantId) {
-        return ResponseEntity.ok(Response.ok(tenantManagementService.getTenant(tenantId)));
+    ResponseEntity<Response<TenantDetailResponse>> getTenant(@PathVariable Long tenantId) {
+        TenantDetailView tenant = tenantManagementService.getTenant(tenantId);
+        PlatformTenantStatsService.TenantStatsView stats = platformTenantStatsService.statsFor(tenantId);
+        return ResponseEntity.ok(Response.ok(new TenantDetailResponse(tenant, stats.episodeCount(), stats.subscriberCount())));
     }
 
     /**
@@ -174,14 +178,14 @@ public class PlatformTenantController {
      * @param tenant the tenant to convert
      * @return the tenant view
      */
-    private TenantView toView(Tenant tenant) {
-        return new TenantView(tenant.getId(), tenant.getSlug(), tenant.getName(), tenant.getStatus().name());
+    public record TenantListResponse(List<TenantListItemView> content) {
     }
 
-    public record TenantListResponse(List<TenantView> content) {
-    }
-
-    public record TenantView(Long id, String slug, String name, String status) {
+    public record TenantDetailResponse(
+            TenantDetailView tenant,
+            long episodeCount,
+            long subscriberCount
+    ) {
     }
 
     public record CreateTenantRequest(

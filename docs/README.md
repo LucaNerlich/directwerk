@@ -1,45 +1,69 @@
 # Internal documentation index
 
-Agent and operator docs for the Directwerk monorepo. **Public integrator docs** live in
-[`directwerk-docs/`](../directwerk-docs/). **Product design spec:** [`README.md`](../README.md).
+Agent and operator docs for the Directwerk monorepo.
 
-## Start here
+**Public integrator docs:** [`directwerk-docs/`](../directwerk-docs/) (VitePress).  
+**Product design spec:** [`platform-design.md`](platform-design.md).  
+**Repo entry point:** [`README.md`](../README.md).
+
+When you change a canonical doc below that has a public mirror, update the matching page under
+`directwerk-docs/docs/` in the same PR (see [`directwerk-docs/README.md`](../directwerk-docs/README.md)).
+
+---
+
+## Run the repo
 
 | Document | Use when |
 |----------|----------|
-| [`ui-system.md`](ui-system.md) | Building or changing Next.js UI (`@directwerk/ui`, tokens, components) |
-| [`frontend-pages.md`](frontend-pages.md) | Adding a route/page in studio, web, or admin |
-| [`directwerk-studio.md`](directwerk-studio.md) | Product context for the creator dashboard |
-| [`directwerk-studio-implementation.md`](directwerk-studio-implementation.md) | Studio screens, API mappings, shipped checklist |
-| [`directwerk-admin-implementation.md`](directwerk-admin-implementation.md) | Platform admin app |
-| [`poc-alpha-setup.md`](poc-alpha-setup.md) | Local API setup + HTTP harness run order |
+| [`Directwerk/docs/build-and-deploy.md`](../Directwerk/docs/build-and-deploy.md) | Local dev, Docker, Coolify, env vars |
+| [`poc-alpha-setup.md`](poc-alpha-setup.md) | HTTP harness file map + run order |
+| [`Directwerk/http/`](../Directwerk/http/), [`Directwerk/bruno/`](../Directwerk/bruno/) | Manual API tests |
 
-## Backend & domain
+---
 
-| Document | Status |
-|----------|--------|
-| [`user-backend-implementation.md`](user-backend-implementation.md) | Shipped — auth, roles, `/me` |
-| [`asset-storage.md`](asset-storage.md) | Shipped — S3, upload/confirm, entitlements |
-| [`content-creation-implementation.md`](content-creation-implementation.md) | Reference — content services, workflow |
-| [`content-subscriptions-and-entitlements.md`](content-subscriptions-and-entitlements.md) | Reference — LEVEL/PACKAGE model |
-| [`publication-desks-model.md`](publication-desks-model.md) | Reference — Write vs Podcast desks |
-| [`payment.md`](payment.md) | Stripe Connect — live when env keys set |
-| [`patreon-steady-integration.md`](patreon-steady-integration.md) | Planned / partial |
-| [`bunny-net-integration.md`](bunny-net-integration.md) | Operator CDN guide |
+## Product & strategy
 
-## Historical / planning (do not treat as backlog)
+| Document | Use when |
+|----------|----------|
+| [`platform-design.md`](platform-design.md) | Full design spec (entities, APIs, journeys) |
+| [`content-platform-strategy.md`](content-platform-strategy.md) | Publication platform vs CMS scope |
+| [`publication-desks-model.md`](publication-desks-model.md) | Write desk vs Podcast desk |
+| [`ghost-positioning.md`](ghost-positioning.md) | Competitive framing vs Ghost |
+| [`product-naming.md`](product-naming.md) | Naming + legal TODOs |
 
-These describe **completed** slices or open product decisions, not greenfield work:
+---
 
-| Document | Note |
-|----------|------|
-| [`phase-2e-4-4b-implementation.md`](phase-2e-4-4b-implementation.md) | Shipped 2026-07 — stream, RSS, entitlements |
-| [`phase-studio-products-plan.md`](phase-studio-products-plan.md) | Partial — product UI shipped; polish items remain |
-| [`ghost-positioning.md`](ghost-positioning.md) | Strategy — not a feature checklist |
-| [`product-naming.md`](product-naming.md) | Naming + pre-launch legal TODOs |
+## Backend & domain (canonical → public mirror)
 
-## Removed
+| Document | Status | Public mirror |
+|----------|--------|---------------|
+| [`user-backend-implementation.md`](user-backend-implementation.md) | Shipped | — |
+| [`asset-storage.md`](asset-storage.md) | Shipped | `directwerk-docs/.../architecture/asset-storage` |
+| [`content-subscriptions-and-entitlements.md`](content-subscriptions-and-entitlements.md) | Shipped | `directwerk-docs/.../operators/subscriptions-and-entitlements` |
+| [`payment.md`](payment.md) | Shipped (501 without Stripe keys) | `directwerk-docs/.../architecture/billing-stripe` |
+| [`content-creation-implementation.md`](content-creation-implementation.md) | Reference | — |
+| [`patreon-steady-integration.md`](patreon-steady-integration.md) | Planned / partial | — |
+| [`bunny-net-integration.md`](bunny-net-integration.md) | Operator CDN guide | — |
+| [`Directwerk/docs/multi-tenancy.md`](../Directwerk/docs/multi-tenancy.md) | Shipped | `directwerk-docs/.../architecture/multi-tenancy` |
+| [`Directwerk/docs/rss-feed-storage.md`](../Directwerk/docs/rss-feed-storage.md) | Shipped | `directwerk-docs/.../architecture/rss-feeds` |
+| [`Directwerk/docs/jobs-and-email.md`](../Directwerk/docs/jobs-and-email.md) | Shipped | `directwerk-docs/.../operators/email-and-jobs` |
+| [`Directwerk/docs/media-upload-howto.md`](../Directwerk/docs/media-upload-howto.md) | Shipped | `directwerk-docs/.../operators/media-upload` |
 
-- `docs/superpowers/` — July 2026 implementation plans (pre-`@directwerk/ui`, CSS Modules era). Deleted; use this index and app READMEs instead.
+Module briefs: [`Directwerk/directwerk-podcast/README.md`](../Directwerk/directwerk-podcast/README.md),
+[`Directwerk/directwerk-digital/README.md`](../Directwerk/directwerk-digital/README.md).
+
+---
+
+## Frontend apps
+
+| Document | App |
+|----------|-----|
+| [`directwerk-studio.md`](directwerk-studio.md) | Creator product context |
+| [`directwerk-studio-implementation.md`](directwerk-studio-implementation.md) | Studio screens + API map |
+| [`directwerk-admin-implementation.md`](directwerk-admin-implementation.md) | Platform admin |
+| [`frontend-pages.md`](frontend-pages.md) | Adding routes |
+| [`ui-system.md`](ui-system.md) | `@directwerk/ui`, tokens, components |
+
+---
 
 *Last updated: 2026-08*

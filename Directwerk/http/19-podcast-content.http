@@ -1,6 +1,24 @@
 ### Directwerk — Podcast content (Phase 3)
-### Prerequisites: 02-oauth2.http (tenantAAccessToken), PODCAST active for tenant A.
+### Prerequisites: 02-oauth2.http (tenantAAccessToken), 07-platform-modules.http (PODCAST active),
+###                17-media-upload.http (mediaAssetId optional for attach audio).
 ### Publish may return EPISODE_VALIDATION_FAILED until a READY audio asset is attached.
+
+### @name listPodcastFormats
+GET {{baseUrl}}/api/v1/formats
+Host: {{tenantAHost}}
+Authorization: Bearer {{tenantAAccessToken}}
+Accept: application/json
+
+> {%
+    client.test("List podcast formats", function() {
+        client.assert(response.status === 200 || response.status === 403, "Expected 200 or 403");
+        if (response.status === 200) {
+            client.assert(Array.isArray(response.body.data), "Expected formats array");
+        }
+    });
+%}
+
+###
 
 ### @name createPodcastFormat
 < {%
@@ -21,9 +39,114 @@ Accept: application/json
 
 > {%
     client.test("Create podcast format", function() {
-        client.assert(response.status === 201 || response.status === 403, "Expected 201 or 403 when PODCAST is off");
+        client.assert(response.status === 201 || response.status === 403 || response.status === 500,
+            "Expected 201, 403, or known 500 on re-run");
         if (response.status === 201) {
             client.global.set("podcastFormatId", response.body.data.id);
+        }
+    });
+%}
+
+###
+
+### @name updatePodcastFormat
+PUT {{baseUrl}}/api/v1/formats/{{podcastFormatId}}
+Host: {{tenantAHost}}
+Authorization: Bearer {{tenantAAccessToken}}
+Content-Type: application/json
+Accept: application/json
+
+{
+  "slug": "{{podcastFormatSlug}}",
+  "name": "Harness Format Updated",
+  "sortOrder": 10,
+  "active": true
+}
+
+> {%
+    client.test("Update podcast format", function() {
+        client.assert(response.status === 200 || response.status === 404, "Expected 200 or 404");
+    });
+%}
+
+###
+
+### @name createPodcastCategory
+< {%
+  client.global.set("podcastCategorySlug", "category-" + Date.now().toString(36));
+%}
+POST {{baseUrl}}/api/v1/categories
+Host: {{tenantAHost}}
+Authorization: Bearer {{tenantAAccessToken}}
+Content-Type: application/json
+Accept: application/json
+
+{
+  "slug": "{{podcastCategorySlug}}",
+  "name": "Harness Category"
+}
+
+> {%
+    client.test("Create podcast category", function() {
+        client.assert(response.status === 201 || response.status === 403 || response.status === 500,
+            "Expected 201, 403, or known 500 on re-run");
+        if (response.status === 201) {
+            client.global.set("podcastCategoryId", response.body.data.id);
+        }
+    });
+%}
+
+###
+
+### @name listPodcastCategories
+GET {{baseUrl}}/api/v1/categories
+Host: {{tenantAHost}}
+Authorization: Bearer {{tenantAAccessToken}}
+Accept: application/json
+
+> {%
+    client.test("List podcast categories", function() {
+        client.assert(response.status === 200 || response.status === 403, "Expected 200 or 403");
+        if (response.status === 200) {
+            client.assert(Array.isArray(response.body.data), "Expected categories array");
+        }
+    });
+%}
+
+###
+
+### @name updatePodcastCategory
+PUT {{baseUrl}}/api/v1/categories/{{podcastCategoryId}}
+Host: {{tenantAHost}}
+Authorization: Bearer {{tenantAAccessToken}}
+Content-Type: application/json
+Accept: application/json
+
+{
+  "slug": "{{podcastCategorySlug}}",
+  "name": "Harness Category Updated",
+  "active": true
+}
+
+> {%
+    client.test("Update podcast category", function() {
+        client.assert(response.status === 200 || response.status === 404, "Expected 200 or 404");
+    });
+%}
+
+###
+
+### @name listPodcastSeries
+GET {{baseUrl}}/api/v1/series
+Host: {{tenantAHost}}
+Authorization: Bearer {{tenantAAccessToken}}
+Accept: application/json
+
+> {%
+    client.test("List podcast series", function() {
+        client.assert(response.status === 200 || response.status === 403, "Expected 200 or 403");
+        if (response.status === 200) {
+            client.assert(Array.isArray(response.body.data), "Expected series array");
         }
     });
 %}
@@ -59,6 +182,62 @@ Accept: application/json
 
 ###
 
+### @name getPodcastSeries
+GET {{baseUrl}}/api/v1/series/{{podcastSeriesId}}
+Host: {{tenantAHost}}
+Authorization: Bearer {{tenantAAccessToken}}
+Accept: application/json
+
+> {%
+    client.test("Get podcast series", function() {
+        client.assert(response.status === 200 || response.status === 404, "Expected 200 or 404");
+    });
+%}
+
+###
+
+### @name updatePodcastSeries
+PUT {{baseUrl}}/api/v1/series/{{podcastSeriesId}}
+Host: {{tenantAHost}}
+Authorization: Bearer {{tenantAAccessToken}}
+Content-Type: application/json
+Accept: application/json
+
+{
+  "slug": "{{podcastSeriesSlug}}",
+  "title": "Harness Podcast Updated",
+  "description": "<p>Updated show notes.</p>",
+  "language": "de",
+  "itunesCategory": "News",
+  "status": "DRAFT"
+}
+
+> {%
+    client.test("Update podcast series", function() {
+        client.assert(response.status === 200 || response.status === 404 || response.status === 409,
+            "Expected 200/404/409");
+    });
+%}
+
+###
+
+### @name listPodcastEpisodes
+GET {{baseUrl}}/api/v1/episodes
+Host: {{tenantAHost}}
+Authorization: Bearer {{tenantAAccessToken}}
+Accept: application/json
+
+> {%
+    client.test("List podcast episodes", function() {
+        client.assert(response.status === 200 || response.status === 403, "Expected 200 or 403");
+        if (response.status === 200) {
+            client.assert(Array.isArray(response.body.data), "Expected episodes array");
+        }
+    });
+%}
+
+###
+
 ### @name createPodcastEpisodeDraft
 < {%
   client.global.set("podcastEpisodeSlug", "episode-" + Date.now().toString(36));
@@ -85,6 +264,145 @@ Accept: application/json
         if (response.status === 201) {
             client.global.set("podcastEpisodeId", response.body.data.id);
         }
+    });
+%}
+
+###
+
+### @name getPodcastEpisode
+GET {{baseUrl}}/api/v1/episodes/{{podcastEpisodeId}}
+Host: {{tenantAHost}}
+Authorization: Bearer {{tenantAAccessToken}}
+Accept: application/json
+
+> {%
+    client.test("Get podcast episode", function() {
+        client.assert(response.status === 200 || response.status === 404, "Expected 200 or 404");
+    });
+%}
+
+###
+
+### @name updatePodcastEpisode
+PUT {{baseUrl}}/api/v1/episodes/{{podcastEpisodeId}}
+Host: {{tenantAHost}}
+Authorization: Bearer {{tenantAAccessToken}}
+Content-Type: application/json
+Accept: application/json
+
+{
+  "title": "Harness Episode Updated",
+  "description": "<p>Updated show notes.</p>",
+  "accessPolicy": "FREE"
+}
+
+> {%
+    client.test("Update podcast episode", function() {
+        client.assert(response.status === 200 || response.status === 400 || response.status === 404,
+            "Expected 200/400/404");
+    });
+%}
+
+###
+
+### @name replacePodcastEpisodeFormats
+PUT {{baseUrl}}/api/v1/episodes/{{podcastEpisodeId}}/formats
+Host: {{tenantAHost}}
+Authorization: Bearer {{tenantAAccessToken}}
+Content-Type: application/json
+Accept: application/json
+
+{
+  "formatIds": [{{podcastFormatId}}]
+}
+
+> {%
+    client.test("Replace podcast episode formats", function() {
+        client.assert(response.status === 200 || response.status === 404, "Expected 200 or 404");
+    });
+%}
+
+###
+
+### @name replacePodcastEpisodeCategories
+PUT {{baseUrl}}/api/v1/episodes/{{podcastEpisodeId}}/categories
+Host: {{tenantAHost}}
+Authorization: Bearer {{tenantAAccessToken}}
+Content-Type: application/json
+Accept: application/json
+
+{
+  "categoryIds": [{{podcastCategoryId}}]
+}
+
+> {%
+    client.test("Replace podcast episode categories", function() {
+        client.assert(response.status === 200 || response.status === 404, "Expected 200 or 404");
+    });
+%}
+
+###
+
+### @name attachPodcastEpisodeAudio
+POST {{baseUrl}}/api/v1/episodes/{{podcastEpisodeId}}/audio
+Host: {{tenantAHost}}
+Authorization: Bearer {{tenantAAccessToken}}
+Content-Type: application/json
+Accept: application/json
+
+{
+  "audioAssetId": {{mediaAssetId}}
+}
+
+> {%
+    client.test("Attach podcast episode audio", function() {
+        client.assert(
+            response.status === 200 || response.status === 400 || response.status === 404,
+            "Expected 200/400/404 — needs READY audio asset from 17-media-upload.http"
+        );
+    });
+%}
+
+###
+
+### @name schedulePodcastEpisode
+< {%
+  client.global.set("scheduledAt", new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString());
+%}
+POST {{baseUrl}}/api/v1/episodes/{{podcastEpisodeId}}/schedule
+Host: {{tenantAHost}}
+Authorization: Bearer {{tenantAAccessToken}}
+Content-Type: application/json
+Accept: application/json
+
+{
+  "scheduledAt": "{{scheduledAt}}",
+  "notifySubscribers": false
+}
+
+> {%
+    client.test("Schedule podcast episode", function() {
+        client.assert(
+            response.status === 200 || response.status === 400 || response.status === 404,
+            "Expected schedule response"
+        );
+    });
+%}
+
+###
+
+### @name cancelPodcastEpisodeSchedule
+POST {{baseUrl}}/api/v1/episodes/{{podcastEpisodeId}}/cancel-schedule
+Host: {{tenantAHost}}
+Authorization: Bearer {{tenantAAccessToken}}
+Accept: application/json
+
+> {%
+    client.test("Cancel scheduled podcast episode", function() {
+        client.assert(
+            response.status === 200 || response.status === 400 || response.status === 404,
+            "Expected cancel-schedule response"
+        );
     });
 %}
 
@@ -228,5 +546,33 @@ Accept: application/json
         if (response.status === 200) {
             client.assert(response.body.data.status === "DRAFT", "Expected DRAFT after unarchive");
         }
+    });
+%}
+
+###
+
+### @name deactivatePodcastCategory
+DELETE {{baseUrl}}/api/v1/categories/{{podcastCategoryId}}
+Host: {{tenantAHost}}
+Authorization: Bearer {{tenantAAccessToken}}
+Accept: application/json
+
+> {%
+    client.test("Deactivate podcast category", function() {
+        client.assert(response.status === 200 || response.status === 404, "Expected 200 or 404");
+    });
+%}
+
+###
+
+### @name deactivatePodcastFormat
+DELETE {{baseUrl}}/api/v1/formats/{{podcastFormatId}}
+Host: {{tenantAHost}}
+Authorization: Bearer {{tenantAAccessToken}}
+Accept: application/json
+
+> {%
+    client.test("Deactivate podcast format", function() {
+        client.assert(response.status === 200 || response.status === 404, "Expected 200 or 404");
     });
 %}

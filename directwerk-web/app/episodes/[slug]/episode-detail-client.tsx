@@ -4,11 +4,12 @@ import Link from 'next/link'
 import {useEffect, useState, useSyncExternalStore} from 'react'
 
 import {Alert, AlertDescription} from '@directwerk/ui/components/alert'
-import {Badge} from '@directwerk/ui/components/badge'
 import PageHeader from '@directwerk/ui/components/page-header'
 import PageStack from '@directwerk/ui/components/page-stack'
 import SectionHeader from '@directwerk/ui/components/section-header'
 
+import AccessPolicyBadge from '@/components/AccessPolicyBadge'
+import ContentMetaLine from '@/components/ContentMetaLine'
 import {listMyEpisodes, listPublicEpisodes} from '@/lib/api/client'
 import {AUTH_REQUIRED} from '@directwerk/api/constants'
 import type {PublicEpisode} from '@directwerk/api/types'
@@ -17,6 +18,7 @@ import {
     subscribeToTokenStore,
 } from '@/lib/auth/tokenStore'
 import {formatPublishedAt} from '@directwerk/api/format/datetime'
+import {formatDuration} from '@/lib/format/content'
 import {getClientTenantHost} from '@directwerk/api/tenant'
 
 function readTokenClient(): string | null {
@@ -130,12 +132,16 @@ export default function EpisodeDetailClient({
             {episode !== null ? (
                 <article className="max-w-3xl space-y-6">
                     <PageHeader
-                        actions={
-                            <Badge variant="outline">
-                                {episode.accessPolicy === 'PAID' ? 'Bezahlt' : 'Frei'}
-                            </Badge>
+                        actions={<AccessPolicyBadge policy={episode.accessPolicy} />}
+                        description={
+                            <ContentMetaLine
+                                items={[
+                                    episode.seriesSlug,
+                                    formatPublishedAt(episode.publishedAt),
+                                    formatDuration(episode.durationSeconds),
+                                ]}
+                            />
                         }
-                        description={`${episode.seriesSlug} · ${formatPublishedAt(episode.publishedAt)}`}
                         title={title}
                     />
                     {episode.description !== null && episode.description.length > 0 ? (
@@ -145,11 +151,11 @@ export default function EpisodeDetailClient({
                         />
                     ) : null}
 
-                    <section className="flex flex-col gap-3">
+                    <section className="flex flex-col gap-3 rounded-xl border bg-card p-5">
                         <SectionHeader title="Player" />
                         {episode.audioCdnUrl !== null ? (
                             <audio
-                                className="media-player"
+                                className="media-player w-full"
                                 controls
                                 preload="metadata"
                                 src={episode.audioCdnUrl}

@@ -693,6 +693,8 @@ export interface TenantUser {
     name: string | null
     roles: string[]
     status: MembershipStatus
+    invitedAt: string | null
+    lastLoginAt: string | null
 }
 
 export interface TenantUsers {
@@ -736,12 +738,47 @@ export interface Tenant {
     slug: string
     name: string
     status: string
+    createdAt?: string
+    primaryDomain?: string | null
+}
+
+export interface TenantDomainSummary {
+    host: string
+    primary: boolean
+    verified: boolean
+}
+
+export interface TenantDetail {
+    id: number
+    slug: string
+    name: string
+    status: string
+    createdAt: string
+    primaryDomain: string | null
+    domains: TenantDomainSummary[]
+}
+
+export interface TenantDetailResponse {
+    tenant: TenantDetail
+    episodeCount: number
+    subscriberCount: number
 }
 
 export interface TenantList {
     content: Tenant[]
 }
 
+export interface TenantModuleActivation {
+    moduleKey: string
+    active: boolean
+    activatedAt: string
+    source: string
+}
+
+export interface TenantModules {
+    enabledModules: string[]
+    activations: TenantModuleActivation[]
+}
 export interface TenantAdminInvitation {
     email: string
     status: string
@@ -765,10 +802,6 @@ export interface CreateTenantInput {
     adminName?: string
 }
 
-export interface TenantModules {
-    enabledModules: string[]
-}
-
 /** Platform module catalog entry from GET /api/v1/platform/modules */
 export interface ModuleDescriptor {
     moduleKey: string
@@ -784,6 +817,7 @@ export interface PlatformAdmin {
     userId: number
     email: string
     name: string | null
+    lastLoginAt: string | null
 }
 
 export interface InvitePlatformAdminResponse {
@@ -814,9 +848,37 @@ export interface PlatformAuditEvent {
     id: number
     action: string
     actorUserId: number | null
+    actorEmail: string | null
     tenantId: number | null
     details: Record<string, unknown>
     createdAt: string
+}
+
+export interface PlatformAuditPage {
+    content: PlatformAuditEvent[]
+    totalElements: number
+    page: number
+    size: number
+}
+
+export interface PlatformOverview {
+    tenantCounts: {
+        active: number
+        suspended: number
+    }
+    moduleAdoption: Array<{
+        moduleKey: string
+        tenantCount: number
+    }>
+    recentAudit: PlatformAuditEvent[]
+}
+
+export interface PlatformAuditQuery {
+    page?: number
+    size?: number
+    tenantId?: number
+    action?: string
+    actorEmail?: string
 }
 
 // ---------------------------------------------------------------------------
@@ -831,6 +893,7 @@ export {
     ASSET_VISIBILITIES,
     JOB_STATUSES,
     MODULE_PRESETS,
+    PLATFORM_TENANT_INVITABLE_ROLES,
     TENANT_INVITABLE_ROLES,
 } from './constants'
 export type {TenantInvitableRole} from './constants'

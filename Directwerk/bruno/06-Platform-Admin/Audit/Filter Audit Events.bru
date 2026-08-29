@@ -1,0 +1,28 @@
+meta {
+  name: Filter Audit Events
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/api/v1/platform/audit
+  body: none
+  auth: inherit
+}
+
+params:query {
+  page: 0
+  size: 10
+  action: TENANT_CREATED
+}
+
+tests {
+  test("returns expected status", function() {
+    expect(res.getStatus() === 200).to.equal(true);
+  });
+
+  test("returns filtered audit payload", function() {
+    expect(res.body.data).to.be.an("array");
+    expect(res.body.metadata.totalElements).to.be.a("number");
+  });
+}

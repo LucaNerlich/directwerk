@@ -2,7 +2,7 @@
 ### Prerequisites: 02-oauth2.http (platformAccessToken), mutating platform calls (06/07/08/09)
 
 ### @name listPlatformAudit
-GET {{baseUrl}}/api/v1/platform/audit?limit=20
+GET {{baseUrl}}/api/v1/platform/audit?page=0&size=20
 Authorization: Bearer {{platformAccessToken}}
 Accept: application/json
 
@@ -10,5 +10,33 @@ Accept: application/json
     client.test("List platform audit events", function() {
         client.assert(response.status === 200, "Expected 200");
         client.assert(Array.isArray(response.body.data), "Expected data array");
+        client.assert(typeof response.body.metadata.totalElements === "number", "Expected metadata.totalElements");
+    });
+%}
+
+###
+
+### @name listPlatformAuditFiltered
+GET {{baseUrl}}/api/v1/platform/audit?page=0&size=10&action=TENANT_CREATED
+Authorization: Bearer {{platformAccessToken}}
+Accept: application/json
+
+> {%
+    client.test("Filter platform audit events", function() {
+        client.assert(response.status === 200, "Expected 200");
+    });
+%}
+
+###
+
+### @name getPlatformOverview
+GET {{baseUrl}}/api/v1/platform/overview?recentAuditLimit=5
+Authorization: Bearer {{platformAccessToken}}
+Accept: application/json
+
+> {%
+    client.test("Platform overview", function() {
+        client.assert(response.status === 200, "Expected 200");
+        client.assert(response.body.data.tenantCounts !== undefined, "Expected tenantCounts");
     });
 %}

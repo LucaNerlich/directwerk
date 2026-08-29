@@ -1,7 +1,7 @@
 # Directwerk — `directwerk-studio` Implementation Guide
 
 Companion to [`directwerk-studio.md`](directwerk-studio.md) (product overview) and
-[`README.md`](../README.md) (full platform design). This document is the **single implementation
+[`README.md`](platform-design.md) (full platform design). This document is the **single implementation
 spec** for the creator dashboard at `directwerk-studio/` — product context, screen-by-screen
 UI spec, API mappings, scaffold, auth, and phased checklist.
 
@@ -471,6 +471,9 @@ PII by default (configurable post-MVP).
 
 Public pricing cards read `GET /api/v1/public/products` — dashboard edits the same entities.
 
+**Open polish:** sort LEVEL products by `sortOrder` on the list with visible tier badges; live Stripe
+Checkout depends on Connect onboarding (see [`payment.md`](payment.md)).
+
 ---
 
 ### 5. Monetization → Integrations
@@ -849,7 +852,7 @@ Most checklist items below shipped in the MVP. Remaining gaps: live Stripe money
 - Product overview: [`directwerk-studio.md`](directwerk-studio.md)
 - Content backend: [`content-creation-implementation.md`](content-creation-implementation.md)
 - Backend auth: [`user-backend-implementation.md`](user-backend-implementation.md)
-- Alpha sequence: [`poc-alpha-setup.md` § Phase B](poc-alpha-setup.md#phase-b--studio-v0-settings--team)
+- Studio scaffold: [`directwerk-studio-implementation.md`](directwerk-studio-implementation.md)
 - Asset upload/confirm: [`asset-storage.md`](asset-storage.md)
 - Platform superadmin (separate app): [`directwerk-admin-implementation.md`](directwerk-admin-implementation.md)
 

@@ -54,6 +54,23 @@ Accept: application/json
 
 ###
 
+### @name getMediaById
+GET {{baseUrl}}/api/v1/media/{{mediaAssetId}}
+Authorization: Bearer {{tenantAAccessToken}}
+Host: {{tenantAHost}}
+Accept: application/json
+
+> {%
+    client.test("Get media by id", function() {
+        client.assert(
+            response.status === 200 || response.status === 404 || response.status === 503,
+            "Expected 200/404/503"
+        );
+    });
+%}
+
+###
+
 ### @name confirmUpload
 POST {{baseUrl}}/api/v1/media/{{mediaAssetId}}/confirm
 Authorization: Bearer {{tenantAAccessToken}}
@@ -93,5 +110,22 @@ Accept: application/json
         if (response.status === 200) {
             client.assert(response.body.data.url, "Expected url");
         }
+    });
+%}
+
+###
+
+### @name deleteMedia
+DELETE {{baseUrl}}/api/v1/media/{{mediaAssetId}}
+Authorization: Bearer {{tenantAAccessToken}}
+Host: {{tenantAHost}}
+Accept: application/json
+
+> {%
+    client.test("Delete media", function() {
+        client.assert(
+            response.status === 200 || response.status === 404 || response.status === 503,
+            "Expected 200/404/503"
+        );
     });
 %}

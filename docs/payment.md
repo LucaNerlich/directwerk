@@ -1,7 +1,7 @@
 # Payments (Stripe Connect) — status, gaps, and implementation plan
 
 Implementation brief for **Phase 8 / `STRIPE_BILLING`**: live Stripe Connect billing on
-Directwerk. Complements the design sketch in [`../README.md`](../README.md#payments-and-billing)
+Directwerk. Complements the design sketch in [`../README.md`](platform-design.md#payments-and-billing)
 and the entitlement model in [`content-subscriptions-and-entitlements.md`](content-subscriptions-and-entitlements.md).
 
 | | |
@@ -390,7 +390,7 @@ Gradle: add official Stripe Java SDK; pin version in BOM/catalog if used.
 
 | Doc | Why |
 |-----|-----|
-| [`../README.md`](../README.md#payments-and-billing) | Original product design (Connect, checkout sequence, webhooks) |
+| [`../README.md`](platform-design.md#payments-and-billing) | Original product design (Connect, checkout sequence, webhooks) |
 | [`content-subscriptions-and-entitlements.md`](content-subscriptions-and-entitlements.md) | LEVEL/PACKAGE access rules (must keep working) |
 | [`poc-alpha-setup.md`](poc-alpha-setup.md) | Phase H checklist |
 | [`directwerk-studio-implementation.md`](directwerk-studio-implementation.md) | Studio integrations / sync-stripe UI notes |

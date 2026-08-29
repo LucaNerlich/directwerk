@@ -3,6 +3,7 @@ package de.pnnit.directwerk.modules.core.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -13,6 +14,7 @@ import de.pnnit.directwerk.modules.core.entity.PlatformAdmin;
 import de.pnnit.directwerk.modules.core.entity.User;
 import de.pnnit.directwerk.modules.core.entity.UserStatus;
 import de.pnnit.directwerk.modules.core.repository.PlatformAdminRepository;
+import de.pnnit.directwerk.modules.core.repository.TenantMembershipRepository;
 import de.pnnit.directwerk.modules.core.repository.UserRepository;
 import de.pnnit.directwerk.modules.email.TransactionalEmailNotifier;
 import de.pnnit.directwerk.security.DirectwerkUserPrincipal;
@@ -50,6 +52,9 @@ class PlatformAdminManagementServiceTest {
     @Mock
     private PlatformAuditService platformAuditService;
 
+    @Mock
+    private TenantMembershipRepository tenantMembershipRepository;
+
     @InjectMocks
     private PlatformAdminManagementService service;
 
@@ -58,8 +63,13 @@ class PlatformAdminManagementServiceTest {
         SecurityContextHolder.clearContext();
     }
 
+    private void stubLastLoginLookup() {
+        when(tenantMembershipRepository.findMaxLastLoginAtByUserId(anyLong())).thenReturn(Optional.empty());
+    }
+
     @Test
     void inviteAdminCreatesPendingUserAndReturnsToken() {
+        stubLastLoginLookup();
         User user = new User();
         user.setId(10L);
         user.setEmail("admin@example.com");
@@ -89,6 +99,7 @@ class PlatformAdminManagementServiceTest {
 
     @Test
     void inviteAdminRequiresAcceptanceForActiveUser() {
+        stubLastLoginLookup();
         User user = new User();
         user.setId(10L);
         user.setEmail("existing@example.com");
@@ -119,6 +130,7 @@ class PlatformAdminManagementServiceTest {
 
     @Test
     void inviteAdminKeepsExistingActivePlatformAdminWithoutReinvite() {
+        stubLastLoginLookup();
         User user = new User();
         user.setId(10L);
         user.setEmail("existing@example.com");
@@ -142,6 +154,7 @@ class PlatformAdminManagementServiceTest {
 
     @Test
     void revokeAdminRemovesAdminWhenMultipleAdminsExist() {
+        stubLastLoginLookup();
         User user = new User();
         user.setId(20L);
         user.setEmail("second-admin@example.com");

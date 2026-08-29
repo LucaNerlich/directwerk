@@ -8,7 +8,7 @@ import type {
 import {
     JOB_STATUSES,
     MODULE_PRESETS,
-    TENANT_INVITABLE_ROLES,
+    PLATFORM_TENANT_INVITABLE_ROLES,
 } from '../types'
 import {parseTenantHost} from '../proxy'
 import {isRecord} from './primitives'
@@ -67,7 +67,7 @@ const JOB_LIST_QUERY_KEYS = new Set([
     'offset',
     'limit',
 ])
-const TENANT_INVITABLE_ROLE_SET = new Set<string>(TENANT_INVITABLE_ROLES)
+const TENANT_INVITABLE_ROLE_SET = new Set<string>(PLATFORM_TENANT_INVITABLE_ROLES)
 const MODULE_PRESET_SET = new Set<string>(MODULE_PRESETS)
 const JOB_STATUS_SET = new Set<string>(JOB_STATUSES)
 const MAX_NAME_LENGTH = 200

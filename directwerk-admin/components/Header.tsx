@@ -66,7 +66,7 @@ export default function Header({children}: {children: ReactNode}) {
                     <div className="space-y-2">
                         {logoutError ? (
                             <p className="text-xs text-destructive" role="alert">
-                                Abmelden fehlgeschlagen. Bitte erneut versuchen.
+                                Log out failed. Please try again.
                             </p>
                         ) : null}
                         <Button

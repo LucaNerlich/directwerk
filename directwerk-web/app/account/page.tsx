@@ -6,11 +6,14 @@ import {useRouter} from 'next/navigation'
 import {useActionState} from 'react'
 
 import {Alert, AlertDescription} from '@directwerk/ui/components/alert'
+import {Badge} from '@directwerk/ui/components/badge'
 import {Button} from '@directwerk/ui/components/button'
+import FeatureCard from '@directwerk/ui/components/feature-card'
 import PageHeader from '@directwerk/ui/components/page-header'
 import PageStack from '@directwerk/ui/components/page-stack'
 import ResponsiveTable from '@directwerk/ui/components/responsive-table'
 import SectionHeader from '@directwerk/ui/components/section-header'
+import StatCard from '@directwerk/ui/components/stat-card'
 import {
     Table,
     TableBody,
@@ -24,6 +27,10 @@ import HowToListen from '@/components/HowToListen'
 import {useAccountDashboard} from '@/lib/account/useAccountDashboard'
 import {forgotPassword} from '@/lib/api/client'
 import {parseForgotPasswordInput} from '@directwerk/api/validation/input'
+import {
+    billingSourceLabel,
+    subscriptionStatusLabel,
+} from '@/lib/format/content'
 
 import {clearTokens} from '@/lib/auth/tokenStore'
 import {getClientTenantHost} from '@directwerk/api/tenant'
@@ -65,8 +72,6 @@ export default function AccountPage() {
     } = useAccountDashboard()
     const [, logoutAction, isLoggingOut] = useActionState(
         async (): Promise<LogoutState> => {
-            // Best-effort server-side revocation before clearing local state;
-            // failure here must not block the local logout.
             try {
                 await fetch('/api/auth/logout', {
                     method: 'POST',
@@ -129,6 +134,13 @@ export default function AccountPage() {
     const defaultFeed = feeds.find((feed) => feed.isDefault) ?? null
     const hasPastDue = subscriptions.some((item) => item.status === 'PAST_DUE')
     const hasStripeMembership = subscriptions.some((item) => item.source === 'STRIPE')
+    const activeSubscriptionCount = subscriptions.filter(
+        (item) => item.status === 'ACTIVE',
+    ).length
+    const highestLevel =
+        access !== null && access.activeLevels.length > 0
+            ? [...access.activeLevels].sort((a, b) => b.sortOrder - a.sortOrder)[0]
+            : null
 
     return (
         <PageStack className="page-container">
@@ -142,6 +154,26 @@ export default function AccountPage() {
                     <AlertDescription>{error}</AlertDescription>
                 </Alert>
             )}
+
+            {me !== null && access !== null ? (
+                <section className="grid gap-3 sm:grid-cols-3">
+                    <StatCard
+                        hint="Aktive Mitgliedschaften und Freischaltungen."
+                        label="Mitgliedschaften"
+                        value={String(activeSubscriptionCount)}
+                    />
+                    <StatCard
+                        hint="Höchste freigeschaltete Stufe."
+                        label="Stufe"
+                        value={highestLevel?.title ?? 'Keine'}
+                    />
+                    <StatCard
+                        hint="Pakete mit Bonusdateien oder Sonderzugang."
+                        label="Pakete"
+                        value={String(access.activePackages.length)}
+                    />
+                </section>
+            ) : null}
 
             {me !== null && (
                 <section className="flex flex-col gap-4">
@@ -164,15 +196,40 @@ export default function AccountPage() {
                         </TableBody>
                     </Table>
                     </ResponsiveTable>
-                    <p className="text-sm text-muted-foreground">
-                        <Link href="/episodes">Meine Folgen</Link>
-                        {' · '}
-                        <Link href="/feeds">Feeds verwalten</Link>
-                        {' · '}
-                        <Link href="/pricing">Preise</Link>
-                        {' · '}
-                        <Link href="/downloads">Bonusdateien</Link>
-                    </p>
+                    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                        <FeatureCard
+                            description="Freie und freigeschaltete Folgen."
+                            title="Podcast"
+                        >
+                            <Link className="text-sm font-medium underline-offset-4 hover:underline" href="/episodes">
+                                Folgen ansehen
+                            </Link>
+                        </FeatureCard>
+                        <FeatureCard
+                            description="Öffentliche und private RSS-Feeds."
+                            title="Feeds"
+                        >
+                            <Link className="text-sm font-medium underline-offset-4 hover:underline" href="/feeds">
+                                Feeds verwalten
+                            </Link>
+                        </FeatureCard>
+                        <FeatureCard
+                            description="Mitgliedschaft erweitern oder wechseln."
+                            title="Preise"
+                        >
+                            <Link className="text-sm font-medium underline-offset-4 hover:underline" href="/pricing">
+                                Tarife ansehen
+                            </Link>
+                        </FeatureCard>
+                        <FeatureCard
+                            description="Dateien aus deinem Abo."
+                            title="Bonusdateien"
+                        >
+                            <Link className="text-sm font-medium underline-offset-4 hover:underline" href="/downloads">
+                                Downloads öffnen
+                            </Link>
+                        </FeatureCard>
+                    </div>
                 </section>
             )}
 
@@ -197,7 +254,9 @@ export default function AccountPage() {
                             <TableRow>
                                 <TableHead scope="row">Höchste Stufe</TableHead>
                                 <TableCell>
-                                    {access.maxLevelSortOrder ?? 'Keine'}
+                                    {highestLevel !== null
+                                        ? `${highestLevel.title} (Rang ${highestLevel.sortOrder})`
+                                        : 'Keine'}
                                 </TableCell>
                             </TableRow>
                         </TableBody>
@@ -214,14 +273,14 @@ export default function AccountPage() {
                             <TableHeader>
                                 <TableRow>
                                     <TableHead scope="col">Titel</TableHead>
-                                    <TableHead scope="col">Kürzel</TableHead>
+                                    <TableHead scope="col">Rang</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
                                 {access.activeLevels.map((level) => (
                                     <TableRow key={level.id}>
                                         <TableCell>{level.title}</TableCell>
-                                        <TableCell>{level.slug}</TableCell>
+                                        <TableCell>{level.sortOrder}</TableCell>
                                     </TableRow>
                                 ))}
                             </TableBody>
@@ -276,16 +335,20 @@ export default function AccountPage() {
                                 <TableRow key={item.id}>
                                     <TableCell>{item.productTitle}</TableCell>
                                     <TableCell>
-                                        {item.status === 'PAST_DUE'
-                                            ? 'Zahlungsrückstand'
-                                            : item.status === 'ACTIVE'
-                                              ? 'Aktiv'
-                                              : item.status}
+                                        <Badge
+                                            variant={
+                                                item.status === 'PAST_DUE'
+                                                    ? 'destructive'
+                                                    : item.status === 'ACTIVE'
+                                                      ? 'secondary'
+                                                      : 'outline'
+                                            }
+                                        >
+                                            {subscriptionStatusLabel(item.status)}
+                                        </Badge>
                                     </TableCell>
                                     <TableCell>
-                                        {item.source === 'STRIPE'
-                                            ? 'Stripe'
-                                            : 'Freischaltung'}
+                                        {billingSourceLabel(item.source)}
                                     </TableCell>
                                 </TableRow>
                             ))}
@@ -325,13 +388,13 @@ export default function AccountPage() {
             />
 
             {emailNotifyAvailable && emailNotificationsEnabled !== null && (
-                <section className="flex flex-col gap-3">
+                <section className="flex flex-col gap-3 rounded-xl border bg-card p-5">
                     <SectionHeader title="Benachrichtigungen" />
                     <p className="text-sm text-muted-foreground">
                         E-Mail bei neuen Inhalten:{' '}
-                        <strong>
-                            {emailNotificationsEnabled ? 'an' : 'aus'}
-                        </strong>
+                        <Badge variant={emailNotificationsEnabled ? 'secondary' : 'outline'}>
+                            {emailNotificationsEnabled ? 'An' : 'Aus'}
+                        </Badge>
                     </p>
                     <p className="text-sm text-muted-foreground">
                         Du erhältst eine E-Mail, wenn neue Beiträge oder Folgen
@@ -358,7 +421,7 @@ export default function AccountPage() {
             )}
 
             {me !== null && (
-                <section className="flex flex-col gap-3">
+                <section className="flex flex-col gap-3 rounded-xl border bg-card p-5">
                     <SectionHeader title="Passwort" />
                     <p className="text-sm text-muted-foreground">
                         Sende eine Reset-Mail an <strong>{me.email}</strong>.

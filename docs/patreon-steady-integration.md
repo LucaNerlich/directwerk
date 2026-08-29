@@ -2,7 +2,7 @@
 
 Implementation brief for **Phase 6 / `PATREON_SYNC` + `STEADY_SYNC`**: import creators
 migrating from Patreon or Steady, dual-run billing alongside Stripe, and shadow-user claim.
-Complements [`../README.md`](../README.md#patreon-and-steady-onboarding),
+Complements [`../README.md`](platform-design.md#patreon-and-steady-onboarding),
 [`payment.md`](payment.md) (Stripe Connect — already shipped), and
 [`content-subscriptions-and-entitlements.md`](content-subscriptions-and-entitlements.md).
 
@@ -433,7 +433,7 @@ Gradle: HTTP client for Patreon/Steady (Java 21 `HttpClient` or Spring `RestClie
 
 | Doc | Why |
 |-----|-----|
-| [`../README.md`](../README.md#patreon-and-steady-onboarding) | Product design + dual-run narrative |
+| [`../README.md`](platform-design.md#patreon-and-steady-onboarding) | Product design + dual-run narrative |
 | [`payment.md`](payment.md) | Stripe Connect (shipped) — dual-run target |
 | [`content-subscriptions-and-entitlements.md`](content-subscriptions-and-entitlements.md) | LEVEL/PACKAGE rules import must preserve |
 | [`directwerk-studio-implementation.md`](directwerk-studio-implementation.md) | Integrations screen API TBD list |

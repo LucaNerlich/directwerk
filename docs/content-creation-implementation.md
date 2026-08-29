@@ -11,7 +11,7 @@ frontend structure, **recommended libraries**, and phased delivery.
 | [`content-platform-strategy.md`](content-platform-strategy.md) | Publication platform vs CMS — scope boundaries |
 | [`asset-storage.md`](asset-storage.md) | S3 upload/confirm, visibility, signed URLs |
 | [`poc-alpha-setup.md`](poc-alpha-setup.md) | Alpha backend slice (tenancy, auth, modules) |
-| [`README.md`](../README.md) | Full platform design — entities, phases, OpenAPI |
+| [`README.md`](platform-design.md) | Full platform design — entities, phases, OpenAPI |
 | **This document** | **How to implement** content creation end-to-end |
 
 **Status (2026-07):** Pre-implementation. Treat library versions as recommendations — verify against
@@ -135,7 +135,7 @@ and digital publication services **delegate** to it.
 
 ### Entity summary
 
-Full column lists: [`README.md` § Content Model](../README.md#content-model).
+Full column lists: [`README.md` § Content Model](platform-design.md#content-model).
 
 | Entity | Module | Key relations |
 |--------|--------|---------------|
@@ -151,7 +151,7 @@ Full column lists: [`README.md` § Content Model](../README.md#content-model).
 
 ## 4. Backend implementation
 
-Package layout follows [`poc-alpha-setup.md` § Module boundaries](poc-alpha-setup.md#module-boundaries-vertical-slices).
+Package layout follows Gradle modules under `Directwerk/` (see [`Directwerk/README.md`](../Directwerk/README.md)).
 
 ```
 modules/digital/
@@ -236,7 +236,7 @@ Listeners (post-MVP):
 | `/api/v1/articles/{id}/publish` | POST | `EDITOR+` | `DIGITAL_CONTENT` |
 | `/api/v1/digital-publications` | CRUD | `EDITOR+` | `DIGITAL_CONTENT` + `SUBSCRIPTION` |
 
-Request/response bodies use the standard JSON envelope from [`README.md`](../README.md).
+Request/response bodies use the standard JSON envelope from [`README.md`](platform-design.md).
 
 #### Example: create episode (draft)
 
@@ -726,7 +726,7 @@ See [`content-platform-strategy.md` § Editorial workflow options](content-platf
 - Scope boundaries: [`content-platform-strategy.md`](content-platform-strategy.md)
 - Upload and S3: [`asset-storage.md`](asset-storage.md)
 - Alpha backend: [`poc-alpha-setup.md`](poc-alpha-setup.md)
-- Publisher API tables: [`README.md` § Publisher API](../README.md#publisher-api)
+- Publisher API tables: [`README.md` § Publisher API](platform-design.md#publisher-api)
 
 ---
 

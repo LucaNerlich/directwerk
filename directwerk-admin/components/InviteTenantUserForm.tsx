@@ -9,7 +9,7 @@ import {Card, CardContent, CardHeader, CardTitle} from '@directwerk/ui/component
 import {Input} from '@directwerk/ui/components/input'
 import {Label} from '@directwerk/ui/components/label'
 
-import {TENANT_INVITABLE_ROLES} from '@directwerk/api/types'
+import {PLATFORM_TENANT_INVITABLE_ROLES} from '@directwerk/api/types'
 import {getTenantRoleLabel} from '@/lib/roles'
 
 import {
@@ -72,7 +72,7 @@ export default function InviteTenantUserForm({
                 <div className="space-y-2">
                     <Label htmlFor="invite-role">Role</Label>
                     <select className="native-select" defaultValue="EDITOR" id="invite-role" name="role" required>
-                        {TENANT_INVITABLE_ROLES.map((role) => (
+                        {PLATFORM_TENANT_INVITABLE_ROLES.map((role) => (
                             <option key={role} value={role}>
                                 {getTenantRoleLabel(role)}
                             </option>

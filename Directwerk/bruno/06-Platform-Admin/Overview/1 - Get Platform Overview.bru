@@ -1,0 +1,29 @@
+meta {
+  name: 1 - Get Platform Overview
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/api/v1/platform/overview
+  body: none
+  auth: inherit
+}
+
+params:query {
+  recentAuditLimit: 5
+}
+
+tests {
+  test("returns expected status", function() {
+    expect(res.getStatus() === 200).to.equal(true);
+  });
+
+  test("includes tenant counts and module adoption", function() {
+    expect(res.body.data.tenantCounts).to.be.an("object");
+    expect(res.body.data.tenantCounts.active).to.be.a("number");
+    expect(res.body.data.tenantCounts.suspended).to.be.a("number");
+    expect(res.body.data.moduleAdoption).to.be.an("array");
+    expect(res.body.data.recentAudit).to.be.an("array");
+  });
+}
