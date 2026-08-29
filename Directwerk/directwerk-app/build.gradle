@@ -9,6 +9,7 @@ dependencies {
     implementation project(':directwerk-email')
     implementation project(':directwerk-core')
     implementation project(':directwerk-subscription')
+    implementation project(':directwerk-stripe-billing')
     implementation project(':directwerk-digital')
     implementation project(':directwerk-podcast')
     implementation project(':directwerk-newsletter')

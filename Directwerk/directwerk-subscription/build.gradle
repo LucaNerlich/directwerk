@@ -1,6 +1,5 @@
 dependencies {
     api project(':directwerk-core')
-    implementation 'com.stripe:stripe-java:28.4.0'
 
     testImplementation 'org.junit.jupiter:junit-jupiter'
     testImplementation 'org.mockito:mockito-core'

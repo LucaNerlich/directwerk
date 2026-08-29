@@ -58,37 +58,38 @@ See [`content-subscriptions-and-entitlements.md`](/operators/subscriptions-and-e
 
 ---
 
-## Current codebase inventory (as of 2026-08)
+## Current codebase inventory (as of 2026-08-29)
 
 ### Shipped domain (billing-adjacent)
 
 | Piece | Location | Notes |
 |-------|----------|-------|
-| `SubscriptionProduct` | `directwerk-subscription` + `V10__create_subscription_tables.sql` | `slug`, `title`, `offeringType` (`LEVEL`/`PACKAGE`), `sortOrder`, `active` — **no money fields, no Stripe IDs** |
+| `SubscriptionProduct` | `directwerk-subscription` + `V10`, `V41` | Money fields (`price_cents`, `currency`, `billing_interval`), Stripe product/price IDs |
 | `ProductAccessRule` | same | PACKAGE scopes (`FORMAT`, `CATEGORY`, `PODCAST_SERIES`, `DIGITAL_ASSET`, `ALL_PODCASTS`, …) |
-| `Subscription` | same | `status`, `source`, `startedAt`, `endsAt`; unique `(tenant_id, user_id, product_id)` |
+| `Subscription` | same | `status`, `source`, `startedAt`, `endsAt`, `external_subscription_id`, `external_payment_id`, `stripe_customer_id`; unique `(tenant_id, user_id, product_id)` |
 | `SubscriptionSource` | enum | `MANUAL`, `SEED`, `STRIPE`, `PATREON`, `IMPORT` (design README also mentions `STEADY` — code uses `IMPORT`) |
-| `SubscriptionStatus` | enum | `ACTIVE`, `CANCELED`, `EXPIRED` (design wants `PAST_DUE`, `INCOMPLETE`) |
-| `SubscriptionService` | grants/revokes | Always writes `source = MANUAL` |
-| `EntitlementService` | LEVEL ∪ PACKAGE | Reads active subs; Stripe-agnostic |
-| `STRIPE_BILLING` feature | `V3__create_feature_modules.sql`, `ModulePreset.PRO` / `ENTERPRISE` | Module key exists |
-| `StripeBillingModule.KEY` | `StripeBillingModule.java` | Constant only |
+| `SubscriptionStatus` | enum | `ACTIVE`, `CANCELED`, `EXPIRED`, `PAST_DUE`, `INCOMPLETE` |
+| `SubscriptionService` | grants/revokes + Stripe upsert | Manual grants write `source = MANUAL`; webhooks write `source = STRIPE` |
+| `EntitlementService` | LEVEL ∪ PACKAGE | Reads `status = ACTIVE` only; Stripe-agnostic |
+| `STRIPE_BILLING` feature | `V3__create_feature_modules.sql`, `ModulePreset.PRO` / `ENTERPRISE` | Gates onboard, checkout, portal |
+| `StripeBillingModule.KEY` | `StripeBillingModule.java` | Used with `@RequiresModule` on money paths |
 
-### Shipped Stripe stack (2026-08-13)
+### Shipped Stripe stack
 
 | Piece | Path | Behavior |
 |-------|------|----------|
 | Connect + status | `TenantStripeController` | Real Express onboarding; `tenant_stripe_accounts` (`V41`) |
 | Catalog sync | `StripeCatalogSyncService` + `POST …/products/{id}/sync-stripe` | Money fields on `SubscriptionProduct`; connected-account Product/Price |
-| Checkout | `MeBillingController` → `StripeCheckoutService` | `MONTH`/`YEAR`/`ONE_TIME`; `allow_promotion_codes=true` |
+| Checkout | `MeBillingController` → `StripeCheckoutService` | `MONTH`/`YEAR`/`ONE_TIME`; `allow_promotion_codes=true`; concurrent customer-create race handled |
 | Portal | `POST /api/v1/me/billing/portal` | Customer Portal on connected account |
-| Webhooks | `StripeWebhookController` + `StripeWebhookService` | Signature verify; `processed_webhook_events`; maps to `Subscription` |
-| Revoke | `TenantSubscriptionController` | Local cancel + Stripe cancel for `source=STRIPE` |
+| Webhooks | `StripeWebhookController` + `StripeWebhookService` + `stripe-webhook` queue | Signature verify at ingress; async apply via `StripeWebhookJobHandler` when queue enabled; `processed_webhook_events` idempotency |
+| Revoke | `TenantSubscriptionController` | Local cancel + Stripe cancel for `source=STRIPE`; 502 `STRIPE_REQUEST_FAILED` if Stripe cancel fails |
 | Dashboard | `GET /api/v1/tenant/billing/dashboard` | Studio **Abos → Zahlungen** stats + filters |
+| Rate limits | `BillingRateLimitFilter` | Per IP + per authenticated user on `/me/billing/*` |
 | Studio / web | `/settings/stripe`, `/pricing`, `/account` | Live redirects; **501** only when platform `STRIPE_*` keys absent |
 | Harness | Bruno `07-Tenant-Admin/Stripe`, `12-Webhooks`, `02-Me`; `http/26-stripe-billing.http` | Live-path coverage |
 
-Migration: `V41__stripe_connect_and_prices.sql` (`tenant_stripe_accounts`, `stripe_customers`, product money columns, `processed_webhook_events`, `PAST_DUE`/`INCOMPLETE` statuses).
+Migrations: `V41__stripe_connect_and_prices.sql`, `V42__subscription_external_payment_id.sql`.
 
 ### Remaining gaps (post–slice 1–7)
 
@@ -181,7 +182,7 @@ Rules:
 - [x] `GET /tenant/stripe/status` → real status (`NOT_CONNECTED` \| `PENDING` \| `RESTRICTED` \| `CONNECTED`, …)
 - [x] `@RequiresModule(STRIPE_BILLING)` on Stripe admin + checkout endpoints
 - [x] Studio: redirect to Stripe, refresh status, clear empty-state copy
-- [ ] Gate SideNav “Stripe” on module (optional: still show with “module off” empty state)
+- [x] Gate SideNav “Stripe” on module (optional: still show with “module off” empty state)
 
 ### B. Catalog sync
 
@@ -365,27 +366,29 @@ Suggested layout (adjust to monorepo norms):
 
 ```text
 directwerk-subscription/
-  StripeBillingModule.java          # exists
+  StripeBillingModule.java
   stripe/
     StripeProperties.java
-    StripeClientFactory.java        # platform + connected account request options
-    ConnectAccountService.java
+    StripeSdkOperations.java
+    StripeConnectService.java
     StripeCatalogSyncService.java
-    CheckoutSessionService.java
-    CustomerPortalService.java
+    StripeCheckoutService.java
+    StripeCustomerPortalService.java
     StripeWebhookService.java
-    PromotionCodeService.java       # later
+    BillingDashboardService.java
+    job/
+      StripeWebhookJobProducer.java
+      StripeWebhookJobHandler.java
 
 directwerk-app/
-  controller/tenant/TenantStripeController.java     # exists (stub)
-  controller/auth/MeBillingController.java          # exists (stub)
-  controller/webhook/StripeWebhookController.java   # new
-  security/… webhook filter / SecurityConfig permit
+  controller/tenant/TenantStripeController.java
+  controller/auth/MeBillingController.java
+  controller/webhook/StripeWebhookController.java
+  security/BillingRateLimitFilter.java
 
 Flyway:
-  Vxx__stripe_connect_and_prices.sql
-  Vxx__processed_webhook_events.sql
-  Vxx__subscription_stripe_fields.sql
+  V41__stripe_connect_and_prices.sql
+  V42__subscription_external_payment_id.sql
 ```
 
 Gradle: add official Stripe Java SDK; pin version in BOM/catalog if used.
@@ -414,6 +417,7 @@ Gradle: add official Stripe Java SDK; pin version in BOM/catalog if used.
 | 2026-08-13 | Owner UX: product copy, TENANT_ADMIN gates, subscriber Stripe ids, charge.refunded for one-time, portal + success poll + PAST_DUE on web/example-fe. |
 | 2026-08-13 | Bruno + http harnesses aligned with live billing controllers (prices, dashboard stats, checkout/portal, webhook signature). |
 | 2026-08-13 | Studio Zahlungen: past-due/incomplete stats, filters, revoke from the membership list. |
-| 2026-08-28 | Reconciled inventory + feature checklist with shipped Connect/checkout/webhooks/dashboard. Remaining: SideNav module gate, one-time copy polish, studio promo CRUD. |
+| 2026-08-29 | Async Stripe webhooks via `stripe-webhook` queue; billing per-user rate limit; SideNav Stripe gated on `STRIPE_BILLING`; doc inventory reconciled. |
+| 2026-08-28 | Reconciled inventory + feature checklist with shipped Connect/checkout/webhooks/dashboard. Remaining: one-time copy polish, studio promo CRUD. |
 | 2026-08-13 | Live Connect, prices, checkout, webhooks, studio Zahlungen dashboard. 501 without platform keys. |
 | 2026-08-12 | Initial brief from gap analysis after stub controllers/UI landed; no live Stripe yet |

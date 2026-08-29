@@ -43,6 +43,7 @@ public record DirectwerkProperties(
             @Positive Integer oauthTokenRateLimitPerMinute,
             @Positive Integer forgotPasswordRateLimitPerMinute,
             @Positive Integer authRateLimitPerMinute,
+            @Positive Integer billingRateLimitPerMinute,
             List<String> trustedProxies
     ) {
         public Security {

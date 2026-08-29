@@ -10,7 +10,7 @@ import de.pnnit.directwerk.modules.subscription.entity.ProductAccessScopeType;
 import de.pnnit.directwerk.modules.subscription.entity.SubscriptionProduct;
 import de.pnnit.directwerk.modules.subscription.service.ProductAccessRuleService;
 import de.pnnit.directwerk.modules.subscription.service.SubscriptionProductService;
-import de.pnnit.directwerk.modules.subscription.stripe.StripeCatalogSyncService;
+import de.pnnit.directwerk.modules.stripebilling.StripeCatalogSyncService;
 import de.pnnit.directwerk.multitenancy.TenantContext;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;

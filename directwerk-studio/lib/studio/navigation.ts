@@ -44,6 +44,7 @@ export function buildVerwaltungSections(
     const showCategories = hasModule(config, 'DIGITAL_CONTENT')
     const showSubscription = hasModule(config, 'SUBSCRIPTION')
     const showEmailNotify = hasModule(config, 'EMAIL_NOTIFY')
+    const showStripeBilling = hasModule(config, 'STRIPE_BILLING')
     const showAdmin = me !== null && isTenantAdminRole(me.roles)
 
     if (showMedia) {
@@ -85,7 +86,9 @@ export function buildVerwaltungSections(
         if (showEmailNotify) {
             settingsItems.push({href: '/settings/email', label: 'E-Mail-Vorlagen'})
         }
-        settingsItems.push({href: '/settings/stripe', label: 'Stripe'})
+        if (showStripeBilling) {
+            settingsItems.push({href: '/settings/stripe', label: 'Stripe'})
+        }
 
         sections.push({
             label: 'Einstellungen',

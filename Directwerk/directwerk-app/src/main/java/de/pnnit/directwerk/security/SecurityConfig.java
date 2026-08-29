@@ -120,7 +120,8 @@ public class SecurityConfig {
             JwtDecoder jwtDecoder,
             TenantContextFilter tenantContextFilter,
             TenantMembershipGuardFilter tenantMembershipGuardFilter,
-            DirectwerkJwtAuthenticationConverter jwtAuthenticationConverter
+            DirectwerkJwtAuthenticationConverter jwtAuthenticationConverter,
+            BillingRateLimitFilter billingRateLimitFilter
     ) throws Exception {
 
         http.securityMatcher("/**")
@@ -171,9 +172,20 @@ public class SecurityConfig {
                         .jwtAuthenticationConverter(jwtAuthenticationConverter)
                 ))
                 .addFilterAfter(tenantContextFilter, org.springframework.security.oauth2.server.resource.web.authentication.BearerTokenAuthenticationFilter.class)
-                .addFilterAfter(tenantMembershipGuardFilter, TenantContextFilter.class);
+                .addFilterAfter(billingRateLimitFilter, TenantContextFilter.class)
+                .addFilterAfter(tenantMembershipGuardFilter, BillingRateLimitFilter.class);
 
         return http.build();
+    }
+
+    @Bean
+    BillingRateLimitFilter billingRateLimitFilter(DirectwerkConfig directwerkConfig) {
+        DirectwerkProperties.Security security = directwerkConfig.security();
+        int billingLimit = security.billingRateLimitPerMinute() != null ? security.billingRateLimitPerMinute() : 10;
+        if (billingLimit <= 0) {
+            throw new IllegalStateException("Billing rate limit must be positive, got: " + billingLimit);
+        }
+        return new BillingRateLimitFilter(billingLimit);
     }
 
     @Bean
@@ -270,7 +282,6 @@ public class SecurityConfig {
         registration.addUrlPatterns(
                 "/oauth2/token",
                 "/api/v1/auth/*",
-                "/api/v1/me/billing/*",
                 "/api/v1/public/contact",
                 "/api/v1/public/altcha/*"
         );

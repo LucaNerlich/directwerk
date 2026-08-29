@@ -42,12 +42,12 @@ Detailed run/deploy instructions, environment variables, and profiles: see `docs
 `settings.gradle` declares the modules; their `build.gradle` files define this dependency graph:
 
 ```
-directwerk-common → directwerk-core → directwerk-subscription
+directwerk-common → directwerk-core → directwerk-subscription ← directwerk-stripe-billing
         ↓                  ├────────→ directwerk-email
 directwerk-queue ──────────┼────────→ directwerk-digital → directwerk-podcast
                            │                              → directwerk-newsletter
 
-all modules → directwerk-app
+directwerk-stripe-billing → directwerk-app (with subscription, podcast, …)
 ```
 
 - **directwerk-common** — shared config/util, no internal dependencies. Everything depends on it (directly or transitively).

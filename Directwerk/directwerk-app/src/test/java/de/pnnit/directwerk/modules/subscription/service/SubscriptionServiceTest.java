@@ -3,6 +3,8 @@ package de.pnnit.directwerk.modules.subscription.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -14,19 +16,19 @@ import de.pnnit.directwerk.modules.core.entity.User;
 import de.pnnit.directwerk.modules.core.repository.TenantMembershipRepository;
 import de.pnnit.directwerk.modules.core.repository.TenantRepository;
 import de.pnnit.directwerk.modules.core.repository.UserRepository;
+import de.pnnit.directwerk.modules.subscription.billing.ExternalSubscriptionBillingGateway;
 import de.pnnit.directwerk.modules.subscription.entity.Subscription;
 import de.pnnit.directwerk.modules.subscription.entity.SubscriptionProduct;
 import de.pnnit.directwerk.modules.subscription.entity.SubscriptionSource;
 import de.pnnit.directwerk.modules.subscription.entity.SubscriptionStatus;
 import de.pnnit.directwerk.modules.subscription.repository.SubscriptionRepository;
-import de.pnnit.directwerk.modules.subscription.stripe.StripeConnectService;
-import de.pnnit.directwerk.modules.subscription.stripe.StripeOperations;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.context.ApplicationEventPublisher;
 
 @ExtendWith(MockitoExtension.class)
@@ -55,10 +57,10 @@ class SubscriptionServiceTest {
     private ApplicationEventPublisher eventPublisher;
 
     @Mock
-    private StripeOperations stripeOperations;
+    private ObjectProvider<ExternalSubscriptionBillingGateway> externalBillingGateway;
 
     @Mock
-    private StripeConnectService stripeConnectService;
+    private ExternalSubscriptionBillingGateway billingGateway;
 
     @InjectMocks
     private SubscriptionService service;
@@ -101,60 +103,26 @@ class SubscriptionServiceTest {
     }
 
     @Test
-    void stripeUpsertDoesNotOverwriteActiveManualGrant() {
-        User user = user();
-        when(userRepository.findById(USER_ID)).thenReturn(Optional.of(user));
-        SubscriptionProduct product = product();
-        when(subscriptionProductService.requireProduct(TENANT_ID, PRODUCT_ID)).thenReturn(product);
-        Subscription manual = subscription(SubscriptionSource.MANUAL, SubscriptionStatus.ACTIVE);
-        when(subscriptionRepository.findByTenantIdAndExternalSubscriptionId(TENANT_ID, "sub_late")).thenReturn(Optional.empty());
-        when(subscriptionRepository.findByTenantIdAndUserIdAndProductId(TENANT_ID, USER_ID, PRODUCT_ID))
-                .thenReturn(Optional.of(manual));
+    void revokeSubscriptionDoesNotApplyLocalCancelWhenExternalBillingFails() {
+        Subscription stripe = subscription(SubscriptionSource.STRIPE, SubscriptionStatus.ACTIVE);
+        stripe.setId(99L);
+        stripe.setExternalSubscriptionId("sub_123");
+        when(subscriptionRepository.findByIdAndTenantId(99L, TENANT_ID)).thenReturn(Optional.of(stripe));
+        doAnswer(invocation -> {
+            invocation.<java.util.function.Consumer<ExternalSubscriptionBillingGateway>>getArgument(0)
+                    .accept(billingGateway);
+            return null;
+        }).when(externalBillingGateway).ifAvailable(any());
+        doThrow(new RuntimeException("Stripe unavailable"))
+                .when(billingGateway)
+                .cancelExternalSubscriptionIfNeeded(TENANT_ID, stripe);
 
-        Subscription result = service.upsertStripeSubscription(
-                TENANT_ID,
-                USER_ID,
-                PRODUCT_ID,
-                "sub_late",
-                "cus_1",
-                SubscriptionStatus.CANCELED,
-                null,
-                null
-        );
+        assertThatThrownBy(() -> service.revokeSubscription(TENANT_ID, 99L))
+                .isInstanceOf(RuntimeException.class)
+                .hasMessageContaining("Stripe unavailable");
 
-        assertThat(result).isSameAs(manual);
-        assertThat(result.getSource()).isEqualTo(SubscriptionSource.MANUAL);
-        assertThat(result.getStatus()).isEqualTo(SubscriptionStatus.ACTIVE);
         verify(subscriptionRepository, never()).save(any());
-        verify(eventPublisher, never()).publishEvent(any(TenantEntitlementsChangedEvent.class));
-    }
-
-    @Test
-    void stripeUpsertAdoptsCanceledManualRow() {
-        User user = user();
-        when(userRepository.findById(USER_ID)).thenReturn(Optional.of(user));
-        SubscriptionProduct product = product();
-        when(subscriptionProductService.requireProduct(TENANT_ID, PRODUCT_ID)).thenReturn(product);
-        Subscription revoked = subscription(SubscriptionSource.MANUAL, SubscriptionStatus.CANCELED);
-        when(subscriptionRepository.findByTenantIdAndExternalSubscriptionId(TENANT_ID, "sub_new")).thenReturn(Optional.empty());
-        when(subscriptionRepository.findByTenantIdAndUserIdAndProductId(TENANT_ID, USER_ID, PRODUCT_ID))
-                .thenReturn(Optional.of(revoked));
-        when(subscriptionRepository.save(revoked)).thenReturn(revoked);
-
-        Subscription result = service.upsertStripeSubscription(
-                TENANT_ID,
-                USER_ID,
-                PRODUCT_ID,
-                "sub_new",
-                "cus_1",
-                SubscriptionStatus.ACTIVE,
-                null,
-                null
-        );
-
-        assertThat(result.getSource()).isEqualTo(SubscriptionSource.STRIPE);
-        assertThat(result.getStatus()).isEqualTo(SubscriptionStatus.ACTIVE);
-        assertThat(result.getExternalSubscriptionId()).isEqualTo("sub_new");
+        verify(eventPublisher, never()).publishEvent(any());
     }
 
     private void mockUserAndMembership() {

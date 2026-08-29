@@ -41,6 +41,12 @@ class MultiTenancyArchitectureTest {
                     + "controllers legally holding repositories");
 
     @ArchTest
+    static final ArchRule subscriptionDomainDoesNotDependOnStripeBilling = noClasses()
+            .that().resideInAPackage("..modules.subscription..")
+            .should().dependOnClassesThat().resideInAPackage("..modules.stripebilling..")
+            .because("entitlements stay Stripe-agnostic; billing providers depend on subscription, not vice versa");
+
+    @ArchTest
     static final ArchRule tenantOwnedEntitiesHaveHibernateFilter = classes()
             .that().areAnnotatedWith(Entity.class)
             .and().implement(TenantOwned.class)

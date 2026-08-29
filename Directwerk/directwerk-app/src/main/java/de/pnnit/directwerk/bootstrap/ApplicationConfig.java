@@ -7,7 +7,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import de.pnnit.directwerk.modules.subscription.stripe.StripeProperties;
+import de.pnnit.directwerk.modules.stripebilling.StripeProperties;
 import de.pnnit.directwerk.multitenancy.TenantContextFilter;
 import de.pnnit.directwerk.security.TenantMembershipGuardFilter;
 import java.time.Clock;

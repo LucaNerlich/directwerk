@@ -5,8 +5,8 @@ import static org.mockito.Mockito.when;
 
 import de.pnnit.directwerk.api.response.Response;
 import de.pnnit.directwerk.controller.auth.MeBillingController.CheckoutSessionView;
-import de.pnnit.directwerk.modules.subscription.stripe.StripeCheckoutService;
-import de.pnnit.directwerk.modules.subscription.stripe.StripeCustomerPortalService;
+import de.pnnit.directwerk.modules.stripebilling.StripeCheckoutService;
+import de.pnnit.directwerk.modules.stripebilling.StripeCustomerPortalService;
 import de.pnnit.directwerk.security.DirectwerkUserPrincipal;
 import de.pnnit.directwerk.security.RoleConstants;
 import java.util.List;
