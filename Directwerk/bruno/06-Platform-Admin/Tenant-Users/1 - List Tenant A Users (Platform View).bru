@@ -18,6 +18,13 @@ tests {
   test("returns expected status", function() {
     expect(res.getStatus() === 200).to.equal(true);
   });
+
+  test("includes membership timestamps", function() {
+    const user = res.body.data.content.find(u => u.email === bru.getEnvVar("editorEmail"));
+    expect(user).to.be.an("object");
+    expect(user).to.have.property("invitedAt");
+    expect(user).to.have.property("lastLoginAt");
+  });
 }
 
 docs {

@@ -33,6 +33,7 @@ describe('AdminSideNav', () => {
 
         expect(screen.getByRole('navigation', {name: 'Main navigation'})).toBeInTheDocument()
         expect(screen.getByRole('link', {name: 'Overview'})).toHaveAttribute('href', '/')
+        expect(screen.getByRole('link', {name: 'Tenants'})).toHaveAttribute('href', '/tenants')
         expect(screen.getByRole('link', {name: 'Platform admins'})).toHaveAttribute(
             'href',
             '/admins',

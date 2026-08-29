@@ -80,6 +80,19 @@ describe('validateTenantUserInviteInput', () => {
             error: 'Enter a valid email address and role.',
         })
     })
+
+    it('rejects subscriber invites from platform admin', () => {
+        expect(
+            validateTenantUserInviteInput({
+                email: 'subscriber@alpha-show.local',
+                name: 'Subscriber',
+                role: 'SUBSCRIBER',
+            })
+        ).toEqual({
+            success: false,
+            error: 'Enter a valid email address and role.',
+        })
+    })
 })
 
 describe('validatePlatformAdminInviteInput', () => {

@@ -56,6 +56,23 @@ Accept: application/json
 
 ###
 
+### @name listPackageProductRules
+GET {{baseUrl}}/api/v1/tenant/products/{{packageProductId}}/rules
+Host: {{tenantAHost}}
+Authorization: Bearer {{tenantAAccessToken}}
+Accept: application/json
+
+> {%
+    client.test("List package product rules", function() {
+        client.assert(response.status === 200 || response.status === 404, "Expected 200 or 404");
+        if (response.status === 200) {
+            client.assert(Array.isArray(response.body.data), "Expected rules array");
+        }
+    });
+%}
+
+###
+
 ### @name getMeAccessWithPackages
 GET {{baseUrl}}/api/v1/me/access
 Host: {{tenantAHost}}

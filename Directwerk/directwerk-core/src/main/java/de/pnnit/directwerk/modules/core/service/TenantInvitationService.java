@@ -103,6 +103,45 @@ public class TenantInvitationService {
         return new InvitationResult(user.getEmail(), role.name(), membership.getStatus().name(), inviteToken);
     }
 
+    /**
+     * Re-issues an invitation email for a pending tenant membership.
+     */
+    @Transactional
+    public InvitationResult resendInvite(Long tenantId, Long userId) {
+        TenantMembership membership = tenantMembershipRepository.findByTenantIdAndUserId(tenantId, userId)
+                .orElseThrow(() -> new IllegalArgumentException("Tenant membership not found"));
+        if (membership.getStatus() != MembershipStatus.INVITED) {
+            throw new ConflictException(
+                    ConflictCodes.INVALID_MEMBERSHIP_STATE,
+                    "Only invited users can receive a resent invitation"
+            );
+        }
+
+        User user = membership.getUser();
+        Tenant tenant = membership.getTenant();
+        Role role = membership.getRoles().stream()
+                .findFirst()
+                .orElseThrow(() -> new IllegalStateException("Invited membership has no role"));
+
+        membership.setInvitedAt(Instant.now());
+        tenantMembershipRepository.save(membership);
+
+        InvitationType invitationType = user.getStatus() == UserStatus.ACTIVE
+                ? InvitationType.TENANT_JOIN
+                : InvitationType.TENANT_MEMBER;
+        String inviteToken = invitationTokenService.issue(user, membership, invitationType);
+        deliverInvitation(
+                tenant.getId(),
+                user.getEmail(),
+                user.getName(),
+                tenant.getName(),
+                tenant.getSlug(),
+                role.name(),
+                inviteToken
+        );
+        return new InvitationResult(user.getEmail(), role.name(), membership.getStatus().name(), inviteToken);
+    }
+
     private void deliverInvitation(
             Long tenantId,
             String email,

@@ -25,6 +25,7 @@ Accept: application/json
     client.test("Tenant A modules", function() {
         client.assert(response.status === 200, "Expected 200");
         client.assert(Array.isArray(response.body.data.enabledModules), "Expected enabledModules");
+        client.assert(Array.isArray(response.body.data.activations), "Expected activations log");
     });
 %}
 
@@ -79,5 +80,21 @@ Accept: application/json
 > {%
     client.test("Re-activate PODCAST", function() {
         client.assert(response.status === 200, "Expected 200");
+    });
+%}
+
+###
+
+### @name activateEmailNotifyModule
+POST {{baseUrl}}/api/v1/platform/tenants/{{tenantAId}}/modules/EMAIL_NOTIFY/activate
+Authorization: Bearer {{platformAccessToken}}
+Accept: application/json
+
+> {%
+    client.test("Activate EMAIL_NOTIFY", function() {
+        client.assert(response.status === 200 || response.status === 409, "Expected 200 or 409");
+        if (response.status === 200) {
+            client.assert(response.body.data.enabledModules.includes("EMAIL_NOTIFY"), "Expected EMAIL_NOTIFY");
+        }
     });
 %}

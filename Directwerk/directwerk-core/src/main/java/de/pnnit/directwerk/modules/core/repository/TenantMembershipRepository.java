@@ -2,6 +2,7 @@ package de.pnnit.directwerk.modules.core.repository;
 
 import de.pnnit.directwerk.modules.core.entity.MembershipStatus;
 import de.pnnit.directwerk.modules.core.entity.TenantMembership;
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -40,4 +41,10 @@ public interface TenantMembershipRepository extends JpaRepository<TenantMembersh
             @Param("tenantId") Long tenantId,
             @Param("status") MembershipStatus status
     );
+
+    @Query("""
+            select max(membership.lastLoginAt) from TenantMembership membership
+            where membership.user.id = :userId
+            """)
+    Optional<Instant> findMaxLastLoginAtByUserId(@Param("userId") Long userId);
 }

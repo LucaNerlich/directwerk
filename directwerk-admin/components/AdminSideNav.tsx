@@ -15,6 +15,7 @@ import type {NavigationItem} from '@directwerk/ui/lib/navigation'
 
 const NAV_ITEMS: readonly NavigationItem[] = [
     {href: '/', label: 'Overview'},
+    {href: '/tenants', label: 'Tenants'},
     {href: '/admins', label: 'Platform admins'},
     {href: '/audit', label: 'Audit log'},
     {href: '/jobs', label: 'Jobs'},

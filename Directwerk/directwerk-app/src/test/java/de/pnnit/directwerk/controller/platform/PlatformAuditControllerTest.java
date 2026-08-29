@@ -7,6 +7,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import de.pnnit.directwerk.modules.core.service.PlatformAuditQueryService;
+import de.pnnit.directwerk.modules.core.service.PlatformAuditQueryService.AuditPage;
+import de.pnnit.directwerk.modules.core.service.PlatformAuditQueryService.AuditQuery;
 import de.pnnit.directwerk.modules.core.service.PlatformAuditQueryService.PlatformAuditView;
 import java.time.Instant;
 import java.util.List;
@@ -35,22 +37,25 @@ class PlatformAuditControllerTest {
 
     @Test
     void listRecentReturnsAuditEvents() throws Exception {
-        when(platformAuditQueryService.listRecent(20)).thenReturn(List.of(
+        when(platformAuditQueryService.list(new AuditQuery(0, 20, null, null, null, null))).thenReturn(
+                new AuditPage(List.of(
                 new PlatformAuditView(
                         1L,
                         "TENANT_CREATED",
                         9L,
+                        "admin@example.com",
                         3L,
                         Map.of("slug", "alpha-show-c"),
                         Instant.parse("2026-07-19T12:00:00Z")
                 )
-        ));
+        ), 1, 0, 20));
 
-        mockMvc.perform(get("/api/v1/platform/audit").param("limit", "20"))
+        mockMvc.perform(get("/api/v1/platform/audit").param("size", "20"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data[0].action").value("TENANT_CREATED"))
-                .andExpect(jsonPath("$.data[0].tenantId").value(3));
+                .andExpect(jsonPath("$.data[0].tenantId").value(3))
+                .andExpect(jsonPath("$.metadata.totalElements").value(1));
 
-        verify(platformAuditQueryService).listRecent(20);
+        verify(platformAuditQueryService).list(new AuditQuery(0, 20, null, null, null, null));
     }
 }

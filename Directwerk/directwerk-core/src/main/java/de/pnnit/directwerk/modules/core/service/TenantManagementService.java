@@ -47,8 +47,12 @@ public class TenantManagementService {
      * produce an unbounded response.
      */
     @Transactional(readOnly = true)
-    public List<Tenant> listTenants() {
-        return tenantRepository.findAll(PageRequest.of(0, MAX_TENANT_LIST_SIZE, Sort.by("id").ascending())).getContent();
+    public List<TenantListItemView> listTenants() {
+        return tenantRepository.findAll(PageRequest.of(0, MAX_TENANT_LIST_SIZE, Sort.by("id").ascending()))
+                .getContent()
+                .stream()
+                .map(this::toListItemView)
+                .toList();
     }
 
     /**
@@ -245,15 +249,66 @@ public class TenantManagementService {
      */
 
     private TenantDetailView toView(Tenant tenant) {
+        List<TenantDomain> domains = tenantDomainRepository.findByTenantId(tenant.getId());
+        String primaryDomain = domains.stream()
+                .filter(TenantDomain::isPrimary)
+                .map(TenantDomain::getHost)
+                .findFirst()
+                .orElse(null);
+
         return new TenantDetailView(
                 tenant.getId(),
                 tenant.getSlug(),
                 tenant.getName(),
-                tenant.getStatus().name()
+                tenant.getStatus().name(),
+                tenant.getCreatedAt(),
+                primaryDomain,
+                domains.stream()
+                        .map(domain -> new TenantDomainView(domain.getHost(), domain.isPrimary(), domain.isVerified()))
+                        .toList()
         );
     }
 
-    public record TenantDetailView(Long id, String slug, String name, String status) {
+    private TenantListItemView toListItemView(Tenant tenant) {
+        List<TenantDomain> domains = tenantDomainRepository.findByTenantId(tenant.getId());
+        String primaryDomain = domains.stream()
+                .filter(TenantDomain::isPrimary)
+                .map(TenantDomain::getHost)
+                .findFirst()
+                .orElse(null);
+
+        return new TenantListItemView(
+                tenant.getId(),
+                tenant.getSlug(),
+                tenant.getName(),
+                tenant.getStatus().name(),
+                tenant.getCreatedAt(),
+                primaryDomain
+        );
+    }
+
+    public record TenantDetailView(
+            Long id,
+            String slug,
+            String name,
+            String status,
+            Instant createdAt,
+            String primaryDomain,
+            List<TenantDomainView> domains
+    ) {
+    }
+
+    public record TenantListItemView(
+            Long id,
+            String slug,
+            String name,
+            String status,
+            Instant createdAt,
+            String primaryDomain
+    ) {
+    }
+
+    public record TenantDomainView(String host, boolean primary, boolean verified) {
     }
 
     public record TenantCreationResult(

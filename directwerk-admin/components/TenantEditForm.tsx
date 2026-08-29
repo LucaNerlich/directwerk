@@ -9,7 +9,7 @@ import {Card, CardContent, CardHeader, CardTitle} from '@directwerk/ui/component
 import {Input} from '@directwerk/ui/components/input'
 import {Label} from '@directwerk/ui/components/label'
 
-import type {Tenant} from '@directwerk/api/types'
+import type {TenantDetail} from '@directwerk/api/types'
 
 import {
     INITIAL_TENANT_EDIT_STATE,
@@ -18,8 +18,8 @@ import {
 
 interface TenantEditFormProps {
     tenantId: string
-    tenant: Tenant
-    onUpdated?: (tenant: Tenant) => void
+    tenant: TenantDetail
+    onUpdated?: (tenant: TenantDetail) => void
 }
 
 export default function TenantEditForm({

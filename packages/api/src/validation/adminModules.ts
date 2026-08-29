@@ -27,8 +27,21 @@ export function isTenantModules(value: unknown): value is TenantModules {
         return false
     }
 
+    const activationsValid =
+        value.activations === undefined ||
+        (Array.isArray(value.activations) &&
+            value.activations.every(
+                (item) =>
+                    isRecord(item) &&
+                    typeof item.moduleKey === 'string' &&
+                    typeof item.active === 'boolean' &&
+                    typeof item.activatedAt === 'string' &&
+                    typeof item.source === 'string',
+            ))
+
     return (
         Array.isArray(value.enabledModules) &&
-        value.enabledModules.every((item) => typeof item === 'string')
+        value.enabledModules.every((item) => typeof item === 'string') &&
+        activationsValid
     )
 }

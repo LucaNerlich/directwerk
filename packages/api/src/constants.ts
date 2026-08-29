@@ -50,4 +50,10 @@ export const TENANT_INVITABLE_ROLES = [
     'GUEST',
 ] as const
 
+/** Roles platform admins should invite from directwerk-admin (publisher staff only). */
+export const PLATFORM_TENANT_INVITABLE_ROLES = [
+    'TENANT_ADMIN',
+    'EDITOR',
+] as const
+
 export type TenantInvitableRole = (typeof TENANT_INVITABLE_ROLES)[number]

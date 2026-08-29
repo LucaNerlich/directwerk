@@ -52,11 +52,22 @@ public class ModuleManagementService {
     @Cacheable(cacheNames = DirectwerkCacheNames.TENANT_MODULE_VIEWS, key = "#tenantId")
     public TenantModulesView getTenantModules(Long tenantId) {
         tenantRepository.requireById(tenantId);
-        List<String> enabledModules = tenantModuleActivationRepository.findByTenantIdAndActiveTrue(tenantId).stream()
+        List<TenantModuleActivation> activations = tenantModuleActivationRepository
+                .findByTenantIdOrderByModuleKeyAsc(tenantId);
+        List<String> enabledModules = activations.stream()
+                .filter(TenantModuleActivation::isActive)
                 .map(TenantModuleActivation::getModuleKey)
                 .sorted()
                 .toList();
-        return new TenantModulesView(enabledModules);
+        List<TenantModuleActivationView> activationViews = activations.stream()
+                .map(activation -> new TenantModuleActivationView(
+                        activation.getModuleKey(),
+                        activation.isActive(),
+                        activation.getActivatedAt(),
+                        activation.getSource()
+                ))
+                .toList();
+        return new TenantModulesView(enabledModules, activationViews);
     }
 
     /**
@@ -221,6 +232,17 @@ public class ModuleManagementService {
     ) {
     }
 
-    public record TenantModulesView(List<String> enabledModules) {
+    public record TenantModulesView(
+            List<String> enabledModules,
+            List<TenantModuleActivationView> activations
+    ) {
+    }
+
+    public record TenantModuleActivationView(
+            String moduleKey,
+            boolean active,
+            java.time.Instant activatedAt,
+            String source
+    ) {
     }
 }
