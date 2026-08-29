@@ -5,7 +5,7 @@ LEVEL/PACKAGE products, formats/categories, grants, and where content appears (A
 
 | | |
 |---|---|
-| **Status** | Implemented (API); most studio/admin UI still missing |
+| **Status** | Implemented (API + studio product/subscriber UI) |
 | **Engine** | `EntitlementService` (`directwerk-subscription`) |
 | **Harnesses** | `Directwerk/http/11-tenant-products.http`, `12-tenant-subscriptions.http`, `19-podcast-content.http`, `23-entitlements.http`, `21-public-rss.http`, `22-private-rss.http` |
 | **Related** | [`asset-storage.md`](asset-storage.md) (bytes/CDN), [`README.md`](platform-design.md) (product vision), modules UI in `directwerk-admin` |

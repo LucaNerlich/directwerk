@@ -16,8 +16,8 @@ infrastructure** sold as an API. Ghost is an **integrated publishing product** (
 memberships) with podcast as a secondary channel via third-party hosting. Overlap exists in
 “members-only content + RSS,” but the buyer, architecture, and go-to-market are different.
 
-**Status (2026-07):** Directwerk is in **pre-implementation** (alpha POC spec only). Ghost is a mature,
-shipping product. This doc guides product and engineering decisions — not a feature-parity checklist.
+**Status (2026-08):** Alpha through RSS, entitlements, and reference UIs are shipped. This doc
+guides product positioning — not a feature-parity checklist against Ghost.
 
 ---
 

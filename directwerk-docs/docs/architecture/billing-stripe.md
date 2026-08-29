@@ -6,7 +6,16 @@ outline: deep
 
 <!-- source: docs/payment.md -->
 
-# Payments (Stripe Connect)
+Implementation brief for **Phase 8 / `STRIPE_BILLING`**: live Stripe Connect billing on
+Directwerk. Complements the design sketch in [`../README.md`](../../../docs/platform-design.md#payments-and-billing)
+and the entitlement model in [`content-subscriptions-and-entitlements.md`](/operators/subscriptions-and-entitlements).
+
+| | |
+|---|---|
+| **Status** | Live Connect + checkout + webhooks + studio payment dashboard. Without `STRIPE_*` env keys, money paths still return **501** `STRIPE_NOT_IMPLEMENTED` |
+| **Module** | `STRIPE_BILLING` (depends on `SUBSCRIPTION`; seeded in Flyway `V3`) |
+| **Audience** | Stripe implementation agent / backend + studio + directwerk-web |
+| **Related** | `README.md` Payments, `poc-alpha-setup.md` Phase H, `directwerk-studio-implementation.md` Integrations, Bruno `02-Me` + `07-Tenant-Admin/Stripe` |
 
 ---
 
@@ -45,7 +54,7 @@ EntitlementService  ──►  PAID episode / package scopes / private RSS
 - **MANUAL** grants remain for comps / support; Stripe is another `SubscriptionSource`.
 - `SUBSCRIBER` role ≠ paid access. Membership lets you call `/me/*`; products unlock content.
 
-See [`content-subscriptions-and-entitlements.md`](content-subscriptions-and-entitlements.md).
+See [`content-subscriptions-and-entitlements.md`](/operators/subscriptions-and-entitlements).
 
 ---
 
@@ -388,8 +397,8 @@ Gradle: add official Stripe Java SDK; pin version in BOM/catalog if used.
 | Doc | Why |
 |-----|-----|
 | [`../README.md`](../../../docs/platform-design.md#payments-and-billing) | Original product design (Connect, checkout sequence, webhooks) |
-| [`content-subscriptions-and-entitlements.md`](content-subscriptions-and-entitlements.md) | LEVEL/PACKAGE access rules (must keep working) |
-| [`poc-alpha-setup.md`](poc-alpha-setup.md) | Phase H checklist |
+| [`content-subscriptions-and-entitlements.md`](/operators/subscriptions-and-entitlements) | LEVEL/PACKAGE access rules (must keep working) |
+| [`poc-alpha-setup.md`](/install/local-development) | HTTP harness run order |
 | [`directwerk-studio-implementation.md`](directwerk-studio-implementation.md) | Studio integrations / sync-stripe UI notes |
 | [`user-backend-implementation.md`](user-backend-implementation.md) | `/api/v1/webhooks/**` signature filter pattern |
 | [`../Directwerk/bruno/README.md`](../Directwerk/bruno/README.md) | Bruno maintenance rule |

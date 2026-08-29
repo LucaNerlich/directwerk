@@ -151,7 +151,7 @@ Full column lists: [`README.md` § Content Model](platform-design.md#content-mod
 
 ## 4. Backend implementation
 
-Package layout follows [`poc-alpha-setup.md` § Module boundaries](poc-alpha-setup.md#module-boundaries-vertical-slices).
+Package layout follows Gradle modules under `Directwerk/` (see [`Directwerk/README.md`](../Directwerk/README.md)).
 
 ```
 modules/digital/

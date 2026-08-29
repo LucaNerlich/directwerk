@@ -6,7 +6,14 @@ outline: deep
 
 <!-- source: docs/asset-storage.md -->
 
-# Asset storage & retrieval
+Companion to [`README.md`](../../../docs/platform-design.md) (full design),
+[`poc-alpha-setup.md`](/install/local-development) (alpha bootstrap), and
+[`product-naming.md`](product-naming.md) (public product name history).
+
+| | |
+|---|---|
+| **Status** | Shipped — upload/confirm, private presign, module gating in `directwerk-digital` |
+| **Operator how-to** | [`../Directwerk/docs/media-upload-howto.md`](/operators/media-upload)
 
 This document specifies **how assets are stored, scoped, and served** using S3-compatible object
 storage in **Europe** — with Hetzner Object Storage as the primary target and Bunny.net Storage
@@ -269,7 +276,7 @@ AssetAccess: require SUBSCRIPTION before EntitlementService on paid CONTENT asse
 Alpha implementation: [`ModuleGateService`](../Directwerk/src/main/java/de/pnnit/directwerk/modules/core/service/ModuleGateService.java),
 [`ModuleManagementService.deactivateModule()`](../Directwerk/src/main/java/de/pnnit/directwerk/modules/core/service/ModuleManagementService.java)
 (rejects `is_core` modules with `CannotDeactivateCoreModuleException`), and
-[`poc-alpha-setup.md` § Module system](poc-alpha-setup.md#multi-tenancy-alpha).
+[`Directwerk/docs/multi-tenancy.md`](../Directwerk/docs/multi-tenancy.md).
 
 ### S3 objects when module deactivated
 
@@ -387,7 +394,7 @@ boolean hasDigitalAssetAccess(Long tenantId, Long userId, Long mediaAssetId);
 
 **Alpha today:** [`EntitlementService`](../Directwerk/directwerk-subscription/src/main/java/de/pnnit/directwerk/modules/subscription/service/EntitlementService.java)
 exposes `resolveAccess` / `hasLevelAtLeast` only (LEVEL summary). Full `hasAccess(contentId)` and
-`ProductAccessRule` support are **Phase 4b** — see [`poc-alpha-setup.md`](poc-alpha-setup.md).
+`ProductAccessRule` support are **Phase 4b** — see [`poc-alpha-setup.md`](/install/local-development).
 Until then, `AssetAccessService` uses a fail-closed stub for paid `CONTENT` assets.
 
 ---
@@ -497,177 +504,11 @@ explicit `previewDraft` flag — never for published `CONTENT` assets owned by a
 
 ## Group entitlements (LEVEL vs PACKAGE)
 
-Subscribers often need access to a **set** of content — e.g. all episodes in category “Season 3”,
-or everything at the “Supporter” tier. That is modelled in **PostgreSQL** (`SubscriptionProduct`,
-`ProductAccessRule`, `EntitlementService`), not in S3 prefixes.
+Product-based access (LEVEL ladder, PACKAGE rules, union evaluation) is documented in
+[`content-subscriptions-and-entitlements.md`](/operators/subscriptions-and-entitlements).
 
-**Important distinction:**
-
-| Layer | Responsibility |
-|-------|----------------|
-| **Entitlement layer** | Answers “may this user access this episode/publication?” — can grant **many** items via rules |
-| **Storage layer** | Answers “here is a signed URL for **this one** `MediaAsset`” — only after entitlement passes |
-
-Group access does **not** mean group signing or prefix-wide S3 credentials. A subscriber with a
-category PACKAGE can stream **every entitled episode** in that category, but each stream request
-still runs `hasAccess` + `presignGet` for **one** asset.
-
-### Product types
-
-| `offering_type` | Use case | How access is computed |
-|-----------------|----------|------------------------|
-| `LEVEL` | Patreon-style tier ladder — higher tier unlocks more across the catalog | `subscriber.maxLevelSortOrder >= episode.required_level_sort_order` |
-| `PACKAGE` | Named bundle — specific series, format, category, or file | `ProductAccessRule` rows match episode metadata |
-
-Both types can be active for one user. Access is the **union** of all active subscriptions.
-
-### `ProductAccessRule` scopes (PACKAGE)
-
-| `scope_type` | Grants access to | `scope_id` |
-|--------------|------------------|------------|
-| `ALL_PODCASTS` | Every published episode in tenant | null |
-| `PODCAST_SERIES` | One show | `series_id` |
-| `FORMAT` | Episodes tagged with format | `format_id` |
-| `CATEGORY` | Episodes tagged with category | `category_id` |
-| `DIGITAL_ASSET` | Standalone bonus file | `media_asset_id` or `digital_publication_id` |
-| `FEED_BUILDER` | Custom feed creation (not media bytes) | null |
-
-Episodes link to categories via `episode_categories`; formats via `episode_formats`.
-
-### Entitlement algorithm
-
-```java
-boolean hasAccess(Long tenantId, Long userId, Long episodeId) {
-    Episode episode = episodeRepository.findById(episodeId).orElseThrow();
-
-    if (episode.getAccessPolicy() == FREE) {
-        return true;
-    }
-
-    Set<SubscriptionProduct> active = subscriptionService.activeProducts(userId, episode.getTenantId());
-
-    for (SubscriptionProduct product : active) {
-        if (product.getOfferingType() == LEVEL) {
-            if (product.getSortOrder() >= episode.getRequiredLevelSortOrder()) {
-                return true;
-            }
-        }
-        if (product.getOfferingType() == PACKAGE) {
-            if (packageRulesGrant(product, episode)) {
-                return true;
-            }
-        }
-    }
-    return false;
-}
-
-boolean packageRulesGrant(SubscriptionProduct product, Episode episode) {
-    for (ProductAccessRule rule : product.getAccessRules()) {
-        switch (rule.getScopeType()) {
-            case ALL_PODCASTS -> { return true; }
-            case PODCAST_SERIES -> {
-                if (rule.getScopeId().equals(episode.getSeriesId())) return true;
-            }
-            case FORMAT -> {
-                if (episode.hasFormat(rule.getScopeId())) return true;
-            }
-            case CATEGORY -> {
-                if (episode.hasCategory(rule.getScopeId())) return true;
-            }
-        }
-    }
-    return false;
-}
-```
-
-`AssetAccessService` calls `hasAccess(tenantId, userId, episodeId)` for episode-linked `CONTENT`
-assets, or `hasDigitalAssetAccess(tenantId, userId, mediaAssetId)` for standalone digital files —
-it does not re-implement category or level logic.
-
-### Recipe table
-
-| Business rule | Model |
-|---------------|--------|
-| “Supporter €5/mo — all paid episodes at tier 1” | `LEVEL` product `sort_order = 1`; episodes `required_level_sort_order = 1` |
-| “Producer €15/mo — tier 1 + tier 2 content” | `LEVEL` `sort_order = 2` (cumulative — also satisfies tier 1 episodes) |
-| “€8/mo — **Season 3** episodes only” | `PACKAGE` + `ProductAccessRule(CATEGORY, season_3_category_id)` |
-| “€12/mo — **Interview** format across all series” | `PACKAGE` + `ProductAccessRule(FORMAT, interview_format_id)` |
-| “One show spin-off subscription” | `PACKAGE` + `ProductAccessRule(PODCAST_SERIES, series_id)` |
-| “Two packages — combined access” | Two active `PACKAGE` subs → union |
-| “LEVEL 2 + only Bonus category” | `PACKAGE` with `CATEGORY` rule, **or** tag Bonus episodes with `required_level_sort_order <= 2` only |
-
-### Example: category-scoped product
-
-Tenant creates category **“Season 3”** (`category_id = 7`) and product **“Season Pass”**:
-
-```json
-{
-  "slug": "season-3-pass",
-  "name": "Season 3 Pass",
-  "offeringType": "PACKAGE",
-  "priceCents": 800,
-  "currency": "EUR",
-  "billingInterval": "MONTH",
-  "accessRules": [
-    { "scopeType": "CATEGORY", "scopeId": 7, "effect": "GRANT" }
-  ]
-}
-```
-
-Subscriber with active `season-3-pass` can:
-
-- `GET /api/v1/me/episodes` — lists all published episodes where `hasAccess` is true (includes
-  every Season 3 episode, excludes other categories)
-- `GET /api/v1/me/episodes/{slug}/stream` — 302 per request; each call presigns **that** episode’s
-  `MediaAsset` only
-- Private RSS — enclosures only for entitled episodes; each enclosure gets its own signed URL
-
-Subscriber **without** the product gets `403 ENTITLEMENT_DENIED` on stream — even if they guess
-another episode slug in the same category.
-
-### LEVEL vs category — when to use which
-
-| Choose **LEVEL** when | Choose **PACKAGE** when |
-|-----------------------|-------------------------|
-| Classic tier ladder (more money → more content everywhere) | Access is tied to a **slice** (one season, one format, one show) |
-| Episode difficulty is uniform per “tier” | Same price unlocks a **named bundle** regardless of global sort order |
-| Patreon tier migration | “Season pass”, “Interview-only”, “Spin-off podcast” SKUs |
-
-LEVEL does **not** filter by category natively — scope is `required_level_sort_order` on each
-episode. To approximate “level 2 + category X only”, use PACKAGE or set level metadata only on
-episodes in that category.
-
-### What we do **not** do for group access
-
-| Anti-pattern | Correct approach |
-|--------------|------------------|
-| S3 prefix `{tenant}/private/category/{id}/*` shared by subscribers | Keep all paid audio under `private/audio/{uuid}_{sanitizedFilenameStem}.mp3`; category lives on `Episode` |
-| One long-lived signed URL for “all Season 3” | Presign per episode per request |
-| Skip `hasAccess` because user “has a subscription” | Always evaluate rules against **this** episode |
-| Cache signed URLs across episodes in RSS | Regenerate per enclosure on each feed build |
-
-### Listings vs downloads
-
-| API | Behaviour |
-|-----|-----------|
-| `GET /api/v1/me/access` | Summary of active products + unlocked scopes (for portal UI) |
-| `GET /api/v1/me/episodes` | Paginated episodes where `hasAccess(user, episodeId)` |
-| `GET /api/v1/me/downloads` | Digital publications / bonus files via `DIGITAL_ASSET` rules |
-| `GET /api/v1/public/episodes` | All episodes with lock metadata — **no** private URLs |
-
-Feed builder applies **additional** format/category filters on top of `hasAccess` — filtering is
-UX; entitlement remains the security boundary.
-
-### Testing checklist (group entitlements)
-
-| # | Scenario |
-|---|----------|
-| 13 | `PACKAGE` + `CATEGORY` rule — subscriber streams episode in category |
-| 14 | Same subscriber denied episode **outside** category |
-| 15 | `LEVEL` sort_order 2 grants episode with `required_level_sort_order` 1 and 2, not 3 |
-| 16 | Two active PACKAGE products — union grants episodes from both scopes |
-| 17 | Private RSS for category subscriber — only entitled category episodes, unique signed URLs |
-| 18 | Revoked subscription — next stream returns `ENTITLEMENT_DENIED` (existing URLs expire via TTL) |
+**Storage layer reminder:** entitlements live in PostgreSQL — not S3 prefixes. Each stream or
+download still runs `hasAccess` + `presignGet` for one `MediaAsset` after entitlement passes.
 
 ---
 
@@ -1012,7 +853,7 @@ Group entitlement scenarios (13–18): see [Group entitlements](#group-entitleme
 ## Related documents
 
 - [`README.md`](../../../docs/platform-design.md) — Media Storage, S3 Layout, Upload Flow, Entitlements, Feature Modules
-- [`poc-alpha-setup.md`](poc-alpha-setup.md) — Alpha bootstrap + storage foundation (`MediaAsset` schema, Hetzner/Bunny dev bucket)
+- [`poc-alpha-setup.md`](/install/local-development) — HTTP harness run order
 - [`product-naming.md`](product-naming.md) — Directwerk public product name
 - [Hetzner Object Storage docs](https://docs.hetzner.com/storage/object-storage/)
 - [Bunny.net S3 compatibility](https://docs.bunny.net/storage/s3)

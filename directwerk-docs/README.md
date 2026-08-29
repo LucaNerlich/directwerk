@@ -54,6 +54,11 @@ pnpm --filter directwerk-docs build
 2. Public pages are copied/adapted into `directwerk-docs/docs/` with frontmatter.
 3. Migrated pages include `<!-- source: ... -->` comments for traceability.
 4. When internal docs change materially, update the corresponding public page in the same PR.
+5. For `architecture/asset-storage` and `architecture/billing-stripe`, run from repo root:
+
+```sh
+./directwerk-docs/scripts/sync-architecture-docs.sh
+```
 
 ## Deploy on Coolify
 
