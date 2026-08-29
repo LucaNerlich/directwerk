@@ -12,10 +12,10 @@
     "dependencies": {
         "@directwerk/api": "workspace:*",
         "@directwerk/ui": "workspace:*",
-        "@tiptap/extension-link": "^3.30.1",
-        "@tiptap/react": "^3.30.1",
-        "@tiptap/starter-kit": "^3.30.1",
-        "next": "^16.3.0",
+        "@tiptap/extension-link": "^3.30.5",
+        "@tiptap/react": "^3.30.5",
+        "@tiptap/starter-kit": "^3.30.5",
+        "next": "^16.3.3",
         "react": "^19.2.8",
         "react-dom": "^19.2.8",
         "server-only": "^0.0.1"
@@ -23,16 +23,16 @@
     "devDependencies": {
         "@tailwindcss/postcss": "latest",
         "@testing-library/jest-dom": "^7.0.1",
-        "@testing-library/react": "^16.3.2",
-        "@testing-library/user-event": "^14.6.4",
+        "@testing-library/react": "^16.3.3",
+        "@testing-library/user-event": "^14.6.6",
         "@types/node": "^22.20.1",
         "@types/react": "^19.2.18",
-        "@types/react-dom": "^19.2.4",
+        "@types/react-dom": "^19.2.5",
         "babel-plugin-react-compiler": "^1.0.0",
         "jsdom": "^26.1.0",
         "tailwindcss": "latest",
         "typescript": "^5.9.3",
-        "vitest": "^4.1.10"
+        "vitest": "^4.1.11"
     },
     "packageManager": "pnpm@12.0.0-rc.5+sha512.32f01ead5d5eeae7cc740e73cb46a6e843471a2216a06cfc003404b958992759159a8496ef1b8289c3b4057202a2a954c97ee9e631fe04dd871b3318222ef456"
 }
