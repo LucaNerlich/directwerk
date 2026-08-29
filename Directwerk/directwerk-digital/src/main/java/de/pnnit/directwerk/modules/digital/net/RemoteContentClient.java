@@ -10,7 +10,16 @@ import java.time.Duration;
  */
 public interface RemoteContentClient {
 
-    RemoteResponse get(URI uri, Duration timeout) throws IOException, InterruptedException;
+    /**
+ * Opens a remote HTTP GET request and exposes its response as a stream.
+ *
+ * @param uri the remote resource URI
+ * @param timeout the maximum time allowed for the request
+ * @return the remote response and its streaming body
+ * @throws IOException if an I/O error occurs
+ * @throws InterruptedException if the operation is interrupted
+ */
+RemoteResponse get(URI uri, Duration timeout) throws IOException, InterruptedException;
 
     record RemoteResponse(
             URI finalUri,
@@ -20,6 +29,9 @@ public interface RemoteContentClient {
             InputStream body
     ) implements AutoCloseable {
 
+        /**
+         * Closes the response body stream when one is present.
+         */
         @Override
         public void close() throws IOException {
             if (body != null) {

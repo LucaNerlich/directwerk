@@ -13,6 +13,11 @@ import org.springframework.stereotype.Service;
 @ConditionalOnProperty(prefix = "directwerk.storage", name = "enabled", havingValue = "false", matchIfMissing = true)
 public class UnsupportedRemoteAssetIngestApi implements RemoteAssetIngestApi {
 
+    /**
+     * Rejects remote asset ingestion when object storage is disabled.
+     *
+     * @throws StorageNotConfiguredException if object storage is disabled
+     */
     @Override
     public MediaAsset ingestFromUrl(IngestCommand command) {
         throw new StorageNotConfiguredException(
@@ -20,6 +25,12 @@ public class UnsupportedRemoteAssetIngestApi implements RemoteAssetIngestApi {
         );
     }
 
+    /**
+     * Rejects removal of a remote asset when object storage is disabled.
+     *
+     * @param assetId the identifier of the asset to discard
+     * @throws StorageNotConfiguredException if object storage is disabled
+     */
     @Override
     public void discard(Long assetId) {
         throw new StorageNotConfiguredException(

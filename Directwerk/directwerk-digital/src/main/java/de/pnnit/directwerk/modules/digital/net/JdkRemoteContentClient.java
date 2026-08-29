@@ -59,6 +59,15 @@ public class JdkRemoteContentClient implements RemoteContentClient {
         this.responseSender = responseSender;
     }
 
+    /**
+     * Downloads a public HTTP(S) resource and follows validated redirects within the request timeout.
+     *
+     * @param uri     the resource URI to request
+     * @param timeout the overall request and response-body timeout, or {@code null} for 15 minutes
+     * @return the remote response and its bounded body stream
+     * @throws IOException              if the resource cannot be read
+     * @throws InterruptedException     if the request is interrupted
+     */
     @Override
     public RemoteResponse get(URI uri, Duration timeout) throws IOException, InterruptedException {
         URI current = RemoteUrlValidator.requirePublicHttpUrl(uri);
@@ -96,6 +105,12 @@ public class JdkRemoteContentClient implements RemoteContentClient {
         throw new UploadValidationException("REMOTE_ASSET_FAILED", "Too many redirects");
     }
 
+    /**
+     * Determines whether an HTTP status code represents a supported redirect.
+     *
+     * @param status the HTTP status code
+     * @return {@code true} if the status code is 301, 302, 303, 307, or 308; {@code false} otherwise
+     */
     private static boolean isRedirect(int status) {
         return status == 301 || status == 302 || status == 303 || status == 307 || status == 308;
     }
@@ -103,7 +118,14 @@ public class JdkRemoteContentClient implements RemoteContentClient {
     @FunctionalInterface
     private interface ResponseSender {
 
-        TransportResponse send(URI uri, long remainingNanos) throws IOException, InterruptedException;
+        /**
+ * Sends a request for the specified URI within the remaining time budget.
+ *
+ * @param uri the request target
+ * @param remainingNanos the remaining timeout in nanoseconds
+ * @return the response and its metadata
+ */
+TransportResponse send(URI uri, long remainingNanos) throws IOException, InterruptedException;
     }
 
     private record TransportResponse(
@@ -142,6 +164,13 @@ public class JdkRemoteContentClient implements RemoteContentClient {
 
     private static final class PinnedResponseSender implements ResponseSender {
 
+        /**
+         * Sends a GET request using the resolved public addresses for the target host.
+         *
+         * @param uri            the request URI
+         * @param remainingNanos the time remaining for the request, in nanoseconds
+         * @return the HTTP response and its response body
+         */
         @Override
         public TransportResponse send(URI uri, long remainingNanos) throws IOException {
             String expectedHost = uri.getHost();
@@ -206,6 +235,12 @@ public class JdkRemoteContentClient implements RemoteContentClient {
             }
         }
 
+        /**
+         * Removes enclosing brackets from an IPv6 host string.
+         *
+         * @param host the host string to normalize
+         * @return the host without enclosing IPv6 brackets
+         */
         private static String stripIpv6Brackets(String host) {
             if (host.startsWith("[") && host.endsWith("]")) {
                 return host.substring(1, host.length() - 1);
@@ -229,6 +264,11 @@ public class JdkRemoteContentClient implements RemoteContentClient {
             this.client = client;
         }
 
+        /**
+         * Closes the response stream, HTTP response, and client.
+         *
+         * @throws IOException if closing the response stream fails
+         */
         @Override
         public void close() throws IOException {
             try {
@@ -248,6 +288,12 @@ public class JdkRemoteContentClient implements RemoteContentClient {
         private final ScheduledFuture<?> deadlineTask;
         private volatile boolean timedOut;
 
+        /**
+         * Wraps a response stream and closes it when the specified body-read deadline expires.
+         *
+         * @param delegate      the underlying response stream
+         * @param remainingNanos the time remaining before the body-read deadline, in nanoseconds
+         */
         DeadlineInputStream(InputStream delegate, long remainingNanos) {
             super(delegate);
             deadlineTask = BODY_DEADLINE_EXECUTOR.schedule(() -> {
@@ -260,6 +306,11 @@ public class JdkRemoteContentClient implements RemoteContentClient {
             }, Math.max(1, remainingNanos), TimeUnit.NANOSECONDS);
         }
 
+        /**
+         * Reads the next byte and enforces the stream deadline.
+         *
+         * @return the byte read, or {@code -1} if the end of the stream is reached
+         */
         @Override
         public int read() throws IOException {
             try {
@@ -271,6 +322,13 @@ public class JdkRemoteContentClient implements RemoteContentClient {
             }
         }
 
+        /**
+         * Reads bytes from the underlying response stream while enforcing the deadline.
+         *
+         * @return the number of bytes read, or {@code -1} if the end of the stream is reached
+         * @throws HttpTimeoutException if the deadline expires during the read
+         * @throws IOException if reading the underlying stream fails
+         */
         @Override
         public int read(byte[] bytes, int offset, int length) throws IOException {
             try {
@@ -288,12 +346,23 @@ public class JdkRemoteContentClient implements RemoteContentClient {
             super.close();
         }
 
+        /**
+         * Ensures that reading the response body has not exceeded its deadline.
+         *
+         * @throws HttpTimeoutException if the response body deadline has expired
+         */
         private void throwIfTimedOut() throws HttpTimeoutException {
             if (timedOut) {
                 throw new HttpTimeoutException("Remote response body timed out");
             }
         }
 
+        /**
+         * Converts a body-read failure into a timeout exception when the deadline has expired.
+         *
+         * @param cause the original read failure
+         * @return the original exception, or a timeout exception retaining it as the cause
+         */
         private IOException timeoutOrOriginal(IOException cause) {
             if (!timedOut || cause instanceof HttpTimeoutException) {
                 return cause;

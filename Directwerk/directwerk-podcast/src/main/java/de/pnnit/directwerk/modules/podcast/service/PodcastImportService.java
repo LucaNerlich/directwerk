@@ -53,6 +53,12 @@ public class PodcastImportService {
     private final EpisodeService episodeService;
     private final EpisodeRepository episodeRepository;
 
+    /**
+     * Previews the episodes and channel metadata available from an RSS feed.
+     *
+     * @param feedUrl the RSS feed URL to preview
+     * @return the parsed feed metadata and episode previews, including identifiers for episodes already imported by the tenant
+     */
     @Transactional(readOnly = true)
     @RequiresModule(PodcastModule.KEY)
     public Preview preview(String feedUrl) {
@@ -96,6 +102,15 @@ public class PodcastImportService {
         );
     }
 
+    /**
+     * Ingests a remote asset from the specified URL.
+     *
+     * @param sourceUrl    the URL of the remote asset
+     * @param assetType    the type of asset to ingest
+     * @param visibility   the visibility assigned to the ingested asset
+     * @param filenameHint the suggested filename for the asset
+     * @return the ingested media asset
+     */
     @RequiresModule(PodcastModule.KEY)
     public MediaAsset ingestAsset(String sourceUrl, AssetType assetType, AssetVisibility visibility, String filenameHint) {
         return remoteAssetIngestApi.ingestFromUrl(new RemoteAssetIngestApi.IngestCommand(
@@ -106,6 +121,16 @@ public class PodcastImportService {
         ));
     }
 
+    /**
+     * Imports an episode into the current tenant as a draft.
+     *
+     * <p>Returns an existing episode when the feed and GUID were previously imported. Otherwise,
+     * optionally ingests the episode audio and cover image, creates the episode with a unique slug,
+     * and cleans up newly ingested assets if the import fails.</p>
+     *
+     * @param command the episode details and import settings
+     * @return the imported episode and whether it was already imported
+     */
     @RequiresModule(PodcastModule.KEY)
     public ImportedEpisode importEpisode(ImportEpisodeCommand command) {
         Long tenantId = TenantContext.requireTenantId();
@@ -208,6 +233,11 @@ public class PodcastImportService {
         }
     }
 
+    /**
+     * Discards ingested assets in reverse order, continuing cleanup when an asset cannot be discarded.
+     *
+     * @param assetIds the identifiers of assets to discard
+     */
     private void discardIngestedAssets(List<Long> assetIds) {
         for (int i = assetIds.size() - 1; i >= 0; i--) {
             Long assetId = assetIds.get(i);
@@ -219,6 +249,12 @@ public class PodcastImportService {
         }
     }
 
+    /**
+     * Downloads and parses an RSS feed after validating its URL and response content.
+     *
+     * @param feedUrl the URL of the RSS feed
+     * @return the parsed RSS feed
+     */
     private ParsedRssFeed fetchAndParse(String feedUrl) {
         URI uri = RemoteUrlValidator.requirePublicHttpUrl(feedUrl);
         try (RemoteContentClient.RemoteResponse remote = remoteContentClient.get(uri, FEED_TIMEOUT)) {
@@ -243,6 +279,15 @@ public class PodcastImportService {
         }
     }
 
+    /**
+     * Allocates an unused tenant-scoped slug for an episode.
+     *
+     * @param tenantId  the tenant that owns the episode
+     * @param requested the requested slug, or {@code null} or blank to derive one from the title
+     * @param title     the episode title used to derive a slug when no requested slug is provided
+     * @return an available episode slug
+     * @throws RssImportException if no unique slug is available after 50 attempts
+     */
     private String uniqueSlug(Long tenantId, String requested, String title) {
         String base = requested == null || requested.isBlank()
                 ? ImportSlugSuggester.suggest(title)
@@ -266,6 +311,14 @@ public class PodcastImportService {
         return last.isBlank() ? fallback : last;
     }
 
+    /**
+     * Reads input content while enforcing a maximum size and rejecting empty input.
+     *
+     * @param in       the input stream
+     * @param maxBytes the maximum number of bytes to read
+     * @return the content read from the stream
+     * @throws IOException if reading the stream fails
+     */
     private static byte[] readBounded(InputStream in, int maxBytes) throws IOException {
         byte[] buffer = new byte[Math.min(16 * 1024, maxBytes)];
         var out = new java.io.ByteArrayOutputStream();
@@ -282,6 +335,13 @@ public class PodcastImportService {
         return out.toByteArray();
     }
 
+    /**
+     * Creates a stable identity for an episode imported from an RSS feed.
+     *
+     * @param feedUrl the RSS feed URL
+     * @param guid    the episode's feed GUID
+     * @return the SHA-256 hexadecimal digest of the canonical feed URL and trimmed GUID
+     */
     static String importIdentity(String feedUrl, String guid) {
         if (feedUrl == null || feedUrl.isBlank() || guid == null || guid.isBlank()) {
             throw new RssImportException(
@@ -299,6 +359,12 @@ public class PodcastImportService {
         }
     }
 
+    /**
+     * Canonicalizes a public HTTP or HTTPS feed URL for import identity generation.
+     *
+     * @param feedUrl the feed URL to validate and normalize
+     * @return the canonical ASCII representation of the feed URL
+     */
     private static String canonicalFeedUrl(String feedUrl) {
         try {
             URI parsed = URI.create(feedUrl.trim());

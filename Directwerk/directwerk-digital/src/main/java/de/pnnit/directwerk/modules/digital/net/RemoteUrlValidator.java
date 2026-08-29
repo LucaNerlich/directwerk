@@ -15,6 +15,13 @@ public final class RemoteUrlValidator {
     private RemoteUrlValidator() {
     }
 
+    /**
+     * Validates and parses a raw URL for public HTTP(S) access.
+     *
+     * @param rawUrl the URL to validate
+     * @return the validated absolute HTTP(S) URI
+     * @throws UploadValidationException if the URL is blank, malformed, or targets a blocked resource
+     */
     public static URI requirePublicHttpUrl(String rawUrl) {
         if (rawUrl == null || rawUrl.isBlank()) {
             throw new UploadValidationException("REMOTE_URL_FORBIDDEN", "sourceUrl is required");
@@ -28,6 +35,14 @@ public final class RemoteUrlValidator {
         return requirePublicHttpUrl(uri);
     }
 
+    /**
+     * Validates that a URI uses HTTP or HTTPS and targets a publicly reachable host.
+     *
+     * @param uri the URI to validate
+     * @return the validated URI
+     * @throws UploadValidationException if the URI is missing, malformed for this purpose, uses an unsupported scheme,
+     *                                   contains user information, or targets a blocked or non-public host
+     */
     public static URI requirePublicHttpUrl(URI uri) {
         if (uri == null || uri.getScheme() == null || uri.getHost() == null) {
             throw new UploadValidationException("REMOTE_URL_FORBIDDEN", "sourceUrl must be an absolute HTTP(S) URL");
@@ -47,6 +62,13 @@ public final class RemoteUrlValidator {
         return uri;
     }
 
+    /**
+     * Resolves a hostname and verifies that all resulting addresses are publicly accessible.
+     *
+     * @param host the hostname to resolve
+     * @return the resolved public addresses
+     * @throws UploadValidationException if the host cannot be resolved or resolves to a blocked address
+     */
     static InetAddress[] resolvePublicAddresses(String host) {
         InetAddress[] addresses;
         try {
@@ -65,6 +87,12 @@ public final class RemoteUrlValidator {
         return addresses;
     }
 
+    /**
+     * Determines whether a hostname belongs to a blocked local or internal domain.
+     *
+     * @param host the hostname to evaluate
+     * @return {@code true} if the hostname is blocked, {@code false} otherwise
+     */
     private static boolean isBlockedHostname(String host) {
         return "localhost".equals(host)
                 || host.endsWith(".localhost")
@@ -74,6 +102,12 @@ public final class RemoteUrlValidator {
                 || "metadata.google.internal".equals(host);
     }
 
+    /**
+     * Determines whether an IP address is unsuitable for public remote access.
+     *
+     * @param address the IP address to evaluate
+     * @return {@code true} if the address is local, private, reserved, multicast, or unsupported; {@code false} otherwise
+     */
     private static boolean isBlockedAddress(InetAddress address) {
         if (address.isAnyLocalAddress()
                 || address.isLoopbackAddress()

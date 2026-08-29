@@ -29,6 +29,12 @@ import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
 
 type WizardStep = 'url' | 'series' | 'formats' | 'episode' | 'done'
 
+/**
+ * Formats a duration in seconds as a human-readable time string.
+ *
+ * @param seconds - The duration in seconds.
+ * @returns The duration formatted as `M:SS` or `H:MM:SS`, or `unbekannt` when the duration is unavailable or not positive.
+ */
 function formatDuration(seconds: number | null): string {
     if (seconds === null || seconds <= 0) {
         return 'unbekannt'
@@ -42,6 +48,12 @@ function formatDuration(seconds: number | null): string {
     return `${minutes}:${String(rest).padStart(2, '0')}`
 }
 
+/**
+ * Formats a positive byte count as kilobytes or megabytes.
+ *
+ * @param bytes - The byte count to format
+ * @returns The formatted size, or `Größe unbekannt` when the value is missing or not positive
+ */
 function formatBytes(bytes: number | null): string {
     if (bytes === null || bytes <= 0) {
         return 'Größe unbekannt'
@@ -52,6 +64,9 @@ function formatBytes(bytes: number | null): string {
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
 }
 
+/**
+ * Guides users through importing a public RSS podcast feed, including series selection, format assignment, and episode metadata and media import.
+ */
 export default function RssImportWizard(): React.JSX.Element {
     const authRedirect = useAuthRequired()
     const authRedirectRef = useRef(authRedirect)

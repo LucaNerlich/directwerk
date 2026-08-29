@@ -9,12 +9,19 @@ import de.pnnit.directwerk.modules.digital.entity.MediaAsset;
  */
 public interface RemoteAssetIngestApi {
 
-    MediaAsset ingestFromUrl(IngestCommand command);
+    /**
+ * Ingests a remote asset into tenant object storage.
+ *
+ * @param command the ingestion request containing the source URL and asset metadata
+ * @return the ingested media asset
+ */
+MediaAsset ingestFromUrl(IngestCommand command);
 
     /**
-     * Best-effort rollback for an asset created by this ingest API before it
-     * became attached to content.
-     */
+ * Discards an asset created by this ingestion API before it is attached to content.
+ *
+ * @param assetId the identifier of the asset to discard
+ */
     void discard(Long assetId);
 
     record IngestCommand(

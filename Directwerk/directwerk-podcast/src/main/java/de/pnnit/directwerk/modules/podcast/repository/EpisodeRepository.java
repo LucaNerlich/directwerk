@@ -81,8 +81,23 @@ public interface EpisodeRepository extends JpaRepository<Episode, Long> {
 
     boolean existsByTenantIdAndSlug(Long tenantId, String slug);
 
-    boolean existsByTenantIdAndSlugAndIdNot(Long tenantId, String slug, Long id);
+    /**
+ * Determines whether a tenant has an episode with the specified slug, excluding a particular episode.
+ *
+ * @param tenantId the tenant identifier
+ * @param slug     the episode slug
+ * @param id       the episode identifier to exclude
+ * @return {@code true} if a matching episode exists for another episode, {@code false} otherwise
+ */
+boolean existsByTenantIdAndSlugAndIdNot(Long tenantId, String slug, Long id);
 
+    /**
+     * Finds an episode for a tenant by its import identity.
+     *
+     * @param tenantId       the tenant identifier
+     * @param importIdentity the external import identity
+     * @return the matching episode, if one exists
+     */
     @EntityGraph(attributePaths = {
             "tenant", "series", "series.coverAsset", "coverAsset", "coverAsset.tenant",
             "audioAsset", "audioAsset.tenant", "formats", "formats.coverAsset",
@@ -92,6 +107,13 @@ public interface EpisodeRepository extends JpaRepository<Episode, Long> {
 
     long countByTenantId(Long tenantId);
 
+    /**
+     * Retrieves episodes with the specified status whose scheduled publication time has arrived, ordered by schedule time and ID.
+     *
+     * @param status      the episode status to match
+     * @param scheduledAt the latest scheduled publication time to include
+     * @return the matching episodes
+     */
     @EntityGraph(attributePaths = {
             "tenant", "series", "series.coverAsset", "coverAsset", "coverAsset.tenant",
             "audioAsset", "audioAsset.tenant", "formats", "formats.coverAsset",

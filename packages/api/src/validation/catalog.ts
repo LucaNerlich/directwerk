@@ -299,6 +299,12 @@ export function parseEpisodeEnvelope(
     return parseEnvelope(value, parseEpisodeDetail)
 }
 
+/**
+ * Parses an RSS import channel into a validated channel object.
+ *
+ * @param value - The value to validate and parse
+ * @returns The parsed RSS import channel, or `null` for an invalid value
+ */
 function parseRssImportChannel(value: unknown): RssImportPreview['channel'] | null {
     if (
         !isRecord(value) ||
@@ -323,6 +329,12 @@ function parseRssImportChannel(value: unknown): RssImportPreview['channel'] | nu
     }
 }
 
+/**
+ * Parses an RSS episode preview into a validated episode record.
+ *
+ * @param value - The value to validate and parse
+ * @returns The parsed episode preview, or `null` when the value is invalid
+ */
 function parseRssImportEpisodePreview(
     value: unknown,
 ): RssImportPreview['episodes'][number] | null {
@@ -363,6 +375,12 @@ function parseRssImportEpisodePreview(
     }
 }
 
+/**
+ * Parses an RSS import preview into a validated domain object.
+ *
+ * @param value - The value to validate and parse
+ * @returns The parsed RSS import preview, or `null` for an invalid value
+ */
 function parseRssImportPreview(value: unknown): RssImportPreview | null {
     if (!isRecord(value) || !isBoundedString(value.feedUrl, 2048)) {
         return null
@@ -382,12 +400,24 @@ function parseRssImportPreview(value: unknown): RssImportPreview | null {
     }
 }
 
+/**
+ * Parses an API response envelope containing an RSS import preview.
+ *
+ * @param value - The value to validate and parse
+ * @returns The parsed RSS import preview envelope, or `null` for an invalid value
+ */
 export function parseRssImportPreviewEnvelope(
     value: unknown,
 ): ApiEnvelope<RssImportPreview> | null {
     return parseEnvelope(value, parseRssImportPreview)
 }
 
+/**
+ * Parses an imported episode result.
+ *
+ * @param value - The value to validate and parse
+ * @returns The imported episode result, or `null` if the value is invalid
+ */
 function parseImportedEpisodeResult(value: unknown): ImportedEpisodeResult | null {
     if (!isRecord(value) || typeof value.alreadyImported !== 'boolean') {
         return null
@@ -399,6 +429,12 @@ function parseImportedEpisodeResult(value: unknown): ImportedEpisodeResult | nul
     return {episode, alreadyImported: value.alreadyImported}
 }
 
+/**
+ * Parses an API envelope containing an imported episode result.
+ *
+ * @param value - The value to validate and parse
+ * @returns The parsed API envelope, or `null` if the value is invalid
+ */
 export function parseImportedEpisodeEnvelope(
     value: unknown,
 ): ApiEnvelope<ImportedEpisodeResult> | null {

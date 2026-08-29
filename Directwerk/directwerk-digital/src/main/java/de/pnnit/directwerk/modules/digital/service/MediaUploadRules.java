@@ -33,6 +33,13 @@ public final class MediaUploadRules {
     private MediaUploadRules() {
     }
 
+    /**
+     * Gets the maximum permitted upload size for an asset type.
+     *
+     * @param assetType the type of asset whose size limit is requested
+     * @return the maximum size in bytes
+     * @throws UploadValidationException if no size limit is configured for the asset type
+     */
     public static long maxBytes(AssetType assetType) {
         Long max = MAX_BYTES.get(assetType);
         if (max == null) {
@@ -44,6 +51,13 @@ public final class MediaUploadRules {
         return max;
     }
 
+    /**
+     * Determines whether a MIME type is allowed for an asset type.
+     *
+     * @param assetType the asset type whose allowed MIME types are checked
+     * @param mimeType  the MIME type to evaluate
+     * @return {@code true} if the MIME type is allowed for the asset type, {@code false} otherwise
+     */
     public static boolean isAllowedMime(AssetType assetType, String mimeType) {
         if (mimeType == null || mimeType.isBlank()) {
             return false;
@@ -52,6 +66,12 @@ public final class MediaUploadRules {
         return allowed != null && allowed.contains(normalizeMime(mimeType));
     }
 
+    /**
+     * Normalizes a MIME type for consistent comparison.
+     *
+     * @param mimeType the MIME type to normalize
+     * @return the trimmed, lowercase MIME type without parameters, with common aliases converted to canonical values
+     */
     public static String normalizeMime(String mimeType) {
         String normalized = mimeType.trim().toLowerCase(Locale.ROOT);
         int semicolon = normalized.indexOf(';');
@@ -65,6 +85,13 @@ public final class MediaUploadRules {
         };
     }
 
+    /**
+     * Determines the MIME type supported for a filename and asset type.
+     *
+     * @param assetType the type of asset associated with the filename
+     * @param filename  the filename whose extension determines the MIME type
+     * @return the inferred MIME type, or {@code null} if the extension is unsupported
+     */
     public static String inferMimeFromFilename(AssetType assetType, String filename) {
         String ext = fileExtension(filename == null ? "" : filename);
         return switch (assetType) {
@@ -93,6 +120,14 @@ public final class MediaUploadRules {
         };
     }
 
+    /**
+     * Validates the MIME type and size of an uploaded asset.
+     *
+     * @param assetType the asset category used to determine allowed MIME types and maximum size
+     * @param mimeType the asset's MIME type
+     * @param sizeBytes the asset size in bytes
+     * @throws UploadValidationException if the MIME type is missing or unsupported, no size limit is configured, or the size is not within the allowed range
+     */
     public static void validateMimeAndSize(AssetType assetType, String mimeType, long sizeBytes) {
         if (mimeType == null || mimeType.isBlank()) {
             throw new UploadValidationException("UPLOAD_VALIDATION_FAILED", "mimeType is required");

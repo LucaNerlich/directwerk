@@ -55,6 +55,18 @@ public class EpisodeService {
                 .orElseThrow(() -> new EpisodeNotFoundException(episodeId));
     }
 
+    /**
+     * Creates a tenant-scoped podcast episode draft.
+     *
+     * @param tenantId the tenant that owns the episode
+     * @param seriesId the series to which the episode belongs
+     * @param rawSlug the episode slug before normalization
+     * @param audioAssetId the optional ready audio asset to attach
+     * @param coverAssetId the optional cover asset
+     * @param formatIds the episode format identifiers
+     * @param categoryIds the episode category identifiers
+     * @return the newly created episode draft
+     */
     @Transactional
     @RequiresModule(PodcastModule.KEY)
     public Episode createDraft(
@@ -90,6 +102,13 @@ public class EpisodeService {
         );
     }
 
+    /**
+     * Creates a draft episode associated with a validated imported-episode identity.
+     *
+     * @param importIdentity a lowercase 64-character hexadecimal SHA-256 digest identifying the imported episode
+     * @return the created draft episode
+     * @throws EpisodeValidationException if {@code importIdentity} is not a lowercase SHA-256 digest
+     */
     @Transactional
     @RequiresModule(PodcastModule.KEY)
     public Episode createImportedDraft(
@@ -129,6 +148,17 @@ public class EpisodeService {
         );
     }
 
+    /**
+     * Creates and persists a tenant-scoped draft episode with its metadata and relationships.
+     *
+     * @param tenantId the tenant that owns the episode
+     * @param seriesId the series to which the episode belongs
+     * @param rawSlug the requested episode slug before normalization
+     * @param audioAssetId the optional ready audio asset to attach
+     * @param coverAssetId the optional cover asset
+     * @param importIdentity the optional import identity associated with the episode
+     * @return the persisted draft episode
+     */
     private Episode createDraftInternal(
             Long tenantId,
             Long seriesId,

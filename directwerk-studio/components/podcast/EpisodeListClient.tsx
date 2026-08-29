@@ -22,6 +22,9 @@ import {usePublicationListPage} from '@/lib/publication/usePublicationListPage'
 import {getClientTenantHost} from '@directwerk/api/tenant'
 import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
 
+/**
+ * Displays the podcast episode list and provides publication management actions.
+ */
 export default function EpisodeListClient() {
     const authRedirect = useAuthRequired()
     const [series, setSeries] = useState<SeriesSummary[]>([])

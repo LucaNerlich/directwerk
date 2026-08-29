@@ -63,6 +63,12 @@ public class RemoteAssetIngestService implements RemoteAssetIngestApi {
     private final TenantRepository tenantRepository;
     private final DirectwerkConfig directwerkConfig;
 
+    /**
+     * Imports a remote HTTP(S) asset into the active tenant's storage.
+     *
+     * @param command the source URL and asset metadata for the import
+     * @return the persisted media asset after successful upload
+     */
     @Override
     public MediaAsset ingestFromUrl(IngestCommand command) {
         DirectwerkProperties.Storage storage = StorageConfigs.requireEnabled(directwerkConfig);
@@ -140,6 +146,11 @@ public class RemoteAssetIngestService implements RemoteAssetIngestApi {
         }
     }
 
+    /**
+     * Discards an unattached remote asset belonging to the active tenant.
+     *
+     * @param assetId the identifier of the remote asset to discard
+     */
     @Override
     public void discard(Long assetId) {
         if (assetId == null) {
@@ -170,6 +181,18 @@ public class RemoteAssetIngestService implements RemoteAssetIngestApi {
         mediaAssetRepository.delete(asset);
     }
 
+    /**
+     * Streams an asset to S3 using a single request when its declared length is available,
+     * or multipart upload otherwise.
+     *
+     * @param bucket         the destination S3 bucket
+     * @param key            the destination object key
+     * @param mimeType       the asset's MIME type
+     * @param declaredLength the asset's declared length, when available
+     * @param body           the limited input stream containing the asset
+     * @return the number of bytes read from the asset
+     * @throws IOException if reading the asset fails
+     */
     private long streamToS3(
             String bucket,
             String key,
@@ -192,6 +215,17 @@ public class RemoteAssetIngestService implements RemoteAssetIngestApi {
         return uploadMultipart(bucket, key, mimeType, body);
     }
 
+    /**
+     * Uploads the remote asset using S3 multipart upload.
+     *
+     * @param bucket the destination S3 bucket
+     * @param key the destination object key
+     * @param mimeType the object's MIME type
+     * @param body the asset stream
+     * @return the number of bytes uploaded
+     * @throws IOException if reading the asset fails
+     * @throws UploadValidationException if the asset body is empty
+     */
     private long uploadMultipart(String bucket, String key, String mimeType, LimitedInputStream body)
             throws IOException {
         CreateMultipartUploadResponse created = s3Client.createMultipartUpload(CreateMultipartUploadRequest.builder()
@@ -245,6 +279,12 @@ public class RemoteAssetIngestService implements RemoteAssetIngestApi {
         }
     }
 
+    /**
+     * Fills a buffer from an input stream until the buffer is full or the end of the stream is reached.
+     *
+     * @return the number of bytes read into the buffer
+     * @throws IOException if reading from the input stream fails
+     */
     private static int readFully(InputStream in, byte[] buffer) throws IOException {
         int offset = 0;
         while (offset < buffer.length) {
@@ -257,12 +297,26 @@ public class RemoteAssetIngestService implements RemoteAssetIngestApi {
         return offset;
     }
 
+    /**
+     * Creates a new byte array containing the requested prefix of the source array.
+     *
+     * @param source the source byte array
+     * @param length the number of bytes to copy
+     * @return a byte array containing the first {@code length} bytes of the source
+     */
     private static byte[] copyOf(byte[] source, int length) {
         byte[] copy = new byte[length];
         System.arraycopy(source, 0, copy, 0, length);
         return copy;
     }
 
+    /**
+     * Resolves a safe filename from the supplied hint or the final URI path.
+     *
+     * @param hint     the preferred filename, if provided
+     * @param finalUri the URI from which to derive a filename when no hint is available
+     * @return the sanitized filename, or {@code import.bin} when no safe filename can be derived
+     */
     private static String resolveFilename(String hint, URI finalUri) {
         if (hint != null && !hint.isBlank()) {
             return MediaUploadRules.sanitizeFilename(hint);
@@ -280,6 +334,14 @@ public class RemoteAssetIngestService implements RemoteAssetIngestApi {
         }
     }
 
+    /**
+     * Resolves an allowed MIME type for an asset from the remote content type or filename.
+     *
+     * @param assetType   the asset category used to validate the MIME type
+     * @param contentType the remote content type, when available
+     * @param filename    the filename used for MIME type inference
+     * @return            the normalized or inferred allowed MIME type
+     */
     private static String resolveMime(AssetType assetType, String contentType, String filename) {
         if (contentType != null && !contentType.isBlank()) {
             String normalized = MediaUploadRules.normalizeMime(contentType);
@@ -303,6 +365,13 @@ public class RemoteAssetIngestService implements RemoteAssetIngestApi {
         return inferred;
     }
 
+    /**
+     * Builds the tenant-scoped S3 key for a media asset.
+     *
+     * @param tenantSlug the tenant identifier used in the key
+     * @param asset      the asset whose visibility, type, identifier, and filename determine the key
+     * @return the S3 key for the asset
+     */
     private static String buildFinalKey(String tenantSlug, MediaAsset asset) {
         String visibilityFolder = asset.getVisibility() == AssetVisibility.PUBLIC ? "public" : "private";
         String typeFolder = MediaUploadRules.typeFolder(asset.getAssetType());
@@ -316,6 +385,12 @@ public class RemoteAssetIngestService implements RemoteAssetIngestApi {
                 : TenantAssetKeys.privateKey(tenantSlug, relative);
     }
 
+    /**
+     * Attempts to delete an S3 object while suppressing cleanup failures.
+     *
+     * @param bucket the S3 bucket containing the object
+     * @param key    the object's S3 key
+     */
     private void deleteObjectQuietly(String bucket, String key) {
         try {
             s3Client.deleteObject(DeleteObjectRequest.builder().bucket(bucket).key(key).build());
@@ -329,15 +404,32 @@ public class RemoteAssetIngestService implements RemoteAssetIngestApi {
         private final long maxBytes;
         private long bytesRead;
 
+        /**
+         * Creates a stream that limits the total number of bytes read from the wrapped stream.
+         *
+         * @param in       the stream to wrap
+         * @param maxBytes the maximum number of bytes permitted
+         */
         LimitedInputStream(InputStream in, long maxBytes) {
             super(in);
             this.maxBytes = maxBytes;
         }
 
+        /**
+         * Reports the number of bytes read from the wrapped input stream.
+         *
+         * @return the accumulated number of bytes read
+         */
         long bytesRead() {
             return bytesRead;
         }
 
+        /**
+         * Reads one byte and updates the accumulated byte count.
+         *
+         * @return the byte read, or {@code -1} if the end of the stream has been reached
+         * @throws IOException if an I/O error occurs
+         */
         @Override
         public int read() throws IOException {
             int value = super.read();
@@ -347,6 +439,11 @@ public class RemoteAssetIngestService implements RemoteAssetIngestApi {
             return value;
         }
 
+        /**
+         * Reads bytes from the wrapped stream and updates the accumulated byte count.
+         *
+         * @return the number of bytes read, or {@code -1} at end of stream
+         */
         @Override
         public int read(byte[] b, int off, int len) throws IOException {
             int read = super.read(b, off, len);
@@ -356,6 +453,11 @@ public class RemoteAssetIngestService implements RemoteAssetIngestApi {
             return read;
         }
 
+        /**
+         * Records bytes read and rejects the stream when the configured size limit is exceeded.
+         *
+         * @param count the number of newly read bytes
+         */
         private void add(int count) {
             bytesRead += count;
             if (bytesRead > maxBytes) {

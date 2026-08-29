@@ -10,6 +10,12 @@ public final class ImportSlugSuggester {
     private ImportSlugSuggester() {
     }
 
+    /**
+     * Creates a URL-friendly slug from a title.
+     *
+     * @param title the title from which to create the slug
+     * @return the normalized slug, or {@code "folge"} when the title is blank or cannot produce a valid slug
+     */
     public static String suggest(String title) {
         if (title == null || title.isBlank()) {
             return "folge";
@@ -32,6 +38,12 @@ public final class ImportSlugSuggester {
         return slug.isEmpty() ? "folge" : slug;
     }
 
+    /**
+     * Replaces German umlauts and sharp s with their ASCII equivalents.
+     *
+     * @param title the text to convert
+     * @return the text with German characters converted to ASCII
+     */
     private static String foldGerman(String title) {
         return title
                 .replace("ä", "ae")
@@ -43,6 +55,13 @@ public final class ImportSlugSuggester {
                 .replace("ß", "ss");
     }
 
+    /**
+     * Appends an attempt suffix to a slug while keeping the combined value within 64 characters.
+     *
+     * @param base    the slug to suffix
+     * @param attempt the attempt number used to form the suffix
+     * @return the unchanged base when the attempt is 1 or lower; otherwise, the suffixed slug
+     */
     public static String withSuffix(String base, int attempt) {
         if (attempt <= 1) {
             return base;

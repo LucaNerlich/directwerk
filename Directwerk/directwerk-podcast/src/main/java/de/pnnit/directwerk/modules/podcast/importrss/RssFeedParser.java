@@ -29,6 +29,14 @@ public class RssFeedParser {
     static final String ITUNES_NS = "http://www.itunes.com/dtds/podcast-1.0.dtd";
     static final String CONTENT_NS = "http://purl.org/rss/1.0/modules/content/";
 
+    /**
+     * Parses an RSS feed and converts it into a structured feed representation.
+     *
+     * @param feedUrl the feed URL used to resolve relative links
+     * @param xml     the RSS XML input
+     * @return        the parsed RSS feed
+     * @throws RssImportException if the XML is malformed or the feed is invalid
+     */
     public ParsedRssFeed parse(String feedUrl, InputStream xml) {
         XMLInputFactory factory = XMLInputFactory.newFactory();
         factory.setProperty(XMLInputFactory.SUPPORT_DTD, false);
@@ -46,6 +54,14 @@ public class RssFeedParser {
         }
     }
 
+    /**
+     * Reads channel metadata and podcast items from an RSS document.
+     *
+     * @param feedUrl the URL of the feed, used to resolve relative channel and item URLs
+     * @param reader  the XML reader positioned at the start of the document
+     * @return        the parsed RSS feed with validated and resolved channel and item data
+     * @throws XMLStreamException if the XML document cannot be read
+     */
     private static ParsedRssFeed readDocument(String feedUrl, XMLStreamReader reader) throws XMLStreamException {
         String channelTitle = null;
         String channelDescription = null;
@@ -141,6 +157,14 @@ public class RssFeedParser {
         );
     }
 
+    /**
+     * Reads a podcast item's metadata from the current XML element.
+     *
+     * @param reader the XML stream reader positioned at the item element
+     * @param item   the item being populated
+     * @param local  the current element's local name
+     * @throws XMLStreamException if reading element content fails
+     */
     private static void readItemElement(XMLStreamReader reader, ItemBuilder item, String local)
             throws XMLStreamException {
         if ("title".equalsIgnoreCase(local) && !isItunes(reader)) {
@@ -172,6 +196,13 @@ public class RssFeedParser {
         }
     }
 
+    /**
+     * Reads an iTunes category from its {@code text} attribute or element content.
+     *
+     * @param reader the XML reader positioned at the iTunes category element
+     * @return the trimmed category text, or {@code null} when the element has no content
+     * @throws XMLStreamException if the category element cannot be read
+     */
     private static String readItunesCategory(XMLStreamReader reader) throws XMLStreamException {
         String text = attr(reader, "text");
         if (text != null && !text.isBlank()) {
@@ -181,6 +212,12 @@ public class RssFeedParser {
         return readElementText(reader);
     }
 
+    /**
+     * Skips the current XML element and all nested content.
+     *
+     * @param reader the XML stream reader positioned at the element to skip
+     * @throws XMLStreamException if the XML stream cannot be advanced
+     */
     private static void skipElement(XMLStreamReader reader) throws XMLStreamException {
         int depth = 1;
         while (depth > 0 && reader.hasNext()) {
@@ -197,6 +234,12 @@ public class RssFeedParser {
         return reader.getElementText();
     }
 
+    /**
+     * Determines whether the current XML element belongs to the iTunes namespace.
+     *
+     * @param reader the XML stream reader positioned at the current element
+     * @return {@code true} if the element uses the iTunes prefix or namespace, {@code false} otherwise
+     */
     private static boolean isItunes(XMLStreamReader reader) {
         String ns = reader.getNamespaceURI();
         return "itunes".equalsIgnoreCase(reader.getPrefix())
@@ -206,12 +249,26 @@ public class RssFeedParser {
                 ));
     }
 
+    /**
+     * Determines whether the current XML element represents content-encoded content.
+     *
+     * @param reader the XML stream reader positioned at the element
+     * @return {@code true} if the element uses the content prefix or namespace, {@code false} otherwise
+     */
     private static boolean isContentEncoded(XMLStreamReader reader) {
         String ns = reader.getNamespaceURI();
         return "content".equalsIgnoreCase(reader.getPrefix())
                 || (ns != null && CONTENT_NS.equalsIgnoreCase(ns));
     }
 
+    /**
+     * Determines whether an enclosure has a usable URL and an audio-compatible MIME type.
+     *
+     * @param url      the enclosure URL
+     * @param mimeType the enclosure MIME type
+     * @return {@code true} if the URL is present and the MIME type is audio-compatible or unspecified,
+     *         {@code false} otherwise
+     */
     private static boolean isAudioEnclosure(String url, String mimeType) {
         if (url == null || url.isBlank()) {
             return false;
@@ -224,6 +281,13 @@ public class RssFeedParser {
                 || "application/octet-stream".equals(normalized);
     }
 
+    /**
+     * Resolves a URL against the feed URL and accepts only valid HTTP or HTTPS URLs within the length limit.
+     *
+     * @param feedUrl the base URL used to resolve relative values
+     * @param value   the URL value to resolve
+     * @return the resolved URL, or {@code null} if the value is blank, invalid, unsupported, hostless, or too long
+     */
     private static String resolveHttpUrl(String feedUrl, String value) {
         if (value == null || value.isBlank()) {
             return null;
@@ -247,6 +311,13 @@ public class RssFeedParser {
         return firstNonBlank(attr(reader, "href"), attr(reader, "url"));
     }
 
+    /**
+     * Retrieves an attribute value by name, ignoring case when necessary.
+     *
+     * @param reader the XML stream reader containing the attribute
+     * @param name the attribute name to find
+     * @return the matching attribute value, or {@code null} if no matching attribute exists
+     */
     private static String attr(XMLStreamReader reader, String name) {
         String value = reader.getAttributeValue(null, name);
         if (value != null) {
@@ -260,6 +331,12 @@ public class RssFeedParser {
         return null;
     }
 
+    /**
+     * Parses an RFC 1123 date-time string into an instant.
+     *
+     * @param raw the date-time string to parse
+     * @return the parsed instant, or {@code null} if the value is blank or invalid
+     */
     static Instant parseRfc822(String raw) {
         if (raw == null || raw.isBlank()) {
             return null;
@@ -276,6 +353,12 @@ public class RssFeedParser {
         }
     }
 
+    /**
+     * Parses a duration expressed as seconds or colon-separated time units.
+     *
+     * @param raw the duration text to parse
+     * @return the positive duration in seconds, or {@code null} for invalid, non-positive, or overflowing values
+     */
     static Integer parseDuration(String raw) {
         if (raw == null || raw.isBlank()) {
             return null;
@@ -301,6 +384,12 @@ public class RssFeedParser {
         }
     }
 
+    /**
+     * Parses a string as a positive integer.
+     *
+     * @param raw the string to parse
+     * @return the parsed integer when it is greater than zero; {@code null} otherwise
+     */
     private static Integer parsePositiveInt(String raw) {
         if (raw == null || raw.isBlank()) {
             return null;
@@ -313,6 +402,12 @@ public class RssFeedParser {
         }
     }
 
+    /**
+     * Parses a positive long value from text.
+     *
+     * @param raw the text to parse
+     * @return the parsed value if it is positive and valid, or {@code null} otherwise
+     */
     private static Long parseLong(String raw) {
         if (raw == null || raw.isBlank()) {
             return null;
@@ -325,6 +420,12 @@ public class RssFeedParser {
         }
     }
 
+    /**
+     * Normalizes a language value by defaulting blank input to {@code "de"} and limiting nonblank values to eight characters.
+     *
+     * @param language the language value to normalize
+     * @return the normalized language value
+     */
     private static String normalizeLanguage(String language) {
         if (language == null || language.isBlank()) {
             return "de";
@@ -333,6 +434,13 @@ public class RssFeedParser {
         return trimmed.length() > 8 ? trimmed.substring(0, 8) : trimmed;
     }
 
+    /**
+     * Selects the current value when it is nonblank; otherwise, selects the candidate value.
+     *
+     * @param current   the preferred value
+     * @param candidate the fallback value
+     * @return the first nonblank value, or the candidate when the current value is blank or null
+     */
     private static String firstNonBlank(String current, String candidate) {
         if (current != null && !current.isBlank()) {
             return current;
@@ -340,10 +448,23 @@ public class RssFeedParser {
         return candidate;
     }
 
+    /**
+     * Converts a blank string to {@code null} and trims nonblank values.
+     *
+     * @param value the string to normalize
+     * @return the trimmed value, or {@code null} if the input is {@code null} or blank
+     */
     private static String blankToNull(String value) {
         return value == null || value.isBlank() ? null : value.trim();
     }
 
+    /**
+     * Limits a string to the specified maximum length.
+     *
+     * @param value     the string to truncate
+     * @param maxLength the maximum number of characters to retain
+     * @return the original string when it fits within the limit; otherwise, its truncated and trimmed value
+     */
     private static String truncate(String value, int maxLength) {
         if (value == null || value.length() <= maxLength) {
             return value;
@@ -351,6 +472,13 @@ public class RssFeedParser {
         return value.substring(0, maxLength).trim();
     }
 
+    /**
+     * Bounds a GUID value, replacing oversized values with a SHA-256 identifier.
+     *
+     * @param value the GUID value to normalize
+     * @return the trimmed GUID, or a SHA-256 identifier when it exceeds 512 characters
+     * @throws IllegalStateException if SHA-256 is unavailable
+     */
     private static String boundedGuid(String value) {
         String guid = value.trim();
         if (guid.length() <= 512) {
@@ -379,6 +507,11 @@ public class RssFeedParser {
         private Long audioSizeBytes;
         private String imageUrl;
 
+        /**
+         * Builds a parsed podcast item from the collected episode fields.
+         *
+         * @return the parsed item, or {@code null} if both the title and audio URL are blank
+         */
         private ParsedRssFeed.Item build() {
             if ((title == null || title.isBlank()) && (audioUrl == null || audioUrl.isBlank())) {
                 return null;

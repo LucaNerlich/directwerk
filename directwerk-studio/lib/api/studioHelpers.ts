@@ -1,3 +1,9 @@
+/**
+ * Generates a URL-friendly slug from a title.
+ *
+ * @param title - The title to convert into a slug
+ * @returns A lowercase slug with German characters transliterated, hyphen-separated words, and a maximum length of 63 characters
+ */
 export function suggestSlug(title: string): string {
     return title
         .trim()

@@ -37,6 +37,9 @@ public class PodcastImportController {
     private final PublicEpisodeViewMapper publicEpisodeViewMapper;
     private final MediaAssetViewMapper mediaAssetViewMapper;
 
+    /**
+     * Creates a controller for podcast preview, asset ingestion, and episode import operations.
+     */
     public PodcastImportController(
             PodcastImportService podcastImportService,
             PublicEpisodeViewMapper publicEpisodeViewMapper,
@@ -47,12 +50,23 @@ public class PodcastImportController {
         this.mediaAssetViewMapper = mediaAssetViewMapper;
     }
 
+    /**
+     * Previews the podcast feed identified by the request.
+     *
+     * @param request the podcast feed preview request
+     * @return the podcast feed and episode preview
+     */
     @PostMapping("/preview")
     ResponseEntity<Response<PreviewView>> preview(@Valid @RequestBody PreviewRequest request) {
         PodcastImportService.Preview preview = podcastImportService.preview(request.feedUrl());
         return ResponseEntity.ok(Response.ok(toPreviewView(preview)));
     }
 
+    /**
+     * Ingests a media asset from the supplied source details.
+     *
+     * @return the created media asset view
+     */
     @PostMapping("/assets")
     ResponseEntity<Response<MediaAssetView>> ingestAsset(@Valid @RequestBody IngestAssetRequest request) {
         MediaAsset asset = podcastImportService.ingestAsset(
@@ -64,6 +78,12 @@ public class PodcastImportController {
         return ResponseEntity.status(HttpStatus.CREATED).body(Response.created(mediaAssetViewMapper.toView(asset)));
     }
 
+    /**
+     * Imports an episode and indicates whether it was already imported.
+     *
+     * @param request the episode import details
+     * @return the imported episode view with HTTP 201 when newly imported, or HTTP 200 when already imported
+     */
     @PostMapping("/episodes")
     ResponseEntity<Response<ImportedEpisodeView>> importEpisode(@Valid @RequestBody ImportEpisodeRequest request) {
         PodcastImportService.ImportedEpisode imported = podcastImportService.importEpisode(
@@ -95,6 +115,12 @@ public class PodcastImportController {
         );
     }
 
+    /**
+     * Converts a podcast import preview into its API response representation.
+     *
+     * @param preview the podcast import preview to convert
+     * @return the preview view containing channel and episode details
+     */
     private static PreviewView toPreviewView(PodcastImportService.Preview preview) {
         return new PreviewView(
                 preview.feedUrl(),

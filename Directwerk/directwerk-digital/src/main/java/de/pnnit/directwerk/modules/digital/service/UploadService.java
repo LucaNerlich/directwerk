@@ -68,6 +68,12 @@ public class UploadService implements UploadApi {
     private final MediaDeleteJobProducer mediaDeleteJobProducer;
     private final PlatformTransactionManager transactionManager;
 
+    /**
+     * Creates a pending media asset and a presigned URL for uploading its content.
+     *
+     * @param command the upload metadata and intended asset scope
+     * @return the asset identifier, presigned upload URL, expiration time, staging key, and required content type header
+     */
     @Override
     @Transactional
     public UploadUrlResult createUploadUrl(CreateUploadUrlCommand command) {
