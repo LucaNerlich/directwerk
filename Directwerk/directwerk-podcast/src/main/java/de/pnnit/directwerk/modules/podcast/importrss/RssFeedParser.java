@@ -73,8 +73,12 @@ public class RssFeedParser {
                 } else if (inItem && item != null) {
                     readItemElement(reader, item, local);
                 } else if (inChannel && !inItem) {
-                    if (inImage && "url".equalsIgnoreCase(local)) {
-                        channelImage = firstNonBlank(channelImage, readElementText(reader));
+                    if (inImage) {
+                        if ("url".equalsIgnoreCase(local)) {
+                            channelImage = firstNonBlank(channelImage, readElementText(reader));
+                        } else {
+                            skipElement(reader);
+                        }
                     } else if ("title".equalsIgnoreCase(local) && !isItunes(reader)) {
                         channelTitle = firstNonBlank(channelTitle, readElementText(reader));
                     } else if ("description".equalsIgnoreCase(local) && !isItunes(reader)) {

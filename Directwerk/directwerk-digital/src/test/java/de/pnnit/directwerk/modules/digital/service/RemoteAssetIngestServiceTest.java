@@ -3,6 +3,7 @@ package de.pnnit.directwerk.modules.digital.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -21,6 +22,7 @@ import de.pnnit.directwerk.multitenancy.TenantContext;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
@@ -97,6 +99,13 @@ class RemoteAssetIngestServiceTest {
             }
             return asset;
         });
+        doAnswer(invocation -> {
+            RequestBody requestBody = invocation.getArgument(1);
+            try (InputStream uploaded = requestBody.contentStreamProvider().newStream()) {
+                uploaded.transferTo(OutputStream.nullOutputStream());
+            }
+            return null;
+        }).when(s3Client).putObject(any(PutObjectRequest.class), any(RequestBody.class));
 
         MediaAsset ingested = service.ingestFromUrl(new RemoteAssetIngestApi.IngestCommand(
                 "https://1.1.1.1/ep.mp3",

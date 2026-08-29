@@ -22,7 +22,6 @@ import de.pnnit.directwerk.modules.digital.storage.StorageConfigs;
 import de.pnnit.directwerk.multitenancy.TenantContext;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -111,7 +110,7 @@ public class UploadService implements UploadApi {
         asset.setStatus(AssetStatus.PENDING);
         asset.setEpisodeId(command.episodeId());
         asset.setOwnerUserId(command.ownerUserId());
-        asset.setMimeType(command.mimeType().trim().toLowerCase(Locale.ROOT));
+        asset.setMimeType(MediaUploadRules.normalizeMime(command.mimeType()));
         asset.setSizeBytes(command.sizeBytes());
         asset.setOriginalFilename(filename);
         mediaAssetRepository.saveAndFlush(asset);

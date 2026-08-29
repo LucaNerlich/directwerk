@@ -18,6 +18,11 @@ class RssFeedParserTest {
                 <?xml version="1.0" encoding="UTF-8"?>
                 <rss version="2.0" xmlns:itunes="http://www.itunes.com/dtds/podcast-1.0.dtd">
                   <channel>
+                    <image>
+                      <title>Alpha artwork</title>
+                      <url>https://cdn.example.com/rss-show.jpg</url>
+                      <link>https://images.example.com</link>
+                    </image>
                     <title>Alpha Show</title>
                     <description>About the show</description>
                     <language>de-DE</language>
@@ -49,9 +54,10 @@ class RssFeedParserTest {
         );
 
         assertThat(feed.channel().title()).isEqualTo("Alpha Show");
+        assertThat(feed.channel().link()).isEqualTo("https://example.com");
         assertThat(feed.channel().language()).isEqualTo("de-DE");
         assertThat(feed.channel().itunesCategory()).isEqualTo("News");
-        assertThat(feed.channel().imageUrl()).isEqualTo("https://cdn.example.com/show.jpg");
+        assertThat(feed.channel().imageUrl()).isEqualTo("https://cdn.example.com/rss-show.jpg");
         assertThat(feed.items()).hasSize(2);
         assertThat(feed.items().getFirst().guid()).isEqualTo("guid-2");
         assertThat(feed.items().getFirst().durationSeconds()).isEqualTo(3723);

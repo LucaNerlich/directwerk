@@ -43,6 +43,11 @@ public final class RemoteUrlValidator {
         if (host.isEmpty() || isBlockedHostname(host)) {
             throw new UploadValidationException("REMOTE_URL_FORBIDDEN", "sourceUrl host is not allowed");
         }
+        resolvePublicAddresses(host);
+        return uri;
+    }
+
+    static InetAddress[] resolvePublicAddresses(String host) {
         InetAddress[] addresses;
         try {
             addresses = InetAddress.getAllByName(host);
@@ -57,7 +62,7 @@ public final class RemoteUrlValidator {
                 throw new UploadValidationException("REMOTE_URL_FORBIDDEN", "sourceUrl must not target a private host");
             }
         }
-        return uri;
+        return addresses;
     }
 
     private static boolean isBlockedHostname(String host) {

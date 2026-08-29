@@ -117,7 +117,7 @@ class UploadServiceTest {
 
         UploadApi.UploadUrlResult result = uploadService.createUploadUrl(new UploadApi.CreateUploadUrlCommand(
                 "episode.mp3",
-                "audio/mpeg",
+                "audio/mp3; charset=binary",
                 2048,
                 AssetType.AUDIO,
                 AssetVisibility.PRIVATE,
@@ -143,6 +143,7 @@ class UploadServiceTest {
         ArgumentCaptor<MediaAsset> assetCaptor = ArgumentCaptor.forClass(MediaAsset.class);
         verify(mediaAssetRepository).saveAndFlush(assetCaptor.capture());
         assertThat(assetCaptor.getValue().getStatus()).isEqualTo(AssetStatus.PENDING);
+        assertThat(assetCaptor.getValue().getMimeType()).isEqualTo("audio/mpeg");
     }
 
     @Test

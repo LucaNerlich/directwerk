@@ -4,6 +4,7 @@ export function suggestSlug(title: string): string {
         .replace(/ä/gi, 'ae')
         .replace(/ö/gi, 'oe')
         .replace(/ü/gi, 'ue')
+        .replace(/ẞ/g, 'ß')
         .replace(/ß/g, 'ss')
         .toLowerCase()
         .replace(/[^a-z0-9]+/g, '-')
