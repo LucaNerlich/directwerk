@@ -77,7 +77,7 @@ class RemoteAssetIngestServiceTest {
         byte[] body = "id3-fake-mp3".getBytes(StandardCharsets.UTF_8);
         when(remoteContentClient.get(any(URI.class), any(Duration.class))).thenReturn(
                 new RemoteContentClient.RemoteResponse(
-                        URI.create("https://cdn.example.com/ep.mp3"),
+                        URI.create("https://1.1.1.1/ep.mp3"),
                         200,
                         "audio/mpeg",
                         (long) body.length,
@@ -93,7 +93,7 @@ class RemoteAssetIngestServiceTest {
         });
 
         MediaAsset ingested = service.ingestFromUrl(new RemoteAssetIngestApi.IngestCommand(
-                "https://cdn.example.com/ep.mp3",
+                "https://1.1.1.1/ep.mp3",
                 AssetType.AUDIO,
                 AssetVisibility.PRIVATE,
                 null

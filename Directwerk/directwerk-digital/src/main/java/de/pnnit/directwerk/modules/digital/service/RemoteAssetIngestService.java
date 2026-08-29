@@ -153,7 +153,7 @@ public class RemoteAssetIngestService implements RemoteAssetIngestApi {
                             .build(),
                     RequestBody.fromInputStream(body, declaredLength)
             );
-            return body.bytesRead();
+            return declaredLength;
         }
         return uploadMultipart(bucket, key, mimeType, body);
     }

@@ -229,7 +229,7 @@ describe('RssImportWizard', () => {
         await user.click(screen.getByRole('button', {name: 'Überspringen'}))
         await waitFor(() => expect(screen.getByText('Import abgeschlossen')).toBeInTheDocument())
         expect(screen.getByText(/1 Folgen importiert, 1 übersprungen/)).toBeInTheDocument()
-        expect(screen.getByRole('button', {name: 'Zur Folgenliste'})).toHaveAttribute(
+        expect(screen.getByRole('link', {name: 'Zur Folgenliste'})).toHaveAttribute(
             'href',
             '/podcast/episodes',
         )
