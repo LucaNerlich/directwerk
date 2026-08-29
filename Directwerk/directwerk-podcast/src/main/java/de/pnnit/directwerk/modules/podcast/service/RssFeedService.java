@@ -27,6 +27,7 @@ public class RssFeedService {
     private final RssXmlBuilder rssXmlBuilder;
     private final EpisodeDownloadAnalyticsService episodeDownloadAnalyticsService;
     private final PublicCdnUrlResolver publicCdnUrlResolver;
+    private final EpisodeCoverResolver episodeCoverResolver;
 
     /**
      * Builds a public RSS feed containing eligible free episodes for a tenant or series.
@@ -50,7 +51,8 @@ public class RssFeedService {
                 .map(episode -> toPublicRssEpisode(episode, tenant, scheme, host, port))
                 .flatMap(Optional::stream)
                 .toList();
-        return rssXmlBuilder.buildPublicFeed(tenant, seriesOrNull, episodes, originBaseUrl);
+        String channelCoverUrl = resolvePublicCoverUrl(seriesOrNull != null ? seriesOrNull.getCoverAsset() : null);
+        return rssXmlBuilder.buildPublicFeed(tenant, seriesOrNull, episodes, originBaseUrl, null, channelCoverUrl);
     }
 
     /**
@@ -77,7 +79,7 @@ public class RssFeedService {
                 .map(episode -> toPrivateRssEpisode(episode, tenant, feed.getFeedToken(), scheme, host, port))
                 .flatMap(Optional::stream)
                 .toList();
-        return rssXmlBuilder.buildPublicFeed(tenant, null, episodes, originBaseUrl, feed.getTitle());
+        return rssXmlBuilder.buildPublicFeed(tenant, null, episodes, originBaseUrl, feed.getTitle(), null);
     }
 
     /**
@@ -157,12 +159,21 @@ public class RssFeedService {
                 && asset.getAssetType() == AssetType.AUDIO;
     }
 
-    private static RssXmlBuilder.RssEpisode toRssEpisode(Episode episode, MediaAsset asset, String url) {
+    private String resolvePublicCoverUrl(MediaAsset asset) {
+        return publicCdnUrlResolver.resolve(asset).map(java.net.URL::toString).orElse(null);
+    }
+
+    private RssXmlBuilder.RssEpisode toRssEpisode(Episode episode, MediaAsset asset, String url) {
+        String coverUrl = episodeCoverResolver.resolveCoverAsset(episode)
+                .flatMap(publicCdnUrlResolver::resolve)
+                .map(java.net.URL::toString)
+                .orElse(null);
         return new RssXmlBuilder.RssEpisode(
                 episode,
                 url,
                 asset.getSizeBytes(),
-                asset.getMimeType()
+                asset.getMimeType(),
+                coverUrl
         );
     }
 }

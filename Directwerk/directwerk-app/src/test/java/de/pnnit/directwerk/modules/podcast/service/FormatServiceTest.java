@@ -32,12 +32,20 @@ class FormatServiceTest {
     @Mock
     private RssFeedRefreshScheduler rssFeedRefreshScheduler;
 
+    @Mock
+    private PodcastCoverAssetResolver podcastCoverAssetResolver;
+
     private FormatService formatService;
     private Tenant tenant;
 
     @BeforeEach
     void setUp() {
-        formatService = new FormatService(formatRepository, tenantRepository, rssFeedRefreshScheduler);
+        formatService = new FormatService(
+                formatRepository,
+                tenantRepository,
+                podcastCoverAssetResolver,
+                rssFeedRefreshScheduler
+        );
         tenant = new Tenant();
         tenant.setId(10L);
         tenant.setSlug("alpha");
@@ -55,7 +63,8 @@ class FormatServiceTest {
                 "Bonus",
                 "Extra episodes",
                 2,
-                5
+                5,
+                null
         );
 
         assertThat(created.getSlug()).isEqualTo("bonus");
@@ -70,7 +79,7 @@ class FormatServiceTest {
     void createFormatRejectsDuplicateSlug() {
         when(formatRepository.existsByTenantIdAndSlug(10L, "bonus")).thenReturn(true);
 
-        assertThatThrownBy(() -> formatService.createFormat(10L, "bonus", "Bonus", null, null, null))
+        assertThatThrownBy(() -> formatService.createFormat(10L, "bonus", "Bonus", null, null, null, null))
                 .isInstanceOf(de.pnnit.directwerk.modules.core.exception.ConflictException.class)
                 .hasMessageContaining("bonus");
     }
@@ -103,7 +112,7 @@ class FormatServiceTest {
         when(formatRepository.findByIdAndTenantId(1L, 10L)).thenReturn(Optional.of(format));
         when(formatRepository.save(any(Format.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        formatService.updateFormat(10L, 1L, null, null, null, 3, null, null);
+        formatService.updateFormat(10L, 1L, null, null, null, 3, null, null, null);
 
         verify(rssFeedRefreshScheduler).requestRefreshAfterCommit(10L);
     }
@@ -114,7 +123,7 @@ class FormatServiceTest {
         when(formatRepository.findByIdAndTenantId(1L, 10L)).thenReturn(Optional.of(format));
         when(formatRepository.save(any(Format.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        formatService.updateFormat(10L, 1L, null, "Renamed", null, null, null, null);
+        formatService.updateFormat(10L, 1L, null, "Renamed", null, null, null, null, null);
 
         verify(rssFeedRefreshScheduler, never()).requestRefreshAfterCommit(10L);
     }

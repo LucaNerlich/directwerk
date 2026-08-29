@@ -57,7 +57,8 @@ public class TenantFormatController {
                 request.name(),
                 request.description(),
                 request.requiredLevelSortOrder(),
-                request.sortOrder()
+                request.sortOrder(),
+                request.coverAssetId()
         );
         return ResponseEntity.status(HttpStatus.CREATED).body(Response.created(toView(format)));
     }
@@ -77,7 +78,8 @@ public class TenantFormatController {
                 request.description(),
                 request.requiredLevelSortOrder(),
                 request.sortOrder(),
-                request.active()
+                request.active(),
+                request.coverAssetId()
         );
         return ResponseEntity.ok(Response.ok(toView(format)));
     }
@@ -98,6 +100,7 @@ public class TenantFormatController {
                 format.getRequiredLevelSortOrder(),
                 format.getSortOrder(),
                 format.isActive(),
+                format.getCoverAsset() != null ? format.getCoverAsset().getId() : null,
                 format.getCreatedAt(),
                 format.getUpdatedAt()
         );
@@ -110,7 +113,8 @@ public class TenantFormatController {
             @NotBlank @Size(max = 255) String name,
             String description,
             @Min(0) Integer requiredLevelSortOrder,
-            @Min(0) Integer sortOrder
+            @Min(0) Integer sortOrder,
+            @Min(1) Long coverAssetId
     ) {
     }
 
@@ -121,7 +125,8 @@ public class TenantFormatController {
             String description,
             @Min(0) Integer requiredLevelSortOrder,
             @Min(0) Integer sortOrder,
-            Boolean active
+            Boolean active,
+            @Min(1) Long coverAssetId
     ) {
     }
 
@@ -133,6 +138,7 @@ public class TenantFormatController {
             Integer requiredLevelSortOrder,
             int sortOrder,
             boolean active,
+            Long coverAssetId,
             Instant createdAt,
             Instant updatedAt
     ) {

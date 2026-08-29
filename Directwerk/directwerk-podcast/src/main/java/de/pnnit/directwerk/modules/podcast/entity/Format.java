@@ -2,6 +2,7 @@ package de.pnnit.directwerk.modules.podcast.entity;
 
 import de.pnnit.directwerk.modules.core.entity.BaseEntity;
 import de.pnnit.directwerk.modules.core.entity.Tenant;
+import de.pnnit.directwerk.modules.digital.entity.MediaAsset;
 import de.pnnit.directwerk.multitenancy.TenantFilters;
 import de.pnnit.directwerk.multitenancy.TenantOwned;
 import de.pnnit.directwerk.multitenancy.TenantWriteGuardListener;
@@ -49,4 +50,8 @@ public class Format extends BaseEntity implements TenantOwned {
 
     @Column(nullable = false)
     private boolean active = true;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "cover_asset_id")
+    private MediaAsset coverAsset;
 }

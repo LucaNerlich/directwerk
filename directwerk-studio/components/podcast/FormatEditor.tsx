@@ -10,7 +10,13 @@ import LevelSelect from '@/components/studio/LevelSelect'
 import Link from 'next/link'
 import Form from 'next/form'
 import {useRouter} from 'next/navigation'
-import {useActionState, useEffect, useState} from 'react'
+import {useActionState, useCallback, useEffect, useRef, useState} from 'react'
+
+import MediaLibraryPicker from '@/components/media/MediaLibraryPicker'
+import UploadProgress from '@/components/media/UploadProgress'
+import {getMediaPreviewUrl} from '@/lib/api/mediaApi'
+import {mediaLimitLabel} from '@/lib/media/limits'
+import {uploadMediaFile} from '@/lib/media/upload'
 
 import {AUTH_REQUIRED} from '@directwerk/api/constants'
 import {createFormat, deactivateFormat, listFormats, updateFormat} from '@/lib/api/catalogApi'
@@ -48,6 +54,13 @@ export default function FormatEditor({formatId}: FormatEditorProps): React.JSX.E
     const [isLoading, setIsLoading] = useState(!isNew)
     const [isDeactivating, setIsDeactivating] = useState(false)
     const [deactivateError, setDeactivateError] = useState<string | null>(null)
+    const [coverAssetId, setCoverAssetId] = useState<number | null>(null)
+    const [coverPreviewUrl, setCoverPreviewUrl] = useState<string | null>(null)
+    const [isUploadingCover, setIsUploadingCover] = useState(false)
+    const [uploadProgress, setUploadProgress] = useState<{file: File; progress: number} | null>(
+        null,
+    )
+    const mountedRef = useRef(true)
 
     useEffect(() => {
         if (formatId === undefined) {
@@ -71,6 +84,7 @@ export default function FormatEditor({formatId}: FormatEditorProps): React.JSX.E
                 }
                 setFormat(found)
                 setRequiredLevelSortOrder(found.requiredLevelSortOrder)
+                setCoverAssetId(found.coverAssetId)
                 setIsLoading(false)
             })
             .catch((error: unknown) => {
@@ -88,6 +102,65 @@ export default function FormatEditor({formatId}: FormatEditorProps): React.JSX.E
             active = false
         }
     }, [formatId, router])
+
+    useEffect(() => {
+        mountedRef.current = true
+        return () => {
+            mountedRef.current = false
+        }
+    }, [])
+
+    useEffect(() => {
+        let active = true
+
+        if (coverAssetId === null) {
+            setCoverPreviewUrl(null)
+            return
+        }
+
+        getMediaPreviewUrl(getClientTenantHost(), coverAssetId)
+            .then((url) => {
+                if (active) {
+                    setCoverPreviewUrl(url)
+                }
+            })
+            .catch(() => {
+                if (active) {
+                    setCoverPreviewUrl(null)
+                }
+            })
+
+        return () => {
+            active = false
+        }
+    }, [coverAssetId])
+
+    const handleCoverUpload = useCallback(async (file: File | null): Promise<void> => {
+        if (file === null) {
+            return
+        }
+        setIsUploadingCover(true)
+        setUploadProgress({file, progress: 0})
+        try {
+            const asset = await uploadMediaFile(getClientTenantHost(), file, {
+                assetType: 'IMAGE',
+                visibility: 'PUBLIC',
+                onProgress: (percent) => {
+                    if (mountedRef.current) {
+                        setUploadProgress({file, progress: percent})
+                    }
+                },
+            })
+            setCoverAssetId(asset.id)
+        } catch (error) {
+            if (authRedirect(error)) return
+        } finally {
+            if (mountedRef.current) {
+                setIsUploadingCover(false)
+                setUploadProgress(null)
+            }
+        }
+    }, [authRedirect])
 
     async function saveAction(
         _previous: FormatFormState,
@@ -114,6 +187,7 @@ export default function FormatEditor({formatId}: FormatEditorProps): React.JSX.E
                     description: description.length > 0 ? description : undefined,
                     requiredLevelSortOrder,
                     sortOrder,
+                    coverAssetId: coverAssetId ?? undefined,
                 })
                 router.replace(`/podcast/formats/${created.id}`)
                 return {error: null, success: `Format "${created.name}" angelegt.`}
@@ -124,8 +198,10 @@ export default function FormatEditor({formatId}: FormatEditorProps): React.JSX.E
                 description: description.length > 0 ? description : undefined,
                 requiredLevelSortOrder,
                 sortOrder,
+                coverAssetId: coverAssetId ?? undefined,
             })
             setFormat(updated)
+            setCoverAssetId(updated.coverAssetId)
             return {error: null, success: 'Format gespeichert.'}
         } catch (error) {
             if (authRedirect(error)) return INITIAL_STATE
@@ -178,7 +254,8 @@ export default function FormatEditor({formatId}: FormatEditorProps): React.JSX.E
                     </p>
                     <h1>{isNew ? 'Neues Format' : 'Format bearbeiten'}</h1>
                     <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
-                        Formate erscheinen beim Erstellen einer Folge als Auswahl.
+                        Formate erscheinen beim Erstellen einer Folge als Auswahl. Das Titelbild
+                        wird als RSS-Fallback für Folgen dieses Formats genutzt.
                     </p>
                 </div>
                 <Link
@@ -238,6 +315,36 @@ export default function FormatEditor({formatId}: FormatEditorProps): React.JSX.E
                         rows={4}
                     />
                 </p>
+                <div className="grid gap-2">
+                    <span className="text-sm font-medium">Titelbild (RSS-Fallback)</span>
+                    {coverPreviewUrl !== null ? (
+                        <img alt="" className="block max-w-48" src={coverPreviewUrl} />
+                    ) : null}
+                    <Input
+                        accept="image/png,image/jpeg,image/webp"
+                        disabled={pending || isUploadingCover}
+                        onChange={(event) => {
+                            const file = event.target.files?.[0] ?? null
+                            void handleCoverUpload(file)
+                            event.target.value = ''
+                        }}
+                        type="file"
+                    />
+                    <span className="text-sm text-muted-foreground">
+                        Max. {mediaLimitLabel('IMAGE')}.
+                    </span>
+                    <MediaLibraryPicker
+                        assetType="IMAGE"
+                        disabled={pending || isUploadingCover}
+                        label="Titelbild aus Mediathek"
+                        onAuthRequired={() => router.replace('/login')}
+                        onSelect={(asset) => setCoverAssetId(asset.id)}
+                        selectedId={coverAssetId}
+                    />
+                    {uploadProgress !== null ? (
+                        <UploadProgress file={uploadProgress.file} progress={uploadProgress.progress} />
+                    ) : null}
+                </div>
                 <p>
                     <label htmlFor="format-required-level">Mindest-Stufe</label>
                     <br />

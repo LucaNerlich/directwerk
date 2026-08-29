@@ -92,6 +92,7 @@ public class PublicEpisodeViewMapper {
                 episode.getTitle(),
                 episode.getDescription(),
                 episode.getAudioAsset() != null ? episode.getAudioAsset().getId() : null,
+                episode.getCoverAsset() != null ? episode.getCoverAsset().getId() : null,
                 episode.getDurationSeconds(),
                 episode.getAccessPolicy().name(),
                 episode.getRequiredLevelSortOrder(),

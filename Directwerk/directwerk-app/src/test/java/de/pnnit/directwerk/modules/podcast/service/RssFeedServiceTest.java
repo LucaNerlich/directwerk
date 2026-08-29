@@ -60,7 +60,8 @@ class RssFeedServiceTest {
                 subscriberFeedAccess,
                 new RssXmlBuilder(),
                 episodeDownloadAnalyticsService,
-                publicCdnUrlResolver
+                publicCdnUrlResolver,
+                new EpisodeCoverResolver()
         );
         lenient().when(publicCdnUrlResolver.resolve(any())).thenAnswer(invocation -> {
             MediaAsset asset = invocation.getArgument(0);
@@ -69,6 +70,65 @@ class RssFeedServiceTest {
             }
             return java.util.Optional.empty();
         });
+    }
+
+    @Test
+    void publicFeedIncludesCoverArtWithEpisodeFormatSeriesFallback() {
+        Tenant tenant = tenant();
+        PodcastSeries series = series(tenant);
+        MediaAsset seriesCover = publicImage(20L, "alpha/public/series.jpg");
+        series.setCoverAsset(seriesCover);
+
+        Format format = format(3L, true);
+        format.setCoverAsset(publicImage(21L, "alpha/public/format.jpg"));
+
+        Episode free = episode(tenant, series, 1L, "Free Episode", AccessPolicy.FREE, publicAudio(10L));
+        free.setCoverAsset(publicImage(22L, "alpha/public/episode.jpg"));
+
+        when(publicPodcastQueryService.listPublishedEpisodes(10L, series.getId())).thenReturn(List.of(free));
+        when(episodeDownloadAnalyticsService.publicRssEnclosureUrl(
+                10L,
+                "http",
+                "alpha.example.test",
+                8080,
+                "alpha",
+                "episode-1"
+        )).thenReturn("https://alpha.example.test/feeds/alpha/e/episode-1.mp3");
+
+        String xml = rssFeedService.buildPublicFeed(tenant, series, "http", "alpha.example.test", 8080);
+
+        assertThat(xml).contains("xmlns:itunes=");
+        assertThat(xml).contains("<itunes:image href=\"https://cdn.example.test/alpha/public/series.jpg\"/>");
+        assertThat(xml).contains("<itunes:image href=\"https://cdn.example.test/alpha/public/episode.jpg\"/>");
+        assertThat(xml).doesNotContain("alpha/public/format.jpg");
+    }
+
+    @Test
+    void publicFeedItemCoverFallsBackToFormatThenSeries() {
+        Tenant tenant = tenant();
+        PodcastSeries series = series(tenant);
+        series.setCoverAsset(publicImage(20L, "alpha/public/series.jpg"));
+
+        Format format = format(3L, true);
+        format.setCoverAsset(publicImage(21L, "alpha/public/format.jpg"));
+
+        Episode free = episode(tenant, series, 1L, "Free Episode", AccessPolicy.FREE, publicAudio(10L));
+        free.getFormats().add(format);
+
+        when(publicPodcastQueryService.listPublishedEpisodes(10L, null)).thenReturn(List.of(free));
+        when(episodeDownloadAnalyticsService.publicRssEnclosureUrl(
+                10L,
+                "http",
+                "alpha.example.test",
+                8080,
+                "alpha",
+                "episode-1"
+        )).thenReturn("https://alpha.example.test/feeds/alpha/e/episode-1.mp3");
+
+        String xml = rssFeedService.buildPublicFeed(tenant, null, "http", "alpha.example.test", 8080);
+
+        assertThat(xml).contains("<itunes:image href=\"https://cdn.example.test/alpha/public/format.jpg\"/>");
+        assertThat(xml).doesNotContain("alpha/public/series.jpg");
     }
 
     @Test
@@ -306,6 +366,14 @@ class RssFeedServiceTest {
 
     private static MediaAsset publicAudio(Long id) {
         return audio(id, AssetVisibility.PUBLIC, AssetScope.TENANT_PUBLIC, "alpha/public/free.mp3");
+    }
+
+    private static MediaAsset publicImage(Long id, String s3Key) {
+        MediaAsset image = audio(id, AssetVisibility.PUBLIC, AssetScope.TENANT_PUBLIC, s3Key);
+        image.setAssetType(AssetType.IMAGE);
+        image.setMimeType("image/jpeg");
+        image.setSizeBytes(456L);
+        return image;
     }
 
     private static MediaAsset privateAudio(Long id) {

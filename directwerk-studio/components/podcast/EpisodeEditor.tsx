@@ -89,6 +89,12 @@ export default function EpisodeEditor({episodeId}: {episodeId?: number}): React.
     const [availableCategories, setAvailableCategories] = useState<CategorySummary[]>([])
     const [selectedFormatIds, setSelectedFormatIds] = useState<Set<number>>(new Set())
     const [selectedCategoryIds, setSelectedCategoryIds] = useState<Set<number>>(new Set())
+    const [coverAssetId, setCoverAssetId] = useState<number | null>(null)
+    const [coverPreviewUrl, setCoverPreviewUrl] = useState<string | null>(null)
+    const [isUploadingCover, setIsUploadingCover] = useState(false)
+    const [coverUploadProgress, setCoverUploadProgress] = useState<{file: File; progress: number} | null>(
+        null,
+    )
     const audioAssetId = episode?.audioAssetId ?? null
     const hasDigitalContent = hasModule(config, 'DIGITAL_CONTENT')
 
@@ -105,8 +111,9 @@ export default function EpisodeEditor({episodeId}: {episodeId?: number}): React.
             accessPolicy,
             episodeNumber: optionalMinInt(episodeNumber, 1),
             requiredLevelSortOrder: requiredLevelSortOrder ?? undefined,
+            coverAssetId: coverAssetId ?? undefined,
         }
-    }, [accessPolicy, body, episodeNumber, requiredLevelSortOrder, slug, title])
+    }, [accessPolicy, body, coverAssetId, episodeNumber, requiredLevelSortOrder, slug, title])
 
     const persistTags = useCallback(
         async (current: EpisodeDetail): Promise<EpisodeDetail> => {
@@ -241,6 +248,33 @@ export default function EpisodeEditor({episodeId}: {episodeId?: number}): React.
     }, [audioAssetId])
 
     useEffect(() => {
+        let active = true
+
+        if (coverAssetId === null) {
+            setCoverPreviewUrl(null)
+            return
+        }
+
+        getMediaPreviewUrl(getClientTenantHost(), coverAssetId)
+            .then((url) => {
+                if (active) {
+                    setCoverPreviewUrl(url)
+                }
+            })
+            .catch((error) => {
+                if (!active) {
+                    return
+                }
+                if (authRedirect(error)) return
+                setCoverPreviewUrl(null)
+            })
+
+        return () => {
+            active = false
+        }
+    }, [authRedirect, coverAssetId])
+
+    useEffect(() => {
         mountedRef.current = true
         let active = true
 
@@ -280,6 +314,7 @@ export default function EpisodeEditor({episodeId}: {episodeId?: number}): React.
                             : '',
                     )
                     setRequiredLevelSortOrder(loadedEpisode.requiredLevelSortOrder)
+                    setCoverAssetId(loadedEpisode.coverAssetId)
                     applyPublicationSchedule(loadedEpisode.scheduledAt)
                     setSelectedFormatIds(new Set(loadedEpisode.formats.map((tag) => tag.id)))
                     setSelectedCategoryIds(new Set(loadedEpisode.categories.map((tag) => tag.id)))
@@ -378,6 +413,35 @@ export default function EpisodeEditor({episodeId}: {episodeId?: number}): React.
         [handleAuthError, save],
     )
 
+    async function handleCoverUpload(file: File | null): Promise<void> {
+        if (file === null) {
+            return
+        }
+        setIsUploadingCover(true)
+        setErrorMessage(null)
+        setCoverUploadProgress({file, progress: 0})
+        try {
+            const asset = await uploadMediaFile(getClientTenantHost(), file, {
+                assetType: 'IMAGE',
+                visibility: 'PUBLIC',
+                onProgress: (percent) => {
+                    if (mountedRef.current) {
+                        setCoverUploadProgress({file, progress: percent})
+                    }
+                },
+            })
+            setCoverAssetId(asset.id)
+            markDirty()
+        } catch (error) {
+            handleAuthError(error)
+        } finally {
+            if (mountedRef.current) {
+                setIsUploadingCover(false)
+                setCoverUploadProgress(null)
+            }
+        }
+    }
+
     const handleEnclosureChange = useCallback(
         async (enabled: boolean) => {
             if (episode === null) {
@@ -427,7 +491,7 @@ export default function EpisodeEditor({episodeId}: {episodeId?: number}): React.
         )
     }
 
-    const busy = isSaving || isUploading || isEnclosureSaving
+    const busy = isSaving || isUploading || isUploadingCover || isEnclosureSaving
     const hasAudio = audioAssetId !== null
     const selectedSeries = series.find((item) => item.id === seriesId) ?? null
     const publishBlockedReason = episodePublishBlockReason({
@@ -630,6 +694,55 @@ export default function EpisodeEditor({episodeId}: {episodeId?: number}): React.
                                 Audio im Feed (Enclosure)
                             </label>
                         ) : null}
+                        <div className="grid gap-2">
+                            <p className="text-sm font-semibold">Titelbild (RSS)</p>
+                            <p className="text-xs text-muted-foreground">
+                                Wird im Feed als Folgen-Cover genutzt. Ohne eigenes Bild gilt
+                                das Format- oder Sendungs-Titelbild.
+                            </p>
+                            {coverPreviewUrl !== null ? (
+                                <img
+                                    alt=""
+                                    className="block max-w-48"
+                                    src={coverPreviewUrl}
+                                />
+                            ) : null}
+                            <label className="grid gap-2 text-sm font-medium">
+                                <span>{coverAssetId !== null ? 'Titelbild ersetzen' : 'Titelbild hochladen'}</span>
+                                <Input
+                                    accept="image/png,image/jpeg,image/webp"
+                                    disabled={busy}
+                                    onChange={(event) => {
+                                        const file = event.target.files?.[0] ?? null
+                                        void handleCoverUpload(file)
+                                        event.target.value = ''
+                                    }}
+                                    type="file"
+                                />
+                                <span className="text-xs font-normal text-muted-foreground">
+                                    Max. {mediaLimitLabel('IMAGE')}.
+                                </span>
+                            </label>
+                            {hasDigitalContent ? (
+                                <MediaLibraryPicker
+                                    assetType="IMAGE"
+                                    disabled={busy}
+                                    label="Titelbild aus Mediathek"
+                                    onAuthRequired={handleAuthRequired}
+                                    onSelect={(asset) => {
+                                        setCoverAssetId(asset.id)
+                                        markDirty()
+                                    }}
+                                    selectedId={coverAssetId}
+                                />
+                            ) : null}
+                            {coverUploadProgress !== null ? (
+                                <UploadProgress
+                                    file={coverUploadProgress.file}
+                                    progress={coverUploadProgress.progress}
+                                />
+                            ) : null}
+                        </div>
                         <div className="grid gap-2">
                             <p className="text-sm font-semibold">Audio</p>
                             {hasAudio ? (

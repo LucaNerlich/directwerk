@@ -106,6 +106,7 @@ export interface EpisodeDetail extends EpisodeSummary {
     description: string | null
     episodeNumber: number | null
     audioAssetId: number | null
+    coverAssetId: number | null
     enclosureEnabled: boolean
     requiredLevelSortOrder: number | null
     scheduledAt: string | null
@@ -174,6 +175,7 @@ export interface CreateEpisodeInput {
     accessPolicy: AccessPolicy
     episodeNumber?: number
     requiredLevelSortOrder?: number
+    coverAssetId?: number
 }
 
 export interface UpdateEpisodeInput {
@@ -183,6 +185,7 @@ export interface UpdateEpisodeInput {
     accessPolicy?: AccessPolicy
     episodeNumber?: number
     requiredLevelSortOrder?: number
+    coverAssetId?: number
 }
 
 export interface CreateSeriesInput {
@@ -301,6 +304,7 @@ export interface FormatSummary {
     description: string | null
     requiredLevelSortOrder: number | null
     sortOrder: number
+    coverAssetId: number | null
 }
 
 /** Public format view (no `active` flag). */
@@ -352,6 +356,7 @@ export interface CreateFormatInput {
     description?: string
     requiredLevelSortOrder?: number
     sortOrder?: number
+    coverAssetId?: number
 }
 
 export interface UpdateFormatInput {
@@ -360,6 +365,7 @@ export interface UpdateFormatInput {
     requiredLevelSortOrder?: number
     sortOrder?: number
     active?: boolean
+    coverAssetId?: number
 }
 
 export interface CreateCategoryInput {

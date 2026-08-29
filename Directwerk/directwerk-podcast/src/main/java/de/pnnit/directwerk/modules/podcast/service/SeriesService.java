@@ -7,12 +7,6 @@ import de.pnnit.directwerk.modules.core.repository.TenantRepository;
 import de.pnnit.directwerk.modules.core.util.FieldConstraints;
 import de.pnnit.directwerk.modules.core.util.SlugNormalizer;
 import de.pnnit.directwerk.modules.core.util.TitleNormalizer;
-import de.pnnit.directwerk.modules.digital.entity.AssetStatus;
-import de.pnnit.directwerk.modules.digital.entity.AssetType;
-import de.pnnit.directwerk.modules.digital.entity.MediaAsset;
-import de.pnnit.directwerk.modules.digital.exception.MediaAssetNotFoundException;
-import de.pnnit.directwerk.modules.digital.exception.UploadValidationException;
-import de.pnnit.directwerk.modules.digital.repository.MediaAssetRepository;
 import de.pnnit.directwerk.modules.podcast.PodcastModule;
 import de.pnnit.directwerk.modules.podcast.entity.PodcastSeries;
 import de.pnnit.directwerk.modules.podcast.entity.SeriesStatus;
@@ -32,7 +26,7 @@ public class SeriesService {
 
     private final PodcastSeriesRepository podcastSeriesRepository;
     private final TenantRepository tenantRepository;
-    private final MediaAssetRepository mediaAssetRepository;
+    private final PodcastCoverAssetResolver podcastCoverAssetResolver;
     private final RssFeedRefreshScheduler rssFeedRefreshScheduler;
 
     @Transactional(readOnly = true)
@@ -74,7 +68,7 @@ public class SeriesService {
         series.setSlug(slug);
         series.setTitle(TitleNormalizer.normalize(title, "Series"));
         series.setDescription(normalizeText(description));
-        series.setCoverAsset(resolveCoverAsset(tenantId, coverAssetId));
+        series.setCoverAsset(podcastCoverAssetResolver.resolveCoverAsset(tenantId, coverAssetId));
         series.setLanguage(normalizeLanguage(language));
         series.setItunesCategory(normalizeItunesCategory(itunesCategory));
         series.setDefaultRequiredLevelSortOrder(FieldConstraints.requireNonNegative(
@@ -116,7 +110,7 @@ public class SeriesService {
             series.setDescription(normalizeText(description));
         }
         if (coverAssetId != null) {
-            series.setCoverAsset(resolveCoverAsset(tenantId, coverAssetId));
+            series.setCoverAsset(podcastCoverAssetResolver.resolveCoverAsset(tenantId, coverAssetId));
         }
         if (language != null) {
             series.setLanguage(normalizeLanguage(language));
@@ -136,24 +130,6 @@ public class SeriesService {
         PodcastSeries saved = podcastSeriesRepository.save(series);
         rssFeedRefreshScheduler.requestRefreshAfterCommit(tenantId);
         return saved;
-    }
-
-    private MediaAsset resolveCoverAsset(Long tenantId, Long coverAssetId) {
-        if (coverAssetId == null) {
-            return null;
-        }
-        MediaAsset asset = mediaAssetRepository.findById(coverAssetId)
-                .orElseThrow(() -> new MediaAssetNotFoundException(coverAssetId));
-        if (!tenantId.equals(asset.getTenant().getId())) {
-            throw new MediaAssetNotFoundException(coverAssetId);
-        }
-        if (asset.getStatus() != AssetStatus.READY || asset.getAssetType() != AssetType.IMAGE) {
-            throw new UploadValidationException(
-                    "UPLOAD_VALIDATION_FAILED",
-                    "Cover asset must be READY IMAGE"
-            );
-        }
-        return asset;
     }
 
     private static String normalizeLanguage(String language) {

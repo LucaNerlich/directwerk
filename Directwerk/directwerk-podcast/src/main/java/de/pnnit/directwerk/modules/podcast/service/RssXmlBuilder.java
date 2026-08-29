@@ -12,6 +12,7 @@ import org.springframework.stereotype.Component;
 public class RssXmlBuilder {
 
     private static final DateTimeFormatter RSS_DATE_FORMATTER = DateTimeFormatter.RFC_1123_DATE_TIME;
+    private static final String ITUNES_NS = " xmlns:itunes=\"http://www.itunes.com/dtds/podcast-1.0.dtd\"";
 
     /**
      * Builds an RSS 2.0 podcast feed containing channel metadata and episode entries.
@@ -28,7 +29,7 @@ public class RssXmlBuilder {
             List<RssEpisode> episodes,
             String originBaseUrl
     ) {
-        return buildPublicFeed(tenant, seriesOrNull, episodes, originBaseUrl, null);
+        return buildPublicFeed(tenant, seriesOrNull, episodes, originBaseUrl, null, null);
     }
 
     public String buildPublicFeed(
@@ -38,14 +39,28 @@ public class RssXmlBuilder {
             String originBaseUrl,
             String channelTitleOverride
     ) {
+        return buildPublicFeed(tenant, seriesOrNull, episodes, originBaseUrl, channelTitleOverride, null);
+    }
+
+    public String buildPublicFeed(
+            Tenant tenant,
+            PodcastSeries seriesOrNull,
+            List<RssEpisode> episodes,
+            String originBaseUrl,
+            String channelTitleOverride,
+            String channelCoverImageUrl
+    ) {
         StringBuilder xml = new StringBuilder(4096);
         xml.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
-        xml.append("<rss version=\"2.0\">\n");
+        xml.append("<rss version=\"2.0\"").append(ITUNES_NS).append(">\n");
         xml.append("  <channel>\n");
         appendElement(xml, "title", channelTitle(tenant, seriesOrNull, episodes, channelTitleOverride), 4);
         appendElement(xml, "link", originBaseUrl, 4);
         appendElement(xml, "description", channelDescription(tenant, seriesOrNull), 4);
         appendElement(xml, "language", channelLanguage(seriesOrNull, episodes), 4);
+        if (channelCoverImageUrl != null && !channelCoverImageUrl.isBlank()) {
+            appendItunesImage(xml, channelCoverImageUrl, 4);
+        }
         for (RssEpisode rssEpisode : episodes) {
             appendEpisode(xml, tenant, rssEpisode);
         }
@@ -64,6 +79,9 @@ public class RssXmlBuilder {
         if (episode.getPublishedAt() != null) {
             appendElement(xml, "pubDate", RSS_DATE_FORMATTER.format(episode.getPublishedAt().atZone(ZoneOffset.UTC)), 6);
         }
+        if (rssEpisode.coverImageUrl() != null && !rssEpisode.coverImageUrl().isBlank()) {
+            appendItunesImage(xml, rssEpisode.coverImageUrl(), 6);
+        }
         xml.append("      <enclosure url=\"")
                 .append(escapeAttribute(rssEpisode.enclosureUrl()))
                 .append("\" length=\"")
@@ -74,6 +92,13 @@ public class RssXmlBuilder {
                         : "application/octet-stream"))
                 .append("\"/>\n");
         xml.append("    </item>\n");
+    }
+
+    private static void appendItunesImage(StringBuilder xml, String href, int spaces) {
+        xml.append(" ".repeat(spaces))
+                .append("<itunes:image href=\"")
+                .append(escapeAttribute(href))
+                .append("\"/>\n");
     }
 
     private static void appendElement(StringBuilder xml, String name, String value, int spaces) {
@@ -140,6 +165,12 @@ public class RssXmlBuilder {
         return escapeText(value);
     }
 
-    public record RssEpisode(Episode episode, String enclosureUrl, Long length, String mimeType) {
+    public record RssEpisode(
+            Episode episode,
+            String enclosureUrl,
+            Long length,
+            String mimeType,
+            String coverImageUrl
+    ) {
     }
 }
