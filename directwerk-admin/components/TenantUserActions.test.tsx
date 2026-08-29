@@ -27,7 +27,15 @@ describe('TenantUserActions', () => {
             <TenantUserActions
                 onChanged={onChanged}
                 tenantId="1"
-                user={{userId: 2, email: 'editor@example.com', name: null, roles: ['EDITOR'], status: 'ACTIVE'}}
+                user={{
+                    userId: 2,
+                    email: 'editor@example.com',
+                    name: null,
+                    roles: ['EDITOR'],
+                    status: 'ACTIVE',
+                    invitedAt: '2026-01-01T00:00:00Z',
+                    lastLoginAt: '2026-01-02T00:00:00Z',
+                }}
             />,
         )
 
@@ -51,7 +59,15 @@ describe('TenantUserActions', () => {
             <TenantUserActions
                 onChanged={onChanged}
                 tenantId="1"
-                user={{userId: 2, email: 'editor@example.com', name: null, roles: ['EDITOR'], status: 'ACTIVE'}}
+                user={{
+                    userId: 2,
+                    email: 'editor@example.com',
+                    name: null,
+                    roles: ['EDITOR'],
+                    status: 'ACTIVE',
+                    invitedAt: '2026-01-01T00:00:00Z',
+                    lastLoginAt: '2026-01-02T00:00:00Z',
+                }}
             />,
         )
 

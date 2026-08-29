@@ -57,6 +57,7 @@ describe('TenantModulesPanel', () => {
         loadTenantModulesPanelData.mockResolvedValue({
             catalog: mockModulesCatalog,
             enabledModules: new Set(['CORE_AUTH', 'PODCAST']),
+            activations: [],
         })
 
         render(<TenantModulesPanel tenantId="1" />)
@@ -76,9 +77,11 @@ describe('TenantModulesPanel', () => {
         loadTenantModulesPanelData.mockResolvedValue({
             catalog: mockModulesCatalog,
             enabledModules: new Set(['CORE_AUTH', 'PODCAST']),
+            activations: [],
         })
         activateTenantModule.mockResolvedValue({
             enabledModules: ['CORE_AUTH', 'PODCAST', 'PODCAST_RSS'],
+            activations: [],
         })
 
         render(<TenantModulesPanel tenantId="1" />)
@@ -104,9 +107,11 @@ describe('TenantModulesPanel', () => {
         loadTenantModulesPanelData.mockResolvedValue({
             catalog: mockModulesCatalog,
             enabledModules: new Set(['CORE_AUTH', 'PODCAST']),
+            activations: [],
         })
         deactivateTenantModule.mockResolvedValue({
             enabledModules: ['CORE_AUTH'],
+            activations: [],
         })
 
         render(<TenantModulesPanel tenantId="1" />)
@@ -136,9 +141,11 @@ describe('TenantModulesPanel', () => {
         loadTenantModulesPanelData.mockResolvedValue({
             catalog: mockModulesCatalog,
             enabledModules: new Set(['CORE_AUTH']),
+            activations: [],
         })
         applyTenantModulePreset.mockResolvedValue({
             enabledModules: ['CORE_AUTH', 'PODCAST', 'PODCAST_RSS'],
+            activations: [],
         })
 
         render(<TenantModulesPanel tenantId="1" />)
