@@ -23,7 +23,6 @@ import {
 import {AUTH_REQUIRED} from '@directwerk/api/constants'
 import type {PublicSeries, PublicSiteConfig, SubscriberFeedView} from '@directwerk/api/types'
 import {useSubscriberAuth} from '@/lib/auth/useSubscriberAuth'
-import {publicPodcastFeedUrl, publicSeriesFeedUrl} from '@/lib/feeds'
 import {formatPublishedAt} from '@/lib/format'
 import {getClientTenantHost} from '@/lib/tenant/getClientTenantHost'
 
@@ -103,10 +102,7 @@ export default function FeedsPage() {
     }, [tenantHost, isAuthenticated])
 
     const podcastFeedUrl =
-        siteConfig === undefined
-            ? null
-            : (siteConfig.publicRssUrl ??
-              publicPodcastFeedUrl(tenantHost, siteConfig.tenant.slug))
+        siteConfig === undefined ? null : siteConfig.publicRssUrl
 
     const defaultPrivate = privateFeeds.find((feed) => feed.isDefault) ?? null
     const customFeeds = privateFeeds.filter((feed) => !feed.isDefault)
@@ -209,14 +205,7 @@ export default function FeedsPage() {
                             </ListPanelRow>
                         ) : (
                             series.map((item) => {
-                                const feedUrl =
-                                    siteConfig === undefined
-                                        ? null
-                                        : publicSeriesFeedUrl(
-                                              tenantHost,
-                                              siteConfig.tenant.slug,
-                                              item.slug,
-                                          )
+                                const feedUrl = item.rssUrl
                                 return (
                                     <ListPanelRow key={item.id}>
                                         <div className="min-w-0 flex-1">

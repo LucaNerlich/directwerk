@@ -1,6 +1,5 @@
 package de.pnnit.directwerk.modules.digital.service;
 
-import de.pnnit.directwerk.modules.digital.entity.AssetVisibility;
 import de.pnnit.directwerk.modules.digital.entity.MediaAsset;
 import de.pnnit.directwerk.modules.digital.policy.PublicAssetPolicy;
 import de.pnnit.directwerk.modules.digital.repository.MediaAssetRepository;
@@ -28,12 +27,7 @@ public class PublicCdnUrlResolver {
             return Optional.empty();
         }
         MediaAsset managed = mediaAssetRepository.findById(asset.getId()).orElse(null);
-        if (managed == null
-                || managed.getVisibility() != AssetVisibility.PUBLIC
-                || managed.getS3Key() == null) {
-            return Optional.empty();
-        }
-        if (!PublicAssetPolicy.isPublicCdnEligible(managed.getTenant().getSlug(), managed)) {
+        if (managed == null || !PublicAssetPolicy.isPublicCdnEligible(managed.getTenant().getSlug(), managed)) {
             return Optional.empty();
         }
         S3PublicUrlBuilder publicUrlBuilder = publicUrlBuilderProvider.getIfAvailable();

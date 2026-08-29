@@ -168,9 +168,14 @@ public class PublicationWorkflowService {
     @RequiresModule(PodcastModule.KEY)
     public void publishScheduledEpisode(Long tenantId, Long episodeId) {
         Episode episode = episodeService.requireEpisode(tenantId, episodeId);
-        if (episode.getStatus() != EpisodeStatus.SCHEDULED) {
-            log.info("Skipping scheduled publish for episode={} tenant={} — status is no longer SCHEDULED ({})",
-                    episodeId, tenantId, episode.getStatus());
+        if (PublicationLifecycleSupport.skipScheduledPublishIfStatusChanged(
+                episode.getStatus() == EpisodeStatus.SCHEDULED,
+                log,
+                "episode",
+                episodeId,
+                tenantId,
+                episode.getStatus()
+        )) {
             return;
         }
         publishInternal(tenantId, episode, episode.isNotifySubscribersOnPublish());

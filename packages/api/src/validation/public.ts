@@ -280,7 +280,8 @@ export function createPublicContentParsers(policy: PublicContentPolicy) {
                 isPositiveSafeInteger(value.coverAssetId)
             ) ||
             !isNullableString(value.language, 16) ||
-            !isNullableString(value.itunesCategory, 128)
+            !isNullableString(value.itunesCategory, 128) ||
+            !isNullableString(value.rssUrl, 2048)
         ) {
             return null
         }
@@ -296,6 +297,7 @@ export function createPublicContentParsers(policy: PublicContentPolicy) {
                     : value.coverAssetId,
             language: value.language,
             itunesCategory: value.itunesCategory,
+            rssUrl: value.rssUrl,
         }
     }
 

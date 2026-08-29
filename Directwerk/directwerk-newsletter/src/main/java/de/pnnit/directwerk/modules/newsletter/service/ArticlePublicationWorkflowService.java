@@ -117,9 +117,15 @@ public class ArticlePublicationWorkflowService {
     @RequiresModule(DigitalContentModule.KEY)
     public Article archive(Long tenantId, Long articleId) {
         Article article = articleService.requireArticle(tenantId, articleId);
-        PublicationTransitions.requirePublishedStatus(article.getStatus() == ArticleStatus.PUBLISHED, "articles");
-        article.setStatus(ArticleStatus.ARCHIVED);
-        article.setScheduledAt(null);
+        PublicationLifecycleSupport.archive(
+                () -> article.getStatus() == ArticleStatus.PUBLISHED,
+                "articles",
+                () -> {
+                    article.setStatus(ArticleStatus.ARCHIVED);
+                    article.setScheduledAt(null);
+                },
+                null
+        );
         return articleRepository.save(article);
     }
 
@@ -127,10 +133,15 @@ public class ArticlePublicationWorkflowService {
     @RequiresModule(DigitalContentModule.KEY)
     public Article unarchive(Long tenantId, Long articleId) {
         Article article = articleService.requireArticle(tenantId, articleId);
-        PublicationTransitions.requireArchivedStatus(article.getStatus() == ArticleStatus.ARCHIVED, "articles");
-        article.setStatus(ArticleStatus.DRAFT);
-        article.setPublishedAt(null);
-        article.setScheduledAt(null);
+        PublicationLifecycleSupport.unarchive(
+                () -> article.getStatus() == ArticleStatus.ARCHIVED,
+                "articles",
+                () -> {
+                    article.setStatus(ArticleStatus.DRAFT);
+                    article.setPublishedAt(null);
+                    article.setScheduledAt(null);
+                }
+        );
         return articleRepository.save(article);
     }
 
@@ -154,9 +165,14 @@ public class ArticlePublicationWorkflowService {
     @RequiresModule(DigitalContentModule.KEY)
     public void publishScheduledArticle(Long tenantId, Long articleId) {
         Article article = articleService.requireArticle(tenantId, articleId);
-        if (article.getStatus() != ArticleStatus.SCHEDULED) {
-            log.info("Skipping scheduled publish for article={} tenant={} — status is no longer SCHEDULED ({})",
-                    articleId, tenantId, article.getStatus());
+        if (PublicationLifecycleSupport.skipScheduledPublishIfStatusChanged(
+                article.getStatus() == ArticleStatus.SCHEDULED,
+                log,
+                "article",
+                articleId,
+                tenantId,
+                article.getStatus()
+        )) {
             return;
         }
         publishInternal(tenantId, article, article.isNotifySubscribersOnPublish());

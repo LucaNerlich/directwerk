@@ -8,6 +8,7 @@ import de.pnnit.directwerk.modules.core.util.TenantAssetKeys;
 import de.pnnit.directwerk.modules.digital.DigitalContentModule;
 import de.pnnit.directwerk.modules.digital.api.AssetAccessApi;
 import de.pnnit.directwerk.modules.content.api.EntitlementApi;
+import de.pnnit.directwerk.modules.digital.entity.AccessPolicy;
 import de.pnnit.directwerk.modules.digital.entity.AssetScope;
 import de.pnnit.directwerk.modules.digital.entity.AssetStatus;
 import de.pnnit.directwerk.modules.digital.entity.AssetVisibility;
@@ -77,6 +78,20 @@ public class AssetAccessService implements AssetAccessApi {
 
         authorizeRssContentAsset(managed, subscriberUserId);
         return resolvePrivateDownloadUrl(managed, rssDownloadTtl());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public URL resolveEpisodePortalUrl(
+            MediaAsset asset,
+            Long episodeId,
+            AccessPolicy accessPolicy,
+            DirectwerkUserPrincipal principal
+    ) {
+        if (accessPolicy == AccessPolicy.PAID) {
+            moduleGateService.requireModule(FeatureModuleKeys.SUBSCRIPTION);
+        }
+        return resolveDownloadUrl(asset, principal);
     }
 
     @Override

@@ -1,12 +1,10 @@
 package de.pnnit.directwerk.modules.podcast.service;
 
-import de.pnnit.directwerk.modules.content.PublicContentProjection;
+import de.pnnit.directwerk.modules.content.PublicSurfacePolicy;
 import de.pnnit.directwerk.modules.core.service.TenantPublicHostResolver;
 import de.pnnit.directwerk.modules.core.util.FeedUrls;
 import de.pnnit.directwerk.modules.core.util.PublicUrlBuilder;
-import de.pnnit.directwerk.modules.digital.api.AssetAccessApi;
 import de.pnnit.directwerk.modules.digital.api.EpisodeMediaApi;
-import de.pnnit.directwerk.modules.digital.entity.AccessPolicy;
 import de.pnnit.directwerk.modules.digital.entity.AssetStatus;
 import de.pnnit.directwerk.modules.digital.entity.AssetType;
 import de.pnnit.directwerk.modules.digital.entity.MediaAsset;
@@ -16,6 +14,7 @@ import de.pnnit.directwerk.modules.podcast.entity.SeriesStatus;
 import de.pnnit.directwerk.modules.podcast.exception.EpisodeNotFoundException;
 import de.pnnit.directwerk.modules.podcast.feed.SubscriberFeed;
 import de.pnnit.directwerk.modules.podcast.access.SubscriberFeedAccess;
+import de.pnnit.directwerk.modules.podcast.access.SubscriberPlaybackService;
 import de.pnnit.directwerk.modules.podcast.feed.SubscriberFeedNotFoundException;
 import de.pnnit.directwerk.modules.podcast.repository.EpisodeRepository;
 import java.net.URL;
@@ -33,8 +32,8 @@ public class EpisodeEnclosureService {
 
     private final EpisodeRepository episodeRepository;
     private final SubscriberFeedAccess subscriberFeedAccess;
+    private final SubscriberPlaybackService subscriberPlaybackService;
     private final EpisodeMediaApi episodeMediaApi;
-    private final AssetAccessApi assetAccessApi;
     private final TenantPublicHostResolver tenantPublicHostResolver;
 
     public record EnclosureRedirect(Episode episode, URL targetUrl) {
@@ -43,7 +42,7 @@ public class EpisodeEnclosureService {
     @Transactional(readOnly = true)
     public EnclosureRedirect resolvePublicRedirect(Long tenantId, String episodeSlug) {
         Episode episode = requirePublishedPlayableEpisode(tenantId, episodeSlug);
-        if (!PublicContentProjection.includesInPublicRss(episode.getAccessPolicy().name())) {
+        if (!PublicSurfacePolicy.includesInPublicRss(episode.getAccessPolicy().name())) {
             throw new EpisodeNotFoundException(episodeSlug);
         }
         URL target = episodeMediaApi.publicCdnUrl(episode.getAudioAsset())
@@ -63,13 +62,12 @@ public class EpisodeEnclosureService {
             throw new EpisodeNotFoundException(episodeSlug);
         }
         MediaAsset audio = episode.getAudioAsset();
-        URL target;
-        if (episode.getAccessPolicy() == AccessPolicy.FREE) {
-            target = episodeMediaApi.publicCdnUrl(audio)
-                    .orElseThrow(() -> new EpisodeNotFoundException(episodeSlug));
-        } else {
-            target = assetAccessApi.resolveRssEnclosureUrl(audio, feed.getUser().getId());
-        }
+        URL target = subscriberPlaybackService.resolveRssPlayback(
+                audio,
+                episode,
+                feed.getUser().getId(),
+                episodeSlug
+        );
         return new EnclosureRedirect(episode, target);
     }
 

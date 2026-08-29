@@ -1,6 +1,9 @@
 /**
  * Public RSS feed URL grammar — must stay identical to Java {@code FeedUrls}
  * and {@code RssFeedController} route mappings.
+ *
+ * Prefer server-provided absolute URLs from API responses (`publicRssUrl`, `rssUrl`)
+ * when available; this module is a fallback for legacy client-side construction.
  */
 
 const LOOPBACK_HOSTS = new Set(['localhost', '127.0.0.1', '[::1]'])

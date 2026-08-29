@@ -22,11 +22,13 @@
         "./proxy/platformRouteHandler": "./src/proxy/platformRouteHandler.ts",
         "./tenant": "./src/tenant/index.ts",
         "./tenant/server": "./src/tenant/server.ts",
-        "./validation": "./src/validation/index.ts"
+        "./validation": "./src/validation/index.ts",
+        "./generated/openapi": "./src/generated/openapi.ts"
     },
     "scripts": {
         "test": "vitest run",
-        "typecheck": "tsc --noEmit"
+        "typecheck": "tsc --noEmit",
+        "generate:openapi": "openapi-typescript ../../directwerk-docs/docs/openapi/directwerk-api.json -o src/generated/openapi.ts"
     },
     "dependencies": {
         "server-only": "^0.0.1"
@@ -35,6 +37,7 @@
         "@types/node": "^22.20.1",
         "@types/react": "^19.2.18",
         "jsdom": "^26.1.0",
+        "openapi-typescript": "^7.10.1",
         "typescript": "^5.9.3",
         "vitest": "^4.1.10"
     },

@@ -1,5 +1,6 @@
 package de.pnnit.directwerk.modules.digital.api;
 
+import de.pnnit.directwerk.modules.digital.entity.AccessPolicy;
 import de.pnnit.directwerk.modules.digital.entity.MediaAsset;
 import de.pnnit.directwerk.security.DirectwerkUserPrincipal;
 import java.net.URL;
@@ -28,6 +29,17 @@ public interface AssetAccessApi {
      * Resolves a public CDN URL or RSS-duration signed URL for a subscriber feed enclosure.
      */
     URL resolveRssEnclosureUrl(MediaAsset asset, Long subscriberUserId);
+
+    /**
+     * Subscriber portal playback for episode-linked audio. Applies subscription module gate for PAID
+     * episodes before entitlement evaluation.
+     */
+    URL resolveEpisodePortalUrl(
+            MediaAsset asset,
+            Long episodeId,
+            AccessPolicy accessPolicy,
+            DirectwerkUserPrincipal principal
+    );
 
     /**
      * Publisher preview path: EDITOR / TENANT_ADMIN may bypass CONTENT entitlements

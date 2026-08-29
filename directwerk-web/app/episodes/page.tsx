@@ -11,7 +11,6 @@ import PageHeader from '@directwerk/ui/components/page-header'
 import PageStack from '@directwerk/ui/components/page-stack'
 import SectionHeader from '@directwerk/ui/components/section-header'
 
-import {publicSeriesFeedUrl} from '@/lib/feeds'
 import {usePublicCatalog} from '@/lib/catalog/usePublicCatalog'
 import {useSubscriberAuth} from '@/lib/auth/useSubscriberAuth'
 import type {PublicEpisode} from '@directwerk/api/types'
@@ -60,14 +59,7 @@ export default function EpisodesPage() {
                         ) : (
                             <ListPanel>
                                 {series.map((item) => {
-                                    const feedUrl =
-                                        siteConfig === null
-                                            ? null
-                                            : publicSeriesFeedUrl(
-                                                  tenantHost,
-                                                  siteConfig.tenant.slug,
-                                                  item.slug,
-                                              )
+                                    const feedUrl = item.rssUrl
                                     return (
                                         <ListPanelRow key={item.id}>
                                             <div className="min-w-0 flex-1">

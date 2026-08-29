@@ -6,7 +6,7 @@ import de.pnnit.directwerk.api.dto.PublicCategoryView;
 import de.pnnit.directwerk.controller.podcast.EpisodeController;
 import de.pnnit.directwerk.controller.publicapi.PublicPodcastController;
 import de.pnnit.directwerk.controller.auth.MeEpisodeController;
-import de.pnnit.directwerk.modules.content.PublicContentProjection;
+import de.pnnit.directwerk.modules.content.PublicSurfacePolicy;
 import de.pnnit.directwerk.modules.digital.api.EpisodeMediaApi;
 import de.pnnit.directwerk.modules.digital.entity.Category;
 import de.pnnit.directwerk.modules.podcast.entity.Episode;
@@ -27,7 +27,7 @@ public class PublicEpisodeViewMapper {
 
     public PublicPodcastController.PublicEpisodeView toPublicView(Episode episode) {
         String audioCdnUrl = null;
-        if (PublicContentProjection.exposesFullContent(episode.getAccessPolicy().name())
+        if (PublicSurfacePolicy.exposesFullContent(episode.getAccessPolicy().name())
                 && episode.getAudioAsset() != null) {
             audioCdnUrl = episodeMediaApi.publicCdnUrl(episode.getAudioAsset())
                     .map(URL::toString)

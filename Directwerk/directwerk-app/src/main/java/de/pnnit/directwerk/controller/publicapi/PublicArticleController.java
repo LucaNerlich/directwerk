@@ -3,7 +3,7 @@ package de.pnnit.directwerk.controller.publicapi;
 import de.pnnit.directwerk.api.dto.PublicCategoryView;
 import de.pnnit.directwerk.api.response.Response;
 import de.pnnit.directwerk.modules.core.RequiresModule;
-import de.pnnit.directwerk.modules.content.PublicContentProjection;
+import de.pnnit.directwerk.modules.content.PublicSurfacePolicy;
 import de.pnnit.directwerk.modules.digital.DigitalContentModule;
 import de.pnnit.directwerk.modules.newsletter.entity.Article;
 import de.pnnit.directwerk.modules.digital.entity.Category;
@@ -53,7 +53,7 @@ public class PublicArticleController {
                 article.getId(),
                 article.getSlug(),
                 article.getTitle(),
-                PublicContentProjection.articleBody(article.getBody(), article.getAccessPolicy().name()),
+                PublicSurfacePolicy.articleBody(article.getBody(), article.getAccessPolicy().name()),
                 article.getExcerpt(),
                 article.getSeoDescription(),
                 article.getHeroAsset() != null ? article.getHeroAsset().getId() : null,

@@ -2,6 +2,7 @@ package de.pnnit.directwerk.modules.content;
 
 import java.time.Instant;
 import java.util.function.BooleanSupplier;
+import org.slf4j.Logger;
 
 /**
  * Shared publication lifecycle transitions for draft → scheduled → published → archived content.
@@ -65,5 +66,29 @@ public final class PublicationLifecycleSupport {
     ) {
         PublicationTransitions.requireArchivedStatus(isArchived.getAsBoolean(), contentLabel);
         applyDraft.run();
+    }
+
+    /**
+     * Shared skip guard for Quartz scheduled-publish workers when status changed between poll and run.
+     */
+    public static boolean skipScheduledPublishIfStatusChanged(
+            boolean stillScheduled,
+            Logger log,
+            String contentLabel,
+            Long contentId,
+            Long tenantId,
+            Object currentStatus
+    ) {
+        if (stillScheduled) {
+            return false;
+        }
+        log.info(
+                "Skipping scheduled publish for {}={} tenant={} — status is no longer SCHEDULED ({})",
+                contentLabel,
+                contentId,
+                tenantId,
+                currentStatus
+        );
+        return true;
     }
 }

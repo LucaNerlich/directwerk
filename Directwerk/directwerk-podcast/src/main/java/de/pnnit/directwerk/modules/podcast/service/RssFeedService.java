@@ -2,7 +2,7 @@ package de.pnnit.directwerk.modules.podcast.service;
 
 import de.pnnit.directwerk.modules.core.entity.Tenant;
 import de.pnnit.directwerk.modules.core.util.PublicUrlBuilder;
-import de.pnnit.directwerk.modules.digital.entity.AccessPolicy;
+import de.pnnit.directwerk.modules.content.PublicSurfacePolicy;
 import de.pnnit.directwerk.modules.digital.entity.AssetStatus;
 import de.pnnit.directwerk.modules.digital.entity.AssetType;
 import de.pnnit.directwerk.modules.digital.entity.MediaAsset;
@@ -45,7 +45,7 @@ public class RssFeedService {
         List<RssXmlBuilder.RssEpisode> episodes = publicPodcastQueryService
                 .listPublishedEpisodes(tenant.getId(), seriesId)
                 .stream()
-                .filter(episode -> episode.getAccessPolicy() == AccessPolicy.FREE)
+                .filter(episode -> PublicSurfacePolicy.isFreeAccess(episode.getAccessPolicy().name()))
                 .filter(Episode::isEnclosureEnabled)
                 .map(episode -> toPublicRssEpisode(episode, tenant, scheme, host, port))
                 .flatMap(Optional::stream)
@@ -136,7 +136,7 @@ public class RssFeedService {
         if (!isReadyAudio(asset)) {
             return Optional.empty();
         }
-        if (episode.getAccessPolicy() == AccessPolicy.FREE) {
+        if (PublicSurfacePolicy.isFreeAccess(episode.getAccessPolicy().name())) {
             return toPublicRssEpisode(episode, tenant, scheme, host, port);
         }
         String url = episodeDownloadAnalyticsService.privateRssEnclosureUrl(

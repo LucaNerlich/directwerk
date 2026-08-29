@@ -1,7 +1,7 @@
 package de.pnnit.directwerk.modules.podcast.api;
 
+import de.pnnit.directwerk.modules.podcast.access.PublishedEpisodeEntitlementGate;
 import de.pnnit.directwerk.modules.podcast.entity.Episode;
-import de.pnnit.directwerk.modules.podcast.entity.EpisodeStatus;
 import de.pnnit.directwerk.modules.podcast.repository.EpisodeRepository;
 import de.pnnit.directwerk.modules.subscription.service.EntitlementService;
 import java.util.LinkedHashMap;
@@ -17,6 +17,7 @@ public class EpisodeAccessAdapter implements EpisodeAccessApi {
 
     private final EntitlementService entitlementService;
     private final EpisodeRepository episodeRepository;
+    private final PublishedEpisodeEntitlementGate publishedEpisodeEntitlementGate;
 
     @Override
     public List<Episode> filterAccessible(Long tenantId, Long userId, List<Episode> episodes) {
@@ -32,10 +33,6 @@ public class EpisodeAccessAdapter implements EpisodeAccessApi {
 
     @Override
     public boolean hasAccess(Long tenantId, Long userId, Long episodeId) {
-        return episodeRepository.findByIdAndTenantId(episodeId, tenantId)
-                .filter(episode -> episode.getStatus() == EpisodeStatus.PUBLISHED)
-                .map(episode -> entitlementService.hasEpisodeAccess(
-                        tenantId, userId, EpisodeAccessSubjects.toSubject(episode)))
-                .orElse(false);
+        return publishedEpisodeEntitlementGate.hasAccess(tenantId, userId, episodeId);
     }
 }

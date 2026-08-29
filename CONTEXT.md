@@ -255,6 +255,49 @@ Domain glossary and deepening modules for AI navigation. Terms here name **seams
 **Interface:** SWR-style reference data fetch with in-flight dedupe.  
 **Seam:** Levels, products, subscribers clients drop hand-rolled effects.
 
+## Wave 6 deepened modules
+
+### 47. Public surface policy (`PublicSurfacePolicy` in common)
+
+**Interface:** `isFreeAccess`, `exposesFullContent`, `includesInPublicRss`, `articleBody`.  
+**Seam:** RSS filtering, public episode views, article redaction, enclosure guards share one module.  
+**Note:** MediaAsset CDN eligibility stays in `PublicAssetPolicy` (digital).
+
+### 48. Subscriber playback (`SubscriberPlaybackService` in podcast)
+
+**Interface:** `resolvePortalPlayback`, `resolveRssPlayback`.  
+**Seam:** JWT portal and tokenized RSS paths share playback URL policy.
+
+### 49. Published episode entitlement gate (`PublishedEpisodeEntitlementGate`)
+
+**Interface:** `hasAccess(tenantId, userId, episodeId)` with PUBLISHED guard.  
+**Seam:** `EntitlementApiAdapter` and `EpisodeAccessAdapter` delegate here — no duplicate guards.
+
+### 50. Episode portal asset access (`AssetAccessApi.resolveEpisodePortalUrl`)
+
+**Interface:** PAID module gate + `resolveDownloadUrl` for subscriber portal streams.  
+**Seam:** `SubscriberPlaybackService` no longer pre-gates PAID episodes at call sites.
+
+### 51. OpenAPI codegen entry (`packages/api` `generate:openapi`)
+
+**Interface:** `pnpm generate:openapi` → `src/generated/openapi.ts` from exported spec.  
+**Seam:** Incremental migration off hand-written `src/validation/*` parsers.
+
+### 52. Server-provided public series feed URLs (`PublicPodcastController.PublicSeriesView.rssUrl`)
+
+**Interface:** Absolute series feed URL in public catalog API.  
+**Seam:** `directwerk-web` uses API URLs instead of TS `feedUrls` client construction.
+
+### 53. Publication lifecycle worker guard (`PublicationLifecycleSupport.skipScheduledPublishIfStatusChanged`)
+
+**Interface:** Shared skip log + early return for Quartz scheduled publish races.  
+**Seam:** Episode and article workflow services share worker guard; article archive uses `PublicationLifecycleSupport.archive`.
+
+### 54. Content scope validation errors (`InvalidContentScopeException`)
+
+**Interface:** `scopeType`, `scopeId`, message when ProductAccessRule target missing.  
+**Seam:** `ContentScopeLookupAdapter` raises structured errors at the port boundary.
+
 ## Migration order
 
 1. Transport policies (#3)  

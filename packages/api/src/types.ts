@@ -606,6 +606,7 @@ export interface PublicSeries {
     coverAssetId: number | null
     language: string | null
     itunesCategory: string | null
+    rssUrl: string | null
 }
 
 export interface PublicEpisode {

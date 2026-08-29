@@ -4,12 +4,15 @@ import de.pnnit.directwerk.api.PublicEpisodeViewMapper;
 import de.pnnit.directwerk.api.dto.PublicCategoryView;
 import de.pnnit.directwerk.api.response.Response;
 import de.pnnit.directwerk.modules.core.RequiresModule;
+import de.pnnit.directwerk.modules.core.util.FeedUrlResolver;
 import de.pnnit.directwerk.modules.podcast.PodcastModule;
 import de.pnnit.directwerk.modules.digital.entity.Category;
 import de.pnnit.directwerk.modules.podcast.entity.Format;
 import de.pnnit.directwerk.modules.podcast.entity.PodcastSeries;
 import de.pnnit.directwerk.modules.podcast.service.PublicPodcastQueryService;
+import de.pnnit.directwerk.modules.podcast.service.RssFeedSnapshotService;
 import de.pnnit.directwerk.multitenancy.TenantContext;
+import jakarta.servlet.http.HttpServletRequest;
 import java.time.Instant;
 import java.util.List;
 import org.springframework.http.ResponseEntity;
@@ -25,20 +28,27 @@ public class PublicPodcastController {
 
     private final PublicPodcastQueryService publicPodcastQueryService;
     private final PublicEpisodeViewMapper publicEpisodeViewMapper;
+    private final RssFeedSnapshotService rssFeedSnapshotService;
+    private final FeedUrlResolver feedUrlResolver;
 
     public PublicPodcastController(
             PublicPodcastQueryService publicPodcastQueryService,
-            PublicEpisodeViewMapper publicEpisodeViewMapper
+            PublicEpisodeViewMapper publicEpisodeViewMapper,
+            RssFeedSnapshotService rssFeedSnapshotService,
+            FeedUrlResolver feedUrlResolver
     ) {
         this.publicPodcastQueryService = publicPodcastQueryService;
         this.publicEpisodeViewMapper = publicEpisodeViewMapper;
+        this.rssFeedSnapshotService = rssFeedSnapshotService;
+        this.feedUrlResolver = feedUrlResolver;
     }
 
     @GetMapping("/series")
-    ResponseEntity<Response<List<PublicSeriesView>>> listSeries() {
+    ResponseEntity<Response<List<PublicSeriesView>>> listSeries(HttpServletRequest request) {
         Long tenantId = TenantContext.getTenantId();
+        String tenantSlug = rssFeedSnapshotService.publicRssTenantSlug(tenantId).orElse(null);
         List<PublicSeriesView> series = publicPodcastQueryService.listPublishedSeries(tenantId).stream()
-                .map(PublicPodcastController::toSeriesView)
+                .map(item -> toSeriesView(item, request, tenantSlug))
                 .toList();
         return ResponseEntity.ok(Response.ok(series));
     }
@@ -74,7 +84,17 @@ public class PublicPodcastController {
         return ResponseEntity.ok(Response.ok(categories));
     }
 
-    private static PublicSeriesView toSeriesView(PodcastSeries series) {
+    private PublicSeriesView toSeriesView(PodcastSeries series, HttpServletRequest request, String tenantSlug) {
+        String rssUrl = null;
+        if (tenantSlug != null) {
+            rssUrl = feedUrlResolver.seriesFeedUrl(
+                    request.getScheme(),
+                    request.getServerName(),
+                    request.getServerPort(),
+                    tenantSlug,
+                    series.getSlug()
+            );
+        }
         return new PublicSeriesView(
                 series.getId(),
                 series.getSlug(),
@@ -82,7 +102,8 @@ public class PublicPodcastController {
                 series.getDescription(),
                 series.getCoverAsset() != null ? series.getCoverAsset().getId() : null,
                 series.getLanguage(),
-                series.getItunesCategory()
+                series.getItunesCategory(),
+                rssUrl
         );
     }
 
@@ -113,7 +134,8 @@ public class PublicPodcastController {
             String description,
             Long coverAssetId,
             String language,
-            String itunesCategory
+            String itunesCategory,
+            String rssUrl
     ) {
     }
 

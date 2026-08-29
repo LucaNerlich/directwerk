@@ -1,8 +1,7 @@
 package de.pnnit.directwerk.modules.podcast.api;
 
 import de.pnnit.directwerk.modules.content.api.EntitlementApi;
-import de.pnnit.directwerk.modules.podcast.entity.EpisodeStatus;
-import de.pnnit.directwerk.modules.podcast.repository.EpisodeRepository;
+import de.pnnit.directwerk.modules.podcast.access.PublishedEpisodeEntitlementGate;
 import de.pnnit.directwerk.modules.subscription.service.EntitlementService;
 import java.util.Collection;
 import java.util.List;
@@ -16,15 +15,12 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class EntitlementApiAdapter implements EntitlementApi {
 
-    private final EpisodeRepository episodeRepository;
+    private final PublishedEpisodeEntitlementGate publishedEpisodeEntitlementGate;
     private final EntitlementService entitlementService;
 
     @Override
     public boolean hasAccess(Long tenantId, Long userId, Long episodeId) {
-        return episodeRepository.findByIdAndTenantId(episodeId, tenantId)
-                .filter(episode -> episode.getStatus() == EpisodeStatus.PUBLISHED)
-                .map(episode -> entitlementService.hasEpisodeAccess(tenantId, userId, EpisodeAccessSubjects.toSubject(episode)))
-                .orElse(false);
+        return publishedEpisodeEntitlementGate.hasAccess(tenantId, userId, episodeId);
     }
 
     @Override
