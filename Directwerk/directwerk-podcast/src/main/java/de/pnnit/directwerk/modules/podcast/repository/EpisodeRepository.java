@@ -83,6 +83,13 @@ public interface EpisodeRepository extends JpaRepository<Episode, Long> {
 
     boolean existsByTenantIdAndSlugAndIdNot(Long tenantId, String slug, Long id);
 
+    @EntityGraph(attributePaths = {
+            "tenant", "series", "series.coverAsset", "coverAsset", "coverAsset.tenant",
+            "audioAsset", "audioAsset.tenant", "formats", "formats.coverAsset",
+            "categories", "categories.parent"
+    })
+    Optional<Episode> findByTenantIdAndImportGuid(Long tenantId, String importGuid);
+
     long countByTenantId(Long tenantId);
 
     @EntityGraph(attributePaths = {

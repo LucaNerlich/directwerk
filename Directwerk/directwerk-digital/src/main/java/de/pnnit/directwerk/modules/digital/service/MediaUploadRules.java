@@ -33,11 +33,71 @@ public final class MediaUploadRules {
     private MediaUploadRules() {
     }
 
+    public static long maxBytes(AssetType assetType) {
+        Long max = MAX_BYTES.get(assetType);
+        if (max == null) {
+            throw new UploadValidationException(
+                    "UPLOAD_VALIDATION_FAILED",
+                    "No size limit configured for assetType " + assetType
+            );
+        }
+        return max;
+    }
+
+    public static boolean isAllowedMime(AssetType assetType, String mimeType) {
+        if (mimeType == null || mimeType.isBlank()) {
+            return false;
+        }
+        Set<String> allowed = ALLOWED_MIME.get(assetType);
+        return allowed != null && allowed.contains(normalizeMime(mimeType));
+    }
+
+    public static String normalizeMime(String mimeType) {
+        String normalized = mimeType.trim().toLowerCase(Locale.ROOT);
+        int semicolon = normalized.indexOf(';');
+        if (semicolon >= 0) {
+            normalized = normalized.substring(0, semicolon).trim();
+        }
+        return switch (normalized) {
+            case "audio/mp3" -> "audio/mpeg";
+            case "image/jpg" -> "image/jpeg";
+            default -> normalized;
+        };
+    }
+
+    public static String inferMimeFromFilename(AssetType assetType, String filename) {
+        String ext = fileExtension(filename == null ? "" : filename);
+        return switch (assetType) {
+            case AUDIO -> switch (ext) {
+                case "mp3" -> "audio/mpeg";
+                case "m4a" -> "audio/x-m4a";
+                case "mp4" -> "audio/mp4";
+                case "wav" -> "audio/wav";
+                case "ogg" -> "audio/ogg";
+                case "webm" -> "audio/webm";
+                default -> null;
+            };
+            case IMAGE -> switch (ext) {
+                case "jpg", "jpeg" -> "image/jpeg";
+                case "png" -> "image/png";
+                case "webp" -> "image/webp";
+                case "gif" -> "image/gif";
+                default -> null;
+            };
+            case VIDEO -> switch (ext) {
+                case "mp4" -> "video/mp4";
+                case "webm" -> "video/webm";
+                default -> null;
+            };
+            case DOCUMENT -> "pdf".equals(ext) ? "application/pdf" : null;
+        };
+    }
+
     public static void validateMimeAndSize(AssetType assetType, String mimeType, long sizeBytes) {
         if (mimeType == null || mimeType.isBlank()) {
             throw new UploadValidationException("UPLOAD_VALIDATION_FAILED", "mimeType is required");
         }
-        String normalized = mimeType.trim().toLowerCase(Locale.ROOT);
+        String normalized = normalizeMime(mimeType);
         Set<String> allowed = ALLOWED_MIME.get(assetType);
         if (allowed == null || !allowed.contains(normalized)) {
             throw new UploadValidationException(

@@ -23,6 +23,7 @@ import de.pnnit.directwerk.modules.digital.exception.CategoryNotFoundException;
 import de.pnnit.directwerk.modules.podcast.exception.EpisodeNotFoundException;
 import de.pnnit.directwerk.modules.podcast.exception.EpisodeValidationException;
 import de.pnnit.directwerk.modules.podcast.exception.FormatNotFoundException;
+import de.pnnit.directwerk.modules.podcast.exception.RssImportException;
 import de.pnnit.directwerk.modules.content.InvalidPublicationTransitionException;
 import de.pnnit.directwerk.modules.podcast.exception.SeriesNotFoundException;
 import de.pnnit.directwerk.modules.podcast.feed.FeedBuilderException;
@@ -328,6 +329,12 @@ public class GlobalExceptionHandler {
     ResponseEntity<Response<Void>> handleEpisodeValidation(EpisodeValidationException ex) {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                 .body(Response.error(400, "EPISODE_VALIDATION_FAILED", ex.getMessage()));
+    }
+
+    @ExceptionHandler(RssImportException.class)
+    ResponseEntity<Response<Void>> handleRssImport(RssImportException ex) {
+        return ResponseEntity.status(ex.getStatus())
+                .body(Response.error(ex.getStatus(), ex.getCode(), ex.getMessage()));
     }
 
     @ExceptionHandler(ArticleValidationException.class)

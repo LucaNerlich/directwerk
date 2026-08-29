@@ -182,6 +182,25 @@ public class EpisodeService {
         return requireEpisode(tenantId, episodeId);
     }
 
+    @Transactional
+    @RequiresModule(PodcastModule.KEY)
+    public Episode setImportGuid(Long tenantId, Long episodeId, String importGuid) {
+        if (importGuid == null || importGuid.isBlank()) {
+            throw new EpisodeValidationException("importGuid is required");
+        }
+        String guid = importGuid.trim();
+        if (guid.length() > 512) {
+            throw new EpisodeValidationException("importGuid must be at most 512 characters");
+        }
+        if (episodeRepository.findByTenantIdAndImportGuid(tenantId, guid).isPresent()) {
+            throw new ConflictException(ConflictCodes.EPISODE_IMPORT_GUID_EXISTS, "Episode already imported: " + guid);
+        }
+        Episode episode = requireDraftEpisode(tenantId, episodeId);
+        episode.setImportGuid(guid);
+        episodeRepository.save(episode);
+        return requireEpisode(tenantId, episodeId);
+    }
+
     /** Toggle stable enclosure proxy URLs for published or draft episodes. */
     @Transactional
     @RequiresModule(PodcastModule.KEY)

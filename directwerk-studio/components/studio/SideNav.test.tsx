@@ -110,6 +110,10 @@ describe('SideNav', () => {
             'href',
             '/podcast/episodes',
         )
+        expect(screen.getByRole('link', {name: 'Import'})).toHaveAttribute(
+            'href',
+            '/podcast/import',
+        )
         expect(screen.getByRole('link', {name: 'Start'})).toHaveAttribute(
             'href',
             '/podcast',
@@ -290,6 +294,7 @@ describe('SideNav', () => {
             )
 
             expect(screen.queryByRole('link', {name: 'Folgen'})).not.toBeInTheDocument()
+            expect(screen.queryByRole('link', {name: 'Import'})).not.toBeInTheDocument()
             expect(screen.queryByRole('link', {name: 'Sendungen'})).not.toBeInTheDocument()
             expect(screen.queryByRole('link', {name: 'Formate'})).not.toBeInTheDocument()
             expect(screen.queryByRole('link', {name: 'Feeds'})).not.toBeInTheDocument()
@@ -307,6 +312,10 @@ describe('SideNav', () => {
             expect(screen.getByRole('link', {name: 'Folgen'})).toHaveAttribute(
                 'href',
                 '/podcast/episodes',
+            )
+            expect(screen.getByRole('link', {name: 'Import'})).toHaveAttribute(
+                'href',
+                '/podcast/import',
             )
             expect(screen.getByRole('link', {name: 'Sendungen'})).toHaveAttribute(
                 'href',

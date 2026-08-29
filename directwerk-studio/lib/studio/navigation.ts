@@ -25,6 +25,7 @@ export function buildPodcastDeskItems(config: SiteConfig): NavigationItem[] {
     const items: NavigationItem[] = [
         {href: '/podcast', label: 'Start'},
         {href: '/podcast/episodes', label: 'Folgen'},
+        {href: '/podcast/import', label: 'Import'},
         {href: '/podcast/series', label: 'Sendungen'},
         {href: '/podcast/formats', label: 'Formate'},
     ]

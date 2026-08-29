@@ -52,6 +52,9 @@ public class Episode extends BaseEntity implements TenantOwned {
     @Column(nullable = false, length = 64)
     private String slug;
 
+    @Column(name = "import_guid", length = 512)
+    private String importGuid;
+
     @Column(nullable = false)
     private String title;
 

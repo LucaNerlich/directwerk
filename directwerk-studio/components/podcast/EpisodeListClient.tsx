@@ -100,9 +100,14 @@ export default function EpisodeListClient() {
                 description="Hier entsteht dein laufender Output: Audio, Shownotes, Format, Veröffentlichen."
                 actions={
                     canCreate ? (
-                        <Button nativeButton={false} render={<Link href="/podcast/episodes/new" />} size="lg">
-                            Neue Folge
-                        </Button>
+                        <div className="flex flex-wrap gap-2">
+                            <Button nativeButton={false} render={<Link href="/podcast/import" />} size="lg" variant="outline">
+                                RSS importieren
+                            </Button>
+                            <Button nativeButton={false} render={<Link href="/podcast/episodes/new" />} size="lg">
+                                Neue Folge
+                            </Button>
+                        </div>
                     ) : null
                 }
             />

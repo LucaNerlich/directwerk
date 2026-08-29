@@ -42,6 +42,7 @@ describe('site helpers', () => {
         expect(resolveActiveDesk('/write/bonus', sampleConfig)).toBe('WRITE')
         expect(resolveActiveDesk('/podcast', sampleConfig)).toBe('PODCAST')
         expect(resolveActiveDesk('/podcast/episodes', sampleConfig)).toBe('PODCAST')
+        expect(resolveActiveDesk('/podcast/import', sampleConfig)).toBe('PODCAST')
         expect(resolveActiveDesk('/podcast/series', sampleConfig)).toBe('PODCAST')
         expect(resolveActiveDesk('/', sampleConfig)).toBeNull()
         expect(resolveActiveDesk('/media', sampleConfig)).toBeNull()

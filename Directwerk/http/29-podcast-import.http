@@ -1,0 +1,83 @@
+### Directwerk — Podcast RSS import
+### Prerequisites: 02-oauth2.http (tenantAAccessToken), 07-platform-modules.http (PODCAST active),
+###                19-podcast-content.http (podcastSeriesId). Storage must be enabled for ingest/import.
+
+### @name previewRssFeed
+POST {{baseUrl}}/api/v1/podcast/import/preview
+Host: {{tenantAHost}}
+Authorization: Bearer {{tenantAAccessToken}}
+Content-Type: application/json
+Accept: application/json
+
+{
+  "feedUrl": "https://example.com/podcast.xml"
+}
+
+> {%
+    client.test("Preview RSS feed", function() {
+        client.assert(response.status === 200 || response.status === 400 || response.status === 403,
+            "Expected 200, 400, or 403");
+        if (response.status === 400) {
+            const code = response.body.errors && response.body.errors[0] && response.body.errors[0].code;
+            client.assert(
+                code === "RSS_FEED_UNREACHABLE" || code === "RSS_FEED_INVALID" || code === "REMOTE_URL_FORBIDDEN"
+                    || code === "VALIDATION_ERROR",
+                "Expected an import/validation error code"
+            );
+        }
+    });
+%}
+
+###
+
+### @name ingestRemoteAssetForbiddenPrivateHost
+POST {{baseUrl}}/api/v1/podcast/import/assets
+Host: {{tenantAHost}}
+Authorization: Bearer {{tenantAAccessToken}}
+Content-Type: application/json
+Accept: application/json
+
+{
+  "sourceUrl": "http://127.0.0.1/secret.mp3",
+  "assetType": "AUDIO",
+  "visibility": "PRIVATE"
+}
+
+> {%
+    client.test("Ingest rejects loopback", function() {
+        client.assert(response.status === 400 || response.status === 403 || response.status === 503,
+            "Expected 400, 403, or 503");
+        if (response.status === 400) {
+            client.assert(response.body.errors[0].code === "REMOTE_URL_FORBIDDEN", "Expected REMOTE_URL_FORBIDDEN");
+        }
+    });
+%}
+
+###
+
+### @name importEpisodeFromRemoteUrls
+POST {{baseUrl}}/api/v1/podcast/import/episodes
+Host: {{tenantAHost}}
+Authorization: Bearer {{tenantAAccessToken}}
+Content-Type: application/json
+Accept: application/json
+
+{
+  "seriesId": {{podcastSeriesId}},
+  "guid": "http-harness-import-guid",
+  "slug": "imported-harness-episode",
+  "title": "Imported Harness Episode",
+  "description": "<p>Imported from RSS.</p>",
+  "accessPolicy": "FREE",
+  "audioUrl": "https://example.com/episode.mp3"
+}
+
+> {%
+    client.test("Import episode", function() {
+        client.assert(
+            response.status === 201 || response.status === 200 || response.status === 400
+                || response.status === 403 || response.status === 404 || response.status === 503,
+            "Expected create, already-imported, validation, or storage gate"
+        );
+    });
+%}

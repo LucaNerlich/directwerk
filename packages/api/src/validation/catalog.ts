@@ -14,6 +14,8 @@ import type {
     DomainVerificationChallenge,
     EpisodeDetail,
     EpisodeSummary,
+    ImportedEpisodeResult,
+    RssImportPreview,
     FormatSummary,
     FormatTag,
     InviteTenantUserResponse,
@@ -295,6 +297,123 @@ export function parseEpisodeEnvelope(
     value: unknown,
 ): ApiEnvelope<EpisodeDetail> | null {
     return parseEnvelope(value, parseEpisodeDetail)
+}
+
+function parseRssImportChannel(value: unknown): RssImportPreview['channel'] | null {
+    if (
+        !isRecord(value) ||
+        !isBoundedString(value.title, 512) ||
+        !isNullableString(value.description, 20000) ||
+        !isNullableString(value.language, 8) ||
+        !isNullableString(value.itunesCategory, 128) ||
+        !isNullableString(value.imageUrl, 2048) ||
+        !isNullableString(value.link, 2048) ||
+        !isBoundedString(value.suggestedSlug, 64)
+    ) {
+        return null
+    }
+    return {
+        title: value.title,
+        description: value.description,
+        language: value.language,
+        itunesCategory: value.itunesCategory,
+        imageUrl: value.imageUrl,
+        link: value.link,
+        suggestedSlug: value.suggestedSlug,
+    }
+}
+
+function parseRssImportEpisodePreview(
+    value: unknown,
+): RssImportPreview['episodes'][number] | null {
+    if (
+        !isRecord(value) ||
+        !isBoundedString(value.guid, 512) ||
+        !isBoundedString(value.title, 512) ||
+        !isNullableString(value.description, 512_000) ||
+        !isNullableString(value.publishedAt, 64) ||
+        !isNullableString(value.audioUrl, 2048) ||
+        !isNullableString(value.audioMimeType, 128) ||
+        !isNullableString(value.imageUrl, 2048) ||
+        !isBoundedString(value.suggestedSlug, 64)
+    ) {
+        return null
+    }
+    return {
+        guid: value.guid,
+        title: value.title,
+        description: value.description,
+        publishedAt: value.publishedAt,
+        durationSeconds:
+            value.durationSeconds === null || value.durationSeconds === undefined
+                ? null
+                : isSafeInteger(value.durationSeconds) && value.durationSeconds >= 1
+                  ? value.durationSeconds
+                  : null,
+        episodeNumber:
+            value.episodeNumber === null || value.episodeNumber === undefined
+                ? null
+                : isSafeInteger(value.episodeNumber) && value.episodeNumber >= 1
+                  ? value.episodeNumber
+                  : null,
+        audioUrl: value.audioUrl,
+        audioMimeType: value.audioMimeType,
+        audioSizeBytes:
+            value.audioSizeBytes === null || value.audioSizeBytes === undefined
+                ? null
+                : isSafeInteger(value.audioSizeBytes) && value.audioSizeBytes > 0
+                  ? value.audioSizeBytes
+                  : null,
+        imageUrl: value.imageUrl,
+        suggestedSlug: value.suggestedSlug,
+        alreadyImportedEpisodeId:
+            value.alreadyImportedEpisodeId === null ||
+            value.alreadyImportedEpisodeId === undefined
+                ? null
+                : isPositiveSafeInteger(value.alreadyImportedEpisodeId)
+                  ? value.alreadyImportedEpisodeId
+                  : null,
+    }
+}
+
+function parseRssImportPreview(value: unknown): RssImportPreview | null {
+    if (!isRecord(value) || !isBoundedString(value.feedUrl, 2048)) {
+        return null
+    }
+    const channel = parseRssImportChannel(value.channel)
+    const episodes = parseBoundedArray(value.episodes, 500, parseRssImportEpisodePreview)
+    if (channel === null || episodes === null || typeof value.truncated !== 'boolean') {
+        return null
+    }
+    return {
+        feedUrl: value.feedUrl,
+        channel,
+        episodes,
+        truncated: value.truncated,
+    }
+}
+
+export function parseRssImportPreviewEnvelope(
+    value: unknown,
+): ApiEnvelope<RssImportPreview> | null {
+    return parseEnvelope(value, parseRssImportPreview)
+}
+
+function parseImportedEpisodeResult(value: unknown): ImportedEpisodeResult | null {
+    if (!isRecord(value) || typeof value.alreadyImported !== 'boolean') {
+        return null
+    }
+    const episode = parseEpisodeDetail(value.episode)
+    if (episode === null) {
+        return null
+    }
+    return {episode, alreadyImported: value.alreadyImported}
+}
+
+export function parseImportedEpisodeEnvelope(
+    value: unknown,
+): ApiEnvelope<ImportedEpisodeResult> | null {
+    return parseEnvelope(value, parseImportedEpisodeResult)
 }
 
 // ---------------------------------------------------------------------------

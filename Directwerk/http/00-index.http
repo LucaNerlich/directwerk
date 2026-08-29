@@ -41,6 +41,7 @@
 ### | 27-custom-feeds.http | MeFeed custom feeds + private RSS format filter (after 19 + 22) |
 ### | 28-contact-form.http | Public contact form + ALTCHA challenge |
 ### | 28-platform-queue.http | PlatformQueueController (enqueue/claim/complete) |
+### | 29-podcast-import.http | PodcastImportController (RSS preview + stream ingest) |
 ###
 ### Controllers live under de.pnnit.directwerk.controller.*
 

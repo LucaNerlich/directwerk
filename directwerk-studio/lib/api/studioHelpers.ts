@@ -1,6 +1,10 @@
 export function suggestSlug(title: string): string {
     return title
         .trim()
+        .replace(/ä/gi, 'ae')
+        .replace(/ö/gi, 'oe')
+        .replace(/ü/gi, 'ue')
+        .replace(/ß/g, 'ss')
         .toLowerCase()
         .replace(/[^a-z0-9]+/g, '-')
         .replace(/^-+|-+$/g, '')
