@@ -29,7 +29,7 @@ describe('Home', () => {
             screen.getByRole('link', {name: 'API-Auszug ansehen'}),
         ).toHaveAttribute('href', '/developers')
         expect(screen.getAllByRole('link', {name: 'Dokumentation'}).length).toBeGreaterThan(0)
-        expect(screen.getByRole('link', {name: 'Kontakt'})).toHaveAttribute('href', '/#contact')
+        expect(screen.getByRole('link', {name: 'Kontakt'})).toHaveAttribute('href', '#contact')
         expect(screen.getByRole('heading', {name: /Eigene Publishing-Infrastruktur/})).toBeInTheDocument()
         expect(screen.getByRole('button', {name: 'Nachricht senden'})).toBeInTheDocument()
     })
