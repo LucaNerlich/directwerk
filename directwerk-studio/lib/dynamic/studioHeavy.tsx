@@ -1,3 +1,5 @@
+'use client'
+
 import dynamic from 'next/dynamic'
 
 function DeferredLoading({label}: {label: string}): React.JSX.Element {
