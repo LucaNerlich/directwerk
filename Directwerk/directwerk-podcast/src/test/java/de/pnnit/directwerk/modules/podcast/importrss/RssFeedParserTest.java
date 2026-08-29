@@ -74,9 +74,42 @@ class RssFeedParserTest {
     }
 
     @Test
+    void prefersFullShownotesAndAudioEnclosureAndResolvesRelativeUrls() {
+        String xml = """
+                <rss version="2.0"
+                     xmlns:content="http://purl.org/rss/1.0/modules/content/"
+                     xmlns:itunes="https://www.itunes.com/dtds/podcast-1.0.dtd">
+                  <channel>
+                    <title>Alpha Show</title>
+                    <itunes:image href="/show.jpg"/>
+                    <item>
+                      <title>Folge 1</title>
+                      <description>Short summary</description>
+                      <content:encoded>&lt;p&gt;Full shownotes&lt;/p&gt;</content:encoded>
+                      <enclosure url="/transcript.pdf" type="application/pdf"/>
+                      <enclosure url="/audio/ep1.mp3" type="audio/mpeg" length="1234"/>
+                    </item>
+                  </channel>
+                </rss>
+                """;
+
+        ParsedRssFeed feed = parser.parse(
+                "https://example.com/podcast/feed.xml",
+                new ByteArrayInputStream(xml.getBytes(StandardCharsets.UTF_8))
+        );
+
+        assertThat(feed.channel().imageUrl()).isEqualTo("https://example.com/show.jpg");
+        assertThat(feed.items().getFirst().description()).isEqualTo("<p>Full shownotes</p>");
+        assertThat(feed.items().getFirst().audioUrl())
+                .isEqualTo("https://example.com/audio/ep1.mp3");
+        assertThat(feed.items().getFirst().audioSizeBytes()).isEqualTo(1234L);
+    }
+
+    @Test
     void parsesItunesDurationAsSeconds() {
         assertThat(RssFeedParser.parseDuration("90")).isEqualTo(90);
         assertThat(RssFeedParser.parseDuration("1:02")).isEqualTo(62);
+        assertThat(RssFeedParser.parseDuration("999999999999999999999")).isNull();
         assertThat(RssFeedParser.parseDuration("")).isNull();
     }
 }

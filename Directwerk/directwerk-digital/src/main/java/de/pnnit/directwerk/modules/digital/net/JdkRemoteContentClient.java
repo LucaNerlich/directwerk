@@ -3,6 +3,7 @@ package de.pnnit.directwerk.modules.digital.net;
 import de.pnnit.directwerk.modules.digital.exception.UploadValidationException;
 import java.io.IOException;
 import java.net.URI;
+import java.net.http.HttpTimeoutException;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
@@ -35,9 +36,14 @@ public class JdkRemoteContentClient implements RemoteContentClient {
     public RemoteResponse get(URI uri, Duration timeout) throws IOException, InterruptedException {
         URI current = RemoteUrlValidator.requirePublicHttpUrl(uri);
         Duration requestTimeout = timeout == null ? Duration.ofMinutes(15) : timeout;
+        long deadline = System.nanoTime() + requestTimeout.toNanos();
         for (int hop = 0; hop <= MAX_REDIRECTS; hop++) {
+            long remainingNanos = deadline - System.nanoTime();
+            if (remainingNanos <= 0) {
+                throw new HttpTimeoutException("Remote download timed out");
+            }
             HttpRequest request = HttpRequest.newBuilder(current)
-                    .timeout(requestTimeout)
+                    .timeout(Duration.ofNanos(remainingNanos))
                     .header("User-Agent", USER_AGENT)
                     .header("Accept", "*/*")
                     .GET()
@@ -47,7 +53,7 @@ public class JdkRemoteContentClient implements RemoteContentClient {
                     HttpResponse.BodyHandlers.ofInputStream()
             );
             int status = response.statusCode();
-            if (status >= 300 && status < 400) {
+            if (isRedirect(status)) {
                 response.body().close();
                 String location = response.headers().firstValue("Location").orElse(null);
                 if (location == null || location.isBlank()) {
@@ -67,5 +73,9 @@ public class JdkRemoteContentClient implements RemoteContentClient {
             );
         }
         throw new UploadValidationException("REMOTE_ASSET_FAILED", "Too many redirects");
+    }
+
+    private static boolean isRedirect(int status) {
+        return status == 301 || status == 302 || status == 303 || status == 307 || status == 308;
     }
 }

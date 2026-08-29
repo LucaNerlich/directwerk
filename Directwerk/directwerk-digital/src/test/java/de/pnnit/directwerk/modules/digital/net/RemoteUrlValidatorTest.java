@@ -32,6 +32,22 @@ class RemoteUrlValidatorTest {
     }
 
     @Test
+    void rejectsCarrierGradeNatIpv4() {
+        assertThatThrownBy(() -> RemoteUrlValidator.requirePublicHttpUrl("http://100.64.0.1/feed.xml"))
+                .isInstanceOf(UploadValidationException.class)
+                .extracting("code")
+                .isEqualTo("REMOTE_URL_FORBIDDEN");
+    }
+
+    @Test
+    void rejectsUniqueLocalIpv6() {
+        assertThatThrownBy(() -> RemoteUrlValidator.requirePublicHttpUrl("http://[fd00::1]/feed.xml"))
+                .isInstanceOf(UploadValidationException.class)
+                .extracting("code")
+                .isEqualTo("REMOTE_URL_FORBIDDEN");
+    }
+
+    @Test
     void rejectsLocalhostHostname() {
         assertThatThrownBy(() -> RemoteUrlValidator.requirePublicHttpUrl("http://localhost/feed.xml"))
                 .isInstanceOf(UploadValidationException.class);

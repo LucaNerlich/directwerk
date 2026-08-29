@@ -69,6 +69,7 @@ public class PodcastImportController {
         PodcastImportService.ImportedEpisode imported = podcastImportService.importEpisode(
                 new PodcastImportService.ImportEpisodeCommand(
                         request.seriesId(),
+                        request.feedUrl(),
                         request.guid(),
                         request.slug(),
                         request.title(),
@@ -139,6 +140,7 @@ public class PodcastImportController {
 
     public record ImportEpisodeRequest(
             @NotNull @Min(1) Long seriesId,
+            @NotBlank @Size(max = 2048) String feedUrl,
             @NotBlank @Size(max = 512) String guid,
             @Pattern(regexp = "^[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,62}[a-zA-Z0-9])?$")
             String slug,

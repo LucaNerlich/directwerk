@@ -12,7 +12,6 @@ public final class ConflictCodes {
     public static final String TENANT_SLUG_EXISTS = "TENANT_SLUG_EXISTS";
     public static final String SERIES_SLUG_EXISTS = "SERIES_SLUG_EXISTS";
     public static final String EPISODE_SLUG_EXISTS = "EPISODE_SLUG_EXISTS";
-    public static final String EPISODE_IMPORT_GUID_EXISTS = "EPISODE_IMPORT_GUID_EXISTS";
     public static final String FORMAT_SLUG_EXISTS = "FORMAT_SLUG_EXISTS";
     public static final String CATEGORY_SLUG_EXISTS = "CATEGORY_SLUG_EXISTS";
     public static final String ARTICLE_SLUG_EXISTS = "ARTICLE_SLUG_EXISTS";

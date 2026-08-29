@@ -11,6 +11,12 @@ public interface RemoteAssetIngestApi {
 
     MediaAsset ingestFromUrl(IngestCommand command);
 
+    /**
+     * Best-effort rollback for an asset created by this ingest API before it
+     * became attached to content.
+     */
+    void discard(Long assetId);
+
     record IngestCommand(
             String sourceUrl,
             AssetType assetType,

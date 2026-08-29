@@ -2,11 +2,16 @@ package de.pnnit.directwerk.modules.podcast.importrss;
 
 import de.pnnit.directwerk.modules.podcast.exception.RssImportException;
 import java.io.InputStream;
+import java.net.URI;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.time.Instant;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
+import java.util.HexFormat;
 import java.util.List;
 import java.util.Locale;
 import javax.xml.stream.XMLInputFactory;
@@ -22,6 +27,7 @@ import org.springframework.stereotype.Component;
 public class RssFeedParser {
 
     static final String ITUNES_NS = "http://www.itunes.com/dtds/podcast-1.0.dtd";
+    static final String CONTENT_NS = "http://purl.org/rss/1.0/modules/content/";
 
     public ParsedRssFeed parse(String feedUrl, InputStream xml) {
         XMLInputFactory factory = XMLInputFactory.newFactory();
@@ -103,17 +109,31 @@ public class RssFeedParser {
         if (channelTitle == null || channelTitle.isBlank()) {
             throw new RssImportException(400, "RSS_FEED_INVALID", "RSS channel title is required");
         }
+        List<ParsedRssFeed.Item> resolvedItems = items.stream()
+                .map(parsedItem -> new ParsedRssFeed.Item(
+                        parsedItem.guid(),
+                        parsedItem.title(),
+                        parsedItem.description(),
+                        parsedItem.publishedAt(),
+                        parsedItem.durationSeconds(),
+                        parsedItem.episodeNumber(),
+                        resolveHttpUrl(feedUrl, parsedItem.audioUrl()),
+                        parsedItem.audioMimeType(),
+                        parsedItem.audioSizeBytes(),
+                        resolveHttpUrl(feedUrl, parsedItem.imageUrl())
+                ))
+                .toList();
         return new ParsedRssFeed(
                 feedUrl,
                 new ParsedRssFeed.Channel(
-                        channelTitle.trim(),
-                        blankToNull(channelDescription),
+                        truncate(channelTitle.trim(), 255),
+                        truncate(blankToNull(channelDescription), 20_000),
                         normalizeLanguage(language),
-                        blankToNull(itunesCategory),
-                        blankToNull(channelImage),
-                        blankToNull(link)
+                        truncate(blankToNull(itunesCategory), 128),
+                        resolveHttpUrl(feedUrl, channelImage),
+                        resolveHttpUrl(feedUrl, link)
                 ),
-                List.copyOf(items)
+                resolvedItems
         );
     }
 
@@ -125,14 +145,20 @@ public class RssFeedParser {
             item.description = firstNonBlank(item.description, readElementText(reader));
         } else if ("summary".equalsIgnoreCase(local) && isItunes(reader) && item.description == null) {
             item.description = readElementText(reader);
+        } else if ("encoded".equalsIgnoreCase(local) && isContentEncoded(reader)) {
+            item.contentEncoded = firstNonBlank(item.contentEncoded, readElementText(reader));
         } else if ("guid".equalsIgnoreCase(local)) {
             item.guid = firstNonBlank(item.guid, readElementText(reader));
         } else if ("pubDate".equalsIgnoreCase(local)) {
             item.publishedAt = parseRfc822(readElementText(reader));
         } else if ("enclosure".equalsIgnoreCase(local)) {
-            item.audioUrl = firstNonBlank(item.audioUrl, attr(reader, "url"));
-            item.audioMimeType = firstNonBlank(item.audioMimeType, attr(reader, "type"));
-            item.audioSizeBytes = parseLong(attr(reader, "length"));
+            String url = attr(reader, "url");
+            String mimeType = attr(reader, "type");
+            if (item.audioUrl == null && isAudioEnclosure(url, mimeType)) {
+                item.audioUrl = blankToNull(url);
+                item.audioMimeType = blankToNull(mimeType);
+                item.audioSizeBytes = parseLong(attr(reader, "length"));
+            }
         } else if ("duration".equalsIgnoreCase(local) && isItunes(reader)) {
             item.durationSeconds = parseDuration(readElementText(reader));
         } else if ("episode".equalsIgnoreCase(local) && isItunes(reader)) {
@@ -169,7 +195,48 @@ public class RssFeedParser {
 
     private static boolean isItunes(XMLStreamReader reader) {
         String ns = reader.getNamespaceURI();
-        return ns != null && ITUNES_NS.equalsIgnoreCase(ns);
+        return "itunes".equalsIgnoreCase(reader.getPrefix())
+                || (ns != null && (
+                        ITUNES_NS.equalsIgnoreCase(ns)
+                                || ns.toLowerCase(Locale.ROOT).contains("itunes.com/dtds/podcast-1.0.dtd")
+                ));
+    }
+
+    private static boolean isContentEncoded(XMLStreamReader reader) {
+        String ns = reader.getNamespaceURI();
+        return "content".equalsIgnoreCase(reader.getPrefix())
+                || (ns != null && CONTENT_NS.equalsIgnoreCase(ns));
+    }
+
+    private static boolean isAudioEnclosure(String url, String mimeType) {
+        if (url == null || url.isBlank()) {
+            return false;
+        }
+        if (mimeType == null || mimeType.isBlank()) {
+            return true;
+        }
+        String normalized = mimeType.trim().toLowerCase(Locale.ROOT);
+        return normalized.startsWith("audio/")
+                || "application/octet-stream".equals(normalized);
+    }
+
+    private static String resolveHttpUrl(String feedUrl, String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        try {
+            URI resolved = URI.create(feedUrl).resolve(value.trim());
+            String scheme = resolved.getScheme();
+            if (resolved.getHost() == null
+                    || scheme == null
+                    || (!"http".equalsIgnoreCase(scheme) && !"https".equalsIgnoreCase(scheme))) {
+                return null;
+            }
+            String result = resolved.toString();
+            return result.length() <= 2048 ? result : null;
+        } catch (IllegalArgumentException ex) {
+            return null;
+        }
     }
 
     private static String hrefAttr(XMLStreamReader reader) {
@@ -211,8 +278,12 @@ public class RssFeedParser {
         }
         String value = raw.trim();
         if (value.chars().allMatch(Character::isDigit)) {
-            int seconds = Integer.parseInt(value);
-            return seconds > 0 ? seconds : null;
+            try {
+                int seconds = Integer.parseInt(value);
+                return seconds > 0 ? seconds : null;
+            } catch (NumberFormatException ex) {
+                return null;
+            }
         }
         String[] parts = value.split(":");
         try {
@@ -269,10 +340,33 @@ public class RssFeedParser {
         return value == null || value.isBlank() ? null : value.trim();
     }
 
+    private static String truncate(String value, int maxLength) {
+        if (value == null || value.length() <= maxLength) {
+            return value;
+        }
+        return value.substring(0, maxLength).trim();
+    }
+
+    private static String boundedGuid(String value) {
+        String guid = value.trim();
+        if (guid.length() <= 512) {
+            return guid;
+        }
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            return "sha256:" + HexFormat.of().formatHex(
+                    digest.digest(guid.getBytes(StandardCharsets.UTF_8))
+            );
+        } catch (NoSuchAlgorithmException ex) {
+            throw new IllegalStateException("SHA-256 is not available", ex);
+        }
+    }
+
     private static final class ItemBuilder {
         private String guid;
         private String title;
         private String description;
+        private String contentEncoded;
         private Instant publishedAt;
         private Integer durationSeconds;
         private Integer episodeNumber;
@@ -285,19 +379,21 @@ public class RssFeedParser {
             if ((title == null || title.isBlank()) && (audioUrl == null || audioUrl.isBlank())) {
                 return null;
             }
-            String resolvedTitle = title == null || title.isBlank() ? "Untitled episode" : title.trim();
+            String resolvedTitle = title == null || title.isBlank()
+                    ? "Untitled episode"
+                    : truncate(title.trim(), 255);
             String resolvedGuid = guid == null || guid.isBlank()
                     ? (audioUrl == null ? resolvedTitle : audioUrl)
-                    : guid.trim();
+                    : guid;
             return new ParsedRssFeed.Item(
-                    resolvedGuid,
+                    boundedGuid(resolvedGuid),
                     resolvedTitle,
-                    blankToNull(description),
+                    truncate(blankToNull(firstNonBlank(contentEncoded, description)), 512_000),
                     publishedAt,
                     durationSeconds,
                     episodeNumber,
                     blankToNull(audioUrl),
-                    blankToNull(audioMimeType),
+                    truncate(blankToNull(audioMimeType), 128),
                     audioSizeBytes,
                     blankToNull(imageUrl)
             );

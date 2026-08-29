@@ -19,4 +19,11 @@ public class UnsupportedRemoteAssetIngestApi implements RemoteAssetIngestApi {
                 "Object storage is disabled — set directwerk.storage.enabled=true"
         );
     }
+
+    @Override
+    public void discard(Long assetId) {
+        throw new StorageNotConfiguredException(
+                "Object storage is disabled — set directwerk.storage.enabled=true"
+        );
+    }
 }

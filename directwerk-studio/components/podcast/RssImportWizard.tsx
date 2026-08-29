@@ -11,6 +11,7 @@ import PageHeader from '@directwerk/ui/components/page-header'
 import SectionHeader from '@directwerk/ui/components/section-header'
 
 import SelectControl from '@/components/studio/SelectControl'
+import LevelSelect from '@/components/studio/LevelSelect'
 import {createFormat, listFormats} from '@/lib/api/catalogApi'
 import {createSeries, listSeries} from '@/lib/api/podcastApi'
 import {ingestRemoteAsset, importRssEpisode, previewRssFeed} from '@/lib/api/podcastImportApi'
@@ -70,7 +71,8 @@ export default function RssImportWizard(): React.JSX.Element {
     const [seriesItunesCategory, setSeriesItunesCategory] = useState('')
     const [importSeriesCover, setImportSeriesCover] = useState(true)
     const [resolvedSeriesId, setResolvedSeriesId] = useState<number | null>(null)
-    const [selectedFormatIds, setSelectedFormatIds] = useState<Set<number>>(new Set())
+    const [defaultFormatIds, setDefaultFormatIds] = useState<Set<number>>(new Set())
+    const [episodeFormatIds, setEpisodeFormatIds] = useState<Set<number>>(new Set())
     const [newFormatName, setNewFormatName] = useState('')
     const [episodeIndex, setEpisodeIndex] = useState(0)
     const [episodeTitle, setEpisodeTitle] = useState('')
@@ -78,10 +80,12 @@ export default function RssImportWizard(): React.JSX.Element {
     const [episodeDescription, setEpisodeDescription] = useState('')
     const [episodeNumber, setEpisodeNumber] = useState('')
     const [accessPolicy, setAccessPolicy] = useState<AccessPolicy>('FREE')
+    const [requiredLevelSortOrder, setRequiredLevelSortOrder] = useState<number | null>(null)
     const [importAudio, setImportAudio] = useState(true)
     const [importImage, setImportImage] = useState(true)
     const [importedCount, setImportedCount] = useState(0)
     const [skippedCount, setSkippedCount] = useState(0)
+    const [alreadyImportedCount, setAlreadyImportedCount] = useState(0)
     const [errorMessage, setErrorMessage] = useState<string | null>(null)
     const [busy, setBusy] = useState(false)
 
@@ -112,7 +116,10 @@ export default function RssImportWizard(): React.JSX.Element {
         }
     }, [authRedirect, router])
 
-    function applyEpisode(item: RssImportEpisodePreview): void {
+    function applyEpisode(
+        item: RssImportEpisodePreview,
+        formatIds: Set<number> = defaultFormatIds,
+    ): void {
         setEpisodeTitle(item.title)
         setEpisodeSlug(item.suggestedSlug)
         setEpisodeDescription(item.description ?? '')
@@ -120,6 +127,8 @@ export default function RssImportWizard(): React.JSX.Element {
         setImportAudio(item.audioUrl != null)
         setImportImage(item.imageUrl != null)
         setAccessPolicy('FREE')
+        setRequiredLevelSortOrder(null)
+        setEpisodeFormatIds(new Set(formatIds))
     }
 
     async function handlePreview(): Promise<void> {
@@ -182,6 +191,8 @@ export default function RssImportWizard(): React.JSX.Element {
             })
             setResolvedSeriesId(created.id)
             setSeries((current) => [...current, created])
+            setSeriesMode('existing')
+            setSelectedSeriesId(created.id)
             setStep('formats')
         } catch (error) {
             if (authRedirect(error)) {
@@ -197,6 +208,7 @@ export default function RssImportWizard(): React.JSX.Element {
         setErrorMessage(null)
         setBusy(true)
         try {
+            const nextDefaultFormatIds = new Set(defaultFormatIds)
             const name = canCreateFormats ? newFormatName.trim() : ''
             if (name.length > 0) {
                 const created = await createFormat(getClientTenantHost(), {
@@ -204,11 +216,12 @@ export default function RssImportWizard(): React.JSX.Element {
                     name,
                 })
                 setFormats((current) => [...current, created])
-                setSelectedFormatIds((current) => new Set([...current, created.id]))
+                nextDefaultFormatIds.add(created.id)
+                setDefaultFormatIds(nextDefaultFormatIds)
                 setNewFormatName('')
             }
             if (preview != null && preview.episodes.length > 0) {
-                applyEpisode(preview.episodes[0])
+                applyEpisode(preview.episodes[0], nextDefaultFormatIds)
                 setEpisodeIndex(0)
                 setStep('episode')
             } else {
@@ -245,6 +258,7 @@ export default function RssImportWizard(): React.JSX.Element {
             const parsedNumber = Number.parseInt(episodeNumber, 10)
             const result = await importRssEpisode(getClientTenantHost(), {
                 seriesId: resolvedSeriesId,
+                feedUrl: preview.feedUrl,
                 guid: item.guid,
                 slug: episodeSlug.trim() || item.suggestedSlug,
                 title: episodeTitle.trim() || item.title,
@@ -252,11 +266,15 @@ export default function RssImportWizard(): React.JSX.Element {
                 episodeNumber: Number.isSafeInteger(parsedNumber) && parsedNumber >= 1 ? parsedNumber : undefined,
                 durationSeconds: item.durationSeconds ?? undefined,
                 accessPolicy,
-                formatIds: Array.from(selectedFormatIds),
+                requiredLevelSortOrder:
+                    accessPolicy === 'PAID' ? (requiredLevelSortOrder ?? undefined) : undefined,
+                formatIds: Array.from(episodeFormatIds),
                 audioUrl: importAudio ? (item.audioUrl ?? undefined) : undefined,
                 imageUrl: importImage ? (item.imageUrl ?? undefined) : undefined,
             })
-            if (!result.alreadyImported) {
+            if (result.alreadyImported) {
+                setAlreadyImportedCount((count) => count + 1)
+            } else {
                 setImportedCount((count) => count + 1)
             }
             goToEpisode(episodeIndex + 1)
@@ -271,7 +289,12 @@ export default function RssImportWizard(): React.JSX.Element {
     }
 
     function handleSkipEpisode(): void {
-        setSkippedCount((count) => count + 1)
+        const item = preview?.episodes[episodeIndex]
+        if (item?.alreadyImportedEpisodeId != null) {
+            setAlreadyImportedCount((count) => count + 1)
+        } else {
+            setSkippedCount((count) => count + 1)
+        }
         goToEpisode(episodeIndex + 1)
     }
 
@@ -288,7 +311,8 @@ export default function RssImportWizard(): React.JSX.Element {
         setSeriesItunesCategory('')
         setImportSeriesCover(true)
         setResolvedSeriesId(null)
-        setSelectedFormatIds(new Set())
+        setDefaultFormatIds(new Set())
+        setEpisodeFormatIds(new Set())
         setNewFormatName('')
         setEpisodeIndex(0)
         setEpisodeTitle('')
@@ -296,10 +320,12 @@ export default function RssImportWizard(): React.JSX.Element {
         setEpisodeDescription('')
         setEpisodeNumber('')
         setAccessPolicy('FREE')
+        setRequiredLevelSortOrder(null)
         setImportAudio(true)
         setImportImage(true)
         setImportedCount(0)
         setSkippedCount(0)
+        setAlreadyImportedCount(0)
         setErrorMessage(null)
         setBusy(false)
     }
@@ -370,6 +396,7 @@ export default function RssImportWizard(): React.JSX.Element {
                         description={`${preview.episodes.length} Folgen gefunden${preview.truncated ? ' (Liste gekürzt)' : ''}. Lege eine neue Sendung an oder hänge den Import an eine bestehende an.`}
                     />
                     <SelectControl
+                        aria-label="Sendungszuordnung"
                         onChange={(event) =>
                             setSeriesMode(event.target.value === 'existing' ? 'existing' : 'new')
                         }
@@ -382,6 +409,7 @@ export default function RssImportWizard(): React.JSX.Element {
                     </SelectControl>
                     {seriesMode === 'existing' ? (
                         <SelectControl
+                            aria-label="Bestehende Sendung"
                             onChange={(event) => setSelectedSeriesId(Number.parseInt(event.target.value, 10))}
                             value={selectedSeriesId ?? ''}
                         >
@@ -466,15 +494,15 @@ export default function RssImportWizard(): React.JSX.Element {
                                 <li key={format.id}>
                                     <label className="flex items-center gap-2 text-sm">
                                         <input
-                                            checked={selectedFormatIds.has(format.id)}
+                                            checked={defaultFormatIds.has(format.id)}
                                             onChange={(event) => {
-                                                const next = new Set(selectedFormatIds)
+                                                const next = new Set(defaultFormatIds)
                                                 if (event.target.checked) {
                                                     next.add(format.id)
                                                 } else {
                                                     next.delete(format.id)
                                                 }
-                                                setSelectedFormatIds(next)
+                                                setDefaultFormatIds(next)
                                             }}
                                             type="checkbox"
                                         />
@@ -525,12 +553,10 @@ export default function RssImportWizard(): React.JSX.Element {
                         </p>
                     ) : null}
                     {currentEpisode.imageUrl !== null ? (
-                        <img
-                            alt=""
-                            className="h-32 w-32 rounded-lg object-cover"
-                            referrerPolicy="no-referrer"
-                            src={currentEpisode.imageUrl}
-                        />
+                        <p className="rounded-xl border bg-muted/40 px-4 py-3 text-sm text-muted-foreground">
+                            Cover im Feed erkannt. Es wird beim Import serverseitig direkt nach S3
+                            gestreamt.
+                        </p>
                     ) : null}
                     <label className="grid gap-1.5">
                         <span className="text-sm font-medium">Titel</span>
@@ -557,6 +583,7 @@ export default function RssImportWizard(): React.JSX.Element {
                         />
                     </label>
                     <SelectControl
+                        aria-label="Zugriff"
                         onChange={(event) =>
                             setAccessPolicy(event.target.value === 'PAID' ? 'PAID' : 'FREE')
                         }
@@ -565,6 +592,18 @@ export default function RssImportWizard(): React.JSX.Element {
                         <option value="FREE">Frei</option>
                         <option value="PAID">Bezahlt</option>
                     </SelectControl>
+                    {accessPolicy === 'PAID' ? (
+                        <label className="grid gap-1.5">
+                            <span className="text-sm font-medium">Mindest-Stufe</span>
+                            <LevelSelect
+                                onChange={setRequiredLevelSortOrder}
+                                value={requiredLevelSortOrder}
+                            />
+                            <span className="text-xs text-muted-foreground">
+                                Ohne Auswahl gilt die Standard-Stufe der Sendung.
+                            </span>
+                        </label>
+                    ) : null}
                     <p className="text-sm text-muted-foreground">
                         Audio: {currentEpisode.audioMimeType ?? 'unbekannt'}, {formatBytes(currentEpisode.audioSizeBytes)},{' '}
                         {formatDuration(currentEpisode.durationSeconds)}
@@ -593,15 +632,15 @@ export default function RssImportWizard(): React.JSX.Element {
                                 <li key={format.id}>
                                     <label className="flex items-center gap-2 text-sm">
                                         <input
-                                            checked={selectedFormatIds.has(format.id)}
+                                            checked={episodeFormatIds.has(format.id)}
                                             onChange={(event) => {
-                                                const next = new Set(selectedFormatIds)
+                                                const next = new Set(episodeFormatIds)
                                                 if (event.target.checked) {
                                                     next.add(format.id)
                                                 } else {
                                                     next.delete(format.id)
                                                 }
-                                                setSelectedFormatIds(next)
+                                                setEpisodeFormatIds(next)
                                             }}
                                             type="checkbox"
                                         />
@@ -612,6 +651,16 @@ export default function RssImportWizard(): React.JSX.Element {
                         </ul>
                     ) : null}
                     <div className="flex flex-wrap gap-2">
+                        {episodeIndex === 0 ? (
+                            <Button
+                                disabled={busy}
+                                onClick={() => setStep('formats')}
+                                type="button"
+                                variant="outline"
+                            >
+                                Zurück zu Formaten
+                            </Button>
+                        ) : null}
                         <Button
                             disabled={busy || currentEpisode.alreadyImportedEpisodeId !== null}
                             onClick={() => void handleImportEpisode()}
@@ -619,7 +668,7 @@ export default function RssImportWizard(): React.JSX.Element {
                             {busy ? 'Wird nach S3 gestreamt…' : 'Diese Folge importieren'}
                         </Button>
                         <Button disabled={busy} onClick={handleSkipEpisode} type="button" variant="outline">
-                            Überspringen
+                            {currentEpisode.alreadyImportedEpisodeId !== null ? 'Weiter' : 'Überspringen'}
                         </Button>
                     </div>
                 </section>
@@ -629,7 +678,7 @@ export default function RssImportWizard(): React.JSX.Element {
                 <section className="flex max-w-2xl flex-col gap-4">
                     <SectionHeader
                         title="Import abgeschlossen"
-                        description={`${importedCount} Folgen importiert, ${skippedCount} übersprungen. Entwürfe kannst du jetzt prüfen und veröffentlichen.`}
+                        description={`${importedCount} Folgen importiert, ${alreadyImportedCount} bereits vorhanden, ${skippedCount} übersprungen. Entwürfe kannst du jetzt prüfen und veröffentlichen.`}
                     />
                     <div className="flex flex-wrap gap-2">
                         <Button nativeButton={false} render={<Link href="/podcast/episodes" />}>

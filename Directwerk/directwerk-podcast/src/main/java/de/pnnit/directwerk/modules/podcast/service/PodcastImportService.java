@@ -21,18 +21,26 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.HexFormat;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class PodcastImportService {
 
     private static final int MAX_FEED_BYTES = 5 * 1024 * 1024;
@@ -54,7 +62,8 @@ public class PodcastImportService {
         int limit = Math.min(parsed.items().size(), MAX_EPISODES);
         for (int i = 0; i < limit; i++) {
             ParsedRssFeed.Item item = parsed.items().get(i);
-            Long existingId = episodeRepository.findByTenantIdAndImportGuid(tenantId, item.guid())
+            String importIdentity = importIdentity(parsed.feedUrl(), item.guid());
+            Long existingId = episodeRepository.findByTenantIdAndImportIdentity(tenantId, importIdentity)
                     .map(Episode::getId)
                     .orElse(null);
             episodes.add(new PreviewEpisode(
@@ -102,52 +111,78 @@ public class PodcastImportService {
     @RequiresModule(PodcastModule.KEY)
     public ImportedEpisode importEpisode(ImportEpisodeCommand command) {
         Long tenantId = TenantContext.requireTenantId();
-        if (command.guid() != null && !command.guid().isBlank()) {
-            var existing = episodeRepository.findByTenantIdAndImportGuid(tenantId, command.guid().trim());
-            if (existing.isPresent()) {
-                return new ImportedEpisode(existing.get(), true);
+        String importIdentity = importIdentity(command.feedUrl(), command.guid());
+        var existing = episodeRepository.findByTenantIdAndImportIdentity(tenantId, importIdentity);
+        if (existing.isPresent()) {
+            return new ImportedEpisode(existing.get(), true);
+        }
+
+        List<Long> ingestedAssetIds = new ArrayList<>(2);
+        try {
+            AccessPolicy accessPolicy = command.accessPolicy() == null ? AccessPolicy.FREE : command.accessPolicy();
+            Long audioAssetId = null;
+            if (command.audioUrl() != null && !command.audioUrl().isBlank()) {
+                MediaAsset audio = ingestAsset(
+                        command.audioUrl(),
+                        AssetType.AUDIO,
+                        AssetVisibility.PRIVATE,
+                        filenameFromUrl(command.audioUrl(), "episode.mp3")
+                );
+                audioAssetId = audio.getId();
+                ingestedAssetIds.add(audioAssetId);
+            }
+            Long coverAssetId = command.coverAssetId();
+            if (command.imageUrl() != null && !command.imageUrl().isBlank()) {
+                MediaAsset cover = ingestAsset(
+                        command.imageUrl(),
+                        AssetType.IMAGE,
+                        AssetVisibility.PUBLIC,
+                        filenameFromUrl(command.imageUrl(), "cover.jpg")
+                );
+                coverAssetId = cover.getId();
+                ingestedAssetIds.add(coverAssetId);
+            }
+
+            String slug = uniqueSlug(tenantId, command.slug(), command.title());
+            Episode episode = episodeService.createImportedDraft(
+                    tenantId,
+                    command.seriesId(),
+                    command.episodeNumber(),
+                    slug,
+                    command.title(),
+                    command.description(),
+                    audioAssetId,
+                    coverAssetId,
+                    command.durationSeconds(),
+                    accessPolicy,
+                    command.requiredLevelSortOrder(),
+                    command.formatIds(),
+                    command.categoryIds(),
+                    importIdentity
+            );
+            return new ImportedEpisode(episode, false);
+        } catch (DataIntegrityViolationException ex) {
+            // A concurrent request may win the unique import-identity race after
+            // this request streamed its assets. Never create a duplicate episode.
+            discardIngestedAssets(ingestedAssetIds);
+            return episodeRepository.findByTenantIdAndImportIdentity(tenantId, importIdentity)
+                    .map(episode -> new ImportedEpisode(episode, true))
+                    .orElseThrow(() -> ex);
+        } catch (RuntimeException ex) {
+            discardIngestedAssets(ingestedAssetIds);
+            throw ex;
+        }
+    }
+
+    private void discardIngestedAssets(List<Long> assetIds) {
+        for (int i = assetIds.size() - 1; i >= 0; i--) {
+            Long assetId = assetIds.get(i);
+            try {
+                remoteAssetIngestApi.discard(assetId);
+            } catch (RuntimeException cleanupFailure) {
+                log.warn("Failed to discard unreferenced RSS import asset {}", assetId, cleanupFailure);
             }
         }
-
-        Long audioAssetId = null;
-        if (command.audioUrl() != null && !command.audioUrl().isBlank()) {
-            audioAssetId = ingestAsset(
-                    command.audioUrl(),
-                    AssetType.AUDIO,
-                    command.accessPolicy() == AccessPolicy.FREE ? AssetVisibility.PUBLIC : AssetVisibility.PRIVATE,
-                    filenameFromUrl(command.audioUrl(), "episode.mp3")
-            ).getId();
-        }
-        Long coverAssetId = command.coverAssetId();
-        if (command.imageUrl() != null && !command.imageUrl().isBlank()) {
-            coverAssetId = ingestAsset(
-                    command.imageUrl(),
-                    AssetType.IMAGE,
-                    AssetVisibility.PUBLIC,
-                    filenameFromUrl(command.imageUrl(), "cover.jpg")
-            ).getId();
-        }
-
-        String slug = uniqueSlug(tenantId, command.slug(), command.title());
-        Episode episode = episodeService.createDraft(
-                tenantId,
-                command.seriesId(),
-                command.episodeNumber(),
-                slug,
-                command.title(),
-                command.description(),
-                audioAssetId,
-                coverAssetId,
-                command.durationSeconds(),
-                command.accessPolicy(),
-                command.requiredLevelSortOrder(),
-                command.formatIds(),
-                command.categoryIds()
-        );
-        if (command.guid() != null && !command.guid().isBlank()) {
-            episode = episodeService.setImportGuid(tenantId, episode.getId(), command.guid());
-        }
-        return new ImportedEpisode(episode, false);
     }
 
     private ParsedRssFeed fetchAndParse(String feedUrl) {
@@ -161,7 +196,7 @@ public class PodcastImportService {
                 );
             }
             byte[] xml = readBounded(remote.body(), MAX_FEED_BYTES);
-            return rssFeedParser.parse(uri.toString(), new ByteArrayInputStream(xml));
+            return rssFeedParser.parse(remote.finalUri().toString(), new ByteArrayInputStream(xml));
         } catch (UploadValidationException ex) {
             throw new RssImportException(400, ex.getCode(), ex.getMessage(), ex);
         } catch (RssImportException ex) {
@@ -177,7 +212,7 @@ public class PodcastImportService {
     private String uniqueSlug(Long tenantId, String requested, String title) {
         String base = requested == null || requested.isBlank()
                 ? ImportSlugSuggester.suggest(title)
-                : requested.trim().toLowerCase();
+                : requested.trim().toLowerCase(Locale.ROOT);
         for (int attempt = 1; attempt <= 50; attempt++) {
             String candidate = ImportSlugSuggester.withSuffix(base, attempt);
             if (!episodeRepository.existsByTenantIdAndSlug(tenantId, candidate)) {
@@ -211,6 +246,23 @@ public class PodcastImportService {
             throw new RssImportException(400, "RSS_FEED_INVALID", "RSS feed was empty");
         }
         return out.toByteArray();
+    }
+
+    static String importIdentity(String feedUrl, String guid) {
+        if (feedUrl == null || feedUrl.isBlank() || guid == null || guid.isBlank()) {
+            throw new RssImportException(
+                    400,
+                    "RSS_FEED_INVALID",
+                    "feedUrl and guid are required for an episode import"
+            );
+        }
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            byte[] value = (feedUrl.trim() + "\n" + guid.trim()).getBytes(StandardCharsets.UTF_8);
+            return HexFormat.of().formatHex(digest.digest(value));
+        } catch (NoSuchAlgorithmException ex) {
+            throw new IllegalStateException("SHA-256 is not available", ex);
+        }
     }
 
     public record Preview(
@@ -250,6 +302,7 @@ public class PodcastImportService {
 
     public record ImportEpisodeCommand(
             Long seriesId,
+            String feedUrl,
             String guid,
             String slug,
             String title,

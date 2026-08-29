@@ -88,7 +88,7 @@ public interface EpisodeRepository extends JpaRepository<Episode, Long> {
             "audioAsset", "audioAsset.tenant", "formats", "formats.coverAsset",
             "categories", "categories.parent"
     })
-    Optional<Episode> findByTenantIdAndImportGuid(Long tenantId, String importGuid);
+    Optional<Episode> findByTenantIdAndImportIdentity(Long tenantId, String importIdentity);
 
     long countByTenantId(Long tenantId);
 

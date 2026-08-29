@@ -70,10 +70,26 @@ public final class RemoteUrlValidator {
     }
 
     private static boolean isBlockedAddress(InetAddress address) {
-        return address.isAnyLocalAddress()
+        if (address.isAnyLocalAddress()
                 || address.isLoopbackAddress()
                 || address.isLinkLocalAddress()
                 || address.isSiteLocalAddress()
-                || address.isMulticastAddress();
+                || address.isMulticastAddress()) {
+            return true;
+        }
+        byte[] bytes = address.getAddress();
+        if (bytes.length == 16) {
+            // Java's isSiteLocalAddress() does not cover RFC 4193 unique-local
+            // addresses (fc00::/7), which are private infrastructure too.
+            return (bytes[0] & 0xfe) == 0xfc;
+        }
+        if (bytes.length == 4) {
+            int first = Byte.toUnsignedInt(bytes[0]);
+            int second = Byte.toUnsignedInt(bytes[1]);
+            return first == 0
+                    || (first == 100 && second >= 64 && second <= 127)
+                    || (first == 198 && (second == 18 || second == 19));
+        }
+        return true;
     }
 }

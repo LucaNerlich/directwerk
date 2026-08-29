@@ -194,6 +194,7 @@ class PodcastImportControllerTest {
                         .content("""
                                 {
                                   "seriesId": 7,
+                                  "feedUrl": "https://example.com/feed.xml",
                                   "guid": "guid-1",
                                   "slug": "folge-1",
                                   "title": "Folge 1",

@@ -121,7 +121,7 @@ public class RemoteAssetIngestService implements RemoteAssetIngestApi {
                 asset.setSizeBytes(written);
                 asset.setStatus(AssetStatus.READY);
                 return mediaAssetRepository.saveAndFlush(asset);
-            } catch (RuntimeException ex) {
+            } catch (RuntimeException | IOException ex) {
                 deleteObjectQuietly(storage.bucket(), finalKey);
                 mediaAssetRepository.delete(asset);
                 throw ex;
@@ -133,6 +133,39 @@ public class RemoteAssetIngestService implements RemoteAssetIngestApi {
                 Thread.currentThread().interrupt();
             }
             throw new UploadValidationException("REMOTE_ASSET_FAILED", "Could not stream remote asset", ex);
+        }
+    }
+
+    @Override
+    public void discard(Long assetId) {
+        if (assetId == null) {
+            return;
+        }
+        DirectwerkProperties.Storage storage = StorageConfigs.requireEnabled(directwerkConfig);
+        Long tenantId = TenantContext.requireTenantId();
+        MediaAsset asset = mediaAssetRepository.findById(assetId).orElse(null);
+        if (asset == null) {
+            return;
+        }
+        if (!tenantId.equals(asset.getTenant().getId())) {
+            throw new UploadValidationException("REMOTE_ASSET_FAILED", "Remote asset does not belong to tenant");
+        }
+        if (asset.getEpisodeId() != null) {
+            throw new UploadValidationException("REMOTE_ASSET_FAILED", "Attached remote asset cannot be discarded");
+        }
+
+        String key = asset.getS3Key();
+        mediaAssetRepository.delete(asset);
+        try {
+            s3Client.deleteObject(DeleteObjectRequest.builder()
+                    .bucket(storage.bucket())
+                    .key(key)
+                    .build());
+        } catch (RuntimeException ex) {
+            // The metadata is already gone, so the inaccessible S3 object is an
+            // orphan rather than a broken media record. Surface the failure for
+            // diagnostics without re-creating the DB row.
+            throw new UploadValidationException("REMOTE_ASSET_FAILED", "Could not discard remote asset", ex);
         }
     }
 

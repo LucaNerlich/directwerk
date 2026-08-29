@@ -72,6 +72,79 @@ public class EpisodeService {
             Set<Long> formatIds,
             Set<Long> categoryIds
     ) {
+        return createDraftInternal(
+                tenantId,
+                seriesId,
+                episodeNumber,
+                rawSlug,
+                title,
+                description,
+                audioAssetId,
+                coverAssetId,
+                durationSeconds,
+                accessPolicy,
+                requiredLevelSortOrder,
+                formatIds,
+                categoryIds,
+                null
+        );
+    }
+
+    @Transactional
+    @RequiresModule(PodcastModule.KEY)
+    public Episode createImportedDraft(
+            Long tenantId,
+            Long seriesId,
+            Integer episodeNumber,
+            String rawSlug,
+            String title,
+            String description,
+            Long audioAssetId,
+            Long coverAssetId,
+            Integer durationSeconds,
+            AccessPolicy accessPolicy,
+            Integer requiredLevelSortOrder,
+            Set<Long> formatIds,
+            Set<Long> categoryIds,
+            String importIdentity
+    ) {
+        if (importIdentity == null || !importIdentity.matches("[a-f0-9]{64}")) {
+            throw new EpisodeValidationException("importIdentity must be a lowercase SHA-256 digest");
+        }
+        return createDraftInternal(
+                tenantId,
+                seriesId,
+                episodeNumber,
+                rawSlug,
+                title,
+                description,
+                audioAssetId,
+                coverAssetId,
+                durationSeconds,
+                accessPolicy,
+                requiredLevelSortOrder,
+                formatIds,
+                categoryIds,
+                importIdentity
+        );
+    }
+
+    private Episode createDraftInternal(
+            Long tenantId,
+            Long seriesId,
+            Integer episodeNumber,
+            String rawSlug,
+            String title,
+            String description,
+            Long audioAssetId,
+            Long coverAssetId,
+            Integer durationSeconds,
+            AccessPolicy accessPolicy,
+            Integer requiredLevelSortOrder,
+            Set<Long> formatIds,
+            Set<Long> categoryIds,
+            String importIdentity
+    ) {
         PodcastSeries series = seriesService.requireSeries(tenantId, seriesId);
         String slug = SlugNormalizer.normalize(rawSlug);
         if (episodeRepository.existsByTenantIdAndSlug(tenantId, slug)) {
@@ -83,6 +156,7 @@ public class EpisodeService {
         episode.setSeries(series);
         episode.setEpisodeNumber(FieldConstraints.requirePositive(episodeNumber, "episodeNumber"));
         episode.setSlug(slug);
+        episode.setImportIdentity(importIdentity);
         episode.setTitle(TitleNormalizer.normalize(title, "Episode"));
         episode.setDescription(htmlSanitizer.sanitize(description));
         episode.setCoverAsset(podcastCoverAssetResolver.resolveCoverAsset(tenantId, coverAssetId));
@@ -179,25 +253,6 @@ public class EpisodeService {
         episode.setAudioAsset(audio);
         episodeRepository.save(episode);
         episodeMediaApi.attachEpisode(audioAssetId, episodeId);
-        return requireEpisode(tenantId, episodeId);
-    }
-
-    @Transactional
-    @RequiresModule(PodcastModule.KEY)
-    public Episode setImportGuid(Long tenantId, Long episodeId, String importGuid) {
-        if (importGuid == null || importGuid.isBlank()) {
-            throw new EpisodeValidationException("importGuid is required");
-        }
-        String guid = importGuid.trim();
-        if (guid.length() > 512) {
-            throw new EpisodeValidationException("importGuid must be at most 512 characters");
-        }
-        if (episodeRepository.findByTenantIdAndImportGuid(tenantId, guid).isPresent()) {
-            throw new ConflictException(ConflictCodes.EPISODE_IMPORT_GUID_EXISTS, "Episode already imported: " + guid);
-        }
-        Episode episode = requireDraftEpisode(tenantId, episodeId);
-        episode.setImportGuid(guid);
-        episodeRepository.save(episode);
         return requireEpisode(tenantId, episodeId);
     }
 

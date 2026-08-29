@@ -243,6 +243,7 @@ export interface RssImportPreview {
 
 export interface ImportEpisodeInput {
     seriesId: number
+    feedUrl: string
     guid: string
     slug?: string
     title: string

@@ -37,6 +37,11 @@ vi.mock('@/lib/api/podcastImportApi', () => ({
     importRssEpisode: (...args: unknown[]) => importRssEpisode(...args),
     ingestRemoteAsset: (...args: unknown[]) => ingestRemoteAsset(...args),
 }))
+vi.mock('@/lib/api/subscriptionApi', () => ({
+    listPublicLevels: vi.fn().mockResolvedValue([
+        {id: 1, slug: 'fan', title: 'Fan', sortOrder: 10},
+    ]),
+}))
 
 const existingSeries: SeriesSummary = {
     id: 7,
@@ -217,6 +222,7 @@ describe('RssImportWizard', () => {
             'tenant.test',
             expect.objectContaining({
                 seriesId: 7,
+                feedUrl: preview.feedUrl,
                 guid: 'guid-1',
                 slug: 'folge-1',
                 title: 'Folge 1',
@@ -228,7 +234,9 @@ describe('RssImportWizard', () => {
 
         await user.click(screen.getByRole('button', {name: 'Überspringen'}))
         await waitFor(() => expect(screen.getByText('Import abgeschlossen')).toBeInTheDocument())
-        expect(screen.getByText(/1 Folgen importiert, 1 übersprungen/)).toBeInTheDocument()
+        expect(
+            screen.getByText(/1 Folgen importiert, 0 bereits vorhanden, 1 übersprungen/),
+        ).toBeInTheDocument()
         expect(screen.getByRole('link', {name: 'Zur Folgenliste'})).toHaveAttribute(
             'href',
             '/podcast/episodes',
@@ -272,6 +280,27 @@ describe('RssImportWizard', () => {
         expect(screen.getByText(/Neue Formate kann nur ein Tenant-Admin anlegen/)).toBeInTheDocument()
     })
 
+    it('resets per-episode format edits to the chosen import defaults', async () => {
+        const user = userEvent.setup()
+        renderWizard()
+        await loadFeed()
+        await user.click(screen.getByRole('button', {name: 'Weiter zu Formaten'}))
+        await waitFor(() => expect(screen.getByText('Formate zuordnen')).toBeInTheDocument())
+        await user.click(screen.getByRole('checkbox', {name: 'Hauptfolge'}))
+        await user.click(screen.getByRole('button', {name: 'Weiter zu den Folgen'}))
+        await waitFor(() => expect(screen.getByText('Folge 1 von 2')).toBeInTheDocument())
+
+        await user.click(screen.getByRole('checkbox', {name: 'Hauptfolge'}))
+        await user.click(screen.getByRole('button', {name: 'Diese Folge importieren'}))
+
+        await waitFor(() => expect(screen.getByText('Folge 2 von 2')).toBeInTheDocument())
+        expect(importRssEpisode).toHaveBeenLastCalledWith(
+            'tenant.test',
+            expect.objectContaining({formatIds: []}),
+        )
+        expect(screen.getByRole('checkbox', {name: 'Hauptfolge'})).toBeChecked()
+    })
+
     it('resets the wizard so another feed can be imported', async () => {
         const user = userEvent.setup()
         renderWizard()
@@ -287,5 +316,32 @@ describe('RssImportWizard', () => {
         await user.click(screen.getByRole('button', {name: 'Weiteren Feed importieren'}))
         expect(screen.getByText('Feed-Adresse')).toBeInTheDocument()
         expect(screen.getByPlaceholderText('https://example.com/podcast.xml')).toHaveValue('')
+    })
+
+    it('advances past an existing episode without counting it as skipped', async () => {
+        previewRssFeed.mockResolvedValue({
+            ...preview,
+            episodes: [
+                {...preview.episodes[0], alreadyImportedEpisodeId: 42},
+                preview.episodes[1],
+            ],
+        })
+        const user = userEvent.setup()
+        renderWizard()
+        await loadFeed()
+        await user.click(screen.getByRole('button', {name: 'Weiter zu Formaten'}))
+        await waitFor(() => expect(screen.getByText('Formate zuordnen')).toBeInTheDocument())
+        await user.click(screen.getByRole('button', {name: 'Weiter zu den Folgen'}))
+        await waitFor(() => expect(screen.getByText('Diese Folge wurde bereits importiert.')).toBeInTheDocument())
+
+        expect(screen.getByRole('button', {name: 'Diese Folge importieren'})).toBeDisabled()
+        await user.click(screen.getByRole('button', {name: 'Weiter'}))
+        await user.click(screen.getByRole('button', {name: 'Überspringen'}))
+
+        await waitFor(() =>
+            expect(
+                screen.getByText(/0 Folgen importiert, 1 bereits vorhanden, 1 übersprungen/),
+            ).toBeInTheDocument(),
+        )
     })
 })

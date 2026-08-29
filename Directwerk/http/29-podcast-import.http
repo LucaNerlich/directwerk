@@ -64,6 +64,7 @@ Accept: application/json
 
 {
   "seriesId": {{podcastSeriesId}},
+  "feedUrl": "https://example.com/podcast.xml",
   "guid": "http-harness-import-guid",
   "slug": "imported-harness-episode",
   "title": "Imported Harness Episode",

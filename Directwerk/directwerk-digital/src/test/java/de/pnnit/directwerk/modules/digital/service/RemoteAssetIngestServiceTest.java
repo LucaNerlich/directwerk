@@ -1,6 +1,7 @@
 package de.pnnit.directwerk.modules.digital.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -18,6 +19,8 @@ import de.pnnit.directwerk.modules.digital.net.RemoteContentClient;
 import de.pnnit.directwerk.modules.digital.repository.MediaAssetRepository;
 import de.pnnit.directwerk.multitenancy.TenantContext;
 import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
@@ -30,6 +33,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.CreateMultipartUploadResponse;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 
 @ExtendWith(MockitoExtension.class)
@@ -106,6 +110,68 @@ class RemoteAssetIngestServiceTest {
         verify(s3Client).putObject(put.capture(), any(RequestBody.class));
         assertThat(put.getValue().contentLength()).isEqualTo((long) body.length);
         assertThat(put.getValue().contentType()).isEqualTo("audio/mpeg");
+    }
+
+    @Test
+    void discardsUnattachedIngestedAssetFromDatabaseAndS3() {
+        Tenant tenant = new Tenant();
+        tenant.setId(10L);
+        tenant.setSlug("alpha");
+        MediaAsset asset = new MediaAsset();
+        asset.setId(42L);
+        asset.setTenant(tenant);
+        asset.setS3Key("alpha/private/audio/asset-42_episode.mp3");
+        when(directwerkConfig.isStorageEnabled()).thenReturn(true);
+        when(directwerkConfig.storage()).thenReturn(storage());
+        when(mediaAssetRepository.findById(42L)).thenReturn(java.util.Optional.of(asset));
+
+        service.discard(42L);
+
+        verify(mediaAssetRepository).delete(asset);
+        verify(s3Client).deleteObject(any(software.amazon.awssdk.services.s3.model.DeleteObjectRequest.class));
+    }
+
+    @Test
+    void removesPendingAssetWhenUnknownLengthStreamFails() throws Exception {
+        Tenant tenant = new Tenant();
+        tenant.setId(10L);
+        tenant.setSlug("alpha");
+        when(tenantRepository.requireById(10L)).thenReturn(tenant);
+        when(directwerkConfig.isStorageEnabled()).thenReturn(true);
+        when(directwerkConfig.storage()).thenReturn(storage());
+        InputStream broken = new InputStream() {
+            @Override
+            public int read() throws IOException {
+                throw new IOException("upstream disconnected");
+            }
+        };
+        when(remoteContentClient.get(any(URI.class), any(Duration.class))).thenReturn(
+                new RemoteContentClient.RemoteResponse(
+                        URI.create("https://1.1.1.1/ep.mp3"),
+                        200,
+                        "audio/mpeg",
+                        null,
+                        broken
+                )
+        );
+        when(mediaAssetRepository.saveAndFlush(any(MediaAsset.class))).thenAnswer(invocation -> {
+            MediaAsset asset = invocation.getArgument(0);
+            asset.setId(42L);
+            return asset;
+        });
+        when(s3Client.createMultipartUpload(any())).thenReturn(
+                CreateMultipartUploadResponse.builder().uploadId("upload-1").build()
+        );
+
+        assertThatThrownBy(() -> service.ingestFromUrl(new RemoteAssetIngestApi.IngestCommand(
+                "https://1.1.1.1/ep.mp3",
+                AssetType.AUDIO,
+                AssetVisibility.PRIVATE,
+                null
+        ))).isInstanceOf(de.pnnit.directwerk.modules.digital.exception.UploadValidationException.class);
+
+        verify(s3Client).abortMultipartUpload(any());
+        verify(mediaAssetRepository).delete(any(MediaAsset.class));
     }
 
     private static DirectwerkProperties.Storage storage() {
