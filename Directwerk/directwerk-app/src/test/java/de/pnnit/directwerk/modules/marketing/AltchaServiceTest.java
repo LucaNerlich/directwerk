@@ -57,7 +57,6 @@ class AltchaServiceTest {
                 null,
                 null,
                 new DirectwerkProperties.Email(
-                        true,
                         "smtp",
                         "noreply@example.com",
                         "Directwerk",
@@ -92,7 +91,6 @@ class AltchaServiceTest {
                 null,
                 null,
                 new DirectwerkProperties.Email(
-                        true,
                         "smtp",
                         "noreply@example.com",
                         "Directwerk",

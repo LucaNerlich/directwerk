@@ -173,7 +173,6 @@ class TransactionalEmailServiceTest {
 
     private static DirectwerkProperties.Email sampleEmailConfig() {
         return new DirectwerkProperties.Email(
-                true,
                 "smtp",
                 "noreply@directwerk.local",
                 "Directwerk",

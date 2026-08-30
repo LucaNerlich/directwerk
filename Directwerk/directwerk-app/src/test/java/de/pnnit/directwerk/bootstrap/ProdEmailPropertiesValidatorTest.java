@@ -21,7 +21,7 @@ class ProdEmailPropertiesValidatorTest {
     private ProdEmailPropertiesValidator validator;
 
     @Test
-    void skipsValidationWhenEmailDisabled() {
+    void skipsValidationWhenEmailProviderIsNone() {
         when(directwerkConfig.isEmailEnabled()).thenReturn(false);
 
         validator.validateProductionEmail();
@@ -31,7 +31,6 @@ class ProdEmailPropertiesValidatorTest {
     void rejectsMissingFromAddressWhenEmailEnabled() {
         when(directwerkConfig.isEmailEnabled()).thenReturn(true);
         when(directwerkConfig.email()).thenReturn(new DirectwerkProperties.Email(
-                true,
                 "smtp",
                 " ",
                 "Directwerk",
@@ -52,7 +51,6 @@ class ProdEmailPropertiesValidatorTest {
     void rejectsHttpStudioBaseUrlWhenEmailEnabled() {
         when(directwerkConfig.isEmailEnabled()).thenReturn(true);
         when(directwerkConfig.email()).thenReturn(new DirectwerkProperties.Email(
-                true,
                 "smtp",
                 "noreply@example.com",
                 "Directwerk",

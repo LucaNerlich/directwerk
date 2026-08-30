@@ -29,7 +29,7 @@ directwerk:
         tenant-client-secret: ${DIRECTWERK_TENANT_CLIENT_SECRET:}
         authorization-store: memory
     email:
-        enabled: false
+        provider: none
         from-address: noreply@directwerk.local
         from-name: Directwerk
         studio-base-url: http://localhost:3004

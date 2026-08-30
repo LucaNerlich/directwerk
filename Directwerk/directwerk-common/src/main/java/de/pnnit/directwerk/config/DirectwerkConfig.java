@@ -68,10 +68,10 @@ public DirectwerkProperties.Dev dev() {
     /**
      * Determines whether transactional email can be enqueued and delivered.
      *
-     * <p>Requires {@code directwerk.email.enabled=true} and a ready provider
-     * ({@code smtp} today). {@code none} or an unimplemented provider stays off.
+     * <p>True when {@code directwerk.email.provider} is {@code smtp}. Use
+     * {@code none} for local runs without outbound mail.
      *
-     * @return {@code true} if email delivery is enabled, {@code false} otherwise
+     * @return {@code true} if email delivery is configured, {@code false} otherwise
      */
     public boolean isEmailEnabled() {
         return properties.email() != null && properties.email().isDeliveryReady();

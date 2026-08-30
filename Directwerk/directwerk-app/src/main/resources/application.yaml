@@ -83,7 +83,6 @@ directwerk:
         platform-admin-email: ${DIRECTWERK_BOOTSTRAP_PLATFORM_ADMIN_EMAIL:}
         platform-admin-password: ${DIRECTWERK_BOOTSTRAP_PLATFORM_ADMIN_PASSWORD:}
     email:
-        enabled: ${DIRECTWERK_EMAIL_ENABLED:true}
         provider: ${DIRECTWERK_EMAIL_PROVIDER:smtp}
         from-address: ${DIRECTWERK_EMAIL_FROM:}
         from-name: ${DIRECTWERK_EMAIL_FROM_NAME:Directwerk}

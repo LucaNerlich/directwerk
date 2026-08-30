@@ -22,7 +22,6 @@ class EmailLinkBuilderTest {
     @BeforeEach
     void setUp() {
         when(directwerkConfig.email()).thenReturn(new DirectwerkProperties.Email(
-                true,
                 "smtp",
                 "noreply@directwerk.local",
                 "Directwerk",

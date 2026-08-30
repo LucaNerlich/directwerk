@@ -384,10 +384,10 @@ Validated at startup by `ProdSecurityPropertiesValidator`, `ProdEmailPropertiesV
 | `DIRECTWERK_TENANT_CLIENT_SECRET` | yes | OAuth2 tenant client secret |
 | `DIRECTWERK_JWT_PRIVATE_KEY` | yes (prod) | RSA private key PEM |
 | `DIRECTWERK_JWT_PUBLIC_KEY` | yes (prod) | RSA public key PEM |
-| `DIRECTWERK_EMAIL_PROVIDER` | if email enabled | `smtp` (default) or `none`. HTTP ESPs are not wired yet. |
-| `DIRECTWERK_EMAIL_FROM` | if email enabled | Verified sender address |
-| `DIRECTWERK_EMAIL_STUDIO_BASE_URL` | if email enabled | Absolute **HTTPS** tenant public site URL (auth links: accept-invite, reset-password) |
-| `DIRECTWERK_EMAIL_ADMIN_BASE_URL` | if email enabled | Absolute **HTTPS** admin URL |
+| `DIRECTWERK_EMAIL_PROVIDER` | if sending mail | `smtp` (default) or `none`. HTTP ESPs are not wired yet. |
+| `DIRECTWERK_EMAIL_FROM` | if provider is `smtp` | Verified sender address |
+| `DIRECTWERK_EMAIL_STUDIO_BASE_URL` | if provider is `smtp` | Absolute **HTTPS** tenant public site URL (auth links: accept-invite, reset-password) |
+| `DIRECTWERK_EMAIL_ADMIN_BASE_URL` | if provider is `smtp` | Absolute **HTTPS** admin URL |
 | `DIRECTWERK_STORAGE_ENABLED` | yes (prod) | Must be `true` |
 | `DIRECTWERK_STORAGE_BUCKET` | yes (prod) | Object-storage bucket |
 | `DIRECTWERK_STORAGE_PUBLIC_CDN_BASE_URL` | yes (prod) | Absolute **HTTPS** public pull-zone URL |
@@ -403,7 +403,7 @@ DIRECTWERK_MAIL_SMTP_AUTH=true
 DIRECTWERK_MAIL_SMTP_STARTTLS=true
 ```
 
-To disable outbound email entirely: `DIRECTWERK_EMAIL_ENABLED=false` or `DIRECTWERK_EMAIL_PROVIDER=none` (skips email property validation).
+To disable outbound email entirely: set `DIRECTWERK_EMAIL_PROVIDER=none` (skips prod email property validation).
 
 Optional but recommended in prod:
 
@@ -507,7 +507,7 @@ Startup runs Flyway (and may seed local data). Cold databases can take up to ~90
 
 1. Confirm Mailpit is up: `docker compose ps` and open [http://127.0.0.1:8025](http://127.0.0.1:8025).
 2. Confirm `DIRECTWERK_MAIL_HOST=localhost` and port `1025` (or Compose service name `mailpit` inside the `stack` profile).
-3. Confirm `DIRECTWERK_EMAIL_ENABLED=true`.
+3. Confirm `DIRECTWERK_EMAIL_PROVIDER=smtp` (not `none`).
 4. Check the jobs table / `directwerk-admin` Jobs page — failed sends show on the `email` queue.
 
 ### Build fails in Docker

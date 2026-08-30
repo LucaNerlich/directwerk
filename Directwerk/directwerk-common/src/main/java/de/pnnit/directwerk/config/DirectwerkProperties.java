@@ -61,7 +61,6 @@ public record DirectwerkProperties(
     }
 
     public record Email(
-            boolean enabled,
             /**
              * Outbound transport. {@code smtp} is implemented (Mailpit / any SMTP relay).
              * {@code none} keeps jobs and templates but never delivers. Add a new
@@ -87,7 +86,7 @@ public record DirectwerkProperties(
         }
 
         public boolean isDeliveryReady() {
-            return enabled && "smtp".equals(provider);
+            return "smtp".equals(provider);
         }
     }
 

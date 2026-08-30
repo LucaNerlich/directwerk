@@ -129,7 +129,6 @@ class BillingRedirectUrlValidatorTest {
 
     private void stubStudioHost(String studioBaseUrl) {
         lenient().when(directwerkConfig.email()).thenReturn(new DirectwerkProperties.Email(
-                true,
                 "smtp",
                 "noreply@example.com",
                 "Directwerk",

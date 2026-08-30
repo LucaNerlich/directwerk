@@ -7,9 +7,8 @@ import org.junit.jupiter.api.Test;
 class EmailPropertiesTest {
 
     @Test
-    void blanksDefaultToSmtpAndAreDeliveryReadyWhenEnabled() {
+    void blanksDefaultToSmtpAndIsDeliveryReady() {
         DirectwerkProperties.Email email = new DirectwerkProperties.Email(
-                true,
                 " ",
                 "noreply@directwerk.local",
                 "Directwerk",
@@ -27,7 +26,6 @@ class EmailPropertiesTest {
     @Test
     void noneProviderIsNotDeliveryReady() {
         DirectwerkProperties.Email email = new DirectwerkProperties.Email(
-                true,
                 "NONE",
                 "noreply@directwerk.local",
                 "Directwerk",
