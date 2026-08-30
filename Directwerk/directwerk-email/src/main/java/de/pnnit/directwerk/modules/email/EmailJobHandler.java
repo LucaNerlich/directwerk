@@ -57,7 +57,10 @@ public class EmailJobHandler implements JobHandler {
                 throw new IllegalArgumentException("Email job payload missing token");
             }
             String rawToken = emailTokenProtector.revealFromQueue(payload.token());
-            variables.put(template.tokenLink().variableName(), linkBuilder.buildTokenUrl(template, rawToken));
+            variables.put(
+                    template.tokenLink().variableName(),
+                    linkBuilder.buildTokenUrl(template, rawToken, job.tenantId())
+            );
         }
 
         validateRequiredVariables(template, variables);

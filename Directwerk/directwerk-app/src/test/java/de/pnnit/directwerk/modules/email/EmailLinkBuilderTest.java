@@ -5,6 +5,10 @@ import static org.mockito.Mockito.when;
 
 import de.pnnit.directwerk.config.DirectwerkConfig;
 import de.pnnit.directwerk.config.DirectwerkProperties;
+import de.pnnit.directwerk.modules.core.entity.Tenant;
+import de.pnnit.directwerk.modules.core.repository.TenantRepository;
+import de.pnnit.directwerk.modules.core.service.TenantPublicHostResolver;
+import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -14,8 +18,16 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class EmailLinkBuilderTest {
 
+    private static final Long TENANT_ID = 42L;
+
     @Mock
     private DirectwerkConfig directwerkConfig;
+
+    @Mock
+    private TenantPublicHostResolver tenantPublicHostResolver;
+
+    @Mock
+    private TenantRepository tenantRepository;
 
     private EmailLinkBuilder linkBuilder;
 
@@ -32,7 +44,7 @@ class EmailLinkBuilderTest {
                 "/verify-email",
                 7L
         ));
-        linkBuilder = new EmailLinkBuilder(directwerkConfig);
+        linkBuilder = new EmailLinkBuilder(directwerkConfig, tenantPublicHostResolver, tenantRepository);
     }
 
     @Test
@@ -40,6 +52,28 @@ class EmailLinkBuilderTest {
         String url = linkBuilder.buildStudioAcceptInviteUrl("token+value");
 
         assertThat(url).isEqualTo("http://localhost:3004/accept-invite?token=token%2Bvalue");
+    }
+
+    @Test
+    void buildStudioAcceptInviteUrlUsesTenantPrimaryVerifiedHost() {
+        when(tenantPublicHostResolver.findPrimaryVerifiedHost(TENANT_ID))
+                .thenReturn(Optional.of("studio.alpha-show.de"));
+
+        String url = linkBuilder.buildStudioAcceptInviteUrl("invite-token", TENANT_ID);
+
+        assertThat(url).isEqualTo("https://studio.alpha-show.de/accept-invite?token=invite-token");
+    }
+
+    @Test
+    void buildStudioAcceptInviteUrlFallsBackToSharedStudioBaseWithTenantSlug() {
+        when(tenantPublicHostResolver.findPrimaryVerifiedHost(TENANT_ID)).thenReturn(Optional.empty());
+        Tenant tenant = new Tenant();
+        tenant.setSlug("alpha-show");
+        when(tenantRepository.findById(TENANT_ID)).thenReturn(Optional.of(tenant));
+
+        String url = linkBuilder.buildStudioAcceptInviteUrl("invite-token", TENANT_ID);
+
+        assertThat(url).isEqualTo("http://localhost:3004/accept-invite?token=invite-token&tenant=alpha-show");
     }
 
     @Test

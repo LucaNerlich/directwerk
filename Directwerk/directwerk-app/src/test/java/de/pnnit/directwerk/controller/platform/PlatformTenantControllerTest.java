@@ -1,6 +1,7 @@
 package de.pnnit.directwerk.controller.platform;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -64,6 +65,16 @@ class PlatformTenantControllerTest {
         otherTenant = tenantRepository.save(otherTenant);
     }
 
+
+    @Test
+    @WithMockUser(roles = "PLATFORM_ADMIN")
+    void getTenantReturnsDetailsWithoutModulePreset() throws Exception {
+        mockMvc.perform(get("/api/v1/platform/tenants/{id}", tenant.getId()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.tenant.slug").value(tenant.getSlug()))
+                .andExpect(jsonPath("$.data.episodeCount").value(0))
+                .andExpect(jsonPath("$.data.subscriberCount").value(0));
+    }
 
     @Test
     @WithMockUser(roles = "PLATFORM_ADMIN")

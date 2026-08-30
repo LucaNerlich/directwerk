@@ -1,10 +1,13 @@
 package de.pnnit.directwerk.modules.subscription.service;
 
 import de.pnnit.directwerk.modules.core.entity.Role;
+import de.pnnit.directwerk.modules.core.service.ModuleGateService;
 import de.pnnit.directwerk.modules.core.service.TenantUserQueryService;
 import de.pnnit.directwerk.modules.core.service.TenantUserQueryService.TenantUserView;
+import de.pnnit.directwerk.modules.subscription.SubscriptionModule;
 import de.pnnit.directwerk.modules.subscription.entity.Subscription;
 import de.pnnit.directwerk.modules.subscription.entity.SubscriptionProduct;
+import de.pnnit.directwerk.modules.subscription.repository.SubscriptionRepository;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -22,7 +25,8 @@ import org.springframework.transaction.annotation.Transactional;
 public class SubscriberDirectoryQueryService {
 
     private final TenantUserQueryService tenantUserQueryService;
-    private final SubscriptionService subscriptionService;
+    private final SubscriptionRepository subscriptionRepository;
+    private final ModuleGateService moduleGateService;
 
     @Transactional(readOnly = true)
     public List<SubscriberDirectoryEntry> listSubscribers(Long tenantId) {
@@ -38,18 +42,20 @@ public class SubscriberDirectoryQueryService {
             );
         }
 
-        for (Subscription subscription : subscriptionService.listSubscriptionsForTenant(tenantId)) {
-            Long userId = subscription.getUser().getId();
-            Builder builder = byUserId.computeIfAbsent(
-                    userId,
-                    id -> new Builder(
-                            id,
-                            subscription.getUser().getEmail(),
-                            subscription.getUser().getName(),
-                            "ACTIVE"
-                    )
-            );
-            builder.subscriptions.add(toSummary(subscription));
+        if (moduleGateService.isModuleActive(tenantId, SubscriptionModule.MODULE_KEY)) {
+            for (Subscription subscription : subscriptionRepository.findDetailedByTenantId(tenantId)) {
+                Long userId = subscription.getUser().getId();
+                Builder builder = byUserId.computeIfAbsent(
+                        userId,
+                        id -> new Builder(
+                                id,
+                                subscription.getUser().getEmail(),
+                                subscription.getUser().getName(),
+                                "ACTIVE"
+                        )
+                );
+                builder.subscriptions.add(toSummary(subscription));
+            }
         }
 
         return byUserId.values().stream()
