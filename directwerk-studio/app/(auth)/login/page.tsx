@@ -181,7 +181,7 @@ function LoginForm() {
                     </AlertDescription>
                 </Alert>
             ) : null}
-            <Form action={formAction} autoComplete="on" className="grid gap-4" method="post">
+            <Form action={formAction} className="grid gap-4">
                 <div className="grid gap-2">
                     <Label htmlFor="login-email">E-Mail</Label>
                     <Input

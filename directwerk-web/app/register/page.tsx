@@ -83,7 +83,7 @@ export default function RegisterPage() {
                 </>
             }
         >
-            <Form action={formAction} autoComplete="on" className="space-y-4" method="post">
+            <Form action={formAction} className="space-y-4">
                 <div className="space-y-2">
                     <Label htmlFor="name">Name <span className="text-muted-foreground">(optional)</span></Label>
                     <Input id="name" name="name" type="text" autoComplete="name" maxLength={255} />

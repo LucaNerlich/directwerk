@@ -77,7 +77,7 @@ export default function LoginPage() {
                 </div>
             }
         >
-            <Form action={formAction} autoComplete="on" className="space-y-4" method="post">
+            <Form action={formAction} className="space-y-4">
                 <div className="space-y-2">
                     <Label htmlFor="email">E-Mail</Label>
                     <Input id="email" name="email" type="email" autoComplete="username" maxLength={254} required />
