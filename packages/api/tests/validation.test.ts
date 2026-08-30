@@ -8,6 +8,7 @@ import {
     parseStudioSiteConfigEnvelope,
     parsePublicSiteConfigEnvelope,
     parseSubscriberFeedAdminEnvelope,
+    parseTenantUserListEnvelope,
     parseTokenResponse,
     isQueueJob,
 } from '../src/validation'
@@ -346,5 +347,26 @@ describe('isQueueJob', () => {
         ).toBe(true)
         expect(isQueueJob({id: 'j1'})).toBe(false)
         expect(isQueueJob(null)).toBe(false)
+    })
+
+    it('accepts tenant user list items without optional timestamp fields', () => {
+        const parsed = parseTenantUserListEnvelope({
+            statusCode: 200,
+            statusMessage: 'OK',
+            data: [
+                {
+                    userId: 1,
+                    email: 'admin@example.com',
+                    name: null,
+                    roles: ['TENANT_ADMIN'],
+                    status: 'ACTIVE',
+                },
+            ],
+            errors: [],
+            metadata: {},
+        })
+
+        expect(parsed?.data[0]?.invitedAt).toBeNull()
+        expect(parsed?.data[0]?.lastLoginAt).toBeNull()
     })
 })

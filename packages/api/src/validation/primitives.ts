@@ -15,6 +15,13 @@ export function isNullableString(
     return value === null || isBoundedString(value, maxLength)
 }
 
+export function isOptionalNullableString(
+    value: unknown,
+    maxLength = 2048,
+): boolean {
+    return value === undefined || isNullableString(value, maxLength)
+}
+
 export function isStringArray(value: unknown): value is string[] {
     return (
         Array.isArray(value) &&

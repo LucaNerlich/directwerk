@@ -160,17 +160,10 @@ public class TenantAdminController {
     }
 
     @GetMapping("/users")
-    ResponseEntity<Response<List<UserView>>> listUsers() {
-        List<UserView> users = tenantUserQueryService.listTenantUsers(TenantContext.requireTenantId()).stream()
-                .map(user -> new UserView(
-                        user.userId(),
-                        user.email(),
-                        user.name(),
-                        user.roles(),
-                        user.status()
-                ))
-                .toList();
-        return ResponseEntity.ok(Response.ok(users));
+    ResponseEntity<Response<List<TenantUserView>>> listUsers() {
+        return ResponseEntity.ok(Response.ok(
+                tenantUserQueryService.listTenantUsers(TenantContext.requireTenantId())
+        ));
     }
 
     /**
@@ -243,15 +236,6 @@ public class TenantAdminController {
             @NotBlank @Email String email,
             String name,
             @NotBlank String role
-    ) {
-    }
-
-    public record UserView(
-            Long userId,
-            String email,
-            String name,
-            List<String> roles,
-            String status
     ) {
     }
 }
