@@ -15,11 +15,11 @@ function isPublicPath(pathname: string): boolean {
     )
 }
 
-// Nonce-based strict CSP (per the Next.js Content Security Policy guide). Next.js
-// automatically applies the nonce from the request's CSP header to its own scripts
-// and styles, so production needs neither script-src nor style-src 'unsafe-inline'.
-// Dev tooling still needs eval(); React hot reloading additionally requires
-// style-src unsafe-inline in dev.
+// Nonce-based strict script CSP (per the Next.js Content Security Policy guide).
+// Next.js applies the script nonce to framework bundles; style-src keeps
+// 'unsafe-inline' because React style={{…}} attributes and @directwerk/ui
+// components (sidebar, progress, brand-theme) set inline styles that nonces
+// do not cover. CSS injection is far less risky than script XSS.
 export function proxy(request: NextRequest) {
     const {pathname} = request.nextUrl
 
@@ -41,7 +41,7 @@ export function proxy(request: NextRequest) {
     const cspHeader = [
         "default-src 'self'",
         `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'${isDev ? " 'unsafe-eval'" : ''}`,
-        isDev ? "style-src 'self' 'unsafe-inline'" : `style-src 'self' 'nonce-${nonce}'`,
+        "style-src 'self' 'unsafe-inline'",
         "img-src 'self' data:",
         "font-src 'self'",
         "connect-src 'self'",
@@ -60,6 +60,8 @@ export function proxy(request: NextRequest) {
         },
     })
     response.headers.set('Content-Security-Policy', cspHeader)
+    // Avoid cached HTML referencing server-action IDs from a previous deploy.
+    response.headers.set('Cache-Control', 'no-store, must-revalidate')
 
     return response
 }
