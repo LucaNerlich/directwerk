@@ -1,5 +1,5 @@
-import {fireEvent, render, screen} from '@testing-library/react'
-import {describe, expect, it} from 'vitest'
+import {cleanup, fireEvent, render, screen} from '@testing-library/react'
+import {afterEach, describe, expect, it} from 'vitest'
 
 import TenantListTable from '@/components/TenantListTable'
 import type {Tenant} from '@directwerk/api/types'
@@ -22,6 +22,8 @@ const tenants: Tenant[] = [
         createdAt: '2026-08-02T00:00:00Z',
     },
 ]
+
+afterEach(cleanup)
 
 describe('TenantListTable', () => {
     it('renders labelled entity links with English view controls', () => {
