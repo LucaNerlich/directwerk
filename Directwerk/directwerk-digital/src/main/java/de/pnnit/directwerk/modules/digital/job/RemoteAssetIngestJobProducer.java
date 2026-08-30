@@ -6,6 +6,7 @@ import de.pnnit.directwerk.modules.queue.JobEnqueueMetadata;
 import de.pnnit.directwerk.modules.queue.QueueJob;
 import de.pnnit.directwerk.modules.queue.QueueService;
 import de.pnnit.directwerk.multitenancy.TenantContext;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
@@ -15,12 +16,12 @@ import tools.jackson.databind.ObjectMapper;
 @ConditionalOnProperty(prefix = "directwerk.storage", name = "enabled", havingValue = "true")
 public class RemoteAssetIngestJobProducer {
 
-    private final QueueService queueService;
+    private final ObjectProvider<QueueService> queueService;
     private final ObjectMapper objectMapper;
     private final DirectwerkConfig directwerkConfig;
 
     public RemoteAssetIngestJobProducer(
-            QueueService queueService,
+            ObjectProvider<QueueService> queueService,
             ObjectMapper objectMapper,
             DirectwerkConfig directwerkConfig
     ) {
@@ -43,7 +44,7 @@ public class RemoteAssetIngestJobProducer {
                 sourceUrl.trim(),
                 StringUtils.hasText(filenameHint) ? filenameHint.trim() : null
         );
-        return queueService.enqueue(
+        return queueService.getObject().enqueue(
                 MediaJobQueueNames.REMOTE_ASSET_INGEST,
                 objectMapper.valueToTree(payload),
                 0,

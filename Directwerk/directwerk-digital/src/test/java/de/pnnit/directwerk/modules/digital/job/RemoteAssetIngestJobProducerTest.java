@@ -17,6 +17,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+import org.springframework.beans.factory.ObjectProvider;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
@@ -35,10 +36,13 @@ class RemoteAssetIngestJobProducerTest {
     @Test
     void enqueueCreatesTenantScopedJobWithCorrelationId() {
         QueueService queueService = mock(QueueService.class);
+        @SuppressWarnings("unchecked")
+        ObjectProvider<QueueService> queueProvider = mock(ObjectProvider.class);
+        when(queueProvider.getObject()).thenReturn(queueService);
         DirectwerkConfig config = mock(DirectwerkConfig.class);
         when(config.isQueueEnabled()).thenReturn(true);
         RemoteAssetIngestJobProducer producer = new RemoteAssetIngestJobProducer(
-                queueService,
+                queueProvider,
                 new ObjectMapper(),
                 config
         );
@@ -65,10 +69,13 @@ class RemoteAssetIngestJobProducerTest {
     @Test
     void rejectsWhenQueueDisabled() {
         QueueService queueService = mock(QueueService.class);
+        @SuppressWarnings("unchecked")
+        ObjectProvider<QueueService> queueProvider = mock(ObjectProvider.class);
+        when(queueProvider.getObject()).thenReturn(queueService);
         DirectwerkConfig config = mock(DirectwerkConfig.class);
         when(config.isQueueEnabled()).thenReturn(false);
         RemoteAssetIngestJobProducer producer = new RemoteAssetIngestJobProducer(
-                queueService,
+                queueProvider,
                 new ObjectMapper(),
                 config
         );
