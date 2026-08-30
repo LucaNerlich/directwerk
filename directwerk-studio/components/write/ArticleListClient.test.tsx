@@ -124,10 +124,10 @@ describe('ArticleListClient', () => {
         expect(screen.getByRole('button', {name: 'Veröffentlichen'})).toBeInTheDocument()
         expect(
             screen.getByRole('checkbox', {name: '„Scheduled Post“ auswählen'}),
-        ).toBeDisabled()
+        ).toHaveAttribute('aria-disabled', 'true')
         expect(
             screen.getByRole('checkbox', {name: '„Archived Post“ auswählen'}),
-        ).toBeDisabled()
+        ).toHaveAttribute('aria-disabled', 'true')
     })
 
     it('unpublishes a published article putting it back into draft', async () => {
