@@ -2,7 +2,6 @@ packages:
     - 'homepage'
     - 'directwerk-admin'
     - 'directwerk-docs'
-    - 'example-fe'
     - 'directwerk-studio'
     - 'directwerk-web'
     - 'packages/*'

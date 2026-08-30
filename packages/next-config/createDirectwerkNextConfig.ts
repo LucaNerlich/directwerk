@@ -14,7 +14,6 @@ export function createDirectwerkNextConfig() {
     return {
         reactCompiler: true,
         transpilePackages: [...directwerkTranspilePackages],
-        output: 'standalone' as const,
         outputFileTracingRoot: monorepoRoot,
         experimental: {
             optimizePackageImports: [...extraOptimizePackageImports],
