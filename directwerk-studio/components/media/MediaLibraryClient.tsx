@@ -284,18 +284,22 @@ export default function MediaLibraryClient(): React.JSX.Element {
         }
     }
 
-    const visibleAssets = assets.filter((asset) => {
-        if (typeFilter.length > 0 && asset.assetType !== typeFilter) {
-            return false
-        }
-        if (statusFilter.length > 0 && asset.status !== statusFilter) {
-            return false
-        }
-        if (orphanOnly && asset.episodeId !== null) {
-            return false
-        }
-        return true
-    })
+    const visibleAssets = useMemo(
+        () =>
+            assets.filter((asset) => {
+                if (typeFilter.length > 0 && asset.assetType !== typeFilter) {
+                    return false
+                }
+                if (statusFilter.length > 0 && asset.status !== statusFilter) {
+                    return false
+                }
+                if (orphanOnly && asset.episodeId !== null) {
+                    return false
+                }
+                return true
+            }),
+        [assets, orphanOnly, statusFilter, typeFilter],
+    )
 
     const visibleAssetIds = useMemo(
         () => visibleAssets.map((asset) => asset.id),
@@ -411,41 +415,37 @@ export default function MediaLibraryClient(): React.JSX.Element {
 
     const pendingCount = assets.filter((asset) => asset.status === 'PENDING').length
 
-    const mediaItems: EntityListViewItem[] = useMemo(
-        () =>
-            visibleAssets.map((asset) => ({
-                id: asset.id,
-                title: asset.originalFilename ?? `Asset #${asset.id}`,
-                leading:
-                    viewMode === 'list' ? (
-                        <div className="size-16 shrink-0 overflow-hidden rounded-md">
-                            {renderAssetPreview(asset)}
-                        </div>
-                    ) : undefined,
-                extra:
-                    viewMode === 'grid' ? (
-                        <>
-                            {renderAssetPreview(asset)}
-                            {renderAssetMeta(asset)}
-                        </>
-                    ) : undefined,
-                description: viewMode === 'list' ? renderAssetMeta(asset) : undefined,
-                actions: (
-                    <Button
-                        disabled={isBusy}
-                        onClick={() => {
-                            void handleDelete(asset.id)
-                        }}
-                        size="sm"
-                        type="button"
-                        variant="outline"
-                    >
-                        Löschen
-                    </Button>
-                ),
-            })),
-        [isBusy, previewUrls, viewMode, visibleAssets],
-    )
+    const mediaItems: EntityListViewItem<number>[] = visibleAssets.map((asset) => ({
+        id: asset.id,
+        title: asset.originalFilename ?? `Asset #${asset.id}`,
+        leading:
+            viewMode === 'list' ? (
+                <div className="size-16 shrink-0 overflow-hidden rounded-md">
+                    {renderAssetPreview(asset)}
+                </div>
+            ) : undefined,
+        extra:
+            viewMode === 'grid' ? (
+                <>
+                    {renderAssetPreview(asset)}
+                    {renderAssetMeta(asset)}
+                </>
+            ) : undefined,
+        description: viewMode === 'list' ? renderAssetMeta(asset) : undefined,
+        actions: (
+            <Button
+                disabled={isBusy}
+                onClick={() => {
+                    void handleDelete(asset.id)
+                }}
+                size="sm"
+                type="button"
+                variant="outline"
+            >
+                Löschen
+            </Button>
+        ),
+    }))
 
     if (isLoading) {
         return <p>Wird geladen…</p>
@@ -599,13 +599,12 @@ export default function MediaLibraryClient(): React.JSX.Element {
                     disabled={isBusy}
                     items={mediaItems}
                     onToggleSelectAll={toggleSelectAll}
-                    onToggleSelection={(id) => toggleSelection(id as number)}
+                    onToggleSelection={toggleSelection}
                     onViewModeChange={setViewMode}
                     selectAllLabel="Alle Medien auswählen"
                     selectedCount={selectedCount}
                     selectedIds={selectedIds}
                     selectable
-                    showSelection
                     viewMode={viewMode}
                 />
             )}

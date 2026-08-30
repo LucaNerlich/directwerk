@@ -5,8 +5,12 @@ import Link from 'next/link'
 import {Button} from '@directwerk/ui/components/button'
 import EmptyState from '@directwerk/ui/components/empty-state'
 import PageHeader from '@directwerk/ui/components/page-header'
-import {EntityListSection} from '@directwerk/ui/components/entity-list-section'
-import type {EntityListViewItem} from '@directwerk/ui/components/entity-list-view'
+import {EntityListToolbar} from '@directwerk/ui/components/entity-list-toolbar'
+import {
+    EntityListView,
+    type EntityListViewItem,
+} from '@directwerk/ui/components/entity-list-view'
+import type {ViewMode} from '@directwerk/ui/components/view-mode-toggle'
 import {useListViewMode} from '@directwerk/ui/hooks/use-list-view-mode'
 
 import {listProducts} from '@/lib/api/subscriptionApi'
@@ -21,8 +25,8 @@ function ProductGroups({
     onViewModeChange,
 }: {
     products: SubscriptionProduct[]
-    viewMode: ReturnType<typeof useListViewMode>['viewMode']
-    onViewModeChange: ReturnType<typeof useListViewMode>['setViewMode']
+    viewMode: ViewMode
+    onViewModeChange: (mode: ViewMode) => void
 }): React.JSX.Element {
     const levels = products
         .filter((p) => p.offeringType === 'LEVEL')
@@ -54,15 +58,18 @@ function ProductGroups({
 
     return (
         <div className="flex flex-col gap-8">
+            <EntityListToolbar
+                onViewModeChange={onViewModeChange}
+                showSelection={false}
+                viewMode={viewMode}
+            />
             {levels.length > 0 ? (
                 <section>
                     <h2 className="mb-3 text-sm font-semibold text-muted-foreground">
                         Stufen-Leiter
                     </h2>
-                    <EntityListSection
+                    <EntityListView
                         items={levelItems}
-                        onViewModeChange={onViewModeChange}
-                        showSelection={false}
                         viewMode={viewMode}
                     />
                     <p className="mt-2 text-xs text-muted-foreground">
@@ -76,10 +83,8 @@ function ProductGroups({
                     <h2 className="mb-3 text-sm font-semibold text-muted-foreground">
                         Pakete
                     </h2>
-                    <EntityListSection
+                    <EntityListView
                         items={packageItems}
-                        onViewModeChange={onViewModeChange}
-                        showSelection={false}
                         viewMode={viewMode}
                     />
                 </section>

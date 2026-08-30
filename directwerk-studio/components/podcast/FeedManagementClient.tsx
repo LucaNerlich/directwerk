@@ -6,8 +6,11 @@ import {useCallback, useEffect, useState} from 'react'
 import {Alert, AlertDescription} from '@directwerk/ui/components/alert'
 import {Button} from '@directwerk/ui/components/button'
 import EmptyState from '@directwerk/ui/components/empty-state'
-import {EntityListSection} from '@directwerk/ui/components/entity-list-section'
-import type {EntityListViewItem} from '@directwerk/ui/components/entity-list-view'
+import {EntityListToolbar} from '@directwerk/ui/components/entity-list-toolbar'
+import {
+    EntityListView,
+    type EntityListViewItem,
+} from '@directwerk/ui/components/entity-list-view'
 import PageHeader from '@directwerk/ui/components/page-header'
 import PageStack from '@directwerk/ui/components/page-stack'
 import SectionHeader from '@directwerk/ui/components/section-header'
@@ -178,14 +181,9 @@ export default function FeedManagementClient(): React.JSX.Element {
 
     const seriesFeedItems: EntityListViewItem[] = seriesWithFeeds.map((item) => ({
         id: item.id,
-        title: (
-            <>
-                {item.title}{' '}
-                <span className="font-normal text-muted-foreground">({item.slug})</span>{' '}
-                <PublicationStatusBadge status={item.status} />
-            </>
-        ),
-        description: item.rssUrl,
+        title: item.title,
+        descriptions: [<code key="slug">{item.slug}</code>, item.rssUrl],
+        trailing: <PublicationStatusBadge status={item.status} />,
         actions: (
             <FeedUrlActions
                 copiedUrl={copiedUrl}
@@ -199,13 +197,9 @@ export default function FeedManagementClient(): React.JSX.Element {
 
     const draftSeriesItems: EntityListViewItem[] = draftSeries.map((item) => ({
         id: item.id,
-        title: (
-            <>
-                {item.title}{' '}
-                <span className="font-normal text-muted-foreground">({item.slug})</span>{' '}
-                <PublicationStatusBadge status={item.status} />
-            </>
-        ),
+        title: item.title,
+        description: <code>{item.slug}</code>,
+        trailing: <PublicationStatusBadge status={item.status} />,
         actions: (
             <Link
                 className="text-sm font-medium text-primary underline-offset-4 hover:underline"
@@ -247,6 +241,8 @@ export default function FeedManagementClient(): React.JSX.Element {
             </Button>
         ),
     }))
+    const showViewToggle =
+        seriesFeedItems.length + draftSeriesItems.length + subscriberFeedItems.length > 0
 
     return (
         <PageStack>
@@ -262,15 +258,20 @@ export default function FeedManagementClient(): React.JSX.Element {
                 </Alert>
             ) : null}
 
+            {showViewToggle ? (
+                <EntityListToolbar
+                    onViewModeChange={setViewMode}
+                    showSelection={false}
+                    viewMode={viewMode}
+                />
+            ) : null}
+
             {generalFeedItems.length > 0 ? (
                 <section className="flex flex-col gap-4">
                     <SectionHeader title="Allgemeiner Feed" />
-                    <EntityListSection
+                    <EntityListView
                         items={generalFeedItems}
-                        onViewModeChange={setViewMode}
-                        showSelection={false}
-                        showViewToggle={false}
-                        viewMode={viewMode}
+                        viewMode="list"
                     />
                 </section>
             ) : null}
@@ -278,10 +279,8 @@ export default function FeedManagementClient(): React.JSX.Element {
             {seriesFeedItems.length > 0 ? (
                 <section className="flex flex-col gap-4">
                     <SectionHeader title="Sendungs-Feeds" />
-                    <EntityListSection
+                    <EntityListView
                         items={seriesFeedItems}
-                        onViewModeChange={setViewMode}
-                        showSelection={false}
                         viewMode={viewMode}
                     />
                 </section>
@@ -293,10 +292,8 @@ export default function FeedManagementClient(): React.JSX.Element {
                         description="Entwürfe erscheinen nicht im öffentlichen Feed. Veröffentliche die Sendung, damit die RSS-URL sichtbar wird."
                         title="Noch nicht veröffentlichte Sendungen"
                     />
-                    <EntityListSection
+                    <EntityListView
                         items={draftSeriesItems}
-                        onViewModeChange={setViewMode}
-                        showSelection={false}
                         viewMode={viewMode}
                     />
                 </section>
@@ -311,10 +308,8 @@ export default function FeedManagementClient(): React.JSX.Element {
                             title="Noch keine Abonnenten-Feeds"
                         />
                     ) : (
-                        <EntityListSection
+                        <EntityListView
                             items={subscriberFeedItems}
-                            onViewModeChange={setViewMode}
-                            showSelection={false}
                             viewMode={viewMode}
                         />
                     )}

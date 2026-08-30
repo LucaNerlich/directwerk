@@ -11,9 +11,12 @@ import {cn} from '#lib/utils'
 
 import type {EntityListItemId} from '#hooks/use-entity-list-selection'
 
-export interface EntityListViewItem {
-    id: EntityListItemId
+export interface EntityListViewItem<
+    TId extends EntityListItemId = EntityListItemId,
+> {
+    id: TId
     title: ReactNode
+    selectionLabel?: string
     description?: ReactNode
     descriptions?: ReactNode[]
     trailing?: ReactNode
@@ -23,18 +26,25 @@ export interface EntityListViewItem {
     leading?: ReactNode
 }
 
-function itemSelectionLabel(item: EntityListViewItem): string {
-    return typeof item.title === 'string' ? item.title : `Eintrag ${String(item.id)}`
+function itemSelectionLabel<TId extends EntityListItemId>(
+    item: EntityListViewItem<TId>,
+): string {
+    return (
+        item.selectionLabel ??
+        (typeof item.title === 'string'
+            ? item.title
+            : `Eintrag ${String(item.id)}`)
+    )
 }
 
-function SelectionCheckbox({
+function SelectionCheckbox<TId extends EntityListItemId>({
     item,
     checked,
     disabled,
     onToggle,
     className,
 }: {
-    item: EntityListViewItem
+    item: EntityListViewItem<TId>
     checked: boolean
     disabled: boolean
     onToggle: () => void
@@ -99,29 +109,44 @@ function EntityListDescriptions({
     return (
         <>
             {lines.map((line, index) => (
-                <p className="text-sm text-muted-foreground" key={index}>
+                <div className="text-sm text-muted-foreground" key={index}>
                     {line}
-                </p>
+                </div>
             ))}
         </>
     )
 }
 
-export function EntityListView({
+interface EntityListViewBaseProps<TId extends EntityListItemId> {
+    items: EntityListViewItem<TId>[]
+    viewMode: ViewMode
+    disabled?: boolean
+}
+
+interface SelectableEntityListViewProps<TId extends EntityListItemId> {
+    selectable: true
+    selectedIds: ReadonlySet<TId>
+    onToggleSelection: (id: TId) => void
+}
+
+interface StaticEntityListViewProps {
+    selectable?: false
+    selectedIds?: never
+    onToggleSelection?: never
+}
+
+export type EntityListViewProps<TId extends EntityListItemId> =
+    EntityListViewBaseProps<TId> &
+        (SelectableEntityListViewProps<TId> | StaticEntityListViewProps)
+
+export function EntityListView<TId extends EntityListItemId>({
     items,
     viewMode,
     selectable = false,
     selectedIds,
     onToggleSelection,
     disabled = false,
-}: {
-    items: EntityListViewItem[]
-    viewMode: ViewMode
-    selectable?: boolean
-    selectedIds?: Set<EntityListItemId>
-    onToggleSelection?: (id: EntityListItemId) => void
-    disabled?: boolean
-}): React.JSX.Element {
+}: EntityListViewProps<TId>): React.JSX.Element {
     const isSelectable =
         selectable &&
         selectedIds !== undefined &&
@@ -134,12 +159,15 @@ export function EntityListView({
                     const isSelected = selectedIds?.has(item.id) ?? false
 
                     return (
-                        <li key={String(item.id)}>
+                        <li className="h-full" key={`${typeof item.id}:${String(item.id)}`}>
                             <Card
-                                className={isSelected ? 'ring-2 ring-primary' : undefined}
+                                className={cn(
+                                    'h-full',
+                                    isSelected && 'ring-2 ring-primary',
+                                )}
                                 size="sm"
                             >
-                                <CardHeader className="grid-cols-[auto_1fr_auto] items-start gap-3">
+                                <CardHeader className="flex flex-row items-start gap-3">
                                     {isSelectable ? (
                                         <SelectionCheckbox
                                             checked={isSelected}
@@ -148,7 +176,7 @@ export function EntityListView({
                                             onToggle={() => onToggleSelection(item.id)}
                                         />
                                     ) : null}
-                                    <CardTitle className="min-w-0">
+                                    <CardTitle className="min-w-0 flex-1">
                                         <EntityListTitle
                                             className="line-clamp-2"
                                             href={item.href}
@@ -156,7 +184,7 @@ export function EntityListView({
                                         />
                                     </CardTitle>
                                     {item.trailing !== undefined ? (
-                                        <div className="justify-self-end">{item.trailing}</div>
+                                        <div className="shrink-0">{item.trailing}</div>
                                     ) : null}
                                 </CardHeader>
                                 {(item.leading !== undefined ||
@@ -193,7 +221,7 @@ export function EntityListView({
                 return (
                     <ListPanelRow
                         className={isSelected ? 'bg-primary/5' : undefined}
-                        key={String(item.id)}
+                        key={`${typeof item.id}:${String(item.id)}`}
                     >
                         <div className="flex min-w-0 flex-1 items-start gap-3">
                             {isSelectable ? (
@@ -219,10 +247,12 @@ export function EntityListView({
                                 ) : null}
                             </div>
                         </div>
-                        <div className="flex shrink-0 flex-wrap items-center gap-3 sm:justify-end">
-                            {item.trailing}
-                            {item.actions}
-                        </div>
+                        {item.trailing !== undefined || item.actions !== undefined ? (
+                            <div className="flex shrink-0 flex-wrap items-center gap-3 sm:justify-end">
+                                {item.trailing}
+                                {item.actions}
+                            </div>
+                        ) : null}
                     </ListPanelRow>
                 )
             })}

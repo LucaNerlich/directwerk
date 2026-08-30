@@ -3,7 +3,7 @@
 import {Button} from '@directwerk/ui/components/button'
 import {EntityListToolbar} from '@directwerk/ui/components/entity-list-toolbar'
 
-import type {PublicationListViewMode} from '@/lib/publication/usePublicationListSelection'
+import type {PublicationListViewMode} from '@/lib/publication/usePublicationListState'
 
 interface PublicationListToolbarProps {
     selectedCount: number

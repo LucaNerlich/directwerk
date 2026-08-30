@@ -7,7 +7,7 @@ import {EntityListView} from '@directwerk/ui/components/entity-list-view'
 import type {EntityListViewItem} from '@directwerk/ui/components/entity-list-view'
 
 import PublicationStatusBadge from '@/components/publication/PublicationStatusBadge'
-import type {PublicationListViewMode} from '@/lib/publication/usePublicationListSelection'
+import type {PublicationListViewMode} from '@/lib/publication/usePublicationListState'
 import type {PublicationStatus} from '@directwerk/api/types'
 
 export interface PublicationListItem {
@@ -133,7 +133,7 @@ function toPublicationEntityItems<T extends PublicationListItem>({
     onUnpublish: (item: T) => void
     onCancelSchedule: (item: T) => void
     onUnarchive: (item: T) => void
-}): EntityListViewItem[] {
+}): EntityListViewItem<number>[] {
     return items.map((item) => {
         const isBusy = busyItemId === item.id
         const publishedLabel = formatPublishedAt(item.publishedAt)
@@ -199,7 +199,7 @@ export default function PublicationListView<T extends PublicationListItem>({
         <EntityListView
             disabled={isBulkBusy}
             items={entityItems}
-            onToggleSelection={(id) => onToggleSelection(id as number)}
+            onToggleSelection={onToggleSelection}
             selectable
             selectedIds={selectedIds}
             viewMode={viewMode}

@@ -2,9 +2,6 @@ import type {ReactNode} from 'react'
 
 import {cn} from '#lib/utils'
 
-export const listPanelLinkClassName =
-    'flex items-center justify-between gap-4 p-4 text-sm no-underline transition-colors hover:bg-muted/40'
-
 export default function ListPanel({
     children,
     className,
@@ -40,42 +37,5 @@ export function ListPanelRow({
         >
             {children}
         </li>
-    )
-}
-
-export function ListPanelLinkItem({
-    children,
-    className,
-}: {
-    children: ReactNode
-    className?: string
-}): React.JSX.Element {
-    return <li className={className}>{children}</li>
-}
-
-export function ListPanelSlugContent({
-    name,
-    slug,
-    trailing,
-    trailingClassName,
-}: {
-    name: string
-    slug: string
-    trailing?: ReactNode
-    trailingClassName?: string
-}): React.JSX.Element {
-    return (
-        <>
-            <span>
-                <span className="font-medium">{name}</span>
-                <br />
-                <small className="text-muted-foreground">{slug}</small>
-            </span>
-            {trailing !== undefined ? (
-                <span className={cn('shrink-0 text-muted-foreground', trailingClassName)}>
-                    {trailing}
-                </span>
-            ) : null}
-        </>
     )
 }

@@ -8,7 +8,7 @@ import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
 import {createPublicationBulkLabels} from './publicationBulkLabels'
 import {usePublicationBulkActions} from './usePublicationBulkActions'
 import {usePublicationListActions} from './usePublicationListActions'
-import {usePublicationListSelection} from './usePublicationListSelection'
+import {usePublicationListState} from './usePublicationListState'
 
 type SeriesListItem = SeriesSummary & {publishedAt: null}
 
@@ -34,7 +34,7 @@ export function useSeriesListPage({
     const [listError, setListError] = useState<string | null>(null)
 
     const itemIds = useMemo(() => items.map((item) => item.id), [items])
-    const selection = usePublicationListSelection(itemIds)
+    const selection = usePublicationListState(itemIds)
 
     const setSeriesItems = useCallback(
         (updater: React.SetStateAction<SeriesListItem[]>) => {

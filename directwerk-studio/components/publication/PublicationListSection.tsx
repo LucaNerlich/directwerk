@@ -4,7 +4,7 @@ import PublicationListToolbar from '@/components/publication/PublicationListTool
 import PublicationListView, {
     type PublicationListItem,
 } from '@/components/publication/PublicationListView'
-import type {PublicationListViewMode} from '@/lib/publication/usePublicationListSelection'
+import type {PublicationListViewMode} from '@/lib/publication/usePublicationListState'
 
 interface PublicationListSectionProps<T extends PublicationListItem> {
     items: T[]

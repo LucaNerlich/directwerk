@@ -7,42 +7,61 @@ import {Label} from '#components/label'
 import {ViewModeToggle, type ViewMode} from '#components/view-mode-toggle'
 import {cn} from '#lib/utils'
 
-export interface EntityListToolbarProps {
-    selectedCount: number
-    allSelected: boolean
-    selectAllLabel: string
+interface EntityListToolbarCommonProps {
     selectionSummaryLabel?: string
     disabled?: boolean
-    onToggleSelectAll: () => void
-    bulkActions?: ReactNode
     viewMode?: ViewMode
     onViewModeChange?: (mode: ViewMode) => void
-    showSelection?: boolean
     showViewToggle?: boolean
     className?: string
 }
 
-export function EntityListToolbar({
-    selectedCount,
-    allSelected,
-    selectAllLabel,
-    selectionSummaryLabel,
-    disabled = false,
-    onToggleSelectAll,
-    bulkActions = null,
-    viewMode,
-    onViewModeChange,
-    showSelection = true,
-    showViewToggle = true,
-    className,
-}: EntityListToolbarProps): React.JSX.Element | null {
+interface EntityListToolbarSelectionProps {
+    selectedCount: number
+    allSelected: boolean
+    selectAllLabel: string
+    onToggleSelectAll: () => void
+    bulkActions?: ReactNode
+    showSelection?: true
+}
+
+interface EntityListToolbarWithoutSelectionProps {
+    selectedCount?: never
+    allSelected?: never
+    selectAllLabel?: never
+    onToggleSelectAll?: never
+    bulkActions?: never
+    showSelection: false
+}
+
+export type EntityListToolbarProps = EntityListToolbarCommonProps &
+    (
+        | EntityListToolbarSelectionProps
+        | EntityListToolbarWithoutSelectionProps
+    )
+
+export function EntityListToolbar(
+    props: EntityListToolbarProps,
+): React.JSX.Element | null {
+    const {
+        selectionSummaryLabel,
+        disabled = false,
+        viewMode,
+        onViewModeChange,
+        showViewToggle = true,
+        className,
+    } = props
+    const showSelection = props.showSelection !== false
+
     if (!showSelection && !showViewToggle) {
         return null
     }
 
-    const summary =
-        selectionSummaryLabel ??
-        (selectedCount > 0 ? `${selectedCount} ausgewählt` : 'Alle auswählen')
+    const selectedCount = showSelection ? props.selectedCount : 0
+    const summary = showSelection
+        ? selectionSummaryLabel ??
+          (selectedCount > 0 ? `${selectedCount} ausgewählt` : 'Alle auswählen')
+        : null
 
     return (
         <div
@@ -56,14 +75,17 @@ export function EntityListToolbar({
                 <div className="flex flex-wrap items-center gap-3">
                     <Label className="cursor-pointer">
                         <Checkbox
-                            aria-label={selectAllLabel}
-                            checked={allSelected}
+                            checked={props.allSelected}
                             disabled={disabled}
-                            onCheckedChange={() => onToggleSelectAll()}
+                            indeterminate={selectedCount > 0 && !props.allSelected}
+                            onCheckedChange={() => props.onToggleSelectAll()}
                         />
-                        <span>{summary}</span>
+                        <span className="sr-only">{props.selectAllLabel}</span>
+                        <span aria-hidden="true">{summary}</span>
                     </Label>
-                    {selectedCount > 0 && bulkActions !== null ? bulkActions : null}
+                    {selectedCount > 0 && props.bulkActions !== undefined
+                        ? props.bulkActions
+                        : null}
                 </div>
             ) : null}
             {showViewToggle && viewMode !== undefined && onViewModeChange !== undefined ? (

@@ -73,6 +73,7 @@ describe('OverviewQueue', () => {
             'href',
             '/podcast/episodes/9',
         )
+        expect(screen.getAllByRole('button', {name: 'Raster'})).toHaveLength(1)
     })
 
     it('prompts for the first episode once a series exists', async () => {

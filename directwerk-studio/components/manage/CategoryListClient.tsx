@@ -5,7 +5,7 @@ import Link from 'next/link'
 import {Button} from '@directwerk/ui/components/button'
 import EmptyState from '@directwerk/ui/components/empty-state'
 import PageHeader from '@directwerk/ui/components/page-header'
-import {SlugEntityListSection} from '@directwerk/ui/components/slug-entity-list-view'
+import {SlugEntityListSection} from '@directwerk/ui/components/slug-entity-list-section'
 import {useListViewMode} from '@directwerk/ui/hooks/use-list-view-mode'
 
 import {listCategories} from '@/lib/api/catalogApi'

@@ -4,15 +4,24 @@ import Link from 'next/link'
 import {useRouter} from 'next/navigation'
 import {useEffect, useState} from 'react'
 
-import {EntityListSection} from '@directwerk/ui/components/entity-list-section'
-import type {EntityListViewItem} from '@directwerk/ui/components/entity-list-view'
+import {EntityListToolbar} from '@directwerk/ui/components/entity-list-toolbar'
+import {
+    EntityListView,
+    type EntityListViewItem,
+} from '@directwerk/ui/components/entity-list-view'
 import SectionHeader from '@directwerk/ui/components/section-header'
 import {useListViewMode} from '@directwerk/ui/hooks/use-list-view-mode'
 
 import PublicationStatusBadge from '@/components/publication/PublicationStatusBadge'
 import {listEpisodes, listSeries} from '@/lib/api/podcastApi'
 import {listArticles} from '@/lib/api/writeApi'
-import type {ArticleSummary, EpisodeSummary, SeriesSummary, StudioDesk} from '@directwerk/api/types'
+import type {
+    ArticleSummary,
+    EpisodeSummary,
+    PublicationStatus,
+    SeriesSummary,
+    StudioDesk,
+} from '@directwerk/api/types'
 import {getClientTenantHost} from '@directwerk/api/tenant'
 import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
 
@@ -22,29 +31,14 @@ interface OverviewQueueProps {
     desks: StudioDesk[]
 }
 
-function draftSeriesItems(items: SeriesSummary[]): EntityListViewItem[] {
+function draftItems(
+    items: {id: number; title: string; status: PublicationStatus}[],
+    editorBasePath: string,
+): EntityListViewItem<number>[] {
     return items.map((item) => ({
         id: item.id,
         title: item.title,
-        href: `/podcast/series/${item.id}`,
-        trailing: <PublicationStatusBadge status={item.status} />,
-    }))
-}
-
-function draftEpisodeItems(items: EpisodeSummary[]): EntityListViewItem[] {
-    return items.map((item) => ({
-        id: item.id,
-        title: item.title,
-        href: `/podcast/episodes/${item.id}`,
-        trailing: <PublicationStatusBadge status={item.status} />,
-    }))
-}
-
-function draftArticleItems(items: ArticleSummary[]): EntityListViewItem[] {
-    return items.map((item) => ({
-        id: item.id,
-        title: item.title,
-        href: `/write/articles/${item.id}`,
+        href: `${editorBasePath}/${item.id}`,
         trailing: <PublicationStatusBadge status={item.status} />,
     }))
 }
@@ -117,6 +111,8 @@ export default function OverviewQueue({desks}: OverviewQueueProps): React.JSX.El
     const awaitingArticles = articles.filter((item) => AWAITING_STATUSES.has(item.status))
     const awaitingEpisodes = episodes.filter((item) => AWAITING_STATUSES.has(item.status))
     const draftSeries = series.filter((item) => item.status === 'DRAFT')
+    const hasQueuedItems =
+        draftSeries.length + awaitingEpisodes.length + awaitingArticles.length > 0
 
     return (
         <section className="flex flex-col gap-6">
@@ -128,6 +124,14 @@ export default function OverviewQueue({desks}: OverviewQueueProps): React.JSX.El
                 <p className="text-sm text-destructive" role="alert">
                     {errorMessage}
                 </p>
+            ) : null}
+
+            {hasQueuedItems ? (
+                <EntityListToolbar
+                    onViewModeChange={setViewMode}
+                    showSelection={false}
+                    viewMode={viewMode}
+                />
             ) : null}
 
             {showPodcast && series.length === 0 ? (
@@ -155,10 +159,8 @@ export default function OverviewQueue({desks}: OverviewQueueProps): React.JSX.El
             {draftSeries.length > 0 ? (
                 <div className="flex flex-col gap-3">
                     <SectionHeader as="h3" title="Sendungen zum Veröffentlichen" />
-                    <EntityListSection
-                        items={draftSeriesItems(draftSeries)}
-                        onViewModeChange={setViewMode}
-                        showSelection={false}
+                    <EntityListView
+                        items={draftItems(draftSeries, '/podcast/series')}
                         viewMode={viewMode}
                     />
                 </div>
@@ -167,10 +169,8 @@ export default function OverviewQueue({desks}: OverviewQueueProps): React.JSX.El
             {awaitingEpisodes.length > 0 ? (
                 <div className="flex flex-col gap-3">
                     <SectionHeader as="h3" title="Folgen-Entwürfe" />
-                    <EntityListSection
-                        items={draftEpisodeItems(awaitingEpisodes)}
-                        onViewModeChange={setViewMode}
-                        showSelection={false}
+                    <EntityListView
+                        items={draftItems(awaitingEpisodes, '/podcast/episodes')}
                         viewMode={viewMode}
                     />
                 </div>
@@ -179,10 +179,8 @@ export default function OverviewQueue({desks}: OverviewQueueProps): React.JSX.El
             {awaitingArticles.length > 0 ? (
                 <div className="flex flex-col gap-3">
                     <SectionHeader as="h3" title="Beitrags-Entwürfe" />
-                    <EntityListSection
-                        items={draftArticleItems(awaitingArticles)}
-                        onViewModeChange={setViewMode}
-                        showSelection={false}
+                    <EntityListView
+                        items={draftItems(awaitingArticles, '/write/articles')}
                         viewMode={viewMode}
                     />
                 </div>

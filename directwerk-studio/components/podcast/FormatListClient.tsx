@@ -7,7 +7,7 @@ import {Button} from '@directwerk/ui/components/button'
 import EmptyState from '@directwerk/ui/components/empty-state'
 import PageHeader from '@directwerk/ui/components/page-header'
 import PageStack from '@directwerk/ui/components/page-stack'
-import {SlugEntityListSection} from '@directwerk/ui/components/slug-entity-list-view'
+import {SlugEntityListSection} from '@directwerk/ui/components/slug-entity-list-section'
 import {useListViewMode} from '@directwerk/ui/hooks/use-list-view-mode'
 
 import {listFormats} from '@/lib/api/catalogApi'

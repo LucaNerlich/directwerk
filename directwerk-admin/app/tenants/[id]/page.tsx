@@ -10,7 +10,10 @@ import {Button} from '@directwerk/ui/components/button'
 import {Card, CardContent, CardHeader, CardTitle} from '@directwerk/ui/components/card'
 import EmptyState from '@directwerk/ui/components/empty-state'
 import {EntityListSection} from '@directwerk/ui/components/entity-list-section'
-import type {EntityListViewItem} from '@directwerk/ui/components/entity-list-view'
+import {
+    EntityListView,
+    type EntityListViewItem,
+} from '@directwerk/ui/components/entity-list-view'
 import PageHeader from '@directwerk/ui/components/page-header'
 import {useListViewMode} from '@directwerk/ui/hooks/use-list-view-mode'
 
@@ -181,7 +184,7 @@ export default function TenantPage({params}: TenantPageProps) {
                             <Card>
                                 <CardHeader><CardTitle>Domains</CardTitle></CardHeader>
                                 <CardContent>
-                                    <EntityListSection
+                                    <EntityListView
                                         items={data.tenant.domains.map((domain) => ({
                                             id: domain.host,
                                             title: domain.host,
@@ -190,10 +193,7 @@ export default function TenantPage({params}: TenantPageProps) {
                                                 domain.verified ? 'Verified' : 'Not verified',
                                             ],
                                         }))}
-                                        onViewModeChange={setViewMode}
-                                        showSelection={false}
-                                        showViewToggle={false}
-                                        viewMode={viewMode}
+                                        viewMode="list"
                                     />
                                 </CardContent>
                             </Card>

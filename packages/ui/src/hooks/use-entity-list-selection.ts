@@ -2,13 +2,10 @@
 
 import {useCallback, useEffect, useMemo, useState} from 'react'
 
-import type {ViewMode} from '#components/view-mode-toggle'
-
 export type EntityListItemId = number | string
 
 export function useEntityListSelection<T extends EntityListItemId>(itemIds: T[]) {
     const [selectedIds, setSelectedIds] = useState<Set<T>>(() => new Set())
-    const [viewMode, setViewMode] = useState<ViewMode>('list')
 
     const visibleIdSet = useMemo(() => new Set(itemIds), [itemIds])
 
@@ -65,8 +62,6 @@ export function useEntityListSelection<T extends EntityListItemId>(itemIds: T[])
         selectedIds: prunedSelectedIds,
         selectedCount,
         allSelected,
-        viewMode,
-        setViewMode,
         toggleSelection,
         toggleSelectAll,
         clearSelection,

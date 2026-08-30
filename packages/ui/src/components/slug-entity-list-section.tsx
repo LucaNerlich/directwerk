@@ -1,7 +1,7 @@
 'use client'
 
 import {EntityListSection} from '#components/entity-list-section'
-import {EntityListView, type EntityListViewItem} from '#components/entity-list-view'
+import type {EntityListViewItem} from '#components/entity-list-view'
 import type {ViewMode} from '#components/view-mode-toggle'
 
 export interface SlugEntityListItem {
@@ -12,7 +12,9 @@ export interface SlugEntityListItem {
     href: string
 }
 
-export function mapSlugEntityListItems(items: SlugEntityListItem[]): EntityListViewItem[] {
+function mapSlugEntityListItems(
+    items: SlugEntityListItem[],
+): EntityListViewItem<number>[] {
     return items.map((item) => ({
         id: item.id,
         title: item.name,
@@ -20,16 +22,6 @@ export function mapSlugEntityListItems(items: SlugEntityListItem[]): EntityListV
         description: <code>{item.slug}</code>,
         trailing: item.trailing,
     }))
-}
-
-export function SlugEntityListView({
-    items,
-    viewMode,
-}: {
-    items: SlugEntityListItem[]
-    viewMode: ViewMode
-}): React.JSX.Element {
-    return <EntityListView items={mapSlugEntityListItems(items)} viewMode={viewMode} />
 }
 
 export function SlugEntityListSection({
@@ -45,7 +37,6 @@ export function SlugEntityListSection({
         <EntityListSection
             items={mapSlugEntityListItems(items)}
             onViewModeChange={onViewModeChange}
-            showSelection={false}
             viewMode={viewMode}
         />
     )
