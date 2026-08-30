@@ -5,9 +5,11 @@ import {useCallback, useState} from 'react'
 import type {PublicationStatus} from '@directwerk/api/types'
 
 export interface PublicationListActionLabels {
+    publishSuccess: (title: string) => string
     unpublishSuccess: (title: string) => string
     cancelScheduleSuccess: (title: string) => string
     unarchiveSuccess: (title: string) => string
+    publishError: string
     unpublishError: string
     cancelScheduleError: string
     unarchiveError: string
@@ -17,6 +19,7 @@ export interface PublicationListActionsState<T extends {id: number; title: strin
     busyItemId: number | null
     errorMessage: string | null
     statusMessage: string | null
+    handlePublish: (item: T) => Promise<void>
     handleUnpublish: (item: T) => Promise<void>
     handleCancelSchedule: (item: T) => Promise<void>
     handleUnarchive: (item: T) => Promise<void>
@@ -28,6 +31,7 @@ export function usePublicationListActions<T extends {
     status: PublicationStatus
 }>({
     setItems,
+    publish,
     unpublish,
     cancelSchedule,
     unarchive,
@@ -35,6 +39,7 @@ export function usePublicationListActions<T extends {
     authRedirect,
 }: {
     setItems: React.Dispatch<React.SetStateAction<T[]>>
+    publish: (id: number) => Promise<T>
     unpublish: (id: number) => Promise<T>
     cancelSchedule: (id: number) => Promise<T>
     unarchive: (id: number) => Promise<T>
@@ -73,6 +78,18 @@ export function usePublicationListActions<T extends {
             }
         },
         [authRedirect, setItems],
+    )
+
+    const handlePublish = useCallback(
+        async (item: T) => {
+            await runAction(
+                item,
+                publish,
+                labels.publishSuccess(item.title),
+                labels.publishError,
+            )
+        },
+        [labels, publish, runAction],
     )
 
     const handleUnpublish = useCallback(
@@ -115,6 +132,7 @@ export function usePublicationListActions<T extends {
         busyItemId,
         errorMessage,
         statusMessage,
+        handlePublish,
         handleUnpublish,
         handleCancelSchedule,
         handleUnarchive,

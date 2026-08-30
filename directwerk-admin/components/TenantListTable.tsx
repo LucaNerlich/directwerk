@@ -4,17 +4,11 @@ import Link from 'next/link'
 import {useMemo, useState} from 'react'
 
 import {Badge} from '@directwerk/ui/components/badge'
+import {EntityListSection} from '@directwerk/ui/components/entity-list-section'
+import type {EntityListViewItem} from '@directwerk/ui/components/entity-list-view'
 import {Input} from '@directwerk/ui/components/input'
 import {Label} from '@directwerk/ui/components/label'
-import ResponsiveTable from '@directwerk/ui/components/responsive-table'
-import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
-} from '@directwerk/ui/components/table'
+import {useListViewMode} from '@directwerk/ui/hooks/use-list-view-mode'
 
 import type {Tenant} from '@directwerk/api/types'
 
@@ -44,6 +38,7 @@ export default function TenantListTable({
     const [statusFilter, setStatusFilter] = useState<'ALL' | 'ACTIVE' | 'SUSPENDED'>(
         'ALL',
     )
+    const {viewMode, setViewMode} = useListViewMode()
 
     const filteredTenants = useMemo(() => {
         const normalizedQuery = query.trim().toLowerCase()
@@ -64,6 +59,18 @@ export default function TenantListTable({
             )
         })
     }, [query, statusFilter, tenants])
+
+    const tenantItems: EntityListViewItem[] = filteredTenants.map((tenant) => ({
+        id: tenant.id,
+        title: tenant.name,
+        href: `/tenants/${tenant.id}`,
+        descriptions: [
+            `Slug: ${tenant.slug}`,
+            `Primary domain: ${tenant.primaryDomain ?? '—'}`,
+            `Created: ${formatTimestamp(tenant.createdAt)}`,
+        ],
+        trailing: <Badge variant="outline">{tenant.status}</Badge>,
+    }))
 
     return (
         <div className="space-y-4">
@@ -99,39 +106,21 @@ export default function TenantListTable({
                 </div>
             ) : null}
 
-            <ResponsiveTable label="Tenants">
-                <Table>
-                    <TableHeader>
-                        <TableRow>
-                            <TableHead scope="col">Name</TableHead>
-                            <TableHead scope="col">Slug</TableHead>
-                            <TableHead scope="col">Primary domain</TableHead>
-                            <TableHead scope="col">Created</TableHead>
-                            <TableHead scope="col">Status</TableHead>
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                        {filteredTenants.map((tenant) => (
-                            <TableRow key={tenant.id}>
-                                <TableCell>
-                                    <Link
-                                        className="font-medium underline-offset-4 hover:underline"
-                                        href={`/tenants/${tenant.id}`}
-                                    >
-                                        {tenant.name}
-                                    </Link>
-                                </TableCell>
-                                <TableCell>{tenant.slug}</TableCell>
-                                <TableCell>{tenant.primaryDomain ?? '—'}</TableCell>
-                                <TableCell>{formatTimestamp(tenant.createdAt)}</TableCell>
-                                <TableCell>
-                                    <Badge variant="outline">{tenant.status}</Badge>
-                                </TableCell>
-                            </TableRow>
-                        ))}
-                    </TableBody>
-                </Table>
-            </ResponsiveTable>
+            {tenantItems.length > 0 ? (
+                <EntityListSection
+                    ariaLabel="Tenants"
+                    items={tenantItems}
+                    linkComponent={Link}
+                    onViewModeChange={setViewMode}
+                    showSelection={false}
+                    viewGridLabel="Grid"
+                    viewListLabel="List"
+                    viewMode={viewMode}
+                    viewToggleLabel="Change view"
+                />
+            ) : (
+                <p className="text-sm text-muted-foreground">No tenants match your filters.</p>
+            )}
         </div>
     )
 }

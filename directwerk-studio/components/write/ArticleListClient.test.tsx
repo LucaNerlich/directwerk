@@ -3,7 +3,13 @@ import userEvent from '@testing-library/user-event'
 import {afterEach, describe, expect, it, vi} from 'vitest'
 
 import ArticleListClient from '@/components/write/ArticleListClient'
-import {cancelScheduleArticle, listArticles, unarchiveArticle, unpublishArticle} from '@/lib/api/writeApi'
+import {
+    cancelScheduleArticle,
+    listArticles,
+    publishArticle,
+    unarchiveArticle,
+    unpublishArticle,
+} from '@/lib/api/writeApi'
 import type {ArticleDetail} from '@directwerk/api/types'
 
 const mockReplace = vi.fn()
@@ -24,6 +30,7 @@ vi.mock('@directwerk/api/tenant', () => ({
 
 vi.mock('@/lib/api/writeApi', () => ({
     listArticles: vi.fn(),
+    publishArticle: vi.fn(),
     unpublishArticle: vi.fn(),
     cancelScheduleArticle: vi.fn(),
     unarchiveArticle: vi.fn(),
@@ -114,6 +121,13 @@ describe('ArticleListClient', () => {
         expect(screen.getByRole('button', {name: 'Zurückziehen'})).toBeInTheDocument()
         expect(screen.getByRole('button', {name: 'Planung aufheben'})).toBeInTheDocument()
         expect(screen.getByRole('button', {name: 'Wiederherstellen'})).toBeInTheDocument()
+        expect(screen.getByRole('button', {name: 'Veröffentlichen'})).toBeInTheDocument()
+        expect(
+            screen.getByRole('checkbox', {name: '„Scheduled Post“ auswählen'}),
+        ).toHaveAttribute('aria-disabled', 'true')
+        expect(
+            screen.getByRole('checkbox', {name: '„Archived Post“ auswählen'}),
+        ).toHaveAttribute('aria-disabled', 'true')
     })
 
     it('unpublishes a published article putting it back into draft', async () => {
@@ -141,6 +155,34 @@ describe('ArticleListClient', () => {
         await waitFor(() => {
             expect(
                 screen.getByText('Beitrag „Published Post“ wurde zurückgezogen (Entwurf).'),
+            ).toBeInTheDocument()
+        })
+    })
+
+    it('publishes a draft article from the list', async () => {
+        const user = userEvent.setup()
+        vi.mocked(listArticles).mockResolvedValue(mockArticles)
+        vi.mocked(publishArticle).mockResolvedValue({
+            ...mockArticles[0],
+            status: 'PUBLISHED',
+            publishedAt: '2026-08-30T12:00:00Z',
+        })
+
+        render(<ArticleListClient />)
+
+        await waitFor(() => {
+            expect(screen.getByText('Draft Post')).toBeInTheDocument()
+        })
+
+        await user.click(screen.getByRole('button', {name: 'Veröffentlichen'}))
+
+        await waitFor(() => {
+            expect(publishArticle).toHaveBeenCalledWith('tenant.test', 1)
+        })
+
+        await waitFor(() => {
+            expect(
+                screen.getByText('Beitrag „Draft Post“ wurde veröffentlicht.'),
             ).toBeInTheDocument()
         })
     })
@@ -200,6 +242,88 @@ describe('ArticleListClient', () => {
                 screen.getByText('Beitrag „Archived Post“ wurde wiederhergestellt (Entwurf).'),
             ).toBeInTheDocument()
         })
+    })
+
+    it('bulk publishes selected draft articles', async () => {
+        const user = userEvent.setup()
+        vi.mocked(listArticles).mockResolvedValue(mockArticles)
+        vi.mocked(publishArticle).mockResolvedValue({
+            ...mockArticles[0],
+            status: 'PUBLISHED',
+            publishedAt: '2026-08-30T12:00:00Z',
+        })
+
+        render(<ArticleListClient />)
+
+        await waitFor(() => {
+            expect(screen.getByText('Draft Post')).toBeInTheDocument()
+        })
+
+        await user.click(screen.getByRole('checkbox', {name: '„Draft Post“ auswählen'}))
+
+        await waitFor(() => {
+            expect(screen.getByText('1 ausgewählt')).toBeInTheDocument()
+        })
+
+        await user.click(screen.getByRole('button', {name: '1 veröffentlichen'}))
+
+        await waitFor(() => {
+            expect(publishArticle).toHaveBeenCalledWith('tenant.test', 1)
+        })
+
+        await waitFor(() => {
+            expect(screen.getByText('1 Beitrag wurde veröffentlicht.')).toBeInTheDocument()
+        })
+    })
+
+    it('bulk unpublishes selected published articles', async () => {
+        const user = userEvent.setup()
+        vi.mocked(listArticles).mockResolvedValue(mockArticles)
+        vi.mocked(unpublishArticle).mockResolvedValue({
+            ...mockArticles[1],
+            status: 'DRAFT',
+            publishedAt: null,
+        })
+
+        render(<ArticleListClient />)
+
+        await waitFor(() => {
+            expect(screen.getByText('Published Post')).toBeInTheDocument()
+        })
+
+        await user.click(screen.getByRole('checkbox', {name: '„Published Post“ auswählen'}))
+
+        await waitFor(() => {
+            expect(screen.getByText('1 ausgewählt')).toBeInTheDocument()
+        })
+
+        await user.click(screen.getByRole('button', {name: '1 zurückziehen'}))
+
+        await waitFor(() => {
+            expect(unpublishArticle).toHaveBeenCalledWith('tenant.test', 2)
+        })
+
+        await waitFor(() => {
+            expect(
+                screen.getByText('1 Beitrag wurde zurückgezogen (Entwurf).'),
+            ).toBeInTheDocument()
+        })
+    })
+
+    it('switches to grid view', async () => {
+        const user = userEvent.setup()
+        vi.mocked(listArticles).mockResolvedValue(mockArticles)
+
+        render(<ArticleListClient />)
+
+        await waitFor(() => {
+            expect(screen.getByText('Draft Post')).toBeInTheDocument()
+        })
+
+        await user.click(screen.getByRole('button', {name: 'Raster'}))
+
+        expect(screen.getByRole('button', {name: 'Raster'})).toHaveAttribute('aria-pressed', 'true')
+        expect(screen.getByRole('button', {name: 'Liste'})).toHaveAttribute('aria-pressed', 'false')
     })
 
     it('renders empty state when there are no articles', async () => {

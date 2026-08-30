@@ -4,12 +4,9 @@ import Link from 'next/link'
 
 import {Button} from '@directwerk/ui/components/button'
 import EmptyState from '@directwerk/ui/components/empty-state'
-import ListPanel, {
-    ListPanelLinkItem,
-    ListPanelSlugContent,
-    listPanelLinkClassName,
-} from '@directwerk/ui/components/list-panel'
 import PageHeader from '@directwerk/ui/components/page-header'
+import {SlugEntityListSection} from '@directwerk/ui/components/slug-entity-list-section'
+import {useListViewMode} from '@directwerk/ui/hooks/use-list-view-mode'
 
 import {listCategories} from '@/lib/api/catalogApi'
 import type {CategorySummary} from '@directwerk/api/types'
@@ -17,11 +14,21 @@ import {getClientTenantHost} from '@directwerk/api/tenant'
 import {useAuthedQuery} from '@directwerk/api/client/useAuthedQuery'
 
 export default function CategoryListClient(): React.JSX.Element {
+    const {viewMode, setViewMode} = useListViewMode()
     const {data: categories, error: errorMessage, isLoading} = useAuthedQuery<
         CategorySummary[]
     >(() => listCategories(getClientTenantHost()), {
         fallbackError: 'Kategorien konnten nicht geladen werden.',
     })
+
+    const listItems =
+        categories?.map((category) => ({
+            id: category.id,
+            name: category.name,
+            slug: category.slug,
+            trailing: category.active ? 'Aktiv' : 'Inaktiv',
+            href: `/manage/categories/${category.id}`,
+        })) ?? []
 
     return (
         <div className="flex flex-col gap-6">
@@ -54,22 +61,12 @@ export default function CategoryListClient(): React.JSX.Element {
                 />
             ) : null}
             {categories && categories.length > 0 ? (
-                <ListPanel>
-                    {categories.map((category) => (
-                        <ListPanelLinkItem key={category.id}>
-                            <Link
-                                className={listPanelLinkClassName}
-                                href={`/manage/categories/${category.id}`}
-                            >
-                                <ListPanelSlugContent
-                                    name={category.name}
-                                    slug={category.slug}
-                                    trailing={category.active ? 'Aktiv' : 'Inaktiv'}
-                                />
-                            </Link>
-                        </ListPanelLinkItem>
-                    ))}
-                </ListPanel>
+                <SlugEntityListSection
+                    items={listItems}
+                    linkComponent={Link}
+                    onViewModeChange={setViewMode}
+                    viewMode={viewMode}
+                />
             ) : null}
         </div>
     )

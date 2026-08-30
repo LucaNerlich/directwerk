@@ -4,13 +4,24 @@ import Link from 'next/link'
 import {useRouter} from 'next/navigation'
 import {useEffect, useState} from 'react'
 
-import ListPanel, {listPanelLinkClassName} from '@directwerk/ui/components/list-panel'
+import {EntityListToolbar} from '@directwerk/ui/components/entity-list-toolbar'
+import {
+    EntityListView,
+    type EntityListViewItem,
+} from '@directwerk/ui/components/entity-list-view'
 import SectionHeader from '@directwerk/ui/components/section-header'
+import {useListViewMode} from '@directwerk/ui/hooks/use-list-view-mode'
 
 import PublicationStatusBadge from '@/components/publication/PublicationStatusBadge'
 import {listEpisodes, listSeries} from '@/lib/api/podcastApi'
 import {listArticles} from '@/lib/api/writeApi'
-import type {ArticleSummary, EpisodeSummary, SeriesSummary, StudioDesk} from '@directwerk/api/types'
+import type {
+    ArticleSummary,
+    EpisodeSummary,
+    PublicationStatus,
+    SeriesSummary,
+    StudioDesk,
+} from '@directwerk/api/types'
 import {getClientTenantHost} from '@directwerk/api/tenant'
 import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
 
@@ -18,6 +29,18 @@ const AWAITING_STATUSES = new Set(['DRAFT', 'SCHEDULED'])
 
 interface OverviewQueueProps {
     desks: StudioDesk[]
+}
+
+function draftItems(
+    items: {id: number; title: string; status: PublicationStatus}[],
+    editorBasePath: string,
+): EntityListViewItem<number>[] {
+    return items.map((item) => ({
+        id: item.id,
+        title: item.title,
+        href: `${editorBasePath}/${item.id}`,
+        trailing: <PublicationStatusBadge status={item.status} />,
+    }))
 }
 
 export default function OverviewQueue({desks}: OverviewQueueProps): React.JSX.Element {
@@ -30,6 +53,7 @@ export default function OverviewQueue({desks}: OverviewQueueProps): React.JSX.El
     const [series, setSeries] = useState<SeriesSummary[]>([])
     const [errorMessage, setErrorMessage] = useState<string | null>(null)
     const [isLoading, setIsLoading] = useState(showWrite || showPodcast)
+    const {viewMode, setViewMode} = useListViewMode()
 
     useEffect(() => {
         if (!showWrite && !showPodcast) {
@@ -87,6 +111,8 @@ export default function OverviewQueue({desks}: OverviewQueueProps): React.JSX.El
     const awaitingArticles = articles.filter((item) => AWAITING_STATUSES.has(item.status))
     const awaitingEpisodes = episodes.filter((item) => AWAITING_STATUSES.has(item.status))
     const draftSeries = series.filter((item) => item.status === 'DRAFT')
+    const hasQueuedItems =
+        draftSeries.length + awaitingEpisodes.length + awaitingArticles.length > 0
 
     return (
         <section className="flex flex-col gap-6">
@@ -98,6 +124,14 @@ export default function OverviewQueue({desks}: OverviewQueueProps): React.JSX.El
                 <p className="text-sm text-destructive" role="alert">
                     {errorMessage}
                 </p>
+            ) : null}
+
+            {hasQueuedItems ? (
+                <EntityListToolbar
+                    onViewModeChange={setViewMode}
+                    showSelection={false}
+                    viewMode={viewMode}
+                />
             ) : null}
 
             {showPodcast && series.length === 0 ? (
@@ -125,57 +159,36 @@ export default function OverviewQueue({desks}: OverviewQueueProps): React.JSX.El
             {draftSeries.length > 0 ? (
                 <div className="flex flex-col gap-3">
                     <SectionHeader as="h3" title="Sendungen zum Veröffentlichen" />
-                    <ListPanel>
-                        {draftSeries.map((item) => (
-                            <li key={item.id}>
-                                <Link
-                                    className={listPanelLinkClassName}
-                                    href={`/podcast/series/${item.id}`}
-                                >
-                                    <span>{item.title}</span>
-                                    <PublicationStatusBadge status={item.status} />
-                                </Link>
-                            </li>
-                        ))}
-                    </ListPanel>
+                    <EntityListView
+                        ariaLabel="Sendungen zum Veröffentlichen"
+                        items={draftItems(draftSeries, '/podcast/series')}
+                        linkComponent={Link}
+                        viewMode={viewMode}
+                    />
                 </div>
             ) : null}
 
             {awaitingEpisodes.length > 0 ? (
                 <div className="flex flex-col gap-3">
                     <SectionHeader as="h3" title="Folgen-Entwürfe" />
-                    <ListPanel>
-                        {awaitingEpisodes.map((item) => (
-                            <li key={item.id}>
-                                <Link
-                                    className={listPanelLinkClassName}
-                                    href={`/podcast/episodes/${item.id}`}
-                                >
-                                    <span>{item.title}</span>
-                                    <PublicationStatusBadge status={item.status} />
-                                </Link>
-                            </li>
-                        ))}
-                    </ListPanel>
+                    <EntityListView
+                        ariaLabel="Folgen-Entwürfe"
+                        items={draftItems(awaitingEpisodes, '/podcast/episodes')}
+                        linkComponent={Link}
+                        viewMode={viewMode}
+                    />
                 </div>
             ) : null}
 
             {awaitingArticles.length > 0 ? (
                 <div className="flex flex-col gap-3">
                     <SectionHeader as="h3" title="Beitrags-Entwürfe" />
-                    <ListPanel>
-                        {awaitingArticles.map((item) => (
-                            <li key={item.id}>
-                                <Link
-                                    className={listPanelLinkClassName}
-                                    href={`/write/articles/${item.id}`}
-                                >
-                                    <span>{item.title}</span>
-                                    <PublicationStatusBadge status={item.status} />
-                                </Link>
-                            </li>
-                        ))}
-                    </ListPanel>
+                    <EntityListView
+                        ariaLabel="Beitrags-Entwürfe"
+                        items={draftItems(awaitingArticles, '/write/articles')}
+                        linkComponent={Link}
+                        viewMode={viewMode}
+                    />
                 </div>
             ) : null}
         </section>

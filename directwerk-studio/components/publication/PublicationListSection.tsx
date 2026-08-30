@@ -1,0 +1,246 @@
+'use client'
+
+import type {ReactNode} from 'react'
+import Link from 'next/link'
+
+import {Button} from '@directwerk/ui/components/button'
+import {EntityListSection} from '@directwerk/ui/components/entity-list-section'
+import type {EntityListViewItem} from '@directwerk/ui/components/entity-list-view'
+import type {ViewMode} from '@directwerk/ui/components/view-mode-toggle'
+
+import PublicationStatusBadge from '@/components/publication/PublicationStatusBadge'
+import {isBulkPublicationStatus} from '@/lib/publication/publicationBulkEligibility'
+import type {PublicationStatus} from '@directwerk/api/types'
+
+export interface PublicationListItem {
+    id: number
+    title: string
+    status: PublicationStatus
+    publishedAt: string | null
+    meta?: string | null
+}
+
+interface PublicationListSectionProps<T extends PublicationListItem> {
+    items: T[]
+    editorBasePath: string
+    contentLabelPlural: string
+    selectedIds: ReadonlySet<number>
+    allSelected: boolean
+    viewMode: ViewMode
+    publishableCount: number
+    unpublishableCount: number
+    isBulkBusy: boolean
+    busyItemId: number | null
+    onToggleSelectAll: () => void
+    onViewModeChange: (mode: ViewMode) => void
+    onBulkPublish: () => void
+    onBulkUnpublish: () => void
+    onToggleSelection: (id: number) => void
+    onPublish: (item: T) => void
+    onUnpublish: (item: T) => void
+    onCancelSchedule?: (item: T) => void
+    onUnarchive?: (item: T) => void
+}
+
+function formatPublishedAt(value: string | null): string | null {
+    if (value === null) {
+        return null
+    }
+    const date = new Date(value)
+    if (Number.isNaN(date.getTime())) {
+        return null
+    }
+    return date.toLocaleDateString('de-DE', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric',
+    })
+}
+
+function PublicationRowActions<T extends PublicationListItem>({
+    item,
+    isBusy,
+    disabled,
+    onPublish,
+    onUnpublish,
+    onCancelSchedule,
+    onUnarchive,
+}: {
+    item: T
+    isBusy: boolean
+    disabled: boolean
+    onPublish: (item: T) => void
+    onUnpublish: (item: T) => void
+    onCancelSchedule?: (item: T) => void
+    onUnarchive?: (item: T) => void
+}): React.JSX.Element {
+    return (
+        <>
+            {item.status === 'DRAFT' ? (
+                <Button
+                    disabled={disabled || isBusy}
+                    onClick={() => void onPublish(item)}
+                    size="sm"
+                    type="button"
+                >
+                    {isBusy ? 'Wird veröffentlicht…' : 'Veröffentlichen'}
+                </Button>
+            ) : null}
+            {item.status === 'PUBLISHED' ? (
+                <Button
+                    disabled={disabled || isBusy}
+                    onClick={() => void onUnpublish(item)}
+                    size="sm"
+                    type="button"
+                    variant="outline"
+                >
+                    {isBusy ? 'Wird zurückgezogen…' : 'Zurückziehen'}
+                </Button>
+            ) : null}
+            {item.status === 'SCHEDULED' && onCancelSchedule !== undefined ? (
+                <Button
+                    disabled={disabled || isBusy}
+                    onClick={() => void onCancelSchedule(item)}
+                    size="sm"
+                    type="button"
+                    variant="outline"
+                >
+                    {isBusy ? 'Wird abgebrochen…' : 'Planung aufheben'}
+                </Button>
+            ) : null}
+            {item.status === 'ARCHIVED' && onUnarchive !== undefined ? (
+                <Button
+                    disabled={disabled || isBusy}
+                    onClick={() => void onUnarchive(item)}
+                    size="sm"
+                    type="button"
+                    variant="outline"
+                >
+                    {isBusy ? 'Wird wiederhergestellt…' : 'Wiederherstellen'}
+                </Button>
+            ) : null}
+        </>
+    )
+}
+
+function toEntityItems<T extends PublicationListItem>({
+    items,
+    editorBasePath,
+    viewMode,
+    busyItemId,
+    isBulkBusy,
+    onPublish,
+    onUnpublish,
+    onCancelSchedule,
+    onUnarchive,
+}: Pick<
+    PublicationListSectionProps<T>,
+    | 'items'
+    | 'editorBasePath'
+    | 'viewMode'
+    | 'busyItemId'
+    | 'isBulkBusy'
+    | 'onPublish'
+    | 'onUnpublish'
+    | 'onCancelSchedule'
+    | 'onUnarchive'
+>): EntityListViewItem<number>[] {
+    return items.map((item) => {
+        const publishedLabel = formatPublishedAt(item.publishedAt)
+        const descriptions: ReactNode[] = []
+
+        if (publishedLabel !== null) {
+            descriptions.push(`Veröffentlicht am ${publishedLabel}`)
+        }
+        if (item.meta !== undefined && item.meta !== null) {
+            descriptions.push(<code key="meta">{item.meta}</code>)
+        }
+
+        const statusBadge = <PublicationStatusBadge status={item.status} />
+
+        return {
+            id: item.id,
+            title: item.title,
+            href: `${editorBasePath}/${item.id}`,
+            descriptions,
+            selectionDisabled: !isBulkPublicationStatus(item.status),
+            trailing: viewMode === 'list' ? statusBadge : undefined,
+            extra: viewMode === 'grid' ? statusBadge : undefined,
+            actions: (
+                <PublicationRowActions
+                    disabled={isBulkBusy}
+                    isBusy={busyItemId === item.id}
+                    item={item}
+                    onCancelSchedule={onCancelSchedule}
+                    onPublish={onPublish}
+                    onUnarchive={onUnarchive}
+                    onUnpublish={onUnpublish}
+                />
+            ),
+        }
+    })
+}
+
+export default function PublicationListSection<T extends PublicationListItem>(
+    props: PublicationListSectionProps<T>,
+): React.JSX.Element {
+    const {
+        allSelected,
+        contentLabelPlural,
+        isBulkBusy,
+        onBulkPublish,
+        onBulkUnpublish,
+        onToggleSelectAll,
+        onToggleSelection,
+        onViewModeChange,
+        publishableCount,
+        selectedIds,
+        unpublishableCount,
+        viewMode,
+    } = props
+
+    return (
+        <EntityListSection
+            allSelected={allSelected}
+            bulkActions={
+                <>
+                    {publishableCount > 0 ? (
+                        <Button
+                            disabled={isBulkBusy}
+                            onClick={() => void onBulkPublish()}
+                            size="sm"
+                            type="button"
+                        >
+                            {isBulkBusy
+                                ? 'Wird veröffentlicht…'
+                                : `${publishableCount} veröffentlichen`}
+                        </Button>
+                    ) : null}
+                    {unpublishableCount > 0 ? (
+                        <Button
+                            disabled={isBulkBusy}
+                            onClick={() => void onBulkUnpublish()}
+                            size="sm"
+                            type="button"
+                            variant="outline"
+                        >
+                            {isBulkBusy
+                                ? 'Wird zurückgezogen…'
+                                : `${unpublishableCount} zurückziehen`}
+                        </Button>
+                    ) : null}
+                </>
+            }
+            disabled={isBulkBusy}
+            items={toEntityItems(props)}
+            linkComponent={Link}
+            onToggleSelectAll={onToggleSelectAll}
+            onToggleSelection={onToggleSelection}
+            onViewModeChange={onViewModeChange}
+            selectAllLabel={`Alle ${contentLabelPlural} auswählen`}
+            selectedIds={selectedIds}
+            selectable
+            viewMode={viewMode}
+        />
+    )
+}

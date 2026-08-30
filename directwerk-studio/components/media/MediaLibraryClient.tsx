@@ -4,10 +4,16 @@ import SelectControl from '@/components/studio/SelectControl'
 import UploadProgress from '@/components/media/UploadProgress'
 
 import {Button} from '@directwerk/ui/components/button'
+import {Checkbox} from '@directwerk/ui/components/checkbox'
 import EmptyState from '@directwerk/ui/components/empty-state'
+import {EntityListSection} from '@directwerk/ui/components/entity-list-section'
+import type {EntityListViewItem} from '@directwerk/ui/components/entity-list-view'
+import {Label} from '@directwerk/ui/components/label'
 import PageHeader from '@directwerk/ui/components/page-header'
+import {useEntityListSelection} from '@directwerk/ui/hooks/use-entity-list-selection'
+import {useListViewMode} from '@directwerk/ui/hooks/use-list-view-mode'
 
-import {useEffect, useRef, useState, type ChangeEvent, type DragEvent} from 'react'
+import {useMemo, useEffect, useRef, useState, type ChangeEvent, type DragEvent} from 'react'
 import {useRouter} from 'next/navigation'
 
 import {deleteMedia, getMediaPreviewUrl, listMedia} from '@/lib/api/mediaApi'
@@ -107,6 +113,7 @@ export default function MediaLibraryClient(): React.JSX.Element {
     const [uploadProgress, setUploadProgress] = useState<{file: File; progress: number} | null>(
         null,
     )
+    const {viewMode, setViewMode} = useListViewMode('grid')
 
     async function reload(): Promise<void> {
         const result = await listMedia(getClientTenantHost())
@@ -253,24 +260,10 @@ export default function MediaLibraryClient(): React.JSX.Element {
             return
         }
 
-        setIsBusy(true)
-        setErrorMessage(null)
-        setStatusMessage(null)
-        try {
-            const host = getClientTenantHost()
-            await Promise.all(pending.map((asset) => deleteMedia(host, asset.id)))
-            setAssets((current) => current.filter((item) => item.status !== 'PENDING'))
-            setStatusMessage(`${pending.length} ausstehende Upload(s) entfernt.`)
-        } catch (error: unknown) {
-            if (authRedirect(error)) return
-            setErrorMessage(
-                error instanceof Error
-                    ? error.message
-                    : 'Ausstehende Uploads konnten nicht entfernt werden.',
-            )
-        } finally {
-            setIsBusy(false)
-        }
+        await deleteAssets(
+            pending,
+            (count) => `${count} ausstehende Upload(s) entfernt.`,
+        )
     }
 
     async function handleDelete(assetId: number): Promise<void> {
@@ -291,20 +284,172 @@ export default function MediaLibraryClient(): React.JSX.Element {
         }
     }
 
-    const visibleAssets = assets.filter((asset) => {
-        if (typeFilter.length > 0 && asset.assetType !== typeFilter) {
-            return false
+    const visibleAssets = useMemo(
+        () =>
+            assets.filter((asset) => {
+                if (typeFilter.length > 0 && asset.assetType !== typeFilter) {
+                    return false
+                }
+                if (statusFilter.length > 0 && asset.status !== statusFilter) {
+                    return false
+                }
+                if (orphanOnly && asset.episodeId !== null) {
+                    return false
+                }
+                return true
+            }),
+        [assets, orphanOnly, statusFilter, typeFilter],
+    )
+
+    const visibleAssetIds = useMemo(
+        () => visibleAssets.map((asset) => asset.id),
+        [visibleAssets],
+    )
+
+    const {
+        selectedIds,
+        selectedCount,
+        allSelected,
+        toggleSelection,
+        toggleSelectAll,
+        clearSelection,
+    } = useEntityListSelection<number>(visibleAssetIds)
+
+    async function deleteAssets(
+        targets: MediaAsset[],
+        successMessage: (count: number) => string,
+        onSettled?: (failureCount: number) => void,
+    ): Promise<void> {
+        setIsBusy(true)
+        setErrorMessage(null)
+        setStatusMessage(null)
+        try {
+            const host = getClientTenantHost()
+            const results = await Promise.allSettled(
+                targets.map((asset) => deleteMedia(host, asset.id)),
+            )
+            const deletedIds = new Set(
+                targets
+                    .filter((_, index) => results[index].status === 'fulfilled')
+                    .map((asset) => asset.id),
+            )
+            const rejected = targets
+                .map((asset, index) => ({asset, result: results[index]}))
+                .filter(
+                    (entry): entry is {
+                        asset: MediaAsset
+                        result: PromiseRejectedResult
+                    } => entry.result.status === 'rejected',
+                )
+
+            setAssets((current) =>
+                current.filter((item) => !deletedIds.has(item.id)),
+            )
+            onSettled?.(rejected.length)
+
+            if (deletedIds.size > 0) {
+                setStatusMessage(successMessage(deletedIds.size))
+            }
+            if (rejected.length > 0) {
+                if (rejected.some(({result}) => authRedirect(result.reason))) return
+                setErrorMessage(
+                    `Löschen fehlgeschlagen für Medien-IDs: ${rejected
+                        .map(({asset}) => asset.id)
+                        .join(', ')}.`,
+                )
+            }
+        } finally {
+            setIsBusy(false)
         }
-        if (statusFilter.length > 0 && asset.status !== statusFilter) {
-            return false
+    }
+
+    async function handleBulkDeleteSelected(): Promise<void> {
+        const selected = visibleAssets.filter((asset) => selectedIds.has(asset.id))
+        if (selected.length === 0) {
+            return
         }
-        if (orphanOnly && asset.episodeId !== null) {
-            return false
+        if (
+            !window.confirm(
+                `${selected.length} ausgewählte Datei(en) endgültig löschen?`,
+            )
+        ) {
+            return
         }
-        return true
-    })
+
+        await deleteAssets(
+            selected,
+            (count) => `${count} Medium/Medien gelöscht.`,
+            (failureCount) => {
+                if (failureCount === 0) {
+                    clearSelection()
+                }
+            },
+        )
+    }
+
+    function renderAssetPreview(asset: MediaAsset): React.JSX.Element {
+        const imgSrc =
+            safeImageSrc(asset.cdnUrl) ?? safeImageSrc(previewUrls[asset.id])
+        if (asset.assetType === 'IMAGE' && imgSrc !== null) {
+            return (
+                <img
+                    alt={asset.originalFilename ?? `Bild #${asset.id}`}
+                    className="aspect-video w-full rounded-md object-cover"
+                    src={imgSrc}
+                />
+            )
+        }
+        return (
+            <div className="flex aspect-video items-center justify-center rounded-md bg-muted text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                {asset.assetType}
+            </div>
+        )
+    }
+
+    function renderAssetMeta(asset: MediaAsset): React.JSX.Element {
+        return (
+            <small className="text-muted-foreground">
+                {asset.assetType} · {asset.status}
+                {asset.visibility ? ` · ${asset.visibility}` : ''}
+                {' · '}
+                {formatBytes(asset.sizeBytes)}
+            </small>
+        )
+    }
 
     const pendingCount = assets.filter((asset) => asset.status === 'PENDING').length
+
+    const mediaItems: EntityListViewItem<number>[] = visibleAssets.map((asset) => ({
+        id: asset.id,
+        title: asset.originalFilename ?? `Asset #${asset.id}`,
+        leading:
+            viewMode === 'list' ? (
+                <div className="size-16 shrink-0 overflow-hidden rounded-md">
+                    {renderAssetPreview(asset)}
+                </div>
+            ) : undefined,
+        extra:
+            viewMode === 'grid' ? (
+                <>
+                    {renderAssetPreview(asset)}
+                    {renderAssetMeta(asset)}
+                </>
+            ) : undefined,
+        description: viewMode === 'list' ? renderAssetMeta(asset) : undefined,
+        actions: (
+            <Button
+                disabled={isBusy}
+                onClick={() => {
+                    void handleDelete(asset.id)
+                }}
+                size="sm"
+                type="button"
+                variant="outline"
+            >
+                Löschen
+            </Button>
+        ),
+    }))
 
     if (isLoading) {
         return <p>Wird geladen…</p>
@@ -399,16 +544,14 @@ export default function MediaLibraryClient(): React.JSX.Element {
                         <option value="ARCHIVED">Archiviert</option>
                     </SelectControl>
                 </label>
-                <label className="flex items-end gap-2 text-sm font-medium">
-                    <input
+                <Label className="flex items-end gap-2 text-sm font-medium">
+                    <Checkbox
                         checked={orphanOnly}
-                        className="size-4 shrink-0"
                         id="orphanFilter"
-                        onChange={(event) => setOrphanOnly(event.target.checked)}
-                        type="checkbox"
+                        onCheckedChange={(checked) => setOrphanOnly(checked === true)}
                     />
                     <span>Nur unverknüpfte Dateien</span>
-                </label>
+                </Label>
             </div>
 
             {pendingCount > 0 ? (
@@ -442,53 +585,32 @@ export default function MediaLibraryClient(): React.JSX.Element {
             ) : visibleAssets.length === 0 ? (
                 <p className="text-sm text-muted-foreground">Keine Medien für diesen Filter.</p>
             ) : (
-                <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                    {visibleAssets.map((asset) => {
-                        const imgSrc =
-                            safeImageSrc(asset.cdnUrl) ??
-                            safeImageSrc(previewUrls[asset.id])
-                        return (
-                            <li
-                                className="flex flex-col gap-3 rounded-xl border bg-card p-4"
-                                key={asset.id}
-                            >
-                            {asset.assetType === 'IMAGE' &&
-                            imgSrc !== null ? (
-                                <img
-                                    alt={asset.originalFilename ?? `Bild #${asset.id}`}
-                                    className="aspect-video w-full rounded-md object-cover"
-                                    src={imgSrc}
-                                />
-                            ) : (
-                                <div className="flex aspect-video items-center justify-center rounded-md bg-muted text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                                    {asset.assetType}
-                                </div>
-                            )}
-                            <div className="min-w-0">
-                                <strong className="block truncate">
-                                    {asset.originalFilename ?? `Asset #${asset.id}`}
-                                </strong>
-                                <small className="text-muted-foreground">
-                                    {asset.assetType} · {asset.status}
-                                    {asset.visibility ? ` · ${asset.visibility}` : ''}
-                                    {' · '}
-                                    {formatBytes(asset.sizeBytes)}
-                                </small>
-                            </div>
+                <EntityListSection
+                    allSelected={allSelected}
+                    bulkActions={
+                        selectedCount > 0 ? (
                             <Button
                                 disabled={isBusy}
-                                onClick={() => {
-                                    void handleDelete(asset.id)
-                                }}
+                                onClick={() => void handleBulkDeleteSelected()}
+                                size="sm"
                                 type="button"
                                 variant="outline"
                             >
-                                Löschen
+                                {isBusy ? 'Wird gelöscht…' : `${selectedCount} löschen`}
                             </Button>
-                        </li>
-                        )
-                    })}
-                </ul>
+                        ) : null
+                    }
+                    disabled={isBusy}
+                    gridClassName="lg:grid-cols-3"
+                    items={mediaItems}
+                    onToggleSelectAll={toggleSelectAll}
+                    onToggleSelection={toggleSelection}
+                    onViewModeChange={setViewMode}
+                    selectAllLabel="Alle Medien auswählen"
+                    selectedIds={selectedIds}
+                    selectable
+                    viewMode={viewMode}
+                />
             )}
         </div>
     )

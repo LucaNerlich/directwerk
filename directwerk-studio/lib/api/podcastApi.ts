@@ -115,3 +115,31 @@ export async function updateSeries(
         'Der Server hat eine ungültige Sendung gesendet.',
     )
 }
+
+export async function publishSeries(
+    tenantHost: string,
+    seriesId: number,
+): Promise<SeriesSummary> {
+    const updated = await updateSeries(tenantHost, seriesId, {status: 'PUBLISHED'})
+    return {
+        id: updated.id,
+        slug: updated.slug,
+        title: updated.title,
+        status: updated.status,
+        rssUrl: updated.rssUrl,
+    }
+}
+
+export async function unpublishSeries(
+    tenantHost: string,
+    seriesId: number,
+): Promise<SeriesSummary> {
+    const updated = await updateSeries(tenantHost, seriesId, {status: 'DRAFT'})
+    return {
+        id: updated.id,
+        slug: updated.slug,
+        title: updated.title,
+        status: updated.status,
+        rssUrl: updated.rssUrl,
+    }
+}

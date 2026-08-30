@@ -6,8 +6,10 @@ import {useEffect, useState} from 'react'
 
 import {Button} from '@directwerk/ui/components/button'
 import EmptyState from '@directwerk/ui/components/empty-state'
-import ListPanel, {ListPanelRow} from '@directwerk/ui/components/list-panel'
+import {EntityListSection} from '@directwerk/ui/components/entity-list-section'
+import type {EntityListViewItem} from '@directwerk/ui/components/entity-list-view'
 import PageHeader from '@directwerk/ui/components/page-header'
+import {useListViewMode} from '@directwerk/ui/hooks/use-list-view-mode'
 
 import {listMedia} from '@/lib/api/mediaApi'
 import type {MediaAsset} from '@directwerk/api/types'
@@ -20,6 +22,7 @@ export default function BonusLibraryClient(): React.JSX.Element {
     const [assets, setAssets] = useState<MediaAsset[]>([])
     const [errorMessage, setErrorMessage] = useState<string | null>(null)
     const [isLoading, setIsLoading] = useState(true)
+    const {viewMode, setViewMode} = useListViewMode()
 
     useEffect(() => {
         let active = true
@@ -57,6 +60,21 @@ export default function BonusLibraryClient(): React.JSX.Element {
         return <p>Wird geladen…</p>
     }
 
+    const assetItems: EntityListViewItem[] = assets.map((asset) => ({
+        id: asset.id,
+        title: asset.originalFilename ?? `Datei #${asset.id}`,
+        description: `${asset.mimeType ?? 'Dokument'} · Asset #${asset.id}`,
+        actions: (
+            <Button
+                nativeButton={false}
+                render={<Link href="/manage/products" />}
+                variant="outline"
+            >
+                An Paket hängen
+            </Button>
+        ),
+    }))
+
     return (
         <div className="flex flex-col gap-6">
             <PageHeader
@@ -69,11 +87,11 @@ export default function BonusLibraryClient(): React.JSX.Element {
                     </Button>
                 }
             />
-            {errorMessage !== null ? (
+            {errorMessage !== null && (
                 <p className="text-sm text-destructive" role="alert">
                     {errorMessage}
                 </p>
-            ) : null}
+            )}
             {assets.length === 0 ? (
                 <EmptyState
                     title="Noch keine Bonusdateien"
@@ -94,27 +112,12 @@ export default function BonusLibraryClient(): React.JSX.Element {
                     }
                 />
             ) : (
-                <ListPanel>
-                    {assets.map((asset) => (
-                        <ListPanelRow key={asset.id}>
-                            <div>
-                                <p className="font-medium">
-                                    {asset.originalFilename ?? `Datei #${asset.id}`}
-                                </p>
-                                <p className="text-sm text-muted-foreground">
-                                    {asset.mimeType ?? 'Dokument'} · Asset #{asset.id}
-                                </p>
-                            </div>
-                            <Button
-                                nativeButton={false}
-                                render={<Link href="/manage/products" />}
-                                variant="outline"
-                            >
-                                An Paket hängen
-                            </Button>
-                        </ListPanelRow>
-                    ))}
-                </ListPanel>
+                <EntityListSection
+                    items={assetItems}
+                    onViewModeChange={setViewMode}
+                    showSelection={false}
+                    viewMode={viewMode}
+                />
             )}
         </div>
     )

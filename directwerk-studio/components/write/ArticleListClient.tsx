@@ -4,17 +4,18 @@ import Link from 'next/link'
 
 import {Button} from '@directwerk/ui/components/button'
 import EmptyState from '@directwerk/ui/components/empty-state'
-import ListPanel, {ListPanelRow} from '@directwerk/ui/components/list-panel'
 import PageHeader from '@directwerk/ui/components/page-header'
 
-import PublicationStatusBadge from '@/components/publication/PublicationStatusBadge'
+import PublicationListSection from '@/components/publication/PublicationListSection'
 import {
     cancelScheduleArticle,
     listArticles,
+    publishArticle,
     unarchiveArticle,
     unpublishArticle,
 } from '@/lib/api/writeApi'
 import type {ArticleDetail} from '@directwerk/api/types'
+import {createPublicationBulkLabels} from '@/lib/publication/publicationBulkLabels'
 import {usePublicationListPage} from '@/lib/publication/usePublicationListPage'
 import {getClientTenantHost} from '@directwerk/api/tenant'
 
@@ -25,25 +26,41 @@ export default function ArticleListClient() {
         displayError,
         statusMessage,
         busyItemId: busyArticleId,
+        isBulkBusy,
+        selectedIds,
+        allSelected,
+        viewMode,
+        setViewMode,
+        toggleSelection,
+        toggleSelectAll,
+        publishableCount,
+        unpublishableCount,
+        handlePublish,
         handleUnpublish,
         handleCancelSchedule,
         handleUnarchive,
+        handleBulkPublish,
+        handleBulkUnpublish,
     } = usePublicationListPage<ArticleDetail>({
         load: () => listArticles(getClientTenantHost()),
+        publish: (id) => publishArticle(getClientTenantHost(), id),
         unpublish: (id) => unpublishArticle(getClientTenantHost(), id),
         cancelSchedule: (id) => cancelScheduleArticle(getClientTenantHost(), id),
         unarchive: (id) => unarchiveArticle(getClientTenantHost(), id),
         labels: {
             loadError: 'Beiträge konnten nicht geladen werden.',
+            publishSuccess: (title) => `Beitrag „${title}“ wurde veröffentlicht.`,
             unpublishSuccess: (title) =>
                 `Beitrag „${title}“ wurde zurückgezogen (Entwurf).`,
             cancelScheduleSuccess: (title) =>
                 `Planung für „${title}“ wurde aufgehoben (Entwurf).`,
             unarchiveSuccess: (title) =>
                 `Beitrag „${title}“ wurde wiederhergestellt (Entwurf).`,
+            publishError: 'Beitrag konnte nicht veröffentlicht werden.',
             unpublishError: 'Beitrag konnte nicht zurückgezogen werden.',
             cancelScheduleError: 'Planung konnte nicht aufgehoben werden.',
             unarchiveError: 'Beitrag konnte nicht wiederhergestellt werden.',
+            bulk: createPublicationBulkLabels('Beitrag', 'Beiträge'),
         },
     })
 
@@ -84,59 +101,29 @@ export default function ArticleListClient() {
                     }
                 />
             ) : (
-                <ListPanel>
-                    {articles.map((article) => {
-                        const isBusy = busyArticleId === article.id
-                        return (
-                            <ListPanelRow key={article.id}>
-                                <div className="min-w-0 flex-1">
-                                    <Link
-                                        className="font-medium hover:underline"
-                                        href={`/write/articles/${article.id}`}
-                                    >
-                                        {article.title}
-                                    </Link>
-                                </div>
-                                <div className="flex shrink-0 items-center gap-3">
-                                    <PublicationStatusBadge status={article.status} />
-                                    {article.status === 'PUBLISHED' && (
-                                        <Button
-                                            disabled={isBusy}
-                                            onClick={() => void handleUnpublish(article)}
-                                            size="sm"
-                                            type="button"
-                                            variant="outline"
-                                        >
-                                            {isBusy ? 'Wird zurückgezogen…' : 'Zurückziehen'}
-                                        </Button>
-                                    )}
-                                    {article.status === 'SCHEDULED' && (
-                                        <Button
-                                            disabled={isBusy}
-                                            onClick={() => void handleCancelSchedule(article)}
-                                            size="sm"
-                                            type="button"
-                                            variant="outline"
-                                        >
-                                            {isBusy ? 'Wird abgebrochen…' : 'Planung aufheben'}
-                                        </Button>
-                                    )}
-                                    {article.status === 'ARCHIVED' && (
-                                        <Button
-                                            disabled={isBusy}
-                                            onClick={() => void handleUnarchive(article)}
-                                            size="sm"
-                                            type="button"
-                                            variant="outline"
-                                        >
-                                            {isBusy ? 'Wird wiederhergestellt…' : 'Wiederherstellen'}
-                                        </Button>
-                                    )}
-                                </div>
-                            </ListPanelRow>
-                        )
-                    })}
-                </ListPanel>
+                <>
+                    <PublicationListSection
+                        allSelected={allSelected}
+                        busyItemId={busyArticleId}
+                        contentLabelPlural="Beiträge"
+                        editorBasePath="/write/articles"
+                        isBulkBusy={isBulkBusy}
+                        items={articles}
+                        onBulkPublish={() => void handleBulkPublish()}
+                        onBulkUnpublish={() => void handleBulkUnpublish()}
+                        onCancelSchedule={(article) => void handleCancelSchedule(article)}
+                        onPublish={(article) => void handlePublish(article)}
+                        onToggleSelectAll={toggleSelectAll}
+                        onToggleSelection={toggleSelection}
+                        onUnarchive={(article) => void handleUnarchive(article)}
+                        onUnpublish={(article) => void handleUnpublish(article)}
+                        onViewModeChange={setViewMode}
+                        publishableCount={publishableCount}
+                        selectedIds={selectedIds}
+                        unpublishableCount={unpublishableCount}
+                        viewMode={viewMode}
+                    />
+                </>
             )}
         </div>
     )

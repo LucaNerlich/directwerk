@@ -6,9 +6,11 @@ import {useEffect, useState} from 'react'
 
 import {Button} from '@directwerk/ui/components/button'
 import EmptyState from '@directwerk/ui/components/empty-state'
-import ListPanel, {listPanelLinkClassName} from '@directwerk/ui/components/list-panel'
+import {EntityListSection} from '@directwerk/ui/components/entity-list-section'
+import type {EntityListViewItem} from '@directwerk/ui/components/entity-list-view'
 import PageHeader from '@directwerk/ui/components/page-header'
 import SectionHeader from '@directwerk/ui/components/section-header'
+import {useListViewMode} from '@directwerk/ui/hooks/use-list-view-mode'
 
 import PublicationStatusBadge from '@/components/publication/PublicationStatusBadge'
 import {listFormats} from '@/lib/api/catalogApi'
@@ -31,6 +33,7 @@ export default function PodcastDeskClient(): React.JSX.Element {
     const [episodes, setEpisodes] = useState<EpisodeSummary[]>([])
     const [errorMessage, setErrorMessage] = useState<string | null>(null)
     const [isLoading, setIsLoading] = useState(true)
+    const {viewMode, setViewMode} = useListViewMode()
 
     useEffect(() => {
         let active = true
@@ -118,6 +121,13 @@ export default function PodcastDeskClient(): React.JSX.Element {
 
     const setupComplete = hasSeries
     const nextStep = steps.find((step) => !step.done) ?? steps[steps.length - 1]
+
+    const draftEpisodeItems: EntityListViewItem[] = draftEpisodes.slice(0, 5).map((episode) => ({
+        id: episode.id,
+        title: episode.title,
+        href: `/podcast/episodes/${episode.id}`,
+        trailing: <PublicationStatusBadge status={episode.status} />,
+    }))
 
     return (
         <div className="flex flex-col gap-8">
@@ -212,19 +222,13 @@ export default function PodcastDeskClient(): React.JSX.Element {
             {setupComplete && draftEpisodes.length > 0 ? (
                 <section className="flex flex-col gap-3">
                     <SectionHeader title="Offene Entwürfe" />
-                    <ListPanel>
-                        {draftEpisodes.slice(0, 5).map((episode) => (
-                            <li key={episode.id}>
-                                <Link
-                                    className={listPanelLinkClassName}
-                                    href={`/podcast/episodes/${episode.id}`}
-                                >
-                                    <span>{episode.title}</span>
-                                    <PublicationStatusBadge status={episode.status} />
-                                </Link>
-                            </li>
-                        ))}
-                    </ListPanel>
+                    <EntityListSection
+                        items={draftEpisodeItems}
+                        linkComponent={Link}
+                        onViewModeChange={setViewMode}
+                        showSelection={false}
+                        viewMode={viewMode}
+                    />
                     {draftEpisodes.length > 5 ? (
                         <p className="text-sm text-muted-foreground">
                             <Link href="/podcast/episodes">Alle Folgen anzeigen</Link>

@@ -1,48 +1,27 @@
 'use client'
 
 import Link from 'next/link'
-import {useEffect, useState} from 'react'
+import {useState} from 'react'
 
 import {Button} from '@directwerk/ui/components/button'
 import EmptyState from '@directwerk/ui/components/empty-state'
-import ListPanel, {ListPanelRow} from '@directwerk/ui/components/list-panel'
+import {EntityListSection} from '@directwerk/ui/components/entity-list-section'
+import type {EntityListViewItem} from '@directwerk/ui/components/entity-list-view'
 import PageHeader from '@directwerk/ui/components/page-header'
+import {useListViewMode} from '@directwerk/ui/hooks/use-list-view-mode'
 
 import {revokeSubscription} from '@/lib/api/subscriptionApi'
 import {listSubscribers} from '@/lib/api/tenantSettingsApi'
+import {
+    subscriptionSourceLabel,
+    subscriptionStatusLabel,
+} from '@/lib/subscription/displayLabels'
 import type {TenantSubscriber, TenantSubscriberSubscription} from '@directwerk/api/types'
 import {useCachedTenantQuery} from '@directwerk/api/client/useCachedTenantQuery'
 import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
 import {getClientTenantHost} from '@directwerk/api/tenant'
 
 const REVOCABLE = new Set(['ACTIVE', 'PAST_DUE', 'INCOMPLETE'])
-
-function sourceLabel(source: string): string {
-    if (source === 'STRIPE') {
-        return 'Stripe'
-    }
-    if (source === 'MANUAL' || source === 'SEED') {
-        return 'Freischaltung'
-    }
-    return source
-}
-
-function statusLabel(status: string): string {
-    switch (status) {
-        case 'ACTIVE':
-            return 'Aktiv'
-        case 'PAST_DUE':
-            return 'Zahlungsrückstand'
-        case 'INCOMPLETE':
-            return 'Unvollständig'
-        case 'CANCELED':
-            return 'Gekündigt'
-        case 'EXPIRED':
-            return 'Abgelaufen'
-        default:
-            return status
-    }
-}
 
 function periodLabel(item: TenantSubscriberSubscription): string {
     if (item.endsAt !== null) {
@@ -70,21 +49,14 @@ export default function SubscribersClient(): React.JSX.Element {
             fallbackError: 'Abonnenten konnten nicht geladen werden.',
         },
     )
-    const [subscribers, setSubscribers] = useState<TenantSubscriber[]>([])
-    const [errorMessage, setErrorMessage] = useState<string | null>(null)
+    const [actionError, setActionError] = useState<string | null>(null)
     const [statusMessage, setStatusMessage] = useState<string | null>(null)
     const [isBusy, setIsBusy] = useState(false)
     const [pendingRevokeId, setPendingRevokeId] = useState<number | null>(null)
+    const {viewMode, setViewMode} = useListViewMode()
 
-    useEffect(() => {
-        if (loadedSubscribers !== null) {
-            setSubscribers(loadedSubscribers)
-        }
-    }, [loadedSubscribers])
-
-    useEffect(() => {
-        setErrorMessage(loadError)
-    }, [loadError])
+    const subscribers = loadedSubscribers ?? []
+    const errorMessage = actionError ?? loadError
 
     async function handleRevoke(item: TenantSubscriberSubscription, email: string): Promise<void> {
         if (pendingRevokeId !== item.id) {
@@ -97,29 +69,16 @@ export default function SubscribersClient(): React.JSX.Element {
             return
         }
         setIsBusy(true)
-        setErrorMessage(null)
+        setActionError(null)
         setStatusMessage(null)
         try {
-            const revoked = await revokeSubscription(getClientTenantHost(), item.id)
+            await revokeSubscription(getClientTenantHost(), item.id)
             setPendingRevokeId(null)
-            setSubscribers((current) =>
-                current.map((subscriber) => ({
-                    ...subscriber,
-                    subscriptions: subscriber.subscriptions.map((row) =>
-                        row.id === item.id
-                            ? {
-                                  ...row,
-                                  status: revoked.status,
-                              }
-                            : row,
-                    ),
-                })),
-            )
             setStatusMessage(`Zugang beendet: ${email}`)
             reload()
         } catch (error: unknown) {
             if (authRedirect(error)) return
-            setErrorMessage(
+            setActionError(
                 error instanceof Error ? error.message : 'Widerruf fehlgeschlagen.',
             )
         } finally {
@@ -130,6 +89,72 @@ export default function SubscribersClient(): React.JSX.Element {
     if (isLoading) {
         return <p>Wird geladen…</p>
     }
+
+    const subscriberItems: EntityListViewItem[] = subscribers.map((subscriber) => ({
+        id: subscriber.userId,
+        title: subscriber.email,
+        description: `${subscriber.name !== null ? `${subscriber.name} · ` : ''}Konto: ${subscriber.status}`,
+        extra:
+            subscriber.subscriptions.length === 0 ? (
+                <p className="text-sm text-muted-foreground">Keine Produkte</p>
+            ) : (
+                <ul className="flex flex-col gap-3">
+                    {subscriber.subscriptions.map((item) => (
+                        <li
+                            className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between"
+                            key={item.id}
+                        >
+                            <div>
+                                <p>{item.productTitle}</p>
+                                <p className="text-sm text-muted-foreground">
+                                    {subscriptionStatusLabel(item.status)}
+                                    {' · '}
+                                    {subscriptionSourceLabel(item.source)}
+                                    {' · '}
+                                    {periodLabel(item)}
+                                    {item.externalSubscriptionId !== null
+                                        ? ` · ${item.externalSubscriptionId}`
+                                        : ''}
+                                </p>
+                            </div>
+                            {REVOCABLE.has(item.status) ? (
+                                <div className="flex shrink-0 flex-wrap gap-2">
+                                    <Button
+                                        disabled={isBusy}
+                                        onClick={() => {
+                                            void handleRevoke(item, subscriber.email)
+                                        }}
+                                        type="button"
+                                        variant={
+                                            pendingRevokeId === item.id
+                                                ? 'destructive'
+                                                : 'outline'
+                                        }
+                                    >
+                                        {pendingRevokeId === item.id
+                                            ? 'Wirklich beenden'
+                                            : 'Zugang beenden'}
+                                    </Button>
+                                    {pendingRevokeId === item.id ? (
+                                        <Button
+                                            disabled={isBusy}
+                                            onClick={() => {
+                                                setPendingRevokeId(null)
+                                                setStatusMessage(null)
+                                            }}
+                                            type="button"
+                                            variant="ghost"
+                                        >
+                                            Abbrechen
+                                        </Button>
+                                    ) : null}
+                                </div>
+                            ) : null}
+                        </li>
+                    ))}
+                </ul>
+            ),
+    }))
 
     return (
         <div className="flex flex-col gap-6">
@@ -168,78 +193,12 @@ export default function SubscribersClient(): React.JSX.Element {
             ) : null}
 
             {subscribers.length > 0 ? (
-                <ListPanel>
-                    {subscribers.map((subscriber) => (
-                        <ListPanelRow key={subscriber.userId}>
-                            <div>
-                                <p className="font-medium">{subscriber.email}</p>
-                                <p className="text-sm text-muted-foreground">
-                                    {subscriber.name !== null ? `${subscriber.name} · ` : ''}
-                                    Konto: {subscriber.status}
-                                </p>
-                            </div>
-                            {subscriber.subscriptions.length === 0 ? (
-                                <p className="text-sm text-muted-foreground">Keine Produkte</p>
-                            ) : (
-                                <ul className="flex flex-col gap-3">
-                                    {subscriber.subscriptions.map((item) => (
-                                        <li
-                                            className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between"
-                                            key={item.id}
-                                        >
-                                            <div>
-                                                <p>{item.productTitle}</p>
-                                                <p className="text-sm text-muted-foreground">
-                                                    {statusLabel(item.status)}
-                                                    {' · '}
-                                                    {sourceLabel(item.source)}
-                                                    {' · '}
-                                                    {periodLabel(item)}
-                                                    {item.externalSubscriptionId !== null
-                                                        ? ` · ${item.externalSubscriptionId}`
-                                                        : ''}
-                                                </p>
-                                            </div>
-                                            {REVOCABLE.has(item.status) ? (
-                                                <div className="flex shrink-0 flex-wrap gap-2">
-                                                    <Button
-                                                        disabled={isBusy}
-                                                        onClick={() => {
-                                                            void handleRevoke(item, subscriber.email)
-                                                        }}
-                                                        type="button"
-                                                        variant={
-                                                            pendingRevokeId === item.id
-                                                                ? 'destructive'
-                                                                : 'outline'
-                                                        }
-                                                    >
-                                                        {pendingRevokeId === item.id
-                                                            ? 'Wirklich beenden'
-                                                            : 'Zugang beenden'}
-                                                    </Button>
-                                                    {pendingRevokeId === item.id ? (
-                                                        <Button
-                                                            disabled={isBusy}
-                                                            onClick={() => {
-                                                                setPendingRevokeId(null)
-                                                                setStatusMessage(null)
-                                                            }}
-                                                            type="button"
-                                                            variant="ghost"
-                                                        >
-                                                            Abbrechen
-                                                        </Button>
-                                                    ) : null}
-                                                </div>
-                                            ) : null}
-                                        </li>
-                                    ))}
-                                </ul>
-                            )}
-                        </ListPanelRow>
-                    ))}
-                </ListPanel>
+                <EntityListSection
+                    items={subscriberItems}
+                    onViewModeChange={setViewMode}
+                    showSelection={false}
+                    viewMode={viewMode}
+                />
             ) : null}
         </div>
     )

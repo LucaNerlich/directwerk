@@ -5,13 +5,10 @@ import Link from 'next/link'
 import {Alert, AlertDescription} from '@directwerk/ui/components/alert'
 import {Button} from '@directwerk/ui/components/button'
 import EmptyState from '@directwerk/ui/components/empty-state'
-import ListPanel, {
-    ListPanelLinkItem,
-    ListPanelSlugContent,
-    listPanelLinkClassName,
-} from '@directwerk/ui/components/list-panel'
 import PageHeader from '@directwerk/ui/components/page-header'
 import PageStack from '@directwerk/ui/components/page-stack'
+import {SlugEntityListSection} from '@directwerk/ui/components/slug-entity-list-section'
+import {useListViewMode} from '@directwerk/ui/hooks/use-list-view-mode'
 
 import {listFormats} from '@/lib/api/catalogApi'
 import type {FormatSummary} from '@directwerk/api/types'
@@ -19,10 +16,20 @@ import {getClientTenantHost} from '@directwerk/api/tenant'
 import {useAuthedQuery} from '@directwerk/api/client/useAuthedQuery'
 
 export default function FormatListClient(): React.JSX.Element {
+    const {viewMode, setViewMode} = useListViewMode()
     const {data: formats, error: errorMessage, isLoading} = useAuthedQuery<FormatSummary[]>(
         () => listFormats(getClientTenantHost()),
         {fallbackError: 'Formate konnten nicht geladen werden.'},
     )
+
+    const listItems =
+        formats?.map((format) => ({
+            id: format.id,
+            name: format.name,
+            slug: format.slug,
+            trailing: format.active ? 'Aktiv' : 'Inaktiv',
+            href: `/podcast/formats/${format.id}`,
+        })) ?? []
 
     return (
         <PageStack>
@@ -57,22 +64,12 @@ export default function FormatListClient(): React.JSX.Element {
                 />
             ) : null}
             {formats && formats.length > 0 ? (
-                <ListPanel>
-                    {formats.map((format) => (
-                        <ListPanelLinkItem key={format.id}>
-                            <Link
-                                className={listPanelLinkClassName}
-                                href={`/podcast/formats/${format.id}`}
-                            >
-                                <ListPanelSlugContent
-                                    name={format.name}
-                                    slug={format.slug}
-                                    trailing={format.active ? 'Aktiv' : 'Inaktiv'}
-                                />
-                            </Link>
-                        </ListPanelLinkItem>
-                    ))}
-                </ListPanel>
+                <SlugEntityListSection
+                    items={listItems}
+                    linkComponent={Link}
+                    onViewModeChange={setViewMode}
+                    viewMode={viewMode}
+                />
             ) : null}
 
             <p className="text-sm text-muted-foreground">

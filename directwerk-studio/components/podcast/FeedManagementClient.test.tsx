@@ -107,6 +107,7 @@ describe('FeedManagementClient', () => {
         expect(screen.getAllByText('sub@example.test')).toHaveLength(2)
         expect(screen.getByText(/Eigener Feed/)).toBeInTheDocument()
         expect(screen.getByText(/· Interview/)).toBeInTheDocument()
+        expect(screen.getAllByRole('button', {name: 'Raster'})).toHaveLength(1)
         const openLinks = screen.getAllByRole('link', {name: 'Öffnen'})
         expect(openLinks).toHaveLength(2)
         expect(openLinks[0]).toHaveAttribute(
