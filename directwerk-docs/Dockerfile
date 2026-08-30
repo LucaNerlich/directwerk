@@ -42,9 +42,10 @@ ENV VITEPRESS_LAST_UPDATED=0
 RUN pnpm --filter directwerk-docs build
 
 FROM nginx:1.27-alpine
+RUN rm -rf /usr/share/nginx/html/*
 COPY --from=build /workspace/directwerk-docs/nginx.conf /etc/nginx/conf.d/default.conf
 COPY --from=build /workspace/directwerk-docs/docs/.vitepress/dist /usr/share/nginx/html
 
 EXPOSE 80
 CMD ["nginx", "-g", "daemon off;"]
-HEALTHCHECK CMD wget -qO- http://127.0.0.1/ >/dev/null || exit 1
+HEALTHCHECK CMD wget -qO- http://127.0.0.1/api/health >/dev/null || exit 1

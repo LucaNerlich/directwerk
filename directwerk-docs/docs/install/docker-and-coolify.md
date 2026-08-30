@@ -100,13 +100,13 @@ Each frontend has its own Dockerfile. **Build context must always be the monorep
 apps depend on workspace packages (`@directwerk/ui`, `@directwerk/api`) and the root lockfile.
 Do **not** use Nixpacks with a subdirectory base directory.
 
-| App | Dockerfile path | Port | Runtime |
-|-----|-----------------|------|---------|
-| `directwerk-admin` | `directwerk-admin/Dockerfile` | 3001 | Next.js server |
-| `directwerk-studio` | `directwerk-studio/Dockerfile` | 3003 | Next.js server |
-| `directwerk-web` | `directwerk-web/Dockerfile` | 3004 | Next.js server |
-| `homepage` | `homepage/Dockerfile` | 3005 | Next.js server |
-| `directwerk-docs` | `directwerk-docs/Dockerfile` | 80 | nginx (static) |
+| App | Dockerfile path | Port | Health check |
+|-----|-----------------|------|--------------|
+| `directwerk-admin` | `directwerk-admin/Dockerfile` | 3001 | `/api/health` |
+| `directwerk-studio` | `directwerk-studio/Dockerfile` | 3003 | `/api/health` |
+| `directwerk-web` | `directwerk-web/Dockerfile` | 3004 | `/api/health` |
+| `homepage` | `homepage/Dockerfile` | 3005 | `/api/health` |
+| `directwerk-docs` | `directwerk-docs/Dockerfile` | **80** | `/` or `/api/health` |
 
 Coolify settings for each app:
 
@@ -115,8 +115,8 @@ Coolify settings for each app:
 | Build pack | **Dockerfile** (not Nixpacks) |
 | **Base Directory** | Repository root (`.` — leave empty) |
 | Dockerfile path | See table above |
-| Port | See table above |
-| Health check path | `/api/health` (does not call the API — avoids TLS/upstream failures on probe) |
+| **Port** | Must match the table — docs is **80**, not 4173 |
+| Health check path | See table above |
 
 The Dockerfiles accept either a full monorepo build context or Coolify's app-scoped
 context (app sources at the context root with workspace files injected). If the build
