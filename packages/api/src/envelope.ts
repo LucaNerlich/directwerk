@@ -102,6 +102,32 @@ export interface ErrorMessageCatalog {
  * `{errors: [{message: string}]}` shapes; everything else falls back to the
  * catalog.
  */
+/** Returns the first structured API error `code`, if present. */
+export function extractApiErrorCode(value: unknown): string | null {
+    if (
+        !isRecord(value) ||
+        !Object.hasOwn(value, 'errors') ||
+        !Array.isArray(value.errors) ||
+        value.errors.length === 0
+    ) {
+        return null
+    }
+
+    const first = value.errors[0]
+    if (
+        typeof first === 'object' &&
+        first !== null &&
+        'code' in first &&
+        typeof first.code === 'string' &&
+        first.code.length > 0 &&
+        first.code.length <= 64
+    ) {
+        return first.code
+    }
+
+    return null
+}
+
 export function extractApiErrorMessage(
     value: unknown,
     status: number,

@@ -32,7 +32,7 @@ export default function CreateTenantForm({onCreated}: CreateTenantFormProps) {
             return
         }
         handledState.current = state
-        if (state.success !== null) {
+        if (state.success !== null || state.refreshList) {
             onCreated?.()
         }
     }, [state, onCreated])

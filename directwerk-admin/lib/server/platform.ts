@@ -3,7 +3,7 @@ import 'server-only'
 import {cookies} from 'next/headers'
 
 import {safeUpstreamResponse} from '@directwerk/api/server'
-import {parseApiEnvelope} from '@directwerk/api/envelope'
+import {extractApiErrorCode, parseApiEnvelope} from '@directwerk/api/envelope'
 import {sealRefreshToken} from '@directwerk/api/auth/cookies'
 import {parseTokenResponse} from '@directwerk/api/validation/token'
 
@@ -24,6 +24,8 @@ interface PlatformApiFailure {
     ok: false
     /** Upstream (or session) failure status, e.g. 401/403/409/502. */
     status: number
+    /** Structured API error code when the upstream body includes one. */
+    code?: string
 }
 
 export type PlatformApiResult<T> = PlatformApiSuccess<T> | PlatformApiFailure
@@ -160,7 +162,19 @@ export async function callPlatformApi<T>(
     }
 
     if (!upstream.ok) {
-        return {ok: false, status: upstream.status}
+        let code: string | undefined
+        try {
+            const payload: unknown = await upstream.clone().json()
+            const extracted = extractApiErrorCode(payload)
+            if (extracted !== null) {
+                code = extracted
+            }
+        } catch {
+            // Non-JSON error bodies are surfaced via status only.
+        }
+        return code === undefined
+            ? {ok: false, status: upstream.status}
+            : {ok: false, status: upstream.status, code}
     }
 
     if (upstream.status === 204 || upstream.status === 205) {

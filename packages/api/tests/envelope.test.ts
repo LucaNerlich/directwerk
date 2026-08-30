@@ -2,6 +2,7 @@ import {describe, expect, it} from 'vitest'
 
 import {AUTH_REQUIRED} from '../src/constants'
 import {
+    extractApiErrorCode,
     extractApiErrorMessage,
     parseApiEnvelope,
     parsePaginatedApiEnvelope,
@@ -34,6 +35,20 @@ describe('parsePaginatedApiEnvelope', () => {
         expect(() =>
             parsePaginatedApiEnvelope({data: ['a'], metadata: {total: 1}}),
         ).toThrow()
+    })
+})
+
+describe('extractApiErrorCode', () => {
+    it('returns the first structured error code', () => {
+        expect(
+            extractApiErrorCode({errors: [{code: 'TENANT_SLUG_EXISTS', message: 'Taken'}]}),
+        ).toBe('TENANT_SLUG_EXISTS')
+    })
+
+    it('returns null for malformed bodies', () => {
+        expect(extractApiErrorCode(null)).toBeNull()
+        expect(extractApiErrorCode({errors: []})).toBeNull()
+        expect(extractApiErrorCode({errors: [{message: 'No code'}]})).toBeNull()
     })
 })
 

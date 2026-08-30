@@ -4,12 +4,15 @@ export interface CreateTenantState {
     error: string | null
     success: string | null
     inviteToken: string | null
+    /** When true, the tenant list should reload (e.g. after a 409 conflict). */
+    refreshList: boolean
 }
 
 export const INITIAL_CREATE_TENANT_STATE: CreateTenantState = {
     error: null,
     success: null,
     inviteToken: null,
+    refreshList: false,
 }
 
 export interface TenantEditState {

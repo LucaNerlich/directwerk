@@ -32,7 +32,7 @@ export default function TenantsPage(): React.JSX.Element {
         getPlatformData<TenantList>('tenants')
             .then((result) => {
                 if (active) {
-                    setTenants(result.content)
+                    setTenants(result.content ?? [])
                     setError(null)
                 }
             })

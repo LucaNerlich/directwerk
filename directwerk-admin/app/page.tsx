@@ -44,7 +44,7 @@ export default function HomePage(): React.JSX.Element {
             .then(([overviewResult, tenantResult, admins, jobs]) => {
                 if (active) {
                     setOverview(overviewResult)
-                    setTenants(tenantResult.content)
+                    setTenants(tenantResult.content ?? [])
                     setAdminCount(admins.length)
                     setJobCount(jobs.total)
                     setError(null)

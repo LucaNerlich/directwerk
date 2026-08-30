@@ -50,13 +50,20 @@ export async function createTenantAction(
     })
 
     if (!result.ok) {
+        const conflictMessage =
+            result.code === 'TENANT_SLUG_EXISTS'
+                ? 'A tenant with this slug already exists. Refresh the list — it may have been created on an earlier attempt.'
+                : result.code === 'DOMAIN_ALREADY_EXISTS'
+                  ? 'This primary domain is already registered to another tenant. Refresh the list or pick a different domain.'
+                  : 'A tenant with this slug or primary domain already exists. Refresh the list — it may have been created on an earlier attempt.'
+
         return {
             ...INITIAL_CREATE_TENANT_STATE,
             error: statusToFormError(result.status, {
-                conflict:
-                    'A tenant with this slug or primary domain already exists.',
+                conflict: conflictMessage,
                 fallback: 'Tenant creation failed. Check the details and try again.',
             }),
+            refreshList: result.status === 409,
         }
     }
 
@@ -64,6 +71,7 @@ export async function createTenantAction(
         error: null,
         success: `Created tenant ${result.data.name} (${result.data.slug}).`,
         inviteToken: result.data.adminInvitation?.inviteToken ?? null,
+        refreshList: true,
     }
 }
 
