@@ -3,7 +3,7 @@
 # Coolify
 #   Base Directory: repository root (.) — not directwerk-docs/
 #   Dockerfile: directwerk-docs/Dockerfile
-#   Ports Exposes: 3006 (must match ENV PORT below)
+#   Port: 3006
 #
 # Local:
 #   docker build -f directwerk-docs/Dockerfile -t directwerk-docs:local .
@@ -37,16 +37,29 @@ RUN cp /ctx/package.json /ctx/pnpm-lock.yaml /ctx/pnpm-workspace.yaml /ctx/.npmr
 
 RUN pnpm install --frozen-lockfile --filter directwerk-docs...
 
-ENV NEXT_TELEMETRY_DISABLED=1
 ENV VITEPRESS_LAST_UPDATED=0
-RUN pnpm --filter directwerk-docs build
+RUN pnpm --filter directwerk-docs build \
+    && pnpm deploy --filter=directwerk-docs --prod --legacy /deploy \
+    && mkdir -p /deploy/docs/.vitepress \
+    && cp -a directwerk-docs/docs/.vitepress/dist /deploy/docs/.vitepress/dist
 
-FROM nginx:1.27-alpine
+FROM node:22-alpine AS runtime
+WORKDIR /app
+
+ENV NODE_ENV=production
 ENV PORT=3006
-RUN rm -rf /usr/share/nginx/html/*
-COPY --from=build /workspace/directwerk-docs/nginx.conf.template /etc/nginx/templates/default.conf.template
-COPY --from=build /workspace/directwerk-docs/docs/.vitepress/dist /usr/share/nginx/html
+ENV HOSTNAME=0.0.0.0
 
+RUN addgroup -S docs && adduser -S docs -G docs
+
+COPY --from=build /deploy ./
+
+RUN chown -R docs:docs /app
+
+USER docs
 EXPOSE 3006
-CMD ["nginx", "-g", "daemon off;"]
-HEALTHCHECK CMD wget -qO- http://127.0.0.1:3006/api/health >/dev/null || exit 1
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
+    CMD node -e "fetch('http://127.0.0.1:' + process.env.PORT + '/').then((r) => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"
+
+CMD ["sh", "-c", "node node_modules/serve/build/main.js docs/.vitepress/dist --listen tcp://0.0.0.0:${PORT} --no-clipboard"]

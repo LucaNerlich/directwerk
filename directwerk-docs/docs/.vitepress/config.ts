@@ -1,6 +1,6 @@
 import path from 'node:path'
-import { readdirSync } from 'node:fs'
-import { fileURLToPath } from 'node:url'
+import {readdirSync} from 'node:fs'
+import {fileURLToPath} from 'node:url'
 import { defineConfig } from 'vitepress'
 import { diagramPlugin } from 'vitepress-plugin-mermaid-diagram'
 import { openApiDocs } from 'vitepress-openapi-docs/vitepress'
@@ -9,20 +9,32 @@ const docsPackageRoot = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
   '../..',
 )
-const pnpmDir = path.resolve(docsPackageRoot, '../node_modules/.pnpm')
-const vueApiPlaygroundDir = readdirSync(pnpmDir).find((entry) =>
-  entry.startsWith('vue-api-playground@'),
-)
-if (!vueApiPlaygroundDir) {
+
+function findPnpmPackageRoot(packageName: string): string {
+  const pnpmDirs = [
+    path.join(docsPackageRoot, 'node_modules/.pnpm'),
+    path.resolve(docsPackageRoot, '../node_modules/.pnpm'),
+  ]
+
+  for (const pnpmDir of pnpmDirs) {
+    try {
+      const entry = readdirSync(pnpmDir).find((name) =>
+        name.startsWith(`${packageName}@`),
+      )
+      if (entry) {
+        return path.join(pnpmDir, entry, 'node_modules', packageName)
+      }
+    } catch {
+      continue
+    }
+  }
+
   throw new Error(
-    'vue-api-playground is missing. Run pnpm install from the monorepo root.',
+    `${packageName} is missing. Run pnpm install from the monorepo root.`,
   )
 }
-const vueApiPlaygroundRoot = path.join(
-  pnpmDir,
-  vueApiPlaygroundDir,
-  'node_modules/vue-api-playground',
-)
+
+const vueApiPlaygroundRoot = findPnpmPackageRoot('vue-api-playground')
 const vueApiPlaygroundStyles = path.join(
   vueApiPlaygroundRoot,
   'dist/vue-api-playground.css',

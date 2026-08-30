@@ -106,7 +106,7 @@ Do **not** use Nixpacks with a subdirectory base directory.
 | `directwerk-studio` | `directwerk-studio/Dockerfile` | 3003 | `/api/health` |
 | `directwerk-web` | `directwerk-web/Dockerfile` | 3004 | `/api/health` |
 | `homepage` | `homepage/Dockerfile` | 3005 | `/api/health` |
-| `directwerk-docs` | `directwerk-docs/Dockerfile` | **3006** | `/api/health` |
+| `directwerk-docs` | `directwerk-docs/Dockerfile` | **3006** | `/` |
 
 Coolify settings for each app:
 
@@ -151,15 +151,14 @@ frontend container (staging only — prefer valid TLS or internal HTTP in produc
 ### `directwerk-docs` Bad Gateway (502)
 
 The container is usually healthy (logs show `GET /` **200**), but Coolify’s proxy is hitting the
-wrong port. Docs nginx listens on **`PORT`** (default **3006**), not 80, 3001, or 4173.
+wrong port. Docs listens on **`PORT`** (default **3006**), same as the other frontends.
 
 1. **General → Ports Exposes:** `3006`
-2. **Domains:** use `https://docs.example.com` after the port is correct; if Traefik still 502s,
-   try `https://docs.example.com:3006` once to force label regeneration, then remove `:3006`
-3. **Environment:** delete a stray `PORT=4173` (from the Node `preview` script) if present
+2. **Environment:** delete a stray `PORT=4173` if present; leave unset so the Dockerfile default applies
+3. **Health check:** `/`
 4. Redeploy after changes
 
-Runtime logs should show `GET /` with ~**10354** bytes (VitePress), not **615** (stock nginx page).
+Runtime logs should show VitePress preview serving `/` with ~**10 KB** responses, not nginx’s **615** byte default page.
 
 ### App exits immediately in prod
 

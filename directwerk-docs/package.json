@@ -5,10 +5,13 @@
   "type": "module",
   "scripts": {
     "dev": "vitepress dev docs",
-    "build": "vitepress build docs",
+    "build": "vitepress build docs && node scripts/write-serve-config.mjs",
     "preview": "vitepress preview docs",
-    "start": "vitepress preview docs --host 0.0.0.0 --port ${PORT:-4173}",
+    "start": "serve docs/.vitepress/dist --listen tcp://0.0.0.0:${PORT:-3006} --no-clipboard",
     "export-openapi": "bash scripts/export-openapi.sh"
+  },
+  "dependencies": {
+    "serve": "^14.2.4"
   },
   "devDependencies": {
     "vitepress": "2.0.0-alpha.19",
