@@ -13,5 +13,10 @@ get {
 tests {
   test("returns expected status", function() {
     expect(res.getStatus() === 200).to.equal(true);
+    if (res.body.data.analytics !== null && res.body.data.analytics !== undefined) {
+      expect(res.body.data.analytics).to.have.property("umamiWebsiteId");
+      expect(res.body.data.analytics).to.have.property("umamiHostUrl");
+      expect(res.body.data.analytics).to.have.property("umamiScriptUrl");
+    }
   });
 }

@@ -345,6 +345,13 @@ export interface TenantMediaQuery {
 // ---------------------------------------------------------------------------
 
 /** Public site configuration served to anonymous visitors. */
+export interface SiteAnalytics {
+    umamiWebsiteId: string
+    umamiHostUrl: string
+    umamiScriptUrl: string
+}
+
+/** Public site configuration served to anonymous visitors. */
 export interface PublicSiteConfig {
     tenant: {slug: string; name: string}
     enabledModules: string[]
@@ -356,6 +363,8 @@ export interface PublicSiteConfig {
     }
     publicRssUrl: string | null
     publicSiteUrl: string | null
+    /** Umami analytics when the ANALYTICS module is enabled and configured. */
+    analytics: SiteAnalytics | null
     /** True when the tenant has EMAIL_NOTIFY and platform email delivery is enabled. */
     emailNotifyAvailable: boolean
 }
@@ -710,6 +719,7 @@ export interface TenantBranding {
     secondaryColor: string | null
     logoUrl: string | null
     umamiWebsiteId: string | null
+    umamiHostUrl: string | null
 }
 
 export interface UpdateTenantBrandingInput {
@@ -718,6 +728,7 @@ export interface UpdateTenantBrandingInput {
     secondaryColor?: string | null
     logoUrl?: string | null
     umamiWebsiteId?: string | null
+    umamiHostUrl?: string | null
 }
 
 export interface TenantSubscriber {

@@ -13,6 +13,7 @@ import type {
     PublicProduct,
     PublicSeries,
     PublicSiteConfig,
+    SiteAnalytics,
     SubscriberDownload,
     SubscriberFeedView,
     SubscriptionSummary,
@@ -34,6 +35,30 @@ import {
 // ---------------------------------------------------------------------------
 // Site configuration (public shape)
 // ---------------------------------------------------------------------------
+
+/** Parses Umami analytics from public site config; invalid payloads become null. */
+export function parseSiteAnalytics(value: unknown): SiteAnalytics | null {
+    if (value === null || value === undefined) {
+        return null
+    }
+    if (
+        !isRecord(value) ||
+        !isBoundedString(value.umamiWebsiteId, 64) ||
+        value.umamiWebsiteId.trim().length === 0 ||
+        !isBoundedString(value.umamiHostUrl, 512) ||
+        !isAllowedFeedUrl(value.umamiHostUrl) ||
+        !isBoundedString(value.umamiScriptUrl, 512) ||
+        !isAllowedFeedUrl(value.umamiScriptUrl)
+    ) {
+        return null
+    }
+
+    return {
+        umamiWebsiteId: value.umamiWebsiteId.trim(),
+        umamiHostUrl: value.umamiHostUrl.trim().replace(/\/+$/, ''),
+        umamiScriptUrl: value.umamiScriptUrl.trim(),
+    }
+}
 
 /** Parses the anonymous-visitor site-config envelope. */
 export function parsePublicSiteConfigEnvelope(
@@ -73,6 +98,7 @@ export function parsePublicSiteConfigEnvelope(
                 isAllowedFeedUrl(data.publicRssUrl)
                     ? data.publicRssUrl
                     : null,
+            analytics: parseSiteAnalytics(data.analytics),
             emailNotifyAvailable: data.emailNotifyAvailable === true,
         }
     })

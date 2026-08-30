@@ -58,6 +58,7 @@ import {
     parseBoundedArray,
     parseEnvelope,
 } from './primitives'
+import {parseSiteAnalytics} from './public'
 
 // ---------------------------------------------------------------------------
 // Shared entity parsers
@@ -1056,6 +1057,7 @@ export function parseStudioSiteConfigEnvelope(
             publicRssUrl: isNullableString(data.publicRssUrl)
                 ? data.publicRssUrl
                 : null,
+            analytics: parseSiteAnalytics(data.analytics),
             studioHome,
             studioDesks,
             emailNotifyAvailable: data.emailNotifyAvailable === true,
@@ -1074,7 +1076,8 @@ function parseTenantBranding(value: unknown): TenantBranding | null {
         !isNullableString(value.primaryColor, 16) ||
         !isNullableString(value.secondaryColor, 16) ||
         !isNullableString(value.logoUrl, 2048) ||
-        !isNullableString(value.umamiWebsiteId, 64)
+        !isNullableString(value.umamiWebsiteId, 64) ||
+        !isOptionalNullableString(value.umamiHostUrl, 512)
     ) {
         return null
     }
@@ -1085,6 +1088,8 @@ function parseTenantBranding(value: unknown): TenantBranding | null {
         secondaryColor: value.secondaryColor,
         logoUrl: value.logoUrl,
         umamiWebsiteId: value.umamiWebsiteId,
+        umamiHostUrl:
+            typeof value.umamiHostUrl === 'string' ? value.umamiHostUrl : null,
     }
 }
 

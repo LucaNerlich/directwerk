@@ -11,6 +11,8 @@ Accept: application/json
 > {%
     client.test("Get branding", function() {
         client.assert(response.status === 200, "Expected 200");
+        client.assert(response.body.data.hasOwnProperty("umamiWebsiteId"), "Expected umamiWebsiteId");
+        client.assert(response.body.data.hasOwnProperty("umamiHostUrl"), "Expected umamiHostUrl");
     });
 %}
 
@@ -26,13 +28,17 @@ Accept: application/json
 {
   "primaryColor": "#112233",
   "secondaryColor": "#445566",
-  "logoUrl": "https://cdn.example.com/alpha-a/logo.png"
+  "logoUrl": "https://cdn.example.com/alpha-a/logo.png",
+  "umamiWebsiteId": "12345678-abcd-abcd-abcd-abcdefabcdef",
+  "umamiHostUrl": "https://umami.example.com"
 }
 
 > {%
     client.test("Update branding", function() {
         client.assert(response.status === 200, "Expected 200");
         client.assert(response.body.data.primaryColor === "#112233", "Expected primary color");
+        client.assert(response.body.data.umamiWebsiteId === "12345678-abcd-abcd-abcd-abcdefabcdef", "Expected umamiWebsiteId");
+        client.assert(response.body.data.umamiHostUrl === "https://umami.example.com", "Expected umamiHostUrl");
     });
 %}
 

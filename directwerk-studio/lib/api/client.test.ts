@@ -16,6 +16,7 @@ const sampleConfig: SiteConfig = {
     publicRssUrl: null,
     studioHome: 'OVERVIEW',
     studioDesks: ['WRITE', 'PODCAST'],
+    analytics: null,
     emailNotifyAvailable: false,
 }
 

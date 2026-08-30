@@ -63,10 +63,21 @@ public class UmamiEventClient {
             String eventName,
             Map<String, Object> data
     ) {
-        if (!directwerkConfig.isAnalyticsEnabled() || isBlank(websiteId)) {
+        trackEvent(null, websiteId, hostname, url, eventName, data);
+    }
+
+    public void trackEvent(
+            String hostUrl,
+            String websiteId,
+            String hostname,
+            String url,
+            String eventName,
+            Map<String, Object> data
+    ) {
+        if (isBlank(websiteId)) {
             return;
         }
-        Optional<URI> sendUri = sendUri();
+        Optional<URI> sendUri = sendUri(hostUrl);
         if (sendUri.isEmpty()) {
             return;
         }
@@ -133,13 +144,20 @@ public class UmamiEventClient {
         }
     }
 
-    private Optional<URI> sendUri() {
-        DirectwerkProperties.Analytics analytics = directwerkConfig.analytics();
-        if (analytics == null || isBlank(analytics.umamiHostUrl())) {
+    private Optional<URI> sendUri(String hostUrlOverride) {
+        String configuredHostUrl = hostUrlOverride;
+        if (isBlank(configuredHostUrl)) {
+            if (!directwerkConfig.isAnalyticsEnabled()) {
+                return Optional.empty();
+            }
+            DirectwerkProperties.Analytics analytics = directwerkConfig.analytics();
+            configuredHostUrl = analytics == null ? null : analytics.umamiHostUrl();
+        }
+        if (isBlank(configuredHostUrl)) {
             return Optional.empty();
         }
         try {
-            URI baseUri = URI.create(trimTrailingSlash(analytics.umamiHostUrl()));
+            URI baseUri = URI.create(trimTrailingSlash(configuredHostUrl.trim()));
             if (!isAllowedBaseUri(baseUri)) {
                 log.error("Umami host URL must be an absolute HTTPS URL with a host");
                 return Optional.empty();

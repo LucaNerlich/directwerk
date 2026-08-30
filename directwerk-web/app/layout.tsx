@@ -4,6 +4,7 @@ import BrandTheme from '@directwerk/ui/components/brand-theme'
 
 import AuthBootstrap from '@/components/AuthBootstrap'
 import SiteHeader from '@/components/SiteHeader'
+import UmamiAnalytics from '@/components/UmamiAnalytics'
 import {fetchSiteConfigServer} from '@/lib/site/fetchSiteConfigServer'
 import {getTenantHost} from '@/lib/site/getTenantHost'
 import {SiteConfigProvider} from '@/lib/site/SiteConfigProvider'
@@ -59,6 +60,7 @@ export default async function RootLayout({
             },
             publicSiteUrl: null,
             publicRssUrl: null,
+            analytics: null,
             emailNotifyAvailable: false,
         }
     }
@@ -67,6 +69,7 @@ export default async function RootLayout({
     return (
         <html lang="de">
             <body>
+                <UmamiAnalytics analytics={config.analytics} />
                 <SiteConfigProvider config={config}>
                     <BrandTheme primaryHex={primary}>
                         <AuthBootstrap>

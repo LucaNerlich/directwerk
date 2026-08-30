@@ -38,6 +38,7 @@ function config(overrides: Partial<SiteConfig> = {}): SiteConfig {
         publicRssUrl: 'http://localhost:8080/feeds/tenant/podcast.xml',
         studioHome: 'PODCAST_DESK',
         studioDesks: ['PODCAST'],
+        analytics: null,
         emailNotifyAvailable: false,
         ...overrides,
     }

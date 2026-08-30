@@ -40,6 +40,7 @@ function config(overrides: Partial<SiteConfig> = {}): SiteConfig {
         publicRssUrl: 'https://demo.example/feeds/demo/podcast.xml',
         studioHome: 'PODCAST_DESK',
         studioDesks: ['PODCAST'],
+        analytics: null,
         emailNotifyAvailable: false,
         ...overrides,
     }

@@ -19,7 +19,9 @@ body:json {
     "siteTitle": "Alpha Show A",
     "primaryColor": "#112233",
     "secondaryColor": "#445566",
-    "logoUrl": "https://cdn.example.com/alpha-a/logo.png"
+    "logoUrl": "https://cdn.example.com/alpha-a/logo.png",
+    "umamiWebsiteId": "12345678-abcd-abcd-abcd-abcdefabcdef",
+    "umamiHostUrl": "https://umami.example.com"
   }
 }
 
@@ -27,5 +29,7 @@ tests {
   test("returns expected status", function() {
     expect(res.getStatus() === 200).to.equal(true);
     expect(res.body.data.siteTitle).to.equal("Alpha Show A");
+    expect(res.body.data.umamiWebsiteId).to.equal("12345678-abcd-abcd-abcd-abcdefabcdef");
+    expect(res.body.data.umamiHostUrl).to.equal("https://umami.example.com");
   });
 }

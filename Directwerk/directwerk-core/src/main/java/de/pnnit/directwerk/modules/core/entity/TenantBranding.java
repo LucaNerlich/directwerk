@@ -45,4 +45,7 @@ public class TenantBranding extends LastModifiedAuditable implements TenantOwned
 
     @Column(name = "umami_website_id", length = 64)
     private String umamiWebsiteId;
+
+    @Column(name = "umami_host_url", length = 512)
+    private String umamiHostUrl;
 }

@@ -11,6 +11,11 @@ Accept: application/json
         client.assert(response.status === 200, "Expected 200");
         client.assert(response.body.data.tenant.slug === client.global.get("tenantASlug"), "Expected tenant A slug");
         client.assert(Array.isArray(response.body.data.enabledModules), "Expected enabledModules");
+        if (response.body.data.analytics !== null && response.body.data.analytics !== undefined) {
+            client.assert(response.body.data.analytics.hasOwnProperty("umamiWebsiteId"), "Expected umamiWebsiteId");
+            client.assert(response.body.data.analytics.hasOwnProperty("umamiHostUrl"), "Expected umamiHostUrl");
+            client.assert(response.body.data.analytics.hasOwnProperty("umamiScriptUrl"), "Expected umamiScriptUrl");
+        }
     });
 %}
 

@@ -12,6 +12,7 @@ export const DEFAULT_STUDIO_SITE_CONFIG: SiteConfig = {
     },
     publicRssUrl: null,
     publicSiteUrl: null,
+    analytics: null,
     emailNotifyAvailable: false,
     studioHome: 'OVERVIEW',
     studioDesks: [],

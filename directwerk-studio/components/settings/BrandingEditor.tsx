@@ -22,6 +22,7 @@ const INITIAL_STATE: BrandingFormState = {error: null, success: null}
 
 const COLOR_PATTERN = /^#[0-9A-Fa-f]{6}$/
 const UMAMI_PATTERN = /^$|^[a-zA-Z0-9-]{8,64}$/
+const UMAMI_HOST_PATTERN = /^$|^https:\/\/[^\s/]+(?:\/.*)?$/
 
 function normalizeColor(value: FormDataEntryValue | null): string | null | undefined {
     const text = String(value ?? '').trim()
@@ -76,6 +77,7 @@ export default function BrandingEditor(): React.JSX.Element {
         const secondaryColor = normalizeColor(formData.get('secondaryColor'))
         const logoUrl = String(formData.get('logoUrl') ?? '').trim()
         const umamiWebsiteId = String(formData.get('umamiWebsiteId') ?? '').trim()
+        const umamiHostUrl = String(formData.get('umamiHostUrl') ?? '').trim()
 
         if (primaryColor !== null && primaryColor !== undefined && !COLOR_PATTERN.test(primaryColor)) {
             return {error: 'Primärfarbe muss #RRGGBB sein.', success: null}
@@ -93,6 +95,12 @@ export default function BrandingEditor(): React.JSX.Element {
                 success: null,
             }
         }
+        if (!UMAMI_HOST_PATTERN.test(umamiHostUrl)) {
+            return {
+                error: 'Umami-Server muss leer oder eine HTTPS-URL sein (z. B. https://umami.example.com).',
+                success: null,
+            }
+        }
 
         try {
             const updated = await updateBranding(getClientTenantHost(), {
@@ -101,6 +109,7 @@ export default function BrandingEditor(): React.JSX.Element {
                 secondaryColor: secondaryColor ?? null,
                 logoUrl: logoUrl.length > 0 ? logoUrl : null,
                 umamiWebsiteId: umamiWebsiteId.length > 0 ? umamiWebsiteId : null,
+                umamiHostUrl: umamiHostUrl.length > 0 ? umamiHostUrl : null,
             })
             setBranding(updated)
             return {error: null, success: 'Branding gespeichert.'}
@@ -194,6 +203,21 @@ export default function BrandingEditor(): React.JSX.Element {
                         name="umamiWebsiteId"
                         type="text"
                     />
+                </label>
+                <label className="grid gap-2 text-sm font-medium" htmlFor="umamiHostUrl">
+                    Umami-Server
+                    <Input
+                        className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50"
+                        defaultValue={branding?.umamiHostUrl ?? ''}
+                        id="umamiHostUrl"
+                        maxLength={512}
+                        name="umamiHostUrl"
+                        placeholder="https://umami.example.com"
+                        type="url"
+                    />
+                    <span className="text-xs font-normal text-muted-foreground">
+                        Leer lassen, um den Plattform-Standard zu verwenden.
+                    </span>
                 </label>
                 {state.error ? (
                     <p aria-live="polite" className="text-sm text-destructive" role="alert">

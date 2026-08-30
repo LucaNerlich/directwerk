@@ -88,6 +88,29 @@ class UmamiEventClientTest {
     }
 
     @Test
+    void sendsWhenTenantHostProvidedEvenIfPlatformAnalyticsDisabled() throws Exception {
+        CapturingHttpClient httpClient = new CapturingHttpClient(200);
+        UmamiEventClient client = new UmamiEventClient(
+                directwerkConfig(false, "https://umami.example.test", "Directwerk-Test/1.0"),
+                new ObjectMapper(),
+                httpClient,
+                Runnable::run
+        );
+
+        client.trackEvent(
+                "https://tenant.umami.example.test",
+                "123e4567-e89b-12d3-a456-426614174000",
+                "alpha.example.test",
+                "/episodes/episode-1",
+                "episode-download",
+                Map.of()
+        );
+
+        assertThat(httpClient.await()).isTrue();
+        assertThat(httpClient.request().uri()).hasToString("https://tenant.umami.example.test/api/send");
+    }
+
+    @Test
     void doesNotSendWhenHostIsNotHttps() throws Exception {
         CapturingHttpClient httpClient = new CapturingHttpClient(200);
         UmamiEventClient client = new UmamiEventClient(

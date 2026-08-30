@@ -4,6 +4,7 @@ import de.pnnit.directwerk.config.DirectwerkCacheNames;
 import de.pnnit.directwerk.modules.core.entity.TenantBranding;
 import de.pnnit.directwerk.modules.core.repository.TenantBrandingRepository;
 import de.pnnit.directwerk.modules.core.repository.TenantRepository;
+import de.pnnit.directwerk.modules.core.util.UmamiHostUrlValidator;
 import de.pnnit.directwerk.modules.core.util.UmamiWebsiteIdValidator;
 import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.Cacheable;
@@ -36,7 +37,8 @@ public class TenantBrandingService {
             String primaryColor,
             String secondaryColor,
             String logoUrl,
-            String umamiWebsiteId
+            String umamiWebsiteId,
+            String umamiHostUrl
     ) {
         TenantBranding branding = tenantBrandingRepository.findByTenantId(tenantId)
                 .orElseGet(() -> {
@@ -60,6 +62,9 @@ public class TenantBrandingService {
         if (umamiWebsiteId != null) {
             branding.setUmamiWebsiteId(normalizeUmamiWebsiteId(umamiWebsiteId));
         }
+        if (umamiHostUrl != null) {
+            branding.setUmamiHostUrl(normalizeUmamiHostUrl(umamiHostUrl));
+        }
         TenantBranding saved = tenantBrandingRepository.save(branding);
         cacheEviction.evictTenantPublicCachesAfterCommit(tenantId);
         return saved;
@@ -67,5 +72,16 @@ public class TenantBrandingService {
 
     private static String normalizeUmamiWebsiteId(String umamiWebsiteId) {
         return UmamiWebsiteIdValidator.normalize(umamiWebsiteId);
+    }
+
+    private static String normalizeUmamiHostUrl(String umamiHostUrl) {
+        String normalized = UmamiHostUrlValidator.normalize(umamiHostUrl);
+        if (normalized == null) {
+            return null;
+        }
+        if (!UmamiHostUrlValidator.isValid(normalized)) {
+            throw new IllegalArgumentException("Umami host URL must be an absolute HTTPS URL");
+        }
+        return normalized;
     }
 }

@@ -16,6 +16,7 @@ vi.mock('@/lib/site/SiteConfigProvider', () => ({
         enabledModules: ['DIGITAL_CONTENT'],
         publicSiteUrl: 'https://demo.example',
         publicRssUrl: 'https://demo.example/feeds/demo/podcast.xml',
+        analytics: null,
         emailNotifyAvailable: false,
     }),
 }))

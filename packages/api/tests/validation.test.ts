@@ -213,6 +213,7 @@ describe('site-config envelopes', () => {
         const parsed = parsePublicSiteConfigEnvelope(base)
         expect(parsed?.data.enabledModules).toEqual(['PODCAST'])
         expect(parsed?.data.emailNotifyAvailable).toBe(false)
+        expect(parsed?.data.analytics).toBeNull()
     })
 
     it('public shape exposes emailNotifyAvailable when enabled', () => {
@@ -224,6 +225,40 @@ describe('site-config envelopes', () => {
             },
         })
         expect(parsed?.data.emailNotifyAvailable).toBe(true)
+    })
+
+    it('public shape parses analytics when configured', () => {
+        const parsed = parsePublicSiteConfigEnvelope({
+            ...base,
+            data: {
+                ...base.data,
+                analytics: {
+                    umamiWebsiteId: '12345678-abcd-abcd-abcd-abcdefabcdef',
+                    umamiHostUrl: 'https://umami.example.com',
+                    umamiScriptUrl: 'https://umami.example.com/script.js',
+                },
+            },
+        })
+        expect(parsed?.data.analytics).toEqual({
+            umamiWebsiteId: '12345678-abcd-abcd-abcd-abcdefabcdef',
+            umamiHostUrl: 'https://umami.example.com',
+            umamiScriptUrl: 'https://umami.example.com/script.js',
+        })
+    })
+
+    it('public shape drops invalid analytics payloads', () => {
+        const parsed = parsePublicSiteConfigEnvelope({
+            ...base,
+            data: {
+                ...base.data,
+                analytics: {
+                    umamiWebsiteId: '',
+                    umamiHostUrl: 'https://umami.example.com',
+                    umamiScriptUrl: 'https://umami.example.com/script.js',
+                },
+            },
+        })
+        expect(parsed?.data.analytics).toBeNull()
     })
 
     it('studio shape requires the desk configuration', () => {

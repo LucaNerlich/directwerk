@@ -4,6 +4,7 @@ import de.pnnit.directwerk.config.DirectwerkCacheNames;
 import de.pnnit.directwerk.config.DirectwerkConfig;
 import de.pnnit.directwerk.modules.core.FeatureModuleKeys;
 import de.pnnit.directwerk.modules.core.AnalyticsModule;
+import de.pnnit.directwerk.modules.core.analytics.UmamiAnalyticsResolver;
 import de.pnnit.directwerk.modules.core.entity.Tenant;
 import de.pnnit.directwerk.modules.core.entity.TenantBranding;
 import de.pnnit.directwerk.modules.core.repository.TenantBrandingRepository;
@@ -118,26 +119,20 @@ public class PublicSiteConfigService {
      * @return analytics configuration, or {@code null} when analytics is unavailable or not configured
      */
     private AnalyticsView analyticsView(TenantBranding branding, List<String> enabledModules) {
-        if (!directwerkConfig.isAnalyticsEnabled()
-                || !enabledModules.contains(AnalyticsModule.KEY)
+        if (!enabledModules.contains(AnalyticsModule.KEY)
                 || branding == null
                 || !UmamiWebsiteIdValidator.isValid(branding.getUmamiWebsiteId())) {
             return null;
         }
-        String hostUrl = trimTrailingSlash(directwerkConfig.analytics().umamiHostUrl());
+        String hostUrl = UmamiAnalyticsResolver.resolveHostUrl(branding, directwerkConfig);
+        if (hostUrl == null) {
+            return null;
+        }
         return new AnalyticsView(
                 branding.getUmamiWebsiteId(),
                 hostUrl,
                 hostUrl + "/script.js"
         );
-    }
-
-    private static String trimTrailingSlash(String value) {
-        String trimmed = value.trim();
-        while (trimmed.endsWith("/")) {
-            trimmed = trimmed.substring(0, trimmed.length() - 1);
-        }
-        return trimmed;
     }
 
     /**

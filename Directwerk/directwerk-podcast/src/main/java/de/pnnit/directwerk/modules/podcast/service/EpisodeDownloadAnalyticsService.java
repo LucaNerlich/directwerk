@@ -2,6 +2,7 @@ package de.pnnit.directwerk.modules.podcast.service;
 
 import de.pnnit.directwerk.config.DirectwerkConfig;
 import de.pnnit.directwerk.modules.core.AnalyticsModule;
+import de.pnnit.directwerk.modules.core.analytics.UmamiAnalyticsResolver;
 import de.pnnit.directwerk.modules.core.analytics.UmamiEventClient;
 import de.pnnit.directwerk.modules.core.entity.TenantBranding;
 import de.pnnit.directwerk.modules.core.service.ModuleGateService;
@@ -43,11 +44,13 @@ public class EpisodeDownloadAnalyticsService {
                     || !ALLOWED_SOURCES.contains(source)) {
                 return;
             }
-            String websiteId = resolveValidBranding(tenantId);
-            if (websiteId == null) {
+            String websiteId = resolveValidWebsiteId(tenantId);
+            String hostUrl = resolveHostUrl(tenantId);
+            if (websiteId == null || hostUrl == null) {
                 return;
             }
             umamiEventClient.trackEvent(
+                    hostUrl,
                     websiteId,
                     hostname.trim().toLowerCase(Locale.ROOT),
                     "/episodes/" + episode.getSlug(),
@@ -118,11 +121,8 @@ public class EpisodeDownloadAnalyticsService {
         );
     }
 
-    private String resolveValidBranding(Long tenantId) {
-        if (tenantId == null || !directwerkConfig.isAnalyticsEnabled()) {
-            return null;
-        }
-        if (!moduleGateService.enabledModuleKeys(tenantId).contains(AnalyticsModule.KEY)) {
+    private String resolveValidWebsiteId(Long tenantId) {
+        if (tenantId == null || !moduleGateService.enabledModuleKeys(tenantId).contains(AnalyticsModule.KEY)) {
             return null;
         }
         TenantBranding branding = tenantBrandingService.getBranding(tenantId);
@@ -131,5 +131,13 @@ public class EpisodeDownloadAnalyticsService {
             return null;
         }
         return websiteId.trim();
+    }
+
+    private String resolveHostUrl(Long tenantId) {
+        if (tenantId == null) {
+            return null;
+        }
+        TenantBranding branding = tenantBrandingService.getBranding(tenantId);
+        return UmamiAnalyticsResolver.resolveHostUrl(branding, directwerkConfig);
     }
 }

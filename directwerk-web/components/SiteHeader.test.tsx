@@ -29,6 +29,7 @@ describe('SiteHeader', () => {
                     },
                     publicSiteUrl: null,
                     publicRssUrl: null,
+                    analytics: null,
                     emailNotifyAvailable: false,
                 }}
             >
