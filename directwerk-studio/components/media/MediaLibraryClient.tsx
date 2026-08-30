@@ -6,11 +6,11 @@ import UploadProgress from '@/components/media/UploadProgress'
 import {Button} from '@directwerk/ui/components/button'
 import {Checkbox} from '@directwerk/ui/components/checkbox'
 import EmptyState from '@directwerk/ui/components/empty-state'
-import {EntityListToolbar} from '@directwerk/ui/components/entity-list-toolbar'
+import {EntityListSection} from '@directwerk/ui/components/entity-list-section'
+import type {EntityListViewItem} from '@directwerk/ui/components/entity-list-view'
 import {Label} from '@directwerk/ui/components/label'
-import ListPanel, {ListPanelRow} from '@directwerk/ui/components/list-panel'
 import PageHeader from '@directwerk/ui/components/page-header'
-import {Card, CardContent, CardFooter, CardHeader} from '@directwerk/ui/components/card'
+import {useEntityListSelection} from '@directwerk/ui/hooks/use-entity-list-selection'
 import {useListViewMode} from '@directwerk/ui/hooks/use-list-view-mode'
 
 import {useMemo, useEffect, useRef, useState, type ChangeEvent, type DragEvent} from 'react'
@@ -23,7 +23,6 @@ import {uploadMediaFile} from '@/lib/media/upload'
 import {getClientTenantHost} from '@directwerk/api/tenant'
 import {safeImageSrc} from '@/lib/url/safeUrl'
 import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
-import {usePublicationListSelection} from '@/lib/publication/usePublicationListSelection'
 
 function formatBytes(sizeBytes: number | null): string {
     if (sizeBytes === null || sizeBytes <= 0) {
@@ -324,7 +323,7 @@ export default function MediaLibraryClient(): React.JSX.Element {
         toggleSelection,
         toggleSelectAll,
         clearSelection,
-    } = usePublicationListSelection(visibleAssetIds)
+    } = useEntityListSelection<number>(visibleAssetIds)
 
     async function handleBulkDeleteSelected(): Promise<void> {
         const selected = visibleAssets.filter((asset) => selectedIds.has(asset.id))
@@ -391,6 +390,42 @@ export default function MediaLibraryClient(): React.JSX.Element {
     }
 
     const pendingCount = assets.filter((asset) => asset.status === 'PENDING').length
+
+    const mediaItems: EntityListViewItem[] = useMemo(
+        () =>
+            visibleAssets.map((asset) => ({
+                id: asset.id,
+                title: asset.originalFilename ?? `Asset #${asset.id}`,
+                leading:
+                    viewMode === 'list' ? (
+                        <div className="size-16 shrink-0 overflow-hidden rounded-md">
+                            {renderAssetPreview(asset)}
+                        </div>
+                    ) : undefined,
+                extra:
+                    viewMode === 'grid' ? (
+                        <>
+                            {renderAssetPreview(asset)}
+                            {renderAssetMeta(asset)}
+                        </>
+                    ) : undefined,
+                description: viewMode === 'list' ? renderAssetMeta(asset) : undefined,
+                actions: (
+                    <Button
+                        disabled={isBusy}
+                        onClick={() => {
+                            void handleDelete(asset.id)
+                        }}
+                        size="sm"
+                        type="button"
+                        variant="outline"
+                    >
+                        Löschen
+                    </Button>
+                ),
+            })),
+        [isBusy, previewUrls, viewMode, visibleAssets],
+    )
 
     if (isLoading) {
         return <p>Wird geladen…</p>
@@ -526,132 +561,33 @@ export default function MediaLibraryClient(): React.JSX.Element {
             ) : visibleAssets.length === 0 ? (
                 <p className="text-sm text-muted-foreground">Keine Medien für diesen Filter.</p>
             ) : (
-                <>
-                    <EntityListToolbar
-                        allSelected={allSelected}
-                        bulkActions={
-                            selectedCount > 0 ? (
-                                <Button
-                                    disabled={isBusy}
-                                    onClick={() => void handleBulkDeleteSelected()}
-                                    size="sm"
-                                    type="button"
-                                    variant="outline"
-                                >
-                                    {isBusy
-                                        ? 'Wird gelöscht…'
-                                        : `${selectedCount} löschen`}
-                                </Button>
-                            ) : null
-                        }
-                        disabled={isBusy}
-                        onToggleSelectAll={toggleSelectAll}
-                        onViewModeChange={setViewMode}
-                        selectAllLabel="Alle Medien auswählen"
-                        selectedCount={selectedCount}
-                        viewMode={viewMode}
-                    />
-                    {viewMode === 'grid' ? (
-                        <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                            {visibleAssets.map((asset) => {
-                                const isSelected = selectedIds.has(asset.id)
-                                return (
-                                    <li key={asset.id}>
-                                        <Card
-                                            className={isSelected ? 'ring-2 ring-primary' : undefined}
-                                            size="sm"
-                                        >
-                                            <CardHeader className="grid-cols-[auto_1fr] items-start gap-3">
-                                                <Label>
-                                                    <Checkbox
-                                                        aria-label={`„${asset.originalFilename ?? `Asset #${asset.id}`}“ auswählen`}
-                                                        checked={isSelected}
-                                                        disabled={isBusy}
-                                                        onCheckedChange={(checked) => {
-                                                            if (checked !== isSelected) {
-                                                                toggleSelection(asset.id)
-                                                            }
-                                                        }}
-                                                    />
-                                                </Label>
-                                                <div className="min-w-0">
-                                                    <strong className="block truncate">
-                                                        {asset.originalFilename ?? `Asset #${asset.id}`}
-                                                    </strong>
-                                                </div>
-                                            </CardHeader>
-                                            <CardContent className="flex flex-col gap-3">
-                                                {renderAssetPreview(asset)}
-                                                {renderAssetMeta(asset)}
-                                            </CardContent>
-                                            <CardFooter>
-                                                <Button
-                                                    disabled={isBusy}
-                                                    onClick={() => {
-                                                        void handleDelete(asset.id)
-                                                    }}
-                                                    type="button"
-                                                    variant="outline"
-                                                >
-                                                    Löschen
-                                                </Button>
-                                            </CardFooter>
-                                        </Card>
-                                    </li>
-                                )
-                            })}
-                        </ul>
-                    ) : (
-                        <ListPanel>
-                            {visibleAssets.map((asset) => {
-                                const isSelected = selectedIds.has(asset.id)
-                                return (
-                                    <ListPanelRow
-                                        className={isSelected ? 'bg-primary/5' : undefined}
-                                        key={asset.id}
-                                    >
-                                        <div className="flex min-w-0 flex-1 items-start gap-3">
-                                            <Label className="mt-0.5">
-                                                <Checkbox
-                                                    aria-label={`„${asset.originalFilename ?? `Asset #${asset.id}`}“ auswählen`}
-                                                    checked={isSelected}
-                                                    disabled={isBusy}
-                                                    onCheckedChange={(checked) => {
-                                                        if (checked !== isSelected) {
-                                                            toggleSelection(asset.id)
-                                                        }
-                                                    }}
-                                                />
-                                            </Label>
-                                            <div className="flex min-w-0 flex-1 flex-col gap-2 sm:flex-row sm:items-center">
-                                                <div className="size-16 shrink-0 overflow-hidden rounded-md">
-                                                    {renderAssetPreview(asset)}
-                                                </div>
-                                                <div className="min-w-0">
-                                                    <strong className="block truncate">
-                                                        {asset.originalFilename ?? `Asset #${asset.id}`}
-                                                    </strong>
-                                                    {renderAssetMeta(asset)}
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <Button
-                                            disabled={isBusy}
-                                            onClick={() => {
-                                                void handleDelete(asset.id)
-                                            }}
-                                            size="sm"
-                                            type="button"
-                                            variant="outline"
-                                        >
-                                            Löschen
-                                        </Button>
-                                    </ListPanelRow>
-                                )
-                            })}
-                        </ListPanel>
-                    )}
-                </>
+                <EntityListSection
+                    allSelected={allSelected}
+                    bulkActions={
+                        selectedCount > 0 ? (
+                            <Button
+                                disabled={isBusy}
+                                onClick={() => void handleBulkDeleteSelected()}
+                                size="sm"
+                                type="button"
+                                variant="outline"
+                            >
+                                {isBusy ? 'Wird gelöscht…' : `${selectedCount} löschen`}
+                            </Button>
+                        ) : null
+                    }
+                    disabled={isBusy}
+                    items={mediaItems}
+                    onToggleSelectAll={toggleSelectAll}
+                    onToggleSelection={(id) => toggleSelection(id as number)}
+                    onViewModeChange={setViewMode}
+                    selectAllLabel="Alle Medien auswählen"
+                    selectedCount={selectedCount}
+                    selectedIds={selectedIds}
+                    selectable
+                    showSelection
+                    viewMode={viewMode}
+                />
             )}
         </div>
     )

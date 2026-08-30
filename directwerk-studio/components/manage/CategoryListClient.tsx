@@ -4,9 +4,8 @@ import Link from 'next/link'
 
 import {Button} from '@directwerk/ui/components/button'
 import EmptyState from '@directwerk/ui/components/empty-state'
-import {EntityListToolbar} from '@directwerk/ui/components/entity-list-toolbar'
 import PageHeader from '@directwerk/ui/components/page-header'
-import {SlugEntityListView} from '@directwerk/ui/components/slug-entity-list-view'
+import {SlugEntityListSection} from '@directwerk/ui/components/slug-entity-list-view'
 import {useListViewMode} from '@directwerk/ui/hooks/use-list-view-mode'
 
 import {listCategories} from '@/lib/api/catalogApi'
@@ -62,18 +61,11 @@ export default function CategoryListClient(): React.JSX.Element {
                 />
             ) : null}
             {categories && categories.length > 0 ? (
-                <>
-                    <EntityListToolbar
-                        allSelected={false}
-                        onToggleSelectAll={() => undefined}
-                        onViewModeChange={setViewMode}
-                        selectAllLabel="Kategorien auswählen"
-                        selectedCount={0}
-                        showSelection={false}
-                        viewMode={viewMode}
-                    />
-                    <SlugEntityListView items={listItems} viewMode={viewMode} />
-                </>
+                <SlugEntityListSection
+                    items={listItems}
+                    onViewModeChange={setViewMode}
+                    viewMode={viewMode}
+                />
             ) : null}
         </div>
     )

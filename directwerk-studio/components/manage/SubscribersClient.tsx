@@ -12,39 +12,16 @@ import {useListViewMode} from '@directwerk/ui/hooks/use-list-view-mode'
 
 import {revokeSubscription} from '@/lib/api/subscriptionApi'
 import {listSubscribers} from '@/lib/api/tenantSettingsApi'
+import {
+    subscriptionSourceLabel,
+    subscriptionStatusLabel,
+} from '@/lib/subscription/displayLabels'
 import type {TenantSubscriber, TenantSubscriberSubscription} from '@directwerk/api/types'
 import {useCachedTenantQuery} from '@directwerk/api/client/useCachedTenantQuery'
 import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
 import {getClientTenantHost} from '@directwerk/api/tenant'
 
 const REVOCABLE = new Set(['ACTIVE', 'PAST_DUE', 'INCOMPLETE'])
-
-function sourceLabel(source: string): string {
-    if (source === 'STRIPE') {
-        return 'Stripe'
-    }
-    if (source === 'MANUAL' || source === 'SEED') {
-        return 'Freischaltung'
-    }
-    return source
-}
-
-function statusLabel(status: string): string {
-    switch (status) {
-        case 'ACTIVE':
-            return 'Aktiv'
-        case 'PAST_DUE':
-            return 'Zahlungsrückstand'
-        case 'INCOMPLETE':
-            return 'Unvollständig'
-        case 'CANCELED':
-            return 'Gekündigt'
-        case 'EXPIRED':
-            return 'Abgelaufen'
-        default:
-            return status
-    }
-}
 
 function periodLabel(item: TenantSubscriberSubscription): string {
     if (item.endsAt !== null) {
@@ -130,9 +107,9 @@ export default function SubscribersClient(): React.JSX.Element {
                             <div>
                                 <p>{item.productTitle}</p>
                                 <p className="text-sm text-muted-foreground">
-                                    {statusLabel(item.status)}
+                                    {subscriptionStatusLabel(item.status)}
                                     {' · '}
-                                    {sourceLabel(item.source)}
+                                    {subscriptionSourceLabel(item.source)}
                                     {' · '}
                                     {periodLabel(item)}
                                     {item.externalSubscriptionId !== null

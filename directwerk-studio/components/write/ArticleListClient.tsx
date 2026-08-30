@@ -6,8 +6,7 @@ import {Button} from '@directwerk/ui/components/button'
 import EmptyState from '@directwerk/ui/components/empty-state'
 import PageHeader from '@directwerk/ui/components/page-header'
 
-import PublicationListToolbar from '@/components/publication/PublicationListToolbar'
-import PublicationListView from '@/components/publication/PublicationListView'
+import PublicationListSection from '@/components/publication/PublicationListSection'
 import {
     cancelScheduleArticle,
     listArticles,
@@ -104,30 +103,26 @@ export default function ArticleListClient() {
                 />
             ) : (
                 <>
-                    <PublicationListToolbar
+                    <PublicationListSection
                         allSelected={allSelected}
-                        contentLabelPlural="Beiträge"
-                        isBulkBusy={isBulkBusy}
-                        onBulkPublish={() => void handleBulkPublish()}
-                        onBulkUnpublish={() => void handleBulkUnpublish()}
-                        onToggleSelectAll={toggleSelectAll}
-                        onViewModeChange={setViewMode}
-                        publishableCount={publishableCount}
-                        selectedCount={selectedCount}
-                        unpublishableCount={unpublishableCount}
-                        viewMode={viewMode}
-                    />
-                    <PublicationListView
                         busyItemId={busyArticleId}
+                        contentLabelPlural="Beiträge"
                         editorBasePath="/write/articles"
                         isBulkBusy={isBulkBusy}
                         items={articles}
+                        onBulkPublish={() => void handleBulkPublish()}
+                        onBulkUnpublish={() => void handleBulkUnpublish()}
                         onCancelSchedule={(article) => void handleCancelSchedule(article)}
                         onPublish={(article) => void handlePublish(article)}
+                        onToggleSelectAll={toggleSelectAll}
                         onToggleSelection={toggleSelection}
                         onUnarchive={(article) => void handleUnarchive(article)}
                         onUnpublish={(article) => void handleUnpublish(article)}
+                        onViewModeChange={setViewMode}
+                        publishableCount={publishableCount}
+                        selectedCount={selectedCount}
                         selectedIds={selectedIds}
+                        unpublishableCount={unpublishableCount}
                         viewMode={viewMode}
                     />
                 </>

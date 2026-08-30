@@ -1,11 +1,7 @@
 'use client'
 
-import ListPanel, {
-    ListPanelLinkItem,
-    ListPanelSlugContent,
-    listPanelLinkClassName,
-} from '#components/list-panel'
-import {Card, CardContent, CardHeader, CardTitle} from '#components/card'
+import {EntityListSection} from '#components/entity-list-section'
+import {EntityListView, type EntityListViewItem} from '#components/entity-list-view'
 import type {ViewMode} from '#components/view-mode-toggle'
 
 export interface SlugEntityListItem {
@@ -16,6 +12,16 @@ export interface SlugEntityListItem {
     href: string
 }
 
+export function mapSlugEntityListItems(items: SlugEntityListItem[]): EntityListViewItem[] {
+    return items.map((item) => ({
+        id: item.id,
+        title: item.name,
+        href: item.href,
+        description: <code>{item.slug}</code>,
+        trailing: item.trailing,
+    }))
+}
+
 export function SlugEntityListView({
     items,
     viewMode,
@@ -23,48 +29,24 @@ export function SlugEntityListView({
     items: SlugEntityListItem[]
     viewMode: ViewMode
 }): React.JSX.Element {
-    if (viewMode === 'grid') {
-        return (
-            <ul className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-                {items.map((item) => (
-                    <li key={item.id}>
-                        <Card className="h-full" size="sm">
-                            <CardHeader>
-                                <CardTitle className="min-w-0">
-                                    <a
-                                        className="line-clamp-2 hover:underline"
-                                        href={item.href}
-                                    >
-                                        {item.name}
-                                    </a>
-                                </CardTitle>
-                            </CardHeader>
-                            <CardContent className="flex flex-col gap-2 text-sm text-muted-foreground">
-                                <code>{item.slug}</code>
-                                {item.trailing !== undefined ? (
-                                    <span>{item.trailing}</span>
-                                ) : null}
-                            </CardContent>
-                        </Card>
-                    </li>
-                ))}
-            </ul>
-        )
-    }
+    return <EntityListView items={mapSlugEntityListItems(items)} viewMode={viewMode} />
+}
 
+export function SlugEntityListSection({
+    items,
+    viewMode,
+    onViewModeChange,
+}: {
+    items: SlugEntityListItem[]
+    viewMode: ViewMode
+    onViewModeChange: (mode: ViewMode) => void
+}): React.JSX.Element {
     return (
-        <ListPanel>
-            {items.map((item) => (
-                <ListPanelLinkItem key={item.id}>
-                    <a className={listPanelLinkClassName} href={item.href}>
-                        <ListPanelSlugContent
-                            name={item.name}
-                            slug={item.slug}
-                            trailing={item.trailing}
-                        />
-                    </a>
-                </ListPanelLinkItem>
-            ))}
-        </ListPanel>
+        <EntityListSection
+            items={mapSlugEntityListItems(items)}
+            onViewModeChange={onViewModeChange}
+            showSelection={false}
+            viewMode={viewMode}
+        />
     )
 }

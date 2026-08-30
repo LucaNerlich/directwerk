@@ -5,10 +5,9 @@ import Link from 'next/link'
 import {Alert, AlertDescription} from '@directwerk/ui/components/alert'
 import {Button} from '@directwerk/ui/components/button'
 import EmptyState from '@directwerk/ui/components/empty-state'
-import {EntityListToolbar} from '@directwerk/ui/components/entity-list-toolbar'
 import PageHeader from '@directwerk/ui/components/page-header'
 import PageStack from '@directwerk/ui/components/page-stack'
-import {SlugEntityListView} from '@directwerk/ui/components/slug-entity-list-view'
+import {SlugEntityListSection} from '@directwerk/ui/components/slug-entity-list-view'
 import {useListViewMode} from '@directwerk/ui/hooks/use-list-view-mode'
 
 import {listFormats} from '@/lib/api/catalogApi'
@@ -65,18 +64,11 @@ export default function FormatListClient(): React.JSX.Element {
                 />
             ) : null}
             {formats && formats.length > 0 ? (
-                <>
-                    <EntityListToolbar
-                        allSelected={false}
-                        onToggleSelectAll={() => undefined}
-                        onViewModeChange={setViewMode}
-                        selectAllLabel="Formate auswählen"
-                        selectedCount={0}
-                        showSelection={false}
-                        viewMode={viewMode}
-                    />
-                    <SlugEntityListView items={listItems} viewMode={viewMode} />
-                </>
+                <SlugEntityListSection
+                    items={listItems}
+                    onViewModeChange={setViewMode}
+                    viewMode={viewMode}
+                />
             ) : null}
 
             <p className="text-sm text-muted-foreground">

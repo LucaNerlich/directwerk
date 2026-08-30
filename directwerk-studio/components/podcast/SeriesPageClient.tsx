@@ -6,8 +6,7 @@ import {Button} from '@directwerk/ui/components/button'
 import EmptyState from '@directwerk/ui/components/empty-state'
 import PageHeader from '@directwerk/ui/components/page-header'
 
-import PublicationListToolbar from '@/components/publication/PublicationListToolbar'
-import PublicationListView from '@/components/publication/PublicationListView'
+import PublicationListSection from '@/components/publication/PublicationListSection'
 import {listSeries, publishSeries, unpublishSeries} from '@/lib/api/podcastApi'
 import {useSeriesListPage} from '@/lib/publication/useSeriesListPage'
 import {getClientTenantHost} from '@directwerk/api/tenant'
@@ -84,30 +83,26 @@ export default function SeriesPageClient(): React.JSX.Element {
                 />
             ) : (
                 <>
-                    <PublicationListToolbar
+                    <PublicationListSection
                         allSelected={allSelected}
-                        contentLabelPlural="Sendungen"
-                        isBulkBusy={isBulkBusy}
-                        onBulkPublish={() => void handleBulkPublish()}
-                        onBulkUnpublish={() => void handleBulkUnpublish()}
-                        onToggleSelectAll={toggleSelectAll}
-                        onViewModeChange={setViewMode}
-                        publishableCount={publishableCount}
-                        selectedCount={selectedCount}
-                        unpublishableCount={unpublishableCount}
-                        viewMode={viewMode}
-                    />
-                    <PublicationListView
                         busyItemId={busyItemId}
+                        contentLabelPlural="Sendungen"
                         editorBasePath="/podcast/series"
                         isBulkBusy={isBulkBusy}
                         items={listItems}
+                        onBulkPublish={() => void handleBulkPublish()}
+                        onBulkUnpublish={() => void handleBulkUnpublish()}
                         onCancelSchedule={() => {}}
                         onPublish={(item) => void handlePublish(item)}
+                        onToggleSelectAll={toggleSelectAll}
                         onToggleSelection={toggleSelection}
                         onUnarchive={() => {}}
                         onUnpublish={(item) => void handleUnpublish(item)}
+                        onViewModeChange={setViewMode}
+                        publishableCount={publishableCount}
+                        selectedCount={selectedCount}
                         selectedIds={selectedIds}
+                        unpublishableCount={unpublishableCount}
                         viewMode={viewMode}
                     />
                 </>

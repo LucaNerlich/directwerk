@@ -16,39 +16,16 @@ import {useListViewMode} from '@directwerk/ui/hooks/use-list-view-mode'
 
 import SelectControl from '@/components/studio/SelectControl'
 import {getBillingDashboard, revokeSubscription} from '@/lib/api/subscriptionApi'
+import {
+    subscriptionSourceLabel,
+    subscriptionStatusLabel,
+} from '@/lib/subscription/displayLabels'
 import type {BillingDashboard, BillingMembership} from '@directwerk/api/types'
 import {formatMoney} from '@directwerk/api/format'
 import {getClientTenantHost} from '@directwerk/api/tenant'
 import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
 
 const REVOCABLE_STATUSES = new Set(['ACTIVE', 'PAST_DUE', 'INCOMPLETE'])
-
-function sourceLabel(source: string): string {
-    if (source === 'STRIPE') {
-        return 'Stripe'
-    }
-    if (source === 'MANUAL' || source === 'SEED') {
-        return 'Freischaltung'
-    }
-    return source
-}
-
-function statusLabel(status: string): string {
-    switch (status) {
-        case 'ACTIVE':
-            return 'Aktiv'
-        case 'PAST_DUE':
-            return 'Zahlungsrückstand'
-        case 'INCOMPLETE':
-            return 'Unvollständig'
-        case 'CANCELED':
-            return 'Gekündigt'
-        case 'EXPIRED':
-            return 'Abgelaufen'
-        default:
-            return status
-    }
-}
 
 function stripeStatusLabel(status: string): string {
     switch (status) {
@@ -342,7 +319,7 @@ export default function PaymentsDashboardClient(): React.JSX.Element {
                                     items={visibleMemberships.map((row) => ({
                                         id: row.id,
                                         title: row.email,
-                                        description: `${row.productTitle} · ${statusLabel(row.status)} · ${sourceLabel(row.source)}`,
+                                        description: `${row.productTitle} · ${subscriptionStatusLabel(row.status)} · ${subscriptionSourceLabel(row.source)}`,
                                         descriptions: [
                                             row.startedAt !== null
                                                 ? `ab ${formatDate(row.startedAt)} · ${

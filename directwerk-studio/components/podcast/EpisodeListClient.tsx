@@ -7,8 +7,7 @@ import {Button} from '@directwerk/ui/components/button'
 import EmptyState from '@directwerk/ui/components/empty-state'
 import PageHeader from '@directwerk/ui/components/page-header'
 
-import PublicationListToolbar from '@/components/publication/PublicationListToolbar'
-import PublicationListView from '@/components/publication/PublicationListView'
+import PublicationListSection from '@/components/publication/PublicationListSection'
 import {listFormats} from '@/lib/api/catalogApi'
 import {
     cancelScheduleEpisode,
@@ -180,30 +179,26 @@ export default function EpisodeListClient() {
 
             {episodes.length > 0 ? (
                 <>
-                    <PublicationListToolbar
+                    <PublicationListSection
                         allSelected={allSelected}
-                        contentLabelPlural="Folgen"
-                        isBulkBusy={isBulkBusy}
-                        onBulkPublish={() => void handleBulkPublish()}
-                        onBulkUnpublish={() => void handleBulkUnpublish()}
-                        onToggleSelectAll={toggleSelectAll}
-                        onViewModeChange={setViewMode}
-                        publishableCount={publishableCount}
-                        selectedCount={selectedCount}
-                        unpublishableCount={unpublishableCount}
-                        viewMode={viewMode}
-                    />
-                    <PublicationListView
                         busyItemId={busyEpisodeId}
+                        contentLabelPlural="Folgen"
                         editorBasePath="/podcast/episodes"
                         isBulkBusy={isBulkBusy}
                         items={episodes}
+                        onBulkPublish={() => void handleBulkPublish()}
+                        onBulkUnpublish={() => void handleBulkUnpublish()}
                         onCancelSchedule={(episode) => void handleCancelSchedule(episode)}
                         onPublish={(episode) => void handlePublish(episode)}
+                        onToggleSelectAll={toggleSelectAll}
                         onToggleSelection={toggleSelection}
                         onUnarchive={(episode) => void handleUnarchive(episode)}
                         onUnpublish={(episode) => void handleUnpublish(episode)}
+                        onViewModeChange={setViewMode}
+                        publishableCount={publishableCount}
+                        selectedCount={selectedCount}
                         selectedIds={selectedIds}
+                        unpublishableCount={unpublishableCount}
                         viewMode={viewMode}
                     />
                 </>
