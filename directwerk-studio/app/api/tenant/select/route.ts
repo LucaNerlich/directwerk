@@ -1,7 +1,7 @@
 import {cookies} from 'next/headers'
 import {NextResponse} from 'next/server'
 
-import {parseTenantHost} from '@directwerk/api/proxy/tenantHost'
+import {parseTenantHost} from '@directwerk/api/proxy'
 import {parseStudioSiteConfigEnvelope} from '@directwerk/api/validation/catalog'
 import {TENANT_HOST_COOKIE} from '@directwerk/api/tenant'
 

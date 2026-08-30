@@ -1,5 +1,4 @@
-import {readBoundedBody} from '@directwerk/api/proxy/boundedBody'
-import {jsonError, toClientResponse} from '@directwerk/api/proxy/upstreamResponse'
+import {jsonError, readBoundedBody, toClientResponse} from '@directwerk/api/proxy'
 import {parseLoginInput} from '@directwerk/api/validation/input'
 import {parseJsonText} from '@directwerk/api/validation/json'
 
