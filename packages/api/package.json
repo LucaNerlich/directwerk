@@ -19,6 +19,7 @@
         "./format": "./src/format/money.ts",
         "./media/browserUpload": "./src/media/browserUpload.ts",
         "./proxy": "./src/proxy/index.ts",
+        "./proxy/*": "./src/proxy/*",
         "./proxy/platformRouteHandler": "./src/proxy/platformRouteHandler.ts",
         "./tenant": "./src/tenant/index.ts",
         "./validation": "./src/validation/index.ts",

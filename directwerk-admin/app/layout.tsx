@@ -1,4 +1,5 @@
 import type {Metadata} from 'next'
+import {connection} from 'next/server'
 
 import AuthBootstrap from '@/components/AuthBootstrap'
 import Header from '@/components/Header'
@@ -10,11 +11,14 @@ export const metadata: Metadata = {
     description: 'Directwerk platform administration',
 }
 
-export default function RootLayout({
+export default async function RootLayout({
     children,
 }: Readonly<{
     children: React.ReactNode
 }>) {
+    // CSP nonces from proxy.ts are applied during SSR only — not on prerendered HTML.
+    await connection()
+
     return (
         <html lang="en">
             <body>
