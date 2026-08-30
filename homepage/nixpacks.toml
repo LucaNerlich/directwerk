@@ -1,0 +1,6 @@
+# This monorepo app cannot be built with Nixpacks/Railpack.
+# Coolify: Build Pack = Dockerfile, Base Directory = repo root (.),
+# Dockerfile = homepage/Dockerfile, Port = 3005
+
+[phases.setup]
+cmds = ["echo 'Use Coolify Build Pack Dockerfile with homepage/Dockerfile (repo root context).' >&2 && exit 1"]

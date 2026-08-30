@@ -152,6 +152,25 @@ Build context must be `Directwerk` (not the monorepo root for the API image).
 
 ### `pnpm install --frozen-lockfile --prefer-offline` fails (Next.js apps)
 
+Coolify is using **Nixpacks or Railpack** (auto-detect), not the app Dockerfile. The log shows
+`pnpm install --frozen-lockfile --prefer-offline` and/or corepack errors such as
+`Cannot find module '/opt/corepack/v1/pnpm/12.0.0-rc.5/bin/pnpm.mjs'`.
+
+In the Coolify app → **Configuration** → **General** → **Build Pack**, select **Dockerfile**
+(not Nixpacks, not Railpack). Match the working **directwerk-admin** app:
+
+| Setting | `directwerk-studio` example |
+|---------|----------------------------|
+| Build Pack | Dockerfile |
+| Base Directory | `.` (repository root — leave empty) |
+| Dockerfile | `directwerk-studio/Dockerfile` |
+| Port | `3003` |
+
+Redeploy after saving. If a `railpack.toml` was generated on the server, remove it when
+switching to Dockerfile.
+
+### `pnpm install --frozen-lockfile --prefer-offline` fails (wrong base directory)
+
 Coolify is using **Nixpacks** with base directory set to an app subfolder (e.g. `directwerk-admin/`).
 Switch to **Dockerfile** build with monorepo root context and the app-specific Dockerfile — see
 [Deploying Next.js apps and docs](#deploying-next-js-apps-and-docs-coolify) above.

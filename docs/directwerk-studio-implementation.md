@@ -797,7 +797,7 @@ Backend content tests: [`content-creation-implementation.md` § 8](content-creat
 | Project | `directwerk-studio/` |
 | Stack | Next.js 16, React 19, TypeScript, Tailwind v4, `@directwerk/ui` |
 | Host | `studio.{tenant-domain}` or `{tenant-domain}/studio` |
-| Coolify | Separate app per reference frontend |
+| Coolify | Separate app — **Build Pack: Dockerfile**, `directwerk-studio/Dockerfile`, repo root base directory, port **3003** (see [Docker & Coolify](/install/docker-and-coolify)) |
 | Build | `pnpm build` from project directory |
 | i18n | German UI strings in `lib/i18n/de.ts` |
 

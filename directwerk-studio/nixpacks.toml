@@ -1,0 +1,7 @@
+# This monorepo app cannot be built with Nixpacks/Railpack.
+# Coolify: Build Pack = Dockerfile, Base Directory = repo root (.),
+# Dockerfile = directwerk-studio/Dockerfile, Port = 3003
+# See directwerk-docs/docs/install/docker-and-coolify.md
+
+[phases.setup]
+cmds = ["echo 'Use Coolify Build Pack Dockerfile with directwerk-studio/Dockerfile (repo root context).' >&2 && exit 1"]
