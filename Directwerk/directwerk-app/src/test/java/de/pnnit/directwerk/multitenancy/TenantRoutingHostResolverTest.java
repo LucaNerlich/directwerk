@@ -52,6 +52,17 @@ class TenantRoutingHostResolverTest {
     }
 
     @Test
+    void prefersTenantHostHeaderWhenReverseProxyOverwritesForwardedHost() {
+        HttpServletRequest request = mock(HttpServletRequest.class);
+        when(request.getServerName()).thenReturn("api.directwerk.org");
+        when(request.getHeader("X-Forwarded-Host")).thenReturn("api.directwerk.org");
+        when(request.getHeader("Forwarded")).thenReturn(null);
+        when(request.getHeader("X-Tenant-Host")).thenReturn("lucanerlich.directwerk.org");
+
+        assertThat(resolver.resolve(request)).isEqualTo("lucanerlich.directwerk.org");
+    }
+
+    @Test
     void parseForwardedHeaderExtractsHostParameter() {
         assertThat(TenantRoutingHostResolver.parseForwardedHeader(
                 "for=127.0.0.1;host=lucanerlich.directwerk.org;proto=https"

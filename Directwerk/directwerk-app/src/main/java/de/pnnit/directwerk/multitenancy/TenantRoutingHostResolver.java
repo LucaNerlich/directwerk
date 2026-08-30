@@ -30,9 +30,11 @@ public class TenantRoutingHostResolver {
             return serverName;
         }
 
-        return parseHeaderHost(request.getHeader("X-Forwarded-Host"))
+        // BFF upstream calls hit the platform API hostname. Traefik typically overwrites
+        // X-Forwarded-Host with that same hostname, so prefer the explicit tenant header.
+        return parseHeaderHost(request.getHeader("X-Tenant-Host"))
                 .or(() -> parseForwardedHeader(request.getHeader("Forwarded")))
-                .or(() -> parseHeaderHost(request.getHeader("X-Tenant-Host")))
+                .or(() -> parseHeaderHostExcluding(request.getHeader("X-Forwarded-Host"), platformApiHost))
                 .orElse(serverName);
     }
 
@@ -67,6 +69,10 @@ public class TenantRoutingHostResolver {
             return Optional.empty();
         }
         return normalizeRoutingHost(first);
+    }
+
+    private static Optional<String> parseHeaderHostExcluding(String rawHeader, String excludedHost) {
+        return parseHeaderHost(rawHeader).filter(host -> !host.equalsIgnoreCase(excludedHost));
     }
 
     static Optional<String> parseForwardedHeader(String rawHeader) {

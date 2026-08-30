@@ -258,7 +258,8 @@ public class SecurityConfig {
     ) {
         FilterRegistrationBean<BffTenantRoutingHostFilter> registration =
                 new FilterRegistrationBean<>(bffTenantRoutingHostFilter);
-        registration.setOrder(Ordered.HIGHEST_PRECEDENCE);
+        // Run after Spring's ForwardedHeaderFilter (also HIGHEST_PRECEDENCE).
+        registration.setOrder(Ordered.HIGHEST_PRECEDENCE + 1);
         return registration;
     }
 
