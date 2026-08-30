@@ -6,8 +6,9 @@ import {clearCachedTenantData} from '@directwerk/api/client/useCachedTenantQuery
 import {listSubscribers} from '@/lib/api/tenantSettingsApi'
 
 vi.mock('next/navigation', () => ({useRouter: () => ({replace: vi.fn()})}))
+const authRedirect = vi.fn(() => false)
 vi.mock('@directwerk/api/auth/useAuthRequired', () => ({
-    useAuthRequired: () => () => false,
+    useAuthRequired: () => authRedirect,
 }))
 vi.mock('@directwerk/api/tenant', () => ({getClientTenantHost: () => 'tenant.test'}))
 vi.mock('@/lib/api/tenantSettingsApi', () => ({

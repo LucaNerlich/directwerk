@@ -1,6 +1,7 @@
 'use client'
 
 import {Button} from '@directwerk/ui/components/button'
+import {EntityListView} from '@directwerk/ui/components/entity-list-view'
 import PageHeader from '@directwerk/ui/components/page-header'
 
 import {useEffect, useState} from 'react'
@@ -78,6 +79,29 @@ export default function StripeSettingsClient(): React.JSX.Element {
 
     const connected = status?.status === 'CONNECTED'
 
+    const statusItems =
+        status === null
+            ? []
+            : [
+                  {id: 'status', title: 'Status', trailing: status.status},
+                  {
+                      id: 'charges',
+                      title: 'Zahlungen möglich',
+                      trailing: status.chargesEnabled ? 'ja' : 'nein',
+                  },
+                  {
+                      id: 'payouts',
+                      title: 'Auszahlungen',
+                      trailing: status.payoutsEnabled ? 'ja' : 'nein',
+                  },
+                  {
+                      id: 'module',
+                      title: 'Modul STRIPE_BILLING',
+                      trailing: status.moduleEnabled ? 'aktiv' : 'nicht aktiv',
+                  },
+                  {id: 'message', title: 'Hinweis', trailing: status.message},
+              ]
+
     return (
         <div className="flex flex-col gap-6">
             <PageHeader
@@ -92,39 +116,8 @@ export default function StripeSettingsClient(): React.JSX.Element {
                 </p>
             ) : null}
 
-            {status !== null ? (
-                <ul className="overflow-hidden rounded-xl border bg-card divide-y [&>li]:flex [&>li]:items-center [&>li]:justify-between [&>li]:gap-4 [&>li]:p-4">
-                    <li>
-                        <span>Status</span>
-                        <span className="flex shrink-0 items-center gap-3 text-sm text-muted-foreground">
-                            {status.status}
-                        </span>
-                    </li>
-                    <li>
-                        <span>Zahlungen möglich</span>
-                        <span className="flex shrink-0 items-center gap-3 text-sm text-muted-foreground">
-                            {status.chargesEnabled ? 'ja' : 'nein'}
-                        </span>
-                    </li>
-                    <li>
-                        <span>Auszahlungen</span>
-                        <span className="flex shrink-0 items-center gap-3 text-sm text-muted-foreground">
-                            {status.payoutsEnabled ? 'ja' : 'nein'}
-                        </span>
-                    </li>
-                    <li>
-                        <span>Modul STRIPE_BILLING</span>
-                        <span className="flex shrink-0 items-center gap-3 text-sm text-muted-foreground">
-                            {status.moduleEnabled ? 'aktiv' : 'nicht aktiv'}
-                        </span>
-                    </li>
-                    <li>
-                        <span>Hinweis</span>
-                        <span className="flex shrink-0 items-center gap-3 text-sm text-muted-foreground">
-                            {status.message}
-                        </span>
-                    </li>
-                </ul>
+            {statusItems.length > 0 ? (
+                <EntityListView items={statusItems} viewMode="list" />
             ) : null}
 
             <p className="text-sm text-muted-foreground">

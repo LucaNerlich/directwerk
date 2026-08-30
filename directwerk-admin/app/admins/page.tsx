@@ -5,17 +5,11 @@ import {useCallback, useEffect, useState} from 'react'
 
 import {Alert, AlertDescription} from '@directwerk/ui/components/alert'
 import EmptyState from '@directwerk/ui/components/empty-state'
+import {EntityListSection} from '@directwerk/ui/components/entity-list-section'
+import type {EntityListViewItem} from '@directwerk/ui/components/entity-list-view'
 import PageHeader from '@directwerk/ui/components/page-header'
 import PageStack from '@directwerk/ui/components/page-stack'
-import ResponsiveTable from '@directwerk/ui/components/responsive-table'
-import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
-} from '@directwerk/ui/components/table'
+import {useListViewMode} from '@directwerk/ui/hooks/use-list-view-mode'
 
 import InvitePlatformAdminForm from '@/components/InvitePlatformAdminForm'
 import RevokeAdminButton from '@/components/RevokeAdminButton'
@@ -27,6 +21,7 @@ export default function PlatformAdminsPage() {
     const router = useRouter()
     const [admins, setAdmins] = useState<PlatformAdmin[] | null>(null)
     const [error, setError] = useState<string | null>(null)
+    const {viewMode, setViewMode} = useListViewMode()
 
     const loadAdmins = useCallback(() => {
         setError(null)
@@ -52,6 +47,19 @@ export default function PlatformAdminsPage() {
         loadAdmins()
     }, [loadAdmins])
 
+    const adminItems: EntityListViewItem[] =
+        admins?.map((admin) => ({
+            id: admin.userId,
+            title: admin.name ?? admin.email,
+            description: admin.name !== null ? admin.email : undefined,
+            descriptions: [
+                admin.lastLoginAt
+                    ? `Last login: ${new Date(admin.lastLoginAt).toLocaleString()}`
+                    : 'Last login: —',
+            ],
+            actions: <RevokeAdminButton onRevoked={loadAdmins} userId={admin.userId} />,
+        })) ?? []
+
     return (
         <PageStack>
             <PageHeader
@@ -72,34 +80,12 @@ export default function PlatformAdminsPage() {
             {admins ? (
                 <>
                     {admins.length > 0 ? (
-                        <ResponsiveTable label="Platform admins">
-                            <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead scope="col">Name</TableHead>
-                                    <TableHead scope="col">Email</TableHead>
-                                    <TableHead scope="col">Last login</TableHead>
-                                    <TableHead scope="col">Actions</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {admins.map((admin) => (
-                                    <TableRow key={admin.userId}>
-                                        <TableCell>{admin.name ?? '—'}</TableCell>
-                                        <TableCell>{admin.email}</TableCell>
-                                        <TableCell>
-                                            {admin.lastLoginAt
-                                                ? new Date(admin.lastLoginAt).toLocaleString()
-                                                : '—'}
-                                        </TableCell>
-                                        <TableCell>
-                                            <RevokeAdminButton onRevoked={loadAdmins} userId={admin.userId} />
-                                        </TableCell>
-                                    </TableRow>
-                                ))}
-                            </TableBody>
-                        </Table>
-                        </ResponsiveTable>
+                        <EntityListSection
+                            items={adminItems}
+                            onViewModeChange={setViewMode}
+                            showSelection={false}
+                            viewMode={viewMode}
+                        />
                     ) : (
                         <EmptyState title="No platform admins" />
                     )}

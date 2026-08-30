@@ -1,7 +1,11 @@
 'use client'
 
 import {Button} from '@directwerk/ui/components/button'
+import {EntityListSection} from '@directwerk/ui/components/entity-list-section'
+import type {EntityListViewItem} from '@directwerk/ui/components/entity-list-view'
 import {Input} from '@directwerk/ui/components/input'
+import {Label} from '@directwerk/ui/components/label'
+import {useListViewMode} from '@directwerk/ui/hooks/use-list-view-mode'
 
 import Form from 'next/form'
 import {useRouter} from 'next/navigation'
@@ -34,6 +38,7 @@ export default function DomainsClient(): React.JSX.Element {
     const [actionError, setActionError] = useState<string | null>(null)
     const [actionStatus, setActionStatus] = useState<string | null>(null)
     const [busyHost, setBusyHost] = useState<string | null>(null)
+    const {viewMode, setViewMode} = useListViewMode()
 
     const reload = useCallback(async (): Promise<void> => {
         const result = await listDomains(getClientTenantHost())
@@ -150,6 +155,37 @@ export default function DomainsClient(): React.JSX.Element {
         return <p className="text-sm text-destructive">{loadError}</p>
     }
 
+    const domainItems: EntityListViewItem[] = domains.map((domain) => ({
+        id: domain.host,
+        title: domain.host,
+        description: `${domain.primary ? 'Primär' : 'Sekundär'} · ${domain.verified ? 'Verifiziert' : 'Offen'}`,
+        actions: !domain.verified ? (
+            <>
+                <Button
+                    disabled={busyHost === domain.host}
+                    onClick={() => {
+                        void showVerification(domain.host)
+                    }}
+                    size="sm"
+                    type="button"
+                    variant="outline"
+                >
+                    DNS-Hinweis
+                </Button>
+                <Button
+                    disabled={busyHost === domain.host}
+                    onClick={() => {
+                        void runVerify(domain.host)
+                    }}
+                    size="sm"
+                    type="button"
+                >
+                    Verifizieren
+                </Button>
+            </>
+        ) : undefined,
+    }))
+
     return (
         <div className="flex flex-col gap-6">
             <header className="flex flex-col gap-4 border-b pb-6 sm:flex-row sm:items-end sm:justify-between">
@@ -162,44 +198,12 @@ export default function DomainsClient(): React.JSX.Element {
             {domains.length === 0 ? (
                 <p className="text-sm text-muted-foreground">Noch keine Domains.</p>
             ) : (
-                <ul className="overflow-hidden rounded-xl border bg-card divide-y [&>li]:flex [&>li]:items-center [&>li]:justify-between [&>li]:gap-4 [&>li]:p-4">
-                    {domains.map((domain) => (
-                        <li key={domain.host}>
-                            <div>
-                                <strong>{domain.host}</strong>
-                                <span className="flex shrink-0 items-center gap-3 text-sm text-muted-foreground">
-                                    {domain.primary ? 'Primär' : 'Sekundär'}
-                                    {' · '}
-                                    {domain.verified ? 'Verifiziert' : 'Offen'}
-                                </span>
-                            </div>
-                            {!domain.verified ? (
-                                <div className="flex shrink-0 items-center gap-3 text-sm text-muted-foreground">
-                                    <Button
-                                        className="inline-flex h-9 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground shadow-xs hover:bg-primary/90 disabled:pointer-events-none disabled:opacity-50"
-                                        disabled={busyHost === domain.host}
-                                        onClick={() => {
-                                            void showVerification(domain.host)
-                                        }}
-                                        type="button"
-                                    >
-                                        DNS-Hinweis
-                                    </Button>
-                                    <Button
-                                        className="inline-flex h-9 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground shadow-xs hover:bg-primary/90 disabled:pointer-events-none disabled:opacity-50"
-                                        disabled={busyHost === domain.host}
-                                        onClick={() => {
-                                            void runVerify(domain.host)
-                                        }}
-                                        type="button"
-                                    >
-                                        Verifizieren
-                                    </Button>
-                                </div>
-                            ) : null}
-                        </li>
-                    ))}
-                </ul>
+                <EntityListSection
+                    items={domainItems}
+                    onViewModeChange={setViewMode}
+                    showSelection={false}
+                    viewMode={viewMode}
+                />
             )}
 
             {challenge !== null ? (

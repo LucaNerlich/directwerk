@@ -7,11 +7,12 @@ import {useEffect, useMemo, useState} from 'react'
 import {Alert, AlertDescription} from '@directwerk/ui/components/alert'
 import {Button} from '@directwerk/ui/components/button'
 import EmptyState from '@directwerk/ui/components/empty-state'
+import {EntityListSection} from '@directwerk/ui/components/entity-list-section'
 import {Input} from '@directwerk/ui/components/input'
-import ListPanel, {ListPanelRow} from '@directwerk/ui/components/list-panel'
 import PageHeader from '@directwerk/ui/components/page-header'
 import PageStack from '@directwerk/ui/components/page-stack'
 import StatCard from '@directwerk/ui/components/stat-card'
+import {useListViewMode} from '@directwerk/ui/hooks/use-list-view-mode'
 
 import SelectControl from '@/components/studio/SelectControl'
 import {getBillingDashboard, revokeSubscription} from '@/lib/api/subscriptionApi'
@@ -86,6 +87,7 @@ export default function PaymentsDashboardClient(): React.JSX.Element {
     const [query, setQuery] = useState('')
     const [statusFilter, setStatusFilter] = useState('all')
     const [sourceFilter, setSourceFilter] = useState('all')
+    const {viewMode, setViewMode} = useListViewMode()
 
     useEffect(() => {
         let active = true
@@ -336,62 +338,60 @@ export default function PaymentsDashboardClient(): React.JSX.Element {
                             {visibleMemberships.length === 0 ? (
                                 <p className="text-sm text-muted-foreground">Keine Mitgliedschaften für diesen Filter.</p>
                             ) : (
-                                <ListPanel>
-                                    {visibleMemberships.map((row) => (
-                                        <ListPanelRow key={row.id}>
-                                            <div className="min-w-0 flex-1">
-                                                <p className="font-medium">{row.email}</p>
-                                                <p className="text-sm text-muted-foreground">
-                                                    {row.productTitle}
-                                                    {' · '}
-                                                    {statusLabel(row.status)}
-                                                    {' · '}
-                                                    {sourceLabel(row.source)}
-                                                </p>
-                                                <p className="text-sm text-muted-foreground">
-                                                    {row.startedAt !== null
-                                                        ? `ab ${formatDate(row.startedAt)} · ${
-                                                              row.endsAt !== null
-                                                                  ? `bis ${formatDate(row.endsAt)}`
-                                                                  : 'unbefristet'
-                                                          }`
-                                                        : row.endsAt !== null
+                                <EntityListSection
+                                    items={visibleMemberships.map((row) => ({
+                                        id: row.id,
+                                        title: row.email,
+                                        description: `${row.productTitle} · ${statusLabel(row.status)} · ${sourceLabel(row.source)}`,
+                                        descriptions: [
+                                            row.startedAt !== null
+                                                ? `ab ${formatDate(row.startedAt)} · ${
+                                                      row.endsAt !== null
                                                           ? `bis ${formatDate(row.endsAt)}`
-                                                          : 'unbefristet'}
-                                                </p>
-                                            </div>
-                                            {canRevoke(row) ? (
-                                                <div className="flex shrink-0 flex-wrap gap-2">
+                                                          : 'unbefristet'
+                                                  }`
+                                                : row.endsAt !== null
+                                                  ? `bis ${formatDate(row.endsAt)}`
+                                                  : 'unbefristet',
+                                        ],
+                                        actions: canRevoke(row) ? (
+                                            <div className="flex shrink-0 flex-wrap gap-2">
+                                                <Button
+                                                    disabled={isBusy}
+                                                    onClick={() => {
+                                                        void handleRevoke(row)
+                                                    }}
+                                                    type="button"
+                                                    variant={
+                                                        pendingRevokeId === row.id
+                                                            ? 'destructive'
+                                                            : 'outline'
+                                                    }
+                                                >
+                                                    {pendingRevokeId === row.id
+                                                        ? 'Wirklich beenden'
+                                                        : 'Zugang beenden'}
+                                                </Button>
+                                                {pendingRevokeId === row.id ? (
                                                     <Button
                                                         disabled={isBusy}
                                                         onClick={() => {
-                                                            void handleRevoke(row)
+                                                            setPendingRevokeId(null)
+                                                            setStatusMessage(null)
                                                         }}
                                                         type="button"
-                                                        variant={pendingRevokeId === row.id ? 'destructive' : 'outline'}
+                                                        variant="ghost"
                                                     >
-                                                        {pendingRevokeId === row.id
-                                                            ? 'Wirklich beenden'
-                                                            : 'Zugang beenden'}
+                                                        Abbrechen
                                                     </Button>
-                                                    {pendingRevokeId === row.id ? (
-                                                        <Button
-                                                            disabled={isBusy}
-                                                            onClick={() => {
-                                                                setPendingRevokeId(null)
-                                                                setStatusMessage(null)
-                                                            }}
-                                                            type="button"
-                                                            variant="ghost"
-                                                        >
-                                                            Abbrechen
-                                                        </Button>
-                                                    ) : null}
-                                                </div>
-                                            ) : null}
-                                        </ListPanelRow>
-                                    ))}
-                                </ListPanel>
+                                                ) : null}
+                                            </div>
+                                        ) : undefined,
+                                    }))}
+                                    onViewModeChange={setViewMode}
+                                    showSelection={false}
+                                    viewMode={viewMode}
+                                />
                             )}
                         </section>
                     )}

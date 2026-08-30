@@ -7,11 +7,13 @@ import {useActionState, useCallback, useEffect, useState} from 'react'
 import {Alert, AlertDescription} from '@directwerk/ui/components/alert'
 import {Button} from '@directwerk/ui/components/button'
 import {Card, CardContent, CardHeader, CardTitle} from '@directwerk/ui/components/card'
+import {EntityListSection} from '@directwerk/ui/components/entity-list-section'
+import type {EntityListViewItem} from '@directwerk/ui/components/entity-list-view'
 import {Input} from '@directwerk/ui/components/input'
 import {Label} from '@directwerk/ui/components/label'
-import ListPanel, {ListPanelRow} from '@directwerk/ui/components/list-panel'
 import PageHeader from '@directwerk/ui/components/page-header'
 import PageStack from '@directwerk/ui/components/page-stack'
+import {useListViewMode} from '@directwerk/ui/hooks/use-list-view-mode'
 
 import SelectControl from '@/components/studio/SelectControl'
 import {deactivateTenantUser, inviteTenantUser, listTenantUsers, reactivateTenantUser} from '@/lib/api/tenantSettingsApi'
@@ -75,6 +77,7 @@ export default function TeamClient(): React.JSX.Element {
     const [isLoading, setIsLoading] = useState(true)
     const [actionError, setActionError] = useState<string | null>(null)
     const [busyUserId, setBusyUserId] = useState<number | null>(null)
+    const {viewMode, setViewMode} = useListViewMode()
 
     const reload = useCallback(async (): Promise<void> => {
         const result = await listTenantUsers(getClientTenantHost())
@@ -187,6 +190,29 @@ export default function TeamClient(): React.JSX.Element {
         )
     }
 
+    const memberItems: EntityListViewItem[] = users.map((user) => {
+        const isSelf = user.email === me.email
+        return {
+            id: user.userId,
+            title: user.name ?? user.email,
+            description: `${user.email} · ${user.roles.map(roleLabel).join(', ')} · ${statusLabel(user.status)}`,
+            actions:
+                !isSelf ? (
+                    <Button
+                        disabled={busyUserId === user.userId}
+                        onClick={() => {
+                            void toggleMembership(user)
+                        }}
+                        size="sm"
+                        type="button"
+                        variant="outline"
+                    >
+                        {user.status === 'DISABLED' ? 'Reaktivieren' : 'Deaktivieren'}
+                    </Button>
+                ) : undefined,
+        }
+    })
+
     return (
         <PageStack>
             <PageHeader
@@ -198,40 +224,12 @@ export default function TeamClient(): React.JSX.Element {
             {users.length === 0 ? (
                 <p className="text-sm text-muted-foreground">Noch keine Mitglieder.</p>
             ) : (
-                <ListPanel>
-                    {users.map((user) => {
-                        const isSelf = user.email === me.email
-                        return (
-                            <ListPanelRow key={user.userId}>
-                                <div className="min-w-0 flex-1">
-                                    <p className="font-medium">{user.name ?? user.email}</p>
-                                    <p className="text-sm text-muted-foreground">
-                                        {user.email}
-                                        {' · '}
-                                        {user.roles.map(roleLabel).join(', ')}
-                                        {' · '}
-                                        {statusLabel(user.status)}
-                                    </p>
-                                </div>
-                                {!isSelf ? (
-                                    <Button
-                                        disabled={busyUserId === user.userId}
-                                        onClick={() => {
-                                            void toggleMembership(user)
-                                        }}
-                                        size="sm"
-                                        type="button"
-                                        variant="outline"
-                                    >
-                                        {user.status === 'DISABLED'
-                                            ? 'Reaktivieren'
-                                            : 'Deaktivieren'}
-                                    </Button>
-                                ) : null}
-                            </ListPanelRow>
-                        )
-                    })}
-                </ListPanel>
+                <EntityListSection
+                    items={memberItems}
+                    onViewModeChange={setViewMode}
+                    showSelection={false}
+                    viewMode={viewMode}
+                />
             )}
 
             {actionError ? (

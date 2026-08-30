@@ -6,9 +6,11 @@ import {useEffect, useState} from 'react'
 
 import {Button} from '@directwerk/ui/components/button'
 import EmptyState from '@directwerk/ui/components/empty-state'
-import ListPanel, {listPanelLinkClassName, ListPanelRow} from '@directwerk/ui/components/list-panel'
+import {EntityListSection} from '@directwerk/ui/components/entity-list-section'
+import type {EntityListViewItem} from '@directwerk/ui/components/entity-list-view'
 import PageHeader from '@directwerk/ui/components/page-header'
 import SectionHeader from '@directwerk/ui/components/section-header'
+import {useListViewMode} from '@directwerk/ui/hooks/use-list-view-mode'
 
 import PublicationStatusBadge from '@/components/publication/PublicationStatusBadge'
 import {listCategories} from '@/lib/api/catalogApi'
@@ -25,6 +27,7 @@ export default function WriteDeskClient(): React.JSX.Element {
     const [categories, setCategories] = useState<CategorySummary[]>([])
     const [errorMessage, setErrorMessage] = useState<string | null>(null)
     const [isLoading, setIsLoading] = useState(true)
+    const {viewMode, setViewMode} = useListViewMode()
 
     useEffect(() => {
         let active = true
@@ -108,6 +111,13 @@ export default function WriteDeskClient(): React.JSX.Element {
 
     const nextStep = steps.find((step) => !step.done) ?? steps[steps.length - 1]
 
+    const draftArticleItems: EntityListViewItem[] = draftArticles.slice(0, 5).map((article) => ({
+        id: article.id,
+        title: article.title,
+        href: `/write/articles/${article.id}`,
+        trailing: <PublicationStatusBadge status={article.status} />,
+    }))
+
     return (
         <div className="flex flex-col gap-8">
             <PageHeader
@@ -184,19 +194,12 @@ export default function WriteDeskClient(): React.JSX.Element {
             {draftArticles.length > 0 ? (
                 <section className="flex flex-col gap-3">
                     <SectionHeader title="Offene Entwürfe" />
-                    <ListPanel>
-                        {draftArticles.slice(0, 5).map((article) => (
-                            <li key={article.id}>
-                                <Link
-                                    className={listPanelLinkClassName}
-                                    href={`/write/articles/${article.id}`}
-                                >
-                                    <span>{article.title}</span>
-                                    <PublicationStatusBadge status={article.status} />
-                                </Link>
-                            </li>
-                        ))}
-                    </ListPanel>
+                    <EntityListSection
+                        items={draftArticleItems}
+                        onViewModeChange={setViewMode}
+                        showSelection={false}
+                        viewMode={viewMode}
+                    />
                     {draftArticles.length > 5 ? (
                         <p className="text-sm text-muted-foreground">
                             <Link href="/write/articles">Alle Beiträge anzeigen</Link>

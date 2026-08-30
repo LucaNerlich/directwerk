@@ -9,8 +9,10 @@ import {Badge} from '@directwerk/ui/components/badge'
 import {Button} from '@directwerk/ui/components/button'
 import {Card, CardContent, CardHeader, CardTitle} from '@directwerk/ui/components/card'
 import EmptyState from '@directwerk/ui/components/empty-state'
+import {EntityListSection} from '@directwerk/ui/components/entity-list-section'
+import type {EntityListViewItem} from '@directwerk/ui/components/entity-list-view'
 import PageHeader from '@directwerk/ui/components/page-header'
-import {Table, TableBody, TableCell, TableHead, TableHeader, TableRow} from '@directwerk/ui/components/table'
+import {useListViewMode} from '@directwerk/ui/hooks/use-list-view-mode'
 
 import DomainForceVerifyForm from '@/components/DomainForceVerifyForm'
 import InviteTenantUserForm from '@/components/InviteTenantUserForm'
@@ -44,6 +46,7 @@ export default function TenantPage({params}: TenantPageProps) {
     const [isInitialLoad, setIsInitialLoad] = useState(true)
     const [lifecycleBusy, setLifecycleBusy] = useState(false)
     const [tenantSessionKey, setTenantSessionKey] = useState(0)
+    const {viewMode, setViewMode} = useListViewMode()
 
     const loadTenantData = useCallback(() => {
         if (!/^\d+$/.test(id)) {
@@ -178,24 +181,20 @@ export default function TenantPage({params}: TenantPageProps) {
                             <Card>
                                 <CardHeader><CardTitle>Domains</CardTitle></CardHeader>
                                 <CardContent>
-                                    <Table>
-                                        <TableHeader>
-                                            <TableRow>
-                                                <TableHead scope="col">Host</TableHead>
-                                                <TableHead scope="col">Primary</TableHead>
-                                                <TableHead scope="col">Verified</TableHead>
-                                            </TableRow>
-                                        </TableHeader>
-                                        <TableBody>
-                                            {data.tenant.domains.map((domain) => (
-                                                <TableRow key={domain.host}>
-                                                    <TableCell>{domain.host}</TableCell>
-                                                    <TableCell>{domain.primary ? 'Yes' : 'No'}</TableCell>
-                                                    <TableCell>{domain.verified ? 'Yes' : 'No'}</TableCell>
-                                                </TableRow>
-                                            ))}
-                                        </TableBody>
-                                    </Table>
+                                    <EntityListSection
+                                        items={data.tenant.domains.map((domain) => ({
+                                            id: domain.host,
+                                            title: domain.host,
+                                            descriptions: [
+                                                domain.primary ? 'Primary' : 'Secondary',
+                                                domain.verified ? 'Verified' : 'Not verified',
+                                            ],
+                                        }))}
+                                        onViewModeChange={setViewMode}
+                                        showSelection={false}
+                                        showViewToggle={false}
+                                        viewMode={viewMode}
+                                    />
                                 </CardContent>
                             </Card>
                         ) : null}
@@ -274,40 +273,30 @@ export default function TenantPage({params}: TenantPageProps) {
 
                         <h2 className="text-2xl font-semibold tracking-tight">Users</h2>
                         {data.users.length > 0 ? (
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead scope="col">Name</TableHead>
-                                        <TableHead scope="col">Email</TableHead>
-                                        <TableHead scope="col">Roles</TableHead>
-                                        <TableHead scope="col">Status</TableHead>
-                                        <TableHead scope="col">Last login</TableHead>
-                                        <TableHead scope="col">Actions</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {data.users.map((user) => (
-                                        <TableRow key={user.userId}>
-                                            <TableCell>{user.name ?? '—'}</TableCell>
-                                            <TableCell>{user.email}</TableCell>
-                                            <TableCell>{user.roles.join(', ')}</TableCell>
-                                            <TableCell><Badge variant="outline">{user.status}</Badge></TableCell>
-                                            <TableCell>
-                                                {user.lastLoginAt
-                                                    ? new Date(user.lastLoginAt).toLocaleString()
-                                                    : '—'}
-                                            </TableCell>
-                                            <TableCell>
-                                                <TenantUserActions
-                                                    onChanged={loadTenantData}
-                                                    tenantId={id}
-                                                    user={user}
-                                                />
-                                            </TableCell>
-                                        </TableRow>
-                                    ))}
-                                </TableBody>
-                            </Table>
+                            <EntityListSection
+                                items={data.users.map((user): EntityListViewItem => ({
+                                    id: user.userId,
+                                    title: user.name ?? user.email,
+                                    description: user.name !== null ? user.email : undefined,
+                                    descriptions: [
+                                        `Roles: ${user.roles.join(', ')}`,
+                                        user.lastLoginAt
+                                            ? `Last login: ${new Date(user.lastLoginAt).toLocaleString()}`
+                                            : 'Last login: —',
+                                    ],
+                                    trailing: <Badge variant="outline">{user.status}</Badge>,
+                                    actions: (
+                                        <TenantUserActions
+                                            onChanged={loadTenantData}
+                                            tenantId={id}
+                                            user={user}
+                                        />
+                                    ),
+                                }))}
+                                onViewModeChange={setViewMode}
+                                showSelection={false}
+                                viewMode={viewMode}
+                            />
                         ) : (
                             <EmptyState title="No users" />
                         )}

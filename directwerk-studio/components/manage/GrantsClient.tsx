@@ -4,9 +4,11 @@ import SelectControl from '@/components/studio/SelectControl'
 
 import {Button} from '@directwerk/ui/components/button'
 import EmptyState from '@directwerk/ui/components/empty-state'
+import {EntityListSection} from '@directwerk/ui/components/entity-list-section'
+import type {EntityListViewItem} from '@directwerk/ui/components/entity-list-view'
 import {Input} from '@directwerk/ui/components/input'
 import PageHeader from '@directwerk/ui/components/page-header'
-import {Table, TableBody, TableCell, TableHead, TableHeader, TableRow} from '@directwerk/ui/components/table'
+import {useListViewMode} from '@directwerk/ui/hooks/use-list-view-mode'
 
 import Link from 'next/link'
 import {useEffect, useState, type FormEvent} from 'react'
@@ -61,6 +63,7 @@ export default function GrantsClient(): React.JSX.Element {
     const [statusMessage, setStatusMessage] = useState<string | null>(null)
     const [isLoading, setIsLoading] = useState(true)
     const [isBusy, setIsBusy] = useState(false)
+    const {viewMode, setViewMode} = useListViewMode()
 
     useEffect(() => {
         let active = true
@@ -160,6 +163,25 @@ export default function GrantsClient(): React.JSX.Element {
         return <p>Laden…</p>
     }
 
+    const grantItems: EntityListViewItem[] = grants.map((grant) => ({
+        id: grant.id,
+        title: grant.email,
+        description: grant.productTitle,
+        trailing: grant.status,
+        actions:
+            grant.status === 'ACTIVE' ? (
+                <Button
+                    disabled={isBusy}
+                    onClick={() => void handleRevoke(grant.id)}
+                    size="sm"
+                    type="button"
+                    variant="outline"
+                >
+                    Widerrufen
+                </Button>
+            ) : undefined,
+    }))
+
     return (
         <div className="flex flex-col gap-6">
             <PageHeader
@@ -228,40 +250,12 @@ export default function GrantsClient(): React.JSX.Element {
             ) : null}
 
             {grants.length > 0 ? (
-                <Table>
-                    <TableHeader>
-                        <TableRow>
-                            <TableHead scope="col">E-Mail</TableHead>
-                            <TableHead scope="col">Produkt</TableHead>
-                            <TableHead scope="col">Status</TableHead>
-                            <TableHead scope="col">Aktion</TableHead>
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                        {grants.map((grant) => (
-                            <TableRow key={grant.id}>
-                                <TableCell>{grant.email}</TableCell>
-                                <TableCell>{grant.productTitle}</TableCell>
-                                <TableCell>{grant.status}</TableCell>
-                                <TableCell>
-                                    {grant.status === 'ACTIVE' ? (
-                                        <Button
-                                            disabled={isBusy}
-                                            onClick={() =>
-                                                void handleRevoke(grant.id)
-                                            }
-                                            type="button"
-                                        >
-                                            Widerrufen
-                                        </Button>
-                                    ) : (
-                                        '—'
-                                    )}
-                                </TableCell>
-                            </TableRow>
-                        ))}
-                    </TableBody>
-                </Table>
+                <EntityListSection
+                    items={grantItems}
+                    onViewModeChange={setViewMode}
+                    showSelection={false}
+                    viewMode={viewMode}
+                />
             ) : null}
         </div>
     )
