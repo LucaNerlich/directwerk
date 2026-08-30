@@ -1,6 +1,6 @@
 'use client'
 
-import {useCallback, useMemo, useState} from 'react'
+import {useCallback, useEffect, useMemo, useState} from 'react'
 
 import type {ViewMode} from '#components/view-mode-toggle'
 
@@ -11,6 +11,15 @@ export function useEntityListSelection<T extends EntityListItemId>(itemIds: T[])
     const [viewMode, setViewMode] = useState<ViewMode>('list')
 
     const visibleIdSet = useMemo(() => new Set(itemIds), [itemIds])
+
+    useEffect(() => {
+        setSelectedIds((current) => {
+            const next = new Set(
+                [...current].filter((id) => visibleIdSet.has(id)),
+            )
+            return next.size === current.size ? current : next
+        })
+    }, [visibleIdSet])
 
     const prunedSelectedIds = useMemo(() => {
         const next = new Set<T>()

@@ -2,7 +2,7 @@ import {cleanup, fireEvent, render, screen, waitFor} from '@testing-library/reac
 import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest'
 
 import MediaLibraryClient from '@/components/media/MediaLibraryClient'
-import {listMedia} from '@/lib/api/mediaApi'
+import {deleteMedia, listMedia} from '@/lib/api/mediaApi'
 import {uploadMediaFile} from '@/lib/media/upload'
 import type {MediaAsset} from '@directwerk/api/types'
 
@@ -36,11 +36,14 @@ const coverAsset = {
 describe('MediaLibraryClient', () => {
     afterEach(() => {
         cleanup()
+        vi.restoreAllMocks()
     })
 
     beforeEach(() => {
         vi.mocked(listMedia).mockReset()
         vi.mocked(listMedia).mockResolvedValue([])
+        vi.mocked(deleteMedia).mockReset()
+        vi.mocked(deleteMedia).mockResolvedValue(coverAsset)
         vi.mocked(uploadMediaFile).mockReset()
         vi.mocked(uploadMediaFile).mockResolvedValue({
             ...coverAsset,
@@ -144,5 +147,79 @@ describe('MediaLibraryClient', () => {
             expect(screen.getByRole('status')).toHaveTextContent('Hochgeladen: folge.mp3'),
         )
         expect(screen.queryByRole('progressbar')).not.toBeInTheDocument()
+    })
+
+    it('keeps pending assets whose bulk deletion fails and reports their IDs', async () => {
+        const pendingAssets = [
+            {
+                ...coverAsset,
+                id: 8,
+                status: 'PENDING' as const,
+                assetType: 'AUDIO' as const,
+                originalFilename: 'pending-8.mp3',
+            },
+            {
+                ...coverAsset,
+                id: 9,
+                status: 'PENDING' as const,
+                assetType: 'AUDIO' as const,
+                originalFilename: 'pending-9.mp3',
+            },
+        ]
+        vi.mocked(listMedia).mockResolvedValue(pendingAssets)
+        vi.mocked(deleteMedia)
+            .mockResolvedValueOnce(pendingAssets[0])
+            .mockRejectedValueOnce(new Error('delete failed'))
+        vi.spyOn(window, 'confirm').mockReturnValue(true)
+
+        render(<MediaLibraryClient />)
+
+        fireEvent.click(
+            await screen.findByRole('button', {name: 'Alle ausstehenden entfernen'}),
+        )
+
+        await waitFor(() =>
+            expect(screen.queryByText('pending-8.mp3')).not.toBeInTheDocument(),
+        )
+        expect(screen.getByText('pending-9.mp3')).toBeInTheDocument()
+        expect(screen.getByRole('alert')).toHaveTextContent(
+            'Löschen fehlgeschlagen für Medien-IDs: 9.',
+        )
+        expect(screen.getByRole('status')).toHaveTextContent(
+            '1 ausstehende Upload(s) entfernt.',
+        )
+    })
+
+    it('applies the same partial-failure handling to selected assets', async () => {
+        const selectedAssets = [
+            coverAsset,
+            {
+                ...coverAsset,
+                id: 9,
+                originalFilename: 'other.png',
+            },
+        ]
+        vi.mocked(listMedia).mockResolvedValue(selectedAssets)
+        vi.mocked(deleteMedia)
+            .mockResolvedValueOnce(selectedAssets[0])
+            .mockRejectedValueOnce(new Error('delete failed'))
+        vi.spyOn(window, 'confirm').mockReturnValue(true)
+
+        render(<MediaLibraryClient />)
+
+        fireEvent.click(await screen.findByRole('checkbox', {name: '„cover.png“ auswählen'}))
+        fireEvent.click(screen.getByRole('checkbox', {name: '„other.png“ auswählen'}))
+        fireEvent.click(screen.getByRole('button', {name: '2 löschen'}))
+
+        await waitFor(() =>
+            expect(screen.queryByText('cover.png')).not.toBeInTheDocument(),
+        )
+        expect(screen.getByText('other.png')).toBeInTheDocument()
+        expect(screen.getByRole('alert')).toHaveTextContent(
+            'Löschen fehlgeschlagen für Medien-IDs: 9.',
+        )
+        expect(
+            screen.getByRole('checkbox', {name: '„other.png“ auswählen'}),
+        ).not.toBeChecked()
     })
 })

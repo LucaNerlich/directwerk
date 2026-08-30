@@ -260,24 +260,10 @@ export default function MediaLibraryClient(): React.JSX.Element {
             return
         }
 
-        setIsBusy(true)
-        setErrorMessage(null)
-        setStatusMessage(null)
-        try {
-            const host = getClientTenantHost()
-            await Promise.all(pending.map((asset) => deleteMedia(host, asset.id)))
-            setAssets((current) => current.filter((item) => item.status !== 'PENDING'))
-            setStatusMessage(`${pending.length} ausstehende Upload(s) entfernt.`)
-        } catch (error: unknown) {
-            if (authRedirect(error)) return
-            setErrorMessage(
-                error instanceof Error
-                    ? error.message
-                    : 'Ausstehende Uploads konnten nicht entfernt werden.',
-            )
-        } finally {
-            setIsBusy(false)
-        }
+        await deleteAssets(
+            pending,
+            (count) => `${count} ausstehende Upload(s) entfernt.`,
+        )
     }
 
     async function handleDelete(assetId: number): Promise<void> {
@@ -325,6 +311,54 @@ export default function MediaLibraryClient(): React.JSX.Element {
         clearSelection,
     } = useEntityListSelection<number>(visibleAssetIds)
 
+    async function deleteAssets(
+        targets: MediaAsset[],
+        successMessage: (count: number) => string,
+        onSettled?: () => void,
+    ): Promise<void> {
+        setIsBusy(true)
+        setErrorMessage(null)
+        setStatusMessage(null)
+        try {
+            const host = getClientTenantHost()
+            const results = await Promise.allSettled(
+                targets.map((asset) => deleteMedia(host, asset.id)),
+            )
+            const deletedIds = new Set(
+                targets
+                    .filter((_, index) => results[index].status === 'fulfilled')
+                    .map((asset) => asset.id),
+            )
+            const rejected = targets
+                .map((asset, index) => ({asset, result: results[index]}))
+                .filter(
+                    (entry): entry is {
+                        asset: MediaAsset
+                        result: PromiseRejectedResult
+                    } => entry.result.status === 'rejected',
+                )
+
+            setAssets((current) =>
+                current.filter((item) => !deletedIds.has(item.id)),
+            )
+            onSettled?.()
+
+            if (deletedIds.size > 0) {
+                setStatusMessage(successMessage(deletedIds.size))
+            }
+            if (rejected.length > 0) {
+                if (rejected.some(({result}) => authRedirect(result.reason))) return
+                setErrorMessage(
+                    `Löschen fehlgeschlagen für Medien-IDs: ${rejected
+                        .map(({asset}) => asset.id)
+                        .join(', ')}.`,
+                )
+            }
+        } finally {
+            setIsBusy(false)
+        }
+    }
+
     async function handleBulkDeleteSelected(): Promise<void> {
         const selected = visibleAssets.filter((asset) => selectedIds.has(asset.id))
         if (selected.length === 0) {
@@ -338,25 +372,11 @@ export default function MediaLibraryClient(): React.JSX.Element {
             return
         }
 
-        setIsBusy(true)
-        setErrorMessage(null)
-        setStatusMessage(null)
-        try {
-            const host = getClientTenantHost()
-            await Promise.all(selected.map((asset) => deleteMedia(host, asset.id)))
-            setAssets((current) =>
-                current.filter((item) => !selectedIds.has(item.id)),
-            )
-            clearSelection()
-            setStatusMessage(`${selected.length} Medium/Medien gelöscht.`)
-        } catch (error: unknown) {
-            if (authRedirect(error)) return
-            setErrorMessage(
-                error instanceof Error ? error.message : 'Löschen fehlgeschlagen.',
-            )
-        } finally {
-            setIsBusy(false)
-        }
+        await deleteAssets(
+            selected,
+            (count) => `${count} Medium/Medien gelöscht.`,
+            clearSelection,
+        )
     }
 
     function renderAssetPreview(asset: MediaAsset): React.JSX.Element {

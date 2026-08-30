@@ -88,4 +88,38 @@ describe('usePublicationBulkActions', () => {
         expect(unpublish).toHaveBeenCalledWith(2)
         expect(clearSelection).toHaveBeenCalled()
     })
+
+    it('resets the busy state when authentication redirects during an action', async () => {
+        const publish = vi.fn().mockRejectedValue(new Error('unauthorized'))
+        const authRedirect = vi.fn().mockReturnValue(true)
+
+        const {result} = renderHook(() =>
+            usePublicationBulkActions({
+                items,
+                selectedIds: new Set([1]),
+                publish,
+                unpublish: vi.fn(),
+                setItems: vi.fn(),
+                clearSelection: vi.fn(),
+                labels: {
+                    publishSuccess: (count) => `${count} published`,
+                    unpublishSuccess: (count) => `${count} unpublished`,
+                    publishPartial: (s, f) => `${s} ok, ${f} failed`,
+                    unpublishPartial: (s, f) => `${s} ok, ${f} failed`,
+                    publishError: 'publish failed',
+                    unpublishError: 'unpublish failed',
+                    noPublishable: 'none to publish',
+                    noUnpublishable: 'none to unpublish',
+                },
+                authRedirect,
+            }),
+        )
+
+        await act(async () => {
+            await result.current.handleBulkPublish()
+        })
+
+        expect(authRedirect).toHaveBeenCalledWith(expect.any(Error))
+        expect(result.current.isBulkBusy).toBe(false)
+    })
 })

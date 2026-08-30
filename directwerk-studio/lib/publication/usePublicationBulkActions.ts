@@ -62,42 +62,44 @@ export function usePublicationBulkActions<T extends {
             setErrorMessage(null)
             setStatusMessage(null)
 
-            const updates = new Map<number, T>()
-            let successCount = 0
-            let failureCount = 0
-            let lastError: string | null = null
+            try {
+                const updates = new Map<number, T>()
+                let successCount = 0
+                let failureCount = 0
+                let lastError: string | null = null
 
-            for (const item of eligible) {
-                try {
-                    const updated = await action(item.id)
-                    updates.set(item.id, updated)
-                    successCount += 1
-                } catch (error) {
-                    if (authRedirect(error)) {
-                        return
+                for (const item of eligible) {
+                    try {
+                        const updated = await action(item.id)
+                        updates.set(item.id, updated)
+                        successCount += 1
+                    } catch (error) {
+                        if (authRedirect(error)) {
+                            return
+                        }
+                        failureCount += 1
+                        lastError =
+                            error instanceof Error ? error.message : errorMessageText
                     }
-                    failureCount += 1
-                    lastError =
-                        error instanceof Error ? error.message : errorMessageText
                 }
-            }
 
-            if (updates.size > 0) {
-                setItems((current) =>
-                    current.map((entry) => updates.get(entry.id) ?? entry),
-                )
-            }
+                if (updates.size > 0) {
+                    setItems((current) =>
+                        current.map((entry) => updates.get(entry.id) ?? entry),
+                    )
+                }
 
-            if (successCount > 0 && failureCount === 0) {
-                setStatusMessage(successMessage(successCount))
-                clearSelection()
-            } else if (successCount > 0 && failureCount > 0) {
-                setStatusMessage(partialMessage(successCount, failureCount))
-            } else if (lastError !== null) {
-                setErrorMessage(lastError)
+                if (successCount > 0 && failureCount === 0) {
+                    setStatusMessage(successMessage(successCount))
+                    clearSelection()
+                } else if (successCount > 0 && failureCount > 0) {
+                    setStatusMessage(partialMessage(successCount, failureCount))
+                } else if (lastError !== null) {
+                    setErrorMessage(lastError)
+                }
+            } finally {
+                setIsBulkBusy(false)
             }
-
-            setIsBulkBusy(false)
         },
         [authRedirect, clearSelection, setItems],
     )
