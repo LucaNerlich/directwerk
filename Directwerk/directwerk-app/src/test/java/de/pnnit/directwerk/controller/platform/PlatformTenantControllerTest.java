@@ -1,6 +1,7 @@
 package de.pnnit.directwerk.controller.platform;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -55,6 +56,55 @@ class PlatformTenantControllerTest {
         otherTenant.setName("Globex");
         otherTenant.setStatus(TenantStatus.ACTIVE);
         otherTenant = tenantRepository.save(otherTenant);
+    }
+
+
+    @Test
+    @WithMockUser(roles = "PLATFORM_ADMIN")
+    void createTenantWithFullModulePresetPrimaryDomainAndAdminEmail() throws Exception {
+        String uuid = UUID.randomUUID().toString().replace("-", "");
+        String slug = "luca-test-" + uuid.substring(0, 12);
+        String primaryDomain = "test-" + uuid.substring(0, 8) + ".localhost";
+        String adminEmail = "test-admin-" + uuid.substring(0, 8) + "@example.com";
+        String body = """
+                {
+                  "name": "Luca Test",
+                  "slug": "%s",
+                  "primaryDomain": "%s",
+                  "modulePreset": "FULL",
+                  "adminEmail": "%s",
+                  "adminName": "Test Admin"
+                }
+                """.formatted(slug, primaryDomain, adminEmail);
+
+        mockMvc.perform(post("/api/v1/platform/tenants")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.data.name").value("Luca Test"))
+                .andExpect(jsonPath("$.data.slug").value(slug))
+                .andExpect(jsonPath("$.data.adminInvitation.email").value(adminEmail))
+                .andExpect(jsonPath("$.data.adminInvitation.status").value("INVITED"));
+    }
+
+    @Test
+    @WithMockUser(roles = "PLATFORM_ADMIN")
+    void createTenantReturnsConflictOnDuplicateSlug() throws Exception {
+        String body = """
+                {
+                  "name": "Duplicate Slug Tenant",
+                  "slug": "%s",
+                  "modulePreset": "FULL",
+                  "adminEmail": "dup-admin@example.com",
+                  "adminName": "Dup Admin"
+                }
+                """.formatted(tenant.getSlug());
+
+        mockMvc.perform(post("/api/v1/platform/tenants")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.errors[0].code").value("TENANT_SLUG_EXISTS"));
     }
 
     @Test

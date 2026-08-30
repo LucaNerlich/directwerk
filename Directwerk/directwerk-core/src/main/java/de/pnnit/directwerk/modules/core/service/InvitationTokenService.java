@@ -10,6 +10,7 @@ import de.pnnit.directwerk.modules.core.util.TokenHashUtil;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Objects;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -77,6 +78,6 @@ public class InvitationTokenService {
             return token.getTenantMembership() == null;
         }
         return token.getTenantMembership() != null
-                && token.getTenantMembership().getId().equals(tenantMembershipId);
+                && Objects.equals(tenantMembershipId, token.getTenantMembership().getId());
     }
 }

@@ -43,7 +43,12 @@ export async function resolvePlatformAuthorization(): Promise<
         return {ok: false, status: 401}
     }
 
-    const upstreamRequest = createConfiguredPlatformRefreshRequest(refreshToken)
+    let upstreamRequest
+    try {
+        upstreamRequest = createConfiguredPlatformRefreshRequest(refreshToken)
+    } catch {
+        return {ok: false, status: 502}
+    }
 
     let upstream: Response
     try {
@@ -123,21 +128,26 @@ export async function callPlatformApi<T>(
         return auth
     }
 
-    const upstreamRequest = createConfiguredPlatformApiRequest(
-        segments,
-        new Request('http://admin.local/api/internal', {
-            method: init.method,
-            headers:
-                init.body === undefined
-                    ? undefined
-                    : {'Content-Type': 'application/json'},
-            body:
-                init.body === undefined
-                    ? undefined
-                    : JSON.stringify(init.body),
-        }),
-        auth.authorization
-    )
+    let upstreamRequest
+    try {
+        upstreamRequest = createConfiguredPlatformApiRequest(
+            segments,
+            new Request('http://admin.local/api/internal', {
+                method: init.method,
+                headers:
+                    init.body === undefined
+                        ? undefined
+                        : {'Content-Type': 'application/json'},
+                body:
+                    init.body === undefined
+                        ? undefined
+                        : JSON.stringify(init.body),
+            }),
+            auth.authorization
+        )
+    } catch {
+        return {ok: false, status: 502}
+    }
 
     let upstream: Response
     try {
@@ -180,6 +190,10 @@ export function statusToFormError(
             return 'You do not have permission for this action.'
         case 409:
             return messages.conflict
+        case 503:
+            return 'Directwerk is misconfigured for this action (often email delivery). Check API logs and env vars.'
+        case 500:
+            return 'Directwerk returned an unexpected error. Check API logs and try again.'
         default:
             return messages.fallback
     }

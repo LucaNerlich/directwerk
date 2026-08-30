@@ -30,6 +30,22 @@ class ProdEmailPropertiesValidatorTest {
     @Test
     void rejectsMissingFromAddressWhenEmailEnabled() {
         when(directwerkConfig.isEmailEnabled()).thenReturn(true);
+        when(directwerkConfig.security()).thenReturn(new DirectwerkProperties.Security(
+                "https://api.example.com",
+                "directwerk-api",
+                "platform-client",
+                "tenant-client",
+                "platform-secret",
+                "tenant-secret",
+                null,
+                null,
+                "memory",
+                null,
+                null,
+                null,
+                null,
+                null
+        ));
         when(directwerkConfig.email()).thenReturn(new DirectwerkProperties.Email(
                 true,
                 "smtp",
@@ -51,6 +67,22 @@ class ProdEmailPropertiesValidatorTest {
     @Test
     void rejectsHttpStudioBaseUrlWhenEmailEnabled() {
         when(directwerkConfig.isEmailEnabled()).thenReturn(true);
+        when(directwerkConfig.security()).thenReturn(new DirectwerkProperties.Security(
+                "https://api.example.com",
+                "directwerk-api",
+                "platform-client",
+                "tenant-client",
+                "platform-secret",
+                "tenant-secret",
+                null,
+                null,
+                "memory",
+                null,
+                null,
+                null,
+                null,
+                null
+        ));
         when(directwerkConfig.email()).thenReturn(new DirectwerkProperties.Email(
                 true,
                 "smtp",
@@ -67,5 +99,42 @@ class ProdEmailPropertiesValidatorTest {
         assertThatThrownBy(() -> validator.validateProductionEmail())
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("DIRECTWERK_EMAIL_STUDIO_BASE_URL");
+    }
+
+    @Test
+    void rejectsMissingOAuthSecretsWhenEmailEnabled() {
+        when(directwerkConfig.isEmailEnabled()).thenReturn(true);
+        when(directwerkConfig.security()).thenReturn(new DirectwerkProperties.Security(
+                "https://api.example.com",
+                "directwerk-api",
+                "platform-client",
+                "tenant-client",
+                " ",
+                "tenant-secret",
+                null,
+                null,
+                "memory",
+                null,
+                null,
+                null,
+                null,
+                null
+        ));
+        when(directwerkConfig.email()).thenReturn(new DirectwerkProperties.Email(
+                true,
+                "smtp",
+                "noreply@example.com",
+                "Directwerk",
+                "https://studio.example.com",
+                "https://admin.example.com",
+                "/accept-invite",
+                "/reset-password",
+                "/verify-email",
+                7L
+        ));
+
+        assertThatThrownBy(() -> validator.validateProductionEmail())
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("DIRECTWERK_PLATFORM_CLIENT_SECRET");
     }
 }

@@ -49,7 +49,8 @@ export async function createTenantAction(
         return {
             ...INITIAL_CREATE_TENANT_STATE,
             error: statusToFormError(result.status, {
-                conflict: 'A tenant with this slug already exists.',
+                conflict:
+                    'A tenant with this slug or primary domain already exists.',
                 fallback: 'Tenant creation failed. Check the details and try again.',
             }),
         }

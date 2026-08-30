@@ -47,8 +47,11 @@ import de.pnnit.directwerk.modules.core.service.DomainVerificationException;
 import de.pnnit.directwerk.modules.marketing.CaptchaVerificationException;
 import de.pnnit.directwerk.modules.marketing.ContactFormDisabledException;
 import jakarta.validation.ConstraintViolationException;
+import java.util.Locale;
+import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
@@ -411,6 +414,41 @@ public class GlobalExceptionHandler {
     ResponseEntity<Response<Void>> handleIllegalArgument(IllegalArgumentException ex) {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                 .body(Response.error(400, "VALIDATION_ERROR", ex.getMessage()));
+    }
+
+    /**
+     * Maps misconfiguration failures (e.g. email queue token protection) to a structured
+     * 503 instead of the generic catch-all 500.
+     */
+    @ExceptionHandler(IllegalStateException.class)
+    ResponseEntity<Response<Void>> handleIllegalState(IllegalStateException ex) {
+        log.error("Service misconfiguration", ex);
+        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+                .body(Response.error(503, "SERVICE_MISCONFIGURED", ex.getMessage()));
+    }
+
+    /**
+     * Converts unique-constraint races (slug/domain/membership) into 409 responses.
+     * Application-level pre-checks normally return these codes; this handler covers
+     * concurrent requests that slip through between the check and the insert.
+     */
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    ResponseEntity<Response<Void>> handleDataIntegrity(DataIntegrityViolationException ex) {
+        String details = Optional.ofNullable(ex.getMostSpecificCause())
+                .map(Throwable::getMessage)
+                .orElse("")
+                .toLowerCase(Locale.ROOT);
+        if (details.contains("slug")) {
+            return conflict("TENANT_SLUG_EXISTS", ex);
+        }
+        if (details.contains("host") || details.contains("domain")) {
+            return conflict("DOMAIN_ALREADY_EXISTS", ex);
+        }
+        if (details.contains("tenant_memberships") || details.contains("tenant_user")) {
+            return conflict("USER_ALREADY_MEMBER", ex);
+        }
+        log.warn("Unhandled data integrity violation", ex);
+        return conflict("CONFLICT", ex);
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
