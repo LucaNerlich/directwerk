@@ -318,7 +318,7 @@ export default function MediaLibraryClient(): React.JSX.Element {
     async function deleteAssets(
         targets: MediaAsset[],
         successMessage: (count: number) => string,
-        onSettled?: () => void,
+        onSettled?: (failureCount: number) => void,
     ): Promise<void> {
         setIsBusy(true)
         setErrorMessage(null)
@@ -345,7 +345,7 @@ export default function MediaLibraryClient(): React.JSX.Element {
             setAssets((current) =>
                 current.filter((item) => !deletedIds.has(item.id)),
             )
-            onSettled?.()
+            onSettled?.(rejected.length)
 
             if (deletedIds.size > 0) {
                 setStatusMessage(successMessage(deletedIds.size))
@@ -379,7 +379,11 @@ export default function MediaLibraryClient(): React.JSX.Element {
         await deleteAssets(
             selected,
             (count) => `${count} Medium/Medien gelöscht.`,
-            clearSelection,
+            (failureCount) => {
+                if (failureCount === 0) {
+                    clearSelection()
+                }
+            },
         )
     }
 
@@ -597,12 +601,12 @@ export default function MediaLibraryClient(): React.JSX.Element {
                         ) : null
                     }
                     disabled={isBusy}
+                    gridClassName="lg:grid-cols-3"
                     items={mediaItems}
                     onToggleSelectAll={toggleSelectAll}
                     onToggleSelection={toggleSelection}
                     onViewModeChange={setViewMode}
                     selectAllLabel="Alle Medien auswählen"
-                    selectedCount={selectedCount}
                     selectedIds={selectedIds}
                     selectable
                     viewMode={viewMode}

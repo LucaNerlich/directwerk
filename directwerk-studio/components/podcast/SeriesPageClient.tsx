@@ -20,7 +20,6 @@ export default function SeriesPageClient(): React.JSX.Element {
         busyItemId,
         isBulkBusy,
         selectedIds,
-        selectedCount,
         allSelected,
         viewMode,
         setViewMode,
@@ -92,15 +91,12 @@ export default function SeriesPageClient(): React.JSX.Element {
                         items={listItems}
                         onBulkPublish={() => void handleBulkPublish()}
                         onBulkUnpublish={() => void handleBulkUnpublish()}
-                        onCancelSchedule={() => {}}
                         onPublish={(item) => void handlePublish(item)}
                         onToggleSelectAll={toggleSelectAll}
                         onToggleSelection={toggleSelection}
-                        onUnarchive={() => {}}
                         onUnpublish={(item) => void handleUnpublish(item)}
                         onViewModeChange={setViewMode}
                         publishableCount={publishableCount}
-                        selectedCount={selectedCount}
                         selectedIds={selectedIds}
                         unpublishableCount={unpublishableCount}
                         viewMode={viewMode}

@@ -12,6 +12,7 @@ export function ViewModeToggle({
     onValueChange,
     disabled = false,
     className,
+    label = 'Ansicht wechseln',
     listLabel = 'Liste',
     gridLabel = 'Raster',
 }: {
@@ -19,12 +20,13 @@ export function ViewModeToggle({
     onValueChange: (mode: ViewMode) => void
     disabled?: boolean
     className?: string
+    label?: string
     listLabel?: string
     gridLabel?: string
 }): React.JSX.Element {
     return (
         <ToggleGroup
-            aria-label="Ansicht wechseln"
+            aria-label={label}
             className={cn('rounded-lg border bg-muted/40 p-1', className)}
             disabled={disabled}
             onValueChange={(values) => {

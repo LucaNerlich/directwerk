@@ -63,6 +63,7 @@ export default function CategoryListClient(): React.JSX.Element {
             {categories && categories.length > 0 ? (
                 <SlugEntityListSection
                     items={listItems}
+                    linkComponent={Link}
                     onViewModeChange={setViewMode}
                     viewMode={viewMode}
                 />

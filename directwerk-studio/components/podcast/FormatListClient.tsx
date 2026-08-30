@@ -66,6 +66,7 @@ export default function FormatListClient(): React.JSX.Element {
             {formats && formats.length > 0 ? (
                 <SlugEntityListSection
                     items={listItems}
+                    linkComponent={Link}
                     onViewModeChange={setViewMode}
                     viewMode={viewMode}
                 />

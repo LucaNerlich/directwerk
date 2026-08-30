@@ -196,6 +196,7 @@ export default function WriteDeskClient(): React.JSX.Element {
                     <SectionHeader title="Offene Entwürfe" />
                     <EntityListSection
                         items={draftArticleItems}
+                        linkComponent={Link}
                         onViewModeChange={setViewMode}
                         showSelection={false}
                         viewMode={viewMode}

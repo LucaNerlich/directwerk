@@ -220,6 +220,7 @@ describe('MediaLibraryClient', () => {
         )
         expect(
             screen.getByRole('checkbox', {name: '„other.png“ auswählen'}),
-        ).not.toBeChecked()
+        ).toBeChecked()
+        expect(screen.getByRole('button', {name: '1 löschen'})).toBeInTheDocument()
     })
 })

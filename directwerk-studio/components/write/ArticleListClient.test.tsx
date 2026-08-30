@@ -122,6 +122,12 @@ describe('ArticleListClient', () => {
         expect(screen.getByRole('button', {name: 'Planung aufheben'})).toBeInTheDocument()
         expect(screen.getByRole('button', {name: 'Wiederherstellen'})).toBeInTheDocument()
         expect(screen.getByRole('button', {name: 'Veröffentlichen'})).toBeInTheDocument()
+        expect(
+            screen.getByRole('checkbox', {name: '„Scheduled Post“ auswählen'}),
+        ).toBeDisabled()
+        expect(
+            screen.getByRole('checkbox', {name: '„Archived Post“ auswählen'}),
+        ).toBeDisabled()
     })
 
     it('unpublishes a published article putting it back into draft', async () => {

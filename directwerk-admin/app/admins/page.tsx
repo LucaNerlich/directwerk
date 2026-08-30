@@ -81,10 +81,14 @@ export default function PlatformAdminsPage() {
                 <>
                     {admins.length > 0 ? (
                         <EntityListSection
+                            ariaLabel="Platform admins"
                             items={adminItems}
                             onViewModeChange={setViewMode}
                             showSelection={false}
+                            viewGridLabel="Grid"
+                            viewListLabel="List"
                             viewMode={viewMode}
+                            viewToggleLabel="Change view"
                         />
                     ) : (
                         <EmptyState title="No platform admins" />

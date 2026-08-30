@@ -66,7 +66,6 @@ export default function EpisodeListClient() {
         busyItemId: busyEpisodeId,
         isBulkBusy,
         selectedIds,
-        selectedCount,
         allSelected,
         viewMode,
         setViewMode,
@@ -196,7 +195,6 @@ export default function EpisodeListClient() {
                         onUnpublish={(episode) => void handleUnpublish(episode)}
                         onViewModeChange={setViewMode}
                         publishableCount={publishableCount}
-                        selectedCount={selectedCount}
                         selectedIds={selectedIds}
                         unpublishableCount={unpublishableCount}
                         viewMode={viewMode}

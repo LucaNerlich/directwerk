@@ -69,7 +69,9 @@ function ProductGroups({
                         Stufen-Leiter
                     </h2>
                     <EntityListView
+                        ariaLabel="Mitgliedschaftsstufen"
                         items={levelItems}
+                        linkComponent={Link}
                         viewMode={viewMode}
                     />
                     <p className="mt-2 text-xs text-muted-foreground">
@@ -84,7 +86,9 @@ function ProductGroups({
                         Pakete
                     </h2>
                     <EntityListView
+                        ariaLabel="Pakete"
                         items={packageItems}
+                        linkComponent={Link}
                         viewMode={viewMode}
                     />
                 </section>

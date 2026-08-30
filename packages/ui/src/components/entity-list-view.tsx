@@ -1,6 +1,6 @@
 'use client'
 
-import type {ReactNode} from 'react'
+import type {ElementType, ReactNode} from 'react'
 
 import {Checkbox} from '#components/checkbox'
 import {Card, CardContent, CardFooter, CardHeader, CardTitle} from '#components/card'
@@ -17,6 +17,7 @@ export interface EntityListViewItem<
     id: TId
     title: ReactNode
     selectionLabel?: string
+    selectionDisabled?: boolean
     description?: ReactNode
     descriptions?: ReactNode[]
     trailing?: ReactNode
@@ -72,16 +73,21 @@ function EntityListTitle({
     title,
     href,
     className,
+    linkComponent: LinkComponent = 'a',
 }: {
     title: ReactNode
     href?: string
     className?: string
+    linkComponent?: EntityListLinkComponent
 }) {
     if (href !== undefined) {
         return (
-            <a className={cn('font-medium hover:underline', className)} href={href}>
+            <LinkComponent
+                className={cn('font-medium hover:underline', className)}
+                href={href}
+            >
                 {title}
-            </a>
+            </LinkComponent>
         )
     }
 
@@ -120,6 +126,9 @@ function EntityListDescriptions({
 interface EntityListViewBaseProps<TId extends EntityListItemId> {
     items: EntityListViewItem<TId>[]
     viewMode: ViewMode
+    ariaLabel?: string
+    gridClassName?: string
+    linkComponent?: EntityListLinkComponent
     disabled?: boolean
 }
 
@@ -139,27 +148,50 @@ export type EntityListViewProps<TId extends EntityListItemId> =
     EntityListViewBaseProps<TId> &
         (SelectableEntityListViewProps<TId> | StaticEntityListViewProps)
 
+export type EntityListLinkComponent = ElementType<{
+    href: string
+    className?: string
+    children?: ReactNode
+}>
+
 export function EntityListView<TId extends EntityListItemId>({
     items,
     viewMode,
     selectable = false,
     selectedIds,
     onToggleSelection,
+    ariaLabel,
+    gridClassName,
+    linkComponent,
     disabled = false,
-}: EntityListViewProps<TId>): React.JSX.Element {
+}: EntityListViewProps<TId>): React.JSX.Element | null {
     const isSelectable =
         selectable &&
         selectedIds !== undefined &&
         onToggleSelection !== undefined
 
+    if (items.length === 0) {
+        return null
+    }
+
     if (viewMode === 'grid') {
         return (
-            <ul className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+            <ul
+                aria-label={ariaLabel}
+                className={cn(
+                    'grid gap-4 sm:grid-cols-2 xl:grid-cols-3',
+                    gridClassName,
+                )}
+            >
                 {items.map((item) => {
                     const isSelected = selectedIds?.has(item.id) ?? false
 
                     return (
-                        <li className="h-full" key={`${typeof item.id}:${String(item.id)}`}>
+                        <li
+                            aria-selected={isSelectable ? isSelected : undefined}
+                            className="h-full"
+                            key={`${typeof item.id}:${String(item.id)}`}
+                        >
                             <Card
                                 className={cn(
                                     'h-full',
@@ -171,7 +203,7 @@ export function EntityListView<TId extends EntityListItemId>({
                                     {isSelectable ? (
                                         <SelectionCheckbox
                                             checked={isSelected}
-                                            disabled={disabled}
+                                            disabled={disabled || item.selectionDisabled === true}
                                             item={item}
                                             onToggle={() => onToggleSelection(item.id)}
                                         />
@@ -180,6 +212,7 @@ export function EntityListView<TId extends EntityListItemId>({
                                         <EntityListTitle
                                             className="line-clamp-2"
                                             href={item.href}
+                                            linkComponent={linkComponent}
                                             title={item.title}
                                         />
                                     </CardTitle>
@@ -214,12 +247,13 @@ export function EntityListView<TId extends EntityListItemId>({
     }
 
     return (
-        <ListPanel>
+        <ListPanel aria-label={ariaLabel}>
             {items.map((item) => {
                 const isSelected = selectedIds?.has(item.id) ?? false
 
                 return (
                     <ListPanelRow
+                        aria-selected={isSelectable ? isSelected : undefined}
                         className={isSelected ? 'bg-primary/5' : undefined}
                         key={`${typeof item.id}:${String(item.id)}`}
                     >
@@ -228,7 +262,7 @@ export function EntityListView<TId extends EntityListItemId>({
                                 <SelectionCheckbox
                                     checked={isSelected}
                                     className="mt-0.5"
-                                    disabled={disabled}
+                                    disabled={disabled || item.selectionDisabled === true}
                                     item={item}
                                     onToggle={() => onToggleSelection(item.id)}
                                 />
@@ -237,7 +271,11 @@ export function EntityListView<TId extends EntityListItemId>({
                                 <div className="shrink-0">{item.leading}</div>
                             ) : null}
                             <div className="min-w-0 flex-1">
-                                <EntityListTitle href={item.href} title={item.title} />
+                                <EntityListTitle
+                                    href={item.href}
+                                    linkComponent={linkComponent}
+                                    title={item.title}
+                                />
                                 <EntityListDescriptions
                                     description={item.description}
                                     descriptions={item.descriptions}

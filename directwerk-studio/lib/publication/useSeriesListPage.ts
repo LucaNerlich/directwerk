@@ -6,6 +6,7 @@ import type {SeriesSummary} from '@directwerk/api/types'
 import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
 
 import {createPublicationBulkLabels} from './publicationBulkLabels'
+import {isBulkPublicationStatus} from './publicationBulkEligibility'
 import {usePublicationBulkActions} from './usePublicationBulkActions'
 import {usePublicationListActions} from './usePublicationListActions'
 import {usePublicationListState} from './usePublicationListState'
@@ -33,7 +34,13 @@ export function useSeriesListPage({
     const [isLoading, setIsLoading] = useState(true)
     const [listError, setListError] = useState<string | null>(null)
 
-    const itemIds = useMemo(() => items.map((item) => item.id), [items])
+    const itemIds = useMemo(
+        () =>
+            items
+                .filter((item) => isBulkPublicationStatus(item.status))
+                .map((item) => item.id),
+        [items],
+    )
     const selection = usePublicationListState(itemIds)
 
     const setSeriesItems = useCallback(

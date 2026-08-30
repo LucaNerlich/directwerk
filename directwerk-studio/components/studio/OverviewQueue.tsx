@@ -160,7 +160,9 @@ export default function OverviewQueue({desks}: OverviewQueueProps): React.JSX.El
                 <div className="flex flex-col gap-3">
                     <SectionHeader as="h3" title="Sendungen zum Veröffentlichen" />
                     <EntityListView
+                        ariaLabel="Sendungen zum Veröffentlichen"
                         items={draftItems(draftSeries, '/podcast/series')}
+                        linkComponent={Link}
                         viewMode={viewMode}
                     />
                 </div>
@@ -170,7 +172,9 @@ export default function OverviewQueue({desks}: OverviewQueueProps): React.JSX.El
                 <div className="flex flex-col gap-3">
                     <SectionHeader as="h3" title="Folgen-Entwürfe" />
                     <EntityListView
+                        ariaLabel="Folgen-Entwürfe"
                         items={draftItems(awaitingEpisodes, '/podcast/episodes')}
+                        linkComponent={Link}
                         viewMode={viewMode}
                     />
                 </div>
@@ -180,7 +184,9 @@ export default function OverviewQueue({desks}: OverviewQueueProps): React.JSX.El
                 <div className="flex flex-col gap-3">
                     <SectionHeader as="h3" title="Beitrags-Entwürfe" />
                     <EntityListView
+                        ariaLabel="Beitrags-Entwürfe"
                         items={draftItems(awaitingArticles, '/write/articles')}
+                        linkComponent={Link}
                         viewMode={viewMode}
                     />
                 </div>

@@ -224,6 +224,7 @@ export default function PodcastDeskClient(): React.JSX.Element {
                     <SectionHeader title="Offene Entwürfe" />
                     <EntityListSection
                         items={draftEpisodeItems}
+                        linkComponent={Link}
                         onViewModeChange={setViewMode}
                         showSelection={false}
                         viewMode={viewMode}

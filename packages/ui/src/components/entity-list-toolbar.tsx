@@ -12,6 +12,9 @@ interface EntityListToolbarCommonProps {
     disabled?: boolean
     viewMode?: ViewMode
     onViewModeChange?: (mode: ViewMode) => void
+    viewToggleLabel?: string
+    viewListLabel?: string
+    viewGridLabel?: string
     showViewToggle?: boolean
     className?: string
 }
@@ -48,6 +51,9 @@ export function EntityListToolbar(
         disabled = false,
         viewMode,
         onViewModeChange,
+        viewToggleLabel,
+        viewListLabel,
+        viewGridLabel,
         showViewToggle = true,
         className,
     } = props
@@ -60,7 +66,7 @@ export function EntityListToolbar(
     const selectedCount = showSelection ? props.selectedCount : 0
     const summary = showSelection
         ? selectionSummaryLabel ??
-          (selectedCount > 0 ? `${selectedCount} ausgewählt` : 'Alle auswählen')
+          (selectedCount > 0 ? `${selectedCount} ausgewählt` : props.selectAllLabel)
         : null
 
     return (
@@ -78,7 +84,11 @@ export function EntityListToolbar(
                             checked={props.allSelected}
                             disabled={disabled}
                             indeterminate={selectedCount > 0 && !props.allSelected}
-                            onCheckedChange={() => props.onToggleSelectAll()}
+                            onCheckedChange={(next) => {
+                                if (next !== props.allSelected) {
+                                    props.onToggleSelectAll()
+                                }
+                            }}
                         />
                         <span className="sr-only">{props.selectAllLabel}</span>
                         <span aria-hidden="true">{summary}</span>
@@ -91,6 +101,9 @@ export function EntityListToolbar(
             {showViewToggle && viewMode !== undefined && onViewModeChange !== undefined ? (
                 <ViewModeToggle
                     disabled={disabled}
+                    gridLabel={viewGridLabel}
+                    label={viewToggleLabel}
+                    listLabel={viewListLabel}
                     onValueChange={onViewModeChange}
                     value={viewMode}
                 />

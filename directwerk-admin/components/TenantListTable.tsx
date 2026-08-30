@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import {useMemo, useState} from 'react'
 
 import {Badge} from '@directwerk/ui/components/badge'
@@ -107,10 +108,15 @@ export default function TenantListTable({
 
             {tenantItems.length > 0 ? (
                 <EntityListSection
+                    ariaLabel="Tenants"
                     items={tenantItems}
+                    linkComponent={Link}
                     onViewModeChange={setViewMode}
                     showSelection={false}
+                    viewGridLabel="Grid"
+                    viewListLabel="List"
                     viewMode={viewMode}
+                    viewToggleLabel="Change view"
                 />
             ) : (
                 <p className="text-sm text-muted-foreground">No tenants match your filters.</p>

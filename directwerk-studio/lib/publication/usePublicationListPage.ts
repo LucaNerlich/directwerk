@@ -8,6 +8,7 @@ import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
 import {usePublicationBulkActions, type PublicationBulkActionLabels} from './usePublicationBulkActions'
 import {usePublicationListActions} from './usePublicationListActions'
 import {usePublicationListState} from './usePublicationListState'
+import {isBulkPublicationStatus} from './publicationBulkEligibility'
 
 interface PublicationListPageLabels {
     loadError: string
@@ -49,7 +50,13 @@ export function usePublicationListPage<T extends {
     const [isLoading, setIsLoading] = useState(true)
     const [listError, setListError] = useState<string | null>(null)
 
-    const itemIds = useMemo(() => items.map((item) => item.id), [items])
+    const itemIds = useMemo(
+        () =>
+            items
+                .filter((item) => isBulkPublicationStatus(item.status))
+                .map((item) => item.id),
+        [items],
+    )
 
     const selection = usePublicationListState(itemIds)
 

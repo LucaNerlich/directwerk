@@ -28,7 +28,6 @@ export default function ArticleListClient() {
         busyItemId: busyArticleId,
         isBulkBusy,
         selectedIds,
-        selectedCount,
         allSelected,
         viewMode,
         setViewMode,
@@ -120,7 +119,6 @@ export default function ArticleListClient() {
                         onUnpublish={(article) => void handleUnpublish(article)}
                         onViewModeChange={setViewMode}
                         publishableCount={publishableCount}
-                        selectedCount={selectedCount}
                         selectedIds={selectedIds}
                         unpublishableCount={unpublishableCount}
                         viewMode={viewMode}

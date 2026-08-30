@@ -3,22 +3,42 @@
 import type {ReactNode} from 'react'
 
 import {EntityListToolbar} from '#components/entity-list-toolbar'
-import {EntityListView, type EntityListViewItem} from '#components/entity-list-view'
+import {
+    EntityListView,
+    type EntityListLinkComponent,
+    type EntityListViewItem,
+} from '#components/entity-list-view'
 import type {ViewMode} from '#components/view-mode-toggle'
 import type {EntityListItemId} from '#hooks/use-entity-list-selection'
 
 interface EntityListSectionBaseProps<TId extends EntityListItemId> {
     items: EntityListViewItem<TId>[]
     viewMode: ViewMode
-    onViewModeChange: (mode: ViewMode) => void
+    ariaLabel?: string
+    gridClassName?: string
+    linkComponent?: EntityListLinkComponent
     disabled?: boolean
-    showViewToggle?: boolean
+}
+
+interface SwitchableEntityListSectionProps {
+    onViewModeChange: (mode: ViewMode) => void
+    showViewToggle?: true
+    viewToggleLabel?: string
+    viewListLabel?: string
+    viewGridLabel?: string
+}
+
+interface FixedEntityListSectionProps {
+    onViewModeChange?: never
+    showViewToggle: false
+    viewToggleLabel?: never
+    viewListLabel?: never
+    viewGridLabel?: never
 }
 
 interface SelectableEntityListSectionProps<TId extends EntityListItemId> {
     selectable: true
     selectedIds: ReadonlySet<TId>
-    selectedCount: number
     allSelected: boolean
     onToggleSelectAll: () => void
     onToggleSelection: (id: TId) => void
@@ -30,7 +50,6 @@ interface SelectableEntityListSectionProps<TId extends EntityListItemId> {
 interface StaticEntityListSectionProps {
     selectable?: false
     selectedIds?: never
-    selectedCount?: never
     allSelected?: never
     onToggleSelectAll?: never
     onToggleSelection?: never
@@ -44,7 +63,8 @@ export type EntityListSectionProps<TId extends EntityListItemId> =
         (
             | SelectableEntityListSectionProps<TId>
             | StaticEntityListSectionProps
-        )
+        ) &
+        (SwitchableEntityListSectionProps | FixedEntityListSectionProps)
 
 export function EntityListSection<TId extends EntityListItemId>(
     props: EntityListSectionProps<TId>,
@@ -52,10 +72,12 @@ export function EntityListSection<TId extends EntityListItemId>(
     const {
         items,
         viewMode,
-        onViewModeChange,
+        ariaLabel,
+        gridClassName,
+        linkComponent,
         disabled = false,
-        showViewToggle = true,
     } = props
+    const showViewToggle = props.showViewToggle !== false
     const showSelection =
         props.selectable === true && (props.showSelection ?? true)
     const hasToolbar = items.length > 0 && (showViewToggle || showSelection)
@@ -69,26 +91,35 @@ export function EntityListSection<TId extends EntityListItemId>(
                         bulkActions={props.bulkActions}
                         disabled={disabled}
                         onToggleSelectAll={props.onToggleSelectAll}
-                        onViewModeChange={onViewModeChange}
+                        onViewModeChange={props.onViewModeChange}
                         selectAllLabel={props.selectAllLabel}
-                        selectedCount={props.selectedCount}
+                        selectedCount={props.selectedIds.size}
                         showViewToggle={showViewToggle}
+                        viewGridLabel={props.viewGridLabel}
+                        viewListLabel={props.viewListLabel}
                         viewMode={viewMode}
+                        viewToggleLabel={props.viewToggleLabel}
                     />
                 ) : (
                     <EntityListToolbar
                         disabled={disabled}
-                        onViewModeChange={onViewModeChange}
+                        onViewModeChange={props.onViewModeChange}
                         showSelection={false}
                         showViewToggle={showViewToggle}
+                        viewGridLabel={props.viewGridLabel}
+                        viewListLabel={props.viewListLabel}
                         viewMode={viewMode}
+                        viewToggleLabel={props.viewToggleLabel}
                     />
                 )
             ) : null}
             {props.selectable === true ? (
                 <EntityListView
                     disabled={disabled}
+                    ariaLabel={ariaLabel}
+                    gridClassName={gridClassName}
                     items={items}
+                    linkComponent={linkComponent}
                     onToggleSelection={props.onToggleSelection}
                     selectable
                     selectedIds={props.selectedIds}
@@ -97,7 +128,10 @@ export function EntityListSection<TId extends EntityListItemId>(
             ) : (
                 <EntityListView
                     disabled={disabled}
+                    ariaLabel={ariaLabel}
+                    gridClassName={gridClassName}
                     items={items}
+                    linkComponent={linkComponent}
                     viewMode={viewMode}
                 />
             )}

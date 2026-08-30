@@ -15,7 +15,6 @@ import {
     type EntityListViewItem,
 } from '@directwerk/ui/components/entity-list-view'
 import PageHeader from '@directwerk/ui/components/page-header'
-import {useListViewMode} from '@directwerk/ui/hooks/use-list-view-mode'
 
 import DomainForceVerifyForm from '@/components/DomainForceVerifyForm'
 import InviteTenantUserForm from '@/components/InviteTenantUserForm'
@@ -49,7 +48,6 @@ export default function TenantPage({params}: TenantPageProps) {
     const [isInitialLoad, setIsInitialLoad] = useState(true)
     const [lifecycleBusy, setLifecycleBusy] = useState(false)
     const [tenantSessionKey, setTenantSessionKey] = useState(0)
-    const {viewMode, setViewMode} = useListViewMode()
 
     const loadTenantData = useCallback(() => {
         if (!/^\d+$/.test(id)) {
@@ -185,6 +183,7 @@ export default function TenantPage({params}: TenantPageProps) {
                                 <CardHeader><CardTitle>Domains</CardTitle></CardHeader>
                                 <CardContent>
                                     <EntityListView
+                                        ariaLabel="Tenant domains"
                                         items={data.tenant.domains.map((domain) => ({
                                             id: domain.host,
                                             title: domain.host,
@@ -274,6 +273,7 @@ export default function TenantPage({params}: TenantPageProps) {
                         <h2 className="text-2xl font-semibold tracking-tight">Users</h2>
                         {data.users.length > 0 ? (
                             <EntityListSection
+                                ariaLabel="Tenant users"
                                 items={data.users.map((user): EntityListViewItem => ({
                                     id: user.userId,
                                     title: user.name ?? user.email,
@@ -285,7 +285,7 @@ export default function TenantPage({params}: TenantPageProps) {
                                             : 'Last login: —',
                                     ],
                                     trailing: <Badge variant="outline">{user.status}</Badge>,
-                                    actions: (
+                                    extra: (
                                         <TenantUserActions
                                             onChanged={loadTenantData}
                                             tenantId={id}
@@ -293,9 +293,9 @@ export default function TenantPage({params}: TenantPageProps) {
                                         />
                                     ),
                                 }))}
-                                onViewModeChange={setViewMode}
                                 showSelection={false}
-                                viewMode={viewMode}
+                                showViewToggle={false}
+                                viewMode="list"
                             />
                         ) : (
                             <EmptyState title="No users" />

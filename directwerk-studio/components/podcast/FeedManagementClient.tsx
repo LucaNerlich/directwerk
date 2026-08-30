@@ -270,6 +270,7 @@ export default function FeedManagementClient(): React.JSX.Element {
                 <section className="flex flex-col gap-4">
                     <SectionHeader title="Allgemeiner Feed" />
                     <EntityListView
+                        ariaLabel="Allgemeiner Feed"
                         items={generalFeedItems}
                         viewMode="list"
                     />
@@ -280,6 +281,7 @@ export default function FeedManagementClient(): React.JSX.Element {
                 <section className="flex flex-col gap-4">
                     <SectionHeader title="Sendungs-Feeds" />
                     <EntityListView
+                        ariaLabel="Sendungs-Feeds"
                         items={seriesFeedItems}
                         viewMode={viewMode}
                     />
@@ -293,6 +295,7 @@ export default function FeedManagementClient(): React.JSX.Element {
                         title="Noch nicht veröffentlichte Sendungen"
                     />
                     <EntityListView
+                        ariaLabel="Noch nicht veröffentlichte Sendungen"
                         items={draftSeriesItems}
                         viewMode={viewMode}
                     />
@@ -309,6 +312,7 @@ export default function FeedManagementClient(): React.JSX.Element {
                         />
                     ) : (
                         <EntityListView
+                            ariaLabel="Abonnenten-Feeds"
                             items={subscriberFeedItems}
                             viewMode={viewMode}
                         />

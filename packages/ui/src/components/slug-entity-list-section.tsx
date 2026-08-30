@@ -1,7 +1,10 @@
 'use client'
 
 import {EntityListSection} from '#components/entity-list-section'
-import type {EntityListViewItem} from '#components/entity-list-view'
+import type {
+    EntityListLinkComponent,
+    EntityListViewItem,
+} from '#components/entity-list-view'
 import type {ViewMode} from '#components/view-mode-toggle'
 
 export interface SlugEntityListItem {
@@ -28,14 +31,17 @@ export function SlugEntityListSection({
     items,
     viewMode,
     onViewModeChange,
+    linkComponent,
 }: {
     items: SlugEntityListItem[]
     viewMode: ViewMode
     onViewModeChange: (mode: ViewMode) => void
+    linkComponent?: EntityListLinkComponent
 }): React.JSX.Element {
     return (
         <EntityListSection
             items={mapSlugEntityListItems(items)}
+            linkComponent={linkComponent}
             onViewModeChange={onViewModeChange}
             viewMode={viewMode}
         />
