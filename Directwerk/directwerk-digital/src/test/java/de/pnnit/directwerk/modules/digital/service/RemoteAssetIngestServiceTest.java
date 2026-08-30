@@ -4,7 +4,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -18,6 +20,7 @@ import de.pnnit.directwerk.modules.digital.entity.AssetStatus;
 import de.pnnit.directwerk.modules.digital.entity.AssetType;
 import de.pnnit.directwerk.modules.digital.entity.AssetVisibility;
 import de.pnnit.directwerk.modules.digital.entity.MediaAsset;
+import de.pnnit.directwerk.modules.digital.exception.UploadValidationException;
 import de.pnnit.directwerk.modules.digital.job.RemoteAssetIngestJobProducer;
 import de.pnnit.directwerk.modules.digital.net.RemoteContentClient;
 import de.pnnit.directwerk.modules.digital.repository.MediaAssetRepository;
@@ -66,11 +69,13 @@ class RemoteAssetIngestServiceTest {
     private RemoteAssetIngestJobProducer remoteAssetIngestJobProducer;
 
     private RemoteAssetIngestService service;
+    private TransactionStatus transactionStatus;
 
     @BeforeEach
     void setUp() {
         TenantContext.setTenantId(10L);
-        lenient().when(transactionManager.getTransaction(any())).thenReturn(org.mockito.Mockito.mock(TransactionStatus.class));
+        transactionStatus = org.mockito.Mockito.mock(TransactionStatus.class);
+        lenient().when(transactionManager.getTransaction(any())).thenReturn(transactionStatus);
         service = new RemoteAssetIngestService(
                 s3Client,
                 remoteContentClient,
@@ -214,11 +219,64 @@ class RemoteAssetIngestServiceTest {
 
         assertThat(pending.getId()).isEqualTo(42L);
         assertThat(pending.getStatus()).isEqualTo(AssetStatus.PENDING);
+        verify(remoteAssetIngestJobProducer).validateQueueAvailability();
         verify(remoteAssetIngestJobProducer).enqueue(
                 42L,
                 "https://1.1.1.1/ep.mp3",
                 "episode.mp3"
         );
+        verifyNoInteractions(remoteContentClient);
+    }
+
+    @Test
+    void rejectsUnavailableQueueBeforeCreatingAsset() {
+        doThrow(new UploadValidationException("REMOTE_ASSET_FAILED", "job queue unavailable"))
+                .when(remoteAssetIngestJobProducer).validateQueueAvailability();
+
+        assertThatThrownBy(() -> service.startIngestFromUrl(new RemoteAssetIngestApi.IngestCommand(
+                "https://1.1.1.1/ep.mp3",
+                AssetType.AUDIO,
+                AssetVisibility.PRIVATE,
+                "episode.mp3"
+        )))
+                .isInstanceOf(UploadValidationException.class)
+                .hasMessageContaining("job queue");
+
+        verify(transactionManager, never()).getTransaction(any());
+        verifyNoInteractions(tenantRepository, mediaAssetRepository, remoteContentClient);
+    }
+
+    @Test
+    void rollsBackPendingAssetWhenEnqueueFails() {
+        Tenant tenant = new Tenant();
+        tenant.setId(10L);
+        tenant.setSlug("alpha");
+        when(tenantRepository.requireById(10L)).thenReturn(tenant);
+        when(directwerkConfig.isStorageEnabled()).thenReturn(true);
+        when(directwerkConfig.storage()).thenReturn(storage());
+        when(mediaAssetRepository.saveAndFlush(any(MediaAsset.class))).thenAnswer(invocation -> {
+            MediaAsset asset = invocation.getArgument(0);
+            asset.setId(42L);
+            return asset;
+        });
+        doThrow(new IllegalStateException("queue insert failed"))
+                .when(remoteAssetIngestJobProducer).enqueue(
+                        42L,
+                        "https://1.1.1.1/ep.mp3",
+                        "episode.mp3"
+                );
+
+        assertThatThrownBy(() -> service.startIngestFromUrl(new RemoteAssetIngestApi.IngestCommand(
+                "https://1.1.1.1/ep.mp3",
+                AssetType.AUDIO,
+                AssetVisibility.PRIVATE,
+                "episode.mp3"
+        )))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("queue insert failed");
+
+        verify(transactionManager).rollback(transactionStatus);
+        verify(transactionManager, never()).commit(any());
         verifyNoInteractions(remoteContentClient);
     }
 

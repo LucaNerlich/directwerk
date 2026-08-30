@@ -90,14 +90,21 @@ public class RemoteAssetIngestService implements RemoteAssetIngestApi {
      */
     @Override
     public MediaAsset startIngestFromUrl(IngestCommand command) {
-        PreparedIngest prepared = prepareIngestCommitted(command);
-        MediaAsset asset = prepared.asset();
-        remoteAssetIngestJobProducer.enqueue(
-                asset.getId(),
-                command.sourceUrl(),
-                command.filenameHint()
-        );
-        return asset;
+        remoteAssetIngestJobProducer.validateQueueAvailability();
+        PreparedIngest prepared = transactionTemplate().execute(status -> {
+            PreparedIngest pending = prepareIngest(command);
+            MediaAsset asset = pending.asset();
+            remoteAssetIngestJobProducer.enqueue(
+                    asset.getId(),
+                    command.sourceUrl(),
+                    command.filenameHint()
+            );
+            return pending;
+        });
+        if (prepared == null) {
+            throw new UploadValidationException("REMOTE_ASSET_FAILED", "Could not prepare remote asset ingest");
+        }
+        return prepared.asset();
     }
 
     /**
@@ -168,14 +175,6 @@ public class RemoteAssetIngestService implements RemoteAssetIngestApi {
         if (job.attempts() >= job.maxAttempts()) {
             markIngestFailed(assetId, tenantId);
         }
-    }
-
-    private PreparedIngest prepareIngestCommitted(IngestCommand command) {
-        PreparedIngest prepared = transactionTemplate().execute(status -> prepareIngest(command));
-        if (prepared == null) {
-            throw new UploadValidationException("REMOTE_ASSET_FAILED", "Could not prepare remote asset ingest");
-        }
-        return prepared;
     }
 
     private PreparedIngest prepareIngest(IngestCommand command) {

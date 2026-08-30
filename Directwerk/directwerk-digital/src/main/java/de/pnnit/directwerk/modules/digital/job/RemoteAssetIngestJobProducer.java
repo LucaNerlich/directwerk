@@ -30,12 +30,7 @@ public class RemoteAssetIngestJobProducer {
     }
 
     public QueueJob enqueue(Long mediaAssetId, String sourceUrl, String filenameHint) {
-        if (!directwerkConfig.isQueueEnabled()) {
-            throw new UploadValidationException(
-                    "REMOTE_ASSET_FAILED",
-                    "Background remote ingest requires the job queue to be enabled"
-            );
-        }
+        validateQueueAvailability();
         if (mediaAssetId == null || mediaAssetId < 1) {
             throw new IllegalArgumentException("mediaAssetId must be a positive id");
         }
@@ -56,5 +51,14 @@ public class RemoteAssetIngestJobProducer {
                 null,
                 new JobEnqueueMetadata(tenantId, "remote-asset-ingest-" + mediaAssetId, null)
         );
+    }
+
+    public void validateQueueAvailability() {
+        if (!directwerkConfig.isQueueEnabled()) {
+            throw new UploadValidationException(
+                    "REMOTE_ASSET_FAILED",
+                    "Background remote ingest requires the job queue to be enabled"
+            );
+        }
     }
 }
