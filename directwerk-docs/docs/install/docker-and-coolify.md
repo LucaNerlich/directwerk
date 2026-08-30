@@ -106,7 +106,7 @@ Do **not** use Nixpacks with a subdirectory base directory.
 | `directwerk-studio` | `directwerk-studio/Dockerfile` | 3003 | `/api/health` |
 | `directwerk-web` | `directwerk-web/Dockerfile` | 3004 | `/api/health` |
 | `homepage` | `homepage/Dockerfile` | 3005 | `/api/health` |
-| `directwerk-docs` | `directwerk-docs/Dockerfile` | **80** | `/` or `/api/health` |
+| `directwerk-docs` | `directwerk-docs/Dockerfile` | **3006** | `/api/health` |
 
 Coolify settings for each app:
 
@@ -115,7 +115,7 @@ Coolify settings for each app:
 | Build pack | **Dockerfile** (not Nixpacks) |
 | **Base Directory** | Repository root (`.` — leave empty) |
 | Dockerfile path | See table above |
-| **Port** | Must match the table — docs is **80**, not 4173 |
+| **Port** | Must match the table — docs is **3006**, not 4173 or 3001 |
 | Health check path | See table above |
 
 The Dockerfiles accept either a full monorepo build context or Coolify's app-scoped
@@ -147,6 +147,19 @@ HTTPS with a **self-signed certificate**, set `DIRECTWERK_UPSTREAM_TLS_INSECURE=
 frontend container (staging only — prefer valid TLS or internal HTTP in production).
 
 ## Troubleshooting
+
+### `directwerk-docs` Bad Gateway (502)
+
+The container is usually healthy (logs show `GET /` **200**), but Coolify’s proxy is hitting the
+wrong port. Docs nginx listens on **`PORT`** (default **3006**), not 80, 3001, or 4173.
+
+1. **General → Ports Exposes:** `3006`
+2. **Domains:** use `https://docs.example.com` after the port is correct; if Traefik still 502s,
+   try `https://docs.example.com:3006` once to force label regeneration, then remove `:3006`
+3. **Environment:** delete a stray `PORT=4173` (from the Node `preview` script) if present
+4. Redeploy after changes
+
+Runtime logs should show `GET /` with ~**10354** bytes (VitePress), not **615** (stock nginx page).
 
 ### App exits immediately in prod
 

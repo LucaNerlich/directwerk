@@ -3,7 +3,7 @@
 # Coolify
 #   Base Directory: repository root (.) — not directwerk-docs/
 #   Dockerfile: directwerk-docs/Dockerfile
-#   Port: 80
+#   Ports Exposes: 3006 (must match ENV PORT below)
 #
 # Local:
 #   docker build -f directwerk-docs/Dockerfile -t directwerk-docs:local .
@@ -42,10 +42,11 @@ ENV VITEPRESS_LAST_UPDATED=0
 RUN pnpm --filter directwerk-docs build
 
 FROM nginx:1.27-alpine
+ENV PORT=3006
 RUN rm -rf /usr/share/nginx/html/*
-COPY --from=build /workspace/directwerk-docs/nginx.conf /etc/nginx/conf.d/default.conf
+COPY --from=build /workspace/directwerk-docs/nginx.conf.template /etc/nginx/templates/default.conf.template
 COPY --from=build /workspace/directwerk-docs/docs/.vitepress/dist /usr/share/nginx/html
 
-EXPOSE 80
+EXPOSE 3006
 CMD ["nginx", "-g", "daemon off;"]
-HEALTHCHECK CMD wget -qO- http://127.0.0.1/api/health >/dev/null || exit 1
+HEALTHCHECK CMD wget -qO- http://127.0.0.1:3006/api/health >/dev/null || exit 1

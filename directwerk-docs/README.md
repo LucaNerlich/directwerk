@@ -62,20 +62,20 @@ pnpm --filter directwerk-docs build
 
 ## Deploy on Coolify
 
-**Recommended:** Dockerfile (static nginx — no Node at runtime).
+**Recommended:** Dockerfile (VitePress build + nginx static runtime).
 
 | Setting | Value |
 |---------|-------|
-| Type | Dockerfile |
-| **Build context** | Monorepo root (`/`) |
+| Build pack | **Dockerfile** (not Nixpacks) |
+| **Base directory** | Monorepo root (`.` — leave empty) |
 | **Dockerfile path** | `directwerk-docs/Dockerfile` |
-| Port | **80** |
-| Health check | `GET /` |
-| Domain | e.g. `docs.directwerk.com` (TLS at reverse proxy) |
+| **Ports Exposes** | **3006** (must match `ENV PORT` in the Dockerfile) |
+| Health check | `/api/health` |
+| Domain | e.g. `docs.directwerk.org` (TLS at reverse proxy) |
+
+Remove a stray `PORT=4173` env var if present (from the Node `preview` script). No other runtime secrets required.
 
 **Alternative (Node buildpack):** build `pnpm --filter directwerk-docs build`, start `pnpm --filter directwerk-docs start`, expose port **4173** (or set `PORT`).
-
-No runtime secrets required — static site.
 
 Rebuild when docs content or `docs/openapi/directwerk-api.json` changes.
 
@@ -84,7 +84,7 @@ Rebuild when docs content or `docs/openapi/directwerk-api.json` changes.
 ```text
 directwerk-docs/
 ├── Dockerfile
-├── nginx.conf
+├── nginx.conf.template
 ├── package.json
 ├── scripts/export-openapi.sh
 └── docs/
