@@ -41,8 +41,8 @@ public class EmailLinkBuilder {
     }
 
     public String buildStudioAcceptInviteUrl(String inviteToken, Long tenantId) {
-        return buildTenantAuthUrl(
-                tenantId,
+        return buildUrl(
+                directwerkConfig.email().studioBaseUrl(),
                 directwerkConfig.email().acceptInvitePath(),
                 inviteToken
         );

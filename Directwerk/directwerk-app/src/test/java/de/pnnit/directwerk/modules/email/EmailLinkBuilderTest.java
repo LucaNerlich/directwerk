@@ -55,25 +55,10 @@ class EmailLinkBuilderTest {
     }
 
     @Test
-    void buildStudioAcceptInviteUrlUsesTenantPrimaryVerifiedHost() {
-        when(tenantPublicHostResolver.findPrimaryVerifiedHost(TENANT_ID))
-                .thenReturn(Optional.of("studio.alpha-show.de"));
-
+    void buildStudioAcceptInviteUrlUsesSharedStudioBaseEvenWhenTenantHasPrimaryDomain() {
         String url = linkBuilder.buildStudioAcceptInviteUrl("invite-token", TENANT_ID);
 
-        assertThat(url).isEqualTo("https://studio.alpha-show.de/accept-invite?token=invite-token");
-    }
-
-    @Test
-    void buildStudioAcceptInviteUrlFallsBackToSharedStudioBaseWithTenantSlug() {
-        when(tenantPublicHostResolver.findPrimaryVerifiedHost(TENANT_ID)).thenReturn(Optional.empty());
-        Tenant tenant = new Tenant();
-        tenant.setSlug("alpha-show");
-        when(tenantRepository.findById(TENANT_ID)).thenReturn(Optional.of(tenant));
-
-        String url = linkBuilder.buildStudioAcceptInviteUrl("invite-token", TENANT_ID);
-
-        assertThat(url).isEqualTo("http://localhost:3004/accept-invite?token=invite-token&tenant=alpha-show");
+        assertThat(url).isEqualTo("http://localhost:3004/accept-invite?token=invite-token");
     }
 
     @Test

@@ -52,7 +52,7 @@ directwerk:
         expose-dev-tokens: true
     email:
         from-address: ${DIRECTWERK_EMAIL_FROM:noreply@directwerk.local}
-        studio-base-url: ${DIRECTWERK_EMAIL_STUDIO_BASE_URL:http://localhost:3004}
+        studio-base-url: ${DIRECTWERK_EMAIL_STUDIO_BASE_URL:http://localhost:3003}
         admin-base-url: ${DIRECTWERK_EMAIL_ADMIN_BASE_URL:http://localhost:3001}
     marketing:
         contact:
