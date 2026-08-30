@@ -41,6 +41,17 @@ public class TenantRoutingHostResolver {
         return serverName;
     }
 
+    /**
+     * True when tenant routing resolves to the platform API hostname (no selected tenant).
+     */
+    public boolean resolvesToPlatformApiHost(HttpServletRequest request) {
+        String platformApiHost = platformApiHost();
+        if (platformApiHost == null) {
+            return false;
+        }
+        return platformApiHost.equalsIgnoreCase(resolve(request));
+    }
+
     private static String resolveFromBffHeaders(
             HttpServletRequest request,
             String platformApiHost,

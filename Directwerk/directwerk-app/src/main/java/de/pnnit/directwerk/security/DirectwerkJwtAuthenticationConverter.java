@@ -21,9 +21,7 @@ public class DirectwerkJwtAuthenticationConverter implements Converter<Jwt, Abst
 
     @Override
     public AbstractAuthenticationToken convert(Jwt jwt) {
-        Long tenantId = jwt.getClaim("tenant_id") != null
-                ? jwt.getClaim("tenant_id") instanceof Number number ? number.longValue() : null
-                : null;
+        Long tenantId = parseTenantIdClaim(jwt);
         Long userId = jwt.getSubject() != null ? Long.parseLong(jwt.getSubject()) : null;
 
         DirectwerkUserPrincipal principal = new DirectwerkUserPrincipal(
@@ -40,5 +38,20 @@ public class DirectwerkJwtAuthenticationConverter implements Converter<Jwt, Abst
                 return principal;
             }
         };
+    }
+
+    private static Long parseTenantIdClaim(Jwt jwt) {
+        Object claim = jwt.getClaim("tenant_id");
+        if (claim instanceof Number number) {
+            return number.longValue();
+        }
+        if (claim instanceof String text && !text.isBlank()) {
+            try {
+                return Long.parseLong(text.trim());
+            } catch (NumberFormatException ex) {
+                return null;
+            }
+        }
+        return null;
     }
 }
