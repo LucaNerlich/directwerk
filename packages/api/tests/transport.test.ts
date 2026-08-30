@@ -55,6 +55,7 @@ describe('createServerTransport', () => {
                             res.end(
                                 JSON.stringify({
                                     host: req.headers.host,
+                                    tenantHost: req.headers['x-tenant-host'],
                                     contentLength: req.headers['content-length'],
                                 }),
                             )
@@ -141,5 +142,6 @@ describe('createServerTransport', () => {
         const withHeaders = (await withLen.json()) as Record<string, unknown>
         expect(withHeaders.contentLength).toBe(String(Buffer.byteLength(body)))
         expect(withHeaders.host).toBe('h.example')
+        expect(withHeaders.tenantHost).toBe('h.example')
     })
 })

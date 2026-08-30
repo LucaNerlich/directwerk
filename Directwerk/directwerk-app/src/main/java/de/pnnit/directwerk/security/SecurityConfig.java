@@ -12,6 +12,7 @@ import de.pnnit.directwerk.modules.marketing.ContactRequestBodySizeFilter;
 import de.pnnit.directwerk.config.DirectwerkProperties;
 import de.pnnit.directwerk.multitenancy.TenantContextFilter;
 import de.pnnit.directwerk.multitenancy.TenantResolver;
+import de.pnnit.directwerk.multitenancy.BffTenantRoutingHostFilter;
 import de.pnnit.directwerk.security.grants.PasswordGrantAuthenticationConverter;
 import de.pnnit.directwerk.security.grants.PasswordGrantAuthenticationProvider;
 import java.security.KeyPair;
@@ -249,6 +250,16 @@ public class SecurityConfig {
         DaoAuthenticationProvider provider = new DaoAuthenticationProvider(userDetailsService);
         provider.setPasswordEncoder(passwordEncoder);
         return provider;
+    }
+
+    @Bean
+    FilterRegistrationBean<BffTenantRoutingHostFilter> bffTenantRoutingHostFilterRegistration(
+            BffTenantRoutingHostFilter bffTenantRoutingHostFilter
+    ) {
+        FilterRegistrationBean<BffTenantRoutingHostFilter> registration =
+                new FilterRegistrationBean<>(bffTenantRoutingHostFilter);
+        registration.setOrder(Ordered.HIGHEST_PRECEDENCE);
+        return registration;
     }
 
     @Bean
