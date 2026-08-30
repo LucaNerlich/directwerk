@@ -5,19 +5,21 @@ import {useCallback, useEffect, useState} from 'react'
 
 import {Button} from '@directwerk/ui/components/button'
 import EmptyState from '@directwerk/ui/components/empty-state'
-import ListPanel, {ListPanelRow} from '@directwerk/ui/components/list-panel'
 import PageHeader from '@directwerk/ui/components/page-header'
 
-import PublicationStatusBadge from '@/components/publication/PublicationStatusBadge'
+import PublicationListToolbar from '@/components/publication/PublicationListToolbar'
+import PublicationListView from '@/components/publication/PublicationListView'
 import {listFormats} from '@/lib/api/catalogApi'
 import {
     cancelScheduleEpisode,
     listEpisodes,
     listSeries,
+    publishEpisode,
     unarchiveEpisode,
     unpublishEpisode,
 } from '@/lib/api/podcastApi'
 import type {EpisodeDetail, FormatSummary, SeriesSummary} from '@directwerk/api/types'
+import {createPublicationBulkLabels} from '@/lib/publication/publicationBulkLabels'
 import {usePublicationListPage} from '@/lib/publication/usePublicationListPage'
 import {getClientTenantHost} from '@directwerk/api/tenant'
 import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
@@ -63,25 +65,42 @@ export default function EpisodeListClient() {
         displayError: episodeError,
         statusMessage,
         busyItemId: busyEpisodeId,
+        isBulkBusy,
+        selectedIds,
+        selectedCount,
+        allSelected,
+        viewMode,
+        setViewMode,
+        toggleSelection,
+        toggleSelectAll,
+        publishableCount,
+        unpublishableCount,
+        handlePublish,
         handleUnpublish,
         handleCancelSchedule,
         handleUnarchive,
+        handleBulkPublish,
+        handleBulkUnpublish,
     } = usePublicationListPage<EpisodeDetail>({
         load: () => listEpisodes(getClientTenantHost()),
+        publish: (id) => publishEpisode(getClientTenantHost(), id),
         unpublish: (id) => unpublishEpisode(getClientTenantHost(), id),
         cancelSchedule: (id) => cancelScheduleEpisode(getClientTenantHost(), id),
         unarchive: (id) => unarchiveEpisode(getClientTenantHost(), id),
         labels: {
             loadError: 'Folgen konnten nicht geladen werden.',
+            publishSuccess: (title) => `Folge „${title}“ wurde veröffentlicht.`,
             unpublishSuccess: (title) =>
                 `Folge „${title}“ wurde zurückgezogen (Entwurf).`,
             cancelScheduleSuccess: (title) =>
                 `Planung für „${title}“ wurde aufgehoben (Entwurf).`,
             unarchiveSuccess: (title) =>
                 `Folge „${title}“ wurde wiederhergestellt (Entwurf).`,
+            publishError: 'Folge konnte nicht veröffentlicht werden.',
             unpublishError: 'Folge konnte nicht zurückgezogen werden.',
             cancelScheduleError: 'Planung konnte nicht aufgehoben werden.',
             unarchiveError: 'Folge konnte nicht wiederhergestellt werden.',
+            bulk: createPublicationBulkLabels('Folge', 'Folgen'),
         },
     })
 
@@ -160,59 +179,34 @@ export default function EpisodeListClient() {
             ) : null}
 
             {episodes.length > 0 ? (
-                <ListPanel>
-                    {episodes.map((episode) => {
-                        const isBusy = busyEpisodeId === episode.id
-                        return (
-                            <ListPanelRow key={episode.id}>
-                                <div className="min-w-0 flex-1">
-                                    <Link
-                                        className="font-medium hover:underline"
-                                        href={`/podcast/episodes/${episode.id}`}
-                                    >
-                                        {episode.title}
-                                    </Link>
-                                </div>
-                                <div className="flex shrink-0 items-center gap-3">
-                                    <PublicationStatusBadge status={episode.status} />
-                                    {episode.status === 'PUBLISHED' && (
-                                        <Button
-                                            disabled={isBusy}
-                                            onClick={() => void handleUnpublish(episode)}
-                                            size="sm"
-                                            type="button"
-                                            variant="outline"
-                                        >
-                                            {isBusy ? 'Wird zurückgezogen…' : 'Zurückziehen'}
-                                        </Button>
-                                    )}
-                                    {episode.status === 'SCHEDULED' && (
-                                        <Button
-                                            disabled={isBusy}
-                                            onClick={() => void handleCancelSchedule(episode)}
-                                            size="sm"
-                                            type="button"
-                                            variant="outline"
-                                        >
-                                            {isBusy ? 'Wird abgebrochen…' : 'Planung aufheben'}
-                                        </Button>
-                                    )}
-                                    {episode.status === 'ARCHIVED' && (
-                                        <Button
-                                            disabled={isBusy}
-                                            onClick={() => void handleUnarchive(episode)}
-                                            size="sm"
-                                            type="button"
-                                            variant="outline"
-                                        >
-                                            {isBusy ? 'Wird wiederhergestellt…' : 'Wiederherstellen'}
-                                        </Button>
-                                    )}
-                                </div>
-                            </ListPanelRow>
-                        )
-                    })}
-                </ListPanel>
+                <>
+                    <PublicationListToolbar
+                        allSelected={allSelected}
+                        contentLabelPlural="Folgen"
+                        isBulkBusy={isBulkBusy}
+                        onBulkPublish={() => void handleBulkPublish()}
+                        onBulkUnpublish={() => void handleBulkUnpublish()}
+                        onToggleSelectAll={toggleSelectAll}
+                        onViewModeChange={setViewMode}
+                        publishableCount={publishableCount}
+                        selectedCount={selectedCount}
+                        unpublishableCount={unpublishableCount}
+                        viewMode={viewMode}
+                    />
+                    <PublicationListView
+                        busyItemId={busyEpisodeId}
+                        editorBasePath="/podcast/episodes"
+                        isBulkBusy={isBulkBusy}
+                        items={episodes}
+                        onCancelSchedule={(episode) => void handleCancelSchedule(episode)}
+                        onPublish={(episode) => void handlePublish(episode)}
+                        onToggleSelection={toggleSelection}
+                        onUnarchive={(episode) => void handleUnarchive(episode)}
+                        onUnpublish={(episode) => void handleUnpublish(episode)}
+                        selectedIds={selectedIds}
+                        viewMode={viewMode}
+                    />
+                </>
             ) : null}
         </div>
     )
