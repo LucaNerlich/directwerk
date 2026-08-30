@@ -9,5 +9,7 @@ export {getClientTenantHost} from './getClientTenantHost'
 export {
     clearTenantHostCookieInDocument,
     readTenantHostCookieFromDocument,
+    serializeClearTenantHostCookie,
+    serializeTenantHostCookie,
     TENANT_HOST_COOKIE,
 } from './tenantHostCookie'

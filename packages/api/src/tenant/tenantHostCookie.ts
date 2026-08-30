@@ -29,3 +29,15 @@ export function clearTenantHostCookieInDocument(): void {
 
     document.cookie = `${TENANT_HOST_COOKIE}=; Max-Age=0; path=/; SameSite=Lax`
 }
+
+/** Serializes the tenant-host cookie for BFF Set-Cookie headers (readable by studio client JS). */
+export function serializeTenantHostCookie(host: string, secure: boolean): string {
+    const secureFlag = secure ? '; Secure' : ''
+    return `${TENANT_HOST_COOKIE}=${encodeURIComponent(host)}; Path=/; SameSite=Lax${secureFlag}`
+}
+
+/** Clears the tenant-host cookie via Set-Cookie. */
+export function serializeClearTenantHostCookie(secure: boolean): string {
+    const secureFlag = secure ? '; Secure' : ''
+    return `${TENANT_HOST_COOKIE}=; Path=/; Max-Age=0; SameSite=Lax${secureFlag}`
+}

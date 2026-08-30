@@ -30,7 +30,17 @@ export async function selectTenantHost(host: string): Promise<void> {
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({host}),
     })
-    const payload = (await response.json()) as {error?: string}
+
+    let payload: {error?: string} = {}
+    const text = await response.text()
+    if (text.length > 0) {
+        try {
+            payload = JSON.parse(text) as {error?: string}
+        } catch {
+            payload = {}
+        }
+    }
+
     if (!response.ok) {
         throw new Error(
             payload.error ?? 'Der Workspace konnte nicht ausgewählt werden.',
