@@ -67,7 +67,15 @@ docker run --rm \
   -v "$VOLUME":/var/lib/postgresql \
   -e OLD_DATA="$OLD_DATA" \
   -e NEW_DATA="$NEW_DATA" \
-  "$NEW_IMAGE" sh -c 'rm -rf "$OLD_DATA" && mv "$NEW_DATA" "$OLD_DATA"'
+  -e DB_USER="$DB_USER" \
+  "$NEW_IMAGE" sh -c '
+    rm -rf "$OLD_DATA" && mv "$NEW_DATA" "$OLD_DATA"
+    # initdb via pg_upgrade skips the official image entrypoint, which normally
+    # appends a host rule for TCP clients (Compose service network).
+    if ! grep -q "^host all all all" "$OLD_DATA/pg_hba.conf"; then
+      printf "\nhost all all all scram-sha-256\n" >> "$OLD_DATA/pg_hba.conf"
+    fi
+  '
 
 docker volume rm "$STAGING_VOL"
 

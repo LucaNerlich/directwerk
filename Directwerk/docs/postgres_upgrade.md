@@ -81,7 +81,14 @@ After a **major** upgrade, confirm `PGDATA` in the new image (e.g. `/var/lib/pos
 2. Runs `initdb` for an empty cluster at `…/19/docker-new` (same `myuser` install user).
 3. Runs `pg_upgrade --check`, then `pg_upgrade --link`.
 4. Removes the old `…/docker` directory and renames `docker-new` → `docker`.
-5. Removes the staging volume.
+5. Appends `host all all all scram-sha-256` to `pg_hba.conf` (the official image entrypoint normally does this on first init; manual `initdb` for `pg_upgrade` skips it, which breaks Compose TCP clients).
+6. Removes the staging volume.
+
+After upgrade, reload or restart Postgres if it is already running:
+
+```sh
+docker compose exec postgres psql -U myuser -d mydatabase -c "SELECT pg_reload_conf();"
+```
 
 Optional post-upgrade (recommended by Postgres):
 
@@ -118,6 +125,8 @@ docker run --rm \
       --old-bindir=/old_pg/usr_local/bin --new-bindir=/usr/local/bin \
       -U myuser --link"
     rm -rf "$OLD" && mv "$NEW" "$OLD"
+    grep -q "^host all all all" "$OLD/pg_hba.conf" || \
+      printf "\nhost all all all scram-sha-256\n" >> "$OLD/pg_hba.conf"
   '
 
 docker volume rm pg_old_bin
