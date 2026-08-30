@@ -3,6 +3,8 @@
 import Link from 'next/link'
 
 import {Button} from '@directwerk/ui/components/button'
+import {Checkbox} from '@directwerk/ui/components/checkbox'
+import {Label} from '@directwerk/ui/components/label'
 import ListPanel, {ListPanelRow} from '@directwerk/ui/components/list-panel'
 import {Card, CardContent, CardFooter, CardHeader, CardTitle} from '@directwerk/ui/components/card'
 
@@ -15,6 +17,7 @@ export interface PublicationListItem {
     title: string
     status: PublicationStatus
     publishedAt: string | null
+    meta?: string | null
 }
 
 interface PublicationListViewProps<T extends PublicationListItem> {
@@ -44,6 +47,35 @@ function formatPublishedAt(value: string | null): string | null {
         month: 'short',
         year: 'numeric',
     })
+}
+
+function SelectionCheckbox({
+    title,
+    checked,
+    disabled,
+    onToggle,
+    className,
+}: {
+    title: string
+    checked: boolean
+    disabled: boolean
+    onToggle: () => void
+    className?: string
+}) {
+    return (
+        <Label className={className}>
+            <Checkbox
+                aria-label={`„${title}“ auswählen`}
+                checked={checked}
+                disabled={disabled}
+                onCheckedChange={(next) => {
+                    if (next !== checked) {
+                        onToggle()
+                    }
+                }}
+            />
+        </Label>
+    )
 }
 
 function PublicationRowActions<T extends PublicationListItem>({
@@ -132,6 +164,7 @@ export default function PublicationListView<T extends PublicationListItem>({
                     const isBusy = busyItemId === item.id
                     const isSelected = selectedIds.has(item.id)
                     const publishedLabel = formatPublishedAt(item.publishedAt)
+                    const metaLabel = item.meta ?? null
 
                     return (
                         <li key={item.id}>
@@ -140,13 +173,11 @@ export default function PublicationListView<T extends PublicationListItem>({
                                 size="sm"
                             >
                                 <CardHeader className="grid-cols-[auto_1fr] items-start gap-3">
-                                    <input
-                                        aria-label={`„${item.title}“ auswählen`}
+                                    <SelectionCheckbox
                                         checked={isSelected}
-                                        className="mt-0.5 size-4 shrink-0"
                                         disabled={isBulkBusy}
-                                        onChange={() => onToggleSelection(item.id)}
-                                        type="checkbox"
+                                        onToggle={() => onToggleSelection(item.id)}
+                                        title={item.title}
                                     />
                                     <CardTitle className="min-w-0">
                                         <Link
@@ -162,6 +193,10 @@ export default function PublicationListView<T extends PublicationListItem>({
                                     {publishedLabel !== null ? (
                                         <p className="text-xs text-muted-foreground">
                                             Veröffentlicht am {publishedLabel}
+                                        </p>
+                                    ) : metaLabel !== null ? (
+                                        <p className="text-xs text-muted-foreground">
+                                            <code>{metaLabel}</code>
                                         </p>
                                     ) : null}
                                 </CardContent>
@@ -190,6 +225,7 @@ export default function PublicationListView<T extends PublicationListItem>({
                 const isBusy = busyItemId === item.id
                 const isSelected = selectedIds.has(item.id)
                 const publishedLabel = formatPublishedAt(item.publishedAt)
+                const metaLabel = item.meta ?? null
 
                 return (
                     <ListPanelRow
@@ -197,13 +233,12 @@ export default function PublicationListView<T extends PublicationListItem>({
                         key={item.id}
                     >
                         <div className="flex min-w-0 flex-1 items-start gap-3">
-                            <input
-                                aria-label={`„${item.title}“ auswählen`}
+                            <SelectionCheckbox
                                 checked={isSelected}
-                                className="mt-0.5 size-4 shrink-0"
+                                className="mt-0.5"
                                 disabled={isBulkBusy}
-                                onChange={() => onToggleSelection(item.id)}
-                                type="checkbox"
+                                onToggle={() => onToggleSelection(item.id)}
+                                title={item.title}
                             />
                             <div className="min-w-0 flex-1">
                                 <Link
@@ -215,6 +250,10 @@ export default function PublicationListView<T extends PublicationListItem>({
                                 {publishedLabel !== null ? (
                                     <p className="mt-1 text-xs text-muted-foreground">
                                         Veröffentlicht am {publishedLabel}
+                                    </p>
+                                ) : metaLabel !== null ? (
+                                    <p className="mt-1 text-xs text-muted-foreground">
+                                        <code>{metaLabel}</code>
                                     </p>
                                 ) : null}
                             </div>

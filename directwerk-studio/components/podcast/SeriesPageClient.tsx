@@ -1,62 +1,52 @@
 'use client'
 
 import Link from 'next/link'
-import {useRouter} from 'next/navigation'
-import {useEffect, useState} from 'react'
 
 import {Button} from '@directwerk/ui/components/button'
 import EmptyState from '@directwerk/ui/components/empty-state'
 import PageHeader from '@directwerk/ui/components/page-header'
 
-import PublicationStatusBadge from '@/components/publication/PublicationStatusBadge'
-import {listSeries} from '@/lib/api/podcastApi'
-import type {SeriesSummary} from '@directwerk/api/types'
+import PublicationListToolbar from '@/components/publication/PublicationListToolbar'
+import PublicationListView from '@/components/publication/PublicationListView'
+import {listSeries, publishSeries, unpublishSeries} from '@/lib/api/podcastApi'
+import {useSeriesListPage} from '@/lib/publication/useSeriesListPage'
 import {getClientTenantHost} from '@directwerk/api/tenant'
-import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
 
 export default function SeriesPageClient(): React.JSX.Element {
-    const router = useRouter()
-    const authRedirect = useAuthRequired()
-    const [series, setSeries] = useState<SeriesSummary[]>([])
-    const [errorMessage, setErrorMessage] = useState<string | null>(null)
-    const [isLoading, setIsLoading] = useState(true)
-
-    useEffect(() => {
-        let active = true
-
-        async function load(): Promise<void> {
-            try {
-                const loaded = await listSeries(getClientTenantHost())
-                if (active) {
-                    setSeries(loaded)
-                }
-            } catch (error) {
-                if (!active) {
-                    return
-                }
-                if (authRedirect(error)) return
-                setErrorMessage(
-                    error instanceof Error
-                        ? error.message
-                        : 'Sendungen konnten nicht geladen werden.',
-                )
-            } finally {
-                if (active) {
-                    setIsLoading(false)
-                }
-            }
-        }
-
-        load()
-
-        return () => {
-            active = false
-        }
-    }, [router])
+    const {
+        items: series,
+        isLoading,
+        displayError,
+        statusMessage,
+        busyItemId,
+        isBulkBusy,
+        selectedIds,
+        selectedCount,
+        allSelected,
+        viewMode,
+        setViewMode,
+        toggleSelection,
+        toggleSelectAll,
+        publishableCount,
+        unpublishableCount,
+        handlePublish,
+        handleUnpublish,
+        handleBulkPublish,
+        handleBulkUnpublish,
+    } = useSeriesListPage({
+        load: () => listSeries(getClientTenantHost()),
+        publish: (id) => publishSeries(getClientTenantHost(), id),
+        unpublish: (id) => unpublishSeries(getClientTenantHost(), id),
+    })
 
     if (isLoading) {
         return <p>Sendungen werden geladen…</p>
     }
+
+    const listItems = series.map((item) => ({
+        ...item,
+        meta: item.slug,
+    }))
 
     return (
         <div className="flex flex-col gap-6">
@@ -71,9 +61,14 @@ export default function SeriesPageClient(): React.JSX.Element {
                 }
             />
 
-            {errorMessage !== null && (
+            {displayError !== null && (
                 <p className="text-sm text-destructive" role="alert">
-                    {errorMessage}
+                    {displayError}
+                </p>
+            )}
+            {statusMessage !== null && (
+                <p className="text-sm text-muted-foreground" role="status">
+                    {statusMessage}
                 </p>
             )}
 
@@ -88,24 +83,34 @@ export default function SeriesPageClient(): React.JSX.Element {
                     }
                 />
             ) : (
-                <ul className="overflow-hidden rounded-xl border bg-card divide-y">
-                    {series.map((item) => (
-                        <li key={item.id}>
-                            <Link
-                                className="flex w-full items-center justify-between gap-4 p-4 text-sm no-underline hover:bg-muted/40"
-                                href={`/podcast/series/${item.id}`}
-                            >
-                                <span>
-                                    <span className="font-medium">{item.title}</span>{' '}
-                                    <code className="text-muted-foreground">{item.slug}</code>
-                                </span>
-                                <span className="flex shrink-0 items-center gap-3 text-sm text-muted-foreground">
-                                    <PublicationStatusBadge status={item.status} />
-                                </span>
-                            </Link>
-                        </li>
-                    ))}
-                </ul>
+                <>
+                    <PublicationListToolbar
+                        allSelected={allSelected}
+                        contentLabelPlural="Sendungen"
+                        isBulkBusy={isBulkBusy}
+                        onBulkPublish={() => void handleBulkPublish()}
+                        onBulkUnpublish={() => void handleBulkUnpublish()}
+                        onToggleSelectAll={toggleSelectAll}
+                        onViewModeChange={setViewMode}
+                        publishableCount={publishableCount}
+                        selectedCount={selectedCount}
+                        unpublishableCount={unpublishableCount}
+                        viewMode={viewMode}
+                    />
+                    <PublicationListView
+                        busyItemId={busyItemId}
+                        editorBasePath="/podcast/series"
+                        isBulkBusy={isBulkBusy}
+                        items={listItems}
+                        onCancelSchedule={() => {}}
+                        onPublish={(item) => void handlePublish(item)}
+                        onToggleSelection={toggleSelection}
+                        onUnarchive={() => {}}
+                        onUnpublish={(item) => void handleUnpublish(item)}
+                        selectedIds={selectedIds}
+                        viewMode={viewMode}
+                    />
+                </>
             )}
 
             {series.length > 0 ? (

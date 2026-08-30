@@ -4,10 +4,16 @@ import SelectControl from '@/components/studio/SelectControl'
 import UploadProgress from '@/components/media/UploadProgress'
 
 import {Button} from '@directwerk/ui/components/button'
+import {Checkbox} from '@directwerk/ui/components/checkbox'
 import EmptyState from '@directwerk/ui/components/empty-state'
+import {EntityListToolbar} from '@directwerk/ui/components/entity-list-toolbar'
+import {Label} from '@directwerk/ui/components/label'
+import ListPanel, {ListPanelRow} from '@directwerk/ui/components/list-panel'
 import PageHeader from '@directwerk/ui/components/page-header'
+import {Card, CardContent, CardFooter, CardHeader} from '@directwerk/ui/components/card'
+import {useListViewMode} from '@directwerk/ui/hooks/use-list-view-mode'
 
-import {useEffect, useRef, useState, type ChangeEvent, type DragEvent} from 'react'
+import {useMemo, useEffect, useRef, useState, type ChangeEvent, type DragEvent} from 'react'
 import {useRouter} from 'next/navigation'
 
 import {deleteMedia, getMediaPreviewUrl, listMedia} from '@/lib/api/mediaApi'
@@ -17,6 +23,7 @@ import {uploadMediaFile} from '@/lib/media/upload'
 import {getClientTenantHost} from '@directwerk/api/tenant'
 import {safeImageSrc} from '@/lib/url/safeUrl'
 import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
+import {usePublicationListSelection} from '@/lib/publication/usePublicationListSelection'
 
 function formatBytes(sizeBytes: number | null): string {
     if (sizeBytes === null || sizeBytes <= 0) {
@@ -107,6 +114,7 @@ export default function MediaLibraryClient(): React.JSX.Element {
     const [uploadProgress, setUploadProgress] = useState<{file: File; progress: number} | null>(
         null,
     )
+    const {viewMode, setViewMode} = useListViewMode('grid')
 
     async function reload(): Promise<void> {
         const result = await listMedia(getClientTenantHost())
@@ -304,6 +312,84 @@ export default function MediaLibraryClient(): React.JSX.Element {
         return true
     })
 
+    const visibleAssetIds = useMemo(
+        () => visibleAssets.map((asset) => asset.id),
+        [visibleAssets],
+    )
+
+    const {
+        selectedIds,
+        selectedCount,
+        allSelected,
+        toggleSelection,
+        toggleSelectAll,
+        clearSelection,
+    } = usePublicationListSelection(visibleAssetIds)
+
+    async function handleBulkDeleteSelected(): Promise<void> {
+        const selected = visibleAssets.filter((asset) => selectedIds.has(asset.id))
+        if (selected.length === 0) {
+            return
+        }
+        if (
+            !window.confirm(
+                `${selected.length} ausgewählte Datei(en) endgültig löschen?`,
+            )
+        ) {
+            return
+        }
+
+        setIsBusy(true)
+        setErrorMessage(null)
+        setStatusMessage(null)
+        try {
+            const host = getClientTenantHost()
+            await Promise.all(selected.map((asset) => deleteMedia(host, asset.id)))
+            setAssets((current) =>
+                current.filter((item) => !selectedIds.has(item.id)),
+            )
+            clearSelection()
+            setStatusMessage(`${selected.length} Medium/Medien gelöscht.`)
+        } catch (error: unknown) {
+            if (authRedirect(error)) return
+            setErrorMessage(
+                error instanceof Error ? error.message : 'Löschen fehlgeschlagen.',
+            )
+        } finally {
+            setIsBusy(false)
+        }
+    }
+
+    function renderAssetPreview(asset: MediaAsset): React.JSX.Element {
+        const imgSrc =
+            safeImageSrc(asset.cdnUrl) ?? safeImageSrc(previewUrls[asset.id])
+        if (asset.assetType === 'IMAGE' && imgSrc !== null) {
+            return (
+                <img
+                    alt={asset.originalFilename ?? `Bild #${asset.id}`}
+                    className="aspect-video w-full rounded-md object-cover"
+                    src={imgSrc}
+                />
+            )
+        }
+        return (
+            <div className="flex aspect-video items-center justify-center rounded-md bg-muted text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                {asset.assetType}
+            </div>
+        )
+    }
+
+    function renderAssetMeta(asset: MediaAsset): React.JSX.Element {
+        return (
+            <small className="text-muted-foreground">
+                {asset.assetType} · {asset.status}
+                {asset.visibility ? ` · ${asset.visibility}` : ''}
+                {' · '}
+                {formatBytes(asset.sizeBytes)}
+            </small>
+        )
+    }
+
     const pendingCount = assets.filter((asset) => asset.status === 'PENDING').length
 
     if (isLoading) {
@@ -399,16 +485,14 @@ export default function MediaLibraryClient(): React.JSX.Element {
                         <option value="ARCHIVED">Archiviert</option>
                     </SelectControl>
                 </label>
-                <label className="flex items-end gap-2 text-sm font-medium">
-                    <input
+                <Label className="flex items-end gap-2 text-sm font-medium">
+                    <Checkbox
                         checked={orphanOnly}
-                        className="size-4 shrink-0"
                         id="orphanFilter"
-                        onChange={(event) => setOrphanOnly(event.target.checked)}
-                        type="checkbox"
+                        onCheckedChange={(checked) => setOrphanOnly(checked === true)}
                     />
                     <span>Nur unverknüpfte Dateien</span>
-                </label>
+                </Label>
             </div>
 
             {pendingCount > 0 ? (
@@ -442,53 +526,132 @@ export default function MediaLibraryClient(): React.JSX.Element {
             ) : visibleAssets.length === 0 ? (
                 <p className="text-sm text-muted-foreground">Keine Medien für diesen Filter.</p>
             ) : (
-                <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                    {visibleAssets.map((asset) => {
-                        const imgSrc =
-                            safeImageSrc(asset.cdnUrl) ??
-                            safeImageSrc(previewUrls[asset.id])
-                        return (
-                            <li
-                                className="flex flex-col gap-3 rounded-xl border bg-card p-4"
-                                key={asset.id}
-                            >
-                            {asset.assetType === 'IMAGE' &&
-                            imgSrc !== null ? (
-                                <img
-                                    alt={asset.originalFilename ?? `Bild #${asset.id}`}
-                                    className="aspect-video w-full rounded-md object-cover"
-                                    src={imgSrc}
-                                />
-                            ) : (
-                                <div className="flex aspect-video items-center justify-center rounded-md bg-muted text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                                    {asset.assetType}
-                                </div>
-                            )}
-                            <div className="min-w-0">
-                                <strong className="block truncate">
-                                    {asset.originalFilename ?? `Asset #${asset.id}`}
-                                </strong>
-                                <small className="text-muted-foreground">
-                                    {asset.assetType} · {asset.status}
-                                    {asset.visibility ? ` · ${asset.visibility}` : ''}
-                                    {' · '}
-                                    {formatBytes(asset.sizeBytes)}
-                                </small>
-                            </div>
-                            <Button
-                                disabled={isBusy}
-                                onClick={() => {
-                                    void handleDelete(asset.id)
-                                }}
-                                type="button"
-                                variant="outline"
-                            >
-                                Löschen
-                            </Button>
-                        </li>
-                        )
-                    })}
-                </ul>
+                <>
+                    <EntityListToolbar
+                        allSelected={allSelected}
+                        bulkActions={
+                            selectedCount > 0 ? (
+                                <Button
+                                    disabled={isBusy}
+                                    onClick={() => void handleBulkDeleteSelected()}
+                                    size="sm"
+                                    type="button"
+                                    variant="outline"
+                                >
+                                    {isBusy
+                                        ? 'Wird gelöscht…'
+                                        : `${selectedCount} löschen`}
+                                </Button>
+                            ) : null
+                        }
+                        disabled={isBusy}
+                        onToggleSelectAll={toggleSelectAll}
+                        onViewModeChange={setViewMode}
+                        selectAllLabel="Alle Medien auswählen"
+                        selectedCount={selectedCount}
+                        viewMode={viewMode}
+                    />
+                    {viewMode === 'grid' ? (
+                        <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                            {visibleAssets.map((asset) => {
+                                const isSelected = selectedIds.has(asset.id)
+                                return (
+                                    <li key={asset.id}>
+                                        <Card
+                                            className={isSelected ? 'ring-2 ring-primary' : undefined}
+                                            size="sm"
+                                        >
+                                            <CardHeader className="grid-cols-[auto_1fr] items-start gap-3">
+                                                <Label>
+                                                    <Checkbox
+                                                        aria-label={`„${asset.originalFilename ?? `Asset #${asset.id}`}“ auswählen`}
+                                                        checked={isSelected}
+                                                        disabled={isBusy}
+                                                        onCheckedChange={(checked) => {
+                                                            if (checked !== isSelected) {
+                                                                toggleSelection(asset.id)
+                                                            }
+                                                        }}
+                                                    />
+                                                </Label>
+                                                <div className="min-w-0">
+                                                    <strong className="block truncate">
+                                                        {asset.originalFilename ?? `Asset #${asset.id}`}
+                                                    </strong>
+                                                </div>
+                                            </CardHeader>
+                                            <CardContent className="flex flex-col gap-3">
+                                                {renderAssetPreview(asset)}
+                                                {renderAssetMeta(asset)}
+                                            </CardContent>
+                                            <CardFooter>
+                                                <Button
+                                                    disabled={isBusy}
+                                                    onClick={() => {
+                                                        void handleDelete(asset.id)
+                                                    }}
+                                                    type="button"
+                                                    variant="outline"
+                                                >
+                                                    Löschen
+                                                </Button>
+                                            </CardFooter>
+                                        </Card>
+                                    </li>
+                                )
+                            })}
+                        </ul>
+                    ) : (
+                        <ListPanel>
+                            {visibleAssets.map((asset) => {
+                                const isSelected = selectedIds.has(asset.id)
+                                return (
+                                    <ListPanelRow
+                                        className={isSelected ? 'bg-primary/5' : undefined}
+                                        key={asset.id}
+                                    >
+                                        <div className="flex min-w-0 flex-1 items-start gap-3">
+                                            <Label className="mt-0.5">
+                                                <Checkbox
+                                                    aria-label={`„${asset.originalFilename ?? `Asset #${asset.id}`}“ auswählen`}
+                                                    checked={isSelected}
+                                                    disabled={isBusy}
+                                                    onCheckedChange={(checked) => {
+                                                        if (checked !== isSelected) {
+                                                            toggleSelection(asset.id)
+                                                        }
+                                                    }}
+                                                />
+                                            </Label>
+                                            <div className="flex min-w-0 flex-1 flex-col gap-2 sm:flex-row sm:items-center">
+                                                <div className="size-16 shrink-0 overflow-hidden rounded-md">
+                                                    {renderAssetPreview(asset)}
+                                                </div>
+                                                <div className="min-w-0">
+                                                    <strong className="block truncate">
+                                                        {asset.originalFilename ?? `Asset #${asset.id}`}
+                                                    </strong>
+                                                    {renderAssetMeta(asset)}
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <Button
+                                            disabled={isBusy}
+                                            onClick={() => {
+                                                void handleDelete(asset.id)
+                                            }}
+                                            size="sm"
+                                            type="button"
+                                            variant="outline"
+                                        >
+                                            Löschen
+                                        </Button>
+                                    </ListPanelRow>
+                                )
+                            })}
+                        </ListPanel>
+                    )}
+                </>
             )}
         </div>
     )

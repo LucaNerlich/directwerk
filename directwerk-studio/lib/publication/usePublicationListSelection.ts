@@ -2,7 +2,9 @@
 
 import {useCallback, useMemo, useState} from 'react'
 
-export type PublicationListViewMode = 'list' | 'grid'
+import type {ViewMode} from '@directwerk/ui/components/view-mode-toggle'
+
+export type PublicationListViewMode = ViewMode
 
 export function usePublicationListSelection(itemIds: number[]) {
     const [selectedIds, setSelectedIds] = useState<Set<number>>(() => new Set())
@@ -22,7 +24,6 @@ export function usePublicationListSelection(itemIds: number[]) {
 
     const selectedCount = prunedSelectedIds.size
     const allSelected = itemIds.length > 0 && selectedCount === itemIds.length
-    const someSelected = selectedCount > 0 && !allSelected
 
     const toggleSelection = useCallback((id: number) => {
         setSelectedIds((current) => {
@@ -55,7 +56,6 @@ export function usePublicationListSelection(itemIds: number[]) {
         selectedIds: prunedSelectedIds,
         selectedCount,
         allSelected,
-        someSelected,
         viewMode,
         setViewMode,
         toggleSelection,
