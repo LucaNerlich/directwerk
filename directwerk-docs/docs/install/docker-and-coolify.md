@@ -113,9 +113,14 @@ Coolify settings for each app:
 | Setting | Value |
 |---------|-------|
 | Build pack | **Dockerfile** (not Nixpacks) |
-| Build context | Monorepo root (`.`) |
+| **Base Directory** | Repository root (`.` — leave empty) |
 | Dockerfile path | See table above |
 | Port | See table above |
+
+The Dockerfiles accept either a full monorepo build context or Coolify's app-scoped
+context (app sources at the context root with workspace files injected). If the build
+fails with missing `packages/` or `pnpm-workspace.yaml`, the Base Directory is set too
+deep — move it to the repository root.
 
 Example local build:
 

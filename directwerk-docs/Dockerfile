@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 #
 # Coolify
-#   Build context: . (monorepo root — required for workspace lockfile)
+#   Base Directory: repository root (.) — not directwerk-docs/
 #   Dockerfile: directwerk-docs/Dockerfile
 #   Port: 80
 #
@@ -17,18 +17,31 @@ RUN apk add --no-cache bash \
     && wget -qO- https://get.pnpm.io/install.sh \
         | env PNPM_VERSION=12.0.0-rc.5 ENV="$HOME/.bashrc" SHELL="$(which bash)" bash -
 
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
-COPY directwerk-docs/package.json ./directwerk-docs/
+COPY . /ctx
+
+RUN cp /ctx/package.json /ctx/pnpm-lock.yaml /ctx/pnpm-workspace.yaml /ctx/.npmrc . \
+    && mkdir -p directwerk-docs \
+    && if [ -f /ctx/directwerk-docs/package.json ]; then \
+         cp -a /ctx/directwerk-docs/. ./directwerk-docs/; \
+       else \
+         cp /ctx/package.json ./directwerk-docs/package.json; \
+         for entry in /ctx/* /ctx/.[!.]* /ctx/..?*; do \
+           [ -e "$entry" ] || continue; \
+           base=$(basename "$entry"); \
+           case "$base" in \
+             .|..|package.json|pnpm-lock.yaml|pnpm-workspace.yaml|.npmrc|packages|Directwerk|directwerk-admin|directwerk-studio|directwerk-web|directwerk-docs|homepage|docker|node_modules|.git|.github|.cursor|.idea|.vscode) continue ;; \
+           esac; \
+           cp -a "$entry" "./directwerk-docs/$base"; \
+         done; \
+       fi
 
 RUN pnpm install --frozen-lockfile --filter directwerk-docs...
-
-COPY directwerk-docs ./directwerk-docs
 
 ENV NEXT_TELEMETRY_DISABLED=1
 RUN pnpm --filter directwerk-docs build
 
 FROM nginx:1.27-alpine
-COPY directwerk-docs/nginx.conf /etc/nginx/conf.d/default.conf
+COPY --from=build /workspace/directwerk-docs/nginx.conf /etc/nginx/conf.d/default.conf
 COPY --from=build /workspace/directwerk-docs/docs/.vitepress/dist /usr/share/nginx/html
 
 EXPOSE 80

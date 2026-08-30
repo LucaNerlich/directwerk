@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 #
 # Coolify
-#   Build context: . (monorepo root — required for workspace packages)
+#   Base Directory: repository root (.) — not directwerk-studio/
 #   Dockerfile: directwerk-studio/Dockerfile
 #   Port: 3003
 #
@@ -17,13 +17,11 @@ RUN apk add --no-cache bash \
     && wget -qO- https://get.pnpm.io/install.sh \
         | env PNPM_VERSION=12.0.0-rc.5 ENV="$HOME/.bashrc" SHELL="$(which bash)" bash -
 
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
-COPY packages ./packages
-COPY directwerk-studio/package.json ./directwerk-studio/
+COPY . /ctx
+RUN chmod +x /ctx/scripts/docker-assemble-app.sh \
+    && /ctx/scripts/docker-assemble-app.sh directwerk-studio
 
 RUN pnpm install --frozen-lockfile --filter directwerk-studio...
-
-COPY directwerk-studio ./directwerk-studio
 
 ENV NEXT_TELEMETRY_DISABLED=1
 RUN mkdir -p directwerk-studio/public \
