@@ -30,12 +30,9 @@ public class ProdEmailPropertiesValidator {
         }
 
         DirectwerkProperties.Email email = directwerkConfig.email();
-        DirectwerkProperties.Security security = directwerkConfig.security();
         requireConfigured(email.fromAddress(), "DIRECTWERK_EMAIL_FROM", true);
         requireConfigured(email.studioBaseUrl(), "DIRECTWERK_EMAIL_STUDIO_BASE_URL", false);
         requireConfigured(email.adminBaseUrl(), "DIRECTWERK_EMAIL_ADMIN_BASE_URL", false);
-        requireConfigured(security.platformClientSecret(), "DIRECTWERK_PLATFORM_CLIENT_SECRET", false);
-        requireConfigured(security.tenantClientSecret(), "DIRECTWERK_TENANT_CLIENT_SECRET", false);
     }
 
     private void requireConfigured(String value, String propertyName, boolean emailFormat) {
