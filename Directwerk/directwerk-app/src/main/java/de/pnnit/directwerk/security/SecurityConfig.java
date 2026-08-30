@@ -151,6 +151,7 @@ public class SecurityConfig {
                                 "/v3/api-docs/**",
                                 "/api/v1/auth/register",
                                 "/api/v1/auth/accept-invite",
+                                "/api/v1/auth/studio/**",
                                 "/api/v1/auth/forgot-password",
                                 "/api/v1/auth/reset-password",
                                 "/api/v1/auth/verify-email",
