@@ -4,8 +4,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import de.pnnit.directwerk.config.DirectwerkConfig;
@@ -17,6 +20,8 @@ import de.pnnit.directwerk.modules.digital.entity.AssetStatus;
 import de.pnnit.directwerk.modules.digital.entity.AssetType;
 import de.pnnit.directwerk.modules.digital.entity.AssetVisibility;
 import de.pnnit.directwerk.modules.digital.entity.MediaAsset;
+import de.pnnit.directwerk.modules.digital.exception.UploadValidationException;
+import de.pnnit.directwerk.modules.digital.job.RemoteAssetIngestJobProducer;
 import de.pnnit.directwerk.modules.digital.net.RemoteContentClient;
 import de.pnnit.directwerk.modules.digital.repository.MediaAssetRepository;
 import de.pnnit.directwerk.multitenancy.TenantContext;
@@ -39,9 +44,11 @@ import org.springframework.transaction.TransactionStatus;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.AbortMultipartUploadRequest;
+import software.amazon.awssdk.services.s3.model.CompleteMultipartUploadRequest;
 import software.amazon.awssdk.services.s3.model.CreateMultipartUploadRequest;
 import software.amazon.awssdk.services.s3.model.CreateMultipartUploadResponse;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
+import software.amazon.awssdk.services.s3.model.UploadPartRequest;
 
 @ExtendWith(MockitoExtension.class)
 class RemoteAssetIngestServiceTest {
@@ -58,20 +65,25 @@ class RemoteAssetIngestServiceTest {
     private DirectwerkConfig directwerkConfig;
     @Mock
     private PlatformTransactionManager transactionManager;
+    @Mock
+    private RemoteAssetIngestJobProducer remoteAssetIngestJobProducer;
 
     private RemoteAssetIngestService service;
+    private TransactionStatus transactionStatus;
 
     @BeforeEach
     void setUp() {
         TenantContext.setTenantId(10L);
-        lenient().when(transactionManager.getTransaction(any())).thenReturn(org.mockito.Mockito.mock(TransactionStatus.class));
+        transactionStatus = org.mockito.Mockito.mock(TransactionStatus.class);
+        lenient().when(transactionManager.getTransaction(any())).thenReturn(transactionStatus);
         service = new RemoteAssetIngestService(
                 s3Client,
                 remoteContentClient,
                 mediaAssetRepository,
                 tenantRepository,
                 directwerkConfig,
-                transactionManager
+                transactionManager,
+                remoteAssetIngestJobProducer
         );
     }
 
@@ -128,6 +140,144 @@ class RemoteAssetIngestServiceTest {
         verify(s3Client).putObject(put.capture(), any(RequestBody.class));
         assertThat(put.getValue().contentLength()).isEqualTo((long) body.length);
         assertThat(put.getValue().contentType()).isEqualTo("audio/mpeg");
+    }
+
+    @Test
+    void streamsLargeKnownLengthBodyViaMultipart() throws Exception {
+        Tenant tenant = new Tenant();
+        tenant.setId(10L);
+        tenant.setSlug("alpha");
+        when(tenantRepository.requireById(10L)).thenReturn(tenant);
+        when(directwerkConfig.isStorageEnabled()).thenReturn(true);
+        when(directwerkConfig.storage()).thenReturn(storage());
+
+        byte[] body = new byte[(8 * 1024 * 1024) + 1];
+        when(remoteContentClient.get(any(URI.class), any(Duration.class))).thenReturn(
+                new RemoteContentClient.RemoteResponse(
+                        URI.create("https://1.1.1.1/large-ep.mp3"),
+                        200,
+                        "audio/mpeg",
+                        (long) body.length,
+                        new ByteArrayInputStream(body)
+                )
+        );
+        when(mediaAssetRepository.saveAndFlush(any(MediaAsset.class))).thenAnswer(invocation -> {
+            MediaAsset asset = invocation.getArgument(0);
+            if (asset.getId() == null) {
+                asset.setId(42L);
+            }
+            return asset;
+        });
+        when(s3Client.createMultipartUpload(any(CreateMultipartUploadRequest.class))).thenReturn(
+                CreateMultipartUploadResponse.builder().uploadId("upload-1").build()
+        );
+        when(s3Client.uploadPart(any(UploadPartRequest.class), any(RequestBody.class))).thenAnswer(invocation -> {
+            RequestBody requestBody = invocation.getArgument(1);
+            try (InputStream uploaded = requestBody.contentStreamProvider().newStream()) {
+                uploaded.transferTo(OutputStream.nullOutputStream());
+            }
+            return software.amazon.awssdk.services.s3.model.UploadPartResponse.builder().eTag("etag").build();
+        });
+
+        MediaAsset ingested = service.ingestFromUrl(new RemoteAssetIngestApi.IngestCommand(
+                "https://1.1.1.1/large-ep.mp3",
+                AssetType.AUDIO,
+                AssetVisibility.PRIVATE,
+                "episode.mp3"
+        ));
+
+        assertThat(ingested.getStatus()).isEqualTo(AssetStatus.READY);
+        assertThat(ingested.getSizeBytes()).isEqualTo(body.length);
+        verify(s3Client).createMultipartUpload(any(CreateMultipartUploadRequest.class));
+        verify(s3Client, org.mockito.Mockito.atLeastOnce()).uploadPart(any(UploadPartRequest.class), any(RequestBody.class));
+        verify(s3Client).completeMultipartUpload(any(CompleteMultipartUploadRequest.class));
+        verify(s3Client, org.mockito.Mockito.never()).putObject(any(PutObjectRequest.class), any(RequestBody.class));
+    }
+
+    @Test
+    void startIngestFromUrlPreparesAssetAndEnqueuesJob() {
+        Tenant tenant = new Tenant();
+        tenant.setId(10L);
+        tenant.setSlug("alpha");
+        when(tenantRepository.requireById(10L)).thenReturn(tenant);
+        when(directwerkConfig.isStorageEnabled()).thenReturn(true);
+        when(directwerkConfig.storage()).thenReturn(storage());
+        when(mediaAssetRepository.saveAndFlush(any(MediaAsset.class))).thenAnswer(invocation -> {
+            MediaAsset asset = invocation.getArgument(0);
+            if (asset.getId() == null) {
+                asset.setId(42L);
+            }
+            return asset;
+        });
+
+        MediaAsset pending = service.startIngestFromUrl(new RemoteAssetIngestApi.IngestCommand(
+                "https://1.1.1.1/ep.mp3",
+                AssetType.AUDIO,
+                AssetVisibility.PRIVATE,
+                "episode.mp3"
+        ));
+
+        assertThat(pending.getId()).isEqualTo(42L);
+        assertThat(pending.getStatus()).isEqualTo(AssetStatus.PENDING);
+        verify(remoteAssetIngestJobProducer).validateQueueAvailability();
+        verify(remoteAssetIngestJobProducer).enqueue(
+                42L,
+                "https://1.1.1.1/ep.mp3",
+                "episode.mp3"
+        );
+        verifyNoInteractions(remoteContentClient);
+    }
+
+    @Test
+    void rejectsUnavailableQueueBeforeCreatingAsset() {
+        doThrow(new UploadValidationException("REMOTE_ASSET_FAILED", "job queue unavailable"))
+                .when(remoteAssetIngestJobProducer).validateQueueAvailability();
+
+        assertThatThrownBy(() -> service.startIngestFromUrl(new RemoteAssetIngestApi.IngestCommand(
+                "https://1.1.1.1/ep.mp3",
+                AssetType.AUDIO,
+                AssetVisibility.PRIVATE,
+                "episode.mp3"
+        )))
+                .isInstanceOf(UploadValidationException.class)
+                .hasMessageContaining("job queue");
+
+        verify(transactionManager, never()).getTransaction(any());
+        verifyNoInteractions(tenantRepository, mediaAssetRepository, remoteContentClient);
+    }
+
+    @Test
+    void rollsBackPendingAssetWhenEnqueueFails() {
+        Tenant tenant = new Tenant();
+        tenant.setId(10L);
+        tenant.setSlug("alpha");
+        when(tenantRepository.requireById(10L)).thenReturn(tenant);
+        when(directwerkConfig.isStorageEnabled()).thenReturn(true);
+        when(directwerkConfig.storage()).thenReturn(storage());
+        when(mediaAssetRepository.saveAndFlush(any(MediaAsset.class))).thenAnswer(invocation -> {
+            MediaAsset asset = invocation.getArgument(0);
+            asset.setId(42L);
+            return asset;
+        });
+        doThrow(new IllegalStateException("queue insert failed"))
+                .when(remoteAssetIngestJobProducer).enqueue(
+                        42L,
+                        "https://1.1.1.1/ep.mp3",
+                        "episode.mp3"
+                );
+
+        assertThatThrownBy(() -> service.startIngestFromUrl(new RemoteAssetIngestApi.IngestCommand(
+                "https://1.1.1.1/ep.mp3",
+                AssetType.AUDIO,
+                AssetVisibility.PRIVATE,
+                "episode.mp3"
+        )))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("queue insert failed");
+
+        verify(transactionManager).rollback(transactionStatus);
+        verify(transactionManager, never()).commit(any());
+        verifyNoInteractions(remoteContentClient);
     }
 
     @Test

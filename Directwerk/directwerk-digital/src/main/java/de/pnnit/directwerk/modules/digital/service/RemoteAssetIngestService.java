@@ -14,10 +14,13 @@ import de.pnnit.directwerk.modules.digital.entity.AssetType;
 import de.pnnit.directwerk.modules.digital.entity.AssetVisibility;
 import de.pnnit.directwerk.modules.digital.entity.MediaAsset;
 import de.pnnit.directwerk.modules.digital.exception.UploadValidationException;
+import de.pnnit.directwerk.modules.digital.job.RemoteAssetIngestJobPayload;
+import de.pnnit.directwerk.modules.digital.job.RemoteAssetIngestJobProducer;
 import de.pnnit.directwerk.modules.digital.net.RemoteContentClient;
 import de.pnnit.directwerk.modules.digital.net.RemoteUrlValidator;
 import de.pnnit.directwerk.modules.digital.repository.MediaAssetRepository;
 import de.pnnit.directwerk.modules.digital.storage.StorageConfigs;
+import de.pnnit.directwerk.modules.queue.QueueJob;
 import de.pnnit.directwerk.multitenancy.TenantContext;
 import java.io.FilterInputStream;
 import java.io.IOException;
@@ -66,6 +69,7 @@ public class RemoteAssetIngestService implements RemoteAssetIngestApi {
     private final TenantRepository tenantRepository;
     private final DirectwerkConfig directwerkConfig;
     private final PlatformTransactionManager transactionManager;
+    private final RemoteAssetIngestJobProducer remoteAssetIngestJobProducer;
 
     /**
      * Imports a remote HTTP(S) asset into the active tenant's storage.
@@ -79,37 +83,98 @@ public class RemoteAssetIngestService implements RemoteAssetIngestApi {
     }
 
     /**
-     * Starts a remote ingest on a background thread and returns the pending asset immediately.
+     * Creates a pending asset and enqueues a durable background ingest job.
      *
      * @param command the source URL and asset metadata for the import
      * @return the pending media asset whose progress can be polled via {@code GET /api/v1/podcast/import/assets/{id}}
      */
     @Override
     public MediaAsset startIngestFromUrl(IngestCommand command) {
-        Long tenantId = TenantContext.requireTenantId();
-        PreparedIngest prepared = prepareIngestCommitted(command);
-        Long assetId = prepared.asset().getId();
-        Thread.startVirtualThread(() -> TenantContext.callWithTenant(tenantId, () -> {
-            try {
-                completePreparedIngest(
-                        prepared,
-                        bytesRead -> reportIngestProgress(assetId, tenantId, bytesRead)
-                );
-            } catch (RuntimeException ex) {
-                log.warn("Background remote ingest failed for asset {}", assetId, ex);
-                markIngestFailed(assetId, tenantId);
-            }
-            return null;
-        }));
-        return prepared.asset();
-    }
-
-    private PreparedIngest prepareIngestCommitted(IngestCommand command) {
-        PreparedIngest prepared = transactionTemplate().execute(status -> prepareIngest(command));
+        remoteAssetIngestJobProducer.validateQueueAvailability();
+        PreparedIngest prepared = transactionTemplate().execute(status -> {
+            PreparedIngest pending = prepareIngest(command);
+            MediaAsset asset = pending.asset();
+            remoteAssetIngestJobProducer.enqueue(
+                    asset.getId(),
+                    command.sourceUrl(),
+                    command.filenameHint()
+            );
+            return pending;
+        });
         if (prepared == null) {
             throw new UploadValidationException("REMOTE_ASSET_FAILED", "Could not prepare remote asset ingest");
         }
-        return prepared;
+        return prepared.asset();
+    }
+
+    /**
+     * Processes a queued remote ingest job. Retries transient failures until the queue exhausts attempts.
+     */
+    public void processQueuedIngest(RemoteAssetIngestJobPayload payload, QueueJob job) {
+        MediaAsset asset = mediaAssetRepository.findById(payload.mediaAssetId()).orElse(null);
+        if (asset == null || asset.getStatus() != AssetStatus.PENDING) {
+            log.info(
+                    "Skipping remote ingest job for asset {} (missing or status={})",
+                    payload.mediaAssetId(),
+                    asset == null ? "missing" : asset.getStatus()
+            );
+            return;
+        }
+        Long tenantId = job.tenantId();
+        if (tenantId == null) {
+            throw new IllegalStateException("Remote asset ingest job requires tenantId");
+        }
+        URI source = RemoteUrlValidator.requirePublicHttpUrl(payload.sourceUrl());
+        PreparedIngest prepared = new PreparedIngest(
+                StorageConfigs.requireEnabled(directwerkConfig),
+                source,
+                new IngestCommand(
+                        payload.sourceUrl(),
+                        asset.getAssetType(),
+                        asset.getVisibility(),
+                        payload.filenameHint()
+                ),
+                asset.getAssetType(),
+                asset
+        );
+        try {
+            completePreparedIngest(
+                    prepared,
+                    bytesRead -> reportIngestProgress(asset.getId(), tenantId, bytesRead)
+            );
+        } catch (UploadValidationException ex) {
+            if (isPermanentIngestFailure(ex)) {
+                log.warn(
+                        "Remote ingest validation failed for asset {}: {}",
+                        payload.mediaAssetId(),
+                        ex.getMessage()
+                );
+                markIngestFailed(payload.mediaAssetId(), tenantId);
+                return;
+            }
+            maybeMarkIngestFailedOnFinalAttempt(job, payload.mediaAssetId(), tenantId);
+            throw ex;
+        } catch (RuntimeException ex) {
+            log.warn(
+                    "Remote ingest failed for asset {}: {}",
+                    payload.mediaAssetId(),
+                    ex.getMessage(),
+                    ex
+            );
+            maybeMarkIngestFailedOnFinalAttempt(job, payload.mediaAssetId(), tenantId);
+            throw ex;
+        }
+    }
+
+    private static boolean isPermanentIngestFailure(UploadValidationException ex) {
+        String code = ex.getCode();
+        return "UPLOAD_VALIDATION_FAILED".equals(code) || "REMOTE_URL_FORBIDDEN".equals(code);
+    }
+
+    private void maybeMarkIngestFailedOnFinalAttempt(QueueJob job, Long assetId, Long tenantId) {
+        if (job.attempts() >= job.maxAttempts()) {
+            markIngestFailed(assetId, tenantId);
+        }
     }
 
     private PreparedIngest prepareIngest(IngestCommand command) {
@@ -171,7 +236,6 @@ public class RemoteAssetIngestService implements RemoteAssetIngestApi {
             }
 
             MediaAsset asset = prepared.asset();
-            Long tenantId = asset.getTenant().getId();
             asset.setMimeType(mimeType);
             asset.setSizeBytes(remote.contentLength());
             asset.setOriginalFilename(filename);
@@ -200,9 +264,7 @@ public class RemoteAssetIngestService implements RemoteAssetIngestApi {
                 return mediaAssetRepository.saveAndFlush(asset);
             } catch (RuntimeException | IOException ex) {
                 deleteObjectQuietly(prepared.storage().bucket(), asset.getS3Key());
-                if (progressReporter != null) {
-                    markIngestFailed(asset.getId(), tenantId);
-                } else {
+                if (progressReporter == null) {
                     mediaAssetRepository.delete(asset);
                 }
                 if (ex instanceof RuntimeException runtimeEx) {
@@ -242,7 +304,6 @@ public class RemoteAssetIngestService implements RemoteAssetIngestApi {
                     DirectwerkProperties.Storage storage = StorageConfigs.requireEnabled(directwerkConfig);
                     deleteObjectQuietly(storage.bucket(), asset.getS3Key());
                     asset.setStatus(AssetStatus.ARCHIVED);
-                    asset.setBytesTransferred(0L);
                     mediaAssetRepository.save(asset);
                 });
                 return null;
@@ -319,7 +380,7 @@ public class RemoteAssetIngestService implements RemoteAssetIngestApi {
             Long declaredLength,
             ProgressTrackingInputStream body
     ) throws IOException {
-        if (declaredLength != null && declaredLength > 0) {
+        if (declaredLength != null && declaredLength > 0 && declaredLength <= MULTIPART_PART_SIZE) {
             s3Client.putObject(
                     PutObjectRequest.builder()
                             .bucket(bucket)

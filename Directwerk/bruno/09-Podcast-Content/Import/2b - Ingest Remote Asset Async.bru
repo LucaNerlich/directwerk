@@ -31,5 +31,5 @@ tests {
 
 docs {
   Starts a background remote ingest and returns a PENDING asset immediately.
-  Poll GET /api/v1/podcast/import/assets/{id} for bytesTransferred until status=READY.
+  Work runs on the remote-asset-ingest job queue; poll GET /api/v1/podcast/import/assets/{id} for progress.
 }

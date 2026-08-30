@@ -80,6 +80,8 @@ Accept: application/json
     });
 %}
 
+# Async ingest enqueues remote-asset-ingest; poll until status=READY (may take minutes for large MP3s).
+
 ###
 
 ### @name pollRemoteIngestAsset
