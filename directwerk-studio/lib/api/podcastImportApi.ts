@@ -13,7 +13,7 @@ import type {
     MediaAsset,
     RssImportPreview,
 } from '@directwerk/api/types'
-import {jsonInit, studioMutate} from './studioApiCore'
+import {jsonInit, studioGet, studioMutate} from './studioApiCore'
 
 /**
  * Previews the episodes and metadata available in an RSS feed.
@@ -50,6 +50,21 @@ export async function ingestRemoteAsset(
         jsonInit('POST', input),
         parseMediaAssetEnvelope,
         'Die Datei konnte nicht nach S3 gestreamt werden.',
+    )
+}
+
+/**
+ * Polls a remote-ingest asset started via {@link ingestRemoteAsset} with `waitForCompletion: false`.
+ */
+export async function getIngestAsset(
+    tenantHost: string,
+    assetId: number,
+): Promise<MediaAsset> {
+    return studioGet(
+        `/api/proxy/podcast/import/assets/${assetId}`,
+        tenantHost,
+        parseMediaAssetEnvelope,
+        'Der Server hat ein ungültiges Medium gesendet.',
     )
 }
 

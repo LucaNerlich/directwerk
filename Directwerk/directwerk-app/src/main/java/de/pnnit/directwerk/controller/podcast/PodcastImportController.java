@@ -5,10 +5,12 @@ import de.pnnit.directwerk.api.PublicEpisodeViewMapper;
 import de.pnnit.directwerk.api.dto.MediaAssetView;
 import de.pnnit.directwerk.api.response.Response;
 import de.pnnit.directwerk.modules.core.RequiresModule;
+import de.pnnit.directwerk.modules.digital.api.MediaAssetQueryApi;
 import de.pnnit.directwerk.modules.digital.entity.AccessPolicy;
 import de.pnnit.directwerk.modules.digital.entity.AssetType;
 import de.pnnit.directwerk.modules.digital.entity.AssetVisibility;
 import de.pnnit.directwerk.modules.digital.entity.MediaAsset;
+import de.pnnit.directwerk.modules.digital.exception.MediaAssetNotFoundException;
 import de.pnnit.directwerk.modules.podcast.PodcastModule;
 import de.pnnit.directwerk.modules.podcast.service.PodcastImportService;
 import jakarta.validation.Valid;
@@ -23,6 +25,8 @@ import java.util.Set;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -37,6 +41,7 @@ public class PodcastImportController {
     private final PodcastImportService podcastImportService;
     private final PublicEpisodeViewMapper publicEpisodeViewMapper;
     private final MediaAssetViewMapper mediaAssetViewMapper;
+    private final MediaAssetQueryApi mediaAssetQueryApi;
 
     /**
      * Creates a controller for podcast preview, asset ingestion, and episode import operations.
@@ -44,11 +49,13 @@ public class PodcastImportController {
     public PodcastImportController(
             PodcastImportService podcastImportService,
             PublicEpisodeViewMapper publicEpisodeViewMapper,
-            MediaAssetViewMapper mediaAssetViewMapper
+            MediaAssetViewMapper mediaAssetViewMapper,
+            MediaAssetQueryApi mediaAssetQueryApi
     ) {
         this.podcastImportService = podcastImportService;
         this.publicEpisodeViewMapper = publicEpisodeViewMapper;
         this.mediaAssetViewMapper = mediaAssetViewMapper;
+        this.mediaAssetQueryApi = mediaAssetQueryApi;
     }
 
     /**
@@ -88,6 +95,16 @@ public class PodcastImportController {
         return ResponseEntity.status(status).body(
                 waitForCompletion ? Response.created(mediaAssetViewMapper.toView(asset)) : Response.ok(mediaAssetViewMapper.toView(asset))
         );
+    }
+
+    /**
+     * Returns a pending or completed import asset for progress polling during RSS ingest.
+     */
+    @GetMapping("/assets/{assetId}")
+    ResponseEntity<Response<MediaAssetView>> getIngestAsset(@PathVariable @Min(1) Long assetId) {
+        MediaAsset asset = mediaAssetQueryApi.findById(assetId)
+                .orElseThrow(() -> new MediaAssetNotFoundException(assetId));
+        return ResponseEntity.ok(Response.ok(mediaAssetViewMapper.toView(asset)));
     }
 
     /**

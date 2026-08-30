@@ -17,6 +17,7 @@ import de.pnnit.directwerk.modules.core.service.ModuleGateService;
 import de.pnnit.directwerk.modules.digital.entity.AssetType;
 import de.pnnit.directwerk.modules.digital.entity.AssetVisibility;
 import de.pnnit.directwerk.modules.digital.entity.MediaAsset;
+import de.pnnit.directwerk.modules.digital.api.MediaAssetQueryApi;
 import de.pnnit.directwerk.modules.podcast.entity.Episode;
 import de.pnnit.directwerk.modules.podcast.entity.EpisodeStatus;
 import de.pnnit.directwerk.modules.podcast.entity.PodcastSeries;
@@ -58,6 +59,9 @@ class PodcastImportControllerTest {
 
     @MockitoBean
     private MediaAssetViewMapper mediaAssetViewMapper;
+
+    @MockitoBean
+    private MediaAssetQueryApi mediaAssetQueryApi;
 
     @DynamicPropertySource
     static void registerEphemeralSecrets(DynamicPropertyRegistry registry) {

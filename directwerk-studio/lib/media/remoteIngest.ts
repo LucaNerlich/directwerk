@@ -3,7 +3,7 @@
 import {parseMediaAssetEnvelope} from '@directwerk/api/validation/catalog'
 
 import type {IngestRemoteAssetInput, MediaAsset} from '@directwerk/api/types'
-import {getMedia} from '@/lib/api/mediaApi'
+import {getIngestAsset} from '@/lib/api/podcastImportApi'
 import {jsonInit, studioMutate} from '@/lib/api/studioApiCore'
 
 const POLL_INTERVAL_MS = 500
@@ -31,7 +31,7 @@ export async function waitForRemoteIngest(
     while (true) {
         let asset: MediaAsset
         try {
-            asset = await getMedia(tenantHost, assetId)
+            asset = await getIngestAsset(tenantHost, assetId)
         } catch {
             throw new Error(INGEST_FAILED_MESSAGE)
         }
@@ -39,6 +39,10 @@ export async function waitForRemoteIngest(
         if (asset.status === 'READY') {
             onProgress(100, asset)
             return asset
+        }
+
+        if (asset.status === 'ARCHIVED') {
+            throw new Error(INGEST_FAILED_MESSAGE)
         }
 
         if (asset.status !== 'PENDING') {

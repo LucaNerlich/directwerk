@@ -82,26 +82,34 @@ public class RemoteAssetIngestService implements RemoteAssetIngestApi {
      * Starts a remote ingest on a background thread and returns the pending asset immediately.
      *
      * @param command the source URL and asset metadata for the import
-     * @return the pending media asset whose progress can be polled via {@code GET /api/v1/media/{id}}
+     * @return the pending media asset whose progress can be polled via {@code GET /api/v1/podcast/import/assets/{id}}
      */
     @Override
     public MediaAsset startIngestFromUrl(IngestCommand command) {
-        PreparedIngest prepared = prepareIngest(command);
         Long tenantId = TenantContext.requireTenantId();
+        PreparedIngest prepared = prepareIngestCommitted(command);
         Long assetId = prepared.asset().getId();
         Thread.startVirtualThread(() -> TenantContext.callWithTenant(tenantId, () -> {
             try {
                 completePreparedIngest(
                         prepared,
-                        bytesRead -> reportIngestProgress(assetId, bytesRead)
+                        bytesRead -> reportIngestProgress(assetId, tenantId, bytesRead)
                 );
             } catch (RuntimeException ex) {
                 log.warn("Background remote ingest failed for asset {}", assetId, ex);
-                discardQuietly(assetId, tenantId);
+                markIngestFailed(assetId, tenantId);
             }
             return null;
         }));
         return prepared.asset();
+    }
+
+    private PreparedIngest prepareIngestCommitted(IngestCommand command) {
+        PreparedIngest prepared = transactionTemplate().execute(status -> prepareIngest(command));
+        if (prepared == null) {
+            throw new UploadValidationException("REMOTE_ASSET_FAILED", "Could not prepare remote asset ingest");
+        }
+        return prepared;
     }
 
     private PreparedIngest prepareIngest(IngestCommand command) {
@@ -163,6 +171,7 @@ public class RemoteAssetIngestService implements RemoteAssetIngestApi {
             }
 
             MediaAsset asset = prepared.asset();
+            Long tenantId = asset.getTenant().getId();
             asset.setMimeType(mimeType);
             asset.setSizeBytes(remote.contentLength());
             asset.setOriginalFilename(filename);
@@ -173,10 +182,7 @@ public class RemoteAssetIngestService implements RemoteAssetIngestApi {
                 ProgressTrackingInputStream limited = new ProgressTrackingInputStream(
                         remote.body(),
                         maxBytes,
-                        progressReporter == null ? null : bytesRead -> {
-                            progressReporter.accept(bytesRead);
-                            reportIngestProgress(asset.getId(), bytesRead);
-                        }
+                        progressReporter
                 );
                 long written = streamToS3(
                         prepared.storage().bucket(),
@@ -187,7 +193,6 @@ public class RemoteAssetIngestService implements RemoteAssetIngestApi {
                 );
                 if (progressReporter != null) {
                     progressReporter.accept(written);
-                    reportIngestProgress(asset.getId(), written);
                 }
                 asset.setSizeBytes(written);
                 asset.setBytesTransferred(written);
@@ -195,7 +200,11 @@ public class RemoteAssetIngestService implements RemoteAssetIngestApi {
                 return mediaAssetRepository.saveAndFlush(asset);
             } catch (RuntimeException | IOException ex) {
                 deleteObjectQuietly(prepared.storage().bucket(), asset.getS3Key());
-                mediaAssetRepository.delete(asset);
+                if (progressReporter != null) {
+                    markIngestFailed(asset.getId(), tenantId);
+                } else {
+                    mediaAssetRepository.delete(asset);
+                }
                 if (ex instanceof RuntimeException runtimeEx) {
                     throw runtimeEx;
                 }
@@ -211,27 +220,40 @@ public class RemoteAssetIngestService implements RemoteAssetIngestApi {
         }
     }
 
-    void reportIngestProgress(Long assetId, long bytesTransferred) {
-        if (assetId == null) {
+    void reportIngestProgress(Long assetId, Long tenantId, long bytesTransferred) {
+        if (assetId == null || tenantId == null) {
             return;
         }
-        transactionTemplate().executeWithoutResult(status ->
-                mediaAssetRepository.updateBytesTransferred(assetId, bytesTransferred));
+        TenantContext.callWithTenant(tenantId, () -> {
+            transactionTemplate().executeWithoutResult(status ->
+                    mediaAssetRepository.updateBytesTransferred(assetId, bytesTransferred));
+            return null;
+        });
+    }
+
+    private void markIngestFailed(Long assetId, Long tenantId) {
+        try {
+            TenantContext.callWithTenant(tenantId, () -> {
+                transactionTemplate().executeWithoutResult(status -> {
+                    MediaAsset asset = mediaAssetRepository.findById(assetId).orElse(null);
+                    if (asset == null || asset.getStatus() != AssetStatus.PENDING || asset.getEpisodeId() != null) {
+                        return;
+                    }
+                    DirectwerkProperties.Storage storage = StorageConfigs.requireEnabled(directwerkConfig);
+                    deleteObjectQuietly(storage.bucket(), asset.getS3Key());
+                    asset.setStatus(AssetStatus.ARCHIVED);
+                    asset.setBytesTransferred(0L);
+                    mediaAssetRepository.save(asset);
+                });
+                return null;
+            });
+        } catch (RuntimeException ex) {
+            log.warn("Failed to mark remote ingest asset {} as failed", assetId, ex);
+        }
     }
 
     private TransactionTemplate transactionTemplate() {
         return new TransactionTemplate(transactionManager);
-    }
-
-    private void discardQuietly(Long assetId, Long tenantId) {
-        try {
-            TenantContext.callWithTenant(tenantId, () -> {
-                discard(assetId);
-                return null;
-            });
-        } catch (RuntimeException ex) {
-            log.warn("Failed to discard failed background ingest asset {}", assetId, ex);
-        }
     }
 
     private record PreparedIngest(

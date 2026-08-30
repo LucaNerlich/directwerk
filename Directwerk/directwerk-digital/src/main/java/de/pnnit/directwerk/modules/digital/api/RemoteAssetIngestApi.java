@@ -21,7 +21,7 @@ MediaAsset ingestFromUrl(IngestCommand command);
      * Starts ingesting a remote asset asynchronously and returns the pending asset immediately.
      *
      * @param command the ingestion request containing the source URL and asset metadata
-     * @return the pending media asset whose progress can be polled via {@code GET /api/v1/media/{id}}
+     * @return the pending media asset whose progress can be polled via {@code GET /api/v1/podcast/import/assets/{id}}
      */
     MediaAsset startIngestFromUrl(IngestCommand command);
 

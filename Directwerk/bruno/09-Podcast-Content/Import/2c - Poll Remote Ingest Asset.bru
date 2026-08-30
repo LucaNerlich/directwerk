@@ -1,0 +1,26 @@
+meta {
+  name: 2c - Poll Remote Ingest Asset
+  type: http
+  seq: 2.6
+}
+
+get {
+  url: {{baseUrl}}/api/v1/podcast/import/assets/{{remoteIngestAssetId}}
+  body: none
+  auth: inherit
+}
+
+headers {
+  Accept: application/json
+}
+
+tests {
+  test("returns expected status", function() {
+    expect([200, 404]).to.include(res.getStatus());
+  });
+}
+
+docs {
+  Poll async ingest progress after 2b. Set remoteIngestAssetId from the async ingest response.
+  status=PENDING while streaming, READY on success, ARCHIVED when ingest failed.
+}

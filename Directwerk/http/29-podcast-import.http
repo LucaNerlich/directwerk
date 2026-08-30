@@ -83,7 +83,7 @@ Accept: application/json
 ###
 
 ### @name pollRemoteIngestAsset
-GET {{baseUrl}}/api/v1/media/{{remoteIngestAssetId}}
+GET {{baseUrl}}/api/v1/podcast/import/assets/{{remoteIngestAssetId}}
 Host: {{tenantAHost}}
 Authorization: Bearer {{tenantAAccessToken}}
 Accept: application/json
@@ -93,8 +93,10 @@ Accept: application/json
         client.assert(response.status === 200 || response.status === 404, "Expected 200 or 404");
         if (response.status === 200) {
             client.assert(
-                response.body.data.status === "PENDING" || response.body.data.status === "READY",
-                "Expected PENDING or READY"
+                response.body.data.status === "PENDING"
+                    || response.body.data.status === "READY"
+                    || response.body.data.status === "ARCHIVED",
+                "Expected PENDING, READY, or ARCHIVED"
             );
         }
     });
