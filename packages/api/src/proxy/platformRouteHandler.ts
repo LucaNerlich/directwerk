@@ -91,6 +91,18 @@ export function createPlatformProxyRouteHandler(
             return jsonError('Invalid platform API path.', 400)
         }
 
+        if (method === 'GET' || method === 'HEAD') {
+            try {
+                buildSafePlatformQueryString(new URL(request.url).searchParams)
+            } catch (error: unknown) {
+                const message =
+                    error instanceof Error
+                        ? error.message
+                        : 'Invalid platform API query.'
+                return jsonError(message, 400)
+            }
+        }
+
         let body: string | undefined
         if (method !== 'GET' && method !== 'HEAD') {
             const read = await readProxyBody(request, config.jsonBodyLimit)
@@ -116,7 +128,14 @@ export function createPlatformProxyRouteHandler(
         try {
             const upstream = await config.fetchUpstream(path, upstreamRequest, authorization)
             return safeUpstreamResponse(upstream, method)
-        } catch {
+        } catch (error: unknown) {
+            if (
+                error instanceof Error &&
+                (error.message.includes('Invalid platform API') ||
+                    error.message.includes('Invalid Directwerk API URL'))
+            ) {
+                return jsonError(error.message, 400)
+            }
             return jsonError('Directwerk service is unavailable.', 502)
         }
     }

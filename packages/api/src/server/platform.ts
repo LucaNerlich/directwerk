@@ -30,6 +30,13 @@ const ALLOWED_QUERY_PARAMS = new Set([
     'updatedBefore',
     'offset',
     'limit',
+    'recentAuditLimit',
+    'page',
+    'size',
+    'tenantId',
+    'action',
+    'actorEmail',
+    'actorUserId',
 ])
 const ISO_INSTANT =
     /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,9})?(?:Z|[+-]\d{2}:\d{2})$/
@@ -128,6 +135,38 @@ function isSafeLimit(value: string): boolean {
     return Number.isSafeInteger(parsed) && parsed >= 1 && parsed <= 100
 }
 
+function isSafeRecentAuditLimit(value: string): boolean {
+    if (!/^\d+$/.test(value)) {
+        return false
+    }
+
+    const parsed = Number.parseInt(value, 10)
+    return Number.isSafeInteger(parsed) && parsed >= 1 && parsed <= 50
+}
+
+function isSafePositiveId(value: string): boolean {
+    if (!/^\d+$/.test(value)) {
+        return false
+    }
+
+    const parsed = Number.parseInt(value, 10)
+    return Number.isSafeInteger(parsed) && parsed >= 1
+}
+
+const SAFE_AUDIT_ACTION = /^[A-Z][A-Z0-9_]{0,63}$/
+
+function isSafeAuditAction(value: string): boolean {
+    return SAFE_AUDIT_ACTION.test(value)
+}
+
+function isSafeActorEmail(value: string): boolean {
+    return (
+        value.length > 0 &&
+        value.length <= 254 &&
+        !/[<>"']/.test(value)
+    )
+}
+
 export function buildSafePlatformQueryString(
     searchParams: URLSearchParams,
 ): string {
@@ -170,7 +209,34 @@ export function buildSafePlatformQueryString(
                 }
                 break
             case 'limit':
+            case 'size':
                 if (!isSafeLimit(value)) {
+                    throw new Error('Invalid platform API query.')
+                }
+                break
+            case 'recentAuditLimit':
+                if (!isSafeRecentAuditLimit(value)) {
+                    throw new Error('Invalid platform API query.')
+                }
+                break
+            case 'page':
+                if (!isSafeOffset(value)) {
+                    throw new Error('Invalid platform API query.')
+                }
+                break
+            case 'tenantId':
+            case 'actorUserId':
+                if (!isSafePositiveId(value)) {
+                    throw new Error('Invalid platform API query.')
+                }
+                break
+            case 'action':
+                if (!isSafeAuditAction(value)) {
+                    throw new Error('Invalid platform API query.')
+                }
+                break
+            case 'actorEmail':
+                if (!isSafeActorEmail(value)) {
                     throw new Error('Invalid platform API query.')
                 }
                 break
