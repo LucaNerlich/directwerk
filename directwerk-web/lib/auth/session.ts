@@ -3,13 +3,13 @@
 import {createAuthSession} from '@directwerk/api/auth/session'
 import {parseTokenResponse} from '@directwerk/api/validation/token'
 
-import {getClientTenantHost} from '@directwerk/api/tenant'
+import {getWebClientTenantHost} from '@/lib/tenant/clientHost'
 import {tokenStore} from '@/lib/auth/tokenStore'
 
 const session = createAuthSession({
     store: tokenStore,
     refreshPath: '/api/auth/refresh',
-    refreshHeaders: () => ({'X-Tenant-Host': getClientTenantHost()}),
+    refreshHeaders: () => ({'X-Tenant-Host': getWebClientTenantHost()}),
     parseTokens: parseTokenResponse,
 })
 

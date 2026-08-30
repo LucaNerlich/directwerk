@@ -27,7 +27,7 @@ import type {LevelSummary, PublicProduct, PublicSiteConfig} from '@directwerk/ap
 import {useSubscriberAuth} from '@/lib/auth/useSubscriberAuth'
 import {formatMoney} from '@directwerk/api/format'
 import {userFacingBillingError} from '@/lib/billing/userFacingBillingError'
-import {getClientTenantHost} from '@directwerk/api/tenant'
+import {getClientTenantHost} from '@/lib/tenant/clientHost'
 
 export default function PricingPage(): React.JSX.Element {
     const router = useRouter()

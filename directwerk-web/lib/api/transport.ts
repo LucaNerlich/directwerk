@@ -2,7 +2,7 @@ import {createBrowserTransport} from '@directwerk/api/client/createBrowserTransp
 import {subscriberPortalPolicy} from '@directwerk/api/client/policies'
 import {envelopeResult} from '@directwerk/api/envelope'
 import {clearTokens} from '@/lib/auth/tokenStore'
-import {getClientTenantHost} from '@directwerk/api/tenant'
+import {getWebClientTenantHost} from '@/lib/tenant/clientHost'
 import {getValidAccessToken, refreshAccessToken} from '@/lib/auth/session'
 
 export {envelopeResult}
@@ -11,7 +11,7 @@ const transport = createBrowserTransport({
     policy: subscriberPortalPolicy,
     session: {getValidAccessToken, refreshAccessToken},
     clearTokens,
-    resolveTenantHost: getClientTenantHost,
+    resolveTenantHost: getWebClientTenantHost,
     jsonInitMethods: ['POST', 'PUT', 'PATCH'],
 })
 

@@ -24,7 +24,7 @@ import {formatPublishedAt} from '@directwerk/api/format/datetime'
 import {formatMoney} from '@directwerk/api/format'
 import {formatDuration} from '@/lib/format/content'
 import {useSiteConfig} from '@/lib/site/SiteConfigProvider'
-import {getClientTenantHost} from '@directwerk/api/tenant'
+import {getClientTenantHost} from '@/lib/tenant/clientHost'
 import {useSubscriberAuth} from '@/lib/auth/useSubscriberAuth'
 
 export default function HomePage(): React.JSX.Element {

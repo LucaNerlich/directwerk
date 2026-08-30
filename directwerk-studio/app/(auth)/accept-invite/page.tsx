@@ -2,7 +2,7 @@
 
 import Form from 'next/form'
 import Link from 'next/link'
-import {useRouter, useSearchParams} from 'next/navigation'
+import {useSearchParams} from 'next/navigation'
 import {Suspense, useActionState} from 'react'
 
 import {Alert, AlertDescription} from '@directwerk/ui/components/alert'
@@ -22,7 +22,6 @@ interface AcceptInviteState {
 const INITIAL_STATE: AcceptInviteState = {error: null, success: false}
 
 function AcceptInviteForm() {
-    const router = useRouter()
     const searchParams = useSearchParams()
     const tokenFromQuery = searchParams.get('token') ?? ''
 
@@ -43,7 +42,7 @@ function AcceptInviteForm() {
 
             try {
                 await acceptInvite(input)
-                router.push('/login')
+                window.location.assign('/login')
                 return {error: null, success: true}
             } catch (error) {
                 return {

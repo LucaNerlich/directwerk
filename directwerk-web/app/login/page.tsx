@@ -2,7 +2,7 @@
 
 import Form from 'next/form'
 import Link from 'next/link'
-import {useRouter, useSearchParams} from 'next/navigation'
+import {useSearchParams} from 'next/navigation'
 import {useActionState} from 'react'
 
 import {Alert, AlertDescription} from '@directwerk/ui/components/alert'
@@ -16,7 +16,7 @@ import {parseLoginInput} from '@directwerk/api/validation/input'
 
 import {setTokens} from '@/lib/auth/tokenStore'
 import {safeReturnTo} from '@/lib/auth/safeReturnTo'
-import {getClientTenantHost} from '@directwerk/api/tenant'
+import {getClientTenantHost} from '@/lib/tenant/clientHost'
 
 interface LoginState {
     error: string | null
@@ -25,7 +25,6 @@ interface LoginState {
 const INITIAL_STATE: LoginState = {error: null}
 
 export default function LoginPage() {
-    const router = useRouter()
     const searchParams = useSearchParams()
     const returnTo = safeReturnTo(searchParams.get('returnTo'))
     const [state, formAction, isPending] = useActionState(
@@ -41,7 +40,7 @@ export default function LoginPage() {
             try {
                 const tokens = await login(getClientTenantHost(), input)
                 setTokens(tokens)
-                router.push(returnTo)
+                window.location.assign(returnTo)
                 return INITIAL_STATE
             } catch (error) {
                 return {
@@ -78,10 +77,10 @@ export default function LoginPage() {
                 </div>
             }
         >
-            <Form action={formAction} className="space-y-4">
+            <Form action={formAction} autoComplete="on" className="space-y-4" method="post">
                 <div className="space-y-2">
                     <Label htmlFor="email">E-Mail</Label>
-                    <Input id="email" name="email" type="email" autoComplete="email" maxLength={254} required />
+                    <Input id="email" name="email" type="email" autoComplete="username" maxLength={254} required />
                 </div>
                 <div className="space-y-2">
                     <Label htmlFor="password">Passwort</Label>

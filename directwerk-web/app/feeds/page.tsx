@@ -27,7 +27,7 @@ import type {PublicSeries, PublicSiteConfig, SubscriberFeedView} from '@directwe
 import {useSubscriberAuth} from '@/lib/auth/useSubscriberAuth'
 import {useSubscriberFeeds} from '@/lib/auth/useSubscriberFeeds'
 import {formatPublishedAt} from '@directwerk/api/format/datetime'
-import {getClientTenantHost} from '@directwerk/api/tenant'
+import {getClientTenantHost} from '@/lib/tenant/clientHost'
 
 export default function FeedsPage() {
     const tenantHost = getClientTenantHost()

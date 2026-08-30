@@ -6,7 +6,7 @@ import {useCallback, useEffect, useState} from 'react'
 import {listMyFeeds} from '@/lib/api/client'
 import {AUTH_REQUIRED} from '@directwerk/api/constants'
 import type {SubscriberFeedView} from '@directwerk/api/types'
-import {getClientTenantHost} from '@directwerk/api/tenant'
+import {getClientTenantHost} from '@/lib/tenant/clientHost'
 
 export interface SubscriberFeedsState {
     feeds: SubscriberFeedView[]

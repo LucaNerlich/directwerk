@@ -15,7 +15,7 @@ import {
 } from '@/lib/api/client'
 import {AUTH_REQUIRED} from '@directwerk/api/constants'
 import type {Access, Me, SubscriberFeedView, SubscriptionSummary} from '@directwerk/api/types'
-import {getClientTenantHost} from '@directwerk/api/tenant'
+import {getClientTenantHost} from '@/lib/tenant/clientHost'
 import {userFacingBillingError} from '@/lib/billing/userFacingBillingError'
 
 export interface AccountDashboardState {

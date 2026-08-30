@@ -18,7 +18,7 @@ import SubscriberContextBanner from '@/components/SubscriberContextBanner'
 import {usePublicCatalog} from '@/lib/catalog/usePublicCatalog'
 import {useSubscriberAuth} from '@/lib/auth/useSubscriberAuth'
 import {accessPolicyLabel, formatDuration} from '@/lib/format/content'
-import {getClientTenantHost} from '@directwerk/api/tenant'
+import {getClientTenantHost} from '@/lib/tenant/clientHost'
 import {formatPublishedAt} from '@directwerk/api/format/datetime'
 
 export default function EpisodesPage() {

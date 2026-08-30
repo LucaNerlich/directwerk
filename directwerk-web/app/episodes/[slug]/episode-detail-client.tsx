@@ -19,7 +19,7 @@ import {
 } from '@/lib/auth/tokenStore'
 import {formatPublishedAt} from '@directwerk/api/format/datetime'
 import {formatDuration} from '@/lib/format/content'
-import {getClientTenantHost} from '@directwerk/api/tenant'
+import {getClientTenantHost} from '@/lib/tenant/clientHost'
 
 function readTokenClient(): string | null {
     return getAccessToken()

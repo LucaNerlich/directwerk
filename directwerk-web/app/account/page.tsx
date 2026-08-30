@@ -33,7 +33,7 @@ import {
 } from '@/lib/format/content'
 
 import {clearTokens} from '@/lib/auth/tokenStore'
-import {getClientTenantHost} from '@directwerk/api/tenant'
+import {getClientTenantHost} from '@/lib/tenant/clientHost'
 
 interface LogoutState {
     complete: boolean

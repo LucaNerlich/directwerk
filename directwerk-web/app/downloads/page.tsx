@@ -16,7 +16,7 @@ import {assetTypeLabel, formatFileSize} from '@/lib/format/content'
 import {listMyDownloads} from '@/lib/api/client'
 import {AUTH_REQUIRED} from '@directwerk/api/constants'
 import type {SubscriberDownload} from '@directwerk/api/types'
-import {getClientTenantHost} from '@directwerk/api/tenant'
+import {getClientTenantHost} from '@/lib/tenant/clientHost'
 import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
 
 export default function DownloadsPage(): React.JSX.Element {

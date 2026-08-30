@@ -11,7 +11,7 @@ import PageStack from '@directwerk/ui/components/page-stack'
 import {getAccess, listMySubscriptions} from '@/lib/api/client'
 import {AUTH_REQUIRED} from '@directwerk/api/constants'
 import type {Access, SubscriptionSummary} from '@directwerk/api/types'
-import {getClientTenantHost} from '@directwerk/api/tenant'
+import {getClientTenantHost} from '@/lib/tenant/clientHost'
 import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
 
 const POLL_MS = 2000

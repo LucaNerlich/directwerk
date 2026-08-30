@@ -16,7 +16,7 @@ import SubscriberContextBanner from '@/components/SubscriberContextBanner'
 import {listPublicArticles} from '@/lib/api/client'
 import type {PublicArticle} from '@directwerk/api/types'
 import {formatPublishedAt} from '@directwerk/api/format/datetime'
-import {getClientTenantHost} from '@directwerk/api/tenant'
+import {getClientTenantHost} from '@/lib/tenant/clientHost'
 import {useSubscriberAuth} from '@/lib/auth/useSubscriberAuth'
 
 export default function ArticlesPage() {

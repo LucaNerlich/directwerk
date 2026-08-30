@@ -35,9 +35,5 @@ export async function requireStudioSiteConfig(): Promise<{
     }
 
     const config = await fetchSiteConfigServerOptional(host)
-    if (config === null) {
-        redirect('/login?reason=workspace')
-    }
-
-    return {host, config}
+    return {host, config: config ?? DEFAULT_STUDIO_SITE_CONFIG}
 }

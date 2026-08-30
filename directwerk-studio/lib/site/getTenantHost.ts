@@ -7,8 +7,6 @@ import {
     TENANT_HOST_COOKIE,
 } from '@directwerk/api/tenant'
 
-import {fetchSiteConfigServerOptional} from '@/lib/site/fetchSiteConfigServer'
-
 async function resolveCandidateTenantHost(): Promise<string | null> {
     const headerStore = await headers()
     const cookieStore = await cookies()
@@ -18,13 +16,7 @@ async function resolveCandidateTenantHost(): Promise<string | null> {
     })
 }
 
-/** Resolves a verified tenant routing host, or null on shared studio URLs. */
+/** Resolves the workspace host from the selection cookie (shared studio login). */
 export async function getTenantHost(): Promise<string | null> {
-    const candidate = await resolveCandidateTenantHost()
-    if (candidate === null) {
-        return null
-    }
-
-    const config = await fetchSiteConfigServerOptional(candidate)
-    return config === null ? null : candidate
+    return resolveCandidateTenantHost()
 }

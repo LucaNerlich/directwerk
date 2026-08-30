@@ -1,7 +1,7 @@
 'use client'
 
 import Form from 'next/form'
-import {useRouter, useSearchParams} from 'next/navigation'
+import {useSearchParams} from 'next/navigation'
 import {Suspense, useActionState, useState} from 'react'
 
 import {Alert, AlertDescription} from '@directwerk/ui/components/alert'
@@ -10,7 +10,6 @@ import {Button} from '@directwerk/ui/components/button'
 import {Input} from '@directwerk/ui/components/input'
 import {Label} from '@directwerk/ui/components/label'
 
-import {defaultHomePath} from '@/lib/api/client'
 import {
     discoverStudioWorkspaces,
     login,
@@ -20,7 +19,7 @@ import {parseLoginInput} from '@directwerk/api/validation/input'
 import type {StudioWorkspace} from '@directwerk/api/types'
 
 import {setTokens} from '@/lib/auth/tokenStore'
-import {useSiteConfig} from '@/lib/site/SiteConfigProvider'
+import {getClientTenantHost} from '@directwerk/api/tenant'
 
 interface LoginState {
     error: string | null
@@ -43,14 +42,22 @@ async function completeLogin(
     input: {email: string; password: string},
 ): Promise<void> {
     await selectTenantHost(workspace.host)
+    if (getClientTenantHost() !== workspace.host) {
+        throw new Error(
+            'Der Workspace konnte nicht gespeichert werden. Bitte Browser-Cookies prüfen.',
+        )
+    }
+
     const tokens = await login(workspace.host, input)
     setTokens(tokens)
 }
 
+function enterStudio(): void {
+    window.location.assign('/')
+}
+
 function LoginForm() {
-    const router = useRouter()
     const searchParams = useSearchParams()
-    const config = useSiteConfig()
     const roleDenied = searchParams.get('reason') === 'role'
     const workspaceMissing = searchParams.get('reason') === 'workspace'
     const [workspaces, setWorkspaces] = useState<StudioWorkspace[] | null>(null)
@@ -76,8 +83,7 @@ function LoginForm() {
                 const discovered = await discoverStudioWorkspaces(input)
                 if (discovered.length === 1) {
                     await completeLogin(discovered[0]!, input)
-                    router.push(defaultHomePath(config.studioHome))
-                    router.refresh()
+                    enterStudio()
                     return INITIAL_STATE
                 }
 
@@ -100,8 +106,7 @@ function LoginForm() {
         setIsOpeningWorkspace(true)
         try {
             await completeLogin(workspace, pendingInput)
-            router.push(defaultHomePath(config.studioHome))
-            router.refresh()
+            enterStudio()
         } catch (error) {
             setWorkspaceError(mapAuthError(error))
         } finally {
@@ -176,11 +181,11 @@ function LoginForm() {
                     </AlertDescription>
                 </Alert>
             ) : null}
-            <Form action={formAction} className="grid gap-4">
+            <Form action={formAction} autoComplete="on" className="grid gap-4" method="post">
                 <div className="grid gap-2">
                     <Label htmlFor="login-email">E-Mail</Label>
                     <Input
-                        autoComplete="email"
+                        autoComplete="username"
                         id="login-email"
                         maxLength={254}
                         name="email"

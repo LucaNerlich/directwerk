@@ -71,20 +71,39 @@ export function createBrowserTransport(
 
     const authedFetch = createAuthedRequest(authedRequestConfig)
 
+    function tenantRequestHeaders(tenantHost: string | null): Record<string, string> {
+        if (tenantHost !== null && tenantHost.length > 0) {
+            return {'X-Tenant-Host': tenantHost}
+        }
+        return baseHeaders()
+    }
+
     function request(
         path: string,
-        _tenantHost: string | null,
+        tenantHost: string | null,
         init?: RequestInit,
     ): Promise<unknown> {
-        return jsonRequest(path, init)
+        return jsonRequest(path, {
+            ...init,
+            headers: {
+                ...tenantRequestHeaders(tenantHost),
+                ...init?.headers,
+            },
+        })
     }
 
     function authenticatedRequest(
         path: string,
-        _tenantHost: string | null,
+        tenantHost: string | null,
         init?: RequestInit,
     ): Promise<unknown> {
-        return authedFetch(path, init)
+        return authedFetch(path, {
+            ...init,
+            headers: {
+                ...tenantRequestHeaders(tenantHost),
+                ...init?.headers,
+            },
+        })
     }
 
     async function postJson(

@@ -11,7 +11,7 @@ import BrandLogo from '@/components/BrandLogo'
 import SiteFooter from '@/components/SiteFooter'
 import {clearTokens} from '@/lib/auth/tokenStore'
 import {useSubscriberAuth} from '@/lib/auth/useSubscriberAuth'
-import {getClientTenantHost} from '@directwerk/api/tenant'
+import {getClientTenantHost} from '@/lib/tenant/clientHost'
 import {useSiteConfig} from '@/lib/site/SiteConfigProvider'
 
 interface NavItem {
