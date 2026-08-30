@@ -8,6 +8,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import de.pnnit.directwerk.api.exception.FilterExceptionResolver;
+import de.pnnit.directwerk.config.DirectwerkConfig;
+import de.pnnit.directwerk.config.DirectwerkProperties;
 import de.pnnit.directwerk.modules.core.entity.Tenant;
 import de.pnnit.directwerk.modules.core.entity.TenantStatus;
 import de.pnnit.directwerk.security.DirectwerkUserPrincipal;
@@ -17,26 +19,72 @@ import jakarta.servlet.http.HttpServletRequest;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.servlet.HandlerExceptionResolver;
+import org.mockito.ArgumentMatchers;
 
 class TenantContextFilterTest {
 
     private final TenantResolver tenantResolver = mock(TenantResolver.class);
+    private final TenantRoutingHostResolver tenantRoutingHostResolver = mock(TenantRoutingHostResolver.class);
     // Mockito's mock returns null from resolveException(...) by default, i.e. "unresolved" —
     // so FilterExceptionResolver rethrows the original exception, same as before this class existed.
     private final FilterExceptionResolver filterExceptionResolver =
             new FilterExceptionResolver(mock(HandlerExceptionResolver.class));
-    private final TenantContextFilter filter = new TenantContextFilter(tenantResolver, filterExceptionResolver);
+    private final TenantContextFilter filter =
+            new TenantContextFilter(tenantResolver, filterExceptionResolver, tenantRoutingHostResolver);
+
+    @BeforeEach
+    void stubRoutingHostFromServerName() {
+        org.mockito.Mockito.reset(tenantRoutingHostResolver);
+        org.mockito.Mockito.when(tenantRoutingHostResolver.resolve(ArgumentMatchers.any()))
+                .thenAnswer(invocation -> {
+                    HttpServletRequest request = invocation.getArgument(0);
+                    return request.getServerName();
+                });
+    }
 
     @AfterEach
     void clearSecurity() {
         SecurityContextHolder.clearContext();
         TenantContext.clear();
+    }
+
+    @Test
+    void prefersTenantHostHeaderForPlatformApiBffCalls() throws Exception {
+        DirectwerkConfig config = mock(DirectwerkConfig.class);
+        DirectwerkProperties.Security security = mock(DirectwerkProperties.Security.class);
+        when(config.security()).thenReturn(security);
+        when(security.issuer()).thenReturn("https://api.directwerk.org");
+        TenantContextFilter bffFilter = new TenantContextFilter(
+                tenantResolver,
+                filterExceptionResolver,
+                new TenantRoutingHostResolver(config));
+
+        Tenant hostTenant = tenant(1L, TenantStatus.ACTIVE);
+        when(tenantResolver.requireActiveHost("tenant-b.localhost")).thenReturn(hostTenant);
+        authenticateTenantUser(1L);
+
+        HttpServletRequest request = mock(HttpServletRequest.class);
+        when(request.getRequestURI()).thenReturn("/api/v1/me");
+        when(request.getServerName()).thenReturn("api.directwerk.org");
+        when(request.getHeader("X-Tenant-Host")).thenReturn("tenant-b.localhost");
+        FilterChain chain = mock(FilterChain.class);
+        MockHttpServletResponse response = new MockHttpServletResponse();
+        doAnswer(invocation -> {
+            assertThat(TenantContext.getTenantId()).isEqualTo(1L);
+            return null;
+        }).when(chain).doFilter(request, response);
+
+        bffFilter.doFilter(request, response, chain);
+
+        verify(chain).doFilter(request, response);
+        verify(tenantResolver).requireActiveHost("tenant-b.localhost");
     }
 
     @Test

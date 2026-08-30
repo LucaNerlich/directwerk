@@ -30,6 +30,7 @@ public class TenantContextFilter extends OncePerRequestFilter {
 
     private final TenantResolver tenantResolver;
     private final FilterExceptionResolver filterExceptionResolver;
+    private final TenantRoutingHostResolver tenantRoutingHostResolver;
 
     @Override
     protected void doFilterInternal(
@@ -61,13 +62,13 @@ public class TenantContextFilter extends OncePerRequestFilter {
             if (scope == RequestScope.PLATFORM) {
                 TenantContext.clear();
             } else if (scope == RequestScope.PUBLIC) {
-                tenantResolver.resolveHost(request.getServerName())
+                tenantResolver.resolveHost(routingHost(request))
                         .ifPresent(tenant -> {
-                            ensureTenantActive(tenant, request.getServerName());
+                            ensureTenantActive(tenant, routingHost(request));
                             TenantContext.setTenantId(tenant.getId());
                         });
             } else if (scope.isTenantScoped()) {
-                Tenant tenant = tenantResolver.requireActiveHost(request.getServerName());
+                Tenant tenant = tenantResolver.requireActiveHost(routingHost(request));
                 if (SecurityUtils.isAuthenticated()) {
                     // Authenticated tenant routes must bind to the membership in SecurityContext —
                     // never accept Host alone (or a spoofed client tenant header).
@@ -88,6 +89,10 @@ public class TenantContextFilter extends OncePerRequestFilter {
             filterExceptionResolver.resolve(request, response, ex);
             return false;
         }
+    }
+
+    private String routingHost(HttpServletRequest request) {
+        return tenantRoutingHostResolver.resolve(request);
     }
 
     private static void ensureTenantActive(Tenant tenant, String host) {

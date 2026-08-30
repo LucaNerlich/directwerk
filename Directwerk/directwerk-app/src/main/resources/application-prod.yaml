@@ -30,6 +30,14 @@ logging:
         org.springframework.security: WARN
         de.pnnit.directwerk: INFO
 
+server:
+    tomcat:
+        remoteip:
+            host-header: X-Forwarded-Host
+            protocol-header-https-value: https
+        redirect-context-root: false
+        use-relative-redirects: true
+
 directwerk:
     security:
         issuer: ${DIRECTWERK_ISSUER}

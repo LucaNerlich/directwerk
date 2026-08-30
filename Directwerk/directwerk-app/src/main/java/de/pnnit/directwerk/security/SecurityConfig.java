@@ -13,6 +13,7 @@ import de.pnnit.directwerk.config.DirectwerkProperties;
 import de.pnnit.directwerk.multitenancy.TenantContextFilter;
 import de.pnnit.directwerk.multitenancy.TenantResolver;
 import de.pnnit.directwerk.multitenancy.BffTenantRoutingHostFilter;
+import de.pnnit.directwerk.multitenancy.TenantRoutingHostResolver;
 import de.pnnit.directwerk.security.grants.PasswordGrantAuthenticationConverter;
 import de.pnnit.directwerk.security.grants.PasswordGrantAuthenticationProvider;
 import java.security.KeyPair;
@@ -120,6 +121,7 @@ public class SecurityConfig {
             HttpSecurity http,
             JwtDecoder jwtDecoder,
             TenantContextFilter tenantContextFilter,
+            BffTenantRoutingHostFilter bffTenantRoutingHostFilter,
             TenantMembershipGuardFilter tenantMembershipGuardFilter,
             DirectwerkJwtAuthenticationConverter jwtAuthenticationConverter,
             BillingRateLimitFilter billingRateLimitFilter
@@ -174,6 +176,7 @@ public class SecurityConfig {
                         .jwtAuthenticationConverter(jwtAuthenticationConverter)
                 ))
                 .addFilterAfter(tenantContextFilter, org.springframework.security.oauth2.server.resource.web.authentication.BearerTokenAuthenticationFilter.class)
+                .addFilterBefore(bffTenantRoutingHostFilter, TenantContextFilter.class)
                 .addFilterAfter(billingRateLimitFilter, TenantContextFilter.class)
                 .addFilterAfter(tenantMembershipGuardFilter, BillingRateLimitFilter.class);
 
@@ -253,6 +256,13 @@ public class SecurityConfig {
     }
 
     @Bean
+    BffTenantRoutingHostFilter bffTenantRoutingHostFilter(
+            TenantRoutingHostResolver tenantRoutingHostResolver
+    ) {
+        return new BffTenantRoutingHostFilter(tenantRoutingHostResolver);
+    }
+
+    @Bean
     FilterRegistrationBean<BffTenantRoutingHostFilter> bffTenantRoutingHostFilterRegistration(
             BffTenantRoutingHostFilter bffTenantRoutingHostFilter
     ) {
@@ -320,9 +330,10 @@ public class SecurityConfig {
     @Bean
     TenantContextFilter tenantContextFilter(
             TenantResolver tenantResolver,
-            FilterExceptionResolver filterExceptionResolver
+            FilterExceptionResolver filterExceptionResolver,
+            TenantRoutingHostResolver tenantRoutingHostResolver
     ) {
-        return new TenantContextFilter(tenantResolver, filterExceptionResolver);
+        return new TenantContextFilter(tenantResolver, filterExceptionResolver, tenantRoutingHostResolver);
     }
 
     /**

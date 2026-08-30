@@ -5,16 +5,13 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
-import java.util.Locale;
 import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 /**
  * Rewrites {@link HttpServletRequest#getServerName()} for BFF calls that target the platform API
  * hostname but carry the tenant domain in forwarded headers.
  */
-@Component
 @RequiredArgsConstructor
 public class BffTenantRoutingHostFilter extends OncePerRequestFilter {
 

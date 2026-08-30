@@ -167,6 +167,7 @@ export function createServerTransport(
                             : {
                                   'X-Forwarded-Host': tenantHeaders.forwardedHost,
                                   'X-Forwarded-Proto': 'https',
+                                  Forwarded: `host=${tenantHeaders.forwardedHost};proto=https`,
                               }),
                         ...(tenantHost === undefined
                             ? {}

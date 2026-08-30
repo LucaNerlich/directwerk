@@ -25,16 +25,31 @@ public class TenantRoutingHostResolver {
 
     public String resolve(HttpServletRequest request) {
         String serverName = normalizeServerName(request.getServerName());
+        Optional<String> explicitTenant = parseHeaderHost(request.getHeader("X-Tenant-Host"));
         String platformApiHost = platformApiHost();
-        if (platformApiHost == null || !platformApiHost.equalsIgnoreCase(serverName)) {
-            return serverName;
+
+        if (platformApiHost != null && platformApiHost.equalsIgnoreCase(serverName)) {
+            return resolveFromBffHeaders(request, platformApiHost, explicitTenant, serverName);
         }
 
-        // BFF upstream calls hit the platform API hostname. Traefik typically overwrites
-        // X-Forwarded-Host with that same hostname, so prefer the explicit tenant header.
-        return parseHeaderHost(request.getHeader("X-Tenant-Host"))
+        // BFF upstream: explicit tenant header on the platform API hostname even when issuer
+        // metadata is missing or getServerName() was already rewritten by the reverse proxy.
+        if (explicitTenant.isPresent() && !explicitTenant.get().equalsIgnoreCase(serverName)) {
+            return explicitTenant.get();
+        }
+
+        return serverName;
+    }
+
+    private static String resolveFromBffHeaders(
+            HttpServletRequest request,
+            String platformApiHost,
+            Optional<String> explicitTenant,
+            String serverName
+    ) {
+        return explicitTenant
                 .or(() -> parseForwardedHeader(request.getHeader("Forwarded")))
-                .or(() -> parseHeaderHostExcluding(request.getHeader("X-Forwarded-Host"), platformApiHost))
+                .or(() -> parseForwardedHostChain(request.getHeader("X-Forwarded-Host"), platformApiHost))
                 .orElse(serverName);
     }
 
@@ -73,6 +88,24 @@ public class TenantRoutingHostResolver {
 
     private static Optional<String> parseHeaderHostExcluding(String rawHeader, String excludedHost) {
         return parseHeaderHost(rawHeader).filter(host -> !host.equalsIgnoreCase(excludedHost));
+    }
+
+    /**
+     * Traefik may prepend the API hostname to an existing forwarded-host chain from the BFF.
+     * Prefer the last non-platform entry.
+     */
+    static Optional<String> parseForwardedHostChain(String rawHeader, String platformApiHost) {
+        if (!StringUtils.hasText(rawHeader)) {
+            return Optional.empty();
+        }
+        Optional<String> lastNonPlatform = Optional.empty();
+        for (String segment : rawHeader.split(",")) {
+            Optional<String> parsed = normalizeRoutingHost(segment.trim());
+            if (parsed.isPresent() && !parsed.get().equalsIgnoreCase(platformApiHost)) {
+                lastNonPlatform = parsed;
+            }
+        }
+        return lastNonPlatform;
     }
 
     static Optional<String> parseForwardedHeader(String rawHeader) {

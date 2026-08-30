@@ -11,6 +11,7 @@ import de.pnnit.directwerk.modules.core.repository.TenantMembershipRepository;
 import de.pnnit.directwerk.modules.core.repository.UserRepository;
 import de.pnnit.directwerk.multitenancy.TenantNotFoundException;
 import de.pnnit.directwerk.multitenancy.TenantResolver;
+import de.pnnit.directwerk.multitenancy.TenantRoutingHostResolver;
 import de.pnnit.directwerk.multitenancy.TenantSuspendedException;
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.Optional;
@@ -30,6 +31,7 @@ public class DirectwerkUserDetailsService implements UserDetailsService {
     private final TenantMembershipRepository tenantMembershipRepository;
     private final PlatformAdminRepository platformAdminRepository;
     private final TenantResolver tenantResolver;
+    private final TenantRoutingHostResolver tenantRoutingHostResolver;
 
     @Override
     public UserDetails loadUserByUsername(String email) {
@@ -68,6 +70,6 @@ public class DirectwerkUserDetailsService implements UserDetailsService {
             return Optional.empty();
         }
         HttpServletRequest request = attributes.getRequest();
-        return tenantResolver.resolveHost(request.getServerName());
+        return tenantResolver.resolveHost(tenantRoutingHostResolver.resolve(request));
     }
 }
