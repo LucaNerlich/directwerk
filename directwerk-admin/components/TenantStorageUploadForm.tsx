@@ -15,10 +15,8 @@ import {
     type MediaAsset,
 } from '@directwerk/api/types'
 
-import {
-    INITIAL_UPLOAD_MEDIA_STATE,
-    uploadTenantMediaAction,
-} from '@/app/tenants/actions'
+import {uploadTenantMediaAction} from '@/app/tenants/actions'
+import {INITIAL_UPLOAD_MEDIA_STATE} from '@/app/tenants/actionState'
 
 interface TenantStorageUploadFormProps {
     tenantId: string

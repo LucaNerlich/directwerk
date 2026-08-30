@@ -9,10 +9,8 @@ import {Card, CardContent, CardHeader, CardTitle} from '@directwerk/ui/component
 import {Input} from '@directwerk/ui/components/input'
 import {Label} from '@directwerk/ui/components/label'
 
-import {
-    INITIAL_INVITE_PLATFORM_ADMIN_STATE,
-    invitePlatformAdminAction,
-} from '@/app/admins/actions'
+import {invitePlatformAdminAction} from '@/app/admins/actions'
+import {INITIAL_INVITE_PLATFORM_ADMIN_STATE} from '@/app/admins/actionState'
 
 interface InvitePlatformAdminFormProps {
     onInvited?: () => void

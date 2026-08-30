@@ -3,17 +3,10 @@
 import {callPlatformApi, statusToFormError} from '@/lib/server/platform'
 import {validatePlatformAdminInviteInput} from '@/lib/validation'
 
-export interface InvitePlatformAdminState {
-    error: string | null
-    success: string | null
-    inviteToken: string | null
-}
-
-export const INITIAL_INVITE_PLATFORM_ADMIN_STATE: InvitePlatformAdminState = {
-    error: null,
-    success: null,
-    inviteToken: null,
-}
+import {
+    INITIAL_INVITE_PLATFORM_ADMIN_STATE,
+    type InvitePlatformAdminState,
+} from '@/app/admins/actionState'
 
 export async function invitePlatformAdminAction(
     _previousState: InvitePlatformAdminState,

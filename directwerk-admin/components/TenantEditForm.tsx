@@ -11,10 +11,8 @@ import {Label} from '@directwerk/ui/components/label'
 
 import type {TenantDetail} from '@directwerk/api/types'
 
-import {
-    INITIAL_TENANT_EDIT_STATE,
-    updateTenantAction,
-} from '@/app/tenants/actions'
+import {updateTenantAction} from '@/app/tenants/actions'
+import {INITIAL_TENANT_EDIT_STATE} from '@/app/tenants/actionState'
 
 interface TenantEditFormProps {
     tenantId: string

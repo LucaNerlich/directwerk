@@ -8,20 +8,24 @@ import {validateCreateTenantInput, validateTenantUserInviteInput} from '@/lib/va
 import {getTenantRoleLabel} from '@/lib/roles'
 import {callPlatformApi, statusToFormError} from '@/lib/server/platform'
 
+import {
+    INITIAL_CREATE_TENANT_STATE,
+    INITIAL_DOMAIN_VERIFY_STATE,
+    INITIAL_INVITE_TENANT_USER_STATE,
+    INITIAL_ROLE_CHANGE_STATE,
+    INITIAL_TENANT_EDIT_STATE,
+    INITIAL_UPLOAD_MEDIA_STATE,
+    type CreateTenantState,
+    type DomainVerifyState,
+    type InviteTenantUserState,
+    type RoleChangeState,
+    type TenantEditState,
+    type UploadMediaState,
+} from '@/app/tenants/actionState'
+
 const MAX_UPLOAD_BYTES = 10 * 1024 * 1024
 const ASSET_VISIBILITY_VALUES = new Set<string>(ASSET_VISIBILITIES)
-
-export interface CreateTenantState {
-    error: string | null
-    success: string | null
-    inviteToken: string | null
-}
-
-export const INITIAL_CREATE_TENANT_STATE: CreateTenantState = {
-    error: null,
-    success: null,
-    inviteToken: null,
-}
+const SLUG_PATTERN = /^[a-z0-9](?:[a-z0-9-]{0,62}[a-z0-9])?$/
 
 export async function createTenantAction(
     _previousState: CreateTenantState,
@@ -63,20 +67,6 @@ export async function createTenantAction(
     }
 }
 
-export interface TenantEditState {
-    error: string | null
-    success: string | null
-    tenant: TenantDetail | null
-}
-
-export const INITIAL_TENANT_EDIT_STATE: TenantEditState = {
-    error: null,
-    success: null,
-    tenant: null,
-}
-
-const SLUG_PATTERN = /^[a-z0-9](?:[a-z0-9-]{0,62}[a-z0-9])?$/
-
 export async function updateTenantAction(
     tenantId: string,
     _previousState: TenantEditState,
@@ -114,16 +104,6 @@ export async function updateTenantAction(
     }
 
     return {error: null, success: 'Tenant updated.', tenant: result.data}
-}
-
-export interface DomainVerifyState {
-    error: string | null
-    success: string | null
-}
-
-export const INITIAL_DOMAIN_VERIFY_STATE: DomainVerifyState = {
-    error: null,
-    success: null,
 }
 
 export async function forceVerifyDomainAction(
@@ -164,18 +144,6 @@ export async function forceVerifyDomainAction(
     return {error: null, success: `${host} force-verified.`}
 }
 
-export interface InviteTenantUserState {
-    error: string | null
-    success: string | null
-    inviteToken: string | null
-}
-
-export const INITIAL_INVITE_TENANT_USER_STATE: InviteTenantUserState = {
-    error: null,
-    success: null,
-    inviteToken: null,
-}
-
 export async function inviteTenantUserAction(
     tenantId: string,
     _previousState: InviteTenantUserState,
@@ -213,12 +181,6 @@ export async function inviteTenantUserAction(
     }
 }
 
-export interface RoleChangeState {
-    error: string | null
-}
-
-export const INITIAL_ROLE_CHANGE_STATE: RoleChangeState = {error: null}
-
 export async function changeTenantUserRoleAction(
     tenantId: string,
     userId: number,
@@ -243,18 +205,6 @@ export async function changeTenantUserRoleAction(
     }
 
     return {error: null}
-}
-
-export interface UploadMediaState {
-    error: string | null
-    success: string | null
-    asset: MediaAsset | null
-}
-
-export const INITIAL_UPLOAD_MEDIA_STATE: UploadMediaState = {
-    error: null,
-    success: null,
-    asset: null,
 }
 
 function formatUploadSuccess(asset: MediaAsset, fallbackName: string): string {
@@ -298,7 +248,6 @@ export async function uploadTenantMediaAction(
     const result = await performTenantMediaUpload(tenantId, uploadBody)
 
     if (!result.ok) {
-        // PUT succeeded but confirm failed — retry confirm only (same assetId).
         if (result.retryConfirm === true && typeof result.assetId === 'number') {
             const retry = await callPlatformApi<MediaAsset>(
                 ['tenants', tenantId, 'media', String(result.assetId), 'confirm'],

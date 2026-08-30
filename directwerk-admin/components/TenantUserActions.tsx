@@ -11,10 +11,8 @@ import type {TenantUser} from '@directwerk/api/types'
 import {PLATFORM_TENANT_INVITABLE_ROLES} from '@directwerk/api/types'
 import {getTenantRoleLabel} from '@/lib/roles'
 
-import {
-    changeTenantUserRoleAction,
-    INITIAL_ROLE_CHANGE_STATE,
-} from '@/app/tenants/actions'
+import {changeTenantUserRoleAction} from '@/app/tenants/actions'
+import {INITIAL_ROLE_CHANGE_STATE} from '@/app/tenants/actionState'
 
 interface TenantUserActionsProps {
     tenantId: string

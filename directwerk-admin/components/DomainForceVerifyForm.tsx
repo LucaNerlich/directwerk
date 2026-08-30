@@ -9,10 +9,8 @@ import {Card, CardContent, CardHeader, CardTitle} from '@directwerk/ui/component
 import {Input} from '@directwerk/ui/components/input'
 import {Label} from '@directwerk/ui/components/label'
 
-import {
-    forceVerifyDomainAction,
-    INITIAL_DOMAIN_VERIFY_STATE,
-} from '@/app/tenants/actions'
+import {forceVerifyDomainAction} from '@/app/tenants/actions'
+import {INITIAL_DOMAIN_VERIFY_STATE} from '@/app/tenants/actionState'
 
 interface DomainForceVerifyFormProps {
     tenantId: string

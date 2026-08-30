@@ -12,10 +12,8 @@ import {Label} from '@directwerk/ui/components/label'
 import {PLATFORM_TENANT_INVITABLE_ROLES} from '@directwerk/api/types'
 import {getTenantRoleLabel} from '@/lib/roles'
 
-import {
-    INITIAL_INVITE_TENANT_USER_STATE,
-    inviteTenantUserAction,
-} from '@/app/tenants/actions'
+import {inviteTenantUserAction} from '@/app/tenants/actions'
+import {INITIAL_INVITE_TENANT_USER_STATE} from '@/app/tenants/actionState'
 
 interface InviteTenantUserFormProps {
     tenantId: string

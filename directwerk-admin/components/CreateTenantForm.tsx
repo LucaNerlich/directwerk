@@ -12,10 +12,8 @@ import {Label} from '@directwerk/ui/components/label'
 import {HTML_SLUG_PATTERN} from '@directwerk/api/constants'
 import {MODULE_PRESETS} from '@directwerk/api/types'
 
-import {
-    createTenantAction,
-    INITIAL_CREATE_TENANT_STATE,
-} from '@/app/tenants/actions'
+import {createTenantAction} from '@/app/tenants/actions'
+import {INITIAL_CREATE_TENANT_STATE} from '@/app/tenants/actionState'
 
 interface CreateTenantFormProps {
     onCreated?: () => void
