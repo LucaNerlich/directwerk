@@ -1,12 +1,15 @@
 package de.pnnit.directwerk.controller.platform;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import de.pnnit.directwerk.modules.core.audit.PlatformAuditActions;
 import de.pnnit.directwerk.modules.core.entity.Tenant;
 import de.pnnit.directwerk.modules.core.entity.TenantStatus;
+import de.pnnit.directwerk.modules.core.repository.PlatformAuditEventRepository;
 import de.pnnit.directwerk.modules.core.repository.TenantRepository;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
@@ -31,6 +34,9 @@ class PlatformTenantControllerTest {
 
     @Autowired
     private TenantRepository tenantRepository;
+
+    @Autowired
+    private PlatformAuditEventRepository platformAuditEventRepository;
 
     private Tenant tenant;
     private Tenant otherTenant;
@@ -85,6 +91,12 @@ class PlatformTenantControllerTest {
                 .andExpect(jsonPath("$.data.slug").value(slug))
                 .andExpect(jsonPath("$.data.adminInvitation.email").value(adminEmail))
                 .andExpect(jsonPath("$.data.adminInvitation.status").value("INVITED"));
+
+        Tenant created = tenantRepository.findBySlug(slug).orElseThrow();
+        assertThat(platformAuditEventRepository.findAll()).anySatisfy(event -> {
+            assertThat(event.getAction()).isEqualTo(PlatformAuditActions.TENANT_CREATED);
+            assertThat(event.getTenantId()).isEqualTo(created.getId());
+        });
     }
 
     @Test
