@@ -1,3 +1,4 @@
+import {SLUG_PATTERN} from '../constants'
 import type {
     CreateTenantInput,
     JobListQuery,
@@ -74,8 +75,6 @@ const MAX_NAME_LENGTH = 200
 const MAX_TENANT_NAME_LENGTH = 255
 const MAX_QUEUE_NAME_LENGTH = 100
 const SAFE_QUEUE_NAME = /^[A-Za-z0-9_-]+$/
-const TENANT_SLUG_PATTERN =
-    /^[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,62}[a-zA-Z0-9])?$/
 const ISO_INSTANT =
     /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,9})?(?:Z|[+-]\d{2}:\d{2})$/
 
@@ -289,7 +288,7 @@ export function validateCreateTenantInput(
     if (
         name.length < 1 ||
         name.length > MAX_TENANT_NAME_LENGTH ||
-        !TENANT_SLUG_PATTERN.test(slug)
+        !SLUG_PATTERN.test(slug)
     ) {
         return {
             success: false,

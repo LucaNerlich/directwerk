@@ -17,6 +17,7 @@ import {ingestRemoteAsset, importRssEpisode, previewRssFeed} from '@/lib/api/pod
 import {deleteMedia} from '@/lib/api/mediaApi'
 import {isTenantAdminRole, suggestSlug} from '@/lib/api/studioHelpers'
 import {useOptionalMe} from '@/lib/auth/MeProvider'
+import {HTML_SLUG_PATTERN} from '@directwerk/api/constants'
 import type {
     AccessPolicy,
     FormatSummary,
@@ -527,7 +528,7 @@ export default function RssImportWizard(): React.JSX.Element {
                                         setSeriesSlug(event.target.value)
                                         setSeriesSlugDirty(true)
                                     }}
-                                    pattern="^[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,62}[a-zA-Z0-9])?$"
+                                    pattern={HTML_SLUG_PATTERN}
                                     value={seriesSlug}
                                 />
                             </label>
@@ -678,7 +679,7 @@ export default function RssImportWizard(): React.JSX.Element {
                             disabled={busy}
                             maxLength={64}
                             onChange={(event) => setEpisodeSlug(event.target.value)}
-                            pattern="^[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,62}[a-zA-Z0-9])?$"
+                            pattern={HTML_SLUG_PATTERN}
                             value={episodeSlug}
                         />
                     </label>

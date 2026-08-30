@@ -9,6 +9,7 @@ import {Card, CardContent, CardHeader, CardTitle} from '@directwerk/ui/component
 import {Input} from '@directwerk/ui/components/input'
 import {Label} from '@directwerk/ui/components/label'
 
+import {HTML_SLUG_PATTERN} from '@directwerk/api/constants'
 import {MODULE_PRESETS} from '@directwerk/api/types'
 
 import {
@@ -61,7 +62,7 @@ export default function CreateTenantForm({onCreated}: CreateTenantFormProps) {
                         id="create-tenant-slug"
                         maxLength={64}
                         name="slug"
-                        pattern="^[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,62}[a-zA-Z0-9])?$"
+                        pattern={HTML_SLUG_PATTERN}
                         required
                         type="text"
                     />

@@ -1,5 +1,6 @@
 'use client'
 
+import {HTML_SLUG_PATTERN} from '@directwerk/api/constants'
 import SelectControl from '@/components/studio/SelectControl'
 import {suggestSlug} from '@/lib/api/studioHelpers'
 
@@ -249,7 +250,7 @@ export default function ProductEditor({
                         id="product-slug"
                         maxLength={64}
                         onChange={(event) => setSlug(event.target.value)}
-                        pattern="^[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,62}[a-zA-Z0-9])?$"
+                        pattern={HTML_SLUG_PATTERN}
                         required={isNew}
                         type="text"
                         value={slug}

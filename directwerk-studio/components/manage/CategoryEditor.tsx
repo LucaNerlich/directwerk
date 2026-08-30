@@ -11,7 +11,7 @@ import Form from 'next/form'
 import {useRouter} from 'next/navigation'
 import {useActionState, useEffect, useState} from 'react'
 
-import {AUTH_REQUIRED} from '@directwerk/api/constants'
+import {AUTH_REQUIRED, HTML_SLUG_PATTERN} from '@directwerk/api/constants'
 import {createCategory, deactivateCategory, listCategories, updateCategory} from '@/lib/api/catalogApi'
 import type {CategorySummary} from '@directwerk/api/types'
 import {getClientTenantHost} from '@directwerk/api/tenant'
@@ -208,7 +208,7 @@ export default function CategoryEditor({categoryId}: CategoryEditorProps): React
                         id="category-slug"
                         maxLength={64}
                         name="slug"
-                        pattern="^[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,62}[a-zA-Z0-9])?$"
+                        pattern={HTML_SLUG_PATTERN}
                         required={isNew}
                         type="text"
                     />

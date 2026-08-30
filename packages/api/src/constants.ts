@@ -57,3 +57,17 @@ export const PLATFORM_TENANT_INVITABLE_ROLES = [
 ] as const
 
 export type TenantInvitableRole = (typeof TENANT_INVITABLE_ROLES)[number]
+
+/** Slug validation (matches backend `@Pattern` on slug fields). */
+export const SLUG_PATTERN = /^[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,62}[a-zA-Z0-9])?$/
+
+/**
+ * Same rule as {@link SLUG_PATTERN}, escaped for HTML `pattern` attributes.
+ * Browsers compile these with the RegExp `v` flag, where an unescaped `-`
+ * inside a character class is invalid.
+ */
+export const HTML_SLUG_PATTERN =
+    '^[a-zA-Z0-9](?:[a-zA-Z0-9\\-]{0,62}[a-zA-Z0-9])?$'
+
+/** Studio BFF timeout — must exceed backend remote ingest (15 min) plus headroom. */
+export const STUDIO_BFF_TIMEOUT_MS = 20 * 60 * 1_000

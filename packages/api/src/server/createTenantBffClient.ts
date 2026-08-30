@@ -12,12 +12,15 @@ export interface TenantBffClient {
 export interface CreateTenantBffClientOptions {
     refreshCookieName: string
     maxResponseBytes?: number
+    /** Upstream request wall-clock timeout. Default 10 s. */
+    timeoutMs?: number
 }
 
 /** Studio/web BFF upstream client with shared transport limits. */
 export function createTenantBffClient(options: CreateTenantBffClientOptions): TenantBffClient {
     const transport = createServerTransport({
         maxResponseBytes: options.maxResponseBytes ?? 16_777_216,
+        timeoutMs: options.timeoutMs,
     })
     const directwerk = createDirectwerkServerClient({transport})
 

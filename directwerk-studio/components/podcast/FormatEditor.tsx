@@ -1,5 +1,6 @@
 'use client'
 
+import {HTML_SLUG_PATTERN} from '@directwerk/api/constants'
 import {Button} from '@directwerk/ui/components/button'
 import {suggestSlug} from '@/lib/api/studioHelpers'
 import {Textarea} from '@directwerk/ui/components/textarea'
@@ -300,7 +301,7 @@ export default function FormatEditor({formatId}: FormatEditorProps): React.JSX.E
                         id="format-slug"
                         maxLength={64}
                         name="slug"
-                        pattern="^[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,62}[a-zA-Z0-9])?$"
+                        pattern={HTML_SLUG_PATTERN}
                         required={isNew}
                         type="text"
                     />
