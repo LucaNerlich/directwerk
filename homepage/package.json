@@ -28,6 +28,5 @@
     "tailwindcss": "latest",
     "typescript": "^5.9.3",
     "vitest": "^4.1.10"
-  },
-  "packageManager": "pnpm@12.0.0-rc.5+sha512.32f01ead5d5eeae7cc740e73cb46a6e843471a2216a06cfc003404b958992759159a8496ef1b8289c3b4057202a2a954c97ee9e631fe04dd871b3318222ef456"
+  }
 }

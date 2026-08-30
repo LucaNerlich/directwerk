@@ -13,7 +13,6 @@ const apiOrigin =
 const nextConfig: NextConfig = {
     reactCompiler: true,
     transpilePackages: ['@directwerk/ui'],
-    output: 'standalone',
     outputFileTracingRoot: monorepoRoot,
     experimental: {
         optimizePackageImports: [...extraOptimizePackageImports],

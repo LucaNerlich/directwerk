@@ -576,7 +576,7 @@ Run platform files before UI work:
 | Stack | Next.js 16, React 19, TypeScript, Tailwind v4, `@directwerk/ui` |
 | Host | `admin.{platform-domain}.de` |
 | API target | `https://api.{platform-domain}.de` |
-| Coolify | Separate app from API and `directwerk-web` / `directwerk-studio` |
+| Coolify | Separate app — `directwerk-admin/Dockerfile`, monorepo root build context (see [Docker & Coolify](/install/docker-and-coolify)) |
 | Theming | Fixed platform UI — no `site-config` bootstrap |
 
 ### Routing (production)

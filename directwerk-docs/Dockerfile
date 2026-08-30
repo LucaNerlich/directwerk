@@ -1,11 +1,18 @@
 # syntax=docker/dockerfile:1
+#
+# Coolify
+#   Build context: . (monorepo root — required for workspace lockfile)
+#   Dockerfile: directwerk-docs/Dockerfile
+#   Port: 80
+#
+# Local:
+#   docker build -f directwerk-docs/Dockerfile -t directwerk-docs:local .
 
 FROM node:22-alpine AS build
 WORKDIR /workspace
 
 ENV PNPM_HOME="/root/.local/share/pnpm"
 ENV PATH="${PNPM_HOME}/bin:${PATH}"
-# https://pnpm.io/installation#in-a-docker-container
 RUN apk add --no-cache bash \
     && wget -qO- https://get.pnpm.io/install.sh \
         | env PNPM_VERSION=12.0.0-rc.5 ENV="$HOME/.bashrc" SHELL="$(which bash)" bash -
@@ -17,6 +24,7 @@ RUN pnpm install --frozen-lockfile --filter directwerk-docs...
 
 COPY directwerk-docs ./directwerk-docs
 
+ENV NEXT_TELEMETRY_DISABLED=1
 RUN pnpm --filter directwerk-docs build
 
 FROM nginx:1.27-alpine

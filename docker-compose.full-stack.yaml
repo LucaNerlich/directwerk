@@ -105,10 +105,7 @@ services:
         <<: *nextjs-service
         build:
             context: .
-            dockerfile: docker/nextjs.Dockerfile
-            args:
-                APP_NAME: directwerk-admin
-                APP_PORT: 3001
+            dockerfile: directwerk-admin/Dockerfile
         ports:
             - '3001:3001'
         environment:
@@ -122,10 +119,7 @@ services:
         <<: *nextjs-service
         build:
             context: .
-            dockerfile: docker/nextjs.Dockerfile
-            args:
-                APP_NAME: directwerk-studio
-                APP_PORT: 3003
+            dockerfile: directwerk-studio/Dockerfile
         ports:
             - '3003:3003'
         environment:
@@ -138,10 +132,7 @@ services:
         <<: *nextjs-service
         build:
             context: .
-            dockerfile: docker/nextjs.Dockerfile
-            args:
-                APP_NAME: directwerk-web
-                APP_PORT: 3004
+            dockerfile: directwerk-web/Dockerfile
         ports:
             - '3004:3004'
         environment:
@@ -154,10 +145,7 @@ services:
         <<: *nextjs-service
         build:
             context: .
-            dockerfile: docker/nextjs.Dockerfile
-            args:
-                APP_NAME: homepage
-                APP_PORT: 3005
+            dockerfile: homepage/Dockerfile
         ports:
             - '3005:3005'
         environment:

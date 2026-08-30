@@ -94,18 +94,38 @@ Email and SMTP variables are required when email is enabled. Full list: [Environ
 
 Flyway runs automatically on startup.
 
-## Deploying this docs site on Coolify
+## Deploying Next.js apps and docs (Coolify)
 
-The **directwerk-docs** static site has its own Dockerfile at `directwerk-docs/Dockerfile`:
+Each frontend has its own Dockerfile. **Build context must always be the monorepo root** (`.`) —
+apps depend on workspace packages (`@directwerk/ui`, `@directwerk/api`) and the root lockfile.
+Do **not** use Nixpacks with a subdirectory base directory.
+
+| App | Dockerfile path | Port | Runtime |
+|-----|-----------------|------|---------|
+| `directwerk-admin` | `directwerk-admin/Dockerfile` | 3001 | Next.js server |
+| `directwerk-studio` | `directwerk-studio/Dockerfile` | 3003 | Next.js server |
+| `directwerk-web` | `directwerk-web/Dockerfile` | 3004 | Next.js server |
+| `homepage` | `homepage/Dockerfile` | 3005 | Next.js server |
+| `directwerk-docs` | `directwerk-docs/Dockerfile` | 80 | nginx (static) |
+
+Coolify settings for each app:
 
 | Setting | Value |
 |---------|-------|
-| Build context | Monorepo root |
-| Dockerfile path | `directwerk-docs/Dockerfile` |
-| Port | 80 |
-| Health check | `GET /` |
+| Build pack | **Dockerfile** (not Nixpacks) |
+| Build context | Monorepo root (`.`) |
+| Dockerfile path | See table above |
+| Port | See table above |
 
-See [directwerk-docs/README.md](/directwerk-docs/README.md) in the repo for build commands.
+Example local build:
+
+```sh
+docker build -f directwerk-admin/Dockerfile -t directwerk-admin:local .
+```
+
+Required runtime env vars for **directwerk-admin**: `DIRECTWERK_API_URL`, `OAUTH_CLIENT_ID`
+(`directwerk-platform-admin`), `OAUTH_CLIENT_SECRET`, and optionally tenant OAuth vars for the
+dual-session tenant products UI. See `docker-compose.full-stack.yaml` for a full example.
 
 ## Troubleshooting
 
@@ -124,6 +144,12 @@ Cold databases can take up to ~90 seconds during first startup with migrations.
 ### Build fails in Docker
 
 Build context must be `Directwerk` (not the monorepo root for the API image).
+
+### `pnpm install --frozen-lockfile --prefer-offline` fails (Next.js apps)
+
+Coolify is using **Nixpacks** with base directory set to an app subfolder (e.g. `directwerk-admin/`).
+Switch to **Dockerfile** build with monorepo root context and the app-specific Dockerfile — see
+[Deploying Next.js apps and docs](#deploying-next-js-apps-and-docs-coolify) above.
 
 ## Related
 
