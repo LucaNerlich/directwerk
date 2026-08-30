@@ -26,7 +26,9 @@ RUN pnpm install --frozen-lockfile --filter homepage...
 ENV NEXT_TELEMETRY_DISABLED=1
 RUN mkdir -p homepage/public \
     && pnpm --filter homepage build \
-    && pnpm deploy --filter=homepage --prod --legacy /deploy
+    && pnpm deploy --filter=homepage --prod --legacy /deploy \
+    && cp -a homepage/.next /deploy/.next \
+    && cp -a homepage/public /deploy/public
 
 FROM node:22-alpine AS runtime
 WORKDIR /app
@@ -39,8 +41,9 @@ ENV HOSTNAME=0.0.0.0
 RUN addgroup -S nextjs && adduser -S nextjs -G nextjs
 
 COPY --from=build /deploy ./
+COPY --from=build /workspace/packages/next-config /packages/next-config
 
-RUN chown -R nextjs:nextjs /app
+RUN chown -R nextjs:nextjs /app /packages
 
 USER nextjs
 EXPOSE 3005

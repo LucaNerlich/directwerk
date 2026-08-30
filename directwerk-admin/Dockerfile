@@ -26,7 +26,9 @@ RUN pnpm install --frozen-lockfile --filter directwerk-admin...
 ENV NEXT_TELEMETRY_DISABLED=1
 RUN mkdir -p directwerk-admin/public \
     && pnpm --filter directwerk-admin build \
-    && pnpm deploy --filter=directwerk-admin --prod --legacy /deploy
+    && pnpm deploy --filter=directwerk-admin --prod --legacy /deploy \
+    && cp -a directwerk-admin/.next /deploy/.next \
+    && cp -a directwerk-admin/public /deploy/public
 
 FROM node:22-alpine AS runtime
 WORKDIR /app
@@ -39,8 +41,10 @@ ENV HOSTNAME=0.0.0.0
 RUN addgroup -S nextjs && adduser -S nextjs -G nextjs
 
 COPY --from=build /deploy ./
+# next.config.ts imports ../packages/next-config (monorepo path outside /app)
+COPY --from=build /workspace/packages/next-config /packages/next-config
 
-RUN chown -R nextjs:nextjs /app
+RUN chown -R nextjs:nextjs /app /packages
 
 USER nextjs
 EXPOSE 3001
