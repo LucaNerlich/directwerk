@@ -92,7 +92,7 @@ export default defineConfig({
     'Documentation for Directwerk — API-first podcast and publication platform.',
   lang: 'en-US',
   cleanUrls: true,
-  lastUpdated: true,
+  lastUpdated: process.env.VITEPRESS_LAST_UPDATED !== '0',
   ignoreDeadLinks: true,
   markdown: {
     lineNumbers: true,

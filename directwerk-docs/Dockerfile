@@ -38,6 +38,7 @@ RUN cp /ctx/package.json /ctx/pnpm-lock.yaml /ctx/pnpm-workspace.yaml /ctx/.npmr
 RUN pnpm install --frozen-lockfile --filter directwerk-docs...
 
 ENV NEXT_TELEMETRY_DISABLED=1
+ENV VITEPRESS_LAST_UPDATED=0
 RUN pnpm --filter directwerk-docs build
 
 FROM nginx:1.27-alpine
