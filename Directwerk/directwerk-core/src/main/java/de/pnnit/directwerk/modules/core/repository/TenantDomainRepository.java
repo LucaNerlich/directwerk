@@ -62,4 +62,12 @@ public interface TenantDomainRepository extends JpaRepository<TenantDomain, Long
  * @return the tenant's domains, or an empty list if none exist
  */
 List<TenantDomain> findByTenantId(Long tenantId);
+
+    @Query("""
+            select domain from TenantDomain domain
+            where domain.tenant.id = :tenantId
+              and domain.verified = true
+            order by domain.primary desc, domain.id asc
+            """)
+    List<TenantDomain> findVerifiedByTenantIdOrderByPrimaryDescIdAsc(@Param("tenantId") Long tenantId);
 }

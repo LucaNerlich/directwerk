@@ -24,6 +24,9 @@ export async function generateMetadata({
 
     try {
         const host = await getTenantHost()
+        if (host === null) {
+            throw new Error('Tenant host unresolved')
+        }
         const episode = await fetchPublicEpisodeServer(host, slug)
         if (episode === null) {
             return {}
@@ -59,6 +62,9 @@ export default async function EpisodeDetailPage({params}: EpisodePageProps) {
     let initialEpisode = null
     try {
         const host = await getTenantHost()
+        if (host === null) {
+            throw new Error('Tenant host unresolved')
+        }
         initialEpisode = await fetchPublicEpisodeServer(host, slug)
     } catch {
         // Public catalog unavailable — the client component retries and can

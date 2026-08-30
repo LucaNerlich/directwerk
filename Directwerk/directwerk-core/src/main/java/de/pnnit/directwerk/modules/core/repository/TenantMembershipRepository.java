@@ -21,6 +21,18 @@ public interface TenantMembershipRepository extends JpaRepository<TenantMembersh
 
     @Query("""
             select membership from TenantMembership membership
+            join fetch membership.tenant tenant
+            where membership.user.id = :userId
+              and membership.status = :status
+              and tenant.status = de.pnnit.directwerk.modules.core.entity.TenantStatus.ACTIVE
+            """)
+    List<TenantMembership> findActiveMembershipsByUserId(
+            @Param("userId") Long userId,
+            @Param("status") MembershipStatus status
+    );
+
+    @Query("""
+            select membership from TenantMembership membership
             join fetch membership.user user
             where membership.tenant.id = :tenantId
               and membership.status = :status

@@ -18,6 +18,7 @@ export {parseJsonText} from './json'
 export {parseTokenResponse} from './token'
 export {
     parseMeEnvelope,
+    parseStudioWorkspacesEnvelope,
     parseStudioSiteConfigEnvelope,
     parseArticleEnvelope,
     parseArticleListEnvelope,

@@ -3,9 +3,36 @@
 import {parseMeEnvelope} from '@directwerk/api/validation/catalog'
 import {parseTokenResponse} from '@directwerk/api/validation/token'
 
+import {parseStudioWorkspacesEnvelope} from '@directwerk/api/validation/catalog'
+
 import type {LoginInput} from '@directwerk/api/validation/input'
-import type {Me, TokenResponse} from '@directwerk/api/types'
+import type {Me, StudioWorkspace, TokenResponse} from '@directwerk/api/types'
 import {jsonInit, postJson, studioGet} from './studioApiCore'
+
+export async function discoverStudioWorkspaces(
+    input: LoginInput,
+): Promise<StudioWorkspace[]> {
+    const value = await postJson('/api/auth/studio/workspaces', null, input)
+    const parsed = parseStudioWorkspacesEnvelope(value)
+    if (parsed === null) {
+        throw new Error('Der Server hat eine ungültige Workspace-Antwort gesendet.')
+    }
+    return parsed.data.workspaces
+}
+
+export async function selectTenantHost(host: string): Promise<void> {
+    const response = await fetch('/api/tenant/select', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({host}),
+    })
+    const payload = (await response.json()) as {error?: string}
+    if (!response.ok) {
+        throw new Error(
+            payload.error ?? 'Der Workspace konnte nicht ausgewählt werden.',
+        )
+    }
+}
 
 export async function login(
     tenantHost: string,

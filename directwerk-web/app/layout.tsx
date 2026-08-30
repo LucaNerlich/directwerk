@@ -16,6 +16,9 @@ export const dynamic = 'force-dynamic'
 export async function generateMetadata(): Promise<Metadata> {
     try {
         const host = await getTenantHost()
+        if (host === null) {
+            throw new Error('Tenant host unresolved')
+        }
         const config = await fetchSiteConfigServer(host)
         const title = config.branding.siteTitle ?? config.tenant.name
         return {
@@ -40,6 +43,9 @@ export default async function RootLayout({
     let config: PublicSiteConfig
     try {
         const host = await getTenantHost()
+        if (host === null) {
+            throw new Error('Tenant host unresolved')
+        }
         config = await fetchSiteConfigServer(host)
     } catch {
         config = {

@@ -32,6 +32,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     let articleEntries: MetadataRoute.Sitemap = []
     try {
         const host = await getTenantHost()
+        if (host === null) {
+            throw new Error('Tenant host unresolved')
+        }
         const articles = await fetchPublicArticleSlugsServer(host)
         articleEntries = articles.map((article) => ({
             url: `${origin}/articles/${article.slug}`,

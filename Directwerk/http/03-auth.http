@@ -172,3 +172,22 @@ Accept: application/json
             "Expected 200 when passwordResetToken set, else 400");
     });
 %}
+
+###
+
+### @name studioWorkspaces
+POST {{baseUrl}}/api/v1/auth/studio/workspaces
+Content-Type: application/json
+Accept: application/json
+
+{
+  "email": "{{tenantAdminEmail}}",
+  "password": "{{seedPassword}}"
+}
+
+> {%
+    client.test("Studio workspaces discovery", function() {
+        client.assert(response.status === 200, "Expected 200, got " + response.status);
+        client.assert(Array.isArray(response.body.data.workspaces), "Expected workspaces array");
+    });
+%}

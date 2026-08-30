@@ -1,10 +1,8 @@
 'use client'
 
-import {resolveTenantHost} from './resolveTenantHost'
+import {readTenantHostCookieFromDocument} from './tenantHostCookie'
 
+/** Tenant host for browser API calls — set after studio workspace selection. */
 export function getClientTenantHost(): string {
-    if (typeof window === 'undefined') {
-        return resolveTenantHost(null)
-    }
-    return resolveTenantHost(window.location.hostname)
+    return readTenantHostCookieFromDocument() ?? ''
 }

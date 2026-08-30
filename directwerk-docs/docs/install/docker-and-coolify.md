@@ -134,8 +134,12 @@ Required runtime env vars for **directwerk-admin**: `DIRECTWERK_API_URL`, `OAUTH
 dual-session tenant products UI. See `docker-compose.full-stack.yaml` for a full example.
 
 **directwerk-studio** (and **directwerk-web**) also need tenant OAuth vars (`OAUTH_CLIENT_ID` /
-`OAUTH_CLIENT_SECRET` = `directwerk-tenant-frontend` credentials) and `NEXT_PUBLIC_DIRECTWERK_DEFAULT_TENANT_HOST`
-when studio is opened on a non-tenant host (e.g. `studio.example.com`).
+`OAUTH_CLIENT_SECRET` = `directwerk-tenant-frontend` credentials).
+
+Shared **directwerk-studio** (`studio.example.com`): no tenant env vars. Users sign in with
+email/password; the app discovers workspaces via `POST /api/v1/auth/studio/workspaces` and stores
+the chosen tenant in a session cookie. Tenant domains are resolved at runtime (verified
+`site-config` Host lookup), not from deploy configuration.
 
 For server-side API calls from containers on the same Docker network, prefer an **internal HTTP**
 URL for `DIRECTWERK_API_URL` (e.g. `http://directwerk:8080`). If the API is only reachable via

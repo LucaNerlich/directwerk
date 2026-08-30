@@ -1,7 +1,7 @@
 # Directwerk Studio
 
 Creator dashboard for tenant publishers — articles, podcast, media, subscribers,
-and settings on the tenant's domain.
+and settings.
 
 ## Getting started
 
@@ -15,7 +15,12 @@ pnpm dev                           # http://localhost:3003
 
 Requires Directwerk API at `DIRECTWERK_API_URL` (default `http://localhost:8080`).
 
-Open a seeded tenant host (e.g. via `/etc/hosts` or `NEXT_PUBLIC_DIRECTWERK_DEFAULT_TENANT_HOST`).
+**Shared studio** (e.g. `studio.directwerk.org`): sign in with email/password — workspaces are
+discovered from the API; no tenant env vars at deploy time.
+
+**Per-tenant host** (local): use a seeded tenant domain in `/etc/hosts` (see
+[`../Directwerk/docs/build-and-deploy.md`](../Directwerk/docs/build-and-deploy.md)) or open the
+app on a verified tenant domain.
 
 ## Desks
 

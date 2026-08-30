@@ -24,6 +24,9 @@ export async function generateMetadata({
 
     try {
         const host = await getTenantHost()
+        if (host === null) {
+            throw new Error('Tenant host unresolved')
+        }
         const article = await fetchPublicArticleServer(host, slug)
         if (article === null) {
             return {}
@@ -56,6 +59,9 @@ export default async function ArticleDetailPage({params}: ArticlePageProps) {
     let initialArticle = null
     try {
         const host = await getTenantHost()
+        if (host === null) {
+            throw new Error('Tenant host unresolved')
+        }
         initialArticle = await fetchPublicArticleServer(host, slug)
     } catch {
         initialArticle = null

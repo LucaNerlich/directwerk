@@ -48,6 +48,14 @@ export interface Me {
     tenantId: number
 }
 
+/** Workspace returned by POST /api/v1/auth/studio/workspaces. */
+export interface StudioWorkspace {
+    tenantId: number
+    slug: string
+    name: string
+    host: string
+}
+
 // ---------------------------------------------------------------------------
 // Shared enums / primitives
 // ---------------------------------------------------------------------------

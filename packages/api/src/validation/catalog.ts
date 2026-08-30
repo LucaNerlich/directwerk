@@ -31,6 +31,7 @@ import type {
     SeriesStatus,
     SeriesSummary,
     SiteConfig,
+    StudioWorkspace,
     StripeStatus,
     SubscriberFeedAdminView,
     SubscriptionGrant,
@@ -80,6 +81,37 @@ export function parseMeEnvelope(value: unknown): ApiEnvelope<Me> | null {
             roles: data.roles,
             tenantId: data.tenantId,
         }
+    })
+}
+
+export function parseStudioWorkspacesEnvelope(
+    value: unknown,
+): ApiEnvelope<{workspaces: StudioWorkspace[]}> | null {
+    return parseEnvelope(value, (data) => {
+        if (!isRecord(data) || !Array.isArray(data.workspaces)) {
+            return null
+        }
+
+        const workspaces: StudioWorkspace[] = []
+        for (const item of data.workspaces) {
+            if (
+                !isRecord(item) ||
+                !isPositiveSafeInteger(item.tenantId) ||
+                !isBoundedString(item.slug, 128) ||
+                !isBoundedString(item.name, 255) ||
+                !isBoundedString(item.host, 253)
+            ) {
+                return null
+            }
+            workspaces.push({
+                tenantId: item.tenantId,
+                slug: item.slug,
+                name: item.name,
+                host: item.host,
+            })
+        }
+
+        return {workspaces}
     })
 }
 

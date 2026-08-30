@@ -1,7 +1,7 @@
 # Directwerk — tenant public site + subscriber portal
 
-Sibling of `directwerk-studio`. Resolves tenant from the request `Host` (with a
-localhost fallback to `NEXT_PUBLIC_DIRECTWERK_DEFAULT_TENANT_HOST`).
+Sibling of `directwerk-studio`. Resolves tenant from the request `Host` when it matches a
+verified tenant domain in Directwerk (runtime `site-config` lookup).
 
 ```sh
 pnpm install

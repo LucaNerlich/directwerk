@@ -1,0 +1,37 @@
+meta {
+  name: 14 - Studio Workspaces Discovery
+  type: http
+  seq: 14
+}
+
+post {
+  url: {{baseUrl}}/api/v1/auth/studio/workspaces
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "email": "{{tenantAdminEmail}}",
+    "password": "{{tenantAdminPassword}}"
+  }
+}
+
+tests {
+  test("returns editor/admin workspaces", function() {
+    expect(res.status).to.equal(200);
+    expect(res.body.data.workspaces).to.be.an("array");
+    expect(res.body.data.workspaces.length).to.be.greaterThan(0);
+    expect(res.body.data.workspaces[0].host).to.be.a("string");
+  });
+}
+
+docs {
+  Host-agnostic studio login helper for shared directwerk-studio deployments.
+  Uses the API host (not a tenant domain). Returns verified routing hosts for memberships
+  with EDITOR or TENANT_ADMIN roles.
+}

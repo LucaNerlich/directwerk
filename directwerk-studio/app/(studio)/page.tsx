@@ -6,12 +6,10 @@ import PageHeader from '@directwerk/ui/components/page-header'
 import PageStack from '@directwerk/ui/components/page-stack'
 
 import OverviewQueue from '@/components/studio/OverviewQueue'
-import {fetchSiteConfigServer} from '@/lib/site/fetchSiteConfigServer'
-import {getTenantHost} from '@/lib/site/getTenantHost'
+import {requireStudioSiteConfig} from '@/lib/site/requireSiteConfig'
 
 export default async function OverviewPage() {
-    const host = await getTenantHost()
-    const config = await fetchSiteConfigServer(host)
+    const {config} = await requireStudioSiteConfig()
     const desks = new Set(config.studioDesks)
 
     return (
