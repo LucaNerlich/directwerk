@@ -30,6 +30,12 @@ export interface ServerTransportConfig {
      * (directwerk-admin behaviour).
      */
     forwardContentLength?: boolean
+    /**
+     * Skip TLS certificate verification for HTTPS upstreams.
+     * Prefer an internal `http://` API URL in production; use only for
+     * self-signed staging certs (`DIRECTWERK_UPSTREAM_TLS_INSECURE=true`).
+     */
+    tlsInsecure?: boolean
 }
 
 const DEFAULT_MAX_RESPONSE_BYTES = 1_048_576
@@ -57,6 +63,9 @@ export function createServerTransport(
 ): (request: ServerTransportRequest) => Promise<Response> {
     const maxResponseBytes = config.maxResponseBytes ?? DEFAULT_MAX_RESPONSE_BYTES
     const timeoutMs = config.timeoutMs ?? DEFAULT_TIMEOUT_MS
+    const tlsInsecure =
+        config.tlsInsecure ??
+        process.env.DIRECTWERK_UPSTREAM_TLS_INSECURE === 'true'
 
     return function requestWithTenantHost({
         targetUrl,
@@ -108,6 +117,9 @@ export function createServerTransport(
                 targetUrl,
                 {
                     method,
+                    ...(targetUrl.protocol === 'https:'
+                        ? {rejectUnauthorized: !tlsInsecure}
+                        : {}),
                     headers: {
                         Accept: 'application/json',
                         Host: hostHeader,

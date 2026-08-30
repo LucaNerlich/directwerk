@@ -116,6 +116,7 @@ Coolify settings for each app:
 | **Base Directory** | Repository root (`.` — leave empty) |
 | Dockerfile path | See table above |
 | Port | See table above |
+| Health check path | `/api/health` (does not call the API — avoids TLS/upstream failures on probe) |
 
 The Dockerfiles accept either a full monorepo build context or Coolify's app-scoped
 context (app sources at the context root with workspace files injected). If the build
@@ -131,6 +132,15 @@ docker build -f directwerk-admin/Dockerfile -t directwerk-admin:local .
 Required runtime env vars for **directwerk-admin**: `DIRECTWERK_API_URL`, `OAUTH_CLIENT_ID`
 (`directwerk-platform-admin`), `OAUTH_CLIENT_SECRET`, and optionally tenant OAuth vars for the
 dual-session tenant products UI. See `docker-compose.full-stack.yaml` for a full example.
+
+**directwerk-studio** (and **directwerk-web**) also need tenant OAuth vars (`OAUTH_CLIENT_ID` /
+`OAUTH_CLIENT_SECRET` = `directwerk-tenant-frontend` credentials) and `NEXT_PUBLIC_DIRECTWERK_DEFAULT_TENANT_HOST`
+when studio is opened on a non-tenant host (e.g. `studio.example.com`).
+
+For server-side API calls from containers on the same Docker network, prefer an **internal HTTP**
+URL for `DIRECTWERK_API_URL` (e.g. `http://directwerk:8080`). If the API is only reachable via
+HTTPS with a **self-signed certificate**, set `DIRECTWERK_UPSTREAM_TLS_INSECURE=true` on the
+frontend container (staging only — prefer valid TLS or internal HTTP in production).
 
 ## Troubleshooting
 
