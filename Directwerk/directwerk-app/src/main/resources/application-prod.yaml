@@ -7,7 +7,7 @@ spring:
             mail:
                 smtp:
                     starttls:
-                        required: true
+                        required: false
     jpa:
         hibernate:
             ddl-auto: validate
