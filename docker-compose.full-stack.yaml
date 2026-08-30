@@ -37,7 +37,7 @@ x-nextjs-service: &nextjs-service
 
 services:
     postgres:
-        image: postgres:19beta2-alpine
+        image: postgres:19beta3-alpine
         restart: unless-stopped
         environment:
             POSTGRES_DB: mydatabase

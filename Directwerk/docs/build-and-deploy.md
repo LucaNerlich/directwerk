@@ -97,6 +97,8 @@ docker compose up -d
 
 Compose does **not** start the Directwerk app unless you use the `stack` profile (see [§3](#3-full-stack-in-docker-compose)).
 
+Upgrading the Postgres image tag (beta or major) requires `pg_upgrade` or a volume reset — see [postgres_upgrade.md](postgres_upgrade.md).
+
 Check containers:
 
 ```sh
