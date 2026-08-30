@@ -22,6 +22,7 @@ import de.pnnit.directwerk.modules.digital.service.CategoryService;
 import de.pnnit.directwerk.modules.digital.service.HtmlSanitizer;
 import de.pnnit.directwerk.modules.podcast.repository.EpisodeRepository;
 import de.pnnit.directwerk.modules.podcast.repository.FormatRepository;
+import java.time.Instant;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
@@ -98,6 +99,7 @@ public class EpisodeService {
                 requiredLevelSortOrder,
                 formatIds,
                 categoryIds,
+                null,
                 null
         );
     }
@@ -125,7 +127,8 @@ public class EpisodeService {
             Integer requiredLevelSortOrder,
             Set<Long> formatIds,
             Set<Long> categoryIds,
-            String importIdentity
+            String importIdentity,
+            Instant publishedAt
     ) {
         if (importIdentity == null || !importIdentity.matches("[a-f0-9]{64}")) {
             throw new EpisodeValidationException("importIdentity must be a lowercase SHA-256 digest");
@@ -144,7 +147,8 @@ public class EpisodeService {
                 requiredLevelSortOrder,
                 formatIds,
                 categoryIds,
-                importIdentity
+                importIdentity,
+                publishedAt
         );
     }
 
@@ -173,7 +177,8 @@ public class EpisodeService {
             Integer requiredLevelSortOrder,
             Set<Long> formatIds,
             Set<Long> categoryIds,
-            String importIdentity
+            String importIdentity,
+            Instant publishedAt
     ) {
         PodcastSeries series = seriesService.requireSeries(tenantId, seriesId);
         String slug = SlugNormalizer.normalize(rawSlug);
@@ -197,6 +202,9 @@ public class EpisodeService {
                 "requiredLevelSortOrder"
         ));
         episode.setStatus(EpisodeStatus.DRAFT);
+        if (publishedAt != null) {
+            episode.setPublishedAt(publishedAt);
+        }
         episode.getFormats().addAll(resolveFormats(tenantId, formatIds));
         episode.getCategories().addAll(categoryService.resolveActiveCategories(tenantId, categoryIds,
                 id -> { throw new EpisodeValidationException("Category is inactive: " + id); }));

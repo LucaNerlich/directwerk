@@ -554,6 +554,12 @@ export function parseMediaAsset(value: unknown): MediaAsset | null {
                 : isPositiveSafeInteger(value.sizeBytes)
                   ? value.sizeBytes
                   : null,
+        bytesTransferred:
+            value.bytesTransferred === null || value.bytesTransferred === undefined
+                ? 0
+                : isNonNegativeSafeInteger(value.bytesTransferred)
+                  ? value.bytesTransferred
+                  : 0,
         episodeId: value.episodeId ?? null,
         ownerUserId: value.ownerUserId ?? null,
         cdnUrl: isNullableString(value.cdnUrl, 4096) ? value.cdnUrl : null,

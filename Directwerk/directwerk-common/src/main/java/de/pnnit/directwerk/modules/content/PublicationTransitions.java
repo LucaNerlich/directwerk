@@ -33,6 +33,25 @@ public final class PublicationTransitions {
         }
     }
 
+    public static void requirePresentOrPastInstant(Instant instant, String fieldLabel) {
+        if (instant == null || instant.isAfter(Instant.now())) {
+            throw new InvalidPublicationTransitionException(
+                    fieldLabel + " must not be in the future");
+        }
+    }
+
+    public static Instant resolvePublishedAt(Instant requestedPublishedAt, Instant existingPublishedAt) {
+        if (requestedPublishedAt != null) {
+            requirePresentOrPastInstant(requestedPublishedAt, "publishedAt");
+            return requestedPublishedAt;
+        }
+        if (existingPublishedAt != null) {
+            requirePresentOrPastInstant(existingPublishedAt, "publishedAt");
+            return existingPublishedAt;
+        }
+        return Instant.now();
+    }
+
     public static void requirePublishedStatus(boolean isPublished, String entityLabel) {
         if (!isPublished) {
             throw new InvalidPublicationTransitionException(

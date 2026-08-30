@@ -123,8 +123,9 @@ public class ArticleController {
     ) {
         Long tenantId = TenantContext.requireTenantId();
         boolean notifySubscribers = request != null && Boolean.TRUE.equals(request.notifySubscribers());
+        Instant publishedAt = request != null ? request.publishedAt() : null;
         return ResponseEntity.ok(Response.ok(toView(
-                articlePublicationWorkflowService.publish(tenantId, articleId, notifySubscribers)
+                articlePublicationWorkflowService.publish(tenantId, articleId, notifySubscribers, publishedAt)
         )));
     }
 

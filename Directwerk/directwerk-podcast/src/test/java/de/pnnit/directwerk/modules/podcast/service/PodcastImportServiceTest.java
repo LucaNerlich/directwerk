@@ -17,6 +17,7 @@ import de.pnnit.directwerk.modules.podcast.entity.Episode;
 import de.pnnit.directwerk.modules.podcast.importrss.RssFeedParser;
 import de.pnnit.directwerk.modules.podcast.repository.EpisodeRepository;
 import de.pnnit.directwerk.multitenancy.TenantContext;
+import java.time.Instant;
 import java.util.Optional;
 import java.util.Set;
 import org.junit.jupiter.api.AfterEach;
@@ -103,7 +104,8 @@ class PodcastImportServiceTest {
                 eq(null),
                 eq(Set.of()),
                 eq(Set.of()),
-                eq(identity)
+                eq(identity),
+                eq(Instant.parse("2026-07-20T12:00:00Z"))
         )).thenReturn(created);
 
         PodcastImportService.ImportedEpisode result = service.importEpisode(
@@ -122,7 +124,9 @@ class PodcastImportServiceTest {
                         Set.of(),
                         "https://cdn.example.com/episode-1.mp3",
                         null,
-                        null
+                        null,
+                        null,
+                        Instant.parse("2026-07-20T12:00:00Z")
                 )
         );
 
@@ -147,7 +151,7 @@ class PodcastImportServiceTest {
         when(remoteAssetIngestApi.ingestFromUrl(any())).thenReturn(audio);
         when(episodeService.createImportedDraft(
                 any(), any(), any(), any(), any(), any(), any(), any(), any(),
-                any(), any(), any(), any(), any()
+                any(), any(), any(), any(), any(), any()
         )).thenThrow(new IllegalArgumentException("invalid episode"));
 
         assertThatThrownBy(() -> service.importEpisode(new PodcastImportService.ImportEpisodeCommand(
@@ -164,6 +168,8 @@ class PodcastImportServiceTest {
                 Set.of(),
                 Set.of(),
                 "https://cdn.example.com/episode-1.mp3",
+                null,
+                null,
                 null,
                 null
         ))).isInstanceOf(IllegalArgumentException.class);

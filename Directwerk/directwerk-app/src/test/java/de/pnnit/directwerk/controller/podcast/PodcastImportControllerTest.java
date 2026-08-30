@@ -138,6 +138,7 @@ class PodcastImportControllerTest {
                 "READY",
                 "image/jpeg",
                 100L,
+                100L,
                 "show.jpg",
                 null,
                 null,

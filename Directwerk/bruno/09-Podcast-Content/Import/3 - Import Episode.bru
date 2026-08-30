@@ -23,6 +23,7 @@ body:json {
     "title": "Imported Harness Episode",
     "description": "<p>Imported from RSS.</p>",
     "accessPolicy": "FREE",
+    "publishedAt": "2026-07-20T12:00:00Z",
     "audioUrl": "https://example.com/episode.mp3"
   }
 }
@@ -35,5 +36,6 @@ tests {
 
 docs {
   Streams the episode audio (and optional cover) to S3, then creates a draft episode.
+  Pass publishedAt from the RSS pubDate so published episodes keep their original order.
   Re-importing the same guid returns 200 with alreadyImported=true.
 }

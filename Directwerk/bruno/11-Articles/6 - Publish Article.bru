@@ -29,4 +29,5 @@ tests {
 docs {
   400 ARTICLE_VALIDATION_FAILED if title or body is missing after sanitization.
   Set notifySubscribers true to enqueue EMAIL_NOTIFY fan-out (first publish only; subscribers must opt in).
+  Optional publishedAt (ISO instant, not in the future) backdates the publication timestamp; omit for now.
 }

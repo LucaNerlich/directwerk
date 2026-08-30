@@ -145,6 +145,8 @@ Accept: application/json
   "notifySubscribers": false
 }
 
+# Optional backdate: "publishedAt": "2020-06-01T12:00:00Z"
+
 > {%
     client.test("Publish article", function() {
         client.assert(response.status === 200, "Expected 200 for valid publish");

@@ -256,7 +256,10 @@ export interface ImportEpisodeInput {
     categoryIds?: number[]
     audioUrl?: string
     imageUrl?: string
+    audioAssetId?: number
     coverAssetId?: number
+    /** Original RSS pubDate; preserved when the episode is published. */
+    publishedAt?: string
 }
 
 export interface ImportedEpisodeResult {
@@ -269,10 +272,14 @@ export interface IngestRemoteAssetInput {
     assetType: AssetType
     visibility?: AssetVisibility
     filename?: string
+    /** When false, returns a pending asset immediately and streams in the background. */
+    waitForCompletion?: boolean
 }
 
 export interface PublishOptions {
     notifySubscribers?: boolean
+    /** ISO instant; omit or leave empty in the UI to publish with the current time. */
+    publishedAt?: string
 }
 
 export interface ScheduleOptions {
@@ -294,6 +301,8 @@ export interface MediaAsset {
     status: AssetStatus | string
     mimeType: string | null
     sizeBytes: number | null
+    /** Bytes streamed so far during remote ingest; omitted on older responses. */
+    bytesTransferred?: number
     originalFilename: string | null
     episodeId: number | null
     ownerUserId: number | null

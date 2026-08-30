@@ -1,4 +1,6 @@
 package de.pnnit.directwerk.api.dto;
 
-public record PublishOptionsRequest(Boolean notifySubscribers) {
+import java.time.Instant;
+
+public record PublishOptionsRequest(Boolean notifySubscribers, Instant publishedAt) {
 }

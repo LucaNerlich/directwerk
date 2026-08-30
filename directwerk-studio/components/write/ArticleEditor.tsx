@@ -67,6 +67,12 @@ export default function ArticleEditor({articleId}: {articleId?: number}) {
         applyPublicationSchedule,
         parseScheduledAt,
         setScheduleValidationError,
+        publishedAt,
+        setPublishedAt,
+        applyPublicationPublishedAt,
+        validatePublishedAt,
+        setPublishValidationError,
+        publishValidationError,
     } = usePublicationEditorFields()
     useDefaultNotifySubscribers(showNotify, setNotifySubscribers)
     const [heroAssetId, setHeroAssetId] = useState<number | null>(null)
@@ -157,6 +163,7 @@ export default function ArticleEditor({articleId}: {articleId?: number}) {
         onWorkflowComplete: (next) => {
             setArticle(next)
             applyPublicationSchedule(next.scheduledAt)
+            applyPublicationPublishedAt(next.publishedAt)
         },
         autosaveBlocked: isUploadingHero,
         authRedirect,
@@ -228,6 +235,7 @@ export default function ArticleEditor({articleId}: {articleId?: number}) {
                 setHeroAssetId(loaded.heroAssetId)
                 setRequiredLevelSortOrder(loaded.requiredLevelSortOrder)
                 applyPublicationSchedule(loaded.scheduledAt)
+                applyPublicationPublishedAt(loaded.publishedAt)
                 setSelectedCategoryIds(new Set(loaded.categories.map((tag) => tag.id)))
             } catch (error) {
                 if (active) {
@@ -385,13 +393,26 @@ export default function ArticleEditor({articleId}: {articleId?: number}) {
             notifyAudienceHint={notifyAudienceHint}
             scheduledAt={scheduledAt}
             onScheduledAtChange={setScheduledAt}
+            publishedAt={publishedAt}
+            onPublishedAtChange={setPublishedAt}
+            publishValidationError={publishValidationError}
             onSave={() => {
                 void save()
             }}
             onPublish={() => {
+                const validation = validatePublishedAt()
+                if (!validation.valid) {
+                    setPublishValidationError(validation.message)
+                    setWorkflowError(validation.message)
+                    return
+                }
+                setPublishValidationError(null)
                 void runWorkflow(
                     (saved) =>
-                        publishArticle(getClientTenantHost(), saved.id, {notifySubscribers}),
+                        publishArticle(getClientTenantHost(), saved.id, {
+                            notifySubscribers,
+                            ...(validation.iso !== null ? {publishedAt: validation.iso} : {}),
+                        }),
                     {persistTags: true},
                 )
             }}

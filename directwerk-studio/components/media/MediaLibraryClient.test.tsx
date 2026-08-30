@@ -26,6 +26,7 @@ const coverAsset = {
     mimeType: 'image/png',
     originalFilename: 'cover.png',
     sizeBytes: 2048,
+    bytesTransferred: 0,
     episodeId: null,
     ownerUserId: 1,
     cdnUrl: 'https://cdn.example/cover.png',

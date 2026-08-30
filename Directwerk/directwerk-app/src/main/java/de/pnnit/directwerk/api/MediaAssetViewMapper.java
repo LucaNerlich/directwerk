@@ -31,6 +31,7 @@ public class MediaAssetViewMapper {
                 asset.getStatus().name(),
                 asset.getMimeType(),
                 asset.getSizeBytes(),
+                asset.getBytesTransferred(),
                 asset.getOriginalFilename(),
                 asset.getEpisodeId(),
                 asset.getOwnerUserId(),

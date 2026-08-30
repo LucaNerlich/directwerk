@@ -71,6 +71,12 @@ export default function EpisodeEditor({episodeId}: {episodeId?: number}): React.
         applyPublicationSchedule,
         parseScheduledAt,
         setScheduleValidationError,
+        publishedAt,
+        setPublishedAt,
+        applyPublicationPublishedAt,
+        validatePublishedAt,
+        setPublishValidationError,
+        publishValidationError,
     } = usePublicationEditorFields()
     useDefaultNotifySubscribers(showNotify, setNotifySubscribers)
     const [episodeNumber, setEpisodeNumber] = useState('')
@@ -177,6 +183,7 @@ export default function EpisodeEditor({episodeId}: {episodeId?: number}): React.
         onWorkflowComplete: (next) => {
             setEpisode(next)
             applyPublicationSchedule(next.scheduledAt)
+            applyPublicationPublishedAt(next.publishedAt)
             if (next.episodeNumber !== null) {
                 setEpisodeNumber(String(next.episodeNumber))
             }
@@ -316,6 +323,7 @@ export default function EpisodeEditor({episodeId}: {episodeId?: number}): React.
                     setRequiredLevelSortOrder(loadedEpisode.requiredLevelSortOrder)
                     setCoverAssetId(loadedEpisode.coverAssetId)
                     applyPublicationSchedule(loadedEpisode.scheduledAt)
+                    applyPublicationPublishedAt(loadedEpisode.publishedAt)
                     setSelectedFormatIds(new Set(loadedEpisode.formats.map((tag) => tag.id)))
                     setSelectedCategoryIds(new Set(loadedEpisode.categories.map((tag) => tag.id)))
                 }
@@ -592,14 +600,25 @@ export default function EpisodeEditor({episodeId}: {episodeId?: number}): React.
                 notifyAudienceHint={notifyAudienceHint}
                 scheduledAt={scheduledAt}
                 onScheduledAtChange={setScheduledAt}
+                publishedAt={publishedAt}
+                onPublishedAtChange={setPublishedAt}
+                publishValidationError={publishValidationError}
                 onSave={() => {
                     void save()
                 }}
                 onPublish={() => {
+                    const validation = validatePublishedAt()
+                    if (!validation.valid) {
+                        setPublishValidationError(validation.message)
+                        setErrorMessage(validation.message)
+                        return
+                    }
+                    setPublishValidationError(null)
                     void runWorkflow(
                         (saved) =>
                             publishEpisode(getClientTenantHost(), saved.id, {
                                 notifySubscribers,
+                                ...(validation.iso !== null ? {publishedAt: validation.iso} : {}),
                             }),
                         {persistTags: true},
                     )

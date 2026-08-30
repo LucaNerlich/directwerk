@@ -91,6 +91,32 @@ class ArticlePublicationWorkflowServiceTest {
     }
 
     @Test
+    void publishWithBackdatedPublishedAt() {
+        Instant backdated = Instant.parse("2020-06-01T12:00:00Z");
+        Article article = draftArticle();
+        when(articleService.requireArticle(10L, 7L)).thenReturn(article);
+
+        Article published = articlePublicationWorkflowService.publish(10L, 7L, false, backdated);
+
+        assertThat(published.getPublishedAt()).isEqualTo(backdated);
+    }
+
+    @Test
+    void publishRejectsFuturePublishedAt() {
+        Article article = draftArticle();
+        when(articleService.requireArticle(10L, 7L)).thenReturn(article);
+
+        assertThatThrownBy(() -> articlePublicationWorkflowService.publish(
+                10L,
+                7L,
+                false,
+                Instant.parse("2099-01-01T00:00:00Z")
+        ))
+                .isInstanceOf(InvalidPublicationTransitionException.class)
+                .hasMessageContaining("publishedAt");
+    }
+
+    @Test
     void publishRequiresBody() {
         Article article = draftArticle();
         article.setBody("");

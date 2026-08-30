@@ -164,8 +164,9 @@ public class EpisodeController {
     ) {
         Long tenantId = TenantContext.requireTenantId();
         boolean notifySubscribers = request != null && Boolean.TRUE.equals(request.notifySubscribers());
+        Instant publishedAt = request != null ? request.publishedAt() : null;
         return ResponseEntity.ok(Response.ok(publicEpisodeViewMapper.toStudioView(
-                publicationWorkflowService.publish(tenantId, episodeId, notifySubscribers)
+                publicationWorkflowService.publish(tenantId, episodeId, notifySubscribers, publishedAt)
         )));
     }
 

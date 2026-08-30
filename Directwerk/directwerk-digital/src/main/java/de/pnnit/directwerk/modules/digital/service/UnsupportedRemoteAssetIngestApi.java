@@ -25,6 +25,13 @@ public class UnsupportedRemoteAssetIngestApi implements RemoteAssetIngestApi {
         );
     }
 
+    @Override
+    public MediaAsset startIngestFromUrl(IngestCommand command) {
+        throw new StorageNotConfiguredException(
+                "Object storage is disabled — set directwerk.storage.enabled=true"
+        );
+    }
+
     /**
      * Rejects removal of a remote asset when object storage is disabled.
      *

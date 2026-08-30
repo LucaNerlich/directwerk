@@ -11,9 +11,11 @@ import SectionHeader from '@directwerk/ui/components/section-header'
 
 import SelectControl from '@/components/studio/SelectControl'
 import LevelSelect from '@/components/studio/LevelSelect'
+import StreamProgress from '@/components/media/StreamProgress'
 import {createFormat, listFormats} from '@/lib/api/catalogApi'
 import {createSeries, listSeries} from '@/lib/api/podcastApi'
-import {ingestRemoteAsset, importRssEpisode, previewRssFeed} from '@/lib/api/podcastImportApi'
+import {importRssEpisode, previewRssFeed} from '@/lib/api/podcastImportApi'
+import {ingestRemoteAssetWithProgress} from '@/lib/media/remoteIngest'
 import {deleteMedia} from '@/lib/api/mediaApi'
 import {isTenantAdminRole, suggestSlug} from '@/lib/api/studioHelpers'
 import {useOptionalMe} from '@/lib/auth/MeProvider'
@@ -105,6 +107,10 @@ export default function RssImportWizard(): React.JSX.Element {
     const [skippedCount, setSkippedCount] = useState(0)
     const [alreadyImportedCount, setAlreadyImportedCount] = useState(0)
     const [errorMessage, setErrorMessage] = useState<string | null>(null)
+    const [streamProgress, setStreamProgress] = useState<{
+        label: string
+        progress: number | null
+    } | null>(null)
     const [busy, setBusy] = useState(false)
     const [prerequisitesStatus, setPrerequisitesStatus] = useState<
         'loading' | 'ready' | 'error'
@@ -203,12 +209,18 @@ export default function RssImportWizard(): React.JSX.Element {
             host = getClientTenantHost()
             let coverAssetId: number | undefined
             if (importSeriesCover && preview?.channel.imageUrl) {
-                const cover = await ingestRemoteAsset(host, {
-                    sourceUrl: preview.channel.imageUrl,
-                    assetType: 'IMAGE',
-                    visibility: 'PUBLIC',
-                    filename: 'series-cover.jpg',
-                })
+                const cover = await ingestRemoteAssetWithProgress(
+                    host,
+                    {
+                        sourceUrl: preview.channel.imageUrl,
+                        assetType: 'IMAGE',
+                        visibility: 'PUBLIC',
+                        filename: 'series-cover.jpg',
+                    },
+                    (progress) => {
+                        setStreamProgress({label: 'Sendungs-Cover', progress})
+                    },
+                )
                 coverAssetId = cover.id
                 unreferencedCoverAssetId = cover.id
             }
@@ -240,6 +252,7 @@ export default function RssImportWizard(): React.JSX.Element {
             }
             setErrorMessage(error instanceof Error ? error.message : 'Sendung konnte nicht angelegt werden.')
         } finally {
+            setStreamProgress(null)
             setBusy(false)
         }
     }
@@ -293,10 +306,56 @@ export default function RssImportWizard(): React.JSX.Element {
         }
         const item = preview.episodes[episodeIndex]
         setErrorMessage(null)
+        setStreamProgress(null)
         setBusy(true)
+        const host = getClientTenantHost()
+        let audioAssetId: number | undefined
+        let coverAssetId: number | undefined
         try {
+            if (importAudio && item.audioUrl != null) {
+                const audio = await ingestRemoteAssetWithProgress(
+                    host,
+                    {
+                        sourceUrl: item.audioUrl,
+                        assetType: 'AUDIO',
+                        visibility: 'PRIVATE',
+                        filename: 'episode.mp3',
+                    },
+                    (progress, asset) => {
+                        const estimatedProgress =
+                            progress ??
+                            (item.audioSizeBytes != null && item.audioSizeBytes > 0
+                                ? Math.min(
+                                      99,
+                                      Math.round(
+                                          ((asset.bytesTransferred ?? 0) / item.audioSizeBytes) * 100,
+                                      ),
+                                  )
+                                : null)
+                        setStreamProgress({label: 'Audio (MP3)', progress: estimatedProgress})
+                    },
+                )
+                audioAssetId = audio.id
+            }
+            if (importImage && item.imageUrl != null) {
+                const cover = await ingestRemoteAssetWithProgress(
+                    host,
+                    {
+                        sourceUrl: item.imageUrl,
+                        assetType: 'IMAGE',
+                        visibility: 'PUBLIC',
+                        filename: 'cover.jpg',
+                    },
+                    (progress) => {
+                        setStreamProgress({label: 'Cover', progress})
+                    },
+                )
+                coverAssetId = cover.id
+            }
+
+            setStreamProgress({label: 'Folge wird angelegt…', progress: 100})
             const parsedNumber = Number.parseInt(episodeNumber, 10)
-            const result = await importRssEpisode(getClientTenantHost(), {
+            const result = await importRssEpisode(host, {
                 seriesId: resolvedSeriesId,
                 feedUrl: preview.feedUrl,
                 guid: item.guid,
@@ -309,8 +368,9 @@ export default function RssImportWizard(): React.JSX.Element {
                 requiredLevelSortOrder:
                     accessPolicy === 'PAID' ? (requiredLevelSortOrder ?? undefined) : undefined,
                 formatIds: Array.from(episodeFormatIds),
-                audioUrl: importAudio ? (item.audioUrl ?? undefined) : undefined,
-                imageUrl: importImage ? (item.imageUrl ?? undefined) : undefined,
+                audioAssetId,
+                coverAssetId,
+                publishedAt: item.publishedAt ?? undefined,
             })
             if (result.alreadyImported) {
                 setAlreadyImportedCount((count) => count + 1)
@@ -324,6 +384,7 @@ export default function RssImportWizard(): React.JSX.Element {
             }
             setErrorMessage(error instanceof Error ? error.message : 'Folge konnte nicht importiert werden.')
         } finally {
+            setStreamProgress(null)
             setBusy(false)
         }
     }
@@ -368,6 +429,7 @@ export default function RssImportWizard(): React.JSX.Element {
         setSkippedCount(0)
         setAlreadyImportedCount(0)
         setErrorMessage(null)
+        setStreamProgress(null)
         setBusy(false)
     }
 
@@ -420,6 +482,14 @@ export default function RssImportWizard(): React.JSX.Element {
                 <p className="text-sm text-destructive" role="alert">
                     {errorMessage}
                 </p>
+            ) : null}
+            {streamProgress !== null ? (
+                <StreamProgress
+                    className="max-w-2xl rounded-xl border bg-muted/40 p-4"
+                    detail="Serverseitiger Transfer — nicht über den Browser."
+                    label={streamProgress.label}
+                    progress={streamProgress.progress}
+                />
             ) : null}
 
             {step === 'url' ? (

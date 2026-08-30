@@ -73,4 +73,13 @@ public interface MediaAssetRepository extends JpaRepository<MediaAsset, Long> {
               and m.status = de.pnnit.directwerk.modules.digital.entity.AssetStatus.PENDING
             """)
     int archivePendingByS3Key(@Param("tenantId") Long tenantId, @Param("s3Key") String s3Key);
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("""
+            update MediaAsset m
+            set m.bytesTransferred = :bytesTransferred
+            where m.id = :id
+              and m.status = de.pnnit.directwerk.modules.digital.entity.AssetStatus.PENDING
+            """)
+    int updateBytesTransferred(@Param("id") Long id, @Param("bytesTransferred") long bytesTransferred);
 }

@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -33,6 +34,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.TransactionStatus;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.AbortMultipartUploadRequest;
@@ -53,18 +56,22 @@ class RemoteAssetIngestServiceTest {
     private TenantRepository tenantRepository;
     @Mock
     private DirectwerkConfig directwerkConfig;
+    @Mock
+    private PlatformTransactionManager transactionManager;
 
     private RemoteAssetIngestService service;
 
     @BeforeEach
     void setUp() {
         TenantContext.setTenantId(10L);
+        lenient().when(transactionManager.getTransaction(any())).thenReturn(org.mockito.Mockito.mock(TransactionStatus.class));
         service = new RemoteAssetIngestService(
                 s3Client,
                 remoteContentClient,
                 mediaAssetRepository,
                 tenantRepository,
-                directwerkConfig
+                directwerkConfig,
+                transactionManager
         );
     }
 

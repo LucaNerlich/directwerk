@@ -123,6 +123,64 @@ class PublicationWorkflowServiceTest {
     }
 
     @Test
+    void publishPreservesImportedPublishedAt() {
+        Instant importedAt = Instant.parse("2020-01-15T10:00:00Z");
+        Episode episode = draftEpisode();
+        episode.setPublishedAt(importedAt);
+        episode.getFormats().add(activeFormat());
+        MediaAsset privateAudio = audio(99L, AssetVisibility.PRIVATE, AssetScope.CONTENT, "alpha/private/audio/ep.mp3");
+        MediaAsset publicAudio = audio(99L, AssetVisibility.PUBLIC, AssetScope.TENANT_PUBLIC, "alpha/public/audio/ep.mp3");
+
+        when(episodeService.requireEpisode(10L, 55L)).thenReturn(episode);
+        when(formatService.hasActiveFormats(10L)).thenReturn(true);
+        when(episodeMediaApi.requireReadyAudio(99L)).thenReturn(privateAudio);
+        when(episodeMediaApi.promoteToPublic(99L)).thenReturn(publicAudio);
+
+        Episode published = publicationWorkflowService.publish(10L, 55L);
+
+        assertThat(published.getPublishedAt()).isEqualTo(importedAt);
+    }
+
+    @Test
+    void publishWithExplicitBackdatedPublishedAt() {
+        Instant backdated = Instant.parse("2019-03-20T08:30:00Z");
+        Episode episode = draftEpisode();
+        episode.setPublishedAt(Instant.parse("2020-01-15T10:00:00Z"));
+        episode.getFormats().add(activeFormat());
+        MediaAsset privateAudio = audio(99L, AssetVisibility.PRIVATE, AssetScope.CONTENT, "alpha/private/audio/ep.mp3");
+        MediaAsset publicAudio = audio(99L, AssetVisibility.PUBLIC, AssetScope.TENANT_PUBLIC, "alpha/public/audio/ep.mp3");
+
+        when(episodeService.requireEpisode(10L, 55L)).thenReturn(episode);
+        when(formatService.hasActiveFormats(10L)).thenReturn(true);
+        when(episodeMediaApi.requireReadyAudio(99L)).thenReturn(privateAudio);
+        when(episodeMediaApi.promoteToPublic(99L)).thenReturn(publicAudio);
+
+        Episode published = publicationWorkflowService.publish(10L, 55L, false, backdated);
+
+        assertThat(published.getPublishedAt()).isEqualTo(backdated);
+    }
+
+    @Test
+    void publishRejectsFuturePublishedAt() {
+        Episode episode = draftEpisode();
+        episode.getFormats().add(activeFormat());
+        MediaAsset privateAudio = audio(99L, AssetVisibility.PRIVATE, AssetScope.CONTENT, "alpha/private/audio/ep.mp3");
+
+        when(episodeService.requireEpisode(10L, 55L)).thenReturn(episode);
+        when(formatService.hasActiveFormats(10L)).thenReturn(true);
+        when(episodeMediaApi.requireReadyAudio(99L)).thenReturn(privateAudio);
+
+        assertThatThrownBy(() -> publicationWorkflowService.publish(
+                10L,
+                55L,
+                false,
+                Instant.parse("2099-01-01T00:00:00Z")
+        ))
+                .isInstanceOf(InvalidPublicationTransitionException.class)
+                .hasMessageContaining("publishedAt");
+    }
+
+    @Test
     void publishPaidEpisodeKeepsAudioPrivate() {
         Episode episode = draftEpisode();
         episode.setAccessPolicy(AccessPolicy.PAID);

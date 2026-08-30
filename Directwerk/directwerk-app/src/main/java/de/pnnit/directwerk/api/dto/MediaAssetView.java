@@ -11,6 +11,7 @@ public record MediaAssetView(
         String status,
         String mimeType,
         Long sizeBytes,
+        Long bytesTransferred,
         String originalFilename,
         Long episodeId,
         Long ownerUserId,

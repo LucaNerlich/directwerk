@@ -42,6 +42,9 @@ interface PublicationEditorLayoutProps {
     notifyAudienceHint?: string | null
     scheduledAt: string
     onScheduledAtChange: (value: string) => void
+    publishedAt: string
+    onPublishedAtChange: (value: string) => void
+    publishValidationError?: string | null
     onSave: () => void
     onPublish: () => void
     onSchedule: () => void
@@ -79,6 +82,9 @@ export default function PublicationEditorLayout({
     notifyAudienceHint = null,
     scheduledAt,
     onScheduledAtChange,
+    publishedAt,
+    onPublishedAtChange,
+    publishValidationError = null,
     onSave,
     onPublish,
     onSchedule,
@@ -130,6 +136,9 @@ export default function PublicationEditorLayout({
                     notifyAudienceHint={notifyAudienceHint}
                     scheduledAt={scheduledAt}
                     onScheduledAtChange={onScheduledAtChange}
+                    publishedAt={publishedAt}
+                    onPublishedAtChange={onPublishedAtChange}
+                    publishValidationError={publishValidationError}
                     onSave={onSave}
                     onPublish={() => setPublishDialogOpen(true)}
                     onSchedule={onSchedule}

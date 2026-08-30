@@ -122,6 +122,24 @@ public class PodcastImportService {
     }
 
     /**
+     * Starts ingesting a remote asset asynchronously and returns the pending asset immediately.
+     */
+    @RequiresModule(PodcastModule.KEY)
+    public MediaAsset startIngestAsset(
+            String sourceUrl,
+            AssetType assetType,
+            AssetVisibility visibility,
+            String filenameHint
+    ) {
+        return remoteAssetIngestApi.startIngestFromUrl(new RemoteAssetIngestApi.IngestCommand(
+                sourceUrl,
+                assetType,
+                visibility,
+                filenameHint
+        ));
+    }
+
+    /**
      * Imports an episode into the current tenant as a draft.
      *
      * <p>Returns an existing episode when the feed and GUID were previously imported. Otherwise,
@@ -142,10 +160,10 @@ public class PodcastImportService {
 
         List<Long> ingestedAssetIds = new ArrayList<>(2);
         AccessPolicy accessPolicy = command.accessPolicy() == null ? AccessPolicy.FREE : command.accessPolicy();
-        Long audioAssetId = null;
+        Long audioAssetId = command.audioAssetId();
         Long coverAssetId = command.coverAssetId();
         try {
-            if (command.audioUrl() != null && !command.audioUrl().isBlank()) {
+            if (audioAssetId == null && command.audioUrl() != null && !command.audioUrl().isBlank()) {
                 MediaAsset audio = ingestAsset(
                         command.audioUrl(),
                         AssetType.AUDIO,
@@ -155,7 +173,7 @@ public class PodcastImportService {
                 audioAssetId = audio.getId();
                 ingestedAssetIds.add(audioAssetId);
             }
-            if (command.imageUrl() != null && !command.imageUrl().isBlank()) {
+            if (coverAssetId == null && command.imageUrl() != null && !command.imageUrl().isBlank()) {
                 MediaAsset cover = ingestAsset(
                         command.imageUrl(),
                         AssetType.IMAGE,
@@ -181,7 +199,8 @@ public class PodcastImportService {
                     command.requiredLevelSortOrder(),
                     command.formatIds(),
                     command.categoryIds(),
-                    importIdentity
+                    importIdentity,
+                    command.publishedAt()
             );
             return new ImportedEpisode(episode, false);
         } catch (DataIntegrityViolationException ex) {
@@ -213,7 +232,8 @@ public class PodcastImportService {
                         command.requiredLevelSortOrder(),
                         command.formatIds(),
                         command.categoryIds(),
-                        importIdentity
+                        importIdentity,
+                        command.publishedAt()
                 );
                 return new ImportedEpisode(episode, false);
             } catch (DataIntegrityViolationException retryFailure) {
@@ -450,7 +470,9 @@ public class PodcastImportService {
             Set<Long> categoryIds,
             String audioUrl,
             String imageUrl,
-            Long coverAssetId
+            Long audioAssetId,
+            Long coverAssetId,
+            Instant publishedAt
     ) {
         public ImportEpisodeCommand {
             formatIds = formatIds == null ? Set.of() : new LinkedHashSet<>(formatIds);

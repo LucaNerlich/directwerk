@@ -17,6 +17,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
+import java.time.Instant;
 import java.util.List;
 import java.util.Set;
 import org.springframework.http.HttpStatus;
@@ -69,13 +70,24 @@ public class PodcastImportController {
      */
     @PostMapping("/assets")
     ResponseEntity<Response<MediaAssetView>> ingestAsset(@Valid @RequestBody IngestAssetRequest request) {
-        MediaAsset asset = podcastImportService.ingestAsset(
-                request.sourceUrl(),
-                request.assetType(),
-                request.visibility() == null ? AssetVisibility.PRIVATE : request.visibility(),
-                request.filename()
+        boolean waitForCompletion = request.waitForCompletion() == null || request.waitForCompletion();
+        MediaAsset asset = waitForCompletion
+                ? podcastImportService.ingestAsset(
+                        request.sourceUrl(),
+                        request.assetType(),
+                        request.visibility() == null ? AssetVisibility.PRIVATE : request.visibility(),
+                        request.filename()
+                )
+                : podcastImportService.startIngestAsset(
+                        request.sourceUrl(),
+                        request.assetType(),
+                        request.visibility() == null ? AssetVisibility.PRIVATE : request.visibility(),
+                        request.filename()
+                );
+        HttpStatus status = waitForCompletion ? HttpStatus.CREATED : HttpStatus.ACCEPTED;
+        return ResponseEntity.status(status).body(
+                waitForCompletion ? Response.created(mediaAssetViewMapper.toView(asset)) : Response.ok(mediaAssetViewMapper.toView(asset))
         );
-        return ResponseEntity.status(HttpStatus.CREATED).body(Response.created(mediaAssetViewMapper.toView(asset)));
     }
 
     /**
@@ -102,7 +114,9 @@ public class PodcastImportController {
                         request.categoryIds(),
                         request.audioUrl(),
                         request.imageUrl(),
-                        request.coverAssetId()
+                        request.audioAssetId(),
+                        request.coverAssetId(),
+                        request.publishedAt()
                 )
         );
         HttpStatus status = imported.alreadyImported() ? HttpStatus.OK : HttpStatus.CREATED;
@@ -160,7 +174,8 @@ public class PodcastImportController {
             @NotBlank @Size(max = 2048) String sourceUrl,
             @NotNull AssetType assetType,
             AssetVisibility visibility,
-            @Size(max = 180) String filename
+            @Size(max = 180) String filename,
+            Boolean waitForCompletion
     ) {
     }
 
@@ -180,7 +195,9 @@ public class PodcastImportController {
             Set<@Min(1) Long> categoryIds,
             @Size(max = 2048) String audioUrl,
             @Size(max = 2048) String imageUrl,
-            @Min(1) Long coverAssetId
+            @Min(1) Long audioAssetId,
+            @Min(1) Long coverAssetId,
+            Instant publishedAt
     ) {
     }
 

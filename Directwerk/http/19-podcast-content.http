@@ -419,6 +419,8 @@ Accept: application/json
   "notifySubscribers": false
 }
 
+# Optional backdate: "publishedAt": "2020-06-01T12:00:00Z"
+
 > {%
     client.test("Publish podcast episode", function() {
         client.assert(

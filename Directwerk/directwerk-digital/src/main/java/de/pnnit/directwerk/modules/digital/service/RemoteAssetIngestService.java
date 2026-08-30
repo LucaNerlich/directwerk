@@ -32,6 +32,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.AbortMultipartUploadRequest;
@@ -55,6 +57,7 @@ import software.amazon.awssdk.services.s3.model.UploadPartRequest;
 public class RemoteAssetIngestService implements RemoteAssetIngestApi {
 
     private static final int MULTIPART_PART_SIZE = 8 * 1024 * 1024;
+    private static final long PROGRESS_REPORT_INTERVAL_BYTES = 256 * 1024;
     private static final Duration INGEST_TIMEOUT = Duration.ofMinutes(15);
 
     private final S3Client s3Client;
@@ -62,6 +65,7 @@ public class RemoteAssetIngestService implements RemoteAssetIngestApi {
     private final MediaAssetRepository mediaAssetRepository;
     private final TenantRepository tenantRepository;
     private final DirectwerkConfig directwerkConfig;
+    private final PlatformTransactionManager transactionManager;
 
     /**
      * Imports a remote HTTP(S) asset into the active tenant's storage.
@@ -71,7 +75,37 @@ public class RemoteAssetIngestService implements RemoteAssetIngestApi {
      */
     @Override
     public MediaAsset ingestFromUrl(IngestCommand command) {
-        DirectwerkProperties.Storage storage = StorageConfigs.requireEnabled(directwerkConfig);
+        return completePreparedIngest(prepareIngest(command), null);
+    }
+
+    /**
+     * Starts a remote ingest on a background thread and returns the pending asset immediately.
+     *
+     * @param command the source URL and asset metadata for the import
+     * @return the pending media asset whose progress can be polled via {@code GET /api/v1/media/{id}}
+     */
+    @Override
+    public MediaAsset startIngestFromUrl(IngestCommand command) {
+        PreparedIngest prepared = prepareIngest(command);
+        Long tenantId = TenantContext.requireTenantId();
+        Long assetId = prepared.asset().getId();
+        Thread.startVirtualThread(() -> TenantContext.callWithTenant(tenantId, () -> {
+            try {
+                completePreparedIngest(
+                        prepared,
+                        bytesRead -> reportIngestProgress(assetId, bytesRead)
+                );
+            } catch (RuntimeException ex) {
+                log.warn("Background remote ingest failed for asset {}", assetId, ex);
+                discardQuietly(assetId, tenantId);
+            }
+            return null;
+        }));
+        return prepared.asset();
+    }
+
+    private PreparedIngest prepareIngest(IngestCommand command) {
+        StorageConfigs.requireEnabled(directwerkConfig);
         Long tenantId = TenantContext.requireTenantId();
         Tenant tenant = tenantRepository.requireById(tenantId);
         URI source = RemoteUrlValidator.requirePublicHttpUrl(command.sourceUrl());
@@ -84,57 +118,88 @@ public class RemoteAssetIngestService implements RemoteAssetIngestApi {
                 : command.intendedVisibility();
         AssetScope scope = visibility == AssetVisibility.PUBLIC ? AssetScope.TENANT_PUBLIC : AssetScope.CONTENT;
 
-        try (RemoteContentClient.RemoteResponse remote = remoteContentClient.get(source, INGEST_TIMEOUT)) {
+        MediaAsset asset = new MediaAsset();
+        asset.setTenant(tenant);
+        asset.setVisibility(visibility);
+        asset.setScope(scope);
+        asset.setAssetType(assetType);
+        asset.setStatus(AssetStatus.PENDING);
+        asset.setOriginalFilename("import.bin");
+        asset.setS3Key(TenantAssetKeys.stagingKey(tenant.getSlug(), UUID.randomUUID() + "/import.bin"));
+        mediaAssetRepository.saveAndFlush(asset);
+
+        String finalKey = buildFinalKey(tenant.getSlug(), asset);
+        asset.setS3Key(finalKey);
+        mediaAssetRepository.saveAndFlush(asset);
+
+        return new PreparedIngest(
+                StorageConfigs.requireEnabled(directwerkConfig),
+                source,
+                command,
+                assetType,
+                asset
+        );
+    }
+
+    private MediaAsset completePreparedIngest(
+            PreparedIngest prepared,
+            java.util.function.LongConsumer progressReporter
+    ) {
+        try (RemoteContentClient.RemoteResponse remote = remoteContentClient.get(prepared.source(), INGEST_TIMEOUT)) {
             if (remote.statusCode() < 200 || remote.statusCode() >= 300) {
                 throw new UploadValidationException(
                         "REMOTE_ASSET_FAILED",
                         "Remote asset returned HTTP " + remote.statusCode()
                 );
             }
-            String filename = resolveFilename(command.filenameHint(), remote.finalUri());
-            String mimeType = resolveMime(assetType, remote.contentType(), filename);
-            long maxBytes = MediaUploadRules.maxBytes(assetType);
+            String filename = resolveFilename(prepared.command().filenameHint(), remote.finalUri());
+            String mimeType = resolveMime(prepared.assetType(), remote.contentType(), filename);
+            long maxBytes = MediaUploadRules.maxBytes(prepared.assetType());
             if (remote.contentLength() != null && remote.contentLength() > maxBytes) {
                 throw new UploadValidationException(
                         "UPLOAD_VALIDATION_FAILED",
-                        "Remote asset exceeds max size for " + assetType
+                        "Remote asset exceeds max size for " + prepared.assetType()
                 );
             }
 
-            MediaAsset asset = new MediaAsset();
-            asset.setTenant(tenant);
-            asset.setS3Key(TenantAssetKeys.stagingKey(tenant.getSlug(), UUID.randomUUID() + "/" + filename));
-            asset.setVisibility(visibility);
-            asset.setScope(scope);
-            asset.setAssetType(assetType);
-            asset.setStatus(AssetStatus.PENDING);
+            MediaAsset asset = prepared.asset();
             asset.setMimeType(mimeType);
             asset.setSizeBytes(remote.contentLength());
             asset.setOriginalFilename(filename);
+            asset.setBytesTransferred(0L);
             mediaAssetRepository.saveAndFlush(asset);
 
-            String finalKey = buildFinalKey(tenant.getSlug(), asset);
             try {
-                // Persist the exact upload target while the row is still PENDING.
-                // A process crash can then leave a recoverable pending record, not
-                // an S3 object whose key is unknown to the database.
-                asset.setS3Key(finalKey);
-                mediaAssetRepository.saveAndFlush(asset);
-                LimitedInputStream limited = new LimitedInputStream(remote.body(), maxBytes);
+                ProgressTrackingInputStream limited = new ProgressTrackingInputStream(
+                        remote.body(),
+                        maxBytes,
+                        progressReporter == null ? null : bytesRead -> {
+                            progressReporter.accept(bytesRead);
+                            reportIngestProgress(asset.getId(), bytesRead);
+                        }
+                );
                 long written = streamToS3(
-                        storage.bucket(),
-                        finalKey,
+                        prepared.storage().bucket(),
+                        asset.getS3Key(),
                         mimeType,
                         remote.contentLength(),
                         limited
                 );
+                if (progressReporter != null) {
+                    progressReporter.accept(written);
+                    reportIngestProgress(asset.getId(), written);
+                }
                 asset.setSizeBytes(written);
+                asset.setBytesTransferred(written);
                 asset.setStatus(AssetStatus.READY);
                 return mediaAssetRepository.saveAndFlush(asset);
             } catch (RuntimeException | IOException ex) {
-                deleteObjectQuietly(storage.bucket(), finalKey);
+                deleteObjectQuietly(prepared.storage().bucket(), asset.getS3Key());
                 mediaAssetRepository.delete(asset);
-                throw ex;
+                if (ex instanceof RuntimeException runtimeEx) {
+                    throw runtimeEx;
+                }
+                throw new UploadValidationException("REMOTE_ASSET_FAILED", "Could not stream remote asset", ex);
             }
         } catch (UploadValidationException ex) {
             throw ex;
@@ -144,6 +209,38 @@ public class RemoteAssetIngestService implements RemoteAssetIngestApi {
             }
             throw new UploadValidationException("REMOTE_ASSET_FAILED", "Could not stream remote asset", ex);
         }
+    }
+
+    void reportIngestProgress(Long assetId, long bytesTransferred) {
+        if (assetId == null) {
+            return;
+        }
+        transactionTemplate().executeWithoutResult(status ->
+                mediaAssetRepository.updateBytesTransferred(assetId, bytesTransferred));
+    }
+
+    private TransactionTemplate transactionTemplate() {
+        return new TransactionTemplate(transactionManager);
+    }
+
+    private void discardQuietly(Long assetId, Long tenantId) {
+        try {
+            TenantContext.callWithTenant(tenantId, () -> {
+                discard(assetId);
+                return null;
+            });
+        } catch (RuntimeException ex) {
+            log.warn("Failed to discard failed background ingest asset {}", assetId, ex);
+        }
+    }
+
+    private record PreparedIngest(
+            DirectwerkProperties.Storage storage,
+            URI source,
+            IngestCommand command,
+            AssetType assetType,
+            MediaAsset asset
+    ) {
     }
 
     /**
@@ -198,7 +295,7 @@ public class RemoteAssetIngestService implements RemoteAssetIngestApi {
             String key,
             String mimeType,
             Long declaredLength,
-            LimitedInputStream body
+            ProgressTrackingInputStream body
     ) throws IOException {
         if (declaredLength != null && declaredLength > 0) {
             s3Client.putObject(
@@ -226,7 +323,7 @@ public class RemoteAssetIngestService implements RemoteAssetIngestApi {
      * @throws IOException if reading the asset fails
      * @throws UploadValidationException if the asset body is empty
      */
-    private long uploadMultipart(String bucket, String key, String mimeType, LimitedInputStream body)
+    private long uploadMultipart(String bucket, String key, String mimeType, ProgressTrackingInputStream body)
             throws IOException {
         CreateMultipartUploadResponse created = s3Client.createMultipartUpload(CreateMultipartUploadRequest.builder()
                 .bucket(bucket)
@@ -399,37 +496,27 @@ public class RemoteAssetIngestService implements RemoteAssetIngestApi {
         }
     }
 
-    static final class LimitedInputStream extends FilterInputStream {
+    static final class ProgressTrackingInputStream extends FilterInputStream {
 
         private final long maxBytes;
         private long bytesRead;
+        private long lastReportedBytes;
+        private final java.util.function.LongConsumer progressReporter;
 
-        /**
-         * Creates a stream that limits the total number of bytes read from the wrapped stream.
-         *
-         * @param in       the stream to wrap
-         * @param maxBytes the maximum number of bytes permitted
-         */
-        LimitedInputStream(InputStream in, long maxBytes) {
+        ProgressTrackingInputStream(
+                InputStream in,
+                long maxBytes,
+                java.util.function.LongConsumer progressReporter
+        ) {
             super(in);
             this.maxBytes = maxBytes;
+            this.progressReporter = progressReporter;
         }
 
-        /**
-         * Reports the number of bytes read from the wrapped input stream.
-         *
-         * @return the accumulated number of bytes read
-         */
         long bytesRead() {
             return bytesRead;
         }
 
-        /**
-         * Reads one byte and updates the accumulated byte count.
-         *
-         * @return the byte read, or {@code -1} if the end of the stream has been reached
-         * @throws IOException if an I/O error occurs
-         */
         @Override
         public int read() throws IOException {
             int value = super.read();
@@ -439,11 +526,6 @@ public class RemoteAssetIngestService implements RemoteAssetIngestApi {
             return value;
         }
 
-        /**
-         * Reads bytes from the wrapped stream and updates the accumulated byte count.
-         *
-         * @return the number of bytes read, or {@code -1} at end of stream
-         */
         @Override
         public int read(byte[] b, int off, int len) throws IOException {
             int read = super.read(b, off, len);
@@ -453,11 +535,6 @@ public class RemoteAssetIngestService implements RemoteAssetIngestApi {
             return read;
         }
 
-        /**
-         * Records bytes read and rejects the stream when the configured size limit is exceeded.
-         *
-         * @param count the number of newly read bytes
-         */
         private void add(int count) {
             bytesRead += count;
             if (bytesRead > maxBytes) {
@@ -465,6 +542,11 @@ public class RemoteAssetIngestService implements RemoteAssetIngestApi {
                         "UPLOAD_VALIDATION_FAILED",
                         "Remote asset exceeds max size"
                 );
+            }
+            if (progressReporter != null
+                    && bytesRead - lastReportedBytes >= PROGRESS_REPORT_INTERVAL_BYTES) {
+                lastReportedBytes = bytesRead;
+                progressReporter.accept(bytesRead);
             }
         }
     }

@@ -55,6 +55,53 @@ Accept: application/json
 
 ###
 
+### @name ingestRemoteAssetAsync
+POST {{baseUrl}}/api/v1/podcast/import/assets
+Host: {{tenantAHost}}
+Authorization: Bearer {{tenantAAccessToken}}
+Content-Type: application/json
+Accept: application/json
+
+{
+  "sourceUrl": "https://example.com/show.jpg",
+  "assetType": "IMAGE",
+  "visibility": "PUBLIC",
+  "waitForCompletion": false
+}
+
+> {%
+    client.test("Async ingest returns pending asset", function() {
+        client.assert(response.status === 202 || response.status === 400 || response.status === 403 || response.status === 503,
+            "Expected 202, 400, 403, or 503");
+        if (response.status === 202) {
+            client.assert(response.body.data.status === "PENDING", "Expected PENDING asset");
+            client.global.set("remoteIngestAssetId", response.body.data.id);
+        }
+    });
+%}
+
+###
+
+### @name pollRemoteIngestAsset
+GET {{baseUrl}}/api/v1/media/{{remoteIngestAssetId}}
+Host: {{tenantAHost}}
+Authorization: Bearer {{tenantAAccessToken}}
+Accept: application/json
+
+> {%
+    client.test("Poll remote ingest progress", function() {
+        client.assert(response.status === 200 || response.status === 404, "Expected 200 or 404");
+        if (response.status === 200) {
+            client.assert(
+                response.body.data.status === "PENDING" || response.body.data.status === "READY",
+                "Expected PENDING or READY"
+            );
+        }
+    });
+%}
+
+###
+
 ### @name importEpisodeFromRemoteUrls
 POST {{baseUrl}}/api/v1/podcast/import/episodes
 Host: {{tenantAHost}}
@@ -70,6 +117,7 @@ Accept: application/json
   "title": "Imported Harness Episode",
   "description": "<p>Imported from RSS.</p>",
   "accessPolicy": "FREE",
+  "publishedAt": "2026-07-20T12:00:00Z",
   "audioUrl": "https://example.com/episode.mp3"
 }
 

@@ -29,5 +29,6 @@ tests {
 }
 
 docs {
-  Streams a remote image or audio file into tenant S3. Rejects private hosts (REMOTE_URL_FORBIDDEN).
+  Streams a remote image or audio file into tenant S3. Set `"waitForCompletion": false` to start a background ingest and poll GET /api/v1/media/{id} for progress.
+  Rejects private hosts (REMOTE_URL_FORBIDDEN).
 }

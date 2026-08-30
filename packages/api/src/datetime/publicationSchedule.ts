@@ -29,3 +29,13 @@ export function fromDatetimeLocalValue(value: string): string | null {
 
     return date.toISOString()
 }
+
+/** True when datetime-local parses to a valid instant at or before now. */
+export function isPastOrPresentDatetimeLocal(value: string): boolean {
+    const iso = fromDatetimeLocalValue(value)
+    if (iso === null) {
+        return false
+    }
+
+    return new Date(iso).getTime() <= Date.now()
+}

@@ -60,8 +60,19 @@ public class PublicationWorkflowService {
     @Transactional
     @RequiresModule(PodcastModule.KEY)
     public Episode publish(Long tenantId, Long episodeId, boolean notifySubscribers) {
+        return publish(tenantId, episodeId, notifySubscribers, null);
+    }
+
+    @Transactional
+    @RequiresModule(PodcastModule.KEY)
+    public Episode publish(
+            Long tenantId,
+            Long episodeId,
+            boolean notifySubscribers,
+            Instant publishedAt
+    ) {
         Episode episode = episodeService.requireEpisode(tenantId, episodeId);
-        return publishInternal(tenantId, episode, notifySubscribers);
+        return publishInternal(tenantId, episode, notifySubscribers, publishedAt);
     }
 
     @Transactional
@@ -178,10 +189,15 @@ public class PublicationWorkflowService {
         )) {
             return;
         }
-        publishInternal(tenantId, episode, episode.isNotifySubscribersOnPublish());
+        publishInternal(tenantId, episode, episode.isNotifySubscribersOnPublish(), null);
     }
 
-    private Episode publishInternal(Long tenantId, Episode episode, boolean notifySubscribers) {
+    private Episode publishInternal(
+            Long tenantId,
+            Episode episode,
+            boolean notifySubscribers,
+            Instant requestedPublishedAt
+    ) {
         PublicationTransitions.requireDraftOrScheduled(
                 episode.getStatus() == EpisodeStatus.DRAFT || episode.getStatus() == EpisodeStatus.SCHEDULED,
                 "episodes");
@@ -216,9 +232,12 @@ public class PublicationWorkflowService {
             episode.setAudioAsset(readyAudio);
         }
 
-        Instant now = Instant.now();
+        Instant publishedAt = PublicationTransitions.resolvePublishedAt(
+                requestedPublishedAt,
+                episode.getPublishedAt()
+        );
         episode.setStatus(EpisodeStatus.PUBLISHED);
-        episode.setPublishedAt(now);
+        episode.setPublishedAt(publishedAt);
         episode.setScheduledAt(null);
         Episode published = episodeRepository.save(episode);
 

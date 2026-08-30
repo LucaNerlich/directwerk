@@ -53,8 +53,14 @@ public class ArticlePublicationWorkflowService {
     @Transactional
     @RequiresModule(DigitalContentModule.KEY)
     public Article publish(Long tenantId, Long articleId, boolean notifySubscribers) {
+        return publish(tenantId, articleId, notifySubscribers, null);
+    }
+
+    @Transactional
+    @RequiresModule(DigitalContentModule.KEY)
+    public Article publish(Long tenantId, Long articleId, boolean notifySubscribers, Instant publishedAt) {
         Article article = articleService.requireArticle(tenantId, articleId);
-        return publishInternal(tenantId, article, notifySubscribers);
+        return publishInternal(tenantId, article, notifySubscribers, publishedAt);
     }
 
     @Transactional
@@ -175,10 +181,15 @@ public class ArticlePublicationWorkflowService {
         )) {
             return;
         }
-        publishInternal(tenantId, article, article.isNotifySubscribersOnPublish());
+        publishInternal(tenantId, article, article.isNotifySubscribersOnPublish(), null);
     }
 
-    private Article publishInternal(Long tenantId, Article article, boolean notifySubscribers) {
+    private Article publishInternal(
+            Long tenantId,
+            Article article,
+            boolean notifySubscribers,
+            Instant requestedPublishedAt
+    ) {
         PublicationTransitions.requireDraftOrScheduled(
                 article.getStatus() == ArticleStatus.DRAFT || article.getStatus() == ArticleStatus.SCHEDULED,
                 "articles");
@@ -192,9 +203,12 @@ public class ArticlePublicationWorkflowService {
         }
         article.setBody(sanitizedBody);
 
-        Instant now = Instant.now();
+        Instant publishedAt = PublicationTransitions.resolvePublishedAt(
+                requestedPublishedAt,
+                article.getPublishedAt()
+        );
         article.setStatus(ArticleStatus.PUBLISHED);
-        article.setPublishedAt(now);
+        article.setPublishedAt(publishedAt);
         article.setScheduledAt(null);
         Article published = articleRepository.save(article);
 

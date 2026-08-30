@@ -17,6 +17,9 @@ interface PublicationWorkflowActionsProps {
     notifyAudienceHint?: string | null
     scheduledAt: string
     onScheduledAtChange: (value: string) => void
+    publishedAt: string
+    onPublishedAtChange: (value: string) => void
+    publishValidationError?: string | null
     onSave: () => void
     onPublish: () => void
     onSchedule: () => void
@@ -36,6 +39,9 @@ export default function PublicationWorkflowActions({
     onNotifyChange,
     scheduledAt,
     onScheduledAtChange,
+    publishedAt,
+    onPublishedAtChange,
+    publishValidationError = null,
     onSave,
     onPublish,
     onSchedule,
@@ -87,6 +93,22 @@ export default function PublicationWorkflowActions({
             {(isDraft || isScheduled) && (
                 <div className="flex flex-wrap items-end gap-2">
                     <label className="grid gap-2 text-sm font-medium">
+                        <span>Veröffentlicht am</span>
+                        <Input
+                            type="datetime-local"
+                            value={publishedAt}
+                            onChange={(event) => onPublishedAtChange(event.target.value)}
+                        />
+                        <span className="text-xs font-normal text-muted-foreground">
+                            Optional. Leer lassen für „jetzt“. Vergangenes Datum zum Backdaten.
+                        </span>
+                    </label>
+                </div>
+            )}
+
+            {(isDraft || isScheduled) && (
+                <div className="flex flex-wrap items-end gap-2">
+                    <label className="grid gap-2 text-sm font-medium">
                         <span>Geplant für</span>
                         <Input
                             type="datetime-local"
@@ -121,6 +143,11 @@ export default function PublicationWorkflowActions({
                     <span>Abonnenten benachrichtigen (beim Veröffentlichen)</span>
                 </label>
             )}
+            {publishValidationError !== null && (isDraft || isScheduled) ? (
+                <p className="text-xs text-destructive" role="alert">
+                    {publishValidationError}
+                </p>
+            ) : null}
             {publishBlockedReason !== null && (isDraft || isScheduled) ? (
                 <p className="text-xs text-muted-foreground" role="status">
                     {publishBlockedReason}

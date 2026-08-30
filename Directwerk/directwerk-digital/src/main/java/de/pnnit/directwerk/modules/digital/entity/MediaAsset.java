@@ -69,6 +69,9 @@ public class MediaAsset extends BaseEntity implements TenantOwned {
     @Column(name = "size_bytes")
     private Long sizeBytes;
 
+    @Column(name = "bytes_transferred", nullable = false)
+    private long bytesTransferred;
+
     @Column(name = "checksum_sha256", length = 64)
     private String checksumSha256;
 

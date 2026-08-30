@@ -8,7 +8,7 @@ import type {Me, RssImportPreview, SeriesSummary} from '@directwerk/api/types'
 
 const previewRssFeed = vi.fn()
 const importRssEpisode = vi.fn()
-const ingestRemoteAsset = vi.fn()
+const ingestRemoteAssetWithProgress = vi.fn()
 const createSeries = vi.fn()
 const createFormat = vi.fn()
 const listSeries = vi.fn()
@@ -33,10 +33,12 @@ vi.mock('@/lib/api/catalogApi', () => ({
     listFormats: (...args: unknown[]) => listFormats(...args),
     createFormat: (...args: unknown[]) => createFormat(...args),
 }))
+vi.mock('@/lib/media/remoteIngest', () => ({
+    ingestRemoteAssetWithProgress: (...args: unknown[]) => ingestRemoteAssetWithProgress(...args),
+}))
 vi.mock('@/lib/api/podcastImportApi', () => ({
     previewRssFeed: (...args: unknown[]) => previewRssFeed(...args),
     importRssEpisode: (...args: unknown[]) => importRssEpisode(...args),
-    ingestRemoteAsset: (...args: unknown[]) => ingestRemoteAsset(...args),
 }))
 vi.mock('@/lib/api/mediaApi', () => ({
     deleteMedia: (...args: unknown[]) => deleteMedia(...args),
@@ -168,7 +170,7 @@ beforeEach(() => {
         sortOrder: 0,
         coverAssetId: null,
     })
-    ingestRemoteAsset.mockResolvedValue({id: 99})
+    ingestRemoteAssetWithProgress.mockResolvedValue({id: 99})
     deleteMedia.mockResolvedValue({id: 99})
     importRssEpisode.mockResolvedValue({
         alreadyImported: false,
@@ -214,7 +216,7 @@ describe('RssImportWizard', () => {
         await user.click(screen.getByRole('button', {name: 'Weiter zu Formaten'}))
         await waitFor(() => expect(screen.getByText('Formate zuordnen')).toBeInTheDocument())
         expect(createSeries).not.toHaveBeenCalled()
-        expect(ingestRemoteAsset).not.toHaveBeenCalled()
+        expect(ingestRemoteAssetWithProgress).not.toHaveBeenCalled()
 
         await user.click(screen.getByRole('checkbox', {name: 'Hauptfolge'}))
         await user.type(screen.getByPlaceholderText('z. B. Hauptfolge'), 'Bonus')
@@ -225,8 +227,13 @@ describe('RssImportWizard', () => {
         expect(screen.getByDisplayValue('Folge 1')).toBeInTheDocument()
         expect(screen.getByRole('checkbox', {name: 'MP3 nach S3 streamen'})).toBeChecked()
 
+        ingestRemoteAssetWithProgress
+            .mockResolvedValueOnce({id: 21})
+            .mockResolvedValueOnce({id: 22})
+
         await user.click(screen.getByRole('button', {name: 'Diese Folge importieren'}))
         await waitFor(() => expect(screen.getByText('Folge 2 von 2')).toBeInTheDocument())
+        expect(ingestRemoteAssetWithProgress).toHaveBeenCalledTimes(2)
         expect(importRssEpisode).toHaveBeenCalledWith(
             'tenant.test',
             expect.objectContaining({
@@ -235,8 +242,9 @@ describe('RssImportWizard', () => {
                 guid: 'guid-1',
                 slug: 'folge-1',
                 title: 'Folge 1',
-                audioUrl: 'https://cdn.example.com/ep1.mp3',
-                imageUrl: 'https://cdn.example.com/ep1.jpg',
+                audioAssetId: 21,
+                coverAssetId: 22,
+                publishedAt: '2026-07-20T12:00:00Z',
                 formatIds: expect.arrayContaining([3, 4]),
             }),
         )
@@ -263,12 +271,16 @@ describe('RssImportWizard', () => {
 
         await user.click(screen.getByRole('button', {name: 'Weiter zu Formaten'}))
         await waitFor(() => expect(screen.getByText('Formate zuordnen')).toBeInTheDocument())
-        expect(ingestRemoteAsset).toHaveBeenCalledWith('tenant.test', {
-            sourceUrl: 'https://cdn.example.com/show.jpg',
-            assetType: 'IMAGE',
-            visibility: 'PUBLIC',
-            filename: 'series-cover.jpg',
-        })
+        expect(ingestRemoteAssetWithProgress).toHaveBeenCalledWith(
+            'tenant.test',
+            {
+                sourceUrl: 'https://cdn.example.com/show.jpg',
+                assetType: 'IMAGE',
+                visibility: 'PUBLIC',
+                filename: 'series-cover.jpg',
+            },
+            expect.any(Function),
+        )
         expect(createSeries).toHaveBeenCalledWith(
             'tenant.test',
             expect.objectContaining({
