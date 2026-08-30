@@ -78,6 +78,9 @@ public class MediaAsset extends BaseEntity implements TenantOwned {
     @Column(name = "original_filename", length = 255)
     private String originalFilename;
 
+    @Column(name = "import_source_url", length = 2048)
+    private String importSourceUrl;
+
     @PrePersist
     @PreUpdate
     private void validateS3Key() {

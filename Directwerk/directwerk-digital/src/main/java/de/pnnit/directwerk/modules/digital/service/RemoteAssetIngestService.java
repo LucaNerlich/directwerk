@@ -30,6 +30,7 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Optional;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -62,6 +63,7 @@ public class RemoteAssetIngestService implements RemoteAssetIngestApi {
     private static final int MULTIPART_PART_SIZE = 8 * 1024 * 1024;
     private static final long PROGRESS_REPORT_INTERVAL_BYTES = 256 * 1024;
     private static final Duration INGEST_TIMEOUT = Duration.ofMinutes(15);
+    private static final List<AssetStatus> REUSABLE_IMPORT_STATUSES = List.of(AssetStatus.READY, AssetStatus.PENDING);
 
     private final S3Client s3Client;
     private final RemoteContentClient remoteContentClient;
@@ -79,6 +81,10 @@ public class RemoteAssetIngestService implements RemoteAssetIngestApi {
      */
     @Override
     public MediaAsset ingestFromUrl(IngestCommand command) {
+        Optional<MediaAsset> reusable = findReusableImport(command);
+        if (reusable.isPresent()) {
+            return reusable.get();
+        }
         return completePreparedIngest(prepareIngest(command), null);
     }
 
@@ -90,6 +96,10 @@ public class RemoteAssetIngestService implements RemoteAssetIngestApi {
      */
     @Override
     public MediaAsset startIngestFromUrl(IngestCommand command) {
+        Optional<MediaAsset> reusable = findReusableImport(command);
+        if (reusable.isPresent()) {
+            return reusable.get();
+        }
         remoteAssetIngestJobProducer.validateQueueAvailability();
         PreparedIngest prepared = transactionTemplate().execute(status -> {
             PreparedIngest pending = prepareIngest(command);
@@ -182,6 +192,7 @@ public class RemoteAssetIngestService implements RemoteAssetIngestApi {
         Long tenantId = TenantContext.requireTenantId();
         Tenant tenant = tenantRepository.requireById(tenantId);
         URI source = RemoteUrlValidator.requirePublicHttpUrl(command.sourceUrl());
+        String canonicalSource = RemoteUrlValidator.canonicalImportSourceUrl(source);
         AssetType assetType = command.assetType();
         if (assetType == null) {
             throw new UploadValidationException("UPLOAD_VALIDATION_FAILED", "assetType is required");
@@ -190,6 +201,7 @@ public class RemoteAssetIngestService implements RemoteAssetIngestApi {
                 ? AssetVisibility.PRIVATE
                 : command.intendedVisibility();
         AssetScope scope = visibility == AssetVisibility.PUBLIC ? AssetScope.TENANT_PUBLIC : AssetScope.CONTENT;
+        String filename = resolveFilename(command.filenameHint(), source);
 
         MediaAsset asset = new MediaAsset();
         asset.setTenant(tenant);
@@ -197,8 +209,9 @@ public class RemoteAssetIngestService implements RemoteAssetIngestApi {
         asset.setScope(scope);
         asset.setAssetType(assetType);
         asset.setStatus(AssetStatus.PENDING);
-        asset.setOriginalFilename("import.bin");
-        asset.setS3Key(TenantAssetKeys.stagingKey(tenant.getSlug(), UUID.randomUUID() + "/import.bin"));
+        asset.setOriginalFilename(filename);
+        asset.setImportSourceUrl(canonicalSource);
+        asset.setS3Key(TenantAssetKeys.stagingKey(tenant.getSlug(), UUID.randomUUID() + "/" + filename));
         mediaAssetRepository.saveAndFlush(asset);
 
         String finalKey = buildFinalKey(tenant.getSlug(), asset);
@@ -211,6 +224,22 @@ public class RemoteAssetIngestService implements RemoteAssetIngestApi {
                 command,
                 assetType,
                 asset
+        );
+    }
+
+    private Optional<MediaAsset> findReusableImport(IngestCommand command) {
+        StorageConfigs.requireEnabled(directwerkConfig);
+        Long tenantId = TenantContext.requireTenantId();
+        AssetType assetType = command.assetType();
+        if (assetType == null) {
+            throw new UploadValidationException("UPLOAD_VALIDATION_FAILED", "assetType is required");
+        }
+        String canonicalSource = RemoteUrlValidator.canonicalImportSourceUrl(command.sourceUrl());
+        return mediaAssetRepository.findFirstByTenant_IdAndImportSourceUrlAndAssetTypeAndStatusInOrderByIdDesc(
+                tenantId,
+                canonicalSource,
+                assetType,
+                REUSABLE_IMPORT_STATUSES
         );
     }
 
@@ -236,6 +265,10 @@ public class RemoteAssetIngestService implements RemoteAssetIngestApi {
             }
 
             MediaAsset asset = prepared.asset();
+            if (!filename.equals(asset.getOriginalFilename())) {
+                asset.setOriginalFilename(filename);
+                asset.setS3Key(buildFinalKey(asset.getTenant().getSlug(), asset));
+            }
             asset.setMimeType(mimeType);
             asset.setSizeBytes(remote.contentLength());
             asset.setOriginalFilename(filename);

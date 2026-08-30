@@ -3,6 +3,7 @@ package de.pnnit.directwerk.modules.digital.net;
 import de.pnnit.directwerk.modules.digital.exception.UploadValidationException;
 import java.net.InetAddress;
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.net.UnknownHostException;
 import java.util.Locale;
 
@@ -60,6 +61,45 @@ public final class RemoteUrlValidator {
         }
         resolvePublicAddresses(host);
         return uri;
+    }
+
+    /**
+     * Canonicalizes a validated import source URL for deduplication lookups.
+     */
+    public static String canonicalImportSourceUrl(String rawUrl) {
+        return canonicalImportSourceUrl(requirePublicHttpUrl(rawUrl));
+    }
+
+    /**
+     * Canonicalizes a validated import source URL for deduplication lookups.
+     */
+    public static String canonicalImportSourceUrl(URI uri) {
+        if (uri == null || uri.getScheme() == null || uri.getHost() == null) {
+            throw new UploadValidationException("REMOTE_URL_FORBIDDEN", "sourceUrl must be an absolute HTTP(S) URL");
+        }
+        String scheme = uri.getScheme().toLowerCase(Locale.ROOT);
+        String host = uri.getHost().toLowerCase(Locale.ROOT);
+        int port = uri.getPort();
+        if (("http".equals(scheme) && port == 80) || ("https".equals(scheme) && port == 443)) {
+            port = -1;
+        }
+        String path = uri.getRawPath();
+        if (path == null || path.isBlank()) {
+            path = "/";
+        }
+        try {
+            return new URI(
+                    scheme,
+                    null,
+                    host,
+                    port,
+                    path,
+                    uri.getRawQuery(),
+                    null
+            ).normalize().toASCIIString();
+        } catch (URISyntaxException ex) {
+            throw new UploadValidationException("REMOTE_URL_FORBIDDEN", "sourceUrl is not valid", ex);
+        }
     }
 
     /**

@@ -3,6 +3,7 @@ package de.pnnit.directwerk.modules.digital.repository;
 import de.pnnit.directwerk.modules.digital.entity.AssetStatus;
 import de.pnnit.directwerk.modules.digital.entity.AssetType;
 import de.pnnit.directwerk.modules.digital.entity.MediaAsset;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.domain.Pageable;
@@ -82,4 +83,12 @@ public interface MediaAssetRepository extends JpaRepository<MediaAsset, Long> {
               and m.status = de.pnnit.directwerk.modules.digital.entity.AssetStatus.PENDING
             """)
     int updateBytesTransferred(@Param("id") Long id, @Param("bytesTransferred") long bytesTransferred);
+
+    @EntityGraph(attributePaths = "tenant")
+    Optional<MediaAsset> findFirstByTenant_IdAndImportSourceUrlAndAssetTypeAndStatusInOrderByIdDesc(
+            Long tenantId,
+            String importSourceUrl,
+            AssetType assetType,
+            Collection<AssetStatus> statuses
+    );
 }

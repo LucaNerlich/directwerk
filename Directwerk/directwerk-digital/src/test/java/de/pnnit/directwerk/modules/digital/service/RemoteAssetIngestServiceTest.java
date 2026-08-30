@@ -3,6 +3,7 @@ package de.pnnit.directwerk.modules.digital.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.lenient;
@@ -32,6 +33,8 @@ import java.io.OutputStream;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.util.List;
+import java.util.Optional;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -135,6 +138,8 @@ class RemoteAssetIngestServiceTest {
 
         assertThat(ingested.getStatus()).isEqualTo(AssetStatus.READY);
         assertThat(ingested.getS3Key()).startsWith("alpha/private/audio/asset-42_");
+        assertThat(ingested.getS3Key()).endsWith("_ep.mp3");
+        assertThat(ingested.getOriginalFilename()).isEqualTo("ep.mp3");
         assertThat(ingested.getSizeBytes()).isEqualTo(body.length);
         ArgumentCaptor<PutObjectRequest> put = ArgumentCaptor.forClass(PutObjectRequest.class);
         verify(s3Client).putObject(put.capture(), any(RequestBody.class));
@@ -188,6 +193,8 @@ class RemoteAssetIngestServiceTest {
 
         assertThat(ingested.getStatus()).isEqualTo(AssetStatus.READY);
         assertThat(ingested.getSizeBytes()).isEqualTo(body.length);
+        assertThat(ingested.getOriginalFilename()).isEqualTo("episode.mp3");
+        assertThat(ingested.getS3Key()).endsWith("_episode.mp3");
         verify(s3Client).createMultipartUpload(any(CreateMultipartUploadRequest.class));
         verify(s3Client, org.mockito.Mockito.atLeastOnce()).uploadPart(any(UploadPartRequest.class), any(RequestBody.class));
         verify(s3Client).completeMultipartUpload(any(CompleteMultipartUploadRequest.class));
@@ -229,7 +236,75 @@ class RemoteAssetIngestServiceTest {
     }
 
     @Test
+    void reusesReadyAssetWithSameImportSourceUrl() {
+        when(directwerkConfig.isStorageEnabled()).thenReturn(true);
+        when(directwerkConfig.storage()).thenReturn(storage());
+        Tenant tenant = new Tenant();
+        tenant.setId(10L);
+        tenant.setSlug("alpha");
+        MediaAsset existing = new MediaAsset();
+        existing.setId(99L);
+        existing.setTenant(tenant);
+        existing.setStatus(AssetStatus.READY);
+        existing.setOriginalFilename("cover.jpg");
+        when(mediaAssetRepository.findFirstByTenant_IdAndImportSourceUrlAndAssetTypeAndStatusInOrderByIdDesc(
+                eq(10L),
+                eq("https://1.1.1.1/cover.jpg"),
+                eq(AssetType.IMAGE),
+                eq(List.of(AssetStatus.READY, AssetStatus.PENDING))
+        )).thenReturn(Optional.of(existing));
+
+        MediaAsset reused = service.ingestFromUrl(new RemoteAssetIngestApi.IngestCommand(
+                "https://1.1.1.1/cover.jpg",
+                AssetType.IMAGE,
+                AssetVisibility.PUBLIC,
+                "cover.jpg"
+        ));
+
+        assertThat(reused.getId()).isEqualTo(99L);
+        verifyNoInteractions(remoteContentClient, tenantRepository);
+        verify(mediaAssetRepository, never()).saveAndFlush(any(MediaAsset.class));
+    }
+
+    @Test
+    void startIngestFromUrlReusesPendingAssetWithoutEnqueue() {
+        when(directwerkConfig.isStorageEnabled()).thenReturn(true);
+        when(directwerkConfig.storage()).thenReturn(storage());
+        Tenant tenant = new Tenant();
+        tenant.setId(10L);
+        tenant.setSlug("alpha");
+        MediaAsset existing = new MediaAsset();
+        existing.setId(99L);
+        existing.setTenant(tenant);
+        existing.setStatus(AssetStatus.PENDING);
+        when(mediaAssetRepository.findFirstByTenant_IdAndImportSourceUrlAndAssetTypeAndStatusInOrderByIdDesc(
+                eq(10L),
+                eq("https://1.1.1.1/cover.jpg"),
+                eq(AssetType.IMAGE),
+                eq(List.of(AssetStatus.READY, AssetStatus.PENDING))
+        )).thenReturn(Optional.of(existing));
+
+        MediaAsset reused = service.startIngestFromUrl(new RemoteAssetIngestApi.IngestCommand(
+                "https://1.1.1.1/cover.jpg",
+                AssetType.IMAGE,
+                AssetVisibility.PUBLIC,
+                "cover.jpg"
+        ));
+
+        assertThat(reused.getId()).isEqualTo(99L);
+        verifyNoInteractions(remoteAssetIngestJobProducer, remoteContentClient, tenantRepository);
+    }
+
+    @Test
     void rejectsUnavailableQueueBeforeCreatingAsset() {
+        when(directwerkConfig.isStorageEnabled()).thenReturn(true);
+        when(directwerkConfig.storage()).thenReturn(storage());
+        when(mediaAssetRepository.findFirstByTenant_IdAndImportSourceUrlAndAssetTypeAndStatusInOrderByIdDesc(
+                any(),
+                any(),
+                any(),
+                any()
+        )).thenReturn(Optional.empty());
         doThrow(new UploadValidationException("REMOTE_ASSET_FAILED", "job queue unavailable"))
                 .when(remoteAssetIngestJobProducer).validateQueueAvailability();
 
@@ -243,7 +318,14 @@ class RemoteAssetIngestServiceTest {
                 .hasMessageContaining("job queue");
 
         verify(transactionManager, never()).getTransaction(any());
-        verifyNoInteractions(tenantRepository, mediaAssetRepository, remoteContentClient);
+        verify(mediaAssetRepository).findFirstByTenant_IdAndImportSourceUrlAndAssetTypeAndStatusInOrderByIdDesc(
+                any(),
+                any(),
+                any(),
+                any()
+        );
+        verify(mediaAssetRepository, never()).saveAndFlush(any(MediaAsset.class));
+        verifyNoInteractions(tenantRepository, remoteContentClient);
     }
 
     @Test

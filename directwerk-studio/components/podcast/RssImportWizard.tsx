@@ -16,6 +16,7 @@ import {createFormat, listFormats} from '@/lib/api/catalogApi'
 import {createSeries, listSeries} from '@/lib/api/podcastApi'
 import {importRssEpisode, previewRssFeed} from '@/lib/api/podcastImportApi'
 import {ingestRemoteAssetWithProgress} from '@/lib/media/remoteIngest'
+import {filenameFromImportUrl} from '@/lib/media/importFilename'
 import {deleteMedia} from '@/lib/api/mediaApi'
 import {isTenantAdminRole, suggestSlug} from '@/lib/api/studioHelpers'
 import {useOptionalMe} from '@/lib/auth/MeProvider'
@@ -215,7 +216,7 @@ export default function RssImportWizard(): React.JSX.Element {
                         sourceUrl: preview.channel.imageUrl,
                         assetType: 'IMAGE',
                         visibility: 'PUBLIC',
-                        filename: 'series-cover.jpg',
+                        filename: filenameFromImportUrl(preview.channel.imageUrl, 'series-cover.jpg'),
                     },
                     (progress) => {
                         setStreamProgress({label: 'Sendungs-Cover', progress})
@@ -319,7 +320,7 @@ export default function RssImportWizard(): React.JSX.Element {
                         sourceUrl: item.audioUrl,
                         assetType: 'AUDIO',
                         visibility: 'PRIVATE',
-                        filename: 'episode.mp3',
+                        filename: filenameFromImportUrl(item.audioUrl, 'episode.mp3'),
                     },
                     (progress, asset) => {
                         const estimatedProgress =
@@ -344,7 +345,7 @@ export default function RssImportWizard(): React.JSX.Element {
                         sourceUrl: item.imageUrl,
                         assetType: 'IMAGE',
                         visibility: 'PUBLIC',
-                        filename: 'cover.jpg',
+                        filename: filenameFromImportUrl(item.imageUrl, 'cover.jpg'),
                     },
                     (progress) => {
                         setStreamProgress({label: 'Cover', progress})
