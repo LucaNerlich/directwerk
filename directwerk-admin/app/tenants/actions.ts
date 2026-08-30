@@ -6,7 +6,11 @@ import {ASSET_VISIBILITIES} from '@directwerk/api/types'
 import {performTenantMediaUpload} from '@/lib/server/mediaUpload'
 import {validateCreateTenantInput, validateTenantUserInviteInput} from '@/lib/validation'
 import {getTenantRoleLabel} from '@/lib/roles'
-import {callPlatformApi, statusToFormError} from '@/lib/server/platform'
+import {
+    callPlatformApi,
+    createTenantConflictMessage,
+    statusToFormError,
+} from '@/lib/server/platform'
 
 import {
     INITIAL_CREATE_TENANT_STATE,
@@ -50,19 +54,19 @@ export async function createTenantAction(
     })
 
     if (!result.ok) {
-        const conflictMessage =
-            result.code === 'TENANT_SLUG_EXISTS'
-                ? 'A tenant with this slug already exists. Refresh the list — it may have been created on an earlier attempt.'
-                : result.code === 'DOMAIN_ALREADY_EXISTS'
-                  ? 'This primary domain is already registered to another tenant. Refresh the list or pick a different domain.'
-                  : 'A tenant with this slug or primary domain already exists. Refresh the list — it may have been created on an earlier attempt.'
-
         return {
             ...INITIAL_CREATE_TENANT_STATE,
-            error: statusToFormError(result.status, {
-                conflict: conflictMessage,
-                fallback: 'Tenant creation failed. Check the details and try again.',
-            }),
+            error: statusToFormError(
+                result.status,
+                {
+                    conflict: createTenantConflictMessage(
+                        result.code,
+                        result.message,
+                    ),
+                    fallback: 'Tenant creation failed. Check the details and try again.',
+                },
+                result.message,
+            ),
             refreshList: result.status === 409,
         }
     }

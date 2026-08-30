@@ -3,7 +3,11 @@ import 'server-only'
 import {cookies} from 'next/headers'
 
 import {safeUpstreamResponse} from '@directwerk/api/server'
-import {extractApiErrorCode, parseApiEnvelope} from '@directwerk/api/envelope'
+import {
+    extractApiErrorCode,
+    extractApiErrorMessage,
+    parseApiEnvelope,
+} from '@directwerk/api/envelope'
 import {sealRefreshToken} from '@directwerk/api/auth/cookies'
 import {parseTokenResponse} from '@directwerk/api/validation/token'
 
@@ -26,6 +30,8 @@ interface PlatformApiFailure {
     status: number
     /** Structured API error code when the upstream body includes one. */
     code?: string
+    /** Structured API error message when the upstream body includes one. */
+    message?: string
 }
 
 export type PlatformApiResult<T> = PlatformApiSuccess<T> | PlatformApiFailure
@@ -163,18 +169,31 @@ export async function callPlatformApi<T>(
 
     if (!upstream.ok) {
         let code: string | undefined
+        let message: string | undefined
         try {
             const payload: unknown = await upstream.clone().json()
-            const extracted = extractApiErrorCode(payload)
-            if (extracted !== null) {
-                code = extracted
+            const extractedCode = extractApiErrorCode(payload)
+            if (extractedCode !== null) {
+                code = extractedCode
+            }
+            const extractedMessage = extractApiErrorMessage(payload, upstream.status, {
+                fallback: () => '',
+            })
+            if (extractedMessage.length > 0) {
+                message = extractedMessage
             }
         } catch {
             // Non-JSON error bodies are surfaced via status only.
         }
-        return code === undefined
-            ? {ok: false, status: upstream.status}
-            : {ok: false, status: upstream.status, code}
+        if (code === undefined && message === undefined) {
+            return {ok: false, status: upstream.status}
+        }
+        return {
+            ok: false,
+            status: upstream.status,
+            ...(code === undefined ? {} : {code}),
+            ...(message === undefined ? {} : {message}),
+        }
     }
 
     if (upstream.status === 204 || upstream.status === 205) {
@@ -193,9 +212,43 @@ export async function callPlatformApi<T>(
  * Maps a platform API failure status to the admin's localized form message,
  * mirroring the client-side catalog (`AUTH_REQUIRED`/`FORBIDDEN`/`CONFLICT`).
  */
+/** Maps platform tenant-create 409 codes to operator-facing copy. */
+export function createTenantConflictMessage(
+    code: string | undefined,
+    apiMessage: string | undefined,
+): string {
+    switch (code) {
+        case 'TENANT_SLUG_EXISTS':
+            return 'A tenant with this slug already exists.'
+        case 'DOMAIN_ALREADY_EXISTS':
+            return (
+                apiMessage ??
+                'This primary domain is already registered to another tenant.'
+            )
+        case 'USER_ALREADY_MEMBER':
+            return 'That admin email is already an active member of this tenant.'
+        case 'MODULE_DEPENDENCY_MISSING':
+            return (
+                apiMessage ??
+                'The module preset could not be applied because a required module dependency is missing.'
+            )
+        case 'CONFLICT':
+            return (
+                apiMessage ??
+                'A database constraint blocked tenant creation. No tenant was saved — check API logs.'
+            )
+        default:
+            return (
+                apiMessage ??
+                'Tenant creation failed due to a conflict. No tenant was saved — check API logs.'
+            )
+    }
+}
+
 export function statusToFormError(
     status: number,
-    messages: {conflict: string; fallback: string}
+    messages: {conflict: string; fallback: string},
+    apiMessage?: string,
 ): string {
     switch (status) {
         case 401:
@@ -205,10 +258,16 @@ export function statusToFormError(
         case 409:
             return messages.conflict
         case 503:
-            return 'Directwerk is misconfigured for this action (often email delivery). Check API logs and env vars.'
+            return (
+                apiMessage ??
+                'Directwerk is misconfigured for this action (often email delivery). Check API logs and env vars.'
+            )
         case 500:
-            return 'Directwerk returned an unexpected error. Check API logs and try again.'
+            return (
+                apiMessage ??
+                'Directwerk returned an unexpected error. Check API logs and try again.'
+            )
         default:
-            return messages.fallback
+            return apiMessage ?? messages.fallback
     }
 }
