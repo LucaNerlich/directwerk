@@ -49,13 +49,51 @@ function isLoopbackHostname(hostname: string): boolean {
     )
 }
 
+export interface UpstreamTenantHeaders {
+    host: string
+    forwardedHost?: string
+}
+
+/**
+ * Chooses upstream Host / X-Forwarded-Host for tenant-scoped BFF calls.
+ *
+ * Plain HTTP (local / Docker network): rewrite Host so Spring resolves the
+ * tenant with `forward-headers-strategy=none`.
+ *
+ * HTTPS through a reverse proxy: keep the API hostname on Host and send the
+ * tenant domain via X-Forwarded-Host (requires API `forward-headers-strategy=framework`).
+ */
+export function buildUpstreamTenantHeaders(
+    targetUrl: URL,
+    tenantHost: string | undefined,
+    requireTenantHost: boolean,
+): UpstreamTenantHeaders {
+    if (requireTenantHost && tenantHost === undefined) {
+        throw new Error('A tenant host is required.')
+    }
+
+    const effectiveTenantHost = requireTenantHost ? tenantHost : tenantHost
+    if (effectiveTenantHost === undefined) {
+        return {host: targetUrl.host}
+    }
+
+    if (targetUrl.protocol === 'https:') {
+        return {
+            host: targetUrl.host,
+            forwardedHost: effectiveTenantHost,
+        }
+    }
+
+    return {host: effectiveTenantHost}
+}
+
 /**
  * Builds the node:http(s)-based SSRF-guarded server transport shared by the
  * BFF route handlers.
  *
  * Guarantees (identical across all three apps):
  * - HTTPS only, except plain HTTP to loopback hosts
- * - Host-header rewrite so multi-tenant upstream routing works
+ * - Tenant routing via Host rewrite (HTTP) or X-Forwarded-Host (HTTPS)
  * - Hard response byte cap and wall-clock timeout
  */
 export function createServerTransport(
@@ -91,10 +129,11 @@ export function createServerTransport(
         }
 
         const request = targetUrl.protocol === 'https:' ? httpsRequest : httpRequest
-        const hostHeader =
-            config.requireTenantHost === true
-                ? (tenantHost as string)
-                : (tenantHost ?? targetUrl.host)
+        const tenantHeaders = buildUpstreamTenantHeaders(
+            targetUrl,
+            tenantHost,
+            config.requireTenantHost === true,
+        )
 
         return new Promise<Response>((resolve, reject) => {
             let resolved = false
@@ -122,7 +161,13 @@ export function createServerTransport(
                         : {}),
                     headers: {
                         Accept: 'application/json',
-                        Host: hostHeader,
+                        Host: tenantHeaders.host,
+                        ...(tenantHeaders.forwardedHost === undefined
+                            ? {}
+                            : {
+                                  'X-Forwarded-Host': tenantHeaders.forwardedHost,
+                                  'X-Forwarded-Proto': 'https',
+                              }),
                         ...(authorization === undefined
                             ? {}
                             : {Authorization: authorization}),

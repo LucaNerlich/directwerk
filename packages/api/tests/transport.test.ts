@@ -1,7 +1,38 @@
 import {createServer, type Server} from 'node:http'
 import {afterAll, beforeAll, describe, expect, it} from 'vitest'
 
-import {createServerTransport} from '../src/server/transport'
+import {buildUpstreamTenantHeaders, createServerTransport} from '../src/server/transport'
+
+describe('buildUpstreamTenantHeaders', () => {
+    it('rewrites Host on plain HTTP', () => {
+        expect(
+            buildUpstreamTenantHeaders(
+                new URL('http://127.0.0.1:8080'),
+                'podcast.example.com',
+                false,
+            ),
+        ).toEqual({host: 'podcast.example.com'})
+    })
+
+    it('forwards tenant host on HTTPS without rewriting Host', () => {
+        expect(
+            buildUpstreamTenantHeaders(
+                new URL('https://api.example.com'),
+                'podcast.example.com',
+                false,
+            ),
+        ).toEqual({
+            host: 'api.example.com',
+            forwardedHost: 'podcast.example.com',
+        })
+    })
+
+    it('requires tenant host when configured', () => {
+        expect(() =>
+            buildUpstreamTenantHeaders(new URL('https://api.example.com'), undefined, true),
+        ).toThrow('A tenant host is required.')
+    })
+})
 
 describe('createServerTransport', () => {
     let server: Server

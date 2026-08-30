@@ -5,9 +5,6 @@ import {
     serializeClearTenantHostCookie,
     serializeTenantHostCookie,
 } from '@directwerk/api/tenant'
-import {parseStudioSiteConfigEnvelope} from '@directwerk/api/validation/catalog'
-
-import {directwerkFetch} from '@/lib/server/api'
 
 export const dynamic = 'force-dynamic'
 
@@ -21,19 +18,6 @@ function jsonError(message: string, status: number): NextResponse {
 
 function cookieSecure(): boolean {
     return process.env.NODE_ENV === 'production'
-}
-
-async function readUpstreamJson(response: Response): Promise<unknown | null> {
-    const text = await response.text()
-    if (text.length === 0) {
-        return null
-    }
-
-    try {
-        return JSON.parse(text) as unknown
-    } catch {
-        return null
-    }
 }
 
 export async function POST(request: Request): Promise<NextResponse> {
@@ -52,41 +36,7 @@ export async function POST(request: Request): Promise<NextResponse> {
             return jsonError('Bitte eine gültige Mandanten-Domain eingeben.', 400)
         }
 
-        let upstream: Response
-        try {
-            upstream = await directwerkFetch({
-                path: '/api/v1/public/site-config',
-                tenantHost,
-                method: 'GET',
-            })
-        } catch {
-            return jsonError(
-                'Der Mandant konnte gerade nicht geprüft werden. Bitte erneut versuchen.',
-                502,
-            )
-        }
-
-        if (upstream.status === 404) {
-            return jsonError(
-                'Für diese Domain ist kein Mandant eingerichtet.',
-                404,
-            )
-        }
-
-        if (!upstream.ok) {
-            return jsonError(
-                'Der Mandant konnte gerade nicht geprüft werden. Bitte erneut versuchen.',
-                502,
-            )
-        }
-
-        const value = await readUpstreamJson(upstream)
-        const parsed = value === null ? null : parseStudioSiteConfigEnvelope(value)
-        if (parsed === null) {
-            return jsonError('Ungültige Antwort vom Server.', 502)
-        }
-
-        const response = NextResponse.json({tenant: parsed.data.tenant})
+        const response = NextResponse.json({ok: true})
         response.headers.append(
             'Set-Cookie',
             serializeTenantHostCookie(tenantHost, cookieSecure()),
