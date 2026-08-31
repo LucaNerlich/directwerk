@@ -48,7 +48,6 @@ import {
     isBoundedString,
     isNonNegativeSafeInteger,
     isNullableString,
-    isOptionalNullableString,
     isPositiveSafeInteger,
     isRecord,
     isSafeInteger,
@@ -1077,7 +1076,7 @@ function parseTenantBranding(value: unknown): TenantBranding | null {
         !isNullableString(value.secondaryColor, 16) ||
         !isNullableString(value.logoUrl, 2048) ||
         !isNullableString(value.umamiWebsiteId, 64) ||
-        !isOptionalNullableString(value.umamiHostUrl, 512)
+        !isNullableString(value.umamiHostUrl, 512)
     ) {
         return null
     }
@@ -1088,8 +1087,7 @@ function parseTenantBranding(value: unknown): TenantBranding | null {
         secondaryColor: value.secondaryColor,
         logoUrl: value.logoUrl,
         umamiWebsiteId: value.umamiWebsiteId,
-        umamiHostUrl:
-            typeof value.umamiHostUrl === 'string' ? value.umamiHostUrl : null,
+        umamiHostUrl: value.umamiHostUrl,
     }
 }
 
@@ -1170,8 +1168,8 @@ function parseTenantUser(value: unknown): TenantUser | null {
         !isNullableString(value.name, 200) ||
         !isStringArray(value.roles) ||
         !isMembershipStatus(value.status) ||
-        !isOptionalNullableString(value.invitedAt, 64) ||
-        !isOptionalNullableString(value.lastLoginAt, 64)
+        !isNullableString(value.invitedAt, 64) ||
+        !isNullableString(value.lastLoginAt, 64)
     ) {
         return null
     }
@@ -1182,8 +1180,8 @@ function parseTenantUser(value: unknown): TenantUser | null {
         name: value.name,
         roles: value.roles,
         status: value.status,
-        invitedAt: value.invitedAt ?? null,
-        lastLoginAt: value.lastLoginAt ?? null,
+        invitedAt: value.invitedAt,
+        lastLoginAt: value.lastLoginAt,
     }
 }
 
