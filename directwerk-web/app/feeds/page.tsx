@@ -32,6 +32,10 @@ import {useArticleFeeds} from '@/lib/auth/useArticleFeeds'
 import {useSubscriberFeeds} from '@/lib/auth/useSubscriberFeeds'
 import {formatPublishedAt} from '@directwerk/api/format/datetime'
 import {getClientTenantHost} from '@/lib/tenant/clientHost'
+import {
+    webPublicArticleFeedUrl,
+    webPublicPodcastFeedUrl,
+} from '@/lib/feeds/webPublicFeedUrl'
 
 function feedsPageCopy(showPodcastFeeds: boolean, showArticleFeeds: boolean): {
     title: string
@@ -111,9 +115,13 @@ export default function FeedsPage() {
     const [articleFeedActionError, setArticleFeedActionError] = useState<string | null>(null)
 
     const podcastFeedUrl =
-        siteConfig === undefined ? null : siteConfig.publicRssUrl
+        siteConfig === undefined
+            ? null
+            : webPublicPodcastFeedUrl(siteConfig, tenantHost)
     const articleFeedUrl =
-        siteConfig === undefined ? null : siteConfig.publicArticleRssUrl
+        siteConfig === undefined
+            ? null
+            : webPublicArticleFeedUrl(siteConfig, tenantHost)
 
     const defaultPodcastPrivate =
         podcastPrivateFeeds.find((feed) => feed.isDefault) ?? null

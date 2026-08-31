@@ -22,6 +22,7 @@ import {formatPublishedAt} from '@directwerk/api/format/datetime'
 import {getClientTenantHost} from '@/lib/tenant/clientHost'
 import {useArticleFeeds} from '@/lib/auth/useArticleFeeds'
 import {useSubscriberAuth} from '@/lib/auth/useSubscriberAuth'
+import {webPublicArticleFeedUrl} from '@/lib/feeds/webPublicFeedUrl'
 
 export default function ArticlesPage() {
     const tenantHost = getClientTenantHost()
@@ -33,8 +34,12 @@ export default function ArticlesPage() {
         ['site-config', tenantHost] as const,
         async ([, host]: readonly [string, string]) => (await getSiteConfig(host)).data,
     )
-    const {feeds: privateFeeds} = useArticleFeeds(isAuthenticated)
+    const {feeds: privateFeeds} = useArticleFeeds(
+        isAuthenticated && (siteConfig?.enabledModules.includes('ARTICLE_RSS') ?? false),
+    )
     const defaultPrivateFeed = privateFeeds.find((feed) => feed.isDefault) ?? null
+    const publicArticleFeedUrl =
+        siteConfig === undefined ? null : webPublicArticleFeedUrl(siteConfig, tenantHost)
 
     useEffect(() => {
         let active = true
@@ -143,8 +148,7 @@ export default function ArticlesPage() {
                 </div>
             ) : null}
 
-            {siteConfig?.publicArticleRssUrl !== null &&
-            siteConfig?.publicArticleRssUrl !== undefined ? (
+            {publicArticleFeedUrl !== null ? (
                 <section className="flex flex-col gap-4">
                     <SectionHeader
                         description="Alle freien Beiträge in einem Feed-Reader abonnieren."
@@ -152,7 +156,7 @@ export default function ArticlesPage() {
                     />
                     <FeedUrlDisplay
                         title="Öffentlicher Feed"
-                        url={siteConfig.publicArticleRssUrl}
+                        url={publicArticleFeedUrl}
                     />
                     {isAuthenticated ? (
                         defaultPrivateFeed !== null && defaultPrivateFeed.enabled ? (
@@ -171,7 +175,7 @@ export default function ArticlesPage() {
                     )}
                     <Link
                         className="text-sm font-medium underline-offset-4 hover:underline"
-                        href="/article-feeds"
+                        href="/feeds"
                     >
                         Alle Feeds verwalten
                     </Link>
