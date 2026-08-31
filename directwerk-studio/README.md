@@ -37,6 +37,14 @@ Follow [`../docs/frontend-pages.md`](../docs/frontend-pages.md). Studio routes
 live under `app/(studio)/`. Use `PageStack`, `PageHeader`, and shared list
 components from `@directwerk/ui`.
 
+## Analytics
+
+Optional platform Umami analytics — set `NEXT_PUBLIC_UMAMI_WEBSITE_ID` and `NEXT_PUBLIC_UMAMI_URL`
+in `.env.local` (see `.env.local.example`) to enable. Unset disables tracking entirely. Respects
+the browser's Do Not Track setting. Unrelated to the per-tenant `umamiWebsiteId` configured in
+Settings → Branding, which drives Umami tracking on the tenant's own public site
+(`directwerk-web`).
+
 ## Verification
 
 ```bash

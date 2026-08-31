@@ -6,8 +6,11 @@ import de.pnnit.directwerk.api.response.Response;
 import de.pnnit.directwerk.modules.core.RequiresModule;
 import de.pnnit.directwerk.modules.digital.DigitalContentModule;
 import de.pnnit.directwerk.modules.digital.service.CategoryService;
+import de.pnnit.directwerk.modules.newsletter.entity.Article;
+import de.pnnit.directwerk.modules.newsletter.service.ArticleViewAnalyticsService;
 import de.pnnit.directwerk.modules.newsletter.service.PublicArticleQueryService;
 import de.pnnit.directwerk.multitenancy.TenantContext;
+import jakarta.servlet.http.HttpServletRequest;
 import java.time.Instant;
 import java.util.List;
 import org.springframework.http.ResponseEntity;
@@ -24,15 +27,18 @@ public class PublicArticleController {
     private final PublicArticleQueryService publicArticleQueryService;
     private final PublicArticleViewMapper publicArticleViewMapper;
     private final CategoryService categoryService;
+    private final ArticleViewAnalyticsService articleViewAnalyticsService;
 
     public PublicArticleController(
             PublicArticleQueryService publicArticleQueryService,
             PublicArticleViewMapper publicArticleViewMapper,
-            CategoryService categoryService
+            CategoryService categoryService,
+            ArticleViewAnalyticsService articleViewAnalyticsService
     ) {
         this.publicArticleQueryService = publicArticleQueryService;
         this.publicArticleViewMapper = publicArticleViewMapper;
         this.categoryService = categoryService;
+        this.articleViewAnalyticsService = articleViewAnalyticsService;
     }
 
     /**
@@ -60,11 +66,14 @@ public class PublicArticleController {
     }
 
     @GetMapping("/articles/{slug}")
-    ResponseEntity<Response<PublicArticleView>> getArticle(@PathVariable String slug) {
+    ResponseEntity<Response<PublicArticleView>> getArticle(
+            @PathVariable String slug,
+            HttpServletRequest request
+    ) {
         Long tenantId = TenantContext.getTenantId();
-        return ResponseEntity.ok(Response.ok(publicArticleViewMapper.toPublicView(
-                publicArticleQueryService.requirePublishedArticle(tenantId, slug)
-        )));
+        Article article = publicArticleQueryService.requirePublishedArticle(tenantId, slug);
+        articleViewAnalyticsService.trackArticleView(tenantId, article, "public-view", request.getServerName());
+        return ResponseEntity.ok(Response.ok(publicArticleViewMapper.toPublicView(article)));
     }
 
     public record PublicArticleView(
