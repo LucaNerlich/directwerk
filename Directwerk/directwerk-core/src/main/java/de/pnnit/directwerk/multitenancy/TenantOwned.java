@@ -7,10 +7,5 @@ import de.pnnit.directwerk.modules.core.entity.Tenant;
  */
 public interface TenantOwned {
 
-    /**
- * Provides the tenant associated with this entity.
- *
- * @return the associated tenant
- */
-Tenant getTenant();
+    Tenant getTenant();
 }

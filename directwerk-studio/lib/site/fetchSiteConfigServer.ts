@@ -15,11 +15,3 @@ export async function fetchSiteConfigServerOptional(
         parseEnvelope: parseStudioSiteConfigEnvelope,
     })
 }
-
-export async function fetchSiteConfigServer(host: string): Promise<SiteConfig> {
-    const config = await fetchSiteConfigServerOptional(host)
-    if (config === null) {
-        throw new Error(`site-config unavailable for host ${host}`)
-    }
-    return config
-}

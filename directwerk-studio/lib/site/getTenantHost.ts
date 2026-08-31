@@ -16,7 +16,6 @@ async function resolveCandidateTenantHost(): Promise<string | null> {
     })
 }
 
-/** Resolves the workspace host from the selection cookie (shared studio login). */
 export async function getTenantHost(): Promise<string | null> {
     return resolveCandidateTenantHost()
 }

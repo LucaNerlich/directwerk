@@ -56,18 +56,6 @@ public class EpisodeService {
                 .orElseThrow(() -> new EpisodeNotFoundException(episodeId));
     }
 
-    /**
-     * Creates a tenant-scoped podcast episode draft.
-     *
-     * @param tenantId the tenant that owns the episode
-     * @param seriesId the series to which the episode belongs
-     * @param rawSlug the episode slug before normalization
-     * @param audioAssetId the optional ready audio asset to attach
-     * @param coverAssetId the optional cover asset
-     * @param formatIds the episode format identifiers
-     * @param categoryIds the episode category identifiers
-     * @return the newly created episode draft
-     */
     @Transactional
     @RequiresModule(PodcastModule.KEY)
     public Episode createDraft(

@@ -15,7 +15,7 @@ function sleep(ms: number): Promise<void> {
     })
 }
 
-export function computeRemoteIngestPercent(asset: MediaAsset): number | null {
+function computeRemoteIngestPercent(asset: MediaAsset): number | null {
     const transferred = asset.bytesTransferred ?? 0
     if (asset.sizeBytes !== null && asset.sizeBytes > 0) {
         return Math.min(100, Math.round((transferred / asset.sizeBytes) * 100))
@@ -23,7 +23,7 @@ export function computeRemoteIngestPercent(asset: MediaAsset): number | null {
     return null
 }
 
-export async function waitForRemoteIngest(
+async function waitForRemoteIngest(
     tenantHost: string,
     assetId: number,
     onProgress: (progress: number | null, asset: MediaAsset) => void,
@@ -54,9 +54,6 @@ export async function waitForRemoteIngest(
     }
 }
 
-/**
- * Starts a background remote ingest and polls until the asset is READY.
- */
 export async function ingestRemoteAssetWithProgress(
     tenantHost: string,
     input: IngestRemoteAssetInput,

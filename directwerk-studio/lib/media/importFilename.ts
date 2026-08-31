@@ -1,6 +1,3 @@
-/**
- * Derives a filename hint from a remote import URL, falling back when the path is empty.
- */
 export function filenameFromImportUrl(url: string, fallback: string): string {
     const trimmed = url.trim()
     if (trimmed.length === 0) {

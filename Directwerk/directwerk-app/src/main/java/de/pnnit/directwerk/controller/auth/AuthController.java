@@ -31,15 +31,6 @@ public class AuthController {
     private final EmailVerificationService emailVerificationService;
     private final DirectwerkConfig directwerkConfig;
 
-    /**
-     * Creates an authentication controller with the services and configuration required by its endpoints.
-     *
-     * @param userAccountService service for user registration
-     * @param tenantResolver service for resolving tenants from requests
-     * @param passwordResetService service for password reset operations
-     * @param invitationAcceptanceService service for accepting invitations
-     * @param directwerkConfig application configuration
-     */
     public AuthController(
             UserAccountService userAccountService,
             TenantResolver tenantResolver,
@@ -57,11 +48,6 @@ public class AuthController {
     }
 
     /**
-     * Registers a user for the tenant associated with the request host.
-     *
-     * @param body    the user's registration details
-     * @param request the HTTP request used to resolve the tenant
-     * @return the created user's identifier and email, or a conflict response if the user already exists
      * @throws de.pnnit.directwerk.multitenancy.TenantNotFoundException if no tenant matches the request host
      */
     @PostMapping("/register")
@@ -76,12 +62,6 @@ public class AuthController {
                 .body(Response.created(new RegisterResponse(user.getId(), user.getEmail())));
     }
 
-    /**
-     * Accepts an invitation and creates or activates the associated user account.
-     *
-     * @param body the invitation token and account details
-     * @return a response containing the accepted user's identifier and email, or an error for an invalid invitation token
-     */
     @PostMapping("/accept-invite")
     ResponseEntity<Response<AcceptInviteResponse>> acceptInvite(@Valid @RequestBody AcceptInviteRequest body) {
         try {
@@ -94,9 +74,6 @@ public class AuthController {
     }
 
     /**
-     * Initiates a password reset request for the specified email address.
-     *
-     * @param body the password reset request containing the email address
      * @return a response containing the reset token when developer token exposure is enabled
      */
     @PostMapping("/forgot-password")
@@ -108,12 +85,6 @@ public class AuthController {
         return ResponseEntity.accepted().body(Response.accepted(new ForgotPasswordResponse(devResetToken)));
     }
 
-    /**
-     * Resets a user's password using a valid reset token.
-     *
-     * @param body the reset token and new password
-     * @return an empty successful response, or an error response when the reset token is invalid
-     */
     @PostMapping("/reset-password")
     ResponseEntity<Response<Void>> resetPassword(@Valid @RequestBody ResetPasswordRequest body) {
         try {
@@ -125,9 +96,6 @@ public class AuthController {
         }
     }
 
-    /**
-     * Verifies a registered user's email address using a verification token from email.
-     */
     @PostMapping("/verify-email")
     ResponseEntity<Response<VerifyEmailResponse>> verifyEmail(@Valid @RequestBody VerifyEmailRequest body) {
         try {

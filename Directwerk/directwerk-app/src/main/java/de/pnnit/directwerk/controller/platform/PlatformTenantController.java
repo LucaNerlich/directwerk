@@ -37,14 +37,6 @@ public class PlatformTenantController {
     private final DirectwerkConfig directwerkConfig;
     private final PlatformTenantStatsService platformTenantStatsService;
 
-    /**
-     * Creates a controller for platform tenant lifecycle endpoints.
-     *
-     * @param tenantManagementService service used to manage tenant lifecycle operations
-     * @param tenantDomainService      service used for platform domain operations
-     * @param directwerkConfig         configuration controlling development token exposure
-     * @param platformTenantStatsService service used to load tenant usage stats
-     */
     public PlatformTenantController(
             TenantManagementService tenantManagementService,
             TenantDomainService tenantDomainService,
@@ -57,23 +49,12 @@ public class PlatformTenantController {
         this.platformTenantStatsService = platformTenantStatsService;
     }
 
-    /**
-     * Lists all tenants.
-     *
-     * @return the tenant list response
-     */
     @GetMapping
     ResponseEntity<Response<TenantListResponse>> listTenants() {
         List<TenantListItemView> tenants = tenantManagementService.listTenants();
         return ResponseEntity.ok(Response.ok(new TenantListResponse(tenants)));
     }
 
-    /**
-     * Creates a tenant and includes administrator invitation details when available.
-     *
-     * @param request validated tenant and administrator details
-     * @return the created tenant and invitation details, or a conflict response when the tenant slug already exists
-     */
     @PostMapping
     ResponseEntity<Response<TenantCreationResponse>> createTenant(@Valid @RequestBody CreateTenantRequest request) {
                 TenantCreationResult result = tenantManagementService.createTenant(
@@ -104,12 +85,6 @@ public class PlatformTenantController {
         ));
     }
 
-    /**
-     * Retrieves detailed information for a tenant.
-     *
-     * @param tenantId the tenant identifier
-     * @return the tenant details
-     */
     @GetMapping("/{tenantId}")
     ResponseEntity<Response<TenantDetailResponse>> getTenant(@PathVariable Long tenantId) {
         TenantDetailView tenant = tenantManagementService.getTenant(tenantId);
@@ -117,13 +92,6 @@ public class PlatformTenantController {
         return ResponseEntity.ok(Response.ok(new TenantDetailResponse(tenant, stats.episodeCount(), stats.subscriberCount())));
     }
 
-    /**
-     * Updates a tenant's name and slug.
-     *
-     * @param tenantId the identifier of the tenant to update
-     * @param request the requested tenant name and slug
-     * @return the updated tenant details, or a conflict response when the slug already exists
-     */
     @PatchMapping("/{tenantId}")
     ResponseEntity<Response<TenantDetailView>> updateTenant(
             @PathVariable Long tenantId,
@@ -134,35 +102,16 @@ public class PlatformTenantController {
         ));
     }
 
-    /**
-     * Suspends the specified tenant.
-     *
-     * @param tenantId the ID of the tenant to suspend
-     * @return the suspended tenant details
-     */
     @PostMapping("/{tenantId}/suspend")
     ResponseEntity<Response<TenantDetailView>> suspendTenant(@PathVariable Long tenantId) {
         return ResponseEntity.ok(Response.ok(tenantManagementService.suspendTenant(tenantId)));
     }
 
-    /**
-     * Reactivates a suspended tenant.
-     *
-     * @param tenantId the identifier of the tenant to reactivate
-     * @return the reactivated tenant details
-     */
     @PostMapping("/{tenantId}/reactivate")
     ResponseEntity<Response<TenantDetailView>> reactivateTenant(@PathVariable Long tenantId) {
         return ResponseEntity.ok(Response.ok(tenantManagementService.reactivateTenant(tenantId)));
     }
 
-    /**
-     * Forces verification of a tenant domain.
-     *
-     * @param tenantId the tenant identifier
-     * @param host     the domain host to verify
-     * @return         the verified domain details
-     */
     @PostMapping("/{tenantId}/domains/{host:.+}/verify")
     ResponseEntity<Response<DomainView>> forceVerifyDomain(
             @PathVariable Long tenantId,
@@ -172,12 +121,6 @@ public class PlatformTenantController {
         return ResponseEntity.ok(Response.ok(new DomainView(domain.getHost(), domain.isPrimary(), domain.isVerified())));
     }
 
-    /**
-     * Converts a tenant entity into its API view representation.
-     *
-     * @param tenant the tenant to convert
-     * @return the tenant view
-     */
     public record TenantListResponse(List<TenantListItemView> content) {
     }
 

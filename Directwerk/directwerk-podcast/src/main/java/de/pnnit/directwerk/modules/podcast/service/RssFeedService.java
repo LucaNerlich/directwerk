@@ -116,14 +116,6 @@ public class RssFeedService {
     }
 
     /**
-     * Converts an entitled episode into a private RSS enclosure representation.
-     *
-     * @param episode   the episode to convert
-     * @param tenant    the tenant that owns the episode
-     * @param feedToken the subscriber feed token used for private enclosure access
-     * @param scheme    the URL scheme
-     * @param host      the URL host
-     * @param port      the URL port
      * @return the RSS episode representation when the episode has ready audio; otherwise, an empty optional
      */
     private Optional<RssXmlBuilder.RssEpisode> toPrivateRssEpisode(

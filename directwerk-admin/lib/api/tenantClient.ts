@@ -56,23 +56,6 @@ export async function getTenantEnvelope<T>(
     return envelopeResult(parser, await tenantFetchRaw(path, {method: 'GET'}), invalidMessage).data
 }
 
-export async function postTenantEnvelope<T>(
-    path: string,
-    body: object,
-    parser: (value: unknown) => ApiEnvelope<T> | null,
-    invalidMessage: string,
-): Promise<T> {
-    return envelopeResult(
-        parser,
-        await tenantFetchRaw(path, {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify(body),
-        }),
-        invalidMessage,
-    ).data
-}
-
 export async function getTenantData<T>(path: string): Promise<T> {
     return tenantRequest<T>(path, {method: 'GET'})
 }

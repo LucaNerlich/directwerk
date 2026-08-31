@@ -448,23 +448,10 @@ public class RssFeedParser {
         return candidate;
     }
 
-    /**
-     * Converts a blank string to {@code null} and trims nonblank values.
-     *
-     * @param value the string to normalize
-     * @return the trimmed value, or {@code null} if the input is {@code null} or blank
-     */
     private static String blankToNull(String value) {
         return value == null || value.isBlank() ? null : value.trim();
     }
 
-    /**
-     * Limits a string to the specified maximum length.
-     *
-     * @param value     the string to truncate
-     * @param maxLength the maximum number of characters to retain
-     * @return the original string when it fits within the limit; otherwise, its truncated and trimmed value
-     */
     private static String truncate(String value, int maxLength) {
         if (value == null || value.length() <= maxLength) {
             return value;
@@ -473,10 +460,6 @@ public class RssFeedParser {
     }
 
     /**
-     * Bounds a GUID value, replacing oversized values with a SHA-256 identifier.
-     *
-     * @param value the GUID value to normalize
-     * @return the trimmed GUID, or a SHA-256 identifier when it exceeds 512 characters
      * @throws IllegalStateException if SHA-256 is unavailable
      */
     private static String boundedGuid(String value) {

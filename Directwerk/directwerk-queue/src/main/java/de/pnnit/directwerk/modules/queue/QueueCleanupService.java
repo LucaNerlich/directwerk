@@ -21,13 +21,6 @@ public class QueueCleanupService {
     private final DirectwerkConfig directwerkConfig;
     private final Clock clock;
 
-    /**
-     * Creates a service for removing stale terminal queue jobs.
-     *
-     * @param queueRepository data access for terminal queue jobs
-     * @param directwerkConfig configuration for queue cleanup
-     * @param clock           source of the current time
-     */
     public QueueCleanupService(
             QueueRepository queueRepository,
             DirectwerkConfig directwerkConfig,
@@ -38,11 +31,6 @@ public class QueueCleanupService {
         this.clock = clock;
     }
 
-    /**
-     * Purges stale terminal jobs in bounded batches.
-     *
-     * @return total rows deleted in this run
-     */
     public int cleanup() {
         var properties = directwerkConfig.queue();
         if (!properties.enabled()) {

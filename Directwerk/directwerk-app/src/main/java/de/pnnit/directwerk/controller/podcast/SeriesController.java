@@ -109,13 +109,6 @@ public class SeriesController {
                 .body(Response.created(toView(series, rssOrigin, tenantSlug)));
     }
 
-    /**
-     * Updates a podcast series and returns its current representation.
-     *
-     * @param seriesId the identifier of the series to update
-     * @param request the updated series fields
-     * @return the updated series, or a conflict response when the slug is already in use
-     */
     @PutMapping("/{seriesId}")
     ResponseEntity<Response<SeriesView>> updateSeries(
             @PathVariable Long seriesId,
@@ -140,14 +133,6 @@ public class SeriesController {
         return ResponseEntity.ok(Response.ok(toView(series, rssOrigin, tenantSlug)));
     }
 
-    /**
-     * Converts a podcast series into its API view, including its RSS feed URL when RSS details are available.
-     *
-     * @param series    the podcast series to convert
-     * @param rssOrigin the public origin used to build the RSS feed URL
-     * @param tenantSlug the tenant slug used to build the RSS feed URL
-     * @return the API view representing the series
-     */
     private static String rssOrigin(HttpServletRequest request) {
         return PublicUrlBuilder.baseUrl(request.getScheme(), request.getServerName(), request.getServerPort());
     }

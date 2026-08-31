@@ -394,18 +394,6 @@ public class RemoteAssetIngestService implements RemoteAssetIngestApi {
         mediaAssetRepository.delete(asset);
     }
 
-    /**
-     * Streams an asset to S3 using a single request when its declared length is available,
-     * or multipart upload otherwise.
-     *
-     * @param bucket         the destination S3 bucket
-     * @param key            the destination object key
-     * @param mimeType       the asset's MIME type
-     * @param declaredLength the asset's declared length, when available
-     * @param body           the limited input stream containing the asset
-     * @return the number of bytes read from the asset
-     * @throws IOException if reading the asset fails
-     */
     private long streamToS3(
             String bucket,
             String key,
@@ -429,14 +417,6 @@ public class RemoteAssetIngestService implements RemoteAssetIngestApi {
     }
 
     /**
-     * Uploads the remote asset using S3 multipart upload.
-     *
-     * @param bucket the destination S3 bucket
-     * @param key the destination object key
-     * @param mimeType the object's MIME type
-     * @param body the asset stream
-     * @return the number of bytes uploaded
-     * @throws IOException if reading the asset fails
      * @throws UploadValidationException if the asset body is empty
      */
     private long uploadMultipart(String bucket, String key, String mimeType, ProgressTrackingInputStream body)
@@ -547,14 +527,6 @@ public class RemoteAssetIngestService implements RemoteAssetIngestApi {
         }
     }
 
-    /**
-     * Resolves an allowed MIME type for an asset from the remote content type or filename.
-     *
-     * @param assetType   the asset category used to validate the MIME type
-     * @param contentType the remote content type, when available
-     * @param filename    the filename used for MIME type inference
-     * @return            the normalized or inferred allowed MIME type
-     */
     private static String resolveMime(AssetType assetType, String contentType, String filename) {
         if (contentType != null && !contentType.isBlank()) {
             String normalized = MediaUploadRules.normalizeMime(contentType);
@@ -578,13 +550,6 @@ public class RemoteAssetIngestService implements RemoteAssetIngestApi {
         return inferred;
     }
 
-    /**
-     * Builds the tenant-scoped S3 key for a media asset.
-     *
-     * @param tenantSlug the tenant identifier used in the key
-     * @param asset      the asset whose visibility, type, identifier, and filename determine the key
-     * @return the S3 key for the asset
-     */
     private static String buildFinalKey(String tenantSlug, MediaAsset asset) {
         String visibilityFolder = asset.getVisibility() == AssetVisibility.PUBLIC ? "public" : "private";
         String typeFolder = MediaUploadRules.typeFolder(asset.getAssetType());
@@ -598,12 +563,6 @@ public class RemoteAssetIngestService implements RemoteAssetIngestApi {
                 : TenantAssetKeys.privateKey(tenantSlug, relative);
     }
 
-    /**
-     * Attempts to delete an S3 object while suppressing cleanup failures.
-     *
-     * @param bucket the S3 bucket containing the object
-     * @param key    the object's S3 key
-     */
     private void deleteObjectQuietly(String bucket, String key) {
         try {
             s3Client.deleteObject(DeleteObjectRequest.builder().bucket(bucket).key(key).build());

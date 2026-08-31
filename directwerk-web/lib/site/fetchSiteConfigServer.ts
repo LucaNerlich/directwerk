@@ -9,7 +9,7 @@ import {parsePublicSiteConfigEnvelope} from '@directwerk/api/validation/public'
 import type {PublicSiteConfig} from '@directwerk/api/types'
 import {directwerkFetch} from '@/lib/server/api'
 
-export async function fetchSiteConfigServerOptional(
+async function fetchSiteConfigServerOptional(
     host: string,
 ): Promise<PublicSiteConfig | null> {
     return fetchSiteConfigSharedOptional({

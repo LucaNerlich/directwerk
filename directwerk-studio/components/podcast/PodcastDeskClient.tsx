@@ -20,11 +20,6 @@ import type {EpisodeSummary, FormatSummary, SeriesSummary} from '@directwerk/api
 import {getClientTenantHost} from '@directwerk/api/tenant'
 import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
 
-/**
- * Displays the podcast overview and guides users through setting up and publishing podcast content.
- *
- * @returns The rendered podcast overview.
- */
 export default function PodcastDeskClient(): React.JSX.Element {
     const router = useRouter()
     const authRedirect = useAuthRequired()

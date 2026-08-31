@@ -88,11 +88,6 @@ public class GlobalExceptionHandler {
     }
 
     /**
-     * Handles attempts to create or register a domain that already exists.
-     *
-     * @return a conflict response with the {@code DOMAIN_ALREADY_EXISTS} error code and exception message
-     */
-    /**
      * Handles every resource-uniqueness conflict: the API error code travels on the exception,
      * so one handler replaces all controller-local catch-relabel blocks.
      *
@@ -109,24 +104,12 @@ public class GlobalExceptionHandler {
         return conflict("DOMAIN_ALREADY_EXISTS", ex);
     }
 
-    /**
-     * Handles domain verification failures.
-     *
-     * @param ex the domain verification exception
-     * @return a bad-request response containing the verification failure details
-     */
     @ExceptionHandler(DomainVerificationException.class)
     ResponseEntity<Response<Void>> handleDomainVerification(DomainVerificationException ex) {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                 .body(Response.error(400, "DOMAIN_VERIFICATION_FAILED", ex.getMessage()));
     }
 
-    /**
-     * Handles requests that reference a tenant that cannot be found.
-     *
-     * @param ex the exception containing the tenant lookup failure message
-     * @return a 404 response with the {@code TENANT_NOT_FOUND} error code and exception message
-     */
     @ExceptionHandler(TenantNotFoundException.class)
     ResponseEntity<Response<Void>> handleTenantNotFound(TenantNotFoundException ex) {
         return notFound("TENANT_NOT_FOUND", ex);
@@ -212,77 +195,36 @@ public class GlobalExceptionHandler {
         return conflict("CANNOT_DEACTIVATE_CORE_MODULE", ex);
     }
 
-    /**
-     * Handles attempts by a tenant admin to deactivate their own membership.
-     *
-     * @param ex the exception describing the self-deactivation attempt
-     * @return a conflict response with the {@code CANNOT_DEACTIVATE_SELF} error code
-     */
     @ExceptionHandler(CannotDeactivateSelfException.class)
     ResponseEntity<Response<Void>> handleCannotDeactivateSelf(CannotDeactivateSelfException ex) {
         return conflict("CANNOT_DEACTIVATE_SELF", ex);
     }
 
-    /**
-     * Handles attempts to deactivate the last remaining active tenant admin.
-     *
-     * @param ex the exception describing the last-admin deactivation attempt
-     * @return a conflict response with the {@code CANNOT_DEACTIVATE_LAST_ADMIN} error code
-     */
     @ExceptionHandler(CannotDeactivateLastAdminException.class)
     ResponseEntity<Response<Void>> handleCannotDeactivateLastAdmin(CannotDeactivateLastAdminException ex) {
         return conflict("CANNOT_DEACTIVATE_LAST_ADMIN", ex);
     }
 
-    /**
-     * Handles requests that reference a tenant membership that cannot be found.
-     *
-     * @param ex the exception containing the membership lookup failure message
-     * @return a 404 response with the {@code TENANT_MEMBERSHIP_NOT_FOUND} error code
-     */
     @ExceptionHandler(TenantMembershipNotFoundException.class)
     ResponseEntity<Response<Void>> handleTenantMembershipNotFound(TenantMembershipNotFoundException ex) {
         return notFound("TENANT_MEMBERSHIP_NOT_FOUND", ex);
     }
 
-    /**
-     * Handles requests that reference a platform administrator that does not exist.
-     *
-     * @return an error response with HTTP status 404 and code {@code PLATFORM_ADMIN_NOT_FOUND}
-     */
     @ExceptionHandler(PlatformAdminNotFoundException.class)
     ResponseEntity<Response<Void>> handlePlatformAdminNotFound(PlatformAdminNotFoundException ex) {
         return notFound("PLATFORM_ADMIN_NOT_FOUND", ex);
     }
 
-    /**
-     * Handles attempts to revoke the current administrator's access.
-     *
-     * @param ex the exception describing the revocation conflict
-     * @return a conflict response with the exception message
-     */
     @ExceptionHandler(CannotRevokeSelfException.class)
     ResponseEntity<Response<Void>> handleCannotRevokeSelf(CannotRevokeSelfException ex) {
         return conflict("CANNOT_REVOKE_SELF", ex);
     }
 
-    /**
-     * Handles attempts to revoke the last platform administrator.
-     *
-     * @param ex the exception describing why the revocation cannot proceed
-     * @return a conflict response containing the error details
-     */
     @ExceptionHandler(CannotRevokeLastPlatformAdminException.class)
     ResponseEntity<Response<Void>> handleCannotRevokeLastPlatformAdmin(CannotRevokeLastPlatformAdminException ex) {
         return conflict("CANNOT_REVOKE_LAST_ADMIN", ex);
     }
 
-    /**
-     * Handles missing subscription product errors.
-     *
-     * @param ex the exception containing the error details
-     * @return a not-found error response for the missing subscription product
-     */
     @ExceptionHandler(SubscriptionProductNotFoundException.class)
     ResponseEntity<Response<Void>> handleSubscriptionProductNotFound(SubscriptionProductNotFoundException ex) {
         return notFound("PRODUCT_NOT_FOUND", ex);
@@ -329,81 +271,39 @@ public class GlobalExceptionHandler {
         return conflict("PUBLICATION_INVALID_TRANSITION", ex);
     }
 
-    /**
-     * Handles episode validation failures by returning a standardized bad-request response.
-     *
-     * @param ex the episode validation exception
-     * @return a response containing the validation error code and message
-     */
     @ExceptionHandler(EpisodeValidationException.class)
     ResponseEntity<Response<Void>> handleEpisodeValidation(EpisodeValidationException ex) {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                 .body(Response.error(400, "EPISODE_VALIDATION_FAILED", ex.getMessage()));
     }
 
-    /**
-     * Handles RSS import failures by returning an error response with the status, code, and message from the exception.
-     *
-     * @param ex the RSS import exception to convert into an error response
-     * @return the corresponding error response
-     */
     @ExceptionHandler(RssImportException.class)
     ResponseEntity<Response<Void>> handleRssImport(RssImportException ex) {
         return ResponseEntity.status(ex.getStatus())
                 .body(Response.error(ex.getStatus(), ex.getCode(), ex.getMessage()));
     }
 
-    /**
-     * Handles article validation failures by returning a bad-request error response.
-     *
-     * @param ex the article validation exception
-     * @return a response containing the article validation error details
-     */
     @ExceptionHandler(ArticleValidationException.class)
     ResponseEntity<Response<Void>> handleArticleValidation(ArticleValidationException ex) {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                 .body(Response.error(400, "ARTICLE_VALIDATION_FAILED", ex.getMessage()));
     }
 
-    /**
-     * Handles missing subscription errors.
-     *
-     * @param ex the exception describing the missing subscription
-     * @return a not-found response containing the subscription error details
-     */
     @ExceptionHandler(SubscriptionNotFoundException.class)
     ResponseEntity<Response<Void>> handleSubscriptionNotFound(SubscriptionNotFoundException ex) {
         return notFound("SUBSCRIPTION_NOT_FOUND", ex);
     }
 
-    /**
-     * Handles a missing job by returning a standardized not-found error response.
-     *
-     * @param ex the exception describing the missing job
-     * @return a 404 response containing the job-not-found error
-     */
     @ExceptionHandler(JobNotFoundException.class)
     ResponseEntity<Response<Void>> handleJobNotFound(JobNotFoundException ex) {
         return notFound("JOB_NOT_FOUND", ex);
     }
 
-    /**
-     * Handles job conflict exceptions by returning a standardized conflict response.
-     *
-     * @param ex the exception describing the job conflict
-     * @return a response with HTTP status 409 and the conflict details
-     */
     @ExceptionHandler(JobConflictException.class)
     ResponseEntity<Response<Void>> handleJobConflict(JobConflictException ex) {
         return conflict("JOB_CONFLICT", ex);
     }
 
-    /**
-     * Handles access-denied errors by returning a standardized forbidden response.
-     *
-     * @param ex the access-denied exception
-     * @return a forbidden error response
-     */
     @ExceptionHandler(AccessDeniedException.class)
     ResponseEntity<Response<Void>> handleAccessDenied(AccessDeniedException ex) {
         return ResponseEntity.status(HttpStatus.FORBIDDEN)

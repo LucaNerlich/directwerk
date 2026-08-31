@@ -106,15 +106,6 @@ public class SecurityConfig {
         return http.build();
     }
 
-    /**
-     * Configures stateless JWT-based security for application endpoints, including access rules and tenant filters.
-     *
-     * @param jwtDecoder                 decoder used to validate bearer tokens
-     * @param tenantContextFilter        filter that establishes tenant context after bearer-token authentication
-     * @param tenantMembershipGuardFilter filter that verifies tenant membership
-     * @param jwtAuthenticationConverter converter that maps JWT claims to authenticated authorities
-     * @return the configured security filter chain
-     */
     @Bean
     @Order(2)
     SecurityFilterChain apiSecurityFilterChain(

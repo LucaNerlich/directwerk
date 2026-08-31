@@ -3,7 +3,7 @@ import {fileURLToPath} from 'node:url'
 
 import {extraOptimizePackageImports} from './optimizePackageImports'
 
-export const directwerkTranspilePackages = ['@directwerk/ui', '@directwerk/api'] as const
+const directwerkTranspilePackages = ['@directwerk/ui', '@directwerk/api'] as const
 
 const monorepoRoot = path.join(path.dirname(fileURLToPath(import.meta.url)), '../..')
 

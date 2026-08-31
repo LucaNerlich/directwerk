@@ -1,7 +1,7 @@
 'use client'
 
 import {parseTenantHost} from '@directwerk/api/proxy'
-import {readTenantHostCookieFromDocument} from '@directwerk/api/tenant/tenantHostCookie'
+import {readTenantHostCookieFromDocument} from '@directwerk/api/tenant'
 
 /**
  * Tenant host for browser API calls on tenant-bound `directwerk-web` domains.

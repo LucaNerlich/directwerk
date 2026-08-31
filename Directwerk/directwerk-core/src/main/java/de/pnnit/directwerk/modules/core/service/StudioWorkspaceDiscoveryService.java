@@ -52,17 +52,18 @@ public class StudioWorkspaceDiscoveryService {
     public List<StudioWorkspaceView> discoverWorkspaces(String email, String password) {
         PasswordPolicy.validate(password);
 
-        User user = userRepository.findByEmailIgnoreCase(EmailNormalizer.normalize(email))
-                .filter(found -> found.getStatus() == UserStatus.ACTIVE)
-                .orElseThrow(this::invalidCredentials);
+        Optional<User> user = userRepository.findByEmailIgnoreCase(EmailNormalizer.normalize(email))
+                .filter(found -> found.getStatus() == UserStatus.ACTIVE);
 
-        if (!passwordEncoder.matches(password, user.getPasswordHash())) {
-            passwordEncoder.matches(password, missingUserEncodedPassword());
+        String hashToVerify = user.map(User::getPasswordHash).orElseGet(this::missingUserEncodedPassword);
+        boolean passwordMatches = passwordEncoder.matches(password, hashToVerify);
+
+        if (user.isEmpty() || !passwordMatches) {
             throw invalidCredentials();
         }
 
         List<TenantMembership> memberships = tenantMembershipRepository.findActiveMembershipsByUserId(
-                user.getId(),
+                user.get().getId(),
                 MembershipStatus.ACTIVE
         );
 

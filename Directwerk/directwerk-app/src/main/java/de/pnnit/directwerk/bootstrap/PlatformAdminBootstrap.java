@@ -34,11 +34,6 @@ public class PlatformAdminBootstrap implements ApplicationRunner {
     @PersistenceContext
     private EntityManager entityManager;
 
-    /**
-     * Creates a platform admin bootstrap component from the application configuration.
-     *
-     * @param properties application properties containing the platform admin bootstrap settings
-     */
     @Autowired
     public PlatformAdminBootstrap(
             UserRepository userRepository,
@@ -49,14 +44,6 @@ public class PlatformAdminBootstrap implements ApplicationRunner {
         this(userRepository, platformAdminRepository, passwordEncoder, properties.bootstrap());
     }
 
-    /**
-     * Creates a bootstrap component with the repositories, password encoder, and bootstrap configuration it uses.
-     *
-     * @param userRepository the repository for user persistence
-     * @param platformAdminRepository the repository for platform administrator persistence
-     * @param passwordEncoder the encoder used for administrator passwords
-     * @param config the platform administrator bootstrap configuration
-     */
     PlatformAdminBootstrap(
             UserRepository userRepository,
             PlatformAdminRepository platformAdminRepository,

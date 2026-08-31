@@ -77,17 +77,8 @@ public class EpisodeEnclosureService {
     }
 
     /**
-     * Builds a stable public enclosure URL using a verified tenant domain.
      * The requested hostname is used only when it is an approved verified domain;
      * otherwise, the tenant's preferred verified domain is selected.
-     *
-     * @param tenantId           the tenant owning the enclosure
-     * @param scheme             the URL scheme
-     * @param requestedHostname the hostname requested by the caller
-     * @param port              the URL port
-     * @param tenantSlug         the tenant URL slug
-     * @param episodeSlug        the episode URL slug
-     * @return the stable public enclosure URL
      */
     @Transactional(readOnly = true)
     public String publicEnclosureUrl(

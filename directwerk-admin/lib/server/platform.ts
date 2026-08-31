@@ -208,10 +208,6 @@ export async function callPlatformApi<T>(
     }
 }
 
-/**
- * Maps a platform API failure status to the admin's localized form message,
- * mirroring the client-side catalog (`AUTH_REQUIRED`/`FORBIDDEN`/`CONFLICT`).
- */
 /** Maps platform tenant-create 409 codes to operator-facing copy. */
 export function createTenantConflictMessage(
     code: string | undefined,

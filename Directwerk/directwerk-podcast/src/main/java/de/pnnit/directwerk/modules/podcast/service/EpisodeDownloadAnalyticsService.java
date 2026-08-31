@@ -67,17 +67,6 @@ public class EpisodeDownloadAnalyticsService {
         }
     }
 
-    /**
-     * Builds the public RSS enclosure URL for an episode.
-     *
-     * @param tenantId    the tenant identifier
-     * @param scheme      the URL scheme
-     * @param hostname    the request hostname
-     * @param port        the request port
-     * @param tenantSlug  the tenant slug
-     * @param episodeSlug the episode slug
-     * @return the public RSS enclosure URL
-     */
     public String publicRssEnclosureUrl(
             Long tenantId,
             String scheme,
@@ -89,18 +78,6 @@ public class EpisodeDownloadAnalyticsService {
         return episodeEnclosureService.publicEnclosureUrl(tenantId, scheme, hostname, port, tenantSlug, episodeSlug);
     }
 
-    /**
-     * Builds the private RSS enclosure URL for an episode.
-     *
-     * @param tenantId    the tenant identifier
-     * @param scheme      the URL scheme
-     * @param hostname    the host name
-     * @param port        the network port
-     * @param tenantSlug  the tenant slug
-     * @param feedToken   the private feed token
-     * @param episodeSlug the episode slug
-     * @return the private RSS enclosure URL
-     */
     public String privateRssEnclosureUrl(
             Long tenantId,
             String scheme,

@@ -111,14 +111,6 @@ public class PlatformTenantUserController {
         return invitationResponseMapper.toCreatedResponse(invitation);
     }
 
-    /**
-     * Updates a tenant user's role.
-     *
-     * @param tenantId the tenant containing the membership
-     * @param userId   the user whose role is updated
-     * @param request  the request containing the new role
-     * @return the updated membership view
-     */
     @PatchMapping("/{userId}")
     ResponseEntity<Response<TenantUserView>> updateUserRole(
             @PathVariable Long tenantId,
