@@ -149,7 +149,10 @@ class HttpClientFixturesTest {
                 "27-custom-feeds.http",
                 "28-contact-form.http",
                 "28-platform-queue.http",
-                "29-podcast-import.http"
+                "29-podcast-import.http",
+                "30-article-rss.http",
+                "31-custom-article-feeds.http",
+                "32-tenant-article-feeds.http"
         );
         assertThat(Files.exists(httpDir.resolve("http-client.env.json"))).isTrue();
         assertThat(Files.exists(httpDir.resolve("http-client.private.env.example.json"))).isTrue();

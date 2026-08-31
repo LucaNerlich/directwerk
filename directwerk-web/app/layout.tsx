@@ -60,6 +60,7 @@ export default async function RootLayout({
             },
             publicSiteUrl: null,
             publicRssUrl: null,
+            publicArticleRssUrl: null,
             analytics: null,
             emailNotifyAvailable: false,
         }

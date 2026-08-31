@@ -3,8 +3,8 @@ package de.pnnit.directwerk.modules.podcast.job;
 import de.pnnit.directwerk.config.DirectwerkConfig;
 import de.pnnit.directwerk.modules.content.TenantEntitlementsChangedEvent;
 import de.pnnit.directwerk.modules.content.TenantRssSnapshotStaleEvent;
+import de.pnnit.directwerk.modules.digital.storage.FeedSnapshotStateStore;
 import de.pnnit.directwerk.modules.podcast.service.RssFeedRefreshScheduler;
-import de.pnnit.directwerk.modules.podcast.service.RssSnapshotStateStore;
 import de.pnnit.directwerk.modules.queue.JobEnqueueMetadata;
 import de.pnnit.directwerk.modules.queue.QueueService;
 import org.springframework.beans.factory.ObjectProvider;
@@ -20,13 +20,13 @@ public class RssFeedRefreshJobProducer implements RssFeedRefreshScheduler {
     private final ObjectProvider<QueueService> queueService;
     private final ObjectMapper objectMapper;
     private final DirectwerkConfig directwerkConfig;
-    private final RssSnapshotStateStore snapshotStateStore;
+    private final FeedSnapshotStateStore snapshotStateStore;
 
     public RssFeedRefreshJobProducer(
             ObjectProvider<QueueService> queueService,
             ObjectMapper objectMapper,
             DirectwerkConfig directwerkConfig,
-            RssSnapshotStateStore snapshotStateStore
+            FeedSnapshotStateStore snapshotStateStore
     ) {
         this.queueService = queueService;
         this.objectMapper = objectMapper;

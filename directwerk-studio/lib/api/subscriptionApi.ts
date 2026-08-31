@@ -1,8 +1,9 @@
 'use client'
 
-import {parseBillingDashboardEnvelope, parseLevelListEnvelope, parseProductEnvelope, parseProductListEnvelope, parseProductRuleListEnvelope, parseStripeOnboardEnvelope, parseStripeStatusEnvelope, parseSubscriptionGrantEnvelope, parseSubscriberFeedAdminEnvelope, parseSubscriberFeedAdminListEnvelope} from '@directwerk/api/validation/catalog'
+import {parseBillingDashboardEnvelope, parseLevelListEnvelope, parseProductEnvelope, parseProductListEnvelope, parseProductRuleListEnvelope, parseStripeOnboardEnvelope, parseStripeStatusEnvelope, parseSubscriptionGrantEnvelope, parseSubscriberFeedAdminEnvelope, parseSubscriberFeedAdminListEnvelope, parseArticleFeedAdminEnvelope, parseArticleFeedAdminListEnvelope} from '@directwerk/api/validation/catalog'
 
 import type {
+    ArticleFeedAdminView,
     BillingDashboard,
     GrantSubscriptionInput,
     LevelSummary,
@@ -214,6 +215,31 @@ export async function setSubscriberFeedEnabled(
         tenantHost,
         jsonInit('PUT', {enabled}),
         parseSubscriberFeedAdminEnvelope,
+        invalidFeedMessage,
+    )
+}
+
+export async function listArticleFeeds(
+    tenantHost: string,
+): Promise<ArticleFeedAdminView[]> {
+    return studioGet(
+        '/api/proxy/tenant/article-feeds',
+        tenantHost,
+        parseArticleFeedAdminListEnvelope,
+        'Der Server hat eine ungültige Feed-Liste gesendet.',
+    )
+}
+
+export async function setArticleFeedEnabled(
+    tenantHost: string,
+    feedId: number,
+    enabled: boolean,
+): Promise<ArticleFeedAdminView> {
+    return studioMutate(
+        `/api/proxy/tenant/article-feeds/${feedId}/enabled`,
+        tenantHost,
+        jsonInit('PUT', {enabled}),
+        parseArticleFeedAdminEnvelope,
         invalidFeedMessage,
     )
 }

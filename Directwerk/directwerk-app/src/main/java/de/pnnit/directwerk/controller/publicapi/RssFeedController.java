@@ -6,6 +6,7 @@ import de.pnnit.directwerk.modules.podcast.FeedBuilderModule;
 import de.pnnit.directwerk.modules.podcast.PodcastModule;
 import de.pnnit.directwerk.modules.podcast.PodcastRssModule;
 import de.pnnit.directwerk.modules.podcast.feed.SubscriberFeed;
+import de.pnnit.directwerk.modules.digital.storage.FeedRedirects;
 import de.pnnit.directwerk.modules.podcast.service.RssFeedDeliveryFacade;
 import de.pnnit.directwerk.modules.podcast.service.RssFeedSnapshotService;
 import de.pnnit.directwerk.modules.podcast.service.SubscriberFeedService;
@@ -44,7 +45,7 @@ public class RssFeedController {
     ResponseEntity<String> publicPodcastFeed(@PathVariable String tenantSlug) {
         Tenant tenant = tenantResolver.requireHostTenantBySlug(tenantSlug);
         var delivery = rssFeedSnapshotService.publicTenantFeed(tenant);
-        return RssFeedDeliveryFacade.rssRedirect(delivery.redirectUrl(), delivery.ready());
+        return FeedRedirects.rssRedirect(delivery.redirectUrl(), delivery.ready());
     }
 
     @GetMapping("/{seriesSlug}.xml")
@@ -55,7 +56,7 @@ public class RssFeedController {
     ) {
         Tenant tenant = tenantResolver.requireHostTenantBySlug(tenantSlug);
         var delivery = rssFeedSnapshotService.publicSeriesFeed(tenant, seriesSlug);
-        return RssFeedDeliveryFacade.rssRedirect(delivery.redirectUrl(), delivery.ready());
+        return FeedRedirects.rssRedirect(delivery.redirectUrl(), delivery.ready());
     }
 
     @GetMapping("/u/{feedToken}.xml")
@@ -67,7 +68,7 @@ public class RssFeedController {
         Tenant tenant = tenantResolver.requireHostTenantBySlug(tenantSlug);
         SubscriberFeed feed = subscriberFeedService.requireDeliverableFeed(tenant.getId(), feedToken);
         var delivery = rssFeedSnapshotService.privateFeed(tenant, feed);
-        return RssFeedDeliveryFacade.rssRedirect(delivery.redirectUrl(), delivery.ready());
+        return FeedRedirects.rssRedirect(delivery.redirectUrl(), delivery.ready());
     }
 
     @GetMapping("/e/{episodeSlug}.mp3")

@@ -53,6 +53,7 @@ class PublicSiteConfigControllerTest {
                 publicSiteUrl,
                 publicRssUrl,
                 null,
+                null,
                 StudioHome.PODCAST_DESK,
                 List.of(),
                 false

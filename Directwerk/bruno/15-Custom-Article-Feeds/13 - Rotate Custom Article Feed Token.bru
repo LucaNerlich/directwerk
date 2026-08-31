@@ -1,0 +1,40 @@
+meta {
+  name: 13 - Rotate Custom Article Feed Token
+  type: http
+  seq: 13
+}
+
+post {
+  url: {{baseUrl}}/api/v1/me/article-feeds/{{customArticleFeedId}}/rotate-token
+  body: none
+  auth: inherit
+}
+
+script:pre-request {
+  const oldUrl = bru.getVar("customArticleFeedUrl");
+  bru.setVar("oldCustomArticleFeedUrl", oldUrl);
+}
+
+script:post-response {
+  if (res.getStatus() === 200) {
+    bru.setVar("customArticleFeedUrl", res.body.data.url);
+  }
+}
+
+tests {
+  test("rotates the custom feed token", async function() {
+    expect(res.getStatus()).to.equal(200);
+    expect(res.body.data.url).to.include("/feeds/");
+    expect(res.body.data.url).to.match(/\.xml$/);
+
+    const oldUrl = bru.getVar("oldCustomArticleFeedUrl");
+    if (oldUrl) {
+      const oldResponse = await fetch(oldUrl);
+      expect(oldResponse.status).to.equal(404);
+    }
+  });
+}
+
+docs {
+  Invalidates the previous capability URL. Allowed without ARTICLE_FEED_BUILDER.
+}

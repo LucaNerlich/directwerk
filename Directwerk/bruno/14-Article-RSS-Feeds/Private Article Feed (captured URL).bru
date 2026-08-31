@@ -1,0 +1,29 @@
+meta {
+  name: Private Article Feed (captured URL)
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{articleFeedUrl}}
+  body: none
+  auth: none
+}
+
+headers {
+  Accept: application/rss+xml
+}
+
+tests {
+  test("returns expected status", function() {
+    const status = res.getStatus();
+    expect(status === 200 || status === 302 || status === 403 || status === 404).to.equal(true);
+    if (status === 403) {
+      expect(res.body.errors[0].code).to.equal("FEATURE_NOT_ENABLED");
+    }
+  });
+}
+
+docs {
+  Uses the absolute url captured by 02-Me/List My Article Feeds or Rotate Default Article Feed Token -- the token in the path is the capability secret, so no bearer auth is needed. Requires ARTICLE_RSS + SUBSCRIPTION active and an ACTIVE subscription.
+}

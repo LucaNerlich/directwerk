@@ -53,6 +53,7 @@ public class PublicSiteConfigController {
                 ),
                 config.publicSiteUrl(),
                 config.publicRssUrl(),
+                config.publicArticleRssUrl(),
                 analytics == null ? null : new AnalyticsResponse(
                         analytics.umamiWebsiteId(),
                         analytics.umamiHostUrl(),
@@ -70,6 +71,7 @@ public class PublicSiteConfigController {
             BrandingResponse branding,
             String publicSiteUrl,
             String publicRssUrl,
+            String publicArticleRssUrl,
             AnalyticsResponse analytics,
             StudioHome studioHome,
             java.util.List<StudioDesk> studioDesks,

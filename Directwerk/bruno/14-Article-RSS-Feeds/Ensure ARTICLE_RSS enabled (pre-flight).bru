@@ -1,0 +1,28 @@
+meta {
+  name: Ensure ARTICLE_RSS enabled (pre-flight)
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/api/v1/platform/tenants/{{tenantAId}}/modules/ARTICLE_RSS/activate
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{platformAccessToken}}
+}
+
+tests {
+  test("ARTICLE_RSS enabled before gate checks", function() {
+    expect(res.getStatus()).to.equal(200);
+    expect(res.body.data.enabledModules.includes("ARTICLE_RSS")).to.equal(true);
+  });
+}
+
+docs {
+  Guarantees tenant A starts the gate-check chain with ARTICLE_RSS on.
+  Each *(ARTICLE_RSS off)* request then deactivates in pre-request and restores in post-response,
+  so a failed assertion cannot leave the module off for later folders.
+}

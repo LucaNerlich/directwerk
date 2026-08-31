@@ -10,7 +10,7 @@ import static org.mockito.Mockito.when;
 
 import de.pnnit.directwerk.config.DirectwerkConfig;
 import de.pnnit.directwerk.modules.content.TenantRssSnapshotStaleEvent;
-import de.pnnit.directwerk.modules.podcast.service.RssSnapshotStateStore;
+import de.pnnit.directwerk.modules.digital.storage.FeedSnapshotStateStore;
 import de.pnnit.directwerk.modules.queue.JobEnqueueMetadata;
 import de.pnnit.directwerk.modules.queue.QueueService;
 import de.pnnit.directwerk.testsupport.TestObjectProviders;
@@ -27,7 +27,7 @@ class RssFeedRefreshJobProducerTest {
         QueueService queueService = mock(QueueService.class);
         ObjectProvider<QueueService> queueProvider = TestObjectProviders.returning(queueService);
         DirectwerkConfig config = mock(DirectwerkConfig.class);
-        RssSnapshotStateStore stateStore = mock(RssSnapshotStateStore.class);
+        FeedSnapshotStateStore stateStore = mock(FeedSnapshotStateStore.class);
         when(config.isQueueEnabled()).thenReturn(true);
         RssFeedRefreshJobProducer producer = new RssFeedRefreshJobProducer(
                 queueProvider,
@@ -59,7 +59,7 @@ class RssFeedRefreshJobProducerTest {
         QueueService queueService = mock(QueueService.class);
         ObjectProvider<QueueService> queueProvider = TestObjectProviders.returning(queueService);
         DirectwerkConfig config = mock(DirectwerkConfig.class);
-        RssSnapshotStateStore stateStore = mock(RssSnapshotStateStore.class);
+        FeedSnapshotStateStore stateStore = mock(FeedSnapshotStateStore.class);
         when(config.isQueueEnabled()).thenReturn(true);
         RssFeedRefreshJobProducer producer = new RssFeedRefreshJobProducer(
                 queueProvider,
@@ -86,7 +86,7 @@ class RssFeedRefreshJobProducerTest {
         QueueService queueService = mock(QueueService.class);
         ObjectProvider<QueueService> queueProvider = TestObjectProviders.returning(queueService);
         DirectwerkConfig config = mock(DirectwerkConfig.class);
-        RssSnapshotStateStore stateStore = mock(RssSnapshotStateStore.class);
+        FeedSnapshotStateStore stateStore = mock(FeedSnapshotStateStore.class);
         when(config.isQueueEnabled()).thenReturn(true);
         RssFeedRefreshJobProducer producer = new RssFeedRefreshJobProducer(
                 queueProvider,

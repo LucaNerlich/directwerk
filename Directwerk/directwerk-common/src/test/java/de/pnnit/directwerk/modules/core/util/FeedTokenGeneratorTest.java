@@ -1,4 +1,4 @@
-package de.pnnit.directwerk.modules.podcast.feed;
+package de.pnnit.directwerk.modules.core.util;
 
 import static org.assertj.core.api.Assertions.assertThat;
 

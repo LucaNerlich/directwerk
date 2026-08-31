@@ -362,6 +362,7 @@ export interface PublicSiteConfig {
         logoUrl: string | null
     }
     publicRssUrl: string | null
+    publicArticleRssUrl: string | null
     publicSiteUrl: string | null
     /** Umami analytics when the ANALYTICS module is enabled and configured. */
     analytics: SiteAnalytics | null
@@ -640,6 +641,36 @@ export interface SubscriberFeedView {
 
 export interface FeedPreview {
     episodeCount: number
+    sampleTitles: string[]
+}
+
+export interface ArticleFeedView {
+    id: number
+    title: string
+    isDefault: boolean
+    enabled: boolean
+    url: string
+    categoryIds: number[]
+    categories: PublicCategory[]
+    createdAt: string
+    updatedAt: string
+}
+
+export interface ArticleFeedAdminView {
+    id: number
+    userId: number
+    userEmail: string
+    title: string
+    isDefault: boolean
+    enabled: boolean
+    categoryIds: number[]
+    categories: PublicCategory[]
+    createdAt: string
+    updatedAt: string
+}
+
+export interface ArticleFeedPreview {
+    articleCount: number
     sampleTitles: string[]
 }
 

@@ -10,8 +10,8 @@ import de.pnnit.directwerk.modules.digital.exception.StorageNotConfiguredExcepti
 import de.pnnit.directwerk.modules.podcast.entity.Episode;
 import de.pnnit.directwerk.modules.podcast.entity.Format;
 import de.pnnit.directwerk.modules.podcast.repository.FormatRepository;
+import de.pnnit.directwerk.modules.core.util.FeedTokenGenerator;
 import de.pnnit.directwerk.modules.podcast.feed.FeedBuilderException;
-import de.pnnit.directwerk.modules.podcast.feed.FeedTokenGenerator;
 import de.pnnit.directwerk.modules.podcast.feed.SubscriberFeed;
 import de.pnnit.directwerk.modules.podcast.access.SubscriberFeedAccess;
 import de.pnnit.directwerk.modules.podcast.feed.SubscriberFeedFormatMatcher;

@@ -42,6 +42,9 @@
 ### | 28-contact-form.http | Public contact form + ALTCHA challenge |
 ### | 28-platform-queue.http | PlatformQueueController (enqueue/claim/complete) |
 ### | 29-podcast-import.http | PodcastImportController (RSS preview + stream ingest) |
+### | 30-article-rss.http | ArticleRssFeedController public/private feeds + FEATURE_NOT_ENABLED (after 22) |
+### | 31-custom-article-feeds.http | MeArticleFeed custom feeds + private RSS category filter (after 24 + 30) |
+### | 32-tenant-article-feeds.http | TenantArticleFeedController (list/enable/disable) |
 ###
 ### Controllers live under de.pnnit.directwerk.controller.*
 

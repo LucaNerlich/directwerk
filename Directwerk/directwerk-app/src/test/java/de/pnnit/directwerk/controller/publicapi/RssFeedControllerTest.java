@@ -58,7 +58,7 @@ class RssFeedControllerTest {
         Tenant tenant = tenant(10L, "alpha");
         when(tenantResolver.requireHostTenantBySlug("alpha")).thenReturn(tenant);
         when(rssFeedSnapshotService.publicTenantFeed(tenant))
-                .thenReturn(new RssFeedSnapshotService.FeedDelivery(url("https://cdn.example.test/podcast.xml")));
+                .thenReturn(new de.pnnit.directwerk.modules.digital.storage.GeneratedFeedSnapshotStore.FeedDelivery(url("https://cdn.example.test/podcast.xml")));
 
         ResponseEntity<String> response = controller().publicPodcastFeed("alpha");
 
@@ -73,7 +73,7 @@ class RssFeedControllerTest {
         Tenant tenant = tenant(10L, "alpha");
         when(tenantResolver.requireHostTenantBySlug("alpha")).thenReturn(tenant);
         when(rssFeedSnapshotService.publicTenantFeed(tenant))
-                .thenReturn(RssFeedSnapshotService.FeedDelivery.notReady());
+                .thenReturn(de.pnnit.directwerk.modules.digital.storage.GeneratedFeedSnapshotStore.FeedDelivery.notReady());
 
         ResponseEntity<String> response = controller().publicPodcastFeed("alpha");
 
@@ -87,7 +87,7 @@ class RssFeedControllerTest {
         Tenant tenant = tenant(10L, "alpha");
         when(tenantResolver.requireHostTenantBySlug("alpha")).thenReturn(tenant);
         when(rssFeedSnapshotService.publicSeriesFeed(tenant, "main-show"))
-                .thenReturn(new RssFeedSnapshotService.FeedDelivery(url("https://cdn.example.test/series.xml")));
+                .thenReturn(new de.pnnit.directwerk.modules.digital.storage.GeneratedFeedSnapshotStore.FeedDelivery(url("https://cdn.example.test/series.xml")));
 
         ResponseEntity<String> response = controller().publicSeriesFeed("alpha", "main-show");
 
@@ -114,7 +114,7 @@ class RssFeedControllerTest {
         when(tenantResolver.requireHostTenantBySlug("alpha")).thenReturn(tenant);
         when(subscriberFeedService.requireDeliverableFeed(10L, "tok")).thenReturn(feed);
         when(rssFeedSnapshotService.privateFeed(tenant, feed))
-                .thenReturn(new RssFeedSnapshotService.FeedDelivery(url("https://private.example.test/feed.xml")));
+                .thenReturn(new de.pnnit.directwerk.modules.digital.storage.GeneratedFeedSnapshotStore.FeedDelivery(url("https://private.example.test/feed.xml")));
 
         ResponseEntity<String> response = controller().privateSubscriberFeed("alpha", "tok");
 

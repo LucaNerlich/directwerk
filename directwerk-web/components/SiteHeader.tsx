@@ -27,6 +27,7 @@ const NAV_ITEMS: readonly NavItem[] = [
     {href: '/articles', label: 'Beiträge', module: 'DIGITAL_CONTENT'},
     {href: '/pricing', label: 'Preise', module: 'SUBSCRIPTION'},
     {href: '/feeds', label: 'Feeds', module: 'PODCAST_RSS'},
+    {href: '/article-feeds', label: 'Beitrags-Feeds', module: 'ARTICLE_RSS'},
     {href: '/downloads', label: 'Bonusdateien', module: 'DIGITAL_CONTENT', requiresAuth: true},
     {href: '/account', label: 'Konto'},
 ]

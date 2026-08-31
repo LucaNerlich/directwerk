@@ -59,7 +59,7 @@ class SubscriberFeedServiceTest {
     private RssFeedRefreshScheduler rssFeedRefreshScheduler;
 
     @Mock
-    private de.pnnit.directwerk.modules.podcast.feed.FeedTokenGenerator feedTokenGenerator;
+    private de.pnnit.directwerk.modules.core.util.FeedTokenGenerator feedTokenGenerator;
 
     @Mock
     private de.pnnit.directwerk.modules.core.service.ModuleGateService moduleGateService;
