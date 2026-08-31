@@ -20,4 +20,17 @@ class UmamiHostUrlValidatorTest {
         assertThat(UmamiHostUrlValidator.isValid("not-a-url")).isFalse();
         assertThat(UmamiHostUrlValidator.normalize("")).isNull();
     }
+
+    @Test
+    void acceptsPublicNetworkDestination() {
+        assertThat(UmamiHostUrlValidator.hasPubliclyRoutableHost("https://8.8.8.8")).isTrue();
+    }
+
+    @Test
+    void rejectsInternalNetworkDestinations() {
+        assertThat(UmamiHostUrlValidator.hasPubliclyRoutableHost("https://localhost")).isFalse();
+        assertThat(UmamiHostUrlValidator.hasPubliclyRoutableHost("https://127.0.0.1")).isFalse();
+        assertThat(UmamiHostUrlValidator.hasPubliclyRoutableHost("https://10.0.0.1")).isFalse();
+        assertThat(UmamiHostUrlValidator.hasPubliclyRoutableHost("https://169.254.169.254")).isFalse();
+    }
 }

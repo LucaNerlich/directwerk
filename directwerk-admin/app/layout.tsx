@@ -3,6 +3,7 @@ import {connection} from 'next/server'
 
 import AuthBootstrap from '@/components/AuthBootstrap'
 import Header from '@/components/Header'
+import UmamiAnalytics from '@/components/UmamiAnalytics'
 
 import './globals.css'
 
@@ -22,6 +23,7 @@ export default async function RootLayout({
     return (
         <html lang="en">
             <body>
+                <UmamiAnalytics />
                 <AuthBootstrap>
                     <Header>{children}</Header>
                 </AuthBootstrap>

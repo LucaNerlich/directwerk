@@ -1,30 +1,23 @@
 import Script from 'next/script'
 
-import type {SiteAnalytics} from '@directwerk/api/types'
-
-interface UmamiAnalyticsProps {
-    analytics: SiteAnalytics | null
-}
-
-export default function UmamiAnalytics({
-    analytics,
-}: UmamiAnalyticsProps): React.JSX.Element {
-    if (analytics === null) {
-        return <></>
-    }
-
+export default function UmamiAnalytics(): React.JSX.Element {
+    const websiteId = process.env.NEXT_PUBLIC_UMAMI_WEBSITE_ID
+    const umamiUrl = process.env.NEXT_PUBLIC_UMAMI_URL
     const sampleRate = process.env.NEXT_PUBLIC_UMAMI_SAMPLE_RATE ?? '0.25'
     const maskLevel = process.env.NEXT_PUBLIC_UMAMI_MASK_LEVEL ?? 'moderate'
     const maxDuration = process.env.NEXT_PUBLIC_UMAMI_MAX_DURATION ?? '300000'
-    const recorderUrl = `${analytics.umamiHostUrl}/recorder.js`
+
+    if (!websiteId || !umamiUrl) {
+        return <></>
+    }
 
     return (
         <>
             <Script
                 async
                 data-do-not-track="true"
-                data-website-id={analytics.umamiWebsiteId}
-                src={analytics.umamiScriptUrl}
+                data-website-id={websiteId}
+                src={`${umamiUrl}/script.js`}
                 strategy="afterInteractive"
             />
             <Script
@@ -33,8 +26,8 @@ export default function UmamiAnalytics({
                 data-mask-level={maskLevel}
                 data-max-duration={maxDuration}
                 data-sample-rate={sampleRate}
-                data-website-id={analytics.umamiWebsiteId}
-                src={recorderUrl}
+                data-website-id={websiteId}
+                src={`${umamiUrl}/recorder.js`}
                 strategy="afterInteractive"
             />
         </>

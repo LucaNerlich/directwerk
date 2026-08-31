@@ -1,5 +1,7 @@
 import type {Metadata} from 'next'
 
+import UmamiAnalytics from '@/components/UmamiAnalytics'
+
 import './globals.css'
 
 export const metadata: Metadata = {
@@ -10,7 +12,10 @@ export const metadata: Metadata = {
 export default function RootLayout({children}: Readonly<{children: React.ReactNode}>) {
     return (
         <html lang="de">
-            <body>{children}</body>
+            <body>
+                <UmamiAnalytics />
+                {children}
+            </body>
         </html>
     )
 }
