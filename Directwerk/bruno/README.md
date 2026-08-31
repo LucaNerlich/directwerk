@@ -62,9 +62,11 @@ token's 15-minute TTL expires, or when switching environments).
 | Folder | Covers |
 |---|---|
 | 01-Auth-and-Tokens | OAuth2 password/refresh grants (`/oauth2/token`) + `AuthController` self-service (register/verify-email/accept-invite/forgot-reset-password) |
-| 02-Me | `MeController`, `MeEpisodeController`, `MeFeedController`, `MeNotificationPreferencesController`, `MeBillingController` (checkout + portal) (subscriber token) |
-| 03-Public | `PublicSiteConfigController`, `PublicSubscriptionProductController`, `PublicPodcastController`, `PublicEpisodeDownloadController`, `PublicArticleController` (no auth) |
+| 02-Me | `MeController`, `MeEpisodeController`, `MeFeedController`, `MeArticleFeedController`, `MeNotificationPreferencesController`, `MeBillingController` (checkout + portal) (subscriber token) |
+| 03-Public | `PublicSiteConfigController`, `PublicSubscriptionProductController`, `PublicPodcastController`, `PublicEpisodeDownloadController`, `PublicArticleController` (incl. `/article-categories`) (no auth) |
 | 04-RSS-Feeds | `RssFeedController` — public/private feeds + enclosures; PODCAST_RSS-off → 403 `FEATURE_NOT_ENABLED` with per-request restore (pre-flight + cleanup ensures) |
+| 14-Article-RSS-Feeds | `ArticleRssFeedController` — public/private article feeds; ARTICLE_RSS-off → 403 `FEATURE_NOT_ENABLED` with per-request restore (pre-flight + cleanup ensures) |
+| 15-Custom-Article-Feeds | `MeArticleFeedController` custom (feed-builder) feeds + `ArticleRssFeedController` token URLs — preview, create/update, duplicate title, missing categories, disable/enable/rotate/delete, ARTICLE_FEED_BUILDER-off 404 |
 | 05-Security-and-Probes | `SecurityProbeController`, `ModuleProbeController`, and a `Multi-Tenant-Isolation` subfolder covering Host/JWT mismatch, platform-vs-tenant denial, and domain verification |
 | 06-Platform-Admin | Tenants, Modules, Admins, Tenant-Users (incl. deactivate/reactivate/resend-invite), Audit, Overview, Tenant-Media, Queue — `PLATFORM_ADMIN` role, no `Host` header |
 | 07-Tenant-Admin | Branding, Domains, Users, Products, Subscriptions (incl. subscribers list), Content-Email-Templates, Stripe Connect + billing dashboard — `TENANT_ADMIN` role |

@@ -11,6 +11,7 @@ export const DEFAULT_STUDIO_SITE_CONFIG: SiteConfig = {
         logoUrl: null,
     },
     publicRssUrl: null,
+    publicArticleRssUrl: null,
     publicSiteUrl: null,
     analytics: null,
     emailNotifyAvailable: false,

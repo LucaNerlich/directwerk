@@ -52,6 +52,7 @@ function config(overrides: Partial<SiteConfig> = {}): SiteConfig {
         branding: {siteTitle: null, primaryColor: null, secondaryColor: null, logoUrl: null},
         publicSiteUrl: 'http://localhost:3000',
         publicRssUrl: 'http://localhost:8080/feeds/tenant/podcast.xml',
+        publicArticleRssUrl: null,
         studioHome: 'OVERVIEW',
         studioDesks: ['WRITE', 'PODCAST'],
         analytics: null,

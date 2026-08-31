@@ -1,12 +1,13 @@
 'use client'
 
 import {parseLevelListEnvelope} from '@directwerk/api/validation/catalog'
-import {parsePublicFormatListEnvelope, parsePublicProductListEnvelope, parsePublicSiteConfigEnvelope} from '@directwerk/api/validation/public'
+import {parsePublicCategoryListEnvelope, parsePublicFormatListEnvelope, parsePublicProductListEnvelope, parsePublicSiteConfigEnvelope} from '@directwerk/api/validation/public'
 
 import type {
     ApiEnvelope,
     LevelSummary,
     PublicArticle,
+    PublicCategory,
     PublicEpisode,
     PublicFormat,
     PublicProduct,
@@ -78,6 +79,16 @@ export async function listPublicFormats(
         parsePublicFormatListEnvelope,
         await jsonRequest('/api/proxy/public/formats'),
         'The server returned an invalid format list.',
+    ).data
+}
+
+export async function listPublicArticleCategories(
+    tenantHost: string,
+): Promise<PublicCategory[]> {
+    return envelopeResult(
+        parsePublicCategoryListEnvelope,
+        await jsonRequest('/api/proxy/public/article-categories'),
+        'The server returned an invalid category list.',
     ).data
 }
 

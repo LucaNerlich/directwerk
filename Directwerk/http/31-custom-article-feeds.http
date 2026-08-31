@@ -1,0 +1,385 @@
+### Directwerk — Custom article feeds (feed builder)
+### Prerequisites:
+###   02-oauth2.http / 03-auth.http (subscriberAccessToken, platformAccessToken)
+###   06-platform-tenants.http (tenantAId)
+###   24-articles.http (article categories exist) — this file lists /api/v1/public/article-categories
+###   ARTICLE_RSS + SUBSCRIPTION on tenant A. This file activates ARTICLE_FEED_BUILDER.
+###
+### Covers: preview, create/update, duplicate title, missing categories, disable 404,
+### rotate, delete default forbidden, ARTICLE_FEED_BUILDER-off public URL 404 (not JSON 403),
+### cleanup delete.
+
+### @name ensureArticleFeedBuilderEnabled
+POST {{baseUrl}}/api/v1/platform/tenants/{{tenantAId}}/modules/ARTICLE_FEED_BUILDER/activate
+Authorization: Bearer {{platformAccessToken}}
+Accept: application/json
+
+> {%
+    client.test("Ensure ARTICLE_FEED_BUILDER on", function() {
+        client.assert(response.status === 200 || response.status === 409, "Expected 200 or 409");
+        if (response.status === 200) {
+            client.assert(response.body.data.enabledModules.includes("ARTICLE_FEED_BUILDER"), "Expected ARTICLE_FEED_BUILDER on");
+        }
+    });
+%}
+
+###
+
+### @name listPublicArticleCategoriesForFeedBuilder
+GET {{baseUrl}}/api/v1/public/article-categories
+Host: {{tenantAHost}}
+Accept: application/json
+
+> {%
+    client.test("List public article categories", function() {
+        client.assert(response.status === 200, "Expected 200");
+        client.assert(Array.isArray(response.body.data), "Expected categories array");
+        if (!client.global.get("articleCategoryId") && response.body.data.length > 0) {
+            client.global.set("articleCategoryId", response.body.data[0].id);
+        }
+        client.assert(client.global.get("articleCategoryId"), "articleCategoryId must be set before createCustomArticleFeed");
+    });
+%}
+
+###
+
+### @name previewCustomArticleFeed
+GET {{baseUrl}}/api/v1/me/article-feeds/preview?categoryIds={{articleCategoryId}}
+Host: {{tenantAHost}}
+Authorization: Bearer {{subscriberAccessToken}}
+Accept: application/json
+
+> {%
+    client.test("Preview custom article feed by categoryIds", function() {
+        client.assert(response.status === 200, "Expected 200");
+        client.assert(typeof response.body.data.articleCount === "number", "Expected articleCount");
+        client.assert(Array.isArray(response.body.data.sampleTitles), "Expected sampleTitles");
+    });
+%}
+
+###
+
+### @name listMeArticleFeedsBeforeCreate
+GET {{baseUrl}}/api/v1/me/article-feeds
+Host: {{tenantAHost}}
+Authorization: Bearer {{subscriberAccessToken}}
+Accept: application/json
+
+> {%
+    client.test("List article feeds and capture default id", function() {
+        client.assert(response.status === 200, "Expected 200");
+        client.assert(Array.isArray(response.body.data) && response.body.data.length > 0, "Expected at least the default feed");
+        const defaultFeed = response.body.data.find(feed => feed.isDefault) || response.body.data[0];
+        client.global.set("defaultArticleFeedId", defaultFeed.id);
+        client.assert(Array.isArray(defaultFeed.categoryIds), "Expected categoryIds on feed view");
+        client.assert(defaultFeed.categoryIds.length === 0, "Default feed has no category filter");
+    });
+%}
+
+###
+
+### @name createCustomArticleFeed
+< {%
+  client.global.set("customArticleFeedTitle", "Custom-" + Date.now().toString(36));
+%}
+POST {{baseUrl}}/api/v1/me/article-feeds
+Host: {{tenantAHost}}
+Authorization: Bearer {{subscriberAccessToken}}
+Content-Type: application/json
+Accept: application/json
+
+{
+  "title": "{{customArticleFeedTitle}}",
+  "categoryIds": [{{articleCategoryId}}]
+}
+
+> {%
+    client.test("Create custom article feed", function() {
+        client.assert(response.status === 201, "Expected 201");
+        client.assert(response.body.data.isDefault === false, "Expected custom feed");
+        client.assert(response.body.data.enabled === true, "Expected enabled");
+        client.assert(Array.isArray(response.body.data.categoryIds) && response.body.data.categoryIds.length > 0, "Expected categoryIds");
+        const feedUrl = response.body.data.url;
+        client.assert(typeof feedUrl === "string" && feedUrl.includes("/feeds/") && feedUrl.endsWith(".xml"), "Expected RSS URL");
+        client.global.set("customArticleFeedId", response.body.data.id);
+        client.global.set("customArticleFeedUrl", feedUrl);
+    });
+%}
+
+###
+
+### @name createCustomArticleFeedDuplicateTitle
+POST {{baseUrl}}/api/v1/me/article-feeds
+Host: {{tenantAHost}}
+Authorization: Bearer {{subscriberAccessToken}}
+Content-Type: application/json
+Accept: application/json
+
+{
+  "title": "{{customArticleFeedTitle}}",
+  "categoryIds": [{{articleCategoryId}}]
+}
+
+> {%
+    client.test("Duplicate custom title", function() {
+        client.assert(response.status === 409, "Expected 409");
+        client.assert(response.body.errors[0].code === "FEED_TITLE_DUPLICATE", "Expected FEED_TITLE_DUPLICATE");
+    });
+%}
+
+###
+
+### @name createCustomArticleFeedMissingCategories
+POST {{baseUrl}}/api/v1/me/article-feeds
+Host: {{tenantAHost}}
+Authorization: Bearer {{subscriberAccessToken}}
+Content-Type: application/json
+Accept: application/json
+
+{
+  "title": "Missing categories",
+  "categoryIds": []
+}
+
+> {%
+    client.test("Missing categories", function() {
+        client.assert(response.status === 400, "Expected 400");
+        client.assert(response.body.errors[0].code === "FEED_CATEGORIES_REQUIRED", "Expected FEED_CATEGORIES_REQUIRED");
+    });
+%}
+
+###
+
+### @name updateCustomArticleFeed
+PUT {{baseUrl}}/api/v1/me/article-feeds/{{customArticleFeedId}}
+Host: {{tenantAHost}}
+Authorization: Bearer {{subscriberAccessToken}}
+Content-Type: application/json
+Accept: application/json
+
+{
+  "title": "{{customArticleFeedTitle}} updated",
+  "categoryIds": [{{articleCategoryId}}]
+}
+
+> {%
+    client.test("Update custom article feed", function() {
+        client.assert(response.status === 200, "Expected 200");
+        client.assert(response.body.data.title.indexOf("updated") !== -1, "Expected updated title");
+        client.assert(response.body.data.isDefault === false, "Expected custom feed");
+    });
+%}
+
+###
+
+### @name previewOwnedCustomArticleFeed
+GET {{baseUrl}}/api/v1/me/article-feeds/{{customArticleFeedId}}/preview
+Host: {{tenantAHost}}
+Authorization: Bearer {{subscriberAccessToken}}
+Accept: application/json
+
+> {%
+    client.test("Preview owned custom article feed", function() {
+        client.assert(response.status === 200, "Expected 200");
+        client.assert(typeof response.body.data.articleCount === "number", "Expected articleCount");
+    });
+%}
+
+###
+
+### @name previewDefaultArticleFeedForbidden
+GET {{baseUrl}}/api/v1/me/article-feeds/{{defaultArticleFeedId}}/preview
+Host: {{tenantAHost}}
+Authorization: Bearer {{subscriberAccessToken}}
+Accept: application/json
+
+> {%
+    client.test("Default article feed is not filterable", function() {
+        client.assert(response.status === 409, "Expected 409");
+        client.assert(response.body.errors[0].code === "DEFAULT_FEED_NOT_FILTERABLE", "Expected DEFAULT_FEED_NOT_FILTERABLE");
+    });
+%}
+
+###
+
+### @name privateCustomArticleFeed
+GET {{customArticleFeedUrl}}
+Host: {{tenantAHost}}
+Accept: application/rss+xml
+
+> {%
+    client.test("Custom private article RSS", function() {
+        client.assert(response.status === 200 || response.status === 302 || response.status === 404, "Expected RSS redirect, XML, or cold-start 404");
+        if (response.status === 200) {
+            client.assert(response.body.includes("<rss"), "Expected RSS XML");
+        }
+    });
+%}
+
+###
+
+### @name disableCustomArticleFeed
+PUT {{baseUrl}}/api/v1/me/article-feeds/{{customArticleFeedId}}/enabled
+Host: {{tenantAHost}}
+Authorization: Bearer {{subscriberAccessToken}}
+Content-Type: application/json
+Accept: application/json
+
+{
+  "enabled": false
+}
+
+> {%
+    client.test("Disable custom article feed", function() {
+        client.assert(response.status === 200, "Expected 200");
+        client.assert(response.body.data.enabled === false, "Expected disabled");
+    });
+%}
+
+###
+
+### @name privateCustomArticleFeedDisabled
+GET {{customArticleFeedUrl}}
+Host: {{tenantAHost}}
+Accept: application/rss+xml
+
+> {%
+    client.test("Disabled custom article RSS is 404", function() {
+        client.assert(response.status === 404, "Expected 404");
+    });
+%}
+
+###
+
+### @name enableCustomArticleFeed
+PUT {{baseUrl}}/api/v1/me/article-feeds/{{customArticleFeedId}}/enabled
+Host: {{tenantAHost}}
+Authorization: Bearer {{subscriberAccessToken}}
+Content-Type: application/json
+Accept: application/json
+
+{
+  "enabled": true
+}
+
+> {%
+    client.test("Enable custom article feed", function() {
+        client.assert(response.status === 200, "Expected 200");
+        client.assert(response.body.data.enabled === true, "Expected enabled");
+    });
+%}
+
+###
+
+### @name rotateCustomArticleFeedToken
+POST {{baseUrl}}/api/v1/me/article-feeds/{{customArticleFeedId}}/rotate-token
+Host: {{tenantAHost}}
+Authorization: Bearer {{subscriberAccessToken}}
+Accept: application/json
+
+> {%
+    client.test("Rotate custom article feed token", function() {
+        client.assert(response.status === 200, "Expected 200");
+        const feedUrl = response.body.data && response.body.data.url;
+        client.assert(typeof feedUrl === "string" && feedUrl.endsWith(".xml"), "Expected new URL");
+        client.global.set("customArticleFeedUrl", feedUrl);
+    });
+%}
+
+###
+
+### @name deleteDefaultArticleFeedForbidden
+DELETE {{baseUrl}}/api/v1/me/article-feeds/{{defaultArticleFeedId}}
+Host: {{tenantAHost}}
+Authorization: Bearer {{subscriberAccessToken}}
+Accept: application/json
+
+> {%
+    client.test("Default article feed is not deletable", function() {
+        client.assert(response.status === 409, "Expected 409");
+        client.assert(response.body.errors[0].code === "DEFAULT_FEED_NOT_DELETABLE", "Expected DEFAULT_FEED_NOT_DELETABLE");
+    });
+%}
+
+###
+
+### @name deactivateArticleFeedBuilderForCustomFeedOff
+DELETE {{baseUrl}}/api/v1/platform/tenants/{{tenantAId}}/modules/ARTICLE_FEED_BUILDER
+Authorization: Bearer {{platformAccessToken}}
+Accept: application/json
+
+> {%
+    client.test("Deactivate ARTICLE_FEED_BUILDER", function() {
+        client.assert(response.status === 200, "Expected 200");
+        client.assert(!response.body.data.enabledModules.includes("ARTICLE_FEED_BUILDER"), "Expected ARTICLE_FEED_BUILDER off");
+    });
+%}
+
+###
+
+### @name privateCustomArticleFeedModuleOff
+GET {{customArticleFeedUrl}}
+Host: {{tenantAHost}}
+Accept: application/rss+xml
+
+> {%
+    client.test("Custom article RSS without ARTICLE_FEED_BUILDER is 404 not JSON 403", function() {
+        const feedUrl = client.global.get("customArticleFeedUrl");
+        client.assert(typeof feedUrl === "string" && feedUrl.endsWith(".xml"), "customArticleFeedUrl must be initialized");
+        client.assert(response.status === 404, "Expected 404");
+        client.assert(
+            !response.body || !response.body.errors || response.body.errors[0].code !== "FEATURE_NOT_ENABLED",
+            "Must not return FEATURE_NOT_ENABLED JSON"
+        );
+    });
+%}
+
+###
+
+### @name createCustomArticleFeedModuleOff
+POST {{baseUrl}}/api/v1/me/article-feeds
+Host: {{tenantAHost}}
+Authorization: Bearer {{subscriberAccessToken}}
+Content-Type: application/json
+Accept: application/json
+
+{
+  "title": "Should fail",
+  "categoryIds": [{{articleCategoryId}}]
+}
+
+> {%
+    client.test("Create custom article feed without ARTICLE_FEED_BUILDER", function() {
+        client.assert(response.status === 403, "Expected 403");
+        client.assert(response.body.errors[0].code === "FEATURE_NOT_ENABLED", "Expected FEATURE_NOT_ENABLED");
+    });
+%}
+
+###
+
+### @name restoreArticleFeedBuilder
+POST {{baseUrl}}/api/v1/platform/tenants/{{tenantAId}}/modules/ARTICLE_FEED_BUILDER/activate
+Authorization: Bearer {{platformAccessToken}}
+Accept: application/json
+
+> {%
+    client.test("Restore ARTICLE_FEED_BUILDER", function() {
+        client.assert(response.status === 200 || response.status === 409, "Expected 200 or 409");
+        client.assert(response.body.data.enabledModules.includes("ARTICLE_FEED_BUILDER"), "Expected ARTICLE_FEED_BUILDER on");
+    });
+%}
+
+###
+
+### @name deleteCustomArticleFeed
+DELETE {{baseUrl}}/api/v1/me/article-feeds/{{customArticleFeedId}}
+Host: {{tenantAHost}}
+Authorization: Bearer {{subscriberAccessToken}}
+Accept: application/json
+
+> {%
+    client.test("Delete custom article feed", function() {
+        client.assert(response.status === 200, "Expected 200");
+        client.assert(response.body.data.isDefault === false, "Expected deleted custom feed view");
+    });
+%}

@@ -24,6 +24,8 @@ themselves stay cacheable on the pull zone (`max-age=300`).
 {tenantSlug}/public/rss/podcast.xml
 {tenantSlug}/public/rss/series-{seriesId}.xml
 {tenantSlug}/private/rss/feed-{subscriberFeedId}.xml
+{tenantSlug}/public/rss/articles.xml
+{tenantSlug}/private/rss/article-feed-{articleFeedId}.xml
 ```
 
 Private feed tokens are intentionally absent from keys and local filenames. The public pull zone
@@ -34,7 +36,19 @@ back to an S3 presigned GET.
 
 Custom (feed-builder) feeds reuse the same `feed-{subscriberFeedId}.xml` object as the default
 private feed. Turning `FEED_BUILDER` off withdraws snapshots for non-default feeds only; the
-default private feed stays available while `PODCAST_RSS` and `SUBSCRIPTION` remain on.
+default private feed stays available while `PODCAST_RSS` and `SUBSCRIPTION` remain on. Article
+feeds follow the identical pattern one level down: `ARTICLE_FEED_BUILDER` off withdraws non-default
+`article-feed-{id}.xml` snapshots only; the default private article feed stays available while
+`ARTICLE_RSS` and `SUBSCRIPTION` remain on. Articles have no per-series grouping, so there is no
+`series-{id}`-equivalent object for articles.
+
+The low-level snapshot mechanics (upload/withdraw/deliver, presence tracking in
+`rss_snapshot_presence`/`rss_stale_prefixes`) are shared code — `directwerk-digital`'s
+`GeneratedFeedSnapshotStore`/`FeedSnapshotStateStore` — used by both the podcast RSS stack
+(`directwerk-podcast`) and the article RSS stack (`directwerk-newsletter`), which are otherwise
+independent Gradle sibling modules. Podcast and article snapshot rows share the same
+`rss_snapshot_presence` table but never collide: podcast uses kind literals `TENANT`/`SERIES`/
+`PRIVATE_FEED`, articles use the distinct `ARTICLE_TENANT`/`ARTICLE_PRIVATE_FEED`.
 
 ## Refresh and failure behavior
 

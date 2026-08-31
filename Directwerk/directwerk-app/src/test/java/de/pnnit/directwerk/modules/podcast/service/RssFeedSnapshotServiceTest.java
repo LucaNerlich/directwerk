@@ -12,12 +12,13 @@ import static org.mockito.Mockito.when;
 import de.pnnit.directwerk.config.DirectwerkConfig;
 import de.pnnit.directwerk.config.DirectwerkProperties;
 import de.pnnit.directwerk.modules.core.entity.Tenant;
-import de.pnnit.directwerk.modules.core.entity.TenantModuleActivation;
 import de.pnnit.directwerk.modules.core.entity.User;
 import de.pnnit.directwerk.modules.core.service.TenantPublicHostResolver;
-import de.pnnit.directwerk.modules.core.service.ModuleGateService;
 import de.pnnit.directwerk.modules.core.repository.TenantRepository;
+import de.pnnit.directwerk.modules.core.service.ModuleGateService;
 import de.pnnit.directwerk.modules.digital.api.CdnPurgeClient;
+import de.pnnit.directwerk.modules.digital.storage.FeedSnapshotStateStore;
+import de.pnnit.directwerk.modules.digital.storage.GeneratedFeedSnapshotStore;
 import de.pnnit.directwerk.modules.digital.storage.S3PublicUrlBuilder;
 import de.pnnit.directwerk.modules.podcast.feed.SubscriberFeed;
 import de.pnnit.directwerk.modules.podcast.feed.SubscriberFeedRepository;
@@ -40,7 +41,7 @@ class RssFeedSnapshotServiceTest {
     @Test
     void feedRequestRedirectsWithoutGeneratingXmlWhenSnapshotIsWritten() {
         Fixture fixture = fixture();
-        when(fixture.stateStore.isWritten(10L, RssSnapshotKind.TENANT, 0L)).thenReturn(true);
+        when(fixture.stateStore.isWritten(10L, RssSnapshotKind.TENANT.name(), 0L)).thenReturn(true);
 
         var delivery = fixture.service.publicTenantFeed(fixture.tenant);
 
@@ -56,7 +57,7 @@ class RssFeedSnapshotServiceTest {
     @Test
     void feedRequestReturnsNotReadyWhenSnapshotHasNotBeenWritten() {
         Fixture fixture = fixture();
-        when(fixture.stateStore.isWritten(10L, RssSnapshotKind.TENANT, 0L)).thenReturn(false);
+        when(fixture.stateStore.isWritten(10L, RssSnapshotKind.TENANT.name(), 0L)).thenReturn(false);
 
         var delivery = fixture.service.publicTenantFeed(fixture.tenant);
 
@@ -68,7 +69,7 @@ class RssFeedSnapshotServiceTest {
     @Test
     void privateSnapshotUsesPrivatePrefixAndSignedPullZoneWithoutTokenInObjectKey() {
         Fixture fixture = fixture();
-        when(fixture.stateStore.isWritten(10L, RssSnapshotKind.PRIVATE_FEED, 42L)).thenReturn(true);
+        when(fixture.stateStore.isWritten(10L, RssSnapshotKind.PRIVATE_FEED.name(), 42L)).thenReturn(true);
         when(fixture.storage.privateCdnBaseUrl()).thenReturn("https://private.example.test");
         when(fixture.storage.cdnTokenAuthKey()).thenReturn("test-signing-key");
         when(fixture.storage.presignDownloadTtlRss()).thenReturn(Duration.ofHours(1));
@@ -108,7 +109,7 @@ class RssFeedSnapshotServiceTest {
         verify(fixture.s3Client).putObject(request.capture(), any(software.amazon.awssdk.core.sync.RequestBody.class));
         assertThat(request.getValue().key()).isEqualTo("alpha/public/rss/podcast.xml");
         verify(fixture.s3Client, never()).deleteObject(any(DeleteObjectRequest.class));
-        verify(fixture.stateStore).markWritten(10L, RssSnapshotKind.TENANT, 0L);
+        verify(fixture.stateStore).markWritten(10L, RssSnapshotKind.TENANT.name(), 0L);
     }
 
     @Test
@@ -161,7 +162,7 @@ class RssFeedSnapshotServiceTest {
         assertThat(purged.getValue().toString())
                 .isEqualTo("https://private.example.test/alpha/private/rss/feed-42.xml");
         assertThat(purged.getValue().getQuery()).isNull();
-        verify(fixture.stateStore).clearWritten(10L, RssSnapshotKind.PRIVATE_FEED, 42L);
+        verify(fixture.stateStore).clearWritten(10L, RssSnapshotKind.PRIVATE_FEED.name(), 42L);
     }
 
     @Test
@@ -217,7 +218,7 @@ class RssFeedSnapshotServiceTest {
         ModuleGateService moduleGateService = mock(ModuleGateService.class);
         PodcastSeriesRepository podcastSeriesRepository = mock(PodcastSeriesRepository.class);
         SubscriberFeedRepository subscriberFeedRepository = mock(SubscriberFeedRepository.class);
-        RssSnapshotStateStore stateStore = mock(RssSnapshotStateStore.class);
+        FeedSnapshotStateStore stateStore = mock(FeedSnapshotStateStore.class);
         S3Client s3Client = mock(S3Client.class);
         CdnPurgeClient cdnPurgeClient = mock(CdnPurgeClient.class);
         ObjectProvider<S3Client> s3ClientProvider = TestObjectProviders.returning(s3Client);
@@ -233,6 +234,14 @@ class RssFeedSnapshotServiceTest {
         Tenant tenant = new Tenant();
         tenant.setId(10L);
         tenant.setSlug("alpha");
+        GeneratedFeedSnapshotStore snapshotStore = new GeneratedFeedSnapshotStore(
+                stateStore,
+                s3ClientProvider,
+                new de.pnnit.directwerk.modules.digital.storage.PrivateObjectUrlSigner(directwerkConfig, s3PresignerProvider),
+                cdnPurgeProvider,
+                new S3PublicUrlBuilder("https://public.example.test"),
+                directwerkConfig
+        );
         RssFeedSnapshotService service = new RssFeedSnapshotService(
                 rssFeedService,
                 tenantRepository,
@@ -241,10 +250,7 @@ class RssFeedSnapshotServiceTest {
                 podcastSeriesRepository,
                 subscriberFeedRepository,
                 stateStore,
-                s3ClientProvider,
-                new de.pnnit.directwerk.modules.digital.storage.PrivateObjectUrlSigner(directwerkConfig, s3PresignerProvider),
-                cdnPurgeProvider,
-                new S3PublicUrlBuilder("https://public.example.test"),
+                snapshotStore,
                 directwerkConfig
         );
         return new Fixture(
@@ -289,7 +295,7 @@ class RssFeedSnapshotServiceTest {
             ModuleGateService moduleGateService,
             PodcastSeriesRepository podcastSeriesRepository,
             SubscriberFeedRepository subscriberFeedRepository,
-            RssSnapshotStateStore stateStore
+            FeedSnapshotStateStore stateStore
     ) {
     }
 }

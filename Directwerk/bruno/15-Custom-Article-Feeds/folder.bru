@@ -1,0 +1,25 @@
+meta {
+  name: 15-Custom-Article-Feeds
+  seq: 15
+}
+
+auth {
+  mode: bearer
+}
+
+auth:bearer {
+  token: {{subscriberAccessToken}}
+}
+
+headers {
+  Host: {{tenantAHost}}
+}
+
+docs {
+  MeArticleFeedController custom feeds + ArticleRssFeedController token URLs.
+  Run after 01-Auth-and-Tokens, 06-Platform-Admin/Tenants (tenantAId),
+  03-Public/Public Article Categories (articleCategoryId), and 02-Me/List My Article Feeds
+  (defaultArticleFeedId).
+  Enable/disable/rotate/delete of existing custom feeds only need ARTICLE_RSS + SUBSCRIPTION;
+  create/update/preview require ARTICLE_FEED_BUILDER.
+}

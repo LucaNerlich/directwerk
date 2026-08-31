@@ -49,4 +49,20 @@ public class FeedUrlResolver {
     public String privateEnclosureUrl(String origin, String tenantSlug, String feedToken, String episodeSlug) {
         return FeedUrls.privateEnclosure(origin, tenantSlug, feedToken, episodeSlug);
     }
+
+    public String articleSubscriberFeedUrl(
+            Long tenantId,
+            String requestedHostname,
+            String scheme,
+            int serverPort,
+            String tenantSlug,
+            String feedToken
+    ) {
+        String host = tenantPublicHostResolver.resolve(tenantId, requestedHostname, HostPolicy.TRUST_REQUEST);
+        return FeedUrls.articleSubscriberFeed(origin(scheme, host, serverPort), tenantSlug, feedToken);
+    }
+
+    public String tenantArticleFeedUrl(String scheme, String serverName, int serverPort, String tenantSlug) {
+        return FeedUrls.tenantArticleFeed(origin(scheme, serverName, serverPort), tenantSlug);
+    }
 }

@@ -1,0 +1,21 @@
+meta {
+  name: 17 - Ensure ARTICLE_FEED_BUILDER enabled (cleanup)
+  type: http
+  seq: 17
+}
+
+post {
+  url: {{baseUrl}}/api/v1/platform/tenants/{{tenantAId}}/modules/ARTICLE_FEED_BUILDER/activate
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{platformAccessToken}}
+}
+
+tests {
+  test("ARTICLE_FEED_BUILDER restored", function() {
+    expect(res.getStatus() === 200 || res.getStatus() === 409).to.equal(true);
+  });
+}

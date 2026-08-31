@@ -38,6 +38,7 @@ function config(overrides: Partial<SiteConfig> = {}): SiteConfig {
         branding: {siteTitle: null, primaryColor: null, secondaryColor: null, logoUrl: null},
         publicSiteUrl: 'https://demo.example',
         publicRssUrl: 'https://demo.example/feeds/demo/podcast.xml',
+        publicArticleRssUrl: null,
         studioHome: 'PODCAST_DESK',
         studioDesks: ['PODCAST'],
         analytics: null,

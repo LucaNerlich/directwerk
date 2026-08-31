@@ -5,6 +5,7 @@ import de.pnnit.directwerk.api.dto.PublicCategoryView;
 import de.pnnit.directwerk.api.response.Response;
 import de.pnnit.directwerk.modules.core.RequiresModule;
 import de.pnnit.directwerk.modules.digital.DigitalContentModule;
+import de.pnnit.directwerk.modules.digital.service.CategoryService;
 import de.pnnit.directwerk.modules.newsletter.service.PublicArticleQueryService;
 import de.pnnit.directwerk.multitenancy.TenantContext;
 import java.time.Instant;
@@ -22,13 +23,31 @@ public class PublicArticleController {
 
     private final PublicArticleQueryService publicArticleQueryService;
     private final PublicArticleViewMapper publicArticleViewMapper;
+    private final CategoryService categoryService;
 
     public PublicArticleController(
             PublicArticleQueryService publicArticleQueryService,
-            PublicArticleViewMapper publicArticleViewMapper
+            PublicArticleViewMapper publicArticleViewMapper,
+            CategoryService categoryService
     ) {
         this.publicArticleQueryService = publicArticleQueryService;
         this.publicArticleViewMapper = publicArticleViewMapper;
+        this.categoryService = categoryService;
+    }
+
+    /**
+     * Active categories available for filtering article feeds. Not gated on {@code PODCAST} —
+     * {@code Category} is a shared digital-content taxonomy, so this uses a distinct path from
+     * {@code PublicPodcastController#listCategories} rather than depending on a podcast-only
+     * endpoint from an article-only tenant.
+     */
+    @GetMapping("/article-categories")
+    ResponseEntity<Response<List<PublicCategoryView>>> listCategories() {
+        Long tenantId = TenantContext.getTenantId();
+        List<PublicCategoryView> categories = categoryService.listCategories(tenantId, true).stream()
+                .map(PublicCategoryView::of)
+                .toList();
+        return ResponseEntity.ok(Response.ok(categories));
     }
 
     @GetMapping("/articles")

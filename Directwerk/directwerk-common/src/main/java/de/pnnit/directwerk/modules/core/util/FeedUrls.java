@@ -39,4 +39,18 @@ public final class FeedUrls {
     ) {
         return origin + "/feeds/" + tenantSlug + "/u/" + feedToken + "/e/" + episodeSlug + ".mp3";
     }
+
+    /** Public tenant-level article feed: {@code /feeds/{tenantSlug}/articles.xml}. */
+    public static String tenantArticleFeed(String origin, String tenantSlug) {
+        return origin + "/feeds/" + tenantSlug + "/articles.xml";
+    }
+
+    /**
+     * Token-authenticated article feed: {@code /feeds/{tenantSlug}/articles/u/{feedToken}.xml}.
+     * The extra {@code articles/} segment keeps this token space distinct from
+     * {@link #subscriberFeed} — article and podcast feed tokens live in independent tables.
+     */
+    public static String articleSubscriberFeed(String origin, String tenantSlug, String feedToken) {
+        return origin + "/feeds/" + tenantSlug + "/articles/u/" + feedToken + ".xml";
+    }
 }

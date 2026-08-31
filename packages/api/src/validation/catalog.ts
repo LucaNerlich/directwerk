@@ -2,6 +2,7 @@ import type {
     AccessPolicy,
     ApiEnvelope,
     ArticleDetail,
+    ArticleFeedAdminView,
     ArticleSummary,
     BillingDashboard,
     BillingInterval,
@@ -27,6 +28,7 @@ import type {
     ProductAccessRule,
     ProductAccessScopeType,
     PublicationStatus,
+    PublicCategory,
     SeriesDetail,
     SeriesStatus,
     SeriesSummary,
@@ -1056,6 +1058,9 @@ export function parseStudioSiteConfigEnvelope(
             publicRssUrl: isNullableString(data.publicRssUrl)
                 ? data.publicRssUrl
                 : null,
+            publicArticleRssUrl: isNullableString(data.publicArticleRssUrl)
+                ? data.publicArticleRssUrl
+                : null,
             analytics: parseSiteAnalytics(data.analytics),
             studioHome,
             studioDesks,
@@ -1282,6 +1287,88 @@ export function parseSubscriberFeedAdminEnvelope(
     value: unknown,
 ): ApiEnvelope<SubscriberFeedAdminView> | null {
     return parseEnvelope(value, parseSubscriberFeedAdminView)
+}
+
+// ---------------------------------------------------------------------------
+// Article feed admin views (tenant scope)
+// ---------------------------------------------------------------------------
+
+function parsePublicCategoryForFeed(value: unknown): PublicCategory | null {
+    if (
+        !isRecord(value) ||
+        !isPositiveSafeInteger(value.id) ||
+        !isBoundedString(value.slug) ||
+        !isBoundedString(value.name) ||
+        !(value.parentId === null || isPositiveSafeInteger(value.parentId))
+    ) {
+        return null
+    }
+
+    return {
+        id: value.id,
+        slug: value.slug,
+        name: value.name,
+        parentId: value.parentId,
+    }
+}
+
+function parseArticleFeedAdminView(value: unknown): ArticleFeedAdminView | null {
+    if (
+        !isRecord(value) ||
+        !isPositiveSafeInteger(value.id) ||
+        !isPositiveSafeInteger(value.userId) ||
+        !isBoundedString(value.userEmail, 255) ||
+        !isBoundedString(value.title, 255) ||
+        typeof value.isDefault !== 'boolean' ||
+        typeof value.enabled !== 'boolean' ||
+        !isBoundedString(value.createdAt, 64) ||
+        !isBoundedString(value.updatedAt, 64)
+    ) {
+        return null
+    }
+
+    const categoryIds =
+        value.categoryIds === undefined
+            ? []
+            : Array.isArray(value.categoryIds) &&
+                value.categoryIds.length <= 50 &&
+                value.categoryIds.every(isPositiveSafeInteger)
+              ? value.categoryIds
+              : null
+    const categories =
+        value.categories === undefined
+            ? []
+            : parseBoundedArray(value.categories, 50, parsePublicCategoryForFeed)
+    if (categoryIds === null || categories === null) {
+        return null
+    }
+
+    return {
+        id: value.id,
+        userId: value.userId,
+        userEmail: value.userEmail,
+        title: value.title,
+        isDefault: value.isDefault,
+        enabled: value.enabled,
+        categoryIds,
+        categories,
+        createdAt: value.createdAt,
+        updatedAt: value.updatedAt,
+    }
+}
+
+export function parseArticleFeedAdminListEnvelope(
+    value: unknown,
+): ApiEnvelope<ArticleFeedAdminView[]> | null {
+    return parseEnvelope(value, (data) =>
+        parseBoundedArray(data, 1000, parseArticleFeedAdminView),
+    )
+}
+
+export function parseArticleFeedAdminEnvelope(
+    value: unknown,
+): ApiEnvelope<ArticleFeedAdminView> | null {
+    return parseEnvelope(value, parseArticleFeedAdminView)
 }
 
 // ---------------------------------------------------------------------------

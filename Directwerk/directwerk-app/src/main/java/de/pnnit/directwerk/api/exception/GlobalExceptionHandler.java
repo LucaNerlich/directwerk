@@ -18,8 +18,10 @@ import de.pnnit.directwerk.modules.digital.exception.EntitlementDeniedException;
 import de.pnnit.directwerk.modules.digital.exception.MediaAssetNotFoundException;
 import de.pnnit.directwerk.modules.digital.exception.StorageNotConfiguredException;
 import de.pnnit.directwerk.modules.digital.exception.UploadValidationException;
+import de.pnnit.directwerk.modules.newsletter.exception.ArticleFeedBuilderException;
 import de.pnnit.directwerk.modules.newsletter.exception.ArticleNotFoundException;
 import de.pnnit.directwerk.modules.newsletter.exception.ArticleValidationException;
+import de.pnnit.directwerk.modules.newsletter.feed.ArticleFeedNotFoundException;
 import de.pnnit.directwerk.modules.digital.exception.CategoryNotFoundException;
 import de.pnnit.directwerk.modules.podcast.exception.EpisodeNotFoundException;
 import de.pnnit.directwerk.modules.podcast.exception.EpisodeValidationException;
@@ -262,6 +264,17 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(FeedBuilderException.class)
     ResponseEntity<Response<Void>> handleFeedBuilder(FeedBuilderException ex) {
+        return ResponseEntity.status(ex.getStatus())
+                .body(Response.error(ex.getStatus(), ex.getCode(), ex.getMessage()));
+    }
+
+    @ExceptionHandler(ArticleFeedNotFoundException.class)
+    ResponseEntity<Response<Void>> handleArticleFeedNotFound(ArticleFeedNotFoundException ex) {
+        return notFound("ARTICLE_FEED_NOT_FOUND", ex);
+    }
+
+    @ExceptionHandler(ArticleFeedBuilderException.class)
+    ResponseEntity<Response<Void>> handleArticleFeedBuilder(ArticleFeedBuilderException ex) {
         return ResponseEntity.status(ex.getStatus())
                 .body(Response.error(ex.getStatus(), ex.getCode(), ex.getMessage()));
     }

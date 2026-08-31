@@ -1,0 +1,27 @@
+meta {
+  name: Ensure ARTICLE_RSS enabled (cleanup)
+  type: http
+  seq: 6
+}
+
+post {
+  url: {{baseUrl}}/api/v1/platform/tenants/{{tenantAId}}/modules/ARTICLE_RSS/activate
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{platformAccessToken}}
+}
+
+tests {
+  test("ARTICLE_RSS enabled after gate checks", function() {
+    expect(res.getStatus()).to.equal(200);
+    expect(res.body.data.enabledModules.includes("ARTICLE_RSS")).to.equal(true);
+  });
+}
+
+docs {
+  Belt-and-suspenders cleanup. Each off-request already restores in post-response;
+  this final activate still runs if the folder is executed to completion.
+}

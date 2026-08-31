@@ -1,6 +1,8 @@
 import type {
     Access,
     ApiEnvelope,
+    ArticleFeedPreview,
+    ArticleFeedView,
     BillingInterval,
     FeedFormat,
     FeedPreview,
@@ -97,6 +99,12 @@ export function parsePublicSiteConfigEnvelope(
                 data.publicRssUrl !== null &&
                 isAllowedFeedUrl(data.publicRssUrl)
                     ? data.publicRssUrl
+                    : null,
+            publicArticleRssUrl:
+                isNullableString(data.publicArticleRssUrl) &&
+                data.publicArticleRssUrl !== null &&
+                isAllowedFeedUrl(data.publicArticleRssUrl)
+                    ? data.publicArticleRssUrl
                     : null,
             analytics: parseSiteAnalytics(data.analytics),
             emailNotifyAvailable: data.emailNotifyAvailable === true,
@@ -552,6 +560,86 @@ export function parseFeedPreviewEnvelope(
     value: unknown,
 ): ApiEnvelope<FeedPreview> | null {
     return parseEnvelope(value, parseFeedPreview)
+}
+
+function parseArticleFeedView(value: unknown): ArticleFeedView | null {
+    if (
+        !isRecord(value) ||
+        !isPositiveSafeInteger(value.id) ||
+        !isBoundedString(value.title) ||
+        typeof value.isDefault !== 'boolean' ||
+        typeof value.enabled !== 'boolean' ||
+        !isBoundedString(value.url, 4096) ||
+        !isAllowedFeedUrl(value.url) ||
+        !isBoundedString(value.createdAt, 64) ||
+        !isBoundedString(value.updatedAt, 64)
+    ) {
+        return null
+    }
+
+    const categoryIds =
+        value.categoryIds === undefined
+            ? []
+            : parseBoundedArray(value.categoryIds, 50, (item) =>
+                  isPositiveSafeInteger(item) ? item : null,
+              )
+    const categories =
+        value.categories === undefined
+            ? []
+            : parseBoundedArray(value.categories, 50, parsePublicCategoryInternal)
+    if (categoryIds === null || categories === null) {
+        return null
+    }
+
+    return {
+        id: value.id,
+        title: value.title,
+        isDefault: value.isDefault,
+        enabled: value.enabled,
+        url: value.url,
+        categoryIds,
+        categories,
+        createdAt: value.createdAt,
+        updatedAt: value.updatedAt,
+    }
+}
+
+export function parseArticleFeedListEnvelope(
+    value: unknown,
+): ApiEnvelope<ArticleFeedView[]> | null {
+    return parseEnvelope(value, (data) =>
+        parseBoundedArray(data, 50, parseArticleFeedView),
+    )
+}
+
+export function parseArticleFeedEnvelope(
+    value: unknown,
+): ApiEnvelope<ArticleFeedView> | null {
+    return parseEnvelope(value, parseArticleFeedView)
+}
+
+function parseArticleFeedPreview(value: unknown): ArticleFeedPreview | null {
+    if (
+        !isRecord(value) ||
+        !isSafeInteger(value.articleCount) ||
+        value.articleCount < 0 ||
+        !Array.isArray(value.sampleTitles)
+    ) {
+        return null
+    }
+    const sampleTitles = parseBoundedArray(value.sampleTitles, 10, (item) =>
+        isBoundedString(item, 255) ? item : null,
+    )
+    if (sampleTitles === null) {
+        return null
+    }
+    return {articleCount: value.articleCount, sampleTitles}
+}
+
+export function parseArticleFeedPreviewEnvelope(
+    value: unknown,
+): ApiEnvelope<ArticleFeedPreview> | null {
+    return parseEnvelope(value, parseArticleFeedPreview)
 }
 
 function parseSubscriberDownload(value: unknown): SubscriberDownload | null {

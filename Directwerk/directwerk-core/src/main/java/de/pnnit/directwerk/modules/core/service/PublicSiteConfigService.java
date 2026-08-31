@@ -65,6 +65,7 @@ public class PublicSiteConfigService {
                 brandingView(branding),
                 origin,
                 publicRssUrl(origin, tenant, enabledModules),
+                publicArticleRssUrl(origin, tenant, enabledModules),
                 analyticsView(branding, enabledModules),
                 studioNavigation.home(),
                 studioNavigation.desks(),
@@ -112,6 +113,16 @@ public class PublicSiteConfigService {
     }
 
     /**
+     * Builds the public article RSS feed URL when the article RSS module is enabled.
+     */
+    private static String publicArticleRssUrl(String origin, Tenant tenant, List<String> enabledModules) {
+        if (!enabledModules.contains(FeatureModuleKeys.ARTICLE_RSS)) {
+            return null;
+        }
+        return FeedUrls.tenantArticleFeed(origin, tenant.getSlug());
+    }
+
+    /**
      * Builds analytics configuration when analytics is enabled for the tenant.
      *
      * @param branding the tenant branding containing the Umami website ID
@@ -152,6 +163,7 @@ public class PublicSiteConfigService {
             BrandingView branding,
             String publicSiteUrl,
             String publicRssUrl,
+            String publicArticleRssUrl,
             AnalyticsView analytics,
             StudioHome studioHome,
             List<StudioDesk> studioDesks,

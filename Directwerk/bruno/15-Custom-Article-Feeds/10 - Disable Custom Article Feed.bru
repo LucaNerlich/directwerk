@@ -1,0 +1,33 @@
+meta {
+  name: 10 - Disable Custom Article Feed
+  type: http
+  seq: 10
+}
+
+put {
+  url: {{baseUrl}}/api/v1/me/article-feeds/{{customArticleFeedId}}/enabled
+  body: json
+  auth: inherit
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "enabled": false
+  }
+}
+
+tests {
+  test("disables the custom feed", function() {
+    expect(res.getStatus()).to.equal(200);
+    expect(res.body.data.enabled).to.equal(false);
+  });
+}
+
+docs {
+  Disable keeps the token, withdraws S3, and 404s the public URL until re-enable.
+  Allowed without ARTICLE_FEED_BUILDER so leftover feeds can be cleaned up after a downgrade.
+}

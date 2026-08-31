@@ -1,11 +1,13 @@
 'use client'
 
 import {parseMeEnvelope} from '@directwerk/api/validation/catalog'
-import {parseAccessEnvelope, parseFeedPreviewEnvelope, parseSubscriberDownloadListEnvelope, parseSubscriberFeedEnvelope, parseSubscriberFeedListEnvelope, parseNotificationPreferencesEnvelope} from '@directwerk/api/validation/public'
+import {parseAccessEnvelope, parseFeedPreviewEnvelope, parseSubscriberDownloadListEnvelope, parseSubscriberFeedEnvelope, parseSubscriberFeedListEnvelope, parseArticleFeedEnvelope, parseArticleFeedListEnvelope, parseArticleFeedPreviewEnvelope, parseNotificationPreferencesEnvelope} from '@directwerk/api/validation/public'
 
 import type {
     Access,
     ApiEnvelope,
+    ArticleFeedPreview,
+    ArticleFeedView,
     FeedPreview,
     Me,
     PublicArticle,
@@ -169,6 +171,120 @@ export async function deleteCustomFeed(
     feedId: number,
 ): Promise<void> {
     await authedFetch(`/api/proxy/me/feeds/${feedId}`, {method: 'DELETE'})
+}
+
+/** Private subscriber article RSS feeds the signed-in user can use in a feed reader. */
+export async function listMyArticleFeeds(
+    tenantHost: string,
+): Promise<ArticleFeedView[]> {
+    return envelopeResult(
+        parseArticleFeedListEnvelope,
+        await authedFetch('/api/proxy/me/article-feeds'),
+        'The server returned an invalid feed list.',
+    ).data
+}
+
+export async function rotateDefaultArticleFeedToken(
+    tenantHost: string,
+): Promise<ArticleFeedView> {
+    return envelopeResult(
+        parseArticleFeedEnvelope,
+        await authedFetch('/api/proxy/me/article-feeds/default/rotate-token', jsonInit('POST', {})),
+        'Der Server hat eine ungültige Feed-Antwort geliefert.',
+    ).data
+}
+
+export async function setDefaultArticleFeedEnabled(
+    tenantHost: string,
+    enabled: boolean,
+): Promise<ArticleFeedView> {
+    return envelopeResult(
+        parseArticleFeedEnvelope,
+        await authedFetch(
+            '/api/proxy/me/article-feeds/default/enabled',
+            jsonInit('PUT', {enabled}),
+        ),
+        'Der Server hat eine ungültige Feed-Antwort geliefert.',
+    ).data
+}
+
+export async function createCustomArticleFeed(
+    tenantHost: string,
+    title: string,
+    categoryIds: number[],
+): Promise<ArticleFeedView> {
+    return envelopeResult(
+        parseArticleFeedEnvelope,
+        await authedFetch('/api/proxy/me/article-feeds', jsonInit('POST', {title, categoryIds})),
+        'Der Server hat eine ungültige Feed-Antwort geliefert.',
+    ).data
+}
+
+export async function updateCustomArticleFeed(
+    tenantHost: string,
+    feedId: number,
+    title: string,
+    categoryIds: number[],
+): Promise<ArticleFeedView> {
+    return envelopeResult(
+        parseArticleFeedEnvelope,
+        await authedFetch(
+            `/api/proxy/me/article-feeds/${feedId}`,
+            jsonInit('PUT', {title, categoryIds}),
+        ),
+        'Der Server hat eine ungültige Feed-Antwort geliefert.',
+    ).data
+}
+
+export async function previewCustomArticleFeed(
+    tenantHost: string,
+    categoryIds: number[],
+): Promise<ArticleFeedPreview> {
+    const params = new URLSearchParams()
+    for (const categoryId of categoryIds) {
+        params.append('categoryIds', String(categoryId))
+    }
+    return envelopeResult(
+        parseArticleFeedPreviewEnvelope,
+        await authedFetch(`/api/proxy/me/article-feeds/preview?${params.toString()}`),
+        'Der Server hat eine ungültige Vorschau geliefert.',
+    ).data
+}
+
+export async function setArticleFeedEnabledForUser(
+    tenantHost: string,
+    feedId: number,
+    enabled: boolean,
+): Promise<ArticleFeedView> {
+    return envelopeResult(
+        parseArticleFeedEnvelope,
+        await authedFetch(
+            `/api/proxy/me/article-feeds/${feedId}/enabled`,
+            jsonInit('PUT', {enabled}),
+        ),
+        'Der Server hat eine ungültige Feed-Antwort geliefert.',
+    ).data
+}
+
+export async function rotateArticleFeedToken(
+    tenantHost: string,
+    feedId: number,
+): Promise<ArticleFeedView> {
+    return envelopeResult(
+        parseArticleFeedEnvelope,
+        await authedFetch(
+            `/api/proxy/me/article-feeds/${feedId}/rotate-token`,
+            jsonInit('POST', {}),
+        ),
+        'Der Server hat eine ungültige Feed-Antwort geliefert.',
+    ).data
+}
+
+export async function deleteCustomArticleFeed(
+    tenantHost: string,
+    feedId: number,
+): Promise<void> {
+    await authedFetch(`/api/proxy/me/article-feeds/${feedId}`, {method: 'DELETE'})
 }
 
 export async function getNotificationPreferences(
