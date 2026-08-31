@@ -22,11 +22,6 @@ public class QueueQuartzConfig {
     public static final String CLEANUP_JOB_IDENTITY = "queueCleanupJob";
     public static final String CLEANUP_TRIGGER_IDENTITY = "queueCleanupTrigger";
 
-    /**
-     * Creates the durable Quartz job definition for queue polling.
-     *
-     * @return the configured queue polling job detail
-     */
     @Bean
     JobDetail queuePollJobDetail() {
         return JobBuilder.newJob(QueuePollJob.class)
@@ -35,12 +30,6 @@ public class QueueQuartzConfig {
                 .build();
     }
 
-    /**
-     * Creates a trigger that starts the queue polling job immediately and repeats indefinitely.
-     *
-     * @param  directwerkConfig configuration containing the queue polling interval
-     * @return the configured queue polling trigger
-     */
     @Bean
     Trigger queuePollTrigger(
             @Qualifier("queuePollJobDetail") JobDetail queuePollJobDetail,
@@ -56,11 +45,6 @@ public class QueueQuartzConfig {
                 .build();
     }
 
-    /**
-     * Creates the durable Quartz job definition for queue cleanup.
-     *
-     * @return the configured queue cleanup job detail
-     */
     @Bean
     JobDetail queueCleanupJobDetail() {
         return JobBuilder.newJob(QueueCleanupJob.class)
@@ -69,13 +53,6 @@ public class QueueQuartzConfig {
                 .build();
     }
 
-    /**
-     * Creates a repeating trigger for queue cleanup.
-     *
-     * @param queueCleanupJobDetail the Quartz job detail associated with the trigger
-     * @param directwerkConfig      the configuration containing the cleanup interval
-     * @return a trigger that starts immediately and repeats at least once per minute
-     */
     @Bean
     Trigger queueCleanupTrigger(
             @Qualifier("queueCleanupJobDetail") JobDetail queueCleanupJobDetail,
