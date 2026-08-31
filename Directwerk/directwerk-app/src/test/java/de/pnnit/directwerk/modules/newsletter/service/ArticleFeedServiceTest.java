@@ -18,9 +18,11 @@ import de.pnnit.directwerk.modules.newsletter.exception.ArticleFeedBuilderExcept
 import de.pnnit.directwerk.modules.newsletter.feed.ArticleFeed;
 import de.pnnit.directwerk.modules.newsletter.feed.ArticleFeedNotFoundException;
 import de.pnnit.directwerk.modules.newsletter.feed.ArticleFeedRepository;
+import java.sql.SQLException;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import org.hibernate.exception.ConstraintViolationException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -28,6 +30,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.dao.DataIntegrityViolationException;
 
 @ExtendWith(MockitoExtension.class)
 @org.mockito.junit.jupiter.MockitoSettings(strictness = org.mockito.quality.Strictness.LENIENT)
@@ -123,6 +126,31 @@ class ArticleFeedServiceTest {
         verify(articleFeedRepository).findByTenantIdAndUserIdAndDefaultFeedTrue(10L, 99L);
         verify(articleFeedRepository).save(feed);
         verify(tenantRepository, never()).getReferenceById(any());
+    }
+
+    @Test
+    void ensureDefaultFeedRecoversWhenAConcurrentCallAlreadyInsertedTheDefaultFeed() {
+        ArticleFeed winner = feed(10L, 1L);
+        when(articleFeedRepository.findByTenantIdAndUserIdAndDefaultFeedTrue(10L, 99L))
+                .thenReturn(Optional.empty())
+                .thenReturn(Optional.of(winner));
+        when(tenantRepository.getReferenceById(10L)).thenReturn(winner.getTenant());
+        when(userRepository.getReferenceById(99L)).thenReturn(winner.getUser());
+        when(articleFeedRepository.save(any(ArticleFeed.class))).thenThrow(
+                new DataIntegrityViolationException(
+                        "duplicate default feed",
+                        new ConstraintViolationException(
+                                "duplicate key value violates unique constraint",
+                                new SQLException("duplicate key"),
+                                "uq_article_feeds_default"
+                        )
+                )
+        );
+
+        ArticleFeed result = articleFeedService.ensureDefaultFeed(10L, 99L);
+
+        assertThat(result).isSameAs(winner);
+        verify(articleRssFeedRefreshScheduler, never()).requestRefreshAfterCommit(any());
     }
 
     @Test

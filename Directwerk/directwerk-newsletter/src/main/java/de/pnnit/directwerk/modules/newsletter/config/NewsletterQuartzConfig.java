@@ -1,5 +1,6 @@
 package de.pnnit.directwerk.modules.newsletter.config;
 
+import de.pnnit.directwerk.modules.newsletter.quartz.DefaultArticleFeedProvisioningJob;
 import de.pnnit.directwerk.modules.newsletter.quartz.ScheduledArticlePublishJob;
 import org.quartz.JobBuilder;
 import org.quartz.JobDetail;
@@ -18,6 +19,8 @@ public class NewsletterQuartzConfig {
 
     public static final String JOB_IDENTITY = "scheduledArticlePublishJob";
     public static final String TRIGGER_IDENTITY = "scheduledArticlePublishTrigger";
+    public static final String DEFAULT_FEED_JOB_IDENTITY = "defaultArticleFeedProvisioningJob";
+    public static final String DEFAULT_FEED_TRIGGER_IDENTITY = "defaultArticleFeedProvisioningTrigger";
 
     @Bean
     JobDetail scheduledArticlePublishJobDetail() {
@@ -35,6 +38,29 @@ public class NewsletterQuartzConfig {
         return TriggerBuilder.newTrigger()
                 .forJob(scheduledArticlePublishJobDetail)
                 .withIdentity(TRIGGER_IDENTITY)
+                .withSchedule(SimpleScheduleBuilder.simpleSchedule()
+                        .withIntervalInSeconds(intervalSeconds)
+                        .repeatForever())
+                .startNow()
+                .build();
+    }
+
+    @Bean
+    JobDetail defaultArticleFeedProvisioningJobDetail() {
+        return JobBuilder.newJob(DefaultArticleFeedProvisioningJob.class)
+                .withIdentity(DEFAULT_FEED_JOB_IDENTITY)
+                .storeDurably()
+                .build();
+    }
+
+    @Bean
+    Trigger defaultArticleFeedProvisioningTrigger(
+            @Qualifier("defaultArticleFeedProvisioningJobDetail") JobDetail defaultArticleFeedProvisioningJobDetail,
+            @Value("${directwerk.newsletter.default-feed-provisioning-interval-seconds:300}") int intervalSeconds
+    ) {
+        return TriggerBuilder.newTrigger()
+                .forJob(defaultArticleFeedProvisioningJobDetail)
+                .withIdentity(DEFAULT_FEED_TRIGGER_IDENTITY)
                 .withSchedule(SimpleScheduleBuilder.simpleSchedule()
                         .withIntervalInSeconds(intervalSeconds)
                         .repeatForever())

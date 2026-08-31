@@ -345,9 +345,21 @@ public class ArticleFeedService {
         feed.setTitle(tenant.getName() + " Private Article Feed");
         feed.setDefaultFeed(true);
         feed.setFeedToken(generateUniqueToken());
-        ArticleFeed saved = articleFeedRepository.save(feed);
-        articleRssFeedRefreshScheduler.requestRefreshAfterCommit(tenantId);
-        return saved;
+        try {
+            ArticleFeed saved = articleFeedRepository.save(feed);
+            articleRssFeedRefreshScheduler.requestRefreshAfterCommit(tenantId);
+            return saved;
+        } catch (DataIntegrityViolationException ex) {
+            if (ex.getCause() instanceof ConstraintViolationException cve
+                    && cve.getConstraintName() != null
+                    && cve.getConstraintName().contains("uq_article_feeds_default")) {
+                // Concurrent first-time ensureDefaultFeed calls can both attempt the insert;
+                // the loser just reads back the row the winner committed.
+                return articleFeedRepository.findByTenantIdAndUserIdAndDefaultFeedTrue(tenantId, userId)
+                        .orElseThrow(() -> ex);
+            }
+            throw ex;
+        }
     }
 
     private String generateUniqueToken() {
