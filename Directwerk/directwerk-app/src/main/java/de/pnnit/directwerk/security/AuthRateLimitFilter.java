@@ -1,7 +1,5 @@
 package de.pnnit.directwerk.security;
 
-import com.github.benmanes.caffeine.cache.Cache;
-import com.github.benmanes.caffeine.cache.Caffeine;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -10,22 +8,15 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.time.Duration;
-import java.time.Instant;
 import java.util.HexFormat;
 import java.util.List;
 import java.util.Set;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
 import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 public class AuthRateLimitFilter extends OncePerRequestFilter {
 
-    private final Cache<String, WindowCounter> counters = Caffeine.newBuilder()
-            .expireAfterAccess(Duration.ofMinutes(2))
-            .maximumSize(10000)
-            .build();
+    private final FixedWindowRateLimiter rateLimiter = new FixedWindowRateLimiter();
 
     private final int oauthTokenLimitPerMinute;
     private final int forgotPasswordLimitPerMinute;
@@ -59,8 +50,8 @@ public class AuthRateLimitFilter extends OncePerRequestFilter {
         RateLimitRule rule = resolveRule(request);
         if (rule != null) {
             for (String key : clientKeys(request, rule)) {
-                if (isRateLimited(key, rule.limit())) {
-                    writeRateLimitResponse(response);
+                if (rateLimiter.isRateLimited(key, rule.limit())) {
+                    RateLimitResponses.writeTooManyRequests(response);
                     return;
                 }
             }
@@ -89,17 +80,6 @@ public class AuthRateLimitFilter extends OncePerRequestFilter {
             return new RateLimitRule("contact", contactLimitPerMinute);
         }
         return null;
-    }
-
-    private boolean isRateLimited(String key, int limitPerMinute) {
-        long windowStart = Instant.now().getEpochSecond() / 60;
-        WindowCounter counter = counters.asMap().compute(key, (existingKey, existing) -> {
-            if (existing == null || existing.windowStart() != windowStart) {
-                return new WindowCounter(windowStart, 1);
-            }
-            return new WindowCounter(windowStart, existing.count() + 1);
-        });
-        return counter.count() > limitPerMinute;
     }
 
     /**
@@ -162,17 +142,6 @@ public class AuthRateLimitFilter extends OncePerRequestFilter {
         return remoteAddr;
     }
 
-    private void writeRateLimitResponse(HttpServletResponse response) throws IOException {
-        response.setStatus(HttpStatus.TOO_MANY_REQUESTS.value());
-        response.setContentType(MediaType.APPLICATION_JSON_VALUE);
-        response.getWriter().write(
-                "{\"status\":429,\"code\":\"RATE_LIMIT_EXCEEDED\",\"message\":\"Too many requests\"}"
-        );
-    }
-
     private record RateLimitRule(String group, int limit) {
-    }
-
-    private record WindowCounter(long windowStart, int count) {
     }
 }
