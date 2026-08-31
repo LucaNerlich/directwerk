@@ -30,28 +30,14 @@ public class QueueRepository {
     private final JdbcTemplate jdbcTemplate;
     private final ObjectMapper objectMapper;
 
-    /**
-     * Creates a repository backed by JDBC and configured to parse job payloads as JSON.
-     *
-     * @param jdbcTemplate the JDBC template used to execute database operations
-     * @param objectMapper the object mapper used to parse job payloads
-     */
     public QueueRepository(JdbcTemplate jdbcTemplate, ObjectMapper objectMapper) {
         this.jdbcTemplate = jdbcTemplate;
         this.objectMapper = objectMapper;
     }
 
     /**
-     * Enqueues a job with its payload, priority, availability time, and attempt limit.
-     * When {@code correlationId} is set, an already-{@code QUEUED} job with the same
-     * queue and correlation id is returned instead of inserting a duplicate.
-     *
-     * @param queue         the queue name
-     * @param payload       the job payload
-     * @param priority      the job priority
-     * @param availableAt   the time when the job becomes available, or {@code null} to use the current time
-     * @param maxAttempts   the maximum number of processing attempts
-     * @return              the persisted queue job
+     * When {@code correlationId} is set, an already-{@code QUEUED} job with the same queue and
+     * correlation id is returned instead of inserting a duplicate.
      */
     public QueueJob enqueue(
             String queue,
@@ -85,9 +71,6 @@ public class QueueRepository {
                                 + " correlation=" + correlationId));
     }
 
-    /**
-     * Returns the queued job for {@code queue} + {@code correlationId} + {@code tenantId}, if any.
-     */
     public Optional<QueueJob> findQueued(String queue, Long tenantId, String correlationId) {
         if (correlationId == null) {
             return Optional.empty();
@@ -164,15 +147,7 @@ public class QueueRepository {
                 metadata == null ? null : metadata.toString());
     }
 
-    /**
-     * Claims eligible jobs for a worker and leases them for processing.
-     *
-     * @param queue the queue from which jobs are claimed
-     * @param worker the worker receiving the leases
-     * @param limit the maximum number of jobs to claim
-     * @param lease the duration of each job lease
-     * @return jobs transitioned to processing and leased to the worker
-     */
+    /** {@code exhausted} fails leases that expired after their last allowed attempt; {@code candidates} then claims from what's left, skipping rows locked by a concurrent claim. */
     public List<QueueJob> claim(String queue, String worker, int limit, Duration lease) {
         return jdbcTemplate.query("""
                 WITH exhausted AS (
@@ -220,13 +195,6 @@ public class QueueRepository {
                 .toList();
     }
 
-    /**
-     * Completes a processing job when the specified worker holds a valid lease.
-     *
-     * @param id     the job identifier
-     * @param worker the worker holding the job lease
-     * @return the completed job, or an empty optional if the job cannot be completed
-     */
     public Optional<QueueJob> complete(UUID id, String worker) {
         return jdbcTemplate.query("""
                 UPDATE jobs
@@ -238,16 +206,7 @@ public class QueueRepository {
                 """.formatted(COLUMNS), this::mapJob, id, worker).stream().findFirst();
     }
 
-    /**
-     * Extends the lease of a processing job held by the specified worker. The
-     * new expiry is computed from the current time so a heartbeat issued just
-     * before expiry still rescues the job.
-     *
-     * @param id     the job identifier
-     * @param worker the worker holding the job lease
-     * @param extension additional lease duration from now
-     * @return the updated job, or an empty optional if the lease was lost
-     */
+    /** New expiry is computed from now, not the old expiry, so a heartbeat issued just before expiry still rescues the job. */
     public Optional<QueueJob> renew(UUID id, String worker, Duration extension) {
         return jdbcTemplate.query("""
                 UPDATE jobs
@@ -260,15 +219,6 @@ public class QueueRepository {
                 .stream().findFirst();
     }
 
-    /**
-     * Records a processing failure and either requeues the job for another attempt or marks it as failed.
-     *
-     * @param id the job identifier
-     * @param worker the worker holding the job lease
-     * @param error the error recorded for the job
-     * @param retryDelay the delay before a requeued job becomes available
-     * @return the updated job if the worker holds a valid lease; otherwise, an empty optional
-     */
     public Optional<QueueJob> fail(UUID id, String worker, String error, Duration retryDelay) {
         return jdbcTemplate.query("""
                 UPDATE jobs
@@ -286,24 +236,12 @@ public class QueueRepository {
                 retryDelay.toMillis(), error, id, worker).stream().findFirst();
     }
 
-    /**
-     * Finds a queue job by its identifier.
-     *
-     * @param id the job identifier
-     * @return the matching job, or an empty optional if no job exists with the identifier
-     */
     public Optional<QueueJob> find(UUID id) {
         return jdbcTemplate.query(
                 "SELECT %s FROM jobs WHERE id = ?".formatted(COLUMNS), this::mapJob, id
         ).stream().findFirst();
     }
 
-    /**
-     * Lists jobs matching the query filters in descending update order.
-     *
-     * @param query the filters and pagination settings
-     * @return a page containing the matching jobs and total count
-     */
     public JobListPage list(JobListQuery query) {
         StringBuilder where = new StringBuilder(" WHERE 1=1");
         List<Object> args = new ArrayList<>();
@@ -327,13 +265,6 @@ public class QueueRepository {
         return new JobListPage(items, total == null ? 0L : total, query.offset(), query.limit());
     }
 
-    /**
-     * Appends the query's queue, status, and update-time filters to a SQL predicate and adds their parameters.
-     *
-     * @param where the SQL predicate to extend
-     * @param args the parameter values corresponding to the appended filters
-     * @param query the job list filters to apply
-     */
     private static void appendListFilters(StringBuilder where, List<Object> args, JobListQuery query) {
         if (StringUtils.hasText(query.queue())) {
             where.append(" AND queue_name = ?");
@@ -357,9 +288,6 @@ public class QueueRepository {
         }
     }
 
-    /**
-     * Deletes all jobs from the queue.
-     */
     public void clear() {
         jdbcTemplate.update("DELETE FROM jobs");
     }
@@ -391,14 +319,6 @@ public class QueueRepository {
         return deletedIds.size();
     }
 
-    /**
-     * Maps the current result-set row to a queue job.
-     *
-     * @param rs  the result set containing the job row
-     * @param row the current row index
-     * @return    the mapped queue job
-     * @throws SQLException if the row contains invalid or unreadable job data
-     */
     private QueueJob mapJob(ResultSet rs, int row) throws SQLException {
         try {
             OffsetDateTime lockedUntil = rs.getObject("locked_until", OffsetDateTime.class);
