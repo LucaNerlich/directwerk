@@ -6,6 +6,8 @@
  * when available; this module is a fallback for legacy client-side construction.
  */
 
+import type {PublicSiteConfig} from '../types'
+
 const LOOPBACK_HOSTS = new Set(['localhost', '127.0.0.1', '[::1]'])
 
 function isLoopbackHostname(hostname: string): boolean {
@@ -93,8 +95,75 @@ export function publicSeriesFeedUrl(
     )
 }
 
+/** Public tenant-level article feed: `/feeds/{tenantSlug}/articles.xml`. */
+export function tenantArticleFeed(origin: string, tenantSlug: string): string {
+    return `${normalizeOrigin(origin)}/feeds/${encodeURIComponent(tenantSlug)}/articles.xml`
+}
+
+/** Browser-safe tenant-wide public article feed URL. */
+export function publicArticleFeedUrl(originHost: string, tenantSlug: string): string {
+    return tenantArticleFeed(normalizeOrigin(originHost), tenantSlug)
+}
+
+export interface ResolvePublicArticleFeedUrlOptions {
+    /** Tenant request host when no absolute origin is available. */
+    originHost?: string
+    /** Same-origin web app base URL (preferred for directwerk-web feed proxy). */
+    webOrigin?: string
+}
+
+/**
+ * Resolves the public article RSS URL for a tenant site config.
+ * Falls back to a constructed URL when the API value was omitted or stripped
+ * by client validation, as long as {@code ARTICLE_RSS} is enabled.
+ */
+export function resolvePublicArticleFeedUrl(
+    config: Pick<
+        PublicSiteConfig,
+        'enabledModules' | 'publicArticleRssUrl' | 'publicSiteUrl' | 'tenant'
+    >,
+    options: ResolvePublicArticleFeedUrlOptions = {},
+): string | null {
+    if (!config.enabledModules.includes('ARTICLE_RSS')) {
+        return null
+    }
+
+    const preferredOrigin =
+        options.webOrigin ?? config.publicSiteUrl ?? options.originHost ?? null
+    if (preferredOrigin !== null) {
+        return tenantArticleFeed(preferredOrigin, config.tenant.slug)
+    }
+
+    return config.publicArticleRssUrl
+}
+
+export interface ResolvePublicPodcastFeedUrlOptions {
+    originHost?: string
+    webOrigin?: string
+}
+
+/** Podcast counterpart to {@link resolvePublicArticleFeedUrl}. */
+export function resolvePublicPodcastFeedUrl(
+    config: Pick<
+        PublicSiteConfig,
+        'enabledModules' | 'publicRssUrl' | 'publicSiteUrl' | 'tenant'
+    >,
+    options: ResolvePublicPodcastFeedUrlOptions = {},
+): string | null {
+    if (!config.enabledModules.includes('PODCAST_RSS')) {
+        return null
+    }
+
+    const preferredOrigin =
+        options.webOrigin ?? config.publicSiteUrl ?? options.originHost ?? null
+    if (preferredOrigin !== null) {
+        return tenantPodcastFeed(preferredOrigin, config.tenant.slug)
+    }
+
+    return config.publicRssUrl
+}
+
 /** Browser-safe tenant-wide public podcast feed URL. */
 export function publicPodcastFeedUrl(originHost: string, tenantSlug: string): string {
-    const origin = normalizeOrigin(originHost)
-    return `${origin}/feeds/${encodeURIComponent(tenantSlug)}/podcast.xml`
+    return tenantPodcastFeed(normalizeOrigin(originHost), tenantSlug)
 }

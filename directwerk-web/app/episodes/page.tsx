@@ -20,6 +20,7 @@ import {useSubscriberAuth} from '@/lib/auth/useSubscriberAuth'
 import {useSubscriberFeeds} from '@/lib/auth/useSubscriberFeeds'
 import {accessPolicyLabel, formatDuration} from '@/lib/format/content'
 import {getClientTenantHost} from '@/lib/tenant/clientHost'
+import {webPublicPodcastFeedUrl} from '@/lib/feeds/webPublicFeedUrl'
 import {formatPublishedAt} from '@directwerk/api/format/datetime'
 
 export default function EpisodesPage() {
@@ -31,6 +32,8 @@ export default function EpisodesPage() {
     })
     const {feeds: privateFeeds} = useSubscriberFeeds(isAuthenticated)
     const defaultPrivateFeed = privateFeeds.find((feed) => feed.isDefault) ?? null
+    const publicPodcastFeedUrl =
+        siteConfig === null ? null : webPublicPodcastFeedUrl(siteConfig, tenantHost)
 
     return (
         <PageStack className="page-container">
@@ -172,8 +175,7 @@ export default function EpisodesPage() {
                         )}
                     </section>
 
-                    {siteConfig?.publicRssUrl !== null &&
-                    siteConfig?.publicRssUrl !== undefined ? (
+                    {publicPodcastFeedUrl !== null ? (
                         <section className="flex flex-col gap-4">
                             <SectionHeader
                                 description="Alle freien Folgen in einer Podcast-App abonnieren."
@@ -181,7 +183,7 @@ export default function EpisodesPage() {
                             />
                             <FeedUrlDisplay
                                 title="Öffentlicher Feed"
-                                url={siteConfig.publicRssUrl}
+                                url={publicPodcastFeedUrl}
                             />
                             {isAuthenticated ? (
                                 defaultPrivateFeed !== null && defaultPrivateFeed.enabled ? (

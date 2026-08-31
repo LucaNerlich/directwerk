@@ -18,6 +18,7 @@ const PUBLIC_PATHS = new Set([
     '/articles',
     '/pricing',
     '/feeds',
+    '/article-feeds',
 ])
 
 const PROTECTED_PATHS = new Set(['/account'])
