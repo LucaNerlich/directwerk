@@ -4,7 +4,7 @@ export default function UmamiAnalytics(): React.JSX.Element {
     const websiteId = process.env.NEXT_PUBLIC_UMAMI_WEBSITE_ID
     const umamiUrl = process.env.NEXT_PUBLIC_UMAMI_URL
     const sampleRate = process.env.NEXT_PUBLIC_UMAMI_SAMPLE_RATE ?? '0.25'
-    const maskLevel = process.env.NEXT_PUBLIC_UMAMI_MASK_LEVEL ?? 'moderate'
+    const maskLevel = process.env.NEXT_PUBLIC_UMAMI_MASK_LEVEL ?? 'strict'
     const maxDuration = process.env.NEXT_PUBLIC_UMAMI_MAX_DURATION ?? '300000'
 
     if (!websiteId || !umamiUrl) {

@@ -7,6 +7,7 @@ import de.pnnit.directwerk.modules.core.analytics.UmamiEventClient;
 import de.pnnit.directwerk.modules.core.entity.TenantBranding;
 import de.pnnit.directwerk.modules.core.service.ModuleGateService;
 import de.pnnit.directwerk.modules.core.service.TenantBrandingService;
+import de.pnnit.directwerk.modules.core.util.UmamiHostUrlValidator;
 import de.pnnit.directwerk.modules.core.util.UmamiWebsiteIdValidator;
 import de.pnnit.directwerk.modules.newsletter.entity.Article;
 import java.util.Locale;
@@ -82,6 +83,13 @@ public class ArticleViewAnalyticsService {
             return null;
         }
         TenantBranding branding = tenantBrandingService.getBranding(tenantId);
-        return UmamiAnalyticsResolver.resolveHostUrl(branding, directwerkConfig);
+        String hostUrl = UmamiAnalyticsResolver.resolveHostUrl(branding, directwerkConfig);
+        if (branding == null || !UmamiHostUrlValidator.isValid(branding.getUmamiHostUrl())) {
+            return hostUrl;
+        }
+        if (UmamiHostUrlValidator.hasPubliclyRoutableHost(hostUrl)) {
+            return hostUrl;
+        }
+        return UmamiAnalyticsResolver.resolveHostUrl(null, directwerkConfig);
     }
 }

@@ -38,8 +38,12 @@ to the same tenant-level content events the podcast producer reacts to
 ## Article view analytics
 
 Mirrors [`directwerk-podcast`'s episode download analytics](../directwerk-podcast/README.md#episode-download-analytics):
-Umami tracking is platform-configured with `DIRECTWERK_ANALYTICS_*`; tenants only store their
-`tenant_branding.umami_website_id`. When platform analytics, the tenant `ANALYTICS` module, and a
+Umami tracking defaults to the platform host configured with `DIRECTWERK_ANALYTICS_*`. A tenant can
+replace that host with `TenantBranding.umamiHostUrl` (`tenant_branding.umami_host_url`). The override
+must be an absolute HTTPS origin with no credentials, query, fragment, or non-root path, and its
+hostname must resolve exclusively to public addresses. Unresolvable hosts and loopback, private,
+link-local, multicast, local/internal, or reserved destinations are rejected; tracking falls back to
+the platform host when available. When an analytics host, the tenant `ANALYTICS` module, and a
 website ID are all present, `GET /api/v1/public/articles/{slug}` emits `article-view`. Articles
 have no separate enclosure/download step — full free-article bodies are embedded directly in the
 RSS `description`, so the public single-article read is the only per-article consumption event

@@ -98,14 +98,35 @@ class ArticleViewAnalyticsServiceTest {
         ArticleViewAnalyticsService service = service(false);
         TenantBranding branding = new TenantBranding();
         branding.setUmamiWebsiteId("123e4567-e89b-12d3-a456-426614174000");
-        branding.setUmamiHostUrl("https://tenant.umami.example.test");
+        branding.setUmamiHostUrl("https://8.8.8.8");
         when(moduleGateService.enabledModuleKeys(10L)).thenReturn(Set.of(AnalyticsModule.KEY));
         when(tenantBrandingService.getBranding(10L)).thenReturn(branding);
 
         service.trackArticleView(10L, article(), "public-view", "alpha.example.test");
 
         verify(umamiEventClient).trackEvent(
-                eq("https://tenant.umami.example.test"),
+                eq("https://8.8.8.8"),
+                eq("123e4567-e89b-12d3-a456-426614174000"),
+                eq("alpha.example.test"),
+                eq("/articles/article-1"),
+                eq("article-view"),
+                org.mockito.ArgumentMatchers.any()
+        );
+    }
+
+    @Test
+    void fallsBackToPlatformHostWhenTenantHostIsPrivate() {
+        ArticleViewAnalyticsService service = service(true);
+        TenantBranding branding = new TenantBranding();
+        branding.setUmamiWebsiteId("123e4567-e89b-12d3-a456-426614174000");
+        branding.setUmamiHostUrl("https://127.0.0.1");
+        when(moduleGateService.enabledModuleKeys(10L)).thenReturn(Set.of(AnalyticsModule.KEY));
+        when(tenantBrandingService.getBranding(10L)).thenReturn(branding);
+
+        service.trackArticleView(10L, article(), "public-view", "alpha.example.test");
+
+        verify(umamiEventClient).trackEvent(
+                eq("https://umami.example.test"),
                 eq("123e4567-e89b-12d3-a456-426614174000"),
                 eq("alpha.example.test"),
                 eq("/articles/article-1"),
