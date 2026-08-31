@@ -144,7 +144,7 @@ class ArticleServiceTest {
                 null,
                 null,
                 Set.of()
-        )).isInstanceOf(IllegalArgumentException.class)
+        )).isInstanceOf(ArticleValidationException.class)
                 .hasMessageContaining("seoDescription");
     }
 
