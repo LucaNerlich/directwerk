@@ -51,8 +51,12 @@ export function usePublicationEditorWorkflow<T extends {
 
     const isDraftPublication = useCallback((): boolean => {
         const current = publicationRef.current
-        return publicationId !== undefined && (current?.status ?? 'DRAFT') === 'DRAFT'
-    }, [publicationId])
+        return (current?.status ?? 'DRAFT') === 'DRAFT'
+    }, [])
+
+    const canAutosave = useCallback((): boolean => {
+        return publicationId !== undefined && isDraftPublication()
+    }, [publicationId, isDraftPublication])
 
     const markDirty = useCallback(() => {
         if (!isDraftPublication()) {
@@ -113,10 +117,10 @@ export function usePublicationEditorWorkflow<T extends {
     )
 
     useDraftAutosave({
-        enabled: isDraftPublication(),
+        enabled: canAutosave(),
         isDirty,
         isSaving: isSaving || autosaveBlocked,
-        canSave: isDraftPublication,
+        canSave: canAutosave,
         onSave: async () => {
             await save({autosave: true})
         },
