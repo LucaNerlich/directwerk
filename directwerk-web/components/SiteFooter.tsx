@@ -13,7 +13,9 @@ export default function SiteFooter(): React.JSX.Element {
     const showArticles =
         config.enabledModules.includes('DIGITAL_CONTENT') || showPodcast
     const showPricing = config.enabledModules.includes('SUBSCRIPTION')
-    const showFeeds = config.enabledModules.includes('PODCAST_RSS')
+    const showFeeds =
+        config.enabledModules.includes('PODCAST_RSS') ||
+        config.enabledModules.includes('ARTICLE_RSS')
     const showDownloads = config.enabledModules.includes('DIGITAL_CONTENT')
 
     return (

@@ -18,6 +18,7 @@ interface NavItem {
     href: string
     label: string
     module?: string
+    modules?: readonly string[]
     requiresAuth?: boolean
 }
 
@@ -26,8 +27,7 @@ const NAV_ITEMS: readonly NavItem[] = [
     {href: '/episodes', label: 'Podcast', module: 'PODCAST'},
     {href: '/articles', label: 'Beiträge', module: 'DIGITAL_CONTENT'},
     {href: '/pricing', label: 'Preise', module: 'SUBSCRIPTION'},
-    {href: '/feeds', label: 'Feeds', module: 'PODCAST_RSS'},
-    {href: '/article-feeds', label: 'Beitrags-Feeds', module: 'ARTICLE_RSS'},
+    {href: '/feeds', label: 'Feeds', modules: ['PODCAST_RSS', 'ARTICLE_RSS']},
     {href: '/downloads', label: 'Bonusdateien', module: 'DIGITAL_CONTENT', requiresAuth: true},
     {href: '/account', label: 'Konto'},
 ]
@@ -63,6 +63,11 @@ export default function SiteHeader({
     const items = NAV_ITEMS.filter((item) => {
         if (item.requiresAuth === true && !isAuthenticated) {
             return false
+        }
+        if (item.modules !== undefined) {
+            return item.modules.some((moduleKey) =>
+                config.enabledModules.includes(moduleKey),
+            )
         }
         if (item.module === undefined) {
             return true

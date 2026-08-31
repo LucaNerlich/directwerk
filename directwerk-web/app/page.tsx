@@ -102,7 +102,8 @@ export default function HomePage(): React.JSX.Element {
         showPodcast ? {href: '/episodes', label: 'Alle Folgen'} : null,
         showArticles ? {href: '/articles', label: 'Alle Beiträge'} : null,
         showPricing ? {href: '/pricing', label: 'Mitgliedschaft'} : null,
-        config.enabledModules.includes('PODCAST_RSS')
+        config.enabledModules.includes('PODCAST_RSS') ||
+        config.enabledModules.includes('ARTICLE_RSS')
             ? {href: '/feeds', label: 'RSS-Feeds'}
             : null,
         {href: isAuthenticated ? '/account' : '/login', label: isAuthenticated ? 'Mein Konto' : 'Anmelden'},
