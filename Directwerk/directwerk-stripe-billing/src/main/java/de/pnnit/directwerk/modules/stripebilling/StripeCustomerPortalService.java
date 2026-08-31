@@ -1,7 +1,6 @@
 package de.pnnit.directwerk.modules.stripebilling;
 
 import de.pnnit.directwerk.modules.core.RequiresModule;
-import de.pnnit.directwerk.modules.stripebilling.StripeBillingModule;
 import de.pnnit.directwerk.modules.stripebilling.entity.StripeCustomer;
 import de.pnnit.directwerk.modules.stripebilling.entity.TenantStripeAccount;
 import de.pnnit.directwerk.modules.stripebilling.exception.StripeConnectNotReadyException;

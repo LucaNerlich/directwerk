@@ -3,7 +3,6 @@ package de.pnnit.directwerk.modules.stripebilling;
 import de.pnnit.directwerk.modules.core.RequiresModule;
 import de.pnnit.directwerk.modules.core.repository.TenantRepository;
 import de.pnnit.directwerk.modules.core.service.ModuleGateService;
-import de.pnnit.directwerk.modules.stripebilling.StripeBillingModule;
 import de.pnnit.directwerk.modules.stripebilling.entity.TenantStripeAccount;
 import de.pnnit.directwerk.modules.stripebilling.exception.StripeConnectNotReadyException;
 import de.pnnit.directwerk.modules.stripebilling.exception.StripeNotConfiguredException;

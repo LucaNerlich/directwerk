@@ -1,7 +1,6 @@
 package de.pnnit.directwerk.modules.stripebilling;
 
 import de.pnnit.directwerk.modules.core.RequiresModule;
-import de.pnnit.directwerk.modules.stripebilling.StripeBillingModule;
 import de.pnnit.directwerk.modules.subscription.entity.SubscriptionProduct;
 import de.pnnit.directwerk.modules.stripebilling.entity.TenantStripeAccount;
 import de.pnnit.directwerk.modules.subscription.service.SubscriptionProductService;
