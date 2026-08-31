@@ -17,6 +17,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.context.ApplicationEventPublisher;
@@ -150,6 +151,18 @@ public class ModuleManagementService {
                 .orElseThrow(() -> new IllegalArgumentException("Unknown module preset: " + presetKey));
 
         List<FeatureModule> modules = featureModuleRepository.findByPlatformActiveTrueOrderByModuleKeyAsc();
+        Set<String> catalogKeys = modules.stream().map(FeatureModule::getModuleKey).collect(Collectors.toSet());
+        List<String> missingFromCatalog = preset.moduleKeys().stream()
+                .filter(key -> !catalogKeys.contains(key))
+                .toList();
+        if (!missingFromCatalog.isEmpty()) {
+            // A preset referencing a module key with no platform-active feature_modules row would
+            // otherwise silently activate a partial set — fail loudly instead (this is exactly how
+            // ARTICLE_RSS/ARTICLE_FEED_BUILDER went unactivatable for every tenant before V54).
+            throw new IllegalStateException(
+                    "Preset " + presetKey + " references module(s) missing from the catalog: " + missingFromCatalog);
+        }
+
         List<String> orderedKeys = modules.stream()
                 .map(FeatureModule::getModuleKey)
                 .filter(key -> preset.moduleKeys().contains(key))

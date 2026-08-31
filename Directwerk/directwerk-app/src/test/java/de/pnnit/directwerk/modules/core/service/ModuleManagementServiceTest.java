@@ -194,6 +194,23 @@ class ModuleManagementServiceTest {
         assertThat(activation.isActive()).isFalse();
     }
 
+    @Test
+    void applyPresetRejectsPresetReferencingModuleMissingFromCatalog() {
+        FeatureModule digitalContent = module("DIGITAL_CONTENT", List.of());
+        when(featureModuleRepository.findByPlatformActiveTrueOrderByModuleKeyAsc())
+                .thenReturn(List.of(digitalContent));
+
+        // WRITER also references ARTICLE_RSS/EMAIL_NOTIFY/WHITELABEL/SUBSCRIPTION, none of which
+        // exist in this stubbed catalog — this is the exact failure mode that let ARTICLE_RSS
+        // silently never activate for any tenant before it was added to feature_modules.
+        assertThatThrownBy(() -> service.applyPreset(1L, "WRITER"))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("WRITER")
+                .hasMessageContaining("ARTICLE_RSS");
+
+        verify(tenantModuleActivationRepository, never()).save(any());
+    }
+
     private static FeatureModule coreModule(String moduleKey) {
         FeatureModule module = module(moduleKey, List.of());
         module.setCore(true);
