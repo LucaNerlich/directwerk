@@ -26,7 +26,11 @@ function isPublicPath(pathname: string): boolean {
     if (PUBLIC_PATHS.has(pathname)) {
         return true
     }
-    return pathname.startsWith('/articles/') || pathname.startsWith('/episodes/')
+    return (
+        pathname.startsWith('/articles/') ||
+        pathname.startsWith('/episodes/') ||
+        pathname.startsWith('/feeds/')
+    )
 }
 
 function isProtectedPath(pathname: string): boolean {
