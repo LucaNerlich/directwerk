@@ -42,6 +42,7 @@ public class ArticlePublicationWorkflowService {
     private final ScheduledPublicationExecutor scheduledPublicationExecutor;
     private final ContentPublishedNotifier contentPublishedNotifier;
     private final SubscriberNotificationGate notificationGate;
+    private final ArticleRssFeedRefreshScheduler articleRssFeedRefreshScheduler;
     private final ObjectProvider<ArticlePublicationWorkflowService> self;
 
     @Transactional
@@ -114,7 +115,7 @@ public class ArticlePublicationWorkflowService {
                     article.setPublishedAt(null);
                     article.setScheduledAt(null);
                 },
-                null
+                () -> articleRssFeedRefreshScheduler.requestRefreshAfterCommit(tenantId)
         );
         return articleRepository.save(article);
     }
@@ -130,7 +131,7 @@ public class ArticlePublicationWorkflowService {
                     article.setStatus(ArticleStatus.ARCHIVED);
                     article.setScheduledAt(null);
                 },
-                null
+                () -> articleRssFeedRefreshScheduler.requestRefreshAfterCommit(tenantId)
         );
         return articleRepository.save(article);
     }
@@ -212,6 +213,7 @@ public class ArticlePublicationWorkflowService {
         article.setScheduledAt(null);
         Article published = articleRepository.save(article);
 
+        articleRssFeedRefreshScheduler.requestRefreshAfterCommit(tenantId);
         maybeNotifySubscribers(tenantId, published, notifySubscribers);
         return published;
     }

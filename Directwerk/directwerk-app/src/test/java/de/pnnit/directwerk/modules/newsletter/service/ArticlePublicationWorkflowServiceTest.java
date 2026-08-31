@@ -56,6 +56,9 @@ class ArticlePublicationWorkflowServiceTest {
     private SubscriberNotificationGate notificationGate;
 
     @Mock
+    private ArticleRssFeedRefreshScheduler articleRssFeedRefreshScheduler;
+
+    @Mock
     private ObjectProvider<ArticlePublicationWorkflowService> selfProvider;
 
     private ScheduledPublicationExecutor scheduledPublicationExecutor;
@@ -71,6 +74,7 @@ class ArticlePublicationWorkflowServiceTest {
                 scheduledPublicationExecutor,
                 contentPublishedNotifier,
                 notificationGate,
+                articleRssFeedRefreshScheduler,
                 selfProvider
         );
         lenient().when(notificationGate.enabled(anyLong(), any(), anyLong())).thenReturn(true);
@@ -88,6 +92,7 @@ class ArticlePublicationWorkflowServiceTest {
         assertThat(published.getStatus()).isEqualTo(ArticleStatus.PUBLISHED);
         assertThat(published.getPublishedAt()).isNotNull();
         assertThat(published.getBody()).contains("<p>Hello world</p>");
+        verify(articleRssFeedRefreshScheduler).requestRefreshAfterCommit(10L);
     }
 
     @Test
@@ -167,6 +172,30 @@ class ArticlePublicationWorkflowServiceTest {
 
         assertThatThrownBy(() -> articlePublicationWorkflowService.unpublish(10L, 7L))
                 .isInstanceOf(InvalidPublicationTransitionException.class);
+    }
+
+    @Test
+    void unpublishRefreshesRssFeed() {
+        Article article = draftArticle();
+        article.setStatus(ArticleStatus.PUBLISHED);
+        when(articleService.requireArticle(10L, 7L)).thenReturn(article);
+
+        Article unpublished = articlePublicationWorkflowService.unpublish(10L, 7L);
+
+        assertThat(unpublished.getStatus()).isEqualTo(ArticleStatus.DRAFT);
+        verify(articleRssFeedRefreshScheduler).requestRefreshAfterCommit(10L);
+    }
+
+    @Test
+    void archiveRefreshesRssFeed() {
+        Article article = draftArticle();
+        article.setStatus(ArticleStatus.PUBLISHED);
+        when(articleService.requireArticle(10L, 7L)).thenReturn(article);
+
+        Article archived = articlePublicationWorkflowService.archive(10L, 7L);
+
+        assertThat(archived.getStatus()).isEqualTo(ArticleStatus.ARCHIVED);
+        verify(articleRssFeedRefreshScheduler).requestRefreshAfterCommit(10L);
     }
 
     @Test
