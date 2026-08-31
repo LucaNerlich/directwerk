@@ -37,6 +37,12 @@ The jobs page lists platform queue jobs and supports filtering by queue and stat
 After sending an invitation from `/admins` or a tenant page, open `/jobs` and filter
 by the `email` queue to inspect the queued or completed mail job.
 
+## Analytics
+
+Optional platform Umami analytics — set `NEXT_PUBLIC_UMAMI_WEBSITE_ID` and `NEXT_PUBLIC_UMAMI_URL`
+in `.env.local` (see `.env.local.example`) to enable. Unset disables tracking entirely. Respects
+the browser's Do Not Track setting.
+
 ## Verification
 
 ```bash
