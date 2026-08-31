@@ -17,6 +17,7 @@ import FeedUrlDisplay from '@/components/FeedUrlDisplay'
 import SubscriberContextBanner from '@/components/SubscriberContextBanner'
 import {usePublicCatalog} from '@/lib/catalog/usePublicCatalog'
 import {useSubscriberAuth} from '@/lib/auth/useSubscriberAuth'
+import {useSubscriberFeeds} from '@/lib/auth/useSubscriberFeeds'
 import {accessPolicyLabel, formatDuration} from '@/lib/format/content'
 import {getClientTenantHost} from '@/lib/tenant/clientHost'
 import {formatPublishedAt} from '@directwerk/api/format/datetime'
@@ -28,6 +29,8 @@ export default function EpisodesPage() {
         tenantHost,
         isAuthenticated,
     })
+    const {feeds: privateFeeds} = useSubscriberFeeds(isAuthenticated)
+    const defaultPrivateFeed = privateFeeds.find((feed) => feed.isDefault) ?? null
 
     return (
         <PageStack className="page-container">
@@ -174,12 +177,34 @@ export default function EpisodesPage() {
                         <section className="flex flex-col gap-4">
                             <SectionHeader
                                 description="Alle freien Folgen in einer Podcast-App abonnieren."
-                                title="Gesamt-Feed"
+                                title="Feeds"
                             />
                             <FeedUrlDisplay
                                 title="Öffentlicher Feed"
                                 url={siteConfig.publicRssUrl}
                             />
+                            {isAuthenticated ? (
+                                defaultPrivateFeed !== null && defaultPrivateFeed.enabled ? (
+                                    <FeedUrlDisplay
+                                        title="Dein privater Feed"
+                                        url={defaultPrivateFeed.url}
+                                    />
+                                ) : null
+                            ) : (
+                                <p className="text-sm text-muted-foreground">
+                                    <Link className="underline" href="/login">
+                                        Anmelden
+                                    </Link>
+                                    , um deinen privaten Feed mit freigeschalteten Folgen zu
+                                    sehen.
+                                </p>
+                            )}
+                            <Link
+                                className="text-sm font-medium underline-offset-4 hover:underline"
+                                href="/feeds"
+                            >
+                                Alle Feeds verwalten
+                            </Link>
                         </section>
                     ) : null}
                 </>
