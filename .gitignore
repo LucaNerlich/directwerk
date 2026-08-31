@@ -5,3 +5,4 @@ Directwerk/http/http-client.secrets.json
 node_modules
 **/node_modules
 /packages/ui/node_modules/
+/.scout
