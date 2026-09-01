@@ -17,6 +17,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.context.ApplicationEventPublisher;
@@ -148,6 +149,22 @@ public class ModuleManagementService {
     public TenantModulesView applyPreset(Long tenantId, String presetKey) {
         ModulePreset preset = ModulePreset.fromKey(presetKey)
                 .orElseThrow(() -> new IllegalArgumentException("Unknown module preset: " + presetKey));
+
+        Set<String> allCatalogKeys = featureModuleRepository.findAll().stream()
+                .map(FeatureModule::getModuleKey)
+                .collect(Collectors.toSet());
+        List<String> missingFromCatalog = preset.moduleKeys().stream()
+                .filter(key -> !allCatalogKeys.contains(key))
+                .toList();
+        if (!missingFromCatalog.isEmpty()) {
+            // A preset referencing a module key with no feature_modules row at all would otherwise
+            // silently activate a partial set — fail loudly instead (this is exactly how
+            // ARTICLE_RSS/ARTICLE_FEED_BUILDER went unactivatable for every tenant before V54).
+            // Rows that exist but aren't platform-active (e.g. EMAIL_NOTIFY, ANALYTICS) are a
+            // deliberate rollout gate, not a cataloging bug, so they're excluded below without error.
+            throw new IllegalStateException(
+                    "Preset " + presetKey + " references module(s) missing from the catalog: " + missingFromCatalog);
+        }
 
         List<FeatureModule> modules = featureModuleRepository.findByPlatformActiveTrueOrderByModuleKeyAsc();
         List<String> orderedKeys = modules.stream()

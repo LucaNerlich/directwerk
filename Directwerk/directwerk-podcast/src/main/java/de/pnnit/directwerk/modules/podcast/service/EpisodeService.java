@@ -34,7 +34,6 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class EpisodeService {
 
-
     private final EpisodeRepository episodeRepository;
     private final SeriesService seriesService;
     private final FormatRepository formatRepository;
@@ -318,6 +317,4 @@ public class EpisodeService {
         }
         return formats;
     }
-
-
 }

@@ -71,7 +71,7 @@ public class StripeSubscriptionSyncService {
             }
             subscription = byUserAndProduct != null
                     ? byUserAndProduct
-                    : newSubscription(tenantId, user, product, tenantRepository);
+                    : newSubscription(tenantId, user, product);
         }
         SubscriptionStatus previousStatus = subscription.getStatus();
         subscription.setUser(user);
@@ -79,9 +79,6 @@ public class StripeSubscriptionSyncService {
         subscription.setSource(SubscriptionSource.STRIPE);
         subscription.setStatus(status != null ? status : SubscriptionStatus.ACTIVE);
         if (subscription.getStartedAt() == null) {
-            subscription.setStartedAt(Instant.now());
-        }
-        if (status == SubscriptionStatus.ACTIVE && subscription.getStartedAt() == null) {
             subscription.setStartedAt(Instant.now());
         }
         subscription.setEndsAt(endsAt);
@@ -161,12 +158,7 @@ public class StripeSubscriptionSyncService {
                 });
     }
 
-    private static Subscription newSubscription(
-            Long tenantId,
-            User user,
-            SubscriptionProduct product,
-            TenantRepository tenantRepository
-    ) {
+    private Subscription newSubscription(Long tenantId, User user, SubscriptionProduct product) {
         Subscription created = new Subscription();
         created.setTenant(tenantRepository.getReferenceById(tenantId));
         created.setUser(user);

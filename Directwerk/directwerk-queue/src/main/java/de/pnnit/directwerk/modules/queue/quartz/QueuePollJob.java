@@ -17,19 +17,11 @@ public class QueuePollJob extends QuartzJobBean {
 
     private QueueWorker queueWorker;
 
-    /**
-     * Configures the worker used to poll registered queue job handlers.
-     *
-     * @param queueWorker the queue worker to use for polling
-     */
     @Autowired
     public void setQueueWorker(QueueWorker queueWorker) {
         this.queueWorker = queueWorker;
     }
 
-    /**
-     * Polls all registered queue job handlers.
-     */
     @Override
     protected void executeInternal(JobExecutionContext context) {
         queueWorker.pollAll();

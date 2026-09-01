@@ -17,6 +17,7 @@ import de.pnnit.directwerk.modules.podcast.feed.SubscriberFeed;
 import de.pnnit.directwerk.modules.podcast.feed.SubscriberFeedRepository;
 import de.pnnit.directwerk.modules.podcast.repository.PodcastSeriesRepository;
 import java.util.Optional;
+import java.util.function.Supplier;
 import org.springframework.stereotype.Service;
 
 /**
@@ -181,8 +182,8 @@ public class RssFeedSnapshotService {
                 .forEach(feed -> snapshotStore.withdraw(privateFeedRef(tenant.getId(), slug, feed.getId())));
     }
 
-    private void refresh(FeedSnapshotRef ref, XmlSupplier supplier) {
-        snapshotStore.upload(ref, supplier.get(), RSS_CONTENT_TYPE);
+    private void refresh(FeedSnapshotRef ref, Supplier<String> xmlSupplier) {
+        snapshotStore.upload(ref, xmlSupplier.get(), RSS_CONTENT_TYPE);
     }
 
     private boolean rssModuleActive(Long tenantId) {
@@ -245,10 +246,5 @@ public class RssFeedSnapshotService {
     }
 
     private record Origin(String scheme, String host, int port) {
-    }
-
-    @FunctionalInterface
-    private interface XmlSupplier {
-        String get();
     }
 }

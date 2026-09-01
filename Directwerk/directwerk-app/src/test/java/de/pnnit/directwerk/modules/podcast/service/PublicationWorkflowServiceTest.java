@@ -11,7 +11,6 @@ import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import de.pnnit.directwerk.config.DirectwerkConfig;
 import de.pnnit.directwerk.modules.content.ContentPublishedNotifier;
 import de.pnnit.directwerk.modules.core.entity.Tenant;
 import de.pnnit.directwerk.modules.core.service.ModuleGateService;
@@ -62,9 +61,6 @@ class PublicationWorkflowServiceTest {
     private ContentPublishedNotifier contentPublishedNotifier;
 
     @Mock
-    private DirectwerkConfig directwerkConfig;
-
-    @Mock
     private RssFeedRefreshScheduler rssFeedRefreshScheduler;
 
     private PublicationWorkflowService publicationWorkflowService;
@@ -86,7 +82,6 @@ class PublicationWorkflowServiceTest {
                 formatService,
                 episodeMediaApi,
                 new HtmlSanitizer(),
-                moduleGateService,
                 scheduledPublicationExecutor,
                 contentPublishedNotifier,
                 notificationGate,

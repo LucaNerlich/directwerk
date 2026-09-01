@@ -150,5 +150,4 @@ public class FormatService {
         }
         return value.trim();
     }
-
 }

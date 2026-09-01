@@ -3,6 +3,8 @@ package de.pnnit.directwerk.modules.core.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -192,6 +194,59 @@ class ModuleManagementServiceTest {
 
         verify(eventPublisher).publishEvent(new TenantRssSnapshotStaleEvent(1L));
         assertThat(activation.isActive()).isFalse();
+    }
+
+    @Test
+    void applyPresetRejectsPresetReferencingModuleMissingFromCatalog() {
+        FeatureModule digitalContent = module("DIGITAL_CONTENT", List.of());
+        when(featureModuleRepository.findAll()).thenReturn(List.of(digitalContent));
+
+        // WRITER also references ARTICLE_RSS/EMAIL_NOTIFY/WHITELABEL/SUBSCRIPTION, none of which
+        // exist in this stubbed catalog — this is the exact failure mode that let ARTICLE_RSS
+        // silently never activate for any tenant before it was added to feature_modules.
+        assertThatThrownBy(() -> service.applyPreset(1L, "WRITER"))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("WRITER")
+                .hasMessageContaining("ARTICLE_RSS");
+
+        verify(tenantModuleActivationRepository, never()).save(any());
+    }
+
+    @Test
+    void applyPresetSkipsCatalogedButNotPlatformActiveModuleWithoutError() {
+        Tenant tenant = new Tenant();
+        tenant.setId(1L);
+        when(tenantRepository.requireById(1L)).thenReturn(tenant);
+
+        // Flat (no depends-on) fixtures: this test is only about the platform-active gate, not
+        // dependency-chain validation, which other tests already cover.
+        FeatureModule digitalContent = module("DIGITAL_CONTENT", List.of());
+        FeatureModule podcast = module("PODCAST", List.of());
+        FeatureModule podcastRss = module("PODCAST_RSS", List.of());
+        FeatureModule subscription = module("SUBSCRIPTION", List.of());
+        FeatureModule emailNotify = module("EMAIL_NOTIFY", List.of());
+        emailNotify.setPlatformActive(false);
+        List<FeatureModule> platformActiveModules = List.of(digitalContent, podcast, podcastRss, subscription);
+
+        // PODCAST preset references EMAIL_NOTIFY, which has a real catalog row but isn't rolled
+        // out platform-wide yet — that's a deliberate gate, not the ARTICLE_RSS cataloging bug,
+        // so it must be skipped rather than rejected.
+        when(featureModuleRepository.findAll())
+                .thenReturn(List.of(digitalContent, podcast, podcastRss, subscription, emailNotify));
+        when(featureModuleRepository.findByPlatformActiveTrueOrderByModuleKeyAsc())
+                .thenReturn(platformActiveModules);
+        when(featureModuleRepository.findByModuleKey(anyString()))
+                .thenAnswer(invocation -> platformActiveModules.stream()
+                        .filter(module -> module.getModuleKey().equals(invocation.getArgument(0)))
+                        .findFirst());
+        when(tenantModuleActivationRepository.findByTenantIdAndModuleKey(eq(1L), anyString()))
+                .thenReturn(Optional.empty());
+
+        service.applyPreset(1L, "PODCAST");
+
+        verify(tenantModuleActivationRepository, never())
+                .findByTenantIdAndModuleKey(1L, "EMAIL_NOTIFY");
+        verify(tenantModuleActivationRepository, org.mockito.Mockito.times(4)).save(any());
     }
 
     private static FeatureModule coreModule(String moduleKey) {

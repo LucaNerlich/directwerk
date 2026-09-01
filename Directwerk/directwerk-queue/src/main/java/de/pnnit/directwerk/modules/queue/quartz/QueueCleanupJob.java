@@ -17,19 +17,11 @@ public class QueueCleanupJob extends QuartzJobBean {
 
     private QueueCleanupService queueCleanupService;
 
-    /**
-     * Configures the service used to clean up stale terminal queue jobs.
-     *
-     * @param queueCleanupService the queue cleanup service to use
-     */
     @Autowired
     public void setQueueCleanupService(QueueCleanupService queueCleanupService) {
         this.queueCleanupService = queueCleanupService;
     }
 
-    /**
-     * Removes stale terminal queue jobs.
-     */
     @Override
     protected void executeInternal(JobExecutionContext context) {
         queueCleanupService.cleanup();

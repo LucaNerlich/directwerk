@@ -18,6 +18,4 @@ public interface SubscriptionProductRepository extends JpaRepository<Subscriptio
     Optional<SubscriptionProduct> findByTenantIdAndSlug(Long tenantId, String slug);
 
     boolean existsByTenantIdAndSlug(Long tenantId, String slug);
-
-    boolean existsByTenantIdAndSlugAndIdNot(Long tenantId, String slug, Long id);
 }

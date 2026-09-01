@@ -160,5 +160,4 @@ public class SeriesService {
         }
         return value.trim();
     }
-
 }

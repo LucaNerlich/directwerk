@@ -1,17 +1,13 @@
 package de.pnnit.directwerk.modules.podcast.service;
 
-import de.pnnit.directwerk.config.DirectwerkConfig;
-import de.pnnit.directwerk.modules.content.ContentPublishedEvent;
 import de.pnnit.directwerk.modules.content.PublicationLifecycleSupport;
 import de.pnnit.directwerk.modules.core.notification.PublicationNotificationSupport;
 import de.pnnit.directwerk.modules.content.PublicationTexts;
-import de.pnnit.directwerk.modules.content.ScheduledPublishing;
 import de.pnnit.directwerk.modules.content.ScheduledPublishing.DueItem;
 import de.pnnit.directwerk.modules.content.ContentPublishedNotifier;
 import de.pnnit.directwerk.modules.content.ContentType;
 import de.pnnit.directwerk.modules.core.RequiresModule;
 import de.pnnit.directwerk.modules.core.notification.SubscriberNotificationGate;
-import de.pnnit.directwerk.modules.core.service.ModuleGateService;
 import de.pnnit.directwerk.modules.core.service.ScheduledPublicationExecutor;
 import de.pnnit.directwerk.modules.digital.api.EpisodeMediaApi;
 import de.pnnit.directwerk.modules.digital.entity.AssetVisibility;
@@ -22,10 +18,8 @@ import de.pnnit.directwerk.modules.podcast.entity.Episode;
 import de.pnnit.directwerk.modules.podcast.entity.EpisodeStatus;
 import de.pnnit.directwerk.modules.podcast.exception.EpisodeValidationException;
 import de.pnnit.directwerk.modules.content.PublicationTransitions;
-import de.pnnit.directwerk.modules.content.InvalidPublicationTransitionException;
 import de.pnnit.directwerk.modules.digital.service.HtmlSanitizer;
 import de.pnnit.directwerk.modules.podcast.repository.EpisodeRepository;
-import de.pnnit.directwerk.multitenancy.TenantContext;
 import java.time.Instant;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -44,7 +38,6 @@ public class PublicationWorkflowService {
     private final FormatService formatService;
     private final EpisodeMediaApi episodeMediaApi;
     private final HtmlSanitizer htmlSanitizer;
-    private final ModuleGateService moduleGateService;
     private final ScheduledPublicationExecutor scheduledPublicationExecutor;
     private final ContentPublishedNotifier contentPublishedNotifier;
     private final SubscriberNotificationGate notificationGate;

@@ -36,10 +36,6 @@ public class EmailLinkBuilder {
         };
     }
 
-    public String buildStudioAcceptInviteUrl(String inviteToken) {
-        return buildStudioAcceptInviteUrl(inviteToken, null);
-    }
-
     public String buildStudioAcceptInviteUrl(String inviteToken, Long tenantId) {
         return buildUrl(
                 directwerkConfig.email().studioBaseUrl(),
@@ -56,20 +52,12 @@ public class EmailLinkBuilder {
         );
     }
 
-    public String buildResetPasswordUrl(String resetToken) {
-        return buildResetPasswordUrl(resetToken, null);
-    }
-
     public String buildResetPasswordUrl(String resetToken, Long tenantId) {
         return buildTenantAuthUrl(
                 tenantId,
                 directwerkConfig.email().resetPasswordPath(),
                 resetToken
         );
-    }
-
-    public String buildVerifyEmailUrl(String verificationToken) {
-        return buildVerifyEmailUrl(verificationToken, null);
     }
 
     public String buildVerifyEmailUrl(String verificationToken, Long tenantId) {

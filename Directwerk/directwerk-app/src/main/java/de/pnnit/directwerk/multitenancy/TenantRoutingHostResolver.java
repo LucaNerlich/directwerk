@@ -97,10 +97,6 @@ public class TenantRoutingHostResolver {
         return normalizeRoutingHost(first);
     }
 
-    private static Optional<String> parseHeaderHostExcluding(String rawHeader, String excludedHost) {
-        return parseHeaderHost(rawHeader).filter(host -> !host.equalsIgnoreCase(excludedHost));
-    }
-
     /**
      * Traefik may prepend the API hostname to an existing forwarded-host chain from the BFF.
      * Prefer the last non-platform entry.

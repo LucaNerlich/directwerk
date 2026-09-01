@@ -181,7 +181,7 @@ public class ArticleService {
     private static String normalizeSeoDescription(String seoDescription) {
         String normalized = normalizeOptionalText(seoDescription);
         if (normalized != null && normalized.length() > MAX_SEO_DESCRIPTION_LENGTH) {
-            throw new IllegalArgumentException("seoDescription must be at most 512 characters");
+            throw new ArticleValidationException("seoDescription must be at most " + MAX_SEO_DESCRIPTION_LENGTH + " characters");
         }
         return normalized;
     }

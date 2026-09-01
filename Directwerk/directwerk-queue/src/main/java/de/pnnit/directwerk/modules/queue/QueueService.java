@@ -126,16 +126,7 @@ public class QueueService {
                 ));
     }
 
-    /**
-     * Extends the lease of a processing job held by the specified worker. Used
-     * as a heartbeat by {@link QueueWorker} so long-running handlers are not
-     * re-claimed (and re-executed) by another node while still running.
-     *
-     * @param id the job identifier
-     * @param worker the worker holding the job lease
-     * @param extensionSeconds how much longer the lease should run from now
-     * @return the updated job, or an empty optional if the lease was lost
-     */
+    /** Heartbeat used by {@link QueueWorker} so long-running handlers aren't re-claimed by another node while still running. */
     @Transactional
     public Optional<QueueJob> renew(UUID id, String worker, long extensionSeconds) {
         return repository.renew(id, worker, Duration.ofSeconds(extensionSeconds));
