@@ -8,10 +8,13 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import de.pnnit.directwerk.modules.core.audit.PlatformAuditActions;
+import de.pnnit.directwerk.modules.core.entity.FeatureModule;
 import de.pnnit.directwerk.modules.core.entity.Tenant;
 import de.pnnit.directwerk.modules.core.entity.TenantStatus;
+import de.pnnit.directwerk.modules.core.repository.FeatureModuleRepository;
 import de.pnnit.directwerk.modules.core.repository.PlatformAuditEventRepository;
 import de.pnnit.directwerk.modules.core.repository.TenantRepository;
+import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -38,6 +41,9 @@ class PlatformTenantControllerTest {
 
     @Autowired
     private PlatformAuditEventRepository platformAuditEventRepository;
+
+    @Autowired
+    private FeatureModuleRepository featureModuleRepository;
 
     private Tenant tenant;
     private Tenant otherTenant;
@@ -79,6 +85,11 @@ class PlatformTenantControllerTest {
     @Test
     @WithMockUser(roles = "PLATFORM_ADMIN")
     void createTenantWithFullModulePresetPrimaryDomainAndAdminEmail() throws Exception {
+        // This profile disables Flyway (H2 create-drop from JPA entities only), so the
+        // feature_modules catalog rows Flyway normally seeds in production don't exist here —
+        // seed the ones the FULL preset needs so applyPreset's catalog check has something to find.
+        seedFeatureModuleCatalogForFullPreset();
+
         String uuid = UUID.randomUUID().toString().replace("-", "");
         String slug = "luca-test-" + uuid.substring(0, 12);
         String primaryDomain = "test-" + uuid.substring(0, 8) + ".localhost";
@@ -206,5 +217,18 @@ class PlatformTenantControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"name\":\"Renamed Tenant\"}"))
                 .andExpect(status().isUnauthorized());
+    }
+
+    private void seedFeatureModuleCatalogForFullPreset() {
+        for (String key : List.of("DIGITAL_CONTENT", "SUBSCRIPTION", "EMAIL_NOTIFY", "WHITELABEL", "PODCAST", "PODCAST_RSS")) {
+            if (featureModuleRepository.findByModuleKey(key).isPresent()) {
+                continue;
+            }
+            FeatureModule module = new FeatureModule();
+            module.setModuleKey(key);
+            module.setName(key);
+            module.setDependsOn(List.of());
+            featureModuleRepository.save(module);
+        }
     }
 }

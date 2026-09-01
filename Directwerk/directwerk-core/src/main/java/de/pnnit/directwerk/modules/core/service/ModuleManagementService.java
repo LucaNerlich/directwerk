@@ -150,19 +150,23 @@ public class ModuleManagementService {
         ModulePreset preset = ModulePreset.fromKey(presetKey)
                 .orElseThrow(() -> new IllegalArgumentException("Unknown module preset: " + presetKey));
 
-        List<FeatureModule> modules = featureModuleRepository.findByPlatformActiveTrueOrderByModuleKeyAsc();
-        Set<String> catalogKeys = modules.stream().map(FeatureModule::getModuleKey).collect(Collectors.toSet());
+        Set<String> allCatalogKeys = featureModuleRepository.findAll().stream()
+                .map(FeatureModule::getModuleKey)
+                .collect(Collectors.toSet());
         List<String> missingFromCatalog = preset.moduleKeys().stream()
-                .filter(key -> !catalogKeys.contains(key))
+                .filter(key -> !allCatalogKeys.contains(key))
                 .toList();
         if (!missingFromCatalog.isEmpty()) {
-            // A preset referencing a module key with no platform-active feature_modules row would
-            // otherwise silently activate a partial set — fail loudly instead (this is exactly how
+            // A preset referencing a module key with no feature_modules row at all would otherwise
+            // silently activate a partial set — fail loudly instead (this is exactly how
             // ARTICLE_RSS/ARTICLE_FEED_BUILDER went unactivatable for every tenant before V54).
+            // Rows that exist but aren't platform-active (e.g. EMAIL_NOTIFY, ANALYTICS) are a
+            // deliberate rollout gate, not a cataloging bug, so they're excluded below without error.
             throw new IllegalStateException(
                     "Preset " + presetKey + " references module(s) missing from the catalog: " + missingFromCatalog);
         }
 
+        List<FeatureModule> modules = featureModuleRepository.findByPlatformActiveTrueOrderByModuleKeyAsc();
         List<String> orderedKeys = modules.stream()
                 .map(FeatureModule::getModuleKey)
                 .filter(key -> preset.moduleKeys().contains(key))
