@@ -41,13 +41,13 @@ describe('site helpers', () => {
     it('resolves active desk from pathname and config', () => {
         expect(resolveActiveDesk('/write', sampleConfig)).toBe('WRITE')
         expect(resolveActiveDesk('/write/articles', sampleConfig)).toBe('WRITE')
-        expect(resolveActiveDesk('/write/bonus', sampleConfig)).toBe('WRITE')
         expect(resolveActiveDesk('/podcast', sampleConfig)).toBe('PODCAST')
         expect(resolveActiveDesk('/podcast/episodes', sampleConfig)).toBe('PODCAST')
         expect(resolveActiveDesk('/podcast/import', sampleConfig)).toBe('PODCAST')
         expect(resolveActiveDesk('/podcast/series', sampleConfig)).toBe('PODCAST')
         expect(resolveActiveDesk('/', sampleConfig)).toBeNull()
         expect(resolveActiveDesk('/media', sampleConfig)).toBeNull()
+        expect(resolveActiveDesk('/bonus', sampleConfig)).toBeNull()
         expect(resolveActiveDesk('/settings/branding', sampleConfig)).toBeNull()
     })
 

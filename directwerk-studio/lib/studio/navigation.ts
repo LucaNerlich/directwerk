@@ -15,9 +15,6 @@ export function buildWriteDeskItems(config: SiteConfig): NavigationItem[] {
         {href: '/write', label: 'Start'},
         {href: '/write/articles', label: 'Beiträge'},
     ]
-    if (hasModule(config, 'BONUS_CONTENT')) {
-        items.push({href: '/write/bonus', label: 'Bonusdateien'})
-    }
     if (hasModule(config, 'ARTICLE_RSS') || config.publicArticleRssUrl !== null) {
         items.push({href: '/write/feeds', label: 'Feeds'})
     }
@@ -45,6 +42,7 @@ export function buildVerwaltungSections(
     const sections: NavigationGroupConfig[] = []
     const showMedia =
         hasModule(config, 'DIGITAL_CONTENT') || hasModule(config, 'PODCAST')
+    const showBonusContent = hasModule(config, 'BONUS_CONTENT')
     const showCategories = hasModule(config, 'DIGITAL_CONTENT')
     const showSubscription = hasModule(config, 'SUBSCRIPTION')
     const showEmailNotify = hasModule(config, 'EMAIL_NOTIFY')
@@ -52,9 +50,13 @@ export function buildVerwaltungSections(
     const showAdmin = me !== null && isTenantAdminRole(me.roles)
 
     if (showMedia) {
+        const mediaItems: NavigationItem[] = [{href: '/media', label: 'Bibliothek'}]
+        if (showBonusContent) {
+            mediaItems.push({href: '/bonus', label: 'Bonusdateien'})
+        }
         sections.push({
             label: 'Medien',
-            items: [{href: '/media', label: 'Bibliothek'}],
+            items: mediaItems,
         })
     }
 
