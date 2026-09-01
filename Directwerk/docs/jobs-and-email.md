@@ -29,8 +29,9 @@ the `none|smtp` allow-list when one is chosen. Do not put API keys in frontend o
 
 Optional per-queue tuning: override `JobHandler#settings()` for lease, retry delay, or max attempts.
 
-Registered queues today: `email`, `content-notify`, `stripe-webhook`, `rss-feed-refresh`, plus `media-s3-delete`,
-`media-cdn-purge`, `media-staging-cleanup`, and `remote-asset-ingest` when storage is enabled. Media delete is authorized on the HTTP path
+Registered queues today: `email`, `content-notify`, `stripe-webhook`, `podcast-rss-feed-refresh`,
+`article-rss-feed-refresh`, plus `media-s3-delete`, `media-cdn-purge`, `media-staging-cleanup`, and
+`remote-asset-ingest` when storage is enabled. Media delete is authorized on the HTTP path
 (`PENDING_DELETE`), then S3 removal and CDN purge run as separate jobs. RSS refresh is requested
 after content or entitlement transactions commit and preserves the previous XML on failure.
 Queued RSS refresh jobs with the same tenant correlation id are coalesced; an in-flight rebuild

@@ -61,12 +61,16 @@ public class RssFeedRefreshJobProducer implements RssFeedRefreshScheduler {
             return;
         }
         queueService.getObject().enqueue(
-                RssFeedRefreshQueueNames.RSS_FEED_REFRESH,
+                RssFeedRefreshQueueNames.PODCAST_RSS_FEED_REFRESH,
                 objectMapper.valueToTree(new RssFeedRefreshJobPayload(tenantId)),
                 0,
                 null,
                 null,
-                new JobEnqueueMetadata(tenantId, "rss-feed-refresh-" + tenantId, null)
+                new JobEnqueueMetadata(
+                        tenantId,
+                        RssFeedRefreshQueueNames.PODCAST_RSS_FEED_REFRESH + "-" + tenantId,
+                        null
+                )
         );
     }
 }

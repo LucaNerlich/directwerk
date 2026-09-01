@@ -54,6 +54,67 @@ class FlywaySchemaValidationIntegrationTest {
     }
 
     @Test
+    void podcastRssQueueMigrationRenamesPersistedJobs() {
+        long renamedTenantId = 91_001L;
+        long customCorrelationTenantId = 91_002L;
+        jdbcTemplate.update(
+                """
+                INSERT INTO tenants (id, slug, name)
+                VALUES
+                    (?, 'queue-migration-1', 'Queue migration 1'),
+                    (?, 'queue-migration-2', 'Queue migration 2')
+                """,
+                renamedTenantId,
+                customCorrelationTenantId
+        );
+
+        UUID renamedJobId = UUID.randomUUID();
+        jdbcTemplate.update(
+                """
+                INSERT INTO jobs (id, queue_name, payload, tenant_id, correlation_id, status)
+                VALUES (?, 'rss-feed-refresh', '{}'::jsonb, ?, 'rss-feed-refresh-' || ?, 'COMPLETED')
+                """,
+                renamedJobId,
+                renamedTenantId,
+                renamedTenantId
+        );
+
+        String maxLengthCustomCorrelation = "rss-feed-refresh-" + "x".repeat(183);
+        assertThat(maxLengthCustomCorrelation).hasSize(200);
+        UUID customCorrelationJobId = UUID.randomUUID();
+        jdbcTemplate.update(
+                """
+                INSERT INTO jobs (id, queue_name, payload, tenant_id, correlation_id, status)
+                VALUES (?, 'rss-feed-refresh', '{}'::jsonb, ?, ?, 'COMPLETED')
+                """,
+                customCorrelationJobId,
+                customCorrelationTenantId,
+                maxLengthCustomCorrelation
+        );
+
+        ResourceDatabasePopulator populator = new ResourceDatabasePopulator();
+        populator.addScript(new ClassPathResource(
+                "db/migration/V57__rename_podcast_rss_feed_refresh_queue.sql"
+        ));
+        populator.execute(dataSource);
+
+        assertThat(jdbcTemplate.queryForMap(
+                "SELECT queue_name, correlation_id FROM jobs WHERE id = ?",
+                renamedJobId
+        )).containsEntry("queue_name", "podcast-rss-feed-refresh")
+                .containsEntry("correlation_id", "podcast-rss-feed-refresh-" + renamedTenantId);
+        assertThat(jdbcTemplate.queryForMap(
+                "SELECT queue_name, correlation_id FROM jobs WHERE id = ?",
+                customCorrelationJobId
+        )).containsEntry("queue_name", "podcast-rss-feed-refresh")
+                .containsEntry("correlation_id", maxLengthCustomCorrelation);
+        assertThat(jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM jobs WHERE queue_name = 'rss-feed-refresh'",
+                Integer.class
+        )).isZero();
+    }
+
+    @Test
     void localDevSeedSqlIsIdempotentAgainstCurrentSchema() {
         ResourceDatabasePopulator populator = new ResourceDatabasePopulator();
         populator.addScript(new ClassPathResource(LocalDevSeedRunner.SEED_SCRIPT));

@@ -20,7 +20,7 @@ public class RssFeedRefreshJobHandler implements JobHandler {
 
     @Override
     public String queueName() {
-        return RssFeedRefreshQueueNames.RSS_FEED_REFRESH;
+        return RssFeedRefreshQueueNames.PODCAST_RSS_FEED_REFRESH;
     }
 
     @Override

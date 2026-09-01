@@ -248,17 +248,17 @@ class QueueRepositoryIntegrationTest {
     void enqueueWithSameCorrelationIdDoesNotCreateASecondQueuedJob() {
         ObjectNode payload = objectMapper.createObjectNode().put("tenantId", 10);
         QueueJob first = queueRepository.enqueue(
-                "mail", payload, 0, Instant.now(), 3, 10L, "rss-feed-refresh-10", null
+                "mail", payload, 0, Instant.now(), 3, 10L, "podcast-rss-feed-refresh-10", null
         );
         QueueJob second = queueRepository.enqueue(
-                "mail", payload, 0, Instant.now(), 3, 10L, "rss-feed-refresh-10", null
+                "mail", payload, 0, Instant.now(), 3, 10L, "podcast-rss-feed-refresh-10", null
         );
 
         assertThat(second.id()).isEqualTo(first.id());
         assertThat(jdbcTemplate.queryForObject(
                 "SELECT COUNT(*) FROM jobs WHERE correlation_id = ?",
                 Integer.class,
-                "rss-feed-refresh-10"
+                "podcast-rss-feed-refresh-10"
         )).isEqualTo(1);
     }
 
@@ -266,17 +266,17 @@ class QueueRepositoryIntegrationTest {
     void enqueueWithSameCorrelationIdDifferentTenantsCreatesSeparateJobs() {
         ObjectNode payload = objectMapper.createObjectNode().put("tenantId", 10);
         QueueJob first = queueRepository.enqueue(
-                "mail", payload, 0, Instant.now(), 3, 10L, "rss-feed-refresh", null
+                "mail", payload, 0, Instant.now(), 3, 10L, "podcast-rss-feed-refresh", null
         );
         QueueJob second = queueRepository.enqueue(
-                "mail", payload, 0, Instant.now(), 3, 20L, "rss-feed-refresh", null
+                "mail", payload, 0, Instant.now(), 3, 20L, "podcast-rss-feed-refresh", null
         );
 
         assertThat(second.id()).isNotEqualTo(first.id());
         assertThat(jdbcTemplate.queryForObject(
                 "SELECT COUNT(*) FROM jobs WHERE correlation_id = ?",
                 Integer.class,
-                "rss-feed-refresh"
+                "podcast-rss-feed-refresh"
         )).isEqualTo(2);
     }
 
@@ -284,13 +284,13 @@ class QueueRepositoryIntegrationTest {
     void enqueueAllowsAFollowUpWhileAMatchingJobIsProcessing() {
         ObjectNode payload = objectMapper.createObjectNode().put("tenantId", 10);
         QueueJob first = queueRepository.enqueue(
-                "mail", payload, 0, Instant.now(), 3, 10L, "rss-feed-refresh-10", null
+                "mail", payload, 0, Instant.now(), 3, 10L, "podcast-rss-feed-refresh-10", null
         );
         List<QueueJob> claimed = queueRepository.claim("mail", "worker-1", 1, Duration.ofSeconds(60));
         assertThat(claimed).extracting(QueueJob::id).containsExactly(first.id());
 
         QueueJob followUp = queueRepository.enqueue(
-                "mail", payload, 0, Instant.now(), 3, 10L, "rss-feed-refresh-10", null
+                "mail", payload, 0, Instant.now(), 3, 10L, "podcast-rss-feed-refresh-10", null
         );
 
         assertThat(followUp.id()).isNotEqualTo(first.id());
@@ -298,7 +298,7 @@ class QueueRepositoryIntegrationTest {
         assertThat(jdbcTemplate.queryForObject(
                 "SELECT COUNT(*) FROM jobs WHERE correlation_id = ?",
                 Integer.class,
-                "rss-feed-refresh-10"
+                "podcast-rss-feed-refresh-10"
         )).isEqualTo(2);
     }
 
@@ -314,7 +314,7 @@ class QueueRepositoryIntegrationTest {
                 futures.add(executor.submit(() -> {
                     start.await(5, TimeUnit.SECONDS);
                     return queueRepository.enqueue(
-                            "mail", payload, 0, Instant.now(), 3, 10L, "rss-feed-refresh-10", null
+                            "mail", payload, 0, Instant.now(), 3, 10L, "podcast-rss-feed-refresh-10", null
                     );
                 }));
             }
@@ -328,7 +328,7 @@ class QueueRepositoryIntegrationTest {
             assertThat(jdbcTemplate.queryForObject(
                     "SELECT COUNT(*) FROM jobs WHERE correlation_id = ?",
                     Integer.class,
-                    "rss-feed-refresh-10"
+                    "podcast-rss-feed-refresh-10"
             )).isEqualTo(1);
         } finally {
             executor.shutdownNow();

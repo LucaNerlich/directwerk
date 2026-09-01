@@ -52,8 +52,9 @@ independent Gradle sibling modules. Podcast and article snapshot rows share the 
 
 ## Refresh and failure behavior
 
-Content, feed, and entitlement mutations request the `rss-feed-refresh` queue after their database
-transaction commits. At most one `QUEUED` job per tenant correlation id is stored; a mutation
+Podcast content, feed, and entitlement mutations request the `podcast-rss-feed-refresh` queue
+after their database transaction commits. At most one `QUEUED` job per tenant correlation id is
+stored; a mutation
 while a rebuild is already `PROCESSING` still enqueues a follow-up so the next run sees the latest
 database state. The job regenerates the tenant feed, every series snapshot (so an unpublished
 series is replaced by an empty feed rather than stale XML), and enabled subscriber feeds using the

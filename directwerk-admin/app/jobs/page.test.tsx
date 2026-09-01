@@ -43,7 +43,10 @@ describe('JobsPage', () => {
             {label: 'email', value: 'email'},
             {label: 'content-notify', value: 'content-notify'},
             {label: 'stripe-webhook', value: 'stripe-webhook'},
-            {label: 'rss-feed-refresh', value: 'rss-feed-refresh'},
+            {
+                label: 'podcast-rss-feed-refresh',
+                value: 'podcast-rss-feed-refresh',
+            },
             {
                 label: 'article-rss-feed-refresh',
                 value: 'article-rss-feed-refresh',

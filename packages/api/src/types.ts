@@ -84,7 +84,7 @@ export const KNOWN_JOB_QUEUES = [
     'email',
     'content-notify',
     'stripe-webhook',
-    'rss-feed-refresh',
+    'podcast-rss-feed-refresh',
     'article-rss-feed-refresh',
     'remote-asset-ingest',
     'media-s3-delete',
