@@ -18,6 +18,15 @@ function isSafeLinkHref(value: string): boolean {
     }
 }
 
+/**
+ * Provides a rich-text editor for show notes or post content.
+ *
+ * @param value - The editor's HTML content.
+ * @param onChange - Called with the updated HTML content.
+ * @param label - The label displayed above the editor.
+ * @param placeholder - The placeholder displayed when the editor is empty.
+ * @param disabled - Disables editing and toolbar controls when `true`.
+ */
 export default function ShowNotesEditor({
     value,
     onChange,
