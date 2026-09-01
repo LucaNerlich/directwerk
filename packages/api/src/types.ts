@@ -80,7 +80,17 @@ export type AssetVisibility = (typeof ASSET_VISIBILITIES)[number]
 
 export type JobStatus = (typeof JOB_STATUSES)[number]
 
-export const KNOWN_JOB_QUEUES = ['email'] as const
+export const KNOWN_JOB_QUEUES = [
+    'email',
+    'content-notify',
+    'stripe-webhook',
+    'rss-feed-refresh',
+    'article-rss-feed-refresh',
+    'remote-asset-ingest',
+    'media-s3-delete',
+    'media-cdn-purge',
+    'media-staging-cleanup',
+] as const
 
 // ---------------------------------------------------------------------------
 // Content: articles / episodes / series

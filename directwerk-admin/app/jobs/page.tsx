@@ -34,7 +34,6 @@ import {
 import {validateJobListQuery} from '@/lib/validation'
 
 const DEFAULT_QUERY: JobListQuery = {
-    queue: 'email',
     offset: 0,
     limit: 20,
 }
@@ -166,10 +165,11 @@ export default function JobsPage() {
                             <Label htmlFor="job-queue">Queue</Label>
                             <select
                                 className="native-select"
-                                defaultValue={query.queue ?? 'email'}
+                                defaultValue={query.queue ?? ''}
                                 id="job-queue"
                                 name="queue"
                             >
+                                <option value="">All queues</option>
                                 {KNOWN_JOB_QUEUES.map((queueName) => (
                                     <option key={queueName} value={queueName}>
                                         {queueName}
