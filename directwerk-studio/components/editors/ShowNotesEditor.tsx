@@ -78,7 +78,7 @@ export default function ShowNotesEditor({
         if (!editor) {
             return
         }
-        editor.setEditable(!disabled)
+        editor.setEditable(!disabled, false)
     }, [disabled, editor])
 
     if (!editor) {
