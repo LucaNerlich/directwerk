@@ -25,13 +25,18 @@ export function useDraftAutosave({
     onSaveRef.current = onSave
     const canSaveRef = useRef(canSave)
     canSaveRef.current = canSave
+    /** Revision of the last attempted save, so a failed autosave (isDirty stays
+     * true) does not retry every `delayMs` forever — only a new edit (new
+     * revision) schedules another attempt. */
+    const attemptedRevisionRef = useRef<number | null>(null)
 
     useEffect(() => {
-        if (!enabled || !isDirty || isSaving) {
+        if (!enabled || !isDirty || isSaving || attemptedRevisionRef.current === revision) {
             return
         }
 
         const timer = window.setTimeout(() => {
+            attemptedRevisionRef.current = revision
             if (canSaveRef.current !== undefined && !canSaveRef.current()) {
                 return
             }

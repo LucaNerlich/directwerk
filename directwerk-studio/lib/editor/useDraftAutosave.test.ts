@@ -81,6 +81,64 @@ describe('useDraftAutosave', () => {
         expect(onSave).toHaveBeenCalledTimes(1)
     })
 
+    it('does not retry every delayMs after a failed save with an unchanged revision', () => {
+        const onSave = vi.fn().mockResolvedValue(undefined)
+        const {rerender} = renderHook(
+            ({isSaving}: {isSaving: boolean}) =>
+                useDraftAutosave({
+                    enabled: true,
+                    isDirty: true,
+                    isSaving,
+                    onSave,
+                    revision: 1,
+                }),
+            {initialProps: {isSaving: false}},
+        )
+
+        act(() => {
+            vi.advanceTimersByTime(2000)
+        })
+        expect(onSave).toHaveBeenCalledTimes(1)
+
+        // Simulates a failed save: isSaving toggles true -> false but isDirty
+        // and revision stay the same because the caller never cleared isDirty.
+        rerender({isSaving: true})
+        rerender({isSaving: false})
+
+        act(() => {
+            vi.advanceTimersByTime(10000)
+        })
+        expect(onSave).toHaveBeenCalledTimes(1)
+    })
+
+    it('retries after a failed save once a new edit bumps the revision', () => {
+        const onSave = vi.fn().mockResolvedValue(undefined)
+        const {rerender} = renderHook(
+            ({isSaving, revision}: {isSaving: boolean; revision: number}) =>
+                useDraftAutosave({
+                    enabled: true,
+                    isDirty: true,
+                    isSaving,
+                    onSave,
+                    revision,
+                }),
+            {initialProps: {isSaving: false, revision: 1}},
+        )
+
+        act(() => {
+            vi.advanceTimersByTime(2000)
+        })
+        expect(onSave).toHaveBeenCalledTimes(1)
+
+        rerender({isSaving: true, revision: 1})
+        rerender({isSaving: false, revision: 2})
+
+        act(() => {
+            vi.advanceTimersByTime(2000)
+        })
+        expect(onSave).toHaveBeenCalledTimes(2)
+    })
+
     it('does not save when canSave becomes false before the debounce fires', () => {
         const onSave = vi.fn().mockResolvedValue(undefined)
         let allowed = true
