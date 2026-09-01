@@ -10,6 +10,14 @@ import PageHeader from '@directwerk/ui/components/page-header'
 import PageStack from '@directwerk/ui/components/page-stack'
 import ResponsiveTable from '@directwerk/ui/components/responsive-table'
 import SectionHeader from '@directwerk/ui/components/section-header'
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+} from '@directwerk/ui/components/table'
 import StatCard from '@directwerk/ui/components/stat-card'
 
 import CreateTenantForm from '@/components/CreateTenantForm'
@@ -108,26 +116,24 @@ export default function HomePage(): React.JSX.Element {
                 <section className="space-y-3">
                     <SectionHeader title="Module adoption" />
                     <ResponsiveTable label="Module adoption">
-                        <table className="w-full text-sm">
-                            <thead>
-                                <tr className="border-b text-left">
-                                    <th className="py-2 pr-4" scope="col">
-                                        Module
-                                    </th>
-                                    <th className="py-2" scope="col">
-                                        Tenants
-                                    </th>
-                                </tr>
-                            </thead>
-                            <tbody>
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead scope="col">Module</TableHead>
+                                    <TableHead scope="col">Tenants</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
                                 {overview.moduleAdoption.map((entry) => (
-                                    <tr key={entry.moduleKey} className="border-b">
-                                        <td className="py-2 pr-4">{entry.moduleKey}</td>
-                                        <td className="py-2">{entry.tenantCount}</td>
-                                    </tr>
+                                    <TableRow key={entry.moduleKey}>
+                                        <TableCell className="font-medium">
+                                            {entry.moduleKey}
+                                        </TableCell>
+                                        <TableCell>{entry.tenantCount}</TableCell>
+                                    </TableRow>
                                 ))}
-                            </tbody>
-                        </table>
+                            </TableBody>
+                        </Table>
                     </ResponsiveTable>
                 </section>
             ) : null}
