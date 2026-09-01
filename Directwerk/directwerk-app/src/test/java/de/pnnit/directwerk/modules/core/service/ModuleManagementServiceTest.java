@@ -197,6 +197,146 @@ class ModuleManagementServiceTest {
     }
 
     @Test
+    void activateArticleRssRequestsSnapshotRefresh() {
+        Tenant tenant = new Tenant();
+        tenant.setId(1L);
+        when(tenantRepository.requireById(1L)).thenReturn(tenant);
+
+        FeatureModule rss = module("ARTICLE_RSS", List.of("ARTICLES"));
+        when(featureModuleRepository.findByModuleKey("ARTICLE_RSS")).thenReturn(Optional.of(rss));
+        TenantModuleActivation articles = new TenantModuleActivation();
+        articles.setId(8L);
+        articles.setModuleKey("ARTICLES");
+        articles.setActive(true);
+        when(tenantModuleActivationRepository.findByTenantIdAndModuleKey(1L, "ARTICLES"))
+                .thenReturn(Optional.of(articles));
+        when(tenantModuleActivationRepository.findByTenantIdAndModuleKey(1L, "ARTICLE_RSS"))
+                .thenReturn(Optional.empty());
+        when(tenantModuleActivationRepository.save(any(TenantModuleActivation.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+        when(tenantModuleActivationRepository.findByTenantIdOrderByModuleKeyAsc(1L)).thenReturn(List.of());
+
+        service.activateModule(1L, "ARTICLE_RSS");
+
+        verify(eventPublisher).publishEvent(new TenantRssSnapshotStaleEvent(1L));
+    }
+
+    @Test
+    void deactivateArticleRssRequestsSnapshotWithdraw() {
+        Tenant tenant = new Tenant();
+        tenant.setId(1L);
+        when(tenantRepository.requireById(1L)).thenReturn(tenant);
+
+        FeatureModule rss = module("ARTICLE_RSS", List.of("ARTICLES"));
+        when(featureModuleRepository.findByModuleKey("ARTICLE_RSS")).thenReturn(Optional.of(rss));
+        when(featureModuleRepository.findAll()).thenReturn(List.of(rss));
+        TenantModuleActivation activation = new TenantModuleActivation();
+        activation.setModuleKey("ARTICLE_RSS");
+        activation.setActive(true);
+        when(tenantModuleActivationRepository.findByTenantIdAndModuleKey(1L, "ARTICLE_RSS"))
+                .thenReturn(Optional.of(activation));
+        when(tenantModuleActivationRepository.findByTenantIdOrderByModuleKeyAsc(1L))
+                .thenReturn(List.of(activation));
+
+        service.deactivateModule(1L, "ARTICLE_RSS");
+
+        verify(eventPublisher).publishEvent(new TenantRssSnapshotStaleEvent(1L));
+        assertThat(activation.isActive()).isFalse();
+    }
+
+    @Test
+    void activateArticleFeedBuilderRequestsSnapshotRefresh() {
+        Tenant tenant = new Tenant();
+        tenant.setId(1L);
+        when(tenantRepository.requireById(1L)).thenReturn(tenant);
+
+        FeatureModule feedBuilder = module("ARTICLE_FEED_BUILDER", List.of("ARTICLE_RSS", "SUBSCRIPTION"));
+        when(featureModuleRepository.findByModuleKey("ARTICLE_FEED_BUILDER")).thenReturn(Optional.of(feedBuilder));
+        TenantModuleActivation rss = new TenantModuleActivation();
+        rss.setId(8L);
+        rss.setModuleKey("ARTICLE_RSS");
+        rss.setActive(true);
+        TenantModuleActivation subscription = new TenantModuleActivation();
+        subscription.setId(9L);
+        subscription.setModuleKey("SUBSCRIPTION");
+        subscription.setActive(true);
+        when(tenantModuleActivationRepository.findByTenantIdAndModuleKey(1L, "ARTICLE_RSS"))
+                .thenReturn(Optional.of(rss));
+        when(tenantModuleActivationRepository.findByTenantIdAndModuleKey(1L, "SUBSCRIPTION"))
+                .thenReturn(Optional.of(subscription));
+        when(tenantModuleActivationRepository.findByTenantIdAndModuleKey(1L, "ARTICLE_FEED_BUILDER"))
+                .thenReturn(Optional.empty());
+        when(tenantModuleActivationRepository.save(any(TenantModuleActivation.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+        when(tenantModuleActivationRepository.findByTenantIdOrderByModuleKeyAsc(1L)).thenReturn(List.of());
+
+        service.activateModule(1L, "ARTICLE_FEED_BUILDER");
+
+        verify(eventPublisher).publishEvent(new TenantRssSnapshotStaleEvent(1L));
+    }
+
+    @Test
+    void deactivateArticleFeedBuilderRequestsSnapshotWithdraw() {
+        Tenant tenant = new Tenant();
+        tenant.setId(1L);
+        when(tenantRepository.requireById(1L)).thenReturn(tenant);
+
+        FeatureModule feedBuilder = module("ARTICLE_FEED_BUILDER", List.of("ARTICLE_RSS", "SUBSCRIPTION"));
+        when(featureModuleRepository.findByModuleKey("ARTICLE_FEED_BUILDER")).thenReturn(Optional.of(feedBuilder));
+        when(featureModuleRepository.findAll()).thenReturn(List.of(feedBuilder));
+        TenantModuleActivation activation = new TenantModuleActivation();
+        activation.setModuleKey("ARTICLE_FEED_BUILDER");
+        activation.setActive(true);
+        when(tenantModuleActivationRepository.findByTenantIdAndModuleKey(1L, "ARTICLE_FEED_BUILDER"))
+                .thenReturn(Optional.of(activation));
+        when(tenantModuleActivationRepository.findByTenantIdOrderByModuleKeyAsc(1L))
+                .thenReturn(List.of(activation));
+
+        service.deactivateModule(1L, "ARTICLE_FEED_BUILDER");
+
+        verify(eventPublisher).publishEvent(new TenantRssSnapshotStaleEvent(1L));
+        assertThat(activation.isActive()).isFalse();
+    }
+
+    @Test
+    void applyPresetActivatesWriterPresetIncludingArticles() {
+        Tenant tenant = new Tenant();
+        tenant.setId(1L);
+        when(tenantRepository.requireById(1L)).thenReturn(tenant);
+
+        // Flat (no depends-on) fixtures, same convention as
+        // applyPresetSkipsCatalogedButNotPlatformActiveModuleWithoutError below: this test only
+        // checks that WRITER (which now references ARTICLES) resolves against the catalog and
+        // activates every module without the "missing from catalog" failure that ARTICLE_RSS hit
+        // before V54/V55 — dependency-chain validation itself is covered by the dedicated
+        // activate/deactivate tests above.
+        FeatureModule digitalContent = module("DIGITAL_CONTENT", List.of());
+        FeatureModule articles = module("ARTICLES", List.of());
+        FeatureModule articleRss = module("ARTICLE_RSS", List.of());
+        FeatureModule subscription = module("SUBSCRIPTION", List.of());
+        FeatureModule emailNotify = module("EMAIL_NOTIFY", List.of());
+        FeatureModule whitelabel = module("WHITELABEL", List.of());
+        List<FeatureModule> catalog =
+                List.of(digitalContent, articles, articleRss, subscription, emailNotify, whitelabel);
+
+        when(featureModuleRepository.findAll()).thenReturn(catalog);
+        when(featureModuleRepository.findByPlatformActiveTrueOrderByModuleKeyAsc()).thenReturn(catalog);
+        when(featureModuleRepository.findByModuleKey(anyString()))
+                .thenAnswer(invocation -> catalog.stream()
+                        .filter(module -> module.getModuleKey().equals(invocation.getArgument(0)))
+                        .findFirst());
+        when(tenantModuleActivationRepository.findByTenantIdAndModuleKey(eq(1L), anyString()))
+                .thenReturn(Optional.empty());
+        when(tenantModuleActivationRepository.save(any(TenantModuleActivation.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+        when(tenantModuleActivationRepository.findByTenantIdOrderByModuleKeyAsc(1L)).thenReturn(List.of());
+
+        service.applyPreset(1L, "WRITER");
+
+        verify(tenantModuleActivationRepository, org.mockito.Mockito.times(6)).save(any());
+    }
+
+    @Test
     void applyPresetRejectsPresetReferencingModuleMissingFromCatalog() {
         FeatureModule digitalContent = module("DIGITAL_CONTENT", List.of());
         when(featureModuleRepository.findAll()).thenReturn(List.of(digitalContent));

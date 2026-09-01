@@ -6,7 +6,7 @@ import java.util.Optional;
 
 public enum ModulePreset {
     FREE_PODCAST("DIGITAL_CONTENT", "PODCAST", "PODCAST_RSS", "WHITELABEL"),
-    WRITER("DIGITAL_CONTENT", "SUBSCRIPTION", "ARTICLE_RSS", "EMAIL_NOTIFY", "WHITELABEL"),
+    WRITER("DIGITAL_CONTENT", "ARTICLES", "SUBSCRIPTION", "ARTICLE_RSS", "EMAIL_NOTIFY", "WHITELABEL"),
     PODCAST(
             "DIGITAL_CONTENT",
             "PODCAST",
@@ -37,6 +37,7 @@ public enum ModulePreset {
             "WHITELABEL",
             "SUBSCRIPTION",
             "FEED_BUILDER",
+            "ARTICLES",
             "ARTICLE_RSS",
             "ARTICLE_FEED_BUILDER",
             "STRIPE_BILLING"
@@ -48,6 +49,7 @@ public enum ModulePreset {
             "WHITELABEL",
             "SUBSCRIPTION",
             "FEED_BUILDER",
+            "ARTICLES",
             "ARTICLE_RSS",
             "ARTICLE_FEED_BUILDER",
             "STRIPE_BILLING",

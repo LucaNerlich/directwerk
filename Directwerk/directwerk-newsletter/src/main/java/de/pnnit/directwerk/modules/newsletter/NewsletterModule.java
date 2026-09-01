@@ -8,8 +8,8 @@ package de.pnnit.directwerk.modules.newsletter;
  * delivery differs (public site vs inbox). Optional email send on publish uses
  * {@code EMAIL_NOTIFY} and {@code directwerk-email}, not a separate content type.
  *
- * <p>Write operations are gated with {@code @RequiresModule(DigitalContentModule.KEY)} — the
- * {@code DIGITAL_CONTENT} feature flag, not {@code PODCAST}.
+ * <p>Write operations are gated with {@code @RequiresModule(ArticlesModule.KEY)} — the
+ * {@code ARTICLES} feature flag, not {@code DIGITAL_CONTENT} or {@code PODCAST}.
  */
 public final class NewsletterModule {
 

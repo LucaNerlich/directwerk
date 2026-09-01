@@ -126,8 +126,8 @@ flowchart TB
 **Core ideas:**
 
 - **Multi-tenancy** — verified `Host` → tenant context; Hibernate tenant filter + JWT cross-check.
-- **Feature modules** — `DIGITAL_CONTENT` → `PODCAST` → `PODCAST_RSS` → `FEED_BUILDER`; gated with
-  `@RequiresModule`.
+- **Feature modules** — `DIGITAL_CONTENT` → `PODCAST` → `PODCAST_RSS` → `FEED_BUILDER`, and in
+  parallel → `ARTICLES` → `ARTICLE_RSS` → `ARTICLE_FEED_BUILDER`; gated with `@RequiresModule`.
 - **API-first** — every capability has REST endpoints; OpenAPI is a product deliverable.
 - **Entitlements** — `SUBSCRIBER` role ≠ paid access; LEVEL + PACKAGE rules on content and feeds.
 - **Assets** — tenant-prefixed S3 keys; private media only via signed URLs after entitlement check.

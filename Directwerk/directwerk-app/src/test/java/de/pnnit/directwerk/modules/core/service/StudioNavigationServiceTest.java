@@ -11,10 +11,20 @@ class StudioNavigationServiceTest {
 
     @Test
     void writerPresetResolvesToWriteDeskOnly() {
-        var view = service.resolve(Set.of("DIGITAL_CONTENT", "SUBSCRIPTION", "EMAIL_NOTIFY", "WHITELABEL"));
+        var view = service.resolve(Set.of("DIGITAL_CONTENT", "ARTICLES", "SUBSCRIPTION", "EMAIL_NOTIFY", "WHITELABEL"));
 
         assertThat(view.desks()).containsExactly(StudioDesk.WRITE);
         assertThat(view.home()).isEqualTo(StudioHome.WRITE_DESK);
+    }
+
+    @Test
+    void digitalContentAloneDoesNotGrantWriteDesk() {
+        // ARTICLES (not the generic DIGITAL_CONTENT base module) gates the Write desk — a
+        // podcast-only tenant with just DIGITAL_CONTENT must not see it.
+        var view = service.resolve(Set.of("DIGITAL_CONTENT", "PODCAST", "PODCAST_RSS"));
+
+        assertThat(view.desks()).containsExactly(StudioDesk.PODCAST);
+        assertThat(view.home()).isEqualTo(StudioHome.PODCAST_DESK);
     }
 
     @Test
@@ -27,14 +37,15 @@ class StudioNavigationServiceTest {
                 "EMAIL_NOTIFY"
         ));
 
-        assertThat(view.desks()).containsExactly(StudioDesk.WRITE, StudioDesk.PODCAST);
+        assertThat(view.desks()).containsExactly(StudioDesk.PODCAST);
         assertThat(view.home()).isEqualTo(StudioHome.PODCAST_DESK);
     }
 
     @Test
-    void fullPresetResolvesToOverviewHome() {
+    void bothDesksWithWhitelabelResolvesToOverviewHome() {
         var view = service.resolve(Set.of(
                 "DIGITAL_CONTENT",
+                "ARTICLES",
                 "SUBSCRIPTION",
                 "EMAIL_NOTIFY",
                 "WHITELABEL",

@@ -13,7 +13,7 @@ import de.pnnit.directwerk.modules.core.RequiresModule;
 import de.pnnit.directwerk.modules.core.notification.SubscriberNotificationGate;
 import de.pnnit.directwerk.modules.core.service.ModuleGateService;
 import de.pnnit.directwerk.modules.core.service.ScheduledPublicationExecutor;
-import de.pnnit.directwerk.modules.digital.DigitalContentModule;
+import de.pnnit.directwerk.modules.newsletter.ArticlesModule;
 import de.pnnit.directwerk.modules.newsletter.entity.Article;
 import de.pnnit.directwerk.modules.newsletter.entity.ArticleStatus;
 import de.pnnit.directwerk.modules.newsletter.exception.ArticleValidationException;
@@ -46,32 +46,32 @@ public class ArticlePublicationWorkflowService {
     private final ObjectProvider<ArticlePublicationWorkflowService> self;
 
     @Transactional
-    @RequiresModule(DigitalContentModule.KEY)
+    @RequiresModule(ArticlesModule.KEY)
     public Article publish(Long tenantId, Long articleId) {
         return publish(tenantId, articleId, false);
     }
 
     @Transactional
-    @RequiresModule(DigitalContentModule.KEY)
+    @RequiresModule(ArticlesModule.KEY)
     public Article publish(Long tenantId, Long articleId, boolean notifySubscribers) {
         return publish(tenantId, articleId, notifySubscribers, null);
     }
 
     @Transactional
-    @RequiresModule(DigitalContentModule.KEY)
+    @RequiresModule(ArticlesModule.KEY)
     public Article publish(Long tenantId, Long articleId, boolean notifySubscribers, Instant publishedAt) {
         Article article = articleService.requireArticle(tenantId, articleId);
         return publishInternal(tenantId, article, notifySubscribers, publishedAt);
     }
 
     @Transactional
-    @RequiresModule(DigitalContentModule.KEY)
+    @RequiresModule(ArticlesModule.KEY)
     public Article schedule(Long tenantId, Long articleId, Instant scheduledAt) {
         return schedule(tenantId, articleId, scheduledAt, false);
     }
 
     @Transactional
-    @RequiresModule(DigitalContentModule.KEY)
+    @RequiresModule(ArticlesModule.KEY)
     public Article schedule(Long tenantId, Long articleId, Instant scheduledAt, boolean notifySubscribers) {
         Article article = articleService.requireArticle(tenantId, articleId);
         PublicationLifecycleSupport.schedule(
@@ -89,7 +89,7 @@ public class ArticlePublicationWorkflowService {
     }
 
     @Transactional
-    @RequiresModule(DigitalContentModule.KEY)
+    @RequiresModule(ArticlesModule.KEY)
     public Article cancelSchedule(Long tenantId, Long articleId) {
         Article article = articleService.requireArticle(tenantId, articleId);
         PublicationLifecycleSupport.cancelSchedule(
@@ -104,7 +104,7 @@ public class ArticlePublicationWorkflowService {
     }
 
     @Transactional
-    @RequiresModule(DigitalContentModule.KEY)
+    @RequiresModule(ArticlesModule.KEY)
     public Article unpublish(Long tenantId, Long articleId) {
         Article article = articleService.requireArticle(tenantId, articleId);
         PublicationLifecycleSupport.unpublish(
@@ -121,7 +121,7 @@ public class ArticlePublicationWorkflowService {
     }
 
     @Transactional
-    @RequiresModule(DigitalContentModule.KEY)
+    @RequiresModule(ArticlesModule.KEY)
     public Article archive(Long tenantId, Long articleId) {
         Article article = articleService.requireArticle(tenantId, articleId);
         PublicationLifecycleSupport.archive(
@@ -137,7 +137,7 @@ public class ArticlePublicationWorkflowService {
     }
 
     @Transactional
-    @RequiresModule(DigitalContentModule.KEY)
+    @RequiresModule(ArticlesModule.KEY)
     public Article unarchive(Long tenantId, Long articleId) {
         Article article = articleService.requireArticle(tenantId, articleId);
         PublicationLifecycleSupport.unarchive(
@@ -161,7 +161,7 @@ public class ArticlePublicationWorkflowService {
                 .toList();
         ArticlePublicationWorkflowService proxy = self.getObject();
         return scheduledPublicationExecutor.publishDue(
-                DigitalContentModule.KEY,
+                ArticlesModule.KEY,
                 dueItems,
                 proxy::publishScheduledArticle,
                 "articles"
@@ -169,7 +169,7 @@ public class ArticlePublicationWorkflowService {
     }
 
     @Transactional
-    @RequiresModule(DigitalContentModule.KEY)
+    @RequiresModule(ArticlesModule.KEY)
     public void publishScheduledArticle(Long tenantId, Long articleId) {
         Article article = articleService.requireArticle(tenantId, articleId);
         if (PublicationLifecycleSupport.skipScheduledPublishIfStatusChanged(
