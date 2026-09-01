@@ -314,10 +314,11 @@ class ModuleManagementServiceTest {
         FeatureModule articles = module("ARTICLES", List.of());
         FeatureModule articleRss = module("ARTICLE_RSS", List.of());
         FeatureModule subscription = module("SUBSCRIPTION", List.of());
+        FeatureModule bonusContent = module("BONUS_CONTENT", List.of());
         FeatureModule emailNotify = module("EMAIL_NOTIFY", List.of());
         FeatureModule whitelabel = module("WHITELABEL", List.of());
         List<FeatureModule> catalog =
-                List.of(digitalContent, articles, articleRss, subscription, emailNotify, whitelabel);
+                List.of(digitalContent, articles, articleRss, subscription, bonusContent, emailNotify, whitelabel);
 
         when(featureModuleRepository.findAll()).thenReturn(catalog);
         when(featureModuleRepository.findByPlatformActiveTrueOrderByModuleKeyAsc()).thenReturn(catalog);
@@ -333,7 +334,7 @@ class ModuleManagementServiceTest {
 
         service.applyPreset(1L, "WRITER");
 
-        verify(tenantModuleActivationRepository, org.mockito.Mockito.times(6)).save(any());
+        verify(tenantModuleActivationRepository, org.mockito.Mockito.times(7)).save(any());
     }
 
     @Test
@@ -364,15 +365,17 @@ class ModuleManagementServiceTest {
         FeatureModule podcast = module("PODCAST", List.of());
         FeatureModule podcastRss = module("PODCAST_RSS", List.of());
         FeatureModule subscription = module("SUBSCRIPTION", List.of());
+        FeatureModule bonusContent = module("BONUS_CONTENT", List.of());
         FeatureModule emailNotify = module("EMAIL_NOTIFY", List.of());
         emailNotify.setPlatformActive(false);
-        List<FeatureModule> platformActiveModules = List.of(digitalContent, podcast, podcastRss, subscription);
+        List<FeatureModule> platformActiveModules =
+                List.of(digitalContent, podcast, podcastRss, subscription, bonusContent);
 
         // PODCAST preset references EMAIL_NOTIFY, which has a real catalog row but isn't rolled
         // out platform-wide yet — that's a deliberate gate, not the ARTICLE_RSS cataloging bug,
         // so it must be skipped rather than rejected.
         when(featureModuleRepository.findAll())
-                .thenReturn(List.of(digitalContent, podcast, podcastRss, subscription, emailNotify));
+                .thenReturn(List.of(digitalContent, podcast, podcastRss, subscription, bonusContent, emailNotify));
         when(featureModuleRepository.findByPlatformActiveTrueOrderByModuleKeyAsc())
                 .thenReturn(platformActiveModules);
         when(featureModuleRepository.findByModuleKey(anyString()))
@@ -386,7 +389,7 @@ class ModuleManagementServiceTest {
 
         verify(tenantModuleActivationRepository, never())
                 .findByTenantIdAndModuleKey(1L, "EMAIL_NOTIFY");
-        verify(tenantModuleActivationRepository, org.mockito.Mockito.times(4)).save(any());
+        verify(tenantModuleActivationRepository, org.mockito.Mockito.times(5)).save(any());
     }
 
     private static FeatureModule coreModule(String moduleKey) {

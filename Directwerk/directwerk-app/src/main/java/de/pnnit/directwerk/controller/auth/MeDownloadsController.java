@@ -2,6 +2,8 @@ package de.pnnit.directwerk.controller.auth;
 
 import de.pnnit.directwerk.modules.podcast.access.SubscriberPortalAccessService;
 import de.pnnit.directwerk.api.response.Response;
+import de.pnnit.directwerk.modules.core.RequiresModule;
+import de.pnnit.directwerk.modules.digital.BonusContentModule;
 import de.pnnit.directwerk.security.DirectwerkUserPrincipal;
 import de.pnnit.directwerk.security.SecurityUtils;
 import java.util.List;
@@ -24,6 +26,7 @@ public class MeDownloadsController {
     }
 
     @GetMapping
+    @RequiresModule(BonusContentModule.KEY)
     ResponseEntity<Response<List<DownloadView>>> listDownloads(
             @AuthenticationPrincipal DirectwerkUserPrincipal principal
     ) {

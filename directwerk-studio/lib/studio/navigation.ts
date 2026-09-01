@@ -15,7 +15,7 @@ export function buildWriteDeskItems(config: SiteConfig): NavigationItem[] {
         {href: '/write', label: 'Start'},
         {href: '/write/articles', label: 'Beiträge'},
     ]
-    if (hasModule(config, 'DIGITAL_CONTENT')) {
+    if (hasModule(config, 'BONUS_CONTENT')) {
         items.push({href: '/write/bonus', label: 'Bonusdateien'})
     }
     if (hasModule(config, 'ARTICLE_RSS') || config.publicArticleRssUrl !== null) {

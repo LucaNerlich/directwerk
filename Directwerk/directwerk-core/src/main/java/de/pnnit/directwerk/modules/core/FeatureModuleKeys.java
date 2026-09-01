@@ -6,6 +6,7 @@ package de.pnnit.directwerk.modules.core;
 public final class FeatureModuleKeys {
 
     public static final String DIGITAL_CONTENT = "DIGITAL_CONTENT";
+    public static final String BONUS_CONTENT = "BONUS_CONTENT";
     public static final String PODCAST = "PODCAST";
     public static final String PODCAST_RSS = "PODCAST_RSS";
     public static final String FEED_BUILDER = "FEED_BUILDER";

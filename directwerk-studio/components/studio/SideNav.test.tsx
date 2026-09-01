@@ -77,11 +77,11 @@ describe('SideNav', () => {
         expect(screen.queryByRole('link', {name: 'Kategorien'})).not.toBeInTheDocument()
     })
 
-    it('shows Bonusdateien with the Write desk when DIGITAL_CONTENT is enabled', () => {
+    it('shows Bonusdateien with the Write desk when BONUS_CONTENT is enabled', () => {
         renderNavigation(
             <SideNav
                 config={config({
-                    enabledModules: ['DIGITAL_CONTENT'],
+                    enabledModules: ['DIGITAL_CONTENT', 'BONUS_CONTENT'],
                     studioDesks: ['WRITE'],
                 })}
             />,
@@ -267,7 +267,7 @@ describe('SideNav', () => {
 
     describe('desk-scoped navigation', () => {
         const hybridConfig = config({
-            enabledModules: ['DIGITAL_CONTENT', 'PODCAST'],
+            enabledModules: ['DIGITAL_CONTENT', 'PODCAST', 'BONUS_CONTENT'],
             studioDesks: ['WRITE', 'PODCAST'],
             studioHome: 'OVERVIEW',
         })
@@ -387,7 +387,7 @@ describe('SideNav', () => {
             renderNavigation(
                 <SideNav
                     config={config({
-                        enabledModules: ['DIGITAL_CONTENT'],
+                        enabledModules: ['DIGITAL_CONTENT', 'BONUS_CONTENT'],
                         studioDesks: ['WRITE'],
                         studioHome: 'WRITE_DESK',
                     })}

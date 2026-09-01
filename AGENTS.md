@@ -84,7 +84,8 @@ CustomFeed (feed builder), MediaAsset, DigitalPublication.
 **Roles:** `PLATFORM_ADMIN`, `TENANT_ADMIN`, `EDITOR`, `SUBSCRIBER`, `GUEST`.
 
 **Feature modules:** `DIGITAL_CONTENT` (base) → `PODCAST` → `PODCAST_RSS` → `FEED_BUILDER`, and in
-parallel → `ARTICLES` → `ARTICLE_RSS` → `ARTICLE_FEED_BUILDER`.
+parallel → `ARTICLES` → `ARTICLE_RSS` → `ARTICLE_FEED_BUILDER`, and → `BONUS_CONTENT`
+(entitlement-gated subscriber downloads, independent of podcast/article content).
 `ModuleService` + `@RequiresModule` AOP — see README Feature Modules section.
 
 Multi-tenancy: verified `Host` → `TenantContext`, JWT `tenant_id` cross-check, Hibernate

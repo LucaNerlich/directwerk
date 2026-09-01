@@ -6,17 +6,19 @@ import java.util.Optional;
 
 public enum ModulePreset {
     FREE_PODCAST("DIGITAL_CONTENT", "PODCAST", "PODCAST_RSS", "WHITELABEL"),
-    WRITER("DIGITAL_CONTENT", "ARTICLES", "SUBSCRIPTION", "ARTICLE_RSS", "EMAIL_NOTIFY", "WHITELABEL"),
+    WRITER("DIGITAL_CONTENT", "ARTICLES", "SUBSCRIPTION", "ARTICLE_RSS", "BONUS_CONTENT", "EMAIL_NOTIFY", "WHITELABEL"),
     PODCAST(
             "DIGITAL_CONTENT",
             "PODCAST",
             "PODCAST_RSS",
             "SUBSCRIPTION",
+            "BONUS_CONTENT",
             "EMAIL_NOTIFY"
     ),
     FULL(
             "DIGITAL_CONTENT",
             "SUBSCRIPTION",
+            "BONUS_CONTENT",
             "EMAIL_NOTIFY",
             "WHITELABEL",
             "PODCAST",
@@ -27,6 +29,7 @@ public enum ModulePreset {
             "PODCAST",
             "PODCAST_RSS",
             "SUBSCRIPTION",
+            "BONUS_CONTENT",
             "PATREON_SYNC",
             "WHITELABEL"
     ),
@@ -36,6 +39,7 @@ public enum ModulePreset {
             "PODCAST_RSS",
             "WHITELABEL",
             "SUBSCRIPTION",
+            "BONUS_CONTENT",
             "FEED_BUILDER",
             "ARTICLES",
             "ARTICLE_RSS",
@@ -48,6 +52,7 @@ public enum ModulePreset {
             "PODCAST_RSS",
             "WHITELABEL",
             "SUBSCRIPTION",
+            "BONUS_CONTENT",
             "FEED_BUILDER",
             "ARTICLES",
             "ARTICLE_RSS",
