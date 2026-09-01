@@ -1,10 +1,7 @@
 package de.pnnit.directwerk.modules.email.content;
 
-import de.pnnit.directwerk.config.DirectwerkConfig;
 import de.pnnit.directwerk.modules.content.ContentPublishedEvent;
 import de.pnnit.directwerk.modules.content.ContentPublishedNotifier;
-import de.pnnit.directwerk.modules.core.service.ModuleGateService;
-import de.pnnit.directwerk.modules.email.EmailNotifyModule;
 import de.pnnit.directwerk.modules.queue.JobEnqueueMetadata;
 import de.pnnit.directwerk.modules.queue.QueueJob;
 import de.pnnit.directwerk.modules.queue.QueueNames;
@@ -15,39 +12,27 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import tools.jackson.databind.ObjectMapper;
 
+/**
+ * The only production {@link ContentPublishedNotifier}; its sole caller,
+ * {@code PublicationNotificationSupport.maybeNotify}, already applies
+ * {@code SubscriberNotificationGate} (email-enabled + EMAIL_NOTIFY module) before invoking this —
+ * this class does not re-check either.
+ */
 @Service
 public class ContentNotifyJobProducer implements ContentPublishedNotifier {
 
     private static final Logger log = LoggerFactory.getLogger(ContentNotifyJobProducer.class);
 
-    private final DirectwerkConfig directwerkConfig;
-    private final ModuleGateService moduleGateService;
     private final QueueService queueService;
     private final ObjectMapper objectMapper;
 
-    public ContentNotifyJobProducer(
-            DirectwerkConfig directwerkConfig,
-            ModuleGateService moduleGateService,
-            QueueService queueService,
-            ObjectMapper objectMapper
-    ) {
-        this.directwerkConfig = directwerkConfig;
-        this.moduleGateService = moduleGateService;
+    public ContentNotifyJobProducer(QueueService queueService, ObjectMapper objectMapper) {
         this.queueService = queueService;
         this.objectMapper = objectMapper;
     }
 
     @Override
     public void notifyContentPublished(ContentPublishedEvent event) {
-        if (!directwerkConfig.isEmailEnabled()) {
-            log.debug("Email delivery disabled; skipping content notification");
-            return;
-        }
-        if (!moduleGateService.enabledModuleKeys(event.tenantId()).contains(EmailNotifyModule.KEY)) {
-            log.debug("EMAIL_NOTIFY module off for tenant={}; skipping content notification", event.tenantId());
-            return;
-        }
-
         ContentNotifyJobPayload payload = ContentNotifyJobPayload.from(
                 event.contentType(),
                 event.contentId(),
