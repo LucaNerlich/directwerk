@@ -33,27 +33,6 @@ public class TransactionalEmailService {
         this.emailDeliveryGuard = emailDeliveryGuard;
     }
 
-    public void sendTenantInvitation(
-            UUID jobId,
-            Long tenantId,
-            String to,
-            Map<String, String> variables
-    ) {
-        send(jobId, tenantId, to, EmailTemplate.TENANT_INVITATION, variables);
-    }
-
-    public void sendPlatformAdminInvitation(UUID jobId, String to, Map<String, String> variables) {
-        send(jobId, null, to, EmailTemplate.PLATFORM_ADMIN_INVITATION, variables);
-    }
-
-    public void sendPasswordReset(UUID jobId, String to, Map<String, String> variables) {
-        send(jobId, null, to, EmailTemplate.PASSWORD_RESET, variables);
-    }
-
-    public void sendEmailVerification(UUID jobId, Long tenantId, String to, Map<String, String> variables) {
-        send(jobId, tenantId, to, EmailTemplate.EMAIL_VERIFICATION, variables);
-    }
-
     public void sendFromPayload(
             UUID jobId,
             Long tenantId,

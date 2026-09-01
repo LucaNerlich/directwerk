@@ -8,7 +8,6 @@ import de.pnnit.directwerk.config.DirectwerkProperties;
 import de.pnnit.directwerk.modules.core.entity.Tenant;
 import de.pnnit.directwerk.modules.core.repository.TenantRepository;
 import de.pnnit.directwerk.modules.core.service.TenantPublicHostResolver;
-import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -49,7 +48,7 @@ class EmailLinkBuilderTest {
 
     @Test
     void buildStudioAcceptInviteUrlNormalizesBaseUrlAndEncodesToken() {
-        String url = linkBuilder.buildStudioAcceptInviteUrl("token+value");
+        String url = linkBuilder.buildStudioAcceptInviteUrl("token+value", null);
 
         assertThat(url).isEqualTo("http://localhost:3004/accept-invite?token=token%2Bvalue");
     }
@@ -70,14 +69,14 @@ class EmailLinkBuilderTest {
 
     @Test
     void buildResetPasswordUrlUsesStudioBaseUrl() {
-        String url = linkBuilder.buildResetPasswordUrl("reset-token");
+        String url = linkBuilder.buildResetPasswordUrl("reset-token", null);
 
         assertThat(url).isEqualTo("http://localhost:3004/reset-password?token=reset-token");
     }
 
     @Test
     void buildVerifyEmailUrlEncodesToken() {
-        String url = linkBuilder.buildVerifyEmailUrl("token+with spaces&special=chars");
+        String url = linkBuilder.buildVerifyEmailUrl("token+with spaces&special=chars", null);
 
         assertThat(url).isEqualTo("http://localhost:3004/verify-email?token=token%2Bwith+spaces%26special%3Dchars");
     }
