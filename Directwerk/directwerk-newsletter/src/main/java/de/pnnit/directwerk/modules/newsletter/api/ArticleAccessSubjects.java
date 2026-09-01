@@ -1,6 +1,7 @@
 package de.pnnit.directwerk.modules.newsletter.api;
 
 import de.pnnit.directwerk.modules.digital.entity.AccessPolicy;
+import de.pnnit.directwerk.modules.digital.entity.Category;
 import de.pnnit.directwerk.modules.newsletter.entity.Article;
 import de.pnnit.directwerk.modules.subscription.service.EntitlementService;
 import java.util.Set;
@@ -13,7 +14,7 @@ public final class ArticleAccessSubjects {
 
     public static EntitlementService.ArticleAccessSubject toSubject(Article article) {
         Set<Long> categoryIds = article.getCategories().stream()
-                .map(category -> category.getId())
+                .map(Category::getId)
                 .collect(Collectors.toUnmodifiableSet());
         return new EntitlementService.ArticleAccessSubject(
                 article.getAccessPolicy() == AccessPolicy.FREE,
