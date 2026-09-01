@@ -4,7 +4,6 @@ import de.pnnit.directwerk.modules.core.RequiresModule;
 import de.pnnit.directwerk.modules.core.entity.User;
 import de.pnnit.directwerk.modules.core.repository.TenantRepository;
 import de.pnnit.directwerk.modules.core.repository.UserRepository;
-import de.pnnit.directwerk.modules.stripebilling.StripeBillingModule;
 import de.pnnit.directwerk.modules.stripebilling.entity.StripeCustomer;
 import de.pnnit.directwerk.modules.subscription.entity.SubscriptionProduct;
 import de.pnnit.directwerk.modules.stripebilling.entity.TenantStripeAccount;
