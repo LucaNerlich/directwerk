@@ -77,7 +77,37 @@ describe('SideNav', () => {
         expect(screen.queryByRole('link', {name: 'Kategorien'})).not.toBeInTheDocument()
     })
 
-    it('shows Bonusdateien with the Write desk when DIGITAL_CONTENT is enabled', () => {
+    it('shows Bonusdateien in the desk-independent Medien section when BONUS_CONTENT is enabled', () => {
+        renderNavigation(
+            <SideNav
+                config={config({
+                    enabledModules: ['DIGITAL_CONTENT', 'BONUS_CONTENT'],
+                    studioDesks: ['WRITE'],
+                })}
+            />,
+        )
+        expect(screen.getByRole('link', {name: 'Bonusdateien'})).toHaveAttribute(
+            'href',
+            '/bonus',
+        )
+    })
+
+    it('shows Bonusdateien for a podcast-only tenant, not just the Write desk', () => {
+        renderNavigation(
+            <SideNav
+                config={config({
+                    enabledModules: ['DIGITAL_CONTENT', 'PODCAST', 'BONUS_CONTENT'],
+                    studioDesks: ['PODCAST'],
+                })}
+            />,
+        )
+        expect(screen.getByRole('link', {name: 'Bonusdateien'})).toHaveAttribute(
+            'href',
+            '/bonus',
+        )
+    })
+
+    it('hides Bonusdateien when BONUS_CONTENT is off', () => {
         renderNavigation(
             <SideNav
                 config={config({
@@ -86,10 +116,7 @@ describe('SideNav', () => {
                 })}
             />,
         )
-        expect(screen.getByRole('link', {name: 'Bonusdateien'})).toHaveAttribute(
-            'href',
-            '/write/bonus',
-        )
+        expect(screen.queryByRole('link', {name: 'Bonusdateien'})).not.toBeInTheDocument()
     })
 
     it('shows Kategorien only when DIGITAL_CONTENT is enabled', () => {
@@ -267,7 +294,7 @@ describe('SideNav', () => {
 
     describe('desk-scoped navigation', () => {
         const hybridConfig = config({
-            enabledModules: ['DIGITAL_CONTENT', 'PODCAST'],
+            enabledModules: ['DIGITAL_CONTENT', 'PODCAST', 'BONUS_CONTENT'],
             studioDesks: ['WRITE', 'PODCAST'],
             studioHome: 'OVERVIEW',
         })
@@ -284,7 +311,7 @@ describe('SideNav', () => {
             )
             expect(screen.getByRole('link', {name: 'Bonusdateien'})).toHaveAttribute(
                 'href',
-                '/write/bonus',
+                '/bonus',
             )
             expect(screen.getByRole('link', {name: 'Bibliothek'})).toHaveAttribute(
                 'href',
@@ -335,9 +362,14 @@ describe('SideNav', () => {
                 'href',
                 '/media',
             )
+            // Bonusdateien lives in the desk-independent Medien section, so it stays visible
+            // even while the Podcast desk is active — it is not gated by which desk is open.
+            expect(screen.getByRole('link', {name: 'Bonusdateien'})).toHaveAttribute(
+                'href',
+                '/bonus',
+            )
 
             expect(screen.queryByRole('link', {name: 'Beiträge'})).not.toBeInTheDocument()
-            expect(screen.queryByRole('link', {name: 'Bonusdateien'})).not.toBeInTheDocument()
         })
 
         it('restores the last active desk on shared routes for hybrid tenants', () => {
@@ -365,7 +397,7 @@ describe('SideNav', () => {
             )
             expect(screen.getByRole('link', {name: 'Bonusdateien'})).toHaveAttribute(
                 'href',
-                '/write/bonus',
+                '/bonus',
             )
             expect(screen.getByRole('link', {name: 'Bibliothek'})).toHaveAttribute(
                 'href',
@@ -387,7 +419,7 @@ describe('SideNav', () => {
             renderNavigation(
                 <SideNav
                     config={config({
-                        enabledModules: ['DIGITAL_CONTENT'],
+                        enabledModules: ['DIGITAL_CONTENT', 'BONUS_CONTENT'],
                         studioDesks: ['WRITE'],
                         studioHome: 'WRITE_DESK',
                     })}
@@ -401,7 +433,7 @@ describe('SideNav', () => {
             )
             expect(screen.getByRole('link', {name: 'Bonusdateien'})).toHaveAttribute(
                 'href',
-                '/write/bonus',
+                '/bonus',
             )
             expect(screen.queryByRole('link', {name: 'Folgen'})).not.toBeInTheDocument()
         })

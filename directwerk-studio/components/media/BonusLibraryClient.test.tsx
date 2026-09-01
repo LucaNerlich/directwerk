@@ -1,7 +1,7 @@
 import {render, screen, waitFor} from '@testing-library/react'
 import {describe, expect, it, vi} from 'vitest'
 
-import BonusLibraryClient from '@/components/write/BonusLibraryClient'
+import BonusLibraryClient from '@/components/media/BonusLibraryClient'
 
 vi.mock('next/navigation', () => ({useRouter: () => ({replace: vi.fn()})}))
 vi.mock('@directwerk/api/tenant', () => ({getClientTenantHost: () => 'tenant.test'}))

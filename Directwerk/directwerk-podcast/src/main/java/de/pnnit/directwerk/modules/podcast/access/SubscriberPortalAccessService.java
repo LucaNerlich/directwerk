@@ -1,7 +1,7 @@
 package de.pnnit.directwerk.modules.podcast.access;
 
 import de.pnnit.directwerk.modules.core.service.ModuleGateService;
-import de.pnnit.directwerk.modules.digital.DigitalContentModule;
+import de.pnnit.directwerk.modules.digital.BonusContentModule;
 import de.pnnit.directwerk.modules.digital.api.AssetAccessApi;
 import de.pnnit.directwerk.modules.digital.api.MediaAssetQueryApi;
 import de.pnnit.directwerk.modules.digital.entity.AssetStatus;
@@ -63,7 +63,7 @@ public class SubscriberPortalAccessService {
 
     @Transactional(readOnly = true)
     public List<AssetDownload> listDownloads(DirectwerkUserPrincipal user) {
-        moduleGateService.requireModule(DigitalContentModule.KEY);
+        moduleGateService.requireModule(BonusContentModule.KEY);
         moduleGateService.requireModule(SubscriptionModule.MODULE_KEY);
 
         List<Long> entitledIds = entitlementApi.listEntitledDigitalAssetIds(user.tenantId(), user.userId());

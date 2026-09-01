@@ -214,7 +214,7 @@ export default function WriteDeskClient(): React.JSX.Element {
                 {' · '}
                 <Link href="/manage/categories">Kategorien</Link>
                 {' · '}
-                <Link href="/write/bonus">Bonusdateien</Link>
+                <Link href="/bonus">Bonusdateien</Link>
             </p>
         </div>
     )

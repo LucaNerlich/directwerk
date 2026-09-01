@@ -124,7 +124,7 @@ class PlatformTenantControllerTest {
                 .extracting(TenantModuleActivation::getModuleKey)
                 .containsExactlyInAnyOrder(
                         "DIGITAL_CONTENT", "SUBSCRIPTION", "EMAIL_NOTIFY",
-                        "WHITELABEL", "PODCAST", "PODCAST_RSS");
+                        "WHITELABEL", "PODCAST", "PODCAST_RSS", "BONUS_CONTENT");
         assertThat(platformAuditEventRepository.findAll()).anySatisfy(event -> {
             assertThat(event.getAction()).isEqualTo(PlatformAuditActions.TENANT_CREATED);
             assertThat(event.getTenantId()).isEqualTo(created.getId());
@@ -230,7 +230,8 @@ class PlatformTenantControllerTest {
     }
 
     private void seedFeatureModuleCatalogForFullPreset() {
-        for (String key : List.of("DIGITAL_CONTENT", "SUBSCRIPTION", "EMAIL_NOTIFY", "WHITELABEL", "PODCAST", "PODCAST_RSS")) {
+        for (String key : List.of(
+                "DIGITAL_CONTENT", "SUBSCRIPTION", "EMAIL_NOTIFY", "WHITELABEL", "PODCAST", "PODCAST_RSS", "BONUS_CONTENT")) {
             if (featureModuleRepository.findByModuleKey(key).isPresent()) {
                 continue;
             }

@@ -4,10 +4,10 @@ import de.pnnit.directwerk.modules.core.exception.ConflictException;
 import de.pnnit.directwerk.modules.core.exception.ConflictCodes;
 import de.pnnit.directwerk.modules.core.RequiresModule;
 import de.pnnit.directwerk.modules.core.repository.TenantRepository;
+import de.pnnit.directwerk.modules.newsletter.ArticlesModule;
 import de.pnnit.directwerk.modules.core.util.FieldConstraints;
 import de.pnnit.directwerk.modules.core.util.SlugNormalizer;
 import de.pnnit.directwerk.modules.core.util.TitleNormalizer;
-import de.pnnit.directwerk.modules.digital.DigitalContentModule;
 import de.pnnit.directwerk.modules.digital.api.MediaAssetQueryApi;
 import de.pnnit.directwerk.modules.digital.entity.AssetStatus;
 import de.pnnit.directwerk.modules.digital.entity.AssetType;
@@ -52,7 +52,7 @@ public class ArticleService {
     }
 
     @Transactional
-    @RequiresModule(DigitalContentModule.KEY)
+    @RequiresModule(ArticlesModule.KEY)
     public Article createDraft(
             Long tenantId,
             String rawSlug,
@@ -88,7 +88,7 @@ public class ArticleService {
     }
 
     @Transactional
-    @RequiresModule(DigitalContentModule.KEY)
+    @RequiresModule(ArticlesModule.KEY)
     public Article updateDraft(
             Long tenantId,
             Long articleId,
@@ -138,7 +138,7 @@ public class ArticleService {
     }
 
     @Transactional
-    @RequiresModule(DigitalContentModule.KEY)
+    @RequiresModule(ArticlesModule.KEY)
     public Article replaceCategories(Long tenantId, Long articleId, Set<Long> categoryIds) {
         Article article = requireDraftArticle(tenantId, articleId);
         article.getCategories().clear();

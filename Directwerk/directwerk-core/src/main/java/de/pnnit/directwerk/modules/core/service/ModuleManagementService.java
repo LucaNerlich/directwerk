@@ -3,6 +3,7 @@ package de.pnnit.directwerk.modules.core.service;
 import de.pnnit.directwerk.modules.core.repository.TenantRepository;
 import de.pnnit.directwerk.config.DirectwerkCacheNames;
 import de.pnnit.directwerk.modules.content.TenantRssSnapshotStaleEvent;
+import de.pnnit.directwerk.modules.core.FeatureModuleKeys;
 import de.pnnit.directwerk.modules.core.audit.PlatformAuditActions;
 import de.pnnit.directwerk.modules.core.audit.PlatformAuditService;
 import de.pnnit.directwerk.modules.core.entity.FeatureModule;
@@ -28,6 +29,17 @@ import org.springframework.util.StringUtils;
 @Service
 @RequiredArgsConstructor
 public class ModuleManagementService {
+
+    /**
+     * Module keys whose activation/deactivation must trigger an RSS snapshot refresh so
+     * published-feed S3 objects stay in sync with the tenant's current entitlements.
+     */
+    private static final Set<String> RSS_SNAPSHOT_SENSITIVE_MODULES = Set.of(
+            FeatureModuleKeys.PODCAST_RSS,
+            FeatureModuleKeys.FEED_BUILDER,
+            FeatureModuleKeys.ARTICLE_RSS,
+            FeatureModuleKeys.ARTICLE_FEED_BUILDER
+    );
 
     private final FeatureModuleRepository featureModuleRepository;
     private final TenantModuleActivationRepository tenantModuleActivationRepository;
@@ -97,8 +109,7 @@ public class ModuleManagementService {
         activation.setActive(true);
         tenantModuleActivationRepository.save(activation);
         cacheEviction.evictTenantPublicCachesAfterCommit(tenantId);
-        if (newlyActivated && ("PODCAST_RSS".equals(module.getModuleKey())
-                || "FEED_BUILDER".equals(module.getModuleKey()))) {
+        if (newlyActivated && RSS_SNAPSHOT_SENSITIVE_MODULES.contains(module.getModuleKey())) {
             eventPublisher.publishEvent(new TenantRssSnapshotStaleEvent(tenantId));
         }
         platformAuditService.record(
@@ -133,8 +144,7 @@ public class ModuleManagementService {
                     });
         }
         cacheEviction.evictTenantPublicCachesAfterCommit(tenantId);
-        if (moduleKeysToDeactivate.contains("PODCAST_RSS")
-                || moduleKeysToDeactivate.contains("FEED_BUILDER")) {
+        if (moduleKeysToDeactivate.stream().anyMatch(RSS_SNAPSHOT_SENSITIVE_MODULES::contains)) {
             eventPublisher.publishEvent(new TenantRssSnapshotStaleEvent(tenantId));
         }
         platformAuditService.record(

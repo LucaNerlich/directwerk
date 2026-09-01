@@ -78,7 +78,7 @@ export default function BonusLibraryClient(): React.JSX.Element {
     return (
         <div className="flex flex-col gap-6">
             <PageHeader
-                eyebrow="Schreiben"
+                eyebrow="Medien"
                 title="Bonusdateien"
                 description="Dokumente aus der Mediathek. Hänge sie über DIGITAL_ASSET an ein Paket — Abonnenten sehen sie unter Bonusdateien."
                 actions={
