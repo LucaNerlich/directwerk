@@ -29,6 +29,9 @@ export default function FeedUrlDisplay({
             </div>
             <div className="flex shrink-0 flex-wrap gap-2">
                 <a
+                    aria-label={
+                        title === undefined ? undefined : `Öffnen — ${title}`
+                    }
                     className={buttonVariants({size: 'sm', variant: 'outline'})}
                     href={url}
                     rel="noreferrer"
@@ -36,7 +39,7 @@ export default function FeedUrlDisplay({
                 >
                     Öffnen
                 </a>
-                <CopyUrlButton url={url} />
+                <CopyUrlButton context={title} url={url} />
             </div>
         </div>
     )

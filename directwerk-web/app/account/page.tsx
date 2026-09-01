@@ -24,6 +24,7 @@ import {
 } from '@directwerk/ui/components/table'
 
 import HowToListen from '@/components/HowToListen'
+import HowToRead from '@/components/HowToRead'
 import {useAccountDashboard} from '@/lib/account/useAccountDashboard'
 import {forgotPassword} from '@/lib/api/client'
 import {parseForgotPasswordInput} from '@directwerk/api/validation/input'
@@ -57,8 +58,10 @@ export default function AccountPage() {
         me,
         access,
         feeds,
+        articleFeeds,
         subscriptions,
         publicRssUrl,
+        publicArticleRssUrl,
         emailNotificationsEnabled,
         emailNotifyAvailable,
         error,
@@ -132,6 +135,8 @@ export default function AccountPage() {
         )
 
     const defaultFeed = feeds.find((feed) => feed.isDefault) ?? null
+    const defaultArticleFeed =
+        articleFeeds.find((feed) => feed.isDefault) ?? null
     const hasPastDue = subscriptions.some((item) => item.status === 'PAST_DUE')
     const hasStripeMembership = subscriptions.some((item) => item.source === 'STRIPE')
     const activeSubscriptionCount = subscriptions.filter(
@@ -146,7 +151,7 @@ export default function AccountPage() {
         <PageStack className="page-container">
             <PageHeader
                 title="Konto"
-                description="Profil, Zugang, privater Feed und Benachrichtigungen."
+                description="Profil, Zugang, private Feeds und Benachrichtigungen."
             />
             {isLoading && <p className="text-sm text-muted-foreground">Wird geladen…</p>}
             {error !== null && (
@@ -379,13 +384,26 @@ export default function AccountPage() {
                 ) : null}
             </section>
 
-            <HowToListen
-                isAuthenticated
-                privateFeedUrl={
-                    defaultFeed?.enabled === true ? defaultFeed.url : null
-                }
-                publicFeedUrl={publicRssUrl}
-            />
+            {publicRssUrl !== null || defaultFeed?.enabled === true ? (
+                <HowToListen
+                    isAuthenticated
+                    privateFeedUrl={
+                        defaultFeed?.enabled === true ? defaultFeed.url : null
+                    }
+                    publicFeedUrl={publicRssUrl}
+                />
+            ) : null}
+
+            {publicArticleRssUrl !== null || defaultArticleFeed?.enabled === true ? (
+                <HowToRead
+                    privateFeedUrl={
+                        defaultArticleFeed?.enabled === true
+                            ? defaultArticleFeed.url
+                            : null
+                    }
+                    publicFeedUrl={publicArticleRssUrl}
+                />
+            ) : null}
 
             {emailNotifyAvailable && emailNotificationsEnabled !== null && (
                 <section className="flex flex-col gap-3 rounded-xl border bg-card p-5">

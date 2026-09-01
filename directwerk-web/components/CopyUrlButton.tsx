@@ -8,10 +8,12 @@ export default function CopyUrlButton({
     url,
     className,
     size = 'sm',
+    context,
 }: {
     url: string
     className?: string
     size?: 'default' | 'sm' | 'lg' | 'icon'
+    context?: string
 }): React.JSX.Element {
     const [copied, setCopied] = useState(false)
 
@@ -27,6 +29,11 @@ export default function CopyUrlButton({
 
     return (
         <Button
+            aria-label={
+                context === undefined
+                    ? undefined
+                    : `${copied ? 'Kopiert' : 'Kopieren'} — ${context}`
+            }
             className={className}
             onClick={() => {
                 void handleCopy()
