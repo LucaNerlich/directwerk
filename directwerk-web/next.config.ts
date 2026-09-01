@@ -4,8 +4,14 @@ import {createDirectwerkNextConfig} from '../packages/next-config/createDirectwe
 
 import {buildMediaImageRemotePatterns} from './lib/mediaImageRemotePatterns'
 
+const sharedConfig = createDirectwerkNextConfig()
+
 const nextConfig: NextConfig = {
-    ...createDirectwerkNextConfig(),
+    ...sharedConfig,
+    // `sanitize-html` depends on PostCSS, which Next externalizes by default.
+    // Bundling it keeps the production artifact portable when `pnpm deploy`
+    // moves `.next` out of the monorepo build directory.
+    transpilePackages: [...sharedConfig.transpilePackages, 'postcss'],
     images: {
         remotePatterns: buildMediaImageRemotePatterns(
             process.env.MEDIA_IMAGE_REMOTE_HOSTS

@@ -3,7 +3,7 @@
 import Form from 'next/form'
 import Link from 'next/link'
 import {useSearchParams} from 'next/navigation'
-import {useActionState} from 'react'
+import {Suspense, useActionState} from 'react'
 
 import {Alert, AlertDescription} from '@directwerk/ui/components/alert'
 import AuthCard from '@directwerk/ui/components/auth-card'
@@ -24,7 +24,7 @@ interface RegisterState {
 
 const INITIAL_STATE: RegisterState = {error: null}
 
-export default function RegisterPage() {
+function RegisterForm() {
     const searchParams = useSearchParams()
     const returnTo = safeReturnTo(searchParams.get('returnTo'))
     const [state, formAction, isPending] = useActionState(
@@ -103,5 +103,22 @@ export default function RegisterPage() {
             </Form>
             {state.error !== null ? <Alert variant="destructive"><AlertDescription>{state.error}</AlertDescription></Alert> : null}
         </AuthCard>
+    )
+}
+
+export default function RegisterPage() {
+    return (
+        <Suspense
+            fallback={
+                <AuthCard
+                    title="Registrieren"
+                    description="Registrierung wird vorbereitet…"
+                >
+                    <p className="text-sm text-muted-foreground">Wird geladen…</p>
+                </AuthCard>
+            }
+        >
+            <RegisterForm />
+        </Suspense>
     )
 }

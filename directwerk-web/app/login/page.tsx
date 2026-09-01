@@ -3,7 +3,7 @@
 import Form from 'next/form'
 import Link from 'next/link'
 import {useSearchParams} from 'next/navigation'
-import {useActionState} from 'react'
+import {Suspense, useActionState} from 'react'
 
 import {Alert, AlertDescription} from '@directwerk/ui/components/alert'
 import AuthCard from '@directwerk/ui/components/auth-card'
@@ -24,7 +24,7 @@ interface LoginState {
 
 const INITIAL_STATE: LoginState = {error: null}
 
-export default function LoginPage() {
+function LoginForm() {
     const searchParams = useSearchParams()
     const returnTo = safeReturnTo(searchParams.get('returnTo'))
     const [state, formAction, isPending] = useActionState(
@@ -93,5 +93,22 @@ export default function LoginPage() {
             {state.error !== null ? <Alert variant="destructive"><AlertDescription>{state.error}</AlertDescription></Alert> : null}
             <Link className="text-sm underline underline-offset-4" href="/forgot-password">Passwort vergessen?</Link>
         </AuthCard>
+    )
+}
+
+export default function LoginPage() {
+    return (
+        <Suspense
+            fallback={
+                <AuthCard
+                    title="Anmelden"
+                    description="Anmeldung wird vorbereitet…"
+                >
+                    <p className="text-sm text-muted-foreground">Wird geladen…</p>
+                </AuthCard>
+            }
+        >
+            <LoginForm />
+        </Suspense>
     )
 }

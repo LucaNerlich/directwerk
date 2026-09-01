@@ -6,8 +6,6 @@ function originFromHost(raw: string): string {
     return `https://${host}`
 }
 
-export const dynamic = 'force-dynamic'
-
 export default async function robots(): Promise<MetadataRoute.Robots> {
     const headerStore = await headers()
     const rawHost =

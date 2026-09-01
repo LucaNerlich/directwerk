@@ -9,8 +9,6 @@ function originFromHost(raw: string): string {
     return `https://${host}`
 }
 
-export const dynamic = 'force-dynamic'
-
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     const headerStore = await headers()
     const rawHost =

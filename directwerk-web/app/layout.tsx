@@ -12,8 +12,6 @@ import type {PublicSiteConfig} from '@directwerk/api/types'
 
 import './globals.css'
 
-export const dynamic = 'force-dynamic'
-
 export async function generateMetadata(): Promise<Metadata> {
     try {
         const host = await getTenantHost()
