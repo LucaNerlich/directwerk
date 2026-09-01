@@ -93,12 +93,6 @@ public class QueueWorker {
         }
     }
 
-    /**
-     * Executes a queued job within its tenant context and records its completion or failure.
-     *
-     * @param handler the handler responsible for processing the job
-     * @param job     the queued job to process
-     */
     private void process(JobHandler handler, QueueJob job) {
         ScheduledFuture<?> leaseHeartbeatTask = startLeaseHeartbeat(job);
         try {
