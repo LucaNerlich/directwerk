@@ -1,6 +1,7 @@
 package de.pnnit.directwerk.modules.newsletter.access;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.when;
 
 import de.pnnit.directwerk.modules.digital.entity.Category;
@@ -83,6 +84,7 @@ class ArticleFeedAccessServiceTest {
     void hasArticleAccessDeniesWhenCategoryDoesNotMatchEvenIfEntitled() {
         Article article = article(1L, category(9L));
         ArticleFeed feed = feed(false, category(5L));
+        lenient().when(articleAccessApi.hasAccess(10L, 20L, 1L)).thenReturn(true);
 
         assertThat(articleFeedAccessService.hasArticleAccess(10L, 20L, feed, article)).isFalse();
     }

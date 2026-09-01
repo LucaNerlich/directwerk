@@ -10,9 +10,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import de.pnnit.directwerk.modules.core.audit.PlatformAuditActions;
 import de.pnnit.directwerk.modules.core.entity.FeatureModule;
 import de.pnnit.directwerk.modules.core.entity.Tenant;
+import de.pnnit.directwerk.modules.core.entity.TenantModuleActivation;
 import de.pnnit.directwerk.modules.core.entity.TenantStatus;
 import de.pnnit.directwerk.modules.core.repository.FeatureModuleRepository;
 import de.pnnit.directwerk.modules.core.repository.PlatformAuditEventRepository;
+import de.pnnit.directwerk.modules.core.repository.TenantModuleActivationRepository;
 import de.pnnit.directwerk.modules.core.repository.TenantRepository;
 import java.util.List;
 import java.util.UUID;
@@ -44,6 +46,9 @@ class PlatformTenantControllerTest {
 
     @Autowired
     private FeatureModuleRepository featureModuleRepository;
+
+    @Autowired
+    private TenantModuleActivationRepository tenantModuleActivationRepository;
 
     private Tenant tenant;
     private Tenant otherTenant;
@@ -115,6 +120,11 @@ class PlatformTenantControllerTest {
                 .andExpect(jsonPath("$.data.adminInvitation.status").value("INVITED"));
 
         Tenant created = tenantRepository.findBySlug(slug).orElseThrow();
+        assertThat(tenantModuleActivationRepository.findByTenantIdAndActiveTrue(created.getId()))
+                .extracting(TenantModuleActivation::getModuleKey)
+                .containsExactlyInAnyOrder(
+                        "DIGITAL_CONTENT", "SUBSCRIPTION", "EMAIL_NOTIFY",
+                        "WHITELABEL", "PODCAST", "PODCAST_RSS");
         assertThat(platformAuditEventRepository.findAll()).anySatisfy(event -> {
             assertThat(event.getAction()).isEqualTo(PlatformAuditActions.TENANT_CREATED);
             assertThat(event.getTenantId()).isEqualTo(created.getId());

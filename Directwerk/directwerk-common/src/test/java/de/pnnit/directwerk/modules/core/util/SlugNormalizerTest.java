@@ -9,7 +9,7 @@ class SlugNormalizerTest {
 
     @Test
     void trimsAndLowercases() {
-        assertThat(SlugNormalizer.normalize("  My-Show  ".toLowerCase())).isEqualTo("my-show");
+        assertThat(SlugNormalizer.normalize("  My-Show  ")).isEqualTo("my-show");
     }
 
     @Test
@@ -19,8 +19,8 @@ class SlugNormalizerTest {
     }
 
     @Test
-    void rejectsUppercaseAndSpaces() {
-        assertThatThrownBy(() -> SlugNormalizer.normalize("My Show"))
+    void rejectsSpaces() {
+        assertThatThrownBy(() -> SlugNormalizer.normalize("my show"))
                 .isInstanceOf(IllegalArgumentException.class);
     }
 
