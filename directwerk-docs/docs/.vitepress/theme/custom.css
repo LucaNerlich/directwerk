@@ -13,6 +13,10 @@
   --vp-font-family-mono: ui-monospace, 'Cascadia Code', 'Source Code Pro', Menlo, Consolas, monospace;
 }
 
+html {
+  scrollbar-gutter: stable;
+}
+
 .dark {
   --vp-c-brand-1: oklch(0.65 0.14 250);
   --vp-c-brand-2: oklch(0.58 0.12 250);
