@@ -10,6 +10,7 @@ import static org.mockito.Mockito.when;
 
 import de.pnnit.directwerk.modules.core.entity.Tenant;
 import de.pnnit.directwerk.modules.core.entity.User;
+import de.pnnit.directwerk.modules.digital.service.HtmlSanitizer;
 import de.pnnit.directwerk.modules.digital.service.PublicCdnUrlResolver;
 import de.pnnit.directwerk.modules.digital.entity.AccessPolicy;
 import de.pnnit.directwerk.modules.digital.entity.AssetScope;
@@ -58,7 +59,7 @@ class RssFeedServiceTest {
                 publicPodcastQueryService,
                 subscriberEpisodeService,
                 subscriberFeedAccess,
-                new RssXmlBuilder(),
+                new RssXmlBuilder(new HtmlSanitizer()),
                 episodeDownloadAnalyticsService,
                 publicCdnUrlResolver,
                 new EpisodeCoverResolver()
@@ -146,6 +147,7 @@ class RssFeedServiceTest {
         Tenant tenant = tenant();
         PodcastSeries series = series(tenant);
         Episode free = episode(tenant, series, 1L, "Free & <Episode>", AccessPolicy.FREE, publicAudio(10L));
+        free.setDescription("<p>A & B</p><script>alert(1)</script>");
         Episode paid = episode(tenant, series, 2L, "Paid Episode", AccessPolicy.PAID, privateAudio(11L));
 
         when(publicPodcastQueryService.listPublishedEpisodes(10L, null)).thenReturn(List.of(free, paid));
@@ -161,7 +163,9 @@ class RssFeedServiceTest {
         String xml = rssFeedService.buildPublicFeed(tenant, null, "http", "alpha.example.test", 8080);
 
         assertThat(xml).contains("Free &amp; &lt;Episode&gt;");
-        assertThat(xml).contains("&lt;p&gt;A &amp; B&lt;/p&gt;");
+        assertThat(xml).contains("<description><![CDATA[<p>A &amp; B</p>]]></description>");
+        assertThat(xml).doesNotContain("<script");
+        assertThat(xml).doesNotContain("alert");
         assertThat(xml).contains("https://alpha.example.test/feeds/alpha/e/episode-1.mp3");
         assertThat(xml).doesNotContain("https://cdn.example.test/alpha/public/free.mp3");
         assertThat(xml).contains("urn:directwerk:episode:alpha:1");

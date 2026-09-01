@@ -1,15 +1,20 @@
 package de.pnnit.directwerk.modules.podcast.service;
 
 import de.pnnit.directwerk.modules.core.entity.Tenant;
+import de.pnnit.directwerk.modules.digital.service.HtmlSanitizer;
 import de.pnnit.directwerk.modules.podcast.entity.Episode;
 import de.pnnit.directwerk.modules.podcast.entity.PodcastSeries;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 @Component
+@RequiredArgsConstructor
 public class RssXmlBuilder {
+
+    private final HtmlSanitizer htmlSanitizer;
 
     private static final DateTimeFormatter RSS_DATE_FORMATTER = DateTimeFormatter.RFC_1123_DATE_TIME;
     private static final String ITUNES_NS = " xmlns:itunes=\"http://www.itunes.com/dtds/podcast-1.0.dtd\"";
@@ -56,7 +61,7 @@ public class RssXmlBuilder {
         xml.append("  <channel>\n");
         appendElement(xml, "title", channelTitle(tenant, seriesOrNull, episodes, channelTitleOverride), 4);
         appendElement(xml, "link", originBaseUrl, 4);
-        appendElement(xml, "description", channelDescription(tenant, seriesOrNull), 4);
+        appendDescriptionElement(xml, channelDescription(tenant, seriesOrNull), 4);
         appendElement(xml, "language", channelLanguage(seriesOrNull, episodes), 4);
         if (channelCoverImageUrl != null && !channelCoverImageUrl.isBlank()) {
             appendItunesImage(xml, channelCoverImageUrl, 4);
@@ -69,11 +74,11 @@ public class RssXmlBuilder {
         return xml.toString();
     }
 
-    private static void appendEpisode(StringBuilder xml, Tenant tenant, RssEpisode rssEpisode) {
+    private void appendEpisode(StringBuilder xml, Tenant tenant, RssEpisode rssEpisode) {
         Episode episode = rssEpisode.episode();
         xml.append("    <item>\n");
         appendElement(xml, "title", episode.getTitle(), 6);
-        appendElement(xml, "description", episode.getDescription(), 6);
+        appendDescriptionElement(xml, episode.getDescription(), 6);
         appendElement(xml, "guid", "urn:directwerk:episode:" + tenant.getSlug() + ":" + episode.getId(), 6,
                 " isPermaLink=\"false\"");
         if (episode.getPublishedAt() != null) {
@@ -99,6 +104,13 @@ public class RssXmlBuilder {
                 .append("<itunes:image href=\"")
                 .append(escapeAttribute(href))
                 .append("\"/>\n");
+    }
+
+    private void appendDescriptionElement(StringBuilder xml, String value, int spaces) {
+        xml.append(" ".repeat(spaces))
+                .append("<description>")
+                .append(cdata(htmlSanitizer.sanitize(value)))
+                .append("</description>\n");
     }
 
     private static void appendElement(StringBuilder xml, String name, String value, int spaces) {
@@ -159,6 +171,15 @@ public class RssXmlBuilder {
                 .replace(">", "&gt;")
                 .replace("\"", "&quot;")
                 .replace("'", "&apos;");
+    }
+
+    /**
+     * Wraps pre-sanitized content in a CDATA section so readers render rich text as HTML.
+     * A literal {@code ]]>} inside the content is split across CDATA boundaries to keep
+     * the document well-formed.
+     */
+    static String cdata(String value) {
+        return "<![CDATA[" + value.replace("]]>", "]]]]><![CDATA[>") + "]]>";
     }
 
     private static String escapeAttribute(String value) {

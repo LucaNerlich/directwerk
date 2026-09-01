@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import de.pnnit.directwerk.modules.core.entity.Tenant;
 import de.pnnit.directwerk.modules.digital.entity.AccessPolicy;
+import de.pnnit.directwerk.modules.digital.service.HtmlSanitizer;
 import de.pnnit.directwerk.modules.newsletter.entity.Article;
 import java.time.Instant;
 import java.util.List;
@@ -11,7 +12,7 @@ import org.junit.jupiter.api.Test;
 
 class ArticleRssXmlBuilderTest {
 
-    private final ArticleRssXmlBuilder builder = new ArticleRssXmlBuilder();
+    private final ArticleRssXmlBuilder builder = new ArticleRssXmlBuilder(new HtmlSanitizer());
 
     @Test
     void freeArticleIncludesFullBodyAndPubDate() {
@@ -23,7 +24,7 @@ class ArticleRssXmlBuilderTest {
 
         assertThat(xml).contains("<title>Alpha</title>");
         assertThat(xml).contains("<link>https://alpha.example.test/articles/hello-world</link>");
-        assertThat(xml).contains("<description>&lt;p&gt;Full body&lt;/p&gt;</description>");
+        assertThat(xml).contains("<description><![CDATA[<p>Full body</p>]]></description>");
         assertThat(xml).contains("<guid isPermaLink=\"false\">urn:directwerk:article:alpha:1</guid>");
         assertThat(xml).contains("<pubDate>Thu, 1 Jan 2026 00:00:00 GMT</pubDate>");
     }
@@ -36,7 +37,7 @@ class ArticleRssXmlBuilderTest {
 
         String xml = builder.buildFeed(tenant, List.of(article), "https://alpha.example.test", null);
 
-        assertThat(xml).contains("<description>Teaser only</description>");
+        assertThat(xml).contains("<description><![CDATA[Teaser only]]></description>");
         assertThat(xml).doesNotContain("Secret body");
     }
 
@@ -47,7 +48,26 @@ class ArticleRssXmlBuilderTest {
 
         String xml = builder.buildFeed(tenant, List.of(article), "https://alpha.example.test", null);
 
-        assertThat(xml).contains("<description></description>");
+        assertThat(xml).contains("<description><![CDATA[]]></description>");
+    }
+
+    @Test
+    void descriptionIsSanitizedBeforeCdataWrapping() {
+        Tenant tenant = tenant();
+        Article article = article(4L, "xss-post", "Xss Post", "<p>ok</p><script>alert(1)</script>", AccessPolicy.FREE);
+
+        String xml = builder.buildFeed(tenant, List.of(article), "https://alpha.example.test", null);
+
+        assertThat(xml).contains("<description><![CDATA[<p>ok</p>]]></description>");
+        assertThat(xml).doesNotContain("<script");
+        assertThat(xml).doesNotContain("alert");
+    }
+
+    @Test
+    void cdataSplitsCdataEndTokenSoXmlStaysWellFormed() {
+        String encoded = ArticleRssXmlBuilder.cdata("a]]>b");
+
+        assertThat(encoded).isEqualTo("<![CDATA[a]]]]><![CDATA[>b]]>");
     }
 
     @Test
