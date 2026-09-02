@@ -24,9 +24,9 @@ public final class MediaUploadRules {
     );
 
     private static final Map<AssetType, Long> MAX_BYTES = Map.of(
-            AssetType.AUDIO, 500L * MB,
+            AssetType.AUDIO, 5L * 1024 * MB,
             AssetType.IMAGE, 10L * MB,
-            AssetType.VIDEO, 1024L * MB,
+            AssetType.VIDEO, 5L * 1024 * MB,
             AssetType.DOCUMENT, 50L * MB
     );
 
@@ -205,5 +205,33 @@ public final class MediaUploadRules {
         }
         String ext = filename.substring(dot + 1).toLowerCase(Locale.ROOT);
         return UNSAFE_FILENAME.matcher(ext).replaceAll("");
+    }
+
+    /**
+     * Maps an allowed MIME type to its canonical file extension, used when an imported asset's
+     * filename carries no usable extension (the generic {@code bin} fallback).
+     *
+     * @param mimeType the normalized MIME type
+     * @return the canonical extension, or {@code null} when the MIME type is unknown
+     */
+    public static String extensionForMime(String mimeType) {
+        if (mimeType == null || mimeType.isBlank()) {
+            return null;
+        }
+        return switch (normalizeMime(mimeType)) {
+            case "audio/mpeg" -> "mp3";
+            case "audio/mp4", "audio/x-m4a" -> "m4a";
+            case "audio/wav" -> "wav";
+            case "audio/ogg" -> "ogg";
+            case "audio/webm" -> "webm";
+            case "image/jpeg" -> "jpg";
+            case "image/png" -> "png";
+            case "image/webp" -> "webp";
+            case "image/gif" -> "gif";
+            case "video/mp4" -> "mp4";
+            case "video/webm" -> "webm";
+            case "application/pdf" -> "pdf";
+            default -> null;
+        };
     }
 }

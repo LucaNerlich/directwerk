@@ -168,7 +168,7 @@ public class PodcastImportService {
                         command.audioUrl(),
                         AssetType.AUDIO,
                         AssetVisibility.PRIVATE,
-                        filenameFromUrl(command.audioUrl(), "episode.mp3")
+                        importFilenameHint(command.title(), command.audioUrl(), "episode", "mp3")
                 );
                 audioAssetId = audio.getId();
                 ingestedAssetIds.add(audioAssetId);
@@ -178,7 +178,7 @@ public class PodcastImportService {
                         command.imageUrl(),
                         AssetType.IMAGE,
                         AssetVisibility.PUBLIC,
-                        filenameFromUrl(command.imageUrl(), "cover.jpg")
+                        importFilenameHint(command.title(), command.imageUrl(), "cover", "jpg")
                 );
                 coverAssetId = cover.getId();
                 ingestedAssetIds.add(coverAssetId);
@@ -321,14 +321,30 @@ public class PodcastImportService {
         throw new RssImportException(409, "EPISODE_SLUG_EXISTS", "Could not allocate a unique episode slug");
     }
 
-    private static String filenameFromUrl(String url, String fallback) {
+    /**
+     * Builds an import filename hint: the URL's last path segment when it carries a file
+     * extension, otherwise a descriptive stem derived from the episode title. Keeps imported
+     * assets from ending up with non-descriptive names such as {@code asset-10_download.bin}.
+     *
+     * @param title        the episode title used to derive a slug-based stem
+     * @param url          the remote asset URL
+     * @param fallbackStem the stem used when the title yields no usable slug
+     * @param extension    the extension used when the URL segment carries none
+     * @return the filename hint for the ingest command
+     */
+    private static String importFilenameHint(String title, String url, String fallbackStem, String extension) {
         int slash = url.lastIndexOf('/');
         String last = slash >= 0 ? url.substring(slash + 1) : url;
         int query = last.indexOf('?');
         if (query >= 0) {
             last = last.substring(0, query);
         }
-        return last.isBlank() ? fallback : last;
+        if (last.lastIndexOf('.') > 0) {
+            return last;
+        }
+        String slug = ImportSlugSuggester.suggest(title);
+        String stem = "folge".equals(slug) ? fallbackStem : slug;
+        return stem + "." + extension;
     }
 
     /**

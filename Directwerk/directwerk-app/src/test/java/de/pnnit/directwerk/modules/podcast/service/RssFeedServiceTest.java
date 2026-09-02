@@ -105,6 +105,55 @@ class RssFeedServiceTest {
     }
 
     @Test
+    void feedIncludesAppleChannelMetadataAndEpisodeLinks() {
+        Tenant tenant = tenant();
+        PodcastSeries series = series(tenant);
+        series.setItunesCategory("Comedy");
+        series.setItunesExplicit(true);
+        series.setCoverAsset(publicImage(20L, "alpha/public/series.jpg"));
+        Episode free = episode(tenant, series, 1L, "Free Episode", AccessPolicy.FREE, publicAudio(10L));
+
+        when(publicPodcastQueryService.listPublishedEpisodes(10L, null)).thenReturn(List.of(free));
+        when(episodeDownloadAnalyticsService.publicRssEnclosureUrl(
+                10L,
+                "http",
+                "alpha.example.test",
+                8080,
+                "alpha",
+                "episode-1"
+        )).thenReturn("https://alpha.example.test/feeds/alpha/e/episode-1.mp3");
+
+        String xml = rssFeedService.buildPublicFeed(tenant, null, "http", "alpha.example.test", 8080);
+
+        assertThat(xml).contains("<itunes:category text=\"Comedy\"/>");
+        assertThat(xml).contains("<itunes:explicit>true</itunes:explicit>");
+        assertThat(xml).contains("<itunes:image href=\"https://cdn.example.test/alpha/public/series.jpg\"/>");
+        assertThat(xml).contains("<link>http://alpha.example.test:8080/episodes/episode-1</link>");
+    }
+
+    @Test
+    void feedDefaultsToCleanExplicitAndOmitsMissingCategory() {
+        Tenant tenant = tenant();
+        PodcastSeries series = series(tenant);
+        Episode free = episode(tenant, series, 1L, "Free Episode", AccessPolicy.FREE, publicAudio(10L));
+
+        when(publicPodcastQueryService.listPublishedEpisodes(10L, null)).thenReturn(List.of(free));
+        when(episodeDownloadAnalyticsService.publicRssEnclosureUrl(
+                10L,
+                "http",
+                "alpha.example.test",
+                8080,
+                "alpha",
+                "episode-1"
+        )).thenReturn("https://alpha.example.test/feeds/alpha/e/episode-1.mp3");
+
+        String xml = rssFeedService.buildPublicFeed(tenant, null, "http", "alpha.example.test", 8080);
+
+        assertThat(xml).contains("<itunes:explicit>false</itunes:explicit>");
+        assertThat(xml).doesNotContain("itunes:category");
+    }
+
+    @Test
     void publicFeedItemCoverFallsBackToFormatThenSeries() {
         Tenant tenant = tenant();
         PodcastSeries series = series(tenant);
@@ -128,8 +177,10 @@ class RssFeedServiceTest {
 
         String xml = rssFeedService.buildPublicFeed(tenant, null, "http", "alpha.example.test", 8080);
 
+        // Channel artwork falls back to the first episode's series cover; the item cover
+        // still prefers the episode/format artwork over the series cover.
+        assertThat(xml).contains("<itunes:image href=\"https://cdn.example.test/alpha/public/series.jpg\"/>");
         assertThat(xml).contains("<itunes:image href=\"https://cdn.example.test/alpha/public/format.jpg\"/>");
-        assertThat(xml).doesNotContain("alpha/public/series.jpg");
     }
 
     @Test
@@ -238,6 +289,7 @@ class RssFeedServiceTest {
     void privateFeedUsesStableTokenizedEnclosureForPaid() {
         Tenant tenant = tenant();
         PodcastSeries series = series(tenant);
+        series.setCoverAsset(publicImage(20L, "alpha/public/series.jpg"));
         Episode paid = episode(tenant, series, 2L, "Paid Episode", AccessPolicy.PAID, privateAudio(11L));
         SubscriberFeed feed = feed(tenant);
 
@@ -256,6 +308,7 @@ class RssFeedServiceTest {
 
         assertThat(xml).contains("Paid Episode");
         assertThat(xml).contains("https://alpha.example.test/feeds/alpha/u/tok/e/episode-2.mp3");
+        assertThat(xml).contains("<itunes:image href=\"https://cdn.example.test/alpha/public/series.jpg\"/>");
         assertThat(xml).doesNotContain("X-Amz-Signature");
     }
 

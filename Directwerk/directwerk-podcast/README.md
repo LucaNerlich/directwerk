@@ -261,8 +261,17 @@ subscription/access-rule changes, tenant name/slug, verified/primary domain, for
 and first-time `PODCAST_RSS` activation enqueue a tenant refresh after commit. Duplicate `QUEUED`
 refresh jobs for the same tenant are coalesced. The Java queue job is the only path that generates
 XML. A successful S3 `PUT` replaces the snapshot atomically and records presence; a failed job
-leaves the prior object live and is retried. Feed requests only validate access and redirect—never
+leaves the prior object live and is retried (individual snapshot failures are isolated so one
+broken feed cannot abort the remaining feeds). Feed requests only validate access and redirect—never
 query episodes, evaluate entitlements, generate XML, or `HEAD` S3.
+
+Episodes can only be published or scheduled when their series is `PUBLISHED` — feeds exclude
+episodes of draft series entirely, so the workflow rejects this up front instead of leaving
+authors with an invisible "published" episode. Public (tenant/series) feeds contain free
+episodes only; paid episodes are served exclusively via the private subscriber feeds. Podcast
+feeds carry Apple Podcasts channel metadata (`itunes:category`, `itunes:explicit` from series
+settings, `itunes:image` from the series cover) and a per-episode `<link>` to the public
+episode page.
 
 See [`../docs/rss-feed-storage.md`](../docs/rss-feed-storage.md) for deployment and pull-zone rules.
 

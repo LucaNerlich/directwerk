@@ -28,6 +28,38 @@ class MediaUploadRulesTest {
     }
 
     @Test
+    void allowsLargeAudioWithinFiveGigabyteLimit() {
+        MediaUploadRules.validateMimeAndSize(AssetType.AUDIO, "audio/mpeg", 5L * 1024 * 1024 * 1024);
+        assertThatThrownBy(() -> MediaUploadRules.validateMimeAndSize(
+                AssetType.AUDIO, "audio/mpeg", 5L * 1024 * 1024 * 1024 + 1
+        )).isInstanceOf(UploadValidationException.class);
+    }
+
+    @Test
+    void allowsLargeVideoWithinFiveGigabyteLimit() {
+        MediaUploadRules.validateMimeAndSize(AssetType.VIDEO, "video/mp4", 5L * 1024 * 1024 * 1024);
+        assertThatThrownBy(() -> MediaUploadRules.validateMimeAndSize(
+                AssetType.VIDEO, "video/mp4", 5L * 1024 * 1024 * 1024 + 1
+        )).isInstanceOf(UploadValidationException.class);
+    }
+
+    @Test
+    void mapsMimeToCanonicalExtension() {
+        assertThat(MediaUploadRules.extensionForMime("audio/mpeg")).isEqualTo("mp3");
+        assertThat(MediaUploadRules.extensionForMime("audio/mp4")).isEqualTo("m4a");
+        assertThat(MediaUploadRules.extensionForMime("audio/x-m4a")).isEqualTo("m4a");
+        assertThat(MediaUploadRules.extensionForMime("audio/wav")).isEqualTo("wav");
+        assertThat(MediaUploadRules.extensionForMime("image/jpeg")).isEqualTo("jpg");
+        assertThat(MediaUploadRules.extensionForMime("image/png")).isEqualTo("png");
+        assertThat(MediaUploadRules.extensionForMime("video/mp4")).isEqualTo("mp4");
+        assertThat(MediaUploadRules.extensionForMime("video/webm")).isEqualTo("webm");
+        assertThat(MediaUploadRules.extensionForMime("application/pdf")).isEqualTo("pdf");
+        assertThat(MediaUploadRules.extensionForMime("audio/mp3")).isEqualTo("mp3");
+        assertThat(MediaUploadRules.extensionForMime("application/octet-stream")).isNull();
+        assertThat(MediaUploadRules.extensionForMime(null)).isNull();
+    }
+
+    @Test
     void sanitizesFilename() {
         assertThat(MediaUploadRules.sanitizeFilename("../../evil name!!.mp3"))
                 .isEqualTo("evil_name_.mp3");

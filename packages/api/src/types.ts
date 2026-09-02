@@ -158,6 +158,7 @@ export interface SeriesDetail {
     coverAssetId: number | null
     language: string | null
     itunesCategory: string | null
+    itunesExplicit: boolean
     defaultRequiredLevelSortOrder: number | null
     rssUrl: string | null
     status: SeriesStatus
@@ -213,6 +214,7 @@ export interface CreateSeriesInput {
     coverAssetId?: number
     language?: string
     itunesCategory?: string
+    itunesExplicit?: boolean
     defaultRequiredLevelSortOrder?: number
 }
 
@@ -223,6 +225,7 @@ export interface UpdateSeriesInput {
     coverAssetId?: number
     language?: string
     itunesCategory?: string
+    itunesExplicit?: boolean
     defaultRequiredLevelSortOrder?: number
     status?: SeriesStatus
 }

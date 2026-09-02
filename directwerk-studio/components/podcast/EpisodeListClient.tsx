@@ -55,6 +55,12 @@ export default function EpisodeListClient() {
         void loadPrerequisites()
     }, [loadPrerequisites])
 
+    const seriesStatusById = new Map(series.map((item) => [item.id, item.status]))
+    const publishBlockedReason = (episode: EpisodeDetail): string | null =>
+        seriesStatusById.get(episode.seriesId) === 'PUBLISHED'
+            ? null
+            : 'Die Sendung muss zuerst veröffentlicht werden.'
+
     const {
         items: episodes,
         isLoading: episodesLoading,
@@ -82,6 +88,7 @@ export default function EpisodeListClient() {
         unpublish: (id) => unpublishEpisode(getClientTenantHost(), id),
         cancelSchedule: (id) => cancelScheduleEpisode(getClientTenantHost(), id),
         unarchive: (id) => unarchiveEpisode(getClientTenantHost(), id),
+        isBulkEligible: (episode) => seriesStatusById.get(episode.seriesId) === 'PUBLISHED',
         labels: {
             loadError: 'Folgen konnten nicht geladen werden.',
             publishSuccess: (title) => `Folge „${title}“ wurde veröffentlicht.`,
@@ -191,6 +198,7 @@ export default function EpisodeListClient() {
                         onUnarchive={(episode) => void handleUnarchive(episode)}
                         onUnpublish={(episode) => void handleUnpublish(episode)}
                         onViewModeChange={setViewMode}
+                        publishBlockedReason={publishBlockedReason}
                         publishableCount={publishableCount}
                         selectedIds={selectedIds}
                         unpublishableCount={unpublishableCount}

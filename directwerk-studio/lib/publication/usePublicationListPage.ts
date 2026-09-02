@@ -35,6 +35,8 @@ export interface PublicationListPageConfig<T extends {
     unarchive: (id: number) => Promise<T>
     labels: PublicationListPageLabels
     loadingMessage?: string
+    /** Excludes items from bulk selection even when their status would allow it (e.g. draft series). */
+    isBulkEligible?: (item: T) => boolean
 }
 
 export function usePublicationListPage<T extends {
@@ -54,6 +56,7 @@ export function usePublicationListPage<T extends {
         () =>
             items
                 .filter((item) => isBulkPublicationStatus(item.status))
+                .filter((item) => configRef.current.isBulkEligible?.(item) ?? true)
                 .map((item) => item.id),
         [items],
     )

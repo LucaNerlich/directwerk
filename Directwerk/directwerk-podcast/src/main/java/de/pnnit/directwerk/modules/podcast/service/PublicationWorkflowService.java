@@ -16,6 +16,7 @@ import de.pnnit.directwerk.modules.podcast.PodcastModule;
 import de.pnnit.directwerk.modules.digital.entity.AccessPolicy;
 import de.pnnit.directwerk.modules.podcast.entity.Episode;
 import de.pnnit.directwerk.modules.podcast.entity.EpisodeStatus;
+import de.pnnit.directwerk.modules.podcast.entity.SeriesStatus;
 import de.pnnit.directwerk.modules.podcast.exception.EpisodeValidationException;
 import de.pnnit.directwerk.modules.content.PublicationTransitions;
 import de.pnnit.directwerk.modules.digital.service.HtmlSanitizer;
@@ -78,6 +79,7 @@ public class PublicationWorkflowService {
     @RequiresModule(PodcastModule.KEY)
     public Episode schedule(Long tenantId, Long episodeId, Instant scheduledAt, boolean notifySubscribers) {
         Episode episode = episodeService.requireEpisode(tenantId, episodeId);
+        requirePublishedSeries(episode);
         PublicationLifecycleSupport.schedule(
                 scheduledAt,
                 notifySubscribers,
@@ -194,6 +196,7 @@ public class PublicationWorkflowService {
         PublicationTransitions.requireDraftOrScheduled(
                 episode.getStatus() == EpisodeStatus.DRAFT || episode.getStatus() == EpisodeStatus.SCHEDULED,
                 "episodes");
+        requirePublishedSeries(episode);
         if (episode.getTitle() == null || episode.getTitle().isBlank()) {
             throw new EpisodeValidationException("Episode title is required");
         }
@@ -237,6 +240,19 @@ public class PublicationWorkflowService {
         rssFeedRefreshScheduler.requestRefreshAfterCommit(tenantId);
         maybeNotifySubscribers(tenantId, published, notifySubscribers);
         return published;
+    }
+
+    /**
+     * Episodes of a draft series are invisible in every feed (public and private snapshots only
+     * include published series), so publishing them would silently do nothing. Reject it up
+     * front so authors see the actual blocker instead of a stale feed.
+     */
+    private static void requirePublishedSeries(Episode episode) {
+        if (episode.getSeries() == null || episode.getSeries().getStatus() != SeriesStatus.PUBLISHED) {
+            throw new EpisodeValidationException(
+                    "Publish the series before publishing its episodes"
+            );
+        }
     }
 
     private void maybeNotifySubscribers(Long tenantId, Episode published, boolean notifySubscribers) {

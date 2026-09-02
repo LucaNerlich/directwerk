@@ -249,7 +249,7 @@ export default function FeedManagementClient(): React.JSX.Element {
             <PageHeader
                 eyebrow="Podcast · Einrichtung"
                 title="Feeds"
-                description="Teile diese URLs mit Podcast-Apps und Verzeichnissen. Der Abonnenten-Feed ist privat und wird über den Feed-Token der Abonnentin bzw. des Abonnenten geschützt."
+                description="Teile diese URLs mit Podcast-Apps und Verzeichnissen. Sendungs-Feeds sind öffentlich und enthalten nur freie Folgen — Bezahlte Folgen werden ausschließlich über die privaten Abonnenten-Feeds ausgeliefert, die mit dem Feed-Token der Abonnentin bzw. des Abonnenten geschützt sind."
             />
 
             {errorMessage !== null ? (
@@ -279,7 +279,10 @@ export default function FeedManagementClient(): React.JSX.Element {
 
             {seriesFeedItems.length > 0 ? (
                 <section className="flex flex-col gap-4">
-                    <SectionHeader title="Sendungs-Feeds" />
+                    <SectionHeader
+                        description="Öffentlicher Feed je Sendung — enthält nur freie Folgen. Enthält eine Sendung nur Bezahlte Folgen, bleibt dieser Feed leer; Abonnentinnen und Abonnenten nutzen ihren privaten Feed unten."
+                        title="Sendungs-Feeds"
+                    />
                     <EntityListView
                         ariaLabel="Sendungs-Feeds"
                         items={seriesFeedItems}
@@ -304,7 +307,10 @@ export default function FeedManagementClient(): React.JSX.Element {
 
             {showSubscriberFeeds ? (
                 <section className="flex flex-col gap-4">
-                    <SectionHeader title="Abonnenten-Feeds" />
+                    <SectionHeader
+                        description="Jeder private Feed zeigt genau die Folgen, auf die die jeweilige Person Anspruch hat. Zum Testen der eigenen Bezahlfolgen zuerst eine manuelle Berechtigung (Stufe) für das eigene Konto vergeben."
+                        title="Abonnenten-Feeds"
+                    />
                     {subscriberFeedItems.length === 0 ? (
                         <EmptyState
                             description="Ein Feed wird bei der ersten Freischaltung einer Abonnentin bzw. eines Abonnenten automatisch angelegt."

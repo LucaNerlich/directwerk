@@ -26,6 +26,7 @@ import de.pnnit.directwerk.modules.podcast.entity.Episode;
 import de.pnnit.directwerk.modules.podcast.entity.EpisodeStatus;
 import de.pnnit.directwerk.modules.podcast.entity.Format;
 import de.pnnit.directwerk.modules.podcast.entity.PodcastSeries;
+import de.pnnit.directwerk.modules.podcast.entity.SeriesStatus;
 import de.pnnit.directwerk.modules.podcast.exception.EpisodeValidationException;
 import de.pnnit.directwerk.modules.content.InvalidPublicationTransitionException;
 import de.pnnit.directwerk.modules.digital.service.HtmlSanitizer;
@@ -344,6 +345,32 @@ class PublicationWorkflowServiceTest {
     }
 
     @Test
+    void publishRejectsEpisodeOfDraftSeries() {
+        Episode episode = draftEpisode();
+        episode.getSeries().setStatus(SeriesStatus.DRAFT);
+
+        when(episodeService.requireEpisode(10L, 55L)).thenReturn(episode);
+
+        assertThatThrownBy(() -> publicationWorkflowService.publish(10L, 55L))
+                .isInstanceOf(EpisodeValidationException.class)
+                .hasMessageContaining("series");
+        verify(episodeMediaApi, never()).requireReadyAudio(any());
+    }
+
+    @Test
+    void scheduleRejectsEpisodeOfDraftSeries() {
+        Episode episode = draftEpisode();
+        episode.getSeries().setStatus(SeriesStatus.DRAFT);
+
+        when(episodeService.requireEpisode(10L, 55L)).thenReturn(episode);
+
+        assertThatThrownBy(() -> publicationWorkflowService.schedule(10L, 55L, Instant.now().plusSeconds(3600)))
+                .isInstanceOf(EpisodeValidationException.class)
+                .hasMessageContaining("series");
+        verify(episodeRepository, never()).save(any());
+    }
+
+    @Test
     void publishScheduledEpisodeSkipsWhenNoLongerScheduled() {
         Episode episode = draftEpisode();
         episode.setStatus(EpisodeStatus.DRAFT);
@@ -367,6 +394,7 @@ class PublicationWorkflowServiceTest {
         series.setTenant(tenant);
         series.setSlug("main");
         series.setTitle("Main");
+        series.setStatus(SeriesStatus.PUBLISHED);
 
         Episode episode = new Episode();
         episode.setId(55L);

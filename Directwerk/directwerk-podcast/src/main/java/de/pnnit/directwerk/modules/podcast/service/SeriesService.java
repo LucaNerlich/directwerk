@@ -56,6 +56,7 @@ public class SeriesService {
             Long coverAssetId,
             String language,
             String itunesCategory,
+            Boolean itunesExplicit,
             Integer defaultRequiredLevelSortOrder
     ) {
         String slug = SlugNormalizer.normalize(rawSlug);
@@ -71,6 +72,7 @@ public class SeriesService {
         series.setCoverAsset(podcastCoverAssetResolver.resolveCoverAsset(tenantId, coverAssetId));
         series.setLanguage(normalizeLanguage(language));
         series.setItunesCategory(normalizeItunesCategory(itunesCategory));
+        series.setItunesExplicit(itunesExplicit != null && itunesExplicit);
         series.setDefaultRequiredLevelSortOrder(FieldConstraints.requireNonNegative(
                 defaultRequiredLevelSortOrder,
                 "defaultRequiredLevelSortOrder"
@@ -92,6 +94,7 @@ public class SeriesService {
             Long coverAssetId,
             String language,
             String itunesCategory,
+            Boolean itunesExplicit,
             Integer defaultRequiredLevelSortOrder,
             SeriesStatus status
     ) {
@@ -117,6 +120,9 @@ public class SeriesService {
         }
         if (itunesCategory != null) {
             series.setItunesCategory(normalizeItunesCategory(itunesCategory));
+        }
+        if (itunesExplicit != null) {
+            series.setItunesExplicit(itunesExplicit);
         }
         if (defaultRequiredLevelSortOrder != null) {
             series.setDefaultRequiredLevelSortOrder(FieldConstraints.requireNonNegative(

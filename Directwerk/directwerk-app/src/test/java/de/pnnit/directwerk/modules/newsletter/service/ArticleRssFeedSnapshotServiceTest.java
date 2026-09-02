@@ -206,11 +206,8 @@ class ArticleRssFeedSnapshotServiceTest {
     }
 
     private static void stubCanonicalDomain(Fixture fixture) {
-        when(fixture.tenantPublicHostResolver.resolve(
-                10L,
-                null,
-                TenantPublicHostResolver.HostPolicy.PRIMARY
-        )).thenReturn("alpha.example.test");
+        when(fixture.tenantPublicHostResolver.findPrimaryVerifiedHost(10L))
+                .thenReturn(Optional.of("alpha.example.test"));
     }
 
     private record Fixture(
