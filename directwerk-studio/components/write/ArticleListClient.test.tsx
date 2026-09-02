@@ -420,4 +420,36 @@ describe('ArticleListClient', () => {
             expect(screen.getByText('1 Beitrag aktualisiert.')).toBeInTheDocument()
         })
     })
+
+    it('offers bulk edit for published-only selections but disables apply', async () => {
+        const user = userEvent.setup()
+        vi.mocked(listArticles).mockResolvedValue(mockArticles)
+        vi.mocked(listCategories).mockResolvedValue([
+            {id: 21, slug: 'news', name: 'News', parentId: null, active: true},
+        ])
+
+        render(<ArticleListClient />)
+
+        await waitFor(() => {
+            expect(screen.getByText('Draft Post')).toBeInTheDocument()
+        })
+
+        await user.click(screen.getByRole('checkbox', {name: '„Published Post“ auswählen'}))
+
+        await waitFor(() => {
+            expect(screen.getByText('1 ausgewählt')).toBeInTheDocument()
+        })
+
+        await user.click(screen.getByRole('button', {name: 'Bearbeiten…'}))
+
+        expect(await screen.findByRole('dialog')).toBeInTheDocument()
+        expect(
+            await screen.findByText(
+                '0 von 1 ausgewählten Beiträgen sind Entwürfe — veröffentlichte Beiträge werden übersprungen.',
+            ),
+        ).toBeInTheDocument()
+        expect(screen.getByRole('button', {name: 'Anwenden'})).toBeDisabled()
+        expect(replaceArticleCategories).not.toHaveBeenCalled()
+        expect(updateArticle).not.toHaveBeenCalled()
+    })
 })

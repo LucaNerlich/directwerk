@@ -78,11 +78,12 @@ export default function BulkEditDialog({
     }, [open])
 
     const applyEnabled =
-        kind === 'formats'
+        draftCount > 0 &&
+        (kind === 'formats'
             ? selectedFormatIds.length > 0
             : kind === 'categories'
               ? selectedCategoryIds.length > 0
-              : true
+              : true)
 
     const toggleFormat = (formatId: number, checked: boolean): void => {
         setSelectedFormatIds((current) =>

@@ -174,7 +174,6 @@ export default function ArticleListClient() {
                 <>
                     <PublicationListSection
                         allSelected={allSelected}
-                        bulkEditCount={draftCount}
                         busyItemId={busyArticleId}
                         contentLabelPlural="Beiträge"
                         editorBasePath="/write/articles"
