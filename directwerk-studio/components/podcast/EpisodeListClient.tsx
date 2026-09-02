@@ -49,7 +49,7 @@ export default function EpisodeListClient() {
             const [loadedSeries, loadedFormats, loadedCategories] = await Promise.all([
                 listSeries(host),
                 listFormats(host),
-                listCategories(host),
+                listCategories(host).catch(() => []),
             ])
             setSeries(loadedSeries)
             setFormats(loadedFormats)
