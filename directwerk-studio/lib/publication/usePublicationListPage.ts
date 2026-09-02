@@ -35,6 +35,10 @@ export interface PublicationListPageConfig<T extends {
     unarchive: (id: number) => Promise<T>
     labels: PublicationListPageLabels
     loadingMessage?: string
+    /** Excludes drafts from bulk publishing even when their status would allow it. */
+    isBulkPublishEligible?: (item: T) => boolean
+    /** Excludes published items from bulk unpublishing even when their status would allow it. */
+    isBulkUnpublishEligible?: (item: T) => boolean
 }
 
 export function usePublicationListPage<T extends {
@@ -49,13 +53,19 @@ export function usePublicationListPage<T extends {
     const [items, setItems] = useState<T[]>([])
     const [isLoading, setIsLoading] = useState(true)
     const [listError, setListError] = useState<string | null>(null)
+    const {isBulkPublishEligible, isBulkUnpublishEligible} = config
 
     const itemIds = useMemo(
         () =>
             items
                 .filter((item) => isBulkPublicationStatus(item.status))
+                .filter((item) =>
+                    item.status === 'DRAFT'
+                        ? (isBulkPublishEligible?.(item) ?? true)
+                        : (isBulkUnpublishEligible?.(item) ?? true),
+                )
                 .map((item) => item.id),
-        [items],
+        [isBulkPublishEligible, isBulkUnpublishEligible, items],
     )
 
     const selection = usePublicationListState(itemIds)

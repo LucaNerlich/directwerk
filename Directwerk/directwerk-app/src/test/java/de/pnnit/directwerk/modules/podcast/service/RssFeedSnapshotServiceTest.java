@@ -20,6 +20,7 @@ import de.pnnit.directwerk.modules.digital.api.CdnPurgeClient;
 import de.pnnit.directwerk.modules.digital.storage.FeedSnapshotStateStore;
 import de.pnnit.directwerk.modules.digital.storage.GeneratedFeedSnapshotStore;
 import de.pnnit.directwerk.modules.digital.storage.S3PublicUrlBuilder;
+import de.pnnit.directwerk.modules.podcast.entity.PodcastSeries;
 import de.pnnit.directwerk.modules.podcast.feed.SubscriberFeed;
 import de.pnnit.directwerk.modules.podcast.feed.SubscriberFeedRepository;
 import de.pnnit.directwerk.modules.podcast.repository.PodcastSeriesRepository;
@@ -211,6 +212,87 @@ class RssFeedSnapshotServiceTest {
         verify(fixture.s3Client).putObject(any(PutObjectRequest.class), any(software.amazon.awssdk.core.sync.RequestBody.class));
     }
 
+    @Test
+    void refreshFallsBackToStudioHostWhenNoVerifiedDomainExists() {
+        Fixture fixture = fixture();
+        enableRss(fixture);
+        when(fixture.tenantPublicHostResolver.findPrimaryVerifiedHost(10L)).thenReturn(Optional.empty());
+        when(fixture.directwerkConfig.email()).thenReturn(new DirectwerkProperties.Email(
+                "smtp", null, null, "https://studio.example.test", null, null, null, null, 30
+        ));
+        when(fixture.podcastSeriesRepository.findByTenantIdOrderByTitleAscIdAsc(10L)).thenReturn(List.of());
+        when(fixture.subscriberFeedRepository.findByTenantIdOrderByIdAsc(10L)).thenReturn(List.of());
+        when(fixture.rssFeedService.buildPublicFeed(
+                fixture.tenant, null, "https", "studio.example.test", 443
+        )).thenReturn("<rss>generated</rss>");
+
+        fixture.service.refreshTenant(10L);
+
+        verify(fixture.rssFeedService).buildPublicFeed(
+                fixture.tenant, null, "https", "studio.example.test", 443
+        );
+        verify(fixture.s3Client).putObject(any(PutObjectRequest.class), any(software.amazon.awssdk.core.sync.RequestBody.class));
+    }
+
+    @Test
+    void refreshFallbackPreservesStudioSchemeAndNonDefaultPort() {
+        Fixture fixture = fixture();
+        enableRss(fixture);
+        when(fixture.tenantPublicHostResolver.findPrimaryVerifiedHost(10L)).thenReturn(Optional.empty());
+        when(fixture.directwerkConfig.email()).thenReturn(new DirectwerkProperties.Email(
+                "smtp", null, null, "http://studio.example.test:8080", null, null, null, null, 30
+        ));
+        when(fixture.podcastSeriesRepository.findByTenantIdOrderByTitleAscIdAsc(10L)).thenReturn(List.of());
+        when(fixture.subscriberFeedRepository.findByTenantIdOrderByIdAsc(10L)).thenReturn(List.of());
+        when(fixture.rssFeedService.buildPublicFeed(
+                fixture.tenant, null, "http", "studio.example.test", 8080
+        )).thenReturn("<rss>generated</rss>");
+
+        fixture.service.refreshTenant(10L);
+
+        verify(fixture.rssFeedService).buildPublicFeed(
+                fixture.tenant, null, "http", "studio.example.test", 8080
+        );
+        verify(fixture.s3Client).putObject(any(PutObjectRequest.class), any(software.amazon.awssdk.core.sync.RequestBody.class));
+    }
+
+    @Test
+    void refreshIsolatesFailingSeriesFeedAndStillRefreshesPrivateFeeds() {
+        Fixture fixture = fixture();
+        enableRss(fixture);
+        stubCanonicalDomain(fixture);
+        PodcastSeries draftSeries = new PodcastSeries();
+        draftSeries.setId(20L);
+        draftSeries.setTenant(fixture.tenant);
+        when(fixture.podcastSeriesRepository.findByTenantIdOrderByTitleAscIdAsc(10L)).thenReturn(List.of(draftSeries));
+        when(fixture.rssFeedService.buildPublicFeed(
+                fixture.tenant, null, "https", "alpha.example.test", 443
+        )).thenReturn("<rss>tenant</rss>");
+        when(fixture.rssFeedService.buildPublicFeed(
+                fixture.tenant, draftSeries, "https", "alpha.example.test", 443
+        )).thenThrow(new IllegalStateException("series feed boom"));
+        SubscriberFeed enabled = new SubscriberFeed();
+        enabled.setId(42L);
+        enabled.setTenant(fixture.tenant);
+        enabled.setEnabled(true);
+        when(fixture.subscriberFeedRepository.findByTenantIdOrderByIdAsc(10L)).thenReturn(List.of(enabled));
+        when(fixture.rssFeedService.buildPrivateFeed(
+                fixture.tenant, enabled, "https", "alpha.example.test", 443
+        )).thenReturn("<rss>private</rss>");
+
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> fixture.service.refreshTenant(10L))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("public/rss/series-20.xml");
+
+        ArgumentCaptor<PutObjectRequest> uploaded = ArgumentCaptor.forClass(PutObjectRequest.class);
+        verify(fixture.s3Client, times(2)).putObject(uploaded.capture(), any(software.amazon.awssdk.core.sync.RequestBody.class));
+        assertThat(uploaded.getAllValues())
+                .extracting(PutObjectRequest::key)
+                .containsExactlyInAnyOrder("alpha/public/rss/podcast.xml", "alpha/private/rss/feed-42.xml");
+        verify(fixture.stateStore).markWritten(10L, RssSnapshotKind.PRIVATE_FEED.name(), 42L);
+        verify(fixture.stateStore, never()).markWritten(10L, RssSnapshotKind.SERIES.name(), 20L);
+    }
+
     private Fixture fixture() {
         RssFeedService rssFeedService = mock(RssFeedService.class);
         TenantRepository tenantRepository = mock(TenantRepository.class);
@@ -265,7 +347,8 @@ class RssFeedSnapshotServiceTest {
                 moduleGateService,
                 podcastSeriesRepository,
                 subscriberFeedRepository,
-                stateStore
+                stateStore,
+                directwerkConfig
         );
     }
 
@@ -276,11 +359,8 @@ class RssFeedSnapshotServiceTest {
     }
 
     private static void stubCanonicalDomain(Fixture fixture) {
-        when(fixture.tenantPublicHostResolver.resolve(
-                10L,
-                null,
-                TenantPublicHostResolver.HostPolicy.PRIMARY
-        )).thenReturn("alpha.example.test");
+        when(fixture.tenantPublicHostResolver.findPrimaryVerifiedHost(10L))
+                .thenReturn(Optional.of("alpha.example.test"));
     }
 
     private record Fixture(
@@ -295,7 +375,8 @@ class RssFeedSnapshotServiceTest {
             ModuleGateService moduleGateService,
             PodcastSeriesRepository podcastSeriesRepository,
             SubscriberFeedRepository subscriberFeedRepository,
-            FeedSnapshotStateStore stateStore
+            FeedSnapshotStateStore stateStore,
+            DirectwerkConfig directwerkConfig
     ) {
     }
 }

@@ -101,6 +101,7 @@ public class SeriesController {
                 request.coverAssetId(),
                 request.language(),
                 request.itunesCategory(),
+                request.itunesExplicit(),
                 request.defaultRequiredLevelSortOrder()
         );
         String tenantSlug = rssTenantSlug(tenantId);
@@ -125,6 +126,7 @@ public class SeriesController {
                 request.coverAssetId(),
                 request.language(),
                 request.itunesCategory(),
+                request.itunesExplicit(),
                 request.defaultRequiredLevelSortOrder(),
                 request.status()
         );
@@ -154,6 +156,7 @@ public class SeriesController {
                 series.getCoverAsset() != null ? series.getCoverAsset().getId() : null,
                 series.getLanguage(),
                 series.getItunesCategory(),
+                series.isItunesExplicit(),
                 series.getDefaultRequiredLevelSortOrder(),
                 series.getStatus().name(),
                 rssUrl,
@@ -171,6 +174,7 @@ public class SeriesController {
             @Min(1) Long coverAssetId,
             @Size(max = 8) String language,
             @Size(max = 128) String itunesCategory,
+            Boolean itunesExplicit,
             @Min(0) Integer defaultRequiredLevelSortOrder
     ) {
     }
@@ -183,6 +187,7 @@ public class SeriesController {
             @Min(1) Long coverAssetId,
             @Size(max = 8) String language,
             @Size(max = 128) String itunesCategory,
+            Boolean itunesExplicit,
             @Min(0) Integer defaultRequiredLevelSortOrder,
             SeriesStatus status
     ) {
@@ -196,6 +201,7 @@ public class SeriesController {
             Long coverAssetId,
             String language,
             String itunesCategory,
+            boolean itunesExplicit,
             Integer defaultRequiredLevelSortOrder,
             String status,
             String rssUrl,

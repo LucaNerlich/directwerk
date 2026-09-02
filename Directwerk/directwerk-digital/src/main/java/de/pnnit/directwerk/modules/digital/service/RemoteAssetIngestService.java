@@ -256,6 +256,7 @@ public class RemoteAssetIngestService implements RemoteAssetIngestApi {
             }
             String filename = resolveFilename(prepared.command().filenameHint(), remote.finalUri());
             String mimeType = resolveMime(prepared.assetType(), remote.contentType(), filename);
+            filename = withExtensionForMime(filename, mimeType);
             long maxBytes = MediaUploadRules.maxBytes(prepared.assetType());
             if (remote.contentLength() != null && remote.contentLength() > maxBytes) {
                 throw new UploadValidationException(
@@ -548,6 +549,26 @@ public class RemoteAssetIngestService implements RemoteAssetIngestApi {
             );
         }
         return inferred;
+    }
+
+    /**
+     * Replaces the generic {@code bin} extension with the canonical extension for the resolved
+     * MIME type so imported assets without a usable filename (e.g. {@code .../download}) end up
+     * with a descriptive, correctly-typed name.
+     *
+     * @param filename the current sanitized filename
+     * @param mimeType the MIME type resolved from the remote response
+     * @return the corrected filename, unchanged when it already carries a usable extension
+     */
+    private static String withExtensionForMime(String filename, String mimeType) {
+        if (!"bin".equals(MediaUploadRules.fileExtension(filename))) {
+            return filename;
+        }
+        String ext = MediaUploadRules.extensionForMime(mimeType);
+        if (ext == null) {
+            return filename;
+        }
+        return MediaUploadRules.sanitizeFilenameStem(filename) + "." + ext;
     }
 
     private static String buildFinalKey(String tenantSlug, MediaAsset asset) {

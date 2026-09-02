@@ -168,7 +168,8 @@ Accept: application/json
   "title": "Harness Podcast",
   "description": "<p>Podcast created by the HTTP harness.</p>",
   "language": "de",
-  "itunesCategory": "News"
+  "itunesCategory": "News",
+  "itunesExplicit": false
 }
 
 > {%
@@ -209,6 +210,7 @@ Accept: application/json
   "description": "<p>Updated show notes.</p>",
   "language": "de",
   "itunesCategory": "News",
+  "itunesExplicit": false,
   "status": "DRAFT"
 }
 

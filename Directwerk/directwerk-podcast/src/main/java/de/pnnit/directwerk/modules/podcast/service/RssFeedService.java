@@ -43,15 +43,21 @@ public class RssFeedService {
     public String buildPublicFeed(Tenant tenant, PodcastSeries seriesOrNull, String scheme, String host, int port) {
         Long seriesId = seriesOrNull != null ? seriesOrNull.getId() : null;
         String originBaseUrl = PublicUrlBuilder.baseUrl(scheme, host, port);
-        List<RssXmlBuilder.RssEpisode> episodes = publicPodcastQueryService
+        List<Episode> eligible = publicPodcastQueryService
                 .listPublishedEpisodes(tenant.getId(), seriesId)
                 .stream()
                 .filter(episode -> PublicSurfacePolicy.isFreeAccess(episode.getAccessPolicy().name()))
                 .filter(Episode::isEnclosureEnabled)
+                .toList();
+        List<RssXmlBuilder.RssEpisode> episodes = eligible
+                .stream()
                 .map(episode -> toPublicRssEpisode(episode, tenant, scheme, host, port))
                 .flatMap(Optional::stream)
                 .toList();
-        String channelCoverUrl = resolvePublicCoverUrl(seriesOrNull != null ? seriesOrNull.getCoverAsset() : null);
+        MediaAsset channelCoverAsset = seriesOrNull != null
+                ? seriesOrNull.getCoverAsset()
+                : channelCoverFromSeries(eligible);
+        String channelCoverUrl = resolvePublicCoverUrl(channelCoverAsset);
         return rssXmlBuilder.buildPublicFeed(tenant, seriesOrNull, episodes, originBaseUrl, null, channelCoverUrl);
     }
 
@@ -72,14 +78,29 @@ public class RssFeedService {
             throw new de.pnnit.directwerk.modules.podcast.feed.SubscriberFeedNotFoundException();
         }
         String originBaseUrl = PublicUrlBuilder.baseUrl(scheme, host, port);
-        List<RssXmlBuilder.RssEpisode> episodes = subscriberFeedAccess
-                .listEntitledEpisodes(tenant.getId(), feed.getUser().getId(), feed)
+        List<Episode> entitled = subscriberFeedAccess
+                .listEntitledEpisodes(tenant.getId(), feed.getUser().getId(), feed);
+        List<RssXmlBuilder.RssEpisode> episodes = entitled
                 .stream()
                 .filter(Episode::isEnclosureEnabled)
                 .map(episode -> toPrivateRssEpisode(episode, tenant, feed.getFeedToken(), scheme, host, port))
                 .flatMap(Optional::stream)
                 .toList();
-        return rssXmlBuilder.buildPublicFeed(tenant, null, episodes, originBaseUrl, feed.getTitle(), null);
+        String channelCoverUrl = resolvePublicCoverUrl(channelCoverFromSeries(entitled));
+        return rssXmlBuilder.buildPublicFeed(tenant, null, episodes, originBaseUrl, feed.getTitle(), channelCoverUrl);
+    }
+
+    /**
+     * Channel artwork for feeds that are not scoped to one series: the cover of the first
+     * episode's series. Apple Podcasts requires channel artwork, so a show-less tenant feed
+     * falls back to whichever series appears first.
+     */
+    private static MediaAsset channelCoverFromSeries(List<Episode> episodes) {
+        return episodes.stream()
+                .map(episode -> episode.getSeries().getCoverAsset())
+                .filter(cover -> cover != null)
+                .findFirst()
+                .orElse(null);
     }
 
     /**

@@ -1,5 +1,6 @@
 package de.pnnit.directwerk.modules.podcast.service;
 
+import de.pnnit.directwerk.modules.content.PublicContentPaths;
 import de.pnnit.directwerk.modules.core.entity.Tenant;
 import de.pnnit.directwerk.modules.digital.service.HtmlSanitizer;
 import de.pnnit.directwerk.modules.podcast.entity.Episode;
@@ -63,21 +64,24 @@ public class RssXmlBuilder {
         appendElement(xml, "link", originBaseUrl, 4);
         appendDescriptionElement(xml, channelDescription(tenant, seriesOrNull), 4);
         appendElement(xml, "language", channelLanguage(seriesOrNull, episodes), 4);
+        appendItunesCategory(xml, channelItunesCategory(seriesOrNull, episodes), 4);
+        appendElement(xml, "itunes:explicit", channelExplicit(seriesOrNull, episodes), 4);
         if (channelCoverImageUrl != null && !channelCoverImageUrl.isBlank()) {
             appendItunesImage(xml, channelCoverImageUrl, 4);
         }
         for (RssEpisode rssEpisode : episodes) {
-            appendEpisode(xml, tenant, rssEpisode);
+            appendEpisode(xml, tenant, originBaseUrl, rssEpisode);
         }
         xml.append("  </channel>\n");
         xml.append("</rss>\n");
         return xml.toString();
     }
 
-    private void appendEpisode(StringBuilder xml, Tenant tenant, RssEpisode rssEpisode) {
+    private void appendEpisode(StringBuilder xml, Tenant tenant, String originBaseUrl, RssEpisode rssEpisode) {
         Episode episode = rssEpisode.episode();
         xml.append("    <item>\n");
         appendElement(xml, "title", episode.getTitle(), 6);
+        appendElement(xml, "link", originBaseUrl + PublicContentPaths.episodePage(episode.getSlug()), 6);
         appendDescriptionElement(xml, episode.getDescription(), 6);
         appendElement(xml, "guid", "urn:directwerk:episode:" + tenant.getSlug() + ":" + episode.getId(), 6,
                 " isPermaLink=\"false\"");
@@ -103,6 +107,16 @@ public class RssXmlBuilder {
         xml.append(" ".repeat(spaces))
                 .append("<itunes:image href=\"")
                 .append(escapeAttribute(href))
+                .append("\"/>\n");
+    }
+
+    private static void appendItunesCategory(StringBuilder xml, String category, int spaces) {
+        if (category == null || category.isBlank()) {
+            return;
+        }
+        xml.append(" ".repeat(spaces))
+                .append("<itunes:category text=\"")
+                .append(escapeAttribute(category))
                 .append("\"/>\n");
     }
 
@@ -162,6 +176,24 @@ public class RssXmlBuilder {
             return episodes.getFirst().episode().getSeries().getLanguage();
         }
         return "de";
+    }
+
+    private static String channelItunesCategory(PodcastSeries seriesOrNull, List<RssEpisode> episodes) {
+        if (seriesOrNull != null) {
+            return seriesOrNull.getItunesCategory();
+        }
+        if (!episodes.isEmpty()) {
+            return episodes.getFirst().episode().getSeries().getItunesCategory();
+        }
+        return null;
+    }
+
+    private static String channelExplicit(PodcastSeries seriesOrNull, List<RssEpisode> episodes) {
+        PodcastSeries series = seriesOrNull;
+        if (series == null && !episodes.isEmpty()) {
+            series = episodes.getFirst().episode().getSeries();
+        }
+        return series != null && series.isItunesExplicit() ? "true" : "false";
     }
 
     static String escapeText(String value) {

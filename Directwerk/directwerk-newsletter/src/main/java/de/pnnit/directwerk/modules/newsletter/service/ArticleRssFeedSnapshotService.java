@@ -13,7 +13,12 @@ import de.pnnit.directwerk.modules.newsletter.ArticleFeedBuilderModule;
 import de.pnnit.directwerk.modules.newsletter.ArticleRssModule;
 import de.pnnit.directwerk.modules.newsletter.feed.ArticleFeed;
 import de.pnnit.directwerk.modules.newsletter.feed.ArticleFeedRepository;
+import java.net.URI;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
+import java.util.function.Supplier;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 /**
@@ -23,6 +28,7 @@ import org.springframework.stereotype.Service;
  * podcast RSS stack via {@link GeneratedFeedSnapshotStore}/{@link FeedSnapshotStateStore}
  * (directwerk-digital).
  */
+@Slf4j
 @Service
 public class ArticleRssFeedSnapshotService {
 
@@ -80,6 +86,10 @@ public class ArticleRssFeedSnapshotService {
      * Reconciles S3 snapshots with the tenant's current article RSS module and feed state.
      * When {@code ARTICLE_RSS} is off, every snapshot is deleted. Disabled article feeds are
      * removed the same way.
+     *
+     * <p>Individual snapshot failures are isolated: every other feed is still refreshed and
+     * the previous S3 object stays live; the job then fails so the queue retries the whole
+     * tenant (uploads are idempotent).</p>
      */
     public void refreshTenant(Long tenantId) {
         Tenant tenant = tenantRepository.findById(tenantId)
@@ -95,28 +105,29 @@ public class ArticleRssFeedSnapshotService {
             return;
         }
         Origin origin = canonicalOrigin(tenantId);
+        List<String> failures = new ArrayList<>();
 
-        snapshotStore.upload(
-                publicTenantRef(tenant),
-                articleRssFeedService.buildPublicFeed(tenant, origin.scheme(), origin.host(), origin.port()),
-                RSS_CONTENT_TYPE
-        );
+        refreshQuietly(failures, publicTenantRef(tenant), () -> articleRssFeedService.buildPublicFeed(
+                tenant, origin.scheme(), origin.host(), origin.port()
+        ));
         boolean feedBuilderActive = articleFeedBuilderModuleActive(tenantId);
         articleFeedRepository.findByTenantIdOrderByIdAsc(tenantId)
                 .forEach(feed -> {
                     boolean customFeedBlocked = !feed.isDefaultFeed() && !feedBuilderActive;
                     if (feed.isEnabled() && !customFeedBlocked) {
-                        snapshotStore.upload(
-                                privateFeedRef(tenant, feed.getId()),
-                                articleRssFeedService.buildPrivateFeed(
-                                        tenant, feed, origin.scheme(), origin.host(), origin.port()
-                                ),
-                                RSS_CONTENT_TYPE
-                        );
+                        refreshQuietly(failures, privateFeedRef(tenant, feed.getId()), () -> articleRssFeedService.buildPrivateFeed(
+                                tenant, feed, origin.scheme(), origin.host(), origin.port()
+                        ));
                     } else {
-                        snapshotStore.withdraw(privateFeedRef(tenant, feed.getId()));
+                        withdrawQuietly(failures, privateFeedRef(tenant, feed.getId()));
                     }
                 });
+        if (!failures.isEmpty()) {
+            throw new IllegalStateException(
+                    "Article RSS snapshot refresh had failures for tenant " + tenantId + ": "
+                            + String.join("; ", failures)
+            );
+        }
     }
 
     /**
@@ -149,6 +160,24 @@ public class ArticleRssFeedSnapshotService {
         withdrawTenantAtSlug(tenant, tenant.getSlug());
     }
 
+    private void refreshQuietly(List<String> failures, FeedSnapshotRef ref, Supplier<String> xmlSupplier) {
+        try {
+            snapshotStore.upload(ref, xmlSupplier.get(), RSS_CONTENT_TYPE);
+        } catch (RuntimeException ex) {
+            log.warn("Article RSS snapshot refresh failed for {}: {}", ref.objectKey(), ex.getMessage());
+            failures.add(ref.objectKey() + ": " + ex.getMessage());
+        }
+    }
+
+    private void withdrawQuietly(List<String> failures, FeedSnapshotRef ref) {
+        try {
+            snapshotStore.withdraw(ref);
+        } catch (RuntimeException ex) {
+            log.warn("Article RSS snapshot withdraw failed for {}: {}", ref.objectKey(), ex.getMessage());
+            failures.add(ref.objectKey() + ": " + ex.getMessage());
+        }
+    }
+
     private void withdrawTenantAtSlug(Tenant tenant, String slug) {
         snapshotStore.withdraw(publicTenantRef(tenant.getId(), slug));
         articleFeedRepository.findByTenantIdOrderByIdAsc(tenant.getId())
@@ -164,12 +193,29 @@ public class ArticleRssFeedSnapshotService {
     }
 
     private Origin canonicalOrigin(Long tenantId) {
-        String host = tenantPublicHostResolver.resolve(
-                tenantId,
-                null,
-                TenantPublicHostResolver.HostPolicy.PRIMARY
-        );
+        String host = tenantPublicHostResolver.findPrimaryVerifiedHost(tenantId)
+                .orElseGet(this::fallbackHost);
         return new Origin("https", host, 443);
+    }
+
+    /**
+     * Feeds for tenants without a verified domain still need absolute enclosure URLs. Fall back
+     * to the studio base URL host (same policy as {@code PublicContentUrlResolver}) instead of
+     * failing the whole refresh job.
+     */
+    private String fallbackHost() {
+        String studioBase = directwerkConfig.email() != null && directwerkConfig.email().studioBaseUrl() != null
+                ? directwerkConfig.email().studioBaseUrl().trim()
+                : "";
+        if (studioBase.isBlank()) {
+            return "localhost";
+        }
+        try {
+            String host = URI.create(studioBase).getHost();
+            return host == null || host.isBlank() ? "localhost" : host;
+        } catch (IllegalArgumentException ex) {
+            return "localhost";
+        }
     }
 
     private FeedSnapshotRef publicTenantRef(Tenant tenant) {

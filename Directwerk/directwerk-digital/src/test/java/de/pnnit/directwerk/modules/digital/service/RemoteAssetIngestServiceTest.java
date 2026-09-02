@@ -148,6 +148,47 @@ class RemoteAssetIngestServiceTest {
     }
 
     @Test
+    void replacesGenericBinExtensionWithExtensionForResolvedMime() throws Exception {
+        Tenant tenant = new Tenant();
+        tenant.setId(10L);
+        tenant.setSlug("alpha");
+        when(tenantRepository.requireById(10L)).thenReturn(tenant);
+        when(directwerkConfig.isStorageEnabled()).thenReturn(true);
+        when(directwerkConfig.storage()).thenReturn(storage());
+
+        byte[] body = "id3-fake-mp3".getBytes(StandardCharsets.UTF_8);
+        when(remoteContentClient.get(any(URI.class), any(Duration.class))).thenReturn(
+                new RemoteContentClient.RemoteResponse(
+                        URI.create("https://1.1.1.1/download"),
+                        200,
+                        "audio/mpeg",
+                        (long) body.length,
+                        new ByteArrayInputStream(body)
+                )
+        );
+        when(mediaAssetRepository.saveAndFlush(any(MediaAsset.class))).thenAnswer(invocation -> {
+            MediaAsset asset = invocation.getArgument(0);
+            if (asset.getId() == null) {
+                asset.setId(42L);
+            }
+            return asset;
+        });
+        doAnswer(invocation -> null).when(s3Client)
+                .putObject(any(PutObjectRequest.class), any(RequestBody.class));
+
+        MediaAsset ingested = service.ingestFromUrl(new RemoteAssetIngestApi.IngestCommand(
+                "https://1.1.1.1/download",
+                AssetType.AUDIO,
+                AssetVisibility.PRIVATE,
+                "download"
+        ));
+
+        assertThat(ingested.getOriginalFilename()).isEqualTo("download.mp3");
+        assertThat(ingested.getMimeType()).isEqualTo("audio/mpeg");
+        assertThat(ingested.getS3Key()).endsWith("_download.mp3");
+    }
+
+    @Test
     void streamsLargeKnownLengthBodyViaMultipart() throws Exception {
         Tenant tenant = new Tenant();
         tenant.setId(10L);

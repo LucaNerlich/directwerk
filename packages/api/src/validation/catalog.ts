@@ -515,6 +515,7 @@ function parseSeriesDetail(value: unknown): SeriesDetail | null {
         !(value.coverAssetId === null || isPositiveSafeInteger(value.coverAssetId)) ||
         !isNullableString(value.language, 8) ||
         !isNullableString(value.itunesCategory, 128) ||
+        typeof value.itunesExplicit !== 'boolean' ||
         !(
             value.defaultRequiredLevelSortOrder === null ||
             (typeof value.defaultRequiredLevelSortOrder === 'number' &&
@@ -532,6 +533,7 @@ function parseSeriesDetail(value: unknown): SeriesDetail | null {
         coverAssetId: value.coverAssetId,
         language: value.language,
         itunesCategory: value.itunesCategory,
+        itunesExplicit: value.itunesExplicit,
         defaultRequiredLevelSortOrder: value.defaultRequiredLevelSortOrder,
         rssUrl: value.rssUrl,
     }

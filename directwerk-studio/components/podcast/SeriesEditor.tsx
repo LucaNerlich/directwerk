@@ -19,7 +19,7 @@ import PublicationStatusBadge from '@/components/publication/PublicationStatusBa
 import PublishedLinksPanel from '@/components/publication/PublishedLinksPanel'
 import {getMediaPreviewUrl} from '@/lib/api/mediaApi'
 import {createSeries, getSeries, updateSeries} from '@/lib/api/podcastApi'
-import type {SeriesStatus} from '@directwerk/api/types'
+import type {SeriesDetail, SeriesStatus} from '@directwerk/api/types'
 import {mediaLimitLabel} from '@/lib/media/limits'
 import {uploadMediaFile} from '@/lib/media/upload'
 import {getClientTenantHost} from '@directwerk/api/tenant'
@@ -38,6 +38,7 @@ export default function SeriesEditor({seriesId}: SeriesEditorProps): React.JSX.E
     const [description, setDescription] = useState('')
     const [language, setLanguage] = useState('de')
     const [itunesCategory, setItunesCategory] = useState('')
+    const [itunesExplicit, setItunesExplicit] = useState(false)
     const [status, setStatus] = useState<SeriesStatus>('DRAFT')
     const [coverAssetId, setCoverAssetId] = useState<number | null>(null)
     const [coverPreviewUrl, setCoverPreviewUrl] = useState<string | null>(null)
@@ -75,6 +76,7 @@ export default function SeriesEditor({seriesId}: SeriesEditorProps): React.JSX.E
                 setDescription(loaded.description ?? '')
                 setLanguage(loaded.language ?? 'de')
                 setItunesCategory(loaded.itunesCategory ?? '')
+                setItunesExplicit(loaded.itunesExplicit)
                 setStatus(loaded.status)
                 setCoverAssetId(loaded.coverAssetId)
                 setDefaultRequiredLevelSortOrder(loaded.defaultRequiredLevelSortOrder)
@@ -185,28 +187,20 @@ export default function SeriesEditor({seriesId}: SeriesEditorProps): React.JSX.E
             description: description.trim() || undefined,
             language: language.trim() || 'de',
             itunesCategory: itunesCategory.trim() || undefined,
+            itunesExplicit,
             coverAssetId: coverAssetId ?? undefined,
             defaultRequiredLevelSortOrder: defaultRequiredLevelSortOrder ?? undefined,
             status: nextStatus,
         }
     }
 
-    function applySeries(updated: {
-        title: string
-        slug: string
-        description: string | null
-        language: string | null
-        itunesCategory: string | null
-        status: SeriesStatus
-        coverAssetId: number | null
-        defaultRequiredLevelSortOrder: number | null
-        rssUrl: string | null
-    }): void {
+    function applySeries(updated: SeriesDetail): void {
         setTitle(updated.title)
         setSlug(updated.slug)
         setDescription(updated.description ?? '')
         setLanguage(updated.language ?? 'de')
         setItunesCategory(updated.itunesCategory ?? '')
+        setItunesExplicit(updated.itunesExplicit)
         setStatus(updated.status)
         setCoverAssetId(updated.coverAssetId)
         setDefaultRequiredLevelSortOrder(updated.defaultRequiredLevelSortOrder)
@@ -252,6 +246,7 @@ export default function SeriesEditor({seriesId}: SeriesEditorProps): React.JSX.E
                     description: description.trim() || undefined,
                     language: language.trim() || 'de',
                     itunesCategory: itunesCategory.trim() || undefined,
+                    itunesExplicit,
                     coverAssetId: coverAssetId ?? undefined,
                     defaultRequiredLevelSortOrder: defaultRequiredLevelSortOrder ?? undefined,
                 })
@@ -368,6 +363,24 @@ export default function SeriesEditor({seriesId}: SeriesEditorProps): React.JSX.E
                         onChange={(event) => setItunesCategory(event.target.value)}
                         maxLength={128}
                     />
+                    <span className="font-normal text-muted-foreground">
+                        Apple-Podcast-Kategorie des Feeds (z. B. Comedy, News).
+                    </span>
+                </label>
+                <label className="grid gap-2 text-sm font-medium">
+                    <span>Explicit-Inhalte</span>
+                    <SelectControl
+                        className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50"
+                        value={itunesExplicit ? 'true' : 'false'}
+                        onChange={(event) => setItunesExplicit(event.target.value === 'true')}
+                    >
+                        <option value="false">Nein (clean)</option>
+                        <option value="true">Ja (explicit)</option>
+                    </SelectControl>
+                    <span className="font-normal text-muted-foreground">
+                        Apple verlangt diese Angabe im Feed. Nur auf „Ja“ stellen, wenn die
+                        Sendung explizite Inhalte enthält.
+                    </span>
                 </label>
                 <div className="grid gap-2 text-sm font-medium">
                     <span>Titelbild</span>

@@ -40,6 +40,8 @@ interface PublicationListSectionProps<T extends PublicationListItem> {
     onUnpublish: (item: T) => void
     onCancelSchedule?: (item: T) => void
     onUnarchive?: (item: T) => void
+    /** Non-null disables the row's publish action, shows the reason, and excludes drafts from bulk selection. */
+    publishBlockedReason?: (item: T) => string | null
 }
 
 function formatPublishedAt(value: string | null): string | null {
@@ -61,6 +63,7 @@ function PublicationRowActions<T extends PublicationListItem>({
     item,
     isBusy,
     disabled,
+    publishBlockedReason,
     onPublish,
     onUnpublish,
     onCancelSchedule,
@@ -69,22 +72,29 @@ function PublicationRowActions<T extends PublicationListItem>({
     item: T
     isBusy: boolean
     disabled: boolean
+    publishBlockedReason?: string | null
     onPublish: (item: T) => void
     onUnpublish: (item: T) => void
     onCancelSchedule?: (item: T) => void
     onUnarchive?: (item: T) => void
 }): React.JSX.Element {
+    const publishBlocked = publishBlockedReason !== undefined && publishBlockedReason !== null
     return (
         <>
             {item.status === 'DRAFT' ? (
-                <Button
-                    disabled={disabled || isBusy}
-                    onClick={() => void onPublish(item)}
-                    size="sm"
-                    type="button"
-                >
-                    {isBusy ? 'Wird veröffentlicht…' : 'Veröffentlichen'}
-                </Button>
+                <>
+                    {publishBlocked ? (
+                        <span className="text-xs text-muted-foreground">{publishBlockedReason}</span>
+                    ) : null}
+                    <Button
+                        disabled={disabled || isBusy || publishBlocked}
+                        onClick={() => void onPublish(item)}
+                        size="sm"
+                        type="button"
+                    >
+                        {isBusy ? 'Wird veröffentlicht…' : 'Veröffentlichen'}
+                    </Button>
+                </>
             ) : null}
             {item.status === 'PUBLISHED' ? (
                 <Button
@@ -129,6 +139,7 @@ function toEntityItems<T extends PublicationListItem>({
     viewMode,
     busyItemId,
     isBulkBusy,
+    publishBlockedReason,
     onPublish,
     onUnpublish,
     onCancelSchedule,
@@ -140,6 +151,7 @@ function toEntityItems<T extends PublicationListItem>({
     | 'viewMode'
     | 'busyItemId'
     | 'isBulkBusy'
+    | 'publishBlockedReason'
     | 'onPublish'
     | 'onUnpublish'
     | 'onCancelSchedule'
@@ -156,6 +168,7 @@ function toEntityItems<T extends PublicationListItem>({
             descriptions.push(<code key="meta">{item.meta}</code>)
         }
 
+        const blockedReason = publishBlockedReason?.(item) ?? null
         const statusBadge = <PublicationStatusBadge status={item.status} />
 
         return {
@@ -163,7 +176,9 @@ function toEntityItems<T extends PublicationListItem>({
             title: item.title,
             href: `${editorBasePath}/${item.id}`,
             descriptions,
-            selectionDisabled: !isBulkPublicationStatus(item.status),
+            selectionDisabled:
+                !isBulkPublicationStatus(item.status) ||
+                (item.status === 'DRAFT' && blockedReason !== null),
             trailing: viewMode === 'list' ? statusBadge : undefined,
             extra: viewMode === 'grid' ? statusBadge : undefined,
             actions: (
@@ -171,6 +186,7 @@ function toEntityItems<T extends PublicationListItem>({
                     disabled={isBulkBusy}
                     isBusy={busyItemId === item.id}
                     item={item}
+                    publishBlockedReason={blockedReason}
                     onCancelSchedule={onCancelSchedule}
                     onPublish={onPublish}
                     onUnarchive={onUnarchive}

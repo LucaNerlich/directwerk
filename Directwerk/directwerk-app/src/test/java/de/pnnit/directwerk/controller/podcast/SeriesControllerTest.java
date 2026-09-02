@@ -127,6 +127,7 @@ class SeriesControllerTest {
     @WithMockUser(roles = "EDITOR")
     void createSeriesReturnsCreatedSeries() throws Exception {
         PodcastSeries series = series(8L);
+        series.setItunesExplicit(true);
         when(seriesService.createSeries(
                 eq(10L),
                 eq("main-show"),
@@ -135,6 +136,7 @@ class SeriesControllerTest {
                 eq(null),
                 eq("de"),
                 eq("News"),
+                eq(true),
                 eq(null)
         )).thenReturn(series);
 
@@ -146,12 +148,14 @@ class SeriesControllerTest {
                                   "title": "Main Show",
                                   "description": "<p>About</p>",
                                   "language": "de",
-                                  "itunesCategory": "News"
+                                  "itunesCategory": "News",
+                                  "itunesExplicit": true
                                 }
                                 """))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.data.id").value(8))
-                .andExpect(jsonPath("$.data.status").value("DRAFT"));
+                .andExpect(jsonPath("$.data.status").value("DRAFT"))
+                .andExpect(jsonPath("$.data.itunesExplicit").value(true));
 
         verify(seriesService).createSeries(
                 eq(10L),
@@ -161,6 +165,7 @@ class SeriesControllerTest {
                 eq(null),
                 eq("de"),
                 eq("News"),
+                eq(true),
                 eq(null)
         );
     }
@@ -170,7 +175,7 @@ class SeriesControllerTest {
     void createSeriesIncludesRssUrlWhenPodcastRssModuleEnabled() throws Exception {
         PodcastSeries series = series(8L);
         when(seriesService.createSeries(
-                eq(10L), eq("main-show"), eq("Main Show"), eq("<p>About</p>"), eq(null), eq("de"), eq("News"), eq(null)
+                eq(10L), eq("main-show"), eq("Main Show"), eq("<p>About</p>"), eq(null), eq("de"), eq("News"), eq(null), eq(null)
         )).thenReturn(series);
         rssEnabled();
 
@@ -194,7 +199,7 @@ class SeriesControllerTest {
     void createSeriesRssUrlIsNullWhenPodcastRssModuleDisabled() throws Exception {
         PodcastSeries series = series(8L);
         when(seriesService.createSeries(
-                eq(10L), eq("main-show"), eq("Main Show"), eq("<p>About</p>"), eq(null), eq("de"), eq("News"), eq(null)
+                eq(10L), eq("main-show"), eq("Main Show"), eq("<p>About</p>"), eq(null), eq("de"), eq("News"), eq(null), eq(null)
         )).thenReturn(series);
         rssDisabled();
 
@@ -218,7 +223,7 @@ class SeriesControllerTest {
     @WithMockUser(roles = "EDITOR")
     void createSeriesReturnsConflictOnDuplicateSlug() throws Exception {
         when(seriesService.createSeries(
-                eq(10L), eq("main-show"), eq("Main Show"), eq(null), eq(null), eq(null), eq(null), eq(null)
+                eq(10L), eq("main-show"), eq("Main Show"), eq(null), eq(null), eq(null), eq(null), eq(null), eq(null)
         )).thenThrow(new de.pnnit.directwerk.modules.core.exception.ConflictException(
                         de.pnnit.directwerk.modules.core.exception.ConflictCodes.SERIES_SLUG_EXISTS,
                         "Series slug already exists: main-show"));
@@ -240,7 +245,7 @@ class SeriesControllerTest {
     void updateSeriesIncludesRssUrlWhenPodcastRssModuleEnabled() throws Exception {
         PodcastSeries series = series(9L);
         when(seriesService.updateSeries(
-                eq(10L), eq(9L), eq(null), eq("Renamed Show"), eq(null), eq(null), eq(null), eq(null), eq(null), eq(null)
+                eq(10L), eq(9L), eq(null), eq("Renamed Show"), eq(null), eq(null), eq(null), eq(null), eq(null), eq(null), eq(null)
         )).thenReturn(series);
         rssEnabled();
 
@@ -260,7 +265,7 @@ class SeriesControllerTest {
     void updateSeriesRssUrlIsNullWhenPodcastRssModuleDisabled() throws Exception {
         PodcastSeries series = series(9L);
         when(seriesService.updateSeries(
-                eq(10L), eq(9L), eq(null), eq("Renamed Show"), eq(null), eq(null), eq(null), eq(null), eq(null), eq(null)
+                eq(10L), eq(9L), eq(null), eq("Renamed Show"), eq(null), eq(null), eq(null), eq(null), eq(null), eq(null), eq(null)
         )).thenReturn(series);
         rssDisabled();
 
@@ -279,7 +284,7 @@ class SeriesControllerTest {
     @WithMockUser(roles = "EDITOR")
     void updateSeriesReturnsConflictOnDuplicateSlug() throws Exception {
         when(seriesService.updateSeries(
-                eq(10L), eq(9L), eq("taken-slug"), eq(null), eq(null), eq(null), eq(null), eq(null), eq(null), eq(null)
+                eq(10L), eq(9L), eq("taken-slug"), eq(null), eq(null), eq(null), eq(null), eq(null), eq(null), eq(null), eq(null)
         )).thenThrow(new de.pnnit.directwerk.modules.core.exception.ConflictException(
                         de.pnnit.directwerk.modules.core.exception.ConflictCodes.SERIES_SLUG_EXISTS,
                         "Series slug already exists: taken-slug"));

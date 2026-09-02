@@ -69,9 +69,14 @@ published episodes. A tenant slug change records the previous prefix, 404s until
 exist, then deletes and purges the old prefix.
 
 Generation or upload failure never deletes or truncates an existing object. The previous S3 XML
-stays live. Turning `PODCAST_RSS` off, or disabling a subscriber feed, deletes the corresponding
-S3 objects, clears presence rows, and purges their unsigned pull-zone URLs so a previously
-redirected CDN location cannot keep serving the feed. Deleting a custom feed withdraws its object
+stays live. Individual snapshot failures are isolated: one broken feed no longer aborts the
+remaining feeds of the tenant; the job still fails afterwards so the queue retries the whole
+tenant (uploads are idempotent). Tenants without a verified primary domain fall back to the
+studio base URL host for absolute feed/enclosure URLs (same policy as
+`PublicContentUrlResolver`) instead of failing every refresh. Turning `PODCAST_RSS` off, or
+disabling a subscriber feed, deletes the corresponding S3 objects, clears presence rows, and
+purges their unsigned pull-zone URLs so a previously redirected CDN location cannot keep
+serving the feed. Deleting a custom feed withdraws its object
 before the row is dropped. When the queue is disabled (normally local development), refresh
 requests are skipped; RSS delivery requires configured object storage and an active queue worker.
 Production refuses to start without storage enabled, a bucket, and an HTTPS public CDN base URL.
@@ -88,3 +93,13 @@ DIRECTWERK_STORAGE_CDN_TOKEN_AUTH_KEY=...
 
 The S3 bucket and credentials use the existing `directwerk.storage.*` settings. XML snapshots use
 the same public/private prefix and pull-zone trust boundary as media assets.
+
+## Feed content and Apple metadata
+
+Public feeds (`podcast.xml`, `series-{id}.xml`) contain **free episodes only**; paid episodes are
+delivered exclusively through the private per-user subscriber feeds. A series whose episodes are
+all paid therefore has an (intentionally) empty public series feed. Podcast feeds carry the Apple
+Podcasts channel tags `itunes:category` (from the series setting), `itunes:explicit`
+(`true`/`false`, series setting, default `false`), and `itunes:image` (series cover; feeds not
+scoped to one series fall back to the first included episode's series cover). Every episode item
+includes a `<link>` to its public episode page.

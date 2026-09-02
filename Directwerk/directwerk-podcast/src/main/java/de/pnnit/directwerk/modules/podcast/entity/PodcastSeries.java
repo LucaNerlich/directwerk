@@ -54,6 +54,9 @@ public class PodcastSeries extends BaseEntity implements TenantOwned {
     @Column(name = "itunes_category", length = 128)
     private String itunesCategory;
 
+    @Column(name = "itunes_explicit", nullable = false)
+    private boolean itunesExplicit = false;
+
     @Column(name = "default_required_level_sort_order")
     private Integer defaultRequiredLevelSortOrder;
 
