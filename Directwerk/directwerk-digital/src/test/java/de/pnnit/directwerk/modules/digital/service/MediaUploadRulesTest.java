@@ -99,4 +99,32 @@ class MediaUploadRulesTest {
         assertThat(MediaUploadRules.sanitizeFilenameStem(longName))
                 .isEqualTo("a".repeat(100));
     }
+
+    @Test
+    void mapsAssetTypesToDefaultExtensions() {
+        assertThat(MediaUploadRules.defaultExtensionForType(AssetType.AUDIO)).isEqualTo("mp3");
+        assertThat(MediaUploadRules.defaultExtensionForType(AssetType.IMAGE)).isEqualTo("jpg");
+        assertThat(MediaUploadRules.defaultExtensionForType(AssetType.VIDEO)).isEqualTo("mp4");
+        assertThat(MediaUploadRules.defaultExtensionForType(AssetType.DOCUMENT)).isEqualTo("pdf");
+    }
+
+    @Test
+    void ensuresUsableExtensionForExtensionlessFilename() {
+        assertThat(MediaUploadRules.ensureUsableExtension("download", AssetType.AUDIO))
+                .isEqualTo("download.mp3");
+        assertThat(MediaUploadRules.ensureUsableExtension("download", AssetType.DOCUMENT))
+                .isEqualTo("download.pdf");
+    }
+
+    @Test
+    void keepsRealExtensionUnchanged() {
+        assertThat(MediaUploadRules.ensureUsableExtension("foo.mp3", AssetType.AUDIO))
+                .isEqualTo("foo.mp3");
+    }
+
+    @Test
+    void replacesBinExtensionWithTypeDefault() {
+        assertThat(MediaUploadRules.ensureUsableExtension("import.bin", AssetType.AUDIO))
+                .isEqualTo("import.mp3");
+    }
 }

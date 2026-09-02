@@ -131,6 +131,7 @@ export function usePublicationListPage<T extends {
         unpublishableCount: bulkActions.unpublishableCount,
         handleBulkPublish: bulkActions.handleBulkPublish,
         handleBulkUnpublish: bulkActions.handleBulkUnpublish,
+        runBulkEdit: bulkActions.runBulkEdit,
         ...selection,
         busyItemId: listActions.busyItemId,
         handlePublish: listActions.handlePublish,

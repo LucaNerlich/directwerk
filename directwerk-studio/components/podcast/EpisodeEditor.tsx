@@ -507,7 +507,6 @@ export default function EpisodeEditor({episodeId}: {episodeId?: number}): React.
         hasAudioAsset: hasAudio,
         audioReady,
         audioStatusKnown,
-        showNotes: body,
         formatRequired: availableFormats.length > 0,
         formatSelected: selectedFormatIds.size > 0,
     })

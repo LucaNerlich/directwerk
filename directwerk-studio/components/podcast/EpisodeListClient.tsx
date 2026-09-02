@@ -8,7 +8,13 @@ import EmptyState from '@directwerk/ui/components/empty-state'
 import PageHeader from '@directwerk/ui/components/page-header'
 
 import PublicationListSection from '@/components/publication/PublicationListSection'
-import {listFormats} from '@/lib/api/catalogApi'
+import BulkEditDialog, {type BulkEditOperation} from '@/components/publication/BulkEditDialog'
+import {
+    listCategories,
+    listFormats,
+    replaceEpisodeCategories,
+    replaceEpisodeFormats,
+} from '@/lib/api/catalogApi'
 import {
     cancelScheduleEpisode,
     listEpisodes,
@@ -16,8 +22,14 @@ import {
     publishEpisode,
     unarchiveEpisode,
     unpublishEpisode,
+    updateEpisode,
 } from '@/lib/api/podcastApi'
-import type {EpisodeDetail, FormatSummary, SeriesSummary} from '@directwerk/api/types'
+import type {
+    CategorySummary,
+    EpisodeDetail,
+    FormatSummary,
+    SeriesSummary,
+} from '@directwerk/api/types'
 import {createPublicationBulkLabels} from '@/lib/publication/publicationBulkLabels'
 import {usePublicationListPage} from '@/lib/publication/usePublicationListPage'
 import {getClientTenantHost} from '@directwerk/api/tenant'
@@ -27,18 +39,21 @@ export default function EpisodeListClient() {
     const authRedirect = useAuthRequired()
     const [series, setSeries] = useState<SeriesSummary[]>([])
     const [formats, setFormats] = useState<FormatSummary[]>([])
+    const [categories, setCategories] = useState<CategorySummary[]>([])
     const [prereqError, setPrereqError] = useState<string | null>(null)
     const [prereqLoading, setPrereqLoading] = useState(true)
 
     const loadPrerequisites = useCallback(async (): Promise<void> => {
         try {
             const host = getClientTenantHost()
-            const [loadedSeries, loadedFormats] = await Promise.all([
+            const [loadedSeries, loadedFormats, loadedCategories] = await Promise.all([
                 listSeries(host),
                 listFormats(host),
+                listCategories(host),
             ])
             setSeries(loadedSeries)
             setFormats(loadedFormats)
+            setCategories(loadedCategories)
         } catch (error) {
             if (authRedirect(error)) {
                 return
@@ -97,6 +112,7 @@ export default function EpisodeListClient() {
         handleUnarchive,
         handleBulkPublish,
         handleBulkUnpublish,
+        runBulkEdit,
     } = usePublicationListPage<EpisodeDetail>({
         load: () => listEpisodes(getClientTenantHost()),
         publish: (id) => publishEpisode(getClientTenantHost(), id),
@@ -121,6 +137,62 @@ export default function EpisodeListClient() {
             bulk: createPublicationBulkLabels('Folge', 'Folgen'),
         },
     })
+
+    const seriesTitleById = useMemo(
+        () => new Map(series.map((item) => [item.id, item.title])),
+        [series],
+    )
+    const listItems = useMemo(
+        () =>
+            episodes.map((episode) => ({
+                ...episode,
+                seriesLabel: seriesTitleById.get(episode.seriesId) ?? null,
+            })),
+        [episodes, seriesTitleById],
+    )
+
+    const [isBulkEditOpen, setIsBulkEditOpen] = useState(false)
+    const draftCount = useMemo(
+        () =>
+            episodes.filter(
+                (episode) => selectedIds.has(episode.id) && episode.status === 'DRAFT',
+            ).length,
+        [episodes, selectedIds],
+    )
+
+    const handleBulkEditApply = useCallback(
+        async (operation: BulkEditOperation): Promise<void> => {
+            const eligible = episodes.filter(
+                (episode) => selectedIds.has(episode.id) && episode.status === 'DRAFT',
+            )
+            if (eligible.length === 0) {
+                return
+            }
+            const host = getClientTenantHost()
+            const apply = (id: number): Promise<EpisodeDetail> => {
+                if (operation.kind === 'formats') {
+                    return replaceEpisodeFormats(host, id, operation.formatIds)
+                }
+                if (operation.kind === 'categories') {
+                    return replaceEpisodeCategories(host, id, operation.categoryIds)
+                }
+                return updateEpisode(host, id, {accessPolicy: operation.accessPolicy})
+            }
+            await runBulkEdit(
+                eligible,
+                apply,
+                (count) =>
+                    count === 1
+                        ? '1 Folge aktualisiert.'
+                        : `${count} Folgen aktualisiert.`,
+                (successCount, failureCount) =>
+                    `${successCount} von ${successCount + failureCount} Folgen aktualisiert.`,
+                'Folgen konnten nicht aktualisiert werden.',
+            )
+            setIsBulkEditOpen(false)
+        },
+        [episodes, runBulkEdit, selectedIds],
+    )
 
     const isLoading = prereqLoading || episodesLoading
     const displayError = prereqError ?? episodeError
@@ -200,11 +272,13 @@ export default function EpisodeListClient() {
                 <>
                     <PublicationListSection
                         allSelected={allSelected}
+                        bulkEditCount={draftCount}
                         busyItemId={busyEpisodeId}
                         contentLabelPlural="Folgen"
                         editorBasePath="/podcast/episodes"
                         isBulkBusy={isBulkBusy}
-                        items={episodes}
+                        items={listItems}
+                        onBulkEdit={() => setIsBulkEditOpen(true)}
                         onBulkPublish={() => void handleBulkPublish()}
                         onBulkUnpublish={() => void handleBulkUnpublish()}
                         onCancelSchedule={(episode) => void handleCancelSchedule(episode)}
@@ -219,6 +293,17 @@ export default function EpisodeListClient() {
                         selectedIds={selectedIds}
                         unpublishableCount={unpublishableCount}
                         viewMode={viewMode}
+                    />
+                    <BulkEditDialog
+                        busy={isBulkBusy}
+                        categories={categories}
+                        contentLabel="Folge"
+                        draftCount={draftCount}
+                        formats={formats}
+                        onApply={(operation) => void handleBulkEditApply(operation)}
+                        onOpenChange={setIsBulkEditOpen}
+                        open={isBulkEditOpen}
+                        selectedCount={selectedIds.size}
                     />
                 </>
             ) : null}
