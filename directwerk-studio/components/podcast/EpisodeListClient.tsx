@@ -272,7 +272,6 @@ export default function EpisodeListClient() {
                 <>
                     <PublicationListSection
                         allSelected={allSelected}
-                        bulkEditCount={draftCount}
                         busyItemId={busyEpisodeId}
                         contentLabelPlural="Folgen"
                         editorBasePath="/podcast/episodes"

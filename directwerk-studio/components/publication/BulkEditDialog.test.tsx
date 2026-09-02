@@ -80,6 +80,31 @@ describe('BulkEditDialog', () => {
         ).toBeInTheDocument()
     })
 
+    it('disables apply when no drafts are selected', () => {
+        const onApply = vi.fn()
+
+        render(
+            <BulkEditDialog
+                busy={false}
+                categories={mockCategories}
+                contentLabel="Folge"
+                draftCount={0}
+                formats={mockFormats}
+                onApply={onApply}
+                onOpenChange={vi.fn()}
+                open
+                selectedCount={2}
+            />,
+        )
+
+        expect(
+            screen.getByText(
+                '0 von 2 ausgewählten Folgen sind Entwürfe — veröffentlichte Folgen werden übersprungen.',
+            ),
+        ).toBeInTheDocument()
+        expect(screen.getByRole('button', {name: 'Anwenden'})).toBeDisabled()
+    })
+
     it('applies a category operation', async () => {
         const user = userEvent.setup()
         const onApply = vi.fn()

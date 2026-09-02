@@ -226,16 +226,19 @@ class PublicationWorkflowServiceTest {
     }
 
     @Test
-    void publishRequiresNonBlankSanitizedDescription() {
+    void publishAllowsBlankDescription() {
         Episode episode = draftEpisode();
-        episode.setDescription("<script>alert(1)</script>");
+        episode.setDescription(null);
 
         when(episodeService.requireEpisode(10L, 55L)).thenReturn(episode);
+        when(formatService.hasActiveFormats(10L)).thenReturn(false);
+        MediaAsset privateAudio = audio(99L, AssetVisibility.PRIVATE, AssetScope.CONTENT, "alpha/private/audio/ep.mp3");
+        when(episodeMediaApi.requireReadyAudio(99L)).thenReturn(privateAudio);
 
-        assertThatThrownBy(() -> publicationWorkflowService.publish(10L, 55L))
-                .isInstanceOf(EpisodeValidationException.class)
-                .hasMessageContaining("description");
-        verify(episodeMediaApi, never()).requireReadyAudio(any());
+        Episode published = publicationWorkflowService.publish(10L, 55L);
+
+        assertThat(published.getStatus()).isEqualTo(EpisodeStatus.PUBLISHED);
+        assertThat(published.getDescription()).isEmpty();
     }
 
     @Test
@@ -314,7 +317,7 @@ class PublicationWorkflowServiceTest {
 
         Episode failingEpisode = draftEpisode();
         failingEpisode.setStatus(EpisodeStatus.SCHEDULED);
-        failingEpisode.setDescription("<script>alert(1)</script>");
+        failingEpisode.setAudioAsset(null);
 
         Episode succeedingEpisode = draftEpisode();
         succeedingEpisode.setId(56L);

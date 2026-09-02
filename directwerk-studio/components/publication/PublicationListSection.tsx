@@ -48,7 +48,6 @@ interface PublicationListSectionProps<T extends PublicationListItem> {
     /** Non-null disables the row's publish action, shows the reason, and excludes drafts from bulk selection. */
     publishBlockedReason?: (item: T) => string | null
     onBulkEdit?: () => void
-    bulkEditCount?: number
 }
 
 function formatPublishedAt(value: string | null): string | null {
@@ -236,7 +235,6 @@ export default function PublicationListSection<T extends PublicationListItem>(
 ): React.JSX.Element {
     const {
         allSelected,
-        bulkEditCount,
         contentLabelPlural,
         isBulkBusy,
         onBulkEdit,
@@ -281,9 +279,7 @@ export default function PublicationListSection<T extends PublicationListItem>(
                                 : `${unpublishableCount} zurückziehen`}
                         </Button>
                     ) : null}
-                    {onBulkEdit !== undefined &&
-                    bulkEditCount !== undefined &&
-                    bulkEditCount > 0 ? (
+                    {onBulkEdit !== undefined && selectedIds.size > 0 ? (
                         <Button
                             disabled={isBulkBusy}
                             onClick={onBulkEdit}

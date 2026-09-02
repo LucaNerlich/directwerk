@@ -202,9 +202,6 @@ public class PublicationWorkflowService {
         }
 
         String sanitizedDescription = htmlSanitizer.sanitize(episode.getDescription());
-        if (PublicationTexts.isBlankHtml(sanitizedDescription)) {
-            throw new EpisodeValidationException("Episode description is required");
-        }
         episode.setDescription(sanitizedDescription);
 
         MediaAsset audioAsset = episode.getAudioAsset();
