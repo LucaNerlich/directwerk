@@ -127,6 +127,7 @@ class SeriesControllerTest {
     @WithMockUser(roles = "EDITOR")
     void createSeriesReturnsCreatedSeries() throws Exception {
         PodcastSeries series = series(8L);
+        series.setItunesExplicit(true);
         when(seriesService.createSeries(
                 eq(10L),
                 eq("main-show"),
@@ -135,7 +136,7 @@ class SeriesControllerTest {
                 eq(null),
                 eq("de"),
                 eq("News"),
-                eq(null),
+                eq(true),
                 eq(null)
         )).thenReturn(series);
 
@@ -147,12 +148,14 @@ class SeriesControllerTest {
                                   "title": "Main Show",
                                   "description": "<p>About</p>",
                                   "language": "de",
-                                  "itunesCategory": "News"
+                                  "itunesCategory": "News",
+                                  "itunesExplicit": true
                                 }
                                 """))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.data.id").value(8))
-                .andExpect(jsonPath("$.data.status").value("DRAFT"));
+                .andExpect(jsonPath("$.data.status").value("DRAFT"))
+                .andExpect(jsonPath("$.data.itunesExplicit").value(true));
 
         verify(seriesService).createSeries(
                 eq(10L),
@@ -162,7 +165,7 @@ class SeriesControllerTest {
                 eq(null),
                 eq("de"),
                 eq("News"),
-                eq(null),
+                eq(true),
                 eq(null)
         );
     }

@@ -19,7 +19,7 @@ import PublicationStatusBadge from '@/components/publication/PublicationStatusBa
 import PublishedLinksPanel from '@/components/publication/PublishedLinksPanel'
 import {getMediaPreviewUrl} from '@/lib/api/mediaApi'
 import {createSeries, getSeries, updateSeries} from '@/lib/api/podcastApi'
-import type {SeriesStatus} from '@directwerk/api/types'
+import type {SeriesDetail, SeriesStatus} from '@directwerk/api/types'
 import {mediaLimitLabel} from '@/lib/media/limits'
 import {uploadMediaFile} from '@/lib/media/upload'
 import {getClientTenantHost} from '@directwerk/api/tenant'
@@ -194,18 +194,7 @@ export default function SeriesEditor({seriesId}: SeriesEditorProps): React.JSX.E
         }
     }
 
-    function applySeries(updated: {
-        title: string
-        slug: string
-        description: string | null
-        language: string | null
-        itunesCategory: string | null
-        itunesExplicit: boolean
-        status: SeriesStatus
-        coverAssetId: number | null
-        defaultRequiredLevelSortOrder: number | null
-        rssUrl: string | null
-    }): void {
+    function applySeries(updated: SeriesDetail): void {
         setTitle(updated.title)
         setSlug(updated.slug)
         setDescription(updated.description ?? '')

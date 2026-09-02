@@ -40,7 +40,7 @@ interface PublicationListSectionProps<T extends PublicationListItem> {
     onUnpublish: (item: T) => void
     onCancelSchedule?: (item: T) => void
     onUnarchive?: (item: T) => void
-    /** Non-null disables the row's publish action, shows the reason, and excludes the item from bulk selection. */
+    /** Non-null disables the row's publish action, shows the reason, and excludes drafts from bulk selection. */
     publishBlockedReason?: (item: T) => string | null
 }
 
@@ -177,7 +177,8 @@ function toEntityItems<T extends PublicationListItem>({
             href: `${editorBasePath}/${item.id}`,
             descriptions,
             selectionDisabled:
-                !isBulkPublicationStatus(item.status) || blockedReason !== null,
+                !isBulkPublicationStatus(item.status) ||
+                (item.status === 'DRAFT' && blockedReason !== null),
             trailing: viewMode === 'list' ? statusBadge : undefined,
             extra: viewMode === 'grid' ? statusBadge : undefined,
             actions: (

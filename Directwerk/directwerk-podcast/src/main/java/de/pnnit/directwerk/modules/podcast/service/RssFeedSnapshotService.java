@@ -233,28 +233,37 @@ public class RssFeedSnapshotService {
     }
 
     private Origin canonicalOrigin(Long tenantId) {
-        String host = tenantPublicHostResolver.findPrimaryVerifiedHost(tenantId)
-                .orElseGet(this::fallbackHost);
-        return new Origin("https", host, 443);
+        return tenantPublicHostResolver.findPrimaryVerifiedHost(tenantId)
+                .map(host -> new Origin("https", host, 443))
+                .orElseGet(this::fallbackOrigin);
     }
 
     /**
      * Feeds for tenants without a verified domain still need absolute enclosure URLs. Fall back
-     * to the studio base URL host (same policy as {@code PublicContentUrlResolver}) instead of
+     * to the studio base URL origin (same policy as {@code PublicContentUrlResolver}) instead of
      * failing the whole refresh job.
      */
-    private String fallbackHost() {
+    private Origin fallbackOrigin() {
         String studioBase = directwerkConfig.email() != null && directwerkConfig.email().studioBaseUrl() != null
                 ? directwerkConfig.email().studioBaseUrl().trim()
                 : "";
         if (studioBase.isBlank()) {
-            return "localhost";
+            return new Origin("https", "localhost", 443);
         }
         try {
-            String host = URI.create(studioBase).getHost();
-            return host == null || host.isBlank() ? "localhost" : host;
+            URI uri = URI.create(studioBase);
+            String scheme = uri.getScheme();
+            String host = uri.getHost();
+            if (scheme == null || host == null || host.isBlank()
+                    || (!scheme.equalsIgnoreCase("http") && !scheme.equalsIgnoreCase("https"))) {
+                return new Origin("https", "localhost", 443);
+            }
+            String normalizedScheme = scheme.equalsIgnoreCase("http") ? "http" : "https";
+            int defaultPort = normalizedScheme.equals("http") ? 80 : 443;
+            int port = uri.getPort() >= 0 ? uri.getPort() : defaultPort;
+            return new Origin(normalizedScheme, host, port);
         } catch (IllegalArgumentException ex) {
-            return "localhost";
+            return new Origin("https", "localhost", 443);
         }
     }
 

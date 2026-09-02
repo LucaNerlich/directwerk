@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import {useCallback, useEffect, useState} from 'react'
+import {useCallback, useEffect, useMemo, useState} from 'react'
 
 import {Button} from '@directwerk/ui/components/button'
 import EmptyState from '@directwerk/ui/components/empty-state'
@@ -55,11 +55,26 @@ export default function EpisodeListClient() {
         void loadPrerequisites()
     }, [loadPrerequisites])
 
-    const seriesStatusById = new Map(series.map((item) => [item.id, item.status]))
-    const publishBlockedReason = (episode: EpisodeDetail): string | null =>
-        seriesStatusById.get(episode.seriesId) === 'PUBLISHED'
-            ? null
-            : 'Die Sendung muss zuerst veröffentlicht werden.'
+    const seriesStatusById = useMemo(
+        () => new Map(series.map((item) => [item.id, item.status])),
+        [series],
+    )
+    const publishBlockedReason = useCallback(
+        (episode: EpisodeDetail): string | null =>
+            seriesStatusById.get(episode.seriesId) === 'PUBLISHED'
+                ? null
+                : 'Die Sendung muss zuerst veröffentlicht werden.',
+        [seriesStatusById],
+    )
+    const isBulkPublishEligible = useCallback(
+        (episode: EpisodeDetail): boolean =>
+            seriesStatusById.get(episode.seriesId) === 'PUBLISHED',
+        [seriesStatusById],
+    )
+    const isBulkUnpublishEligible = useCallback(
+        (episode: EpisodeDetail): boolean => episode.status === 'PUBLISHED',
+        [],
+    )
 
     const {
         items: episodes,
@@ -88,7 +103,8 @@ export default function EpisodeListClient() {
         unpublish: (id) => unpublishEpisode(getClientTenantHost(), id),
         cancelSchedule: (id) => cancelScheduleEpisode(getClientTenantHost(), id),
         unarchive: (id) => unarchiveEpisode(getClientTenantHost(), id),
-        isBulkEligible: (episode) => seriesStatusById.get(episode.seriesId) === 'PUBLISHED',
+        isBulkPublishEligible,
+        isBulkUnpublishEligible,
         labels: {
             loadError: 'Folgen konnten nicht geladen werden.',
             publishSuccess: (title) => `Folge „${title}“ wurde veröffentlicht.`,

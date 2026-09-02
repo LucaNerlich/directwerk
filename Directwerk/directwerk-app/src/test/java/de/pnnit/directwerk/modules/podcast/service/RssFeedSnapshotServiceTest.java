@@ -235,6 +235,28 @@ class RssFeedSnapshotServiceTest {
     }
 
     @Test
+    void refreshFallbackPreservesStudioSchemeAndNonDefaultPort() {
+        Fixture fixture = fixture();
+        enableRss(fixture);
+        when(fixture.tenantPublicHostResolver.findPrimaryVerifiedHost(10L)).thenReturn(Optional.empty());
+        when(fixture.directwerkConfig.email()).thenReturn(new DirectwerkProperties.Email(
+                "smtp", null, null, "http://studio.example.test:8080", null, null, null, null, 30
+        ));
+        when(fixture.podcastSeriesRepository.findByTenantIdOrderByTitleAscIdAsc(10L)).thenReturn(List.of());
+        when(fixture.subscriberFeedRepository.findByTenantIdOrderByIdAsc(10L)).thenReturn(List.of());
+        when(fixture.rssFeedService.buildPublicFeed(
+                fixture.tenant, null, "http", "studio.example.test", 8080
+        )).thenReturn("<rss>generated</rss>");
+
+        fixture.service.refreshTenant(10L);
+
+        verify(fixture.rssFeedService).buildPublicFeed(
+                fixture.tenant, null, "http", "studio.example.test", 8080
+        );
+        verify(fixture.s3Client).putObject(any(PutObjectRequest.class), any(software.amazon.awssdk.core.sync.RequestBody.class));
+    }
+
+    @Test
     void refreshIsolatesFailingSeriesFeedAndStillRefreshesPrivateFeeds() {
         Fixture fixture = fixture();
         enableRss(fixture);
