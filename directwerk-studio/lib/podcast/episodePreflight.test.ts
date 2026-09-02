@@ -7,7 +7,6 @@ const ready = {
     hasAudioAsset: true,
     audioReady: true,
     audioStatusKnown: true,
-    showNotes: 'Hallo',
     formatRequired: false,
     formatSelected: false,
 }
@@ -38,10 +37,17 @@ describe('episodePublishBlockReason', () => {
         ).toBe('Audio muss den Status READY haben.')
     })
 
-    it('requires show notes', () => {
-        expect(episodePublishBlockReason({...ready, showNotes: '  '})).toBe(
-            'Shownotes fehlen.',
-        )
+    it('does not block when show notes are missing', () => {
+        expect(
+            episodePublishBlockReason({
+                seriesStatus: 'PUBLISHED' as const,
+                hasAudioAsset: true,
+                audioReady: true,
+                audioStatusKnown: true,
+                formatRequired: false,
+                formatSelected: false,
+            }),
+        ).toBeNull()
     })
 
     it('requires a format when formats exist', () => {

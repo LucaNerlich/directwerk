@@ -165,6 +165,39 @@ class UploadServiceTest {
     }
 
     @Test
+    void createUploadUrlReplacesMissingExtensionWithMimeDerivedExtension() throws Exception {
+        when(directwerkConfig.isStorageEnabled()).thenReturn(true);
+        when(directwerkConfig.storage()).thenReturn(storageProps());
+        when(tenantRepository.requireById(10L)).thenReturn(tenant);
+        when(mediaAssetRepository.saveAndFlush(any(MediaAsset.class))).thenAnswer(invocation -> {
+            MediaAsset asset = invocation.getArgument(0);
+            asset.setId(1001L);
+            return asset;
+        });
+        when(presignedPut.url()).thenReturn(URI.create("https://s3.example/put").toURL());
+        when(s3Presigner.presignPutObject(any(PutObjectPresignRequest.class))).thenReturn(presignedPut);
+
+        UploadApi.UploadUrlResult result = uploadService.createUploadUrl(new UploadApi.CreateUploadUrlCommand(
+                "download",
+                "audio/mpeg",
+                2048,
+                AssetType.AUDIO,
+                AssetVisibility.PRIVATE,
+                AssetScope.CONTENT,
+                null,
+                null
+        ));
+
+        assertThat(result.stagingKey()).matches("alpha-show-a/staging/.+/download\\.mp3");
+        assertThat(result.headers()).containsEntry("Content-Type", "audio/mpeg");
+
+        ArgumentCaptor<MediaAsset> assetCaptor = ArgumentCaptor.forClass(MediaAsset.class);
+        verify(mediaAssetRepository).saveAndFlush(assetCaptor.capture());
+        assertThat(assetCaptor.getValue().getOriginalFilename()).isEqualTo("download.mp3");
+        assertThat(assetCaptor.getValue().getMimeType()).isEqualTo("audio/mpeg");
+    }
+
+    @Test
     void confirmUploadPromotesStagingObject() {
         when(directwerkConfig.isStorageEnabled()).thenReturn(true);
         when(directwerkConfig.storage()).thenReturn(storageProps());

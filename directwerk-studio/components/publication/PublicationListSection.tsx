@@ -9,6 +9,7 @@ import type {EntityListViewItem} from '@directwerk/ui/components/entity-list-vie
 import type {ViewMode} from '@directwerk/ui/components/view-mode-toggle'
 
 import PublicationStatusBadge from '@/components/publication/PublicationStatusBadge'
+import TagPill from '@/components/publication/TagPill'
 import {isBulkPublicationStatus} from '@/lib/publication/publicationBulkEligibility'
 import type {PublicationStatus} from '@directwerk/api/types'
 
@@ -18,6 +19,10 @@ export interface PublicationListItem {
     status: PublicationStatus
     publishedAt: string | null
     meta?: string | null
+    formats?: {id: number; name: string}[]
+    categories?: {id: number; name: string}[]
+    seriesLabel?: string | null
+    episodeNumber?: number | null
 }
 
 interface PublicationListSectionProps<T extends PublicationListItem> {
@@ -42,6 +47,8 @@ interface PublicationListSectionProps<T extends PublicationListItem> {
     onUnarchive?: (item: T) => void
     /** Non-null disables the row's publish action, shows the reason, and excludes drafts from bulk selection. */
     publishBlockedReason?: (item: T) => string | null
+    onBulkEdit?: () => void
+    bulkEditCount?: number
 }
 
 function formatPublishedAt(value: string | null): string | null {
@@ -161,11 +168,38 @@ function toEntityItems<T extends PublicationListItem>({
         const publishedLabel = formatPublishedAt(item.publishedAt)
         const descriptions: ReactNode[] = []
 
+        const pills = [
+            ...(item.formats ?? []).map((format) => (
+                <TagPill key={`format-${format.id}`} name={format.name} />
+            )),
+            ...(item.categories ?? []).map((category) => (
+                <TagPill key={`category-${category.id}`} name={category.name} />
+            )),
+        ]
+        if (pills.length > 0) {
+            descriptions.push(
+                <div className="flex flex-wrap gap-1" key="tags">
+                    {pills}
+                </div>,
+            )
+        }
+
         if (publishedLabel !== null) {
             descriptions.push(`Veröffentlicht am ${publishedLabel}`)
         }
+
+        const metaParts: string[] = []
+        if (item.episodeNumber !== undefined && item.episodeNumber !== null) {
+            metaParts.push(`#${item.episodeNumber}`)
+        }
         if (item.meta !== undefined && item.meta !== null) {
-            descriptions.push(<code key="meta">{item.meta}</code>)
+            metaParts.push(item.meta)
+        }
+        if (item.seriesLabel !== undefined && item.seriesLabel !== null) {
+            metaParts.push(item.seriesLabel)
+        }
+        if (metaParts.length > 0) {
+            descriptions.push(<code key="meta">{metaParts.join(' · ')}</code>)
         }
 
         const blockedReason = publishBlockedReason?.(item) ?? null
@@ -202,8 +236,10 @@ export default function PublicationListSection<T extends PublicationListItem>(
 ): React.JSX.Element {
     const {
         allSelected,
+        bulkEditCount,
         contentLabelPlural,
         isBulkBusy,
+        onBulkEdit,
         onBulkPublish,
         onBulkUnpublish,
         onToggleSelectAll,
@@ -243,6 +279,19 @@ export default function PublicationListSection<T extends PublicationListItem>(
                             {isBulkBusy
                                 ? 'Wird zurückgezogen…'
                                 : `${unpublishableCount} zurückziehen`}
+                        </Button>
+                    ) : null}
+                    {onBulkEdit !== undefined &&
+                    bulkEditCount !== undefined &&
+                    bulkEditCount > 0 ? (
+                        <Button
+                            disabled={isBulkBusy}
+                            onClick={onBulkEdit}
+                            size="sm"
+                            type="button"
+                            variant="outline"
+                        >
+                            Bearbeiten…
                         </Button>
                     ) : null}
                 </>

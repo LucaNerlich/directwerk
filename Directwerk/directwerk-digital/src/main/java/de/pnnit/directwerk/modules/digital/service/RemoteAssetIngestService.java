@@ -202,6 +202,7 @@ public class RemoteAssetIngestService implements RemoteAssetIngestApi {
                 : command.intendedVisibility();
         AssetScope scope = visibility == AssetVisibility.PUBLIC ? AssetScope.TENANT_PUBLIC : AssetScope.CONTENT;
         String filename = resolveFilename(command.filenameHint(), source);
+        filename = MediaUploadRules.ensureUsableExtension(filename, assetType);
 
         MediaAsset asset = new MediaAsset();
         asset.setTenant(tenant);

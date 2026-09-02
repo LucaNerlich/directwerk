@@ -234,4 +234,39 @@ public final class MediaUploadRules {
             default -> null;
         };
     }
+
+    /**
+     * Provides the default file extension for an asset type, used when an upload or import
+     * filename carries no usable extension (the generic {@code bin} fallback) and no
+     * MIME-derived extension is known yet.
+     *
+     * @param assetType the type of asset whose default extension is requested
+     * @return the canonical default extension for the asset type
+     */
+    public static String defaultExtensionForType(AssetType assetType) {
+        return switch (assetType) {
+            case AUDIO -> "mp3";
+            case IMAGE -> "jpg";
+            case VIDEO -> "mp4";
+            case DOCUMENT -> "pdf";
+        };
+    }
+
+    /**
+     * Ensures a filename carries a usable extension, replacing the generic {@code bin} fallback
+     * with the default extension for the asset type. Used at ingest/prepare time when a filename
+     * hint or remote URL's last path segment has no extension (e.g. {@code download}), so the
+     * persisted filename and the final S3 key never end in {@code bin}.
+     *
+     * @param filename  the sanitized filename to check
+     * @param assetType the type of asset the filename belongs to
+     * @return the filename unchanged when it already carries a usable extension, otherwise the
+     *         sanitized stem extended with the asset type's default extension
+     */
+    public static String ensureUsableExtension(String filename, AssetType assetType) {
+        if (!"bin".equals(fileExtension(filename))) {
+            return filename;
+        }
+        return sanitizeFilenameStem(filename) + "." + defaultExtensionForType(assetType);
+    }
 }

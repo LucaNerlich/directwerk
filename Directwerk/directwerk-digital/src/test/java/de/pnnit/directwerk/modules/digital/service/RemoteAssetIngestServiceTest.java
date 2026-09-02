@@ -185,7 +185,35 @@ class RemoteAssetIngestServiceTest {
 
         assertThat(ingested.getOriginalFilename()).isEqualTo("download.mp3");
         assertThat(ingested.getMimeType()).isEqualTo("audio/mpeg");
-        assertThat(ingested.getS3Key()).endsWith("_download.mp3");
+        assertThat(ingested.getS3Key()).matches("alpha/private/audio/asset-\\d+_download\\.mp3$");
+    }
+
+    @Test
+    void startIngestFromUrlAssignsUsableFinalKeyForExtensionlessHint() {
+        Tenant tenant = new Tenant();
+        tenant.setId(10L);
+        tenant.setSlug("alpha");
+        when(tenantRepository.requireById(10L)).thenReturn(tenant);
+        when(directwerkConfig.isStorageEnabled()).thenReturn(true);
+        when(directwerkConfig.storage()).thenReturn(storage());
+        when(mediaAssetRepository.saveAndFlush(any(MediaAsset.class))).thenAnswer(invocation -> {
+            MediaAsset asset = invocation.getArgument(0);
+            if (asset.getId() == null) {
+                asset.setId(42L);
+            }
+            return asset;
+        });
+
+        MediaAsset pending = service.startIngestFromUrl(new RemoteAssetIngestApi.IngestCommand(
+                "https://1.1.1.1/download",
+                AssetType.AUDIO,
+                AssetVisibility.PRIVATE,
+                "download"
+        ));
+
+        assertThat(pending.getOriginalFilename()).isEqualTo("download.mp3");
+        assertThat(pending.getS3Key()).matches("alpha/private/audio/asset-\\d+_download\\.mp3$");
+        verifyNoInteractions(remoteContentClient);
     }
 
     @Test

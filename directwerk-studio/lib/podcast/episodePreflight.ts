@@ -5,7 +5,6 @@ export interface EpisodePublishChecklistInput {
     hasAudioAsset: boolean
     audioReady: boolean
     audioStatusKnown: boolean
-    showNotes: string
     formatRequired: boolean
     formatSelected: boolean
 }
@@ -25,9 +24,6 @@ export function episodePublishBlockReason(
     }
     if (!input.audioReady) {
         return 'Audio muss den Status READY haben.'
-    }
-    if (input.showNotes.trim().length === 0) {
-        return 'Shownotes fehlen.'
     }
     if (input.formatRequired && !input.formatSelected) {
         return 'Mindestens ein Format ist erforderlich.'

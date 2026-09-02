@@ -140,6 +140,7 @@ export function usePublicationBulkActions<T extends {
         bulkStatusMessage: statusMessage,
         publishableCount,
         unpublishableCount,
+        runBulkEdit: runBulkAction,
         handleBulkPublish,
         handleBulkUnpublish,
     }

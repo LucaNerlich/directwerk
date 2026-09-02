@@ -3,12 +3,14 @@ import userEvent from '@testing-library/user-event'
 import {afterEach, describe, expect, it, vi} from 'vitest'
 
 import ArticleListClient from '@/components/write/ArticleListClient'
+import {listCategories, replaceArticleCategories} from '@/lib/api/catalogApi'
 import {
     cancelScheduleArticle,
     listArticles,
     publishArticle,
     unarchiveArticle,
     unpublishArticle,
+    updateArticle,
 } from '@/lib/api/writeApi'
 import type {ArticleDetail} from '@directwerk/api/types'
 
@@ -34,6 +36,12 @@ vi.mock('@/lib/api/writeApi', () => ({
     unpublishArticle: vi.fn(),
     cancelScheduleArticle: vi.fn(),
     unarchiveArticle: vi.fn(),
+    updateArticle: vi.fn(),
+}))
+
+vi.mock('@/lib/api/catalogApi', () => ({
+    listCategories: vi.fn(),
+    replaceArticleCategories: vi.fn(),
 }))
 
 const mockArticles: ArticleDetail[] = [
@@ -50,7 +58,7 @@ const mockArticles: ArticleDetail[] = [
         heroAssetId: null,
         requiredLevelSortOrder: null,
         scheduledAt: null,
-        categories: [],
+        categories: [{id: 11, slug: 'interview', name: 'Interview'}],
     },
     {
         id: 2,
@@ -65,7 +73,7 @@ const mockArticles: ArticleDetail[] = [
         heroAssetId: null,
         requiredLevelSortOrder: null,
         scheduledAt: null,
-        categories: [],
+        categories: [{id: 12, slug: 'news', name: 'News'}],
     },
     {
         id: 3,
@@ -118,6 +126,8 @@ describe('ArticleListClient', () => {
         })
 
         expect(listArticles).toHaveBeenCalledWith('tenant.test')
+        expect(screen.getByText('Interview')).toBeInTheDocument()
+        expect(screen.getByText('News')).toBeInTheDocument()
         expect(screen.getByRole('button', {name: 'Zurückziehen'})).toBeInTheDocument()
         expect(screen.getByRole('button', {name: 'Planung aufheben'})).toBeInTheDocument()
         expect(screen.getByRole('button', {name: 'Wiederherstellen'})).toBeInTheDocument()
@@ -354,6 +364,60 @@ describe('ArticleListClient', () => {
 
         await waitFor(() => {
             expect(screen.getByRole('alert')).toHaveTextContent('Server error')
+        })
+    })
+
+    it('bulk applies categories to selected draft articles skipping published ones', async () => {
+        const user = userEvent.setup()
+        vi.mocked(listArticles).mockResolvedValue(mockArticles)
+        vi.mocked(listCategories).mockResolvedValue([
+            {id: 21, slug: 'news', name: 'News', parentId: null, active: true},
+            {id: 22, slug: 'stories', name: 'Stories', parentId: null, active: true},
+        ])
+        vi.mocked(replaceArticleCategories).mockImplementation(
+            async (_tenantHost, articleId) => {
+                const article = mockArticles.find((entry) => entry.id === articleId)
+                if (article === undefined) {
+                    throw new Error('unknown article')
+                }
+                return {...article, categories: [{id: 21, slug: 'news', name: 'News'}]}
+            },
+        )
+
+        render(<ArticleListClient />)
+
+        await waitFor(() => {
+            expect(screen.getByText('Draft Post')).toBeInTheDocument()
+        })
+
+        await user.click(screen.getByRole('checkbox', {name: '„Draft Post“ auswählen'}))
+        await user.click(screen.getByRole('checkbox', {name: '„Published Post“ auswählen'}))
+
+        await waitFor(() => {
+            expect(screen.getByText('2 ausgewählt')).toBeInTheDocument()
+        })
+
+        await user.click(screen.getByRole('button', {name: 'Bearbeiten…'}))
+
+        expect(await screen.findByRole('dialog')).toBeInTheDocument()
+        expect(
+            await screen.findByText(
+                '1 von 2 ausgewählten Beiträgen sind Entwürfe — veröffentlichte Beiträge werden übersprungen.',
+            ),
+        ).toBeInTheDocument()
+
+        await user.click(await screen.findByRole('radio', {name: 'Kategorien'}))
+        await user.click(await screen.findByRole('checkbox', {name: 'News'}))
+        await user.click(screen.getByRole('button', {name: 'Anwenden'}))
+
+        await waitFor(() => {
+            expect(replaceArticleCategories).toHaveBeenCalledTimes(1)
+        })
+        expect(replaceArticleCategories).toHaveBeenCalledWith('tenant.test', 1, [21])
+        expect(updateArticle).not.toHaveBeenCalled()
+
+        await waitFor(() => {
+            expect(screen.getByText('1 Beitrag aktualisiert.')).toBeInTheDocument()
         })
     })
 })

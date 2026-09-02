@@ -83,6 +83,12 @@ public class UploadService implements UploadApi {
 
         MediaUploadRules.validateMimeAndSize(command.assetType(), command.mimeType(), command.sizeBytes());
         String filename = MediaUploadRules.sanitizeFilename(command.filename());
+        if ("bin".equals(MediaUploadRules.fileExtension(filename))) {
+            String ext = MediaUploadRules.extensionForMime(command.mimeType());
+            if (ext != null) {
+                filename = MediaUploadRules.sanitizeFilenameStem(filename) + "." + ext;
+            }
+        }
 
         AssetVisibility intended = command.intendedVisibility() == null
                 ? AssetVisibility.PRIVATE
