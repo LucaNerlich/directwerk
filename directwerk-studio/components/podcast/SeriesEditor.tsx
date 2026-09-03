@@ -6,8 +6,12 @@ import {suggestSlug} from '@/lib/api/studioHelpers'
 import LevelSelect from '@/components/studio/LevelSelect'
 
 import {Button} from '@directwerk/ui/components/button'
+import {Alert, AlertDescription} from '@directwerk/ui/components/alert'
 import {Textarea} from '@directwerk/ui/components/textarea'
 import {Input} from '@directwerk/ui/components/input'
+import PageHeader from '@directwerk/ui/components/page-header'
+import PageStack from '@directwerk/ui/components/page-stack'
+import SectionHeader from '@directwerk/ui/components/section-header'
 
 import Link from 'next/link'
 import {useRouter} from 'next/navigation'
@@ -290,29 +294,41 @@ export default function SeriesEditor({seriesId}: SeriesEditorProps): React.JSX.E
     }
 
     return (
-        <div className="flex flex-col gap-6">
-            <header className="flex flex-col gap-4 border-b pb-6 sm:flex-row sm:items-end sm:justify-between">
+        <PageStack className="gap-6">
+            <PageHeader
+                actions={
+                    <Button nativeButton={false} render={<Link href="/podcast/series" />} variant="outline">
+                        Zur Übersicht
+                    </Button>
+                }
+                description="Titel, Cover und Feed-Metadaten. Einmal einrichten — der laufende Flow nutzt Folgen."
+                eyebrow="Podcast · Einrichtung"
+                title={isNew ? 'Neue Sendung' : 'Sendung bearbeiten'}
+            />
+            {!isNew ? (
                 <div>
-                    <p className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">Podcast</p>
-                    <h1>{isNew ? 'Neue Sendung' : 'Sendung bearbeiten'}</h1>
-                    {!isNew && <PublicationStatusBadge status={status} />}
+                    <PublicationStatusBadge status={status} />
                 </div>
-                <Link className="text-sm font-medium text-primary underline-offset-4 hover:underline" href="/podcast/series">
-                    Zur Übersicht
-                </Link>
-            </header>
+            ) : null}
 
             {errorMessage !== null && (
-                <p className="text-sm text-destructive" role="alert">
-                    {errorMessage}
-                </p>
+                <Alert variant="destructive">
+                    <AlertDescription>{errorMessage}</AlertDescription>
+                </Alert>
             )}
 
-            <form className="grid w-full max-w-xl gap-5" onSubmit={(event) => void handleSubmit(event)}>
-                <label className="grid gap-2 text-sm font-medium">
-                    <span>Titel</span>
+            <form className="grid w-full max-w-2xl gap-6" onSubmit={(event) => void handleSubmit(event)}>
+                <section aria-labelledby="series-basics-heading" className="grid gap-4">
+                    <SectionHeader
+                        description="So sehen Hörer deine Sendung in Apps und Verzeichnissen."
+                        id="series-basics-heading"
+                        title="Grundlagen"
+                    />
+                    <label className="grid gap-2 text-sm font-medium" htmlFor="series-title">
+                        <span>Titel</span>
+                    </label>
                     <Input
-                        className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50"
+                        id="series-title"
                         value={title}
                         onChange={(event) => {
                             const value = event.target.value
@@ -324,75 +340,98 @@ export default function SeriesEditor({seriesId}: SeriesEditorProps): React.JSX.E
                         required
                         maxLength={255}
                     />
-                </label>
-                <label className="grid gap-2 text-sm font-medium">
-                    <span>Slug</span>
-                    <Input
-                        className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50"
-                        value={slug}
-                        onChange={(event) => setSlug(event.target.value)}
-                        required
-                        pattern={HTML_SLUG_PATTERN}
-                        maxLength={63}
+                    <div className="grid gap-2">
+                        <label className="grid gap-2 text-sm font-medium" htmlFor="series-slug">
+                            <span>Slug</span>
+                        </label>
+                        <Input
+                            id="series-slug"
+                            value={slug}
+                            onChange={(event) => setSlug(event.target.value)}
+                            required
+                            pattern={HTML_SLUG_PATTERN}
+                            maxLength={63}
+                        />
+                        <p className="text-xs font-normal text-muted-foreground">
+                            Kleinbuchstaben, Zahlen und Bindestriche. Wird in Feed-URL und Links verwendet.
+                        </p>
+                    </div>
+                    <label className="grid gap-2 text-sm font-medium" htmlFor="series-description">
+                        <span>Beschreibung</span>
+                        <Textarea
+                            id="series-description"
+                            rows={6}
+                            value={description}
+                            onChange={(event) => setDescription(event.target.value)}
+                        />
+                        <span className="text-xs font-normal text-muted-foreground">
+                            Kurzbeschreibung für Podcast-Apps und Verzeichnisse.
+                        </span>
+                    </label>
+                    <label className="grid gap-2 text-sm font-medium" htmlFor="series-language">
+                        <span>Sprache</span>
+                        <Input
+                            id="series-language"
+                            value={language}
+                            onChange={(event) => setLanguage(event.target.value)}
+                            maxLength={8}
+                            required
+                        />
+                        <span className="text-xs font-normal text-muted-foreground">
+                            ISO-Code, z. B. „de“ oder „en“.
+                        </span>
+                    </label>
+                </section>
+                <section aria-labelledby="series-feed-heading" className="grid gap-4">
+                    <SectionHeader
+                        description="Apple & Co. lesen diese Angaben aus dem RSS-Feed."
+                        id="series-feed-heading"
+                        title="Feed-Details"
                     />
-                </label>
-                <label className="grid gap-2 text-sm font-medium">
-                    <span>Beschreibung</span>
-                    <Textarea
-                        className="flex min-h-24 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50"
-                        rows={6}
-                        value={description}
-                        onChange={(event) => setDescription(event.target.value)}
+                    <label className="grid gap-2 text-sm font-medium" htmlFor="series-itunes-category">
+                        <span>iTunes-Kategorie</span>
+                        <Input
+                            id="series-itunes-category"
+                            value={itunesCategory}
+                            onChange={(event) => setItunesCategory(event.target.value)}
+                            maxLength={128}
+                        />
+                        <span className="font-normal text-muted-foreground">
+                            Apple-Podcast-Kategorie des Feeds (z. B. Comedy, News).
+                        </span>
+                    </label>
+                    <label className="grid gap-2 text-sm font-medium" htmlFor="series-explicit">
+                        <span>Explicit-Inhalte</span>
+                        <SelectControl
+                            id="series-explicit"
+                            value={itunesExplicit ? 'true' : 'false'}
+                            onChange={(event) => setItunesExplicit(event.target.value === 'true')}
+                        >
+                            <option value="false">Nein (clean)</option>
+                            <option value="true">Ja (explicit)</option>
+                        </SelectControl>
+                        <span className="font-normal text-muted-foreground">
+                            Apple verlangt diese Angabe im Feed. Nur auf „Ja“ stellen, wenn die
+                            Sendung explizite Inhalte enthält.
+                        </span>
+                    </label>
+                </section>
+                <section aria-labelledby="series-cover-heading" className="grid gap-2">
+                    <SectionHeader
+                        description="Quadratisch, mindestens 1400 × 1400 px empfohlen."
+                        id="series-cover-heading"
+                        title="Titelbild"
                     />
-                </label>
-                <label className="grid gap-2 text-sm font-medium">
-                    <span>Sprache</span>
-                    <Input
-                        className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50"
-                        value={language}
-                        onChange={(event) => setLanguage(event.target.value)}
-                        maxLength={8}
-                        required
-                    />
-                </label>
-                <label className="grid gap-2 text-sm font-medium">
-                    <span>iTunes-Kategorie</span>
-                    <Input
-                        className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50"
-                        value={itunesCategory}
-                        onChange={(event) => setItunesCategory(event.target.value)}
-                        maxLength={128}
-                    />
-                    <span className="font-normal text-muted-foreground">
-                        Apple-Podcast-Kategorie des Feeds (z. B. Comedy, News).
-                    </span>
-                </label>
-                <label className="grid gap-2 text-sm font-medium">
-                    <span>Explicit-Inhalte</span>
-                    <SelectControl
-                        className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50"
-                        value={itunesExplicit ? 'true' : 'false'}
-                        onChange={(event) => setItunesExplicit(event.target.value === 'true')}
-                    >
-                        <option value="false">Nein (clean)</option>
-                        <option value="true">Ja (explicit)</option>
-                    </SelectControl>
-                    <span className="font-normal text-muted-foreground">
-                        Apple verlangt diese Angabe im Feed. Nur auf „Ja“ stellen, wenn die
-                        Sendung explizite Inhalte enthält.
-                    </span>
-                </label>
-                <div className="grid gap-2 text-sm font-medium">
-                    <span>Titelbild</span>
                     {coverPreviewUrl !== null ? (
                         <img
                             alt=""
-                            className="block max-w-48"
+                            className="block max-w-48 rounded-md"
                             src={coverPreviewUrl}
                         />
                     ) : null}
                     <Input
                         accept="image/png,image/jpeg,image/webp"
+                        aria-label="Titelbild hochladen"
                         disabled={isUploadingCover}
                         onChange={(event) => {
                             const file = event.target.files?.[0] ?? null
@@ -420,72 +459,88 @@ export default function SeriesEditor({seriesId}: SeriesEditorProps): React.JSX.E
                             progress={uploadProgress.progress}
                         />
                     ) : null}
-                </div>
-                <label className="grid gap-2 text-sm font-medium">
-                    <span>Mindest-Stufe für Folgen (Standard)</span>
-                    <LevelSelect
-                        onChange={(value) => setDefaultRequiredLevelSortOrder(value)}
-                        value={defaultRequiredLevelSortOrder}
+                </section>
+                <section aria-labelledby="series-access-heading" className="grid gap-2">
+                    <SectionHeader
+                        description="Standard für neue Folgen dieser Sendung. Kann pro Folge überschrieben werden."
+                        id="series-access-heading"
+                        title="Zugriff"
                     />
-                    <span className="font-normal text-muted-foreground">
-                        Standard-Mindest-Stufe für neue Folgen dieser Sendung. Zugriff hat,
-                        wessen höchste Stufe ≥ Mindest-Stufe ist. „Öffentlich“ = jede aktive
-                        Stufe.
-                    </span>
-                </label>
-                {rssUrl !== null ? (
-                    <PublishedLinksPanel
-                        title="RSS-Feed"
-                        links={[{label: 'Sendungs-Feed', url: rssUrl}]}
-                        hint="Direkt nach dem Veröffentlichen kann der Feed noch 404 liefern, bis der Snapshot geschrieben ist."
-                    />
-                ) : status === 'DRAFT' ? (
-                    <p className="text-sm text-muted-foreground">
-                        Der öffentliche Feed erscheint, sobald die Sendung
-                        veröffentlicht ist.
-                    </p>
-                ) : null}
-                {isNew ? (
-                    <label className="flex cursor-pointer items-center gap-2 text-sm font-medium">
-                        <Input
-                            checked={publishOnCreate}
-                            className="size-4 shrink-0"
-                            onChange={(event) => setPublishOnCreate(event.target.checked)}
-                            type="checkbox"
+                    <label className="grid gap-2 text-sm font-medium">
+                        <span>Mindest-Stufe für Folgen (Standard)</span>
+                        <LevelSelect
+                            onChange={(value) => setDefaultRequiredLevelSortOrder(value)}
+                            value={defaultRequiredLevelSortOrder}
                         />
-                        Sendung sofort veröffentlichen
+                        <span className="font-normal text-muted-foreground">
+                            Standard-Mindest-Stufe für neue Folgen dieser Sendung. Zugriff hat,
+                            wessen höchste Stufe ≥ Mindest-Stufe ist. „Öffentlich“ = jede aktive
+                            Stufe.
+                        </span>
                     </label>
-                ) : (
-                    <>
-                        {status === 'DRAFT' ? (
-                            <Button
-                                className="inline-flex h-9 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground shadow-xs hover:bg-primary/90 disabled:pointer-events-none disabled:opacity-50"
-                                disabled={isSaving}
-                                onClick={() => void handlePublishSeries()}
-                                type="button"
-                            >
-                                {isSaving ? 'Speichert…' : 'Sendung veröffentlichen'}
-                            </Button>
-                        ) : null}
-                        <label className="grid gap-2 text-sm font-medium">
-                            <span>Status</span>
-                            <SelectControl
-                                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50"
-                                value={status}
-                                onChange={(event) =>
-                                    setStatus(event.target.value as SeriesStatus)
-                                }
-                            >
-                                <option value="DRAFT">Entwurf</option>
-                                <option value="PUBLISHED">Veröffentlicht</option>
-                            </SelectControl>
+                </section>
+                <section aria-labelledby="series-publish-heading" className="grid gap-3">
+                    <SectionHeader
+                        description={isNew ? 'Anlegen und optional sofort veröffentlichen.' : 'Speichern, Status wechseln und Feed prüfen.'}
+                        id="series-publish-heading"
+                        title="Veröffentlichung"
+                    />
+                    {rssUrl !== null ? (
+                        <PublishedLinksPanel
+                            title="RSS-Feed"
+                            links={[{label: 'Sendungs-Feed', url: rssUrl}]}
+                            hint="Direkt nach dem Veröffentlichen kann der Feed noch 404 liefern, bis der Snapshot geschrieben ist."
+                        />
+                    ) : status === 'DRAFT' ? (
+                        <p className="text-sm text-muted-foreground">
+                            Der öffentliche Feed erscheint, sobald die Sendung
+                            veröffentlicht ist.
+                        </p>
+                    ) : null}
+                    {isNew ? (
+                        <label className="flex cursor-pointer items-center gap-2 text-sm font-medium">
+                            <Input
+                                checked={publishOnCreate}
+                                className="size-4 shrink-0"
+                                onChange={(event) => setPublishOnCreate(event.target.checked)}
+                                type="checkbox"
+                            />
+                            Sendung sofort veröffentlichen
                         </label>
-                    </>
-                )}
-                <Button className="inline-flex h-9 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground shadow-xs hover:bg-primary/90 disabled:pointer-events-none disabled:opacity-50" type="submit" disabled={isSaving}>
-                    {isSaving ? 'Speichert…' : isNew ? 'Sendung anlegen' : 'Speichern'}
-                </Button>
+                    ) : (
+                        <>
+                            {status === 'DRAFT' ? (
+                                <div>
+                                    <Button
+                                        disabled={isSaving}
+                                        onClick={() => void handlePublishSeries()}
+                                        type="button"
+                                    >
+                                        {isSaving ? 'Speichert…' : 'Sendung veröffentlichen'}
+                                    </Button>
+                                </div>
+                            ) : null}
+                            <label className="grid gap-2 text-sm font-medium">
+                                <span>Status</span>
+                                <SelectControl
+                                    value={status}
+                                    onChange={(event) =>
+                                        setStatus(event.target.value as SeriesStatus)
+                                    }
+                                >
+                                    <option value="DRAFT">Entwurf</option>
+                                    <option value="PUBLISHED">Veröffentlicht</option>
+                                </SelectControl>
+                            </label>
+                        </>
+                    )}
+                    <div>
+                        <Button type="submit" disabled={isSaving}>
+                            {isSaving ? 'Speichert…' : isNew ? 'Sendung anlegen' : 'Speichern'}
+                        </Button>
+                    </div>
+                </section>
             </form>
-        </div>
+        </PageStack>
     )
 }

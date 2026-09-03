@@ -43,6 +43,7 @@ export default function LoginForm() {
                 <Label htmlFor="email">Email</Label>
                 <Input
                     autoComplete="username"
+                    disabled={pending}
                     id="email"
                     maxLength={254}
                     name="email"
@@ -54,6 +55,7 @@ export default function LoginForm() {
                 <Label htmlFor="password">Password</Label>
                 <Input
                     autoComplete="current-password"
+                    disabled={pending}
                     id="password"
                     maxLength={1024}
                     name="password"

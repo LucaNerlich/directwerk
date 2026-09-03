@@ -22,7 +22,11 @@ function mapSlugEntityListItems(
         id: item.id,
         title: item.name,
         href: item.href,
-        description: <code>{item.slug}</code>,
+        description: (
+            <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-xs">
+                {item.slug}
+            </code>
+        ),
         trailing: item.trailing,
     }))
 }

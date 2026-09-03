@@ -1,16 +1,41 @@
 'use client'
 
+import {Alert, AlertDescription} from '@directwerk/ui/components/alert'
+import {Badge} from '@directwerk/ui/components/badge'
 import {Button} from '@directwerk/ui/components/button'
+import {Card, CardContent, CardDescription, CardHeader, CardTitle} from '@directwerk/ui/components/card'
 import {EntityListView} from '@directwerk/ui/components/entity-list-view'
 import PageHeader from '@directwerk/ui/components/page-header'
+import PageStack from '@directwerk/ui/components/page-stack'
+import SectionHeader from '@directwerk/ui/components/section-header'
+import {Skeleton} from '@directwerk/ui/components/skeleton'
 
-import {useEffect, useState} from 'react'
+import {useCallback, useEffect, useState} from 'react'
 import {useRouter} from 'next/navigation'
 
 import {getStripeStatus, startStripeOnboard} from '@/lib/api/subscriptionApi'
 import type {StripeStatus} from '@directwerk/api/types'
 import {getClientTenantHost} from '@directwerk/api/tenant'
 import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
+
+function stripeStatusLabel(status: string): string {
+    switch (status) {
+        case 'CONNECTED':
+            return 'Verbunden'
+        case 'RESTRICTED':
+            return 'Eingeschränkt'
+        case 'PENDING':
+            return 'Einrichtung offen'
+        case 'NOT_CONNECTED':
+            return 'Nicht verbunden'
+        default:
+            return status
+    }
+}
+
+function booleanLabel(value: boolean, positive = 'Ja', negative = 'Nein'): string {
+    return value ? positive : negative
+}
 
 export default function StripeSettingsClient(): React.JSX.Element {
     const router = useRouter()
@@ -21,34 +46,27 @@ export default function StripeSettingsClient(): React.JSX.Element {
     const [isLoading, setIsLoading] = useState(true)
     const [isBusy, setIsBusy] = useState(false)
 
-    useEffect(() => {
-        let active = true
-
-        getStripeStatus(getClientTenantHost())
-            .then((result) => {
-                if (!active) {
-                    return
-                }
-                setStatus(result)
-                setIsLoading(false)
-            })
-            .catch((error: unknown) => {
-                if (!active) {
-                    return
-                }
-                if (authRedirect(error)) return
-                setErrorMessage(
-                    error instanceof Error
-                        ? error.message
-                        : 'Stripe-Status konnte nicht geladen werden.',
-                )
-                setIsLoading(false)
-            })
-
-        return () => {
-            active = false
+    const loadStatus = useCallback(async (): Promise<void> => {
+        setIsLoading(true)
+        setErrorMessage(null)
+        try {
+            const result = await getStripeStatus(getClientTenantHost())
+            setStatus(result)
+        } catch (error: unknown) {
+            if (authRedirect(error)) return
+            setErrorMessage(
+                error instanceof Error
+                    ? error.message
+                    : 'Stripe-Status konnte nicht geladen werden.',
+            )
+        } finally {
+            setIsLoading(false)
         }
     }, [router])
+
+    useEffect(() => {
+        void loadStatus()
+    }, [loadStatus])
 
     async function handleOnboard(): Promise<void> {
         setIsBusy(true)
@@ -74,36 +92,62 @@ export default function StripeSettingsClient(): React.JSX.Element {
     }
 
     if (isLoading) {
-        return <p>Wird geladen…</p>
+        return (
+            <PageStack>
+                <PageHeader
+                    eyebrow="Einstellungen"
+                    title="Stripe"
+                    description="Verbinde dein Stripe-Konto, damit Hörerinnen und Hörer Mitgliedschaften und Einmalkäufe bezahlen können."
+                />
+                <p className="text-sm text-muted-foreground" role="status">Wird geladen…</p>
+                <Skeleton className="h-40 w-full max-w-2xl" />
+            </PageStack>
+        )
     }
 
     const connected = status?.status === 'CONNECTED'
+    const moduleBlocked = status?.moduleEnabled === false
 
     const statusItems =
         status === null
             ? []
             : [
-                  {id: 'status', title: 'Status', trailing: status.status},
+                  {
+                      id: 'status',
+                      title: 'Verbindungsstatus',
+                      description: status.message,
+                      trailing: (
+                          <Badge variant={connected ? 'default' : 'outline'}>
+                              {stripeStatusLabel(status.status)}
+                          </Badge>
+                      ),
+                  },
                   {
                       id: 'charges',
                       title: 'Zahlungen möglich',
-                      trailing: status.chargesEnabled ? 'ja' : 'nein',
+                      description: 'Checkout kann Zahlungen annehmen.',
+                      trailing: <Badge variant={status.chargesEnabled ? 'default' : 'outline'}>{booleanLabel(status.chargesEnabled)}</Badge>,
                   },
                   {
                       id: 'payouts',
-                      title: 'Auszahlungen',
-                      trailing: status.payoutsEnabled ? 'ja' : 'nein',
+                      title: 'Auszahlungen möglich',
+                      description: 'Stripe kann Geld an dein Bankkonto auszahlen.',
+                      trailing: <Badge variant={status.payoutsEnabled ? 'default' : 'outline'}>{booleanLabel(status.payoutsEnabled)}</Badge>,
                   },
                   {
                       id: 'module',
                       title: 'Modul STRIPE_BILLING',
-                      trailing: status.moduleEnabled ? 'aktiv' : 'nicht aktiv',
+                      description: 'Muss für diesen Mandanten aktiv sein — sonst bleibt Onboarding gesperrt.',
+                      trailing: (
+                          <Badge variant={status.moduleEnabled ? 'default' : 'destructive'}>
+                              {status.moduleEnabled ? 'Aktiv' : 'Nicht aktiv'}
+                          </Badge>
+                      ),
                   },
-                  {id: 'message', title: 'Hinweis', trailing: status.message},
               ]
 
     return (
-        <div className="flex flex-col gap-6">
+        <PageStack>
             <PageHeader
                 eyebrow="Einstellungen"
                 title="Stripe"
@@ -111,31 +155,68 @@ export default function StripeSettingsClient(): React.JSX.Element {
             />
 
             {errorMessage !== null ? (
-                <p className="text-sm text-destructive" role="alert">
-                    {errorMessage}
-                </p>
+                <Alert variant="destructive">
+                    <AlertDescription>
+                        {errorMessage}{' '}
+                        <Button onClick={() => void loadStatus()} size="sm" type="button" variant="outline">
+                            Wiederholen
+                        </Button>
+                    </AlertDescription>
+                </Alert>
             ) : null}
 
             {statusItems.length > 0 ? (
+                <section aria-labelledby="stripe-status-heading" className="flex max-w-2xl flex-col gap-4">
+                    <SectionHeader
+                        id="stripe-status-heading"
+                        title="Verbindungsstatus"
+                        description="Erst wenn Zahlungen möglich sind, können Käufe über den Checkout laufen."
+                    />
                 <EntityListView items={statusItems} viewMode="list" />
+                </section>
             ) : null}
 
+            {moduleBlocked ? (
+                <Alert variant="destructive">
+                    <AlertDescription>
+                        Das Modul STRIPE_BILLING ist für diesen Mandanten nicht aktiv. Bitte wende dich an den Plattform-Support — Onboarding ist bis dahin gesperrt.
+                    </AlertDescription>
+                </Alert>
+            ) : (
+                <Card className="max-w-2xl">
+                    <CardHeader>
+                        <CardTitle>{connected ? 'Stripe-Konto verwalten' : 'Stripe verbinden'}</CardTitle>
+                        <CardDescription>
+                            {connected
+                                ? 'Aktualisiere deine Kontodaten oder hinterlegte Bankverbindung bei Stripe.'
+                                : 'Du wirst zu Stripe weitergeleitet, um dein Konto zu verknüpfen oder einzurichten.'}
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent className="grid gap-4">
             <p className="text-sm text-muted-foreground">
                 Aktionscodes legst du im Stripe-Dashboard an. Der Checkout erlaubt sie automatisch.
-                Das Modul STRIPE_BILLING muss für diesen Mandanten aktiv sein — sonst bleibt Onboarding gesperrt.
             </p>
 
-            {statusMessage !== null ? <p role="status">{statusMessage}</p> : null}
+            {statusMessage !== null ? (
+                <Alert role="status">
+                    <AlertDescription>{statusMessage}</AlertDescription>
+                </Alert>
+            ) : null}
 
+            <div>
             <Button
-                disabled={isBusy || status?.moduleEnabled === false}
+                disabled={isBusy || moduleBlocked}
                 onClick={() => {
                     void handleOnboard()
                 }}
                 type="button"
             >
-                {isBusy ? '…' : connected ? 'Stripe-Konto aktualisieren' : 'Stripe verbinden'}
+                {isBusy ? 'Wird geöffnet…' : connected ? 'Stripe-Konto aktualisieren' : 'Stripe verbinden'}
             </Button>
-        </div>
+            </div>
+                    </CardContent>
+                </Card>
+            )}
+        </PageStack>
     )
 }

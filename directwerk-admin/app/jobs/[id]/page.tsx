@@ -1,15 +1,17 @@
 'use client'
 
-import Link from 'next/link'
 import {useRouter} from 'next/navigation'
 import {use, useEffect, useState} from 'react'
 
 import {Alert, AlertDescription, AlertTitle} from '@directwerk/ui/components/alert'
 import {Badge} from '@directwerk/ui/components/badge'
 import {Button} from '@directwerk/ui/components/button'
-import {Card, CardContent, CardHeader, CardTitle} from '@directwerk/ui/components/card'
+import {Card, CardContent, CardDescription, CardHeader, CardTitle} from '@directwerk/ui/components/card'
 import PageHeader from '@directwerk/ui/components/page-header'
+import PageStack from '@directwerk/ui/components/page-stack'
 
+import AdminBreadcrumbs from '@/components/AdminBreadcrumbs'
+import {AdminLoadingText, FormSkeleton} from '@/components/AdminLoading'
 import {getPlatformData, postPlatformData} from '@/lib/api/client'
 import {AUTH_REQUIRED} from '@directwerk/api/constants'
 import type {QueueJob} from '@directwerk/api/types'
@@ -118,6 +120,12 @@ export default function JobPage({params}: JobPageProps) {
         if (job === null) {
             return
         }
+        const confirmed = window.confirm(
+            'Mark this job failed? It becomes eligible for retry according to its queue policy.',
+        )
+        if (!confirmed) {
+            return
+        }
         setActionBusy(true)
         setActionMessage(null)
         try {
@@ -143,15 +151,30 @@ export default function JobPage({params}: JobPageProps) {
         (job.status === 'PROCESSING' || job.status === 'QUEUED' || job.status === 'FAILED')
 
     return (
-        <div className="space-y-8">
-                <Link className="text-sm font-medium underline-offset-4 hover:underline" href="/jobs">← Back to queue jobs</Link>
+        <PageStack>
+                <AdminBreadcrumbs
+                    items={[
+                        {href: '/jobs', label: 'Queue jobs'},
+                        {label: job?.id ?? id},
+                    ]}
+                />
 
                 {error ? <Alert variant="destructive"><AlertDescription>{error}</AlertDescription></Alert> : null}
-                {!error && isInitialLoad ? <p aria-live="polite" className="text-sm text-muted-foreground">Loading job details…</p> : null}
+                {!error && isInitialLoad ? (
+                    <>
+                        <FormSkeleton />
+                        <AdminLoadingText text="Loading job details…" />
+                    </>
+                ) : null}
 
                 {job ? (
                     <>
-                        <PageHeader actions={<Badge variant="outline">{job.status}</Badge>} eyebrow="Queue job" title={job.id} />
+                        <PageHeader
+                            actions={<Badge variant="outline">{job.status}</Badge>}
+                            description={`Queue ${job.queue} · attempt ${job.attempts} of ${job.maxAttempts}.`}
+                            eyebrow="Queue job"
+                            title={job.id}
+                        />
 
                         {job.status === 'FAILED' && job.lastError ? (
                             <Alert variant="destructive"><AlertTitle>Last error</AlertTitle><AlertDescription>{job.lastError}</AlertDescription></Alert>
@@ -183,11 +206,20 @@ export default function JobPage({params}: JobPageProps) {
                                         {actionMessage}
                                     </p>
                                 ) : null}
+                                <p className="w-full text-sm text-muted-foreground">
+                                    Manual completion is for stuck jobs only —
+                                    prefer letting the worker finish.
+                                </p>
                             </div>
                         ) : null}
 
                         <Card>
-                            <CardHeader><CardTitle>Job details</CardTitle></CardHeader>
+                            <CardHeader>
+                                <CardTitle>Job details</CardTitle>
+                                <CardDescription>
+                                    Lifecycle, locking, and error state.
+                                </CardDescription>
+                            </CardHeader>
                             <CardContent><dl className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 [&_dd]:mt-1 [&_dd]:text-sm [&_dt]:text-xs [&_dt]:font-semibold [&_dt]:uppercase [&_dt]:tracking-wide [&_dt]:text-muted-foreground">
                             <dt>Queue</dt>
                             <dd>{job.queue}</dd>
@@ -215,11 +247,16 @@ export default function JobPage({params}: JobPageProps) {
                         </Card>
 
                         <Card>
-                            <CardHeader><CardTitle>Payload</CardTitle></CardHeader>
-                            <CardContent><pre className="overflow-x-auto rounded-lg bg-muted p-4 text-xs">{formatPayload(job.payload)}</pre></CardContent>
+                            <CardHeader>
+                                <CardTitle>Payload</CardTitle>
+                                <CardDescription>
+                                    Job input as queued by the producer.
+                                </CardDescription>
+                            </CardHeader>
+                            <CardContent><pre className="max-h-96 overflow-auto rounded-lg bg-muted p-4 text-xs">{formatPayload(job.payload)}</pre></CardContent>
                         </Card>
                     </>
                 ) : null}
-        </div>
+        </PageStack>
     )
 }

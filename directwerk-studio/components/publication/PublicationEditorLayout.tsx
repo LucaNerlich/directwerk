@@ -2,6 +2,8 @@
 
 import {Card, CardContent} from '@directwerk/ui/components/card'
 import {Input} from '@directwerk/ui/components/input'
+import PageStack from '@directwerk/ui/components/page-stack'
+import SectionHeader from '@directwerk/ui/components/section-header'
 import {Textarea} from '@directwerk/ui/components/textarea'
 
 import type {ReactNode} from 'react'
@@ -45,6 +47,7 @@ interface PublicationEditorLayoutProps {
     publishedAt: string
     onPublishedAtChange: (value: string) => void
     publishValidationError?: string | null
+    scheduleValidationError?: string | null
     onSave: () => void
     onPublish: () => void
     onSchedule: () => void
@@ -85,6 +88,7 @@ export default function PublicationEditorLayout({
     publishedAt,
     onPublishedAtChange,
     publishValidationError = null,
+    scheduleValidationError = null,
     onSave,
     onPublish,
     onSchedule,
@@ -108,18 +112,16 @@ export default function PublicationEditorLayout({
     const publishDisabled = !canPublish || slugBlocked
 
     return (
-        <div className="flex flex-col gap-6">
+        <PageStack className="gap-6">
             <header className="flex flex-col gap-4 border-b pb-6 sm:flex-row sm:items-end sm:justify-between">
                 <div>
                     <p className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
                         {publicationLabel}
                     </p>
                     <PublicationStatusBadge status={status} />
-                    {saveHint !== null && saveHint.length > 0 ? (
-                        <p className="mt-2 text-xs text-muted-foreground" role="status">
-                            {saveHint}
-                        </p>
-                    ) : null}
+                    <p aria-live="polite" className="mt-2 min-h-4 text-xs text-muted-foreground" role="status">
+                        {isSaving ? 'Speichert…' : (saveHint ?? '')}
+                    </p>
                 </div>
                 <PublicationWorkflowActions
                     status={status}
@@ -139,6 +141,7 @@ export default function PublicationEditorLayout({
                     publishedAt={publishedAt}
                     onPublishedAtChange={onPublishedAtChange}
                     publishValidationError={publishValidationError}
+                    scheduleValidationError={scheduleValidationError}
                     onSave={onSave}
                     onPublish={() => setPublishDialogOpen(true)}
                     onSchedule={onSchedule}
@@ -169,14 +172,24 @@ export default function PublicationEditorLayout({
                 </p>
             )}
             <div className="grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(16rem,1fr)]">
-                <section className="flex flex-col gap-4">
+                <section aria-labelledby="publication-content-heading" className="flex min-w-0 flex-col gap-4">
+                    <SectionHeader
+                        description={kind === 'episode' ? 'Titel, URL und Shownotes. Audio und Formate rechts.' : 'Titel, URL und Text. Titelbild und Kategorien rechts.'}
+                        id="publication-content-heading"
+                        title="Inhalt"
+                    />
                     <label className="grid gap-2 text-sm font-medium">
                         <span>Titel</span>
                         <Input
+                            aria-describedby="publication-title-hint"
                             value={title}
                             disabled={fieldsDisabled}
+                            maxLength={255}
                             onChange={(event) => onTitleChange(event.target.value)}
                         />
+                        <span className="text-xs font-normal text-muted-foreground" id="publication-title-hint">
+                            Wird als Überschrift und im Feed angezeigt.
+                        </span>
                     </label>
                     {onSlugChange !== undefined && slug !== undefined ? (
                         slugTaken !== undefined ? (
@@ -198,14 +211,20 @@ export default function PublicationEditorLayout({
                         )
                     ) : null}
                     <ShowNotesEditor
+                        helperText={kind === 'episode' ? 'Shownotes erscheinen im Feed und auf der Folgenseite.' : 'Der Text erscheint auf der Beitragsseite und im Feed.'}
                         label={bodyLabel}
                         value={body}
                         onChange={onBodyChange}
                         disabled={fieldsDisabled}
                     />
                 </section>
-                <Card className="bg-muted/20 ring-0">
+                <Card className="h-fit bg-muted/20 ring-0">
                     <CardContent className="flex flex-col gap-4 pt-(--card-spacing)">
+                        <SectionHeader
+                            as="h3"
+                            description="Wer darf lesen? Gilt für Seite und Feed."
+                            title="Einstellungen"
+                        />
                         <AccessPolicySelect
                             value={accessPolicy}
                             onChange={onAccessPolicyChange}
@@ -248,6 +267,6 @@ export default function PublicationEditorLayout({
                     </CardContent>
                 </Card>
             </div>
-        </div>
+        </PageStack>
     )
 }

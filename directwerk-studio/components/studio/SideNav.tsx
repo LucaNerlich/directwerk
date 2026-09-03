@@ -24,7 +24,7 @@ import {useOptionalMe} from '@/lib/auth/MeProvider'
 
 function linkClassName(active: boolean): string {
     return [
-        'flex h-8 w-full items-center rounded-md px-2 text-sm outline-none transition-colors',
+        'flex min-h-9 w-full items-center rounded-md px-2 py-1.5 text-sm outline-none transition-colors',
         'hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
         'focus-visible:ring-2 focus-visible:ring-sidebar-ring',
         active
@@ -56,19 +56,20 @@ function NavigationGroup({
             {label !== undefined ? <SidebarGroupLabel>{label}</SidebarGroupLabel> : null}
             <SidebarGroupContent>
                 <SidebarMenu>
-                    {items.map((item) => (
-                        <SidebarMenuItem key={item.href}>
-                            <Link
-                                aria-current={
-                                    isActivePath(pathname, item.href) ? 'page' : undefined
-                                }
-                                className={linkClassName(isActivePath(pathname, item.href))}
-                                href={item.href}
-                            >
-                                <span>{item.label}</span>
-                            </Link>
-                        </SidebarMenuItem>
-                    ))}
+                    {items.map((item) => {
+                        const active = isActivePath(pathname, item.href)
+                        return (
+                            <SidebarMenuItem key={item.href}>
+                                <Link
+                                    aria-current={active ? 'page' : undefined}
+                                    className={linkClassName(active)}
+                                    href={item.href}
+                                >
+                                    <span>{item.label}</span>
+                                </Link>
+                            </SidebarMenuItem>
+                        )
+                    })}
                 </SidebarMenu>
             </SidebarGroupContent>
         </SidebarGroup>
@@ -108,19 +109,36 @@ export default function SideNav({config}: {config: SiteConfig}) {
                 <SidebarSeparator className="my-2" />
             ) : null}
             {showVerwaltung ? (
-                <>
-                    <SidebarGroup>
-                        <SidebarGroupLabel>Verwaltung</SidebarGroupLabel>
-                    </SidebarGroup>
-                    {verwaltungSections.map((section) => (
-                        <NavigationGroup
-                            key={section.label ?? section.items[0]?.href}
-                            label={section.label}
-                            items={section.items}
-                            pathname={pathname}
-                        />
-                    ))}
-                </>
+                <SidebarGroup>
+                    <SidebarGroupLabel>Verwaltung</SidebarGroupLabel>
+                    <SidebarGroupContent className="flex flex-col gap-4">
+                        {verwaltungSections.map((section) => (
+                            <div key={section.label ?? section.items[0]?.href}>
+                                {section.label !== undefined ? (
+                                    <p className="px-2 pb-1 text-xs font-medium text-sidebar-foreground/70">
+                                        {section.label}
+                                    </p>
+                                ) : null}
+                                <SidebarMenu>
+                                    {section.items.map((item) => {
+                                        const active = isActivePath(pathname, item.href)
+                                        return (
+                                            <SidebarMenuItem key={item.href}>
+                                                <Link
+                                                    aria-current={active ? 'page' : undefined}
+                                                    className={linkClassName(active)}
+                                                    href={item.href}
+                                                >
+                                                    <span>{item.label}</span>
+                                                </Link>
+                                            </SidebarMenuItem>
+                                        )
+                                    })}
+                                </SidebarMenu>
+                            </div>
+                        ))}
+                    </SidebarGroupContent>
+                </SidebarGroup>
             ) : null}
         </nav>
     )

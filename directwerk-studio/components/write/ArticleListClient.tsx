@@ -4,8 +4,10 @@ import Link from 'next/link'
 import {useCallback, useEffect, useMemo, useState} from 'react'
 
 import {Button} from '@directwerk/ui/components/button'
+import {Alert, AlertDescription} from '@directwerk/ui/components/alert'
 import EmptyState from '@directwerk/ui/components/empty-state'
 import PageHeader from '@directwerk/ui/components/page-header'
+import PageStack from '@directwerk/ui/components/page-stack'
 
 import PublicationListSection from '@/components/publication/PublicationListSection'
 import BulkEditDialog, {type BulkEditOperation} from '@/components/publication/BulkEditDialog'
@@ -135,11 +137,15 @@ export default function ArticleListClient() {
     )
 
     if (isLoading) {
-        return <p>Beiträge werden geladen…</p>
+        return (
+            <p className="text-sm text-muted-foreground" role="status">
+                Beiträge werden geladen…
+            </p>
+        )
     }
 
     return (
-        <div className="flex flex-col gap-6">
+        <PageStack className="gap-6">
             <PageHeader
                 eyebrow="Schreiben"
                 title="Beiträge"
@@ -151,9 +157,9 @@ export default function ArticleListClient() {
                 }
             />
             {displayError !== null && (
-                <p className="text-sm text-destructive" role="alert">
-                    {displayError}
-                </p>
+                <Alert variant="destructive">
+                    <AlertDescription>{displayError}</AlertDescription>
+                </Alert>
             )}
             {statusMessage !== null && (
                 <p className="text-sm text-muted-foreground" role="status">
@@ -206,6 +212,6 @@ export default function ArticleListClient() {
                     />
                 </>
             )}
-        </div>
+        </PageStack>
     )
 }

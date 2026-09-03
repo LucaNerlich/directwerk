@@ -2,7 +2,7 @@
 
 import {Input} from '@directwerk/ui/components/input'
 
-import {useEffect, useState} from 'react'
+import {useEffect, useId, useState} from 'react'
 
 interface SlugFieldProps {
     value: string
@@ -18,6 +18,9 @@ export default function SlugField({
     checkTaken,
 }: SlugFieldProps): React.JSX.Element {
     const [debouncedSlug, setDebouncedSlug] = useState(value)
+    const inputId = useId()
+    const hintId = useId()
+    const statusId = useId()
 
     useEffect(() => {
         const timer = window.setTimeout(() => {
@@ -32,21 +35,33 @@ export default function SlugField({
     const isTaken = trimmed.length > 0 && checkTaken(trimmed)
 
     return (
-        <label className="grid gap-2 text-sm font-medium">
-            <span>Slug</span>
+        <div className="grid gap-2">
+            <label className="grid gap-2 text-sm font-medium" htmlFor={inputId}>
+                <span>Slug</span>
+            </label>
             <Input
-                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50"
+                aria-describedby={`${hintId} ${statusId}`}
+                aria-invalid={isTaken}
                 disabled={disabled}
+                id={inputId}
                 onChange={(event) => onChange(event.target.value)}
                 value={value}
             />
+            <p className="text-xs font-normal text-muted-foreground" id={hintId}>
+                Kleinbuchstaben, Zahlen und Bindestriche. Wird in der öffentlichen URL
+                verwendet.
+            </p>
             {isTaken ? (
-                <span className="text-xs font-normal text-destructive" role="alert">
+                <p className="text-xs font-normal text-destructive" id={statusId} role="alert">
                     Dieser Slug ist bereits vergeben.
-                </span>
+                </p>
             ) : trimmed.length > 0 ? (
-                <span className="text-xs font-normal text-muted-foreground">Slug verfügbar.</span>
-            ) : null}
-        </label>
+                <p className="text-xs font-normal text-muted-foreground" id={statusId} role="status">
+                    Slug verfügbar.
+                </p>
+            ) : (
+                <span className="sr-only" id={statusId} role="status" />
+            )}
+        </div>
     )
 }

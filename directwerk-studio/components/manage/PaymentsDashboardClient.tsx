@@ -5,12 +5,16 @@ import {useRouter} from 'next/navigation'
 import {useEffect, useMemo, useState} from 'react'
 
 import {Alert, AlertDescription} from '@directwerk/ui/components/alert'
+import {Badge} from '@directwerk/ui/components/badge'
 import {Button} from '@directwerk/ui/components/button'
+import {Card, CardContent, CardDescription, CardHeader, CardTitle} from '@directwerk/ui/components/card'
 import EmptyState from '@directwerk/ui/components/empty-state'
 import {EntityListSection} from '@directwerk/ui/components/entity-list-section'
 import {Input} from '@directwerk/ui/components/input'
 import PageHeader from '@directwerk/ui/components/page-header'
 import PageStack from '@directwerk/ui/components/page-stack'
+import SectionHeader from '@directwerk/ui/components/section-header'
+import {Skeleton} from '@directwerk/ui/components/skeleton'
 import StatCard from '@directwerk/ui/components/stat-card'
 import {useListViewMode} from '@directwerk/ui/hooks/use-list-view-mode'
 
@@ -39,6 +43,18 @@ function stripeStatusLabel(status: string): string {
             return 'Nicht verbunden'
         default:
             return status
+    }
+}
+
+function stripeStatusVariant(status: string): 'default' | 'secondary' | 'outline' | 'destructive' {
+    switch (status) {
+        case 'CONNECTED':
+            return 'default'
+        case 'RESTRICTED':
+        case 'PENDING':
+            return 'secondary'
+        default:
+            return 'outline'
     }
 }
 
@@ -118,6 +134,28 @@ export default function PaymentsDashboardClient(): React.JSX.Element {
         return result
     }
 
+    async function handleRetry(): Promise<void> {
+        setErrorMessage(null)
+        try {
+            await reloadDashboard()
+        } catch (error: unknown) {
+            if (authRedirect(error)) return
+            setErrorMessage(
+                error instanceof Error
+                    ? error.message
+                    : 'Zahlungsübersicht konnte nicht geladen werden.',
+            )
+        }
+    }
+
+    const hasActiveFilters = query.trim().length > 0 || statusFilter !== 'all' || sourceFilter !== 'all'
+
+    function resetFilters(): void {
+        setQuery('')
+        setStatusFilter('all')
+        setSourceFilter('all')
+    }
+
     async function handleRevoke(row: BillingMembership): Promise<void> {
         if (pendingRevokeId !== row.id) {
             setPendingRevokeId(row.id)
@@ -162,40 +200,69 @@ export default function PaymentsDashboardClient(): React.JSX.Element {
 
             {errorMessage !== null ? (
                 <Alert variant="destructive">
-                    <AlertDescription>{errorMessage}</AlertDescription>
+                    <AlertDescription>
+                        {errorMessage}{' '}
+                        <Button onClick={() => void handleRetry()} size="sm" type="button" variant="outline">
+                            Wiederholen
+                        </Button>
+                    </AlertDescription>
                 </Alert>
             ) : null}
             {statusMessage !== null ? (
-                <Alert>
+                <Alert role="status">
                     <AlertDescription>{statusMessage}</AlertDescription>
                 </Alert>
             ) : null}
             {dashboard === null && errorMessage === null ? (
-                <p className="text-sm text-muted-foreground">Laden…</p>
+                <div className="flex flex-col gap-4" aria-busy="true">
+                    <p className="text-sm text-muted-foreground" role="status">Laden…</p>
+                    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3" aria-hidden="true">
+                        {[0, 1, 2].map((index) => (
+                            <Skeleton className="h-28 w-full" key={index} />
+                        ))}
+                    </div>
+                </div>
             ) : null}
 
             {dashboard !== null ? (
                 <>
-                    <section className="rounded-xl border bg-card p-4">
-                        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                            Stripe
-                        </p>
-                        <p className="mt-2 font-medium">{stripeStatusLabel(dashboard.stripe.status)}</p>
-                        <p className="mt-1 text-sm text-muted-foreground">{dashboard.stripe.message}</p>
-                        <p className="mt-2 text-sm text-muted-foreground">
-                            Zahlungen: {dashboard.stripe.chargesEnabled ? 'ja' : 'nein'}
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>
+                                <span className="flex flex-wrap items-center gap-2">
+                                    Stripe
+                                    <Badge variant={stripeStatusVariant(dashboard.stripe.status)}>
+                                        {stripeStatusLabel(dashboard.stripe.status)}
+                                    </Badge>
+                                </span>
+                            </CardTitle>
+                            <CardDescription>{dashboard.stripe.message}</CardDescription>
+                        </CardHeader>
+                        <CardContent className="flex flex-col gap-3">
+                        <p className="text-sm text-muted-foreground">
+                            Zahlungen möglich: {dashboard.stripe.chargesEnabled ? 'Ja' : 'Nein'}
                             {' · '}
-                            Auszahlungen: {dashboard.stripe.payoutsEnabled ? 'ja' : 'nein'}
+                            Auszahlungen möglich: {dashboard.stripe.payoutsEnabled ? 'Ja' : 'Nein'}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                            Erst wenn Stripe verbunden ist und Zahlungen möglich sind, können Hörerinnen und Hörer per Checkout kaufen.
                         </p>
                         {dashboard.stripe.status !== 'CONNECTED' ? (
-                            <p className="mt-3">
+                            <p>
                                 <Button nativeButton={false} render={<Link href="/settings/stripe" />}>
                                     Stripe verbinden
                                 </Button>
                             </p>
                         ) : null}
-                    </section>
+                        </CardContent>
+                    </Card>
 
+                    <section aria-labelledby="billing-stats-heading" className="flex flex-col gap-4">
+                        <SectionHeader
+                            id="billing-stats-heading"
+                            title="Kennzahlen"
+                            description="Aktive Zugänge, Zahlungsrückstände und geschätzter Monatswert aus allen aktiven Preisen."
+                        />
                     <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                         <li>
                             <StatCard
@@ -213,13 +280,14 @@ export default function PaymentsDashboardClient(): React.JSX.Element {
                         </li>
                         <li>
                             <StatCard
-                                hint="Stripe vs. Freischaltung"
+                                hint="Stripe-Käufe vs. manuelle Freischaltungen"
                                 label="Bezahlt / Freischaltung"
                                 value={`${dashboard.stats.activePaidSubscriptions} / ${dashboard.stats.activeGrantSubscriptions}`}
                             />
                         </li>
                         <li>
                             <StatCard
+                                hint="Summe aller aktiven Preise, auf den Monat gerechnet"
                                 label="Geschätzter Monatswert"
                                 value={formatMoney(
                                     dashboard.stats.estimatedMonthlyCents,
@@ -229,18 +297,20 @@ export default function PaymentsDashboardClient(): React.JSX.Element {
                         </li>
                         <li>
                             <StatCard
+                                hint="Benötigen deine Aufmerksamkeit — Zahlung fehlgeschlagen"
                                 label="Zahlungsrückstand"
                                 value={dashboard.stats.pastDueSubscriptions}
                             />
                         </li>
                         <li>
                             <StatCard
-                                hint="neu / gekündigt"
+                                hint="Neue Zugänge vs. beendete Zugänge"
                                 label="Diesen Monat"
                                 value={`+${dashboard.stats.newThisMonth} / −${dashboard.stats.canceledThisMonth}`}
                             />
                         </li>
                     </ul>
+                    </section>
 
                     <div className="flex flex-wrap gap-2">
                         <Button nativeButton={false} render={<Link href="/manage/products" />} variant="outline">
@@ -265,7 +335,19 @@ export default function PaymentsDashboardClient(): React.JSX.Element {
                             }
                         />
                     ) : (
-                        <section className="flex flex-col gap-4">
+                        <section aria-labelledby="memberships-heading" className="flex flex-col gap-4">
+                            <SectionHeader
+                                id="memberships-heading"
+                                title={`Mitgliedschaften (${dashboard.memberships.length})`}
+                                description="Suche nach E-Mail oder Produkt. Der Widerruf eines Stripe-Abos kündigt es auch bei Stripe."
+                                action={
+                                    hasActiveFilters ? (
+                                        <Button onClick={resetFilters} size="sm" type="button" variant="ghost">
+                                            Filter zurücksetzen
+                                        </Button>
+                                    ) : undefined
+                                }
+                            />
                             <div className="grid gap-3 md:grid-cols-3">
                                 <label className="grid gap-2 text-sm font-medium" htmlFor="membership-search">
                                     Suchen
@@ -310,10 +392,17 @@ export default function PaymentsDashboardClient(): React.JSX.Element {
                                 {dashboard.stats.totalMemberships > dashboard.memberships.length
                                     ? ` · ${dashboard.stats.totalMemberships} insgesamt`
                                     : ''}
-                                . Widerruf eines Stripe-Abos kündigt es auch bei Stripe.
                             </p>
                             {visibleMemberships.length === 0 ? (
-                                <p className="text-sm text-muted-foreground">Keine Mitgliedschaften für diesen Filter.</p>
+                                <EmptyState
+                                    title="Keine Mitgliedschaften für diesen Filter"
+                                    description="Passe Suche, Status oder Quelle an, um weitere Einträge zu sehen."
+                                    action={
+                                        <Button onClick={resetFilters} type="button" variant="outline">
+                                            Filter zurücksetzen
+                                        </Button>
+                                    }
+                                />
                             ) : (
                                 <EntityListSection
                                     items={visibleMemberships.map((row) => ({

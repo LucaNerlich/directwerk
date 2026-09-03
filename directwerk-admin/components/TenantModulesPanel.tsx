@@ -6,8 +6,11 @@ import {useRouter} from 'next/navigation'
 import {Alert, AlertDescription} from '@directwerk/ui/components/alert'
 import {Badge} from '@directwerk/ui/components/badge'
 import {Button} from '@directwerk/ui/components/button'
-import {Card, CardContent, CardHeader, CardTitle} from '@directwerk/ui/components/card'
+import {Card, CardContent, CardDescription, CardHeader, CardTitle} from '@directwerk/ui/components/card'
 import EmptyState from '@directwerk/ui/components/empty-state'
+import ResponsiveTable from '@directwerk/ui/components/responsive-table'
+import SectionHeader from '@directwerk/ui/components/section-header'
+import {Skeleton} from '@directwerk/ui/components/skeleton'
 import {Table, TableBody, TableCell, TableHead, TableHeader, TableRow} from '@directwerk/ui/components/table'
 
 import {
@@ -139,6 +142,12 @@ export default function TenantModulesPanel({tenantId}: TenantModulesPanelProps) 
     }
 
     function handleDeactivate(moduleKey: string): void {
+        const confirmed = window.confirm(
+            `Deactivate ${moduleKey}? Dependent modules are deactivated too.`,
+        )
+        if (!confirmed) {
+            return
+        }
         void runMutation(
             moduleKey,
             () => deactivateTenantModule(tenantId, moduleKey),
@@ -158,33 +167,60 @@ export default function TenantModulesPanel({tenantId}: TenantModulesPanelProps) 
 
     return (
         <Card aria-labelledby="tenant-modules-heading" role="region">
-            <CardHeader><CardTitle id="tenant-modules-heading">Modules</CardTitle></CardHeader>
+            <CardHeader>
+                <CardTitle id="tenant-modules-heading">Modules</CardTitle>
+                <CardDescription>
+                    Enable platform modules per tenant. Modules with unmet
+                    dependencies cannot be activated; deactivating a module
+                    also deactivates its dependents.
+                </CardDescription>
+            </CardHeader>
             <CardContent className="space-y-5">
 
             {error ? (
                 <Alert aria-live="polite" variant="destructive"><AlertDescription>{error}</AlertDescription></Alert>
             ) : null}
             {status ? (
-                <p aria-live="polite" role="status">
+                <p aria-live="polite" role="status" className="text-sm text-muted-foreground">
                     {status}
                 </p>
             ) : null}
 
-            {isLoading ? <p aria-live="polite" className="text-sm text-muted-foreground">Loading modules…</p> : null}
+            {isLoading ? (
+                <>
+                    <div aria-hidden="true" className="space-y-2">
+                        {[0, 1, 2].map((index) => (
+                            <div className="flex items-center gap-4 rounded-xl border p-4" key={index}>
+                                <Skeleton className="h-4 w-1/4" />
+                                <Skeleton className="h-4 w-1/3" />
+                                <Skeleton className="ml-auto h-8 w-24 shrink-0" />
+                            </div>
+                        ))}
+                    </div>
+                    <p aria-live="polite" className="text-sm text-muted-foreground">Loading modules…</p>
+                </>
+            ) : null}
 
             {!isLoading && catalog.length === 0 && !error ? (
-                <EmptyState title="No platform modules available" />
+                <EmptyState
+                    description="The platform module catalog is empty."
+                    title="No platform modules available"
+                />
             ) : null}
 
             {!isLoading && catalog.length > 0 ? (
                 <>
+                    <ResponsiveTable label="Tenant modules">
                     <Table>
                         <TableHeader>
                             <TableRow>
                                 <TableHead scope="col">Module</TableHead>
                                 <TableHead scope="col">Depends on</TableHead>
                                 <TableHead scope="col">Status</TableHead>
-                                <TableHead scope="col">Actions</TableHead>
+                                <TableHead scope="col">
+                                    <span className="sr-only">Actions</span>
+                                    <span aria-hidden="true">Actions</span>
+                                </TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -199,19 +235,14 @@ export default function TenantModulesPanel({tenantId}: TenantModulesPanelProps) 
                                     <TableRow key={module.moduleKey}>
                                         <TableCell className="whitespace-normal">
                                             <strong>{module.moduleKey}</strong>
-                                            <br />
-                                            {module.name}
+                                            <span className="block text-sm">{module.name}</span>
                                             {module.description ? (
-                                                <>
-                                                    <br />
-                                                    <small>{module.description}</small>
-                                                </>
+                                                <span className="block text-sm text-muted-foreground">
+                                                    {module.description}
+                                                </span>
                                             ) : null}
                                             {module.core ? (
-                                                <>
-                                                    <br />
-                                                    <small>Core</small>
-                                                </>
+                                                <Badge className="mt-1" variant="outline">Core</Badge>
                                             ) : null}
                                         </TableCell>
                                         <TableCell>
@@ -223,13 +254,15 @@ export default function TenantModulesPanel({tenantId}: TenantModulesPanelProps) 
                                             <Badge variant={isEnabled ? 'default' : 'outline'}>{isEnabled ? 'Enabled' : 'Off'}</Badge>
                                             {!isEnabled &&
                                             missingDeps.length > 0 ? (
-                                                <>
-                                                    <br />
-                                                    <small>
-                                                        Needs:{' '}
-                                                        {missingDeps.join(', ')}
-                                                    </small>
-                                                </>
+                                                <span className="mt-1 block text-xs text-muted-foreground">
+                                                    Needs:{' '}
+                                                    {missingDeps.join(', ')}
+                                                </span>
+                                            ) : null}
+                                            {module.core ? (
+                                                <span className="mt-1 block text-xs text-muted-foreground">
+                                                    Always on.
+                                                </span>
                                             ) : null}
                                         </TableCell>
                                         <TableCell>
@@ -243,6 +276,7 @@ export default function TenantModulesPanel({tenantId}: TenantModulesPanelProps) 
                                                             module.moduleKey,
                                                         )
                                                     }
+                                                    title={module.core ? 'Core modules cannot be deactivated.' : undefined}
                                                     type="button"
                                                     variant="destructive"
                                                 >
@@ -261,6 +295,7 @@ export default function TenantModulesPanel({tenantId}: TenantModulesPanelProps) 
                                                             module.moduleKey,
                                                         )
                                                     }
+                                                    title={missingDeps.length > 0 ? `Enable first: ${missingDeps.join(', ')}.` : undefined}
                                                     type="button"
                                                     variant="outline"
                                                 >
@@ -275,12 +310,12 @@ export default function TenantModulesPanel({tenantId}: TenantModulesPanelProps) 
                             })}
                         </TableBody>
                     </Table>
+                    </ResponsiveTable>
 
-                    <h3>Apply preset</h3>
-                    <p>
-                        Presets activate a set of modules (dependencies first).
-                        They do not deactivate modules outside the preset.
-                    </p>
+                    <SectionHeader
+                        description="Presets activate a set of modules (dependencies first). They never deactivate modules outside the preset."
+                        title="Apply preset"
+                    />
                     <div className="flex flex-wrap gap-2">
                         {MODULE_PRESETS.map((preset) => (
                             <Button
@@ -299,7 +334,11 @@ export default function TenantModulesPanel({tenantId}: TenantModulesPanelProps) 
 
                     {activations.length > 0 ? (
                         <>
-                            <h3>Activation log</h3>
+                            <SectionHeader
+                                description="How each module was enabled for this tenant."
+                                title="Activation log"
+                            />
+                            <ResponsiveTable label="Module activation log">
                             <Table>
                                 <TableHeader>
                                     <TableRow>
@@ -326,6 +365,7 @@ export default function TenantModulesPanel({tenantId}: TenantModulesPanelProps) 
                                     ))}
                                 </TableBody>
                             </Table>
+                            </ResponsiveTable>
                         </>
                     ) : null}
                 </>

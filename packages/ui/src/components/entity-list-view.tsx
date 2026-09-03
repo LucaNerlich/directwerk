@@ -188,7 +188,6 @@ export function EntityListView<TId extends EntityListItemId>({
 
                     return (
                         <li
-                            aria-selected={isSelectable ? isSelected : undefined}
                             className="h-full"
                             key={`${typeof item.id}:${String(item.id)}`}
                         >
@@ -253,7 +252,6 @@ export function EntityListView<TId extends EntityListItemId>({
 
                 return (
                     <ListPanelRow
-                        aria-selected={isSelectable ? isSelected : undefined}
                         className={isSelected ? 'bg-primary/5' : undefined}
                         key={`${typeof item.id}:${String(item.id)}`}
                     >

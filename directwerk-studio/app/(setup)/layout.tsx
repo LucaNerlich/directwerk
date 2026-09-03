@@ -6,8 +6,8 @@ export default function SetupLayout({
     children: React.ReactNode
 }): React.JSX.Element {
     return (
-        <BrandTheme primaryHex="#1a1a2e">
-            <div className="min-h-screen bg-background">{children}</div>
+        <BrandTheme className="min-h-svh bg-background" primaryHex="#1a1a2e">
+            <div className="min-h-svh bg-background">{children}</div>
         </BrandTheme>
     )
 }

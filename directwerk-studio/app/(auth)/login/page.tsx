@@ -1,6 +1,7 @@
 'use client'
 
 import Form from 'next/form'
+import Link from 'next/link'
 import {useSearchParams} from 'next/navigation'
 import {Suspense, useActionState, useState} from 'react'
 
@@ -9,6 +10,7 @@ import AuthCard from '@directwerk/ui/components/auth-card'
 import {Button} from '@directwerk/ui/components/button'
 import {Input} from '@directwerk/ui/components/input'
 import {Label} from '@directwerk/ui/components/label'
+import {Skeleton} from '@directwerk/ui/components/skeleton'
 
 import {
     discoverStudioWorkspaces,
@@ -26,6 +28,17 @@ interface LoginState {
 }
 
 const INITIAL_STATE: LoginState = {error: null}
+
+function AuthFormSkeleton(): React.JSX.Element {
+    return (
+        <div aria-busy="true" aria-live="polite" className="grid gap-4" role="status">
+            <span className="sr-only">Anmeldeformular wird geladen…</span>
+            <Skeleton className="h-10 w-full" aria-hidden="true" />
+            <Skeleton className="h-10 w-full" aria-hidden="true" />
+            <Skeleton className="h-10 w-full" aria-hidden="true" />
+        </div>
+    )
+}
 
 function mapAuthError(error: unknown): string {
     if (!(error instanceof Error)) {
@@ -117,12 +130,13 @@ function LoginForm() {
     if (workspaces !== null && pendingInput !== null) {
         return (
             <AuthCard
-                description="Wähle den Workspace, den du verwalten möchtest."
+                description="Schritt 2 von 2 — wähle den Workspace, den du verwalten möchtest."
                 title="Workspace auswählen"
             >
-                <div className="grid gap-2">
+                <div aria-busy={isOpeningWorkspace} className="grid gap-2">
                     {workspaces.map((workspace) => (
                         <Button
+                            aria-label={`${workspace.name} (${workspace.host}) öffnen`}
                             disabled={isOpeningWorkspace}
                             key={workspace.tenantId}
                             onClick={() => {
@@ -163,7 +177,15 @@ function LoginForm() {
 
     return (
         <AuthCard
-            description="Melde dich an, um Inhalte für deinen Mandanten zu verwalten."
+            description="Schritt 1 von 2 — melde dich an, um Inhalte für deinen Mandanten zu verwalten."
+            footer={
+                <span>
+                    Einladung erhalten?{' '}
+                    <Link className="underline" href="/accept-invite">
+                        Einladung annehmen
+                    </Link>
+                </span>
+            }
             title="Studio anmelden"
         >
             {roleDenied ? (
@@ -187,6 +209,7 @@ function LoginForm() {
                     <Input
                         autoComplete="username"
                         id="login-email"
+                        inputMode="email"
                         maxLength={254}
                         name="email"
                         required
@@ -205,7 +228,7 @@ function LoginForm() {
                         type="password"
                     />
                 </div>
-                <Button disabled={isPending} type="submit">
+                <Button className="w-full" disabled={isPending} type="submit">
                     {isPending ? 'Anmeldung…' : 'Weiter'}
                 </Button>
             </Form>
@@ -220,7 +243,16 @@ function LoginForm() {
 
 export default function LoginPage() {
     return (
-        <Suspense fallback={<p className="text-sm text-muted-foreground">Wird geladen…</p>}>
+        <Suspense
+            fallback={
+                <AuthCard
+                    description="Das Anmeldeformular wird vorbereitet."
+                    title="Studio anmelden"
+                >
+                    <AuthFormSkeleton />
+                </AuthCard>
+            }
+        >
             <LoginForm />
         </Suspense>
     )

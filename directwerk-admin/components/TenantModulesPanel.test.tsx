@@ -104,6 +104,7 @@ describe('TenantModulesPanel', () => {
 
     it('deactivates an active non-core module when clicking Deactivate', async () => {
         const user = userEvent.setup()
+        const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true)
         loadTenantModulesPanelData.mockResolvedValue({
             catalog: mockModulesCatalog,
             enabledModules: new Set(['CORE_AUTH', 'PODCAST']),
@@ -134,6 +135,30 @@ describe('TenantModulesPanel', () => {
                 'Deactivated PODCAST (and any dependents).',
             )
         })
+        expect(confirmSpy).toHaveBeenCalled()
+    })
+
+    it('does not deactivate when the confirmation is dismissed', async () => {
+        const user = userEvent.setup()
+        vi.spyOn(window, 'confirm').mockReturnValue(false)
+        loadTenantModulesPanelData.mockResolvedValue({
+            catalog: mockModulesCatalog,
+            enabledModules: new Set(['CORE_AUTH', 'PODCAST']),
+            activations: [],
+        })
+
+        render(<TenantModulesPanel tenantId="1" />)
+
+        await waitFor(() => {
+            expect(screen.getAllByRole('button', {name: 'Deactivate'})).toHaveLength(2)
+        })
+
+        const buttons = screen.getAllByRole('button', {name: 'Deactivate'})
+        const podcastDeactivateButton = buttons.find((btn) => !btn.hasAttribute('disabled'))
+        expect(podcastDeactivateButton).toBeDefined()
+        await user.click(podcastDeactivateButton!)
+
+        expect(deactivateTenantModule).not.toHaveBeenCalled()
     })
 
     it('applies a module preset when clicking preset button', async () => {

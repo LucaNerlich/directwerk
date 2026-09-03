@@ -35,7 +35,7 @@ function FeedUrlActions({
     url: string
 }): React.JSX.Element {
     return (
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap items-center gap-2">
             {safeLinkHref(url) !== null ? (
                 <a
                     className="text-sm font-medium text-primary underline-offset-4 hover:underline"
@@ -47,6 +47,7 @@ function FeedUrlActions({
                 </a>
             ) : null}
             <Button
+                aria-label={copiedUrl === url ? 'Feed-URL kopiert' : 'Feed-URL kopieren'}
                 onClick={() => onCopy(url)}
                 size="sm"
                 type="button"
@@ -54,6 +55,11 @@ function FeedUrlActions({
             >
                 {copiedUrl === url ? 'Kopiert!' : 'Kopieren'}
             </Button>
+            {copiedUrl === url ? (
+                <span className="sr-only" role="status">
+                    Feed-URL kopiert.
+                </span>
+            ) : null}
         </div>
     )
 }

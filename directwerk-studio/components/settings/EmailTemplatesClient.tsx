@@ -2,9 +2,15 @@
 
 import SelectControl from '@/components/studio/SelectControl'
 
+import {Alert, AlertDescription} from '@directwerk/ui/components/alert'
 import {Button} from '@directwerk/ui/components/button'
+import {Card, CardContent, CardDescription, CardHeader, CardTitle} from '@directwerk/ui/components/card'
 import {Textarea} from '@directwerk/ui/components/textarea'
 import {Input} from '@directwerk/ui/components/input'
+import {Label} from '@directwerk/ui/components/label'
+import PageHeader from '@directwerk/ui/components/page-header'
+import PageStack from '@directwerk/ui/components/page-stack'
+import {Skeleton} from '@directwerk/ui/components/skeleton'
 
 import Form from 'next/form'
 import {useRouter} from 'next/navigation'
@@ -100,23 +106,16 @@ export default function EmailTemplatesClient(): React.JSX.Element {
     const [state, formAction, pending] = useActionState(saveAction, INITIAL_STATE)
 
     return (
-        <div className="flex flex-col gap-6">
-            <header className="flex flex-col gap-4 border-b pb-6 sm:flex-row sm:items-end sm:justify-between">
-                <div>
-                    <p className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">Einstellungen</p>
-                    <h1>E-Mail-Vorlagen</h1>
-                </div>
-            </header>
+        <PageStack>
+            <PageHeader
+                eyebrow="Einstellungen"
+                title="E-Mail-Vorlagen"
+                description="Vorlagen für Benachrichtigungen bei neuen Folgen und Beiträgen (Modul EMAIL_NOTIFY). Platzhalter wie {{title}} werden beim Versand ersetzt."
+            />
 
-            <p>
-                Vorlagen für Benachrichtigungen bei neuen Folgen und Beiträgen
-                (Modul <code>EMAIL_NOTIFY</code>).
-            </p>
-
-            <label className="grid gap-2 text-sm font-medium" htmlFor="contentType">
-                Inhaltstyp
+            <div className="grid w-full max-w-xl gap-2">
+                <Label htmlFor="contentType">Inhaltstyp</Label>
                 <SelectControl
-                    className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50"
                     id="contentType"
                     onChange={(event) =>
                         setContentType(event.target.value as ContentEmailTemplateType)
@@ -129,55 +128,83 @@ export default function EmailTemplatesClient(): React.JSX.Element {
                         </option>
                     ))}
                 </SelectControl>
-            </label>
-
-            {isLoading ? <p>Wird geladen…</p> : null}
-            {loadError !== null ? (
-                <p className="text-sm text-destructive" role="alert">
-                    {loadError}
+                <p className="text-xs text-muted-foreground">
+                    {contentType === 'EPISODE'
+                        ? 'Wird an Abonnenten versendet, sobald eine neue Folge erscheint.'
+                        : 'Wird an Abonnenten versendet, sobald ein neuer Beitrag erscheint.'}
                 </p>
+            </div>
+
+            {isLoading ? (
+                <div className="grid gap-3" aria-busy="true">
+                    <p className="text-sm text-muted-foreground" role="status">Wird geladen…</p>
+                    <Skeleton className="h-10 w-full max-w-xl" />
+                    <Skeleton className="h-48 w-full max-w-xl" />
+                </div>
+            ) : null}
+            {loadError !== null ? (
+                <Alert variant="destructive">
+                    <AlertDescription>{loadError}</AlertDescription>
+                </Alert>
             ) : null}
 
             {!isLoading && loadError === null ? (
-                <Form action={formAction} className="grid w-full max-w-xl gap-5" key={contentType}>
-                    <label className="grid gap-2 text-sm font-medium" htmlFor="subjectTemplate">
-                        Betreff
+                <Card className="max-w-xl">
+                    <CardHeader>
+                        <CardTitle>{contentType === 'EPISODE' ? 'Vorlage: Neue Folge' : 'Vorlage: Neuer Beitrag'}</CardTitle>
+                        <CardDescription>Betreff und HTML-Inhalt der Benachrichtigungs-E-Mail.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                <Form action={formAction} className="grid w-full gap-5" key={contentType}>
+                    <div className="grid gap-2">
+                        <Label htmlFor="subjectTemplate">Betreff</Label>
                         <Input
-                            className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50"
+                            aria-describedby="subjectTemplate-help"
                             defaultValue={template?.subjectTemplate ?? ''}
                             id="subjectTemplate"
                             maxLength={512}
                             name="subjectTemplate"
+                            placeholder={contentType === 'EPISODE' ? 'Neue Folge: {{title}}' : 'Neuer Beitrag: {{title}}'}
                             required
                             type="text"
                         />
-                    </label>
-                    <label className="grid gap-2 text-sm font-medium" htmlFor="bodyHtml">
-                        HTML-Inhalt
+                        <p className="text-xs text-muted-foreground" id="subjectTemplate-help">
+                            {'{{title}}'} wird durch den Titel der Folge bzw. des Beitrags ersetzt.
+                        </p>
+                    </div>
+                    <div className="grid gap-2">
+                        <Label htmlFor="bodyHtml">HTML-Inhalt</Label>
                         <Textarea
-                            className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50"
+                            aria-describedby="bodyHtml-help"
                             defaultValue={template?.bodyHtml ?? ''}
                             id="bodyHtml"
                             name="bodyHtml"
                             required
                             rows={12}
                         />
-                    </label>
-                    {state.error ? (
-                        <p aria-live="polite" className="text-sm text-destructive" role="alert">
-                            {state.error}
+                        <p className="text-xs text-muted-foreground" id="bodyHtml-help">
+                            HTML für den E-Mail-Text. Platzhalter wie {'{{title}}'} werden beim Versand mit den Inhalten der Folge bzw. des Beitrags gefüllt.
                         </p>
+                    </div>
+                    {state.error ? (
+                        <Alert variant="destructive">
+                            <AlertDescription>{state.error}</AlertDescription>
+                        </Alert>
                     ) : null}
                     {state.success ? (
-                        <p aria-live="polite" role="status">
-                            {state.success}
-                        </p>
+                        <Alert role="status">
+                            <AlertDescription>{state.success}</AlertDescription>
+                        </Alert>
                     ) : null}
-                    <Button className="inline-flex h-9 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground shadow-xs hover:bg-primary/90 disabled:pointer-events-none disabled:opacity-50" disabled={pending} type="submit">
+                    <div>
+                    <Button disabled={pending} type="submit">
                         {pending ? 'Speichern…' : 'Speichern'}
                     </Button>
+                    </div>
                 </Form>
+                    </CardContent>
+                </Card>
             ) : null}
-        </div>
+        </PageStack>
     )
 }

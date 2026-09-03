@@ -4,12 +4,17 @@ import Link from 'next/link'
 import {useRouter} from 'next/navigation'
 import {useEffect, useState} from 'react'
 
+import {Alert, AlertDescription} from '@directwerk/ui/components/alert'
+import {Button} from '@directwerk/ui/components/button'
+import EmptyState from '@directwerk/ui/components/empty-state'
 import {EntityListToolbar} from '@directwerk/ui/components/entity-list-toolbar'
 import {
     EntityListView,
     type EntityListViewItem,
 } from '@directwerk/ui/components/entity-list-view'
 import SectionHeader from '@directwerk/ui/components/section-header'
+import {Skeleton} from '@directwerk/ui/components/skeleton'
+import StatCard from '@directwerk/ui/components/stat-card'
 import {useListViewMode} from '@directwerk/ui/hooks/use-list-view-mode'
 
 import PublicationStatusBadge from '@/components/publication/PublicationStatusBadge'
@@ -43,6 +48,21 @@ function draftItems(
     }))
 }
 
+function QueueSkeleton(): React.JSX.Element {
+    return (
+        <div aria-busy="true" aria-live="polite" className="flex flex-col gap-4" role="status">
+            <span className="sr-only">Aktuelle Entwürfe werden geladen…</span>
+            <div className="grid gap-4 sm:grid-cols-3" aria-hidden="true">
+                <Skeleton className="h-24" />
+                <Skeleton className="h-24" />
+                <Skeleton className="h-24" />
+            </div>
+            <Skeleton className="h-12" aria-hidden="true" />
+            <Skeleton className="h-12" aria-hidden="true" />
+        </div>
+    )
+}
+
 export default function OverviewQueue({desks}: OverviewQueueProps): React.JSX.Element {
     const router = useRouter()
     const authRedirect = useAuthRequired()
@@ -53,6 +73,7 @@ export default function OverviewQueue({desks}: OverviewQueueProps): React.JSX.El
     const [series, setSeries] = useState<SeriesSummary[]>([])
     const [errorMessage, setErrorMessage] = useState<string | null>(null)
     const [isLoading, setIsLoading] = useState(showWrite || showPodcast)
+    const [attempt, setAttempt] = useState(0)
     const {viewMode, setViewMode} = useListViewMode()
 
     useEffect(() => {
@@ -63,6 +84,8 @@ export default function OverviewQueue({desks}: OverviewQueueProps): React.JSX.El
         let active = true
 
         async function load(): Promise<void> {
+            setErrorMessage(null)
+            setIsLoading(true)
             try {
                 const host = getClientTenantHost()
                 const [loadedArticles, loadedEpisodes, loadedSeries] = await Promise.all([
@@ -98,14 +121,22 @@ export default function OverviewQueue({desks}: OverviewQueueProps): React.JSX.El
         return () => {
             active = false
         }
-    }, [router, showPodcast, showWrite])
+    }, [authRedirect, attempt, router, showPodcast, showWrite])
 
     if (!showWrite && !showPodcast) {
         return <></>
     }
 
     if (isLoading) {
-        return <p className="text-sm text-muted-foreground">Aktuelle Entwürfe werden geladen…</p>
+        return (
+            <section aria-label="Als Nächstes" className="flex flex-col gap-6">
+                <SectionHeader
+                    description="Entwürfe und geplante Inhalte, die als Nächstes dran sind."
+                    title="Als Nächstes"
+                />
+                <QueueSkeleton />
+            </section>
+        )
     }
 
     const awaitingArticles = articles.filter((item) => AWAITING_STATUSES.has(item.status))
@@ -113,17 +144,71 @@ export default function OverviewQueue({desks}: OverviewQueueProps): React.JSX.El
     const draftSeries = series.filter((item) => item.status === 'DRAFT')
     const hasQueuedItems =
         draftSeries.length + awaitingEpisodes.length + awaitingArticles.length > 0
+    const showSeriesGuidance = showPodcast && series.length === 0
+    const showEpisodeGuidance =
+        showPodcast && series.length > 0 && episodes.length === 0
+    const showArticleGuidance = showWrite && articles.length === 0
+    const showFirstRunGuidance =
+        showSeriesGuidance || showEpisodeGuidance || showArticleGuidance
 
     return (
-        <section className="flex flex-col gap-6">
+        <section aria-label="Als Nächstes" className="flex flex-col gap-6">
             <SectionHeader
                 description="Entwürfe und geplante Inhalte, die als Nächstes dran sind."
                 title="Als Nächstes"
             />
             {errorMessage !== null ? (
-                <p className="text-sm text-destructive" role="alert">
-                    {errorMessage}
-                </p>
+                <Alert variant="destructive">
+                    <AlertDescription>{errorMessage}</AlertDescription>
+                    <Button
+                        className="mt-3"
+                        onClick={() => {
+                            setAttempt((value) => value + 1)
+                        }}
+                        type="button"
+                        variant="outline"
+                    >
+                        Erneut laden
+                    </Button>
+                </Alert>
+            ) : null}
+
+            {hasQueuedItems ? (
+                <div className="grid gap-4 sm:grid-cols-3">
+                    {showWrite ? (
+                        <StatCard
+                            label="Beitrags-Entwürfe"
+                            value={awaitingArticles.length}
+                            hint={
+                                awaitingArticles.length === 0
+                                    ? 'Keine offenen Beiträge'
+                                    : 'Entwürfe und geplante Beiträge'
+                            }
+                        />
+                    ) : null}
+                    {showPodcast ? (
+                        <StatCard
+                            label="Folgen-Entwürfe"
+                            value={awaitingEpisodes.length}
+                            hint={
+                                awaitingEpisodes.length === 0
+                                    ? 'Keine offenen Folgen'
+                                    : 'Entwürfe und geplante Folgen'
+                            }
+                        />
+                    ) : null}
+                    {showPodcast ? (
+                        <StatCard
+                            label="Sendungen im Entwurf"
+                            value={draftSeries.length}
+                            hint={
+                                draftSeries.length === 0
+                                    ? 'Alle Sendungen veröffentlicht'
+                                    : 'Noch zu veröffentlichen'
+                            }
+                        />
+                    ) : null}
+                </div>
             ) : null}
 
             {hasQueuedItems ? (
@@ -135,25 +220,46 @@ export default function OverviewQueue({desks}: OverviewQueueProps): React.JSX.El
             ) : null}
 
             {showPodcast && series.length === 0 ? (
-                <p className="text-sm text-muted-foreground">
-                    Noch keine Sendung.{' '}
-                    <Link href="/podcast/series/new">Erste Sendung anlegen</Link>
-                    , danach die erste Folge.
-                </p>
+                <EmptyState
+                    title="Noch keine Sendung"
+                    description="Lege zuerst eine Sendung an — danach kannst du die erste Folge erstellen."
+                    action={
+                        <Link className="underline" href="/podcast/series/new">
+                            Erste Sendung anlegen
+                        </Link>
+                    }
+                />
             ) : null}
 
             {showPodcast && series.length > 0 && episodes.length === 0 ? (
-                <p className="text-sm text-muted-foreground">
-                    Noch keine Folge.{' '}
-                    <Link href="/podcast/episodes/new">Erste Folge anlegen</Link>.
-                </p>
+                <EmptyState
+                    title="Noch keine Folge"
+                    description="Deine Sendung steht. Jetzt fehlt nur noch die erste Folge."
+                    action={
+                        <Link className="underline" href="/podcast/episodes/new">
+                            Erste Folge anlegen
+                        </Link>
+                    }
+                />
             ) : null}
 
             {showWrite && articles.length === 0 ? (
-                <p className="text-sm text-muted-foreground">
-                    Noch kein Beitrag.{' '}
-                    <Link href="/write/articles/new">Ersten Beitrag schreiben</Link>.
-                </p>
+                <EmptyState
+                    title="Noch kein Beitrag"
+                    description="Schreibe deinen ersten Beitrag — er landet automatisch hier als Entwurf."
+                    action={
+                        <Link className="underline" href="/write/articles/new">
+                            Ersten Beitrag schreiben
+                        </Link>
+                    }
+                />
+            ) : null}
+
+            {!hasQueuedItems && !showFirstRunGuidance && errorMessage === null ? (
+                <EmptyState
+                    title="Alles erledigt"
+                    description="Keine Entwürfe oder geplanten Inhalte. Lege etwas Neues an, wenn du bereit bist."
+                />
             ) : null}
 
             {draftSeries.length > 0 ? (

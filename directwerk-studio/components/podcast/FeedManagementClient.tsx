@@ -40,7 +40,7 @@ function FeedUrlActions({
     url: string
 }): React.JSX.Element {
     return (
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap items-center gap-2">
             {safeLinkHref(url) !== null ? (
                 <a
                     className="text-sm font-medium text-primary underline-offset-4 hover:underline"
@@ -52,6 +52,7 @@ function FeedUrlActions({
                 </a>
             ) : null}
             <Button
+                aria-label={copiedUrl === url ? 'Feed-URL kopiert' : 'Feed-URL kopieren'}
                 onClick={() => onCopy(url)}
                 size="sm"
                 type="button"
@@ -59,6 +60,11 @@ function FeedUrlActions({
             >
                 {copiedUrl === url ? 'Kopiert!' : 'Kopieren'}
             </Button>
+            {copiedUrl === url ? (
+                <span className="sr-only" role="status">
+                    Feed-URL kopiert.
+                </span>
+            ) : null}
         </div>
     )
 }
@@ -243,6 +249,11 @@ export default function FeedManagementClient(): React.JSX.Element {
     }))
     const showViewToggle =
         seriesFeedItems.length + draftSeriesItems.length + subscriberFeedItems.length > 0
+    const hasAnyFeed =
+        generalFeedItems.length > 0 ||
+        seriesFeedItems.length > 0 ||
+        draftSeriesItems.length > 0 ||
+        (showSubscriberFeeds && subscriberFeedItems.length > 0)
 
     return (
         <PageStack>
@@ -256,6 +267,18 @@ export default function FeedManagementClient(): React.JSX.Element {
                 <Alert variant="destructive">
                     <AlertDescription>{errorMessage}</AlertDescription>
                 </Alert>
+            ) : null}
+
+            {!hasAnyFeed && errorMessage === null ? (
+                <EmptyState
+                    action={
+                        <Button nativeButton={false} render={<Link href="/podcast/series/new" />}>
+                            Sendung anlegen
+                        </Button>
+                    }
+                    description="Lege zuerst eine Sendung an und veröffentliche sie — danach erscheint hier der RSS-Feed."
+                    title="Noch keine Feeds"
+                />
             ) : null}
 
             {showViewToggle ? (

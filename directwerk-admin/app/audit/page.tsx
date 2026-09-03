@@ -2,12 +2,12 @@
 
 import Link from 'next/link'
 import {useRouter} from 'next/navigation'
-import {useCallback, useEffect, useState} from 'react'
+import {useCallback, useEffect, useRef, useState} from 'react'
 
 import {Alert, AlertDescription} from '@directwerk/ui/components/alert'
 import {Badge} from '@directwerk/ui/components/badge'
 import {Button} from '@directwerk/ui/components/button'
-import {Card, CardContent, CardHeader, CardTitle} from '@directwerk/ui/components/card'
+import {Card, CardContent, CardDescription, CardHeader, CardTitle} from '@directwerk/ui/components/card'
 import EmptyState from '@directwerk/ui/components/empty-state'
 import {Input} from '@directwerk/ui/components/input'
 import {Label} from '@directwerk/ui/components/label'
@@ -23,7 +23,7 @@ import {
     TableRow,
 } from '@directwerk/ui/components/table'
 
-import RecentAuditTable from '@/components/RecentAuditTable'
+import {AdminLoadingText, TableSkeleton} from '@/components/AdminLoading'
 import {getPlatformAuditPage} from '@/lib/api/client'
 import {AUTH_REQUIRED} from '@directwerk/api/constants'
 import type {PlatformAuditPage, PlatformAuditQuery} from '@directwerk/api/types'
@@ -45,18 +45,26 @@ export default function AuditPage(): React.JSX.Element {
     const [error, setError] = useState<string | null>(null)
     const [filterError, setFilterError] = useState<string | null>(null)
     const [isLoading, setIsLoading] = useState(true)
+    const latestRequestId = useRef(0)
 
     const loadAudit = useCallback(
         (nextQuery: PlatformAuditQuery) => {
+            const requestId = ++latestRequestId.current
             setError(null)
             setIsLoading(true)
 
             getPlatformAuditPage(nextQuery)
                 .then((result) => {
+                    if (requestId !== latestRequestId.current) {
+                        return
+                    }
                     setPage(result)
                     setIsLoading(false)
                 })
                 .catch((requestError: unknown) => {
+                    if (requestId !== latestRequestId.current) {
+                        return
+                    }
                     if (
                         requestError instanceof Error &&
                         requestError.message === AUTH_REQUIRED
@@ -69,12 +77,18 @@ export default function AuditPage(): React.JSX.Element {
                     setError('Could not load audit log.')
                     setIsLoading(false)
                 })
+
+            return () => {
+                if (requestId === latestRequestId.current) {
+                    latestRequestId.current += 1
+                }
+            }
         },
         [router],
     )
 
     useEffect(() => {
-        loadAudit(query)
+        return loadAudit(query)
     }, [loadAudit, query])
 
     function applyFilters(formData: FormData): void {
@@ -108,6 +122,12 @@ export default function AuditPage(): React.JSX.Element {
         })
     }
 
+    function resetFilters(): void {
+        setFilterError(null)
+        setExpandedId(null)
+        setQuery(DEFAULT_QUERY)
+    }
+
     const hasPreviousPage = page !== null && page.page > 0
     const hasNextPage =
         page !== null && (page.page + 1) * page.size < page.totalElements
@@ -123,10 +143,15 @@ export default function AuditPage(): React.JSX.Element {
             <Card aria-labelledby="audit-filters-heading" role="region">
                 <CardHeader>
                     <CardTitle id="audit-filters-heading">Filters</CardTitle>
+                    <CardDescription>
+                        Tenant, action, and actor narrow the log. Page size
+                        caps how many events load at once.
+                    </CardDescription>
                 </CardHeader>
                 <CardContent>
                     <form
                         className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4"
+                        key={JSON.stringify(query)}
                         onSubmit={(event) => {
                             event.preventDefault()
                             applyFilters(new FormData(event.currentTarget))
@@ -181,12 +206,14 @@ export default function AuditPage(): React.JSX.Element {
                                 <AlertDescription>{filterError}</AlertDescription>
                             </Alert>
                         ) : null}
-                        <Button
-                            className="w-fit sm:col-span-2 lg:col-span-4"
-                            type="submit"
-                        >
-                            Apply filters
-                        </Button>
+                        <div className="flex flex-wrap gap-2 sm:col-span-2 lg:col-span-4">
+                            <Button type="submit">
+                                Apply filters
+                            </Button>
+                            <Button onClick={resetFilters} type="button" variant="outline">
+                                Reset
+                            </Button>
+                        </div>
                     </form>
                 </CardContent>
             </Card>
@@ -198,14 +225,15 @@ export default function AuditPage(): React.JSX.Element {
             ) : null}
 
             {isLoading ? (
-                <p aria-live="polite" className="text-sm text-muted-foreground">
-                    Loading audit events…
-                </p>
+                <>
+                    <TableSkeleton rows={6} />
+                    <AdminLoadingText text="Loading audit events…" />
+                </>
             ) : null}
 
             {!isLoading && page ? (
                 <>
-                    <p className="text-sm text-muted-foreground">
+                    <p aria-live="polite" className="text-sm text-muted-foreground">
                         Showing {page.content.length} of {page.totalElements} events
                         (page {page.page + 1}, size {page.size}).
                     </p>
@@ -252,6 +280,7 @@ export default function AuditPage(): React.JSX.Element {
                                             </TableCell>
                                             <TableCell>
                                                 <Button
+                                                    aria-expanded={expandedId === event.id}
                                                     onClick={() =>
                                                         setExpandedId((current) =>
                                                             current === event.id
@@ -278,11 +307,15 @@ export default function AuditPage(): React.JSX.Element {
                             </Table>
                         </ResponsiveTable>
                     ) : (
-                        <EmptyState title="No audit events match the current filters" />
+                        <EmptyState
+                            description="Try widening the filters or resetting them."
+                            title="No audit events match the current filters"
+                        />
                     )}
 
-                    <div className="flex gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
                         <Button
+                            aria-label="Previous audit page"
                             disabled={!hasPreviousPage}
                             onClick={() =>
                                 setQuery((current) => ({
@@ -296,6 +329,7 @@ export default function AuditPage(): React.JSX.Element {
                             Previous page
                         </Button>
                         <Button
+                            aria-label="Next audit page"
                             disabled={!hasNextPage}
                             onClick={() =>
                                 setQuery((current) => ({

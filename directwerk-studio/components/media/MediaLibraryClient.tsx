@@ -3,6 +3,8 @@
 import SelectControl from '@/components/studio/SelectControl'
 import UploadProgress from '@/components/media/UploadProgress'
 
+import {Alert, AlertDescription} from '@directwerk/ui/components/alert'
+import {Badge} from '@directwerk/ui/components/badge'
 import {Button} from '@directwerk/ui/components/button'
 import {Checkbox} from '@directwerk/ui/components/checkbox'
 import EmptyState from '@directwerk/ui/components/empty-state'
@@ -10,6 +12,9 @@ import {EntityListSection} from '@directwerk/ui/components/entity-list-section'
 import type {EntityListViewItem} from '@directwerk/ui/components/entity-list-view'
 import {Label} from '@directwerk/ui/components/label'
 import PageHeader from '@directwerk/ui/components/page-header'
+import PageStack from '@directwerk/ui/components/page-stack'
+import SectionHeader from '@directwerk/ui/components/section-header'
+import {Skeleton} from '@directwerk/ui/components/skeleton'
 import {useEntityListSelection} from '@directwerk/ui/hooks/use-entity-list-selection'
 import {useListViewMode} from '@directwerk/ui/hooks/use-list-view-mode'
 
@@ -20,6 +25,7 @@ import {deleteMedia, getMediaPreviewUrl, listMedia} from '@/lib/api/mediaApi'
 import type {MediaAsset} from '@directwerk/api/types'
 import {MEDIA_TYPE_LIMITS} from '@/lib/media/limits'
 import {uploadMediaFile} from '@/lib/media/upload'
+import {assetTypeLabel, mediaStatusLabel, visibilityLabel} from '@/lib/subscription/displayLabels'
 import {getClientTenantHost} from '@directwerk/api/tenant'
 import {safeImageSrc} from '@/lib/url/safeUrl'
 import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
@@ -408,20 +414,32 @@ export default function MediaLibraryClient(): React.JSX.Element {
 
     function renderAssetMeta(asset: MediaAsset): React.JSX.Element {
         return (
-            <small className="text-muted-foreground">
-                {asset.assetType} · {asset.status}
-                {asset.visibility ? ` · ${asset.visibility}` : ''}
+            <p className="text-sm text-muted-foreground">
+                {assetTypeLabel(asset.assetType)} · {mediaStatusLabel(asset.status)}
+                {asset.visibility ? ` · ${visibilityLabel(asset.visibility)}` : ''}
                 {' · '}
                 {formatBytes(asset.sizeBytes)}
-            </small>
+            </p>
         )
     }
 
     const pendingCount = assets.filter((asset) => asset.status === 'PENDING').length
+    const hasActiveFilters = typeFilter.length > 0 || statusFilter.length > 0 || orphanOnly
+
+    function resetFilters(): void {
+        setTypeFilter('')
+        setStatusFilter('')
+        setOrphanOnly(false)
+    }
 
     const mediaItems: EntityListViewItem<number>[] = visibleAssets.map((asset) => ({
         id: asset.id,
         title: asset.originalFilename ?? `Asset #${asset.id}`,
+        trailing: (
+            <Badge variant={asset.status === 'READY' ? 'secondary' : 'outline'}>
+                {mediaStatusLabel(asset.status)}
+            </Badge>
+        ),
         leading:
             viewMode === 'list' ? (
                 <div className="size-16 shrink-0 overflow-hidden rounded-md">
@@ -452,7 +470,21 @@ export default function MediaLibraryClient(): React.JSX.Element {
     }))
 
     if (isLoading) {
-        return <p>Wird geladen…</p>
+        return (
+            <PageStack>
+                <PageHeader
+                    eyebrow="Medien"
+                    title="Bibliothek"
+                    description="Lade Audio, Bilder und Dokumente hoch — per Klick oder per Drag-and-drop."
+                />
+                <p className="text-sm text-muted-foreground" role="status">Wird geladen…</p>
+                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3" aria-hidden="true">
+                    {[0, 1, 2].map((index) => (
+                        <Skeleton className="h-44 w-full" key={index} />
+                    ))}
+                </div>
+            </PageStack>
+        )
     }
 
     const uploadButton = (
@@ -466,7 +498,7 @@ export default function MediaLibraryClient(): React.JSX.Element {
     )
 
     return (
-        <div className="flex flex-col gap-6">
+        <PageStack>
             <PageHeader
                 eyebrow="Medien"
                 title="Bibliothek"
@@ -477,16 +509,20 @@ export default function MediaLibraryClient(): React.JSX.Element {
             <input
                 ref={fileInputRef}
                 accept="audio/*,image/*,video/*,.pdf,.doc,.docx"
+                aria-hidden="true"
                 disabled={isBusy}
                 hidden
                 onChange={(event) => {
                     void handleUpload(event)
                 }}
+                tabIndex={-1}
                 type="file"
             />
 
             <div
-                className={`rounded-xl border border-dashed px-6 py-8 text-center text-sm ${
+                aria-disabled={isBusy}
+                aria-label="Datei-Upload per Drag-and-drop oder Tastatur"
+                className={`rounded-xl border border-dashed px-6 py-8 text-center text-sm outline-none transition-colors focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 ${
                     isDragging
                         ? 'border-primary bg-primary/5'
                         : 'border-border bg-muted/20'
@@ -494,12 +530,23 @@ export default function MediaLibraryClient(): React.JSX.Element {
                 onDragLeave={handleDragLeave}
                 onDragOver={handleDragOver}
                 onDrop={handleDrop}
+                onKeyDown={(event) => {
+                    if (isBusy) {
+                        return
+                    }
+                    if (event.key === 'Enter' || event.key === ' ') {
+                        event.preventDefault()
+                        fileInputRef.current?.click()
+                    }
+                }}
+                role="button"
+                tabIndex={isBusy ? -1 : 0}
             >
                 <p className="font-medium">
                     {isDragging ? 'Datei hier ablegen' : 'Datei hierher ziehen'}
                 </p>
                 <p className="mt-1 text-muted-foreground">
-                    Audio, Bilder, Video oder PDF/DOC. Alternativ über „Datei hochladen“.
+                    Audio, Bilder, Video oder PDF/DOC. Alternativ über „Datei hochladen“ oder Enter drücken.
                 </p>
                 <p className="mt-1 text-xs text-muted-foreground">
                     Audio bis {MEDIA_TYPE_LIMITS.AUDIO.label} · Video bis {MEDIA_TYPE_LIMITS.VIDEO.label}
@@ -514,11 +561,23 @@ export default function MediaLibraryClient(): React.JSX.Element {
                 />
             ) : null}
 
+            <section aria-labelledby="media-filter-heading" className="flex flex-col gap-4">
+                <SectionHeader
+                    id="media-filter-heading"
+                    title="Filter"
+                    description={`${visibleAssets.length} von ${assets.length} Dateien angezeigt.`}
+                    action={
+                        hasActiveFilters ? (
+                            <Button onClick={resetFilters} size="sm" type="button" variant="ghost">
+                                Filter zurücksetzen
+                            </Button>
+                        ) : undefined
+                    }
+                />
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 <label className="grid gap-2 text-sm font-medium" htmlFor="typeFilter">
                     Typ filtern
                     <SelectControl
-                        className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50"
                         id="typeFilter"
                         onChange={(event) => setTypeFilter(event.target.value)}
                         value={typeFilter}
@@ -533,7 +592,6 @@ export default function MediaLibraryClient(): React.JSX.Element {
                 <label className="grid gap-2 text-sm font-medium" htmlFor="statusFilter">
                     Status filtern
                     <SelectControl
-                        className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50"
                         id="statusFilter"
                         onChange={(event) => setStatusFilter(event.target.value)}
                         value={statusFilter}
@@ -553,10 +611,12 @@ export default function MediaLibraryClient(): React.JSX.Element {
                     <span>Nur unverknüpfte Dateien</span>
                 </Label>
             </div>
+            </section>
 
             {pendingCount > 0 ? (
                 <div className="flex flex-wrap items-center gap-3 rounded-xl border border-dashed bg-muted/30 px-4 py-3 text-sm">
-                    <span>{pendingCount} ausstehende Upload(s)</span>
+                    <Badge variant="outline">{pendingCount} ausstehend</Badge>
+                    <span className="text-muted-foreground">Ausstehende Uploads wurden noch nicht bestätigt.</span>
                     <Button
                         disabled={isBusy}
                         onClick={() => void handleBulkDeletePending()}
@@ -570,11 +630,15 @@ export default function MediaLibraryClient(): React.JSX.Element {
             ) : null}
 
             {errorMessage !== null ? (
-                <p className="text-sm text-destructive" role="alert">
-                    {errorMessage}
-                </p>
+                <Alert variant="destructive">
+                    <AlertDescription>{errorMessage}</AlertDescription>
+                </Alert>
             ) : null}
-            {statusMessage !== null ? <p role="status">{statusMessage}</p> : null}
+            {statusMessage !== null ? (
+                <Alert role="status">
+                    <AlertDescription>{statusMessage}</AlertDescription>
+                </Alert>
+            ) : null}
 
             {assets.length === 0 ? (
                 <EmptyState
@@ -583,7 +647,15 @@ export default function MediaLibraryClient(): React.JSX.Element {
                     action={uploadButton}
                 />
             ) : visibleAssets.length === 0 ? (
-                <p className="text-sm text-muted-foreground">Keine Medien für diesen Filter.</p>
+                <EmptyState
+                    title="Keine Medien für diesen Filter"
+                    description="Passe Typ, Status oder die Auswahl „Nur unverknüpfte Dateien“ an."
+                    action={
+                        <Button onClick={resetFilters} type="button" variant="outline">
+                            Filter zurücksetzen
+                        </Button>
+                    }
+                />
             ) : (
                 <EntityListSection
                     allSelected={allSelected}
@@ -612,6 +684,6 @@ export default function MediaLibraryClient(): React.JSX.Element {
                     viewMode={viewMode}
                 />
             )}
-        </div>
+        </PageStack>
     )
 }

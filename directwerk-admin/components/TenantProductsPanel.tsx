@@ -5,10 +5,13 @@ import {useCallback, useEffect, useState, type FormEvent} from 'react'
 import {Alert, AlertDescription} from '@directwerk/ui/components/alert'
 import {Badge} from '@directwerk/ui/components/badge'
 import {Button} from '@directwerk/ui/components/button'
-import {Card, CardContent, CardHeader, CardTitle} from '@directwerk/ui/components/card'
+import {Card, CardContent, CardDescription, CardHeader, CardTitle} from '@directwerk/ui/components/card'
 import EmptyState from '@directwerk/ui/components/empty-state'
 import {Input} from '@directwerk/ui/components/input'
 import {Label} from '@directwerk/ui/components/label'
+import ListPanel, {ListPanelRow} from '@directwerk/ui/components/list-panel'
+import ResponsiveTable from '@directwerk/ui/components/responsive-table'
+import SectionHeader from '@directwerk/ui/components/section-header'
 import {Table, TableBody, TableCell, TableHead, TableHeader, TableRow} from '@directwerk/ui/components/table'
 
 import {
@@ -138,6 +141,12 @@ export default function TenantProductsPanel({
     }
 
     async function handleDeactivate(productId: number): Promise<void> {
+        const confirmed = window.confirm(
+            'Deactivate this product? Existing subscribers keep access until their grants are revoked.',
+        )
+        if (!confirmed) {
+            return
+        }
         setError(null)
         setStatus(null)
         try {
@@ -223,6 +232,12 @@ export default function TenantProductsPanel({
     }
 
     async function handleRevoke(subscriptionId: number): Promise<void> {
+        const confirmed = window.confirm(
+            `Revoke subscription ${subscriptionId}? The subscriber immediately loses access.`,
+        )
+        if (!confirmed) {
+            return
+        }
         try {
             const revoked = await deleteTenantData<SubscriptionGrant>(
                 `tenant/subscriptions/${subscriptionId}`
@@ -241,7 +256,14 @@ export default function TenantProductsPanel({
     if (!hasSession) {
         return (
             <Card aria-labelledby="tenant-products-heading" role="region">
-                <CardHeader><CardTitle id="tenant-products-heading">Products & grants</CardTitle></CardHeader>
+                <CardHeader>
+                    <CardTitle id="tenant-products-heading">Products & grants</CardTitle>
+                    <CardDescription>
+                        Tenant subscription products, access rules, and manual
+                        grants. Requires a tenant session because the platform
+                        token cannot call tenant APIs.
+                    </CardDescription>
+                </CardHeader>
                 <CardContent><EmptyState description="Sign in to a tenant session above to manage products." title="Tenant session required" /></CardContent>
             </Card>
         )
@@ -249,53 +271,58 @@ export default function TenantProductsPanel({
 
     return (
         <Card aria-labelledby="tenant-products-heading" role="region">
-            <CardHeader><CardTitle id="tenant-products-heading">Products & grants</CardTitle></CardHeader>
+            <CardHeader>
+                <CardTitle id="tenant-products-heading">Products & grants</CardTitle>
+                <CardDescription>
+                    Tenant subscription products, PACKAGE access rules, and
+                    manual subscription grants.
+                </CardDescription>
+            </CardHeader>
             <CardContent className="space-y-6">
             {error ? (
                 <Alert aria-live="polite" variant="destructive"><AlertDescription>{error}</AlertDescription></Alert>
             ) : null}
             {status ? (
-                <p aria-live="polite" role="status">
+                <p aria-live="polite" role="status" className="text-sm text-muted-foreground">
                     {status}
                 </p>
             ) : null}
             {isLoading ? <p aria-live="polite" className="text-sm text-muted-foreground">Loading products…</p> : null}
 
-            <h3 className="text-lg font-semibold">Create product</h3>
+            <SectionHeader
+                description="LEVEL products gate by tier; PACKAGE products gate by access rules below."
+                title="Create product"
+            />
             <form className="grid gap-4 sm:grid-cols-2" onSubmit={(event) => void handleCreate(event)}>
-                <p>
+                <div className="space-y-2">
                     <Label htmlFor="admin-product-slug">Slug</Label>
-                    <br />
                     <Input
                         id="admin-product-slug"
                         onChange={(event) => setNewSlug(event.target.value)}
                         required
                         value={newSlug}
                     />
-                </p>
-                <p>
+                </div>
+                <div className="space-y-2">
                     <Label htmlFor="admin-product-title">Title</Label>
-                    <br />
                     <Input
                         id="admin-product-title"
                         onChange={(event) => setNewTitle(event.target.value)}
                         required
                         value={newTitle}
                     />
-                </p>
-                <p>
+                </div>
+                <div className="space-y-2">
                     <Label htmlFor="admin-product-sort">Sort order</Label>
-                    <br />
                     <Input
                         id="admin-product-sort"
                         onChange={(event) => setNewSortOrder(event.target.value)}
                         type="number"
                         value={newSortOrder}
                     />
-                </p>
-                <p>
+                </div>
+                <div className="space-y-2">
                     <Label htmlFor="admin-product-type">Offering type</Label>
-                    <br />
                     <select className="native-select"
                         id="admin-product-type"
                         onChange={(event) =>
@@ -308,14 +335,21 @@ export default function TenantProductsPanel({
                         <option value="LEVEL">LEVEL</option>
                         <option value="PACKAGE">PACKAGE</option>
                     </select>
-                </p>
+                </div>
                 <Button className="w-fit sm:col-span-2" type="submit">Create</Button>
             </form>
 
-            <h3>Products</h3>
+            <SectionHeader
+                description={products.length > 0 ? `${products.filter((product) => product.active).length} of ${products.length} active.` : undefined}
+                title="Products"
+            />
             {products.length === 0 ? (
-                <EmptyState title="No products" />
+                <EmptyState
+                    description="Create the first product to sell or grant access."
+                    title="No products"
+                />
             ) : (
+                <ResponsiveTable label="Subscription products">
                 <Table>
                     <TableHeader>
                         <TableRow>
@@ -331,9 +365,8 @@ export default function TenantProductsPanel({
                         {products.map((product) => (
                             <TableRow key={product.id}>
                                 <TableCell>
-                                    {product.title}
-                                    <br />
-                                    <small>{product.slug}</small>
+                                    <span className="font-medium">{product.title}</span>
+                                    <span className="block text-xs text-muted-foreground">{product.slug}</span>
                                 </TableCell>
                                 <TableCell>{product.offeringType}</TableCell>
                                 <TableCell>{product.sortOrder}</TableCell>
@@ -372,64 +405,81 @@ export default function TenantProductsPanel({
                         ))}
                     </TableBody>
                 </Table>
+                </ResponsiveTable>
             )}
 
             {selectedProductId !== null ? (
-                <>
-                    <h3>Rules for product {selectedProductId}</h3>
-                    <ul>
-                        {rules.map((rule) => (
-                            <li key={rule.id}>
-                                {rule.scopeType}
-                                {rule.scopeId !== null
-                                    ? ` #${rule.scopeId}`
-                                    : ''}{' '}
-                                ({rule.effect})
-                            </li>
-                        ))}
-                    </ul>
-                    <p>
-                        <Label htmlFor="admin-rule-scope">Replace with</Label>{' '}
-                        <select className="native-select"
-                            id="admin-rule-scope"
-                            onChange={(event) =>
-                                setRuleScopeType(event.target.value)
-                            }
-                            value={ruleScopeType}
-                        >
-                            <option value="ALL_PODCASTS">ALL_PODCASTS</option>
-                            <option value="PODCAST_SERIES">
-                                PODCAST_SERIES
-                            </option>
-                            <option value="FORMAT">FORMAT</option>
-                            <option value="CATEGORY">CATEGORY</option>
-                        </select>{' '}
-                        {ruleScopeType !== 'ALL_PODCASTS' ? (
-                            <Input
-                                aria-label="Scope ID"
+                <div className="space-y-3">
+                    <SectionHeader
+                        description="PACKAGE products only. Saving replaces all rules for this product."
+                        title={`Rules for product ${selectedProductId}`}
+                    />
+                    {rules.length > 0 ? (
+                        <ListPanel aria-label={`Access rules for product ${selectedProductId}`}>
+                            {rules.map((rule) => (
+                                <ListPanelRow key={rule.id}>
+                                    <span className="text-sm">
+                                        <span className="font-medium">{rule.scopeType}</span>
+                                        {rule.scopeId !== null
+                                            ? ` #${rule.scopeId}`
+                                            : ''}
+                                    </span>
+                                    <Badge variant="outline">{rule.effect}</Badge>
+                                </ListPanelRow>
+                            ))}
+                        </ListPanel>
+                    ) : (
+                        <p className="text-sm text-muted-foreground">No rules yet.</p>
+                    )}
+                    <div className="flex flex-wrap items-end gap-3">
+                        <div className="space-y-2">
+                            <Label htmlFor="admin-rule-scope">Replace with</Label>
+                            <select className="native-select"
+                                id="admin-rule-scope"
                                 onChange={(event) =>
-                                    setRuleScopeId(event.target.value)
+                                    setRuleScopeType(event.target.value)
                                 }
-                                placeholder="scope id"
-                                type="number"
-                                value={ruleScopeId}
-                            />
-                        ) : null}{' '}
+                                value={ruleScopeType}
+                            >
+                                <option value="ALL_PODCASTS">ALL_PODCASTS</option>
+                                <option value="PODCAST_SERIES">
+                                    PODCAST_SERIES
+                                </option>
+                                <option value="FORMAT">FORMAT</option>
+                                <option value="CATEGORY">CATEGORY</option>
+                            </select>
+                        </div>
+                        {ruleScopeType !== 'ALL_PODCASTS' ? (
+                            <div className="space-y-2">
+                                <Label htmlFor="admin-rule-scope-id">Scope ID</Label>
+                                <Input
+                                    id="admin-rule-scope-id"
+                                    onChange={(event) =>
+                                        setRuleScopeId(event.target.value)
+                                    }
+                                    placeholder="scope id"
+                                    type="number"
+                                    value={ruleScopeId}
+                                />
+                            </div>
+                        ) : null}
                         <Button
                             onClick={() => void handleSaveRules()}
                             type="button"
                         >
                             Save rules
                         </Button>
-                    </p>
-                </>
+                    </div>
+                </div>
             ) : null}
 
-            <h3>Grant subscription</h3>
-            <form onSubmit={(event) => void handleGrant(event)}>
-                <p>
+            <SectionHeader
+                description="Manual grants require an active tenant member. Stripe, Patreon, and Steady grant automatically via webhooks."
+                title="Grant subscription"
+            />
+            <form className="grid gap-4 sm:grid-cols-2" onSubmit={(event) => void handleGrant(event)}>
+                <div className="space-y-2">
                     <Label htmlFor="admin-grant-email">Email</Label>
-                    <br />
                     <Input
                         id="admin-grant-email"
                         onChange={(event) => setGrantEmail(event.target.value)}
@@ -437,10 +487,9 @@ export default function TenantProductsPanel({
                         type="email"
                         value={grantEmail}
                     />
-                </p>
-                <p>
+                </div>
+                <div className="space-y-2">
                     <Label htmlFor="admin-grant-product">Product</Label>
-                    <br />
                     <select className="native-select"
                         id="admin-grant-product"
                         onChange={(event) =>
@@ -457,11 +506,12 @@ export default function TenantProductsPanel({
                                 </option>
                             ))}
                     </select>
-                </p>
-                <Button type="submit">Grant</Button>
+                </div>
+                <Button className="w-fit sm:col-span-2" type="submit">Grant</Button>
             </form>
 
             {grants.length > 0 ? (
+                <ResponsiveTable label="Manual subscription grants">
                 <Table>
                     <TableHeader>
                         <TableRow>
@@ -496,6 +546,7 @@ export default function TenantProductsPanel({
                         ))}
                     </TableBody>
                 </Table>
+                </ResponsiveTable>
             ) : null}
             </CardContent>
         </Card>

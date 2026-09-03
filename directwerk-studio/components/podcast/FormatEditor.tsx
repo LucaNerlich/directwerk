@@ -2,9 +2,13 @@
 
 import {HTML_SLUG_PATTERN} from '@directwerk/api/constants'
 import {Button} from '@directwerk/ui/components/button'
+import {Alert, AlertDescription} from '@directwerk/ui/components/alert'
 import {suggestSlug} from '@/lib/api/studioHelpers'
 import {Textarea} from '@directwerk/ui/components/textarea'
 import {Input} from '@directwerk/ui/components/input'
+import PageHeader from '@directwerk/ui/components/page-header'
+import PageStack from '@directwerk/ui/components/page-stack'
+import SectionHeader from '@directwerk/ui/components/section-header'
 
 import LevelSelect from '@/components/studio/LevelSelect'
 
@@ -19,7 +23,6 @@ import {getMediaPreviewUrl} from '@/lib/api/mediaApi'
 import {mediaLimitLabel} from '@/lib/media/limits'
 import {uploadMediaFile} from '@/lib/media/upload'
 
-import {AUTH_REQUIRED} from '@directwerk/api/constants'
 import {createFormat, deactivateFormat, listFormats, updateFormat} from '@/lib/api/catalogApi'
 import type {FormatSummary} from '@directwerk/api/types'
 import {getClientTenantHost} from '@directwerk/api/tenant'
@@ -247,82 +250,92 @@ export default function FormatEditor({formatId}: FormatEditorProps): React.JSX.E
     }
 
     return (
-        <div className="flex flex-col gap-6">
-            <header className="flex flex-col gap-4 border-b pb-6 sm:flex-row sm:items-end sm:justify-between">
-                <div>
-                    <p className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                        Podcast · Einrichtung
-                    </p>
-                    <h1>{isNew ? 'Neues Format' : 'Format bearbeiten'}</h1>
-                    <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
-                        Formate erscheinen beim Erstellen einer Folge als Auswahl. Das Titelbild
-                        wird als RSS-Fallback für Folgen dieses Formats genutzt.
-                    </p>
-                </div>
-                <Link
-                    className="text-sm font-medium text-primary underline-offset-4 hover:underline"
-                    href="/podcast/formats"
-                >
-                    Zurück zur Liste
-                </Link>
-            </header>
+        <PageStack className="gap-6">
+            <PageHeader
+                actions={
+                    <Button nativeButton={false} render={<Link href="/podcast/formats" />} variant="outline">
+                        Zurück zur Liste
+                    </Button>
+                }
+                description="Formate erscheinen beim Erstellen einer Folge als Auswahl. Das Titelbild wird als RSS-Fallback für Folgen dieses Formats genutzt."
+                eyebrow="Podcast · Einrichtung"
+                title={isNew ? 'Neues Format' : 'Format bearbeiten'}
+            />
 
             {state.error ? (
-                <p className="text-sm text-destructive" role="alert">
-                    {state.error}
-                </p>
+                <Alert variant="destructive">
+                    <AlertDescription>{state.error}</AlertDescription>
+                </Alert>
             ) : null}
             {deactivateError ? (
-                <p className="text-sm text-destructive" role="alert">
-                    {deactivateError}
-                </p>
+                <Alert variant="destructive">
+                    <AlertDescription>{deactivateError}</AlertDescription>
+                </Alert>
             ) : null}
-            {state.success ? <p role="status">{state.success}</p> : null}
+            {state.success ? (
+                <p className="text-sm text-muted-foreground" role="status">{state.success}</p>
+            ) : null}
 
-            <Form action={formAction}>
-                <p>
-                    <label htmlFor="format-name">Name</label>
-                    <br />
-                    <Input
-                        defaultValue={format?.name ?? ''}
-                        id="format-name"
-                        maxLength={255}
-                        name="name"
-                        required
-                        type="text"
+            <Form action={formAction} className="grid w-full max-w-2xl gap-6">
+                <section aria-labelledby="format-basics-heading" className="grid gap-4">
+                    <SectionHeader
+                        description="Name und URL-Kennung. Der Slug kann nach dem Anlegen nicht mehr geändert werden."
+                        id="format-basics-heading"
+                        title="Grundlagen"
                     />
-                </p>
-                <p>
-                    <label htmlFor="format-slug">Slug</label>
-                    <br />
-                    <Input
-                        defaultValue={format?.slug ?? ''}
-                        disabled={!isNew}
-                        id="format-slug"
-                        maxLength={64}
-                        name="slug"
-                        pattern={HTML_SLUG_PATTERN}
-                        required={isNew}
-                        type="text"
+                    <div className="grid gap-2">
+                        <label className="text-sm font-medium" htmlFor="format-name">Name</label>
+                        <Input
+                            defaultValue={format?.name ?? ''}
+                            id="format-name"
+                            maxLength={255}
+                            name="name"
+                            required
+                            type="text"
+                        />
+                    </div>
+                    <div className="grid gap-2">
+                        <label className="text-sm font-medium" htmlFor="format-slug">Slug</label>
+                        <Input
+                            defaultValue={format?.slug ?? ''}
+                            disabled={!isNew}
+                            id="format-slug"
+                            maxLength={64}
+                            name="slug"
+                            pattern={HTML_SLUG_PATTERN}
+                            required={isNew}
+                            type="text"
+                        />
+                        <p className="text-xs text-muted-foreground">
+                            Kleinbuchstaben, Zahlen und Bindestriche.
+                            {isNew ? '' : ' Nach dem Anlegen gesperrt.'}
+                        </p>
+                    </div>
+                    <div className="grid gap-2">
+                        <label className="text-sm font-medium" htmlFor="format-description">Beschreibung</label>
+                        <Textarea
+                            defaultValue={format?.description ?? ''}
+                            id="format-description"
+                            name="description"
+                            rows={4}
+                        />
+                        <p className="text-xs text-muted-foreground">
+                            Optional. Hilft dir, Formate auseinanderzuhalten.
+                        </p>
+                    </div>
+                </section>
+                <section aria-labelledby="format-cover-heading" className="grid gap-2">
+                    <SectionHeader
+                        description="Fallback, wenn eine Folge kein eigenes Cover hat."
+                        id="format-cover-heading"
+                        title="Titelbild (RSS-Fallback)"
                     />
-                </p>
-                <p>
-                    <label htmlFor="format-description">Beschreibung</label>
-                    <br />
-                    <Textarea
-                        defaultValue={format?.description ?? ''}
-                        id="format-description"
-                        name="description"
-                        rows={4}
-                    />
-                </p>
-                <div className="grid gap-2">
-                    <span className="text-sm font-medium">Titelbild (RSS-Fallback)</span>
                     {coverPreviewUrl !== null ? (
-                        <img alt="" className="block max-w-48" src={coverPreviewUrl} />
+                        <img alt="" className="block max-w-48 rounded-md" src={coverPreviewUrl} />
                     ) : null}
                     <Input
                         accept="image/png,image/jpeg,image/webp"
+                        aria-label="Titelbild hochladen"
                         disabled={pending || isUploadingCover}
                         onChange={(event) => {
                             const file = event.target.files?.[0] ?? null
@@ -331,7 +344,7 @@ export default function FormatEditor({formatId}: FormatEditorProps): React.JSX.E
                         }}
                         type="file"
                     />
-                    <span className="text-sm text-muted-foreground">
+                    <span className="text-xs text-muted-foreground">
                         Max. {mediaLimitLabel('IMAGE')}.
                     </span>
                     <MediaLibraryPicker
@@ -345,58 +358,61 @@ export default function FormatEditor({formatId}: FormatEditorProps): React.JSX.E
                     {uploadProgress !== null ? (
                         <UploadProgress file={uploadProgress.file} progress={uploadProgress.progress} />
                     ) : null}
-                </div>
-                <p>
-                    <label htmlFor="format-required-level">Mindest-Stufe</label>
-                    <br />
-                    <LevelSelect
-                        id="format-required-level"
-                        onChange={setRequiredLevelSortOrder}
-                        value={requiredLevelSortOrder}
+                </section>
+                <section aria-labelledby="format-access-heading" className="grid gap-4">
+                    <SectionHeader
+                        description="Wer darf Folgen dieses Formats hören? Kann pro Folge überschrieben werden."
+                        id="format-access-heading"
+                        title="Zugriff und Reihenfolge"
                     />
-                    <input
-                        name="requiredLevelSortOrder"
-                        type="hidden"
-                        value={requiredLevelSortOrder ?? ''}
-                    />
-                    <span className="mt-1 block text-sm text-muted-foreground">
-                        Niedrigste Stufe, die auf Folgen dieses Formats zugreifen darf.
-                        Zugriff hat, wessen höchste Stufe ≥ Mindest-Stufe ist. „Öffentlich“ = jede aktive Stufe.
-                    </span>
-                </p>
-                <p>
-                    <label htmlFor="format-sort-order">Anzeigereihenfolge in der Formatauswahl</label>
-                    <br />
-                    <Input
-                        defaultValue={format?.sortOrder ?? ''}
-                        id="format-sort-order"
-                        min={0}
-                        name="sortOrder"
-                        type="number"
-                    />
-                    <span className="mt-1 block text-sm text-muted-foreground">
-                        Legt fest, an welcher Position dieses Format in der Format-Auswahl beim
-                        Erstellen einer Folge erscheint — hat nichts mit Zugriff zu tun.
-                    </span>
-                </p>
-                <p>
+                    <div className="grid gap-2">
+                        <label className="text-sm font-medium" htmlFor="format-required-level">Mindest-Stufe</label>
+                        <LevelSelect
+                            id="format-required-level"
+                            onChange={setRequiredLevelSortOrder}
+                            value={requiredLevelSortOrder}
+                        />
+                        <input
+                            name="requiredLevelSortOrder"
+                            type="hidden"
+                            value={requiredLevelSortOrder ?? ''}
+                        />
+                        <span className="mt-1 block text-sm text-muted-foreground">
+                            Niedrigste Stufe, die auf Folgen dieses Formats zugreifen darf.
+                            Zugriff hat, wessen höchste Stufe ≥ Mindest-Stufe ist. „Öffentlich“ = jede aktive Stufe.
+                        </span>
+                    </div>
+                    <div className="grid gap-2">
+                        <label className="text-sm font-medium" htmlFor="format-sort-order">Anzeigereihenfolge in der Formatauswahl</label>
+                        <Input
+                            defaultValue={format?.sortOrder ?? ''}
+                            id="format-sort-order"
+                            min={0}
+                            name="sortOrder"
+                            type="number"
+                        />
+                        <span className="mt-1 block text-sm text-muted-foreground">
+                            Legt fest, an welcher Position dieses Format in der Format-Auswahl beim
+                            Erstellen einer Folge erscheint — hat nichts mit Zugriff zu tun.
+                        </span>
+                    </div>
+                </section>
+                <div className="flex flex-wrap gap-2">
                     <Button disabled={pending} type="submit">
                         {pending ? 'Speichert…' : 'Speichern'}
                     </Button>
                     {!isNew && format?.active ? (
-                        <>
-                            {' '}
-                            <Button
-                                disabled={isDeactivating}
-                                onClick={() => void handleDeactivate()}
-                                type="button"
-                            >
-                                {isDeactivating ? 'Deaktiviert…' : 'Deaktivieren'}
-                            </Button>
-                        </>
+                        <Button
+                            disabled={isDeactivating}
+                            onClick={() => void handleDeactivate()}
+                            type="button"
+                            variant="outline"
+                        >
+                            {isDeactivating ? 'Deaktiviert…' : 'Deaktivieren'}
+                        </Button>
                     ) : null}
-                </p>
+                </div>
             </Form>
-        </div>
+        </PageStack>
     )
 }

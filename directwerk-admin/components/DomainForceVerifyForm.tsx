@@ -5,7 +5,7 @@ import {useActionState} from 'react'
 
 import {Alert, AlertDescription} from '@directwerk/ui/components/alert'
 import {Button} from '@directwerk/ui/components/button'
-import {Card, CardContent, CardHeader, CardTitle} from '@directwerk/ui/components/card'
+import {Card, CardContent, CardDescription, CardHeader, CardTitle} from '@directwerk/ui/components/card'
 import {Input} from '@directwerk/ui/components/input'
 import {Label} from '@directwerk/ui/components/label'
 
@@ -26,7 +26,13 @@ export default function DomainForceVerifyForm({
 
     return (
         <Card aria-labelledby="domain-verify-heading" role="region">
-            <CardHeader><CardTitle id="domain-verify-heading">Force verify domain</CardTitle></CardHeader>
+            <CardHeader>
+                <CardTitle id="domain-verify-heading">Force verify domain</CardTitle>
+                <CardDescription>
+                    Marks a tenant domain verified without DNS checks. Use
+                    only after confirming ownership out of band.
+                </CardDescription>
+            </CardHeader>
             <CardContent>
             <Form action={formAction} className="space-y-4">
                 <div className="space-y-2">

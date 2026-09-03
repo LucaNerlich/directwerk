@@ -12,6 +12,7 @@ import PageStack from '@directwerk/ui/components/page-stack'
 import {useListViewMode} from '@directwerk/ui/hooks/use-list-view-mode'
 
 import InvitePlatformAdminForm from '@/components/InvitePlatformAdminForm'
+import {AdminLoadingText, TableSkeleton} from '@/components/AdminLoading'
 import RevokeAdminButton from '@/components/RevokeAdminButton'
 import {getPlatformData} from '@/lib/api/client'
 import {AUTH_REQUIRED} from '@directwerk/api/constants'
@@ -73,9 +74,10 @@ export default function PlatformAdminsPage() {
                 </Alert>
             ) : null}
             {!error && admins === null ? (
-                <p aria-live="polite" className="text-sm text-muted-foreground">
-                    Loading platform admins…
-                </p>
+                <>
+                    <TableSkeleton rows={3} />
+                    <AdminLoadingText text="Loading platform admins…" />
+                </>
             ) : null}
             {admins ? (
                 <>
@@ -91,7 +93,10 @@ export default function PlatformAdminsPage() {
                             viewToggleLabel="Change view"
                         />
                     ) : (
-                        <EmptyState title="No platform admins" />
+                        <EmptyState
+                            description="Invite the first platform admin below. Invitations are delivered by email."
+                            title="No platform admins"
+                        />
                     )}
                     <InvitePlatformAdminForm onInvited={loadAdmins} />
                 </>

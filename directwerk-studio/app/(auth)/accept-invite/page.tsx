@@ -10,6 +10,7 @@ import AuthCard from '@directwerk/ui/components/auth-card'
 import {Button} from '@directwerk/ui/components/button'
 import {Input} from '@directwerk/ui/components/input'
 import {Label} from '@directwerk/ui/components/label'
+import {Skeleton} from '@directwerk/ui/components/skeleton'
 
 import {acceptInvite} from '@/lib/api/authApi'
 import {parseAcceptInviteInput} from '@directwerk/api/validation/input'
@@ -58,12 +59,17 @@ function AcceptInviteForm() {
     )
 
     return (
-        <>
-            <Form action={formAction} className="space-y-4">
+        <div className="grid gap-4">
+            {tokenFromQuery.length > 0 ? (
+                <p className="text-sm text-muted-foreground" role="status">
+                    Einladungs-Token übernommen — lege jetzt dein Passwort fest.
+                </p>
+            ) : null}
+            <Form action={formAction} className="grid gap-4">
                 {tokenFromQuery.length > 0 ? (
                     <input type="hidden" name="token" value={tokenFromQuery} />
                 ) : (
-                    <div className="space-y-2">
+                    <div className="grid gap-2">
                         <Label htmlFor="token">Einladungs-Token</Label>
                         <Input
                             autoComplete="off"
@@ -75,7 +81,7 @@ function AcceptInviteForm() {
                         />
                     </div>
                 )}
-                <div className="space-y-2">
+                <div className="grid gap-2">
                     <Label htmlFor="name">
                         Name <span className="text-muted-foreground">(optional)</span>
                     </Label>
@@ -87,7 +93,7 @@ function AcceptInviteForm() {
                         type="text"
                     />
                 </div>
-                <div className="space-y-2">
+                <div className="grid gap-2">
                     <Label htmlFor="password">Passwort</Label>
                     <Input
                         autoComplete="new-password"
@@ -113,7 +119,7 @@ function AcceptInviteForm() {
                     <AlertDescription>Einladung angenommen. Weiterleitung…</AlertDescription>
                 </Alert>
             ) : null}
-        </>
+        </div>
     )
 }
 
@@ -128,7 +134,21 @@ export default function AcceptInvitePage() {
             }
             title="Einladung annehmen"
         >
-            <Suspense fallback={<p className="text-sm text-muted-foreground">Wird geladen…</p>}>
+            <Suspense
+                fallback={
+                    <div
+                        aria-busy="true"
+                        aria-live="polite"
+                        className="grid gap-4"
+                        role="status"
+                    >
+                        <span className="sr-only">Einladungsformular wird geladen…</span>
+                        <Skeleton className="h-10 w-full" aria-hidden="true" />
+                        <Skeleton className="h-10 w-full" aria-hidden="true" />
+                        <Skeleton className="h-10 w-full" aria-hidden="true" />
+                    </div>
+                }
+            >
                 <AcceptInviteForm />
             </Suspense>
         </AuthCard>

@@ -30,10 +30,14 @@ export default function FormatCategoryPicker({
     const showFormats = formats !== undefined && onFormatChange !== undefined
 
     return (
-        <div className="grid gap-3">
+        <div className="grid gap-4">
             {showFormats ? (
-                <div className="grid gap-2">
-                    <p className="text-sm font-semibold">Formate</p>
+                <fieldset className="m-0 grid gap-2 border-0 p-0" disabled={disabled}>
+                    <legend className="text-sm font-semibold">Formate</legend>
+                    <p className="text-xs font-normal text-muted-foreground">
+                        Mehrfachauswahl möglich. Formate erscheinen in der Folgenliste
+                        und in Feeds.
+                    </p>
                     {formats.length === 0 ? (
                         <p className="text-xs text-muted-foreground">
                             Keine Formate angelegt.{' '}
@@ -61,10 +65,14 @@ export default function FormatCategoryPicker({
                             </label>
                         ))
                     )}
-                </div>
+                </fieldset>
             ) : null}
-            <div className="grid gap-2">
-                <p className="text-sm font-semibold">Kategorien</p>
+            <fieldset className="m-0 grid gap-2 border-0 p-0" disabled={disabled}>
+                <legend className="text-sm font-semibold">Kategorien</legend>
+                <p className="text-xs font-normal text-muted-foreground">
+                    Mehrfachauswahl möglich. Kategorien strukturieren Website und
+                    Feeds.
+                </p>
                 {categories.length === 0 ? (
                     <p className="text-xs text-muted-foreground">
                         Keine Kategorien angelegt.{' '}
@@ -92,7 +100,7 @@ export default function FormatCategoryPicker({
                         </label>
                     ))
                 )}
-            </div>
+            </fieldset>
         </div>
     )
 }

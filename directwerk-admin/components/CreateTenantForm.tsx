@@ -5,7 +5,7 @@ import {useActionState, useEffect, useRef} from 'react'
 
 import {Alert, AlertDescription} from '@directwerk/ui/components/alert'
 import {Button} from '@directwerk/ui/components/button'
-import {Card, CardContent, CardHeader, CardTitle} from '@directwerk/ui/components/card'
+import {Card, CardContent, CardDescription, CardHeader, CardTitle} from '@directwerk/ui/components/card'
 import {Input} from '@directwerk/ui/components/input'
 import {Label} from '@directwerk/ui/components/label'
 
@@ -41,6 +41,11 @@ export default function CreateTenantForm({onCreated}: CreateTenantFormProps) {
         <Card aria-labelledby="create-tenant-heading" role="region">
             <CardHeader>
                 <CardTitle id="create-tenant-heading">Create tenant</CardTitle>
+                <CardDescription>
+                    Creates the tenant record with an optional module preset.
+                    The first admin invitation is optional; omit admin email to
+                    create the tenant without one.
+                </CardDescription>
             </CardHeader>
             <CardContent>
             <Form action={formAction} className="grid gap-4 md:grid-cols-2">

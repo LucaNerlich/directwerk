@@ -7,7 +7,6 @@ import {
     SidebarContent,
     SidebarFooter,
     SidebarHeader,
-    SidebarInset,
     SidebarProvider,
     SidebarTrigger,
 } from '#components/sidebar'
@@ -44,17 +43,20 @@ export default function AppShell({
                         <SidebarFooter className="border-t p-3">{footer}</SidebarFooter>
                     ) : null}
                 </Sidebar>
-                <SidebarInset>
+                {/* Plain div (not SidebarInset, which renders <main>): the
+                    skip-link target below is the single main landmark. */}
+                <div className="relative flex w-full flex-1 flex-col bg-background">
                     <div className="sticky top-0 z-30 flex h-12 items-center border-b bg-background/90 px-4 backdrop-blur md:hidden">
                         <SidebarTrigger aria-label={navigationTriggerLabel} />
                     </div>
                     <main
                         className="mx-auto w-full max-w-[96rem] flex-1 px-4 py-6 sm:px-6 lg:px-8 lg:py-8"
                         id="main-content"
+                        tabIndex={-1}
                     >
                         {children}
                     </main>
-                </SidebarInset>
+                </div>
             </SidebarProvider>
         </TooltipProvider>
     )

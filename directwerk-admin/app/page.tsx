@@ -5,6 +5,7 @@ import {useRouter} from 'next/navigation'
 import {useCallback, useEffect, useState} from 'react'
 
 import {Alert, AlertDescription} from '@directwerk/ui/components/alert'
+import {Button} from '@directwerk/ui/components/button'
 import EmptyState from '@directwerk/ui/components/empty-state'
 import PageHeader from '@directwerk/ui/components/page-header'
 import PageStack from '@directwerk/ui/components/page-stack'
@@ -21,6 +22,7 @@ import {
 import StatCard from '@directwerk/ui/components/stat-card'
 
 import CreateTenantForm from '@/components/CreateTenantForm'
+import {AdminLoadingText, StatCardsSkeleton, TableSkeleton} from '@/components/AdminLoading'
 import RecentAuditTable from '@/components/RecentAuditTable'
 import TenantListTable from '@/components/TenantListTable'
 import {getPlatformData, getPlatformJobList, getPlatformOverview} from '@/lib/api/client'
@@ -87,25 +89,50 @@ export default function HomePage(): React.JSX.Element {
                 title="Overview"
             />
 
+            {error ? (
+                <Alert variant="destructive">
+                    <AlertDescription>{error}</AlertDescription>
+                </Alert>
+            ) : null}
+
+            {error ? (
+                <div>
+                    <Button onClick={reloadTenants} type="button" variant="outline">
+                        Retry
+                    </Button>
+                </div>
+            ) : null}
+
+            {!error && overview === null ? (
+                <>
+                    <StatCardsSkeleton />
+                    <AdminLoadingText text="Loading platform overview…" />
+                </>
+            ) : null}
+
             {overview ? (
-                <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                <section aria-label="Platform totals" className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                     <StatCard
                         footer={<Link href="/tenants">View tenants</Link>}
+                        hint="Tenants in good standing"
                         label="Active tenants"
                         value={overview.tenantCounts.active}
                     />
                     <StatCard
                         footer={<Link href="/tenants">View suspended</Link>}
+                        hint="Blocked from serving traffic"
                         label="Suspended tenants"
                         value={overview.tenantCounts.suspended}
                     />
                     <StatCard
                         footer={<Link href="/admins">Manage admins</Link>}
+                        hint="Users with platform access"
                         label="Platform admins"
                         value={adminCount ?? '—'}
                     />
                     <StatCard
                         footer={<Link href="/jobs">View jobs</Link>}
+                        hint="Across all queues"
                         label="Queue jobs"
                         value={jobCount ?? '—'}
                     />
@@ -114,7 +141,10 @@ export default function HomePage(): React.JSX.Element {
 
             {overview && overview.moduleAdoption.length > 0 ? (
                 <section className="space-y-3">
-                    <SectionHeader title="Module adoption" />
+                    <SectionHeader
+                        description="How many tenants have each module enabled."
+                        title="Module adoption"
+                    />
                     <ResponsiveTable label="Module adoption">
                         <Table>
                             <TableHeader>
@@ -142,31 +172,33 @@ export default function HomePage(): React.JSX.Element {
                 <section className="space-y-3">
                     <SectionHeader
                         action={<Link href="/audit">Full audit log</Link>}
+                        description="Latest platform-admin actions."
                         title="Recent audit events"
                     />
                     {overview.recentAudit.length > 0 ? (
-                        <RecentAuditTable compact events={overview.recentAudit} />
+                        <ResponsiveTable label="Recent audit events">
+                            <RecentAuditTable compact events={overview.recentAudit} />
+                        </ResponsiveTable>
                     ) : (
-                        <EmptyState title="No audit events yet" />
+                        <EmptyState
+                            description="Admin actions will appear here."
+                            title="No audit events yet"
+                        />
                     )}
                 </section>
             ) : null}
 
             <SectionHeader
                 action={<Link href="/tenants">All tenants</Link>}
+                description="Newest tenants. Search and filter on the tenants page."
                 title="Tenants"
             />
 
-            {error ? (
-                <Alert variant="destructive">
-                    <AlertDescription>{error}</AlertDescription>
-                </Alert>
-            ) : null}
-
             {!error && tenants === null ? (
-                <p aria-live="polite" className="text-sm text-muted-foreground">
-                    Loading tenants…
-                </p>
+                <>
+                    <TableSkeleton rows={4} />
+                    <AdminLoadingText text="Loading tenants…" />
+                </>
             ) : null}
 
             {tenants ? (

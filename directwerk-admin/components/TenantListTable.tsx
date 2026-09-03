@@ -4,6 +4,8 @@ import Link from 'next/link'
 import {useMemo, useState} from 'react'
 
 import {Badge} from '@directwerk/ui/components/badge'
+import {Button} from '@directwerk/ui/components/button'
+import EmptyState from '@directwerk/ui/components/empty-state'
 import {EntityListSection} from '@directwerk/ui/components/entity-list-section'
 import type {EntityListViewItem} from '@directwerk/ui/components/entity-list-view'
 import {Input} from '@directwerk/ui/components/input'
@@ -39,6 +41,12 @@ export default function TenantListTable({
         'ALL',
     )
     const {viewMode, setViewMode} = useListViewMode()
+    const hasActiveFilters = query.trim().length > 0 || statusFilter !== 'ALL'
+
+    function clearFilters(): void {
+        setQuery('')
+        setStatusFilter('ALL')
+    }
 
     const filteredTenants = useMemo(() => {
         const normalizedQuery = query.trim().toLowerCase()
@@ -119,7 +127,21 @@ export default function TenantListTable({
                     viewToggleLabel="Change view"
                 />
             ) : (
-                <p className="text-sm text-muted-foreground">No tenants match your filters.</p>
+                <EmptyState
+                    action={
+                        hasActiveFilters ? (
+                            <Button onClick={clearFilters} type="button" variant="outline">
+                                Clear filters
+                            </Button>
+                        ) : undefined
+                    }
+                    description={
+                        hasActiveFilters
+                            ? 'Try a different search term or status.'
+                            : 'Create the first tenant to begin.'
+                    }
+                    title="No tenants match your filters."
+                />
             )}
         </div>
     )

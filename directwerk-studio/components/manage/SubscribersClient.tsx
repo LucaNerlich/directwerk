@@ -1,13 +1,20 @@
 'use client'
 
 import Link from 'next/link'
-import {useState} from 'react'
+import {useMemo, useState} from 'react'
 
+import {Alert, AlertDescription} from '@directwerk/ui/components/alert'
+import {Badge} from '@directwerk/ui/components/badge'
 import {Button} from '@directwerk/ui/components/button'
 import EmptyState from '@directwerk/ui/components/empty-state'
 import {EntityListSection} from '@directwerk/ui/components/entity-list-section'
 import type {EntityListViewItem} from '@directwerk/ui/components/entity-list-view'
+import {Input} from '@directwerk/ui/components/input'
+import {Label} from '@directwerk/ui/components/label'
 import PageHeader from '@directwerk/ui/components/page-header'
+import PageStack from '@directwerk/ui/components/page-stack'
+import SectionHeader from '@directwerk/ui/components/section-header'
+import {Skeleton} from '@directwerk/ui/components/skeleton'
 import {useListViewMode} from '@directwerk/ui/hooks/use-list-view-mode'
 
 import {revokeSubscription} from '@/lib/api/subscriptionApi'
@@ -53,9 +60,28 @@ export default function SubscribersClient(): React.JSX.Element {
     const [statusMessage, setStatusMessage] = useState<string | null>(null)
     const [isBusy, setIsBusy] = useState(false)
     const [pendingRevokeId, setPendingRevokeId] = useState<number | null>(null)
+    const [query, setQuery] = useState('')
     const {viewMode, setViewMode} = useListViewMode()
 
-    const subscribers = loadedSubscribers ?? []
+    const subscribers = useMemo(() => {
+        const loaded = loadedSubscribers ?? []
+        const needle = query.trim().toLowerCase()
+        if (needle.length === 0) {
+            return loaded
+        }
+        return loaded.filter((subscriber) => {
+            if (subscriber.email.toLowerCase().includes(needle)) {
+                return true
+            }
+            if (subscriber.name !== null && subscriber.name.toLowerCase().includes(needle)) {
+                return true
+            }
+            return subscriber.subscriptions.some((item) =>
+                item.productTitle.toLowerCase().includes(needle),
+            )
+        })
+    }, [loadedSubscribers, query])
+    const totalSubscribers = loadedSubscribers?.length ?? 0
     const errorMessage = actionError ?? loadError
 
     async function handleRevoke(item: TenantSubscriberSubscription, email: string): Promise<void> {
@@ -87,13 +113,31 @@ export default function SubscribersClient(): React.JSX.Element {
     }
 
     if (isLoading) {
-        return <p>Wird geladen…</p>
+        return (
+            <PageStack>
+                <PageHeader
+                    eyebrow="Abos"
+                    title="Abonnenten"
+                    description="Wer Zugang zu deinen bezahlten Inhalten hat — über Kauf oder Freischaltung."
+                />
+                <p className="text-sm text-muted-foreground" role="status">Wird geladen…</p>
+                <div className="grid gap-3" aria-hidden="true">
+                    <Skeleton className="h-24 w-full" />
+                    <Skeleton className="h-24 w-full" />
+                </div>
+            </PageStack>
+        )
     }
 
     const subscriberItems: EntityListViewItem[] = subscribers.map((subscriber) => ({
         id: subscriber.userId,
         title: subscriber.email,
-        description: `${subscriber.name !== null ? `${subscriber.name} · ` : ''}Konto: ${subscriber.status}`,
+        description: `${subscriber.name !== null ? `${subscriber.name} · ` : ''}Konto: ${subscriptionStatusLabel(subscriber.status)}`,
+        trailing: (
+            <Badge variant={subscriber.status === 'ACTIVE' ? 'secondary' : 'outline'}>
+                {subscriptionStatusLabel(subscriber.status)}
+            </Badge>
+        ),
         extra:
             subscriber.subscriptions.length === 0 ? (
                 <p className="text-sm text-muted-foreground">Keine Produkte</p>
@@ -157,21 +201,30 @@ export default function SubscribersClient(): React.JSX.Element {
     }))
 
     return (
-        <div className="flex flex-col gap-6">
+        <PageStack>
             <PageHeader
                 eyebrow="Abos"
                 title="Abonnenten"
-                description="Wer Zugang zu deinen bezahlten Inhalten hat — über Kauf oder Freischaltung."
+                description="Wer Zugang zu deinen bezahlten Inhalten hat — über Kauf oder Freischaltung. Gekaufte und manuell vergebene Zugänge stehen nebeneinander."
             />
 
             {errorMessage !== null ? (
-                <p className="text-sm text-destructive" role="alert">
-                    {errorMessage}
-                </p>
+                <Alert variant="destructive">
+                    <AlertDescription>
+                        {errorMessage}{' '}
+                        <Button onClick={reload} size="sm" type="button" variant="outline">
+                            Wiederholen
+                        </Button>
+                    </AlertDescription>
+                </Alert>
             ) : null}
-            {statusMessage !== null ? <p role="status">{statusMessage}</p> : null}
+            {statusMessage !== null ? (
+                <Alert role="status">
+                    <AlertDescription>{statusMessage}</AlertDescription>
+                </Alert>
+            ) : null}
 
-            {errorMessage === null && subscribers.length === 0 ? (
+            {errorMessage === null && totalSubscribers === 0 ? (
                 <EmptyState
                     title="Noch keine Abonnenten"
                     description="Lege zuerst ein Produkt an und vergebe eine Freischaltung — oder warte auf den ersten Kauf."
@@ -192,14 +245,43 @@ export default function SubscribersClient(): React.JSX.Element {
                 />
             ) : null}
 
-            {subscribers.length > 0 ? (
+            {totalSubscribers > 0 ? (
+                <section aria-labelledby="subscribers-heading" className="flex flex-col gap-4">
+                    <SectionHeader
+                        id="subscribers-heading"
+                        title={`Abonnenten (${totalSubscribers})`}
+                        description="Pro Person stehen alle Produkte mit Status, Quelle und Laufzeit."
+                    />
+                    <div className="grid w-full max-w-xl gap-2">
+                        <Label htmlFor="subscriber-search">Suchen</Label>
+                        <Input
+                            id="subscriber-search"
+                            onChange={(event) => setQuery(event.target.value)}
+                            placeholder="E-Mail, Name oder Produkt"
+                            type="search"
+                            value={query}
+                        />
+                    </div>
+                    {subscribers.length === 0 ? (
+                        <EmptyState
+                            title="Keine Abonnenten für diese Suche"
+                            description="Passe den Suchbegriff an, um weitere Einträge zu sehen."
+                            action={
+                                <Button onClick={() => setQuery('')} type="button" variant="outline">
+                                    Suche zurücksetzen
+                                </Button>
+                            }
+                        />
+                    ) : (
                 <EntityListSection
                     items={subscriberItems}
                     onViewModeChange={setViewMode}
                     showSelection={false}
                     viewMode={viewMode}
                 />
+                    )}
+                </section>
             ) : null}
-        </div>
+        </PageStack>
     )
 }

@@ -1,13 +1,16 @@
 'use client'
 
 import Link from 'next/link'
+import {useId, useMemo, useState} from 'react'
 
 import {Alert, AlertDescription} from '@directwerk/ui/components/alert'
+import {Badge} from '@directwerk/ui/components/badge'
 import {Button} from '@directwerk/ui/components/button'
 import EmptyState from '@directwerk/ui/components/empty-state'
+import {EntityListSection} from '@directwerk/ui/components/entity-list-section'
+import {Input} from '@directwerk/ui/components/input'
 import PageHeader from '@directwerk/ui/components/page-header'
 import PageStack from '@directwerk/ui/components/page-stack'
-import {SlugEntityListSection} from '@directwerk/ui/components/slug-entity-list-section'
 import {useListViewMode} from '@directwerk/ui/hooks/use-list-view-mode'
 
 import {listFormats} from '@/lib/api/catalogApi'
@@ -21,15 +24,30 @@ export default function FormatListClient(): React.JSX.Element {
         () => listFormats(getClientTenantHost()),
         {fallbackError: 'Formate konnten nicht geladen werden.'},
     )
+    const searchInputId = useId()
+    const [query, setQuery] = useState('')
+    const normalizedQuery = query.trim().toLowerCase()
 
-    const listItems =
-        formats?.map((format) => ({
-            id: format.id,
-            name: format.name,
-            slug: format.slug,
-            trailing: format.active ? 'Aktiv' : 'Inaktiv',
-            href: `/podcast/formats/${format.id}`,
-        })) ?? []
+    const filteredFormats = useMemo(() => {
+        if (normalizedQuery.length === 0) {
+            return formats ?? []
+        }
+        return (formats ?? []).filter((format) =>
+            `${format.name} ${format.slug}`.toLowerCase().includes(normalizedQuery),
+        )
+    }, [formats, normalizedQuery])
+
+    const listItems = filteredFormats.map((format) => ({
+        id: format.id,
+        title: format.name,
+        description: <code>{format.slug}</code>,
+        trailing: (
+            <Badge variant={format.active ? 'secondary' : 'outline'}>
+                {format.active ? 'Aktiv' : 'Inaktiv'}
+            </Badge>
+        ),
+        href: `/podcast/formats/${format.id}`,
+    }))
 
     return (
         <PageStack>
@@ -50,7 +68,7 @@ export default function FormatListClient(): React.JSX.Element {
                 </Alert>
             ) : null}
             {isLoading && !errorMessage ? (
-                <p className="text-sm text-muted-foreground">Laden…</p>
+                <p className="text-sm text-muted-foreground" role="status">Formate werden geladen…</p>
             ) : null}
             {formats && formats.length === 0 ? (
                 <EmptyState
@@ -64,12 +82,43 @@ export default function FormatListClient(): React.JSX.Element {
                 />
             ) : null}
             {formats && formats.length > 0 ? (
-                <SlugEntityListSection
-                    items={listItems}
-                    linkComponent={Link}
-                    onViewModeChange={setViewMode}
-                    viewMode={viewMode}
-                />
+                <div className="flex flex-col gap-4">
+                    {formats.length > 1 ? (
+                        <div className="grid gap-1.5">
+                            <label className="text-sm font-medium" htmlFor={searchInputId}>
+                                Formate durchsuchen
+                            </label>
+                            <Input
+                                aria-label="Formate durchsuchen"
+                                className="sm:max-w-xs"
+                                id={searchInputId}
+                                onChange={(event) => setQuery(event.target.value)}
+                                placeholder="Name oder Slug suchen…"
+                                type="search"
+                                value={query}
+                            />
+                        </div>
+                    ) : null}
+                    {filteredFormats.length === 0 ? (
+                        <EmptyState
+                            action={
+                                <Button onClick={() => setQuery('')} type="button" variant="outline">
+                                    Suche zurücksetzen
+                                </Button>
+                            }
+                            description="Passe den Suchbegriff an oder setze die Suche zurück."
+                            title="Keine Treffer"
+                        />
+                    ) : (
+                        <EntityListSection
+                            ariaLabel="Formate"
+                            items={listItems}
+                            linkComponent={Link}
+                            onViewModeChange={setViewMode}
+                            viewMode={viewMode}
+                        />
+                    )}
+                </div>
             ) : null}
 
             <p className="text-sm text-muted-foreground">
