@@ -2,8 +2,8 @@
 
 import Form from 'next/form'
 import Link from 'next/link'
-import {useSearchParams} from 'next/navigation'
-import {Suspense, useActionState} from 'react'
+import {useRouter, useSearchParams} from 'next/navigation'
+import {Suspense, useActionState, useState} from 'react'
 
 import {Alert, AlertDescription} from '@directwerk/ui/components/alert'
 import AuthCard from '@directwerk/ui/components/auth-card'
@@ -13,6 +13,7 @@ import {Label} from '@directwerk/ui/components/label'
 
 import {acceptInvite} from '@/lib/api/client'
 import {parseAcceptInviteInput} from '@directwerk/api/validation/input'
+import {userFacingAuthError} from '@/lib/billing/userFacingBillingError'
 
 interface AcceptInviteState {
     error: string | null
@@ -22,8 +23,10 @@ interface AcceptInviteState {
 const INITIAL_STATE: AcceptInviteState = {error: null, success: false}
 
 function AcceptInviteForm() {
+    const router = useRouter()
     const searchParams = useSearchParams()
     const tokenFromQuery = searchParams.get('token') ?? ''
+    const [showPassword, setShowPassword] = useState(false)
 
     const [state, formAction, isPending] = useActionState(
         async (_previousState: AcceptInviteState, formData: FormData) => {
@@ -35,21 +38,18 @@ function AcceptInviteForm() {
             if (input === null) {
                 return {
                     error:
-                        'Enter the invite token, a password of at least 12 characters, and an optional name.',
+                        'Bitte gib das Einladungs-Token, ein Passwort mit mindestens 12 Zeichen und optional einen Namen ein.',
                     success: false,
                 }
             }
 
             try {
                 await acceptInvite(input)
-                window.location.assign('/login')
+                router.push('/login?invited=1')
                 return {error: null, success: true}
             } catch (error) {
                 return {
-                    error:
-                        error instanceof Error
-                            ? error.message
-                            : 'Could not accept the invitation. Please try again.',
+                    error: userFacingAuthError(error, 'invite'),
                     success: false,
                 }
             }
@@ -66,12 +66,41 @@ function AcceptInviteForm() {
                     <div className="space-y-2"><Label htmlFor="token">Einladungs-Token</Label><Input id="token" name="token" type="text" autoComplete="off" maxLength={512} required /></div>
                 )}
                 <div className="space-y-2"><Label htmlFor="name">Name <span className="text-muted-foreground">(optional)</span></Label><Input id="name" name="name" type="text" autoComplete="name" maxLength={255} /></div>
-                <div className="space-y-2"><Label htmlFor="password">Passwort</Label><Input id="password" name="password" type="password" autoComplete="new-password" minLength={12} maxLength={128} required /></div>
+                <div className="space-y-2">
+                    <Label htmlFor="password">Passwort</Label>
+                    <div className="relative">
+                        <Input
+                            id="password"
+                            name="password"
+                            type={showPassword ? 'text' : 'password'}
+                            autoComplete="new-password"
+                            minLength={12}
+                            maxLength={128}
+                            required
+                            className="pr-24"
+                        />
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="absolute top-1/2 right-1 -translate-y-1/2"
+                            aria-pressed={showPassword}
+                            onClick={() => setShowPassword((current) => !current)}
+                        >
+                            {showPassword ? 'Verbergen' : 'Anzeigen'}
+                        </Button>
+                    </div>
+                    <p className="text-xs text-muted-foreground">Mindestens 12 Zeichen.</p>
+                </div>
                 <Button className="w-full" type="submit" disabled={isPending || state.success}>
                     {isPending ? 'Wird angenommen…' : 'Einladung annehmen'}
                 </Button>
+                <p className="text-xs text-muted-foreground">
+                    Aus Sicherheitsgründen sind wiederholte Versuche begrenzt — warte
+                    bei einer Sperrung kurz und versuche es erneut.
+                </p>
             </Form>
-            {state.error !== null ? <Alert variant="destructive"><AlertDescription>{state.error}</AlertDescription></Alert> : null}
+            {state.error !== null ? <Alert variant="destructive" role="alert"><AlertDescription>{state.error}</AlertDescription></Alert> : null}
             {state.success && (
                 <Alert role="status"><AlertDescription>Einladung angenommen. Weiterleitung…</AlertDescription></Alert>
             )}
@@ -82,7 +111,7 @@ function AcceptInviteForm() {
 export default function AcceptInvitePage() {
     return (
         <AuthCard title="Einladung annehmen" footer={<Link className="underline" href="/login">Zur Anmeldung</Link>}>
-            <Suspense fallback={<p>Loading…</p>}>
+            <Suspense fallback={<p role="status" className="text-sm text-muted-foreground">Wird geladen…</p>}>
                 <AcceptInviteForm />
             </Suspense>
         </AuthCard>

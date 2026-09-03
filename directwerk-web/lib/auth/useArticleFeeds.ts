@@ -7,6 +7,7 @@ import {listMyArticleFeeds} from '@/lib/api/client'
 import {AUTH_REQUIRED} from '@directwerk/api/constants'
 import type {ArticleFeedView} from '@directwerk/api/types'
 import {getClientTenantHost} from '@/lib/tenant/clientHost'
+import {userFacingFeedsError} from '@/lib/billing/userFacingBillingError'
 
 export interface ArticleFeedsState {
     feeds: ArticleFeedView[]
@@ -55,11 +56,7 @@ export function useArticleFeeds(isAuthenticated: boolean): ArticleFeedsState {
                     router.replace('/login')
                     return
                 }
-                setError(
-                    requestError instanceof Error
-                        ? requestError.message
-                        : 'Private Feeds konnten nicht geladen werden.',
-                )
+                setError(userFacingFeedsError(requestError))
             })
             .finally(() => {
                 if (active) {

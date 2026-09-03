@@ -39,6 +39,7 @@ public class ArticleService {
     private final TenantRepository tenantRepository;
     private final MediaAssetQueryApi mediaAssetQueryApi;
     private final HtmlSanitizer htmlSanitizer;
+    private final ArticleRssFeedRefreshScheduler articleRssFeedRefreshScheduler;
 
     @Transactional(readOnly = true)
     public List<Article> listArticles(Long tenantId) {
@@ -146,6 +147,29 @@ public class ArticleService {
                 id -> { throw new ArticleValidationException("Category is inactive: " + id); }));
         articleRepository.save(article);
         return requireArticle(tenantId, articleId);
+    }
+
+    /**
+     * Deletes an article in any status. The tenant-scoped lookup returns 404 for foreign-tenant
+     * ids, and the explicit tenant comparison below keeps the delete fail-closed even if the
+     * query scoping is ever bypassed. The hero asset is detached, never deleted (the article row
+     * owns the reference; S3 objects survive). Category join rows cascade. Custom article feeds
+     * reference categories, never article ids, so no feed rules need cleanup; the refresh below
+     * rebuilds the public snapshots when the deleted article was visible.
+     */
+    @Transactional
+    @RequiresModule(ArticlesModule.KEY)
+    public void deleteArticle(Long tenantId, Long articleId) {
+        Article article = requireArticle(tenantId, articleId);
+        if (article.getTenant() == null || !tenantId.equals(article.getTenant().getId())) {
+            throw new ArticleNotFoundException(articleId);
+        }
+        boolean wasVisible = article.getStatus() == ArticleStatus.PUBLISHED
+                || article.getStatus() == ArticleStatus.SCHEDULED;
+        articleRepository.delete(article);
+        if (wasVisible) {
+            articleRssFeedRefreshScheduler.requestRefreshAfterCommit(tenantId);
+        }
     }
 
     private Article requireDraftArticle(Long tenantId, Long articleId) {

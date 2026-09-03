@@ -12,7 +12,7 @@ import StatCard from '@directwerk/ui/components/stat-card'
 import AccessPolicyBadge from '@/components/AccessPolicyBadge'
 import BrandLogo from '@/components/BrandLogo'
 import {CardGridSkeleton, HeroSkeleton} from '@/components/ContentLoadingSkeleton'
-import HowToListen from '@/components/HowToListen'
+import HowToSubscribe from '@/components/HowToSubscribe'
 import SubscriberContextBanner from '@/components/SubscriberContextBanner'
 import {
     listPublicArticles,
@@ -23,6 +23,7 @@ import type {PublicArticle, PublicEpisode, PublicProduct} from '@directwerk/api/
 import {formatPublishedAt} from '@directwerk/api/format/datetime'
 import {formatMoney} from '@directwerk/api/format'
 import {formatDuration} from '@/lib/format/content'
+import {webPublicFeedUrls} from '@/lib/feeds/webPublicFeedUrl'
 import {useSiteConfig} from '@/lib/site/SiteConfigProvider'
 import {getClientTenantHost} from '@/lib/tenant/clientHost'
 import {useSubscriberAuth} from '@/lib/auth/useSubscriberAuth'
@@ -36,6 +37,10 @@ export default function HomePage(): React.JSX.Element {
         config.enabledModules.includes('DIGITAL_CONTENT') || showPodcast
     const showPricing = config.enabledModules.includes('SUBSCRIPTION')
     const tenantHost = getClientTenantHost()
+    const {podcast: podcastFeedUrl, articles: articleFeedUrl} = webPublicFeedUrls(
+        config,
+        tenantHost,
+    )
     const [latestEpisode, setLatestEpisode] = useState<PublicEpisode | null>(null)
     const [latestArticle, setLatestArticle] = useState<PublicArticle | null>(null)
     const [products, setProducts] = useState<PublicProduct[]>([])
@@ -211,7 +216,14 @@ export default function HomePage(): React.JSX.Element {
                             description={
                                 <>
                                     <span className="inline-flex flex-wrap items-center gap-2">
-                                        <AccessPolicyBadge policy={latestEpisode.accessPolicy} />
+                                        <AccessPolicyBadge
+                                            policy={latestEpisode.accessPolicy}
+                                            isEntitled={
+                                                latestEpisode.accessPolicy === 'PAID'
+                                                    ? latestEpisode.audioCdnUrl !== null
+                                                    : undefined
+                                            }
+                                        />
                                         {formatPublishedAt(latestEpisode.publishedAt)}
                                         {formatDuration(latestEpisode.durationSeconds) !== null
                                             ? ` · ${formatDuration(latestEpisode.durationSeconds)}`
@@ -241,7 +253,14 @@ export default function HomePage(): React.JSX.Element {
                             description={
                                 <>
                                     <span className="inline-flex flex-wrap items-center gap-2">
-                                        <AccessPolicyBadge policy={latestArticle.accessPolicy} />
+                                        <AccessPolicyBadge
+                                            policy={latestArticle.accessPolicy}
+                                            isEntitled={
+                                                latestArticle.accessPolicy === 'PAID'
+                                                    ? latestArticle.body !== null
+                                                    : undefined
+                                            }
+                                        />
                                         {formatPublishedAt(latestArticle.publishedAt)}
                                     </span>
                                     {latestArticle.excerpt !== null &&
@@ -303,16 +322,25 @@ export default function HomePage(): React.JSX.Element {
                         ))}
                     </ul>
                     <p className="text-sm">
-                        <Link href="/pricing">Alle Preise ansehen</Link>
+                        <Link href="/pricing">Alle Mitgliedschaften ansehen</Link>
                     </p>
                 </section>
             ) : null}
 
-            {showPodcast ? (
+            {podcastFeedUrl !== null || articleFeedUrl !== null ? (
                 <div className="mx-auto mt-10 max-w-3xl">
-                    <HowToListen
+                    <HowToSubscribe
+                        podcast={
+                            podcastFeedUrl !== null
+                                ? {publicFeedUrl: podcastFeedUrl}
+                                : undefined
+                        }
+                        articles={
+                            articleFeedUrl !== null
+                                ? {publicFeedUrl: articleFeedUrl}
+                                : undefined
+                        }
                         isAuthenticated={isAuthenticated}
-                        publicFeedUrl={config.publicRssUrl}
                     />
                 </div>
             ) : null}

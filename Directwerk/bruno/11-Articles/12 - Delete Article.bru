@@ -1,0 +1,24 @@
+meta {
+  name: 12 - Delete Article
+  type: http
+  seq: 12
+}
+
+delete {
+  url: {{baseUrl}}/api/v1/articles/{{articleId}}
+  body: none
+  auth: inherit
+}
+
+tests {
+  test("returns expected status", function() {
+    expect(res.getStatus() === 204 || res.getStatus() === 404).to.equal(true);
+  });
+}
+
+docs {
+  Deletes the article in any status (204, empty body). The hero asset is detached,
+  never deleted; custom feeds select by category and stop including it.
+  404 ARTICLE_NOT_FOUND for unknown ids and cross-tenant ids.
+  Destructive — run last or re-create the draft afterwards.
+}

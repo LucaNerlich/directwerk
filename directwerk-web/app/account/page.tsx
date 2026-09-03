@@ -23,8 +23,6 @@ import {
     TableRow,
 } from '@directwerk/ui/components/table'
 
-import HowToListen from '@/components/HowToListen'
-import HowToRead from '@/components/HowToRead'
 import {useAccountDashboard} from '@/lib/account/useAccountDashboard'
 import {forgotPassword} from '@/lib/api/client'
 import {parseForgotPasswordInput} from '@directwerk/api/validation/input'
@@ -32,6 +30,8 @@ import {
     billingSourceLabel,
     subscriptionStatusLabel,
 } from '@/lib/format/content'
+import {userFacingGeneralError} from '@/lib/billing/userFacingBillingError'
+import {formatPublishedAt} from '@directwerk/api/format/datetime'
 
 import {clearTokens} from '@/lib/auth/tokenStore'
 import {getClientTenantHost} from '@/lib/tenant/clientHost'
@@ -52,21 +52,67 @@ const CHANGE_PASSWORD_INITIAL: ChangePasswordState = {
     resetHref: null,
 }
 
+function roleLabel(role: string): string {
+    switch (role) {
+        case 'SUBSCRIBER':
+            return 'Mitglied'
+        case 'TENANT_ADMIN':
+            return 'Verwaltung'
+        case 'EDITOR':
+            return 'Redaktion'
+        case 'PLATFORM_ADMIN':
+            return 'Plattformverwaltung'
+        case 'GUEST':
+            return 'Gast'
+        default:
+            return role
+    }
+}
+
+function renewalLabel(status: string, endsAt: string | null): string {
+    if (endsAt !== null) {
+        const date = formatPublishedAt(endsAt)
+        if (status === 'CANCELED') {
+            return `Beendet am ${date}`
+        }
+        return `Läuft bis ${date}`
+    }
+    if (status === 'ACTIVE') {
+        return 'Läuft fortlaufend'
+    }
+    if (status === 'PAST_DUE') {
+        return 'Zahlung überfällig'
+    }
+    return '—'
+}
+
+function sourceActionLabel(source: string): string {
+    switch (source) {
+        case 'STRIPE':
+            return 'Siehe Kundenportal unten'
+        case 'PATREON':
+            return 'Im Patreon-Konto verwalten'
+        case 'STEADY':
+            return 'Im Steady-Konto verwalten'
+        case 'MANUAL':
+            return 'Bei der Redaktion melden'
+        default:
+            return 'Beim Anbieter verwalten'
+    }
+}
+
 export default function AccountPage() {
     const router = useRouter()
     const {
         me,
         access,
-        feeds,
-        articleFeeds,
         subscriptions,
-        publicRssUrl,
-        publicArticleRssUrl,
         emailNotificationsEnabled,
         emailNotifyAvailable,
         error,
         isLoading,
         prefsMessage,
+        prefsMessageKind,
         prefsBusy,
         portalMessage,
         portalBusy,
@@ -122,10 +168,10 @@ export default function AccountPage() {
                     }
                 } catch (requestError: unknown) {
                     return {
-                        error:
-                            requestError instanceof Error
-                                ? requestError.message
-                                : 'Passwortänderung konnte nicht gestartet werden.',
+                        error: userFacingGeneralError(
+                            requestError,
+                            'Passwortänderung konnte nicht gestartet werden. Bitte versuche es später erneut.',
+                        ),
                         success: false,
                         resetHref: null,
                     }
@@ -134,11 +180,11 @@ export default function AccountPage() {
             CHANGE_PASSWORD_INITIAL,
         )
 
-    const defaultFeed = feeds.find((feed) => feed.isDefault) ?? null
-    const defaultArticleFeed =
-        articleFeeds.find((feed) => feed.isDefault) ?? null
     const hasPastDue = subscriptions.some((item) => item.status === 'PAST_DUE')
     const hasStripeMembership = subscriptions.some((item) => item.source === 'STRIPE')
+    const hasNonStripeMembership = subscriptions.some(
+        (item) => item.source !== 'STRIPE',
+    )
     const activeSubscriptionCount = subscriptions.filter(
         (item) => item.status === 'ACTIVE',
     ).length
@@ -168,12 +214,12 @@ export default function AccountPage() {
                         value={String(activeSubscriptionCount)}
                     />
                     <StatCard
-                        hint="Höchste freigeschaltete Stufe."
-                        label="Stufe"
-                        value={highestLevel?.title ?? 'Keine'}
+                        hint="Schaltet alle Inhalte bis zu dieser Stufe frei."
+                        label="Dein Zugang"
+                        value={highestLevel?.title ?? 'Kostenlos'}
                     />
                     <StatCard
-                        hint="Pakete mit Bonusdateien oder Sonderzugang."
+                        hint="Schalten Bonusdateien und Extras frei."
                         label="Pakete"
                         value={String(access.activePackages.length)}
                     />
@@ -195,8 +241,10 @@ export default function AccountPage() {
                                 <TableCell>{me.name ?? 'Nicht gesetzt'}</TableCell>
                             </TableRow>
                             <TableRow>
-                                <TableHead scope="row">Rollen</TableHead>
-                                <TableCell>{me.roles.join(', ')}</TableCell>
+                                <TableHead scope="row">Rolle</TableHead>
+                                <TableCell>
+                                    {me.roles.map(roleLabel).join(', ')}
+                                </TableCell>
                             </TableRow>
                         </TableBody>
                     </Table>
@@ -250,76 +298,75 @@ export default function AccountPage() {
             {access !== null && (
                 <section className="flex flex-col gap-4">
                     <SectionHeader
-                        description="Freie Folgen sind ohne Abo hörbar. Bezahlte Folgen und der private Feed brauchen eine aktive Stufe oder ein Paket."
-                        title="Zugang"
+                        description="Freie Folgen und Beiträge sind ohne Abo hör- und lesbar. Mit einer Stufe schaltest du zusätzlich alle bezahlten Inhalte bis zu deiner Stufe frei. Pakete schalten Bonusdateien und Extras frei."
+                        title="Dein Zugang"
                     />
-                    <ResponsiveTable label="Zugang">
-                    <Table>
-                        <TableBody>
-                            <TableRow>
-                                <TableHead scope="row">Höchste Stufe</TableHead>
-                                <TableCell>
-                                    {highestLevel !== null
-                                        ? `${highestLevel.title} (Rang ${highestLevel.sortOrder})`
-                                        : 'Keine'}
-                                </TableCell>
-                            </TableRow>
-                        </TableBody>
-                    </Table>
-                    </ResponsiveTable>
-                    <SectionHeader as="h3" title="Aktive Stufen" />
+                    {highestLevel !== null ? (
+                        <p className="text-sm">
+                            Dein Zugang:{' '}
+                            <strong>{highestLevel.title}</strong> — schaltet alle
+                            bezahlten Inhalte bis einschließlich dieser Stufe frei.
+                        </p>
+                    ) : (
+                        <p className="text-sm text-muted-foreground">
+                            Noch kein Zugang zu bezahlten Inhalten —{' '}
+                            <Link href="/pricing">Tarife ansehen</Link>
+                        </p>
+                    )}
+                    <SectionHeader as="h3" title="Freigeschaltete Stufen" />
                     {access.activeLevels.length === 0 ? (
                         <p className="text-sm text-muted-foreground">
                             Keine — <Link href="/pricing">Mitgliedschaft wählen</Link>
                         </p>
                     ) : (
-                        <ResponsiveTable label="Aktive Stufen">
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead scope="col">Titel</TableHead>
-                                    <TableHead scope="col">Rang</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {access.activeLevels.map((level) => (
-                                    <TableRow key={level.id}>
-                                        <TableCell>{level.title}</TableCell>
-                                        <TableCell>{level.sortOrder}</TableCell>
-                                    </TableRow>
-                                ))}
-                            </TableBody>
-                        </Table>
-                        </ResponsiveTable>
+                        <ul className="flex flex-col gap-2">
+                            {access.activeLevels.map((level) => (
+                                <li
+                                    className="rounded-xl border bg-card p-4"
+                                    key={level.id}
+                                >
+                                    <p className="font-medium">{level.title}</p>
+                                    <p className="mt-1 text-sm text-muted-foreground">
+                                        Schaltet alle bezahlten Inhalte bis
+                                        einschließlich dieser Stufe frei.
+                                    </p>
+                                </li>
+                            ))}
+                        </ul>
                     )}
-                    <SectionHeader as="h3" title="Aktive Pakete" />
+                    <SectionHeader as="h3" title="Freigeschaltete Pakete" />
                     {access.activePackages.length === 0 ? (
                         <p className="text-sm text-muted-foreground">Keine Pakete freigeschaltet.</p>
                     ) : (
-                        <ResponsiveTable label="Aktive Pakete">
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead scope="col">Titel</TableHead>
-                                    <TableHead scope="col">Kürzel</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {access.activePackages.map((pkg) => (
-                                    <TableRow key={pkg.id}>
-                                        <TableCell>{pkg.title}</TableCell>
-                                        <TableCell>{pkg.slug}</TableCell>
-                                    </TableRow>
-                                ))}
-                            </TableBody>
-                        </Table>
-                        </ResponsiveTable>
+                        <ul className="flex flex-col gap-2">
+                            {access.activePackages.map((pkg) => (
+                                <li
+                                    className="rounded-xl border bg-card p-4"
+                                    key={pkg.id}
+                                >
+                                    <p className="font-medium">{pkg.title}</p>
+                                    <p className="mt-1 text-sm text-muted-foreground">
+                                        Schaltet Bonusdateien und Extras dieses
+                                        Pakets frei.{' '}
+                                        <Link
+                                            className="font-medium text-foreground underline-offset-4 hover:underline"
+                                            href="/downloads"
+                                        >
+                                            Downloads öffnen
+                                        </Link>
+                                    </p>
+                                </li>
+                            ))}
+                        </ul>
                     )}
                 </section>
             )}
 
             <section className="flex flex-col gap-4">
-                <SectionHeader title="Mitgliedschaften" />
+                <SectionHeader
+                    description="Welche Mitgliedschaften aktiv sind, wie lange sie laufen und wo du sie verwalten kannst."
+                    title="Mitgliedschaften"
+                />
                 {subscriptions.length === 0 ? (
                     <p className="text-sm text-muted-foreground">
                         Keine.{' '}
@@ -332,7 +379,9 @@ export default function AccountPage() {
                             <TableRow>
                                 <TableHead scope="col">Produkt</TableHead>
                                 <TableHead scope="col">Status</TableHead>
+                                <TableHead scope="col">Laufzeit</TableHead>
                                 <TableHead scope="col">Quelle</TableHead>
+                                <TableHead scope="col">Verwaltung</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -353,7 +402,13 @@ export default function AccountPage() {
                                         </Badge>
                                     </TableCell>
                                     <TableCell>
+                                        {renewalLabel(item.status, item.endsAt)}
+                                    </TableCell>
+                                    <TableCell>
                                         {billingSourceLabel(item.source)}
+                                    </TableCell>
+                                    <TableCell>
+                                        {sourceActionLabel(item.source)}
                                     </TableCell>
                                 </TableRow>
                             ))}
@@ -361,6 +416,14 @@ export default function AccountPage() {
                     </Table>
                     </ResponsiveTable>
                 )}
+                {hasNonStripeMembership ? (
+                    <p className="text-sm text-muted-foreground">
+                        Mitgliedschaften über Patreon oder Steady verwaltest du
+                        direkt in deinem Konto beim jeweiligen Anbieter. Manuell
+                        freigeschaltete Zugänge ändert die Redaktion für dich —
+                        melde dich einfach bei uns.
+                    </p>
+                ) : null}
                 {hasStripeMembership ? (
                     <div className="space-y-2">
                         <Button
@@ -378,32 +441,27 @@ export default function AccountPage() {
                                   : 'Zahlung im Kundenportal verwalten'}
                         </Button>
                         {portalMessage !== null ? (
-                            <p role="status">{portalMessage}</p>
+                            <Alert variant="destructive">
+                                <AlertDescription role="alert">
+                                    {portalMessage}
+                                </AlertDescription>
+                            </Alert>
                         ) : null}
                     </div>
                 ) : null}
             </section>
 
-            {publicRssUrl !== null || defaultFeed?.enabled === true ? (
-                <HowToListen
-                    isAuthenticated
-                    privateFeedUrl={
-                        defaultFeed?.enabled === true ? defaultFeed.url : null
-                    }
-                    publicFeedUrl={publicRssUrl}
+            <section className="flex flex-col gap-3 rounded-xl border bg-card p-5">
+                <SectionHeader
+                    description="Deine persönlichen Feed-URLs für Podcast-Apps und Feed-Reader — inklusive Anleitung zum Einrichten."
+                    title="Private Feeds"
                 />
-            ) : null}
-
-            {publicArticleRssUrl !== null || defaultArticleFeed?.enabled === true ? (
-                <HowToRead
-                    privateFeedUrl={
-                        defaultArticleFeed?.enabled === true
-                            ? defaultArticleFeed.url
-                            : null
-                    }
-                    publicFeedUrl={publicArticleRssUrl}
-                />
-            ) : null}
+                <div>
+                    <Button nativeButton={false} render={<Link href="/feeds" />}>
+                        Feeds verwalten
+                    </Button>
+                </div>
+            </section>
 
             {emailNotifyAvailable && emailNotificationsEnabled !== null && (
                 <section className="flex flex-col gap-3 rounded-xl border bg-card p-5">
@@ -433,7 +491,19 @@ export default function AccountPage() {
                               : 'Aktivieren'}
                     </Button>
                     {prefsMessage !== null ? (
-                        <p role="status">{prefsMessage}</p>
+                        prefsMessageKind === 'error' ? (
+                            <Alert variant="destructive">
+                                <AlertDescription role="alert">
+                                    {prefsMessage}
+                                </AlertDescription>
+                            </Alert>
+                        ) : (
+                            <Alert>
+                                <AlertDescription role="status">
+                                    {prefsMessage}
+                                </AlertDescription>
+                            </Alert>
+                        )
                     ) : null}
                 </section>
             )}
@@ -456,20 +526,26 @@ export default function AccountPage() {
                         </Button>
                     </Form>
                     {changePasswordState.error !== null && (
-                        <p role="alert">{changePasswordState.error}</p>
+                        <Alert variant="destructive">
+                            <AlertDescription role="alert">
+                                {changePasswordState.error}
+                            </AlertDescription>
+                        </Alert>
                     )}
                     {changePasswordState.success && (
-                        <p role="status">
-                            Reset-E-Mail wurde gesendet, sofern das Konto berechtigt ist.
-                            {changePasswordState.resetHref !== null && (
-                                <>
-                                    {' '}
-                                    <Link href={changePasswordState.resetHref}>
-                                        Reset-Link öffnen (Entwicklung)
-                                    </Link>
-                                </>
-                            )}
-                        </p>
+                        <Alert>
+                            <AlertDescription role="status">
+                                Reset-E-Mail wurde gesendet, sofern das Konto berechtigt ist.
+                                {changePasswordState.resetHref !== null && (
+                                    <>
+                                        {' '}
+                                        <Link href={changePasswordState.resetHref}>
+                                            Reset-Link öffnen (Entwicklung)
+                                        </Link>
+                                    </>
+                                )}
+                            </AlertDescription>
+                        </Alert>
                     )}
                 </section>
             )}

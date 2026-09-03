@@ -73,3 +73,24 @@ export function HeroSkeleton(): React.JSX.Element {
         </div>
     )
 }
+
+export function DetailSkeleton(): React.JSX.Element {
+    return (
+        <div className="max-w-3xl space-y-6" aria-label="Inhalt wird geladen">
+            <div className="space-y-3">
+                <Skeleton className="h-5 w-24" />
+                <Skeleton className="h-9 w-3/4" />
+                <Skeleton className="h-4 w-1/2" />
+            </div>
+            <div className="space-y-3">
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-4 w-2/3" />
+            </div>
+            <div className="rounded-xl border p-5">
+                <Skeleton className="h-6 w-32" />
+                <Skeleton className="mt-3 h-12 w-full" />
+            </div>
+        </div>
+    )
+}

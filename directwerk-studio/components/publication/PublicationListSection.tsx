@@ -49,6 +49,7 @@ interface PublicationListSectionProps<T extends PublicationListItem> {
     onUnpublish: (item: T) => void
     onCancelSchedule?: (item: T) => void
     onUnarchive?: (item: T) => void
+    onDelete?: (item: T) => void
     /** Non-null disables the row's publish action, shows the reason, and excludes drafts from bulk selection. */
     publishBlockedReason?: (item: T) => string | null
     onBulkEdit?: () => void
@@ -78,6 +79,7 @@ function PublicationRowActions<T extends PublicationListItem>({
     onUnpublish,
     onCancelSchedule,
     onUnarchive,
+    onDelete,
 }: {
     item: T
     isBusy: boolean
@@ -87,6 +89,7 @@ function PublicationRowActions<T extends PublicationListItem>({
     onUnpublish: (item: T) => void
     onCancelSchedule?: (item: T) => void
     onUnarchive?: (item: T) => void
+    onDelete?: (item: T) => void
 }): React.JSX.Element {
     const publishBlocked = publishBlockedReason !== undefined && publishBlockedReason !== null
     return (
@@ -139,6 +142,18 @@ function PublicationRowActions<T extends PublicationListItem>({
                     {isBusy ? 'Wird wiederhergestellt…' : 'Wiederherstellen'}
                 </Button>
             ) : null}
+            {onDelete !== undefined ? (
+                <Button
+                    aria-label={`„${item.title}“ löschen`}
+                    disabled={disabled || isBusy}
+                    onClick={() => onDelete(item)}
+                    size="sm"
+                    type="button"
+                    variant="destructive"
+                >
+                    {isBusy ? 'Wird gelöscht…' : 'Löschen'}
+                </Button>
+            ) : null}
         </>
     )
 }
@@ -154,6 +169,7 @@ function toEntityItems<T extends PublicationListItem>({
     onUnpublish,
     onCancelSchedule,
     onUnarchive,
+    onDelete,
 }: Pick<
     PublicationListSectionProps<T>,
     | 'items'
@@ -166,6 +182,7 @@ function toEntityItems<T extends PublicationListItem>({
     | 'onUnpublish'
     | 'onCancelSchedule'
     | 'onUnarchive'
+    | 'onDelete'
 >): EntityListViewItem<number>[] {
     return items.map((item) => {
         const publishedLabel = formatPublishedAt(item.publishedAt)
@@ -225,6 +242,7 @@ function toEntityItems<T extends PublicationListItem>({
                     item={item}
                     publishBlockedReason={blockedReason}
                     onCancelSchedule={onCancelSchedule}
+                    onDelete={onDelete}
                     onPublish={onPublish}
                     onUnarchive={onUnarchive}
                     onUnpublish={onUnpublish}
@@ -289,6 +307,7 @@ export default function PublicationListSection<T extends PublicationListItem>(
             props.onUnpublish,
             props.onCancelSchedule,
             props.onUnarchive,
+            props.onDelete,
         ],
     )
     const showSearch = items.length > 1

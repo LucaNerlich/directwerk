@@ -24,6 +24,17 @@ export function webPublicArticleFeedUrl(
     })
 }
 
+/** Both same-origin public feed URLs at once (podcast + articles). */
+export function webPublicFeedUrls(
+    config: PublicSiteConfig,
+    tenantHost: string,
+): {podcast: string | null; articles: string | null} {
+    return {
+        podcast: webPublicPodcastFeedUrl(config, tenantHost),
+        articles: webPublicArticleFeedUrl(config, tenantHost),
+    }
+}
+
 /** Same-origin public podcast feed URL for the web app's `/feeds/**` proxy. */
 export function webPublicPodcastFeedUrl(
     config: PublicSiteConfig,

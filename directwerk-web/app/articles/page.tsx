@@ -1,77 +1,44 @@
 'use client'
 
 import Link from 'next/link'
-import {useEffect, useState} from 'react'
-import useSWR from 'swr'
 
 import {Alert, AlertDescription} from '@directwerk/ui/components/alert'
 import {Button} from '@directwerk/ui/components/button'
-import {Card, CardContent, CardHeader, CardTitle} from '@directwerk/ui/components/card'
 import EmptyState from '@directwerk/ui/components/empty-state'
+import ListPanel from '@directwerk/ui/components/list-panel'
 import PageHeader from '@directwerk/ui/components/page-header'
 import PageStack from '@directwerk/ui/components/page-stack'
 import SectionHeader from '@directwerk/ui/components/section-header'
 
 import AccessPolicyBadge from '@/components/AccessPolicyBadge'
-import {CardGridSkeleton} from '@/components/ContentLoadingSkeleton'
-import FeedUrlDisplay from '@/components/FeedUrlDisplay'
+import CatalogRow, {LockedCatalogAction} from '@/components/CatalogRow'
+import {ListPanelSkeleton} from '@/components/ContentLoadingSkeleton'
+import PublicFeedFooter, {PublicFeedStrip} from '@/components/PublicFeedFooter'
 import SubscriberContextBanner from '@/components/SubscriberContextBanner'
-import {getSiteConfig, listPublicArticles} from '@/lib/api/client'
-import type {PublicArticle, PublicSiteConfig} from '@directwerk/api/types'
-import {formatPublishedAt} from '@directwerk/api/format/datetime'
-import {getClientTenantHost} from '@/lib/tenant/clientHost'
+import {usePublicArticles} from '@/lib/catalog/usePublicArticles'
+import {findUnlockProduct, unlockHref} from '@/lib/catalog/unlock'
+import {usePublicProducts} from '@/lib/catalog/usePublicProducts'
 import {useArticleFeeds} from '@/lib/auth/useArticleFeeds'
 import {useSubscriberAuth} from '@/lib/auth/useSubscriberAuth'
+import {getClientTenantHost} from '@/lib/tenant/clientHost'
 import {webPublicArticleFeedUrl} from '@/lib/feeds/webPublicFeedUrl'
+import {formatPublishedAt} from '@directwerk/api/format/datetime'
 
 export default function ArticlesPage() {
     const tenantHost = getClientTenantHost()
     const {isAuthenticated} = useSubscriberAuth()
-    const [articles, setArticles] = useState<PublicArticle[]>([])
-    const [errorMessage, setErrorMessage] = useState<string | null>(null)
-    const [isLoading, setIsLoading] = useState(true)
-    const {data: siteConfig} = useSWR<PublicSiteConfig>(
-        ['site-config', tenantHost] as const,
-        async ([, host]: readonly [string, string]) => (await getSiteConfig(host)).data,
-    )
+    const {siteConfig, articles, errorMessage, isLoading} = usePublicArticles({
+        tenantHost,
+        isAuthenticated,
+    })
+    const products = usePublicProducts(tenantHost)
+    const unlockTarget = unlockHref(findUnlockProduct(products))
     const {feeds: privateFeeds} = useArticleFeeds(
         isAuthenticated && (siteConfig?.enabledModules.includes('ARTICLE_RSS') ?? false),
     )
     const defaultPrivateFeed = privateFeeds.find((feed) => feed.isDefault) ?? null
     const publicArticleFeedUrl =
-        siteConfig === undefined ? null : webPublicArticleFeedUrl(siteConfig, tenantHost)
-
-    useEffect(() => {
-        let active = true
-        setIsLoading(true)
-        setErrorMessage(null)
-
-        listPublicArticles(tenantHost)
-            .then((loaded) => {
-                if (active) {
-                    setArticles(loaded)
-                }
-            })
-            .catch((error: unknown) => {
-                if (active) {
-                    setArticles([])
-                    setErrorMessage(
-                        error instanceof Error
-                            ? error.message
-                            : 'Beiträge konnten nicht geladen werden.',
-                    )
-                }
-            })
-            .finally(() => {
-                if (active) {
-                    setIsLoading(false)
-                }
-            })
-
-        return () => {
-            active = false
-        }
-    }, [tenantHost])
+        siteConfig === null ? null : webPublicArticleFeedUrl(siteConfig, tenantHost)
 
     return (
         <PageStack className="page-container">
@@ -84,9 +51,12 @@ export default function ArticlesPage() {
                         : 'Öffentlich: nur freie Beiträge. Anmelden für bezahlte Inhalte.'
                 }
             />
+            {publicArticleFeedUrl !== null ? (
+                <PublicFeedStrip kind="articles" publicFeedUrl={publicArticleFeedUrl} />
+            ) : null}
             <SubscriberContextBanner showWhenAuthenticated={false} />
 
-            {isLoading ? <CardGridSkeleton cards={4} columns={2} /> : null}
+            {isLoading ? <ListPanelSkeleton rows={5} /> : null}
             {errorMessage !== null ? (
                 <Alert variant="destructive">
                     <AlertDescription>{errorMessage}</AlertDescription>
@@ -106,80 +76,79 @@ export default function ArticlesPage() {
                 />
             ) : null}
             {articles.length > 0 ? (
-                <div className="grid gap-5 sm:grid-cols-2">
-                    {articles.map((article) => (
-                        <Card key={article.id} className="flex flex-col">
-                            <CardHeader className="space-y-3">
-                                <div className="flex flex-wrap items-center gap-2">
-                                    <AccessPolicyBadge policy={article.accessPolicy} />
-                                    {article.categories.length > 0 ? (
-                                        <span className="text-xs text-muted-foreground">
-                                            {article.categories.map((category) => category.name).join(', ')}
-                                        </span>
-                                    ) : null}
-                                </div>
-                                <CardTitle className="text-xl">
-                                    <Link
-                                        className="hover:underline"
-                                        href={`/articles/${encodeURIComponent(article.slug)}`}
-                                    >
-                                        {article.title}
-                                    </Link>
-                                </CardTitle>
-                            </CardHeader>
-                            <CardContent className="mt-auto space-y-3 text-muted-foreground">
-                                <p className="text-xs">
-                                    {formatPublishedAt(article.publishedAt)}
-                                </p>
-                                {article.excerpt !== null && article.excerpt.length > 0 ? (
-                                    <p className="line-clamp-3 text-sm leading-6">
-                                        {article.excerpt}
-                                    </p>
-                                ) : null}
-                                <Link
-                                    className="inline-block text-sm font-medium text-foreground underline-offset-4 hover:underline"
-                                    href={`/articles/${encodeURIComponent(article.slug)}`}
-                                >
-                                    Weiterlesen
-                                </Link>
-                            </CardContent>
-                        </Card>
-                    ))}
-                </div>
-            ) : null}
-
-            {publicArticleFeedUrl !== null ? (
                 <section className="flex flex-col gap-4">
                     <SectionHeader
-                        description="Alle freien Beiträge in einem Feed-Reader abonnieren."
-                        title="Feeds"
+                        description={`${articles.length} ${articles.length === 1 ? 'Beitrag' : 'Beiträge'} sichtbar.`}
+                        title="Veröffentlichte Beiträge"
                     />
-                    <FeedUrlDisplay
-                        title="Öffentlicher Feed"
-                        url={publicArticleFeedUrl}
-                    />
-                    {isAuthenticated ? (
-                        defaultPrivateFeed !== null && defaultPrivateFeed.enabled ? (
-                            <FeedUrlDisplay
-                                title="Dein privater Feed"
-                                url={defaultPrivateFeed.url}
-                            />
-                        ) : null
-                    ) : (
-                        <p className="text-sm text-muted-foreground">
-                            <Link className="underline" href="/login">
-                                Anmelden
-                            </Link>
-                            , um deinen privaten Feed mit freigeschalteten Beiträgen zu sehen.
-                        </p>
-                    )}
-                    <Link
-                        className="text-sm font-medium underline-offset-4 hover:underline"
-                        href="/feeds"
-                    >
-                        Alle Feeds verwalten
-                    </Link>
+                    <ListPanel>
+                        {articles.map((article) => {
+                            const href = `/articles/${encodeURIComponent(article.slug)}`
+                            const isLocked =
+                                article.accessPolicy === 'PAID' && article.body === null
+                            return (
+                                <CatalogRow
+                                    key={article.id}
+                                    href={href}
+                                    title={article.title}
+                                    badge={
+                                        <AccessPolicyBadge
+                                            policy={article.accessPolicy}
+                                            isEntitled={
+                                                article.accessPolicy === 'PAID'
+                                                    ? !isLocked
+                                                    : undefined
+                                            }
+                                        />
+                                    }
+                                    metaItems={[
+                                        article.categories.length > 0
+                                            ? article.categories
+                                                  .map((category) => category.name)
+                                                  .join(', ')
+                                            : null,
+                                        formatPublishedAt(article.publishedAt),
+                                    ]}
+                                    excerpt={article.excerpt}
+                                    action={
+                                        article.body !== null ? (
+                                            <Button
+                                                nativeButton={false}
+                                                render={<Link href={href} />}
+                                                size="sm"
+                                                variant="outline"
+                                            >
+                                                Lesen
+                                            </Button>
+                                        ) : isLocked ? (
+                                            <LockedCatalogAction
+                                                isAuthenticated={isAuthenticated}
+                                                unlockHref={unlockTarget}
+                                            />
+                                        ) : (
+                                            <span className="max-w-32 text-right text-xs text-muted-foreground">
+                                                Kein Text
+                                            </span>
+                                        )
+                                    }
+                                />
+                            )
+                        })}
+                    </ListPanel>
                 </section>
+            ) : null}
+
+            {!isLoading && errorMessage === null ? (
+                <PublicFeedFooter
+                    kind="articles"
+                    publicFeedUrl={publicArticleFeedUrl}
+                    privateFeedUrl={
+                        defaultPrivateFeed !== null && defaultPrivateFeed.enabled
+                            ? defaultPrivateFeed.url
+                            : null
+                    }
+                    isAuthenticated={isAuthenticated}
+                />
             ) : null}
         </PageStack>
     )

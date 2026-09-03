@@ -294,6 +294,31 @@ public class EpisodeService {
         return saved;
     }
 
+    /**
+     * Deletes an episode in any status. The tenant-scoped lookup returns 404 for foreign-tenant
+     * ids, and the explicit tenant comparison below keeps the delete fail-closed even if the
+     * query scoping is ever bypassed. Media assets are detached, never deleted: the
+     * {@code trg_episodes_null_media_asset_refs} trigger nulls {@code media_assets.episode_id}
+     * and the episode row owns the audio/cover references, so S3 objects survive. Join rows
+     * (formats, categories) cascade. Custom/subscriber feeds reference categories and formats,
+     * never episode ids, so no feed rules need cleanup; the refresh below rebuilds the public
+     * snapshots when the deleted episode was visible.
+     */
+    @Transactional
+    @RequiresModule(PodcastModule.KEY)
+    public void deleteEpisode(Long tenantId, Long episodeId) {
+        Episode episode = requireEpisode(tenantId, episodeId);
+        if (episode.getTenant() == null || !tenantId.equals(episode.getTenant().getId())) {
+            throw new EpisodeNotFoundException(episodeId);
+        }
+        boolean wasVisible = episode.getStatus() == EpisodeStatus.PUBLISHED
+                || episode.getStatus() == EpisodeStatus.SCHEDULED;
+        episodeRepository.delete(episode);
+        if (wasVisible) {
+            rssFeedRefreshScheduler.requestRefreshAfterCommit(tenantId);
+        }
+    }
+
     private Episode requireDraftEpisode(Long tenantId, Long episodeId) {
         Episode episode = requireEpisode(tenantId, episodeId);
         if (episode.getStatus() != EpisodeStatus.DRAFT) {

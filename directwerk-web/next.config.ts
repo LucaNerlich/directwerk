@@ -13,6 +13,7 @@ const nextConfig: NextConfig = {
     // moves `.next` out of the monorepo build directory.
     transpilePackages: [...sharedConfig.transpilePackages, 'postcss'],
     images: {
+        maximumRedirects: 0,
         remotePatterns: buildMediaImageRemotePatterns(
             process.env.MEDIA_IMAGE_REMOTE_HOSTS
         ),

@@ -1,10 +1,11 @@
 'use client'
 
 import Link from 'next/link'
-import {useRouter} from 'next/navigation'
-import {useEffect, useState} from 'react'
+import {useRouter, useSearchParams} from 'next/navigation'
+import {Suspense, useEffect, useState} from 'react'
 
-import {buttonVariants} from '@directwerk/ui/components/button'
+import {Alert, AlertDescription} from '@directwerk/ui/components/alert'
+import {buttonVariants, Button} from '@directwerk/ui/components/button'
 import PageHeader from '@directwerk/ui/components/page-header'
 import PageStack from '@directwerk/ui/components/page-stack'
 
@@ -12,10 +13,12 @@ import {getAccess, listMySubscriptions} from '@/lib/api/client'
 import {AUTH_REQUIRED} from '@directwerk/api/constants'
 import type {Access, SubscriptionSummary} from '@directwerk/api/types'
 import {getClientTenantHost} from '@/lib/tenant/clientHost'
+import {userFacingBillingError} from '@/lib/billing/userFacingBillingError'
 import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
 
 const POLL_MS = 2000
-const MAX_ATTEMPTS = 10
+const MAX_ATTEMPTS = 30
+const SESSION_ID_PATTERN = /^[A-Za-z0-9_-]{8,128}$/
 
 function hasGrantedAccess(
     access: Access | null,
@@ -30,10 +33,16 @@ function hasGrantedAccess(
     return subscriptions.some((item) => item.status === 'ACTIVE')
 }
 
-export default function CheckoutSuccessPage(): React.JSX.Element {
+function CheckoutSuccessContent(): React.JSX.Element {
     const router = useRouter()
+    const searchParams = useSearchParams()
     const authRedirect = useAuthRequired()
+    const sessionParam = searchParams.get('session_id') ?? ''
+    const sessionId = SESSION_ID_PATTERN.test(sessionParam) ? sessionParam : null
     const [phase, setPhase] = useState<'checking' | 'ready' | 'waiting'>('checking')
+    const [error, setError] = useState<string | null>(null)
+    const [subscriptions, setSubscriptions] = useState<SubscriptionSummary[]>([])
+    const [round, setRound] = useState(0)
 
     useEffect(() => {
         let cancelled = false
@@ -43,22 +52,32 @@ export default function CheckoutSuccessPage(): React.JSX.Element {
         async function poll(): Promise<void> {
             try {
                 const tenantHost = getClientTenantHost()
-                const [accessResponse, subscriptions] = await Promise.all([
+                const [accessResponse, subscriptionList] = await Promise.all([
                     getAccess(tenantHost),
                     listMySubscriptions(tenantHost),
                 ])
                 if (cancelled) {
                     return
                 }
-                if (hasGrantedAccess(accessResponse.data, subscriptions)) {
+                setSubscriptions(subscriptionList)
+                setError(null)
+                if (hasGrantedAccess(accessResponse.data, subscriptionList)) {
                     setPhase('ready')
                     return
                 }
-            } catch (error: unknown) {
+            } catch (pollError: unknown) {
                 if (cancelled) {
                     return
                 }
-                if (authRedirect(error)) return
+                if (authRedirect(pollError)) return
+                if (
+                    pollError instanceof Error &&
+                    pollError.message === AUTH_REQUIRED
+                ) {
+                    router.replace('/login')
+                    return
+                }
+                setError(userFacingBillingError(pollError, 'checkout'))
             }
 
             attempts += 1
@@ -73,6 +92,7 @@ export default function CheckoutSuccessPage(): React.JSX.Element {
             }, POLL_MS)
         }
 
+        setPhase('checking')
         void poll()
         return () => {
             cancelled = true
@@ -80,7 +100,17 @@ export default function CheckoutSuccessPage(): React.JSX.Element {
                 clearTimeout(timer)
             }
         }
-    }, [router])
+    }, [authRedirect, round, router])
+
+    function retry(): void {
+        setError(null)
+        setPhase('checking')
+        setRound((current) => current + 1)
+    }
+
+    const activeSubscriptions = subscriptions.filter(
+        (item) => item.status === 'ACTIVE',
+    )
 
     return (
         <PageStack className="page-container">
@@ -94,11 +124,54 @@ export default function CheckoutSuccessPage(): React.JSX.Element {
                           : 'Wir warten auf die Bestätigung von Stripe — das dauert meist nur wenige Sekunden.'
                 }
             />
-            <p className="max-w-xl text-sm leading-6 text-muted-foreground">
-                {phase === 'ready'
-                    ? 'Du kannst jetzt bezahlte Folgen und Bonusdateien nutzen.'
-                    : 'Webhook-Bestätigungen können ein paar Sekunden brauchen. Lade das Konto später neu, falls der Zugang noch fehlt.'}
-            </p>
+            <div role="status" aria-live="polite" className="max-w-xl space-y-3 text-sm leading-6 text-muted-foreground">
+                <p>
+                    {phase === 'ready'
+                        ? 'Du kannst jetzt bezahlte Folgen und Bonusdateien nutzen.'
+                        : 'Webhook-Bestätigungen können ein paar Sekunden brauchen. Lade das Konto später neu, falls der Zugang noch fehlt.'}
+                </p>
+                {sessionId !== null ? (
+                    <p>
+                        Bestellreferenz:{' '}
+                        <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-xs text-foreground">
+                            {sessionId.slice(0, 16)}…
+                        </code>
+                    </p>
+                ) : null}
+                {phase === 'ready' && activeSubscriptions.length > 0 ? (
+                    <ul className="list-disc space-y-1 pl-5 text-foreground">
+                        {activeSubscriptions.map((item) => (
+                            <li key={item.id}>
+                                {item.productTitle}
+                                {item.source.length > 0 ? ` (${item.source})` : null}
+                            </li>
+                        ))}
+                    </ul>
+                ) : null}
+            </div>
+            {error !== null ? (
+                <Alert variant="destructive" role="alert">
+                    <AlertDescription className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                        <span>{error}</span>
+                        <Button type="button" variant="outline" size="sm" onClick={retry}>
+                            Erneut prüfen
+                        </Button>
+                    </AlertDescription>
+                </Alert>
+            ) : null}
+            {phase === 'waiting' ? (
+                <Alert role="status">
+                    <AlertDescription className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                        <span>
+                            Die Bestätigung dauert länger als üblich. Prüfe später
+                            erneut — dein Zugang erscheint automatisch.
+                        </span>
+                        <Button type="button" variant="outline" size="sm" onClick={retry}>
+                            Erneut prüfen
+                        </Button>
+                    </AlertDescription>
+                </Alert>
+            ) : null}
             <div className="flex flex-wrap gap-3">
                 <Link className={buttonVariants()} href="/account">
                     Zum Konto
@@ -108,5 +181,25 @@ export default function CheckoutSuccessPage(): React.JSX.Element {
                 </Link>
             </div>
         </PageStack>
+    )
+}
+
+export default function CheckoutSuccessPage(): React.JSX.Element {
+    return (
+        <Suspense
+            fallback={
+                <PageStack className="page-container">
+                    <PageHeader
+                        title="Zahlung eingegangen"
+                        description="Wir warten auf die Bestätigung von Stripe — das dauert meist nur wenige Sekunden."
+                    />
+                    <p role="status" className="text-sm text-muted-foreground">
+                        Wird geprüft…
+                    </p>
+                </PageStack>
+            }
+        >
+            <CheckoutSuccessContent />
+        </Suspense>
     )
 }

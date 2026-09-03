@@ -580,3 +580,19 @@ Accept: application/json
         client.assert(response.status === 200 || response.status === 404, "Expected 200 or 404");
     });
 %}
+
+###
+
+### @name deletePodcastEpisode
+# Destructive: deletes the episode in any status. Media assets are detached (never deleted);
+# feeds select by format/category and stop including it. Run last for the notify episode.
+DELETE {{baseUrl}}/api/v1/episodes/{{podcastEpisodeNotifyId}}
+Host: {{tenantAHost}}
+Authorization: Bearer {{tenantAAccessToken}}
+Accept: application/json
+
+> {%
+    client.test("Delete podcast episode", function() {
+        client.assert(response.status === 204 || response.status === 404, "Expected 204 or 404");
+    });
+%}

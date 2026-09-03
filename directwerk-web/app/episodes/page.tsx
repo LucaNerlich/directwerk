@@ -11,14 +11,18 @@ import PageStack from '@directwerk/ui/components/page-stack'
 import SectionHeader from '@directwerk/ui/components/section-header'
 
 import AccessPolicyBadge from '@/components/AccessPolicyBadge'
+import CatalogRow, {LockedCatalogAction} from '@/components/CatalogRow'
 import ContentMetaLine from '@/components/ContentMetaLine'
 import {ListPanelSkeleton} from '@/components/ContentLoadingSkeleton'
 import FeedUrlDisplay from '@/components/FeedUrlDisplay'
+import PublicFeedFooter, {PublicFeedStrip} from '@/components/PublicFeedFooter'
 import SubscriberContextBanner from '@/components/SubscriberContextBanner'
 import {usePublicCatalog} from '@/lib/catalog/usePublicCatalog'
+import {findUnlockProduct, unlockHref} from '@/lib/catalog/unlock'
+import {usePublicProducts} from '@/lib/catalog/usePublicProducts'
 import {useSubscriberAuth} from '@/lib/auth/useSubscriberAuth'
 import {useSubscriberFeeds} from '@/lib/auth/useSubscriberFeeds'
-import {accessPolicyLabel, formatDuration} from '@/lib/format/content'
+import {formatDuration} from '@/lib/format/content'
 import {getClientTenantHost} from '@/lib/tenant/clientHost'
 import {webPublicPodcastFeedUrl} from '@/lib/feeds/webPublicFeedUrl'
 import {formatPublishedAt} from '@directwerk/api/format/datetime'
@@ -30,6 +34,8 @@ export default function EpisodesPage() {
         tenantHost,
         isAuthenticated,
     })
+    const products = usePublicProducts(tenantHost)
+    const unlockTarget = unlockHref(findUnlockProduct(products))
     const {feeds: privateFeeds} = useSubscriberFeeds(isAuthenticated)
     const defaultPrivateFeed = privateFeeds.find((feed) => feed.isDefault) ?? null
     const publicPodcastFeedUrl =
@@ -45,6 +51,9 @@ export default function EpisodesPage() {
                         : 'Öffentlich: nur freie Folgen. Anmelden für bezahlte Inhalte.'
                 }
             />
+            {publicPodcastFeedUrl !== null ? (
+                <PublicFeedStrip kind="podcast" publicFeedUrl={publicPodcastFeedUrl} />
+            ) : null}
             <SubscriberContextBanner showWhenAuthenticated={false} />
 
             {isLoading ? <ListPanelSkeleton rows={5} /> : null}
@@ -86,7 +95,9 @@ export default function EpisodesPage() {
                                                     </p>
                                                 ) : null}
                                                 {feedUrl !== null ? (
-                                                    <FeedUrlDisplay url={feedUrl} />
+                                                    <div className="min-w-0">
+                                                        <FeedUrlDisplay url={feedUrl} />
+                                                    </div>
                                                 ) : (
                                                     <p className="text-sm text-muted-foreground">
                                                         Kein öffentlicher Feed für diese Sendung.
@@ -123,92 +134,76 @@ export default function EpisodesPage() {
                             />
                         ) : (
                             <ListPanel>
-                                {episodes.map((episode) => (
-                                    <ListPanelRow key={episode.id}>
-                                        <div className="min-w-0 flex-1">
-                                            <Link
-                                                className="font-medium hover:underline"
-                                                href={`/episodes/${encodeURIComponent(episode.slug)}`}
-                                            >
-                                                {episode.episodeNumber !== null
-                                                    ? `#${episode.episodeNumber} `
-                                                    : ''}
-                                                {episode.title}
-                                            </Link>
-                                            <ContentMetaLine
-                                                items={[
-                                                    episode.seriesSlug,
-                                                    accessPolicyLabel(episode.accessPolicy),
-                                                    formatPublishedAt(episode.publishedAt),
-                                                    formatDuration(episode.durationSeconds),
-                                                ]}
-                                            />
-                                        </div>
-                                        <div className="flex shrink-0 items-center gap-2">
-                                            <AccessPolicyBadge policy={episode.accessPolicy} />
-                                            {episode.audioCdnUrl !== null ? (
-                                                <Button
-                                                    nativeButton={false}
-                                                    render={
-                                                        <Link
-                                                            href={`/episodes/${encodeURIComponent(episode.slug)}`}
-                                                        />
+                                {episodes.map((episode) => {
+                                    const href = `/episodes/${encodeURIComponent(episode.slug)}`
+                                    const isLocked =
+                                        episode.accessPolicy === 'PAID' &&
+                                        episode.audioCdnUrl === null
+                                    return (
+                                        <CatalogRow
+                                            key={episode.id}
+                                            href={href}
+                                            title={
+                                                <>
+                                                    {episode.episodeNumber !== null
+                                                        ? `#${episode.episodeNumber} `
+                                                        : ''}
+                                                    {episode.title}
+                                                </>
+                                            }
+                                            badge={
+                                                <AccessPolicyBadge
+                                                    policy={episode.accessPolicy}
+                                                    isEntitled={
+                                                        episode.accessPolicy === 'PAID'
+                                                            ? !isLocked
+                                                            : undefined
                                                     }
-                                                    size="sm"
-                                                    variant="outline"
-                                                >
-                                                    Anhören
-                                                </Button>
-                                            ) : (
-                                                <span className="max-w-32 text-right text-xs text-muted-foreground">
-                                                    {episode.accessPolicy === 'PAID'
-                                                        ? isAuthenticated
-                                                            ? 'Freischaltung prüfen'
-                                                            : 'Anmelden für Zugang'
-                                                        : 'Kein Audio'}
-                                                </span>
-                                            )}
-                                        </div>
-                                    </ListPanelRow>
-                                ))}
+                                                />
+                                            }
+                                            metaItems={[
+                                                episode.seriesSlug,
+                                                formatPublishedAt(episode.publishedAt),
+                                                formatDuration(episode.durationSeconds),
+                                            ]}
+                                            action={
+                                                episode.audioCdnUrl !== null ? (
+                                                    <Button
+                                                        nativeButton={false}
+                                                        render={<Link href={href} />}
+                                                        size="sm"
+                                                        variant="outline"
+                                                    >
+                                                        Anhören
+                                                    </Button>
+                                                ) : isLocked ? (
+                                                    <LockedCatalogAction
+                                                        isAuthenticated={isAuthenticated}
+                                                        unlockHref={unlockTarget}
+                                                    />
+                                                ) : (
+                                                    <span className="max-w-32 text-right text-xs text-muted-foreground">
+                                                        Kein Audio
+                                                    </span>
+                                                )
+                                            }
+                                        />
+                                    )
+                                })}
                             </ListPanel>
                         )}
                     </section>
 
-                    {publicPodcastFeedUrl !== null ? (
-                        <section className="flex flex-col gap-4">
-                            <SectionHeader
-                                description="Alle freien Folgen in einer Podcast-App abonnieren."
-                                title="Feeds"
-                            />
-                            <FeedUrlDisplay
-                                title="Öffentlicher Feed"
-                                url={publicPodcastFeedUrl}
-                            />
-                            {isAuthenticated ? (
-                                defaultPrivateFeed !== null && defaultPrivateFeed.enabled ? (
-                                    <FeedUrlDisplay
-                                        title="Dein privater Feed"
-                                        url={defaultPrivateFeed.url}
-                                    />
-                                ) : null
-                            ) : (
-                                <p className="text-sm text-muted-foreground">
-                                    <Link className="underline" href="/login">
-                                        Anmelden
-                                    </Link>
-                                    , um deinen privaten Feed mit freigeschalteten Folgen zu
-                                    sehen.
-                                </p>
-                            )}
-                            <Link
-                                className="text-sm font-medium underline-offset-4 hover:underline"
-                                href="/feeds"
-                            >
-                                Alle Feeds verwalten
-                            </Link>
-                        </section>
-                    ) : null}
+                    <PublicFeedFooter
+                        kind="podcast"
+                        publicFeedUrl={publicPodcastFeedUrl}
+                        privateFeedUrl={
+                            defaultPrivateFeed !== null && defaultPrivateFeed.enabled
+                                ? defaultPrivateFeed.url
+                                : null
+                        }
+                        isAuthenticated={isAuthenticated}
+                    />
                 </>
             ) : null}
         </PageStack>

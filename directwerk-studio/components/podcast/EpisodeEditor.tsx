@@ -16,12 +16,13 @@ import {useCallback, useEffect, useEffectEvent, useRef, useState} from 'react'
 import MediaLibraryPicker from '@/components/media/MediaLibraryPicker'
 import UploadProgress from '@/components/media/UploadProgress'
 import FormatCategoryPicker from '@/components/publication/FormatCategoryPicker'
+import PublicationDangerZone from '@/components/publication/PublicationDangerZone'
 import PublicationEditorLayout from '@/components/publication/PublicationEditorLayout'
 import PublishedLinksPanel from '@/components/publication/PublishedLinksPanel'
 import {hasModule} from '@/lib/api/client'
 import {listCategories, listFormats, replaceEpisodeCategories, replaceEpisodeFormats} from '@/lib/api/catalogApi'
 import {getMedia, getMediaPreviewUrl} from '@/lib/api/mediaApi'
-import {archiveEpisode, attachEpisodeAudio, cancelScheduleEpisode, createEpisode, getEpisode, listEpisodes, listSeries, publishEpisode, scheduleEpisode, setEpisodeEnclosureEnabled, unarchiveEpisode, unpublishEpisode, updateEpisode} from '@/lib/api/podcastApi'
+import {archiveEpisode, attachEpisodeAudio, cancelScheduleEpisode, createEpisode, deleteEpisode, getEpisode, listEpisodes, listSeries, publishEpisode, scheduleEpisode, setEpisodeEnclosureEnabled, unarchiveEpisode, unpublishEpisode, updateEpisode} from '@/lib/api/podcastApi'
 import type {CategorySummary, EpisodeDetail, FormatSummary, SeriesSummary} from '@directwerk/api/types'
 import {mediaLimitLabel} from '@/lib/media/limits'
 import {uploadMediaFile} from '@/lib/media/upload'
@@ -863,6 +864,15 @@ export default function EpisodeEditor({episodeId}: {episodeId?: number}): React.
                     </>
                 }
             />
+            {episodeId !== undefined && episode !== null ? (
+                <PublicationDangerZone
+                    contentLabel="Folge"
+                    deleteErrorMessage="Folge konnte nicht gelöscht werden."
+                    item={episode}
+                    onDelete={(id) => deleteEpisode(getClientTenantHost(), id)}
+                    onDeleted={() => router.replace('/podcast/episodes')}
+                />
+            ) : null}
         </PageStack>
     )
 }

@@ -17,4 +17,16 @@ describe('safeReturnTo', () => {
         expect(safeReturnTo('/login')).toBe('/account')
         expect(safeReturnTo(null, '/pricing')).toBe('/pricing')
     })
+
+    it('preserves query strings such as a pending purchase', () => {
+        expect(safeReturnTo('/pricing?buy=pro-monat')).toBe('/pricing?buy=pro-monat')
+        expect(safeReturnTo('/checkout/success?session_id=cs_test_123')).toBe(
+            '/checkout/success?session_id=cs_test_123',
+        )
+    })
+
+    it('rejects backslash and javascript escapes', () => {
+        expect(safeReturnTo('/pricing\\evil.test')).toBe('/account')
+        expect(safeReturnTo('javascript:alert(1)')).toBe('/account')
+    })
 })

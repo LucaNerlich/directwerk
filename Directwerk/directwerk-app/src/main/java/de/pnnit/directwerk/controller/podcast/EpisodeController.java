@@ -15,6 +15,9 @@ import de.pnnit.directwerk.modules.podcast.entity.Format;
 import de.pnnit.directwerk.modules.podcast.service.EpisodeService;
 import de.pnnit.directwerk.modules.podcast.service.PublicationWorkflowService;
 import de.pnnit.directwerk.multitenancy.TenantContext;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
@@ -28,6 +31,7 @@ import java.util.Set;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -209,6 +213,25 @@ public class EpisodeController {
     ResponseEntity<Response<EpisodeView>> unarchive(@PathVariable Long episodeId) {
         Long tenantId = TenantContext.requireTenantId();
         return ResponseEntity.ok(Response.ok(publicEpisodeViewMapper.toStudioView(publicationWorkflowService.unarchive(tenantId, episodeId))));
+    }
+
+    @Operation(
+            summary = "Delete an episode",
+            description = "Deletes an episode in any status. Media assets are detached, never deleted "
+                    + "(S3 objects survive); format/category assignments are removed with the episode. "
+                    + "Custom and subscriber feeds select by format/category at read time and never "
+                    + "reference episode ids, so no feed rules need cleanup — feeds simply stop "
+                    + "including the episode. Returns 204 with an empty body."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "204", description = "Episode deleted"),
+            @ApiResponse(responseCode = "404", description = "Unknown id, or id belongs to another tenant (EPISODE_NOT_FOUND)")
+    })
+    @DeleteMapping("/{episodeId}")
+    ResponseEntity<Void> deleteEpisode(@PathVariable Long episodeId) {
+        Long tenantId = TenantContext.requireTenantId();
+        episodeService.deleteEpisode(tenantId, episodeId);
+        return ResponseEntity.noContent().build();
     }
 
     public record CreateEpisodeRequest(

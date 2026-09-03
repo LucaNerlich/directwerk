@@ -1,0 +1,24 @@
+meta {
+  name: 14 - Delete Episode
+  type: http
+  seq: 14
+}
+
+delete {
+  url: {{baseUrl}}/api/v1/episodes/{{podcastEpisodeId}}
+  body: none
+  auth: inherit
+}
+
+tests {
+  test("returns expected status", function() {
+    expect(res.getStatus() === 204 || res.getStatus() === 404).to.equal(true);
+  });
+}
+
+docs {
+  Deletes the episode in any status (204, empty body). Media assets are detached,
+  never deleted; feeds select by format/category and stop including it.
+  404 EPISODE_NOT_FOUND for unknown ids and cross-tenant ids.
+  Destructive — run last or re-create the draft afterwards.
+}

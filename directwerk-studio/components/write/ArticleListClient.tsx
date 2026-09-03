@@ -11,9 +11,11 @@ import PageStack from '@directwerk/ui/components/page-stack'
 
 import PublicationListSection from '@/components/publication/PublicationListSection'
 import BulkEditDialog, {type BulkEditOperation} from '@/components/publication/BulkEditDialog'
+import DeletePublicationDialog from '@/components/publication/DeletePublicationDialog'
 import {listCategories, replaceArticleCategories} from '@/lib/api/catalogApi'
 import {
     cancelScheduleArticle,
+    deleteArticle,
     listArticles,
     publishArticle,
     unarchiveArticle,
@@ -45,6 +47,7 @@ export default function ArticleListClient() {
         handleUnpublish,
         handleCancelSchedule,
         handleUnarchive,
+        handleDelete,
         handleBulkPublish,
         handleBulkUnpublish,
         runBulkEdit,
@@ -54,6 +57,7 @@ export default function ArticleListClient() {
         unpublish: (id) => unpublishArticle(getClientTenantHost(), id),
         cancelSchedule: (id) => cancelScheduleArticle(getClientTenantHost(), id),
         unarchive: (id) => unarchiveArticle(getClientTenantHost(), id),
+        remove: (id) => deleteArticle(getClientTenantHost(), id),
         labels: {
             loadError: 'Beiträge konnten nicht geladen werden.',
             publishSuccess: (title) => `Beitrag „${title}“ wurde veröffentlicht.`,
@@ -67,9 +71,27 @@ export default function ArticleListClient() {
             unpublishError: 'Beitrag konnte nicht zurückgezogen werden.',
             cancelScheduleError: 'Planung konnte nicht aufgehoben werden.',
             unarchiveError: 'Beitrag konnte nicht wiederhergestellt werden.',
+            deleteSuccess: (title) => `Beitrag „${title}“ wurde gelöscht.`,
+            deleteError: 'Beitrag konnte nicht gelöscht werden.',
             bulk: createPublicationBulkLabels('Beitrag', 'Beiträge'),
         },
     })
+
+    const [deleteTarget, setDeleteTarget] = useState<ArticleDetail | null>(null)
+    const [deletePending, setDeletePending] = useState(false)
+
+    const handleDeleteConfirm = useCallback(async (): Promise<void> => {
+        if (deleteTarget === null || handleDelete === null) {
+            return
+        }
+        setDeletePending(true)
+        try {
+            await handleDelete(deleteTarget)
+        } finally {
+            setDeletePending(false)
+            setDeleteTarget(null)
+        }
+    }, [deleteTarget, handleDelete])
 
     const [isBulkEditOpen, setIsBulkEditOpen] = useState(false)
     const [categories, setCategories] = useState<CategorySummary[]>([])
@@ -189,6 +211,7 @@ export default function ArticleListClient() {
                         onBulkPublish={() => void handleBulkPublish()}
                         onBulkUnpublish={() => void handleBulkUnpublish()}
                         onCancelSchedule={(article) => void handleCancelSchedule(article)}
+                        onDelete={handleDelete === null ? undefined : (article) => setDeleteTarget(article)}
                         onPublish={(article) => void handlePublish(article)}
                         onToggleSelectAll={toggleSelectAll}
                         onToggleSelection={toggleSelection}
@@ -199,6 +222,18 @@ export default function ArticleListClient() {
                         selectedIds={selectedIds}
                         unpublishableCount={unpublishableCount}
                         viewMode={viewMode}
+                    />
+                    <DeletePublicationDialog
+                        contentLabel="Beitrag"
+                        item={deleteTarget}
+                        onConfirm={() => void handleDeleteConfirm()}
+                        onOpenChange={(open) => {
+                            if (!open) {
+                                setDeleteTarget(null)
+                            }
+                        }}
+                        open={deleteTarget !== null}
+                        pending={deletePending}
                     />
                     <BulkEditDialog
                         busy={isBulkBusy}
