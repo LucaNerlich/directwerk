@@ -24,7 +24,7 @@ export default function StudioShell({
             >
                 <AppShell
                     brand={
-                        <div className="flex flex-col gap-3 min-w-0">
+                        <div className="flex min-w-0 flex-col gap-3">
                             <div className="min-w-0">
                                 <p className="truncate text-sm font-semibold">
                                     {config.tenant.name}
@@ -38,6 +38,8 @@ export default function StudioShell({
                     }
                     navigation={<SideNav config={config} />}
                     footer={<LogoutButton />}
+                    navigationTriggerLabel="Hauptnavigation öffnen"
+                    skipLinkLabel="Zum Inhalt springen"
                 >
                     {children}
                 </AppShell>

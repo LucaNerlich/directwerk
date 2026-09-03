@@ -5,7 +5,7 @@ import {useActionState, useEffect, useRef} from 'react'
 
 import {Alert, AlertDescription} from '@directwerk/ui/components/alert'
 import {Button} from '@directwerk/ui/components/button'
-import {Card, CardContent, CardHeader, CardTitle} from '@directwerk/ui/components/card'
+import {Card, CardContent, CardDescription, CardHeader, CardTitle} from '@directwerk/ui/components/card'
 import {Input} from '@directwerk/ui/components/input'
 import {Label} from '@directwerk/ui/components/label'
 
@@ -38,7 +38,13 @@ export default function InvitePlatformAdminForm({
 
     return (
         <Card aria-labelledby="invite-platform-admin-heading" role="region">
-            <CardHeader><CardTitle id="invite-platform-admin-heading">Invite platform admin</CardTitle></CardHeader>
+            <CardHeader>
+                <CardTitle id="invite-platform-admin-heading">Invite platform admin</CardTitle>
+                <CardDescription>
+                    Invited admins can manage every tenant. Check the jobs
+                    page (email queue) if delivery is in doubt.
+                </CardDescription>
+            </CardHeader>
             <CardContent>
             <Form action={formAction} className="space-y-4">
                 <div className="space-y-2">

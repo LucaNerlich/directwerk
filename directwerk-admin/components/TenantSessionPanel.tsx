@@ -134,7 +134,7 @@ export default function TenantSessionPanel({
                     <Alert aria-live="polite" className="sm:col-span-3" variant="destructive"><AlertDescription>{error}</AlertDescription></Alert>
                 ) : null}
                 {status ? (
-                    <p aria-live="polite" role="status">
+                    <p aria-live="polite" role="status" className="text-sm text-muted-foreground sm:col-span-3">
                         {status}
                     </p>
                 ) : null}

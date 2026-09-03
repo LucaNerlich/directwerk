@@ -12,7 +12,7 @@ export const metadata: Metadata = {
 export default function RootLayout({children}: Readonly<{children: React.ReactNode}>) {
     return (
         <html lang="de">
-            <body>
+            <body className="min-h-svh bg-background text-foreground antialiased">
                 <UmamiAnalytics />
                 {children}
             </body>

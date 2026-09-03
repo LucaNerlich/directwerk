@@ -5,7 +5,7 @@ import {useActionState, useEffect, useRef} from 'react'
 
 import {Alert, AlertDescription} from '@directwerk/ui/components/alert'
 import {Button} from '@directwerk/ui/components/button'
-import {Card, CardContent, CardHeader, CardTitle} from '@directwerk/ui/components/card'
+import {Card, CardContent, CardDescription, CardHeader, CardTitle} from '@directwerk/ui/components/card'
 import {Input} from '@directwerk/ui/components/input'
 import {Label} from '@directwerk/ui/components/label'
 
@@ -43,7 +43,13 @@ export default function InviteTenantUserForm({
 
     return (
         <Card aria-labelledby="invite-tenant-user-heading" role="region">
-            <CardHeader><CardTitle id="invite-tenant-user-heading">Invite user</CardTitle></CardHeader>
+            <CardHeader>
+                <CardTitle id="invite-tenant-user-heading">Invite user</CardTitle>
+                <CardDescription>
+                    Tenant admins manage content in directwerk-studio;
+                    subscribers and guests are reader roles.
+                </CardDescription>
+            </CardHeader>
             <CardContent>
             <Form action={formAction} className="space-y-4">
                 <div className="space-y-2">

@@ -18,12 +18,15 @@ export default function StreamProgress({
     const percent =
         progress === null ? null : Math.min(100, Math.max(0, Math.round(progress)))
     return (
-        <div className={className}>
+        <div
+            aria-busy={percent === null || percent < 100}
+            className={className ?? 'rounded-xl border bg-card p-4'}
+        >
             <div className="mb-1 flex items-center justify-between gap-2 text-xs">
                 <span id={nameId} className="truncate font-medium">
                     {label}
                 </span>
-                <span className="shrink-0 text-muted-foreground">
+                <span aria-hidden="true" className="shrink-0 text-muted-foreground">
                     {percent === null ? '…' : `${percent} %`}
                 </span>
             </div>

@@ -75,6 +75,8 @@ export default function BulkEditDialog({
         setKind(
             hasFormats ? 'formats' : hasCategories ? 'categories' : 'accessPolicy',
         )
+        // Reset only when the dialog opens; option availability is captured at open time.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [open])
 
     const applyEnabled =
@@ -114,7 +116,8 @@ export default function BulkEditDialog({
                     <DialogTitle>{contentLabelPlural.nominative} bearbeiten</DialogTitle>
                     <DialogDescription>
                         Es wird immer eine Änderung gleichzeitig auf alle ausgewählten
-                        Entwürfe angewendet.
+                        Entwürfe angewendet. Auswahl und Formate werden dabei ersetzt,
+                        nicht ergänzt.
                     </DialogDescription>
                 </DialogHeader>
                 {draftCount < selectedCount ? (
@@ -162,7 +165,11 @@ export default function BulkEditDialog({
                     </label>
                 </fieldset>
                 {kind === 'formats' ? (
-                    <div className="flex max-h-48 flex-col gap-2 overflow-y-auto rounded-lg border p-3">
+                    <div className="grid gap-2">
+                        <p className="text-xs text-muted-foreground" id="bulk-edit-formats-hint">
+                            Ersetzt die Formate aller ausgewählten Entwürfe durch diese Auswahl.
+                        </p>
+                        <div aria-describedby="bulk-edit-formats-hint" className="flex max-h-48 flex-col gap-2 overflow-y-auto rounded-lg border p-3" role="group" aria-label="Formate wählen">
                         {formatOptions.map((format) => (
                             <label className="flex items-center gap-2 text-sm" key={format.id}>
                                 <Input
@@ -176,10 +183,15 @@ export default function BulkEditDialog({
                                 {format.name}
                             </label>
                         ))}
+                        </div>
                     </div>
                 ) : null}
                 {kind === 'categories' ? (
-                    <div className="flex max-h-48 flex-col gap-2 overflow-y-auto rounded-lg border p-3">
+                    <div className="grid gap-2">
+                        <p className="text-xs text-muted-foreground" id="bulk-edit-categories-hint">
+                            Ersetzt die Kategorien aller ausgewählten Entwürfe durch diese Auswahl.
+                        </p>
+                        <div aria-describedby="bulk-edit-categories-hint" aria-label="Kategorien wählen" className="flex max-h-48 flex-col gap-2 overflow-y-auto rounded-lg border p-3" role="group">
                         {categories.map((category) => (
                             <label className="flex items-center gap-2 text-sm" key={category.id}>
                                 <Input
@@ -193,6 +205,7 @@ export default function BulkEditDialog({
                                 {category.name}
                             </label>
                         ))}
+                        </div>
                     </div>
                 ) : null}
                 {kind === 'accessPolicy' ? (

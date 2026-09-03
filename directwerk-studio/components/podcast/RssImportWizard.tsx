@@ -4,9 +4,11 @@ import Link from 'next/link'
 import {useEffect, useRef, useState} from 'react'
 
 import {Button} from '@directwerk/ui/components/button'
+import {Alert, AlertDescription} from '@directwerk/ui/components/alert'
 import {Input} from '@directwerk/ui/components/input'
 import {Textarea} from '@directwerk/ui/components/textarea'
 import PageHeader from '@directwerk/ui/components/page-header'
+import PageStack from '@directwerk/ui/components/page-stack'
 import SectionHeader from '@directwerk/ui/components/section-header'
 
 import SelectControl from '@/components/studio/SelectControl'
@@ -423,7 +425,7 @@ export default function RssImportWizard(): React.JSX.Element {
     const remaining = preview == null ? 0 : preview.episodes.length - episodeIndex
 
     return (
-        <div className="flex flex-col gap-8">
+        <PageStack>
             <PageHeader
                 eyebrow="Podcast"
                 title="RSS-Import"
@@ -465,9 +467,9 @@ export default function RssImportWizard(): React.JSX.Element {
             </p>
 
             {errorMessage !== null ? (
-                <p className="text-sm text-destructive" role="alert">
-                    {errorMessage}
-                </p>
+                <Alert variant="destructive">
+                    <AlertDescription>{errorMessage}</AlertDescription>
+                </Alert>
             ) : null}
             {streamProgress !== null ? (
                 <StreamProgress
@@ -502,9 +504,9 @@ export default function RssImportWizard(): React.JSX.Element {
                     ) : null}
                     {prerequisitesStatus === 'error' ? (
                         <div className="grid gap-2">
-                            <p className="text-sm text-destructive" role="alert">
-                                {prerequisitesError}
-                            </p>
+                            <Alert variant="destructive">
+                                <AlertDescription>{prerequisitesError}</AlertDescription>
+                            </Alert>
                             <Button
                                 onClick={() => setPrerequisitesReload((value) => value + 1)}
                                 type="button"
@@ -870,6 +872,6 @@ export default function RssImportWizard(): React.JSX.Element {
                     </div>
                 </section>
             ) : null}
-        </div>
+        </PageStack>
     )
 }

@@ -10,7 +10,7 @@ import type {SiteConfig, StudioDesk} from '@directwerk/api/types'
 
 function tabClassName(active: boolean): string {
     return [
-        'flex items-center justify-center rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring',
+        'flex min-h-9 items-center justify-center rounded-md px-2.5 py-2 text-xs font-medium transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring',
         active
             ? 'bg-background text-foreground shadow-xs font-semibold'
             : 'text-muted-foreground hover:text-foreground',

@@ -2,10 +2,13 @@
 
 import type {ReactNode} from 'react'
 import Link from 'next/link'
+import {useId, useMemo, useState} from 'react'
 
 import {Button} from '@directwerk/ui/components/button'
+import EmptyState from '@directwerk/ui/components/empty-state'
 import {EntityListSection} from '@directwerk/ui/components/entity-list-section'
 import type {EntityListViewItem} from '@directwerk/ui/components/entity-list-view'
+import {Input} from '@directwerk/ui/components/input'
 import type {ViewMode} from '@directwerk/ui/components/view-mode-toggle'
 
 import PublicationStatusBadge from '@/components/publication/PublicationStatusBadge'
@@ -237,6 +240,7 @@ export default function PublicationListSection<T extends PublicationListItem>(
         allSelected,
         contentLabelPlural,
         isBulkBusy,
+        items,
         onBulkEdit,
         onBulkPublish,
         onBulkUnpublish,
@@ -249,8 +253,95 @@ export default function PublicationListSection<T extends PublicationListItem>(
         viewMode,
     } = props
 
+    const searchInputId = useId()
+    const [query, setQuery] = useState('')
+    const normalizedQuery = query.trim().toLowerCase()
+    const visibleItems = useMemo(() => {
+        if (normalizedQuery.length === 0) {
+            return items
+        }
+        return items.filter((item) => {
+            const haystack = [
+                item.title,
+                item.meta ?? '',
+                item.seriesLabel ?? '',
+                ...(item.formats ?? []).map((format) => format.name),
+                ...(item.categories ?? []).map((category) => category.name),
+            ]
+                .join(' ')
+                .toLowerCase()
+            return haystack.includes(normalizedQuery)
+        })
+    }, [items, normalizedQuery])
+    const entityItems = useMemo(
+        () => toEntityItems({...props, items: visibleItems}),
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+        [
+            visibleItems,
+            props.editorBasePath,
+            props.viewMode,
+            props.busyItemId,
+            props.isBulkBusy,
+            props.publishBlockedReason,
+            props.onPublish,
+            props.onUnpublish,
+            props.onCancelSchedule,
+            props.onUnarchive,
+        ],
+    )
+    const showSearch = items.length > 1
+
     return (
-        <EntityListSection
+        <div className="flex flex-col gap-4">
+            {showSearch ? (
+                <div className="grid gap-1.5">
+                    <label className="text-sm font-medium" htmlFor={searchInputId}>
+                        {contentLabelPlural} durchsuchen
+                    </label>
+                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                        <Input
+                            aria-label={`${contentLabelPlural} durchsuchen`}
+                            className="sm:max-w-xs"
+                            id={searchInputId}
+                            onChange={(event) => setQuery(event.target.value)}
+                            placeholder="Titel, Slug oder Kategorie suchen…"
+                            type="search"
+                            value={query}
+                        />
+                        {normalizedQuery.length > 0 ? (
+                            <p className="text-sm text-muted-foreground" role="status">
+                                {visibleItems.length === 1
+                                    ? '1 Treffer'
+                                    : `${visibleItems.length} Treffer`}
+                                {' · '}
+                                <button
+                                    className="font-medium text-primary underline-offset-4 hover:underline"
+                                    onClick={() => setQuery('')}
+                                    type="button"
+                                >
+                                    Suche zurücksetzen
+                                </button>
+                            </p>
+                        ) : null}
+                    </div>
+                </div>
+            ) : null}
+            {visibleItems.length === 0 && normalizedQuery.length > 0 ? (
+                <EmptyState
+                    description="Passe den Suchbegriff an oder setze die Suche zurück, um alle Einträge zu sehen."
+                    title="Keine Treffer"
+                    action={
+                        <Button
+                            onClick={() => setQuery('')}
+                            type="button"
+                            variant="outline"
+                        >
+                            Suche zurücksetzen
+                        </Button>
+                    }
+                />
+            ) : (
+                <EntityListSection
             allSelected={allSelected}
             bulkActions={
                 <>
@@ -293,7 +384,7 @@ export default function PublicationListSection<T extends PublicationListItem>(
                 </>
             }
             disabled={isBulkBusy}
-            items={toEntityItems(props)}
+            items={entityItems}
             linkComponent={Link}
             onToggleSelectAll={onToggleSelectAll}
             onToggleSelection={onToggleSelection}
@@ -302,6 +393,8 @@ export default function PublicationListSection<T extends PublicationListItem>(
             selectedIds={selectedIds}
             selectable
             viewMode={viewMode}
-        />
+                />
+            )}
+        </div>
     )
 }

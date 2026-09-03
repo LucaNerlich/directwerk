@@ -1,7 +1,13 @@
 'use client'
 
+import {Alert, AlertDescription} from '@directwerk/ui/components/alert'
 import {Button} from '@directwerk/ui/components/button'
+import {Card, CardContent, CardDescription, CardHeader, CardTitle} from '@directwerk/ui/components/card'
 import {Input} from '@directwerk/ui/components/input'
+import {Label} from '@directwerk/ui/components/label'
+import PageHeader from '@directwerk/ui/components/page-header'
+import PageStack from '@directwerk/ui/components/page-stack'
+import {Skeleton} from '@directwerk/ui/components/skeleton'
 
 import Form from 'next/form'
 import {useRouter} from 'next/navigation'
@@ -141,27 +147,53 @@ export default function BrandingEditor(): React.JSX.Element {
     const [state, formAction, pending] = useActionState(saveAction, INITIAL_STATE)
 
     if (isLoading) {
-        return <p>Wird geladen…</p>
+        return (
+            <PageStack>
+                <PageHeader
+                    eyebrow="Einstellungen"
+                    title="Branding"
+                    description="Titel, Farben, Logo und Analytics für deine öffentliche Website."
+                />
+                <p className="text-sm text-muted-foreground" role="status">Wird geladen…</p>
+                <Skeleton className="h-96 w-full max-w-xl" />
+            </PageStack>
+        )
     }
 
     if (loadError !== null) {
-        return <p className="text-sm text-destructive">{loadError}</p>
+        return (
+            <PageStack>
+                <PageHeader
+                    eyebrow="Einstellungen"
+                    title="Branding"
+                    description="Titel, Farben, Logo und Analytics für deine öffentliche Website."
+                />
+                <Alert variant="destructive">
+                    <AlertDescription>{loadError}</AlertDescription>
+                </Alert>
+            </PageStack>
+        )
     }
 
     return (
-        <div className="flex flex-col gap-6">
-            <header className="flex flex-col gap-4 border-b pb-6 sm:flex-row sm:items-end sm:justify-between">
-                <div>
-                    <p className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">Einstellungen</p>
-                    <h1>Branding</h1>
-                </div>
-            </header>
+        <PageStack>
+            <PageHeader
+                eyebrow="Einstellungen"
+                title="Branding"
+                description="Titel, Farben, Logo und Analytics für deine öffentliche Website. Farben im Format #RRGGBB."
+            />
 
-            <Form action={formAction} className="grid w-full max-w-xl gap-5">
-                <label className="grid gap-2 text-sm font-medium" htmlFor="siteTitle">
-                    Seitentitel
+            <Form action={formAction} className="grid w-full max-w-xl gap-6">
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Website &amp; Farben</CardTitle>
+                        <CardDescription>So erscheint deine Seite für Hörerinnen und Hörer.</CardDescription>
+                    </CardHeader>
+                    <CardContent className="grid gap-5">
+                <div className="grid gap-2">
+                    <Label htmlFor="siteTitle">Seitentitel</Label>
                     <Input
-                        className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50"
+                        aria-describedby="siteTitle-help"
                         defaultValue={branding?.siteTitle ?? ''}
                         id="siteTitle"
                         maxLength={255}
@@ -169,11 +201,20 @@ export default function BrandingEditor(): React.JSX.Element {
                         placeholder="Öffentlicher Titel auf der Website"
                         type="text"
                     />
-                </label>
-                <label className="grid gap-2 text-sm font-medium" htmlFor="primaryColor">
-                    Primärfarbe
+                    <p className="text-xs text-muted-foreground" id="siteTitle-help">
+                        Leer lassen, um den Standard-Titel zu verwenden.
+                    </p>
+                </div>
+                <div className="grid gap-2">
+                    <Label htmlFor="primaryColor">Primärfarbe</Label>
+                    <div className="flex items-center gap-3">
+                        <span
+                            aria-hidden="true"
+                            className="size-9 shrink-0 rounded-md border"
+                            style={{backgroundColor: branding?.primaryColor ?? 'transparent'}}
+                        />
                     <Input
-                        className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50"
+                        aria-describedby="primaryColor-help"
                         defaultValue={branding?.primaryColor ?? ''}
                         id="primaryColor"
                         maxLength={7}
@@ -181,11 +222,21 @@ export default function BrandingEditor(): React.JSX.Element {
                         placeholder="#1a1a1a"
                         type="text"
                     />
-                </label>
-                <label className="grid gap-2 text-sm font-medium" htmlFor="secondaryColor">
-                    Sekundärfarbe
+                    </div>
+                    <p className="text-xs text-muted-foreground" id="primaryColor-help">
+                        Format #RRGGBB, z. B. #1a1a1a. Leer lassen für die Standardfarbe. Aktuell: {branding?.primaryColor ?? 'Standard'}.
+                    </p>
+                </div>
+                <div className="grid gap-2">
+                    <Label htmlFor="secondaryColor">Sekundärfarbe</Label>
+                    <div className="flex items-center gap-3">
+                        <span
+                            aria-hidden="true"
+                            className="size-9 shrink-0 rounded-md border"
+                            style={{backgroundColor: branding?.secondaryColor ?? 'transparent'}}
+                        />
                     <Input
-                        className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50"
+                        aria-describedby="secondaryColor-help"
                         defaultValue={branding?.secondaryColor ?? ''}
                         id="secondaryColor"
                         maxLength={7}
@@ -193,11 +244,15 @@ export default function BrandingEditor(): React.JSX.Element {
                         placeholder="#445566"
                         type="text"
                     />
-                </label>
-                <label className="grid gap-2 text-sm font-medium" htmlFor="logoUrl">
-                    Logo-URL
+                    </div>
+                    <p className="text-xs text-muted-foreground" id="secondaryColor-help">
+                        Format #RRGGBB, z. B. #445566. Leer lassen für die Standardfarbe.
+                    </p>
+                </div>
+                <div className="grid gap-2">
+                    <Label htmlFor="logoUrl">Logo-URL</Label>
                     <Input
-                        className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50"
+                        aria-describedby="logoUrl-help"
                         defaultValue={branding?.logoUrl ?? ''}
                         id="logoUrl"
                         maxLength={2048}
@@ -205,22 +260,37 @@ export default function BrandingEditor(): React.JSX.Element {
                         placeholder="https://…"
                         type="url"
                     />
-                </label>
-                <label className="grid gap-2 text-sm font-medium" htmlFor="umamiWebsiteId">
-                    Umami Website-ID
+                    <p className="text-xs text-muted-foreground" id="logoUrl-help">
+                        Optionale absolute https-URL zu deinem Logo. Leer lassen für kein Logo.
+                    </p>
+                </div>
+                    </CardContent>
+                </Card>
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Analytics (Umami)</CardTitle>
+                        <CardDescription>Optionales Website-Tracking — ohne Website-ID bleibt es inaktiv.</CardDescription>
+                    </CardHeader>
+                    <CardContent className="grid gap-5">
+                <div className="grid gap-2">
+                    <Label htmlFor="umamiWebsiteId">Umami Website-ID</Label>
                     <Input
-                        className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50"
+                        aria-describedby="umamiWebsiteId-help"
                         defaultValue={branding?.umamiWebsiteId ?? ''}
                         id="umamiWebsiteId"
                         maxLength={64}
                         name="umamiWebsiteId"
+                        placeholder="z. B. abc12345-def6-…"
                         type="text"
                     />
-                </label>
-                <label className="grid gap-2 text-sm font-medium" htmlFor="umamiHostUrl">
-                    Umami-Server
+                    <p className="text-xs text-muted-foreground" id="umamiWebsiteId-help">
+                        8–64 Zeichen (a–z, 0–9, Bindestrich). Leer lassen deaktiviert das Tracking.
+                    </p>
+                </div>
+                <div className="grid gap-2">
+                    <Label htmlFor="umamiHostUrl">Umami-Server</Label>
                     <Input
-                        className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50"
+                        aria-describedby="umamiHostUrl-help"
                         defaultValue={branding?.umamiHostUrl ?? ''}
                         id="umamiHostUrl"
                         maxLength={512}
@@ -228,25 +298,29 @@ export default function BrandingEditor(): React.JSX.Element {
                         placeholder="https://umami.example.com"
                         type="url"
                     />
-                    <span className="text-xs font-normal text-muted-foreground">
+                    <p className="text-xs text-muted-foreground" id="umamiHostUrl-help">
                         Leer lassen, um den Plattform-Standard zu verwenden. Nur HTTPS-Origin ohne Pfad.
                         Tracking braucht ANALYTICS-Modul + Website-ID; ohne ID bleibt es inaktiv.
-                    </span>
-                </label>
-                {state.error ? (
-                    <p aria-live="polite" className="text-sm text-destructive" role="alert">
-                        {state.error}
                     </p>
+                </div>
+                    </CardContent>
+                </Card>
+                {state.error ? (
+                    <Alert variant="destructive">
+                        <AlertDescription>{state.error}</AlertDescription>
+                    </Alert>
                 ) : null}
                 {state.success ? (
-                    <p aria-live="polite" role="status">
-                        {state.success}
-                    </p>
+                    <Alert role="status">
+                        <AlertDescription>{state.success}</AlertDescription>
+                    </Alert>
                 ) : null}
-                <Button className="inline-flex h-9 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground shadow-xs hover:bg-primary/90 disabled:pointer-events-none disabled:opacity-50" disabled={pending} type="submit">
+                <div>
+                <Button disabled={pending} type="submit">
                     {pending ? 'Speichern…' : 'Speichern'}
                 </Button>
+                </div>
             </Form>
-        </div>
+        </PageStack>
     )
 }

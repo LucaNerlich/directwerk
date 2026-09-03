@@ -3,8 +3,14 @@
 import SelectControl from '@/components/studio/SelectControl'
 import {suggestSlug} from '@/lib/api/studioHelpers'
 
+import {Alert, AlertDescription} from '@directwerk/ui/components/alert'
 import {Button} from '@directwerk/ui/components/button'
+import {Card, CardContent, CardDescription, CardHeader, CardTitle} from '@directwerk/ui/components/card'
 import {Input} from '@directwerk/ui/components/input'
+import {Label} from '@directwerk/ui/components/label'
+import PageHeader from '@directwerk/ui/components/page-header'
+import PageStack from '@directwerk/ui/components/page-stack'
+import {Skeleton} from '@directwerk/ui/components/skeleton'
 
 import Link from 'next/link'
 import Form from 'next/form'
@@ -145,14 +151,31 @@ export default function CategoryEditor({categoryId}: CategoryEditorProps): React
     }
 
     if (isLoading) {
-        return <p>Laden…</p>
+        return (
+            <PageStack>
+                <PageHeader
+                    eyebrow="Organisation"
+                    title={isNew ? 'Neue Kategorie' : 'Kategorie bearbeiten'}
+                    description="Themen-Tags für Folgen und Beiträge — getrennt von Podcast-Formaten."
+                />
+                <p className="text-sm text-muted-foreground" role="status">Laden…</p>
+                <Skeleton className="h-64 w-full max-w-xl" />
+            </PageStack>
+        )
     }
 
     if (loadError) {
         return (
-            <p>
-                {loadError} <Link href="/manage/categories">Zurück zur Liste</Link>
-            </p>
+            <PageStack>
+                <Alert variant="destructive">
+                    <AlertDescription>
+                        {loadError}{' '}
+                        <Link className="underline underline-offset-4" href="/manage/categories">
+                            Zurück zur Liste
+                        </Link>
+                    </AlertDescription>
+                </Alert>
+            </PageStack>
         )
     }
 
@@ -161,92 +184,115 @@ export default function CategoryEditor({categoryId}: CategoryEditorProps): React
     )
 
     return (
-        <div className="flex flex-col gap-6">
-            <header className="flex flex-col gap-4 border-b pb-6 sm:flex-row sm:items-end sm:justify-between">
-                <div>
-                    <p className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                        Organisation
-                    </p>
-                    <h1>{isNew ? 'Neue Kategorie' : 'Kategorie bearbeiten'}</h1>
-                </div>
-                <Link className="text-sm font-medium text-primary underline-offset-4 hover:underline" href="/manage/categories">
-                    Zurück zur Liste
-                </Link>
-            </header>
+        <PageStack>
+            <PageHeader
+                eyebrow="Organisation"
+                title={isNew ? 'Neue Kategorie' : 'Kategorie bearbeiten'}
+                description="Themen-Tags für Folgen und Beiträge — getrennt von Podcast-Formaten."
+                actions={
+                    <Button nativeButton={false} render={<Link href="/manage/categories" />} variant="outline">
+                        Zurück zur Liste
+                    </Button>
+                }
+            />
 
             {state.error ? (
-                <p className="text-sm text-destructive" role="alert">
-                    {state.error}
-                </p>
+                <Alert variant="destructive">
+                    <AlertDescription>{state.error}</AlertDescription>
+                </Alert>
             ) : null}
-            {state.success ? <p role="status">{state.success}</p> : null}
+            {state.success ? (
+                <Alert role="status">
+                    <AlertDescription>{state.success}</AlertDescription>
+                </Alert>
+            ) : null}
             {deactivateError ? (
-                <p className="text-sm text-destructive" role="alert">
-                    {deactivateError}
-                </p>
+                <Alert variant="destructive">
+                    <AlertDescription>{deactivateError}</AlertDescription>
+                </Alert>
             ) : null}
 
-            <Form action={formAction}>
-                <p>
-                    <label htmlFor="category-name">Name</label>
-                    <br />
+            <Card className="max-w-xl">
+                <CardHeader>
+                    <CardTitle>Details</CardTitle>
+                    <CardDescription>Name, Kennung und optionale Oberkategorie.</CardDescription>
+                </CardHeader>
+                <CardContent>
+            <Form action={formAction} className="grid gap-5">
+                <div className="grid gap-2">
+                    <Label htmlFor="category-name">Name</Label>
                     <Input
+                        aria-describedby="category-name-help"
                         defaultValue={category?.name ?? ''}
                         id="category-name"
                         maxLength={255}
                         name="name"
+                        placeholder="z. B. Interviews"
                         required
                         type="text"
                     />
-                </p>
-                <p>
-                    <label htmlFor="category-slug">Slug</label>
-                    <br />
+                    <p className="text-xs text-muted-foreground" id="category-name-help">
+                        Anzeigename in Listen und Filtern.
+                    </p>
+                </div>
+                <div className="grid gap-2">
+                    <Label htmlFor="category-slug">Slug</Label>
                     <Input
+                        aria-describedby="category-slug-help"
                         defaultValue={category?.slug ?? ''}
                         disabled={!isNew}
                         id="category-slug"
                         maxLength={64}
                         name="slug"
                         pattern={HTML_SLUG_PATTERN}
+                        placeholder="z. B. interviews"
                         required={isNew}
                         type="text"
                     />
-                </p>
-                <p>
-                    <label htmlFor="category-parent">Übergeordnete Kategorie</label>
-                    <br />
+                    <p className="text-xs text-muted-foreground" id="category-slug-help">
+                        Technische Kennung aus Kleinbuchstaben, Zahlen und Bindestrichen.
+                        {isNew ? ' Wird aus dem Namen vorgeschlagen, wenn du sie leer lässt.' : ' Nach dem Anlegen nicht mehr änderbar.'}
+                    </p>
+                </div>
+                <div className="grid gap-2">
+                    <Label htmlFor="category-parent">Übergeordnete Kategorie</Label>
                     <SelectControl
+                        aria-describedby="category-parent-help"
                         defaultValue={category?.parentId ?? ''}
                         id="category-parent"
                         name="parentId"
                     >
-                        <option value="">— Keine —</option>
+                        <option value="">— Keine (oberste Kategorie) —</option>
                         {parentOptions.map((item) => (
                             <option key={item.id} value={item.id}>
                                 {item.name}
                             </option>
                         ))}
                     </SelectControl>
-                </p>
-                <p>
+                    <p className="text-xs text-muted-foreground" id="category-parent-help">
+                        Optional. Nur aktive Oberkategorien ohne eigene Eltern stehen zur Auswahl.
+                    </p>
+                </div>
+                <div className="flex flex-wrap gap-2">
                     <Button disabled={pending} type="submit">
                         {pending ? 'Speichert…' : 'Speichern'}
                     </Button>
                     {!isNew && category?.active ? (
                         <>
-                            {' '}
                             <Button
                                 disabled={isDeactivating}
                                 onClick={() => void handleDeactivate()}
                                 type="button"
+                                variant="outline"
                             >
                                 {isDeactivating ? 'Deaktiviert…' : 'Deaktivieren'}
                             </Button>
                         </>
                     ) : null}
-                </p>
+                </div>
             </Form>
-        </div>
+                </CardContent>
+            </Card>
+        </PageStack>
     )
 }

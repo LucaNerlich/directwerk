@@ -5,14 +5,18 @@ import {useRouter} from 'next/navigation'
 import {useActionState, useCallback, useEffect, useState} from 'react'
 
 import {Alert, AlertDescription} from '@directwerk/ui/components/alert'
+import {Badge} from '@directwerk/ui/components/badge'
 import {Button} from '@directwerk/ui/components/button'
-import {Card, CardContent, CardHeader, CardTitle} from '@directwerk/ui/components/card'
+import {Card, CardContent, CardDescription, CardHeader, CardTitle} from '@directwerk/ui/components/card'
+import EmptyState from '@directwerk/ui/components/empty-state'
 import {EntityListSection} from '@directwerk/ui/components/entity-list-section'
 import type {EntityListViewItem} from '@directwerk/ui/components/entity-list-view'
 import {Input} from '@directwerk/ui/components/input'
 import {Label} from '@directwerk/ui/components/label'
 import PageHeader from '@directwerk/ui/components/page-header'
 import PageStack from '@directwerk/ui/components/page-stack'
+import SectionHeader from '@directwerk/ui/components/section-header'
+import {Skeleton} from '@directwerk/ui/components/skeleton'
 import {useListViewMode} from '@directwerk/ui/hooks/use-list-view-mode'
 
 import SelectControl from '@/components/studio/SelectControl'
@@ -65,6 +69,21 @@ function statusLabel(status: string): string {
             return 'Deaktiviert'
         default:
             return status
+    }
+}
+
+function roleDescription(role: string): string {
+    switch (role) {
+        case 'TENANT_ADMIN':
+            return 'Voller Zugriff — inkl. Einstellungen, Team und Zahlungen.'
+        case 'EDITOR':
+            return 'Erstellt und veröffentlicht Inhalte, keine Einstellungen.'
+        case 'SUBSCRIBER':
+            return 'Liest bezahlte Inhalte, kein Studio-Zugriff.'
+        case 'GUEST':
+            return 'Eingeschränkter Zugriff, nur Lesen.'
+        default:
+            return ''
     }
 }
 
@@ -179,14 +198,32 @@ export default function TeamClient(): React.JSX.Element {
     }
 
     if (isLoading) {
-        return <p className="text-sm text-muted-foreground">Wird geladen…</p>
+        return (
+            <PageStack>
+                <PageHeader
+                    description="Lade Redakteure und weitere Mandanten-Admins ein. Abonnenten verwaltest du unter Zahlungen."
+                    eyebrow="Team"
+                    title="Mitglieder"
+                />
+                <p className="text-sm text-muted-foreground" role="status">Wird geladen…</p>
+                <Skeleton className="h-20 w-full" />
+                <Skeleton className="h-64 w-full max-w-xl" />
+            </PageStack>
+        )
     }
 
     if (loadError !== null) {
         return (
-            <Alert variant="destructive">
-                <AlertDescription>{loadError}</AlertDescription>
-            </Alert>
+            <PageStack>
+                <PageHeader
+                    description="Lade Redakteure und weitere Mandanten-Admins ein. Abonnenten verwaltest du unter Zahlungen."
+                    eyebrow="Team"
+                    title="Mitglieder"
+                />
+                <Alert variant="destructive">
+                    <AlertDescription>{loadError}</AlertDescription>
+                </Alert>
+            </PageStack>
         )
     }
 
@@ -194,8 +231,13 @@ export default function TeamClient(): React.JSX.Element {
         const isSelf = user.email === me.email
         return {
             id: user.userId,
-            title: user.name ?? user.email,
-            description: `${user.email} · ${user.roles.map(roleLabel).join(', ')} · ${statusLabel(user.status)}`,
+            title: `${user.name ?? user.email}${isSelf ? ' (Du)' : ''}`,
+            description: `${user.email} · ${user.roles.map(roleLabel).join(', ')}`,
+            trailing: (
+                <Badge variant={user.status === 'ACTIVE' ? 'default' : user.status === 'DISABLED' ? 'outline' : 'secondary'}>
+                    {statusLabel(user.status)}
+                </Badge>
+            ),
             actions:
                 !isSelf ? (
                     <Button
@@ -207,7 +249,11 @@ export default function TeamClient(): React.JSX.Element {
                         type="button"
                         variant="outline"
                     >
-                        {user.status === 'DISABLED' ? 'Reaktivieren' : 'Deaktivieren'}
+                        {busyUserId === user.userId
+                            ? 'Arbeiten…'
+                            : user.status === 'DISABLED'
+                              ? 'Reaktivieren'
+                              : 'Deaktivieren'}
                     </Button>
                 ) : undefined,
         }
@@ -216,13 +262,22 @@ export default function TeamClient(): React.JSX.Element {
     return (
         <PageStack>
             <PageHeader
-                description="Lade Redakteure und weitere Mandanten-Admins ein. Abonnenten verwaltest du unter Zahlungen."
+                description="Lade Redakteure und weitere Mandanten-Admins ein. Abonnenten verwaltest du unter Zahlungen — hier geht es nur um dein Team."
                 eyebrow="Team"
                 title="Mitglieder"
             />
 
+            <section aria-labelledby="team-list-heading" className="flex flex-col gap-4">
+                <SectionHeader
+                    id="team-list-heading"
+                    title={`Mitglieder (${users.length})`}
+                    description="Deaktivierte Konten verlieren sofort den Zugriff; reaktivieren stellt ihn wieder her."
+                />
             {users.length === 0 ? (
-                <p className="text-sm text-muted-foreground">Noch keine Mitglieder.</p>
+                <EmptyState
+                    title="Noch keine Mitglieder"
+                    description="Lade unten die erste Person ein — z. B. als Redakteur."
+                />
             ) : (
                 <EntityListSection
                     items={memberItems}
@@ -231,6 +286,7 @@ export default function TeamClient(): React.JSX.Element {
                     viewMode={viewMode}
                 />
             )}
+            </section>
 
             {actionError ? (
                 <Alert variant="destructive">
@@ -241,33 +297,47 @@ export default function TeamClient(): React.JSX.Element {
             <Card className="max-w-xl">
                 <CardHeader>
                     <CardTitle>Person einladen</CardTitle>
+                    <CardDescription>
+                        Die Einladung gilt für diesen Mandanten. Neue Mitglieder erhalten eine E-Mail mit Aktivierungslink.
+                    </CardDescription>
                 </CardHeader>
                 <CardContent>
                     <Form action={inviteFormAction} className="grid gap-5">
                         <div className="grid gap-2">
                             <Label htmlFor="invite-email">E-Mail</Label>
                             <Input
+                                aria-describedby="invite-email-help"
                                 autoComplete="email"
                                 id="invite-email"
                                 maxLength={254}
                                 name="email"
+                                placeholder="name@beispiel.de"
                                 required
                                 type="email"
                             />
+                            <p className="text-xs text-muted-foreground" id="invite-email-help">
+                                An diese Adresse geht die Einladung. Bereits registrierte Konten werden direkt hinzugefügt.
+                            </p>
                         </div>
                         <div className="grid gap-2">
-                            <Label htmlFor="invite-name">Name</Label>
+                            <Label htmlFor="invite-name">Name <span className="font-normal text-muted-foreground">(optional)</span></Label>
                             <Input
+                                aria-describedby="invite-name-help"
                                 autoComplete="name"
                                 id="invite-name"
                                 maxLength={200}
                                 name="name"
+                                placeholder="z. B. Alex Muster"
                                 type="text"
                             />
+                            <p className="text-xs text-muted-foreground" id="invite-name-help">
+                                Wird im Team angezeigt. Leer lassen, um den Namen aus dem Konto zu übernehmen.
+                            </p>
                         </div>
                         <div className="grid gap-2">
                             <Label htmlFor="invite-role">Rolle</Label>
                             <SelectControl
+                                aria-describedby="invite-role-help"
                                 defaultValue="EDITOR"
                                 id="invite-role"
                                 name="role"
@@ -279,6 +349,14 @@ export default function TeamClient(): React.JSX.Element {
                                     </option>
                                 ))}
                             </SelectControl>
+                            <ul className="grid gap-1 text-xs text-muted-foreground" id="invite-role-help">
+                                {TENANT_INVITABLE_ROLES.map((role) => (
+                                    <li key={role}>
+                                        <span className="font-medium text-foreground">{roleLabel(role)}:</span>{' '}
+                                        {roleDescription(role)}
+                                    </li>
+                                ))}
+                            </ul>
                         </div>
                         {inviteState.error ? (
                             <Alert variant="destructive">
@@ -286,7 +364,7 @@ export default function TeamClient(): React.JSX.Element {
                             </Alert>
                         ) : null}
                         {inviteState.success ? (
-                            <Alert>
+                            <Alert role="status">
                                 <AlertDescription>{inviteState.success}</AlertDescription>
                             </Alert>
                         ) : null}
@@ -294,16 +372,22 @@ export default function TeamClient(): React.JSX.Element {
                             <div className="grid gap-2">
                                 <Label htmlFor="invite-token">Dev-Einladungs-Token</Label>
                                 <Input
+                                    aria-describedby="invite-token-help"
                                     id="invite-token"
                                     readOnly
                                     type="text"
                                     value={inviteState.inviteToken}
                                 />
+                                <p className="text-xs text-muted-foreground" id="invite-token-help">
+                                    Nur in Entwicklungsumgebungen sichtbar — im Produktivbetrieb erhält die Person eine E-Mail.
+                                </p>
                             </div>
                         ) : null}
+                        <div>
                         <Button disabled={invitePending} type="submit">
                             {invitePending ? 'Einladen…' : 'Einladung senden'}
                         </Button>
+                        </div>
                     </Form>
                 </CardContent>
             </Card>

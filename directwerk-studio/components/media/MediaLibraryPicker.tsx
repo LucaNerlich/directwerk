@@ -2,12 +2,13 @@
 
 import SelectControl from '@/components/studio/SelectControl'
 
-import {useEffect, useState} from 'react'
+import {useEffect, useId, useState} from 'react'
 
 import {AUTH_REQUIRED} from '@directwerk/api/constants'
 import {listMedia} from '@/lib/api/mediaApi'
 import type {AssetType, MediaAsset} from '@directwerk/api/types'
 import {getClientTenantHost} from '@directwerk/api/tenant'
+import {assetTypeLabel} from '@/lib/subscription/displayLabels'
 
 interface MediaLibraryPickerProps {
     assetType: AssetType
@@ -29,6 +30,7 @@ export default function MediaLibraryPicker({
     const [assets, setAssets] = useState<MediaAsset[]>([])
     const [isLoading, setIsLoading] = useState(true)
     const [errorMessage, setErrorMessage] = useState<string | null>(null)
+    const helpId = useId()
 
     useEffect(() => {
         let active = true
@@ -72,14 +74,16 @@ export default function MediaLibraryPicker({
     }, [assetType, onAuthRequired])
 
     return (
-        <label className="grid gap-2 text-sm font-medium">
+        <div className="grid gap-2">
+        <label className="grid gap-2 text-sm font-medium" htmlFor={`${helpId}-select`}>
             <span>{label}</span>
             {isLoading ? (
-                <p className="text-xs text-muted-foreground">Mediathek wird geladen…</p>
+                <p className="text-xs text-muted-foreground" role="status">Mediathek wird geladen…</p>
             ) : (
                 <SelectControl
-                    className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:opacity-50"
+                    aria-describedby={`${helpId}-help`}
                     disabled={disabled || assets.length === 0}
+                    id={`${helpId}-select`}
                     value=""
                     onChange={(event) => {
                         const id = Number(event.target.value)
@@ -111,5 +115,12 @@ export default function MediaLibraryPicker({
                 </p>
             ) : null}
         </label>
+        <p className="text-xs text-muted-foreground" id={`${helpId}-help`}>
+            Nur bereite {assetTypeLabel(assetType)}-Dateien stehen zur Auswahl.
+            {assets.length === 0 && !isLoading
+                ? ' Lade zuerst eine passende Datei in der Mediathek hoch.'
+                : ` ${assets.length} verfügbar.`}
+        </p>
+        </div>
     )
 }

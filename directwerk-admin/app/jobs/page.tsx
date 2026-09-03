@@ -7,7 +7,7 @@ import {useCallback, useEffect, useState} from 'react'
 import {Alert, AlertDescription} from '@directwerk/ui/components/alert'
 import {Badge} from '@directwerk/ui/components/badge'
 import {Button} from '@directwerk/ui/components/button'
-import {Card, CardContent, CardHeader, CardTitle} from '@directwerk/ui/components/card'
+import {Card, CardContent, CardDescription, CardHeader, CardTitle} from '@directwerk/ui/components/card'
 import EmptyState from '@directwerk/ui/components/empty-state'
 import {Input} from '@directwerk/ui/components/input'
 import {Label} from '@directwerk/ui/components/label'
@@ -23,6 +23,7 @@ import {
     TableRow,
 } from '@directwerk/ui/components/table'
 
+import {AdminLoadingText, TableSkeleton} from '@/components/AdminLoading'
 import {getPlatformJobList} from '@/lib/api/client'
 import {AUTH_REQUIRED} from '@directwerk/api/constants'
 import {
@@ -120,6 +121,11 @@ export default function JobsPage() {
         })
     }
 
+    function resetFilters(): void {
+        setFilterError(null)
+        setQuery(DEFAULT_QUERY)
+    }
+
     function goToPreviousPage(): void {
         if (!page || page.offset === 0) {
             return
@@ -151,7 +157,14 @@ export default function JobsPage() {
                 <PageHeader description="Inspect background processing and delivery attempts." eyebrow="Operations" title="Queue jobs" />
 
                 <Card aria-labelledby="job-filters-heading" role="region">
-                    <CardHeader><CardTitle id="job-filters-heading">Filters</CardTitle></CardHeader>
+                    <CardHeader>
+                        <CardTitle id="job-filters-heading">Filters</CardTitle>
+                        <CardDescription>
+                            Queue and status narrow the list. After sending an
+                            invitation, filter by the email queue to inspect
+                            the mail job.
+                        </CardDescription>
+                    </CardHeader>
                     <CardContent>
                     <form
                         className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4"
@@ -219,17 +232,25 @@ export default function JobsPage() {
                         {filterError ? (
                             <Alert aria-live="polite" className="sm:col-span-2 lg:col-span-4" variant="destructive"><AlertDescription>{filterError}</AlertDescription></Alert>
                         ) : null}
-                        <Button className="w-fit sm:col-span-2 lg:col-span-4" type="submit">Apply filters</Button>
+                        <div className="flex flex-wrap gap-2 sm:col-span-2 lg:col-span-4">
+                            <Button type="submit">Apply filters</Button>
+                            <Button onClick={resetFilters} type="button" variant="outline">Reset</Button>
+                        </div>
                     </form>
                     </CardContent>
                 </Card>
 
                 {error ? <Alert variant="destructive"><AlertDescription>{error}</AlertDescription></Alert> : null}
-                {!error && isInitialLoad ? <p aria-live="polite" className="text-sm text-muted-foreground">Loading queue jobs…</p> : null}
+                {!error && isInitialLoad ? (
+                    <>
+                        <TableSkeleton rows={6} />
+                        <AdminLoadingText text="Loading queue jobs…" />
+                    </>
+                ) : null}
 
                 {page ? (
                     <>
-                        <p className="text-sm text-muted-foreground">
+                        <p aria-live="polite" className="text-sm text-muted-foreground">
                             Showing {page.items.length} of {page.total} jobs
                             (offset {page.offset}, limit {page.limit}).
                         </p>
@@ -268,11 +289,15 @@ export default function JobsPage() {
                             </Table>
                             </ResponsiveTable>
                         ) : (
-                            <EmptyState title="No jobs match the current filters" />
+                            <EmptyState
+                                description="Try a different queue or status, or reset the filters."
+                                title="No jobs match the current filters"
+                            />
                         )}
 
-                        <div className="flex gap-2">
+                        <div className="flex flex-wrap gap-2">
                             <Button
+                                aria-label="Previous jobs page"
                                 disabled={!hasPreviousPage}
                                 onClick={goToPreviousPage}
                                 type="button"
@@ -281,6 +306,7 @@ export default function JobsPage() {
                                 Previous page
                             </Button>
                             <Button
+                                aria-label="Next jobs page"
                                 disabled={!hasNextPage}
                                 onClick={goToNextPage}
                                 type="button"

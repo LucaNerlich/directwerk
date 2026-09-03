@@ -7,7 +7,7 @@ import {use, useCallback, useEffect, useState} from 'react'
 import {Alert, AlertDescription} from '@directwerk/ui/components/alert'
 import {Badge} from '@directwerk/ui/components/badge'
 import {Button} from '@directwerk/ui/components/button'
-import {Card, CardContent, CardHeader, CardTitle} from '@directwerk/ui/components/card'
+import {Card, CardContent, CardDescription, CardHeader, CardTitle} from '@directwerk/ui/components/card'
 import EmptyState from '@directwerk/ui/components/empty-state'
 import {EntityListSection} from '@directwerk/ui/components/entity-list-section'
 import {
@@ -15,6 +15,11 @@ import {
     type EntityListViewItem,
 } from '@directwerk/ui/components/entity-list-view'
 import PageHeader from '@directwerk/ui/components/page-header'
+import PageStack from '@directwerk/ui/components/page-stack'
+import SectionHeader from '@directwerk/ui/components/section-header'
+
+import AdminBreadcrumbs from '@/components/AdminBreadcrumbs'
+import {AdminLoadingText, FormSkeleton, TableSkeleton} from '@/components/AdminLoading'
 
 import DomainForceVerifyForm from '@/components/DomainForceVerifyForm'
 import InviteTenantUserForm from '@/components/InviteTenantUserForm'
@@ -150,9 +155,21 @@ export default function TenantPage({params}: TenantPageProps) {
     }
 
     return (
-        <div className="space-y-8">
+        <PageStack>
+                <AdminBreadcrumbs
+                    items={[
+                        {href: '/tenants', label: 'Tenants'},
+                        {label: data?.tenant.name ?? `Tenant ${id}`},
+                    ]}
+                />
                 {error ? <Alert variant="destructive"><AlertDescription>{error}</AlertDescription></Alert> : null}
-                {!error && isInitialLoad ? <p aria-live="polite" className="text-sm text-muted-foreground">Loading tenant details…</p> : null}
+                {!error && isInitialLoad ? (
+                    <>
+                        <TableSkeleton rows={3} />
+                        <FormSkeleton />
+                        <AdminLoadingText text="Loading tenant details…" />
+                    </>
+                ) : null}
                 {data ? (
                     <>
                         <PageHeader
@@ -162,26 +179,48 @@ export default function TenantPage({params}: TenantPageProps) {
                             title={data.tenant.name}
                         />
                         <Card>
-                            <CardHeader><CardTitle>Overview</CardTitle></CardHeader>
+                            <CardHeader>
+                                <CardTitle>Overview</CardTitle>
+                                <CardDescription>
+                                    Identity, lifecycle status, and content totals.
+                                </CardDescription>
+                            </CardHeader>
                             <CardContent><dl className="grid gap-4 sm:grid-cols-2 [&_dd]:mt-1 [&_dt]:text-sm [&_dt]:font-medium [&_dt]:text-muted-foreground">
-                            <dt>Slug</dt>
-                            <dd>{data.tenant.slug}</dd>
-                            <dt>Status</dt>
-                            <dd><Badge variant="outline">{data.tenant.status}</Badge></dd>
-                            <dt>Created</dt>
-                            <dd>{new Date(data.tenant.createdAt).toLocaleString()}</dd>
-                            <dt>Primary domain</dt>
-                            <dd>{data.tenant.primaryDomain ?? '—'}</dd>
-                            <dt>Episodes</dt>
-                            <dd>{data.episodeCount}</dd>
-                            <dt>Subscribers</dt>
-                            <dd>{data.subscriberCount}</dd>
+                            <div>
+                                <dt>Slug</dt>
+                                <dd>{data.tenant.slug}</dd>
+                            </div>
+                            <div>
+                                <dt>Status</dt>
+                                <dd><Badge variant={data.tenant.status === 'ACTIVE' ? 'default' : 'outline'}>{data.tenant.status}</Badge></dd>
+                            </div>
+                            <div>
+                                <dt>Created</dt>
+                                <dd>{new Date(data.tenant.createdAt).toLocaleString()}</dd>
+                            </div>
+                            <div>
+                                <dt>Primary domain</dt>
+                                <dd>{data.tenant.primaryDomain ?? '—'}</dd>
+                            </div>
+                            <div>
+                                <dt>Episodes</dt>
+                                <dd>{data.episodeCount}</dd>
+                            </div>
+                            <div>
+                                <dt>Subscribers</dt>
+                                <dd>{data.subscriberCount}</dd>
+                            </div>
                             </dl></CardContent>
                         </Card>
 
                         {data.tenant.domains.length > 0 ? (
                             <Card>
-                                <CardHeader><CardTitle>Domains</CardTitle></CardHeader>
+                                <CardHeader>
+                                    <CardTitle>Domains</CardTitle>
+                                    <CardDescription>
+                                        Verified domains can serve tenant traffic.
+                                    </CardDescription>
+                                </CardHeader>
                                 <CardContent>
                                     <EntityListView
                                         ariaLabel="Tenant domains"
@@ -210,13 +249,19 @@ export default function TenantPage({params}: TenantPageProps) {
                         />
 
                         <Card aria-labelledby="tenant-lifecycle-heading" role="region">
-                            <CardHeader><CardTitle id="tenant-lifecycle-heading">Lifecycle</CardTitle></CardHeader>
+                            <CardHeader>
+                                <CardTitle id="tenant-lifecycle-heading">Lifecycle</CardTitle>
+                                <CardDescription>
+                                    Suspending blocks all tenant traffic immediately;
+                                    reactivating restores it.
+                                </CardDescription>
+                            </CardHeader>
                             <CardContent className="space-y-4">
                             {lifecycleError ? (
                                 <Alert aria-live="polite" variant="destructive"><AlertDescription>{lifecycleError}</AlertDescription></Alert>
                             ) : null}
                             {lifecycleStatus ? (
-                                <p aria-live="polite" role="status">
+                                <p aria-live="polite" role="status" className="text-sm text-muted-foreground">
                                     {lifecycleStatus}
                                 </p>
                             ) : null}
@@ -273,7 +318,10 @@ export default function TenantPage({params}: TenantPageProps) {
 
                         <TenantProductsPanel sessionKey={tenantSessionKey} />
 
-                        <h2 className="text-2xl font-semibold tracking-tight">Users</h2>
+                        <SectionHeader
+                            description={`${data.users.length} member${data.users.length === 1 ? '' : 's'}. Deactivating removes access immediately.`}
+                            title="Users"
+                        />
                         {data.users.length > 0 ? (
                             <EntityListSection
                                 ariaLabel="Tenant users"
@@ -301,7 +349,10 @@ export default function TenantPage({params}: TenantPageProps) {
                                 viewMode="list"
                             />
                         ) : (
-                            <EmptyState title="No users" />
+                            <EmptyState
+                                description="Invite the first member below."
+                                title="No users"
+                            />
                         )}
 
                         <InviteTenantUserForm
@@ -310,6 +361,6 @@ export default function TenantPage({params}: TenantPageProps) {
                         />
                     </>
                 ) : null}
-        </div>
+        </PageStack>
     )
 }

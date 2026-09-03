@@ -20,6 +20,7 @@ interface PublicationWorkflowActionsProps {
     publishedAt: string
     onPublishedAtChange: (value: string) => void
     publishValidationError?: string | null
+    scheduleValidationError?: string | null
     onSave: () => void
     onPublish: () => void
     onSchedule: () => void
@@ -42,6 +43,7 @@ export default function PublicationWorkflowActions({
     publishedAt,
     onPublishedAtChange,
     publishValidationError = null,
+    scheduleValidationError = null,
     onSave,
     onPublish,
     onSchedule,
@@ -111,10 +113,15 @@ export default function PublicationWorkflowActions({
                     <label className="grid gap-2 text-sm font-medium">
                         <span>Geplant für</span>
                         <Input
+                            aria-describedby="publication-scheduled-hint"
+                            aria-invalid={scheduleValidationError !== null}
                             type="datetime-local"
                             value={scheduledAt}
                             onChange={(event) => onScheduledAtChange(event.target.value)}
                         />
+                        <span className="text-xs font-normal text-muted-foreground" id="publication-scheduled-hint">
+                            Zeitpunkt in deiner lokalen Zeitzone. Erst mit „Planen“ wirksam.
+                        </span>
                     </label>
                     {isDraft && (
                         <Button
@@ -148,9 +155,14 @@ export default function PublicationWorkflowActions({
                     {publishValidationError}
                 </p>
             ) : null}
+            {scheduleValidationError !== null && (isDraft || isScheduled) ? (
+                <p className="text-xs text-destructive" role="alert">
+                    {scheduleValidationError}
+                </p>
+            ) : null}
             {publishBlockedReason !== null && (isDraft || isScheduled) ? (
                 <p className="text-xs text-muted-foreground" role="status">
-                    {publishBlockedReason}
+                    Vor dem Veröffentlichen: {publishBlockedReason}
                 </p>
             ) : null}
         </fieldset>

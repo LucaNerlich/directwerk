@@ -5,7 +5,7 @@ import {Button} from '@directwerk/ui/components/button'
 import Link from '@tiptap/extension-link'
 import {EditorContent, useEditor} from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
-import {useEffect} from 'react'
+import {useEffect, useId} from 'react'
 
 
 const SAFE_LINK_PROTOCOLS = new Set(['https:', 'http:', 'mailto:', 'tel:'])
@@ -33,13 +33,18 @@ export default function ShowNotesEditor({
     label = 'Text',
     placeholder = 'Shownotes oder Beitragstext…',
     disabled = false,
+    helperText,
 }: {
     value: string
     onChange: (html: string) => void
     label?: string
     placeholder?: string
     disabled?: boolean
+    helperText?: string
 }) {
+    const labelId = useId()
+    const toolbarLabelId = useId()
+    const helperId = useId()
     const editor = useEditor({
         // Required for Next.js App Router — avoids SSR/client hydration mismatch.
         immediatelyRender: false,
@@ -96,70 +101,95 @@ export default function ShowNotesEditor({
 
     return (
         <div className="grid gap-2">
-            <label className="text-sm font-medium">{label}</label>
+            <p className="text-sm font-medium" id={labelId}>{label}</p>
             <div
-                aria-hidden={disabled}
+                aria-labelledby={toolbarLabelId}
                 className="flex flex-wrap gap-1 rounded-lg border bg-muted/40 p-1.5"
+                role="toolbar"
             >
+                <span className="sr-only" id={toolbarLabelId}>
+                    {label} formatieren
+                </span>
                 <Button
                     type="button"
                     size="sm"
                     variant={editor.isActive('bold') ? 'secondary' : 'outline'}
                     disabled={disabled}
+                    aria-label="Fett"
+                    aria-pressed={editor.isActive('bold')}
+                    title="Fett (Strg+B)"
                     onClick={() => editor.chain().focus().toggleBold().run()}
                 >
-                    B
+                    <span aria-hidden="true">B</span>
                 </Button>
                 <Button
                     type="button"
                     size="sm"
                     variant={editor.isActive('italic') ? 'secondary' : 'outline'}
                     disabled={disabled}
+                    aria-label="Kursiv"
+                    aria-pressed={editor.isActive('italic')}
+                    title="Kursiv (Strg+I)"
                     onClick={() => editor.chain().focus().toggleItalic().run()}
                 >
-                    I
+                    <span aria-hidden="true">I</span>
                 </Button>
                 <Button
                     type="button"
                     size="sm"
                     variant={editor.isActive('heading', {level: 2}) ? 'secondary' : 'outline'}
                     disabled={disabled}
+                    aria-label="Überschrift Ebene 2"
+                    aria-pressed={editor.isActive('heading', {level: 2})}
+                    title="Überschrift Ebene 2"
                     onClick={() => editor.chain().focus().toggleHeading({level: 2}).run()}
                 >
-                    H2
+                    <span aria-hidden="true">H2</span>
                 </Button>
                 <Button
                     type="button"
                     size="sm"
                     variant={editor.isActive('heading', {level: 3}) ? 'secondary' : 'outline'}
                     disabled={disabled}
+                    aria-label="Überschrift Ebene 3"
+                    aria-pressed={editor.isActive('heading', {level: 3})}
+                    title="Überschrift Ebene 3"
                     onClick={() => editor.chain().focus().toggleHeading({level: 3}).run()}
                 >
-                    H3
+                    <span aria-hidden="true">H3</span>
                 </Button>
                 <Button
                     type="button"
                     size="sm"
                     variant={editor.isActive('bulletList') ? 'secondary' : 'outline'}
                     disabled={disabled}
+                    aria-label="Aufzählungsliste"
+                    aria-pressed={editor.isActive('bulletList')}
+                    title="Aufzählungsliste"
                     onClick={() => editor.chain().focus().toggleBulletList().run()}
                 >
-                    •
+                    <span aria-hidden="true">•</span>
                 </Button>
                 <Button
                     type="button"
                     size="sm"
                     variant={editor.isActive('orderedList') ? 'secondary' : 'outline'}
                     disabled={disabled}
+                    aria-label="Nummerierte Liste"
+                    aria-pressed={editor.isActive('orderedList')}
+                    title="Nummerierte Liste"
                     onClick={() => editor.chain().focus().toggleOrderedList().run()}
                 >
-                    1.
+                    <span aria-hidden="true">1.</span>
                 </Button>
                 <Button
                     type="button"
                     size="sm"
                     variant={editor.isActive('link') ? 'secondary' : 'outline'}
                     disabled={disabled}
+                    aria-label="Link einfügen oder entfernen"
+                    aria-pressed={editor.isActive('link')}
+                    title="Link einfügen oder entfernen"
                     onClick={() => {
                         const previous = editor.getAttributes('link').href
                         const href = window.prompt('Link-URL', previous ?? 'https://')
@@ -181,7 +211,12 @@ export default function ShowNotesEditor({
                     Link
                 </Button>
             </div>
-            <EditorContent editor={editor} />
+            <div aria-labelledby={labelId}>
+                <EditorContent editor={editor} />
+            </div>
+            <p className="text-xs font-normal text-muted-foreground" id={helperId}>
+                {helperText ?? 'Formatierung über die Werkzeugleiste. Links brauchen https://, http://, mailto: oder tel:.'}
+            </p>
         </div>
     )
 }

@@ -62,7 +62,7 @@ export default function RevokeAdminButton({
             <Button disabled={isRevoking} onClick={() => void handleRevoke()} type="button" variant="destructive">
                 {isRevoking ? 'Revoking…' : 'Revoke'}
             </Button>
-            {error ? <Alert variant="destructive"><AlertDescription>{error}</AlertDescription></Alert> : null}
+            {error ? <Alert aria-live="polite" variant="destructive"><AlertDescription>{error}</AlertDescription></Alert> : null}
         </>
     )
 }

@@ -4,17 +4,35 @@ import Link from 'next/link'
 import {useRouter} from 'next/navigation'
 import {useEffect, useState} from 'react'
 
+import {Alert, AlertDescription} from '@directwerk/ui/components/alert'
+import {Badge} from '@directwerk/ui/components/badge'
 import {Button} from '@directwerk/ui/components/button'
 import EmptyState from '@directwerk/ui/components/empty-state'
 import {EntityListSection} from '@directwerk/ui/components/entity-list-section'
 import type {EntityListViewItem} from '@directwerk/ui/components/entity-list-view'
 import PageHeader from '@directwerk/ui/components/page-header'
+import PageStack from '@directwerk/ui/components/page-stack'
+import SectionHeader from '@directwerk/ui/components/section-header'
+import {Skeleton} from '@directwerk/ui/components/skeleton'
 import {useListViewMode} from '@directwerk/ui/hooks/use-list-view-mode'
 
 import {listMedia} from '@/lib/api/mediaApi'
 import type {MediaAsset} from '@directwerk/api/types'
 import {getClientTenantHost} from '@directwerk/api/tenant'
 import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
+
+function formatBytes(sizeBytes: number | null): string {
+    if (sizeBytes === null || sizeBytes <= 0) {
+        return 'Größe unbekannt'
+    }
+    if (sizeBytes < 1024) {
+        return `${sizeBytes} B`
+    }
+    if (sizeBytes < 1024 * 1024) {
+        return `${(sizeBytes / 1024).toFixed(1)} KB`
+    }
+    return `${(sizeBytes / (1024 * 1024)).toFixed(1)} MB`
+}
 
 export default function BonusLibraryClient(): React.JSX.Element {
     const router = useRouter()
@@ -57,13 +75,27 @@ export default function BonusLibraryClient(): React.JSX.Element {
     }, [router])
 
     if (isLoading) {
-        return <p>Wird geladen…</p>
+        return (
+            <PageStack>
+                <PageHeader
+                    eyebrow="Medien"
+                    title="Bonusdateien"
+                    description="Dokumente aus der Mediathek. Hänge sie über DIGITAL_ASSET an ein Paket — Abonnenten sehen sie unter Bonusdateien."
+                />
+                <p className="text-sm text-muted-foreground" role="status">Wird geladen…</p>
+                <div className="grid gap-4" aria-hidden="true">
+                    <Skeleton className="h-20 w-full" />
+                    <Skeleton className="h-20 w-full" />
+                </div>
+            </PageStack>
+        )
     }
 
     const assetItems: EntityListViewItem[] = assets.map((asset) => ({
         id: asset.id,
         title: asset.originalFilename ?? `Datei #${asset.id}`,
-        description: `${asset.mimeType ?? 'Dokument'} · Asset #${asset.id}`,
+        description: `${asset.mimeType ?? 'Dokument'} · ${formatBytes(asset.sizeBytes)}`,
+        trailing: <Badge variant="secondary">Bereit</Badge>,
         actions: (
             <Button
                 nativeButton={false}
@@ -76,7 +108,7 @@ export default function BonusLibraryClient(): React.JSX.Element {
     }))
 
     return (
-        <div className="flex flex-col gap-6">
+        <PageStack>
             <PageHeader
                 eyebrow="Medien"
                 title="Bonusdateien"
@@ -88,9 +120,9 @@ export default function BonusLibraryClient(): React.JSX.Element {
                 }
             />
             {errorMessage !== null && (
-                <p className="text-sm text-destructive" role="alert">
-                    {errorMessage}
-                </p>
+                <Alert variant="destructive">
+                    <AlertDescription>{errorMessage}</AlertDescription>
+                </Alert>
             )}
             {assets.length === 0 ? (
                 <EmptyState
@@ -112,13 +144,20 @@ export default function BonusLibraryClient(): React.JSX.Element {
                     }
                 />
             ) : (
+                <section aria-labelledby="bonus-files-heading" className="flex flex-col gap-4">
+                    <SectionHeader
+                        id="bonus-files-heading"
+                        title={`Verfügbare Dateien (${assets.length})`}
+                        description="Nur bereite Dokumente. Wähle ein Paket, um eine Datei per Zugriffsregel freizuschalten."
+                    />
                 <EntityListSection
                     items={assetItems}
                     onViewModeChange={setViewMode}
                     showSelection={false}
                     viewMode={viewMode}
                 />
+                </section>
             )}
-        </div>
+        </PageStack>
     )
 }

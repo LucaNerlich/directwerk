@@ -6,6 +6,8 @@ import LevelSelect from '@/components/studio/LevelSelect'
 
 import {Button} from '@directwerk/ui/components/button'
 import {Input} from '@directwerk/ui/components/input'
+import EmptyState from '@directwerk/ui/components/empty-state'
+import PageStack from '@directwerk/ui/components/page-stack'
 
 import Link from 'next/link'
 import {useRouter} from 'next/navigation'
@@ -71,6 +73,7 @@ export default function EpisodeEditor({episodeId}: {episodeId?: number}): React.
         applyPublicationSchedule,
         parseScheduledAt,
         setScheduleValidationError,
+        scheduleValidationError,
         publishedAt,
         setPublishedAt,
         applyPublicationPublishedAt,
@@ -480,22 +483,29 @@ export default function EpisodeEditor({episodeId}: {episodeId?: number}): React.
     )
 
     if (isLoading) {
-        return <p>Folge wird geladen…</p>
+        return (
+            <p className="text-sm text-muted-foreground" role="status">
+                Folge wird geladen…
+            </p>
+        )
     }
 
     if (series.length === 0) {
         return (
-            <div className="flex flex-col gap-3">
-                <p className="text-sm text-muted-foreground">
-                    Bevor du eine Folge erstellst, brauchst du eine Sendung (dein
-                    Podcast-Kanal).
-                </p>
-                <p>
-                    <Link href="/podcast/series/new">Zuerst eine Sendung anlegen</Link>
-                    {' · '}
-                    <Link href="/podcast">Zur Podcast-Übersicht</Link>
-                </p>
-            </div>
+            <EmptyState
+                description="Bevor du eine Folge erstellst, brauchst du eine Sendung (dein Podcast-Kanal)."
+                title="Zuerst eine Sendung anlegen"
+                action={
+                    <div className="flex flex-wrap justify-center gap-2">
+                        <Button nativeButton={false} render={<Link href="/podcast/series/new" />}>
+                            Zuerst eine Sendung anlegen
+                        </Button>
+                        <Button nativeButton={false} render={<Link href="/podcast" />} variant="outline">
+                            Zur Podcast-Übersicht
+                        </Button>
+                    </div>
+                }
+            />
         )
     }
 
@@ -524,12 +534,12 @@ export default function EpisodeEditor({episodeId}: {episodeId?: number}): React.
     ].filter((item): item is {label: string; url: string} => item !== null)
 
     return (
-        <div className="grid gap-4">
+        <PageStack className="gap-6">
             {episodeId === undefined && (
-                <label className="grid gap-2 text-sm font-medium">
+                <label className="grid max-w-2xl gap-2 text-sm font-medium">
                     <span>Sendung</span>
                     <SelectControl
-                        className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:opacity-50"
+                        aria-label="Sendung"
                         value={seriesId ?? ''}
                         onChange={(event) => setSeriesId(Number(event.target.value))}
                     >
@@ -602,6 +612,7 @@ export default function EpisodeEditor({episodeId}: {episodeId?: number}): React.
                 publishedAt={publishedAt}
                 onPublishedAtChange={setPublishedAt}
                 publishValidationError={publishValidationError}
+                scheduleValidationError={scheduleValidationError}
                 onSave={() => {
                     void save()
                 }}
@@ -852,6 +863,6 @@ export default function EpisodeEditor({episodeId}: {episodeId?: number}): React.
                     </>
                 }
             />
-        </div>
+        </PageStack>
     )
 }

@@ -3,6 +3,8 @@
 import {useRouter} from 'next/navigation'
 import {useEffect, type ReactNode} from 'react'
 
+import EmptyState from '@directwerk/ui/components/empty-state'
+
 import {isTenantAdminRole} from '@/lib/api/studioHelpers'
 import {useMe} from '@/lib/auth/MeProvider'
 
@@ -22,7 +24,14 @@ export default function TenantAdminGuard({
     }, [allowed, router])
 
     if (!allowed) {
-        return <p>Keine Berechtigung.</p>
+        return (
+            <div role="status">
+                <EmptyState
+                    title="Keine Berechtigung."
+                    description="Dieser Bereich ist nur für Mandanten-Admins verfügbar."
+                />
+            </div>
+        )
     }
 
     return <>{children}</>

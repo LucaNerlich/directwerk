@@ -1,10 +1,19 @@
 'use client'
 
+import {Alert, AlertDescription} from '@directwerk/ui/components/alert'
+import {Badge} from '@directwerk/ui/components/badge'
 import {Button} from '@directwerk/ui/components/button'
+import {Card, CardContent, CardDescription, CardHeader, CardTitle} from '@directwerk/ui/components/card'
+import {Checkbox} from '@directwerk/ui/components/checkbox'
+import EmptyState from '@directwerk/ui/components/empty-state'
 import {EntityListSection} from '@directwerk/ui/components/entity-list-section'
 import type {EntityListViewItem} from '@directwerk/ui/components/entity-list-view'
 import {Input} from '@directwerk/ui/components/input'
 import {Label} from '@directwerk/ui/components/label'
+import PageHeader from '@directwerk/ui/components/page-header'
+import PageStack from '@directwerk/ui/components/page-stack'
+import SectionHeader from '@directwerk/ui/components/section-header'
+import {Skeleton} from '@directwerk/ui/components/skeleton'
 import {useListViewMode} from '@directwerk/ui/hooks/use-list-view-mode'
 
 import Form from 'next/form'
@@ -148,19 +157,45 @@ export default function DomainsClient(): React.JSX.Element {
     }
 
     if (isLoading) {
-        return <p>Wird geladen…</p>
+        return (
+            <PageStack>
+                <PageHeader
+                    eyebrow="Einstellungen"
+                    title="Domains"
+                    description="Eigene Domains für deine öffentliche Website — erst prüfen, dann verifizieren."
+                />
+                <p className="text-sm text-muted-foreground" role="status">Wird geladen…</p>
+                <Skeleton className="h-20 w-full" />
+            </PageStack>
+        )
     }
 
     if (loadError !== null) {
-        return <p className="text-sm text-destructive">{loadError}</p>
+        return (
+            <PageStack>
+                <PageHeader
+                    eyebrow="Einstellungen"
+                    title="Domains"
+                    description="Eigene Domains für deine öffentliche Website — erst prüfen, dann verifizieren."
+                />
+                <Alert variant="destructive">
+                    <AlertDescription>{loadError}</AlertDescription>
+                </Alert>
+            </PageStack>
+        )
     }
 
     const domainItems: EntityListViewItem[] = domains.map((domain) => ({
         id: domain.host,
         title: domain.host,
-        description: `${domain.primary ? 'Primär' : 'Sekundär'} · ${domain.verified ? 'Verifiziert' : 'Offen'}`,
+        description: domain.primary ? 'Primäre Domain — Standardadresse deiner Website' : 'Sekundäre Domain — leitet auf die primäre',
+        trailing: (
+            <Badge variant={domain.verified ? 'default' : 'outline'}>
+                {domain.verified ? 'Verifiziert' : 'Offen'}
+            </Badge>
+        ),
         actions: !domain.verified ? (
-            <>
+            <div className="flex flex-wrap gap-2">
                 <Button
                     disabled={busyHost === domain.host}
                     onClick={() => {
@@ -180,64 +215,88 @@ export default function DomainsClient(): React.JSX.Element {
                     size="sm"
                     type="button"
                 >
-                    Verifizieren
+                    {busyHost === domain.host ? 'Prüfen…' : 'Verifizieren'}
                 </Button>
-            </>
+            </div>
         ) : undefined,
     }))
 
     return (
-        <div className="flex flex-col gap-6">
-            <header className="flex flex-col gap-4 border-b pb-6 sm:flex-row sm:items-end sm:justify-between">
-                <div>
-                    <p className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">Einstellungen</p>
-                    <h1>Domains</h1>
-                </div>
-            </header>
+        <PageStack>
+            <PageHeader
+                eyebrow="Einstellungen"
+                title="Domains"
+                description="Eigene Domains für deine öffentliche Website. Lege zuerst den TXT-Eintrag beim Domain-Anbieter an, dann prüfe die Verifizierung."
+            />
 
             {domains.length === 0 ? (
-                <p className="text-sm text-muted-foreground">Noch keine Domains.</p>
+                <EmptyState
+                    title="Noch keine Domains"
+                    description="Füge unten deine erste Domain hinzu — z. B. podcast.beispiel.de. Danach legst du den angezeigten TXT-Eintrag an."
+                />
             ) : (
+                <section aria-labelledby="domains-list-heading" className="flex flex-col gap-4">
+                    <SectionHeader
+                        id="domains-list-heading"
+                        title={`Domains (${domains.length})`}
+                        description="Verifizierte Domains sind live; offene brauchen noch den DNS-Eintrag."
+                    />
                 <EntityListSection
                     items={domainItems}
                     onViewModeChange={setViewMode}
                     showSelection={false}
                     viewMode={viewMode}
                 />
+                </section>
             )}
 
             {challenge !== null ? (
-                <section aria-labelledby="domain-challenge-heading">
-                    <h2 id="domain-challenge-heading">DNS-Verifizierung</h2>
+                <Card aria-labelledby="domain-challenge-heading">
+                    <CardHeader>
+                        <CardTitle id="domain-challenge-heading">DNS-Verifizierung</CardTitle>
+                        <CardDescription>
+                            Lege diesen TXT-Eintrag bei deinem Domain-Anbieter an und klicke danach auf „Verifizieren“.
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent className="grid gap-3 text-sm">
                     <p>
-                        Host: <code>{challenge.host}</code>
+                        Host: <code className="rounded bg-muted px-1.5 py-0.5">{challenge.host}</code>
                     </p>
                     <p>
-                        TXT-Name: <code>{challenge.dnsNameHint}</code>
+                        TXT-Name: <code className="rounded bg-muted px-1.5 py-0.5 break-all">{challenge.dnsNameHint}</code>
                     </p>
                     <p>
-                        TXT-Wert: <code>{challenge.dnsTxtValue}</code>
+                        TXT-Wert: <code className="rounded bg-muted px-1.5 py-0.5 break-all">{challenge.dnsTxtValue}</code>
                     </p>
-                </section>
+                    <p className="text-xs text-muted-foreground">
+                        Die DNS-Ausbreitung kann einige Minuten dauern. Bei Fehlschlag warte kurz und versuche es erneut.
+                    </p>
+                    </CardContent>
+                </Card>
             ) : null}
 
             {actionError ? (
-                <p aria-live="polite" className="text-sm text-destructive" role="alert">
-                    {actionError}
-                </p>
+                <Alert variant="destructive">
+                    <AlertDescription>{actionError}</AlertDescription>
+                </Alert>
             ) : null}
             {actionStatus ? (
-                <p aria-live="polite" role="status">
-                    {actionStatus}
-                </p>
+                <Alert role="status">
+                    <AlertDescription>{actionStatus}</AlertDescription>
+                </Alert>
             ) : null}
 
-            <Form action={addFormAction} className="grid w-full max-w-xl gap-5">
-                <h2>Domain hinzufügen</h2>
-                <label className="grid gap-2 text-sm font-medium" htmlFor="host">
-                    Host
+            <Card className="max-w-xl">
+                <CardHeader>
+                    <CardTitle>Domain hinzufügen</CardTitle>
+                    <CardDescription>Nur der Hostname — ohne https:// und ohne Pfad.</CardDescription>
+                </CardHeader>
+                <CardContent>
+            <Form action={addFormAction} className="grid w-full gap-5">
+                <div className="grid gap-2">
+                    <Label htmlFor="host">Host</Label>
                     <Input
-                        className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50"
+                        aria-describedby="host-help"
                         id="host"
                         maxLength={253}
                         name="host"
@@ -245,27 +304,32 @@ export default function DomainsClient(): React.JSX.Element {
                         required
                         type="text"
                     />
-                </label>
-                <label className="grid gap-2 text-sm font-medium" htmlFor="isPrimary">
-                    <span>
-                        <Input id="isPrimary" name="isPrimary" className="size-4 shrink-0" type="checkbox" /> Primäre
-                        Domain
-                    </span>
-                </label>
-                {addState.error ? (
-                    <p aria-live="polite" className="text-sm text-destructive" role="alert">
-                        {addState.error}
+                    <p className="text-xs text-muted-foreground" id="host-help">
+                        z. B. podcast.beispiel.de — Kleinbuchstaben, Zahlen, Punkte und Bindestriche.
                     </p>
+                </div>
+                <Label className="flex items-center gap-2 font-normal">
+                    <Checkbox id="isPrimary" name="isPrimary" />
+                    <span>Primäre Domain <span className="text-muted-foreground">(Standardadresse deiner Website)</span></span>
+                </Label>
+                {addState.error ? (
+                    <Alert variant="destructive">
+                        <AlertDescription>{addState.error}</AlertDescription>
+                    </Alert>
                 ) : null}
                 {addState.success ? (
-                    <p aria-live="polite" role="status">
-                        {addState.success}
-                    </p>
+                    <Alert role="status">
+                        <AlertDescription>{addState.success}</AlertDescription>
+                    </Alert>
                 ) : null}
-                <Button className="inline-flex h-9 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground shadow-xs hover:bg-primary/90 disabled:pointer-events-none disabled:opacity-50" disabled={addPending} type="submit">
+                <div>
+                <Button disabled={addPending} type="submit">
                     {addPending ? 'Hinzufügen…' : 'Hinzufügen'}
                 </Button>
+                </div>
             </Form>
-        </div>
+                </CardContent>
+            </Card>
+        </PageStack>
     )
 }

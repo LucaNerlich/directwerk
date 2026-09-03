@@ -2,9 +2,14 @@
 
 import Link from 'next/link'
 
+import {Alert, AlertDescription} from '@directwerk/ui/components/alert'
+import {Badge} from '@directwerk/ui/components/badge'
 import {Button} from '@directwerk/ui/components/button'
 import EmptyState from '@directwerk/ui/components/empty-state'
 import PageHeader from '@directwerk/ui/components/page-header'
+import PageStack from '@directwerk/ui/components/page-stack'
+import SectionHeader from '@directwerk/ui/components/section-header'
+import {Skeleton} from '@directwerk/ui/components/skeleton'
 import {EntityListToolbar} from '@directwerk/ui/components/entity-list-toolbar'
 import {
     EntityListView,
@@ -39,7 +44,11 @@ function ProductGroups({
         id: product.id,
         title: product.title,
         description: `Stufe ${product.sortOrder} · ${product.slug} · ${formatMoney(product.priceCents, product.currency, product.billingInterval)}`,
-        trailing: product.active ? 'Aktiv' : 'Inaktiv',
+        trailing: (
+            <Badge variant={product.active ? 'default' : 'outline'}>
+                {product.active ? 'Aktiv' : 'Inaktiv'}
+            </Badge>
+        ),
         href: `/manage/products/${product.id}`,
         leading: (
             <span className="flex size-8 shrink-0 items-center justify-center rounded-full border bg-muted text-xs font-bold tabular-nums">
@@ -52,7 +61,11 @@ function ProductGroups({
         id: product.id,
         title: product.title,
         description: `${product.slug} · ${formatMoney(product.priceCents, product.currency, product.billingInterval)}`,
-        trailing: product.active ? 'Aktiv' : 'Inaktiv',
+        trailing: (
+            <Badge variant={product.active ? 'default' : 'outline'}>
+                {product.active ? 'Aktiv' : 'Inaktiv'}
+            </Badge>
+        ),
         href: `/manage/products/${product.id}`,
     }))
 
@@ -64,27 +77,28 @@ function ProductGroups({
                 viewMode={viewMode}
             />
             {levels.length > 0 ? (
-                <section>
-                    <h2 className="mb-3 text-sm font-semibold text-muted-foreground">
-                        Stufen-Leiter
-                    </h2>
+                <section aria-labelledby="product-levels-heading" className="flex flex-col gap-3">
+                    <SectionHeader
+                        id="product-levels-heading"
+                        title={`Stufen-Leiter (${levels.length})`}
+                        description="Höhere Stufe schließt alle niedrigeren ein — sortiert nach Sortierzahl."
+                    />
                     <EntityListView
                         ariaLabel="Mitgliedschaftsstufen"
                         items={levelItems}
                         linkComponent={Link}
                         viewMode={viewMode}
                     />
-                    <p className="mt-2 text-xs text-muted-foreground">
-                        Höhere Stufe schließt alle niedrigeren ein.
-                    </p>
                 </section>
             ) : null}
 
             {packages.length > 0 ? (
-                <section>
-                    <h2 className="mb-3 text-sm font-semibold text-muted-foreground">
-                        Pakete
-                    </h2>
+                <section aria-labelledby="product-packages-heading" className="flex flex-col gap-3">
+                    <SectionHeader
+                        id="product-packages-heading"
+                        title={`Pakete (${packages.length})`}
+                        description="Schalten nur die Inhalte aus ihren Zugriffsregeln frei."
+                    />
                     <EntityListView
                         ariaLabel="Pakete"
                         items={packageItems}
@@ -100,7 +114,7 @@ function ProductGroups({
 export default function ProductListClient(): React.JSX.Element {
     const tenantHost = getClientTenantHost()
     const {viewMode, setViewMode} = useListViewMode()
-    const {data: products, error: errorMessage, isLoading} = useCachedTenantQuery(
+    const {data: products, error: errorMessage, isLoading, reload} = useCachedTenantQuery(
         (host) => listProducts(host),
         {
             namespace: 'tenant-products',
@@ -110,11 +124,11 @@ export default function ProductListClient(): React.JSX.Element {
     )
 
     return (
-        <div className="flex flex-col gap-6">
+        <PageStack>
             <PageHeader
                 eyebrow="Abos"
                 title="Produkte"
-                description="Stufen und Pakete, die Hörerinnen und Hörer kaufen oder die du freischaltest."
+                description="Stufen und Pakete, die Hörerinnen und Hörer kaufen oder die du freischaltest. Der Preis zeigt immer Betrag, Währung und Abrechnungsintervall."
                 actions={
                     <Button nativeButton={false} render={<Link href="/manage/products/new" />} size="lg">
                         Neues Produkt
@@ -123,11 +137,22 @@ export default function ProductListClient(): React.JSX.Element {
             />
 
             {errorMessage ? (
-                <p className="text-sm text-destructive" role="alert">
-                    {errorMessage}
-                </p>
+                <Alert variant="destructive">
+                    <AlertDescription>
+                        {errorMessage}{' '}
+                        <Button onClick={reload} size="sm" type="button" variant="outline">
+                            Wiederholen
+                        </Button>
+                    </AlertDescription>
+                </Alert>
             ) : null}
-            {isLoading && !errorMessage ? <p>Laden…</p> : null}
+            {isLoading && !errorMessage ? (
+                <div className="flex flex-col gap-3" aria-busy="true">
+                    <p className="text-sm text-muted-foreground" role="status">Laden…</p>
+                    <Skeleton className="h-20 w-full" />
+                    <Skeleton className="h-20 w-full" />
+                </div>
+            ) : null}
             {products && products.length === 0 ? (
                 <EmptyState
                     title="Noch keine Produkte"
@@ -146,6 +171,6 @@ export default function ProductListClient(): React.JSX.Element {
                     viewMode={viewMode}
                 />
             ) : null}
-        </div>
+        </PageStack>
     )
 }

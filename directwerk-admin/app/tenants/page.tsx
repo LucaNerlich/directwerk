@@ -1,15 +1,16 @@
 'use client'
 
-import Link from 'next/link'
 import {useRouter} from 'next/navigation'
 import {useCallback, useEffect, useState} from 'react'
 
 import {Alert, AlertDescription} from '@directwerk/ui/components/alert'
+import {Button} from '@directwerk/ui/components/button'
 import EmptyState from '@directwerk/ui/components/empty-state'
 import PageHeader from '@directwerk/ui/components/page-header'
 import PageStack from '@directwerk/ui/components/page-stack'
 import SectionHeader from '@directwerk/ui/components/section-header'
 
+import {AdminLoadingText, TableSkeleton} from '@/components/AdminLoading'
 import CreateTenantForm from '@/components/CreateTenantForm'
 import TenantListTable from '@/components/TenantListTable'
 import {getPlatformData} from '@/lib/api/client'
@@ -71,10 +72,19 @@ export default function TenantsPage(): React.JSX.Element {
                 </Alert>
             ) : null}
 
+            {error ? (
+                <div>
+                    <Button onClick={reloadTenants} type="button" variant="outline">
+                        Retry
+                    </Button>
+                </div>
+            ) : null}
+
             {!error && tenants === null ? (
-                <p aria-live="polite" className="text-sm text-muted-foreground">
-                    Loading tenants…
-                </p>
+                <>
+                    <TableSkeleton rows={6} />
+                    <AdminLoadingText text="Loading tenants…" />
+                </>
             ) : null}
 
             {tenants ? (
@@ -89,7 +99,7 @@ export default function TenantsPage(): React.JSX.Element {
             ) : null}
 
             <SectionHeader
-                action={<Link href="/">Back to overview</Link>}
+                description="Creates the tenant record with an optional module preset and first admin invitation."
                 title="Create tenant"
             />
             <CreateTenantForm onCreated={reloadTenants} />

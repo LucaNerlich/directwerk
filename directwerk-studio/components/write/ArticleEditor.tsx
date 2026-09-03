@@ -67,6 +67,7 @@ export default function ArticleEditor({articleId}: {articleId?: number}) {
         applyPublicationSchedule,
         parseScheduledAt,
         setScheduleValidationError,
+        scheduleValidationError,
         publishedAt,
         setPublishedAt,
         applyPublicationPublishedAt,
@@ -341,7 +342,11 @@ export default function ArticleEditor({articleId}: {articleId?: number}) {
     }, [article, config.publicSiteUrl])
 
     if (isLoading) {
-        return <p>Beitrag wird geladen…</p>
+        return (
+            <p className="text-sm text-muted-foreground" role="status">
+                Beitrag wird geladen…
+            </p>
+        )
     }
 
     return (
@@ -396,6 +401,7 @@ export default function ArticleEditor({articleId}: {articleId?: number}) {
             publishedAt={publishedAt}
             onPublishedAtChange={setPublishedAt}
             publishValidationError={publishValidationError}
+            scheduleValidationError={scheduleValidationError}
             onSave={() => {
                 void save()
             }}

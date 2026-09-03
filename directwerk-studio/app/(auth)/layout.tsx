@@ -10,7 +10,7 @@ export default async function AuthLayout({children}: {children: React.ReactNode}
 
     return (
         <SiteConfigProvider config={config}>
-            <BrandTheme primaryHex={config.branding.primaryColor}>
+            <BrandTheme className="min-h-svh bg-background" primaryHex={config.branding.primaryColor}>
                 {children}
             </BrandTheme>
         </SiteConfigProvider>

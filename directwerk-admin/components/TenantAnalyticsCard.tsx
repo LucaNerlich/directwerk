@@ -2,48 +2,98 @@
 
 import {useEffect, useState} from 'react'
 
-import {Card, CardContent, CardHeader, CardTitle} from '@directwerk/ui/components/card'
+import {Badge} from '@directwerk/ui/components/badge'
+import {Card, CardContent, CardDescription, CardHeader, CardTitle} from '@directwerk/ui/components/card'
+import {Skeleton} from '@directwerk/ui/components/skeleton'
 import {getPlatformData} from '@/lib/api/client'
 import type {PlatformBranding} from '@directwerk/api/types'
 
 export default function TenantAnalyticsCard({tenantId}: {tenantId: string}): React.JSX.Element {
     const [branding, setBranding] = useState<PlatformBranding | null>(null)
     const [error, setError] = useState<string | null>(null)
+    const [isLoading, setIsLoading] = useState(true)
 
     useEffect(() => {
         let active = true
         setBranding(null)
         setError(null)
+        setIsLoading(true)
         getPlatformData<PlatformBranding>(`tenants/${tenantId}/branding`)
             .then((result) => {
                 if (!active) return
                 setError(null)
                 setBranding(result)
+                setIsLoading(false)
             })
             .catch(() => {
                 if (!active) return
                 setError('Analytics config unavailable.')
+                setIsLoading(false)
             })
         return () => {
             active = false
         }
     }, [tenantId])
 
+    const trackingEnabled = branding?.umamiWebsiteId != null
+
     return (
-        <Card>
-            <CardHeader><CardTitle>Analytics (read-only)</CardTitle></CardHeader>
+        <Card aria-labelledby="tenant-analytics-heading" role="region">
+            <CardHeader>
+                <CardTitle id="tenant-analytics-heading">Analytics (read-only)</CardTitle>
+                <CardDescription>
+                    Platform view of the tenant Umami configuration. Tracking
+                    itself is managed in directwerk-studio under Branding.
+                </CardDescription>
+            </CardHeader>
             <CardContent>
-                {error ? <p className="text-sm text-destructive">{error}</p> : null}
-                {!error && !branding ? <p className="text-sm text-muted-foreground">Loading…</p> : null}
+                {error ? (
+                    <p className="text-sm text-destructive" role="alert">
+                        {error}
+                    </p>
+                ) : null}
+                {!error && isLoading ? (
+                    <>
+                        <div aria-hidden="true" className="grid gap-4 sm:grid-cols-2">
+                            <div className="space-y-2">
+                                <Skeleton className="h-4 w-24" />
+                                <Skeleton className="h-5 w-40" />
+                            </div>
+                            <div className="space-y-2">
+                                <Skeleton className="h-4 w-24" />
+                                <Skeleton className="h-5 w-40" />
+                            </div>
+                        </div>
+                        <p aria-live="polite" className="mt-2 text-sm text-muted-foreground">
+                            Loading…
+                        </p>
+                    </>
+                ) : null}
                 {branding ? (
                     <dl className="grid gap-4 sm:grid-cols-2 [&_dd]:mt-1 [&_dt]:text-sm [&_dt]:font-medium [&_dt]:text-muted-foreground">
-                        <dt>Website-ID</dt>
-                        <dd>{branding.umamiWebsiteId ?? '—'}</dd>
-                        <dt>Umami-Server</dt>
-                        <dd>{branding.umamiHostUrl ?? 'Plattform-Standard'}</dd>
-                        <dt>Status</dt>
-                        <dd>{branding.umamiWebsiteId ? 'Tracking aktiv (siehe Studio → Branding)' : 'Deaktiviert'}</dd>
+                        <div>
+                            <dt>Website ID</dt>
+                            <dd>{branding.umamiWebsiteId ?? '—'}</dd>
+                        </div>
+                        <div>
+                            <dt>Umami host</dt>
+                            <dd>{branding.umamiHostUrl ?? 'Platform default'}</dd>
+                        </div>
+                        <div>
+                            <dt>Status</dt>
+                            <dd>
+                                <Badge variant={trackingEnabled ? 'default' : 'outline'}>
+                                    {trackingEnabled ? 'Tracking enabled' : 'Disabled'}
+                                </Badge>
+                            </dd>
+                        </div>
                     </dl>
+                ) : null}
+                {branding && !trackingEnabled ? (
+                    <p className="mt-3 text-sm text-muted-foreground">
+                        Tracking is disabled. Tenant admins enable it in
+                        directwerk-studio under Branding.
+                    </p>
                 ) : null}
             </CardContent>
         </Card>

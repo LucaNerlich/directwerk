@@ -5,7 +5,7 @@ import {useActionState, useEffect, useRef} from 'react'
 
 import {Alert, AlertDescription} from '@directwerk/ui/components/alert'
 import {Button} from '@directwerk/ui/components/button'
-import {Card, CardContent, CardHeader, CardTitle} from '@directwerk/ui/components/card'
+import {Card, CardContent, CardDescription, CardHeader, CardTitle} from '@directwerk/ui/components/card'
 import {Input} from '@directwerk/ui/components/input'
 import {Label} from '@directwerk/ui/components/label'
 
@@ -44,7 +44,12 @@ export default function TenantEditForm({
 
     return (
         <Card aria-labelledby="tenant-edit-heading" role="region">
-            <CardHeader><CardTitle id="tenant-edit-heading">Edit tenant</CardTitle></CardHeader>
+            <CardHeader>
+                <CardTitle id="tenant-edit-heading">Edit tenant</CardTitle>
+                <CardDescription>
+                    Renaming is safe; changing the slug affects tenant URLs.
+                </CardDescription>
+            </CardHeader>
             <CardContent>
             <Form action={formAction} className="space-y-4">
                 <div className="space-y-2">

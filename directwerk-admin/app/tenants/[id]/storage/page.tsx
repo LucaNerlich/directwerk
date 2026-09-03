@@ -7,13 +7,18 @@ import {use, useCallback, useEffect, useState} from 'react'
 import {Alert, AlertDescription} from '@directwerk/ui/components/alert'
 import {Badge} from '@directwerk/ui/components/badge'
 import {Button} from '@directwerk/ui/components/button'
-import {Card, CardContent, CardHeader, CardTitle} from '@directwerk/ui/components/card'
+import {Card, CardContent, CardDescription, CardHeader, CardTitle} from '@directwerk/ui/components/card'
 import EmptyState from '@directwerk/ui/components/empty-state'
 import {Input} from '@directwerk/ui/components/input'
 import {Label} from '@directwerk/ui/components/label'
 import PageHeader from '@directwerk/ui/components/page-header'
+import PageStack from '@directwerk/ui/components/page-stack'
+import ResponsiveTable from '@directwerk/ui/components/responsive-table'
+import SectionHeader from '@directwerk/ui/components/section-header'
 import {Table, TableBody, TableCell, TableHead, TableHeader, TableRow} from '@directwerk/ui/components/table'
 
+import AdminBreadcrumbs from '@/components/AdminBreadcrumbs'
+import {AdminLoadingText, TableSkeleton} from '@/components/AdminLoading'
 import TenantStorageUploadForm from '@/components/TenantStorageUploadForm'
 import {deletePlatformData, getPlatformData} from '@/lib/api/client'
 import {AUTH_REQUIRED} from '@directwerk/api/constants'
@@ -134,6 +139,19 @@ export default function TenantStoragePage({params}: TenantStoragePageProps) {
     const [deletingAssetId, setDeletingAssetId] = useState<number | null>(null)
 
     const {assetType, status, limit} = query
+
+    const hasActiveFilters =
+        assetType !== undefined || status !== undefined || limit !== DEFAULT_QUERY.limit
+
+    function resetFilters(): void {
+        setError(null)
+        setQuery(DEFAULT_QUERY)
+    }
+
+    const totalBytes = (assets ?? []).reduce(
+        (sum, asset) => sum + (asset.sizeBytes ?? 0),
+        0,
+    )
 
     const loadStorage = useCallback(
         (nextQuery: TenantMediaQuery) => {
@@ -299,24 +317,67 @@ export default function TenantStoragePage({params}: TenantStoragePageProps) {
     }
 
     return (
-        <div className="space-y-8">
-                <Link className="text-sm font-medium underline-offset-4 hover:underline" href={`/tenants/${id}`}>← Tenant</Link>
+        <PageStack>
+                <AdminBreadcrumbs
+                    items={[
+                        {href: '/tenants', label: 'Tenants'},
+                        {href: `/tenants/${id}`, label: tenant?.name ?? `Tenant ${id}`},
+                        {label: 'Storage'},
+                    ]}
+                />
 
                 {error ? <Alert variant="destructive"><AlertDescription>{error}</AlertDescription></Alert> : null}
-                {!error && isInitialLoad ? <p aria-live="polite" className="text-sm text-muted-foreground">Loading tenant storage…</p> : null}
+                {!error && isInitialLoad ? (
+                    <>
+                        <TableSkeleton rows={6} />
+                        <AdminLoadingText text="Loading tenant storage…" />
+                    </>
+                ) : null}
 
                 {tenant ? (
                     <>
-                        <PageHeader eyebrow="Tenant storage" title={tenant.name} />
+                        <PageHeader
+                            actions={<Button render={<Link href={`/tenants/${id}`} />}>Tenant details</Button>}
+                            description={`Media for ${tenant.slug} — list, test-upload, and queue permanent deletes.`}
+                            eyebrow="Tenant storage"
+                            title={tenant.name}
+                        />
                         <p className="max-w-4xl text-sm leading-6 text-muted-foreground">
-                            Media for <code>{tenant.slug}</code>. Platform admins
-                            can list, test-upload, and queue permanent deletes
-                            (S3 remove + CDN purge via background jobs; row
-                            tombstones as ARCHIVED when done). Tenant EDITOR /
-                            TENANT_ADMIN use studio for day-to-day uploads;
-                            USER-scoped deletes require ownership (or
-                            TENANT_ADMIN).
+                            Deletes are queued (S3 remove + CDN purge via
+                            background jobs; rows tombstone as ARCHIVED when
+                            done). Tenant EDITOR / TENANT_ADMIN use studio for
+                            day-to-day uploads; USER-scoped deletes require
+                            ownership (or TENANT_ADMIN).
                         </p>
+
+                        {assets ? (
+                            <section aria-label="Storage usage" className="grid gap-3 sm:grid-cols-3">
+                                <div className="rounded-xl border bg-card p-4 shadow-sm">
+                                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                                        Assets
+                                    </p>
+                                    <p className="mt-1 text-2xl font-semibold tracking-tight">
+                                        {assets.length}
+                                    </p>
+                                </div>
+                                <div className="rounded-xl border bg-card p-4 shadow-sm">
+                                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                                        Stored data
+                                    </p>
+                                    <p className="mt-1 text-2xl font-semibold tracking-tight">
+                                        {formatBytes(totalBytes)}
+                                    </p>
+                                </div>
+                                <div className="rounded-xl border bg-card p-4 shadow-sm">
+                                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                                        Queued deletes
+                                    </p>
+                                    <p className="mt-1 text-2xl font-semibold tracking-tight">
+                                        {assets.filter((asset) => asset.status === 'PENDING_DELETE').length}
+                                    </p>
+                                </div>
+                            </section>
+                        ) : null}
 
                         <TenantStorageUploadForm
                             onUploaded={(uploaded) => {
@@ -336,13 +397,22 @@ export default function TenantStoragePage({params}: TenantStoragePageProps) {
                             tenantId={id}
                         />
 
-                        <h2 className="text-2xl font-semibold tracking-tight">Assets</h2>
+                        <SectionHeader
+                            description={assets && assets.length > 0 ? `${assets.length} asset${assets.length === 1 ? '' : 's'} shown.` : undefined}
+                            title="Assets"
+                        />
 
                         <Card>
-                            <CardHeader><CardTitle>Filter assets</CardTitle></CardHeader>
+                            <CardHeader>
+                                <CardTitle>Filter assets</CardTitle>
+                                <CardDescription>
+                                    Narrow by type or lifecycle status.
+                                </CardDescription>
+                            </CardHeader>
                             <CardContent>
                         <form
                             className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4"
+                            key={`${query.assetType ?? ''}-${query.status ?? ''}-${query.limit ?? ''}`}
                             onSubmit={(event) => {
                                 event.preventDefault()
                                 applyFilters(new FormData(event.currentTarget))
@@ -391,12 +461,20 @@ export default function TenantStoragePage({params}: TenantStoragePageProps) {
                                     type="number"
                                 />
                             </div>
-                            <Button className="self-end" type="submit">Apply</Button>
+                            <div className="flex flex-wrap gap-2 self-end">
+                                <Button type="submit">Apply</Button>
+                                {hasActiveFilters ? (
+                                    <Button onClick={resetFilters} type="button" variant="outline">
+                                        Reset
+                                    </Button>
+                                ) : null}
+                            </div>
                         </form>
                             </CardContent>
                         </Card>
 
                         {assets && assets.length > 0 ? (
+                            <ResponsiveTable label="Media assets">
                             <Table>
                                 <TableHeader>
                                     <TableRow>
@@ -507,13 +585,21 @@ export default function TenantStoragePage({params}: TenantStoragePageProps) {
                                     ))}
                                 </TableBody>
                             </Table>
+                            </ResponsiveTable>
                         ) : null}
 
                         {assets && assets.length === 0 ? (
-                            <EmptyState title="No media assets for this tenant" />
+                            <EmptyState
+                                description={
+                                    hasActiveFilters
+                                        ? 'Try a different type or status.'
+                                        : 'Upload the first asset with the test form above.'
+                                }
+                                title="No media assets for this tenant"
+                            />
                         ) : null}
                     </>
                 ) : null}
-        </div>
+        </PageStack>
     )
 }

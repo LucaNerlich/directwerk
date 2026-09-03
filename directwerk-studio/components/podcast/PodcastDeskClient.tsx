@@ -5,10 +5,13 @@ import {useRouter} from 'next/navigation'
 import {useEffect, useState} from 'react'
 
 import {Button} from '@directwerk/ui/components/button'
+import {Alert, AlertDescription} from '@directwerk/ui/components/alert'
+import {Badge} from '@directwerk/ui/components/badge'
 import EmptyState from '@directwerk/ui/components/empty-state'
 import {EntityListSection} from '@directwerk/ui/components/entity-list-section'
 import type {EntityListViewItem} from '@directwerk/ui/components/entity-list-view'
 import PageHeader from '@directwerk/ui/components/page-header'
+import PageStack from '@directwerk/ui/components/page-stack'
 import SectionHeader from '@directwerk/ui/components/section-header'
 import {useListViewMode} from '@directwerk/ui/hooks/use-list-view-mode'
 
@@ -72,7 +75,11 @@ export default function PodcastDeskClient(): React.JSX.Element {
     }, [router])
 
     if (isLoading) {
-        return <p>Podcast-Übersicht wird geladen…</p>
+        return (
+            <p className="text-sm text-muted-foreground" role="status">
+                Podcast-Übersicht wird geladen…
+            </p>
+        )
     }
 
     const hasSeries = series.length > 0
@@ -125,7 +132,7 @@ export default function PodcastDeskClient(): React.JSX.Element {
     }))
 
     return (
-        <div className="flex flex-col gap-8">
+        <PageStack>
             <PageHeader
                 eyebrow="Podcast"
                 title="Inhalte erstellen"
@@ -149,9 +156,9 @@ export default function PodcastDeskClient(): React.JSX.Element {
             />
 
             {errorMessage !== null ? (
-                <p className="text-sm text-destructive" role="alert">
-                    {errorMessage}
-                </p>
+                <Alert variant="destructive">
+                    <AlertDescription>{errorMessage}</AlertDescription>
+                </Alert>
             ) : null}
 
             <section aria-labelledby="podcast-flow-heading" className="flex flex-col gap-4">
@@ -169,15 +176,9 @@ export default function PodcastDeskClient(): React.JSX.Element {
                             <div className="min-w-0">
                                 <div className="flex flex-wrap items-center gap-2">
                                     <p className="font-medium">{step.title}</p>
-                                    <span
-                                        className={
-                                            step.done
-                                                ? 'text-xs font-medium text-emerald-700'
-                                                : 'text-xs font-medium text-muted-foreground'
-                                        }
-                                    >
+                                    <Badge variant={step.done ? 'secondary' : 'outline'}>
                                         {step.done ? 'Erledigt' : 'Offen'}
-                                    </span>
+                                    </Badge>
                                 </div>
                                 <p className="mt-1 text-sm text-muted-foreground">
                                     {step.description}
@@ -253,6 +254,6 @@ export default function PodcastDeskClient(): React.JSX.Element {
                     <Link href="/podcast/formats">Formate</Link>
                 </p>
             ) : null}
-        </div>
+        </PageStack>
     )
 }
