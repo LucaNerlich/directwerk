@@ -43,6 +43,28 @@ Accept: application/json
     client.test("GET /me/articles", function() {
         client.assert(response.status === 200, "Expected 200");
         client.assert(Array.isArray(response.body.data), "Expected articles array");
+        if (response.body.data.length > 0 && response.body.data[0].slug) {
+            client.global.set("myArticleSlug", response.body.data[0].slug);
+        }
+    });
+%}
+
+###
+
+### @name getMyArticleBySlug
+GET {{baseUrl}}/api/v1/me/articles/{{myArticleSlug}}
+Host: {{tenantAHost}}
+Authorization: Bearer {{subscriberAccessToken}}
+Accept: application/json
+
+> {%
+    client.test("GET /me/articles/{slug} tracks private-view", function() {
+        const slug = client.global.get("myArticleSlug");
+        if (!slug) {
+            client.assert(response.status === 404, "Expected 404 without fixture slug");
+            return;
+        }
+        client.assert(response.status === 200 || response.status === 404, "Expected 200 or 404");
     });
 %}
 

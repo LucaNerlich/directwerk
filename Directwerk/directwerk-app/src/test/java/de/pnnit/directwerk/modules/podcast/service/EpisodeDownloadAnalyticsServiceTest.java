@@ -123,14 +123,14 @@ class EpisodeDownloadAnalyticsServiceTest {
         EpisodeDownloadAnalyticsService service = service(false);
         TenantBranding branding = new TenantBranding();
         branding.setUmamiWebsiteId("123e4567-e89b-12d3-a456-426614174000");
-        branding.setUmamiHostUrl("https://tenant.umami.example.test");
+        branding.setUmamiHostUrl("https://tenant.invalid");
         when(moduleGateService.enabledModuleKeys(10L)).thenReturn(Set.of(AnalyticsModule.KEY));
         when(tenantBrandingService.getBranding(10L)).thenReturn(branding);
 
         service.trackEpisodeDownload(10L, episode(), "stream", "alpha.example.test");
 
         verify(umamiEventClient).trackEvent(
-                eq("https://tenant.umami.example.test"),
+                eq("https://tenant.invalid"),
                 eq("123e4567-e89b-12d3-a456-426614174000"),
                 eq("alpha.example.test"),
                 eq("/episodes/episode-1"),

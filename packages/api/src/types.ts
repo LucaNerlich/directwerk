@@ -904,6 +904,12 @@ export interface TenantDetailResponse {
     subscriberCount: number
 }
 
+export interface PlatformBranding {
+    siteTitle: string | null
+    umamiWebsiteId: string | null
+    umamiHostUrl: string | null
+}
+
 export interface TenantList {
     content: Tenant[]
 }

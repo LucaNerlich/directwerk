@@ -210,7 +210,7 @@ public class TenantAdminController {
             @Pattern(regexp = "^#[0-9A-Fa-f]{6}$") String secondaryColor,
             String logoUrl,
             @Pattern(regexp = "^\\s*$|^[a-zA-Z0-9-]{8,64}$") String umamiWebsiteId,
-            String umamiHostUrl
+            @Pattern(regexp = "^\\s*$|^https://[^/\\s?#@]+/?$") String umamiHostUrl
     ) {
     }
 

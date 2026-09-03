@@ -3,7 +3,9 @@ package de.pnnit.directwerk.controller.platform;
 import de.pnnit.directwerk.api.dto.DomainView;
 import de.pnnit.directwerk.api.response.Response;
 import de.pnnit.directwerk.config.DirectwerkConfig;
+import de.pnnit.directwerk.modules.core.entity.TenantBranding;
 import de.pnnit.directwerk.modules.core.entity.TenantDomain;
+import de.pnnit.directwerk.modules.core.service.TenantBrandingService;
 import de.pnnit.directwerk.modules.core.service.TenantDomainService;
 import de.pnnit.directwerk.modules.core.service.TenantInvitationService;
 import de.pnnit.directwerk.modules.core.service.TenantManagementService;
@@ -34,17 +36,20 @@ public class PlatformTenantController {
 
     private final TenantManagementService tenantManagementService;
     private final TenantDomainService tenantDomainService;
+    private final TenantBrandingService tenantBrandingService;
     private final DirectwerkConfig directwerkConfig;
     private final PlatformTenantStatsService platformTenantStatsService;
 
     public PlatformTenantController(
             TenantManagementService tenantManagementService,
             TenantDomainService tenantDomainService,
+            TenantBrandingService tenantBrandingService,
             DirectwerkConfig directwerkConfig,
             PlatformTenantStatsService platformTenantStatsService
     ) {
         this.tenantManagementService = tenantManagementService;
         this.tenantDomainService = tenantDomainService;
+        this.tenantBrandingService = tenantBrandingService;
         this.directwerkConfig = directwerkConfig;
         this.platformTenantStatsService = platformTenantStatsService;
     }
@@ -119,6 +124,25 @@ public class PlatformTenantController {
     ) {
         TenantDomain domain = tenantDomainService.forceVerifyDomain(tenantId, host);
         return ResponseEntity.ok(Response.ok(new DomainView(domain.getHost(), domain.isPrimary(), domain.isVerified())));
+    }
+
+    @GetMapping("/{tenantId}/branding")
+    ResponseEntity<Response<PlatformBrandingView>> getBranding(@PathVariable Long tenantId) {
+        // Ensures tenant exists (404 otherwise), then returns branding incl. Umami config read-only.
+        tenantManagementService.getTenant(tenantId);
+        TenantBranding branding = tenantBrandingService.getBranding(tenantId);
+        return ResponseEntity.ok(Response.ok(new PlatformBrandingView(
+                branding.getSiteTitle(),
+                branding.getUmamiWebsiteId(),
+                branding.getUmamiHostUrl()
+        )));
+    }
+
+    public record PlatformBrandingView(
+            String siteTitle,
+            String umamiWebsiteId,
+            String umamiHostUrl
+    ) {
     }
 
     public record TenantListResponse(List<TenantListItemView> content) {

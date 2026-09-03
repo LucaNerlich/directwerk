@@ -22,7 +22,8 @@ const INITIAL_STATE: BrandingFormState = {error: null, success: null}
 
 const COLOR_PATTERN = /^#[0-9A-Fa-f]{6}$/
 const UMAMI_PATTERN = /^$|^[a-zA-Z0-9-]{8,64}$/
-const UMAMI_HOST_PATTERN = /^$|^https:\/\/[^\s/]+(?:\/.*)?$/
+// Aligns with backend UmamiHostUrlValidator + TenantAdminController: HTTPS origin, no path/query/fragment/userinfo.
+const UMAMI_HOST_PATTERN = /^$|^https:\/\/[^/\s?#@]+\/?$/
 
 function normalizeColor(value: FormDataEntryValue | null): string | null | undefined {
     const text = String(value ?? '').trim()
@@ -97,7 +98,13 @@ export default function BrandingEditor(): React.JSX.Element {
         }
         if (!UMAMI_HOST_PATTERN.test(umamiHostUrl)) {
             return {
-                error: 'Umami-Server muss leer oder eine HTTPS-URL sein (z. B. https://umami.example.com).',
+                error: 'Umami-Server muss leer oder eine HTTPS-Origin sein (z. B. https://umami.example.com, ohne Pfad).',
+                success: null,
+            }
+        }
+        if (umamiWebsiteId.length === 0 && umamiHostUrl.length > 0) {
+            return {
+                error: 'Umami-Server ist ohne Website-ID wirkungslos — bitte auch die Website-ID setzen oder den Server leer lassen.',
                 success: null,
             }
         }
@@ -112,7 +119,13 @@ export default function BrandingEditor(): React.JSX.Element {
                 umamiHostUrl: umamiHostUrl.length > 0 ? umamiHostUrl : null,
             })
             setBranding(updated)
-            return {error: null, success: 'Branding gespeichert.'}
+            if (!updated.umamiWebsiteId) {
+                return {error: null, success: 'Branding gespeichert. Analytics-Tracking ist deaktiviert (keine Website-ID).'}
+            }
+            if (updated.umamiHostUrl) {
+                return {error: null, success: 'Branding gespeichert. Analytics für eigenen Umami-Server konfiguriert.'}
+            }
+            return {error: null, success: 'Branding gespeichert. Analytics für den Plattform-Standard konfiguriert.'}
         } catch (error: unknown) {
             if (authRedirect(error)) return INITIAL_STATE
             return {
@@ -216,7 +229,8 @@ export default function BrandingEditor(): React.JSX.Element {
                         type="url"
                     />
                     <span className="text-xs font-normal text-muted-foreground">
-                        Leer lassen, um den Plattform-Standard zu verwenden.
+                        Leer lassen, um den Plattform-Standard zu verwenden. Nur HTTPS-Origin ohne Pfad.
+                        Tracking braucht ANALYTICS-Modul + Website-ID; ohne ID bleibt es inaktiv.
                     </span>
                 </label>
                 {state.error ? (

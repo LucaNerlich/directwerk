@@ -1,0 +1,26 @@
+meta {
+  name: Private Article View Proxy
+  type: http
+  seq: 9
+}
+
+get {
+  url: {{baseUrl}}/feeds/{{tenantASlug}}/articles/u/{{articleFeedToken}}/a/{{articleSlug}}
+  body: none
+  auth: none
+}
+
+headers {
+  Accept: text/html
+}
+
+tests {
+  test("returns expected status", function() {
+    const status = res.getStatus();
+    expect(status === 302 || status === 403 || status === 404).to.equal(true);
+  });
+}
+
+docs {
+  Tracked click-through (article-view private-rss) with feed-token entitlement check. Requires ARTICLE_RSS + SUBSCRIPTION.
+}

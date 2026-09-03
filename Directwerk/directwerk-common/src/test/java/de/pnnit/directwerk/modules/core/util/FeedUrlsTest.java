@@ -27,4 +27,16 @@ class FeedUrlsTest {
         assertThat(FeedUrls.subscriberFeed("https://alpha.example.test", "alpha", "tok_123"))
                 .isEqualTo("https://alpha.example.test/feeds/alpha/u/tok_123.xml");
     }
+
+    @Test
+    void publicArticleViewMatchesControllerMapping() {
+        assertThat(FeedUrls.publicArticleView("https://alpha.example.test", "alpha", "hello-world"))
+                .isEqualTo("https://alpha.example.test/feeds/alpha/a/hello-world");
+    }
+
+    @Test
+    void privateArticleViewMatchesControllerMapping() {
+        assertThat(FeedUrls.privateArticleView("https://alpha.example.test", "alpha", "tok_123", "hello-world"))
+                .isEqualTo("https://alpha.example.test/feeds/alpha/articles/u/tok_123/a/hello-world");
+    }
 }

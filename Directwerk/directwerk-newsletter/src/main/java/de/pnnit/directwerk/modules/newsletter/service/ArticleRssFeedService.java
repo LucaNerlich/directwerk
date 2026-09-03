@@ -19,9 +19,11 @@ public class ArticleRssFeedService {
     private final PublicArticleQueryService publicArticleQueryService;
     private final ArticleFeedAccess articleFeedAccess;
     private final ArticleRssXmlBuilder articleRssXmlBuilder;
+    private final ArticleViewDeliveryFacade articleViewDeliveryFacade;
 
     /**
      * Builds a public RSS feed containing every free published article for a tenant.
+     * Item links use the stable tracked view proxy (Umami click-through), never direct pages.
      */
     @Transactional(readOnly = true)
     public String buildPublicFeed(Tenant tenant, String scheme, String host, int port) {
@@ -29,11 +31,19 @@ public class ArticleRssFeedService {
         List<Article> articles = publicArticleQueryService.listPublishedArticles(tenant.getId()).stream()
                 .filter(article -> PublicSurfacePolicy.includesInPublicRss(article.getAccessPolicy().name()))
                 .toList();
-        return articleRssXmlBuilder.buildFeed(tenant, articles, originBaseUrl, null);
+        return articleRssXmlBuilder.buildFeed(
+                tenant,
+                articles,
+                originBaseUrl,
+                null,
+                article -> articleViewDeliveryFacade.publicArticleViewUrl(
+                        tenant.getId(), scheme, host, port, tenant.getSlug(), article.getSlug())
+        );
     }
 
     /**
      * Builds a private RSS feed containing every article the feed owner is entitled to.
+     * FREE articles reuse the public proxy; entitled PAID articles use the token proxy.
      *
      * @throws ArticleFeedNotFoundException if the article feed is disabled
      */
@@ -44,6 +54,25 @@ public class ArticleRssFeedService {
         }
         String originBaseUrl = PublicUrlBuilder.baseUrl(scheme, host, port);
         List<Article> articles = articleFeedAccess.listEntitledArticles(tenant.getId(), feed.getUser().getId(), feed);
-        return articleRssXmlBuilder.buildFeed(tenant, articles, originBaseUrl, feed.getTitle());
+        return articleRssXmlBuilder.buildFeed(
+                tenant,
+                articles,
+                originBaseUrl,
+                feed.getTitle(),
+                article -> {
+                    if (PublicSurfacePolicy.includesInPublicRss(article.getAccessPolicy().name())) {
+                        return articleViewDeliveryFacade.publicArticleViewUrl(
+                                tenant.getId(), scheme, host, port, tenant.getSlug(), article.getSlug());
+                    }
+                    return articleViewDeliveryFacade.privateArticleViewUrl(
+                            tenant.getId(),
+                            scheme,
+                            host,
+                            port,
+                            tenant.getSlug(),
+                            feed.getFeedToken(),
+                            article.getSlug());
+                }
+        );
     }
 }

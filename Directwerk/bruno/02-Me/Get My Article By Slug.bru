@@ -1,0 +1,21 @@
+meta {
+  name: Get My Article By Slug
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{baseUrl}}/api/v1/me/articles/{{myArticleSlug}}
+  body: none
+  auth: inherit
+}
+
+tests {
+  test("returns expected status", function() {
+    expect(res.getStatus() === 200 || res.getStatus() === 404 || res.getStatus() === 403).to.equal(true);
+  });
+}
+
+docs {
+  Entitled single-article read, tracks article-view private-view. 403 if DIGITAL_CONTENT off.
+}

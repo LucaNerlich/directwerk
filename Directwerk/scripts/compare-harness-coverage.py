@@ -465,7 +465,7 @@ def main():
         "25-tenant-subscriber-feeds.http": "Bruno: 07-Tenant-Admin/Subscriptions (feeds subset)",
         "26-stripe-billing.http": "Bruno: 07-Tenant-Admin/Stripe + 02-Me checkout/portal + 12-Webhooks",
     }
-    for hf, note in sorted(http_bruno_map.items()):
+    for hf, note in sorted(http_bronu_map.items()):
         print(f"- **{hf}** — {note}")
 
     print("\n## 1. Bruno Requests Missing from HTTP (by method + normalized path)\n")

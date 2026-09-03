@@ -45,23 +45,55 @@ public final class UmamiHostUrlValidator {
             return false;
         }
         String host = URI.create(hostUrl.trim()).getHost().toLowerCase(Locale.ROOT);
-        if (isBlockedHostname(host)) {
-            return false;
-        }
         try {
-            InetAddress[] addresses = InetAddress.getAllByName(host);
-            if (addresses.length == 0) {
-                return false;
-            }
-            for (InetAddress address : addresses) {
-                if (isBlockedAddress(address)) {
-                    return false;
-                }
-            }
+            resolvePublicAddresses(host);
             return true;
         } catch (UnknownHostException | SecurityException ex) {
             return false;
         }
+    }
+
+    /** Returns whether an origin is visibly non-public without performing DNS resolution. */
+    public static boolean hasObviouslyNonPublicHost(String hostUrl) {
+        if (!isValid(hostUrl)) {
+            return true;
+        }
+        String host = URI.create(hostUrl.trim()).getHost().toLowerCase(Locale.ROOT);
+        if (isBlockedHostname(host)) {
+            return true;
+        }
+        boolean addressLiteral = host.indexOf(':') >= 0
+                || host.chars().allMatch(character -> character == '.' || Character.isDigit(character));
+        if (!addressLiteral) {
+            return false;
+        }
+        try {
+            return isBlockedAddress(InetAddress.getByName(host));
+        } catch (UnknownHostException | SecurityException ex) {
+            return true;
+        }
+    }
+
+    /**
+     * Resolves a hostname and returns only when every destination is publicly routable.
+     * Callers that make outbound requests must use the returned addresses for the connection
+     * so a later DNS lookup cannot change the validated destination.
+     */
+    public static InetAddress[] resolvePublicAddresses(String host) throws UnknownHostException {
+        String normalizedHost = host == null ? "" : host.trim().toLowerCase(Locale.ROOT);
+        if (normalizedHost.isEmpty() || isBlockedHostname(normalizedHost)) {
+            throw new UnknownHostException("Umami host is not publicly routable");
+        }
+        InetAddress[] addresses = InetAddress.getAllByName(normalizedHost);
+        if (addresses.length == 0) {
+            throw new UnknownHostException("Umami host has no addresses");
+        }
+        for (InetAddress address : addresses) {
+            if (isBlockedAddress(address)) {
+                throw new UnknownHostException("Umami host resolved to a non-public address");
+            }
+        }
+        return addresses.clone();
     }
 
     private static boolean isBlockedHostname(String host) {

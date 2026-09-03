@@ -66,7 +66,8 @@ public class MeEpisodeController {
 
         // Gate ordering, READY check, publisher branch and PAID⇒SUBSCRIPTION live in the
         // access module — see SubscriberPortalAccessService.
-        var tracked = portalStreamDeliveryFacade.streamEpisode(user, slug, request.getServerName());
+        var tracked = portalStreamDeliveryFacade.streamEpisode(
+                user, slug, request.getServerName(), request.getHeader("User-Agent"));
         return tracked.response();
     }
 

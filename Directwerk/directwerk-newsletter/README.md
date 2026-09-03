@@ -42,12 +42,15 @@ Umami tracking defaults to the platform host configured with `DIRECTWERK_ANALYTI
 replace that host with `TenantBranding.umamiHostUrl` (`tenant_branding.umami_host_url`). The override
 must be an absolute HTTPS origin with no credentials, query, fragment, or non-root path, and its
 hostname must resolve exclusively to public addresses. Unresolvable hosts and loopback, private,
-link-local, multicast, local/internal, or reserved destinations are rejected; tracking falls back to
-the platform host when available. When an analytics host, the tenant `ANALYTICS` module, and a
-website ID are all present, `GET /api/v1/public/articles/{slug}` emits `article-view`. Articles
-have no separate enclosure/download step — full free-article bodies are embedded directly in the
-RSS `description`, so the public single-article read is the only per-article consumption event
-and stands in for the podcast side's download/stream tracking. Analytics is fail-open and never
-gates the read.
+link-local, multicast, local/internal, or reserved destinations fall back to the platform host.
+When an analytics host, the tenant `ANALYTICS` module, and a website ID are all present:
+- `GET /api/v1/public/articles/{slug}` emits `article-view {source=public-view}`,
+- `GET /api/v1/me/articles/{slug}` emits `article-view {source=private-view}`,
+- RSS item links are stable tracked proxies (`/feeds/{tenant}/a/{slug}`,
+  `/feeds/{tenant}/articles/u/{token}/a/{slug}`) emitting `rss-click`/`private-rss` then 302
+  to the canonical page (`no-store`),
+- feed XML fetches emit `feed-fetch {feedKind=article, visibility}`.
+Full free-article bodies remain embedded in RSS `description`, so proxy clicks measure
+click-through, not offline reads. Analytics is fail-open and never gates the read.
 
 Companion: [`../directwerk-podcast/README.md`](../directwerk-podcast/README.md) (Podcast desk).

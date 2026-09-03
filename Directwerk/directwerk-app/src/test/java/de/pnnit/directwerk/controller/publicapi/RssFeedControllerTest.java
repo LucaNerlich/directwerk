@@ -46,6 +46,9 @@ class RssFeedControllerTest {
     private RssFeedDeliveryFacade rssFeedDeliveryFacade;
 
     @Mock
+    private de.pnnit.directwerk.modules.core.analytics.FeedFetchAnalyticsService feedFetchAnalyticsService;
+
+    @Mock
     private HttpServletRequest request;
 
     @AfterEach
@@ -60,7 +63,7 @@ class RssFeedControllerTest {
         when(rssFeedSnapshotService.publicTenantFeed(tenant))
                 .thenReturn(new de.pnnit.directwerk.modules.digital.storage.GeneratedFeedSnapshotStore.FeedDelivery(url("https://cdn.example.test/podcast.xml")));
 
-        ResponseEntity<String> response = controller().publicPodcastFeed("alpha");
+        ResponseEntity<String> response = controller().publicPodcastFeed("alpha", request);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.FOUND);
         assertThat(response.getHeaders().getLocation()).hasToString("https://cdn.example.test/podcast.xml");
@@ -75,7 +78,7 @@ class RssFeedControllerTest {
         when(rssFeedSnapshotService.publicTenantFeed(tenant))
                 .thenReturn(de.pnnit.directwerk.modules.digital.storage.GeneratedFeedSnapshotStore.FeedDelivery.notReady());
 
-        ResponseEntity<String> response = controller().publicPodcastFeed("alpha");
+        ResponseEntity<String> response = controller().publicPodcastFeed("alpha", request);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
         assertThat(response.getHeaders().getLocation()).isNull();
@@ -89,7 +92,7 @@ class RssFeedControllerTest {
         when(rssFeedSnapshotService.publicSeriesFeed(tenant, "main-show"))
                 .thenReturn(new de.pnnit.directwerk.modules.digital.storage.GeneratedFeedSnapshotStore.FeedDelivery(url("https://cdn.example.test/series.xml")));
 
-        ResponseEntity<String> response = controller().publicSeriesFeed("alpha", "main-show");
+        ResponseEntity<String> response = controller().publicSeriesFeed("alpha", "main-show", request);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.FOUND);
         assertThat(response.getHeaders().getCacheControl()).isEqualTo("no-store");
@@ -103,7 +106,7 @@ class RssFeedControllerTest {
         when(rssFeedSnapshotService.publicSeriesFeed(tenant, "missing-show"))
                 .thenThrow(new de.pnnit.directwerk.modules.podcast.exception.SeriesNotFoundException("missing-show"));
 
-        assertThatThrownBy(() -> controller().publicSeriesFeed("alpha", "missing-show"))
+        assertThatThrownBy(() -> controller().publicSeriesFeed("alpha", "missing-show", request))
                 .isInstanceOf(de.pnnit.directwerk.modules.podcast.exception.SeriesNotFoundException.class);
     }
 
@@ -116,7 +119,7 @@ class RssFeedControllerTest {
         when(rssFeedSnapshotService.privateFeed(tenant, feed))
                 .thenReturn(new de.pnnit.directwerk.modules.digital.storage.GeneratedFeedSnapshotStore.FeedDelivery(url("https://private.example.test/feed.xml")));
 
-        ResponseEntity<String> response = controller().privateSubscriberFeed("alpha", "tok");
+        ResponseEntity<String> response = controller().privateSubscriberFeed("alpha", "tok", request);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.FOUND);
         assertThat(response.getHeaders().getCacheControl()).isEqualTo("no-store");
@@ -132,7 +135,7 @@ class RssFeedControllerTest {
         when(subscriberFeedService.requireDeliverableFeed(10L, "tok"))
                 .thenThrow(new SubscriberFeedNotFoundException());
 
-        assertThatThrownBy(() -> controller().privateSubscriberFeed("alpha", "tok"))
+        assertThatThrownBy(() -> controller().privateSubscriberFeed("alpha", "tok", request))
                 .isInstanceOf(SubscriberFeedNotFoundException.class);
     }
 
@@ -140,7 +143,7 @@ class RssFeedControllerTest {
     void publicFeedThrowsNotFoundWhenPathSlugDoesNotMatchHostTenant() {
         when(tenantResolver.requireHostTenantBySlug("other")).thenThrow(new TenantNotFoundException("other"));
 
-        assertThatThrownBy(() -> controller().publicPodcastFeed("other"))
+        assertThatThrownBy(() -> controller().publicPodcastFeed("other", request))
                 .isInstanceOf(TenantNotFoundException.class);
     }
 
@@ -149,7 +152,8 @@ class RssFeedControllerTest {
                 tenantResolver,
                 subscriberFeedService,
                 rssFeedSnapshotService,
-                rssFeedDeliveryFacade
+                rssFeedDeliveryFacade,
+                feedFetchAnalyticsService
         );
     }
 

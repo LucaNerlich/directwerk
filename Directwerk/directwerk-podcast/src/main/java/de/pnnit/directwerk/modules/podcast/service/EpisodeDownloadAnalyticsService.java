@@ -36,30 +36,53 @@ public class EpisodeDownloadAnalyticsService {
 
     @Transactional(readOnly = true)
     public void trackEpisodeDownload(Long tenantId, Episode episode, String source, String hostname) {
+        trackEpisodeDownload(tenantId, episode, source, hostname, null, false);
+    }
+
+    @Transactional(readOnly = true)
+    public void trackEpisodeDownload(
+            Long tenantId,
+            Episode episode,
+            String source,
+            String hostname,
+            String clientUserAgent,
+            boolean isRangeRequest
+    ) {
         try {
             if (tenantId == null
                     || episode == null
+                    || episode.getSlug() == null
                     || hostname == null
                     || hostname.isBlank()
                     || !ALLOWED_SOURCES.contains(source)) {
                 return;
             }
-            String websiteId = resolveValidWebsiteId(tenantId);
-            String hostUrl = resolveHostUrl(tenantId);
-            if (websiteId == null || hostUrl == null) {
+            if (!moduleGateService.enabledModuleKeys(tenantId).contains(AnalyticsModule.KEY)) {
                 return;
             }
+            TenantBranding branding = tenantBrandingService.getBranding(tenantId);
+            String websiteId = branding.getUmamiWebsiteId();
+            if (!UmamiWebsiteIdValidator.isValid(websiteId)) {
+                return;
+            }
+            String hostUrl = UmamiAnalyticsResolver.resolveEventHostUrl(branding, directwerkConfig);
+            if (hostUrl == null) {
+                return;
+            }
+            String seriesSlug = episode.getSeries() != null ? episode.getSeries().getSlug() : null;
             umamiEventClient.trackEvent(
                     hostUrl,
-                    websiteId,
+                    websiteId.trim(),
                     hostname.trim().toLowerCase(Locale.ROOT),
                     "/episodes/" + episode.getSlug(),
                     EVENT_NAME,
                     Map.of(
                             "episodeSlug", episode.getSlug(),
-                            "seriesSlug", episode.getSeries().getSlug(),
+                            "seriesSlug", seriesSlug != null ? seriesSlug : "",
                             "accessPolicy", episode.getAccessPolicy().name(),
-                            "source", source
+                            "source", source,
+                            "isRangeRequest", isRangeRequest ? "true" : "false",
+                            "clientUserAgent", truncate(clientUserAgent)
                     )
             );
         } catch (RuntimeException ex) {
@@ -98,23 +121,11 @@ public class EpisodeDownloadAnalyticsService {
         );
     }
 
-    private String resolveValidWebsiteId(Long tenantId) {
-        if (tenantId == null || !moduleGateService.enabledModuleKeys(tenantId).contains(AnalyticsModule.KEY)) {
-            return null;
+    private static String truncate(String value) {
+        if (value == null || value.isBlank()) {
+            return "";
         }
-        TenantBranding branding = tenantBrandingService.getBranding(tenantId);
-        String websiteId = branding.getUmamiWebsiteId();
-        if (!UmamiWebsiteIdValidator.isValid(websiteId)) {
-            return null;
-        }
-        return websiteId.trim();
-    }
-
-    private String resolveHostUrl(Long tenantId) {
-        if (tenantId == null) {
-            return null;
-        }
-        TenantBranding branding = tenantBrandingService.getBranding(tenantId);
-        return UmamiAnalyticsResolver.resolveHostUrl(branding, directwerkConfig);
+        String trimmed = value.trim();
+        return trimmed.length() > 256 ? trimmed.substring(0, 256) : trimmed;
     }
 }

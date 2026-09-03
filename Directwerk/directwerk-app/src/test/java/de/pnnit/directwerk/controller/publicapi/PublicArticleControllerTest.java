@@ -71,7 +71,7 @@ class PublicArticleControllerTest {
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         verify(articleViewAnalyticsService)
-                .trackArticleView(10L, article, "public-view", "alpha.example.test");
+                .trackArticleView(10L, article, "public-view", "alpha.example.test", null);
     }
 
     private PublicArticleController controller() {

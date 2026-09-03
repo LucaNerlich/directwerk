@@ -2,8 +2,12 @@ package de.pnnit.directwerk.modules.core.analytics;
 
 import de.pnnit.directwerk.config.DirectwerkConfig;
 import de.pnnit.directwerk.config.DirectwerkProperties;
+import de.pnnit.directwerk.modules.core.util.UmamiHostUrlValidator;
 import jakarta.annotation.PreDestroy;
+import java.io.IOException;
+import java.net.InetAddress;
 import java.net.URI;
+import java.net.UnknownHostException;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
@@ -15,6 +19,16 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.hc.client5.http.DnsResolver;
+import org.apache.hc.client5.http.classic.methods.HttpPost;
+import org.apache.hc.client5.http.config.ConnectionConfig;
+import org.apache.hc.client5.http.config.RequestConfig;
+import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
+import org.apache.hc.client5.http.impl.classic.HttpClients;
+import org.apache.hc.client5.http.impl.io.PoolingHttpClientConnectionManagerBuilder;
+import org.apache.hc.core5.http.ContentType;
+import org.apache.hc.core5.http.io.entity.StringEntity;
+import org.apache.hc.core5.util.Timeout;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import tools.jackson.databind.ObjectMapper;
@@ -27,7 +41,7 @@ public class UmamiEventClient {
 
     private final DirectwerkConfig directwerkConfig;
     private final ObjectMapper objectMapper;
-    private final HttpClient httpClient;
+    private final EventSender eventSender;
     private final Executor executor;
     private final AutoCloseable executorCloseable;
 
@@ -36,9 +50,7 @@ public class UmamiEventClient {
         ExecutorService executorService = Executors.newVirtualThreadPerTaskExecutor();
         this.directwerkConfig = directwerkConfig;
         this.objectMapper = objectMapper;
-        this.httpClient = HttpClient.newBuilder()
-                .connectTimeout(REQUEST_TIMEOUT)
-                .build();
+        this.eventSender = new PinnedEventSender();
         this.executor = executorService;
         this.executorCloseable = executorService;
     }
@@ -51,7 +63,7 @@ public class UmamiEventClient {
     ) {
         this.directwerkConfig = directwerkConfig;
         this.objectMapper = objectMapper;
-        this.httpClient = httpClient;
+        this.eventSender = new JdkEventSender(httpClient);
         this.executor = executor;
         this.executorCloseable = null;
     }
@@ -98,11 +110,6 @@ public class UmamiEventClient {
                 log.debug("Failed to close Umami event executor: {}", ex.toString());
             }
         }
-        try {
-            httpClient.close();
-        } catch (Exception ex) {
-            log.debug("Failed to close Umami HTTP client: {}", ex.toString());
-        }
     }
 
     private void sendEvent(
@@ -125,16 +132,13 @@ public class UmamiEventClient {
                     )
             ));
             String userAgent = directwerkConfig.analytics().userAgent();
-            HttpRequest request = HttpRequest.newBuilder(sendUri)
-                    .timeout(REQUEST_TIMEOUT)
-                    .header("Content-Type", "application/json")
-                    .header("Accept", "application/json")
-                    .header("User-Agent", isBlank(userAgent) ? "Directwerk/1.0" : userAgent)
-                    .POST(HttpRequest.BodyPublishers.ofString(body, StandardCharsets.UTF_8))
-                    .build();
-            HttpResponse<Void> response = httpClient.send(request, HttpResponse.BodyHandlers.discarding());
-            if (response.statusCode() < 200 || response.statusCode() >= 300) {
-                log.debug("Umami event returned HTTP {} for event {}", response.statusCode(), eventName);
+            int statusCode = eventSender.send(
+                    sendUri,
+                    body,
+                    isBlank(userAgent) ? "Directwerk/1.0" : userAgent
+            );
+            if (statusCode < 200 || statusCode >= 300) {
+                log.debug("Umami event returned HTTP {} for event {}", statusCode, eventName);
             }
         } catch (Exception ex) {
             if (ex instanceof InterruptedException) {
@@ -176,7 +180,8 @@ public class UmamiEventClient {
                 && !uri.getHost().isBlank()
                 && uri.getUserInfo() == null
                 && uri.getRawQuery() == null
-                && uri.getRawFragment() == null;
+                && uri.getRawFragment() == null
+                && (uri.getPath() == null || uri.getPath().isEmpty() || "/".equals(uri.getPath()));
     }
 
     private static String trimTrailingSlash(String value) {
@@ -189,6 +194,86 @@ public class UmamiEventClient {
 
     private static boolean isBlank(String value) {
         return value == null || value.isBlank();
+    }
+
+    @FunctionalInterface
+    private interface EventSender {
+
+        int send(URI uri, String body, String userAgent) throws IOException, InterruptedException;
+    }
+
+    private record JdkEventSender(HttpClient httpClient) implements EventSender {
+
+        @Override
+        public int send(URI uri, String body, String userAgent) throws IOException, InterruptedException {
+            HttpRequest request = HttpRequest.newBuilder(uri)
+                    .timeout(REQUEST_TIMEOUT)
+                    .header("Content-Type", "application/json")
+                    .header("Accept", "application/json")
+                    .header("User-Agent", userAgent)
+                    .POST(HttpRequest.BodyPublishers.ofString(body, StandardCharsets.UTF_8))
+                    .build();
+            return httpClient.send(request, HttpResponse.BodyHandlers.discarding()).statusCode();
+        }
+    }
+
+    /** Resolves and pins the destination inside the analytics executor before connecting. */
+    static final class PinnedEventSender implements EventSender {
+
+        @Override
+        public int send(URI uri, String body, String userAgent) throws IOException {
+            String expectedHost = uri.getHost();
+            String expectedDnsHost = stripIpv6Brackets(expectedHost);
+            InetAddress[] pinnedAddresses = UmamiHostUrlValidator.resolvePublicAddresses(expectedDnsHost);
+            DnsResolver pinnedResolver = new DnsResolver() {
+                @Override
+                public InetAddress[] resolve(String host) throws UnknownHostException {
+                    requireExpectedHost(host);
+                    return pinnedAddresses.clone();
+                }
+
+                @Override
+                public String resolveCanonicalHostname(String host) throws UnknownHostException {
+                    requireExpectedHost(host);
+                    return expectedDnsHost;
+                }
+
+                private void requireExpectedHost(String host) throws UnknownHostException {
+                    if (!expectedDnsHost.equalsIgnoreCase(stripIpv6Brackets(host))) {
+                        throw new UnknownHostException("Unexpected Umami host");
+                    }
+                }
+            };
+            var connectionManager = PoolingHttpClientConnectionManagerBuilder.create()
+                    .setDnsResolver(pinnedResolver)
+                    .setDefaultConnectionConfig(ConnectionConfig.custom()
+                            .setConnectTimeout(Timeout.ofMilliseconds(REQUEST_TIMEOUT.toMillis()))
+                            .build())
+                    .build();
+            try (CloseableHttpClient client = HttpClients.custom()
+                    .setConnectionManager(connectionManager)
+                    .disableAutomaticRetries()
+                    .disableRedirectHandling()
+                    .build()) {
+                HttpPost request = new HttpPost(uri);
+                request.setHeader("Accept", "application/json");
+                request.setHeader("User-Agent", userAgent);
+                request.setEntity(new StringEntity(body, ContentType.APPLICATION_JSON));
+                request.setConfig(RequestConfig.custom()
+                        .setResponseTimeout(Timeout.ofMilliseconds(REQUEST_TIMEOUT.toMillis()))
+                        .build());
+                // The URI keeps the original hostname, so the default TLS verifier checks it
+                // while the custom resolver connects only to the already validated addresses.
+                return client.execute(request, response -> response.getCode());
+            }
+        }
+
+        private static String stripIpv6Brackets(String host) {
+            if (host.startsWith("[") && host.endsWith("]")) {
+                return host.substring(1, host.length() - 1);
+            }
+            return host;
+        }
     }
 
     private record UmamiRequest(String type, UmamiPayload payload) {

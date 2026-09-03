@@ -84,6 +84,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/tenant/article-feeds/{feedId}/enabled": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["setEnabled_1"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/series/{seriesId}": {
         parameters: {
             query?: never;
@@ -141,6 +157,54 @@ export interface paths {
         };
         get?: never;
         put: operations["setDefaultFeedEnabled"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/article-feeds/{feedId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["updateCustomFeed_1"];
+        post?: never;
+        delete: operations["deleteCustomFeed_1"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/article-feeds/{feedId}/enabled": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["setFeedEnabled_1"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/article-feeds/default/enabled": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["setDefaultFeedEnabled_1"];
         post?: never;
         delete?: never;
         options?: never;
@@ -900,6 +964,54 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/me/article-feeds": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["listFeeds_1"];
+        put?: never;
+        post: operations["createCustomFeed_1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/article-feeds/{feedId}/rotate-token": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["rotateFeedToken_1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/article-feeds/default/rotate-token": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["rotateDefaultToken_1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/formats": {
         parameters: {
             query?: never;
@@ -1070,6 +1182,22 @@ export interface paths {
         get?: never;
         put?: never;
         post: operations["verifyEmail"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/studio/workspaces": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["workspaces"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1380,6 +1508,70 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/feeds/{tenantSlug}/articles/u/{feedToken}/a/{articleSlug}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["privateArticleView"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/feeds/{tenantSlug}/articles/u/{feedToken}.xml": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["privateArticleFeed"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/feeds/{tenantSlug}/articles.xml": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["publicArticleFeed"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/feeds/{tenantSlug}/a/{articleSlug}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["publicArticleView"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/tenant/users": {
         parameters: {
             query?: never;
@@ -1419,7 +1611,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["listFeeds_1"];
+        get: operations["listFeeds_2"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1468,6 +1660,22 @@ export interface paths {
             cookie?: never;
         };
         get: operations["dashboard"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tenant/article-feeds": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["listFeeds_3"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1716,6 +1924,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/public/article-categories": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["listCategories_2"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/public/altcha/challenge": {
         parameters: {
             query?: never;
@@ -1764,6 +1988,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/podcast/import/assets/{assetId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getIngestAsset"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/platform/tenants/{tenantId}/users": {
         parameters: {
             query?: never;
@@ -1804,6 +2044,22 @@ export interface paths {
             cookie?: never;
         };
         get: operations["listMedia"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/platform/tenants/{tenantId}/branding": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getBranding_1"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2068,6 +2324,54 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/me/articles/{slug}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getArticle_2"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/article-feeds/{feedId}/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["previewFeed_1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/article-feeds/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["previewCategories"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/me/access": {
         parameters: {
             query?: never;
@@ -2293,6 +2597,7 @@ export interface components {
             secondaryColor?: string;
             logoUrl?: string;
             umamiWebsiteId?: string;
+            umamiHostUrl?: string;
         };
         BrandingView: {
             siteTitle?: string;
@@ -2300,12 +2605,47 @@ export interface components {
             secondaryColor?: string;
             logoUrl?: string;
             umamiWebsiteId?: string;
+            umamiHostUrl?: string;
         };
         ResponseBrandingView: {
             /** Format: int32 */
             statusCode?: number;
             statusMessage?: string;
             data?: components["schemas"]["BrandingView"];
+            errors?: components["schemas"]["ErrorDetail"][];
+            metadata?: {
+                [key: string]: unknown;
+            };
+        };
+        ArticleFeedAdminView: {
+            /** Format: int64 */
+            id?: number;
+            /** Format: int64 */
+            userId?: number;
+            userEmail?: string;
+            title?: string;
+            isDefault?: boolean;
+            enabled?: boolean;
+            categoryIds?: number[];
+            categories?: components["schemas"]["PublicCategoryView"][];
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string;
+        };
+        PublicCategoryView: {
+            /** Format: int64 */
+            id?: number;
+            slug?: string;
+            name?: string;
+            /** Format: int64 */
+            parentId?: number;
+        };
+        ResponseArticleFeedAdminView: {
+            /** Format: int32 */
+            statusCode?: number;
+            statusMessage?: string;
+            data?: components["schemas"]["ArticleFeedAdminView"];
             errors?: components["schemas"]["ErrorDetail"][];
             metadata?: {
                 [key: string]: unknown;
@@ -2319,6 +2659,7 @@ export interface components {
             coverAssetId?: number;
             language?: string;
             itunesCategory?: string;
+            itunesExplicit?: boolean;
             /** Format: int32 */
             defaultRequiredLevelSortOrder?: number;
             /** @enum {string} */
@@ -2344,6 +2685,7 @@ export interface components {
             coverAssetId?: number;
             language?: string;
             itunesCategory?: string;
+            itunesExplicit?: boolean;
             /** Format: int32 */
             defaultRequiredLevelSortOrder?: number;
             status?: string;
@@ -2380,6 +2722,30 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string;
+        };
+        ArticleFeedView: {
+            /** Format: int64 */
+            id?: number;
+            title?: string;
+            isDefault?: boolean;
+            enabled?: boolean;
+            url?: string;
+            categoryIds?: number[];
+            categories?: components["schemas"]["PublicCategoryView"][];
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string;
+        };
+        ResponseArticleFeedView: {
+            /** Format: int32 */
+            statusCode?: number;
+            statusMessage?: string;
+            data?: components["schemas"]["ArticleFeedView"];
+            errors?: components["schemas"]["ErrorDetail"][];
+            metadata?: {
+                [key: string]: unknown;
+            };
         };
         UpdateFormatRequest: {
             slug?: string;
@@ -2682,6 +3048,7 @@ export interface components {
             coverAssetId?: number;
             language?: string;
             itunesCategory?: string;
+            itunesExplicit?: boolean;
             /** Format: int32 */
             defaultRequiredLevelSortOrder?: number;
         };
@@ -2771,7 +3138,11 @@ export interface components {
             audioUrl?: string;
             imageUrl?: string;
             /** Format: int64 */
+            audioAssetId?: number;
+            /** Format: int64 */
             coverAssetId?: number;
+            /** Format: date-time */
+            publishedAt?: string;
         };
         ImportedEpisodeView: {
             episode?: components["schemas"]["EpisodeView"];
@@ -2794,6 +3165,7 @@ export interface components {
             /** @enum {string} */
             visibility?: "PUBLIC" | "PRIVATE";
             filename?: string;
+            waitForCompletion?: boolean;
         };
         MediaAssetView: {
             /** Format: int64 */
@@ -2806,6 +3178,8 @@ export interface components {
             mimeType?: string;
             /** Format: int64 */
             sizeBytes?: number;
+            /** Format: int64 */
+            bytesTransferred?: number;
             originalFilename?: string;
             /** Format: int64 */
             episodeId?: number;
@@ -2965,20 +3339,17 @@ export interface components {
             empty?: boolean;
             null?: boolean;
             float?: boolean;
-            container?: boolean;
+            integralNumber?: boolean;
+            floatingPointNumber?: boolean;
             number?: boolean;
+            container?: boolean;
             /** @enum {string} */
             nodeType?: "ARRAY" | "BINARY" | "BOOLEAN" | "MISSING" | "NULL" | "NUMBER" | "OBJECT" | "POJO" | "STRING";
             string?: boolean;
-            integralNumber?: boolean;
             missingNode?: boolean;
             valueNode?: boolean;
             object?: boolean;
-            pojo?: boolean;
-            floatingPointNumber?: boolean;
             short?: boolean;
-            int?: boolean;
-            long?: boolean;
             double?: boolean;
             bigDecimal?: boolean;
             bigInteger?: boolean;
@@ -2986,6 +3357,9 @@ export interface components {
             textual?: boolean;
             boolean?: boolean;
             binary?: boolean;
+            pojo?: boolean;
+            int?: boolean;
+            long?: boolean;
             embeddedValue?: boolean;
         };
         QueueJob: {
@@ -3139,6 +3513,8 @@ export interface components {
         };
         PublishOptionsRequest: {
             notifySubscribers?: boolean;
+            /** Format: date-time */
+            publishedAt?: string;
         };
         AttachAudioRequest: {
             /** Format: int64 */
@@ -3167,6 +3543,30 @@ export interface components {
             /** Format: int64 */
             userId?: number;
             email?: string;
+        };
+        StudioWorkspacesRequest: {
+            email: string;
+            password: string;
+        };
+        ResponseStudioWorkspacesResponse: {
+            /** Format: int32 */
+            statusCode?: number;
+            statusMessage?: string;
+            data?: components["schemas"]["StudioWorkspacesResponse"];
+            errors?: components["schemas"]["ErrorDetail"][];
+            metadata?: {
+                [key: string]: unknown;
+            };
+        };
+        StudioWorkspaceResponse: {
+            /** Format: int64 */
+            tenantId?: number;
+            slug?: string;
+            name?: string;
+            host?: string;
+        };
+        StudioWorkspacesResponse: {
+            workspaces?: components["schemas"]["StudioWorkspaceResponse"][];
         };
         ResetPasswordRequest: {
             token: string;
@@ -3271,23 +3671,15 @@ export interface components {
                 [key: string]: unknown;
             };
         };
-        ResponseListUserView: {
+        ResponseListTenantUserView: {
             /** Format: int32 */
             statusCode?: number;
             statusMessage?: string;
-            data?: components["schemas"]["UserView"][];
+            data?: components["schemas"]["TenantUserView"][];
             errors?: components["schemas"]["ErrorDetail"][];
             metadata?: {
                 [key: string]: unknown;
             };
-        };
-        UserView: {
-            /** Format: int64 */
-            userId?: number;
-            email?: string;
-            name?: string;
-            roles?: string[];
-            status?: string;
         };
         ResponseListSubscriberView: {
             /** Format: int32 */
@@ -3450,6 +3842,16 @@ export interface components {
             payoutsEnabled?: boolean;
             detailsSubmitted?: boolean;
         };
+        ResponseListArticleFeedAdminView: {
+            /** Format: int32 */
+            statusCode?: number;
+            statusMessage?: string;
+            data?: components["schemas"]["ArticleFeedAdminView"][];
+            errors?: components["schemas"]["ErrorDetail"][];
+            metadata?: {
+                [key: string]: unknown;
+            };
+        };
         ResponseListSeriesView: {
             /** Format: int32 */
             statusCode?: number;
@@ -3519,6 +3921,7 @@ export interface components {
             branding?: components["schemas"]["BrandingResponse"];
             publicSiteUrl?: string;
             publicRssUrl?: string;
+            publicArticleRssUrl?: string;
             analytics?: components["schemas"]["AnalyticsResponse"];
             /** @enum {string} */
             studioHome?: "OVERVIEW" | "WRITE_DESK" | "PODCAST_DESK";
@@ -3589,14 +3992,6 @@ export interface components {
             metadata?: {
                 [key: string]: unknown;
             };
-        };
-        PublicCategoryView: {
-            /** Format: int64 */
-            id?: number;
-            slug?: string;
-            name?: string;
-            /** Format: int64 */
-            parentId?: number;
         };
         PublicEpisodeView: {
             /** Format: int64 */
@@ -3757,6 +4152,21 @@ export interface components {
         TenantMediaListResponse: {
             content?: components["schemas"]["MediaAssetView"][];
             publicCdnBaseUrl?: string;
+        };
+        PlatformBrandingView: {
+            siteTitle?: string;
+            umamiWebsiteId?: string;
+            umamiHostUrl?: string;
+        };
+        ResponsePlatformBrandingView: {
+            /** Format: int32 */
+            statusCode?: number;
+            statusMessage?: string;
+            data?: components["schemas"]["PlatformBrandingView"];
+            errors?: components["schemas"]["ErrorDetail"][];
+            metadata?: {
+                [key: string]: unknown;
+            };
         };
         ModuleAdoptionView: {
             moduleKey?: string;
@@ -3993,6 +4403,26 @@ export interface components {
             statusCode?: number;
             statusMessage?: string;
             data?: components["schemas"]["MeArticleView"][];
+            errors?: components["schemas"]["ErrorDetail"][];
+            metadata?: {
+                [key: string]: unknown;
+            };
+        };
+        ResponseMeArticleView: {
+            /** Format: int32 */
+            statusCode?: number;
+            statusMessage?: string;
+            data?: components["schemas"]["MeArticleView"];
+            errors?: components["schemas"]["ErrorDetail"][];
+            metadata?: {
+                [key: string]: unknown;
+            };
+        };
+        ResponseListArticleFeedView: {
+            /** Format: int32 */
+            statusCode?: number;
+            statusMessage?: string;
+            data?: components["schemas"]["ArticleFeedView"][];
             errors?: components["schemas"]["ErrorDetail"][];
             metadata?: {
                 [key: string]: unknown;
@@ -4296,6 +4726,32 @@ export interface operations {
             };
         };
     };
+    setEnabled_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                feedId: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FeedEnabledRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ResponseArticleFeedAdminView"];
+                };
+            };
+        };
+    };
     getSeries: {
         parameters: {
             query?: never;
@@ -4438,6 +4894,104 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["ResponseSubscriberFeedView"];
+                };
+            };
+        };
+    };
+    updateCustomFeed_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                feedId: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateCustomFeedRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ResponseArticleFeedView"];
+                };
+            };
+        };
+    };
+    deleteCustomFeed_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                feedId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ResponseArticleFeedView"];
+                };
+            };
+        };
+    };
+    setFeedEnabled_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                feedId: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FeedEnabledRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ResponseArticleFeedView"];
+                };
+            };
+        };
+    };
+    setDefaultFeedEnabled_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FeedEnabledRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ResponseArticleFeedView"];
                 };
             };
         };
@@ -5785,6 +6339,92 @@ export interface operations {
             };
         };
     };
+    listFeeds_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ResponseListArticleFeedView"];
+                };
+            };
+        };
+    };
+    createCustomFeed_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateCustomFeedRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ResponseArticleFeedView"];
+                };
+            };
+        };
+    };
+    rotateFeedToken_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                feedId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ResponseArticleFeedView"];
+                };
+            };
+        };
+    };
+    rotateDefaultToken_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ResponseArticleFeedView"];
+                };
+            };
+        };
+    };
     listFormats: {
         parameters: {
             query?: never;
@@ -6103,6 +6743,30 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["ResponseVerifyEmailResponse"];
+                };
+            };
+        };
+    };
+    workspaces: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StudioWorkspacesRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ResponseStudioWorkspacesResponse"];
                 };
             };
         };
@@ -6617,6 +7281,94 @@ export interface operations {
             };
         };
     };
+    privateArticleView: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tenantSlug: string;
+                feedToken: string;
+                articleSlug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    privateArticleFeed: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tenantSlug: string;
+                feedToken: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": string;
+                };
+            };
+        };
+    };
+    publicArticleFeed: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tenantSlug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": string;
+                };
+            };
+        };
+    };
+    publicArticleView: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tenantSlug: string;
+                articleSlug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     listUsers: {
         parameters: {
             query?: never;
@@ -6632,7 +7384,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["ResponseListUserView"];
+                    "*/*": components["schemas"]["ResponseListTenantUserView"];
                 };
             };
         };
@@ -6657,7 +7409,7 @@ export interface operations {
             };
         };
     };
-    listFeeds_1: {
+    listFeeds_2: {
         parameters: {
             query?: never;
             header?: never;
@@ -6735,6 +7487,26 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["ResponseBillingDashboard"];
+                };
+            };
+        };
+    };
+    listFeeds_3: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ResponseListArticleFeedAdminView"];
                 };
             };
         };
@@ -7043,6 +7815,26 @@ export interface operations {
             };
         };
     };
+    listCategories_2: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ResponseListPublicCategoryView"];
+                };
+            };
+        };
+    };
     challenge: {
         parameters: {
             query?: never;
@@ -7099,6 +7891,28 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["ResponseProbeResponse"];
+                };
+            };
+        };
+    };
+    getIngestAsset: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                assetId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ResponseMediaAssetView"];
                 };
             };
         };
@@ -7169,6 +7983,28 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["ResponseTenantMediaListResponse"];
+                };
+            };
+        };
+    };
+    getBranding_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tenantId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ResponsePlatformBrandingView"];
                 };
             };
         };
@@ -7536,6 +8372,72 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["ResponseListMeArticleView"];
+                };
+            };
+        };
+    };
+    getArticle_2: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ResponseMeArticleView"];
+                };
+            };
+        };
+    };
+    previewFeed_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                feedId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ResponseFeedPreviewView"];
+                };
+            };
+        };
+    };
+    previewCategories: {
+        parameters: {
+            query: {
+                categoryIds: number[];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ResponseFeedPreviewView"];
                 };
             };
         };

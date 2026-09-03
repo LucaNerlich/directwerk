@@ -63,7 +63,7 @@ class MeEpisodeControllerTest {
         Episode episode = freeEpisode();
         var stream = new SubscriberPortalAccessService.EpisodeStream(
                 episode, URI.create("https://cdn.example.test/alpha/public/audio/ep.mp3").toURL());
-        when(portalStreamDeliveryFacade.streamEpisode(principal, "episode-1", "alpha.example.test"))
+        when(portalStreamDeliveryFacade.streamEpisode(principal, "episode-1", "alpha.example.test", null))
                 .thenReturn(new PortalStreamDeliveryFacade.TrackedStreamRedirect(
                         stream,
                         ResponseEntity.status(HttpStatus.FOUND)
@@ -77,7 +77,7 @@ class MeEpisodeControllerTest {
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.FOUND);
         assertThat(response.getHeaders().getLocation())
                 .hasToString("https://cdn.example.test/alpha/public/audio/ep.mp3");
-        verify(portalStreamDeliveryFacade).streamEpisode(principal, "episode-1", "alpha.example.test");
+        verify(portalStreamDeliveryFacade).streamEpisode(principal, "episode-1", "alpha.example.test", null);
     }
 
     private static DirectwerkUserPrincipal subscriber() {
