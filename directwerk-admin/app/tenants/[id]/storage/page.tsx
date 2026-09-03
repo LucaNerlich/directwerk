@@ -362,7 +362,7 @@ export default function TenantStoragePage({params}: TenantStoragePageProps) {
                                 </div>
                                 <div className="rounded-xl border bg-card p-4 shadow-sm">
                                     <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                                        Stored data
+                                        Displayed asset data
                                     </p>
                                     <p className="mt-1 text-2xl font-semibold tracking-tight">
                                         {formatBytes(totalBytes)}

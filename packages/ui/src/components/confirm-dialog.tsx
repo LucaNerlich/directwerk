@@ -43,7 +43,16 @@ export default function ConfirmDialog({
     closeLabel?: string
 }): React.JSX.Element {
     return (
-        <Dialog onOpenChange={onOpenChange} open={open}>
+        <Dialog
+            onOpenChange={(nextOpen, eventDetails) => {
+                if (pending && !nextOpen) {
+                    eventDetails.cancel()
+                    return
+                }
+                onOpenChange(nextOpen)
+            }}
+            open={open}
+        >
             <DialogContent closeLabel={closeLabel} className="sm:max-w-md">
                 <DialogHeader>
                     <DialogTitle>{title}</DialogTitle>

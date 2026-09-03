@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import {useRouter} from 'next/navigation'
-import {useCallback, useEffect, useState} from 'react'
+import {useCallback, useEffect, useRef, useState} from 'react'
 
 import {Alert, AlertDescription} from '@directwerk/ui/components/alert'
 import {Badge} from '@directwerk/ui/components/badge'
@@ -45,18 +45,26 @@ export default function AuditPage(): React.JSX.Element {
     const [error, setError] = useState<string | null>(null)
     const [filterError, setFilterError] = useState<string | null>(null)
     const [isLoading, setIsLoading] = useState(true)
+    const latestRequestId = useRef(0)
 
     const loadAudit = useCallback(
         (nextQuery: PlatformAuditQuery) => {
+            const requestId = ++latestRequestId.current
             setError(null)
             setIsLoading(true)
 
             getPlatformAuditPage(nextQuery)
                 .then((result) => {
+                    if (requestId !== latestRequestId.current) {
+                        return
+                    }
                     setPage(result)
                     setIsLoading(false)
                 })
                 .catch((requestError: unknown) => {
+                    if (requestId !== latestRequestId.current) {
+                        return
+                    }
                     if (
                         requestError instanceof Error &&
                         requestError.message === AUTH_REQUIRED
@@ -69,12 +77,18 @@ export default function AuditPage(): React.JSX.Element {
                     setError('Could not load audit log.')
                     setIsLoading(false)
                 })
+
+            return () => {
+                if (requestId === latestRequestId.current) {
+                    latestRequestId.current += 1
+                }
+            }
         },
         [router],
     )
 
     useEffect(() => {
-        loadAudit(query)
+        return loadAudit(query)
     }, [loadAudit, query])
 
     function applyFilters(formData: FormData): void {

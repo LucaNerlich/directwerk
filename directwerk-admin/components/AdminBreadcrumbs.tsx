@@ -43,7 +43,7 @@ export default function AdminBreadcrumbs({
                                         aria-current={isLast ? 'page' : undefined}
                                         className={
                                             isLast
-                                                ? 'max-w-64 truncate font-medium text-foreground'
+                                                ? 'inline-block max-w-64 truncate font-medium text-foreground'
                                                 : undefined
                                         }
                                     >

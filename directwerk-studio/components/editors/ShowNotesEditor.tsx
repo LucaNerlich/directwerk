@@ -66,6 +66,8 @@ export default function ShowNotesEditor({
         },
         editorProps: {
             attributes: {
+                'aria-describedby': helperId,
+                'aria-labelledby': labelId,
                 class: 'editor-surface content-prose',
                 'data-placeholder': placeholder,
             },

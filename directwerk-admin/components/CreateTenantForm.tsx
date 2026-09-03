@@ -42,8 +42,9 @@ export default function CreateTenantForm({onCreated}: CreateTenantFormProps) {
             <CardHeader>
                 <CardTitle id="create-tenant-heading">Create tenant</CardTitle>
                 <CardDescription>
-                    Creates the tenant record with an optional module preset
-                    and first admin invitation.
+                    Creates the tenant record with an optional module preset.
+                    The first admin invitation is optional; omit admin email to
+                    create the tenant without one.
                 </CardDescription>
             </CardHeader>
             <CardContent>

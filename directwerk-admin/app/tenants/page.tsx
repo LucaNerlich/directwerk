@@ -99,7 +99,7 @@ export default function TenantsPage(): React.JSX.Element {
             ) : null}
 
             <SectionHeader
-                description="Creates the tenant record with an optional module preset and first admin invitation."
+                description="Creates the tenant record with an optional module preset. The first admin invitation is optional; omit admin email to create the tenant without one."
                 title="Create tenant"
             />
             <CreateTenantForm onCreated={reloadTenants} />

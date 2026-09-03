@@ -18,6 +18,7 @@ import type {PublicationStatus} from '@directwerk/api/types'
 
 export interface PublicationListItem {
     id: number
+    slug?: string
     title: string
     status: PublicationStatus
     publishedAt: string | null
@@ -263,6 +264,7 @@ export default function PublicationListSection<T extends PublicationListItem>(
         return items.filter((item) => {
             const haystack = [
                 item.title,
+                item.slug ?? '',
                 item.meta ?? '',
                 item.seriesLabel ?? '',
                 ...(item.formats ?? []).map((format) => format.name),

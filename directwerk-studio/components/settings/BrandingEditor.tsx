@@ -43,6 +43,8 @@ export default function BrandingEditor(): React.JSX.Element {
     const router = useRouter()
     const authRedirect = useAuthRequired()
     const [branding, setBranding] = useState<TenantBranding | null>(null)
+    const [primaryColorDraft, setPrimaryColorDraft] = useState('')
+    const [secondaryColorDraft, setSecondaryColorDraft] = useState('')
     const [loadError, setLoadError] = useState<string | null>(null)
     const [isLoading, setIsLoading] = useState(true)
 
@@ -55,6 +57,8 @@ export default function BrandingEditor(): React.JSX.Element {
                     return
                 }
                 setBranding(result)
+                setPrimaryColorDraft(result.primaryColor ?? '')
+                setSecondaryColorDraft(result.secondaryColor ?? '')
                 setIsLoading(false)
             })
             .catch((error: unknown) => {
@@ -125,6 +129,8 @@ export default function BrandingEditor(): React.JSX.Element {
                 umamiHostUrl: umamiHostUrl.length > 0 ? umamiHostUrl : null,
             })
             setBranding(updated)
+            setPrimaryColorDraft(updated.primaryColor ?? '')
+            setSecondaryColorDraft(updated.secondaryColor ?? '')
             if (!updated.umamiWebsiteId) {
                 return {error: null, success: 'Branding gespeichert. Analytics-Tracking ist deaktiviert (keine Website-ID).'}
             }
@@ -211,7 +217,11 @@ export default function BrandingEditor(): React.JSX.Element {
                         <span
                             aria-hidden="true"
                             className="size-9 shrink-0 rounded-md border"
-                            style={{backgroundColor: branding?.primaryColor ?? 'transparent'}}
+                            style={{
+                                backgroundColor: COLOR_PATTERN.test(primaryColorDraft)
+                                    ? primaryColorDraft
+                                    : 'transparent',
+                            }}
                         />
                     <Input
                         aria-describedby="primaryColor-help"
@@ -219,6 +229,7 @@ export default function BrandingEditor(): React.JSX.Element {
                         id="primaryColor"
                         maxLength={7}
                         name="primaryColor"
+                        onChange={(event) => setPrimaryColorDraft(event.target.value)}
                         placeholder="#1a1a1a"
                         type="text"
                     />
@@ -233,7 +244,11 @@ export default function BrandingEditor(): React.JSX.Element {
                         <span
                             aria-hidden="true"
                             className="size-9 shrink-0 rounded-md border"
-                            style={{backgroundColor: branding?.secondaryColor ?? 'transparent'}}
+                            style={{
+                                backgroundColor: COLOR_PATTERN.test(secondaryColorDraft)
+                                    ? secondaryColorDraft
+                                    : 'transparent',
+                            }}
                         />
                     <Input
                         aria-describedby="secondaryColor-help"
@@ -241,6 +256,7 @@ export default function BrandingEditor(): React.JSX.Element {
                         id="secondaryColor"
                         maxLength={7}
                         name="secondaryColor"
+                        onChange={(event) => setSecondaryColorDraft(event.target.value)}
                         placeholder="#445566"
                         type="text"
                     />

@@ -47,11 +47,18 @@ describe('ConfirmDialog', () => {
     })
 
     it('disables actions and shows the pending label while pending', () => {
-        renderDialog({pending: true, pendingLabel: 'Wird gelöscht…'})
+        const {onOpenChange} = renderDialog({
+            pending: true,
+            pendingLabel: 'Wird gelöscht…',
+        })
 
         expect(
             screen.getByRole('button', {name: 'Wird gelöscht…'}),
         ).toBeDisabled()
         expect(screen.getByRole('button', {name: 'Abbrechen'})).toBeDisabled()
+
+        fireEvent.click(screen.getByRole('button', {name: 'Close'}))
+        expect(onOpenChange).not.toHaveBeenCalled()
+        expect(screen.getByRole('dialog')).toBeInTheDocument()
     })
 })
