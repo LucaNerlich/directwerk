@@ -176,7 +176,8 @@ public class UmamiEventClient {
                 && !uri.getHost().isBlank()
                 && uri.getUserInfo() == null
                 && uri.getRawQuery() == null
-                && uri.getRawFragment() == null;
+                && uri.getRawFragment() == null
+                && (uri.getPath() == null || uri.getPath().isEmpty() || "/".equals(uri.getPath()));
     }
 
     private static String trimTrailingSlash(String value) {

@@ -72,7 +72,8 @@ public class PublicArticleController {
     ) {
         Long tenantId = TenantContext.getTenantId();
         Article article = publicArticleQueryService.requirePublishedArticle(tenantId, slug);
-        articleViewAnalyticsService.trackArticleView(tenantId, article, "public-view", request.getServerName());
+        articleViewAnalyticsService.trackArticleView(
+                tenantId, article, "public-view", request.getServerName(), request.getHeader("User-Agent"));
         return ResponseEntity.ok(Response.ok(publicArticleViewMapper.toPublicView(article)));
     }
 

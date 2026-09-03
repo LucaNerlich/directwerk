@@ -123,11 +123,18 @@ adapter is wired.
 
 ## Episode download analytics
 
-Umami tracking is platform-configured with `DIRECTWERK_ANALYTICS_*`; tenants only store their
-`tenant_branding.umami_website_id`. When platform analytics, the tenant `ANALYTICS` module, and a
-website ID are all present, stream redirects and public download redirects emit `episode-download`.
-Public RSS enclosures are rewritten to `/api/v1/public/episodes/{slug}/download` so downloads can be
-tracked before redirecting to the public CDN. Analytics is fail-open and never gates playback.
+Umami tracking is platform-configured with `DIRECTWERK_ANALYTICS_*`; tenants store
+`tenant_branding.umami_website_id` and optionally override the host with
+`tenant_branding.umami_host_url` (HTTPS origin, no path — see Studio → Branding).
+Tenant overrides work even when no platform default is set, but non-routable hosts
+(loopback/private/reserved) fall back to the platform host. When the tenant `ANALYTICS`
+module and a website ID are present, stream/download/RSS enclosure redirects emit
+`episode-download` with `{episodeSlug, seriesSlug, accessPolicy, source, isRangeRequest,
+clientUserAgent}` (truncated UA, no IP — privacy-safe, geo-blind). Feed XML fetches emit
+`feed-fetch {feedKind=podcast, visibility}`. Public+private RSS enclosures are stable
+proxies (`/feeds/{tenant}/e/{episode}.mp3`, `/feeds/{tenant}/u/{token}/e/{episode}.mp3`,
+legacy alias `/api/v1/public/episodes/{slug}/download`) with `Cache-Control: no-store`
+so repeat plays are counted. Analytics is fail-open and never gates playback.
 
 ---
 

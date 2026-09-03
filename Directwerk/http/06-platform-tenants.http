@@ -127,3 +127,18 @@ Accept: application/json
         }
     });
 %}
+
+###
+
+### @name getTenantABranding
+GET {{baseUrl}}/api/v1/platform/tenants/{{tenantAId}}/branding
+Authorization: Bearer {{platformAccessToken}}
+Accept: application/json
+
+> {%
+    client.test("Get tenant branding incl. Umami config", function() {
+        client.assert(response.status === 200, "Expected 200");
+        client.assert("umamiWebsiteId" in response.body.data, "Expected umamiWebsiteId");
+        client.assert("umamiHostUrl" in response.body.data, "Expected umamiHostUrl");
+    });
+%}

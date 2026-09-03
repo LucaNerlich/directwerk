@@ -1,5 +1,6 @@
 package de.pnnit.directwerk.controller.publicapi;
 
+import de.pnnit.directwerk.modules.core.analytics.FeedFetchAnalyticsService;
 import de.pnnit.directwerk.modules.core.RequiresModule;
 import de.pnnit.directwerk.modules.core.entity.Tenant;
 import de.pnnit.directwerk.modules.podcast.FeedBuilderModule;
@@ -27,23 +28,31 @@ public class RssFeedController {
     private final SubscriberFeedService subscriberFeedService;
     private final RssFeedSnapshotService rssFeedSnapshotService;
     private final RssFeedDeliveryFacade rssFeedDeliveryFacade;
+    private final FeedFetchAnalyticsService feedFetchAnalyticsService;
 
     public RssFeedController(
             TenantResolver tenantResolver,
             SubscriberFeedService subscriberFeedService,
             RssFeedSnapshotService rssFeedSnapshotService,
-            RssFeedDeliveryFacade rssFeedDeliveryFacade
+            RssFeedDeliveryFacade rssFeedDeliveryFacade,
+            FeedFetchAnalyticsService feedFetchAnalyticsService
     ) {
         this.tenantResolver = tenantResolver;
         this.subscriberFeedService = subscriberFeedService;
         this.rssFeedSnapshotService = rssFeedSnapshotService;
         this.rssFeedDeliveryFacade = rssFeedDeliveryFacade;
+        this.feedFetchAnalyticsService = feedFetchAnalyticsService;
     }
 
     @GetMapping("/podcast.xml")
     @RequiresModule(PodcastRssModule.KEY)
-    ResponseEntity<String> publicPodcastFeed(@PathVariable String tenantSlug) {
+    ResponseEntity<String> publicPodcastFeed(
+            @PathVariable String tenantSlug,
+            HttpServletRequest request
+    ) {
         Tenant tenant = tenantResolver.requireHostTenantBySlug(tenantSlug);
+        feedFetchAnalyticsService.trackFeedFetch(
+                tenant.getId(), "podcast", "public", request.getServerName(), request.getHeader("User-Agent"));
         var delivery = rssFeedSnapshotService.publicTenantFeed(tenant);
         return FeedRedirects.rssRedirect(delivery.redirectUrl(), delivery.ready());
     }
@@ -52,9 +61,12 @@ public class RssFeedController {
     @RequiresModule(PodcastRssModule.KEY)
     ResponseEntity<String> publicSeriesFeed(
             @PathVariable String tenantSlug,
-            @PathVariable String seriesSlug
+            @PathVariable String seriesSlug,
+            HttpServletRequest request
     ) {
         Tenant tenant = tenantResolver.requireHostTenantBySlug(tenantSlug);
+        feedFetchAnalyticsService.trackFeedFetch(
+                tenant.getId(), "podcast", "public", request.getServerName(), request.getHeader("User-Agent"));
         var delivery = rssFeedSnapshotService.publicSeriesFeed(tenant, seriesSlug);
         return FeedRedirects.rssRedirect(delivery.redirectUrl(), delivery.ready());
     }
@@ -63,10 +75,13 @@ public class RssFeedController {
     @RequiresModule({PodcastRssModule.KEY, SubscriptionModule.MODULE_KEY})
     ResponseEntity<String> privateSubscriberFeed(
             @PathVariable String tenantSlug,
-            @PathVariable String feedToken
+            @PathVariable String feedToken,
+            HttpServletRequest request
     ) {
         Tenant tenant = tenantResolver.requireHostTenantBySlug(tenantSlug);
         SubscriberFeed feed = subscriberFeedService.requireDeliverableFeed(tenant.getId(), feedToken);
+        feedFetchAnalyticsService.trackFeedFetch(
+                tenant.getId(), "podcast", "private", request.getServerName(), request.getHeader("User-Agent"));
         var delivery = rssFeedSnapshotService.privateFeed(tenant, feed);
         return FeedRedirects.rssRedirect(delivery.redirectUrl(), delivery.ready());
     }
@@ -83,7 +98,9 @@ public class RssFeedController {
                 tenant,
                 episodeSlug,
                 "public-rss",
-                request.getServerName()
+                request.getServerName(),
+                request.getHeader("User-Agent"),
+                request.getHeader("Range") != null
         ).response();
     }
 
@@ -101,7 +118,9 @@ public class RssFeedController {
                 feedToken,
                 episodeSlug,
                 "private-rss",
-                request.getServerName()
+                request.getServerName(),
+                request.getHeader("User-Agent"),
+                request.getHeader("Range") != null
         ).response();
     }
 }

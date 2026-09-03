@@ -1,0 +1,29 @@
+meta {
+  name: Public Article View Proxy
+  type: http
+  seq: 8
+}
+
+get {
+  url: {{baseUrl}}/feeds/{{tenantASlug}}/a/{{articleSlug}}
+  body: none
+  auth: none
+}
+
+headers {
+  Accept: text/html
+}
+
+tests {
+  test("returns expected status", function() {
+    const status = res.getStatus();
+    expect(status === 302 || status === 403 || status === 404).to.equal(true);
+    if (status === 403) {
+      expect(res.body.errors[0].code).to.equal("FEATURE_NOT_ENABLED");
+    }
+  });
+}
+
+docs {
+  Tracked click-through (article-view rss-click), then 302 to canonical article page. Requires ARTICLE_RSS.
+}

@@ -53,4 +53,19 @@ public final class FeedUrls {
     public static String articleSubscriberFeed(String origin, String tenantSlug, String feedToken) {
         return origin + "/feeds/" + tenantSlug + "/articles/u/" + feedToken + ".xml";
     }
+
+    /** Public article view proxy (tracked click-through): {@code /feeds/{tenantSlug}/a/{articleSlug}}. */
+    public static String publicArticleView(String origin, String tenantSlug, String articleSlug) {
+        return origin + "/feeds/" + tenantSlug + "/a/" + articleSlug;
+    }
+
+    /** Private article view proxy: {@code /feeds/{tenantSlug}/articles/u/{feedToken}/a/{articleSlug}}. */
+    public static String privateArticleView(
+            String origin,
+            String tenantSlug,
+            String feedToken,
+            String articleSlug
+    ) {
+        return origin + "/feeds/" + tenantSlug + "/articles/u/" + feedToken + "/a/" + articleSlug;
+    }
 }

@@ -30,17 +30,30 @@ public class EpisodePlaybackDeliveryFacade {
             String requestHost,
             boolean privateFeed
     ) {
+        return deliverEnclosure(tenantId, redirect, analyticsSource, requestHost, privateFeed, null, false);
+    }
+
+    public TrackedRedirect deliverEnclosure(
+            Long tenantId,
+            EnclosureRedirect redirect,
+            String analyticsSource,
+            String requestHost,
+            boolean privateFeed,
+            String clientUserAgent,
+            boolean isRangeRequest
+    ) {
         episodeDownloadAnalyticsService.trackEpisodeDownload(
                 tenantId,
                 redirect.episode(),
                 analyticsSource,
-                requestHost
+                requestHost,
+                clientUserAgent,
+                isRangeRequest
         );
+        // noStore on both public and private: a cached 302 would skip tracking on repeat plays.
         ResponseEntity.BodyBuilder builder = ResponseEntity.status(HttpStatus.FOUND)
-                .location(URI.create(redirect.targetUrl().toString()));
-        if (privateFeed) {
-            builder = builder.cacheControl(CacheControl.noStore());
-        }
+                .location(URI.create(redirect.targetUrl().toString()))
+                .cacheControl(CacheControl.noStore());
         return new TrackedRedirect(redirect.episode(), redirect.targetUrl(), builder.build());
     }
 
@@ -49,17 +62,29 @@ public class EpisodePlaybackDeliveryFacade {
             EpisodeStream stream,
             String requestHost
     ) {
+        return deliverStream(tenantId, stream, requestHost, null);
+    }
+
+    public TrackedRedirect deliverStream(
+            Long tenantId,
+            EpisodeStream stream,
+            String requestHost,
+            String clientUserAgent
+    ) {
         episodeDownloadAnalyticsService.trackEpisodeDownload(
                 tenantId,
                 stream.episode(),
                 "stream",
-                requestHost
+                requestHost,
+                clientUserAgent,
+                false
         );
         return new TrackedRedirect(
                 stream.episode(),
                 stream.url(),
                 ResponseEntity.status(HttpStatus.FOUND)
                         .location(URI.create(stream.url().toString()))
+                        .cacheControl(CacheControl.noStore())
                         .build()
         );
     }

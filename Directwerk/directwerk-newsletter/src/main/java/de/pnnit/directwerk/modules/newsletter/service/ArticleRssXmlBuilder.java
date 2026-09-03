@@ -31,6 +31,16 @@ public class ArticleRssXmlBuilder {
             String originBaseUrl,
             String channelTitleOverride
     ) {
+        return buildFeed(tenant, articles, originBaseUrl, channelTitleOverride, null);
+    }
+
+    public String buildFeed(
+            Tenant tenant,
+            List<Article> articles,
+            String originBaseUrl,
+            String channelTitleOverride,
+            java.util.function.Function<Article, String> linkProvider
+    ) {
         StringBuilder xml = new StringBuilder(4096);
         xml.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
         xml.append("<rss version=\"2.0\">\n");
@@ -40,15 +50,17 @@ public class ArticleRssXmlBuilder {
         appendDescriptionElement(xml, tenant.getName(), 4);
         appendElement(xml, "language", "de", 4);
         for (Article article : articles) {
-            appendArticle(xml, tenant, article, originBaseUrl);
+            String link = linkProvider != null
+                    ? linkProvider.apply(article)
+                    : originBaseUrl + "/articles/" + article.getSlug();
+            appendArticle(xml, tenant, article, link);
         }
         xml.append("  </channel>\n");
         xml.append("</rss>\n");
         return xml.toString();
     }
 
-    private void appendArticle(StringBuilder xml, Tenant tenant, Article article, String originBaseUrl) {
-        String link = originBaseUrl + "/articles/" + article.getSlug();
+    private void appendArticle(StringBuilder xml, Tenant tenant, Article article, String link) {
         String description = descriptionFor(article);
         xml.append("    <item>\n");
         appendElement(xml, "title", article.getTitle(), 6);

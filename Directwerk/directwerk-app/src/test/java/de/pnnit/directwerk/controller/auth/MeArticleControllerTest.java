@@ -1,6 +1,7 @@
 package de.pnnit.directwerk.controller.auth;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import de.pnnit.directwerk.api.PublicArticleViewMapper;
@@ -32,6 +33,9 @@ class MeArticleControllerTest {
     @Mock
     private PublicArticleViewMapper publicArticleViewMapper;
 
+    @Mock
+    private de.pnnit.directwerk.modules.newsletter.service.ArticleViewAnalyticsService articleViewAnalyticsService;
+
     @AfterEach
     void clearTenantContext() {
         TenantContext.clear();
@@ -42,7 +46,8 @@ class MeArticleControllerTest {
         TenantContext.setTenantId(10L);
         MeArticleController controller = new MeArticleController(
                 subscriberPortalArticleAccessService,
-                publicArticleViewMapper
+                publicArticleViewMapper,
+                articleViewAnalyticsService
         );
         DirectwerkUserPrincipal principal = subscriber();
         Article article = paidArticle();
@@ -67,6 +72,43 @@ class MeArticleControllerTest {
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(response.getBody()).isNotNull();
+    }
+
+    @Test
+    void getArticleTracksPrivateView() {
+        TenantContext.setTenantId(10L);
+        MeArticleController controller = new MeArticleController(
+                subscriberPortalArticleAccessService,
+                publicArticleViewMapper,
+                articleViewAnalyticsService
+        );
+        DirectwerkUserPrincipal principal = subscriber();
+        Article article = paidArticle();
+        MeArticleController.MeArticleView view = new MeArticleController.MeArticleView(
+                article.getId(),
+                article.getSlug(),
+                article.getTitle(),
+                article.getBody(),
+                article.getExcerpt(),
+                article.getSeoDescription(),
+                null,
+                article.getAccessPolicy().name(),
+                article.getRequiredLevelSortOrder(),
+                article.getPublishedAt(),
+                List.of()
+        );
+        jakarta.servlet.http.HttpServletRequest request =
+                org.mockito.Mockito.mock(jakarta.servlet.http.HttpServletRequest.class);
+        when(request.getServerName()).thenReturn("alpha.example.test");
+        when(subscriberPortalArticleAccessService.requireEntitledArticle(principal, "premium-post"))
+                .thenReturn(article);
+        when(publicArticleViewMapper.toPortalView(article)).thenReturn(view);
+
+        ResponseEntity<?> response = controller.getArticle("premium-post", principal, request);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        verify(articleViewAnalyticsService).trackArticleView(
+                10L, article, "private-view", "alpha.example.test", null);
     }
 
     private static DirectwerkUserPrincipal subscriber() {

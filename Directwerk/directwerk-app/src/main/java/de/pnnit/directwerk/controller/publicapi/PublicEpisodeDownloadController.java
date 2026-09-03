@@ -32,7 +32,9 @@ public class PublicEpisodeDownloadController {
                 tenantId,
                 slug,
                 "public-download",
-                request.getServerName()
+                request.getServerName(),
+                request.getHeader("User-Agent"),
+                request.getHeader("Range") != null
         ).response();
     }
 }

@@ -18,6 +18,7 @@ import PageHeader from '@directwerk/ui/components/page-header'
 
 import DomainForceVerifyForm from '@/components/DomainForceVerifyForm'
 import InviteTenantUserForm from '@/components/InviteTenantUserForm'
+import TenantAnalyticsCard from '@/components/TenantAnalyticsCard'
 import TenantEditForm from '@/components/TenantEditForm'
 import TenantModulesPanel from '@/components/TenantModulesPanel'
 import TenantProductsPanel from '@/components/TenantProductsPanel'
@@ -259,6 +260,8 @@ export default function TenantPage({params}: TenantPageProps) {
                         </Card>
 
                         <TenantModulesPanel tenantId={id} />
+
+                        <TenantAnalyticsCard tenantId={id} />
 
                         <TenantSessionPanel
                             onSessionChange={() =>

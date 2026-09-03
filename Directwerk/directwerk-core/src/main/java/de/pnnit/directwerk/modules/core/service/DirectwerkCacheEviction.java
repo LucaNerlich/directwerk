@@ -22,7 +22,9 @@ public class DirectwerkCacheEviction {
             return;
         }
         evict(DirectwerkCacheNames.TENANT_BY_HOST, host.trim().toLowerCase(Locale.ROOT));
-        evict(DirectwerkCacheNames.PUBLIC_SITE_CONFIG, host.trim().toLowerCase(Locale.ROOT));
+        // PUBLIC_SITE_CONFIG keys are host:scheme:port — a single-key evict would miss.
+        // Branding/domain changes are rare, so clear the whole cache instead of missing.
+        clear(DirectwerkCacheNames.PUBLIC_SITE_CONFIG);
     }
 
     public void evictTenantModules(Long tenantId) {
@@ -63,6 +65,13 @@ public class DirectwerkCacheEviction {
         Cache cache = cacheManager.getCache(cacheName);
         if (cache != null) {
             cache.evict(key);
+        }
+    }
+
+    private void clear(String cacheName) {
+        Cache cache = cacheManager.getCache(cacheName);
+        if (cache != null) {
+            cache.clear();
         }
     }
 }

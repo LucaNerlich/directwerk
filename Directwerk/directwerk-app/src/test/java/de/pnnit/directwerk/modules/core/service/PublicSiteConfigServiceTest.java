@@ -113,7 +113,8 @@ class PublicSiteConfigServiceTest {
         Tenant tenant = tenant(1L, "alpha", "Alpha Podcast");
         TenantBranding branding = new TenantBranding();
         branding.setUmamiWebsiteId("12345678-abcd-abcd-abcd-abcdefabcdef");
-        branding.setUmamiHostUrl("https://tenant.umami.example.test");
+        // Public IP literal: routable without DNS in tests.
+        branding.setUmamiHostUrl("https://8.8.8.8");
         when(tenantResolver.resolveHost("alpha.example.test")).thenReturn(Optional.of(tenant));
         when(tenantBrandingRepository.findByTenantId(1L)).thenReturn(Optional.of(branding));
         when(moduleGateService.enabledModuleKeys(1L))
@@ -123,9 +124,9 @@ class PublicSiteConfigServiceTest {
                 service().loadSiteConfig("https", "alpha.example.test", 443);
 
         assertThat(config.analytics()).isNotNull();
-        assertThat(config.analytics().umamiHostUrl()).isEqualTo("https://tenant.umami.example.test");
+        assertThat(config.analytics().umamiHostUrl()).isEqualTo("https://8.8.8.8");
         assertThat(config.analytics().umamiScriptUrl())
-                .isEqualTo("https://tenant.umami.example.test/script.js");
+                .isEqualTo("https://8.8.8.8/script.js");
     }
 
     private PublicSiteConfigService service() {

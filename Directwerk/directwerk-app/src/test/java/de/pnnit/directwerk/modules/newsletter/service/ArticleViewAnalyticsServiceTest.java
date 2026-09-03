@@ -88,7 +88,7 @@ class ArticleViewAnalyticsServiceTest {
     void skipsWhenSourceIsNotAllowed() {
         ArticleViewAnalyticsService service = service(true);
 
-        service.trackArticleView(10L, article(), "private-view", "alpha.example.test");
+        service.trackArticleView(10L, article(), "invalid-source", "alpha.example.test");
 
         verifyNeverTracked();
     }

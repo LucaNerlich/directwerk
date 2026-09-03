@@ -89,6 +89,14 @@ class PlatformTenantControllerTest {
 
     @Test
     @WithMockUser(roles = "PLATFORM_ADMIN")
+    void getBrandingReturnsUmamiConfig() throws Exception {
+        mockMvc.perform(get("/api/v1/platform/tenants/{id}/branding", tenant.getId()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data").exists());
+    }
+
+    @Test
+    @WithMockUser(roles = "PLATFORM_ADMIN")
     void createTenantWithFullModulePresetPrimaryDomainAndAdminEmail() throws Exception {
         // This profile disables Flyway (H2 create-drop from JPA entities only), so the
         // feature_modules catalog rows Flyway normally seeds in production don't exist here —
