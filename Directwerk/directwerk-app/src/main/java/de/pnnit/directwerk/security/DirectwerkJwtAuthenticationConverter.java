@@ -43,8 +43,11 @@ public class DirectwerkJwtAuthenticationConverter implements Converter<Jwt, Abst
 
     private static Long parseSubject(Jwt jwt) {
         String subject = jwt.getSubject();
-        if (subject == null || subject.isBlank()) {
+        if (subject == null) {
             return null;
+        }
+        if (subject.isBlank()) {
+            throw new BadJwtException("Invalid subject claim");
         }
         try {
             return Long.valueOf(subject.trim());

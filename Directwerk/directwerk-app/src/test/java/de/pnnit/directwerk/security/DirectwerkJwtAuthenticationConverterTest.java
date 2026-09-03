@@ -51,6 +51,33 @@ class DirectwerkJwtAuthenticationConverterTest {
                 .isInstanceOf(BadJwtException.class);
     }
 
+    @Test
+    void rejectsBlankSubject() {
+        Jwt jwt = jwt(Map.of(
+                "sub", "   ",
+                "email", "editor@example.com",
+                "roles", List.of("EDITOR"),
+                "tenant_id", 7L
+        ));
+
+        assertThatThrownBy(() -> converter.convert(jwt))
+                .isInstanceOf(BadJwtException.class);
+    }
+
+    @Test
+    void preservesMissingSubjectAsNullUserId() {
+        Jwt jwt = jwt(Map.of(
+                "email", "service@example.com",
+                "roles", List.of("EDITOR"),
+                "tenant_id", 7L
+        ));
+
+        AbstractAuthenticationToken token = converter.convert(jwt);
+
+        DirectwerkUserPrincipal principal = (DirectwerkUserPrincipal) token.getPrincipal();
+        assertThat(principal.userId()).isNull();
+    }
+
     private static Jwt jwt(Map<String, Object> claims) {
         return new Jwt(
                 "token",

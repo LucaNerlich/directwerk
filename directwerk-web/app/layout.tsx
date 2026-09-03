@@ -1,4 +1,5 @@
 import type {Metadata} from 'next'
+import {connection} from 'next/server'
 
 import BrandTheme from '@directwerk/ui/components/brand-theme'
 
@@ -37,6 +38,8 @@ export default async function RootLayout({
 }: Readonly<{
     children: React.ReactNode
 }>): Promise<React.JSX.Element> {
+    await connection()
+
     // The layout renders on every route — an upstream outage or unmapped host
     // must degrade to a neutral default instead of hard-failing every page.
     let config: PublicSiteConfig

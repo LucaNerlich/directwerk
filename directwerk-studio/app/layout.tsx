@@ -1,4 +1,5 @@
 import type {Metadata} from 'next'
+import {connection} from 'next/server'
 
 import UmamiAnalytics from '@/components/UmamiAnalytics'
 
@@ -9,7 +10,9 @@ export const metadata: Metadata = {
     description: 'Creator dashboard for Directwerk publishers',
 }
 
-export default function RootLayout({children}: Readonly<{children: React.ReactNode}>) {
+export default async function RootLayout({children}: Readonly<{children: React.ReactNode}>) {
+    await connection()
+
     return (
         <html lang="de">
             <body className="min-h-svh bg-background text-foreground antialiased">

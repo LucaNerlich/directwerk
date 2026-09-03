@@ -8,10 +8,34 @@ const directwerkTranspilePackages = ['@directwerk/ui', '@directwerk/api'] as con
 const monorepoRoot = path.join(path.dirname(fileURLToPath(import.meta.url)), '../..')
 
 /**
+ * Per-request CSP for apps that keep access tokens in sessionStorage. Callers
+ * must set this on both the incoming request and outgoing response so Next.js
+ * can apply the nonce to its generated scripts.
+ */
+export function createDirectwerkContentSecurityPolicy(
+    nonce: string,
+    isDevelopment: boolean,
+): string {
+    return [
+        "default-src 'self'",
+        `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'${isDevelopment ? " 'unsafe-eval'" : ''}`,
+        "style-src 'self' 'unsafe-inline'",
+        "img-src 'self' data: blob: https:",
+        "font-src 'self' data:",
+        `connect-src 'self' https:${isDevelopment ? ' http: ws: wss:' : ''}`,
+        "media-src 'self' blob: https:",
+        "object-src 'none'",
+        "base-uri 'self'",
+        "form-action 'self'",
+        "frame-ancestors 'none'",
+        ...(isDevelopment ? [] : ['upgrade-insecure-requests']),
+    ].join('; ')
+}
+
+/**
  * Baseline response headers applied to every page/API route. These are
- * deliberately CSP-free (apps that need CSP set it themselves: admin via
- * proxy.ts nonce, homepage via its own headers block) so this stays
- * non-breaking for all consumers.
+ * deliberately CSP-free: apps that need CSP add it at their own response
+ * boundary, using a per-request proxy nonce or app-specific headers.
  */
 export function directwerkSecurityHeaders(): {key: string; value: string}[] {
     return [
