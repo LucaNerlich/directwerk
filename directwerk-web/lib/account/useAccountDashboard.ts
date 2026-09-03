@@ -38,6 +38,7 @@ export interface AccountDashboardState {
     error: string | null
     isLoading: boolean
     prefsMessage: string | null
+    prefsMessageKind: 'success' | 'error' | null
     prefsBusy: boolean
     portalMessage: string | null
     portalBusy: boolean
@@ -61,6 +62,9 @@ export function useAccountDashboard(): AccountDashboardState {
     const [error, setError] = useState<string | null>(null)
     const [isLoading, setIsLoading] = useState(true)
     const [prefsMessage, setPrefsMessage] = useState<string | null>(null)
+    const [prefsMessageKind, setPrefsMessageKind] = useState<
+        'success' | 'error' | null
+    >(null)
     const [prefsBusy, setPrefsBusy] = useState(false)
     const [portalMessage, setPortalMessage] = useState<string | null>(null)
     const [portalBusy, setPortalBusy] = useState(false)
@@ -167,11 +171,7 @@ export function useAccountDashboard(): AccountDashboardState {
                     return
                 }
 
-                setError(
-                    requestError instanceof Error
-                        ? requestError.message
-                        : 'Konto konnte nicht geladen werden.',
-                )
+                setError(userFacingBillingError(requestError, 'account'))
             })
             .finally(() => {
                 if (isCurrent) {
@@ -190,6 +190,7 @@ export function useAccountDashboard(): AccountDashboardState {
         }
         setPrefsBusy(true)
         setPrefsMessage(null)
+        setPrefsMessageKind(null)
         try {
             const result = await updateNotificationPreferences(
                 getClientTenantHost(),
@@ -197,6 +198,7 @@ export function useAccountDashboard(): AccountDashboardState {
             )
             setEmailNotificationsEnabled(result.emailNotificationsEnabled)
             setPrefsMessage('Benachrichtigungen gespeichert.')
+            setPrefsMessageKind('success')
         } catch (requestError: unknown) {
             if (
                 requestError instanceof Error &&
@@ -205,11 +207,8 @@ export function useAccountDashboard(): AccountDashboardState {
                 router.replace('/login')
                 return
             }
-            setPrefsMessage(
-                requestError instanceof Error
-                    ? requestError.message
-                    : 'Einstellungen konnten nicht gespeichert werden.',
-            )
+            setPrefsMessage(userFacingBillingError(requestError, 'preferences'))
+            setPrefsMessageKind('error')
         } finally {
             setPrefsBusy(false)
         }
@@ -256,6 +255,7 @@ export function useAccountDashboard(): AccountDashboardState {
         error,
         isLoading,
         prefsMessage,
+        prefsMessageKind,
         prefsBusy,
         portalMessage,
         portalBusy,

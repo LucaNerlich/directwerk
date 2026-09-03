@@ -1,8 +1,10 @@
 import type {Metadata} from 'next'
 import {notFound} from 'next/navigation'
 
+import {buildPodcastEpisodeJsonLd} from '@/lib/site/jsonLd'
 import {fetchPublicEpisodeServer} from '@/lib/site/fetchPublicContentServer'
 import {getTenantHost} from '@/lib/site/getTenantHost'
+import {resolveTenantOrigin} from '@/lib/site/siteOrigin'
 
 import EpisodeDetailClient from './episode-detail-client'
 
@@ -60,11 +62,13 @@ export default async function EpisodeDetailPage({params}: EpisodePageProps) {
     }
 
     let initialEpisode = null
+    let origin = 'https://localhost'
     try {
         const host = await getTenantHost()
         if (host === null) {
             throw new Error('Tenant host unresolved')
         }
+        origin = resolveTenantOrigin(host)
         initialEpisode = await fetchPublicEpisodeServer(host, slug)
     } catch {
         // Public catalog unavailable — the client component retries and can
@@ -78,5 +82,17 @@ export default async function EpisodeDetailPage({params}: EpisodePageProps) {
         return <EpisodeDetailClient slug={slug} />
     }
 
-    return <EpisodeDetailClient slug={slug} initialPublicEpisode={initialEpisode} />
+    const episodeJsonLd = buildPodcastEpisodeJsonLd({
+        episode: initialEpisode,
+        origin,
+    })
+    return (
+        <>
+            <script
+                type="application/ld+json"
+                dangerouslySetInnerHTML={{__html: JSON.stringify(episodeJsonLd)}}
+            />
+            <EpisodeDetailClient slug={slug} initialPublicEpisode={initialEpisode} />
+        </>
+    )
 }

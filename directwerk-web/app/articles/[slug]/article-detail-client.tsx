@@ -1,21 +1,26 @@
 'use client'
 
 import Link from 'next/link'
-import {useEffect, useState, useSyncExternalStore} from 'react'
+import {useSyncExternalStore} from 'react'
 
-import {Alert, AlertDescription} from '@directwerk/ui/components/alert'
 import PageHeader from '@directwerk/ui/components/page-header'
-import PageStack from '@directwerk/ui/components/page-stack'
 
 import AccessPolicyBadge from '@/components/AccessPolicyBadge'
-import {listMyArticles, listPublicArticles} from '@/lib/api/client'
+import ContentMetaLine from '@/components/ContentMetaLine'
+import DetailShell, {DetailLockedPanel} from '@/components/DetailShell'
 import {sanitizeContentHtml} from '@/lib/sanitizeContentHtml'
-import {AUTH_REQUIRED} from '@directwerk/api/constants'
-import type {PublicArticle} from '@directwerk/api/types'
 import {
     getAccessToken,
     subscribeToTokenStore,
 } from '@/lib/auth/tokenStore'
+import {
+    fetchEntitledArticleBySlug,
+    fetchPublicArticleBySlug,
+} from '@/lib/catalog/articleDetail'
+import {useEntitledDetail} from '@/lib/catalog/useEntitledDetail'
+import {findUnlockProduct, unlockHref} from '@/lib/catalog/unlock'
+import {usePublicProducts} from '@/lib/catalog/usePublicProducts'
+import type {PublicArticle} from '@directwerk/api/types'
 import {formatPublishedAt} from '@directwerk/api/format/datetime'
 import {getClientTenantHost} from '@/lib/tenant/clientHost'
 
@@ -26,6 +31,12 @@ function readTokenClient(): string | null {
 function readTokenServer(): string | null {
     return null
 }
+
+const MESSAGES = {
+    emptySlug: 'Beitrag nicht gefunden.',
+    loadFailed: 'Beitrag konnte nicht geladen werden.',
+    authRequired: 'Sitzung abgelaufen — bitte erneut anmelden.',
+} as const
 
 export default function ArticleDetailClient({
     slug,
@@ -42,121 +53,94 @@ export default function ArticleDetailClient({
         readTokenServer,
     )
     const isAuthenticated = accessToken !== null
-    const [article, setArticle] = useState<PublicArticle | null>(
-        initialPublicArticle,
-    )
-    const [errorMessage, setErrorMessage] = useState<string | null>(null)
-    const [isLoading, setIsLoading] = useState(initialPublicArticle === null)
+    const products = usePublicProducts(tenantHost)
+    const unlockTarget = unlockHref(findUnlockProduct(products))
+    const {item: article, status, errorMessage, retry} = useEntitledDetail<PublicArticle>({
+        slug,
+        initial: initialPublicArticle,
+        isAuthenticated,
+        tenantHost,
+        // The API serves single articles by slug (public + entitled), so no
+        // list scan is needed here — unlike episodes.
+        loadPublic: () => fetchPublicArticleBySlug(slug),
+        loadEntitled: async () =>
+            (await fetchEntitledArticleBySlug(slug)) ??
+            (await fetchPublicArticleBySlug(slug)),
+        messages: MESSAGES,
+    })
 
-    useEffect(() => {
-        let active = true
-        if (slug.length === 0) {
-            setErrorMessage('Beitrag nicht gefunden.')
-            setIsLoading(false)
-            return
-        }
-
-        if (initialPublicArticle !== null && !isAuthenticated) {
-            setIsLoading(false)
-            return
-        }
-
-        setIsLoading(true)
-        setErrorMessage(null)
-
-        const load = isAuthenticated
-            ? listMyArticles(tenantHost)
-            : listPublicArticles(tenantHost)
-
-        load
-            .then((articles) => {
-                if (!active) {
-                    return
-                }
-                const match = articles.find((item) => item.slug === slug) ?? null
-                setArticle(match)
-                if (match === null) {
-                    setErrorMessage(
-                        isAuthenticated
-                            ? 'Beitrag nicht gefunden oder nicht freigeschaltet.'
-                            : 'Beitrag nicht im öffentlichen Katalog. Bei bezahlten Beiträgen bitte anmelden.',
-                    )
-                }
-            })
-            .catch((error: unknown) => {
-                if (!active) {
-                    return
-                }
-                if (error instanceof Error && error.message === AUTH_REQUIRED) {
-                    setErrorMessage('Sitzung abgelaufen — bitte erneut anmelden.')
-                    return
-                }
-                setErrorMessage(
-                    error instanceof Error
-                        ? error.message
-                        : 'Beitrag konnte nicht geladen werden.',
-                )
-            })
-            .finally(() => {
-                if (active) {
-                    setIsLoading(false)
-                }
-            })
-
-        return () => {
-            active = false
-        }
-    }, [tenantHost, isAuthenticated, slug, initialPublicArticle])
+    const isLocked = article !== null && article.body === null
 
     return (
-        <PageStack className="page-container">
-            <Link className="text-sm text-muted-foreground hover:text-foreground" href="/articles">
-                ← Beiträge
-            </Link>
-            {isLoading ? <p className="text-sm text-muted-foreground">Wird geladen…</p> : null}
-            {errorMessage !== null ? (
-                <Alert variant="destructive">
-                    <AlertDescription>{errorMessage}</AlertDescription>
-                </Alert>
-            ) : null}
-
+        <DetailShell
+            backHref="/articles"
+            backLabel="← Beiträge"
+            isLoading={status === 'loading'}
+            isAuthenticated={isAuthenticated}
+            errorMessage={status === 'error' ? errorMessage : null}
+            onRetry={retry}
+            notFound={
+                status === 'not-found'
+                    ? {
+                          title: 'Beitrag nicht verfügbar',
+                          description: isAuthenticated
+                              ? 'Dieser Beitrag wurde nicht gefunden oder ist nicht für dich freigeschaltet. Eine Mitgliedschaft schaltet bezahlte Beiträge frei.'
+                              : 'Dieser Beitrag ist nicht im öffentlichen Katalog. Bezahlte Beiträge erscheinen nach der Anmeldung mit aktiver Mitgliedschaft.',
+                      }
+                    : null
+            }
+            unlockHref={unlockTarget}
+        >
             {article !== null ? (
                 <article className="max-w-3xl space-y-8">
                     <PageHeader
                         title={article.title}
                         description={
-                            <>
-                                {formatPublishedAt(article.publishedAt)}
-                                {article.categories.length > 0 ? (
-                                    <>
-                                        {' · '}
-                                        {article.categories.map((category) => category.name).join(', ')}
-                                    </>
-                                ) : null}
-                            </>
+                            <ContentMetaLine
+                                items={[
+                                    article.categories.length > 0
+                                        ? article.categories
+                                              .map((category) => category.name)
+                                              .join(', ')
+                                        : null,
+                                    formatPublishedAt(article.publishedAt),
+                                ]}
+                            />
                         }
-                        actions={<AccessPolicyBadge policy={article.accessPolicy} />}
+                        actions={
+                            <AccessPolicyBadge
+                                policy={article.accessPolicy}
+                                isEntitled={
+                                    article.accessPolicy === 'PAID'
+                                        ? !isLocked
+                                        : undefined
+                                }
+                            />
+                        }
                     />
                     {article.accessPolicy === 'PAID' && article.body === null ? (
-                        <Alert>
-                            <AlertDescription>
-                                {isAuthenticated ? (
-                                    <>
-                                        Bezahlter Beitrag — fehlende Freischaltung.{' '}
-                                        <Link href="/pricing">Tarife ansehen</Link>
-                                    </>
-                                ) : (
-                                    <>
-                                        Bezahlter Beitrag —{' '}
-                                        <Link href="/login">anmelden</Link>, um ihn
-                                        freizuschalten.
-                                    </>
-                                )}
-                                {article.excerpt !== null && article.excerpt.length > 0
-                                    ? ` ${article.excerpt}`
-                                    : ''}
-                            </AlertDescription>
-                        </Alert>
+                        <DetailLockedPanel
+                            title="Mitgliedschaft nötig"
+                            description={
+                                <>
+                                    {isAuthenticated ? (
+                                        <>Bezahlter Beitrag — fehlende Freischaltung.</>
+                                    ) : (
+                                        <>
+                                            Bezahlter Beitrag —{' '}
+                                            <Link href="/login">anmelden</Link>, um ihn
+                                            freizuschalten.
+                                        </>
+                                    )}
+                                    {article.excerpt !== null &&
+                                    article.excerpt.length > 0
+                                        ? ` ${article.excerpt}`
+                                        : ''}
+                                </>
+                            }
+                            isAuthenticated={isAuthenticated}
+                            unlockHref={unlockTarget}
+                        />
                     ) : article.body !== null && article.body.length > 0 ? (
                         <div
                             className="content-prose"
@@ -172,6 +156,6 @@ export default function ArticleDetailClient({
                     )}
                 </article>
             ) : null}
-        </PageStack>
+        </DetailShell>
     )
 }

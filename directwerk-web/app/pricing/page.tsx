@@ -1,8 +1,8 @@
 'use client'
 
 import Link from 'next/link'
-import {useRouter} from 'next/navigation'
-import {useEffect, useState} from 'react'
+import {useRouter, useSearchParams} from 'next/navigation'
+import {Suspense, useCallback, useEffect, useRef, useState} from 'react'
 
 import {Alert, AlertDescription} from '@directwerk/ui/components/alert'
 import {Badge} from '@directwerk/ui/components/badge'
@@ -18,41 +18,42 @@ import {CardGridSkeleton} from '@/components/ContentLoadingSkeleton'
 import SubscriberContextBanner from '@/components/SubscriberContextBanner'
 import {
     createCheckoutSession,
-    getSiteConfig,
     listPublicLevels,
     listPublicProducts,
 } from '@/lib/api/client'
 import {AUTH_REQUIRED} from '@directwerk/api/constants'
-import type {LevelSummary, PublicProduct, PublicSiteConfig} from '@directwerk/api/types'
+import type {LevelSummary, PublicProduct} from '@directwerk/api/types'
 import {useSubscriberAuth} from '@/lib/auth/useSubscriberAuth'
 import {formatMoney} from '@directwerk/api/format'
 import {userFacingBillingError} from '@/lib/billing/userFacingBillingError'
+import {useSiteConfig} from '@/lib/site/SiteConfigProvider'
 import {getClientTenantHost} from '@/lib/tenant/clientHost'
 
-export default function PricingPage(): React.JSX.Element {
+function PricingContent(): React.JSX.Element {
     const router = useRouter()
+    const searchParams = useSearchParams()
+    const pendingBuy = searchParams.get('buy') ?? ''
     const tenantHost = getClientTenantHost()
+    const config = useSiteConfig()
     const {isAuthenticated} = useSubscriberAuth()
     const [products, setProducts] = useState<PublicProduct[]>([])
     const [levels, setLevels] = useState<LevelSummary[]>([])
-    const [config, setConfig] = useState<PublicSiteConfig | null>(null)
     const [error, setError] = useState<string | null>(null)
     const [checkoutMessage, setCheckoutMessage] = useState<string | null>(null)
     const [isLoading, setIsLoading] = useState(true)
     const [busySlug, setBusySlug] = useState<string | null>(null)
+    const resumedBuyRef = useRef(false)
 
     useEffect(() => {
         let active = true
         Promise.all([
-            getSiteConfig(tenantHost),
             listPublicProducts(tenantHost),
             listPublicLevels(tenantHost),
         ])
-            .then(([siteConfig, productList, levelList]) => {
+            .then(([productList, levelList]) => {
                 if (!active) {
                     return
                 }
-                setConfig(siteConfig.data)
                 setProducts(productList)
                 setLevels(levelList)
                 setIsLoading(false)
@@ -74,37 +75,67 @@ export default function PricingPage(): React.JSX.Element {
         }
     }, [tenantHost])
 
-    async function handleCheckout(productSlug: string): Promise<void> {
-        setCheckoutMessage(null)
-        if (!isAuthenticated) {
-            router.push(`/login?returnTo=${encodeURIComponent('/pricing')}`)
+    const handleCheckout = useCallback(
+        async (productSlug: string): Promise<void> => {
+            setCheckoutMessage(null)
+            if (!isAuthenticated) {
+                router.push(
+                    `/login?returnTo=${encodeURIComponent(`/pricing?buy=${encodeURIComponent(productSlug)}`)}`,
+                )
+                return
+            }
+
+            setBusySlug(productSlug)
+            try {
+                const checkoutUrl = await createCheckoutSession(tenantHost, productSlug)
+                if (checkoutUrl !== null) {
+                    window.location.assign(checkoutUrl)
+                    return
+                }
+                setCheckoutMessage(
+                    'Es konnte keine gültige Checkout-Adresse erstellt werden. '
+                        + 'Bitte versuche es später erneut oder wende dich an die Redaktion.',
+                )
+            } catch (requestError: unknown) {
+                if (
+                    requestError instanceof Error &&
+                    requestError.message === AUTH_REQUIRED
+                ) {
+                    router.push(
+                        `/login?returnTo=${encodeURIComponent(`/pricing?buy=${encodeURIComponent(productSlug)}`)}`,
+                    )
+                    return
+                }
+                setCheckoutMessage(userFacingBillingError(requestError, 'checkout'))
+            } finally {
+                setBusySlug(null)
+            }
+        },
+        [isAuthenticated, router, tenantHost],
+    )
+
+    // A product chosen before login is preserved through auth via
+    // `?buy=<slug>` and resumed automatically once the session exists.
+    useEffect(() => {
+        if (
+            resumedBuyRef.current ||
+            isLoading ||
+            !isAuthenticated ||
+            pendingBuy.length === 0
+        ) {
             return
         }
-
-        setBusySlug(productSlug)
-        try {
-            const checkoutUrl = await createCheckoutSession(tenantHost, productSlug)
-            if (checkoutUrl !== null) {
-                window.location.assign(checkoutUrl)
-                return
-            }
+        resumedBuyRef.current = true
+        const known = products.some((product) => product.slug === pendingBuy)
+        router.replace('/pricing')
+        if (known) {
+            void handleCheckout(pendingBuy)
+        } else {
             setCheckoutMessage(
-                'Es konnte keine gültige Checkout-Adresse erstellt werden. '
-                    + 'Bitte versuche es später erneut oder wende dich an die Redaktion.',
+                'Das gewählte Produkt ist nicht mehr verfügbar. Bitte wähle ein anderes.',
             )
-        } catch (requestError: unknown) {
-            if (
-                requestError instanceof Error &&
-                requestError.message === AUTH_REQUIRED
-            ) {
-                router.push(`/login?returnTo=${encodeURIComponent('/pricing')}`)
-                return
-            }
-            setCheckoutMessage(userFacingBillingError(requestError, 'checkout'))
-        } finally {
-            setBusySlug(null)
         }
-    }
+    }, [handleCheckout, isAuthenticated, isLoading, pendingBuy, products, router])
 
     return (
         <PageStack className="page-container">
@@ -113,7 +144,7 @@ export default function PricingPage(): React.JSX.Element {
                 description={
                     <>
                         Wähle eine Mitgliedschaft bei{' '}
-                        <strong>{config?.tenant.name ?? '…'}</strong>. Nach der Anmeldung
+                        <strong>{config.tenant.name}</strong>. Nach der Anmeldung
                         startet der Checkout bei Stripe.
                     </>
                 }
@@ -143,9 +174,13 @@ export default function PricingPage(): React.JSX.Element {
                     value="Zur Kasse"
                 />
             </section>
-            {isLoading ? <CardGridSkeleton cards={3} columns={3} /> : null}
+            {isLoading ? (
+                <div role="status" aria-busy="true" aria-label="Preise werden geladen">
+                    <CardGridSkeleton cards={3} columns={3} />
+                </div>
+            ) : null}
             {error !== null ? (
-                <Alert variant="destructive">
+                <Alert variant="destructive" role="alert">
                     <AlertDescription>{error}</AlertDescription>
                 </Alert>
             ) : null}
@@ -233,5 +268,21 @@ export default function PricingPage(): React.JSX.Element {
                 <Link href="/downloads">Bonusdateien</Link>
             </p>
         </PageStack>
+    )
+}
+
+export default function PricingPage(): React.JSX.Element {
+    return (
+        <Suspense
+            fallback={
+                <PageStack className="page-container">
+                    <div role="status" aria-busy="true" aria-label="Preise werden geladen">
+                        <CardGridSkeleton cards={3} columns={3} />
+                    </div>
+                </PageStack>
+            }
+        >
+            <PricingContent />
+        </Suspense>
     )
 }

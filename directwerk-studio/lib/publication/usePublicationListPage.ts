@@ -20,6 +20,8 @@ interface PublicationListPageLabels {
     unpublishError: string
     cancelScheduleError: string
     unarchiveError: string
+    deleteSuccess?: (title: string) => string
+    deleteError?: string
     bulk: PublicationBulkActionLabels
 }
 
@@ -33,6 +35,7 @@ export interface PublicationListPageConfig<T extends {
     unpublish: (id: number) => Promise<T>
     cancelSchedule: (id: number) => Promise<T>
     unarchive: (id: number) => Promise<T>
+    remove?: (id: number) => Promise<void>
     labels: PublicationListPageLabels
     loadingMessage?: string
     /** Excludes drafts from bulk publishing even when their status would allow it. */
@@ -93,6 +96,12 @@ export function usePublicationListPage<T extends {
         unpublish: (id) => configRef.current.unpublish(id),
         cancelSchedule: (id) => configRef.current.cancelSchedule(id),
         unarchive: (id) => configRef.current.unarchive(id),
+        remove: config.remove === undefined
+            ? undefined
+            : (id) => {
+                const remove = configRef.current.remove
+                return remove === undefined ? Promise.resolve() : remove(id)
+            },
         labels: config.labels,
         authRedirect,
     })
@@ -138,5 +147,6 @@ export function usePublicationListPage<T extends {
         handleUnpublish: listActions.handleUnpublish,
         handleCancelSchedule: listActions.handleCancelSchedule,
         handleUnarchive: listActions.handleUnarchive,
+        handleDelete: listActions.handleDelete,
     }
 }

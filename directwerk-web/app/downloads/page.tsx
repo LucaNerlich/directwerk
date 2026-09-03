@@ -14,10 +14,25 @@ import PageStack from '@directwerk/ui/components/page-stack'
 import {CardGridSkeleton} from '@/components/ContentLoadingSkeleton'
 import {assetTypeLabel, formatFileSize} from '@/lib/format/content'
 import {listMyDownloads} from '@/lib/api/client'
-import {AUTH_REQUIRED} from '@directwerk/api/constants'
+import {userFacingDownloadsError} from '@/lib/billing/userFacingBillingError'
 import type {SubscriberDownload} from '@directwerk/api/types'
 import {getClientTenantHost} from '@/lib/tenant/clientHost'
 import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
+
+function packageHint(item: SubscriberDownload): string | null {
+    const record = item as unknown as Record<string, unknown>
+    const candidates = [
+        record.packageTitle,
+        record.packageName,
+        record.productTitle,
+    ]
+    for (const candidate of candidates) {
+        if (typeof candidate === 'string' && candidate.trim().length > 0) {
+            return candidate.trim()
+        }
+    }
+    return null
+}
 
 export default function DownloadsPage(): React.JSX.Element {
     const router = useRouter()
@@ -41,11 +56,7 @@ export default function DownloadsPage(): React.JSX.Element {
                     return
                 }
                 if (authRedirect(error)) return
-                setErrorMessage(
-                    error instanceof Error
-                        ? error.message
-                        : 'Bonusdateien konnten nicht geladen werden.',
-                )
+                setErrorMessage(userFacingDownloadsError(error))
                 setIsLoading(false)
             })
         return () => {
@@ -68,10 +79,10 @@ export default function DownloadsPage(): React.JSX.Element {
             {!isLoading && errorMessage === null && downloads.length === 0 ? (
                 <EmptyState
                     title="Noch keine Bonusdateien"
-                    description="Sobald ein Paket eine Datei freischaltet, erscheint sie hier."
+                    description="Bonusdateien gibt es nur mit bestimmten Paketen — Stufen allein schalten keine Downloads frei. Sobald ein Paket eine Datei freischaltet, erscheint sie hier."
                     action={
                         <Button nativeButton={false} render={<Link href="/pricing" />}>
-                            Mitgliedschaft ansehen
+                            Tarife ansehen
                         </Button>
                     }
                 />
@@ -81,10 +92,12 @@ export default function DownloadsPage(): React.JSX.Element {
                     <p className="text-sm text-muted-foreground">
                         {downloads.length}{' '}
                         {downloads.length === 1 ? 'Datei' : 'Dateien'} verfügbar.
+                        Bonusdateien werden über Pakete freigeschaltet.
                     </p>
                     <ul className="grid gap-4 sm:grid-cols-2">
                         {downloads.map((item) => {
                             const sizeLabel = formatFileSize(item.sizeBytes)
+                            const unlockedBy = packageHint(item)
                             return (
                                 <li key={item.id}>
                                     <FeatureCard
@@ -97,6 +110,16 @@ export default function DownloadsPage(): React.JSX.Element {
                                         }
                                         title={item.title}
                                     >
+                                        <p className="text-sm text-muted-foreground">
+                                            {unlockedBy !== null ? (
+                                                <>
+                                                    Freigeschaltet über Paket:{' '}
+                                                    <strong>{unlockedBy}</strong>
+                                                </>
+                                            ) : (
+                                                'Über ein Paket freigeschaltet.'
+                                            )}
+                                        </p>
                                         <Button
                                             nativeButton={false}
                                             render={

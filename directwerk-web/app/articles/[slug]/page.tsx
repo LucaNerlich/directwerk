@@ -1,8 +1,10 @@
 import type {Metadata} from 'next'
 import {notFound} from 'next/navigation'
 
+import {buildArticleJsonLd} from '@/lib/site/jsonLd'
 import {fetchPublicArticleServer} from '@/lib/site/fetchPublicContentServer'
 import {getTenantHost} from '@/lib/site/getTenantHost'
+import {resolveTenantOrigin} from '@/lib/site/siteOrigin'
 
 import ArticleDetailClient from './article-detail-client'
 
@@ -57,11 +59,13 @@ export default async function ArticleDetailPage({params}: ArticlePageProps) {
     }
 
     let initialArticle = null
+    let origin = 'https://localhost'
     try {
         const host = await getTenantHost()
         if (host === null) {
             throw new Error('Tenant host unresolved')
         }
+        origin = resolveTenantOrigin(host)
         initialArticle = await fetchPublicArticleServer(host, slug)
     } catch {
         initialArticle = null
@@ -71,5 +75,14 @@ export default async function ArticleDetailPage({params}: ArticlePageProps) {
         return <ArticleDetailClient slug={slug} />
     }
 
-    return <ArticleDetailClient slug={slug} initialPublicArticle={initialArticle} />
+    const articleJsonLd = buildArticleJsonLd({article: initialArticle, origin})
+    return (
+        <>
+            <script
+                type="application/ld+json"
+                dangerouslySetInnerHTML={{__html: JSON.stringify(articleJsonLd)}}
+            />
+            <ArticleDetailClient slug={slug} initialPublicArticle={initialArticle} />
+        </>
+    )
 }

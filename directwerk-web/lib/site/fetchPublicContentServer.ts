@@ -98,3 +98,31 @@ export async function fetchPublicArticleSlugsServer(
         publishedAt: article.publishedAt,
     }))
 }
+
+/**
+ * Lists public episode slugs for sitemap generation. Returns an empty list on
+ * failure — a sitemap must degrade gracefully.
+ */
+export async function fetchPublicEpisodeSlugsServer(
+    host: string,
+): Promise<{slug: string; publishedAt: string | null}[]> {
+    const response = await directwerkFetch({
+        path: '/api/v1/public/episodes',
+        tenantHost: host,
+        method: 'GET',
+    })
+    if (!response.ok) {
+        return []
+    }
+
+    const value: unknown = await response.json()
+    const parsed = parsePublicEpisodeListEnvelope(value)
+    if (parsed === null) {
+        return []
+    }
+
+    return parsed.data.map((episode) => ({
+        slug: episode.slug,
+        publishedAt: episode.publishedAt,
+    }))
+}

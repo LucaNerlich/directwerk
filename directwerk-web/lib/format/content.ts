@@ -4,6 +4,42 @@ export function accessPolicyLabel(policy: AccessPolicy): string {
     return policy === 'PAID' ? 'Bezahlt' : 'Frei'
 }
 
+/**
+ * Entitlement-aware badge state. `isEntitled` reflects whether the viewer can
+ * actually consume the item right now (e.g. playable audio / readable body),
+ * not just the `SUBSCRIBER` role — see asset-storage access-control docs.
+ */
+export type EntitlementState = 'free' | 'included' | 'locked'
+
+export function entitlementState(
+    policy: AccessPolicy,
+    isEntitled: boolean,
+): EntitlementState {
+    if (policy === 'FREE') {
+        return 'free'
+    }
+    return isEntitled ? 'included' : 'locked'
+}
+
+/**
+ * User-facing entitlement label shown on badges. Replaces the bare
+ * `accessPolicyLabel` ("Bezahlt") wherever the viewer cares about access:
+ * "Frei" / "Enthalten" / "Mitgliedschaft nötig".
+ */
+export function entitlementLabel(
+    policy: AccessPolicy,
+    isEntitled = false,
+): 'Frei' | 'Enthalten' | 'Mitgliedschaft nötig' {
+    switch (entitlementState(policy, isEntitled)) {
+        case 'free':
+            return 'Frei'
+        case 'included':
+            return 'Enthalten'
+        case 'locked':
+            return 'Mitgliedschaft nötig'
+    }
+}
+
 export function formatDuration(seconds: number | null): string | null {
     if (seconds === null || seconds <= 0) {
         return null

@@ -1,7 +1,14 @@
 'use client'
 
 import type {PublishOptions, ScheduleOptions} from '@directwerk/api/types'
-import {jsonInit, postJson, proxyRequest, request} from './studioTransport'
+import {
+    authenticatedRequest,
+    INVALID_RESPONSE,
+    jsonInit,
+    postJson,
+    proxyRequest,
+    request,
+} from './studioTransport'
 
 
 export async function studioGet<T>(
@@ -22,6 +29,28 @@ export async function studioMutate<T>(
     errorMessage: string,
 ): Promise<T> {
     return proxyRequest(path, tenantHost, init, parser, errorMessage)
+}
+
+/**
+ * DELETE helper for endpoints that answer 204 No Content.
+ *
+ * The BFF proxy forwards 204/205 responses without a JSON body, while every
+ * error path stays JSON — so the shared JSON transport reports a successful
+ * delete as {@link INVALID_RESPONSE}. Only that exact failure is swallowed;
+ * every other error (including the German catalog message for 4xx) propagates.
+ */
+export async function studioDelete(
+    path: string,
+    tenantHost: string,
+): Promise<void> {
+    try {
+        await authenticatedRequest(path, tenantHost, {method: 'DELETE'})
+    } catch (error) {
+        if (error instanceof Error && error.message === INVALID_RESPONSE) {
+            return
+        }
+        throw error
+    }
 }
 
 export interface PublicationWorkflowApi<T, TCreate, TUpdate> {

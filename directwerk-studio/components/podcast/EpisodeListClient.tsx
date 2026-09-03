@@ -11,6 +11,7 @@ import PageStack from '@directwerk/ui/components/page-stack'
 
 import PublicationListSection from '@/components/publication/PublicationListSection'
 import BulkEditDialog, {type BulkEditOperation} from '@/components/publication/BulkEditDialog'
+import DeletePublicationDialog from '@/components/publication/DeletePublicationDialog'
 import {
     listCategories,
     listFormats,
@@ -19,6 +20,7 @@ import {
 } from '@/lib/api/catalogApi'
 import {
     cancelScheduleEpisode,
+    deleteEpisode,
     listEpisodes,
     listSeries,
     publishEpisode,
@@ -112,6 +114,7 @@ export default function EpisodeListClient() {
         handleUnpublish,
         handleCancelSchedule,
         handleUnarchive,
+        handleDelete,
         handleBulkPublish,
         handleBulkUnpublish,
         runBulkEdit,
@@ -121,6 +124,7 @@ export default function EpisodeListClient() {
         unpublish: (id) => unpublishEpisode(getClientTenantHost(), id),
         cancelSchedule: (id) => cancelScheduleEpisode(getClientTenantHost(), id),
         unarchive: (id) => unarchiveEpisode(getClientTenantHost(), id),
+        remove: (id) => deleteEpisode(getClientTenantHost(), id),
         isBulkPublishEligible,
         isBulkUnpublishEligible,
         labels: {
@@ -136,6 +140,8 @@ export default function EpisodeListClient() {
             unpublishError: 'Folge konnte nicht zurückgezogen werden.',
             cancelScheduleError: 'Planung konnte nicht aufgehoben werden.',
             unarchiveError: 'Folge konnte nicht wiederhergestellt werden.',
+            deleteSuccess: (title) => `Folge „${title}“ wurde gelöscht.`,
+            deleteError: 'Folge konnte nicht gelöscht werden.',
             bulk: createPublicationBulkLabels('Folge', 'Folgen'),
         },
     })
@@ -154,6 +160,21 @@ export default function EpisodeListClient() {
     )
 
     const [isBulkEditOpen, setIsBulkEditOpen] = useState(false)
+    const [deleteTarget, setDeleteTarget] = useState<EpisodeDetail | null>(null)
+    const [deletePending, setDeletePending] = useState(false)
+
+    const handleDeleteConfirm = useCallback(async (): Promise<void> => {
+        if (deleteTarget === null || handleDelete === null) {
+            return
+        }
+        setDeletePending(true)
+        try {
+            await handleDelete(deleteTarget)
+        } finally {
+            setDeletePending(false)
+            setDeleteTarget(null)
+        }
+    }, [deleteTarget, handleDelete])
     const draftCount = useMemo(
         () =>
             episodes.filter(
@@ -287,6 +308,7 @@ export default function EpisodeListClient() {
                         onBulkPublish={() => void handleBulkPublish()}
                         onBulkUnpublish={() => void handleBulkUnpublish()}
                         onCancelSchedule={(episode) => void handleCancelSchedule(episode)}
+                        onDelete={handleDelete === null ? undefined : (episode) => setDeleteTarget(episode)}
                         onPublish={(episode) => void handlePublish(episode)}
                         onToggleSelectAll={toggleSelectAll}
                         onToggleSelection={toggleSelection}
@@ -298,6 +320,18 @@ export default function EpisodeListClient() {
                         selectedIds={selectedIds}
                         unpublishableCount={unpublishableCount}
                         viewMode={viewMode}
+                    />
+                    <DeletePublicationDialog
+                        contentLabel="Folge"
+                        item={deleteTarget}
+                        onConfirm={() => void handleDeleteConfirm()}
+                        onOpenChange={(open) => {
+                            if (!open) {
+                                setDeleteTarget(null)
+                            }
+                        }}
+                        open={deleteTarget !== null}
+                        pending={deletePending}
                     />
                     <BulkEditDialog
                         busy={isBulkBusy}

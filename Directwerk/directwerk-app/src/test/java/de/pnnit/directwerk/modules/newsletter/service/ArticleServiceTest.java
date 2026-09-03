@@ -3,7 +3,9 @@ package de.pnnit.directwerk.modules.newsletter.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -22,8 +24,7 @@ import de.pnnit.directwerk.modules.newsletter.entity.Article;
 import de.pnnit.directwerk.modules.newsletter.entity.ArticleStatus;
 import de.pnnit.directwerk.modules.newsletter.exception.ArticleNotFoundException;
 import de.pnnit.directwerk.modules.newsletter.exception.ArticleValidationException;
-import de.pnnit.directwerk.modules.newsletter.repository.ArticleRepository;
-import java.util.Optional;
+import de.pnnit.directwerk.modules.newsletter.repository.ArticleRepository;import java.util.Optional;
 import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -50,6 +51,9 @@ class ArticleServiceTest {
     @Mock
     private MediaAssetQueryApi mediaAssetQueryApi;
 
+    @Mock
+    private ArticleRssFeedRefreshScheduler articleRssFeedRefreshScheduler;
+
     @InjectMocks
     private ArticleService articleService;
 
@@ -62,7 +66,8 @@ class ArticleServiceTest {
                 categoryService,
                 tenantRepository,
                 mediaAssetQueryApi,
-                htmlSanitizer
+                htmlSanitizer,
+                articleRssFeedRefreshScheduler
         );
     }
 
@@ -241,6 +246,37 @@ class ArticleServiceTest {
         when(articleRepository.findByIdAndTenantId(ARTICLE_ID, TENANT_ID)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> articleService.requireArticle(TENANT_ID, ARTICLE_ID))
+                .isInstanceOf(ArticleNotFoundException.class);
+    }
+
+    @Test
+    void deletePublishedArticleDeletesAndRequestsFeedRefresh() {
+        Article published = draftArticle();
+        published.setStatus(ArticleStatus.PUBLISHED);
+        when(articleRepository.findByIdAndTenantId(ARTICLE_ID, TENANT_ID)).thenReturn(Optional.of(published));
+
+        articleService.deleteArticle(TENANT_ID, ARTICLE_ID);
+
+        verify(articleRepository).delete(published);
+        verify(articleRssFeedRefreshScheduler).requestRefreshAfterCommit(TENANT_ID);
+    }
+
+    @Test
+    void deleteDraftArticleDeletesWithoutFeedRefresh() {
+        Article draft = draftArticle();
+        when(articleRepository.findByIdAndTenantId(ARTICLE_ID, TENANT_ID)).thenReturn(Optional.of(draft));
+
+        articleService.deleteArticle(TENANT_ID, ARTICLE_ID);
+
+        verify(articleRepository).delete(draft);
+        verify(articleRssFeedRefreshScheduler, never()).requestRefreshAfterCommit(anyLong());
+    }
+
+    @Test
+    void deleteArticleThrowsWhenMissing() {
+        when(articleRepository.findByIdAndTenantId(ARTICLE_ID, TENANT_ID)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> articleService.deleteArticle(TENANT_ID, ARTICLE_ID))
                 .isInstanceOf(ArticleNotFoundException.class);
     }
 

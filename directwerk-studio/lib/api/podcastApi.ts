@@ -11,7 +11,7 @@ import type {
     UpdateEpisodeInput,
     UpdateSeriesInput,
 } from '@directwerk/api/types'
-import {createPublicationWorkflowApi, jsonInit, studioGet, studioMutate} from './studioApiCore'
+import {createPublicationWorkflowApi, jsonInit, studioDelete, studioGet, studioMutate} from './studioApiCore'
 
 const episodeApi = createPublicationWorkflowApi<
     EpisodeDetail,
@@ -37,6 +37,13 @@ export const cancelScheduleEpisode = episodeApi.cancelSchedule
 export const unpublishEpisode = episodeApi.unpublish
 export const archiveEpisode = episodeApi.archive
 export const unarchiveEpisode = episodeApi.unarchive
+
+export async function deleteEpisode(
+    tenantHost: string,
+    episodeId: number,
+): Promise<void> {
+    return studioDelete(`/api/proxy/episodes/${episodeId}`, tenantHost)
+}
 
 const invalidEpisodeMessage = 'Der Server hat eine ungültige Folge gesendet.'
 

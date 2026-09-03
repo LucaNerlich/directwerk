@@ -3,7 +3,7 @@
 import Form from 'next/form'
 import Link from 'next/link'
 import {useSearchParams} from 'next/navigation'
-import {Suspense, useActionState} from 'react'
+import {Suspense, useActionState, useState} from 'react'
 
 import {Alert, AlertDescription} from '@directwerk/ui/components/alert'
 import AuthCard from '@directwerk/ui/components/auth-card'
@@ -16,6 +16,7 @@ import {parseRegisterInput} from '@directwerk/api/validation/input'
 
 import {setTokens} from '@/lib/auth/tokenStore'
 import {safeReturnTo} from '@/lib/auth/safeReturnTo'
+import {userFacingAuthError} from '@/lib/billing/userFacingBillingError'
 import {getClientTenantHost} from '@/lib/tenant/clientHost'
 
 interface RegisterState {
@@ -27,6 +28,7 @@ const INITIAL_STATE: RegisterState = {error: null}
 function RegisterForm() {
     const searchParams = useSearchParams()
     const returnTo = safeReturnTo(searchParams.get('returnTo'))
+    const [showPassword, setShowPassword] = useState(false)
     const [state, formAction, isPending] = useActionState(
         async (_previousState: RegisterState, formData: FormData) => {
             const input = parseRegisterInput({
@@ -52,12 +54,7 @@ function RegisterForm() {
                 window.location.assign(returnTo)
                 return INITIAL_STATE
             } catch (error) {
-                return {
-                    error:
-                        error instanceof Error
-                            ? error.message
-                            : 'Registrierung fehlgeschlagen. Bitte erneut versuchen.',
-                }
+                return {error: userFacingAuthError(error, 'register')}
             }
         },
         INITIAL_STATE,
@@ -94,14 +91,39 @@ function RegisterForm() {
                 </div>
                 <div className="space-y-2">
                     <Label htmlFor="password">Passwort</Label>
-                    <Input id="password" name="password" type="password" autoComplete="new-password" minLength={12} maxLength={128} required />
+                    <div className="relative">
+                        <Input
+                            id="password"
+                            name="password"
+                            type={showPassword ? 'text' : 'password'}
+                            autoComplete="new-password"
+                            minLength={12}
+                            maxLength={128}
+                            required
+                            className="pr-24"
+                        />
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="absolute top-1/2 right-1 -translate-y-1/2"
+                            aria-pressed={showPassword}
+                            onClick={() => setShowPassword((current) => !current)}
+                        >
+                            {showPassword ? 'Verbergen' : 'Anzeigen'}
+                        </Button>
+                    </div>
                     <p className="text-xs text-muted-foreground">Mindestens 12 Zeichen.</p>
                 </div>
                 <Button className="w-full" type="submit" disabled={isPending}>
                     {isPending ? 'Registrierung läuft…' : 'Registrieren'}
                 </Button>
+                <p className="text-xs text-muted-foreground">
+                    Aus Sicherheitsgründen sind wiederholte Versuche begrenzt — warte
+                    bei einer Sperrung kurz und versuche es erneut.
+                </p>
             </Form>
-            {state.error !== null ? <Alert variant="destructive"><AlertDescription>{state.error}</AlertDescription></Alert> : null}
+            {state.error !== null ? <Alert variant="destructive" role="alert"><AlertDescription>{state.error}</AlertDescription></Alert> : null}
         </AuthCard>
     )
 }
@@ -114,7 +136,7 @@ export default function RegisterPage() {
                     title="Registrieren"
                     description="Registrierung wird vorbereitet…"
                 >
-                    <p className="text-sm text-muted-foreground">Wird geladen…</p>
+                    <p role="status" className="text-sm text-muted-foreground">Wird geladen…</p>
                 </AuthCard>
             }
         >

@@ -24,6 +24,7 @@ import {
 import {AUTH_REQUIRED} from '@directwerk/api/constants'
 import type {ArticleFeedPreview, ArticleFeedView, PublicCategory} from '@directwerk/api/types'
 import {formatPublishedAt} from '@directwerk/api/format/datetime'
+import {userFacingFeedsError} from '@/lib/billing/userFacingBillingError'
 
 interface ArticleCustomFeedsPanelProps {
     tenantHost: string
@@ -35,6 +36,8 @@ interface ArticleCustomFeedsPanelProps {
 }
 
 const MAX_CUSTOM_FEEDS = 5
+
+type RowAction = 'toggle' | 'rotate' | 'delete'
 
 export default function ArticleCustomFeedsPanel({
     tenantHost,
@@ -51,7 +54,10 @@ export default function ArticleCustomFeedsPanel({
     const [selectedIds, setSelectedIds] = useState<number[]>([])
     const [editingId, setEditingId] = useState<number | null>(null)
     const [preview, setPreview] = useState<ArticleFeedPreview | null>(null)
-    const [busy, setBusy] = useState(false)
+    const [previewError, setPreviewError] = useState<string | null>(null)
+    const [isSaving, setIsSaving] = useState(false)
+    const [pendingFeedId, setPendingFeedId] = useState<number | null>(null)
+    const [pendingAction, setPendingAction] = useState<RowAction | null>(null)
 
     useEffect(() => {
         let active = true
@@ -67,11 +73,7 @@ export default function ArticleCustomFeedsPanel({
                     return
                 }
                 setCategories([])
-                setCategoriesError(
-                    error instanceof Error
-                        ? error.message
-                        : 'Kategorien konnten nicht geladen werden.',
-                )
+                setCategoriesError(userFacingFeedsError(error))
             })
         return () => {
             active = false
@@ -81,6 +83,7 @@ export default function ArticleCustomFeedsPanel({
     useEffect(() => {
         if (!canBuild || selectedIds.length === 0) {
             setPreview(null)
+            setPreviewError(null)
             return
         }
         let active = true
@@ -89,6 +92,7 @@ export default function ArticleCustomFeedsPanel({
                 .then((result) => {
                     if (active) {
                         setPreview(result)
+                        setPreviewError(null)
                     }
                 })
                 .catch((error: unknown) => {
@@ -99,11 +103,7 @@ export default function ArticleCustomFeedsPanel({
                         return
                     }
                     setPreview(null)
-                    onError(
-                        error instanceof Error
-                            ? error.message
-                            : 'Vorschau konnte nicht geladen werden.',
-                    )
+                    setPreviewError(userFacingFeedsError(error))
                 })
         }, 250)
         return () => {
@@ -118,6 +118,16 @@ export default function ArticleCustomFeedsPanel({
             return true
         }
         return false
+    }
+
+    function isRowBusy(feedId: number, action?: RowAction): boolean {
+        if (pendingFeedId !== feedId) {
+            return false
+        }
+        if (action === undefined) {
+            return true
+        }
+        return pendingAction === action
     }
 
     function toggleCategory(categoryId: number): void {
@@ -139,10 +149,11 @@ export default function ArticleCustomFeedsPanel({
         setTitle('')
         setSelectedIds([])
         setPreview(null)
+        setPreviewError(null)
     }
 
     async function handleSave(): Promise<void> {
-        setBusy(true)
+        setIsSaving(true)
         try {
             if (editingId === null) {
                 const created = await createCustomArticleFeed(tenantHost, title.trim(), selectedIds)
@@ -161,18 +172,15 @@ export default function ArticleCustomFeedsPanel({
             if (handleAuth(error)) {
                 return
             }
-            onError(
-                error instanceof Error
-                    ? error.message
-                    : 'Feed konnte nicht gespeichert werden.',
-            )
+            onError(userFacingFeedsError(error))
         } finally {
-            setBusy(false)
+            setIsSaving(false)
         }
     }
 
     async function handleToggle(feed: ArticleFeedView): Promise<void> {
-        setBusy(true)
+        setPendingFeedId(feed.id)
+        setPendingAction('toggle')
         try {
             const updated = await setArticleFeedEnabledForUser(tenantHost, feed.id, !feed.enabled)
             onFeedsChange(feeds.map((item) => (item.id === updated.id ? updated : item)))
@@ -180,25 +188,23 @@ export default function ArticleCustomFeedsPanel({
             if (handleAuth(error)) {
                 return
             }
-            onError(
-                error instanceof Error
-                    ? error.message
-                    : 'Feed konnte nicht aktualisiert werden.',
-            )
+            onError(userFacingFeedsError(error))
         } finally {
-            setBusy(false)
+            setPendingFeedId(null)
+            setPendingAction(null)
         }
     }
 
     async function handleRotate(feed: ArticleFeedView): Promise<void> {
         if (
             !window.confirm(
-                'Token erneuern? Feed-Reader müssen die neue URL speichern.',
+                'Token erneuern? Die alte URL wird sofort ungültig. Trage die neue URL danach in deinem Feed-Reader ein.',
             )
         ) {
             return
         }
-        setBusy(true)
+        setPendingFeedId(feed.id)
+        setPendingAction('rotate')
         try {
             const updated = await rotateArticleFeedToken(tenantHost, feed.id)
             onFeedsChange(feeds.map((item) => (item.id === updated.id ? updated : item)))
@@ -206,13 +212,10 @@ export default function ArticleCustomFeedsPanel({
             if (handleAuth(error)) {
                 return
             }
-            onError(
-                error instanceof Error
-                    ? error.message
-                    : 'Token konnte nicht erneuert werden.',
-            )
+            onError(userFacingFeedsError(error))
         } finally {
-            setBusy(false)
+            setPendingFeedId(null)
+            setPendingAction(null)
         }
     }
 
@@ -220,7 +223,8 @@ export default function ArticleCustomFeedsPanel({
         if (!window.confirm(`Feed „${feed.title}“ wirklich löschen?`)) {
             return
         }
-        setBusy(true)
+        setPendingFeedId(feed.id)
+        setPendingAction('delete')
         try {
             await deleteCustomArticleFeed(tenantHost, feed.id)
             onFeedsChange(feeds.filter((item) => item.id !== feed.id))
@@ -231,20 +235,19 @@ export default function ArticleCustomFeedsPanel({
             if (handleAuth(error)) {
                 return
             }
-            onError(
-                error instanceof Error
-                    ? error.message
-                    : 'Feed konnte nicht gelöscht werden.',
-            )
+            onError(userFacingFeedsError(error))
         } finally {
-            setBusy(false)
+            setPendingFeedId(null)
+            setPendingAction(null)
         }
     }
 
     const atFeedLimit = customFeeds.length >= MAX_CUSTOM_FEEDS
     const showCreateForm =
         canBuild && categories.length > 0 && (editingId !== null || !atFeedLimit)
-    const canSave = title.trim().length > 0 && selectedIds.length > 0 && !busy
+    const canSave = title.trim().length > 0 && selectedIds.length > 0 && !isSaving
+    const showEditHiddenHint =
+        !canBuild && customFeeds.length > 0
 
     return (
         <section className="flex flex-col gap-4">
@@ -265,6 +268,14 @@ export default function ArticleCustomFeedsPanel({
             {canBuild && atFeedLimit && editingId === null ? (
                 <p className="text-sm text-muted-foreground">
                     Du kannst höchstens {MAX_CUSTOM_FEEDS} eigene Feeds anlegen.
+                </p>
+            ) : null}
+            {showEditHiddenHint ? (
+                <p className="text-sm text-muted-foreground">
+                    Neue Feeds anlegen und bearbeiten ist für dieses Angebot
+                    deaktiviert. Deine bestehenden Feeds bleiben nutzbar — du
+                    kannst sie weiterhin aktivieren, das Token erneuern oder
+                    löschen.
                 </p>
             ) : null}
             {showCreateForm ? (
@@ -305,8 +316,13 @@ export default function ArticleCustomFeedsPanel({
                                     </label>
                                 ))}
                             </fieldset>
+                            {previewError !== null ? (
+                                <p className="text-sm text-muted-foreground" role="status">
+                                    {previewError} Speichern ist trotzdem möglich.
+                                </p>
+                            ) : null}
                             {preview !== null ? (
-                                <p className="text-sm text-muted-foreground">
+                                <p className="text-sm text-muted-foreground" role="status">
                                     Dieser Feed enthält aktuell {preview.articleCount}{' '}
                                     {preview.articleCount === 1 ? 'Beitrag' : 'Beiträge'}
                                     {preview.sampleTitles.length > 0
@@ -316,7 +332,11 @@ export default function ArticleCustomFeedsPanel({
                             ) : null}
                             <div className="flex flex-wrap gap-2">
                                 <Button disabled={!canSave} type="submit">
-                                    {editingId === null ? 'Feed speichern' : 'Änderungen speichern'}
+                                    {isSaving
+                                        ? 'Wird gespeichert…'
+                                        : editingId === null
+                                          ? 'Feed speichern'
+                                          : 'Änderungen speichern'}
                                 </Button>
                                 {editingId !== null ? (
                                     <Button onClick={resetForm} type="button" variant="outline">
@@ -347,36 +367,45 @@ export default function ArticleCustomFeedsPanel({
                                         : 'Keine Kategorien'}{' '}
                                     · aktualisiert {formatPublishedAt(feed.updatedAt)}
                                 </p>
-                                {feed.enabled ? (
+                                <div className={feed.enabled ? undefined : 'opacity-70'}>
                                     <FeedUrlDisplay url={feed.url} />
-                                ) : (
-                                    <p className="text-sm text-muted-foreground">
-                                        Dieser Feed ist derzeit deaktiviert.
-                                    </p>
-                                )}
+                                    {!feed.enabled ? (
+                                        <p className="mt-2 text-sm text-muted-foreground">
+                                            Deaktiviert — die URL ist sichtbar, aber
+                                            Feed-Reader können sie erst nach dem
+                                            Aktivieren wieder abrufen.
+                                        </p>
+                                    ) : null}
+                                </div>
                             </div>
                             <div className="flex flex-wrap gap-2">
                                 <Button
-                                    disabled={busy}
+                                    disabled={isRowBusy(feed.id)}
                                     onClick={() => void handleToggle(feed)}
                                     size="sm"
                                     type="button"
                                     variant="outline"
                                 >
-                                    {feed.enabled ? 'Deaktivieren' : 'Aktivieren'}
+                                    {isRowBusy(feed.id, 'toggle')
+                                        ? 'Wird umgeschaltet…'
+                                        : feed.enabled
+                                          ? 'Deaktivieren'
+                                          : 'Aktivieren'}
                                 </Button>
                                 <Button
-                                    disabled={busy}
+                                    disabled={isRowBusy(feed.id)}
                                     onClick={() => void handleRotate(feed)}
                                     size="sm"
                                     type="button"
                                     variant="outline"
                                 >
-                                    Token erneuern
+                                    {isRowBusy(feed.id, 'rotate')
+                                        ? 'Wird erneuert…'
+                                        : 'Token erneuern'}
                                 </Button>
                                 {canBuild && categories.length > 0 ? (
                                     <Button
-                                        disabled={busy}
+                                        disabled={isRowBusy(feed.id) || isSaving}
                                         onClick={() => startEdit(feed)}
                                         size="sm"
                                         type="button"
@@ -386,13 +415,15 @@ export default function ArticleCustomFeedsPanel({
                                     </Button>
                                 ) : null}
                                 <Button
-                                    disabled={busy}
+                                    disabled={isRowBusy(feed.id)}
                                     onClick={() => void handleDelete(feed)}
                                     size="sm"
                                     type="button"
                                     variant="outline"
                                 >
-                                    Löschen
+                                    {isRowBusy(feed.id, 'delete')
+                                        ? 'Wird gelöscht…'
+                                        : 'Löschen'}
                                 </Button>
                             </div>
                         </ListPanelRow>

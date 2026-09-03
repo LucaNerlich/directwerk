@@ -7,7 +7,7 @@ import type {
     CreateArticleInput,
     UpdateArticleInput,
 } from '@directwerk/api/types'
-import {createPublicationWorkflowApi} from './studioApiCore'
+import {createPublicationWorkflowApi, studioDelete} from './studioApiCore'
 
 const articleApi = createPublicationWorkflowApi<
     ArticleDetail,
@@ -33,3 +33,10 @@ export const cancelScheduleArticle = articleApi.cancelSchedule
 export const unpublishArticle = articleApi.unpublish
 export const archiveArticle = articleApi.archive
 export const unarchiveArticle = articleApi.unarchive
+
+export async function deleteArticle(
+    tenantHost: string,
+    articleId: number,
+): Promise<void> {
+    return studioDelete(`/api/proxy/articles/${articleId}`, tenantHost)
+}

@@ -6,6 +6,7 @@ import ArticleListClient from '@/components/write/ArticleListClient'
 import {listCategories, replaceArticleCategories} from '@/lib/api/catalogApi'
 import {
     cancelScheduleArticle,
+    deleteArticle,
     listArticles,
     publishArticle,
     unarchiveArticle,
@@ -22,9 +23,12 @@ vi.mock('next/navigation', () => ({
     }),
 }))
 
-vi.mock('@directwerk/api/auth/useAuthRequired', () => ({
-    useAuthRequired: () => () => false,
-}))
+vi.mock('@directwerk/api/auth/useAuthRequired', () => {
+    // Stable like the production hook (useCallback): a fresh closure per
+    // render would change `load` identity and refetch after every render.
+    const authRedirect = () => false
+    return {useAuthRequired: () => authRedirect}
+})
 
 vi.mock('@directwerk/api/tenant', () => ({
     getClientTenantHost: () => 'tenant.test',
@@ -37,6 +41,7 @@ vi.mock('@/lib/api/writeApi', () => ({
     cancelScheduleArticle: vi.fn(),
     unarchiveArticle: vi.fn(),
     updateArticle: vi.fn(),
+    deleteArticle: vi.fn(),
 }))
 
 vi.mock('@/lib/api/catalogApi', () => ({
@@ -421,8 +426,7 @@ describe('ArticleListClient', () => {
         })
     })
 
-    it('offers bulk edit for published-only selections but disables apply', async () => {
-        const user = userEvent.setup()
+    it('offers bulk edit for published-only selections but disables apply', async () => {        const user = userEvent.setup()
         vi.mocked(listArticles).mockResolvedValue(mockArticles)
         vi.mocked(listCategories).mockResolvedValue([
             {id: 21, slug: 'news', name: 'News', parentId: null, active: true},
@@ -451,5 +455,96 @@ describe('ArticleListClient', () => {
         expect(screen.getByRole('button', {name: 'Anwenden'})).toBeDisabled()
         expect(replaceArticleCategories).not.toHaveBeenCalled()
         expect(updateArticle).not.toHaveBeenCalled()
+    })
+
+    it('deletes a draft article after simple confirmation', async () => {
+        const user = userEvent.setup()
+        vi.mocked(listArticles).mockResolvedValue(mockArticles)
+        vi.mocked(deleteArticle).mockResolvedValue(undefined)
+
+        render(<ArticleListClient />)
+
+        await waitFor(() => {
+            expect(screen.getByText('Draft Post')).toBeInTheDocument()
+        })
+
+        const deleteButtons = screen.getAllByRole('button', {name: /löschen/i})
+        await user.click(deleteButtons[0])
+
+        await waitFor(() => {
+            expect(screen.getByText('Beitrag löschen?')).toBeInTheDocument()
+        })
+        await user.click(screen.getByRole('button', {name: 'Löschen' }))
+
+        await waitFor(() => {
+            expect(deleteArticle).toHaveBeenCalledWith('tenant.test', 1)
+        })
+
+        await waitFor(() => {
+            expect(
+                screen.getByText('Beitrag „Draft Post“ wurde gelöscht.'),
+            ).toBeInTheDocument()
+        })
+        expect(screen.queryByText('Draft Post')).not.toBeInTheDocument()
+    })
+
+    it('requires typing the slug to delete a published article', async () => {
+        const user = userEvent.setup()
+        vi.mocked(listArticles).mockResolvedValue(mockArticles)
+        vi.mocked(deleteArticle).mockResolvedValue(undefined)
+
+        render(<ArticleListClient />)
+
+        await waitFor(() => {
+            expect(screen.getByText('Published Post')).toBeInTheDocument()
+        })
+
+        await user.click(
+            screen.getByRole('button', {name: '„Published Post“ löschen'}),
+        )
+
+        const confirmButton = await screen.findByRole('button', {
+            name: 'Endgültig löschen',
+        })
+        expect(confirmButton).toBeDisabled()
+
+        await user.type(
+            screen.getByLabelText('Slug zur Bestätigung'),
+            'published-post',
+        )
+        await user.click(confirmButton)
+
+        await waitFor(() => {
+            expect(deleteArticle).toHaveBeenCalledWith('tenant.test', 2)
+        })
+    })
+
+    it('shows a German error when deleting fails and keeps the article', async () => {
+        const user = userEvent.setup()
+        vi.mocked(listArticles).mockResolvedValue(mockArticles)
+        vi.mocked(deleteArticle).mockRejectedValue(
+            new Error('Beitrag konnte nicht gelöscht werden.'),
+        )
+
+        render(<ArticleListClient />)
+
+        await waitFor(() => {
+            expect(screen.getByText('Draft Post')).toBeInTheDocument()
+        })
+
+        const deleteButtons = screen.getAllByRole('button', {name: /löschen/i})
+        await user.click(deleteButtons[0])
+
+        await waitFor(() => {
+            expect(screen.getByText('Beitrag löschen?')).toBeInTheDocument()
+        })
+        await user.click(screen.getByRole('button', {name: 'Löschen' }))
+
+        await waitFor(() => {
+            expect(screen.getByRole('alert')).toHaveTextContent(
+                'Beitrag konnte nicht gelöscht werden.',
+            )
+        })
+        expect(screen.getByText('Draft Post')).toBeInTheDocument()
     })
 })

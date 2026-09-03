@@ -1,23 +1,28 @@
 import type {MetadataRoute} from 'next'
 import {headers} from 'next/headers'
 
-function originFromHost(raw: string): string {
-    const host = raw.includes('://') ? new URL(raw).host : raw
-    return `https://${host}`
-}
+import {resolveTenantOrigin} from '@/lib/site/siteOrigin'
 
 export default async function robots(): Promise<MetadataRoute.Robots> {
     const headerStore = await headers()
     const rawHost =
         headerStore.get('x-forwarded-host') ?? headerStore.get('host')
-    const origin =
-        rawHost !== null ? originFromHost(rawHost) : 'https://localhost'
+    const origin = resolveTenantOrigin(rawHost)
 
     return {
         rules: {
             userAgent: '*',
             allow: '/',
-            disallow: ['/api/', '/account', '/login', '/checkout'],
+            disallow: [
+                '/api/',
+                '/account',
+                '/login',
+                '/checkout',
+                '/downloads',
+                // Tokenized private subscriber feeds (`/feeds/<tenant>/u/<token>…`).
+                '/feeds/*/u/',
+                '/feeds/*/articles/u/',
+            ],
         },
         sitemap: `${origin}/sitemap.xml`,
     }

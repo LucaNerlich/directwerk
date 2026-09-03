@@ -1,23 +1,24 @@
 'use client'
 
 import Link from 'next/link'
-import {useEffect, useState, useSyncExternalStore} from 'react'
+import {useSyncExternalStore} from 'react'
 
-import {Alert, AlertDescription} from '@directwerk/ui/components/alert'
 import PageHeader from '@directwerk/ui/components/page-header'
-import PageStack from '@directwerk/ui/components/page-stack'
 import SectionHeader from '@directwerk/ui/components/section-header'
 
 import AccessPolicyBadge from '@/components/AccessPolicyBadge'
 import ContentMetaLine from '@/components/ContentMetaLine'
+import DetailShell, {DetailLockedPanel} from '@/components/DetailShell'
 import {listMyEpisodes, listPublicEpisodes} from '@/lib/api/client'
 import {sanitizeContentHtml} from '@/lib/sanitizeContentHtml'
-import {AUTH_REQUIRED} from '@directwerk/api/constants'
-import type {PublicEpisode} from '@directwerk/api/types'
 import {
     getAccessToken,
     subscribeToTokenStore,
 } from '@/lib/auth/tokenStore'
+import {useEntitledDetail} from '@/lib/catalog/useEntitledDetail'
+import {findUnlockProduct, unlockHref} from '@/lib/catalog/unlock'
+import {usePublicProducts} from '@/lib/catalog/usePublicProducts'
+import type {PublicEpisode} from '@directwerk/api/types'
 import {formatPublishedAt} from '@directwerk/api/format/datetime'
 import {formatDuration} from '@/lib/format/content'
 import {getClientTenantHost} from '@/lib/tenant/clientHost'
@@ -29,6 +30,12 @@ function readTokenClient(): string | null {
 function readTokenServer(): string | null {
     return null
 }
+
+const MESSAGES = {
+    emptySlug: 'Folge nicht gefunden.',
+    loadFailed: 'Folge konnte nicht geladen werden.',
+    authRequired: 'Sitzung abgelaufen — bitte erneut anmelden.',
+} as const
 
 export default function EpisodeDetailClient({
     slug,
@@ -45,95 +52,62 @@ export default function EpisodeDetailClient({
         readTokenServer,
     )
     const isAuthenticated = accessToken !== null
-    const [episode, setEpisode] = useState<PublicEpisode | null>(
-        initialPublicEpisode,
-    )
-    const [errorMessage, setErrorMessage] = useState<string | null>(null)
-    const [isLoading, setIsLoading] = useState(initialPublicEpisode === null)
-
-    useEffect(() => {
-        let active = true
-        if (slug.length === 0) {
-            setErrorMessage('Folge nicht gefunden.')
-            setIsLoading(false)
-            return
-        }
-
-        // A preloaded public episode is already rendered — only subscribers
-        // need a (re-)fetch against their entitled catalog.
-        if (initialPublicEpisode !== null && !isAuthenticated) {
-            setIsLoading(false)
-            return
-        }
-
-        setIsLoading(true)
-        setErrorMessage(null)
-
-        const load = isAuthenticated
-            ? listMyEpisodes(tenantHost)
-            : listPublicEpisodes(tenantHost)
-
-        load
-            .then((episodes) => {
-                if (!active) {
-                    return
-                }
-                const match = episodes.find((item) => item.slug === slug) ?? null
-                setEpisode(match)
-                if (match === null) {
-                    setErrorMessage(
-                        isAuthenticated
-                            ? 'Folge nicht gefunden oder nicht freigeschaltet.'
-                            : 'Folge nicht im öffentlichen Katalog. Bei bezahlten Folgen bitte anmelden.',
-                    )
-                }
-            })
-            .catch((error: unknown) => {
-                if (!active) {
-                    return
-                }
-                if (error instanceof Error && error.message === AUTH_REQUIRED) {
-                    setErrorMessage('Sitzung abgelaufen — bitte erneut anmelden.')
-                    return
-                }
-                setErrorMessage(
-                    error instanceof Error
-                        ? error.message
-                        : 'Folge konnte nicht geladen werden.',
-                )
-            })
-            .finally(() => {
-                if (active) {
-                    setIsLoading(false)
-                }
-            })
-
-        return () => {
-            active = false
-        }
-    }, [tenantHost, isAuthenticated, slug, initialPublicEpisode])
+    const products = usePublicProducts(tenantHost)
+    const unlockTarget = unlockHref(findUnlockProduct(products))
+    const {item: episode, status, errorMessage, retry} = useEntitledDetail<PublicEpisode>({
+        slug,
+        initial: initialPublicEpisode,
+        isAuthenticated,
+        tenantHost,
+        // No single-episode metadata endpoint exists (only list + stream /
+        // download), so episodes keep the catalog scan.
+        loadPublic: async () =>
+            (await listPublicEpisodes(tenantHost)).find((item) => item.slug === slug) ??
+            null,
+        loadEntitled: async () =>
+            (await listMyEpisodes(tenantHost)).find((item) => item.slug === slug) ?? null,
+        messages: MESSAGES,
+    })
 
     const title =
         episode !== null
             ? `${episode.episodeNumber !== null ? `#${episode.episodeNumber} ` : ''}${episode.title}`
             : ''
+    const isLocked = episode !== null && episode.audioCdnUrl === null
 
     return (
-        <PageStack className="page-container">
-            <Link className="text-sm text-muted-foreground hover:text-foreground" href="/episodes">
-                ← Alle Folgen
-            </Link>
-            {isLoading ? <p className="text-sm text-muted-foreground">Wird geladen…</p> : null}
-            {errorMessage !== null ? (
-                <Alert variant="destructive">
-                    <AlertDescription>{errorMessage}</AlertDescription>
-                </Alert>
-            ) : null}
-
+        <DetailShell
+            backHref="/episodes"
+            backLabel="← Alle Folgen"
+            isLoading={status === 'loading'}
+            isAuthenticated={isAuthenticated}
+            errorMessage={status === 'error' ? errorMessage : null}
+            onRetry={retry}
+            notFound={
+                status === 'not-found'
+                    ? {
+                          title: 'Folge nicht verfügbar',
+                          description: isAuthenticated
+                              ? 'Diese Folge wurde nicht gefunden oder ist nicht für dich freigeschaltet. Eine Mitgliedschaft schaltet bezahlte Folgen frei.'
+                              : 'Diese Folge ist nicht im öffentlichen Katalog. Bezahlte Folgen erscheinen nach der Anmeldung mit aktiver Mitgliedschaft.',
+                      }
+                    : null
+            }
+            unlockHref={unlockTarget}
+        >
             {episode !== null ? (
                 <article className="max-w-3xl space-y-6">
                     <PageHeader
-                        actions={<AccessPolicyBadge policy={episode.accessPolicy} />}
+                        actions={
+                            <AccessPolicyBadge
+                                policy={episode.accessPolicy}
+                                isEntitled={
+                                    episode.accessPolicy === 'PAID'
+                                        ? !isLocked
+                                        : undefined
+                                }
+                            />
+                        }
                         description={
                             <ContentMetaLine
                                 items={[
@@ -166,14 +140,16 @@ export default function EpisodeDetailClient({
                             >
                                 Audio nicht verfügbar
                             </audio>
-                        ) : (
-                            <p className="text-sm text-muted-foreground">
-                                {episode.accessPolicy === 'PAID' ? (
+                        ) : episode.accessPolicy === 'PAID' ? (
+                            <DetailLockedPanel
+                                title="Mitgliedschaft nötig"
+                                description={
                                     isAuthenticated ? (
                                         <>
                                             Kein abspielbares Audio — fehlende
-                                            Freischaltung oder Datei.{' '}
-                                            <Link href="/pricing">Tarife ansehen</Link>
+                                            Freischaltung oder Datei. Eine
+                                            Mitgliedschaft schaltet bezahlte Folgen
+                                            frei.
                                         </>
                                     ) : (
                                         <>
@@ -182,14 +158,18 @@ export default function EpisodeDetailClient({
                                             freizuschalten.
                                         </>
                                     )
-                                ) : (
-                                    'Noch keine öffentliche Audio-URL.'
-                                )}
+                                }
+                                isAuthenticated={isAuthenticated}
+                                unlockHref={unlockTarget}
+                            />
+                        ) : (
+                            <p className="text-sm text-muted-foreground">
+                                Noch keine öffentliche Audio-URL.
                             </p>
                         )}
                     </section>
                 </article>
             ) : null}
-        </PageStack>
+        </DetailShell>
     )
 }

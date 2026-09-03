@@ -92,7 +92,7 @@ export default function SiteHeader({
                 href={item.href}
                 className={buttonVariants({
                     variant: isActive ? 'secondary' : 'ghost',
-                    className: 'justify-start',
+                    className: 'min-h-[44px] justify-start',
                 })}
                 aria-current={isActive ? 'page' : undefined}
             >
@@ -133,7 +133,7 @@ export default function SiteHeader({
     return (
         <SiteShell
             brand={
-                <Link className="flex min-w-0 items-center gap-2" href="/">
+                <Link className="flex min-w-0 items-center gap-2 min-h-[44px]" href="/">
                     <BrandLogo
                         className="h-8 w-auto"
                         logoUrl={config.branding.logoUrl}

@@ -12,6 +12,9 @@ import de.pnnit.directwerk.modules.digital.entity.Category;
 import de.pnnit.directwerk.modules.newsletter.service.ArticlePublicationWorkflowService;
 import de.pnnit.directwerk.modules.newsletter.service.ArticleService;
 import de.pnnit.directwerk.multitenancy.TenantContext;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
@@ -25,6 +28,7 @@ import java.util.Set;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -174,6 +178,25 @@ public class ArticleController {
         return ResponseEntity.ok(Response.ok(toView(
                 articlePublicationWorkflowService.unarchive(tenantId, articleId)
         )));
+    }
+
+    @Operation(
+            summary = "Delete an article",
+            description = "Deletes an article in any status. The hero asset is detached, never deleted "
+                    + "(S3 objects survive); category assignments are removed with the article. "
+                    + "Custom article feeds select by category at read time and never reference "
+                    + "article ids, so no feed rules need cleanup — feeds simply stop including "
+                    + "the article. Returns 204 with an empty body."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "204", description = "Article deleted"),
+            @ApiResponse(responseCode = "404", description = "Unknown id, or id belongs to another tenant (ARTICLE_NOT_FOUND)")
+    })
+    @DeleteMapping("/{articleId}")
+    ResponseEntity<Void> deleteArticle(@PathVariable Long articleId) {
+        Long tenantId = TenantContext.requireTenantId();
+        articleService.deleteArticle(tenantId, articleId);
+        return ResponseEntity.noContent().build();
     }
 
     public static ArticleView toView(Article article) {

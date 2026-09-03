@@ -13,6 +13,8 @@ export interface PublicationListActionLabels {
     unpublishError: string
     cancelScheduleError: string
     unarchiveError: string
+    deleteSuccess?: (title: string) => string
+    deleteError?: string
 }
 
 export interface PublicationListActionsState<T extends {id: number; title: string}> {
@@ -23,6 +25,7 @@ export interface PublicationListActionsState<T extends {id: number; title: strin
     handleUnpublish: (item: T) => Promise<void>
     handleCancelSchedule: (item: T) => Promise<void>
     handleUnarchive: (item: T) => Promise<void>
+    handleDelete: ((item: T) => Promise<void>) | null
 }
 
 export function usePublicationListActions<T extends {
@@ -35,6 +38,7 @@ export function usePublicationListActions<T extends {
     unpublish,
     cancelSchedule,
     unarchive,
+    remove,
     labels,
     authRedirect,
 }: {
@@ -43,6 +47,7 @@ export function usePublicationListActions<T extends {
     unpublish: (id: number) => Promise<T>
     cancelSchedule: (id: number) => Promise<T>
     unarchive: (id: number) => Promise<T>
+    remove?: (id: number) => Promise<void>
     labels: PublicationListActionLabels
     authRedirect: (error: unknown) => boolean
 }): PublicationListActionsState<T> {
@@ -128,6 +133,38 @@ export function usePublicationListActions<T extends {
         [labels, runAction, unarchive],
     )
 
+    const handleDelete = useCallback(
+        async (item: T) => {
+            if (remove === undefined) {
+                return
+            }
+            setBusyItemId(item.id)
+            setErrorMessage(null)
+            setStatusMessage(null)
+            try {
+                await remove(item.id)
+                setItems((current) => current.filter((entry) => entry.id !== item.id))
+                setStatusMessage(
+                    labels.deleteSuccess !== undefined
+                        ? labels.deleteSuccess(item.title)
+                        : `„${item.title}“ wurde gelöscht.`,
+                )
+            } catch (error) {
+                if (authRedirect(error)) {
+                    return
+                }
+                setErrorMessage(
+                    error instanceof Error
+                        ? error.message
+                        : (labels.deleteError ?? 'Löschen fehlgeschlagen.'),
+                )
+            } finally {
+                setBusyItemId(null)
+            }
+        },
+        [authRedirect, labels, remove, setItems],
+    )
+
     return {
         busyItemId,
         errorMessage,
@@ -136,5 +173,6 @@ export function usePublicationListActions<T extends {
         handleUnpublish,
         handleCancelSchedule,
         handleUnarchive,
+        handleDelete: remove === undefined ? null : handleDelete,
     }
 }

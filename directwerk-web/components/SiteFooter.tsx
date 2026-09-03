@@ -31,18 +31,18 @@ export default function SiteFooter(): React.JSX.Element {
                         </p>
                     </div>
                     <nav aria-label="Fußzeile" className="flex flex-wrap gap-x-4 gap-y-2">
-                        {showPodcast ? <Link href="/episodes">Podcast</Link> : null}
-                        {showArticles ? <Link href="/articles">Beiträge</Link> : null}
-                        {showPricing ? <Link href="/pricing">Preise</Link> : null}
-                        {showFeeds ? <Link href="/feeds">Feeds</Link> : null}
+                        {showPodcast ? <Link className="inline-flex min-h-[44px] items-center" href="/episodes">Podcast</Link> : null}
+                        {showArticles ? <Link className="inline-flex min-h-[44px] items-center" href="/articles">Beiträge</Link> : null}
+                        {showPricing ? <Link className="inline-flex min-h-[44px] items-center" href="/pricing">Preise</Link> : null}
+                        {showFeeds ? <Link className="inline-flex min-h-[44px] items-center" href="/feeds">Feeds</Link> : null}
                         {showDownloads && isAuthenticated ? (
-                            <Link href="/downloads">Bonusdateien</Link>
+                            <Link className="inline-flex min-h-[44px] items-center" href="/downloads">Bonusdateien</Link>
                         ) : null}
-                        <Link href="/account">{isAuthenticated ? 'Mein Konto' : 'Konto'}</Link>
+                        <Link className="inline-flex min-h-[44px] items-center" href="/account">{isAuthenticated ? 'Mein Konto' : 'Konto'}</Link>
                         {!isAuthenticated ? (
                             <>
-                                <Link href="/login">Anmelden</Link>
-                                <Link href="/register">Registrieren</Link>
+                                <Link className="inline-flex min-h-[44px] items-center" href="/login">Anmelden</Link>
+                                <Link className="inline-flex min-h-[44px] items-center" href="/register">Registrieren</Link>
                             </>
                         ) : null}
                     </nav>

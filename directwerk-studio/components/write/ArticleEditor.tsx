@@ -9,6 +9,7 @@ import {useCallback, useEffect, useMemo, useRef, useState} from 'react'
 import MediaLibraryPicker from '@/components/media/MediaLibraryPicker'
 import UploadProgress from '@/components/media/UploadProgress'
 import FormatCategoryPicker from '@/components/publication/FormatCategoryPicker'
+import PublicationDangerZone from '@/components/publication/PublicationDangerZone'
 import PublishedLinksPanel from '@/components/publication/PublishedLinksPanel'
 import PublicationEditorLayout from '@/components/publication/PublicationEditorLayout'
 import LevelSelect from '@/components/studio/LevelSelect'
@@ -18,6 +19,7 @@ import {
     archiveArticle,
     cancelScheduleArticle,
     createArticle,
+    deleteArticle,
     getArticle,
     listArticles,
     publishArticle,
@@ -350,9 +352,10 @@ export default function ArticleEditor({articleId}: {articleId?: number}) {
     }
 
     return (
-        <PublicationEditorLayout
-            kind="article"
-            status={article?.status ?? 'DRAFT'}
+        <>
+            <PublicationEditorLayout
+                kind="article"
+                status={article?.status ?? 'DRAFT'}
             title={title}
             body={body}
             accessPolicy={accessPolicy}
@@ -542,6 +545,18 @@ export default function ArticleEditor({articleId}: {articleId?: number}) {
                     ) : null}
                 </>
             }
-        />
+            />
+            {articleId !== undefined && article !== null ? (
+                <div className="mt-6">
+                    <PublicationDangerZone
+                        contentLabel="Beitrag"
+                        deleteErrorMessage="Beitrag konnte nicht gelöscht werden."
+                        item={article}
+                        onDelete={(id) => deleteArticle(getClientTenantHost(), id)}
+                        onDeleted={() => router.replace('/write/articles')}
+                    />
+                </div>
+            ) : null}
+        </>
     )
 }
