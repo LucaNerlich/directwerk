@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import type {ReactNode} from 'react'
 
-import {Button} from '@directwerk/ui/components/button'
+import {buttonVariants} from '@directwerk/ui/components/button'
 import {ListPanelRow} from '@directwerk/ui/components/list-panel'
 
 import ContentMetaLine from '@/components/ContentMetaLine'
@@ -20,15 +20,15 @@ export function LockedCatalogAction({
 }): React.JSX.Element {
     if (!isAuthenticated) {
         return (
-            <Button nativeButton={false} render={<Link href="/login" />} size="sm">
+            <Link className={buttonVariants({size: 'sm'})} href="/login">
                 Anmelden
-            </Button>
+            </Link>
         )
     }
     return (
-        <Button nativeButton={false} render={<Link href={unlockHref} />} size="sm">
+        <Link className={buttonVariants({size: 'sm'})} href={unlockHref}>
             Freischalten
-        </Button>
+        </Link>
     )
 }
 

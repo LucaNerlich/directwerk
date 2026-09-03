@@ -50,6 +50,20 @@ describe('publication delete requests', () => {
         )
     })
 
+    it('resolves deleteEpisode on 205 Reset Content', async () => {
+        vi.stubGlobal('fetch', vi.fn().mockResolvedValue(emptyResponse(205)))
+
+        await expect(deleteEpisode('tenant.test', 7)).resolves.toBeUndefined()
+    })
+
+    it('does not accept an empty error response as a successful deletion', async () => {
+        vi.stubGlobal('fetch', vi.fn().mockResolvedValue(emptyResponse(500)))
+
+        await expect(deleteEpisode('tenant.test', 7)).rejects.toThrow(
+            'Der Server hat eine ungültige Antwort gesendet.',
+        )
+    })
+
     it('surfaces the structured German error when the episode is missing', async () => {
         vi.stubGlobal(
             'fetch',

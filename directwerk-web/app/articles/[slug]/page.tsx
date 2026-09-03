@@ -1,7 +1,7 @@
 import type {Metadata} from 'next'
 import {notFound} from 'next/navigation'
 
-import {buildArticleJsonLd} from '@/lib/site/jsonLd'
+import {buildArticleJsonLd, serializeJsonLd} from '@/lib/site/jsonLd'
 import {fetchPublicArticleServer} from '@/lib/site/fetchPublicContentServer'
 import {getTenantHost} from '@/lib/site/getTenantHost'
 import {resolveTenantOrigin} from '@/lib/site/siteOrigin'
@@ -80,7 +80,7 @@ export default async function ArticleDetailPage({params}: ArticlePageProps) {
         <>
             <script
                 type="application/ld+json"
-                dangerouslySetInnerHTML={{__html: JSON.stringify(articleJsonLd)}}
+                dangerouslySetInnerHTML={{__html: serializeJsonLd(articleJsonLd)}}
             />
             <ArticleDetailClient slug={slug} initialPublicArticle={initialArticle} />
         </>

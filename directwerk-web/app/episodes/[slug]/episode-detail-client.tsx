@@ -74,17 +74,24 @@ export default function EpisodeDetailClient({
             ? `${episode.episodeNumber !== null ? `#${episode.episodeNumber} ` : ''}${episode.title}`
             : ''
     const isLocked = episode !== null && episode.audioCdnUrl === null
+    const hasEmptySlug = slug.length === 0
 
     return (
         <DetailShell
             backHref="/episodes"
             backLabel="← Alle Folgen"
-            isLoading={status === 'loading'}
+            isLoading={status === 'loading' && !hasEmptySlug}
             isAuthenticated={isAuthenticated}
-            errorMessage={status === 'error' ? errorMessage : null}
+            errorMessage={
+                hasEmptySlug
+                    ? MESSAGES.emptySlug
+                    : status === 'error'
+                      ? errorMessage
+                      : null
+            }
             onRetry={retry}
             notFound={
-                status === 'not-found'
+                status === 'not-found' && !hasEmptySlug
                     ? {
                           title: 'Folge nicht verfügbar',
                           description: isAuthenticated

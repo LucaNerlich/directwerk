@@ -327,14 +327,18 @@ export default function HomePage(): React.JSX.Element {
                 </section>
             ) : null}
 
-            {showPodcast || showArticles ? (
+            {podcastFeedUrl !== null || articleFeedUrl !== null ? (
                 <div className="mx-auto mt-10 max-w-3xl">
                     <HowToSubscribe
                         podcast={
-                            showPodcast ? {publicFeedUrl: podcastFeedUrl} : undefined
+                            podcastFeedUrl !== null
+                                ? {publicFeedUrl: podcastFeedUrl}
+                                : undefined
                         }
                         articles={
-                            showArticles ? {publicFeedUrl: articleFeedUrl} : undefined
+                            articleFeedUrl !== null
+                                ? {publicFeedUrl: articleFeedUrl}
+                                : undefined
                         }
                         isAuthenticated={isAuthenticated}
                     />

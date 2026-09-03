@@ -6,10 +6,21 @@ import {
 } from './mediaImageRemotePatterns'
 
 describe('parseMediaImageRemoteHosts', () => {
-    it('uses Bunny CDN defaults when env is empty', () => {
+    it('uses explicit platform CDN hosts when env is empty', () => {
         expect(parseMediaImageRemoteHosts(undefined)).toEqual([
-            '*.b-cdn.net',
-            '*.storage.bunnycdn.com',
+            'directwerk-dev.b-cdn.net',
+            'cdn.stage.directwerk.de',
+            'cdn.directwerk.de',
+        ])
+    })
+
+    it('rejects wildcard and malformed host entries', () => {
+        expect(
+            parseMediaImageRemoteHosts('*.b-cdn.net, https://cdn.example.test'),
+        ).toEqual([
+            'directwerk-dev.b-cdn.net',
+            'cdn.stage.directwerk.de',
+            'cdn.directwerk.de',
         ])
     })
 
@@ -33,6 +44,8 @@ describe('buildMediaImageRemotePatterns', () => {
             {
                 protocol: 'https',
                 hostname: 'cdn.example.test',
+                port: '',
+                pathname: '/**',
             },
         ])
     })

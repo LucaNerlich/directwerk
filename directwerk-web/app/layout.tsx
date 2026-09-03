@@ -6,7 +6,7 @@ import BrandTheme from '@directwerk/ui/components/brand-theme'
 import AuthBootstrap from '@/components/AuthBootstrap'
 import SiteHeader from '@/components/SiteHeader'
 import UmamiAnalytics from '@/components/UmamiAnalytics'
-import {buildWebsiteJsonLd} from '@/lib/site/jsonLd'
+import {buildWebsiteJsonLd, serializeJsonLd} from '@/lib/site/jsonLd'
 import {fetchSiteConfigServer} from '@/lib/site/fetchSiteConfigServer'
 import {getTenantHost} from '@/lib/site/getTenantHost'
 import {resolveTenantOrigin} from '@/lib/site/siteOrigin'
@@ -152,7 +152,7 @@ export default async function RootLayout({
             <body>
                 <script
                     type="application/ld+json"
-                    dangerouslySetInnerHTML={{__html: JSON.stringify(websiteJsonLd)}}
+                    dangerouslySetInnerHTML={{__html: serializeJsonLd(websiteJsonLd)}}
                 />
                 <UmamiAnalytics analytics={config.analytics} />
                 <SiteConfigProvider config={config}>

@@ -21,10 +21,10 @@ describe('userFacingBillingError', () => {
         ).toContain('Stripe ist auf diesem Server')
     })
 
-    it('passes through other error messages', () => {
+    it('does not expose unapproved payment messages', () => {
         expect(
             userFacingBillingError(new Error('Karte abgelehnt'), 'checkout'),
-        ).toBe('Karte abgelehnt')
+        ).toContain('Checkout ist noch nicht verfügbar')
     })
 
     it('maps English transport errors to the feeds fallback', () => {
@@ -48,10 +48,19 @@ describe('userFacingBillingError', () => {
         )
     })
 
-    it('passes German subscriber messages through', () => {
+    it('does not expose arbitrary localized backend messages', () => {
         expect(
             userFacingFeedsError(new Error('Bitte erneut anmelden.')),
-        ).toBe('Bitte erneut anmelden.')
+        ).toBe('Feeds konnten nicht geladen werden. Bitte versuche es später erneut.')
+    })
+
+    it('does not expose unrecognized backend diagnostics', () => {
+        expect(
+            userFacingBillingError(
+                new Error('database connection refused for billing-db.internal'),
+                'checkout',
+            ),
+        ).toContain('Checkout ist noch nicht verfügbar')
     })
 
     it('maps non-errors to the context fallback', () => {
@@ -71,12 +80,12 @@ describe('userFacingGeneralError', () => {
         ).toBe('Später erneut versuchen.')
     })
 
-    it('passes German messages through', () => {
+    it('does not expose arbitrary messages', () => {
         expect(
             userFacingGeneralError(
                 new Error('Konto-E-Mail ist nicht verfügbar.'),
                 'Später erneut versuchen.',
             ),
-        ).toBe('Konto-E-Mail ist nicht verfügbar.')
+        ).toBe('Später erneut versuchen.')
     })
 })

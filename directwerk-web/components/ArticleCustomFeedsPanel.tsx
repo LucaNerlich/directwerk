@@ -245,7 +245,12 @@ export default function ArticleCustomFeedsPanel({
     const atFeedLimit = customFeeds.length >= MAX_CUSTOM_FEEDS
     const showCreateForm =
         canBuild && categories.length > 0 && (editingId !== null || !atFeedLimit)
-    const canSave = title.trim().length > 0 && selectedIds.length > 0 && !isSaving
+    const isRowMutationPending = pendingFeedId !== null
+    const canSave =
+        title.trim().length > 0 &&
+        selectedIds.length > 0 &&
+        !isSaving &&
+        !isRowMutationPending
     const showEditHiddenHint =
         !canBuild && customFeeds.length > 0
 
@@ -380,7 +385,7 @@ export default function ArticleCustomFeedsPanel({
                             </div>
                             <div className="flex flex-wrap gap-2">
                                 <Button
-                                    disabled={isRowBusy(feed.id)}
+                                    disabled={isSaving || isRowMutationPending}
                                     onClick={() => void handleToggle(feed)}
                                     size="sm"
                                     type="button"
@@ -393,7 +398,7 @@ export default function ArticleCustomFeedsPanel({
                                           : 'Aktivieren'}
                                 </Button>
                                 <Button
-                                    disabled={isRowBusy(feed.id)}
+                                    disabled={isSaving || isRowMutationPending}
                                     onClick={() => void handleRotate(feed)}
                                     size="sm"
                                     type="button"
@@ -405,7 +410,7 @@ export default function ArticleCustomFeedsPanel({
                                 </Button>
                                 {canBuild && categories.length > 0 ? (
                                     <Button
-                                        disabled={isRowBusy(feed.id) || isSaving}
+                                        disabled={isSaving || isRowMutationPending}
                                         onClick={() => startEdit(feed)}
                                         size="sm"
                                         type="button"
@@ -415,7 +420,7 @@ export default function ArticleCustomFeedsPanel({
                                     </Button>
                                 ) : null}
                                 <Button
-                                    disabled={isRowBusy(feed.id)}
+                                    disabled={isSaving || isRowMutationPending}
                                     onClick={() => void handleDelete(feed)}
                                     size="sm"
                                     type="button"

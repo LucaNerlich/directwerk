@@ -5,6 +5,15 @@ const STRIPE_UNAVAILABLE_CODES = new Set([
     'STRIPE_NOT_CONNECTED',
 ])
 
+const STRIPE_UNAVAILABLE_MESSAGES: RegExp[] = [
+    /^Stripe checkout is not implemented yet for product=[a-z0-9-]+$/i,
+    /^Stripe customer portal is not configured$/i,
+    /^Stripe Connect onboarding is not implemented yet\.$/i,
+    /^Stripe Connect is not connected$/i,
+    /^Stripe Connect cannot take charges yet$/i,
+    /^No Stripe customer exists for this member$/i,
+]
+
 export type UserFacingErrorContext =
     | 'checkout'
     | 'portal'
@@ -27,57 +36,16 @@ const FALLBACK_COPY: Record<UserFacingErrorContext, string> = {
     general: 'Etwas ist schiefgelaufen. Bitte versuche es später erneut.',
 }
 
-const TECHNICAL_PATTERNS: RegExp[] = [
-    /the server returned/i,
-    /failed to fetch/i,
-    /network\s?error/i,
-    /unexpected .*response/i,
-    /\btypeerror\b/i,
-    /\breferenceerror\b/i,
-    /\bsyntaxerror\b/i,
-    /invalid json/i,
-    /http\s?\d{3}/i,
-    /status\s?\d{3}/i,
-    /\b5\d\d\b/,
-    /could not/i,
-    /cannot (read|parse|fetch|load)/i,
-    /not implemented/i,
-    /internal server error/i,
-    /bad gateway/i,
-    /service unavailable/i,
-    /gateway timeout/i,
-    /invalid .*envelope/i,
-    /invalid token response/i,
-    /invalid .*preferences/i,
-    /invalid .*list/i,
-    /invalid account response/i,
-    /invalid access response/i,
-    /invalid feed/i,
-    /invalid download/i,
-    /invalid preview/i,
-    /fetch failed/i,
-    /load failed/i,
-]
-
-const BACKEND_CODE_PATTERN = /^[A-Z][A-Z0-9_]{3,}$/
-
-function isTechnicalMessage(message: string): boolean {
-    const trimmed = message.trim()
-    if (trimmed.length === 0) {
-        return true
-    }
-    if (BACKEND_CODE_PATTERN.test(trimmed)) {
-        return true
-    }
-    return TECHNICAL_PATTERNS.some((pattern) => pattern.test(trimmed))
+function isApprovedStripeUnavailableMessage(message: string): boolean {
+    return STRIPE_UNAVAILABLE_MESSAGES.some((pattern) => pattern.test(message))
 }
 
 /**
  * Maps API billing errors to subscriber-friendly German copy.
  *
- * Raw backend/transport errors (English, HTTP codes, UPPER_SNAKE codes)
- * never reach the UI — they fall back to per-context German copy.
- * Already-German messages pass through unchanged.
+ * Raw backend/transport messages never reach the UI. Only explicitly approved
+ * Stripe codes/messages select fixed copy; everything else fails closed to the
+ * per-context fallback.
  */
 export function userFacingBillingError(
     error: unknown,
@@ -100,7 +68,7 @@ export function userFacingBillingError(
     }
     if (
         STRIPE_UNAVAILABLE_CODES.has(message) ||
-        message.toLowerCase().includes('not implemented')
+        isApprovedStripeUnavailableMessage(message)
     ) {
         if (context === 'checkout') {
             return 'Online-Zahlung ist noch nicht aktiv. Du kannst das Produkt merken und später zurückkommen — oder die Redaktion schaltet dich im Studio frei.'
@@ -111,11 +79,7 @@ export function userFacingBillingError(
         return fallback
     }
 
-    if (isTechnicalMessage(message)) {
-        return fallback
-    }
-
-    return message
+    return fallback
 }
 
 /** Feed actions (rotate/toggle/preview/save) share one German fallback style. */
@@ -135,20 +99,13 @@ export function userFacingAccountError(error: unknown): string {
 
 /**
  * Generic German mapping with a caller-provided fallback.
- * Technical/English backend messages never reach the UI.
+ * Backend messages never reach the UI.
  */
 export function userFacingGeneralError(error: unknown, fallback: string): string {
     if (!(error instanceof Error)) {
         return fallback
     }
-    const message = error.message.trim()
-    if (message === '' || message === AUTH_REQUIRED) {
-        return fallback
-    }
-    if (isTechnicalMessage(message)) {
-        return fallback
-    }
-    return message
+    return fallback
 }
 
 // ---------------------------------------------------------------------------
@@ -200,33 +157,6 @@ const INVALID_TOKEN_PATTERNS: RegExp[] = [
     /ungültig/i,
 ]
 
-/**
- * English/technical transport and backend messages that must never reach the
- * German UI untranslated — they fall back to per-context German copy.
- */
-const AUTH_TECHNICAL_PATTERNS: RegExp[] = [
-    /request failed with status/i,
-    /temporarily unreachable/i,
-    /invalid response/i,
-    /upstream service/i,
-    /failed to fetch/i,
-    /network/i,
-    /invalid token response/i,
-    /invalid .*envelope/i,
-    /http\s?\d{3}/i,
-    /\b5\d\d\b/,
-    /could not/i,
-    /must be/i,
-    /\brequired\b/i,
-    /\bunauthorized\b/i,
-    /\bforbidden\b/i,
-    /\bnot found\b/i,
-    /\binternal\b/i,
-    /\bfailure\b/i,
-    /^VALIDATION_ERROR$/,
-    /^REQUEST_FAILED$/,
-]
-
 function matchesAuthPattern(message: string, patterns: RegExp[]): boolean {
     return patterns.some((pattern) => pattern.test(message))
 }
@@ -234,9 +164,9 @@ function matchesAuthPattern(message: string, patterns: RegExp[]): boolean {
 /**
  * Maps auth-form API errors to subscriber-friendly German copy.
  *
- * Known backend/transport failures (wrong credentials, rate limits, expired
- * links, taken emails, English technical messages) become fixed German
- * strings; already-German messages pass through unchanged.
+ * Known backend failures (wrong credentials, rate limits, expired links, and
+ * taken emails) become fixed German strings; all unrecognized messages fail
+ * closed to the per-context fallback.
  */
 export function userFacingAuthError(
     error: unknown,
@@ -278,9 +208,5 @@ export function userFacingAuthError(
         return 'Der Link ist abgelaufen oder ungültig. Bitte fordere einen neuen Link an.'
     }
 
-    if (matchesAuthPattern(message, AUTH_TECHNICAL_PATTERNS)) {
-        return fallback
-    }
-
-    return message
+    return fallback
 }

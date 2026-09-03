@@ -48,9 +48,12 @@ describe('userFacingAuthError', () => {
         ).toContain('Reset-Link konnte nicht angefordert werden')
     })
 
-    it('passes already-German messages through', () => {
+    it('does not expose unrecognized backend messages', () => {
         expect(
-            userFacingAuthError(new Error('Karte abgelehnt'), 'login'),
-        ).toBe('Karte abgelehnt')
+            userFacingAuthError(
+                new Error('database connection refused for auth-db.internal'),
+                'login',
+            ),
+        ).toContain('Anmeldung fehlgeschlagen')
     })
 })

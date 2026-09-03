@@ -1,5 +1,21 @@
 import type {PublicArticle, PublicEpisode} from '@directwerk/api/types'
 
+const JSON_LD_ESCAPE: Record<string, string> = {
+    '<': '\\u003c',
+    '>': '\\u003e',
+    '&': '\\u0026',
+    '\u2028': '\\u2028',
+    '\u2029': '\\u2029',
+}
+
+/** Serializes JSON safely for insertion into an inline script-data context. */
+export function serializeJsonLd(value: unknown): string {
+    return JSON.stringify(value).replace(
+        /[<>&\u2028\u2029]/g,
+        (character) => JSON_LD_ESCAPE[character] as string,
+    )
+}
+
 function plainText(html: string | null, maxLength: number): string | undefined {
     if (html === null || html.length === 0) {
         return undefined

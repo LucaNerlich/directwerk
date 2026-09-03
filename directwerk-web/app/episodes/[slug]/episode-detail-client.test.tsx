@@ -1,4 +1,4 @@
-import {render} from '@testing-library/react'
+import {render, screen, waitFor} from '@testing-library/react'
 import {describe, expect, it} from 'vitest'
 
 import type {PublicEpisode} from '@directwerk/api/types'
@@ -29,6 +29,15 @@ function buildEpisode(description: string): PublicEpisode {
 }
 
 describe('EpisodeDetailClient content rendering', () => {
+    it('renders the dedicated empty-slug message', async () => {
+        render(<EpisodeDetailClient slug="" />)
+
+        await waitFor(() =>
+            expect(screen.getByText('Folge nicht gefunden.')).toBeInTheDocument(),
+        )
+        expect(screen.queryByText('Folge nicht verfügbar')).not.toBeInTheDocument()
+    })
+
     it('sanitizes stored episode HTML before injecting it into the DOM', () => {
         const {container} = render(
             <EpisodeDetailClient

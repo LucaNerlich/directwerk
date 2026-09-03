@@ -28,7 +28,7 @@ describe('CatalogRow', () => {
         expect(container.textContent).toContain('Kategorie A · 01.01.2026')
         expect(screen.getByText('Kurzer Teaser.')).toBeInTheDocument()
         expect(
-            screen.getByRole('button', {name: 'Freischalten'}),
+            screen.getByRole('link', {name: 'Freischalten'}),
         ).toHaveAttribute('href', '/pricing#basis')
     })
 
@@ -47,7 +47,7 @@ describe('CatalogRow', () => {
             </ul>
         )
 
-        expect(screen.getByRole('button', {name: 'Anmelden'})).toHaveAttribute(
+        expect(screen.getByRole('link', {name: 'Anmelden'})).toHaveAttribute(
             'href',
             '/login',
         )

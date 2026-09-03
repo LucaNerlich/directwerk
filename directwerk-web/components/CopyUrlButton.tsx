@@ -18,22 +18,27 @@ async function copyText(text: string): Promise<boolean> {
     } catch {
         // Fall through to legacy fallback below.
     }
+    let area: HTMLTextAreaElement | null = null
     try {
         if (typeof document === 'undefined') {
             return false
         }
-        const area = document.createElement('textarea')
+        area = document.createElement('textarea')
         area.value = text
         area.setAttribute('readonly', '')
         area.style.position = 'fixed'
         area.style.opacity = '0'
         document.body.appendChild(area)
         area.select()
-        const ok = document.execCommand('copy')
-        document.body.removeChild(area)
-        return ok
+        return document.execCommand('copy')
     } catch {
         return false
+    } finally {
+        try {
+            area?.remove()
+        } catch {
+            // Copy failures stay non-fatal even if DOM cleanup also fails.
+        }
     }
 }
 

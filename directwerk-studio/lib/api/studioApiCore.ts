@@ -46,7 +46,12 @@ export async function studioDelete(
     try {
         await authenticatedRequest(path, tenantHost, {method: 'DELETE'})
     } catch (error) {
-        if (error instanceof Error && error.message === INVALID_RESPONSE) {
+        if (
+            error instanceof Error &&
+            error.message === INVALID_RESPONSE &&
+            'status' in error &&
+            (error.status === 204 || error.status === 205)
+        ) {
             return
         }
         throw error

@@ -78,7 +78,9 @@ async function parseJsonResponse(
 ): Promise<unknown> {
     const contentType = response.headers.get('content-type') ?? ''
     if (!contentType.toLowerCase().includes('application/json')) {
-        throw new Error(invalidResponseMessage)
+        throw Object.assign(new Error(invalidResponseMessage), {
+            status: response.status,
+        })
     }
 
     return response.json()

@@ -1,7 +1,7 @@
 import type {Metadata} from 'next'
 import {notFound} from 'next/navigation'
 
-import {buildPodcastEpisodeJsonLd} from '@/lib/site/jsonLd'
+import {buildPodcastEpisodeJsonLd, serializeJsonLd} from '@/lib/site/jsonLd'
 import {fetchPublicEpisodeServer} from '@/lib/site/fetchPublicContentServer'
 import {getTenantHost} from '@/lib/site/getTenantHost'
 import {resolveTenantOrigin} from '@/lib/site/siteOrigin'
@@ -90,7 +90,7 @@ export default async function EpisodeDetailPage({params}: EpisodePageProps) {
         <>
             <script
                 type="application/ld+json"
-                dangerouslySetInnerHTML={{__html: JSON.stringify(episodeJsonLd)}}
+                dangerouslySetInnerHTML={{__html: serializeJsonLd(episodeJsonLd)}}
             />
             <EpisodeDetailClient slug={slug} initialPublicEpisode={initialEpisode} />
         </>
