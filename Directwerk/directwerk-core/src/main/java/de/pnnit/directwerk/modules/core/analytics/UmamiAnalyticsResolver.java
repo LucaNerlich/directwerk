@@ -35,4 +35,24 @@ public final class UmamiAnalyticsResolver {
         }
         return null;
     }
+
+    /**
+     * Selects the host candidate for a server-side event without resolving DNS on the request
+     * thread. {@link UmamiEventClient} validates and pins the destination in its executor before
+     * opening the connection.
+     */
+    public static String resolveEventHostUrl(TenantBranding branding, DirectwerkConfig directwerkConfig) {
+        if (branding != null
+                && UmamiHostUrlValidator.isValid(branding.getUmamiHostUrl())
+                && !UmamiHostUrlValidator.hasObviouslyNonPublicHost(branding.getUmamiHostUrl())) {
+            return UmamiHostUrlValidator.normalize(branding.getUmamiHostUrl());
+        }
+        if (directwerkConfig.isAnalyticsEnabled()) {
+            DirectwerkProperties.Analytics analytics = directwerkConfig.analytics();
+            if (analytics != null && UmamiHostUrlValidator.isValid(analytics.umamiHostUrl())) {
+                return UmamiHostUrlValidator.normalize(analytics.umamiHostUrl());
+            }
+        }
+        return null;
+    }
 }

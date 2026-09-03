@@ -123,9 +123,9 @@ export default function BrandingEditor(): React.JSX.Element {
                 return {error: null, success: 'Branding gespeichert. Analytics-Tracking ist deaktiviert (keine Website-ID).'}
             }
             if (updated.umamiHostUrl) {
-                return {error: null, success: 'Branding gespeichert. Tracking aktiv (eigener Umami-Server).'}
+                return {error: null, success: 'Branding gespeichert. Analytics für eigenen Umami-Server konfiguriert.'}
             }
-            return {error: null, success: 'Branding gespeichert. Tracking aktiv (Plattform-Standard).'}
+            return {error: null, success: 'Branding gespeichert. Analytics für den Plattform-Standard konfiguriert.'}
         } catch (error: unknown) {
             if (authRedirect(error)) return INITIAL_STATE
             return {

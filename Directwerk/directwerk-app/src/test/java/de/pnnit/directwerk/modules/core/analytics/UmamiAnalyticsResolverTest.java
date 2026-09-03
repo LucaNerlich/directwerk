@@ -45,4 +45,13 @@ class UmamiAnalyticsResolverTest {
         assertThat(UmamiAnalyticsResolver.resolveHostUrl(new TenantBranding(), directwerkConfig))
                 .isNull();
     }
+
+    @Test
+    void selectsEventHostWithoutWaitingForDnsValidation() {
+        TenantBranding branding = new TenantBranding();
+        branding.setUmamiHostUrl("https://tenant.invalid");
+
+        assertThat(UmamiAnalyticsResolver.resolveEventHostUrl(branding, directwerkConfig))
+                .isEqualTo("https://tenant.invalid");
+    }
 }

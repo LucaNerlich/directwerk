@@ -33,4 +33,11 @@ class UmamiHostUrlValidatorTest {
         assertThat(UmamiHostUrlValidator.hasPubliclyRoutableHost("https://10.0.0.1")).isFalse();
         assertThat(UmamiHostUrlValidator.hasPubliclyRoutableHost("https://169.254.169.254")).isFalse();
     }
+
+    @Test
+    void rejectsPrivateLiteralsWithoutResolvingHostnames() {
+        assertThat(UmamiHostUrlValidator.hasObviouslyNonPublicHost("https://localhost")).isTrue();
+        assertThat(UmamiHostUrlValidator.hasObviouslyNonPublicHost("https://127.0.0.1")).isTrue();
+        assertThat(UmamiHostUrlValidator.hasObviouslyNonPublicHost("https://tenant.invalid")).isFalse();
+    }
 }

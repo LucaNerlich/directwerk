@@ -65,7 +65,7 @@ public class EpisodeDownloadAnalyticsService {
             if (!UmamiWebsiteIdValidator.isValid(websiteId)) {
                 return;
             }
-            String hostUrl = UmamiAnalyticsResolver.resolveHostUrl(branding, directwerkConfig);
+            String hostUrl = UmamiAnalyticsResolver.resolveEventHostUrl(branding, directwerkConfig);
             if (hostUrl == null) {
                 return;
             }

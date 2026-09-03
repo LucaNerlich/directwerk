@@ -1,6 +1,7 @@
 package de.pnnit.directwerk.modules.core.analytics;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import de.pnnit.directwerk.config.DirectwerkConfig;
 import de.pnnit.directwerk.config.DirectwerkProperties;
@@ -32,6 +33,17 @@ import org.junit.jupiter.api.Test;
 import tools.jackson.databind.ObjectMapper;
 
 class UmamiEventClientTest {
+
+    @Test
+    void pinnedSenderRejectsPrivateDestinationBeforeConnecting() {
+        UmamiEventClient.PinnedEventSender sender = new UmamiEventClient.PinnedEventSender();
+
+        assertThatThrownBy(() -> sender.send(
+                URI.create("https://127.0.0.1/api/send"),
+                "{}",
+                "Directwerk-Test/1.0"
+        )).isInstanceOf(java.net.UnknownHostException.class);
+    }
 
     @Test
     void postsEventBodyAndHeadersWhenEnabled() throws Exception {

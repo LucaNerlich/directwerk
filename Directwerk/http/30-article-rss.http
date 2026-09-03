@@ -80,6 +80,10 @@ Accept: application/json
             "Expected a valid private article feed URL"
         );
         client.global.set("articleFeedUrl", feedUrl);
+        const tokenMatch = typeof feedUrl === "string" ? feedUrl.match(/\/articles\/u\/([^/.]+)\.xml$/) : null;
+        if (tokenMatch) {
+            client.global.set("articleFeedToken", tokenMatch[1]);
+        }
     });
 %}
 

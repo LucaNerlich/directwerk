@@ -12,11 +12,13 @@ export default function TenantAnalyticsCard({tenantId}: {tenantId: string}): Rea
 
     useEffect(() => {
         let active = true
-        getPlatformData<{data: PlatformBranding} | PlatformBranding>(`tenants/${tenantId}/branding`)
-            .then((res) => {
+        setBranding(null)
+        setError(null)
+        getPlatformData<PlatformBranding>(`tenants/${tenantId}/branding`)
+            .then((result) => {
                 if (!active) return
-                const value = (res as {data?: PlatformBranding}).data ?? (res as PlatformBranding)
-                setBranding(value)
+                setError(null)
+                setBranding(result)
             })
             .catch(() => {
                 if (!active) return
