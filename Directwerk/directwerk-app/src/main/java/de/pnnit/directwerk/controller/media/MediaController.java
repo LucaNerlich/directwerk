@@ -16,6 +16,7 @@ import de.pnnit.directwerk.modules.digital.entity.AssetType;
 import de.pnnit.directwerk.modules.digital.entity.MediaAsset;
 import de.pnnit.directwerk.modules.digital.exception.MediaAssetNotFoundException;
 import de.pnnit.directwerk.api.MediaAssetViewMapper;
+import de.pnnit.directwerk.multitenancy.TenantContext;
 import de.pnnit.directwerk.security.DirectwerkUserPrincipal;
 import de.pnnit.directwerk.security.SecurityUtils;
 import jakarta.validation.Valid;
@@ -101,6 +102,7 @@ public class MediaController {
     ResponseEntity<Response<MediaAssetView>> get(@PathVariable("id") Long id) {
         MediaAsset asset = mediaAssetQueryApi.findById(id)
                 .orElseThrow(() -> new MediaAssetNotFoundException(id));
+        requireTenantAsset(asset, id);
         return ResponseEntity.ok(Response.ok(mediaAssetViewMapper.toView(asset)));
     }
 
@@ -111,6 +113,7 @@ public class MediaController {
     ) {
         MediaAsset asset = mediaAssetQueryApi.findById(id)
                 .orElseThrow(() -> new MediaAssetNotFoundException(id));
+        requireTenantAsset(asset, id);
         DirectwerkUserPrincipal principal = SecurityUtils.requirePrincipal();
         URL url = assetAccessApi.resolvePreviewUrl(asset, principal, previewDraft);
         return ResponseEntity.ok(Response.ok(new PreviewUrlResponse(url.toString())));
@@ -126,5 +129,17 @@ public class MediaController {
     }
 
     public record PreviewUrlResponse(String url) {
+    }
+
+    /**
+     * Defense in depth: the Hibernate tenantFilter normally scopes this lookup already,
+     * but an explicit check keeps cross-tenant reads fail-closed even if the filter is
+     * ever bypassed on this path.
+     */
+    private static void requireTenantAsset(MediaAsset asset, Long id) {
+        Long tenantId = TenantContext.requireTenantId();
+        if (asset.getTenant() == null || !tenantId.equals(asset.getTenant().getId())) {
+            throw new MediaAssetNotFoundException(id);
+        }
     }
 }

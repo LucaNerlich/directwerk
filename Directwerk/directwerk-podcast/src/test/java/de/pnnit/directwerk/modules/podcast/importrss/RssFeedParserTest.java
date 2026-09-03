@@ -5,8 +5,13 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import de.pnnit.directwerk.modules.podcast.exception.RssImportException;
 import java.io.ByteArrayInputStream;
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.UUID;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 class RssFeedParserTest {
 
@@ -117,5 +122,34 @@ class RssFeedParserTest {
         assertThat(RssFeedParser.parseDuration("1:02")).isEqualTo(62);
         assertThat(RssFeedParser.parseDuration("999999999999999999999")).isNull();
         assertThat(RssFeedParser.parseDuration("")).isNull();
+    }
+
+    @Test
+    void neutralizesDoctypeAndExternalEntities(@TempDir Path tempDir) throws IOException {
+        String marker = "directwerk-xxe-" + UUID.randomUUID();
+        Path markerFile = tempDir.resolve("xxe-marker.txt");
+        Files.writeString(markerFile, marker, StandardCharsets.UTF_8);
+
+        String xxe = """
+                <?xml version="1.0" encoding="UTF-8"?>
+                <!DOCTYPE rss [<!ENTITY xxe SYSTEM "%s">]>
+                <rss version="2.0">
+                  <channel>
+                    <title>Alpha &xxe;</title>
+                  </channel>
+                </rss>
+                """.formatted(markerFile.toUri());
+        try {
+            ParsedRssFeed feed = parser.parse(
+                    "https://example.com/feed.xml",
+                    new ByteArrayInputStream(xxe.getBytes(StandardCharsets.UTF_8)));
+            // DTD support is disabled: the external entity must never be resolved —
+            // local file content must not leak into parsed fields.
+            assertThat(feed.toString()).doesNotContain(marker);
+        } catch (RssImportException expected) {
+            // Rejecting the feed outright is equally safe.
+            assertThat(expected.getCode()).isEqualTo("RSS_FEED_INVALID");
+            assertThat(String.valueOf(expected.getMessage())).doesNotContain(marker);
+        }
     }
 }

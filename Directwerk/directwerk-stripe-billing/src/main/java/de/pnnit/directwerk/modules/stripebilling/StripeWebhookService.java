@@ -102,6 +102,11 @@ public class StripeWebhookService {
         }
         Long tenantId = account.getTenant().getId();
         TenantContext.setTenantId(tenantId);
+        if (!metadataTenantMatches(event, tenantId)) {
+            log.warn("Ignoring Stripe event type={} event={} with mismatched tenant metadata",
+                    event.type(), event.eventId());
+            return;
+        }
 
         switch (event.type()) {
             case "checkout.session.completed" -> applyCheckoutCompleted(tenantId, event);
@@ -161,8 +166,19 @@ public class StripeWebhookService {
         }
         Long userId = parseLong(event.metadata().get("user_id"));
         Long productId = parseLong(event.metadata().get("product_id"));
-        if (productId == null && event.stripePriceId() != null) {
-            productId = findProductIdByStripePrice(tenantId, event.stripePriceId());
+        if (event.stripePriceId() != null) {
+            // Prefer the live Stripe price over checkout-time metadata: plan changes via the
+            // customer portal or dashboard keep stale metadata on the subscription object, and
+            // trusting it would over-grant after a downgrade. Unknown prices fall back to
+            // metadata (or to external-id sync when metadata is absent).
+            Long priceProductId = findProductIdByStripePrice(tenantId, event.stripePriceId());
+            if (priceProductId != null) {
+                if (productId != null && !productId.equals(priceProductId)) {
+                    log.info("Subscription {} price maps to product {} (metadata product {} superseded)",
+                            event.subscriptionId(), priceProductId, productId);
+                }
+                productId = priceProductId;
+            }
         }
         SubscriptionStatus mappedStatus = mapStripeStatus(event.stripeSubscriptionStatus());
         if (userId == null || productId == null) {
@@ -276,6 +292,21 @@ public class StripeWebhookService {
                     event.subscriptionId(),
                     ex);
             // Fail closed: without live confirmation, do not reactivate.
+            return false;
+        }
+    }
+
+    private static boolean metadataTenantMatches(
+            StripeOperations.StripeWebhookPayload event,
+            Long tenantId
+    ) {
+        String metadataTenantId = event.metadata().get("tenant_id");
+        if (metadataTenantId == null || metadataTenantId.isBlank()) {
+            return true;
+        }
+        try {
+            return tenantId.equals(Long.valueOf(metadataTenantId.trim()));
+        } catch (NumberFormatException ex) {
             return false;
         }
     }

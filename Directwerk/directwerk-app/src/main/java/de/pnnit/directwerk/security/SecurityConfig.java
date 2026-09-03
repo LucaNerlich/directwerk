@@ -156,6 +156,8 @@ public class SecurityConfig {
                         .requestMatchers("/api/v1/media/**").hasAnyRole("EDITOR", "TENANT_ADMIN")
                         .requestMatchers("/api/v1/series/**", "/api/v1/episodes/**")
                         .hasAnyRole("EDITOR", "TENANT_ADMIN")
+                        .requestMatchers("/api/v1/articles/**", "/api/v1/podcast/import/**")
+                        .hasAnyRole("EDITOR", "TENANT_ADMIN")
                         .requestMatchers("/api/v1/formats/**", "/api/v1/categories/**").hasRole("TENANT_ADMIN")
                         .requestMatchers("/api/v1/probes/**").hasAnyRole("EDITOR", "TENANT_ADMIN")
                         .requestMatchers("/api/v1/security/**").authenticated()

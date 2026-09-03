@@ -9,6 +9,7 @@ import PageStack from '@directwerk/ui/components/page-stack'
 
 import AccessPolicyBadge from '@/components/AccessPolicyBadge'
 import {listMyArticles, listPublicArticles} from '@/lib/api/client'
+import {sanitizeContentHtml} from '@/lib/sanitizeContentHtml'
 import {AUTH_REQUIRED} from '@directwerk/api/constants'
 import type {PublicArticle} from '@directwerk/api/types'
 import {
@@ -159,7 +160,10 @@ export default function ArticleDetailClient({
                     ) : article.body !== null && article.body.length > 0 ? (
                         <div
                             className="content-prose"
-                            dangerouslySetInnerHTML={{__html: article.body}}
+                            // Defense-in-depth: the API sanitizes on write, but
+                            // stored HTML is re-sanitized here so a compromised
+                            // or bypassed record cannot XSS the public site.
+                            dangerouslySetInnerHTML={{__html: sanitizeContentHtml(article.body)}}
                         />
                     ) : (
                         <p className="text-sm text-muted-foreground">

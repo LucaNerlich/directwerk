@@ -404,6 +404,7 @@ Gradle: add official Stripe Java SDK; pin version in BOM/catalog if used.
 | 2026-08-13 | Bruno + http harnesses aligned with live billing controllers (prices, dashboard stats, checkout/portal, webhook signature). |
 | 2026-08-13 | Studio Zahlungen: past-due/incomplete stats, filters, revoke from the membership list. |
 | 2026-08-29 | Split Stripe into `directwerk-stripe-billing` Gradle module; subscription stays Stripe-agnostic via `ExternalSubscriptionBillingGateway`. |
+| 2026-09-03 | Webhook hardening: events with `tenant_id` metadata that disagrees with the resolved Connect account are dropped; `subscription.updated` resolves the product from the live Stripe price first (stale checkout metadata no longer survives portal/downgrade plan changes); tenant revoke of a `STRIPE` row with a missing Connect account is blocked (`STRIPE_NOT_CONNECTED`) instead of silently leaving the provider subscription live. |
 | 2026-08-28 | Reconciled inventory + feature checklist with shipped Connect/checkout/webhooks/dashboard. Remaining: one-time copy polish, studio promo CRUD. |
 | 2026-08-13 | Live Connect, prices, checkout, webhooks, studio Zahlungen dashboard. 501 without platform keys. |
 | 2026-08-12 | Initial brief from gap analysis after stub controllers/UI landed; no live Stripe yet |

@@ -13,6 +13,7 @@ import de.pnnit.directwerk.modules.digital.entity.MediaAsset;
 import de.pnnit.directwerk.modules.digital.exception.MediaAssetNotFoundException;
 import de.pnnit.directwerk.modules.podcast.PodcastModule;
 import de.pnnit.directwerk.modules.podcast.service.PodcastImportService;
+import de.pnnit.directwerk.multitenancy.TenantContext;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
@@ -104,6 +105,13 @@ public class PodcastImportController {
     ResponseEntity<Response<MediaAssetView>> getIngestAsset(@PathVariable @Min(1) Long assetId) {
         MediaAsset asset = mediaAssetQueryApi.findById(assetId)
                 .orElseThrow(() -> new MediaAssetNotFoundException(assetId));
+        // Defense in depth: the Hibernate tenantFilter normally scopes this lookup already,
+        // but an explicit check keeps cross-tenant reads fail-closed even if the filter is
+        // ever bypassed on this path.
+        Long tenantId = TenantContext.requireTenantId();
+        if (asset.getTenant() == null || !tenantId.equals(asset.getTenant().getId())) {
+            throw new MediaAssetNotFoundException(assetId);
+        }
         return ResponseEntity.ok(Response.ok(mediaAssetViewMapper.toView(asset)));
     }
 

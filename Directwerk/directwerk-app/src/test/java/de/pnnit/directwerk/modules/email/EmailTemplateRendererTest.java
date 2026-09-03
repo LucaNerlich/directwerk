@@ -57,4 +57,16 @@ class EmailTemplateRendererTest {
         assertThat(plainText).doesNotContain("Resetyourpassword");
         assertThat(plainText).doesNotContain("Helloworld");
     }
+
+    @Test
+    void renderSubjectCollapsesLineBreaksFromVariables() {
+        String rendered = renderer.renderSubject(
+                EmailTemplate.TENANT_INVITATION,
+                null,
+                Map.of("tenantName", "Acme\r\nBcc: attacker@example.com")
+        );
+
+        assertThat(rendered).doesNotContain("\r").doesNotContain("\n");
+        assertThat(rendered).isEqualTo("You've been invited to Acme Bcc: attacker@example.com");
+    }
 }

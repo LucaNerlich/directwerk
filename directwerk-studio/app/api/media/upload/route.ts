@@ -68,7 +68,8 @@ function parseFilename(value: string | null): string | null {
     }
     try {
         const decoded = decodeURIComponent(value)
-        if (decoded.length === 0 || decoded.length > 255 || decoded.includes('\u0000')) {
+        // eslint-disable-next-line no-control-regex
+        if (decoded.length === 0 || decoded.length > 255 || /[\u0000-\u001f\u007f]/.test(decoded)) {
             return null
         }
         return decoded

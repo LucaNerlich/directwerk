@@ -2,6 +2,14 @@
 .env.*
 !.env.example
 
+# Never bake key material or dev-only credentials into image contexts
+*.pem
+*.key
+*.p12
+*.pfx
+http/http-client.private.env.json
+http/http-client.secrets.json
+
 .git
 .gitignore
 .idea

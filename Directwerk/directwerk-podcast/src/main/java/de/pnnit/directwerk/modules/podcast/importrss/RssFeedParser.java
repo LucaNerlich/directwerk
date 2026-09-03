@@ -14,6 +14,7 @@ import java.util.ArrayList;
 import java.util.HexFormat;
 import java.util.List;
 import java.util.Locale;
+import javax.xml.XMLConstants;
 import javax.xml.stream.XMLInputFactory;
 import javax.xml.stream.XMLStreamConstants;
 import javax.xml.stream.XMLStreamException;
@@ -42,6 +43,10 @@ public class RssFeedParser {
         factory.setProperty(XMLInputFactory.SUPPORT_DTD, false);
         factory.setProperty(XMLInputFactory.IS_SUPPORTING_EXTERNAL_ENTITIES, false);
         factory.setProperty(XMLInputFactory.IS_REPLACING_ENTITY_REFERENCES, false);
+        // Defense in depth: some StAX implementations honor JAXP external-access properties
+        // even with DTD support disabled — deny external DTD/schema resolution outright.
+        setExternalAccessProperty(factory, XMLConstants.ACCESS_EXTERNAL_DTD);
+        setExternalAccessProperty(factory, XMLConstants.ACCESS_EXTERNAL_SCHEMA);
         try {
             XMLStreamReader reader = factory.createXMLStreamReader(xml);
             try {
@@ -51,6 +56,15 @@ public class RssFeedParser {
             }
         } catch (XMLStreamException ex) {
             throw new RssImportException(400, "RSS_FEED_INVALID", "RSS feed could not be parsed", ex);
+        }
+    }
+
+    private static void setExternalAccessProperty(XMLInputFactory factory, String name) {
+        try {
+            factory.setProperty(name, "");
+        } catch (IllegalArgumentException unsupported) {
+            // Implementation does not recognize the JAXP property — the DTD/external-entity
+            // flags above already provide the XXE protection on such runtimes.
         }
     }
 

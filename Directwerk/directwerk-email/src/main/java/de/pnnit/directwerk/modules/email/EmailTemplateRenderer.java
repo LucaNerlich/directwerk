@@ -23,7 +23,7 @@ public class EmailTemplateRenderer {
 
     public String renderSubject(EmailTemplate template, Long tenantId, java.util.Map<String, String> variables) {
         String rawTemplate = templateSource.resolveSubject(template, tenantId);
-        return render(rawTemplate, variables, false);
+        return sanitizeSubject(render(rawTemplate, variables, false));
     }
 
     public String renderPlainTextBody(EmailTemplate template, Long tenantId, java.util.Map<String, String> variables) {
@@ -43,6 +43,19 @@ public class EmailTemplateRenderer {
         }
         matcher.appendTail(rendered);
         return rendered.toString();
+    }
+
+    /**
+     * Subjects are header values: template variables (episode titles, tenant names, sender
+     * names) may contain CR/LF, which would allow SMTP header injection downstream.
+     * Collapse line breaks to spaces instead of rejecting, so one hostile variable cannot
+     * break delivery of an otherwise valid notification.
+     */
+    private static String sanitizeSubject(String subject) {
+        if (subject == null) {
+            return "";
+        }
+        return subject.replaceAll("[\\r\\n]+", " ").trim();
     }
 
     static String htmlToPlainText(String html) {

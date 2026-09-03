@@ -32,3 +32,10 @@ directwerk:
         tenant-client-secret: ${DIRECTWERK_TENANT_CLIENT_SECRET}
         jwt-private-key: ${DIRECTWERK_JWT_PRIVATE_KEY}
         jwt-public-key: ${DIRECTWERK_JWT_PUBLIC_KEY}
+
+# Stage is internet-reachable: no interactive API docs (same as prod).
+springdoc:
+    api-docs:
+        enabled: false
+    swagger-ui:
+        enabled: false

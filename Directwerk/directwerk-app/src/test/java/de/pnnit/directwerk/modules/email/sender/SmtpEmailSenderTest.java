@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -80,6 +81,117 @@ class SmtpEmailSenderTest {
                 Map.of()
         ))).isInstanceOf(EmailDeliveryException.class).hasMessageContaining("Email delivery failed");
     }
+
+    @Test
+    void rejectsLineBreaksInRecipientAddress() {
+        assertThatThrownBy(() -> smtpEmailSender.send(new OutboundEmail(
+                "victim@example.com\r\nBcc: attacker@example.com",
+                "noreply@directwerk.local",
+                "Directwerk",
+                "Subject",
+                "<p>body</p>",
+                "body",
+                "job-1",
+                "PASSWORD_RESET",
+                Map.of()
+        ))).isInstanceOf(EmailDeliveryException.class);
+        verify(mailSender, never()).send(any(MimeMessage.class));
+    }
+
+    @Test
+    void rejectsLineBreaksInReplyToHeader() {
+        assertThatThrownBy(() -> smtpEmailSender.send(new OutboundEmail(
+                "inbox@directwerk.local",
+                "noreply@directwerk.local",
+                "Directwerk",
+                "Contact form",
+                "<p>body</p>",
+                "body",
+                "job-1",
+                "CONTACT_FORM",
+                Map.of("Reply-To", "user@example.com\r\nBcc: attacker@example.com")
+        ))).isInstanceOf(EmailDeliveryException.class);
+        verify(mailSender, never()).send(any(MimeMessage.class));
+    }
+
+    @Test
+    void rejectsLineBreaksInSubjectAndDisplayName() {
+        assertThatThrownBy(() -> smtpEmailSender.send(new OutboundEmail(
+                "user@example.com",
+                "noreply@directwerk.local",
+                "Directwerk",
+                "Hello\r\nX-Injected: yes",
+                "<p>body</p>",
+                "body",
+                "job-1",
+                "PASSWORD_RESET",
+                Map.of()
+        ))).isInstanceOf(EmailDeliveryException.class);
+
+        assertThatThrownBy(() -> smtpEmailSender.send(new OutboundEmail(
+                "user@example.com",
+                "noreply@directwerk.local",
+                "Evil\r\nBcc: attacker@example.com",
+                "Subject",
+                "<p>body</p>",
+                "body",
+                "job-1",
+                "PASSWORD_RESET",
+                Map.of()
+        ))).isInstanceOf(EmailDeliveryException.class);
+        verify(mailSender, never()).send(any(MimeMessage.class));
+    }
+
+    @Test
+    void rejectsMalformedAddressesAndHeaderNames() {
+        assertThatThrownBy(() -> smtpEmailSender.send(new OutboundEmail(
+                "not-an-address",
+                "noreply@directwerk.local",
+                "Directwerk",
+                "Subject",
+                "<p>body</p>",
+                "body",
+                "job-1",
+                "PASSWORD_RESET",
+                Map.of()
+        ))).isInstanceOf(EmailDeliveryException.class);
+
+        assertThatThrownBy(() -> smtpEmailSender.send(new OutboundEmail(
+                "user@example.com",
+                "noreply@directwerk.local",
+                "Directwerk",
+                "Subject",
+                "<p>body</p>",
+                "body",
+                "job-1",
+                "PASSWORD_RESET",
+                Map.of("X-Bad\r\nHeader", "value")
+        ))).isInstanceOf(EmailDeliveryException.class);
+        verify(mailSender, never()).send(any(MimeMessage.class));
+    }
+
+    @Test
+    void acceptsValidReplyToHeader() throws Exception {
+        MimeMessage mimeMessage = new MimeMessage(Session.getDefaultInstance(new Properties()));
+        when(mailSender.createMimeMessage()).thenReturn(mimeMessage);
+
+        smtpEmailSender.send(new OutboundEmail(
+                "inbox@directwerk.local",
+                "noreply@directwerk.local",
+                "Directwerk",
+                "Contact form",
+                "<p>body</p>",
+                "body",
+                "job-1",
+                "CONTACT_FORM",
+                Map.of("Reply-To", "user@example.com")
+        ));
+
+        ArgumentCaptor<MimeMessage> messageCaptor = ArgumentCaptor.forClass(MimeMessage.class);
+        verify(mailSender).send(messageCaptor.capture());
+        assertThat(messageCaptor.getValue().getReplyTo()[0].toString()).contains("user@example.com");
+    }
+
 
     private static String readBody(MimeMessage message) throws Exception {
         return extractText(message.getContent());

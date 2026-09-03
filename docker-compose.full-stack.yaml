@@ -44,7 +44,8 @@ services:
             POSTGRES_PASSWORD: ${SPRING_DATASOURCE_PASSWORD:?Set SPRING_DATASOURCE_PASSWORD in Directwerk/.env}
             POSTGRES_USER: myuser
         ports:
-            - '${DIRECTWERK_POSTGRES_PORT:-5433}:5432'
+            # Loopback-bound: the DB must never listen on 0.0.0.0 (LAN exposure).
+            - '127.0.0.1:${DIRECTWERK_POSTGRES_PORT:-5433}:5432'
         volumes:
             - postgres_data:/var/lib/postgresql
         healthcheck:

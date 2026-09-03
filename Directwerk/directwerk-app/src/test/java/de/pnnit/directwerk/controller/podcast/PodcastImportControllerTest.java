@@ -5,6 +5,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -25,6 +26,7 @@ import de.pnnit.directwerk.modules.podcast.service.PodcastImportService;
 import de.pnnit.directwerk.multitenancy.TenantContext;
 import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -210,6 +212,21 @@ class PodcastImportControllerTest {
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.data.alreadyImported").value(false))
                 .andExpect(jsonPath("$.data.episode.id").value(5));
+    }
+
+    @Test
+    @WithMockUser(roles = "EDITOR")
+    void getIngestAssetFromAnotherTenantReturnsNotFound() throws Exception {
+        Tenant foreignTenant = new Tenant();
+        foreignTenant.setId(11L);
+        MediaAsset foreignAsset = new MediaAsset();
+        foreignAsset.setId(99L);
+        foreignAsset.setTenant(foreignTenant);
+        when(mediaAssetQueryApi.findById(99L)).thenReturn(Optional.of(foreignAsset));
+
+        mockMvc.perform(get("/api/v1/podcast/import/assets/99"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.errors[0].code").value("MEDIA_ASSET_NOT_FOUND"));
     }
 
     private static Episode episode() {

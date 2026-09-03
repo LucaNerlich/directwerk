@@ -134,6 +134,19 @@ public class RemoteAssetIngestService implements RemoteAssetIngestApi {
         if (tenantId == null) {
             throw new IllegalStateException("Remote asset ingest job requires tenantId");
         }
+        if (asset.getTenant() == null
+                || asset.getTenant().getId() == null
+                || !tenantId.equals(asset.getTenant().getId())) {
+            // Defense in depth: the Hibernate tenantFilter normally scopes this lookup to the
+            // job tenant already, but a poisoned payload must never let one tenant's worker
+            // stream bytes into (or update progress on) another tenant's asset.
+            log.warn(
+                    "Skipping remote ingest job for asset {} (tenant mismatch for job tenant {})",
+                    payload.mediaAssetId(),
+                    tenantId
+            );
+            return;
+        }
         URI source = RemoteUrlValidator.requirePublicHttpUrl(payload.sourceUrl());
         PreparedIngest prepared = new PreparedIngest(
                 StorageConfigs.requireEnabled(directwerkConfig),

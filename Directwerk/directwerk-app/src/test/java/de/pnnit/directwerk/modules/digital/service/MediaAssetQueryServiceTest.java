@@ -80,4 +80,48 @@ class MediaAssetQueryServiceTest {
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("Tenant not found");
     }
+
+    @Test
+    void findByIdReturnsAssetForSameTenant() {
+        Tenant tenant = new Tenant();
+        tenant.setId(42L);
+        MediaAsset asset = new MediaAsset();
+        asset.setId(7L);
+        asset.setTenant(tenant);
+        when(mediaAssetRepository.findById(7L)).thenReturn(java.util.Optional.of(asset));
+
+        TenantContext.setTenantId(42L);
+
+        assertThat(service.findById(7L)).contains(asset);
+    }
+
+    @Test
+    void findByIdReturnsEmptyForForeignTenant() {
+        // Regression: Hibernate filters do not apply to EntityManager.find()
+        // (the path behind repository findById), so without an explicit
+        // TenantContext check any editor could read another tenant's asset
+        // metadata (incl. s3Key) by ID. Callers map empty to 404.
+        Tenant otherTenant = new Tenant();
+        otherTenant.setId(99L);
+        MediaAsset asset = new MediaAsset();
+        asset.setId(7L);
+        asset.setTenant(otherTenant);
+        when(mediaAssetRepository.findById(7L)).thenReturn(java.util.Optional.of(asset));
+
+        TenantContext.setTenantId(42L);
+
+        assertThat(service.findById(7L)).isEmpty();
+    }
+
+    @Test
+    void findByIdWithoutContextPreservesPlatformBehavior() {
+        Tenant tenant = new Tenant();
+        tenant.setId(42L);
+        MediaAsset asset = new MediaAsset();
+        asset.setId(7L);
+        asset.setTenant(tenant);
+        when(mediaAssetRepository.findById(7L)).thenReturn(java.util.Optional.of(asset));
+
+        assertThat(service.findById(7L)).contains(asset);
+    }
 }
