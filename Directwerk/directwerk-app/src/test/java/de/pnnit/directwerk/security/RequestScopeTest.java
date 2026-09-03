@@ -40,7 +40,8 @@ class RequestScopeTest {
     @Test
     void editorContentBasesRequireEditorOrAdmin() {
         for (String base : new String[] {"/api/v1/media", "/api/v1/series", "/api/v1/episodes",
-                "/api/v1/articles", "/api/v1/formats", "/api/v1/categories"}) {
+                "/api/v1/articles", "/api/v1/formats", "/api/v1/categories",
+                "/api/v1/podcast/import"}) {
             assertThat(RequestScope.of(base)).isEqualTo(RequestScope.EDITOR_CONTENT);
             assertThat(RequestScope.of(base + "/7")).isEqualTo(RequestScope.EDITOR_CONTENT);
             assertThat(RequestScope.of(base).roleRequirement())

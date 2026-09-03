@@ -59,7 +59,8 @@ public enum RequestScope {
     private static final String[] PLATFORM_PREFIXES = {"/api/v1/platform/", "/api/v1/webhooks/"};
     private static final String[] EDITOR_CONTENT_BASES = {
             "/api/v1/media", "/api/v1/series", "/api/v1/episodes",
-            "/api/v1/articles", "/api/v1/formats", "/api/v1/categories"
+            "/api/v1/articles", "/api/v1/formats", "/api/v1/categories",
+            "/api/v1/podcast/import"
     };
 
     /**

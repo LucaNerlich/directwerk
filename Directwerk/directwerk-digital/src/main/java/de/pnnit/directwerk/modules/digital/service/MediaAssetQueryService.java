@@ -27,7 +27,21 @@ public class MediaAssetQueryService implements MediaAssetQueryApi {
         if (assetId == null) {
             return Optional.empty();
         }
-        return mediaAssetRepository.findById(assetId);
+        Optional<MediaAsset> asset = mediaAssetRepository.findById(assetId);
+        // Hibernate filters do not apply to EntityManager.find() — the path behind
+        // repository findById — so enforce the Host-derived TenantContext explicitly.
+        // Without this, any editor could read another tenant's asset metadata
+        // (including s3Key, ownerUserId, episode linkage) by ID via
+        // GET /api/v1/media/{id} or GET /api/v1/podcast/import/assets/{assetId}.
+        // A mismatch returns empty so callers map to 404, never a cross-tenant leak.
+        // Absent context (platform ops / workers scope explicitly via callWithTenant)
+        // preserves existing behavior.
+        Long contextTenantId = TenantContext.getTenantId();
+        if (contextTenantId == null) {
+            return asset;
+        }
+        return asset.filter(candidate ->
+                candidate.getTenant() != null && contextTenantId.equals(candidate.getTenant().getId()));
     }
 
     @Override

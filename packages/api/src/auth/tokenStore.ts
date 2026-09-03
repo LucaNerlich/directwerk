@@ -5,6 +5,18 @@
  *
  * Access tokens live in sessionStorage; refresh tokens live in httpOnly
  * cookies handled by the BFF and never touch client JS.
+ *
+ * SECURITY NOTE (token theft): any JavaScript-readable token store is
+ * exfiltratable via XSS, so this store is only one layer of the session
+ * posture — it must be paired with HTML sanitization at every render sink
+ * (see `sanitizeContentHtml`), strict CSP, and the short access-token TTL
+ * (15 min default). sessionStorage (not localStorage) is used so tokens do
+ * not survive tab close and are not shared across tabs. The full httpOnly
+ * migration path is already in place for refresh tokens via the BFF
+ * (`sealRefreshToken`); moving access tokens fully server-side would require
+ * routing all API reads through the `/api/proxy` BFF with the access token
+ * kept in a sealed cookie — a larger latency/complexity tradeoff that is
+ * deferred while the TTL + sanitization + CSP layers hold.
  */
 
 const DEFAULT_ACCESS_TTL_SECONDS = 900

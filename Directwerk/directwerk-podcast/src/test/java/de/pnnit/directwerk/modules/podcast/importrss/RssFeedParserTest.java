@@ -118,4 +118,28 @@ class RssFeedParserTest {
         assertThat(RssFeedParser.parseDuration("999999999999999999999")).isNull();
         assertThat(RssFeedParser.parseDuration("")).isNull();
     }
+
+    @Test
+    void neutralizesDoctypeAndExternalEntities() {
+        String xxe = """
+                <?xml version="1.0" encoding="UTF-8"?>
+                <!DOCTYPE rss [<!ENTITY xxe SYSTEM "file:///etc/passwd">]>
+                <rss version="2.0">
+                  <channel>
+                    <title>Alpha &xxe;</title>
+                  </channel>
+                </rss>
+                """;
+        try {
+            ParsedRssFeed feed = parser.parse(
+                    "https://example.com/feed.xml",
+                    new ByteArrayInputStream(xxe.getBytes(StandardCharsets.UTF_8)));
+            // DTD support is disabled: the external entity must never be resolved —
+            // local file content must not leak into parsed fields.
+            assertThat(feed.channel().title()).doesNotContain("root:");
+        } catch (RssImportException expected) {
+            // Rejecting the feed outright is equally safe.
+            assertThat(expected.getCode()).isEqualTo("RSS_FEED_INVALID");
+        }
+    }
 }

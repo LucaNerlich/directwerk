@@ -493,6 +493,47 @@ class RemoteAssetIngestServiceTest {
         verify(mediaAssetRepository).delete(any(MediaAsset.class));
     }
 
+    @Test
+    void queuedIngestSkipsAssetFromAnotherTenant() throws Exception {
+        Tenant otherTenant = new Tenant();
+        otherTenant.setId(99L);
+        otherTenant.setSlug("other");
+        MediaAsset foreignAsset = new MediaAsset();
+        foreignAsset.setId(42L);
+        foreignAsset.setTenant(otherTenant);
+        foreignAsset.setStatus(AssetStatus.PENDING);
+        when(mediaAssetRepository.findById(42L)).thenReturn(Optional.of(foreignAsset));
+
+        de.pnnit.directwerk.modules.queue.QueueJob job =
+                new de.pnnit.directwerk.modules.queue.QueueJob(
+                        java.util.UUID.randomUUID(),
+                        de.pnnit.directwerk.modules.digital.job.MediaJobQueueNames.REMOTE_ASSET_INGEST,
+                        null,
+                        0,
+                        de.pnnit.directwerk.modules.queue.JobStatus.PROCESSING,
+                        java.time.Instant.now(),
+                        1,
+                        5,
+                        "worker-1",
+                        java.time.Instant.now().plusSeconds(900),
+                        null,
+                        10L,
+                        "remote-asset-ingest-42",
+                        null,
+                        java.time.Instant.now(),
+                        java.time.Instant.now()
+                );
+
+        service.processQueuedIngest(
+                new de.pnnit.directwerk.modules.digital.job.RemoteAssetIngestJobPayload(
+                        42L, "https://1.1.1.1/ep.mp3", "episode.mp3"),
+                job
+        );
+
+        verifyNoInteractions(remoteContentClient, s3Client);
+        verify(mediaAssetRepository, never()).saveAndFlush(any(MediaAsset.class));
+    }
+
     private static DirectwerkProperties.Storage storage() {
         return new DirectwerkProperties.Storage(
                 true,

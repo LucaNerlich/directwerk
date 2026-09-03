@@ -2,6 +2,13 @@
 !Directwerk/http/http-client.env.json
 Directwerk/http/http-client.private.env.json
 Directwerk/http/http-client.secrets.json
+# Local secrets — every app also ignores these in its own .gitignore; belt and braces at root
+.env
+.env.*
+!**/.env.example
+!**/.env.local.example
+*.pem
+*.key
 node_modules
 **/node_modules
 /packages/ui/node_modules/

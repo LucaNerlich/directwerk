@@ -2,6 +2,7 @@ package de.pnnit.directwerk.security;
 
 import org.springframework.core.convert.converter.Converter;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
+import org.springframework.security.oauth2.jwt.BadJwtException;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
@@ -22,7 +23,7 @@ public class DirectwerkJwtAuthenticationConverter implements Converter<Jwt, Abst
     @Override
     public AbstractAuthenticationToken convert(Jwt jwt) {
         Long tenantId = parseTenantIdClaim(jwt);
-        Long userId = jwt.getSubject() != null ? Long.parseLong(jwt.getSubject()) : null;
+        Long userId = parseSubject(jwt);
 
         DirectwerkUserPrincipal principal = new DirectwerkUserPrincipal(
                 userId,
@@ -38,6 +39,21 @@ public class DirectwerkJwtAuthenticationConverter implements Converter<Jwt, Abst
                 return principal;
             }
         };
+    }
+
+    private static Long parseSubject(Jwt jwt) {
+        String subject = jwt.getSubject();
+        if (subject == null || subject.isBlank()) {
+            return null;
+        }
+        try {
+            return Long.valueOf(subject.trim());
+        } catch (NumberFormatException ex) {
+            // Fail closed as 401 (not 500): only our own RS256-signed tokens reach
+            // here, but a non-numeric subject must never become an authenticated
+            // principal with a null userId.
+            throw new BadJwtException("Invalid subject claim");
+        }
     }
 
     private static Long parseTenantIdClaim(Jwt jwt) {

@@ -3,6 +3,13 @@
 **/.env.*
 !**/.env.example
 !**/.env.local.example
+# Never bake key material or dev-only credentials into image contexts
+**/*.pem
+**/*.key
+**/*.p12
+**/*.pfx
+Directwerk/http/http-client.private.env.json
+Directwerk/http/http-client.secrets.json
 
 **/.idea
 **/.vscode

@@ -20,7 +20,8 @@ public class MarketingCorsConfig {
                 .toList();
         configuration.setAllowedOrigins(allowedOrigins);
         configuration.setAllowedMethods(List.of("GET", "POST", "OPTIONS"));
-        configuration.setAllowedHeaders(List.of("*"));
+        // Contact/Altcha clients only send JSON: no wildcard, no credentials.
+        configuration.setAllowedHeaders(List.of("Content-Type", "Accept"));
         configuration.setMaxAge(3600L);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();

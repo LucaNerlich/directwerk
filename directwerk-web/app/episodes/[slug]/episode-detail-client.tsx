@@ -11,6 +11,7 @@ import SectionHeader from '@directwerk/ui/components/section-header'
 import AccessPolicyBadge from '@/components/AccessPolicyBadge'
 import ContentMetaLine from '@/components/ContentMetaLine'
 import {listMyEpisodes, listPublicEpisodes} from '@/lib/api/client'
+import {sanitizeContentHtml} from '@/lib/sanitizeContentHtml'
 import {AUTH_REQUIRED} from '@directwerk/api/constants'
 import type {PublicEpisode} from '@directwerk/api/types'
 import {
@@ -147,7 +148,10 @@ export default function EpisodeDetailClient({
                     {episode.description !== null && episode.description.length > 0 ? (
                         <div
                             className="content-prose"
-                            dangerouslySetInnerHTML={{__html: episode.description}}
+                            // Defense-in-depth: the API sanitizes on write, but
+                            // stored HTML is re-sanitized here so a compromised
+                            // or bypassed record cannot XSS the public site.
+                            dangerouslySetInnerHTML={{__html: sanitizeContentHtml(episode.description)}}
                         />
                     ) : null}
 

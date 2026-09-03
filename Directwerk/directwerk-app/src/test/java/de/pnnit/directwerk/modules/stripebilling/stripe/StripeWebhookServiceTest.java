@@ -20,6 +20,7 @@ import de.pnnit.directwerk.modules.subscription.repository.SubscriptionProductRe
 import de.pnnit.directwerk.modules.subscription.repository.SubscriptionRepository;
 import de.pnnit.directwerk.modules.stripebilling.service.StripeSubscriptionSyncService;
 import java.time.Instant;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
@@ -181,7 +182,8 @@ class StripeWebhookServiceTest {
     }
 
     @Test
-    void replayIsIgnored() {        StripeOperations.StripeWebhookPayload payload = new StripeOperations.StripeWebhookPayload(
+    void replayIsIgnored() {
+        StripeOperations.StripeWebhookPayload payload = new StripeOperations.StripeWebhookPayload(
                 "evt_dup",
                 "checkout.session.completed",
                 "acct_1",
@@ -389,6 +391,109 @@ class StripeWebhookServiceTest {
         service.handle("{}", "sig");
 
         verify(stripeSubscriptionSyncService, never()).cancelStripeOneTimeByPaymentId(any(), any());
+    }
+
+    @Test
+    void checkoutCompletedWithMismatchedTenantMetadataIsIgnored() {
+        StripeOperations.StripeWebhookPayload payload = new StripeOperations.StripeWebhookPayload(
+                "evt_xtenant",
+                "checkout.session.completed",
+                "acct_1",
+                "cus_1",
+                "sub_1",
+                "price_1",
+                Instant.parse("2026-09-01T00:00:00Z"),
+                "active",
+                true,
+                true,
+                true,
+                Map.of("tenant_id", "8", "user_id", "3", "product_id", "11"),
+                "pi_1",
+                false
+        );
+        when(stripeOperations.parseWebhook("{}", "sig")).thenReturn(payload);
+        when(processedWebhookEventRepository.insertIfAbsent("evt_xtenant", "checkout.session.completed", "acct_1"))
+                .thenReturn(1);
+        when(stripeConnectService.findByStripeAccountId("acct_1")).thenReturn(account(7L, "acct_1"));
+
+        service.handle("{}", "sig");
+
+        verify(stripeSubscriptionSyncService, never()).upsertStripeSubscription(
+                any(), any(), any(), any(), any(), any(), any(), any()
+        );
+        verify(subscriptionProductRepository, never()).findByIdAndTenantId(any(), any());
+    }
+
+    @Test
+    void subscriptionUpdatedWithGarbledTenantMetadataIsIgnored() {
+        StripeOperations.StripeWebhookPayload payload = new StripeOperations.StripeWebhookPayload(
+                "evt_garbled",
+                "customer.subscription.updated",
+                "acct_1",
+                "cus_1",
+                "sub_1",
+                "price_1",
+                Instant.parse("2026-09-01T00:00:00Z"),
+                "active",
+                true,
+                true,
+                true,
+                Map.of("tenant_id", "not-a-number", "user_id", "3", "product_id", "11"),
+                null,
+                false
+        );
+        when(stripeOperations.parseWebhook("{}", "sig")).thenReturn(payload);
+        when(processedWebhookEventRepository.insertIfAbsent("evt_garbled", "customer.subscription.updated", "acct_1"))
+                .thenReturn(1);
+        when(stripeConnectService.findByStripeAccountId("acct_1")).thenReturn(account(7L, "acct_1"));
+
+        service.handle("{}", "sig");
+
+        verify(stripeSubscriptionSyncService, never()).upsertStripeSubscription(
+                any(), any(), any(), any(), any(), any(), any(), any()
+        );
+        verify(stripeSubscriptionSyncService, never()).syncStripeSubscriptionByExternalId(any(), any(), any(), any());
+    }
+
+    @Test
+    void subscriptionUpdatedPrefersLivePriceOverStaleMetadata() {
+        StripeOperations.StripeWebhookPayload payload = new StripeOperations.StripeWebhookPayload(
+                "evt_downgrade",
+                "customer.subscription.updated",
+                "acct_1",
+                "cus_1",
+                "sub_2",
+                "price_cheap",
+                Instant.parse("2026-09-01T00:00:00Z"),
+                "active",
+                true,
+                true,
+                true,
+                Map.of("tenant_id", "7", "user_id", "3", "product_id", "11"),
+                null,
+                false
+        );
+        when(stripeOperations.parseWebhook("{}", "sig")).thenReturn(payload);
+        when(processedWebhookEventRepository.insertIfAbsent("evt_downgrade", "customer.subscription.updated", "acct_1"))
+                .thenReturn(1);
+        when(stripeConnectService.findByStripeAccountId("acct_1")).thenReturn(account(7L, "acct_1"));
+        SubscriptionProduct cheap = new SubscriptionProduct();
+        cheap.setId(22L);
+        cheap.setStripePriceId("price_cheap");
+        when(subscriptionProductRepository.findByTenantIdOrderBySortOrderAscIdAsc(7L))
+                .thenReturn(List.of(cheap));
+        when(subscriptionRepository.findByTenantIdAndExternalSubscriptionId(7L, "sub_2"))
+                .thenReturn(Optional.empty());
+
+        service.handle("{}", "sig");
+
+        // Stale metadata says product 11 (expensive); the live price resolves to 22 (cheap).
+        verify(stripeSubscriptionSyncService).upsertStripeSubscription(
+                eq(7L), eq(3L), eq(22L), eq("sub_2"), eq("cus_1"),
+                eq(SubscriptionStatus.ACTIVE),
+                eq(Instant.parse("2026-09-01T00:00:00Z")),
+                isNull()
+        );
     }
 
     private static TenantStripeAccount account(Long tenantId, String stripeAccountId) {

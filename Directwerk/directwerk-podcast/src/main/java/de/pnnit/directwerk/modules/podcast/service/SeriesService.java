@@ -7,6 +7,7 @@ import de.pnnit.directwerk.modules.core.repository.TenantRepository;
 import de.pnnit.directwerk.modules.core.util.FieldConstraints;
 import de.pnnit.directwerk.modules.core.util.SlugNormalizer;
 import de.pnnit.directwerk.modules.core.util.TitleNormalizer;
+import de.pnnit.directwerk.modules.digital.service.HtmlSanitizer;
 import de.pnnit.directwerk.modules.podcast.PodcastModule;
 import de.pnnit.directwerk.modules.podcast.entity.PodcastSeries;
 import de.pnnit.directwerk.modules.podcast.entity.SeriesStatus;
@@ -28,6 +29,7 @@ public class SeriesService {
     private final TenantRepository tenantRepository;
     private final PodcastCoverAssetResolver podcastCoverAssetResolver;
     private final RssFeedRefreshScheduler rssFeedRefreshScheduler;
+    private final HtmlSanitizer htmlSanitizer;
 
     @Transactional(readOnly = true)
     public List<PodcastSeries> listSeries(Long tenantId, boolean publishedOnly) {
@@ -68,7 +70,7 @@ public class SeriesService {
         series.setTenant(tenantRepository.getReferenceById(tenantId));
         series.setSlug(slug);
         series.setTitle(TitleNormalizer.normalize(title, "Series"));
-        series.setDescription(normalizeText(description));
+        series.setDescription(sanitizeDescription(description));
         series.setCoverAsset(podcastCoverAssetResolver.resolveCoverAsset(tenantId, coverAssetId));
         series.setLanguage(normalizeLanguage(language));
         series.setItunesCategory(normalizeItunesCategory(itunesCategory));
@@ -110,7 +112,7 @@ public class SeriesService {
             series.setTitle(TitleNormalizer.normalize(title, "Series"));
         }
         if (description != null) {
-            series.setDescription(normalizeText(description));
+            series.setDescription(sanitizeDescription(description));
         }
         if (coverAssetId != null) {
             series.setCoverAsset(podcastCoverAssetResolver.resolveCoverAsset(tenantId, coverAssetId));
@@ -160,10 +162,12 @@ public class SeriesService {
         return normalized;
     }
 
-    private static String normalizeText(String value) {
+    private String sanitizeDescription(String value) {
         if (value == null || value.isBlank()) {
             return null;
         }
-        return value.trim();
+        String sanitized = htmlSanitizer.sanitize(value).trim();
+        return sanitized.isEmpty() ? null : sanitized;
     }
+
 }
