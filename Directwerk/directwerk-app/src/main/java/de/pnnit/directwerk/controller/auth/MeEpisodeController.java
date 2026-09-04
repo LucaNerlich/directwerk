@@ -72,10 +72,7 @@ public class MeEpisodeController {
                 slug,
                 request.getServerName(),
                 request.getHeader("User-Agent"),
-                ClientIpExtractor.extract(
-                        request.getHeader("X-Forwarded-For"),
-                        request.getHeader("X-Real-IP"),
-                        request.getRemoteAddr()));
+                ClientIpExtractor.extract(request));
         return tracked.response();
     }
 

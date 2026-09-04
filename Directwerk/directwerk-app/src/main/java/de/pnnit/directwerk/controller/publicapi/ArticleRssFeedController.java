@@ -137,9 +137,6 @@ public class ArticleRssFeedController {
         if (remoteAddr == null || !trustedProxies.contains(remoteAddr)) {
             return ClientIpExtractor.extract(null, null, remoteAddr);
         }
-        return ClientIpExtractor.extract(
-                request.getHeader("X-Forwarded-For"),
-                request.getHeader("X-Real-IP"),
-                remoteAddr);
+        return ClientIpExtractor.extract(request);
     }
 }

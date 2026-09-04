@@ -58,7 +58,7 @@ public class RssFeedController {
                 "public",
                 request.getServerName(),
                 request.getHeader("User-Agent"),
-                clientIp(request));
+                ClientIpExtractor.extract(request));
         var delivery = rssFeedSnapshotService.publicTenantFeed(tenant);
         return FeedRedirects.rssRedirect(delivery.redirectUrl(), delivery.ready());
     }
@@ -77,7 +77,7 @@ public class RssFeedController {
                 "public",
                 request.getServerName(),
                 request.getHeader("User-Agent"),
-                clientIp(request));
+                ClientIpExtractor.extract(request));
         var delivery = rssFeedSnapshotService.publicSeriesFeed(tenant, seriesSlug);
         return FeedRedirects.rssRedirect(delivery.redirectUrl(), delivery.ready());
     }
@@ -97,7 +97,7 @@ public class RssFeedController {
                 "private",
                 request.getServerName(),
                 request.getHeader("User-Agent"),
-                clientIp(request));
+                ClientIpExtractor.extract(request));
         var delivery = rssFeedSnapshotService.privateFeed(tenant, feed);
         return FeedRedirects.rssRedirect(delivery.redirectUrl(), delivery.ready());
     }
@@ -117,7 +117,7 @@ public class RssFeedController {
                 request.getServerName(),
                 request.getHeader("User-Agent"),
                 request.getHeader("Range") != null,
-                clientIp(request)
+                ClientIpExtractor.extract(request)
         ).response();
     }
 
@@ -138,14 +138,7 @@ public class RssFeedController {
                 request.getServerName(),
                 request.getHeader("User-Agent"),
                 request.getHeader("Range") != null,
-                clientIp(request)
+                ClientIpExtractor.extract(request)
         ).response();
-    }
-
-    private static String clientIp(HttpServletRequest request) {
-        return ClientIpExtractor.extract(
-                request.getHeader("X-Forwarded-For"),
-                request.getHeader("X-Real-IP"),
-                request.getRemoteAddr());
     }
 }

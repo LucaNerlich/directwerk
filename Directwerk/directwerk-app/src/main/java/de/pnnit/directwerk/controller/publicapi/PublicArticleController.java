@@ -79,10 +79,7 @@ public class PublicArticleController {
                 "public-view",
                 request.getServerName(),
                 request.getHeader("User-Agent"),
-                ClientIpExtractor.extract(
-                        request.getHeader("X-Forwarded-For"),
-                        request.getHeader("X-Real-IP"),
-                        request.getRemoteAddr()));
+                ClientIpExtractor.extract(request));
         return ResponseEntity.ok(Response.ok(publicArticleViewMapper.toPublicView(article)));
     }
 

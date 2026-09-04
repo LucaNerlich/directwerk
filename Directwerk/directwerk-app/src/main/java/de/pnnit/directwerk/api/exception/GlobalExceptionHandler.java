@@ -89,6 +89,11 @@ public class GlobalExceptionHandler {
                 .body(Response.error(409, code, message));
     }
 
+    private static ResponseEntity<Response<Void>> badRequest(String code, Exception ex) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(Response.error(400, code, ex.getMessage()));
+    }
+
     @ExceptionHandler(TenantContextMissingException.class)
     ResponseEntity<Response<Void>> handleTenantContextMissing(TenantContextMissingException ex) {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
@@ -404,8 +409,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(ConstraintViolationException.class)
     ResponseEntity<Response<Void>> handleConstraintViolation(ConstraintViolationException ex) {
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .body(Response.error(400, "VALIDATION_ERROR", ex.getMessage()));
+        return badRequest("VALIDATION_ERROR", ex);
     }
 
     /**
@@ -426,14 +430,12 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)
     ResponseEntity<Response<Void>> handleTypeMismatch(MethodArgumentTypeMismatchException ex) {
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .body(Response.error(400, "VALIDATION_ERROR", ex.getMessage()));
+        return badRequest("VALIDATION_ERROR", ex);
     }
 
     @ExceptionHandler(MissingServletRequestParameterException.class)
     ResponseEntity<Response<Void>> handleMissingParameter(MissingServletRequestParameterException ex) {
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .body(Response.error(400, "VALIDATION_ERROR", ex.getMessage()));
+        return badRequest("VALIDATION_ERROR", ex);
     }
 
     /**
