@@ -138,13 +138,13 @@ public class UmamiEventClient {
                     isBlank(userAgent) ? "Directwerk/1.0" : userAgent
             );
             if (statusCode < 200 || statusCode >= 300) {
-                log.debug("Umami event returned HTTP {} for event {}", statusCode, eventName);
+                log.warn("Umami event returned HTTP {} for event {}", statusCode, eventName);
             }
         } catch (Exception ex) {
             if (ex instanceof InterruptedException) {
                 Thread.currentThread().interrupt();
             }
-            log.debug("Umami event delivery failed for event {}: {}", eventName, ex.toString());
+            log.warn("Umami event delivery failed for event {}: {}", eventName, ex.toString());
         }
     }
 

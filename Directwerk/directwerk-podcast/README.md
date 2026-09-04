@@ -136,6 +136,18 @@ proxies (`/feeds/{tenant}/e/{episode}.mp3`, `/feeds/{tenant}/u/{token}/e/{episod
 legacy alias `/api/v1/public/episodes/{slug}/download`) with `Cache-Control: no-store`
 so repeat plays are counted. Analytics is fail-open and never gates playback.
 
+Two blind spots by design:
+
+- Web player: the site `<audio>` element plays direct CDN URLs (`audioCdnUrl`),
+  which never touch the backend. Site playback is reported client-side instead —
+  `directwerk-web` fires `episode-play {episodeSlug}` via the Umami tracker on
+  playback start (fail-open; only fires while the tracker script is loaded, i.e.
+  ANALYTICS module + website ID are active).
+- Direct asset URLs (signed BunnyCDN links, studio previews, API `audioCdnUrl`
+  opened raw) bypass every tracking path. To verify tracking end to end, play
+  through the site player, the portal stream, or an RSS enclosure URL — never a
+  raw CDN link.
+
 ---
 
 ## Feed builder (Formate)

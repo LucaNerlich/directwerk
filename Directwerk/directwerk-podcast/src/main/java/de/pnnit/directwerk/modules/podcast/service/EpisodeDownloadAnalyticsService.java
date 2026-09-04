@@ -13,10 +13,12 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
+@Slf4j
 @RequiredArgsConstructor
 public class EpisodeDownloadAnalyticsService {
 
@@ -55,18 +57,31 @@ public class EpisodeDownloadAnalyticsService {
                     || hostname == null
                     || hostname.isBlank()
                     || !ALLOWED_SOURCES.contains(source)) {
+                log.debug("Skipping episode-download event: incomplete request context (source={})", source);
                 return;
             }
             if (!moduleGateService.enabledModuleKeys(tenantId).contains(AnalyticsModule.KEY)) {
+                log.info(
+                        "Skipping episode-download event for tenant {} episode '{}': ANALYTICS module is not enabled",
+                        tenantId,
+                        episode.getSlug());
                 return;
             }
             TenantBranding branding = tenantBrandingService.getBranding(tenantId);
             String websiteId = branding.getUmamiWebsiteId();
             if (!UmamiWebsiteIdValidator.isValid(websiteId)) {
+                log.info(
+                        "Skipping episode-download event for tenant {} episode '{}': no valid Umami website ID configured",
+                        tenantId,
+                        episode.getSlug());
                 return;
             }
             String hostUrl = UmamiAnalyticsResolver.resolveEventHostUrl(branding, directwerkConfig);
             if (hostUrl == null) {
+                log.info(
+                        "Skipping episode-download event for tenant {} episode '{}': no Umami host resolvable (tenant override unset, platform analytics disabled)",
+                        tenantId,
+                        episode.getSlug());
                 return;
             }
             String seriesSlug = episode.getSeries() != null ? episode.getSeries().getSlug() : null;

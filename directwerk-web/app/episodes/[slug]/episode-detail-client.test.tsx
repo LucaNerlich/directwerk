@@ -1,5 +1,5 @@
-import {render, screen, waitFor} from '@testing-library/react'
-import {describe, expect, it} from 'vitest'
+import {fireEvent, render, screen, waitFor} from '@testing-library/react'
+import {describe, expect, it, vi} from 'vitest'
 
 import type {PublicEpisode} from '@directwerk/api/types'
 
@@ -51,5 +51,53 @@ describe('EpisodeDetailClient content rendering', () => {
         expect(container.innerHTML).not.toContain('onclick')
         expect(container.innerHTML).not.toContain('onload')
         expect(container.textContent).toContain('Hörbarer Text')
+    })
+
+    it('reports an episode-play event when playback starts', () => {
+        const track = vi.fn()
+        ;(window as unknown as {umami: unknown}).umami = {track}
+        try {
+            render(
+                <EpisodeDetailClient
+                    slug="sichere-folge"
+                    initialPublicEpisode={{
+                        ...buildEpisode('<p>Hallo</p>'),
+                        audioCdnUrl: 'https://cdn.example.com/folge.mp3',
+                    }}
+                />,
+            )
+
+            const audio = document.querySelector('audio')
+            expect(audio).not.toBeNull()
+            fireEvent.play(audio as HTMLAudioElement)
+
+            expect(track).toHaveBeenCalledWith('episode-play', {
+                url: '/episodes/sichere-folge',
+                episodeSlug: 'sichere-folge',
+            })
+        } finally {
+            Reflect.deleteProperty(
+                window as unknown as Record<string, unknown>,
+                'umami',
+            )
+        }
+    })
+
+    it('plays fine without a tracker (adblocker / analytics off)', () => {
+        render(
+            <EpisodeDetailClient
+                slug="sichere-folge"
+                initialPublicEpisode={{
+                    ...buildEpisode('<p>Hallo</p>'),
+                    audioCdnUrl: 'https://cdn.example.com/folge.mp3',
+                }}
+            />,
+        )
+
+        const audio = document.querySelector('audio')
+        expect(audio).not.toBeNull()
+        expect(() =>
+            fireEvent.play(audio as HTMLAudioElement),
+        ).not.toThrow()
     })
 })
