@@ -17,9 +17,7 @@ import PublishedLinksPanel from '@/components/publication/PublishedLinksPanel'
 import PublicationEditorLayout from '@/components/publication/PublicationEditorLayout'
 import {listCategories, replaceArticleCategories} from '@/lib/api/catalogApi'
 import {getMediaPreviewUrl} from '@/lib/api/mediaApi'
-import {getMyEffectiveRights} from '@/lib/api/tenantSettingsApi'
-import {useOptionalMe} from '@/lib/auth/MeProvider'
-import {deskAccess} from '@/lib/rbac/access'
+import {useDeskAccess} from '@/lib/rbac/useDeskAccess'
 import {
     archiveArticle,
     cancelScheduleArticle,
@@ -33,7 +31,7 @@ import {
     unpublishArticle,
     updateArticle,
 } from '@/lib/api/writeApi'
-import type {ArticleDetail, CategorySummary, EffectiveRights} from '@directwerk/api/types'
+import type {ArticleDetail, CategorySummary} from '@directwerk/api/types'
 import {mediaLimitLabel} from '@/lib/media/limits'
 import {uploadMediaFile} from '@/lib/media/upload'
 import {usePublicationEditorFields} from '@/lib/publication/usePublicationEditorFields'
@@ -57,8 +55,6 @@ export default function ArticleEditor({articleId}: {articleId?: number}) {
     const notifyAudienceHint = useNotifyAudienceHint(showNotify)
     const [article, setArticle] = useState<ArticleDetail | null>(null)
     const [allArticles, setAllArticles] = useState<ArticleDetail[]>([])
-    const [myRights, setMyRights] = useState<EffectiveRights | null>(null)
-    const me = useOptionalMe()
     const [title, setTitle] = useState('')
     const [slug, setSlug] = useState('')
     const [body, setBody] = useState('')
@@ -85,6 +81,13 @@ export default function ArticleEditor({articleId}: {articleId?: number}) {
         publishValidationError,
     } = usePublicationEditorFields()
     useDefaultNotifySubscribers(showNotify, setNotifySubscribers)
+    // RBAC desk adaptation (issue #148); hook call stays above all early
+    // returns. New rows count as own; the backend enforces per row.
+    const desk = useDeskAccess({
+        entity: 'ARTICLE',
+        ownerUserId: articleId === undefined ? undefined : (article?.createdBy ?? null),
+        kind: 'Beitrag',
+    })
     const [heroAssetId, setHeroAssetId] = useState<number | null>(null)
     const [heroPreviewUrl, setHeroPreviewUrl] = useState<string | null>(null)
     const [isUploadingHero, setIsUploadingHero] = useState(false)
@@ -231,15 +234,13 @@ export default function ArticleEditor({articleId}: {articleId?: number}) {
         async function load(): Promise<void> {
             try {
                 const host = getClientTenantHost()
-                const [categoryList, loaded, loadedRights] = await Promise.all([
+                const [categoryList, loaded] = await Promise.all([
                     listCategories(host),
                     getArticle(host, resolvedArticleId),
-                    getMyEffectiveRights(host).catch(() => null),
                 ])
                 if (!active) {
                     return
                 }
-                setMyRights(loadedRights)
                 setAvailableCategories(categoryList.filter((item) => item.active))
                 setArticle(loaded)
                 setTitle(loaded.title)
@@ -350,15 +351,6 @@ export default function ArticleEditor({articleId}: {articleId?: number}) {
     /** Saving and hero uploads share one busy flag so a manual save cannot
      * persist the article while the hero image is still uploading. */
     const busy = isSaving || isUploadingHero
-    // RBAC desk adaptation (issue #148): new rows count as own (creation is
-    // governed by the CREATE check on save); the backend enforces per row.
-    const desk = deskAccess({
-        effective: myRights?.effective ?? null,
-        entity: 'ARTICLE',
-        ownerUserId: articleId === undefined ? (me?.userId ?? null) : (article?.createdBy ?? null),
-        myUserId: me?.userId ?? null,
-        kind: 'Beitrag',
-    })
     const readOnly = !desk.canEdit
 
     const publishBlockedReason = articlePublishBlockReason({title, body})

@@ -23,11 +23,9 @@ import PublishedLinksPanel from '@/components/publication/PublishedLinksPanel'
 import {hasModule} from '@/lib/api/client'
 import {listCategories, listFormats, replaceEpisodeCategories, replaceEpisodeFormats} from '@/lib/api/catalogApi'
 import {getMedia, getMediaPreviewUrl} from '@/lib/api/mediaApi'
-import {getMyEffectiveRights} from '@/lib/api/tenantSettingsApi'
-import {useOptionalMe} from '@/lib/auth/MeProvider'
-import {deskAccess} from '@/lib/rbac/access'
+import {useDeskAccess} from '@/lib/rbac/useDeskAccess'
 import {archiveEpisode, attachEpisodeAudio, cancelScheduleEpisode, createEpisode, deleteEpisode, getEpisode, listEpisodes, listSeries, publishEpisode, scheduleEpisode, setEpisodeEnclosureEnabled, unarchiveEpisode, unpublishEpisode, updateEpisode} from '@/lib/api/podcastApi'
-import type {CategorySummary, EffectiveRights, EpisodeDetail, FormatSummary, SeriesSummary} from '@directwerk/api/types'
+import type {CategorySummary, EpisodeDetail, FormatSummary, SeriesSummary} from '@directwerk/api/types'
 import {mediaLimitLabel} from '@/lib/media/limits'
 import {uploadMediaFile} from '@/lib/media/upload'
 import {episodePublishBlockReason} from '@/lib/podcast/episodePreflight'
@@ -50,8 +48,6 @@ export default function EpisodeEditor({episodeId}: {episodeId?: number}): React.
     const notifyAudienceHint = useNotifyAudienceHint(showNotify)
     const [episode, setEpisode] = useState<EpisodeDetail | null>(null)
     const [allEpisodes, setAllEpisodes] = useState<EpisodeDetail[]>([])
-    const [myRights, setMyRights] = useState<EffectiveRights | null>(null)
-    const me = useOptionalMe()
     const [series, setSeries] = useState<SeriesSummary[]>([])
     const [seriesId, setSeriesId] = useState<number | null>(null)
     const [title, setTitle] = useState('')
@@ -78,6 +74,13 @@ export default function EpisodeEditor({episodeId}: {episodeId?: number}): React.
         publishValidationError,
     } = usePublicationEditorFields()
     useDefaultNotifySubscribers(showNotify, setNotifySubscribers)
+    // RBAC desk adaptation (issue #148); hook call stays above all early
+    // returns. New rows count as own; the backend enforces per row.
+    const desk = useDeskAccess({
+        entity: 'EPISODE',
+        ownerUserId: episodeId === undefined ? undefined : (episode?.createdBy ?? null),
+        kind: 'Folge',
+    })
     const [episodeNumber, setEpisodeNumber] = useState('')
     const [isUploading, setIsUploading] = useState(false)
     const [isEnclosureSaving, setIsEnclosureSaving] = useState(false)
@@ -291,21 +294,18 @@ export default function EpisodeEditor({episodeId}: {episodeId?: number}): React.
         async function load(): Promise<void> {
             try {
                 const host = getClientTenantHost()
-                const [seriesList, formatList, categoryList, episodeList, loadedEpisode, loadedRights] =
+                const [seriesList, formatList, categoryList, episodeList, loadedEpisode] =
                     await Promise.all([
                     listSeries(host),
                     listFormats(host),
                     listCategories(host),
                     listEpisodes(host),
                     episodeId === undefined ? null : getEpisode(host, episodeId),
-                    getMyEffectiveRights(host).catch(() => null),
                 ])
 
                 if (!active) {
                     return
                 }
-
-                setMyRights(loadedRights)
 
                 setSeries(seriesList)
                 setAllEpisodes(episodeList)
@@ -522,15 +522,6 @@ export default function EpisodeEditor({episodeId}: {episodeId?: number}): React.
         audioStatusKnown,
         formatRequired: availableFormats.length > 0,
         formatSelected: selectedFormatIds.size > 0,
-    })
-    // RBAC desk adaptation (issue #148): new rows count as own (creation is
-    // governed by the CREATE check on save); the backend enforces per row.
-    const desk = deskAccess({
-        effective: myRights?.effective ?? null,
-        entity: 'EPISODE',
-        ownerUserId: episodeId === undefined ? (me?.userId ?? null) : (episode?.createdBy ?? null),
-        myUserId: me?.userId ?? null,
-        kind: 'Folge',
     })
     const readOnly = !desk.canEdit
     const controlsDisabled = busy || readOnly

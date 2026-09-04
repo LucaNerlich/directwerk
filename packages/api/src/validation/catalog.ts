@@ -230,12 +230,7 @@ function parseArticleDetail(value: unknown): ArticleDetail | null {
                   ? value.requiredLevelSortOrder
                   : null,
         scheduledAt: isNullableString(value.scheduledAt, 64) ? value.scheduledAt : null,
-        createdBy:
-            value.createdBy === null || value.createdBy === undefined
-                ? null
-                : isPositiveSafeInteger(value.createdBy)
-                  ? value.createdBy
-                  : null,
+        createdBy: parseNullableUserId(value.createdBy),
     }
 }
 
@@ -332,12 +327,7 @@ function parseEpisodeDetail(value: unknown): EpisodeDetail | null {
                   ? value.requiredLevelSortOrder
                   : null,
         scheduledAt: isNullableString(value.scheduledAt, 64) ? value.scheduledAt : null,
-        createdBy:
-            value.createdBy === null || value.createdBy === undefined
-                ? null
-                : isPositiveSafeInteger(value.createdBy)
-                  ? value.createdBy
-                  : null,
+        createdBy: parseNullableUserId(value.createdBy),
     }
 }
 
@@ -557,12 +547,7 @@ function parseSeriesDetail(value: unknown): SeriesDetail | null {
         itunesExplicit: value.itunesExplicit,
         defaultRequiredLevelSortOrder: value.defaultRequiredLevelSortOrder,
         rssUrl: value.rssUrl,
-        createdBy:
-            value.createdBy === null || value.createdBy === undefined
-                ? null
-                : isPositiveSafeInteger(value.createdBy)
-                  ? value.createdBy
-                  : null,
+        createdBy: parseNullableUserId(value.createdBy),
     }
 }
 
@@ -635,12 +620,7 @@ export function parseMediaAsset(value: unknown): MediaAsset | null {
             value.folderId === null || value.folderId === undefined
                 ? null
                 : value.folderId,
-        createdBy:
-            value.createdBy === null || value.createdBy === undefined
-                ? null
-                : isPositiveSafeInteger(value.createdBy)
-                  ? value.createdBy
-                  : null,
+        createdBy: parseNullableUserId(value.createdBy),
         cdnUrl: isNullableString(value.cdnUrl, 4096) ? value.cdnUrl : null,
         createdAt: value.createdAt,
         updatedAt: value.updatedAt,
@@ -663,12 +643,7 @@ export function parseMediaFolder(value: unknown): MediaFolder | null {
         id: value.id,
         name: value.name,
         parentId: value.parentId,
-        createdBy:
-            value.createdBy === null || value.createdBy === undefined
-                ? null
-                : isPositiveSafeInteger(value.createdBy)
-                  ? value.createdBy
-                  : null,
+        createdBy: parseNullableUserId(value.createdBy),
         createdAt: value.createdAt,
         updatedAt: value.updatedAt,
     }
@@ -784,6 +759,18 @@ export function parseEffectiveRightsEnvelope(
             effective,
         }
     })
+}
+
+/**
+ * Lenient creator reference: positive ids pass through, anything else
+ * (null, missing, malformed) becomes null. The backend decides per row.
+ */
+function parseNullableUserId(value: unknown): number | null {
+    return value === null || value === undefined
+        ? null
+        : isPositiveSafeInteger(value)
+          ? value
+          : null
 }
 
 function parseStringRecord(value: unknown): Record<string, string> | null {

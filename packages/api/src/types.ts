@@ -417,19 +417,6 @@ export const RBAC_ENTITY_TYPES: RbacEntityType[] = [
     'MEDIA_FOLDER',
 ]
 
-export const RBAC_OPERATIONS: RbacOperation[] = [
-    'CREATE',
-    'READ',
-    'UPDATE',
-    'DELETE',
-    'PUBLISH',
-    'SCHEDULE',
-    'UNPUBLISH',
-    'ARCHIVE',
-    'UNARCHIVE',
-    'MOVE',
-]
-
 /** Operations an own-content-only restriction can apply to (creates have no owner, reads stay open). */
 export const RBAC_OWN_ONLY_OPERATIONS: RbacOperation[] = [
     'UPDATE',
