@@ -414,6 +414,7 @@ Manage publisher-side accounts (`EDITOR`, `TENANT_ADMIN`). **Not** subscriber se
 | **Team list** | Paginated table: email, name, roles, status, last login |
 | **Invite user** | Email, role (`EDITOR` or `TENANT_ADMIN`); show invite link in dev |
 | **User detail** | Change roles, deactivate, resend invite |
+| **Access rights (RBAC)** | Per-editor deny overrides: tri-state (full / own-only / denied) per entity × operation; tenant admins always keep full rights; reads never restrictable |
 | **Safeguards** | Cannot remove last `TENANT_ADMIN`; cannot demote self if sole admin |
 
 | Action | Method | Path |
@@ -421,6 +422,11 @@ Manage publisher-side accounts (`EDITOR`, `TENANT_ADMIN`). **Not** subscriber se
 | List team | GET | `/api/v1/tenant/users` |
 | Invite | POST | `/api/v1/tenant/users/invite` |
 | Update roles / status | PATCH | `/api/v1/tenant/users/{userId}` |
+| List restrictions | GET | `/api/v1/tenant/users/{userId}/restrictions` |
+| Replace restrictions | PUT | `/api/v1/tenant/users/{userId}/restrictions` |
+| Effective rights | GET | `/api/v1/tenant/users/{userId}/effective-rights` (+ self-service `/api/v1/me/effective-rights`) |
+
+Content rows carry `created_by` (legacy rows: null = tenant-admin-only); desks lock foreign rows for own-only editors with reason, backend enforces per row (`OPERATION_DENIED_BY_POLICY` / `NOT_CONTENT_OWNER`).
 
 Filter: `?role=EDITOR` — subscribers excluded from this list by default.
 

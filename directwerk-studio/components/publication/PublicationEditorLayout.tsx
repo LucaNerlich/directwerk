@@ -20,6 +20,7 @@ import PublicationWorkflowActions from '@/components/publication/PublicationWork
 import SlugField from '@/components/publication/SlugField'
 import LevelSelect from '@/components/studio/LevelSelect'
 import {ShowNotesEditor} from '@/lib/dynamic/studioHeavy'
+import {rbacErrorMessage} from '@/lib/rbac/access'
 import {safeLinkHref} from '@/lib/url/safeUrl'
 import type {AccessPolicy, PublicationStatus} from '@directwerk/api/types'
 import {sanitizeContentHtml} from '@directwerk/api/content/sanitizeContentHtml'
@@ -46,6 +47,8 @@ interface PublicationEditorLayoutProps {
     isDirty?: boolean
     saveHint?: string | null
     errorMessage: string | null
+    /** RBAC read-only lock (issue #148): disables fields and workflow actions with reason. */
+    readOnlyReason?: string | null
     canPublish?: boolean
     publishBlockedReason?: string | null
     showNotify: boolean
@@ -98,6 +101,7 @@ export default function PublicationEditorLayout({
     isDirty = false,
     saveHint = null,
     errorMessage,
+    readOnlyReason = null,
     canPublish = true,
     publishBlockedReason = null,
     showNotify,
@@ -128,7 +132,8 @@ export default function PublicationEditorLayout({
     sidebarExtra,
 }: PublicationEditorLayoutProps): React.JSX.Element {
     const bodyLabel = kind === 'episode' ? 'Shownotes' : 'Text'
-    const fieldsDisabled = isSaving || status !== 'DRAFT'
+    const readOnly = readOnlyReason !== null
+    const fieldsDisabled = isSaving || status !== 'DRAFT' || readOnly
     const publicationLabel = kind === 'episode' ? 'Folge' : 'Beitrag'
     const resolvedBackHref = backHref ?? (kind === 'episode' ? '/podcast/episodes' : '/write/articles')
     const resolvedBackLabel = backLabel ?? (kind === 'episode' ? 'Alle Folgen' : 'Alle Beiträge')
@@ -184,13 +189,13 @@ export default function PublicationEditorLayout({
                     </p>
                     <div className="ml-auto flex flex-wrap items-center gap-2">
                         {isDraft ? (
-                            <Button disabled={isSaving} onClick={onSave} size="sm" type="button" variant="outline">
+                            <Button disabled={isSaving || readOnly} onClick={onSave} size="sm" type="button" variant="outline">
                                 {isSaving ? 'Speichert…' : 'Speichern'}
                             </Button>
                         ) : null}
                         {(isDraft || isScheduled) ? (
                             <Button
-                                disabled={isSaving || publishDisabled}
+                                disabled={isSaving || readOnly || publishDisabled}
                                 onClick={() => setPublishDialogOpen(true)}
                                 size="sm"
                                 title={blockedReason ?? undefined}
@@ -201,21 +206,21 @@ export default function PublicationEditorLayout({
                         ) : null}
                         {isPublished ? (
                             <>
-                                <Button disabled={isSaving} onClick={onUnpublish} size="sm" type="button" variant="outline">
+                                <Button disabled={isSaving || readOnly} onClick={onUnpublish} size="sm" type="button" variant="outline">
                                     Zurückziehen
                                 </Button>
-                                <Button disabled={isSaving} onClick={onArchive} size="sm" type="button" variant="outline">
+                                <Button disabled={isSaving || readOnly} onClick={onArchive} size="sm" type="button" variant="outline">
                                     Archivieren
                                 </Button>
                             </>
                         ) : null}
                         {isScheduled ? (
-                            <Button disabled={isSaving} onClick={onCancelSchedule} size="sm" type="button" variant="outline">
+                            <Button disabled={isSaving || readOnly} onClick={onCancelSchedule} size="sm" type="button" variant="outline">
                                 Planung aufheben
                             </Button>
                         ) : null}
                         {isArchived ? (
-                            <Button disabled={isSaving} onClick={onUnarchive} size="sm" type="button">
+                            <Button disabled={isSaving || readOnly} onClick={onUnarchive} size="sm" type="button">
                                 Wiederherstellen
                             </Button>
                         ) : null}
@@ -240,9 +245,14 @@ export default function PublicationEditorLayout({
             <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 py-6">
             {errorMessage !== null && (
                 <Alert variant="destructive">
-                    <AlertDescription>{errorMessage}</AlertDescription>
+                    <AlertDescription>{rbacErrorMessage(new Error(errorMessage))}</AlertDescription>
                 </Alert>
             )}
+            {readOnlyReason !== null ? (
+                <Alert>
+                    <AlertDescription>{readOnlyReason}</AlertDescription>
+                </Alert>
+            ) : null}
             {(isDraft || isScheduled) && blockedReason !== null ? (
                 <Alert>
                     <AlertDescription>Vor dem Veröffentlichen: {blockedReason}</AlertDescription>
@@ -485,6 +495,7 @@ export default function PublicationEditorLayout({
                             <PublicationWorkflowActions
                                 status={status}
                                 isSaving={isSaving}
+                                disabled={readOnly}
                                 canPublish={!publishDisabled}
                                 publishBlockedReason={blockedReason}
                                 showNotify={showNotify}

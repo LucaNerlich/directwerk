@@ -23,8 +23,11 @@ import PublishedLinksPanel from '@/components/publication/PublishedLinksPanel'
 import {hasModule} from '@/lib/api/client'
 import {listCategories, listFormats, replaceEpisodeCategories, replaceEpisodeFormats} from '@/lib/api/catalogApi'
 import {getMedia, getMediaPreviewUrl} from '@/lib/api/mediaApi'
+import {getMyEffectiveRights} from '@/lib/api/tenantSettingsApi'
+import {useOptionalMe} from '@/lib/auth/MeProvider'
+import {deskAccess} from '@/lib/rbac/access'
 import {archiveEpisode, attachEpisodeAudio, cancelScheduleEpisode, createEpisode, deleteEpisode, getEpisode, listEpisodes, listSeries, publishEpisode, scheduleEpisode, setEpisodeEnclosureEnabled, unarchiveEpisode, unpublishEpisode, updateEpisode} from '@/lib/api/podcastApi'
-import type {CategorySummary, EpisodeDetail, FormatSummary, SeriesSummary} from '@directwerk/api/types'
+import type {CategorySummary, EffectiveRights, EpisodeDetail, FormatSummary, SeriesSummary} from '@directwerk/api/types'
 import {mediaLimitLabel} from '@/lib/media/limits'
 import {uploadMediaFile} from '@/lib/media/upload'
 import {episodePublishBlockReason} from '@/lib/podcast/episodePreflight'
@@ -47,6 +50,8 @@ export default function EpisodeEditor({episodeId}: {episodeId?: number}): React.
     const notifyAudienceHint = useNotifyAudienceHint(showNotify)
     const [episode, setEpisode] = useState<EpisodeDetail | null>(null)
     const [allEpisodes, setAllEpisodes] = useState<EpisodeDetail[]>([])
+    const [myRights, setMyRights] = useState<EffectiveRights | null>(null)
+    const me = useOptionalMe()
     const [series, setSeries] = useState<SeriesSummary[]>([])
     const [seriesId, setSeriesId] = useState<number | null>(null)
     const [title, setTitle] = useState('')
@@ -286,18 +291,21 @@ export default function EpisodeEditor({episodeId}: {episodeId?: number}): React.
         async function load(): Promise<void> {
             try {
                 const host = getClientTenantHost()
-                const [seriesList, formatList, categoryList, episodeList, loadedEpisode] =
+                const [seriesList, formatList, categoryList, episodeList, loadedEpisode, loadedRights] =
                     await Promise.all([
                     listSeries(host),
                     listFormats(host),
                     listCategories(host),
                     listEpisodes(host),
                     episodeId === undefined ? null : getEpisode(host, episodeId),
+                    getMyEffectiveRights(host).catch(() => null),
                 ])
 
                 if (!active) {
                     return
                 }
+
+                setMyRights(loadedRights)
 
                 setSeries(seriesList)
                 setAllEpisodes(episodeList)
@@ -515,6 +523,17 @@ export default function EpisodeEditor({episodeId}: {episodeId?: number}): React.
         formatRequired: availableFormats.length > 0,
         formatSelected: selectedFormatIds.size > 0,
     })
+    // RBAC desk adaptation (issue #148): new rows count as own (creation is
+    // governed by the CREATE check on save); the backend enforces per row.
+    const desk = deskAccess({
+        effective: myRights?.effective ?? null,
+        entity: 'EPISODE',
+        ownerUserId: episodeId === undefined ? (me?.userId ?? null) : (episode?.createdBy ?? null),
+        myUserId: me?.userId ?? null,
+        kind: 'Folge',
+    })
+    const readOnly = !desk.canEdit
+    const controlsDisabled = busy || readOnly
     const episodePageUrl = publicEpisodePageUrl(config.publicSiteUrl, slug)
     const publishedLinks = [
         config.publicRssUrl !== null
@@ -611,8 +630,9 @@ export default function EpisodeEditor({episodeId}: {episodeId?: number}): React.
                 isSaving={busy}
                 saveHint={saveHint}
                 errorMessage={errorMessage}
-                canPublish={publishBlockedReason === null}
-                publishBlockedReason={publishBlockedReason}
+                readOnlyReason={desk.canEdit ? null : desk.editBlockedReason}
+                canPublish={publishBlockedReason === null && desk.canPublish}
+                publishBlockedReason={desk.publishBlockedReason ?? publishBlockedReason}
                 showNotify={showNotify}
                 notifySubscribers={notifySubscribers}
                 onNotifyChange={setNotifySubscribers}
@@ -732,7 +752,7 @@ export default function EpisodeEditor({episodeId}: {episodeId?: number}): React.
                                 <Input
                                     type="file"
                                     accept="audio/mpeg,audio/mp4,audio/x-m4a,audio/wav,audio/ogg,audio/webm,.mp3,.m4a,.wav,.ogg,.webm"
-                                    disabled={busy}
+                                    disabled={controlsDisabled}
                                     onChange={(event) => {
                                         const file = event.target.files?.[0] ?? null
                                         void handleAudioUpload(file)
@@ -746,7 +766,7 @@ export default function EpisodeEditor({episodeId}: {episodeId?: number}): React.
                             {hasDigitalContent ? (
                                 <MediaLibraryPicker
                                     assetType="AUDIO"
-                                    disabled={busy}
+                                    disabled={controlsDisabled}
                                     label={hasAudio ? 'Audio aus Mediathek ersetzen' : 'Audio aus Mediathek'}
                                     onAuthRequired={handleAuthRequired}
                                     onSelect={(asset) => {
@@ -782,7 +802,7 @@ export default function EpisodeEditor({episodeId}: {episodeId?: number}): React.
                                 <span>{coverAssetId !== null ? 'Titelbild ersetzen' : 'Titelbild hochladen'}</span>
                                 <Input
                                     accept="image/png,image/jpeg,image/webp"
-                                    disabled={busy}
+                                    disabled={controlsDisabled}
                                     onChange={(event) => {
                                         const file = event.target.files?.[0] ?? null
                                         void handleCoverUpload(file)
@@ -797,7 +817,7 @@ export default function EpisodeEditor({episodeId}: {episodeId?: number}): React.
                             {hasDigitalContent ? (
                                 <MediaLibraryPicker
                                     assetType="IMAGE"
-                                    disabled={busy}
+                                    disabled={controlsDisabled}
                                     label="Titelbild aus Mediathek"
                                     onAuthRequired={handleAuthRequired}
                                     onSelect={(asset) => {
@@ -809,7 +829,7 @@ export default function EpisodeEditor({episodeId}: {episodeId?: number}): React.
                             ) : null}
                             {coverAssetId !== null ? (
                                 <Button
-                                    disabled={busy}
+                                    disabled={controlsDisabled}
                                     onClick={() => {
                                         setCoverAssetId(null)
                                         markDirty()
@@ -857,7 +877,7 @@ export default function EpisodeEditor({episodeId}: {episodeId?: number}): React.
                                     <Input
                                         checked={episode.enclosureEnabled !== false}
                                         className="size-4 shrink-0"
-                                        disabled={busy || isEnclosureSaving}
+                                        disabled={controlsDisabled || isEnclosureSaving}
                                         onChange={(event) => {
                                             void handleEnclosureChange(event.target.checked)
                                         }}
@@ -873,7 +893,7 @@ export default function EpisodeEditor({episodeId}: {episodeId?: number}): React.
                         {episode !== null ? (
                             <FormatCategoryPicker
                                 categories={availableCategories}
-                                disabled={busy}
+                                disabled={controlsDisabled}
                                 formats={availableFormats}
                                 onCategoryChange={(ids) => {
                                     setSelectedCategoryIds(ids)
@@ -892,7 +912,7 @@ export default function EpisodeEditor({episodeId}: {episodeId?: number}): React.
                     </>
                 }
             />
-            {episodeId !== undefined && episode !== null ? (
+            {episodeId !== undefined && episode !== null && desk.canDelete ? (
                 <PublicationDangerZone
                     contentLabel="Folge"
                     deleteErrorMessage="Folge konnte nicht gelöscht werden."

@@ -147,6 +147,7 @@ describe('uploadMediaFile', () => {
             episodeId: null,
             ownerUserId: null,
             folderId: null,
+            createdBy: null,
             cdnUrl: null,
             createdAt: '2026-07-20T12:00:00Z',
             updatedAt: '2026-07-20T12:00:00Z',

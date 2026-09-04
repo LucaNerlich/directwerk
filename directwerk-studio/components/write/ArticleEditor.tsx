@@ -17,6 +17,9 @@ import PublishedLinksPanel from '@/components/publication/PublishedLinksPanel'
 import PublicationEditorLayout from '@/components/publication/PublicationEditorLayout'
 import {listCategories, replaceArticleCategories} from '@/lib/api/catalogApi'
 import {getMediaPreviewUrl} from '@/lib/api/mediaApi'
+import {getMyEffectiveRights} from '@/lib/api/tenantSettingsApi'
+import {useOptionalMe} from '@/lib/auth/MeProvider'
+import {deskAccess} from '@/lib/rbac/access'
 import {
     archiveArticle,
     cancelScheduleArticle,
@@ -30,7 +33,7 @@ import {
     unpublishArticle,
     updateArticle,
 } from '@/lib/api/writeApi'
-import type {ArticleDetail, CategorySummary} from '@directwerk/api/types'
+import type {ArticleDetail, CategorySummary, EffectiveRights} from '@directwerk/api/types'
 import {mediaLimitLabel} from '@/lib/media/limits'
 import {uploadMediaFile} from '@/lib/media/upload'
 import {usePublicationEditorFields} from '@/lib/publication/usePublicationEditorFields'
@@ -54,6 +57,8 @@ export default function ArticleEditor({articleId}: {articleId?: number}) {
     const notifyAudienceHint = useNotifyAudienceHint(showNotify)
     const [article, setArticle] = useState<ArticleDetail | null>(null)
     const [allArticles, setAllArticles] = useState<ArticleDetail[]>([])
+    const [myRights, setMyRights] = useState<EffectiveRights | null>(null)
+    const me = useOptionalMe()
     const [title, setTitle] = useState('')
     const [slug, setSlug] = useState('')
     const [body, setBody] = useState('')
@@ -226,13 +231,15 @@ export default function ArticleEditor({articleId}: {articleId?: number}) {
         async function load(): Promise<void> {
             try {
                 const host = getClientTenantHost()
-                const [categoryList, loaded] = await Promise.all([
+                const [categoryList, loaded, loadedRights] = await Promise.all([
                     listCategories(host),
                     getArticle(host, resolvedArticleId),
+                    getMyEffectiveRights(host).catch(() => null),
                 ])
                 if (!active) {
                     return
                 }
+                setMyRights(loadedRights)
                 setAvailableCategories(categoryList.filter((item) => item.active))
                 setArticle(loaded)
                 setTitle(loaded.title)
@@ -343,6 +350,16 @@ export default function ArticleEditor({articleId}: {articleId?: number}) {
     /** Saving and hero uploads share one busy flag so a manual save cannot
      * persist the article while the hero image is still uploading. */
     const busy = isSaving || isUploadingHero
+    // RBAC desk adaptation (issue #148): new rows count as own (creation is
+    // governed by the CREATE check on save); the backend enforces per row.
+    const desk = deskAccess({
+        effective: myRights?.effective ?? null,
+        entity: 'ARTICLE',
+        ownerUserId: articleId === undefined ? (me?.userId ?? null) : (article?.createdBy ?? null),
+        myUserId: me?.userId ?? null,
+        kind: 'Beitrag',
+    })
+    const readOnly = !desk.canEdit
 
     const publishBlockedReason = articlePublishBlockReason({title, body})
     const publishedUrl = useMemo(() => {
@@ -418,8 +435,9 @@ export default function ArticleEditor({articleId}: {articleId?: number}) {
             isSaving={busy}
             saveHint={saveHint}
             errorMessage={errorMessage}
-            canPublish={publishBlockedReason === null}
-            publishBlockedReason={publishBlockedReason}
+            canPublish={publishBlockedReason === null && desk.canPublish}
+            publishBlockedReason={desk.publishBlockedReason ?? publishBlockedReason}
+            readOnlyReason={readOnly ? desk.editBlockedReason : null}
             showNotify={showNotify}
             notifySubscribers={notifySubscribers}
             onNotifyChange={setNotifySubscribers}
@@ -513,7 +531,7 @@ export default function ArticleEditor({articleId}: {articleId?: number}) {
                             <span>{heroAssetId === null ? 'Bild hochladen' : 'Bild ersetzen'}</span>
                             <Input
                                 accept="image/png,image/jpeg,image/webp"
-                                disabled={isSaving || isUploadingHero}
+                                disabled={isSaving || isUploadingHero || readOnly}
                                 onChange={(event) => {
                                     const file = event.target.files?.[0] ?? null
                                     void handleHeroUpload(file)
@@ -533,7 +551,7 @@ export default function ArticleEditor({articleId}: {articleId?: number}) {
                         ) : null}
                         <MediaLibraryPicker
                             assetType="IMAGE"
-                            disabled={isSaving || isUploadingHero}
+                            disabled={isSaving || isUploadingHero || readOnly}
                             label="Titelbild aus Mediathek"
                             onAuthRequired={handleAuthRequired}
                             onSelect={(asset) => {
@@ -544,7 +562,7 @@ export default function ArticleEditor({articleId}: {articleId?: number}) {
                         />
                         {heroAssetId !== null ? (
                             <Button
-                                disabled={isSaving || isUploadingHero}
+                                disabled={isSaving || isUploadingHero || readOnly}
                                 onClick={() => {
                                     setHeroAssetId(null)
                                     markDirty()
@@ -568,7 +586,7 @@ export default function ArticleEditor({articleId}: {articleId?: number}) {
                                 />
                         <FormatCategoryPicker
                             categories={availableCategories}
-                            disabled={busy}
+                            disabled={busy || readOnly}
                             onCategoryChange={(ids) => {
                                 setSelectedCategoryIds(ids)
                                 markDirty()
@@ -582,7 +600,7 @@ export default function ArticleEditor({articleId}: {articleId?: number}) {
                 </>
             }
             />
-            {articleId !== undefined && article !== null ? (
+            {articleId !== undefined && article !== null && desk.canDelete ? (
                 <div className="mt-6">
                     <PublicationDangerZone
                         contentLabel="Beitrag"

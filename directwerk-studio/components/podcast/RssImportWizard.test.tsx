@@ -107,6 +107,7 @@ function adminMe(): Me {
         name: 'Admin',
         roles: ['TENANT_ADMIN'],
         tenantId: 1,
+        userId: 1,
     }
 }
 
@@ -116,6 +117,7 @@ function editorMe(): Me {
         name: 'Editor',
         roles: ['EDITOR'],
         tenantId: 1,
+        userId: 2,
     }
 }
 

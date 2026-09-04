@@ -1,13 +1,15 @@
 'use client'
 
-import {parseBrandingEnvelope, parseContentEmailTemplateEnvelope, parseDomainEnvelope, parseDomainListEnvelope, parseDomainVerificationEnvelope, parseInviteTenantUserEnvelope, parseSubscriberListEnvelope, parseTenantUserEnvelope, parseTenantUserListEnvelope} from '@directwerk/api/validation/catalog'
+import {parseBrandingEnvelope, parseContentEmailTemplateEnvelope, parseDomainEnvelope, parseDomainListEnvelope, parseDomainVerificationEnvelope, parseEffectiveRightsEnvelope, parseInviteTenantUserEnvelope, parsePermissionRestrictionListEnvelope, parseSubscriberListEnvelope, parseTenantUserEnvelope, parseTenantUserListEnvelope} from '@directwerk/api/validation/catalog'
 
 import type {
     ContentEmailTemplate,
     ContentEmailTemplateType,
     DomainVerificationChallenge,
+    EffectiveRights,
     InviteTenantUserInput,
     InviteTenantUserResponse,
+    PermissionRestriction,
     TenantBranding,
     TenantDomain,
     TenantSubscriber,
@@ -140,6 +142,53 @@ export async function reactivateTenantUser(
         {method: 'POST'},
         parseTenantUserEnvelope,
         invalidUserMessage,
+    )
+}
+
+export async function listUserRestrictions(
+    tenantHost: string,
+    userId: number,
+): Promise<PermissionRestriction[]> {
+    return studioGet(
+        `/api/proxy/tenant/users/${userId}/restrictions`,
+        tenantHost,
+        parsePermissionRestrictionListEnvelope,
+        'Der Server hat ungültige Rechtdaten gesendet.',
+    )
+}
+
+export async function replaceUserRestrictions(
+    tenantHost: string,
+    userId: number,
+    restrictions: PermissionRestriction[],
+): Promise<PermissionRestriction[]> {
+    return studioMutate(
+        `/api/proxy/tenant/users/${userId}/restrictions`,
+        tenantHost,
+        jsonInit('PUT', {restrictions}),
+        parsePermissionRestrictionListEnvelope,
+        'Der Server hat ungültige Rechtdaten gesendet.',
+    )
+}
+
+export async function getUserEffectiveRights(
+    tenantHost: string,
+    userId: number,
+): Promise<EffectiveRights> {
+    return studioGet(
+        `/api/proxy/tenant/users/${userId}/effective-rights`,
+        tenantHost,
+        parseEffectiveRightsEnvelope,
+        'Der Server hat ungültige Rechtdaten gesendet.',
+    )
+}
+
+export async function getMyEffectiveRights(tenantHost: string): Promise<EffectiveRights> {
+    return studioGet(
+        '/api/proxy/me/effective-rights',
+        tenantHost,
+        parseEffectiveRightsEnvelope,
+        'Der Server hat ungültige Rechtdaten gesendet.',
     )
 }
 

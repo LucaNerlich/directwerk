@@ -42,6 +42,7 @@ export interface TokenResponse {
 
 
 export interface Me {
+    userId: number | null
     email: string
     name: string | null
     roles: string[]
@@ -128,6 +129,8 @@ export interface EpisodeDetail extends EpisodeSummary {
     enclosureEnabled: boolean
     requiredLevelSortOrder: number | null
     scheduledAt: string | null
+    /** Creator user id; null for legacy rows. */
+    createdBy: number | null
     formats: FormatTag[]
     categories: CategoryTag[]
 }
@@ -139,6 +142,8 @@ export interface ArticleDetail extends ArticleSummary {
     heroAssetId: number | null
     requiredLevelSortOrder: number | null
     scheduledAt: string | null
+    /** Creator user id; null for legacy rows. */
+    createdBy: number | null
     categories: CategoryTag[]
 }
 
@@ -162,6 +167,8 @@ export interface SeriesDetail {
     defaultRequiredLevelSortOrder: number | null
     rssUrl: string | null
     status: SeriesStatus
+    /** Creator user id; null for legacy rows. */
+    createdBy: number | null
 }
 
 export interface CreateArticleInput {
@@ -331,6 +338,8 @@ export interface MediaAsset {
     ownerUserId: number | null
     /** Media library folder; null means the library root. */
     folderId: number | null
+    /** Creator user id; null for legacy rows. */
+    createdBy: number | null
     /** CDN URL for READY PUBLIC assets; null for private or non-ready. */
     cdnUrl: string | null
     createdAt: string
@@ -368,8 +377,97 @@ export interface MediaFolder {
     id: number
     name: string
     parentId: number | null
+    /** Creator user id; null for legacy rows. */
+    createdBy: number | null
     createdAt: string
     updatedAt: string
+}
+
+// ---------------------------------------------------------------------------
+// RBAC (issue #148)
+// ---------------------------------------------------------------------------
+
+/** Content entity types covered by the RBAC permission model. */
+export type RbacEntityType = 'EPISODE' | 'ARTICLE' | 'SERIES' | 'MEDIA_ASSET' | 'MEDIA_FOLDER'
+
+/** Content operations covered by the RBAC permission model. Reads are never restricted. */
+export type RbacOperation =
+    | 'CREATE'
+    | 'READ'
+    | 'UPDATE'
+    | 'DELETE'
+    | 'PUBLISH'
+    | 'SCHEDULE'
+    | 'UNPUBLISH'
+    | 'ARCHIVE'
+    | 'UNARCHIVE'
+    | 'MOVE'
+
+/** Restriction scope: outright deny, or own-content-only. */
+export type RbacRestrictionScope = 'DENY' | 'OTHERS_ONLY'
+
+/** Effective access of one (entity, operation) pair. */
+export type RbacEffectiveAccess = 'FULL' | 'OWN_ONLY' | 'DENIED'
+
+export const RBAC_ENTITY_TYPES: RbacEntityType[] = [
+    'EPISODE',
+    'ARTICLE',
+    'SERIES',
+    'MEDIA_ASSET',
+    'MEDIA_FOLDER',
+]
+
+export const RBAC_OPERATIONS: RbacOperation[] = [
+    'CREATE',
+    'READ',
+    'UPDATE',
+    'DELETE',
+    'PUBLISH',
+    'SCHEDULE',
+    'UNPUBLISH',
+    'ARCHIVE',
+    'UNARCHIVE',
+    'MOVE',
+]
+
+/** Operations an own-content-only restriction can apply to (creates have no owner, reads stay open). */
+export const RBAC_OWN_ONLY_OPERATIONS: RbacOperation[] = [
+    'UPDATE',
+    'DELETE',
+    'PUBLISH',
+    'SCHEDULE',
+    'UNPUBLISH',
+    'ARCHIVE',
+    'UNARCHIVE',
+    'MOVE',
+]
+
+/** Operations tenant admins may restrict for editors. */
+export const RBAC_RESTRICTABLE_OPERATIONS: RbacOperation[] = [
+    'CREATE',
+    'UPDATE',
+    'DELETE',
+    'PUBLISH',
+    'SCHEDULE',
+    'UNPUBLISH',
+    'ARCHIVE',
+    'UNARCHIVE',
+    'MOVE',
+]
+
+/** One deny-only permission override of a member. */
+export interface PermissionRestriction {
+    entityType: RbacEntityType
+    operation: RbacOperation
+    scope: RbacRestrictionScope
+}
+
+/** Server-resolved rights of one member for dashboards and UI adaptation. */
+export interface EffectiveRights {
+    userId: number
+    roles: string[]
+    restrictions: PermissionRestriction[]
+    effective: Partial<Record<RbacEntityType, Partial<Record<RbacOperation, RbacEffectiveAccess>>>>
 }
 
 // ---------------------------------------------------------------------------

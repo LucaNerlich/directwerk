@@ -3,6 +3,9 @@ import userEvent from '@testing-library/user-event'
 import {afterEach, describe, expect, it, vi} from 'vitest'
 
 import EpisodeEditor from '@/components/podcast/EpisodeEditor'
+import {getMyEffectiveRights} from '@/lib/api/tenantSettingsApi'
+import {useOptionalMe} from '@/lib/auth/MeProvider'
+import type {EffectiveRights} from '@directwerk/api/types'
 
 // `useRouter()` in Next.js returns a stable/memoized object across re-renders.
 // The load effect depends on `router` (see EpisodeEditor.tsx), so the mock must
@@ -11,6 +14,10 @@ import EpisodeEditor from '@/components/podcast/EpisodeEditor'
 const mockRouter = {replace: vi.fn()}
 vi.mock('next/navigation', () => ({useRouter: () => mockRouter}))
 vi.mock('@directwerk/api/tenant', () => ({getClientTenantHost: () => 'tenant.test'}))
+vi.mock('@/lib/auth/MeProvider', () => ({useOptionalMe: vi.fn().mockReturnValue(null)}))
+vi.mock('@/lib/api/tenantSettingsApi', () => ({
+    getMyEffectiveRights: vi.fn(async (_host: string): Promise<EffectiveRights | null> => null),
+}))
 vi.mock('@/lib/site/SiteConfigProvider', () => ({
     useSiteConfig: () => ({
         enabledModules: ['DIGITAL_CONTENT'],
@@ -98,6 +105,8 @@ vi.mock('@/lib/api/mediaApi', () => ({
 
 afterEach(() => {
     cleanup()
+    vi.mocked(useOptionalMe).mockReturnValue(null)
+    vi.mocked(getMyEffectiveRights).mockResolvedValue(null as unknown as EffectiveRights)
 })
 
 describe('EpisodeEditor tagging', () => {
@@ -180,5 +189,70 @@ describe('EpisodeEditor tagging', () => {
 
         await waitFor(() => expect(replaceEpisodeFormats).toHaveBeenCalledWith('tenant.test', 1, [1]))
         expect(publishEpisode).toHaveBeenCalledWith('tenant.test', 1, {notifySubscribers: false})
+    })
+})
+
+describe('EpisodeEditor RBAC', () => {
+    it('locks fields, publish and delete for foreign content under own-only rights', async () => {
+        vi.mocked(useOptionalMe).mockReturnValue({
+            userId: 5,
+            email: 'editor@example.com',
+            name: 'Editor',
+            roles: ['EDITOR'],
+            tenantId: 1,
+        })
+        vi.mocked(getMyEffectiveRights).mockResolvedValue({
+            userId: 5,
+            roles: ['EDITOR'],
+            restrictions: [
+                {entityType: 'EPISODE', operation: 'UPDATE', scope: 'OTHERS_ONLY'},
+                {entityType: 'EPISODE', operation: 'PUBLISH', scope: 'DENY'},
+                {entityType: 'EPISODE', operation: 'DELETE', scope: 'DENY'},
+            ],
+            effective: {
+                EPISODE: {UPDATE: 'OWN_ONLY', PUBLISH: 'DENIED', DELETE: 'DENIED'},
+            },
+        })
+        getEpisode.mockResolvedValueOnce({...draftEpisode, createdBy: 99})
+
+        render(<EpisodeEditor episodeId={1} />)
+
+        await waitFor(() => expect(screen.getByPlaceholderText('Titel eingeben…')).toBeDisabled())
+        expect(
+            screen.getByText(/Du kannst nur eigene Folgen bearbeiten/),
+        ).toBeInTheDocument()
+        expect(screen.getAllByRole('button', {name: 'Veröffentlichen'})[0]).toBeDisabled()
+        expect(
+            screen.queryByRole('button', {name: /Folge löschen/}),
+        ).not.toBeInTheDocument()
+    })
+
+    it('keeps own content editable under own-only rights', async () => {
+        vi.mocked(useOptionalMe).mockReturnValue({
+            userId: 5,
+            email: 'editor@example.com',
+            name: 'Editor',
+            roles: ['EDITOR'],
+            tenantId: 1,
+        })
+        vi.mocked(getMyEffectiveRights).mockResolvedValue({
+            userId: 5,
+            roles: ['EDITOR'],
+            restrictions: [
+                {entityType: 'EPISODE', operation: 'UPDATE', scope: 'OTHERS_ONLY'},
+            ],
+            effective: {
+                EPISODE: {UPDATE: 'OWN_ONLY', PUBLISH: 'FULL', DELETE: 'FULL'},
+            },
+        })
+        getEpisode.mockResolvedValueOnce({...draftEpisode, createdBy: 5})
+
+        render(<EpisodeEditor episodeId={1} />)
+
+        await waitFor(() => expect(screen.getByPlaceholderText('Titel eingeben…')).toBeEnabled())
+        await userEvent.setup().click(screen.getByLabelText('Interview'))
+        await waitFor(() =>
+            expect(screen.getAllByRole('button', {name: 'Veröffentlichen'})[0]).toBeEnabled(),
+        )
     })
 })
