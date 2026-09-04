@@ -2,6 +2,8 @@ import {describe, expect, it, vi} from 'vitest'
 
 import {
     buildProxyPath,
+    buildSafeMediaFolderDeleteQueryString,
+    buildSafeMediaListQueryString,
     buildSafePreviewQueryString,
     readBearerToken,
 } from '../src/proxy/path'
@@ -146,6 +148,134 @@ describe('buildSafePreviewQueryString', () => {
     })
 })
 
+describe('buildSafeMediaListQueryString', () => {
+    it('builds the media-library filter query canonically', () => {
+        expect(
+            buildSafeMediaListQueryString(
+                '/api/v1/media',
+                new URLSearchParams('limit=100&unassignedOnly=true'),
+            ),
+        ).toBe('?limit=100&unassignedOnly=true')
+        expect(
+            buildSafeMediaListQueryString(
+                '/api/v1/media',
+                new URLSearchParams(
+                    'assetType=AUDIO&status=READY&limit=50&folderId=3&recursive=true&unassignedOnly=true',
+                ),
+            ),
+        ).toBe(
+            '?assetType=AUDIO&status=READY&limit=50&folderId=3&recursive=true&unassignedOnly=true',
+        )
+    })
+
+    it('rejects unknown paths, keys, duplicates, and invalid values', () => {
+        expect(
+            buildSafeMediaListQueryString(
+                '/api/v1/media/7',
+                new URLSearchParams('limit=10'),
+            ),
+        ).toBeNull()
+        expect(
+            buildSafeMediaListQueryString(
+                '/api/v1/media',
+                new URLSearchParams('limit=10&evil=1'),
+            ),
+        ).toBeNull()
+        expect(
+            buildSafeMediaListQueryString(
+                '/api/v1/media',
+                new URLSearchParams('limit=10&limit=20'),
+            ),
+        ).toBeNull()
+        expect(
+            buildSafeMediaListQueryString(
+                '/api/v1/media',
+                new URLSearchParams('limit=101'),
+            ),
+        ).toBeNull()
+        expect(
+            buildSafeMediaListQueryString(
+                '/api/v1/media',
+                new URLSearchParams('limit=abc'),
+            ),
+        ).toBeNull()
+        expect(
+            buildSafeMediaListQueryString(
+                '/api/v1/media',
+                new URLSearchParams('folderId=abc'),
+            ),
+        ).toBeNull()
+        expect(
+            buildSafeMediaListQueryString(
+                '/api/v1/media',
+                new URLSearchParams('assetType=EXECUTABLE'),
+            ),
+        ).toBeNull()
+        expect(
+            buildSafeMediaListQueryString(
+                '/api/v1/media',
+                new URLSearchParams('status=READY&status=PENDING'),
+            ),
+        ).toBeNull()
+        expect(
+            buildSafeMediaListQueryString(
+                '/api/v1/media',
+                new URLSearchParams('recursive=false'),
+            ),
+        ).toBeNull()
+    })
+})
+
+describe('buildSafeMediaFolderDeleteQueryString', () => {
+    it('builds the folder delete mode query on numeric folder paths', () => {
+        expect(
+            buildSafeMediaFolderDeleteQueryString(
+                '/api/v1/media/folders/12',
+                new URLSearchParams('mode=move_to_parent'),
+            ),
+        ).toBe('?mode=move_to_parent')
+        expect(
+            buildSafeMediaFolderDeleteQueryString(
+                '/api/v1/media/folders/12',
+                new URLSearchParams('mode=delete_contents'),
+            ),
+        ).toBe('?mode=delete_contents')
+    })
+
+    it('rejects other paths, extra keys, and invalid modes', () => {
+        expect(
+            buildSafeMediaFolderDeleteQueryString(
+                '/api/v1/media/folders/abc',
+                new URLSearchParams('mode=move_to_parent'),
+            ),
+        ).toBeNull()
+        expect(
+            buildSafeMediaFolderDeleteQueryString(
+                '/api/v1/media/folders',
+                new URLSearchParams('mode=move_to_parent'),
+            ),
+        ).toBeNull()
+        expect(
+            buildSafeMediaFolderDeleteQueryString(
+                '/api/v1/media/folders/12',
+                new URLSearchParams('mode=wipe_everything'),
+            ),
+        ).toBeNull()
+        expect(
+            buildSafeMediaFolderDeleteQueryString(
+                '/api/v1/media/folders/12',
+                new URLSearchParams('mode=move_to_parent&evil=1'),
+            ),
+        ).toBeNull()
+        expect(
+            buildSafeMediaFolderDeleteQueryString(
+                '/api/v1/media/folders/12',
+                new URLSearchParams(''),
+            ),
+        ).toBeNull()
+    })
+})
+
 describe('createTenantProxyRouteHandler query handling', () => {
     function previewHandlers(fetchUpstream: (request: {
         path: string
@@ -155,6 +285,8 @@ describe('createTenantProxyRouteHandler query handling', () => {
             fetchUpstream: (request) =>
                 fetchUpstream({path: request.path, query: request.query}),
             jsonBodyLimit: 16_384,
+            // Mirrors the studio BFF route: bodyless DELETEs are valid calls.
+            allowMissingBody: true,
         })
     }
 
@@ -183,6 +315,66 @@ describe('createTenantProxyRouteHandler query handling', () => {
 
         expect(response.status).toBe(200)
         expect(seen).toEqual([{path: '/api/v1/me/feeds/preview', query: '?formatIds=3&formatIds=7'}])
+    })
+
+    it('forwards the media library list query upstream', async () => {
+        const seen: Array<{path: string; query?: string}> = []
+        const handlers = previewHandlers(async (request) => {
+            seen.push(request)
+            return Response.json({statusCode: 200, statusMessage: 'OK', data: [], errors: [], metadata: {}})
+        })
+
+        const response = await handlers.GET(
+            previewRequest(
+                'http://local/api/proxy/media?limit=100&unassignedOnly=true',
+            ),
+            {params: Promise.resolve({path: ['media']})},
+        )
+
+        expect(response.status).toBe(200)
+        expect(seen).toEqual([{path: '/api/v1/media', query: '?limit=100&unassignedOnly=true'}])
+    })
+
+    it('rejects tampered media list queries without calling upstream', async () => {
+        const fetchUpstream = vi.fn(async () => new Response('{}'))
+        const handlers = createTenantProxyRouteHandler({
+            fetchUpstream,
+            jsonBodyLimit: 16_384,
+        })
+
+        const response = await handlers.GET(
+            previewRequest('http://local/api/proxy/media?limit=100&token=x'),
+            {params: Promise.resolve({path: ['media']})},
+        )
+
+        expect(response.status).toBe(400)
+        expect(fetchUpstream).not.toHaveBeenCalled()
+    })
+
+    it('forwards the media folder delete mode upstream', async () => {
+        const seen: Array<{path: string; query?: string}> = []
+        const handlers = createTenantProxyRouteHandler({
+            fetchUpstream: (request) => {
+                seen.push(request)
+                return Promise.resolve(
+                    Response.json({statusCode: 200, statusMessage: 'OK', data: {}, errors: [], metadata: {}}),
+                )
+            },
+            jsonBodyLimit: 16_384,
+            allowMissingBody: true,
+        })
+
+        const response = await handlers.DELETE(
+            previewRequest('http://local/api/proxy/media/folders/12?mode=delete_contents'),
+            {params: Promise.resolve({path: ['media', 'folders', '12']})},
+        )
+
+        expect(response.status).toBe(200)
+        expect(seen).toHaveLength(1)
+        expect(seen[0]).toMatchObject({
+            path: '/api/v1/media/folders/12',
+            query: '?mode=delete_contents',
+        })
     })
 
     it('still rejects query strings on non-preview paths', async () => {

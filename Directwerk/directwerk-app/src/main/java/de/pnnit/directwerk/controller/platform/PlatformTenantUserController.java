@@ -1,11 +1,15 @@
 package de.pnnit.directwerk.controller.platform;
 
+import de.pnnit.directwerk.api.dto.EffectiveRightsView;
 import de.pnnit.directwerk.api.dto.InvitationResponseMapper;
+import de.pnnit.directwerk.api.dto.PermissionRestrictionView;
 import de.pnnit.directwerk.api.response.Response;
+import de.pnnit.directwerk.modules.core.service.MembershipPermissionService;
 import de.pnnit.directwerk.modules.core.service.TenantInvitationService;
 import de.pnnit.directwerk.modules.core.service.TenantMembershipManagementService;
 import de.pnnit.directwerk.modules.core.service.TenantUserQueryService;
 import de.pnnit.directwerk.modules.core.service.TenantUserQueryService.TenantUserView;
+import de.pnnit.directwerk.multitenancy.TenantContext;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
@@ -28,17 +32,20 @@ public class PlatformTenantUserController {
     private final TenantUserQueryService tenantUserQueryService;
     private final TenantInvitationService tenantInvitationService;
     private final TenantMembershipManagementService tenantMembershipManagementService;
+    private final MembershipPermissionService membershipPermissionService;
     private final InvitationResponseMapper invitationResponseMapper;
 
     public PlatformTenantUserController(
             TenantUserQueryService tenantUserQueryService,
             TenantInvitationService tenantInvitationService,
             TenantMembershipManagementService tenantMembershipManagementService,
+            MembershipPermissionService membershipPermissionService,
             InvitationResponseMapper invitationResponseMapper
     ) {
         this.tenantUserQueryService = tenantUserQueryService;
         this.tenantInvitationService = tenantInvitationService;
         this.tenantMembershipManagementService = tenantMembershipManagementService;
+        this.membershipPermissionService = membershipPermissionService;
         this.invitationResponseMapper = invitationResponseMapper;
     }
 
@@ -120,6 +127,26 @@ public class PlatformTenantUserController {
         return ResponseEntity.ok(Response.ok(
                 tenantMembershipManagementService.updateRole(tenantId, userId, request.role())
         ));
+    }
+
+    /**
+     * Read-only effective rights of one member for the platform RBAC overview.
+     * Computed server-side, same matrix as the tenant dashboard.
+     */
+    @GetMapping("/{userId}/effective-rights")
+    ResponseEntity<Response<EffectiveRightsView>> effectiveRights(
+            @PathVariable Long tenantId,
+            @PathVariable Long userId
+    ) {
+        MembershipPermissionService.MemberRights rights = TenantContext.callWithTenant(
+                tenantId,
+                () -> membershipPermissionService.effectiveRightsForMember(tenantId, userId));
+        List<PermissionRestrictionView> restrictions = rights.restrictions().stream()
+                .map(override -> new PermissionRestrictionView(
+                        override.getEntityType(), override.getOperation(), override.getScope()))
+                .toList();
+        return ResponseEntity.ok(Response.ok(new EffectiveRightsView(
+                rights.userId(), rights.roles(), restrictions, rights.effective())));
     }
 
     public record TenantUserListResponse(List<TenantUserView> content) {

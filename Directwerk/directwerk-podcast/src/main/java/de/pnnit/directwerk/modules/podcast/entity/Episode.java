@@ -102,6 +102,13 @@ public class Episode extends BaseEntity implements TenantOwned {
     @Column(name = "enclosure_enabled", nullable = false)
     private boolean enclosureEnabled = true;
 
+    /**
+     * Creator for the RBAC permission model (issue #148). {@code null} means a
+     * legacy row and counts as not-owned — tenant admins can still act on it.
+     */
+    @Column(name = "created_by")
+    private Long createdBy;
+
     @ManyToMany
     @JoinTable(
             name = "episode_formats",

@@ -150,6 +150,7 @@ class PodcastImportControllerTest {
                 null,
                 null,
                 null,
+                null,
                 Instant.parse("2026-07-20T12:00:00Z"),
                 Instant.parse("2026-07-20T12:00:00Z")
         ));
@@ -193,6 +194,7 @@ class PodcastImportControllerTest {
                 null,
                 List.of(),
                 List.of(),
+                null,
                 Instant.parse("2026-07-20T12:00:00Z"),
                 Instant.parse("2026-07-20T12:00:00Z")
         ));

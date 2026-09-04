@@ -3,7 +3,9 @@ package de.pnnit.directwerk.modules.podcast.service;
 import de.pnnit.directwerk.modules.core.exception.ConflictException;
 import de.pnnit.directwerk.modules.core.exception.ConflictCodes;
 import de.pnnit.directwerk.modules.core.RequiresModule;
+import de.pnnit.directwerk.modules.core.authorization.ContentOperation;
 import de.pnnit.directwerk.modules.core.repository.TenantRepository;
+import de.pnnit.directwerk.modules.core.service.MembershipPermissionService;
 import de.pnnit.directwerk.modules.core.util.FieldConstraints;
 import de.pnnit.directwerk.modules.core.util.SlugNormalizer;
 import de.pnnit.directwerk.modules.core.util.TitleNormalizer;
@@ -13,6 +15,7 @@ import de.pnnit.directwerk.modules.podcast.entity.PodcastSeries;
 import de.pnnit.directwerk.modules.podcast.entity.SeriesStatus;
 import de.pnnit.directwerk.modules.podcast.exception.SeriesNotFoundException;
 import de.pnnit.directwerk.modules.podcast.repository.PodcastSeriesRepository;
+import de.pnnit.directwerk.security.SecurityUtils;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -30,6 +33,7 @@ public class SeriesService {
     private final PodcastCoverAssetResolver podcastCoverAssetResolver;
     private final RssFeedRefreshScheduler rssFeedRefreshScheduler;
     private final HtmlSanitizer htmlSanitizer;
+    private final MembershipPermissionService permissionService;
 
     @Transactional(readOnly = true)
     public List<PodcastSeries> listSeries(Long tenantId, boolean publishedOnly) {
@@ -61,6 +65,7 @@ public class SeriesService {
             Boolean itunesExplicit,
             Integer defaultRequiredLevelSortOrder
     ) {
+        permissionService.requireSeriesAccess(ContentOperation.CREATE, null);
         String slug = SlugNormalizer.normalize(rawSlug);
         if (podcastSeriesRepository.existsByTenantIdAndSlug(tenantId, slug)) {
             throw new ConflictException(ConflictCodes.SERIES_SLUG_EXISTS, "Series slug already exists: " + slug);
@@ -68,6 +73,7 @@ public class SeriesService {
 
         PodcastSeries series = new PodcastSeries();
         series.setTenant(tenantRepository.getReferenceById(tenantId));
+        series.setCreatedBy(SecurityUtils.currentUserId());
         series.setSlug(slug);
         series.setTitle(TitleNormalizer.normalize(title, "Series"));
         series.setDescription(sanitizeDescription(description));
@@ -101,6 +107,7 @@ public class SeriesService {
             SeriesStatus status
     ) {
         PodcastSeries series = requireSeries(tenantId, seriesId);
+        permissionService.requireSeriesAccess(ContentOperation.UPDATE, series.getCreatedBy());
         if (rawSlug != null) {
             String slug = SlugNormalizer.normalize(rawSlug);
             if (podcastSeriesRepository.existsByTenantIdAndSlugAndIdNot(tenantId, slug, seriesId)) {

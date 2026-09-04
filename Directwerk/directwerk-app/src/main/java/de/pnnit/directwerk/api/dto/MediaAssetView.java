@@ -16,6 +16,7 @@ public record MediaAssetView(
         Long episodeId,
         Long ownerUserId,
         Long folderId,
+        Long createdBy,
         String cdnUrl,
         Instant createdAt,
         Instant updatedAt

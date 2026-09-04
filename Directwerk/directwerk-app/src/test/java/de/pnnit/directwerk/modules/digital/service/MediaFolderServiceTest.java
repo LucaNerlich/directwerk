@@ -1,5 +1,6 @@
 package de.pnnit.directwerk.modules.digital.service;
 
+import static de.pnnit.directwerk.testsupport.RbacTestFixtures.override;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
@@ -12,6 +13,16 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import de.pnnit.directwerk.modules.core.entity.Tenant;
+import de.pnnit.directwerk.modules.core.audit.PlatformAuditService;
+import de.pnnit.directwerk.modules.core.authorization.ContentEntityType;
+import de.pnnit.directwerk.modules.core.authorization.ContentOperation;
+import de.pnnit.directwerk.modules.core.authorization.RestrictionScope;
+import de.pnnit.directwerk.modules.core.entity.Role;
+import de.pnnit.directwerk.modules.core.exception.ContentAccessDeniedException;
+import de.pnnit.directwerk.modules.core.repository.MembershipPermissionOverrideRepository;
+import de.pnnit.directwerk.modules.core.repository.TenantMembershipRepository;
+import de.pnnit.directwerk.modules.core.service.MembershipPermissionService;
+import de.pnnit.directwerk.security.DirectwerkUserPrincipal;
 import de.pnnit.directwerk.modules.core.exception.ConflictCodes;
 import de.pnnit.directwerk.modules.core.exception.ConflictException;
 import de.pnnit.directwerk.modules.core.repository.TenantRepository;
@@ -28,7 +39,9 @@ import jakarta.persistence.EntityManager;
 import jakarta.persistence.Query;
 import java.util.List;
 import java.util.Optional;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InOrder;
@@ -52,6 +65,15 @@ class MediaFolderServiceTest {
 
     @Mock
     private EntityManager entityManager;
+    @Mock
+    private PlatformAuditService platformAuditService;
+
+    @Mock
+    private MembershipPermissionOverrideRepository overrideRepository;
+
+    @Mock
+    private TenantMembershipRepository tenantMembershipRepository;
+
 
     private MediaFolderService service;
 
@@ -62,12 +84,21 @@ class MediaFolderServiceTest {
                 mediaAssetRepository,
                 mediaAssetLifecycleApi,
                 tenantRepository,
+                new MembershipPermissionService(
+                        overrideRepository, tenantMembershipRepository, tenantRepository,
+                        platformAuditService),
                 entityManager);
         lenient().when(mediaFolderRepository.save(any(MediaFolder.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
         lenient().when(mediaAssetRepository.save(any(MediaAsset.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
         stubAdvisoryLock();
+        SecurityContextHolder.clearContext();
+    }
+
+    @AfterEach
+    void clearAuthentication() {
+        SecurityContextHolder.clearContext();
     }
 
     @Test
@@ -436,4 +467,43 @@ class MediaFolderServiceTest {
         asset.setStatus(AssetStatus.READY);
         return asset;
     }
+
+    @Test
+    void moveFolderDeniedForStrangerWithOwnOnlyRestriction() {        MediaFolder folder = folderWithId(1L);
+        folder.setCreatedBy(99L);
+        when(mediaFolderRepository.findByIdAndTenantId(1L, 10L)).thenReturn(Optional.of(folder));
+        when(overrideRepository.findByTenantIdAndUserId(10L, 5L)).thenReturn(List.of(
+                override(ContentEntityType.MEDIA_FOLDER, ContentOperation.MOVE, RestrictionScope.OTHERS_ONLY)));
+        authenticate(10L, 5L, Role.EDITOR);
+
+        assertThatThrownBy(() -> service.moveFolder(10L, 1L, null))
+                .isInstanceOf(ContentAccessDeniedException.class)
+                .extracting(ex -> ((ContentAccessDeniedException) ex).getCode())
+                .isEqualTo(ContentAccessDeniedException.NOT_CONTENT_OWNER);
+    }
+
+    @Test
+    void createFolderDeniedWithDenyOverride() {
+        when(overrideRepository.findByTenantIdAndUserId(10L, 5L)).thenReturn(List.of(
+                override(ContentEntityType.MEDIA_FOLDER, ContentOperation.CREATE, RestrictionScope.DENY)));
+        authenticate(10L, 5L, Role.EDITOR);
+
+        assertThatThrownBy(() -> service.createFolder(10L, "Neu", null))
+                .isInstanceOf(ContentAccessDeniedException.class);
+        verify(mediaFolderRepository, never()).save(any(MediaFolder.class));
+    }
+
+    private static void authenticate(Long tenantId, Long userId, Role... roles) {
+        java.util.List<org.springframework.security.core.authority.SimpleGrantedAuthority> authorities =
+                java.util.Arrays.stream(roles)
+                        .map(role -> new org.springframework.security.core.authority.SimpleGrantedAuthority(
+                                "ROLE_" + role.name()))
+                        .toList();
+        DirectwerkUserPrincipal principal = new DirectwerkUserPrincipal(
+                userId, "user@example.com", "hash", tenantId, authorities);
+        org.springframework.security.core.context.SecurityContextHolder.getContext().setAuthentication(
+                new org.springframework.security.authentication.UsernamePasswordAuthenticationToken(
+                        principal, null, authorities));
+    }
+
 }

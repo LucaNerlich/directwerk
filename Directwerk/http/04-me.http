@@ -33,6 +33,22 @@ Accept: application/json
 
 ###
 
+### @name getMyEffectiveRights
+GET {{baseUrl}}/api/v1/me/effective-rights
+Host: {{tenantAHost}}
+Authorization: Bearer {{tenantAAccessToken}}
+Accept: application/json
+
+> {%
+    client.test("GET /me/effective-rights", function() {
+        client.assert(response.status === 200, "Expected 200");
+        client.assert(response.body.data.effective != null, "Expected effective matrix");
+        client.assert(Array.isArray(response.body.data.restrictions), "Expected restrictions");
+    });
+%}
+
+###
+
 ### @name listMyArticles
 GET {{baseUrl}}/api/v1/me/articles
 Host: {{tenantAHost}}

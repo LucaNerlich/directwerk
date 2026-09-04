@@ -4,6 +4,9 @@ import de.pnnit.directwerk.modules.core.RequiresModule;
 import de.pnnit.directwerk.modules.core.repository.TenantRepository;
 import de.pnnit.directwerk.modules.core.util.TenantAssetKeys;
 import de.pnnit.directwerk.modules.digital.DigitalContentModule;
+import de.pnnit.directwerk.modules.core.authorization.ContentEntityType;
+import de.pnnit.directwerk.modules.core.authorization.ContentOperation;
+import de.pnnit.directwerk.modules.core.service.MembershipPermissionService;
 import de.pnnit.directwerk.modules.digital.api.MediaFolderApi;
 import de.pnnit.directwerk.modules.digital.api.UploadApi;
 import de.pnnit.directwerk.modules.digital.entity.AssetScope;
@@ -21,6 +24,7 @@ import de.pnnit.directwerk.config.DirectwerkConfig;
 import de.pnnit.directwerk.config.DirectwerkProperties;
 import de.pnnit.directwerk.modules.digital.storage.StorageConfigs;
 import de.pnnit.directwerk.multitenancy.TenantContext;
+import de.pnnit.directwerk.security.SecurityUtils;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Map;
@@ -69,6 +73,7 @@ public class UploadService implements UploadApi {
     private final MediaDeleteJobProducer mediaDeleteJobProducer;
     private final PlatformTransactionManager transactionManager;
     private final MediaFolderApi mediaFolderApi;
+    private final MembershipPermissionService permissionService;
 
     /**
      * Creates a pending media asset and a presigned URL for uploading its content.
@@ -81,6 +86,13 @@ public class UploadService implements UploadApi {
     public UploadUrlResult createUploadUrl(CreateUploadUrlCommand command) {
         DirectwerkProperties.Storage storage = StorageConfigs.requireEnabled(directwerkConfig);
         Long tenantId = TenantContext.requireTenantId();
+        // RBAC gate (issue #148): ambient principal — every authenticated HTTP path
+        // carries one; trusted system paths run without and were authorized upstream.
+        permissionService.requireContentAccess(
+                SecurityUtils.currentPrincipal(),
+                ContentEntityType.MEDIA_ASSET,
+                ContentOperation.CREATE,
+                null);
         Tenant tenant = tenantRepository.requireById(tenantId);
 
         MediaUploadRules.validateMimeAndSize(command.assetType(), command.mimeType(), command.sizeBytes());
@@ -124,6 +136,7 @@ public class UploadService implements UploadApi {
         asset.setStatus(AssetStatus.PENDING);
         asset.setEpisodeId(command.episodeId());
         asset.setOwnerUserId(command.ownerUserId());
+        asset.setCreatedBy(SecurityUtils.currentUserId());
         if (command.folderId() != null) {
             // Unknown or foreign-tenant folders surface as 404, like unknown assets.
             mediaFolderApi.assignAssetToFolder(tenantId, asset, command.folderId());

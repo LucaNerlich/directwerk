@@ -1,0 +1,21 @@
+meta {
+  name: 5 - List User Restrictions
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{baseUrl}}/api/v1/tenant/users/{{editorUserId}}/restrictions
+  body: none
+  auth: inherit
+}
+
+tests {
+  test("returns expected status", function() {
+    expect(res.getStatus() === 200).to.equal(true);
+  });
+}
+
+docs {
+  Lists the editor's deny-only permission overrides. Empty array means unrestricted (role baseline applies).
+}

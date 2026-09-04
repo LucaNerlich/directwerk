@@ -1,3 +1,5 @@
+import {ASSET_STATUSES, ASSET_TYPES} from '../constants'
+
 // Allow '.' so domain hosts (e.g. podcast.example.com) can be path segments.
 const SAFE_PATH_SEGMENT = /^[A-Za-z0-9_.-]+$/
 const MAX_TOKEN_LENGTH = 8192
@@ -55,6 +57,147 @@ export function buildSafePreviewQueryString(
     }
 
     return `?${safeParams.toString()}`
+}
+
+/**
+ * Media-library endpoints carry bounded filter params (folders update):
+ * `GET /api/v1/media?assetType=…&status=…&limit=…&folderId=…&recursive=true&unassignedOnly=true`
+ * and `DELETE /api/v1/media/folders/{id}?mode=…`. The tenant BFF proxy
+ * otherwise rejects every query string, so these get a strict allowlist:
+ * only known keys with known values, no duplicates, rebuilt canonically
+ * so nothing unvalidated reaches the upstream URL.
+ */
+const MEDIA_LIST_PATH = '/api/v1/media'
+const MEDIA_FOLDER_DELETE_PATH = /^\/api\/v1\/media\/folders\/\d+$/
+const MEDIA_FOLDER_DELETE_MODES = new Set(['move_to_parent', 'delete_contents'])
+const MAX_MEDIA_LIST_LIMIT = 100
+
+const ALLOWED_MEDIA_TYPES = new Set<string>(ASSET_TYPES)
+const ALLOWED_MEDIA_STATUSES = new Set<string>(ASSET_STATUSES)
+
+/** The single value of `name`, or null when absent/duplicated. */
+function singleValue(searchParams: URLSearchParams, name: string): string | null {
+    if (!searchParams.has(name)) {
+        return null
+    }
+    const values = searchParams.getAll(name)
+    return values.length === 1 ? (values[0] ?? null) : null
+}
+
+/**
+ * Builds a canonical `?…` query for `GET /api/v1/media` filter params.
+ * Returns `null` for any other path, unknown key, duplicate key, or
+ * invalid value.
+ */
+export function buildSafeMediaListQueryString(
+    apiPath: string,
+    searchParams: URLSearchParams,
+): string | null {
+    if (apiPath !== MEDIA_LIST_PATH) {
+        return null
+    }
+
+    const names = [...searchParams.keys()]
+    if (new Set(names).size !== names.length) {
+        return null
+    }
+
+    const safeParams = new URLSearchParams()
+    for (const name of names) {
+        const value = singleValue(searchParams, name)
+        if (value === null) {
+            return null
+        }
+
+        switch (name) {
+            case 'assetType':
+                if (!ALLOWED_MEDIA_TYPES.has(value)) {
+                    return null
+                }
+                break
+            case 'status':
+                if (!ALLOWED_MEDIA_STATUSES.has(value)) {
+                    return null
+                }
+                break
+            case 'limit': {
+                if (!POSITIVE_ID.test(value)) {
+                    return null
+                }
+                const limit = Number.parseInt(value, 10)
+                if (limit < 1 || limit > MAX_MEDIA_LIST_LIMIT) {
+                    return null
+                }
+                break
+            }
+            case 'folderId':
+                if (!POSITIVE_ID.test(value)) {
+                    return null
+                }
+                break
+            case 'recursive':
+            case 'unassignedOnly':
+                if (value !== 'true') {
+                    return null
+                }
+                break
+            default:
+                return null
+        }
+
+        safeParams.set(name, value)
+    }
+
+    return `?${safeParams.toString()}`
+}
+
+/**
+ * Builds a canonical `?mode=…` query for the media-folder delete endpoint.
+ * Returns `null` for any other path (or non-numeric folder id), unknown
+ * keys, or invalid mode values.
+ */
+export function buildSafeMediaFolderDeleteQueryString(
+    apiPath: string,
+    searchParams: URLSearchParams,
+): string | null {
+    if (!MEDIA_FOLDER_DELETE_PATH.test(apiPath)) {
+        return null
+    }
+
+    const names = [...searchParams.keys()]
+    if (names.length !== 1 || names[0] !== 'mode') {
+        return null
+    }
+
+    const mode = singleValue(searchParams, 'mode')
+    if (mode === null || !MEDIA_FOLDER_DELETE_MODES.has(mode)) {
+        return null
+    }
+
+    return `?mode=${mode}`
+}
+
+/**
+ * Resolves the canonical upstream `?…` query for an allowlisted
+ * proxy call (feed-builder previews, media library list/delete).
+ * Returns `null` when the path/method/query combination is not
+ * allowlisted — callers keep the blanket query rejection then.
+ */
+export function buildSafeProxyQuery(
+    apiPath: string,
+    method: string,
+    searchParams: URLSearchParams,
+): string | null {
+    if (method === 'GET') {
+        return (
+            buildSafePreviewQueryString(apiPath, searchParams) ??
+            buildSafeMediaListQueryString(apiPath, searchParams)
+        )
+    }
+    if (method === 'DELETE') {
+        return buildSafeMediaFolderDeleteQueryString(apiPath, searchParams)
+    }
+    return null
 }
 
 /** Builds `/api/v1/<segments>` from catch-all route segments; null when unsafe. */

@@ -15,6 +15,7 @@ import de.pnnit.directwerk.modules.core.entity.Role;
 import de.pnnit.directwerk.modules.core.entity.TenantMembership;
 import de.pnnit.directwerk.modules.core.entity.User;
 import de.pnnit.directwerk.modules.core.repository.TenantMembershipRepository;
+import de.pnnit.directwerk.modules.core.service.MembershipPermissionService;
 import de.pnnit.directwerk.security.DirectwerkUserPrincipal;
 import de.pnnit.directwerk.security.RoleConstants;
 import java.util.EnumSet;
@@ -46,6 +47,9 @@ class TenantMembershipManagementServiceTest {
 
     @Mock
     private PlatformAuditService platformAuditService;
+
+    @Mock
+    private MembershipPermissionService membershipPermissionService;
 
     @Mock
     private EntityManager entityManager;
@@ -216,6 +220,19 @@ class TenantMembershipManagementServiceTest {
                 eq(TENANT_ID),
                 eq(Map.of("userId", 5L, "role", "TENANT_ADMIN"))
         );
+    }
+
+    @Test
+    void updateRoleClearsStalePermissionRestrictions() {
+        Long membershipId = 7L;
+        TenantMembership membership = membership(5L, MembershipStatus.ACTIVE, Role.EDITOR);
+        membership.setId(membershipId);
+        when(tenantMembershipRepository.findByUserIdAndTenantId(5L, TENANT_ID)).thenReturn(Optional.of(membership));
+        when(tenantMembershipRepository.save(membership)).thenReturn(membership);
+
+        service.updateRole(TENANT_ID, 5L, "TENANT_ADMIN");
+
+        verify(membershipPermissionService).clearForMembership(TENANT_ID, membershipId);
     }
 
     @Test

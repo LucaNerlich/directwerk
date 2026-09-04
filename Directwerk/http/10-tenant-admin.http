@@ -204,6 +204,67 @@ Accept: application/json
 
 ###
 
+### @name listUserRestrictions
+### Deny-only overrides of the role baseline; empty array means unrestricted.
+GET {{baseUrl}}/api/v1/tenant/users/{{editorUserId}}/restrictions
+Host: {{tenantAHost}}
+Authorization: Bearer {{tenantAAccessToken}}
+Accept: application/json
+
+> {%
+    client.test("List user restrictions", function() {
+        client.assert(response.status === 200, "Expected 200");
+        client.assert(Array.isArray(response.body.data), "Expected restriction array");
+    });
+%}
+
+###
+
+### @name replaceUserRestrictions
+### Atomically replaces all rows (empty array lifts everything). DENY forbids
+### outright; OTHERS_ONLY limits the operation to the editor's own content.
+PUT {{baseUrl}}/api/v1/tenant/users/{{editorUserId}}/restrictions
+Host: {{tenantAHost}}
+Authorization: Bearer {{tenantAAccessToken}}
+Content-Type: application/json
+Accept: application/json
+
+{
+  "restrictions": [
+    {"entityType": "EPISODE", "operation": "DELETE", "scope": "DENY"},
+    {"entityType": "ARTICLE", "operation": "PUBLISH", "scope": "OTHERS_ONLY"}
+  ]
+}
+
+> {%
+    client.test("Replace user restrictions", function() {
+        client.assert(
+            response.status === 200 || response.status === 400 || response.status === 404,
+            "Expected 200/400/404"
+        );
+    });
+%}
+
+###
+
+### @name getUserEffectiveRights
+### Server-resolved FULL | OWN_ONLY | DENIED matrix for dashboards and UI adaptation.
+GET {{baseUrl}}/api/v1/tenant/users/{{editorUserId}}/effective-rights
+Host: {{tenantAHost}}
+Authorization: Bearer {{tenantAAccessToken}}
+Accept: application/json
+
+> {%
+    client.test("Get user effective rights", function() {
+        client.assert(response.status === 200 || response.status === 404, "Expected 200/404");
+        if (response.status === 200) {
+            client.assert(response.body.data.effective != null, "Expected effective matrix");
+        }
+    });
+%}
+
+###
+
 ### @name getContentEmailTemplateArticle
 GET {{baseUrl}}/api/v1/tenant/content-email-templates/ARTICLE
 Host: {{tenantAHost}}

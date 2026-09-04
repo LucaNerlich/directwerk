@@ -1,7 +1,10 @@
 package de.pnnit.directwerk.controller.auth;
 
+import de.pnnit.directwerk.api.dto.EffectiveRightsView;
 import de.pnnit.directwerk.api.dto.LevelView;
+import de.pnnit.directwerk.api.dto.PermissionRestrictionView;
 import de.pnnit.directwerk.api.response.Response;
+import de.pnnit.directwerk.modules.core.service.MembershipPermissionService;
 import de.pnnit.directwerk.modules.core.service.UserAccountService;
 import de.pnnit.directwerk.modules.subscription.entity.Subscription;
 import de.pnnit.directwerk.modules.subscription.entity.SubscriptionProduct;
@@ -26,15 +29,18 @@ public class MeController {
     private final UserAccountService userAccountService;
     private final SubscriberAccessQueryService subscriberAccessQueryService;
     private final SubscriptionService subscriptionService;
+    private final MembershipPermissionService membershipPermissionService;
 
     public MeController(
             UserAccountService userAccountService,
             SubscriberAccessQueryService subscriberAccessQueryService,
-            SubscriptionService subscriptionService
+            SubscriptionService subscriptionService,
+            MembershipPermissionService membershipPermissionService
     ) {
         this.userAccountService = userAccountService;
         this.subscriberAccessQueryService = subscriberAccessQueryService;
         this.subscriptionService = subscriptionService;
+        this.membershipPermissionService = membershipPermissionService;
     }
 
     @GetMapping
@@ -44,6 +50,7 @@ public class MeController {
 
         return userAccountService.findAccount(user.userId())
                 .map(account -> ResponseEntity.ok(Response.ok(new MeResponse(
+                        user.userId(),
                         account.email(),
                         account.name(),
                         user.roleNames(),
@@ -51,6 +58,22 @@ public class MeController {
                 ))))
                 .orElseGet(() -> ResponseEntity.status(HttpStatus.NOT_FOUND)
                         .body(Response.error(404, "USER_NOT_FOUND", "User not found")));
+    }
+
+    @GetMapping("/effective-rights")
+    ResponseEntity<Response<EffectiveRightsView>> myEffectiveRights(
+            @AuthenticationPrincipal DirectwerkUserPrincipal principal
+    ) {
+        DirectwerkUserPrincipal user = SecurityUtils.requireTenantPrincipal(principal);
+        MembershipPermissionService.MemberRights rights =
+                membershipPermissionService.effectiveRightsForMember(
+                        user.tenantId(), user.userId());
+        List<PermissionRestrictionView> restrictions = rights.restrictions().stream()
+                .map(override -> new PermissionRestrictionView(
+                        override.getEntityType(), override.getOperation(), override.getScope()))
+                .toList();
+        return ResponseEntity.ok(Response.ok(new EffectiveRightsView(
+                rights.userId(), rights.roles(), restrictions, rights.effective())));
     }
 
     @GetMapping("/access")
@@ -114,7 +137,7 @@ public class MeController {
         );
     }
 
-    public record MeResponse(String email, String name, List<String> roles, Long tenantId) {
+    public record MeResponse(Long userId, String email, String name, List<String> roles, Long tenantId) {
     }
 
     public record AccessResponse(

@@ -1,0 +1,21 @@
+meta {
+  name: 7 - Get User Effective Rights
+  type: http
+  seq: 7
+}
+
+get {
+  url: {{baseUrl}}/api/v1/tenant/users/{{editorUserId}}/effective-rights
+  body: none
+  auth: inherit
+}
+
+tests {
+  test("returns expected status", function() {
+    expect(res.getStatus() === 200).to.equal(true);
+  });
+}
+
+docs {
+  Server-resolved rights matrix (FULL | OWN_ONLY | DENIED per entity and operation) driving the studio RBAC dashboard and desk UI adaptation. Computed server-side so the UI cannot drift from the backend matrix.
+}

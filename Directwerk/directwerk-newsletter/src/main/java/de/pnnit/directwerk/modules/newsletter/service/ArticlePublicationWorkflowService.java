@@ -10,7 +10,9 @@ import de.pnnit.directwerk.modules.content.ScheduledPublishing.DueItem;
 import de.pnnit.directwerk.modules.content.ContentPublishedNotifier;
 import de.pnnit.directwerk.modules.content.ContentType;
 import de.pnnit.directwerk.modules.core.RequiresModule;
+import de.pnnit.directwerk.modules.core.authorization.ContentOperation;
 import de.pnnit.directwerk.modules.core.notification.SubscriberNotificationGate;
+import de.pnnit.directwerk.modules.core.service.MembershipPermissionService;
 import de.pnnit.directwerk.modules.core.service.ModuleGateService;
 import de.pnnit.directwerk.modules.core.service.ScheduledPublicationExecutor;
 import de.pnnit.directwerk.modules.newsletter.ArticlesModule;
@@ -44,6 +46,7 @@ public class ArticlePublicationWorkflowService {
     private final SubscriberNotificationGate notificationGate;
     private final ArticleRssFeedRefreshScheduler articleRssFeedRefreshScheduler;
     private final ObjectProvider<ArticlePublicationWorkflowService> self;
+    private final MembershipPermissionService permissionService;
 
     @Transactional
     @RequiresModule(ArticlesModule.KEY)
@@ -61,6 +64,7 @@ public class ArticlePublicationWorkflowService {
     @RequiresModule(ArticlesModule.KEY)
     public Article publish(Long tenantId, Long articleId, boolean notifySubscribers, Instant publishedAt) {
         Article article = articleService.requireArticle(tenantId, articleId);
+        permissionService.requireArticleAccess(ContentOperation.PUBLISH, article.getCreatedBy());
         return publishInternal(tenantId, article, notifySubscribers, publishedAt);
     }
 
@@ -74,6 +78,7 @@ public class ArticlePublicationWorkflowService {
     @RequiresModule(ArticlesModule.KEY)
     public Article schedule(Long tenantId, Long articleId, Instant scheduledAt, boolean notifySubscribers) {
         Article article = articleService.requireArticle(tenantId, articleId);
+        permissionService.requireArticleAccess(ContentOperation.SCHEDULE, article.getCreatedBy());
         PublicationLifecycleSupport.schedule(
                 scheduledAt,
                 notifySubscribers,
@@ -92,6 +97,7 @@ public class ArticlePublicationWorkflowService {
     @RequiresModule(ArticlesModule.KEY)
     public Article cancelSchedule(Long tenantId, Long articleId) {
         Article article = articleService.requireArticle(tenantId, articleId);
+        permissionService.requireArticleAccess(ContentOperation.SCHEDULE, article.getCreatedBy());
         PublicationLifecycleSupport.cancelSchedule(
                 () -> article.getStatus() == ArticleStatus.SCHEDULED,
                 "articles",
@@ -107,6 +113,7 @@ public class ArticlePublicationWorkflowService {
     @RequiresModule(ArticlesModule.KEY)
     public Article unpublish(Long tenantId, Long articleId) {
         Article article = articleService.requireArticle(tenantId, articleId);
+        permissionService.requireArticleAccess(ContentOperation.UNPUBLISH, article.getCreatedBy());
         PublicationLifecycleSupport.unpublish(
                 () -> article.getStatus() == ArticleStatus.PUBLISHED,
                 "articles",
@@ -124,6 +131,7 @@ public class ArticlePublicationWorkflowService {
     @RequiresModule(ArticlesModule.KEY)
     public Article archive(Long tenantId, Long articleId) {
         Article article = articleService.requireArticle(tenantId, articleId);
+        permissionService.requireArticleAccess(ContentOperation.ARCHIVE, article.getCreatedBy());
         PublicationLifecycleSupport.archive(
                 () -> article.getStatus() == ArticleStatus.PUBLISHED,
                 "articles",
@@ -140,6 +148,7 @@ public class ArticlePublicationWorkflowService {
     @RequiresModule(ArticlesModule.KEY)
     public Article unarchive(Long tenantId, Long articleId) {
         Article article = articleService.requireArticle(tenantId, articleId);
+        permissionService.requireArticleAccess(ContentOperation.UNARCHIVE, article.getCreatedBy());
         PublicationLifecycleSupport.unarchive(
                 () -> article.getStatus() == ArticleStatus.ARCHIVED,
                 "articles",

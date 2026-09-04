@@ -108,6 +108,7 @@ public class PublicEpisodeViewMapper {
                         .sorted(CategoryView.DISPLAY_ORDER)
                         .map(CategoryView::of)
                         .toList(),
+                episode.getCreatedBy(),
                 episode.getCreatedAt(),
                 episode.getUpdatedAt()
         );

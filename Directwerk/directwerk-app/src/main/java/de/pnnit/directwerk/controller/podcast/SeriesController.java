@@ -160,6 +160,7 @@ public class SeriesController {
                 series.getDefaultRequiredLevelSortOrder(),
                 series.getStatus().name(),
                 rssUrl,
+                series.getCreatedBy(),
                 series.getCreatedAt(),
                 series.getUpdatedAt()
         );
@@ -205,6 +206,7 @@ public class SeriesController {
             Integer defaultRequiredLevelSortOrder,
             String status,
             String rssUrl,
+            Long createdBy,
             Instant createdAt,
             Instant updatedAt
     ) {

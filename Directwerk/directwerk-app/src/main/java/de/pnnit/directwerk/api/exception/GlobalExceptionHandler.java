@@ -3,6 +3,7 @@ package de.pnnit.directwerk.api.exception;
 import de.pnnit.directwerk.api.response.ErrorDetail;
 import de.pnnit.directwerk.api.response.Response;
 import de.pnnit.directwerk.modules.core.exception.ConflictException;
+import de.pnnit.directwerk.modules.core.exception.ContentAccessDeniedException;
 import de.pnnit.directwerk.modules.core.service.CannotDeactivateCoreModuleException;
 import de.pnnit.directwerk.modules.core.service.CannotDeactivateLastAdminException;
 import de.pnnit.directwerk.modules.core.service.CannotDeactivateSelfException;
@@ -166,6 +167,12 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(MediaFolderNotFoundException.class)
     ResponseEntity<Response<Void>> handleMediaFolderNotFound(MediaFolderNotFoundException ex) {
         return notFound("MEDIA_FOLDER_NOT_FOUND", ex);
+    }
+
+    @ExceptionHandler(ContentAccessDeniedException.class)
+    ResponseEntity<Response<Void>> handleContentAccessDenied(ContentAccessDeniedException ex) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(Response.error(403, ex.getCode(), ex.getMessage()));
     }
 
     @ExceptionHandler(UploadValidationException.class)
