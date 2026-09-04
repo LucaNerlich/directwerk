@@ -17,13 +17,13 @@ function PlayerMock(): React.JSX.Element {
         <div className="glass-panel relative overflow-hidden rounded-3xl">
             <div className="border-b border-foreground/10 bg-primary p-7 text-primary-foreground">
                 <p className="text-xs font-semibold uppercase tracking-[0.2em] opacity-70">
-                    Deine Show · Höllenhaus FM
+                    Deine Show · Morgenlicht FM
                 </p>
                 <p className="mt-8 text-3xl font-semibold tracking-tight">
-                    #42 — Das Höllenhaus
+                    #128 — Guten Morgen, Berlin
                 </p>
                 <p className="mt-2 text-sm text-primary-foreground/75">
-                    48 Min · Frei für alle
+                    6 Min · Frei für alle
                 </p>
             </div>
             <div className="space-y-5 p-6 sm:p-7">
@@ -47,7 +47,7 @@ function PlayerMock(): React.JSX.Element {
                         ))}
                     </div>
                     <span className="shrink-0 font-mono text-xs text-muted-foreground">
-                        18:24
+                        04:12
                     </span>
                 </div>
                 <div className="flex flex-wrap gap-2">
@@ -62,7 +62,7 @@ function PlayerMock(): React.JSX.Element {
                 </div>
                 <div className="rounded-xl border border-foreground/10 bg-background/60 p-4 font-mono text-xs leading-5 text-muted-foreground">
                     <p className="font-semibold text-foreground">Für Abonnenten — automatisch persönlich</p>
-                    <p className="mt-1 break-all">/feeds/hoellenhaus/u/persönlicher-token.xml</p>
+                    <p className="mt-1 break-all">/feeds/morgenlicht/u/persönlicher-token.xml</p>
                     <p className="mt-1">Nur freigeschaltete Formate · jederzeit widerrufbar</p>
                 </div>
             </div>
