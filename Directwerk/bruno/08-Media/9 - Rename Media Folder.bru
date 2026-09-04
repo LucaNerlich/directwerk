@@ -1,0 +1,27 @@
+meta {
+  name: 9 - Rename Media Folder
+  type: http
+  seq: 9
+}
+
+put {
+  url: {{baseUrl}}/api/v1/media/folders/{{mediaFolderId}}
+  body: json
+  auth: inherit
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "name": "Interviews (Archiv)"
+  }
+}
+
+tests {
+  test("returns expected status", function() {
+    expect(res.getStatus() === 200 || res.getStatus() === 404 || res.getStatus() === 503).to.equal(true);
+  });
+}

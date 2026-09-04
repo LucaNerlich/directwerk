@@ -1,0 +1,31 @@
+meta {
+  name: 12 - Move Media Asset
+  type: http
+  seq: 12
+}
+
+post {
+  url: {{baseUrl}}/api/v1/media/{{mediaAssetId}}/move
+  body: json
+  auth: inherit
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "folderId": null
+  }
+}
+
+tests {
+  test("returns expected status", function() {
+    expect(res.getStatus() === 200 || res.getStatus() === 404 || res.getStatus() === 503).to.equal(true);
+  });
+}
+
+docs {
+  Set folderId to {{mediaFolderId}} to file the asset, null to move it back to the library root. S3 keys are untouched — folders are metadata only.
+}

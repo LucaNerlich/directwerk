@@ -4,6 +4,9 @@ import {
     createPublicContentParsers,
     parseImportedEpisodeEnvelope,
     parseMeEnvelope,
+    parseMediaAsset,
+    parseMediaFolder,
+    parseMediaFolderListEnvelope,
     parseRssImportPreviewEnvelope,
     parseStudioSiteConfigEnvelope,
     parsePublicSiteConfigEnvelope,
@@ -441,5 +444,58 @@ describe('isQueueJob', () => {
 
         expect(parsed?.data[0]?.invitedAt).toBeNull()
         expect(parsed?.data[0]?.lastLoginAt).toBeNull()
+    })
+
+    it('parses media folders and asset folder assignments', () => {
+        expect(
+            parseMediaFolder({
+                id: 3,
+                name: 'Interviews',
+                parentId: null,
+                createdAt: '2026-01-01T00:00:00Z',
+                updatedAt: '2026-01-01T00:00:00Z',
+            }),
+        ).toMatchObject({id: 3, name: 'Interviews', parentId: null})
+        expect(parseMediaFolder({id: 3, name: 'x', parentId: -1})).toBeNull()
+        expect(
+            parseMediaFolderListEnvelope({
+                statusCode: 200,
+                statusMessage: 'OK',
+                data: [
+                    {
+                        id: 3,
+                        name: 'Interviews',
+                        parentId: 1,
+                        createdAt: '2026-01-01T00:00:00Z',
+                        updatedAt: '2026-01-01T00:00:00Z',
+                    },
+                ],
+                errors: [],
+                metadata: {},
+            })?.data,
+        ).toHaveLength(1)
+    })
+
+    it('parses media asset folder ids, tolerating older responses without one', () => {
+        const base = {
+            id: 7,
+            s3Key: 't/private/audio/a.mp3',
+            visibility: 'PRIVATE',
+            scope: 'CONTENT',
+            assetType: 'AUDIO',
+            status: 'READY',
+            mimeType: 'audio/mpeg',
+            sizeBytes: 100,
+            originalFilename: 'a.mp3',
+            episodeId: null,
+            ownerUserId: null,
+            cdnUrl: null,
+            createdAt: '2026-01-01T00:00:00Z',
+            updatedAt: '2026-01-01T00:00:00Z',
+        }
+        expect(parseMediaAsset({...base, folderId: 3})?.folderId).toBe(3)
+        expect(parseMediaAsset({...base, folderId: null})?.folderId).toBeNull()
+        expect(parseMediaAsset(base)?.folderId).toBeNull()
+        expect(parseMediaAsset({...base, folderId: -1})).toBeNull()
     })
 })

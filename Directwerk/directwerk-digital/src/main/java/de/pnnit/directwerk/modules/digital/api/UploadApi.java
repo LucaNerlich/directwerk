@@ -23,7 +23,8 @@ public interface UploadApi {
             AssetVisibility intendedVisibility,
             AssetScope scope,
             Long episodeId,
-            Long ownerUserId
+            Long ownerUserId,
+            Long folderId
     ) {
     }
 

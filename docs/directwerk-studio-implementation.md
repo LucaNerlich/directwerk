@@ -502,9 +502,10 @@ Checkout depends on Connect onboarding (see [`payment.md`](payment.md)).
 | Screen | Actions |
 |--------|---------|
 | **Library grid / table** | Thumbnail, filename, type, size, visibility, status, linked content |
-| **Upload** | Drag-drop → pre-signed PUT flow |
+| **Folders** | Create/rename/move/delete (max depth 8, names unique per parent); move assets and folders; delete moves contents up or deletes them (typed confirm); uploads land in the open folder; `?folderId=&recursive=` / `?unassignedOnly=` list filters |
+| **Upload** | Drag-drop → pre-signed PUT flow (optional `folderId` assigns at creation) |
 | **Asset detail** | Metadata, preview URL, replace file, archive |
-| **Filters** | Type, status, visibility, unlinked orphans |
+| **Filters** | Type, status, visibility, unlinked orphans, subfolder inclusion |
 | **Bulk archive** | Soft-delete unused staging assets |
 
 Upload sequence:

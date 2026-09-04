@@ -55,6 +55,74 @@ public interface MediaAssetRepository extends JpaRepository<MediaAsset, Long> {
     );
 
     /**
+     * Assets directly inside one folder. Explicitly scoped by tenant because the result
+     * feeds write paths (folder delete reparenting); see {@link #archivePendingByS3Key}.
+     */
+    @EntityGraph(attributePaths = "tenant")
+    @Query("""
+            select m from MediaAsset m
+            where m.tenant.id = :tenantId
+              and m.folderId = :folderId
+            order by m.id desc
+            """)
+    List<MediaAsset> findByTenantIdAndFolderId(
+            @Param("tenantId") Long tenantId,
+            @Param("folderId") Long folderId
+    );
+
+    /**
+     * Assets directly inside the given folders. {@code folderIds} must be non-empty;
+     * callers branch to {@link #findFiltered} (no folder filter) or
+     * {@link #findFilteredUnassigned} instead so no null/empty collection parameter
+     * ever reaches JPQL. Tenant scoping comes from the Hibernate tenant filter,
+     * like {@link #findFiltered}.
+     */
+    @EntityGraph(attributePaths = "tenant")
+    @Query("""
+            select m from MediaAsset m
+            where (:assetType is null or m.assetType = :assetType)
+              and (
+                    (:status is not null and m.status = :status)
+                    or (:status is null and m.status not in (
+                        de.pnnit.directwerk.modules.digital.entity.AssetStatus.ARCHIVED,
+                        de.pnnit.directwerk.modules.digital.entity.AssetStatus.PENDING_DELETE
+                    ))
+                  )
+              and m.folderId in :folderIds
+            order by m.id desc
+            """)
+    List<MediaAsset> findFilteredInFolders(
+            @Param("assetType") AssetType assetType,
+            @Param("status") AssetStatus status,
+            @Param("folderIds") Collection<Long> folderIds,
+            Pageable pageable
+    );
+
+    /**
+     * Assets at the library root ({@code folderId} null). See
+     * {@link #findFilteredInFolders} for the tenant-scoping note.
+     */
+    @EntityGraph(attributePaths = "tenant")
+    @Query("""
+            select m from MediaAsset m
+            where (:assetType is null or m.assetType = :assetType)
+              and (
+                    (:status is not null and m.status = :status)
+                    or (:status is null and m.status not in (
+                        de.pnnit.directwerk.modules.digital.entity.AssetStatus.ARCHIVED,
+                        de.pnnit.directwerk.modules.digital.entity.AssetStatus.PENDING_DELETE
+                    ))
+                  )
+              and m.folderId is null
+            order by m.id desc
+            """)
+    List<MediaAsset> findFilteredUnassigned(
+            @Param("assetType") AssetType assetType,
+            @Param("status") AssetStatus status,
+            Pageable pageable
+    );
+
+    /**
      * Bulk variant of {@link #findById(Long)}: one query, tenant eagerly fetched — same
      * LazyInitializationException rationale as the findById override.
      */

@@ -21,6 +21,21 @@ public interface MediaAssetQueryApi {
     List<MediaAsset> list(AssetType assetType, AssetStatus status, int limit);
 
     /**
+     * Lists assets inside one folder. A {@code null} {@code folderId} together with
+     * {@code unassignedOnly} lists root-level (unassigned) assets; without either flag
+     * this behaves like {@link #list}. When {@code recursive} is true, descendants of
+     * {@code folderId} are included. {@code folderId} and {@code unassignedOnly} together
+     * are rejected.
+     */
+    List<MediaAsset> listInFolder(
+            AssetType assetType,
+            AssetStatus status,
+            Long folderId,
+            boolean recursive,
+            boolean unassignedOnly,
+            int limit);
+
+    /**
      * Lists assets for a tenant from a platform (no Host) context by temporarily
      * applying {@code TenantContext} so the Hibernate tenant filter scopes the query.
      */

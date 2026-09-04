@@ -17,6 +17,7 @@ import type {
     EpisodeSummary,
     ImportedEpisodeResult,
     RssImportPreview,
+    MediaFolder,
     FormatSummary,
     FormatTag,
     InviteTenantUserResponse,
@@ -569,7 +570,12 @@ export function parseMediaAsset(value: unknown): MediaAsset | null {
         !isBoundedString(value.createdAt, 64) ||
         !isBoundedString(value.updatedAt, 64) ||
         !(value.episodeId === null || isPositiveSafeInteger(value.episodeId)) ||
-        !(value.ownerUserId === null || isPositiveSafeInteger(value.ownerUserId))
+        !(value.ownerUserId === null || isPositiveSafeInteger(value.ownerUserId)) ||
+        !(
+            value.folderId === null ||
+            value.folderId === undefined ||
+            isPositiveSafeInteger(value.folderId)
+        )
     ) {
         return null
     }
@@ -599,10 +605,47 @@ export function parseMediaAsset(value: unknown): MediaAsset | null {
                   : 0,
         episodeId: value.episodeId ?? null,
         ownerUserId: value.ownerUserId ?? null,
+        folderId:
+            value.folderId === null || value.folderId === undefined
+                ? null
+                : value.folderId,
         cdnUrl: isNullableString(value.cdnUrl, 4096) ? value.cdnUrl : null,
         createdAt: value.createdAt,
         updatedAt: value.updatedAt,
     }
+}
+
+export function parseMediaFolder(value: unknown): MediaFolder | null {
+    if (
+        !isRecord(value) ||
+        !isPositiveSafeInteger(value.id) ||
+        !isBoundedString(value.name, 255) ||
+        !(value.parentId === null || isPositiveSafeInteger(value.parentId)) ||
+        !isBoundedString(value.createdAt, 64) ||
+        !isBoundedString(value.updatedAt, 64)
+    ) {
+        return null
+    }
+
+    return {
+        id: value.id,
+        name: value.name,
+        parentId: value.parentId,
+        createdAt: value.createdAt,
+        updatedAt: value.updatedAt,
+    }
+}
+
+export function parseMediaFolderEnvelope(
+    value: unknown,
+): ApiEnvelope<MediaFolder> | null {
+    return parseEnvelope(value, parseMediaFolder)
+}
+
+export function parseMediaFolderListEnvelope(
+    value: unknown,
+): ApiEnvelope<MediaFolder[]> | null {
+    return parseEnvelope(value, (data) => parseBoundedArray(data, 500, parseMediaFolder))
 }
 
 function parseStringRecord(value: unknown): Record<string, string> | null {

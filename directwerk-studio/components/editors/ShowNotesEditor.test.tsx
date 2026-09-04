@@ -46,6 +46,7 @@ const listMedia = vi.fn().mockResolvedValue([
 
 vi.mock('@/lib/api/mediaApi', () => ({
     listMedia: (...args: unknown[]) => listMedia(...args),
+    listMediaFolders: () => Promise.resolve([]),
 }))
 
 describe('ShowNotesEditor', () => {

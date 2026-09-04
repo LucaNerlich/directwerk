@@ -35,6 +35,7 @@ public class MediaAssetViewMapper {
                 asset.getOriginalFilename(),
                 asset.getEpisodeId(),
                 asset.getOwnerUserId(),
+                asset.getFolderId(),
                 cdnUrlOverride,
                 asset.getCreatedAt(),
                 asset.getUpdatedAt()

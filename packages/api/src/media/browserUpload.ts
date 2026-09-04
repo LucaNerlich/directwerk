@@ -45,6 +45,7 @@ export interface BrowserMediaUploadConfig {
     assetType?: AssetType
     visibility?: 'PUBLIC' | 'PRIVATE'
     episodeId?: number
+    folderId?: number
     onProgress?: (percent: number) => void
     getAccessToken: () => Promise<string>
     onAuthRequired: () => void
@@ -97,6 +98,9 @@ export async function uploadMediaFileBrowser(
         }
         if (config.episodeId !== undefined) {
             xhr.setRequestHeader('X-Episode-Id', String(config.episodeId))
+        }
+        if (config.folderId !== undefined) {
+            xhr.setRequestHeader('X-Folder-Id', String(config.folderId))
         }
 
         const onProgress = config.onProgress

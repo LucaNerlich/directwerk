@@ -4,6 +4,7 @@ import de.pnnit.directwerk.modules.core.RequiresModule;
 import de.pnnit.directwerk.modules.core.repository.TenantRepository;
 import de.pnnit.directwerk.modules.core.util.TenantAssetKeys;
 import de.pnnit.directwerk.modules.digital.DigitalContentModule;
+import de.pnnit.directwerk.modules.digital.api.MediaFolderApi;
 import de.pnnit.directwerk.modules.digital.api.UploadApi;
 import de.pnnit.directwerk.modules.digital.entity.AssetScope;
 import de.pnnit.directwerk.modules.digital.entity.AssetStatus;
@@ -67,6 +68,7 @@ public class UploadService implements UploadApi {
     private final StagingCleanupService stagingCleanupService;
     private final MediaDeleteJobProducer mediaDeleteJobProducer;
     private final PlatformTransactionManager transactionManager;
+    private final MediaFolderApi mediaFolderApi;
 
     /**
      * Creates a pending media asset and a presigned URL for uploading its content.
@@ -122,6 +124,11 @@ public class UploadService implements UploadApi {
         asset.setStatus(AssetStatus.PENDING);
         asset.setEpisodeId(command.episodeId());
         asset.setOwnerUserId(command.ownerUserId());
+        if (command.folderId() != null) {
+            // Unknown or foreign-tenant folders surface as 404, like unknown assets.
+            mediaFolderApi.requireFolder(tenantId, command.folderId());
+            asset.setFolderId(command.folderId());
+        }
         asset.setMimeType(MediaUploadRules.normalizeMime(command.mimeType()));
         asset.setSizeBytes(command.sizeBytes());
         asset.setOriginalFilename(filename);

@@ -16,7 +16,8 @@ public class MediaUploadCommandMapper {
                 request.intendedVisibility(),
                 request.scope(),
                 request.episodeId(),
-                request.ownerUserId()
+                request.ownerUserId(),
+                request.folderId()
         );
     }
 }

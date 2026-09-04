@@ -12,6 +12,7 @@ import de.pnnit.directwerk.config.DirectwerkConfig;
 import de.pnnit.directwerk.config.DirectwerkProperties;
 import de.pnnit.directwerk.modules.core.entity.Tenant;
 import de.pnnit.directwerk.modules.core.repository.TenantRepository;
+import de.pnnit.directwerk.modules.digital.api.MediaFolderApi;
 import de.pnnit.directwerk.modules.digital.api.UploadApi;
 import de.pnnit.directwerk.modules.digital.entity.AssetScope;
 import de.pnnit.directwerk.modules.digital.entity.AssetStatus;
@@ -72,6 +73,9 @@ class UploadServiceTest {
     private PlatformTransactionManager transactionManager;
 
     @Mock
+    private MediaFolderApi mediaFolderApi;
+
+    @Mock
     private PresignedPutObjectRequest presignedPut;
 
     private UploadService uploadService;
@@ -87,7 +91,8 @@ class UploadServiceTest {
                 directwerkConfig,
                 stagingCleanupService,
                 mediaDeleteJobProducer,
-                transactionManager
+                transactionManager,
+                mediaFolderApi
         );
         lenient().when(transactionManager.getTransaction(org.mockito.ArgumentMatchers.any()))
                 .thenReturn(new SimpleTransactionStatus());
@@ -122,6 +127,7 @@ class UploadServiceTest {
                 AssetType.AUDIO,
                 AssetVisibility.PRIVATE,
                 AssetScope.CONTENT,
+                null,
                 null,
                 null
         ));
@@ -162,6 +168,7 @@ class UploadServiceTest {
                 AssetVisibility.PRIVATE,
                 AssetScope.SYSTEM,
                 null,
+                null,
                 null
         )))
                 .isInstanceOf(UploadValidationException.class)
@@ -182,6 +189,7 @@ class UploadServiceTest {
                 AssetType.AUDIO,
                 AssetVisibility.PRIVATE,
                 AssetScope.CONTENT,
+                null,
                 null,
                 null
         ))).isInstanceOf(UploadValidationException.class);
@@ -207,6 +215,7 @@ class UploadServiceTest {
                 AssetType.AUDIO,
                 AssetVisibility.PRIVATE,
                 AssetScope.CONTENT,
+                null,
                 null,
                 null
         ));

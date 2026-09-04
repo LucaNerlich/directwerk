@@ -63,6 +63,14 @@ public class MediaAsset extends BaseEntity implements TenantOwned {
     @Column(name = "episode_id")
     private Long episodeId;
 
+    /**
+     * Media library folder assignment (issue #146). {@code null} means the asset
+     * lives at the library root. Plain id (like {@code episodeId}) — the folder
+     * service validates existence and tenant match explicitly.
+     */
+    @Column(name = "folder_id")
+    private Long folderId;
+
     @Column(name = "mime_type", length = 128)
     private String mimeType;
 
