@@ -65,6 +65,7 @@ public class MediaFolderService implements MediaFolderApi {
     @RequiresModule(DigitalContentModule.KEY)
     public MediaFolder createFolder(Long tenantId, String name, Long parentId) {
         String normalized = normalizeName(name);
+        acquireTenantFolderLock(tenantId);
         MediaFolder parent = resolveParent(tenantId, parentId);
         assertDepthAllows(parent, 1);
         assertNameAvailable(tenantId, parent, normalized, null);
@@ -134,6 +135,7 @@ public class MediaFolderService implements MediaFolderApi {
     @Transactional
     @RequiresModule(DigitalContentModule.KEY)
     public MediaAsset moveAsset(Long tenantId, Long assetId, Long folderId) {
+        acquireTenantFolderLock(tenantId);
         MediaAsset asset = mediaAssetRepository.findById(assetId)
                 .filter(candidate -> candidate.getTenant() != null
                         && tenantId.equals(candidate.getTenant().getId()))
@@ -142,11 +144,16 @@ public class MediaFolderService implements MediaFolderApi {
                 || asset.getStatus() == AssetStatus.PENDING_DELETE) {
             throw new MediaAssetNotFoundException(assetId);
         }
-        if (folderId != null) {
-            requireFolder(tenantId, folderId);
-        }
-        asset.setFolderId(folderId);
+        validateAndAssignFolder(tenantId, asset, folderId);
         return mediaAssetRepository.save(asset);
+    }
+
+    @Override
+    @Transactional
+    @RequiresModule(DigitalContentModule.KEY)
+    public void assignAssetToFolder(Long tenantId, MediaAsset asset, Long folderId) {
+        acquireTenantFolderLock(tenantId);
+        validateAndAssignFolder(tenantId, asset, folderId);
     }
 
     /**
@@ -154,7 +161,22 @@ public class MediaFolderService implements MediaFolderApi {
      * folder's parent (or the library root when it was root-level).
      */
     private void moveContentsUp(Long tenantId, MediaFolder folder, MediaFolder parent) {
-        for (MediaFolder child : mediaFolderRepository.findByTenantIdAndParentId(tenantId, folder)) {
+        List<MediaFolder> children = mediaFolderRepository.findByTenantIdAndParent(tenantId, folder);
+        List<MediaFolder> destinationSiblings = parent == null
+                ? mediaFolderRepository.findByTenantIdAndParentIdIsNull(tenantId)
+                : mediaFolderRepository.findByTenantIdAndParent(tenantId, parent);
+        for (MediaFolder child : children) {
+            boolean collision = destinationSiblings.stream()
+                    .anyMatch(sibling -> !sibling.getId().equals(folder.getId())
+                            && !sibling.getId().equals(child.getId())
+                            && sibling.getName().equals(child.getName()));
+            if (collision) {
+                throw new ConflictException(
+                        ConflictCodes.MEDIA_FOLDER_NAME_EXISTS,
+                        "A folder named '" + child.getName() + "' already exists in this location");
+            }
+        }
+        for (MediaFolder child : children) {
             child.setParent(parent);
             mediaFolderRepository.save(child);
         }
@@ -245,6 +267,13 @@ public class MediaFolderService implements MediaFolderApi {
         return requireFolder(tenantId, parentId);
     }
 
+    private void validateAndAssignFolder(Long tenantId, MediaAsset asset, Long folderId) {
+        if (folderId != null) {
+            requireFolder(tenantId, folderId);
+        }
+        asset.setFolderId(folderId);
+    }
+
     /** Depth of a folder: root-level folders are 1. A {@code null} parent (root) is 0. */
     private static int depthOf(MediaFolder folder) {
         int depth = 0;
@@ -277,11 +306,11 @@ public class MediaFolderService implements MediaFolderApi {
         boolean taken = selfId == null
                 ? parent == null
                         ? mediaFolderRepository.existsByTenantIdAndParentIdIsNullAndName(tenantId, name)
-                        : mediaFolderRepository.existsByTenantIdAndParentIdAndName(tenantId, parent, name)
+                        : mediaFolderRepository.existsByTenantIdAndParentAndName(tenantId, parent, name)
                 : parent == null
                         ? mediaFolderRepository.existsByTenantIdAndParentIdIsNullAndNameAndIdNot(
                                 tenantId, name, selfId)
-                        : mediaFolderRepository.existsByTenantIdAndParentIdAndNameAndIdNot(
+                        : mediaFolderRepository.existsByTenantIdAndParentAndNameAndIdNot(
                                 tenantId, parent, name, selfId);
         if (taken) {
             throw new ConflictException(

@@ -645,7 +645,9 @@ export function parseMediaFolderEnvelope(
 export function parseMediaFolderListEnvelope(
     value: unknown,
 ): ApiEnvelope<MediaFolder[]> | null {
-    return parseEnvelope(value, (data) => parseBoundedArray(data, 500, parseMediaFolder))
+    return parseEnvelope(value, (data) =>
+        parseBoundedArray(data, Number.MAX_SAFE_INTEGER, parseMediaFolder),
+    )
 }
 
 function parseStringRecord(value: unknown): Record<string, string> | null {

@@ -476,6 +476,22 @@ describe('isQueueJob', () => {
         ).toHaveLength(1)
     })
 
+    it('parses unpaginated media folder lists larger than 500 entries', () => {
+        const parsed = parseMediaFolderListEnvelope({
+            statusCode: 200,
+            statusMessage: 'OK',
+            data: Array.from({length: 501}, (_, index) => ({
+                id: index + 1,
+                name: `Folder ${index + 1}`,
+                parentId: null,
+                createdAt: '2026-01-01T00:00:00Z',
+                updatedAt: '2026-01-01T00:00:00Z',
+            })),
+        })
+
+        expect(parsed?.data).toHaveLength(501)
+    })
+
     it('parses media asset folder ids, tolerating older responses without one', () => {
         const base = {
             id: 7,

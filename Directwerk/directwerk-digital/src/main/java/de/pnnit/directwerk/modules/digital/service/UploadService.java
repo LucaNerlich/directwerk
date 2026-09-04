@@ -126,8 +126,7 @@ public class UploadService implements UploadApi {
         asset.setOwnerUserId(command.ownerUserId());
         if (command.folderId() != null) {
             // Unknown or foreign-tenant folders surface as 404, like unknown assets.
-            mediaFolderApi.requireFolder(tenantId, command.folderId());
-            asset.setFolderId(command.folderId());
+            mediaFolderApi.assignAssetToFolder(tenantId, asset, command.folderId());
         }
         asset.setMimeType(MediaUploadRules.normalizeMime(command.mimeType()));
         asset.setSizeBytes(command.sizeBytes());

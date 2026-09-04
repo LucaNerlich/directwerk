@@ -78,9 +78,7 @@ export default function MediaFolderDeleteDialog({
                 <DialogHeader>
                     <DialogTitle>{`Ordner „${folder.name}“ löschen?`}</DialogTitle>
                     <DialogDescription>
-                        {totalAssets === 0 && subfolderCount === 0
-                            ? 'Der Ordner ist leer und kann bedenkenlos gelöscht werden.'
-                            : `Der Ordner enthält ${totalAssets} Datei(en) und ${subfolderCount} Unterordner.`}
+                        {`Aktuell geladen: ${totalAssets} Datei(en) und ${subfolderCount} direkte Unterordner.`}
                     </DialogDescription>
                 </DialogHeader>
                 <fieldset className="m-0 grid gap-2 border-0 p-0" disabled={isSaving}>
@@ -119,7 +117,7 @@ export default function MediaFolderDeleteDialog({
                         </span>
                     </label>
                 </fieldset>
-                {mode === 'delete_contents' && totalAssets > 0 ? (
+                {mode === 'delete_contents' ? (
                     <label className="grid gap-2 text-sm font-medium" htmlFor={confirmId}>
                         <span>Ordnernamen zur Bestätigung eingeben</span>
                         <Input
@@ -148,7 +146,7 @@ export default function MediaFolderDeleteDialog({
                     </Button>
                     <Button
                         disabled={
-                            isSaving || (mode === 'delete_contents' && totalAssets > 0 && !nameMatches)
+                            isSaving || (mode === 'delete_contents' && !nameMatches)
                         }
                         onClick={() => onConfirm(mode)}
                         type="button"

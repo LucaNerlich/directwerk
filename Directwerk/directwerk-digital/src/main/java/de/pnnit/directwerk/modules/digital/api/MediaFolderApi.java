@@ -15,6 +15,12 @@ public interface MediaFolderApi {
 
     MediaFolder requireFolder(Long tenantId, Long folderId);
 
+    /**
+     * Validates and applies an asset's folder assignment while holding the same
+     * tenant-scoped transaction lock as folder deletion.
+     */
+    void assignAssetToFolder(Long tenantId, MediaAsset asset, Long folderId);
+
     MediaFolder createFolder(Long tenantId, String name, Long parentId);
 
     MediaFolder renameFolder(Long tenantId, Long folderId, String name);

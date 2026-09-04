@@ -67,6 +67,7 @@ class MediaFolderServiceTest {
                 .thenAnswer(invocation -> invocation.getArgument(0));
         lenient().when(mediaAssetRepository.save(any(MediaAsset.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
+        stubAdvisoryLock();
     }
 
     @Test
@@ -104,7 +105,7 @@ class MediaFolderServiceTest {
     void createFolderRejectsDuplicateNestedName() {
         MediaFolder parent = folderWithId(1L);
         when(mediaFolderRepository.findByIdAndTenantId(1L, 10L)).thenReturn(Optional.of(parent));
-        when(mediaFolderRepository.existsByTenantIdAndParentIdAndName(10L, parent, "Cuts"))
+        when(mediaFolderRepository.existsByTenantIdAndParentAndName(10L, parent, "Cuts"))
                 .thenReturn(true);
 
         assertThatThrownBy(() -> service.createFolder(10L, "Cuts", 1L))
@@ -220,7 +221,7 @@ class MediaFolderServiceTest {
         asset.setFolderId(1L);
 
         when(mediaFolderRepository.findByIdAndTenantId(1L, 10L)).thenReturn(Optional.of(folder));
-        when(mediaFolderRepository.findByTenantIdAndParentId(10L, folder)).thenReturn(List.of(child));
+        when(mediaFolderRepository.findByTenantIdAndParent(10L, folder)).thenReturn(List.of(child));
         when(mediaAssetRepository.findByTenantIdAndFolderId(10L, 1L)).thenReturn(List.of(asset));
         stubAdvisoryLock();
 
@@ -241,7 +242,7 @@ class MediaFolderServiceTest {
         asset.setFolderId(1L);
 
         when(mediaFolderRepository.findByIdAndTenantId(1L, 10L)).thenReturn(Optional.of(folder));
-        when(mediaFolderRepository.findByTenantIdAndParentId(10L, folder)).thenReturn(List.of(child));
+        when(mediaFolderRepository.findByTenantIdAndParent(10L, folder)).thenReturn(List.of(child));
         when(mediaAssetRepository.findByTenantIdAndFolderId(10L, 1L)).thenReturn(List.of(asset));
         stubAdvisoryLock();
 
@@ -249,6 +250,32 @@ class MediaFolderServiceTest {
 
         assertThat(child.getParent()).isNull();
         assertThat(asset.getFolderId()).isNull();
+    }
+
+    @Test
+    void deleteFolderRejectsPromotedChildNameCollisionBeforeMutation() {
+        MediaFolder parent = folderWithId(9L);
+        MediaFolder folder = folderWithId(1L);
+        folder.setParent(parent);
+        MediaFolder child = folderWithId(2L);
+        child.setName("Taken");
+        child.setParent(folder);
+        MediaFolder sibling = folderWithId(3L);
+        sibling.setName("Taken");
+        sibling.setParent(parent);
+
+        when(mediaFolderRepository.findByIdAndTenantId(1L, 10L)).thenReturn(Optional.of(folder));
+        when(mediaFolderRepository.findByTenantIdAndParent(10L, folder)).thenReturn(List.of(child));
+        when(mediaFolderRepository.findByTenantIdAndParent(10L, parent))
+                .thenReturn(List.of(folder, sibling));
+
+        assertThatThrownBy(() -> service.deleteFolder(
+                10L, 1L, FolderDeleteMode.MOVE_TO_PARENT, null))
+                .isInstanceOf(ConflictException.class)
+                .extracting(ex -> ((ConflictException) ex).getCode())
+                .isEqualTo(ConflictCodes.MEDIA_FOLDER_NAME_EXISTS);
+        verify(mediaFolderRepository, never()).save(any());
+        verify(mediaFolderRepository, never()).delete(any());
     }
 
     @Test
@@ -289,6 +316,45 @@ class MediaFolderServiceTest {
         MediaAsset moved = service.moveAsset(10L, 7L, 3L);
 
         assertThat(moved.getFolderId()).isEqualTo(3L);
+    }
+
+    @Test
+    void folderCreationAcquiresDeletionLockBeforeResolvingParent() {
+        MediaFolder parent = folderWithId(3L);
+        when(mediaFolderRepository.findByIdAndTenantId(3L, 10L)).thenReturn(Optional.of(parent));
+        when(tenantRepository.getReferenceById(10L)).thenReturn(tenantWithId(10L));
+
+        service.createFolder(10L, "Child", 3L);
+
+        InOrder order = inOrder(entityManager, mediaFolderRepository);
+        order.verify(entityManager).createNativeQuery(any(String.class));
+        order.verify(mediaFolderRepository).findByIdAndTenantId(3L, 10L);
+    }
+
+    @Test
+    void assetMovementAcquiresDeletionLockBeforeLoadingAsset() {
+        MediaAsset asset = assetWithId(7L, 10L);
+        when(mediaAssetRepository.findById(7L)).thenReturn(Optional.of(asset));
+
+        service.moveAsset(10L, 7L, null);
+
+        InOrder order = inOrder(entityManager, mediaAssetRepository);
+        order.verify(entityManager).createNativeQuery(any(String.class));
+        order.verify(mediaAssetRepository).findById(7L);
+    }
+
+    @Test
+    void uploadFolderAssignmentUsesDeletionLockBeforeValidation() {
+        MediaAsset asset = assetWithId(7L, 10L);
+        MediaFolder folder = folderWithId(3L);
+        when(mediaFolderRepository.findByIdAndTenantId(3L, 10L)).thenReturn(Optional.of(folder));
+
+        service.assignAssetToFolder(10L, asset, 3L);
+
+        assertThat(asset.getFolderId()).isEqualTo(3L);
+        InOrder order = inOrder(entityManager, mediaFolderRepository);
+        order.verify(entityManager).createNativeQuery(any(String.class));
+        order.verify(mediaFolderRepository).findByIdAndTenantId(3L, 10L);
     }
 
     @Test

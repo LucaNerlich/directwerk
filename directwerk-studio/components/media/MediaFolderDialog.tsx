@@ -14,9 +14,11 @@ import {
 import {Input} from '@directwerk/ui/components/input'
 
 import {
+    MAX_FOLDER_DEPTH,
     descendantFolderIds,
     flattenFolderTree,
     buildFolderTree,
+    folderDepth,
     isValidFolderName,
     siblingNameTaken,
 } from '@/lib/media/folders'
@@ -60,10 +62,14 @@ export default function MediaFolderDialog({
         if (open) {
             setName(mode === 'rename' ? (folder?.name ?? '') : '')
             setParentId(
-                mode === 'create' && initialParentId !== null ? String(initialParentId) : '',
+                mode === 'create' &&
+                    initialParentId !== null &&
+                    folderDepth(folders, initialParentId) < MAX_FOLDER_DEPTH
+                    ? String(initialParentId)
+                    : '',
             )
         }
-    }, [open, mode, folder, initialParentId])
+    }, [open, mode, folder, folders, initialParentId])
 
     const excludeId = mode === 'rename' ? (folder?.id ?? null) : null
     const excludedIds = new Set<number>()
@@ -74,7 +80,9 @@ export default function MediaFolderDialog({
         }
     }
     const options = flattenFolderTree(buildFolderTree(folders)).filter(
-        (node) => !excludedIds.has(node.folder.id),
+        (node) =>
+            !excludedIds.has(node.folder.id) &&
+            folderDepth(folders, node.folder.id) < MAX_FOLDER_DEPTH,
     )
 
     const resolvedParentId = mode === 'rename' ? null : parentId === '' ? null : Number(parentId)

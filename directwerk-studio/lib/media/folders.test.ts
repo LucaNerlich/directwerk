@@ -93,6 +93,12 @@ describe('media folders', () => {
         expect(descendantFolderIds(folders, 1)).toEqual([])
     })
 
+    it('terminates descendant traversal when corrupt data contains a cycle', () => {
+        const cyclic = [folder(1, 'One', 3), folder(2, 'Two', 1), folder(3, 'Three', 2)]
+
+        expect(descendantFolderIds(cyclic, 1)).toEqual([2, 3])
+    })
+
     it('detects duplicate sibling names exactly like the unique index', () => {
         expect(siblingNameTaken(folders, null, 'A')).toBe(true)
         expect(siblingNameTaken(folders, null, 'a')).toBe(false)

@@ -105,10 +105,9 @@ export default function MediaInlinePickerDialog({
         async function load(): Promise<void> {
             try {
                 const host = getClientTenantHost()
-                const [loadedAssets, loadedFolders] = await Promise.all([
-                    listMedia(host),
-                    listMediaFolders(host),
-                ])
+                const loadedFoldersPromise = listMediaFolders(host).catch(() => [])
+                const loadedAssets = await listMedia(host)
+                const loadedFolders = await loadedFoldersPromise
                 if (active) {
                     setAssets(loadedAssets)
                     setFolders(loadedFolders)

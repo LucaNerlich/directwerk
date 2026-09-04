@@ -110,9 +110,14 @@ export function descendantFolderIds(folders: MediaFolder[], folderId: number): n
         }
     }
     const result: number[] = []
+    const visited = new Set<number>([folderId])
     const queue = [...(childrenByParent.get(folderId) ?? [])]
     while (queue.length > 0) {
         const current = queue.shift() as number
+        if (visited.has(current)) {
+            continue
+        }
+        visited.add(current)
         result.push(current)
         queue.push(...(childrenByParent.get(current) ?? []))
     }

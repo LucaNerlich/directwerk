@@ -347,6 +347,44 @@ describe('MediaLibraryClient', () => {
         expect(screen.queryByText('filed.png')).not.toBeInTheDocument()
     })
 
+    it('refetches assets with the active folder scope', async () => {
+        vi.mocked(listMediaFolders).mockResolvedValue([
+            testFolder(1, 'Interviews', null),
+            testFolder(2, 'Cuts', 1),
+        ])
+
+        render(<MediaLibraryClient />)
+
+        await waitFor(() =>
+            expect(vi.mocked(listMedia)).toHaveBeenLastCalledWith('tenant.test', {
+                limit: 100,
+                folderId: undefined,
+                recursive: false,
+                unassignedOnly: true,
+            }),
+        )
+
+        fireEvent.click(await screen.findByRole('button', {name: /Interviews/}))
+        await waitFor(() =>
+            expect(vi.mocked(listMedia)).toHaveBeenLastCalledWith('tenant.test', {
+                limit: 100,
+                folderId: 1,
+                recursive: false,
+                unassignedOnly: false,
+            }),
+        )
+
+        fireEvent.click(screen.getByRole('checkbox', {name: 'Unterordner einbeziehen'}))
+        await waitFor(() =>
+            expect(vi.mocked(listMedia)).toHaveBeenLastCalledWith('tenant.test', {
+                limit: 100,
+                folderId: 1,
+                recursive: true,
+                unassignedOnly: false,
+            }),
+        )
+    })
+
     it('creates a folder in the current location', async () => {
         vi.mocked(createMediaFolder).mockResolvedValue(testFolder(5, 'Neu', null))
 
@@ -461,6 +499,26 @@ describe('MediaLibraryClient', () => {
             expect(deleteMediaFolder).toHaveBeenCalledWith('tenant.test', 1, 'move_to_parent'),
         )
         expect(await screen.findByText('Ordner „Interviews“ gelöscht.')).toBeInTheDocument()
+    })
+
+    it('requires the folder name for destructive deletion even when no assets are loaded', async () => {
+        const folder = testFolder(1, 'Interviews', null)
+        vi.mocked(listMediaFolders).mockResolvedValue([folder])
+        vi.mocked(listMedia).mockResolvedValue([])
+
+        render(<MediaLibraryClient />)
+
+        fireEvent.click(await screen.findByRole('button', {name: /Interviews/}))
+        fireEvent.click(await screen.findByRole('button', {name: 'Löschen'}))
+
+        const dialog = await screen.findByRole('dialog')
+        fireEvent.click(within(dialog).getByRole('radio', {name: /Inhalte endgültig löschen/}))
+        expect(within(dialog).getByRole('button', {name: 'Ordner löschen'})).toBeDisabled()
+
+        fireEvent.change(within(dialog).getByLabelText('Ordnernamen zur Bestätigung eingeben'), {
+            target: {value: 'Interviews'},
+        })
+        expect(within(dialog).getByRole('button', {name: 'Ordner löschen'})).toBeEnabled()
     })
 
     it('renames the open folder', async () => {

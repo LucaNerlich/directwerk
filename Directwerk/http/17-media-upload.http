@@ -115,18 +115,25 @@ Accept: application/json
 
 ###
 
-### @name deleteMedia
-DELETE {{baseUrl}}/api/v1/media/{{mediaAssetId}}
+### @name resolveExistingMediaFolder
+### Resolve the id first so a repeatable run can handle createMediaFolder returning 409.
+GET {{baseUrl}}/api/v1/media/folders
 Authorization: Bearer {{tenantAAccessToken}}
 Host: {{tenantAHost}}
 Accept: application/json
 
 > {%
-    client.test("Delete media", function() {
-        client.assert(
-            response.status === 200 || response.status === 404 || response.status === 503,
-            "Expected 200/404/503"
-        );
+    client.test("Resolve existing media folder", function() {
+        client.assert(response.status === 200 || response.status === 503, "Expected 200/503");
+        client.global.set("existingMediaFolderId", "");
+        if (response.status === 200 && Array.isArray(response.body.data)) {
+            const existing = response.body.data.find(folder =>
+                folder.name === "Interviews" && folder.parentId === null
+            );
+            if (existing) {
+                client.global.set("existingMediaFolderId", existing.id);
+            }
+        }
     });
 %}
 ###
@@ -146,11 +153,21 @@ Accept: application/json
 
 > {%
     client.test("Create media folder", function() {
-        client.assert(response.status === 201 || response.status === 409 || response.status === 503, "Expected 201/409/503");
+        let conflictHandled = false;
         if (response.status === 201) {
             client.assert(response.body.data.id, "Expected folder id");
             client.global.set("mediaFolderId", response.body.data.id);
+        } else if (response.status === 409) {
+            const existingFolderId = client.global.get("existingMediaFolderId");
+            conflictHandled = Boolean(existingFolderId);
+            if (conflictHandled) {
+                client.global.set("mediaFolderId", existingFolderId);
+            }
         }
+        client.assert(
+            response.status === 201 || response.status === 503 || (response.status === 409 && conflictHandled),
+            "Expected 201/503, or a handled 409 with an existing Interviews folder"
+        );
     });
 %}
 
@@ -242,6 +259,23 @@ Accept: application/json
 > {%
     client.test("Move media asset", function() {
         client.assert(response.status === 200 || response.status === 404 || response.status === 503, "Expected 200/404/503");
+    });
+%}
+
+###
+
+### @name deleteMedia
+DELETE {{baseUrl}}/api/v1/media/{{mediaAssetId}}
+Authorization: Bearer {{tenantAAccessToken}}
+Host: {{tenantAHost}}
+Accept: application/json
+
+> {%
+    client.test("Delete media", function() {
+        client.assert(
+            response.status === 200 || response.status === 404 || response.status === 503,
+            "Expected 200/404/503"
+        );
     });
 %}
 

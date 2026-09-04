@@ -161,7 +161,12 @@ export default function MediaLibraryClient(): React.JSX.Element {
     async function reload(): Promise<void> {
         const host = getClientTenantHost()
         const [assetResult, folderResult] = await Promise.all([
-            listMedia(host, {limit: 100}),
+            listMedia(host, {
+                limit: 100,
+                folderId: folderView ?? undefined,
+                recursive: includeSubfolders,
+                unassignedOnly: folderView === null && !includeSubfolders,
+            }),
             listMediaFolders(host),
         ])
         setAssets(assetResult)
@@ -211,7 +216,7 @@ export default function MediaLibraryClient(): React.JSX.Element {
             active = false
             mountedRef.current = false
         }
-    }, [reloadToken, router])
+    }, [folderView, includeSubfolders, reloadToken, router])
 
     async function uploadFile(file: File | undefined): Promise<void> {
         if (file === undefined) {

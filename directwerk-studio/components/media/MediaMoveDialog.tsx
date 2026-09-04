@@ -52,9 +52,13 @@ export default function MediaMoveDialog({
 
     useEffect(() => {
         if (open) {
-            setTarget(initialParentId !== null ? String(initialParentId) : '')
+            setTarget(
+                initialParentId !== null && !excludeFolderIds?.has(initialParentId)
+                    ? String(initialParentId)
+                    : '',
+            )
         }
-    }, [open, initialParentId])
+    }, [open, initialParentId, excludeFolderIds])
 
     const options = flattenFolderTree(buildFolderTree(folders)).filter(
         (node) => excludeFolderIds === undefined || !excludeFolderIds.has(node.folder.id),

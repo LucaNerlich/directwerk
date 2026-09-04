@@ -143,4 +143,14 @@ describe('MediaInlinePickerDialog', () => {
         expect(screen.getByText('cover.png')).toBeInTheDocument()
         expect(screen.queryByText('jingle.mp3')).not.toBeInTheDocument()
     })
+
+    it('keeps loaded assets when loading folders fails', async () => {
+        listMediaFolders.mockRejectedValueOnce(new Error('folder request failed'))
+
+        renderDialog()
+
+        expect(await screen.findByText('cover.png')).toBeInTheDocument()
+        expect(screen.getByText('jingle.mp3')).toBeInTheDocument()
+        expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+    })
 })

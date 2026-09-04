@@ -17,17 +17,17 @@ public interface MediaFolderRepository extends JpaRepository<MediaFolder, Long> 
     Optional<MediaFolder> findByIdAndTenantId(Long id, Long tenantId);
 
     @EntityGraph(attributePaths = "parent")
-    List<MediaFolder> findByTenantIdAndParentId(Long tenantId, MediaFolder parent);
+    List<MediaFolder> findByTenantIdAndParent(Long tenantId, MediaFolder parent);
 
     @EntityGraph(attributePaths = "parent")
     List<MediaFolder> findByTenantIdAndParentIdIsNull(Long tenantId);
 
     boolean existsByTenantIdAndParentIdIsNullAndName(Long tenantId, String name);
 
-    boolean existsByTenantIdAndParentIdAndName(Long tenantId, MediaFolder parent, String name);
+    boolean existsByTenantIdAndParentAndName(Long tenantId, MediaFolder parent, String name);
 
     boolean existsByTenantIdAndParentIdIsNullAndNameAndIdNot(Long tenantId, String name, Long id);
 
-    boolean existsByTenantIdAndParentIdAndNameAndIdNot(
+    boolean existsByTenantIdAndParentAndNameAndIdNot(
             Long tenantId, MediaFolder parent, String name, Long id);
 }
