@@ -13,6 +13,7 @@ import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
+import jakarta.persistence.JoinColumns;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
@@ -31,7 +32,7 @@ import org.hibernate.annotations.Filter;
 @Table(
         name = "membership_permission_overrides",
         uniqueConstraints = @UniqueConstraint(
-                columnNames = {"membership_id", "entity_type", "operation", "scope"})
+                columnNames = {"membership_id", "entity_type", "operation"})
 )
 @EntityListeners(TenantWriteGuardListener.class)
 @Filter(name = TenantFilters.FILTER_NAME, condition = TenantFilters.CONDITION)
@@ -40,11 +41,17 @@ import org.hibernate.annotations.Filter;
 public class MembershipPermissionOverride extends BaseEntity implements TenantOwned {
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "membership_id", nullable = false)
+    @JoinColumns({
+            @JoinColumn(name = "membership_id", referencedColumnName = "id", nullable = false),
+            @JoinColumn(
+                    name = "tenant_id",
+                    referencedColumnName = "tenant_id",
+                    nullable = false)
+    })
     private TenantMembership membership;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "tenant_id", nullable = false)
+    @JoinColumn(name = "tenant_id", nullable = false, insertable = false, updatable = false)
     private Tenant tenant;
 
     @Enumerated(EnumType.STRING)

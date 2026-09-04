@@ -224,13 +224,15 @@ class TenantMembershipManagementServiceTest {
 
     @Test
     void updateRoleClearsStalePermissionRestrictions() {
+        Long membershipId = 7L;
         TenantMembership membership = membership(5L, MembershipStatus.ACTIVE, Role.EDITOR);
+        membership.setId(membershipId);
         when(tenantMembershipRepository.findByUserIdAndTenantId(5L, TENANT_ID)).thenReturn(Optional.of(membership));
         when(tenantMembershipRepository.save(membership)).thenReturn(membership);
 
         service.updateRole(TENANT_ID, 5L, "TENANT_ADMIN");
 
-        verify(membershipPermissionService).clearForMembership(TENANT_ID, membership.getId());
+        verify(membershipPermissionService).clearForMembership(TENANT_ID, membershipId);
     }
 
     @Test

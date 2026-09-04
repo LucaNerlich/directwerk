@@ -41,6 +41,8 @@ public class MembershipPermissionService {
     @Transactional(readOnly = true)
     public List<MembershipPermissionOverride> listForUser(Long tenantId, Long userId) {
         tenantRepository.requireById(tenantId);
+        tenantMembershipRepository.findByTenantIdAndUserId(tenantId, userId)
+                .orElseThrow(() -> new TenantMembershipNotFoundException(tenantId, userId));
         return overrideRepository.findByTenantIdAndUserId(tenantId, userId);
     }
 

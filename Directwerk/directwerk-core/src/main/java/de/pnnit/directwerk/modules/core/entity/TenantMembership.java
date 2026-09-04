@@ -25,7 +25,10 @@ import org.hibernate.type.SqlTypes;
 @Entity
 @Table(
         name = "tenant_memberships",
-        uniqueConstraints = @UniqueConstraint(columnNames = {"user_id", "tenant_id"})
+        uniqueConstraints = {
+                @UniqueConstraint(columnNames = {"user_id", "tenant_id"}),
+                @UniqueConstraint(columnNames = {"tenant_id", "id"})
+        }
 )
 @EntityListeners(TenantWriteGuardListener.class)
 @Filter(name = TenantFilters.FILTER_NAME, condition = TenantFilters.CONDITION)
@@ -40,6 +43,9 @@ public class TenantMembership extends BaseEntity implements TenantOwned {
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "tenant_id", nullable = false)
     private Tenant tenant;
+
+    @Column(name = "tenant_id", insertable = false, updatable = false)
+    private Long tenantId;
 
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(nullable = false, columnDefinition = "jsonb")

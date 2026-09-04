@@ -82,6 +82,16 @@ class MembershipPermissionServiceTest {
     }
 
     @Test
+    void listForUserRejectsUnknownMembership() {
+        when(tenantRepository.requireById(10L)).thenReturn(new Tenant());
+        when(tenantMembershipRepository.findByTenantIdAndUserId(10L, 99L))
+                .thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> service.listForUser(10L, 99L))
+                .isInstanceOf(TenantMembershipNotFoundException.class);
+    }
+
+    @Test
     void replaceForUserWithEmptyInputLiftsAllRestrictions() {
         Tenant tenant = new Tenant();
         tenant.setId(10L);
