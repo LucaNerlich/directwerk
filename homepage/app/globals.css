@@ -51,8 +51,45 @@ pre code,
     border: 1px solid color-mix(in srgb, var(--foreground) 12%, transparent);
 }
 
+@layer base {
+    html {
+        /* Sticky header + announcement offset for hash navigation (see Next Link docs). */
+        scroll-padding-top: 7.5rem;
+    }
+}
+
+.marketing-header {
+    transition:
+        background-color 0.2s ease,
+        border-color 0.2s ease,
+        box-shadow 0.2s ease;
+}
+
+.marketing-mobile-panel {
+    animation: marketing-panel-in 0.18s ease;
+}
+
+@keyframes marketing-panel-in {
+    from {
+        opacity: 0;
+        transform: translateY(-4px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
 @media (prefers-reduced-motion: reduce) {
     .aurora-bg::after {
         display: none;
+    }
+
+    .marketing-mobile-panel {
+        animation: none;
+    }
+
+    .marketing-header {
+        transition: none;
     }
 }
