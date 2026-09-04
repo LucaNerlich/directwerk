@@ -1,13 +1,26 @@
+/* Directwerk docs theme — warm editorial palette shared with the
+ * marketing homepage and @directwerk/ui (no default VitePress indigo). */
+
 :root {
-  --vp-c-brand-1: oklch(0.45 0.12 250);
-  --vp-c-brand-2: oklch(0.38 0.1 250);
-  --vp-c-brand-3: oklch(0.32 0.09 250);
-  --vp-c-brand-soft: oklch(0.95 0.02 250);
+  --vp-c-brand-1: oklch(0.42 0.1 62);
+  --vp-c-brand-2: oklch(0.36 0.09 58);
+  --vp-c-brand-3: oklch(0.3 0.08 55);
+  --vp-c-brand-soft: oklch(0.94 0.025 80);
 
   --vp-c-bg: oklch(0.99 0.004 95);
-  --vp-c-bg-alt: oklch(0.97 0.006 95);
+  --vp-c-bg-alt: oklch(0.96 0.008 85);
+  --vp-c-bg-soft: oklch(0.95 0.01 82);
+  --vp-c-bg-mute: oklch(0.93 0.012 80);
   --vp-c-text-1: oklch(0.19 0.018 76);
-  --vp-c-text-2: oklch(0.42 0.02 76);
+  --vp-c-text-2: oklch(0.45 0.02 70);
+  --vp-c-text-3: oklch(0.58 0.018 75);
+  --vp-c-divider: oklch(0.88 0.012 80);
+  --vp-c-border: oklch(0.86 0.014 78);
+  --vp-c-gutter: oklch(0.9 0.012 80);
+
+  --vp-nav-bg-color: color-mix(in srgb, var(--vp-c-bg) 80%, transparent);
+  --vp-sidebar-bg-color: var(--vp-c-bg-alt);
+  --vp-nav-logo-height: 28px;
 
   --vp-font-family-base: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
   --vp-font-family-mono: ui-monospace, 'Cascadia Code', 'Source Code Pro', Menlo, Consolas, monospace;
@@ -17,16 +30,229 @@ html {
   scrollbar-gutter: stable;
 }
 
+/* The fixed desktop nav positions itself at `top: var(--vp-layout-top-height)`
+ * and the content/sidebar/hero consume the same var — nothing sets it at
+ * runtime, so it must match the `layout-top` banner height. Below 960px the
+ * nav is in normal flow, so the offset stays 0 there. */
+:root {
+  --vp-layout-top-height: 0px;
+}
+
+@media (min-width: 960px) {
+  :root {
+    --vp-layout-top-height: 36px;
+  }
+}
+
 .dark {
-  --vp-c-brand-1: oklch(0.65 0.14 250);
-  --vp-c-brand-2: oklch(0.58 0.12 250);
-  --vp-c-brand-3: oklch(0.52 0.11 250);
-  --vp-c-brand-soft: oklch(0.25 0.04 250);
+  --vp-c-brand-1: oklch(0.78 0.07 70);
+  --vp-c-brand-2: oklch(0.7 0.065 68);
+  --vp-c-brand-3: oklch(0.62 0.06 66);
+  --vp-c-brand-soft: oklch(0.26 0.03 70);
 
   --vp-c-bg: oklch(0.16 0.015 76);
   --vp-c-bg-alt: oklch(0.2 0.015 76);
+  --vp-c-bg-soft: oklch(0.23 0.016 72);
+  --vp-c-bg-mute: oklch(0.25 0.016 72);
   --vp-c-text-1: oklch(0.95 0.01 95);
   --vp-c-text-2: oklch(0.72 0.02 95);
+  --vp-c-text-3: oklch(0.6 0.02 85);
+  --vp-c-divider: oklch(0.3 0.015 72);
+  --vp-c-border: oklch(0.32 0.015 72);
+  --vp-c-gutter: oklch(0.28 0.015 72);
+
+  --vp-nav-bg-color: color-mix(in srgb, var(--vp-c-bg) 78%, transparent);
+  color-scheme: dark;
+}
+
+/* Sticky nav: frosted glass + hairline once scrolled (mirrors homepage header). */
+.VPNavBar {
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid transparent;
+  transition:
+    background-color 0.25s ease,
+    border-color 0.25s ease;
+}
+
+.VPNavBar:not(.top) {
+  border-bottom-color: var(--vp-c-divider);
+}
+
+/* Announcement banner above the nav (rendered in the `layout-top` slot).
+ * Sticky so the fixed desktop nav below it never leaves a gap on scroll. */
+.docs-banner {
+  position: sticky;
+  top: 0;
+  z-index: var(--vp-z-index-nav);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  height: 36px;
+  padding: 0 1rem;
+  overflow: hidden;
+  background-color: var(--vp-c-brand-soft);
+  color: var(--vp-c-text-1);
+  font-size: 13px;
+  line-height: 1.4;
+  text-align: center;
+}
+
+.docs-banner-dot {
+  display: none;
+  width: 6px;
+  height: 6px;
+  flex-shrink: 0;
+  border-radius: 999px;
+  background-color: var(--vp-c-brand-1);
+}
+
+@media (min-width: 640px) {
+  .docs-banner-dot {
+    display: inline-block;
+  }
+}
+
+.docs-banner p {
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.docs-banner a {
+  flex-shrink: 0;
+  font-weight: 600;
+  color: var(--vp-c-brand-1);
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+.docs-banner a:hover {
+  color: var(--vp-c-brand-2);
+}
+
+/* Primary CTA in the nav bar (mirrors the homepage "Get access" action).
+ * Sibling links are full nav-height flex rows; centering each menu item keeps
+ * the fixed-height pill vertically aligned with the link text. */
+.VPNavBarMenu .list > li {
+  display: flex;
+  align-items: center;
+}
+
+.docs-nav-cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 36px;
+  padding: 0 16px;
+  margin-left: 8px;
+  border-radius: 10px;
+  background-color: var(--vp-c-brand-3);
+  color: var(--vp-c-white);
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+  transition:
+    background-color 0.2s ease,
+    transform 0.1s ease;
+}
+
+.docs-nav-cta:hover {
+  background-color: var(--vp-c-brand-2);
+  text-decoration: none;
+}
+
+.docs-nav-cta:active {
+  background-color: var(--vp-c-brand-1);
+  transform: translateY(1px);
+}
+
+.docs-nav-cta.is-screen-menu {
+  width: 100%;
+  height: 44px;
+  margin: 12px 0 0;
+}
+
+/* Home hero: gradient wordmark, aurora wash, glowing artwork. */
+.VPHero {
+  position: relative;
+}
+
+.VPHero::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(42rem 22rem at 15% 0%, color-mix(in srgb, var(--vp-c-brand-1) 12%, transparent), transparent 65%),
+    radial-gradient(36rem 20rem at 85% 10%, color-mix(in srgb, var(--vp-c-brand-2) 10%, transparent), transparent 65%);
+}
+
+.VPHero .container {
+  position: relative;
+}
+
+:root {
+  --vp-home-hero-name-color: transparent;
+  --vp-home-hero-name-background: linear-gradient(120deg, var(--vp-c-brand-1) 20%, var(--vp-c-brand-2) 55%, var(--vp-c-text-1) 90%);
+  --vp-home-hero-image-background-image: linear-gradient(-45deg, var(--vp-c-brand-1) 30%, var(--vp-c-brand-soft) 70%);
+  --vp-home-hero-image-filter: blur(72px);
+}
+
+.VPHero .tagline {
+  max-width: 34rem;
+}
+
+.VPButton.medium {
+  border-radius: 10px;
+  font-weight: 600;
+}
+
+/* Feature cards: lift + brand border on hover. */
+.VPFeature .box {
+  border-radius: 16px;
+  transition:
+    border-color 0.2s ease,
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.VPFeature .box:hover {
+  border-color: color-mix(in srgb, var(--vp-c-brand-1) 45%, transparent);
+  transform: translateY(-2px);
+  box-shadow: 0 16px 40px -24px color-mix(in srgb, var(--vp-c-text-1) 35%, transparent);
+}
+
+.VPFeature .icon {
+  font-size: 24px;
+}
+
+/* Reading experience. */
+.vp-doc a {
+  text-underline-offset: 3px;
+}
+
+.vp-doc h1,
+.vp-doc h2,
+.vp-doc h3 {
+  letter-spacing: -0.01em;
+}
+
+div[class*='language-'] {
+  border-radius: 12px;
+}
+
+.VPDocAsideOutline .content {
+  border-left-color: var(--vp-c-divider);
+}
+
+/* Local search trigger + modal match the theme radius. */
+.VPNavBarSearch .DocSearch-Button,
+.VPLocalSearchBox .search-button {
+  border-radius: 10px;
 }
 
 /* Mermaid diagrams (vitepress-plugin-mermaid-diagram) */
@@ -39,4 +265,16 @@ html {
 .mermaid-diagram svg {
   max-width: 100%;
   height: auto;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .VPNavBar,
+  .VPFeature .box,
+  .docs-nav-cta {
+    transition: none;
+  }
+
+  .VPFeature .box:hover {
+    transform: none;
+  }
 }

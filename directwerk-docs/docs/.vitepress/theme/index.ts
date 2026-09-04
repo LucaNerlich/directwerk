@@ -7,15 +7,18 @@ import changelogs from 'virtual:vitepress-openapi-docs/changelogs'
 import 'vue-api-playground/styles'
 import 'vitepress-openapi-docs/styles'
 import './custom.css'
+import DocsBanner from './components/DocsBanner.vue'
+import DocsNavCta from './components/DocsNavCta.vue'
 
 export default {
   extends: DefaultTheme,
   Layout() {
     return h(DefaultTheme.Layout, null, {
-      'layout-top': () => h(OperationJumper),
+      'layout-top': () => [h(DocsBanner), h(OperationJumper)],
     })
   },
   enhanceApp({ app }) {
+    app.component('DocsNavCta', DocsNavCta)
     enhanceAppWithOpenApi({ app, specs, changelogs, defaults, prefixes })
   },
 } satisfies Theme

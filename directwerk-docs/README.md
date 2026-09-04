@@ -1,6 +1,6 @@
 # directwerk-docs
 
-Public documentation site for [Directwerk](https://directwerk.de) — built with [VitePress 2](https://vitepress.dev/).
+Public documentation site for [Directwerk](https://directwerk.org) — built with [VitePress 2](https://vitepress.dev/).
 
 Root [`docs/`](../docs/) and [`Directwerk/docs/`](../Directwerk/docs/) remain **internal/agent source**. This site curates public-facing pages.
 

@@ -7,9 +7,6 @@ import {extraOptimizePackageImports} from '../packages/next-config/optimizePacka
 
 const monorepoRoot = path.join(path.dirname(fileURLToPath(import.meta.url)), '..')
 
-const apiOrigin =
-    (process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8080').replace(/\/$/, '')
-
 const nextConfig: NextConfig = {
     reactCompiler: true,
     transpilePackages: ['@directwerk/ui'],
@@ -18,25 +15,13 @@ const nextConfig: NextConfig = {
         optimizePackageImports: [...extraOptimizePackageImports],
     },
     async headers() {
+        // NOTE: no static Content-Security-Policy here — it would block
+        // Next.js's own inline bootstrap scripts and kill hydration. CSP is
+        // served per-request with a nonce by proxy.ts instead.
         return [
             {
                 source: '/:path*',
                 headers: [
-                    {
-                        key: 'Content-Security-Policy',
-                        value: [
-                            "default-src 'self'",
-                            "script-src 'self' 'wasm-unsafe-eval'",
-                            "style-src 'self'",
-                            "img-src 'self' data: https:",
-                            "font-src 'self'",
-                            "connect-src 'self' " + apiOrigin,
-                            "worker-src 'self' blob:",
-                            "frame-ancestors 'none'",
-                            "base-uri 'self'",
-                            "form-action 'self'",
-                        ].join('; '),
-                    },
                     {key: 'X-Content-Type-Options', value: 'nosniff'},
                     {key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin'},
                     {key: 'X-Frame-Options', value: 'SAMEORIGIN'},

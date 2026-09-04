@@ -1,6 +1,6 @@
 ---
-title: "GET /api/v1/tenant/subscriber-feeds"
-description: "GET /api/v1/tenant/subscriber-feeds"
+title: "GET /api/v1/me/article-feeds"
+description: "GET /api/v1/me/article-feeds"
 layout: doc
 aside: false
 editLink: false

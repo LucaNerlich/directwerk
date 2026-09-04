@@ -112,7 +112,20 @@ export default defineConfig({
       md.use(diagramPlugin)
     },
   },
-  head: [['meta', { name: 'theme-color', content: '#3b4a9e' }]],
+  head: [
+    ['meta', { name: 'theme-color', content: '#3a3226' }],
+    ['link', { rel: 'icon', type: 'image/svg+xml', href: '/logo.svg' }],
+    ['meta', { property: 'og:type', content: 'website' }],
+    ['meta', { property: 'og:title', content: 'Directwerk Docs' }],
+    [
+      'meta',
+      {
+        property: 'og:description',
+        content:
+          'Documentation for Directwerk — API-first podcast and publication platform.',
+      },
+    ],
+  ],
   vite: {
     resolve: {
       alias: [
@@ -151,6 +164,7 @@ export default defineConfig({
     },
   },
   themeConfig: {
+    siteTitle: 'Directwerk Docs',
     logo: '/logo.svg',
     nav: [
       { text: 'Guide', link: '/guide/introduction', activeMatch: '/guide/' },
@@ -162,6 +176,7 @@ export default defineConfig({
         activeMatch: '/architecture/',
       },
       { text: 'API', link: '/api/integration', activeMatch: '/api/' },
+      { component: 'DocsNavCta' },
     ],
     sidebar: {
       '/guide/': sidebarGuide,
@@ -173,9 +188,19 @@ export default defineConfig({
     search: {
       provider: 'local',
     },
-    socialLinks: [],
+    externalLinkIcon: true,
+    outline: 'deep',
+    editLink: {
+      pattern:
+        'https://github.com/LucaNerlich/directwerk/edit/main/directwerk-docs/docs/:path',
+      text: 'Suggest changes to this page',
+    },
+    socialLinks: [
+      { icon: 'github', link: 'https://github.com/LucaNerlich/directwerk' },
+    ],
     footer: {
-      message: 'Directwerk — whitelabel publication infrastructure',
+      message:
+        'Directwerk — whitelabel publication infrastructure · API-first · Hosted in the EU',
       copyright: 'Copyright © Directwerk',
     },
   },
