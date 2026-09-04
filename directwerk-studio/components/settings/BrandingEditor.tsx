@@ -53,11 +53,10 @@ function colorPickerValue(draft: string): string {
 export default function BrandingEditor(): React.JSX.Element {
     const router = useRouter()
     const authRedirect = useAuthRequired()
-    // Optional: the settings shell provides the site config, but the editor
-    // must also render standalone (tests, shared hosts) — hence defensive.
+    const siteConfig = useSiteConfig()
     let analyticsModuleActive: boolean | null = null
     try {
-        analyticsModuleActive = hasModule(useSiteConfig(), 'ANALYTICS')
+        analyticsModuleActive = hasModule(siteConfig, 'ANALYTICS')
     } catch {
         analyticsModuleActive = null
     }

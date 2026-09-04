@@ -12,12 +12,13 @@ vi.mock('@directwerk/api/tenant', () => ({getClientTenantHost: () => 'tenant.tes
 
 const getBranding = vi.fn()
 const updateBranding = vi.fn()
+const siteConfig = {enabledModules: ['DIGITAL_CONTENT', 'PODCAST']}
 vi.mock('@/lib/api/tenantSettingsApi', () => ({
     getBranding: (...args: unknown[]) => getBranding(...args),
     updateBranding: (...args: unknown[]) => updateBranding(...args),
 }))
 vi.mock('@/lib/site/SiteConfigProvider', () => ({
-    useSiteConfig: () => ({enabledModules: ['DIGITAL_CONTENT', 'PODCAST']}),
+    useSiteConfig: () => siteConfig,
 }))
 
 const branding = {
@@ -32,6 +33,7 @@ const branding = {
 describe('BrandingEditor color picker', () => {
     beforeEach(() => {
         vi.clearAllMocks()
+        siteConfig.enabledModules = ['DIGITAL_CONTENT', 'PODCAST']
         getBranding.mockResolvedValue(branding)
         updateBranding.mockImplementation(
             async (_host: unknown, input: Record<string, unknown>) => ({
@@ -142,6 +144,15 @@ describe('BrandingEditor color picker', () => {
     })
 
     it('stays quiet without a website ID even when the module is off', async () => {
+        render(<BrandingEditor />)
+        await screen.findByLabelText('Umami Website-ID')
+
+        expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+    })
+
+    it('stays quiet with a website ID when the ANALYTICS module is active', async () => {
+        siteConfig.enabledModules = ['DIGITAL_CONTENT', 'PODCAST', 'ANALYTICS']
+        getBranding.mockResolvedValue({...branding, umamiWebsiteId: 'abc12345'})
         render(<BrandingEditor />)
         await screen.findByLabelText('Umami Website-ID')
 

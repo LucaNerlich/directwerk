@@ -43,10 +43,12 @@ export function trackEpisodePlay(slug: string): boolean {
         return false
     }
     try {
-        void tracker.track(EPISODE_PLAY_EVENT, {
-            url: `/episodes/${slug}`,
-            episodeSlug: slug,
-        })
+        void Promise.resolve(
+            tracker.track(EPISODE_PLAY_EVENT, {
+                url: `/episodes/${slug}`,
+                episodeSlug: slug,
+            }),
+        ).catch(() => undefined)
         return true
     } catch {
         return false

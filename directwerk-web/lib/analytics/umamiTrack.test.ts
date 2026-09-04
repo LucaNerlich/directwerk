@@ -38,6 +38,15 @@ describe('trackEpisodePlay', () => {
         expect(trackEpisodePlay('folge-1')).toBe(false)
     })
 
+    it('returns true when the tracker promise rejects', async () => {
+        const track = vi.fn().mockRejectedValue(new Error('blocked'))
+        ;(window as unknown as {umami: unknown}).umami = {track}
+
+        expect(trackEpisodePlay('folge-1')).toBe(true)
+        await Promise.resolve()
+        expect(track).toHaveBeenCalledOnce()
+    })
+
     it('returns false when window.umami has no track function', () => {
         ;(window as unknown as {umami: unknown}).umami = {}
         expect(trackEpisodePlay('folge-1')).toBe(false)
