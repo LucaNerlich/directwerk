@@ -1,5 +1,6 @@
 package de.pnnit.directwerk.modules.podcast.service;
 
+import static de.pnnit.directwerk.testsupport.RbacTestFixtures.override;
 import de.pnnit.directwerk.modules.core.notification.SubscriberNotificationGate;
 import de.pnnit.directwerk.modules.core.audit.PlatformAuditService;
 import de.pnnit.directwerk.modules.core.service.MembershipPermissionService;
@@ -21,7 +22,6 @@ import de.pnnit.directwerk.modules.core.service.ScheduledPublicationExecutor;
 import de.pnnit.directwerk.modules.core.authorization.ContentEntityType;
 import de.pnnit.directwerk.modules.core.authorization.ContentOperation;
 import de.pnnit.directwerk.modules.core.authorization.RestrictionScope;
-import de.pnnit.directwerk.modules.core.entity.MembershipPermissionOverride;
 import de.pnnit.directwerk.modules.core.entity.Role;
 import de.pnnit.directwerk.modules.core.exception.ContentAccessDeniedException;
 import de.pnnit.directwerk.modules.core.repository.MembershipPermissionOverrideRepository;
@@ -474,14 +474,6 @@ class PublicationWorkflowServiceTest {
                 new UsernamePasswordAuthenticationToken(principal, null, authorities));
     }
 
-    private static MembershipPermissionOverride override(
-            ContentEntityType entity, ContentOperation operation, RestrictionScope scope) {
-        MembershipPermissionOverride override = new MembershipPermissionOverride();
-        override.setEntityType(entity);
-        override.setOperation(operation);
-        override.setScope(scope);
-        return override;
-    }
 
     private static Episode draftEpisode() {
         Tenant tenant = new Tenant();

@@ -3,7 +3,6 @@ package de.pnnit.directwerk.modules.newsletter.service;
 import de.pnnit.directwerk.modules.core.exception.ConflictException;
 import de.pnnit.directwerk.modules.core.exception.ConflictCodes;
 import de.pnnit.directwerk.modules.core.RequiresModule;
-import de.pnnit.directwerk.modules.core.authorization.ContentEntityType;
 import de.pnnit.directwerk.modules.core.authorization.ContentOperation;
 import de.pnnit.directwerk.modules.core.repository.TenantRepository;
 import de.pnnit.directwerk.modules.core.service.MembershipPermissionService;
@@ -57,18 +56,6 @@ public class ArticleService {
                 .orElseThrow(() -> new ArticleNotFoundException(articleId));
     }
 
-    /**
-     * RBAC gate (issue #148). The acting principal resolves from the security
-     * context, which every authenticated HTTP path carries — checks therefore
-     * always run in production. A {@code null} principal means a trusted system
-     * path whose user-facing action was authorized upstream; new callers must run
-     * with an authenticated context to be gated.
-     */
-    private void requireAccess(ContentOperation operation, Long ownerUserId) {
-        permissionService.requireContentAccess(
-                SecurityUtils.currentPrincipal(), ContentEntityType.ARTICLE, operation, ownerUserId);
-    }
-
     @Transactional
     @RequiresModule(ArticlesModule.KEY)
     public Article createDraft(
@@ -83,7 +70,7 @@ public class ArticleService {
             Integer requiredLevelSortOrder,
             Set<Long> categoryIds
     ) {
-        requireAccess(ContentOperation.CREATE, null);
+        permissionService.requireArticleAccess(ContentOperation.CREATE, null);
         String slug = SlugNormalizer.normalize(rawSlug);
         if (articleRepository.existsByTenantIdAndSlug(tenantId, slug)) {
             throw new ConflictException(ConflictCodes.ARTICLE_SLUG_EXISTS, "Article slug already exists: " + slug);
@@ -123,7 +110,7 @@ public class ArticleService {
             Boolean clearHeroAsset
     ) {
         Article article = requireDraftArticle(tenantId, articleId);
-        requireAccess(ContentOperation.UPDATE, article.getCreatedBy());
+        permissionService.requireArticleAccess(ContentOperation.UPDATE, article.getCreatedBy());
         if (rawSlug != null) {
             String slug = SlugNormalizer.normalize(rawSlug);
             if (articleRepository.existsByTenantIdAndSlugAndIdNot(tenantId, slug, articleId)) {
@@ -162,7 +149,7 @@ public class ArticleService {
     @RequiresModule(ArticlesModule.KEY)
     public Article replaceCategories(Long tenantId, Long articleId, Set<Long> categoryIds) {
         Article article = requireDraftArticle(tenantId, articleId);
-        requireAccess(ContentOperation.UPDATE, article.getCreatedBy());
+        permissionService.requireArticleAccess(ContentOperation.UPDATE, article.getCreatedBy());
         article.getCategories().clear();
         article.getCategories().addAll(categoryService.resolveActiveCategories(tenantId, categoryIds,
                 id -> { throw new ArticleValidationException("Category is inactive: " + id); }));
@@ -185,7 +172,7 @@ public class ArticleService {
         if (article.getTenant() == null || !tenantId.equals(article.getTenant().getId())) {
             throw new ArticleNotFoundException(articleId);
         }
-        requireAccess(ContentOperation.DELETE, article.getCreatedBy());
+        permissionService.requireArticleAccess(ContentOperation.DELETE, article.getCreatedBy());
         boolean wasVisible = article.getStatus() == ArticleStatus.PUBLISHED
                 || article.getStatus() == ArticleStatus.SCHEDULED;
         articleRepository.delete(article);

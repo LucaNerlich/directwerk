@@ -1,5 +1,6 @@
 package de.pnnit.directwerk.controller.tenant;
 
+import static de.pnnit.directwerk.testsupport.RbacTestFixtures.override;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.eq;
@@ -14,7 +15,6 @@ import de.pnnit.directwerk.modules.core.authorization.ContentEntityType;
 import de.pnnit.directwerk.modules.core.authorization.ContentOperation;
 import de.pnnit.directwerk.modules.core.authorization.EffectiveAccess;
 import de.pnnit.directwerk.modules.core.authorization.RestrictionScope;
-import de.pnnit.directwerk.modules.core.entity.MembershipPermissionOverride;
 import de.pnnit.directwerk.modules.core.service.MembershipPermissionService;
 import de.pnnit.directwerk.multitenancy.TenantContext;
 import java.util.EnumMap;
@@ -139,12 +139,4 @@ class TenantAdminRestrictionsControllerTest {
                 .andExpect(status().isForbidden());
     }
 
-    private static MembershipPermissionOverride override(
-            ContentEntityType entity, ContentOperation operation, RestrictionScope scope) {
-        MembershipPermissionOverride override = new MembershipPermissionOverride();
-        override.setEntityType(entity);
-        override.setOperation(operation);
-        override.setScope(scope);
-        return override;
-    }
 }

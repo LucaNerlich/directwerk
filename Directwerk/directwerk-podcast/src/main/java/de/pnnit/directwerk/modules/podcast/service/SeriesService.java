@@ -3,7 +3,6 @@ package de.pnnit.directwerk.modules.podcast.service;
 import de.pnnit.directwerk.modules.core.exception.ConflictException;
 import de.pnnit.directwerk.modules.core.exception.ConflictCodes;
 import de.pnnit.directwerk.modules.core.RequiresModule;
-import de.pnnit.directwerk.modules.core.authorization.ContentEntityType;
 import de.pnnit.directwerk.modules.core.authorization.ContentOperation;
 import de.pnnit.directwerk.modules.core.repository.TenantRepository;
 import de.pnnit.directwerk.modules.core.service.MembershipPermissionService;
@@ -36,18 +35,6 @@ public class SeriesService {
     private final HtmlSanitizer htmlSanitizer;
     private final MembershipPermissionService permissionService;
 
-    /**
-     * RBAC gate (issue #148). The acting principal resolves from the security
-     * context, which every authenticated HTTP path carries — checks therefore
-     * always run in production. A {@code null} principal means a trusted system
-     * path whose user-facing action was authorized upstream; new callers must run
-     * with an authenticated context to be gated.
-     */
-    private void requireAccess(ContentOperation operation, Long ownerUserId) {
-        permissionService.requireContentAccess(
-                SecurityUtils.currentPrincipal(), ContentEntityType.SERIES, operation, ownerUserId);
-    }
-
     @Transactional(readOnly = true)
     public List<PodcastSeries> listSeries(Long tenantId, boolean publishedOnly) {
         if (publishedOnly) {
@@ -78,7 +65,7 @@ public class SeriesService {
             Boolean itunesExplicit,
             Integer defaultRequiredLevelSortOrder
     ) {
-        requireAccess(ContentOperation.CREATE, null);
+        permissionService.requireSeriesAccess(ContentOperation.CREATE, null);
         String slug = SlugNormalizer.normalize(rawSlug);
         if (podcastSeriesRepository.existsByTenantIdAndSlug(tenantId, slug)) {
             throw new ConflictException(ConflictCodes.SERIES_SLUG_EXISTS, "Series slug already exists: " + slug);
@@ -120,7 +107,7 @@ public class SeriesService {
             SeriesStatus status
     ) {
         PodcastSeries series = requireSeries(tenantId, seriesId);
-        requireAccess(ContentOperation.UPDATE, series.getCreatedBy());
+        permissionService.requireSeriesAccess(ContentOperation.UPDATE, series.getCreatedBy());
         if (rawSlug != null) {
             String slug = SlugNormalizer.normalize(rawSlug);
             if (podcastSeriesRepository.existsByTenantIdAndSlugAndIdNot(tenantId, slug, seriesId)) {

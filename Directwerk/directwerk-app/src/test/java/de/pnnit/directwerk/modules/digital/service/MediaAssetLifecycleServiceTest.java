@@ -1,5 +1,6 @@
 package de.pnnit.directwerk.modules.digital.service;
 
+import static de.pnnit.directwerk.testsupport.RbacTestFixtures.override;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
@@ -17,7 +18,6 @@ import de.pnnit.directwerk.modules.core.audit.PlatformAuditService;
 import de.pnnit.directwerk.modules.core.authorization.ContentEntityType;
 import de.pnnit.directwerk.modules.core.authorization.ContentOperation;
 import de.pnnit.directwerk.modules.core.authorization.RestrictionScope;
-import de.pnnit.directwerk.modules.core.entity.MembershipPermissionOverride;
 import de.pnnit.directwerk.modules.core.entity.Role;
 import de.pnnit.directwerk.modules.core.exception.ContentAccessDeniedException;
 import de.pnnit.directwerk.modules.core.repository.MembershipPermissionOverrideRepository;
@@ -294,14 +294,6 @@ class MediaAssetLifecycleServiceTest {
         verify(mediaDeleteJobProducer, never()).enqueueS3Delete(anyLong(), any(), any());
     }
 
-    private static MembershipPermissionOverride override(
-            ContentEntityType entity, ContentOperation operation, RestrictionScope scope) {
-        MembershipPermissionOverride override = new MembershipPermissionOverride();
-        override.setEntityType(entity);
-        override.setOperation(operation);
-        override.setScope(scope);
-        return override;
-    }
 
     private static DirectwerkProperties.Storage storageProps() {
         return new DirectwerkProperties.Storage(

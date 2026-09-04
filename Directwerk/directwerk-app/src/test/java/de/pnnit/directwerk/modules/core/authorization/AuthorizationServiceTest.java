@@ -1,5 +1,6 @@
 package de.pnnit.directwerk.modules.core.authorization;
 
+import static de.pnnit.directwerk.testsupport.RbacTestFixtures.override;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -163,12 +164,4 @@ class AuthorizationServiceTest {
                 userId, "user@example.com", "hash", TENANT, List.of(new SimpleGrantedAuthority(authority)));
     }
 
-    private static MembershipPermissionOverride override(
-            ContentEntityType entity, ContentOperation operation, RestrictionScope scope) {
-        MembershipPermissionOverride override = new MembershipPermissionOverride();
-        override.setEntityType(entity);
-        override.setOperation(operation);
-        override.setScope(scope);
-        return override;
-    }
 }

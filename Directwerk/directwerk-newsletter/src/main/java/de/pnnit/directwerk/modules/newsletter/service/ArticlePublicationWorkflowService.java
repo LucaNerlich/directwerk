@@ -10,7 +10,6 @@ import de.pnnit.directwerk.modules.content.ScheduledPublishing.DueItem;
 import de.pnnit.directwerk.modules.content.ContentPublishedNotifier;
 import de.pnnit.directwerk.modules.content.ContentType;
 import de.pnnit.directwerk.modules.core.RequiresModule;
-import de.pnnit.directwerk.modules.core.authorization.ContentEntityType;
 import de.pnnit.directwerk.modules.core.authorization.ContentOperation;
 import de.pnnit.directwerk.modules.core.notification.SubscriberNotificationGate;
 import de.pnnit.directwerk.modules.core.service.MembershipPermissionService;
@@ -24,7 +23,6 @@ import de.pnnit.directwerk.modules.content.PublicationTransitions;
 import de.pnnit.directwerk.modules.content.InvalidPublicationTransitionException;
 import de.pnnit.directwerk.modules.digital.service.HtmlSanitizer;
 import de.pnnit.directwerk.modules.newsletter.repository.ArticleRepository;
-import de.pnnit.directwerk.security.SecurityUtils;
 import de.pnnit.directwerk.multitenancy.TenantContext;
 import java.time.Instant;
 import java.util.List;
@@ -50,17 +48,6 @@ public class ArticlePublicationWorkflowService {
     private final ObjectProvider<ArticlePublicationWorkflowService> self;
     private final MembershipPermissionService permissionService;
 
-    /**
-     * RBAC gate (issue #148). The principal resolves from the security context;
-     * trusted system paths (scheduled publishing) call the internal methods
-     * directly and were authorized when the user scheduled. New callers must run
-     * with an authenticated context to be gated.
-     */
-    private void requireAccess(ContentOperation operation, Long ownerUserId) {
-        permissionService.requireContentAccess(
-                SecurityUtils.currentPrincipal(), ContentEntityType.ARTICLE, operation, ownerUserId);
-    }
-
     @Transactional
     @RequiresModule(ArticlesModule.KEY)
     public Article publish(Long tenantId, Long articleId) {
@@ -77,7 +64,7 @@ public class ArticlePublicationWorkflowService {
     @RequiresModule(ArticlesModule.KEY)
     public Article publish(Long tenantId, Long articleId, boolean notifySubscribers, Instant publishedAt) {
         Article article = articleService.requireArticle(tenantId, articleId);
-        requireAccess(ContentOperation.PUBLISH, article.getCreatedBy());
+        permissionService.requireArticleAccess(ContentOperation.PUBLISH, article.getCreatedBy());
         return publishInternal(tenantId, article, notifySubscribers, publishedAt);
     }
 
@@ -91,7 +78,7 @@ public class ArticlePublicationWorkflowService {
     @RequiresModule(ArticlesModule.KEY)
     public Article schedule(Long tenantId, Long articleId, Instant scheduledAt, boolean notifySubscribers) {
         Article article = articleService.requireArticle(tenantId, articleId);
-        requireAccess(ContentOperation.SCHEDULE, article.getCreatedBy());
+        permissionService.requireArticleAccess(ContentOperation.SCHEDULE, article.getCreatedBy());
         PublicationLifecycleSupport.schedule(
                 scheduledAt,
                 notifySubscribers,
@@ -110,7 +97,7 @@ public class ArticlePublicationWorkflowService {
     @RequiresModule(ArticlesModule.KEY)
     public Article cancelSchedule(Long tenantId, Long articleId) {
         Article article = articleService.requireArticle(tenantId, articleId);
-        requireAccess(ContentOperation.SCHEDULE, article.getCreatedBy());
+        permissionService.requireArticleAccess(ContentOperation.SCHEDULE, article.getCreatedBy());
         PublicationLifecycleSupport.cancelSchedule(
                 () -> article.getStatus() == ArticleStatus.SCHEDULED,
                 "articles",
@@ -126,7 +113,7 @@ public class ArticlePublicationWorkflowService {
     @RequiresModule(ArticlesModule.KEY)
     public Article unpublish(Long tenantId, Long articleId) {
         Article article = articleService.requireArticle(tenantId, articleId);
-        requireAccess(ContentOperation.UNPUBLISH, article.getCreatedBy());
+        permissionService.requireArticleAccess(ContentOperation.UNPUBLISH, article.getCreatedBy());
         PublicationLifecycleSupport.unpublish(
                 () -> article.getStatus() == ArticleStatus.PUBLISHED,
                 "articles",
@@ -144,7 +131,7 @@ public class ArticlePublicationWorkflowService {
     @RequiresModule(ArticlesModule.KEY)
     public Article archive(Long tenantId, Long articleId) {
         Article article = articleService.requireArticle(tenantId, articleId);
-        requireAccess(ContentOperation.ARCHIVE, article.getCreatedBy());
+        permissionService.requireArticleAccess(ContentOperation.ARCHIVE, article.getCreatedBy());
         PublicationLifecycleSupport.archive(
                 () -> article.getStatus() == ArticleStatus.PUBLISHED,
                 "articles",
@@ -161,7 +148,7 @@ public class ArticlePublicationWorkflowService {
     @RequiresModule(ArticlesModule.KEY)
     public Article unarchive(Long tenantId, Long articleId) {
         Article article = articleService.requireArticle(tenantId, articleId);
-        requireAccess(ContentOperation.UNARCHIVE, article.getCreatedBy());
+        permissionService.requireArticleAccess(ContentOperation.UNARCHIVE, article.getCreatedBy());
         PublicationLifecycleSupport.unarchive(
                 () -> article.getStatus() == ArticleStatus.ARCHIVED,
                 "articles",

@@ -3,6 +3,7 @@ package de.pnnit.directwerk.modules.core.service;
 import de.pnnit.directwerk.modules.core.audit.PlatformAuditActions;
 import de.pnnit.directwerk.modules.core.audit.PlatformAuditService;
 import de.pnnit.directwerk.modules.core.authorization.AuthorizationService;
+import de.pnnit.directwerk.modules.core.authorization.ContentAccessGate;
 import de.pnnit.directwerk.modules.core.authorization.ContentEntityType;
 import de.pnnit.directwerk.modules.core.authorization.ContentOperation;
 import de.pnnit.directwerk.modules.core.authorization.EffectiveAccess;
@@ -13,6 +14,7 @@ import de.pnnit.directwerk.modules.core.repository.MembershipPermissionOverrideR
 import de.pnnit.directwerk.modules.core.repository.TenantMembershipRepository;
 import de.pnnit.directwerk.modules.core.repository.TenantRepository;
 import de.pnnit.directwerk.security.DirectwerkUserPrincipal;
+import de.pnnit.directwerk.security.SecurityUtils;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
@@ -77,18 +79,37 @@ public class MembershipPermissionService {
     }
 
     /**
-     * Resolves the full effective-rights matrix for dashboards and UI adaptation.
+     * Returns a checker bound to one entity type. Services store it once
+     * instead of repeating the ambient-principal plumbing per operation.
      */
-    @Transactional(readOnly = true)
-    public Map<ContentEntityType, Map<ContentOperation, EffectiveAccess>> effectiveRights(
-            DirectwerkUserPrincipal principal
-    ) {
-        Set<MembershipPermissionOverride> overrides = Set.of();
-        if (principal != null && principal.tenantId() != null && principal.userId() != null) {
-            overrides = new HashSet<>(
-                    overrideRepository.findByTenantIdAndUserId(principal.tenantId(), principal.userId()));
-        }
-        return AuthorizationService.effectiveRights(principal, overrides);
+    public ContentAccessGate gateFor(ContentEntityType entity) {
+        return (operation, ownerUserId) -> requireContentAccess(
+                SecurityUtils.currentPrincipal(), entity, operation, ownerUserId);
+    }
+
+    /** Convenience gates per content entity; all delegate to {@link #gateFor}. */
+    public void requireEpisodeAccess(ContentOperation operation, Long ownerUserId) {
+        gateFor(ContentEntityType.EPISODE).require(operation, ownerUserId);
+    }
+
+    /** Convenience gates per content entity; all delegate to {@link #gateFor}. */
+    public void requireArticleAccess(ContentOperation operation, Long ownerUserId) {
+        gateFor(ContentEntityType.ARTICLE).require(operation, ownerUserId);
+    }
+
+    /** Convenience gates per content entity; all delegate to {@link #gateFor}. */
+    public void requireSeriesAccess(ContentOperation operation, Long ownerUserId) {
+        gateFor(ContentEntityType.SERIES).require(operation, ownerUserId);
+    }
+
+    /** Convenience gates per content entity; all delegate to {@link #gateFor}. */
+    public void requireMediaAssetAccess(ContentOperation operation, Long ownerUserId) {
+        gateFor(ContentEntityType.MEDIA_ASSET).require(operation, ownerUserId);
+    }
+
+    /** Convenience gates per content entity; all delegate to {@link #gateFor}. */
+    public void requireMediaFolderAccess(ContentOperation operation, Long ownerUserId) {
+        gateFor(ContentEntityType.MEDIA_FOLDER).require(operation, ownerUserId);
     }
 
     /**
