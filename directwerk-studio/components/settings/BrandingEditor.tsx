@@ -15,6 +15,8 @@ import {useActionState, useEffect, useState} from 'react'
 
 import {AUTH_REQUIRED} from '@directwerk/api/constants'
 import {getBranding, updateBranding} from '@/lib/api/tenantSettingsApi'
+import {hasModule} from '@/lib/api/client'
+import {useSiteConfig} from '@/lib/site/SiteConfigProvider'
 import type {TenantBranding} from '@directwerk/api/types'
 import {getClientTenantHost} from '@directwerk/api/tenant'
 import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
@@ -51,6 +53,14 @@ function colorPickerValue(draft: string): string {
 export default function BrandingEditor(): React.JSX.Element {
     const router = useRouter()
     const authRedirect = useAuthRequired()
+    // Optional: the settings shell provides the site config, but the editor
+    // must also render standalone (tests, shared hosts) — hence defensive.
+    let analyticsModuleActive: boolean | null = null
+    try {
+        analyticsModuleActive = hasModule(useSiteConfig(), 'ANALYTICS')
+    } catch {
+        analyticsModuleActive = null
+    }
     const [branding, setBranding] = useState<TenantBranding | null>(null)
     const [primaryColorDraft, setPrimaryColorDraft] = useState('')
     const [secondaryColorDraft, setSecondaryColorDraft] = useState('')
@@ -324,6 +334,15 @@ export default function BrandingEditor(): React.JSX.Element {
                         Tracking braucht ANALYTICS-Modul + Website-ID; ohne ID bleibt es inaktiv.
                     </p>
                 </div>
+                {analyticsModuleActive === false && branding?.umamiWebsiteId ? (
+                    <Alert variant="destructive">
+                        <AlertDescription>
+                            Das ANALYTICS-Modul ist für diesen Workspace nicht aktiv — es werden
+                            keine Events erfasst (weder Website noch Episoden-Downloads). Ein
+                            Plattform-Admin kann es unter Tenants → Module aktivieren.
+                        </AlertDescription>
+                    </Alert>
+                ) : null}
                     </CardContent>
                 </Card>
                 {state.error ? (

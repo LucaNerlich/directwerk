@@ -16,6 +16,9 @@ vi.mock('@/lib/api/tenantSettingsApi', () => ({
     getBranding: (...args: unknown[]) => getBranding(...args),
     updateBranding: (...args: unknown[]) => updateBranding(...args),
 }))
+vi.mock('@/lib/site/SiteConfigProvider', () => ({
+    useSiteConfig: () => ({enabledModules: ['DIGITAL_CONTENT', 'PODCAST']}),
+}))
 
 const branding = {
     siteTitle: 'Meine Sendung',
@@ -126,5 +129,22 @@ describe('BrandingEditor color picker', () => {
                 'Branding gespeichert.',
             ),
         )
+    })
+
+    it('warns when a website ID is set but the ANALYTICS module is off', async () => {
+        getBranding.mockResolvedValue({...branding, umamiWebsiteId: 'abc12345'})
+        render(<BrandingEditor />)
+        await screen.findByLabelText('Umami Website-ID')
+
+        expect(screen.getByRole('alert')).toHaveTextContent(
+            'ANALYTICS-Modul ist für diesen Workspace nicht aktiv',
+        )
+    })
+
+    it('stays quiet without a website ID even when the module is off', async () => {
+        render(<BrandingEditor />)
+        await screen.findByLabelText('Umami Website-ID')
+
+        expect(screen.queryByRole('alert')).not.toBeInTheDocument()
     })
 })

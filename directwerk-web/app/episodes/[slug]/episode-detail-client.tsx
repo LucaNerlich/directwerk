@@ -10,6 +10,7 @@ import AccessPolicyBadge from '@/components/AccessPolicyBadge'
 import ContentMetaLine from '@/components/ContentMetaLine'
 import DetailShell, {DetailLockedPanel} from '@/components/DetailShell'
 import {listMyEpisodes, listPublicEpisodes} from '@/lib/api/client'
+import {trackEpisodePlay} from '@/lib/analytics/umamiTrack'
 import {sanitizeContentHtml} from '@/lib/sanitizeContentHtml'
 import {
     getAccessToken,
@@ -142,6 +143,7 @@ export default function EpisodeDetailClient({
                             <audio
                                 className="media-player w-full"
                                 controls
+                                onPlay={() => trackEpisodePlay(episode.slug)}
                                 preload="metadata"
                                 src={episode.audioCdnUrl}
                             >
