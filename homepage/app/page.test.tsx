@@ -1,5 +1,5 @@
-import {render, screen} from '@testing-library/react'
-import {describe, expect, it, vi} from 'vitest'
+import {cleanup, fireEvent, render, screen} from '@testing-library/react'
+import {afterEach, describe, expect, it, vi} from 'vitest'
 
 vi.mock('@/components/marketing/AltchaWidget', () => ({
     default: ({
@@ -18,6 +18,8 @@ vi.mock('@/components/marketing/AltchaWidget', () => ({
 
 import Home from '@/app/page'
 
+afterEach(() => cleanup())
+
 describe('Home', () => {
     it('introduces the platform with navigation and developer path', () => {
         render(<Home />)
@@ -32,5 +34,25 @@ describe('Home', () => {
         expect(screen.getByRole('link', {name: 'Kontakt'})).toHaveAttribute('href', '#contact')
         expect(screen.getByRole('heading', {name: /Eigene Publishing-Infrastruktur/})).toBeInTheDocument()
         expect(screen.getByRole('button', {name: 'Nachricht senden'})).toBeInTheDocument()
+        expect(
+            screen.getByRole('heading', {name: /Datenschutz ist das Feature/}),
+        ).toBeInTheDocument()
+        expect(
+            screen.getByRole('heading', {name: /Ein RSS-Feed pro Hörer/}),
+        ).toBeInTheDocument()
+        expect(
+            screen.getByRole('heading', {name: /Kurz beantwortet/}),
+        ).toBeInTheDocument()
+        expect(
+            screen.getByRole('link', {name: 'Private Feeds ansehen'}),
+        ).toHaveAttribute('href', '#feeds')
+    })
+
+    it('lets visitors try the feed builder demo', () => {
+        render(<Home />)
+
+        expect(screen.getByText(/Persönliche Feed-URL/)).toBeInTheDocument()
+        fireEvent.click(screen.getByRole('button', {name: 'Bonus'}))
+        expect(screen.getByText(/2 von 3 Formaten/)).toBeInTheDocument()
     })
 })

@@ -10,3 +10,49 @@ pre code,
 .font-mono {
     font-family: var(--font-geist-mono), ui-monospace, monospace;
 }
+
+/* Frosted-glass marketing layer: translucent panels over a fixed aurora. */
+
+.aurora-bg {
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    background:
+        radial-gradient(42rem 30rem at 12% -6%, color-mix(in srgb, var(--primary) 16%, transparent), transparent 65%),
+        radial-gradient(36rem 28rem at 88% 8%, color-mix(in srgb, var(--chart-2, #0ea5e9) 14%, transparent), transparent 65%),
+        radial-gradient(46rem 34rem at 50% 108%, color-mix(in srgb, var(--primary) 10%, transparent), transparent 65%),
+        var(--background);
+}
+
+.aurora-bg::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image:
+        linear-gradient(color-mix(in srgb, var(--foreground) 5%, transparent) 1px, transparent 1px),
+        linear-gradient(90deg, color-mix(in srgb, var(--foreground) 5%, transparent) 1px, transparent 1px);
+    background-size: 3.5rem 3.5rem;
+    mask-image: radial-gradient(ellipse 90% 60% at 50% 0%, black 30%, transparent 75%);
+}
+
+.glass-panel {
+    background: color-mix(in srgb, var(--card) 68%, transparent);
+    backdrop-filter: blur(20px) saturate(1.4);
+    -webkit-backdrop-filter: blur(20px) saturate(1.4);
+    border: 1px solid color-mix(in srgb, var(--foreground) 10%, transparent);
+    box-shadow: 0 24px 60px -28px color-mix(in srgb, var(--foreground) 28%, transparent);
+}
+
+.glass-chip {
+    background: color-mix(in srgb, var(--card) 60%, transparent);
+    backdrop-filter: blur(12px) saturate(1.3);
+    -webkit-backdrop-filter: blur(12px) saturate(1.3);
+    border: 1px solid color-mix(in srgb, var(--foreground) 12%, transparent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .aurora-bg::after {
+        display: none;
+    }
+}

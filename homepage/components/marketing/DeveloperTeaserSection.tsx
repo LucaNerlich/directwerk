@@ -8,9 +8,9 @@ import {DOCS_URL} from '@/lib/marketing/constants'
 
 export default function DeveloperTeaserSection(): React.JSX.Element {
     return (
-        <section className="marketing-section border-t bg-muted/20">
+        <section className="marketing-section border-t border-foreground/10">
             <div className="marketing-container">
-                <Card className="overflow-hidden border-foreground/10">
+                <Card className="glass-panel overflow-hidden rounded-3xl">
                     <CardContent className="grid gap-8 p-8 lg:grid-cols-[1fr_auto] lg:items-center">
                         <div>
                             <SectionLabel>Für Entwickler</SectionLabel>
