@@ -63,6 +63,7 @@ const mockArticles: ArticleDetail[] = [
         heroAssetId: null,
         requiredLevelSortOrder: null,
         scheduledAt: null,
+        createdBy: null,
         categories: [{id: 11, slug: 'interview', name: 'Interview'}],
     },
     {
@@ -78,6 +79,7 @@ const mockArticles: ArticleDetail[] = [
         heroAssetId: null,
         requiredLevelSortOrder: null,
         scheduledAt: null,
+        createdBy: null,
         categories: [{id: 12, slug: 'news', name: 'News'}],
     },
     {
@@ -93,6 +95,7 @@ const mockArticles: ArticleDetail[] = [
         heroAssetId: null,
         requiredLevelSortOrder: null,
         scheduledAt: '2026-09-01T12:00:00Z',
+        createdBy: null,
         categories: [],
     },
     {
@@ -108,6 +111,7 @@ const mockArticles: ArticleDetail[] = [
         heroAssetId: null,
         requiredLevelSortOrder: null,
         scheduledAt: null,
+        createdBy: null,
         categories: [],
     },
 ]

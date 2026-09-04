@@ -2,11 +2,14 @@ import {describe, expect, it} from 'vitest'
 
 import {
     createPublicContentParsers,
+    parseEffectiveRightsEnvelope,
     parseImportedEpisodeEnvelope,
     parseMeEnvelope,
     parseMediaAsset,
     parseMediaFolder,
     parseMediaFolderListEnvelope,
+    parsePermissionRestriction,
+    parsePermissionRestrictionListEnvelope,
     parseRssImportPreviewEnvelope,
     parseStudioSiteConfigEnvelope,
     parsePublicSiteConfigEnvelope,
@@ -492,8 +495,7 @@ describe('isQueueJob', () => {
         expect(parsed?.data).toHaveLength(501)
     })
 
-    it('parses media asset folder ids, tolerating older responses without one', () => {
-        const base = {
+    it('parses media asset folder ids, tolerating older responses without one', () => {        const base = {
             id: 7,
             s3Key: 't/private/audio/a.mp3',
             visibility: 'PRIVATE',
@@ -513,5 +515,82 @@ describe('isQueueJob', () => {
         expect(parseMediaAsset({...base, folderId: null})?.folderId).toBeNull()
         expect(parseMediaAsset(base)?.folderId).toBeNull()
         expect(parseMediaAsset({...base, folderId: -1})).toBeNull()
+    })
+
+    it('parses creator ids leniently', () => {
+        const base = {
+            id: 7,
+            s3Key: 't/private/audio/a.mp3',
+            visibility: 'PRIVATE',
+            scope: 'CONTENT',
+            assetType: 'AUDIO',
+            status: 'READY',
+            mimeType: 'audio/mpeg',
+            sizeBytes: 100,
+            originalFilename: 'a.mp3',
+            episodeId: null,
+            ownerUserId: null,
+            cdnUrl: null,
+            createdAt: '2026-01-01T00:00:00Z',
+            updatedAt: '2026-01-01T00:00:00Z',
+        }
+        expect(parseMediaAsset({...base, createdBy: 5})?.createdBy).toBe(5)
+        expect(parseMediaAsset(base)?.createdBy).toBeNull()
+        expect(
+            parseMediaFolder({
+                id: 3,
+                name: 'Interviews',
+                parentId: null,
+                createdBy: 5,
+                createdAt: '2026-01-01T00:00:00Z',
+                updatedAt: '2026-01-01T00:00:00Z',
+            })?.createdBy,
+        ).toBe(5)
+    })
+
+    it('parses permission restrictions and effective rights', () => {
+        expect(
+            parsePermissionRestriction({entityType: 'EPISODE', operation: 'DELETE', scope: 'DENY'}),
+        ).toEqual({entityType: 'EPISODE', operation: 'DELETE', scope: 'DENY'})
+        expect(
+            parsePermissionRestriction({entityType: 'EPISODE', operation: 'FLY', scope: 'DENY'}),
+        ).toBeNull()
+        expect(
+            parsePermissionRestrictionListEnvelope({
+                statusCode: 200,
+                statusMessage: 'OK',
+                data: [{entityType: 'ARTICLE', operation: 'PUBLISH', scope: 'OTHERS_ONLY'}],
+                errors: [],
+                metadata: {},
+            })?.data,
+        ).toHaveLength(1)
+        expect(
+            parseEffectiveRightsEnvelope({
+                statusCode: 200,
+                statusMessage: 'OK',
+                data: {
+                    userId: 5,
+                    roles: ['EDITOR'],
+                    restrictions: [
+                        {entityType: 'EPISODE', operation: 'DELETE', scope: 'DENY'},
+                    ],
+                    effective: {
+                        EPISODE: {DELETE: 'DENIED', UPDATE: 'OWN_ONLY', CREATE: 'FULL'},
+                        ARTICLE: {PUBLISH: 'FULL'},
+                    },
+                },
+                errors: [],
+                metadata: {},
+            })?.data?.effective.EPISODE?.DELETE,
+        ).toBe('DENIED')
+        expect(
+            parseEffectiveRightsEnvelope({
+                statusCode: 200,
+                statusMessage: 'OK',
+                data: {userId: 5, roles: ['EDITOR'], restrictions: [], effective: {EPISODE: {DELETE: 'MAYBE'}}},
+                errors: [],
+                metadata: {},
+            }),
+        ).toBeNull()
     })
 })

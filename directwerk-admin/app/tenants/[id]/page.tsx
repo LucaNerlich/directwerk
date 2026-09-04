@@ -29,9 +29,9 @@ import TenantModulesPanel from '@/components/TenantModulesPanel'
 import TenantProductsPanel from '@/components/TenantProductsPanel'
 import TenantSessionPanel from '@/components/TenantSessionPanel'
 import TenantUserActions from '@/components/TenantUserActions'
-import {getPlatformData, postPlatformData} from '@/lib/api/client'
+import {getMemberEffectiveRights, getPlatformData, postPlatformData} from '@/lib/api/client'
 import {AUTH_REQUIRED, REQUEST_FAILED} from '@directwerk/api/constants'
-import type {TenantDetail, TenantDetailResponse, TenantUser, TenantUsers} from '@directwerk/api/types'
+import type {EffectiveRights, TenantDetail, TenantDetailResponse, TenantUser, TenantUsers} from '@directwerk/api/types'
 
 interface TenantPageProps {
     params: Promise<{id: string}>
@@ -55,9 +55,9 @@ export default function TenantPage({params}: TenantPageProps) {
     const [lifecycleBusy, setLifecycleBusy] = useState(false)
     const [tenantSessionKey, setTenantSessionKey] = useState(0)
     const [reloadKey, setReloadKey] = useState(0)
+    const [rightsByUser, setRightsByUser] = useState<Record<number, EffectiveRights | null>>({})
 
-    const loadTenantData = useCallback(() => {
-        if (!/^\d+$/.test(id)) {
+    const loadTenantData = useCallback(() => {        if (!/^\d+$/.test(id)) {
             setError('Invalid tenant identifier.')
             setData(null)
             setIsInitialLoad(false)
@@ -84,6 +84,24 @@ export default function TenantPage({params}: TenantPageProps) {
                     users: users.content,
                 })
                 setIsInitialLoad(false)
+
+                // Read-only RBAC overview (issue #148): resolve restriction
+                // summaries for editors; failures stay silent per row.
+                const editors = users.content.filter((user) => user.roles.includes('EDITOR'))
+                void Promise.all(
+                    editors.map(async (user) => {
+                        try {
+                            const rights = await getMemberEffectiveRights(id, user.userId)
+                            if (isCurrent) {
+                                setRightsByUser((current) => ({...current, [user.userId]: rights}))
+                            }
+                        } catch {
+                            if (isCurrent) {
+                                setRightsByUser((current) => ({...current, [user.userId]: null}))
+                            }
+                        }
+                    }),
+                )
             })
             .catch((requestError: unknown) => {
                 if (!isCurrent) {
@@ -153,6 +171,23 @@ export default function TenantPage({params}: TenantPageProps) {
         } finally {
             setLifecycleBusy(false)
         }
+    }
+
+    function rightsSummary(user: TenantUser): string {
+        if (!user.roles.includes('EDITOR')) {
+            return 'Rights: full access'
+        }
+        const rights = rightsByUser[user.userId]
+        if (rights === undefined) {
+            return 'Rights: loading…'
+        }
+        if (rights === null || rights.restrictions.length === 0) {
+            return 'Rights: full access'
+        }
+        const details = rights.restrictions
+            .map((restriction) => `${restriction.entityType}/${restriction.operation}`)
+            .join(', ')
+        return `Rights: ${rights.restrictions.length} restriction${rights.restrictions.length === 1 ? '' : 's'} (${details})`
     }
 
     return (
@@ -341,6 +376,7 @@ export default function TenantPage({params}: TenantPageProps) {
                                     description: user.name !== null ? user.email : undefined,
                                     descriptions: [
                                         `Roles: ${user.roles.join(', ')}`,
+                                        rightsSummary(user),
                                         user.lastLoginAt
                                             ? `Last login: ${new Date(user.lastLoginAt).toLocaleString()}`
                                             : 'Last login: —',

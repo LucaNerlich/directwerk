@@ -18,6 +18,7 @@ import type {
     ImportedEpisodeResult,
     RssImportPreview,
     MediaFolder,
+    EffectiveRights,
     FormatSummary,
     FormatTag,
     InviteTenantUserResponse,
@@ -26,10 +27,15 @@ import type {
     MediaAsset,
     MembershipStatus,
     OfferingType,
+    PermissionRestriction,
     ProductAccessRule,
     ProductAccessScopeType,
     PublicationStatus,
     PublicCategory,
+    RbacEffectiveAccess,
+    RbacEntityType,
+    RbacOperation,
+    RbacRestrictionScope,
     SeriesDetail,
     SeriesStatus,
     SeriesSummary,
@@ -80,6 +86,8 @@ export function parseMeEnvelope(value: unknown): ApiEnvelope<Me> | null {
         }
 
         return {
+            // userId arrived with the RBAC release; older backends omit it.
+            userId: isPositiveSafeInteger(data.userId) ? data.userId : null,
             email: data.email,
             name: data.name,
             roles: data.roles,
@@ -222,6 +230,7 @@ function parseArticleDetail(value: unknown): ArticleDetail | null {
                   ? value.requiredLevelSortOrder
                   : null,
         scheduledAt: isNullableString(value.scheduledAt, 64) ? value.scheduledAt : null,
+        createdBy: parseNullableUserId(value.createdBy),
     }
 }
 
@@ -318,6 +327,7 @@ function parseEpisodeDetail(value: unknown): EpisodeDetail | null {
                   ? value.requiredLevelSortOrder
                   : null,
         scheduledAt: isNullableString(value.scheduledAt, 64) ? value.scheduledAt : null,
+        createdBy: parseNullableUserId(value.createdBy),
     }
 }
 
@@ -537,6 +547,7 @@ function parseSeriesDetail(value: unknown): SeriesDetail | null {
         itunesExplicit: value.itunesExplicit,
         defaultRequiredLevelSortOrder: value.defaultRequiredLevelSortOrder,
         rssUrl: value.rssUrl,
+        createdBy: parseNullableUserId(value.createdBy),
     }
 }
 
@@ -609,6 +620,7 @@ export function parseMediaAsset(value: unknown): MediaAsset | null {
             value.folderId === null || value.folderId === undefined
                 ? null
                 : value.folderId,
+        createdBy: parseNullableUserId(value.createdBy),
         cdnUrl: isNullableString(value.cdnUrl, 4096) ? value.cdnUrl : null,
         createdAt: value.createdAt,
         updatedAt: value.updatedAt,
@@ -631,6 +643,7 @@ export function parseMediaFolder(value: unknown): MediaFolder | null {
         id: value.id,
         name: value.name,
         parentId: value.parentId,
+        createdBy: parseNullableUserId(value.createdBy),
         createdAt: value.createdAt,
         updatedAt: value.updatedAt,
     }
@@ -648,6 +661,116 @@ export function parseMediaFolderListEnvelope(
     return parseEnvelope(value, (data) =>
         parseBoundedArray(data, Number.MAX_SAFE_INTEGER, parseMediaFolder),
     )
+}
+
+// ---------------------------------------------------------------------------
+// RBAC (issue #148)
+// ---------------------------------------------------------------------------
+
+function isRbacEntityType(value: unknown): value is RbacEntityType {
+    return (
+        value === 'EPISODE' ||
+        value === 'ARTICLE' ||
+        value === 'SERIES' ||
+        value === 'MEDIA_ASSET' ||
+        value === 'MEDIA_FOLDER'
+    )
+}
+
+function isRbacOperation(value: unknown): value is RbacOperation {
+    return (
+        value === 'CREATE' ||
+        value === 'READ' ||
+        value === 'UPDATE' ||
+        value === 'DELETE' ||
+        value === 'PUBLISH' ||
+        value === 'SCHEDULE' ||
+        value === 'UNPUBLISH' ||
+        value === 'ARCHIVE' ||
+        value === 'UNARCHIVE' ||
+        value === 'MOVE'
+    )
+}
+
+function isRbacRestrictionScope(value: unknown): value is RbacRestrictionScope {
+    return value === 'DENY' || value === 'OTHERS_ONLY'
+}
+
+function isRbacEffectiveAccess(value: unknown): value is RbacEffectiveAccess {
+    return value === 'FULL' || value === 'OWN_ONLY' || value === 'DENIED'
+}
+
+export function parsePermissionRestriction(value: unknown): PermissionRestriction | null {
+    if (
+        !isRecord(value) ||
+        !isRbacEntityType(value.entityType) ||
+        !isRbacOperation(value.operation) ||
+        !isRbacRestrictionScope(value.scope)
+    ) {
+        return null
+    }
+    return {
+        entityType: value.entityType,
+        operation: value.operation,
+        scope: value.scope,
+    }
+}
+
+export function parsePermissionRestrictionListEnvelope(
+    value: unknown,
+): ApiEnvelope<PermissionRestriction[]> | null {
+    return parseEnvelope(value, (data) => parseBoundedArray(data, 200, parsePermissionRestriction))
+}
+
+export function parseEffectiveRightsEnvelope(
+    value: unknown,
+): ApiEnvelope<EffectiveRights> | null {
+    return parseEnvelope(value, (data) => {
+        if (
+            !isRecord(data) ||
+            !isPositiveSafeInteger(data.userId) ||
+            !Array.isArray(data.roles) ||
+            !data.roles.every((role): role is string => typeof role === 'string')
+        ) {
+            return null
+        }
+        const restrictions = parseBoundedArray(data.restrictions ?? [], 200, parsePermissionRestriction)
+        if (restrictions === null || !isRecord(data.effective)) {
+            return null
+        }
+        const effective: EffectiveRights['effective'] = {}
+        for (const [entityKey, operations] of Object.entries(data.effective)) {
+            if (!isRbacEntityType(entityKey) || !isRecord(operations)) {
+                return null
+            }
+            const resolved: Partial<Record<RbacOperation, RbacEffectiveAccess>> = {}
+            for (const [operationKey, access] of Object.entries(operations)) {
+                if (!isRbacOperation(operationKey) || !isRbacEffectiveAccess(access)) {
+                    return null
+                }
+                resolved[operationKey] = access
+            }
+            effective[entityKey] = resolved
+        }
+        return {
+            userId: data.userId,
+            roles: data.roles,
+            restrictions,
+            effective,
+        }
+    })
+}
+
+/**
+ * Lenient creator reference: positive ids pass through, anything else
+ * (null, missing, malformed) becomes null. The backend decides per row.
+ */
+function parseNullableUserId(value: unknown): number | null {
+    return value === null || value === undefined
+        ? null
+        : isPositiveSafeInteger(value)
+          ? value
+          : null
 }
 
 function parseStringRecord(value: unknown): Record<string, string> | null {

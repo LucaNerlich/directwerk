@@ -4,6 +4,7 @@ import {createAuthedRequest} from '@directwerk/api/client/authedRequest'
 import {platformAdminPolicy} from '@directwerk/api/client/policies'
 import {createPlatformApiCore, parsePaginatedApiEnvelope} from '@directwerk/api/client/platformApiCore'
 import type {
+    EffectiveRights,
     JobListPage,
     JobListQuery,
     PlatformAuditEvent,
@@ -11,6 +12,7 @@ import type {
     PlatformAuditQuery,
     PlatformOverview,
 } from '@directwerk/api/types'
+import {parseEffectiveRightsEnvelope} from '@directwerk/api/validation'
 import {isQueueJob} from '@directwerk/api/validation/admin'
 import {isRecord} from '@directwerk/api/validation/primitives'
 
@@ -38,6 +40,17 @@ export async function postPlatformData<T>(
 
 export async function deletePlatformData<T>(path: string): Promise<T> {
     return platformApi.delete<T>(path)
+}
+
+export async function getMemberEffectiveRights(
+    tenantId: string,
+    userId: number,
+): Promise<EffectiveRights> {
+    return platformApi.getEnvelope(
+        `tenants/${tenantId}/users/${userId}/effective-rights`,
+        parseEffectiveRightsEnvelope,
+        'Invalid rights response.',
+    )
 }
 
 function isPlatformAuditEvent(value: unknown): value is PlatformAuditEvent {

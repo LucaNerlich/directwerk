@@ -24,6 +24,8 @@ interface PublicationWorkflowActionsProps {
     /** Hides the primary action buttons (Save/Publish/…). Used when the
      * surrounding layout renders them in a sticky header instead. */
     showPrimaryActions?: boolean
+    /** Disables every control (RBAC read-only lock); combined with isSaving. */
+    disabled?: boolean
     onSave: () => void
     onPublish: () => void
     onSchedule: () => void
@@ -48,6 +50,7 @@ export default function PublicationWorkflowActions({
     publishValidationError = null,
     scheduleValidationError = null,
     showPrimaryActions = true,
+    disabled = false,
     onSave,
     onPublish,
     onSchedule,
@@ -62,7 +65,7 @@ export default function PublicationWorkflowActions({
     const isArchived = status === 'ARCHIVED'
 
     return (
-        <fieldset className="m-0 flex min-w-0 flex-col gap-3 border-0 p-0" disabled={isSaving}>
+        <fieldset className="m-0 flex min-w-0 flex-col gap-3 border-0 p-0" disabled={isSaving || disabled}>
             <legend className="sr-only">Veröffentlichung</legend>
             {showPrimaryActions ? (
             <div className="flex flex-wrap items-end gap-2">

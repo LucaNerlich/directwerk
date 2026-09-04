@@ -19,6 +19,7 @@ function folder(id: number, name: string, parentId: number | null): MediaFolder 
         name,
         parentId,
         createdAt: '2026-01-01T00:00:00Z',
+        createdBy: null,
         updatedAt: '2026-01-01T00:00:00Z',
     }
 }
@@ -37,6 +38,7 @@ function asset(id: number, folderId: number | null | undefined): MediaAsset {
         episodeId: null,
         ownerUserId: null,
         folderId: folderId as number | null,
+        createdBy: null,
         cdnUrl: null,
         createdAt: '2026-01-01T00:00:00Z',
         updatedAt: '2026-01-01T00:00:00Z',

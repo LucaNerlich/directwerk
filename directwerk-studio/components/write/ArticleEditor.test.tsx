@@ -1,8 +1,11 @@
 import {render, screen, waitFor} from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import {describe, expect, it, vi} from 'vitest'
+import {afterEach, describe, expect, it, vi} from 'vitest'
 
 import ArticleEditor from '@/components/write/ArticleEditor'
+import {getMyEffectiveRights} from '@/lib/api/tenantSettingsApi'
+import {useOptionalMe} from '@/lib/auth/MeProvider'
+import type {EffectiveRights} from '@directwerk/api/types'
 
 const mockRouter = {replace: vi.fn()}
 vi.mock('next/navigation', () => ({useRouter: () => mockRouter}))
@@ -16,7 +19,10 @@ vi.mock('@/lib/site/SiteConfigProvider', () => ({
     }),
 }))
 vi.mock('@/lib/auth/MeProvider', () => ({
-    useOptionalMe: () => null,
+    useOptionalMe: vi.fn().mockReturnValue(null),
+}))
+vi.mock('@/lib/api/tenantSettingsApi', () => ({
+    getMyEffectiveRights: vi.fn(async (_host: string): Promise<EffectiveRights | null> => null),
 }))
 
 const getArticle = vi.fn().mockResolvedValue({
@@ -117,5 +123,45 @@ describe('ArticleEditor tagging', () => {
             await screen.findByRole('option', {name: 'Öffentlich / Keine Mindeststufe'}),
         ).toBeInTheDocument()
         expect(screen.getByRole('option', {name: 'Fan (10)'})).toBeInTheDocument()
+    })
+})
+
+describe('ArticleEditor RBAC', () => {
+    afterEach(() => {
+        vi.mocked(useOptionalMe).mockReturnValue(null)
+        vi.mocked(getMyEffectiveRights).mockResolvedValue(null as unknown as EffectiveRights)
+    })
+
+    it('locks fields and publish for foreign content under own-only rights', async () => {
+        vi.mocked(useOptionalMe).mockReturnValue({
+            userId: 5,
+            email: 'editor@example.com',
+            name: 'Editor',
+            roles: ['EDITOR'],
+            tenantId: 1,
+        })
+        vi.mocked(getMyEffectiveRights).mockResolvedValue({
+            userId: 5,
+            roles: ['EDITOR'],
+            restrictions: [
+                {entityType: 'ARTICLE', operation: 'UPDATE', scope: 'OTHERS_ONLY'},
+                {entityType: 'ARTICLE', operation: 'PUBLISH', scope: 'DENY'},
+            ],
+            effective: {
+                ARTICLE: {UPDATE: 'OWN_ONLY', PUBLISH: 'DENIED', DELETE: 'FULL'},
+            },
+        })
+        getArticle.mockResolvedValueOnce({
+            id: 1, slug: 'beitrag', title: 'Beitrag', status: 'DRAFT', accessPolicy: 'FREE', publishedAt: null,
+            body: null, excerpt: null, seoDescription: null, heroAssetId: null,
+            requiredLevelSortOrder: null, scheduledAt: null, categories: [], createdBy: 99,
+        })
+        render(<ArticleEditor articleId={1} />)
+
+        await waitFor(() => expect(screen.getByPlaceholderText('Titel eingeben…')).toBeDisabled())
+        expect(
+            screen.getByText(/Du kannst nur eigene Beiträge bearbeiten/),
+        ).toBeInTheDocument()
+        expect(screen.getAllByRole('button', {name: 'Veröffentlichen'})[0]).toBeDisabled()
     })
 })

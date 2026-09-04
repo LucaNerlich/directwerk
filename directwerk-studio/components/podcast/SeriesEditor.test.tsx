@@ -88,6 +88,7 @@ describe('SeriesEditor RSS URL', () => {
             coverAssetId: null, language: 'de', itunesCategory: null,
             itunesExplicit: false, defaultRequiredLevelSortOrder: null,
             rssUrl: null, status: 'DRAFT' as const,
+            createdBy: null,
         }
         vi.mocked(createSeries).mockResolvedValueOnce(created)
         vi.mocked(updateSeries)

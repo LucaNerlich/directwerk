@@ -20,6 +20,7 @@ import {Skeleton} from '@directwerk/ui/components/skeleton'
 import {useListViewMode} from '@directwerk/ui/hooks/use-list-view-mode'
 
 import SelectControl from '@/components/studio/SelectControl'
+import MemberRightsEditor from '@/components/team/MemberRightsEditor'
 import {deactivateTenantUser, inviteTenantUser, listTenantUsers, reactivateTenantUser} from '@/lib/api/tenantSettingsApi'
 import {
     TENANT_INVITABLE_ROLES,
@@ -96,6 +97,7 @@ export default function TeamClient(): React.JSX.Element {
     const [isLoading, setIsLoading] = useState(true)
     const [actionError, setActionError] = useState<string | null>(null)
     const [busyUserId, setBusyUserId] = useState<number | null>(null)
+    const [rightsUserId, setRightsUserId] = useState<number | null>(null)
     const [reloadToken, setReloadToken] = useState(0)
     const {viewMode, setViewMode} = useListViewMode()
 
@@ -304,6 +306,55 @@ export default function TeamClient(): React.JSX.Element {
                     <AlertDescription>{actionError}</AlertDescription>
                 </Alert>
             ) : null}
+
+            <section aria-labelledby="team-rights-heading" className="flex flex-col gap-4">
+                <SectionHeader
+                    id="team-rights-heading"
+                    title="Zugriffsrechte"
+                    description="Redakteure haben standardmäßig vollen Zugriff auf Inhalte. Nimm einzelnen Personen gezielt Rechte weg — oder beschränke sie auf eigene Inhalte. Tenant-Admins behalten immer Vollzugriff."
+                />
+                {(() => {
+                    const editable = users.filter(
+                        (user) => user.roles.includes('EDITOR') && user.status !== 'DISABLED',
+                    )
+                    const selected =
+                        editable.find((user) => user.userId === rightsUserId) ?? editable[0] ?? null
+                    if (editable.length === 0) {
+                        return (
+                            <p className="text-sm text-muted-foreground">
+                                Keine aktiven Redakteure vorhanden — lade unten jemanden als Redakteur ein,
+                                um Rechte zu vergeben.
+                            </p>
+                        )
+                    }
+                    return (
+                        <div className="grid max-w-2xl gap-3">
+                            <label className="grid gap-2 text-sm font-medium" htmlFor="rights-user">
+                                <span>Mitglied</span>
+                                <select
+                                    className="native-select"
+                                    id="rights-user"
+                                    onChange={(event) => setRightsUserId(Number(event.target.value))}
+                                    value={selected !== null ? selected.userId : ''}
+                                >
+                                    {editable.map((user) => (
+                                        <option key={user.userId} value={user.userId}>
+                                            {user.name ?? user.email} ({user.email})
+                                        </option>
+                                    ))}
+                                </select>
+                            </label>
+                            {selected !== null ? (
+                                <MemberRightsEditor
+                                    key={selected.userId}
+                                    onAuthRequired={() => router.replace('/login')}
+                                    user={selected}
+                                />
+                            ) : null}
+                        </div>
+                    )
+                })()}
+            </section>
 
             <Card className="max-w-xl">
                 <CardHeader>

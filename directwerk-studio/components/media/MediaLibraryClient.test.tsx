@@ -46,6 +46,7 @@ const coverAsset = {
     episodeId: null,
     ownerUserId: 1,
     folderId: null,
+    createdBy: null,
     cdnUrl: 'https://cdn.example/cover.png',
     createdAt: '2026-01-01T00:00:00Z',
     updatedAt: '2026-01-01T00:00:00Z',
@@ -56,6 +57,7 @@ function testFolder(id: number, name: string, parentId: number | null): MediaFol
         id,
         name,
         parentId,
+        createdBy: null,
         createdAt: '2026-01-01T00:00:00Z',
         updatedAt: '2026-01-01T00:00:00Z',
     }

@@ -17,6 +17,7 @@ import PublishedLinksPanel from '@/components/publication/PublishedLinksPanel'
 import PublicationEditorLayout from '@/components/publication/PublicationEditorLayout'
 import {listCategories, replaceArticleCategories} from '@/lib/api/catalogApi'
 import {getMediaPreviewUrl} from '@/lib/api/mediaApi'
+import {useDeskAccess} from '@/lib/rbac/useDeskAccess'
 import {
     archiveArticle,
     cancelScheduleArticle,
@@ -80,6 +81,13 @@ export default function ArticleEditor({articleId}: {articleId?: number}) {
         publishValidationError,
     } = usePublicationEditorFields()
     useDefaultNotifySubscribers(showNotify, setNotifySubscribers)
+    // RBAC desk adaptation (issue #148); hook call stays above all early
+    // returns. New rows count as own; the backend enforces per row.
+    const desk = useDeskAccess({
+        entity: 'ARTICLE',
+        ownerUserId: articleId === undefined ? undefined : (article?.createdBy ?? null),
+        kind: 'Beitrag',
+    })
     const [heroAssetId, setHeroAssetId] = useState<number | null>(null)
     const [heroPreviewUrl, setHeroPreviewUrl] = useState<string | null>(null)
     const [isUploadingHero, setIsUploadingHero] = useState(false)
@@ -343,6 +351,7 @@ export default function ArticleEditor({articleId}: {articleId?: number}) {
     /** Saving and hero uploads share one busy flag so a manual save cannot
      * persist the article while the hero image is still uploading. */
     const busy = isSaving || isUploadingHero
+    const readOnly = !desk.canEdit
 
     const publishBlockedReason = articlePublishBlockReason({title, body})
     const publishedUrl = useMemo(() => {
@@ -418,8 +427,9 @@ export default function ArticleEditor({articleId}: {articleId?: number}) {
             isSaving={busy}
             saveHint={saveHint}
             errorMessage={errorMessage}
-            canPublish={publishBlockedReason === null}
-            publishBlockedReason={publishBlockedReason}
+            canPublish={publishBlockedReason === null && desk.canPublish}
+            publishBlockedReason={desk.publishBlockedReason ?? publishBlockedReason}
+            readOnlyReason={readOnly ? desk.editBlockedReason : null}
             showNotify={showNotify}
             notifySubscribers={notifySubscribers}
             onNotifyChange={setNotifySubscribers}
@@ -513,7 +523,7 @@ export default function ArticleEditor({articleId}: {articleId?: number}) {
                             <span>{heroAssetId === null ? 'Bild hochladen' : 'Bild ersetzen'}</span>
                             <Input
                                 accept="image/png,image/jpeg,image/webp"
-                                disabled={isSaving || isUploadingHero}
+                                disabled={isSaving || isUploadingHero || readOnly}
                                 onChange={(event) => {
                                     const file = event.target.files?.[0] ?? null
                                     void handleHeroUpload(file)
@@ -533,7 +543,7 @@ export default function ArticleEditor({articleId}: {articleId?: number}) {
                         ) : null}
                         <MediaLibraryPicker
                             assetType="IMAGE"
-                            disabled={isSaving || isUploadingHero}
+                            disabled={isSaving || isUploadingHero || readOnly}
                             label="Titelbild aus Mediathek"
                             onAuthRequired={handleAuthRequired}
                             onSelect={(asset) => {
@@ -544,7 +554,7 @@ export default function ArticleEditor({articleId}: {articleId?: number}) {
                         />
                         {heroAssetId !== null ? (
                             <Button
-                                disabled={isSaving || isUploadingHero}
+                                disabled={isSaving || isUploadingHero || readOnly}
                                 onClick={() => {
                                     setHeroAssetId(null)
                                     markDirty()
@@ -568,7 +578,7 @@ export default function ArticleEditor({articleId}: {articleId?: number}) {
                                 />
                         <FormatCategoryPicker
                             categories={availableCategories}
-                            disabled={busy}
+                            disabled={busy || readOnly}
                             onCategoryChange={(ids) => {
                                 setSelectedCategoryIds(ids)
                                 markDirty()
@@ -582,7 +592,7 @@ export default function ArticleEditor({articleId}: {articleId?: number}) {
                 </>
             }
             />
-            {articleId !== undefined && article !== null ? (
+            {articleId !== undefined && article !== null && desk.canDelete ? (
                 <div className="mt-6">
                     <PublicationDangerZone
                         contentLabel="Beitrag"
