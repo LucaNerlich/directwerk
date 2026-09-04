@@ -214,6 +214,20 @@ alpha-show-a/
 
 Unique index: `(tenant_id, s3_key)`. Never reuse `s3_key` across tenants or assets.
 
+### Library folders (organization metadata only)
+
+Media library folders (`media_folders`, linked via `media_assets.folder_id`) are **pure
+organization metadata** — they never appear in S3 keys. Moving an asset or folder is a
+single `folder_id`/`parent_id` UPDATE: no S3 copies, no CDN invalidation, stable public
+URLs. Rules:
+
+- Names unique per parent (case-sensitive); max nesting depth 8; `NULL` parent/`folder_id`
+  means the library root.
+- Deleting a folder either moves contents up to the parent (default) or deletes contained
+  assets through the asset lifecycle (S3 purge included).
+- Folders grant nothing: private delivery still checks per-asset entitlement
+  (`AssetAccessService`), never a folder/prefix grant.
+
 ---
 
 ## Module gating

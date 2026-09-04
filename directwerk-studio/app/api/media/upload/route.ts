@@ -177,6 +177,16 @@ export async function POST(request: Request): Promise<Response> {
         episodeId = parsed
     }
 
+    const folderIdRaw = (request.headers.get('x-folder-id') ?? '').trim()
+    let folderId: number | undefined
+    if (folderIdRaw.length > 0) {
+        const parsed = Number(folderIdRaw)
+        if (!Number.isSafeInteger(parsed) || parsed < 1) {
+            return jsonError('Invalid folderId.', 400)
+        }
+        folderId = parsed
+    }
+
     const uploadUrlBody = {
         filename,
         mimeType,
@@ -185,6 +195,7 @@ export async function POST(request: Request): Promise<Response> {
         intendedVisibility: visibilityRaw,
         scope: visibilityRaw === 'PUBLIC' ? 'TENANT_PUBLIC' : 'CONTENT',
         ...(episodeId === undefined ? {} : {episodeId}),
+        ...(folderId === undefined ? {} : {folderId}),
     }
 
     try {

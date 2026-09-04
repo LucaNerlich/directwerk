@@ -19,9 +19,10 @@ import EmptyState from '@directwerk/ui/components/empty-state'
 import Link from 'next/link'
 
 import {AUTH_REQUIRED} from '@directwerk/api/constants'
-import {listMedia} from '@/lib/api/mediaApi'
-import type {MediaAsset} from '@directwerk/api/types'
+import {listMedia, listMediaFolders} from '@/lib/api/mediaApi'
+import type {MediaAsset, MediaFolder} from '@directwerk/api/types'
 import {getClientTenantHost} from '@directwerk/api/tenant'
+import {buildFolderTree, flattenFolderTree} from '@/lib/media/folders'
 import {assetTypeLabel} from '@/lib/subscription/displayLabels'
 import {safeImageSrc, safeLinkHref} from '@/lib/url/safeUrl'
 
@@ -83,12 +84,15 @@ export default function MediaInlinePickerDialog({
     initialFilter = 'ALL',
 }: MediaInlinePickerDialogProps): React.JSX.Element {
     const [assets, setAssets] = useState<MediaAsset[]>([])
+    const [folders, setFolders] = useState<MediaFolder[]>([])
     const [isLoading, setIsLoading] = useState(false)
     const [errorMessage, setErrorMessage] = useState<string | null>(null)
     const [reloadToken, setReloadToken] = useState(0)
     const [typeFilter, setTypeFilter] = useState<EmbeddableAssetFilter>(initialFilter)
+    const [folderFilter, setFolderFilter] = useState<number | 'ALL'>('ALL')
     const [query, setQuery] = useState('')
     const searchId = useId()
+    const folderId = useId()
 
     useEffect(() => {
         if (!open) {
@@ -100,9 +104,13 @@ export default function MediaInlinePickerDialog({
 
         async function load(): Promise<void> {
             try {
-                const loaded = await listMedia(getClientTenantHost())
+                const host = getClientTenantHost()
+                const loadedFoldersPromise = listMediaFolders(host).catch(() => [])
+                const loadedAssets = await listMedia(host)
+                const loadedFolders = await loadedFoldersPromise
                 if (active) {
-                    setAssets(loaded)
+                    setAssets(loadedAssets)
+                    setFolders(loadedFolders)
                 }
             } catch (error) {
                 if (!active) {
@@ -152,6 +160,9 @@ export default function MediaInlinePickerDialog({
                 if (typeFilter !== 'ALL' && asset.assetType !== typeFilter) {
                     return false
                 }
+                if (folderFilter !== 'ALL' && (asset.folderId ?? null) !== folderFilter) {
+                    return false
+                }
                 const needle = query.trim().toLowerCase()
                 if (needle.length === 0) {
                     return true
@@ -160,7 +171,16 @@ export default function MediaInlinePickerDialog({
                     .toLowerCase()
                     .includes(needle)
             }),
-        [embeddable, typeFilter, query],
+        [embeddable, typeFilter, folderFilter, query],
+    )
+
+    const folderOptions = useMemo(
+        () => flattenFolderTree(buildFolderTree(folders)),
+        [folders],
+    )
+    const folderNameById = useMemo(
+        () => new Map(folders.map((folder) => [folder.id, folder.name] as const)),
+        [folders],
     )
 
     return (
@@ -207,6 +227,30 @@ export default function MediaInlinePickerDialog({
                             value={query}
                         />
                     </label>
+                    {folderOptions.length > 0 ? (
+                        <label className="grid gap-2 text-sm font-medium" htmlFor={folderId}>
+                            <span>Ordner</span>
+                            <select
+                                className="native-select"
+                                id={folderId}
+                                onChange={(event) =>
+                                    setFolderFilter(
+                                        event.target.value === ''
+                                            ? 'ALL'
+                                            : Number(event.target.value),
+                                    )
+                                }
+                                value={folderFilter === 'ALL' ? '' : folderFilter}
+                            >
+                                <option value="">Alle Ordner</option>
+                                {folderOptions.map((node) => (
+                                    <option key={node.folder.id} value={node.folder.id}>
+                                        {`${'— '.repeat(node.depth)}${node.folder.name}`}
+                                    </option>
+                                ))}
+                            </select>
+                        </label>
+                    ) : null}
                     {isLoading ? (
                         <div className="grid gap-2" aria-hidden="true">
                             {[0, 1, 2].map((index) => (
@@ -275,6 +319,10 @@ export default function MediaInlinePickerDialog({
                                                 <Badge variant="secondary">
                                                     {assetTypeLabel(asset.assetType)}
                                                 </Badge>
+                                                {asset.folderId != null &&
+                                                folderNameById.get(asset.folderId) !== undefined ? (
+                                                    <span>{folderNameById.get(asset.folderId)}</span>
+                                                ) : null}
                                                 <span>{formatBytes(asset.sizeBytes)}</span>
                                                 <span>
                                                     {kind === 'image'

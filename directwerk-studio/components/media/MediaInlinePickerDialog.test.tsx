@@ -1,4 +1,4 @@
-import {render, screen, waitFor, within} from '@testing-library/react'
+import {fireEvent, render, screen, waitFor, within} from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import {describe, expect, it, vi} from 'vitest'
 
@@ -56,9 +56,19 @@ const pendingImage = {
 }
 
 const listMedia = vi.fn().mockResolvedValue([publicImage, publicAudio, privateImage, pendingImage])
+const listMediaFolders = vi.fn().mockResolvedValue([
+    {
+        id: 11,
+        name: 'Interviews',
+        parentId: null,
+        createdAt: '2026-01-01T00:00:00Z',
+        updatedAt: '2026-01-01T00:00:00Z',
+    },
+])
 
 vi.mock('@/lib/api/mediaApi', () => ({
     listMedia: (...args: unknown[]) => listMedia(...args),
+    listMediaFolders: (...args: unknown[]) => listMediaFolders(...args),
 }))
 
 function renderDialog(onInsert: (asset: MediaAsset) => void = () => undefined) {
@@ -115,5 +125,32 @@ describe('MediaInlinePickerDialog', () => {
         expect(insert).toHaveBeenCalledTimes(1)
         expect(insert.mock.calls[0][0]).toMatchObject({id: 1})
         expect(openChange).toHaveBeenCalledWith(false)
+    })
+
+    it('filters by folder and shows folder names', async () => {
+        listMedia.mockResolvedValueOnce([
+            {...publicImage, folderId: 11},
+            {...publicAudio, folderId: null},
+        ])
+        renderDialog()
+
+        expect(await screen.findByText('cover.png')).toBeInTheDocument()
+        expect(screen.getByText('jingle.mp3')).toBeInTheDocument()
+        expect(screen.getByText('Interviews', {selector: 'span'})).toBeInTheDocument()
+
+        fireEvent.change(screen.getByLabelText('Ordner'), {target: {value: '11'}})
+
+        expect(screen.getByText('cover.png')).toBeInTheDocument()
+        expect(screen.queryByText('jingle.mp3')).not.toBeInTheDocument()
+    })
+
+    it('keeps loaded assets when loading folders fails', async () => {
+        listMediaFolders.mockRejectedValueOnce(new Error('folder request failed'))
+
+        renderDialog()
+
+        expect(await screen.findByText('cover.png')).toBeInTheDocument()
+        expect(screen.getByText('jingle.mp3')).toBeInTheDocument()
+        expect(screen.queryByRole('alert')).not.toBeInTheDocument()
     })
 })

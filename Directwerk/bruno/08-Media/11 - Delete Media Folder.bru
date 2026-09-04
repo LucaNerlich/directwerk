@@ -1,0 +1,21 @@
+meta {
+  name: 11 - Delete Media Folder
+  type: http
+  seq: 11
+}
+
+delete {
+  url: {{baseUrl}}/api/v1/media/folders/{{mediaFolderId}}?mode=move_to_parent
+  body: none
+  auth: inherit
+}
+
+tests {
+  test("returns expected status", function() {
+    expect(res.getStatus() === 200 || res.getStatus() === 404 || res.getStatus() === 503).to.equal(true);
+  });
+}
+
+docs {
+  mode=move_to_parent (default) moves assets and subfolders up to the parent (or root). mode=delete_contents deletes contained assets via the asset lifecycle (S3 purge included) and removes subfolders.
+}

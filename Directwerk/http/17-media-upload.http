@@ -115,6 +115,155 @@ Accept: application/json
 
 ###
 
+### @name resolveExistingMediaFolder
+### Resolve the id first so a repeatable run can handle createMediaFolder returning 409.
+GET {{baseUrl}}/api/v1/media/folders
+Authorization: Bearer {{tenantAAccessToken}}
+Host: {{tenantAHost}}
+Accept: application/json
+
+> {%
+    client.test("Resolve existing media folder", function() {
+        client.assert(response.status === 200 || response.status === 503, "Expected 200/503");
+        client.global.set("existingMediaFolderId", "");
+        if (response.status === 200 && Array.isArray(response.body.data)) {
+            const existing = response.body.data.find(folder =>
+                folder.name === "Interviews" && folder.parentId === null
+            );
+            if (existing) {
+                client.global.set("existingMediaFolderId", existing.id);
+            }
+        }
+    });
+%}
+###
+
+### @name createMediaFolder
+### Folder names are unique per parent (case-sensitive); omit parentId for root. Max depth 8.
+POST {{baseUrl}}/api/v1/media/folders
+Authorization: Bearer {{tenantAAccessToken}}
+Host: {{tenantAHost}}
+Content-Type: application/json
+Accept: application/json
+
+{
+  "name": "Interviews",
+  "parentId": null
+}
+
+> {%
+    client.test("Create media folder", function() {
+        let conflictHandled = false;
+        if (response.status === 201) {
+            client.assert(response.body.data.id, "Expected folder id");
+            client.global.set("mediaFolderId", response.body.data.id);
+        } else if (response.status === 409) {
+            const existingFolderId = client.global.get("existingMediaFolderId");
+            conflictHandled = Boolean(existingFolderId);
+            if (conflictHandled) {
+                client.global.set("mediaFolderId", existingFolderId);
+            }
+        }
+        client.assert(
+            response.status === 201 || response.status === 503 || (response.status === 409 && conflictHandled),
+            "Expected 201/503, or a handled 409 with an existing Interviews folder"
+        );
+    });
+%}
+
+###
+
+### @name listMediaFolders
+GET {{baseUrl}}/api/v1/media/folders
+Authorization: Bearer {{tenantAAccessToken}}
+Host: {{tenantAHost}}
+Accept: application/json
+
+> {%
+    client.test("List media folders", function() {
+        client.assert(response.status === 200 || response.status === 503, "Expected 200/503");
+        if (response.status === 200) {
+            client.assert(Array.isArray(response.body.data), "Expected data array");
+        }
+    });
+%}
+
+###
+
+### @name listMediaInFolder
+### Exact-folder filter; add &recursive=true for descendants, or ?unassignedOnly=true for root assets.
+GET {{baseUrl}}/api/v1/media?folderId={{mediaFolderId}}&limit=20
+Authorization: Bearer {{tenantAAccessToken}}
+Host: {{tenantAHost}}
+Accept: application/json
+
+> {%
+    client.test("List media in folder", function() {
+        client.assert(response.status === 200 || response.status === 404 || response.status === 503, "Expected 200/404/503");
+    });
+%}
+
+###
+
+### @name renameMediaFolder
+PUT {{baseUrl}}/api/v1/media/folders/{{mediaFolderId}}
+Authorization: Bearer {{tenantAAccessToken}}
+Host: {{tenantAHost}}
+Content-Type: application/json
+Accept: application/json
+
+{
+  "name": "Interviews (Archiv)"
+}
+
+> {%
+    client.test("Rename media folder", function() {
+        client.assert(response.status === 200 || response.status === 404 || response.status === 409 || response.status === 503, "Expected 200/404/409/503");
+    });
+%}
+
+###
+
+### @name moveMediaFolder
+### Null parentId moves to the library root. Cycles and depth > 8 are rejected with 400.
+POST {{baseUrl}}/api/v1/media/folders/{{mediaFolderId}}/move
+Authorization: Bearer {{tenantAAccessToken}}
+Host: {{tenantAHost}}
+Content-Type: application/json
+Accept: application/json
+
+{
+  "parentId": null
+}
+
+> {%
+    client.test("Move media folder", function() {
+        client.assert(response.status === 200 || response.status === 400 || response.status === 404 || response.status === 503, "Expected 200/400/404/503");
+    });
+%}
+
+###
+
+### @name moveMediaAsset
+### Null folderId moves the asset back to the library root. S3 keys are untouched.
+POST {{baseUrl}}/api/v1/media/{{mediaAssetId}}/move
+Authorization: Bearer {{tenantAAccessToken}}
+Host: {{tenantAHost}}
+Content-Type: application/json
+Accept: application/json
+
+{
+  "folderId": {{mediaFolderId}}
+}
+
+> {%
+    client.test("Move media asset", function() {
+        client.assert(response.status === 200 || response.status === 404 || response.status === 503, "Expected 200/404/503");
+    });
+%}
+
+###
+
 ### @name deleteMedia
 DELETE {{baseUrl}}/api/v1/media/{{mediaAssetId}}
 Authorization: Bearer {{tenantAAccessToken}}
@@ -127,5 +276,20 @@ Accept: application/json
             response.status === 200 || response.status === 404 || response.status === 503,
             "Expected 200/404/503"
         );
+    });
+%}
+
+###
+
+### @name deleteMediaFolder
+### mode=move_to_parent (default) moves assets/subfolders up; mode=delete_contents deletes them.
+DELETE {{baseUrl}}/api/v1/media/folders/{{mediaFolderId}}?mode=move_to_parent
+Authorization: Bearer {{tenantAAccessToken}}
+Host: {{tenantAHost}}
+Accept: application/json
+
+> {%
+    client.test("Delete media folder", function() {
+        client.assert(response.status === 200 || response.status === 404 || response.status === 503, "Expected 200/404/503");
     });
 %}

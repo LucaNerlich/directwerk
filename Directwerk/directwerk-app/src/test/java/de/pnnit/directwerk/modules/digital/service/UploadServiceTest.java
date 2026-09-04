@@ -3,6 +3,8 @@ package de.pnnit.directwerk.modules.digital.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -12,6 +14,7 @@ import de.pnnit.directwerk.config.DirectwerkConfig;
 import de.pnnit.directwerk.config.DirectwerkProperties;
 import de.pnnit.directwerk.modules.core.entity.Tenant;
 import de.pnnit.directwerk.modules.core.repository.TenantRepository;
+import de.pnnit.directwerk.modules.digital.api.MediaFolderApi;
 import de.pnnit.directwerk.modules.digital.api.UploadApi;
 import de.pnnit.directwerk.modules.digital.entity.AssetScope;
 import de.pnnit.directwerk.modules.digital.entity.AssetStatus;
@@ -72,6 +75,9 @@ class UploadServiceTest {
     private PlatformTransactionManager transactionManager;
 
     @Mock
+    private MediaFolderApi mediaFolderApi;
+
+    @Mock
     private PresignedPutObjectRequest presignedPut;
 
     private UploadService uploadService;
@@ -87,7 +93,8 @@ class UploadServiceTest {
                 directwerkConfig,
                 stagingCleanupService,
                 mediaDeleteJobProducer,
-                transactionManager
+                transactionManager,
+                mediaFolderApi
         );
         lenient().when(transactionManager.getTransaction(org.mockito.ArgumentMatchers.any()))
                 .thenReturn(new SimpleTransactionStatus());
@@ -114,6 +121,11 @@ class UploadServiceTest {
         });
         when(presignedPut.url()).thenReturn(URI.create("https://s3.example/put").toURL());
         when(s3Presigner.presignPutObject(any(PutObjectPresignRequest.class))).thenReturn(presignedPut);
+        doAnswer(invocation -> {
+            MediaAsset asset = invocation.getArgument(1);
+            asset.setFolderId(invocation.getArgument(2));
+            return null;
+        }).when(mediaFolderApi).assignAssetToFolder(eq(10L), any(MediaAsset.class), eq(11L));
 
         UploadApi.UploadUrlResult result = uploadService.createUploadUrl(new UploadApi.CreateUploadUrlCommand(
                 "episode.mp3",
@@ -123,7 +135,8 @@ class UploadServiceTest {
                 AssetVisibility.PRIVATE,
                 AssetScope.CONTENT,
                 null,
-                null
+                null,
+                11L
         ));
 
         assertThat(result.assetId()).isEqualTo(1001L);
@@ -144,6 +157,8 @@ class UploadServiceTest {
         verify(mediaAssetRepository).saveAndFlush(assetCaptor.capture());
         assertThat(assetCaptor.getValue().getStatus()).isEqualTo(AssetStatus.PENDING);
         assertThat(assetCaptor.getValue().getMimeType()).isEqualTo("audio/mpeg");
+        assertThat(assetCaptor.getValue().getFolderId()).isEqualTo(11L);
+        verify(mediaFolderApi).assignAssetToFolder(10L, assetCaptor.getValue(), 11L);
     }
 
     @Test
@@ -161,6 +176,7 @@ class UploadServiceTest {
                 AssetType.IMAGE,
                 AssetVisibility.PRIVATE,
                 AssetScope.SYSTEM,
+                null,
                 null,
                 null
         )))
@@ -182,6 +198,7 @@ class UploadServiceTest {
                 AssetType.AUDIO,
                 AssetVisibility.PRIVATE,
                 AssetScope.CONTENT,
+                null,
                 null,
                 null
         ))).isInstanceOf(UploadValidationException.class);
@@ -207,6 +224,7 @@ class UploadServiceTest {
                 AssetType.AUDIO,
                 AssetVisibility.PRIVATE,
                 AssetScope.CONTENT,
+                null,
                 null,
                 null
         ));

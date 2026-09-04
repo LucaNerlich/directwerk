@@ -13,7 +13,10 @@ import de.pnnit.directwerk.modules.core.repository.TenantRepository;
 import de.pnnit.directwerk.modules.digital.entity.AssetStatus;
 import de.pnnit.directwerk.modules.digital.entity.AssetType;
 import de.pnnit.directwerk.modules.digital.entity.MediaAsset;
+import de.pnnit.directwerk.modules.digital.entity.MediaFolder;
+import de.pnnit.directwerk.modules.digital.exception.MediaFolderNotFoundException;
 import de.pnnit.directwerk.modules.digital.repository.MediaAssetRepository;
+import de.pnnit.directwerk.modules.digital.repository.MediaFolderRepository;
 import de.pnnit.directwerk.multitenancy.TenantContext;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
@@ -32,6 +35,9 @@ class MediaAssetQueryServiceTest {
     private MediaAssetRepository mediaAssetRepository;
 
     @Mock
+    private MediaFolderRepository mediaFolderRepository;
+
+    @Mock
     private TenantRepository tenantRepository;
 
     private MediaAssetQueryService service;
@@ -39,7 +45,7 @@ class MediaAssetQueryServiceTest {
     @BeforeEach
     void setUp() {
         TenantContext.clear();
-        service = new MediaAssetQueryService(mediaAssetRepository, tenantRepository);
+        service = new MediaAssetQueryService(mediaAssetRepository, mediaFolderRepository, tenantRepository);
     }
 
     @AfterEach
@@ -123,5 +129,78 @@ class MediaAssetQueryServiceTest {
         when(mediaAssetRepository.findById(7L)).thenReturn(java.util.Optional.of(asset));
 
         assertThat(service.findById(7L)).contains(asset);
+    }
+
+    @Test
+    void listInFolderRejectsFolderIdWithUnassignedOnly() {
+        assertThatThrownBy(() -> service.listInFolder(null, null, 3L, false, true, 20))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("mutually exclusive");
+    }
+
+    @Test
+    void listInFolderWithoutFilterDelegatesToUnfilteredList() {
+        when(mediaAssetRepository.findFiltered(eq(AssetType.IMAGE), isNull(), any(Pageable.class)))
+                .thenReturn(List.of());
+
+        assertThat(service.listInFolder(AssetType.IMAGE, null, null, false, false, 20)).isEmpty();
+        verify(mediaAssetRepository).findFiltered(eq(AssetType.IMAGE), isNull(), any(Pageable.class));
+    }
+
+    @Test
+    void listInFolderWithUnassignedOnlyQueriesRootAssets() {
+        when(mediaAssetRepository.findFilteredUnassigned(isNull(), eq(AssetStatus.READY), any(Pageable.class)))
+                .thenReturn(List.of());
+
+        assertThat(service.listInFolder(null, AssetStatus.READY, null, false, true, 20)).isEmpty();
+        verify(mediaAssetRepository)
+                .findFilteredUnassigned(isNull(), eq(AssetStatus.READY), any(Pageable.class));
+    }
+
+    @Test
+    void listInFolderQueriesExactFolder() {
+        MediaFolder folder = new MediaFolder();
+        folder.setId(3L);
+        TenantContext.setTenantId(42L);
+        when(mediaFolderRepository.findByIdAndTenantId(3L, 42L))
+                .thenReturn(java.util.Optional.of(folder));
+        when(mediaAssetRepository.findFilteredInFolders(
+                        isNull(), isNull(), eq(List.of(3L)), any(Pageable.class)))
+                .thenReturn(List.of());
+
+        assertThat(service.listInFolder(null, null, 3L, false, false, 20)).isEmpty();
+        verify(mediaAssetRepository)
+                .findFilteredInFolders(isNull(), isNull(), eq(List.of(3L)), any(Pageable.class));
+    }
+
+    @Test
+    void listInFolderRecursiveIncludesDescendants() {
+        MediaFolder folder = new MediaFolder();
+        folder.setId(3L);
+        MediaFolder child = new MediaFolder();
+        child.setId(4L);
+        child.setParent(folder);
+        TenantContext.setTenantId(42L);
+        when(mediaFolderRepository.findByIdAndTenantId(3L, 42L))
+                .thenReturn(java.util.Optional.of(folder));
+        when(mediaFolderRepository.findByTenantIdOrderByNameAscIdAsc(42L))
+                .thenReturn(List.of(folder, child));
+        when(mediaAssetRepository.findFilteredInFolders(
+                        isNull(), isNull(), eq(List.of(3L, 4L)), any(Pageable.class)))
+                .thenReturn(List.of());
+
+        assertThat(service.listInFolder(null, null, 3L, true, false, 20)).isEmpty();
+        verify(mediaAssetRepository)
+                .findFilteredInFolders(isNull(), isNull(), eq(List.of(3L, 4L)), any(Pageable.class));
+    }
+
+    @Test
+    void listInFolderThrowsForUnknownFolder() {
+        TenantContext.setTenantId(42L);
+        when(mediaFolderRepository.findByIdAndTenantId(99L, 42L))
+                .thenReturn(java.util.Optional.empty());
+
+        assertThatThrownBy(() -> service.listInFolder(null, null, 99L, false, false, 20))
+                .isInstanceOf(MediaFolderNotFoundException.class);
     }
 }

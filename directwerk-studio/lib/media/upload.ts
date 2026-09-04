@@ -14,6 +14,7 @@ export async function uploadMediaFile(
         assetType?: AssetType
         visibility?: 'PUBLIC' | 'PRIVATE'
         episodeId?: number
+        folderId?: number
         onProgress?: (percent: number) => void
     },
 ) {
@@ -23,6 +24,7 @@ export async function uploadMediaFile(
         assetType: options?.assetType,
         visibility: options?.visibility,
         episodeId: options?.episodeId,
+        folderId: options?.folderId,
         onProgress: options?.onProgress,
         getAccessToken: getValidAccessToken,
         onAuthRequired: clearTokens,

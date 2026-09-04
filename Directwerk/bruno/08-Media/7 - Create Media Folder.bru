@@ -1,0 +1,36 @@
+meta {
+  name: 7 - Create Media Folder
+  type: http
+  seq: 7
+}
+
+post {
+  url: {{baseUrl}}/api/v1/media/folders
+  body: json
+  auth: inherit
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "name": "Interviews",
+    "parentId": null
+  }
+}
+
+vars:post-response {
+  mediaFolderId: res.body.data && res.body.data.id
+}
+
+tests {
+  test("returns expected status", function() {
+    expect(res.getStatus() === 201 || res.getStatus() === 503).to.equal(true);
+  });
+}
+
+docs {
+  Folder names are unique per parent (case-sensitive). Omit parentId (or null) for a root-level folder. Max nesting depth is 8.
+}

@@ -16,6 +16,7 @@ import de.pnnit.directwerk.modules.core.service.TenantMembershipNotFoundExceptio
 import de.pnnit.directwerk.modules.digital.exception.AssetAccessDeniedException;
 import de.pnnit.directwerk.modules.digital.exception.EntitlementDeniedException;
 import de.pnnit.directwerk.modules.digital.exception.MediaAssetNotFoundException;
+import de.pnnit.directwerk.modules.digital.exception.MediaFolderNotFoundException;
 import de.pnnit.directwerk.modules.digital.exception.StorageNotConfiguredException;
 import de.pnnit.directwerk.modules.digital.exception.UploadValidationException;
 import de.pnnit.directwerk.modules.newsletter.exception.ArticleFeedBuilderException;
@@ -160,6 +161,11 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(MediaAssetNotFoundException.class)
     ResponseEntity<Response<Void>> handleMediaAssetNotFound(MediaAssetNotFoundException ex) {
         return notFound("MEDIA_ASSET_NOT_FOUND", ex);
+    }
+
+    @ExceptionHandler(MediaFolderNotFoundException.class)
+    ResponseEntity<Response<Void>> handleMediaFolderNotFound(MediaFolderNotFoundException ex) {
+        return notFound("MEDIA_FOLDER_NOT_FOUND", ex);
     }
 
     @ExceptionHandler(UploadValidationException.class)

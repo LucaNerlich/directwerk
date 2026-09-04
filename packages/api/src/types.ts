@@ -329,6 +329,8 @@ export interface MediaAsset {
     originalFilename: string | null
     episodeId: number | null
     ownerUserId: number | null
+    /** Media library folder; null means the library root. */
+    folderId: number | null
     /** CDN URL for READY PUBLIC assets; null for private or non-ready. */
     cdnUrl: string | null
     createdAt: string
@@ -353,6 +355,21 @@ export interface TenantMediaQuery {
     assetType?: AssetType
     status?: AssetStatus
     limit?: number
+    /** Exact-folder filter; omit for all folders. */
+    folderId?: number
+    /** Include descendants of folderId. */
+    recursive?: boolean
+    /** Only root-level (unassigned) assets; mutually exclusive with folderId. */
+    unassignedOnly?: boolean
+}
+
+/** User-facing folder in the media library. Null parentId means the library root. */
+export interface MediaFolder {
+    id: number
+    name: string
+    parentId: number | null
+    createdAt: string
+    updatedAt: string
 }
 
 // ---------------------------------------------------------------------------

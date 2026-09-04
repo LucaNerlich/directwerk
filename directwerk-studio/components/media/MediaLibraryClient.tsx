@@ -21,9 +21,32 @@ import {useListViewMode} from '@directwerk/ui/hooks/use-list-view-mode'
 import {useMemo, useEffect, useRef, useState, type ChangeEvent, type DragEvent} from 'react'
 import {useRouter} from 'next/navigation'
 
-import {deleteMedia, getMediaPreviewUrl, listMedia} from '@/lib/api/mediaApi'
-import type {MediaAsset} from '@directwerk/api/types'
+import {
+    createMediaFolder,
+    deleteMedia,
+    deleteMediaFolder,
+    getMediaPreviewUrl,
+    listMedia,
+    listMediaFolders,
+    moveMediaAsset,
+    moveMediaFolder,
+    renameMediaFolder,
+    type MediaFolderDeleteMode,
+} from '@/lib/api/mediaApi'
+import type {MediaAsset, MediaFolder} from '@directwerk/api/types'
 import {MEDIA_TYPE_LIMITS} from '@/lib/media/limits'
+import {
+    assetsInFolder,
+    assetFolderId,
+    childFolders,
+    descendantFolderIds,
+    folderErrorMessage,
+    folderParentId,
+    folderPath,
+} from '@/lib/media/folders'
+import MediaFolderDeleteDialog from '@/components/media/MediaFolderDeleteDialog'
+import MediaFolderDialog from '@/components/media/MediaFolderDialog'
+import MediaMoveDialog from '@/components/media/MediaMoveDialog'
 import {uploadMediaFile} from '@/lib/media/upload'
 import {assetTypeLabel, mediaStatusLabel, visibilityLabel} from '@/lib/subscription/displayLabels'
 import {getClientTenantHost} from '@directwerk/api/tenant'
@@ -107,6 +130,7 @@ export default function MediaLibraryClient(): React.JSX.Element {
     const fileInputRef = useRef<HTMLInputElement>(null)
     const mountedRef = useRef(true)
     const [assets, setAssets] = useState<MediaAsset[]>([])
+    const [folders, setFolders] = useState<MediaFolder[]>([])
     const [previewUrls, setPreviewUrls] = useState<Record<number, string>>({})
     const [errorMessage, setErrorMessage] = useState<string | null>(null)
     const [statusMessage, setStatusMessage] = useState<string | null>(null)
@@ -117,6 +141,17 @@ export default function MediaLibraryClient(): React.JSX.Element {
     const [typeFilter, setTypeFilter] = useState('')
     const [statusFilter, setStatusFilter] = useState('')
     const [orphanOnly, setOrphanOnly] = useState(false)
+    const [folderView, setFolderView] = useState<number | null>(null)
+    const [includeSubfolders, setIncludeSubfolders] = useState(false)
+    const [folderDialog, setFolderDialog] = useState<
+        {mode: 'create'} | {mode: 'rename'; folder: MediaFolder} | null
+    >(null)
+    const [moveState, setMoveState] = useState<
+        {assets: MediaAsset[]; title: string} | null
+    >(null)
+    const [moveFolderState, setMoveFolderState] = useState<MediaFolder | null>(null)
+    const [deleteFolderTarget, setDeleteFolderTarget] = useState<MediaFolder | null>(null)
+    const [folderDialogError, setFolderDialogError] = useState<string | null>(null)
     const [uploadProgress, setUploadProgress] = useState<{file: File; progress: number} | null>(
         null,
     )
@@ -124,10 +159,20 @@ export default function MediaLibraryClient(): React.JSX.Element {
     const {viewMode, setViewMode} = useListViewMode('grid')
 
     async function reload(): Promise<void> {
-        const result = await listMedia(getClientTenantHost())
-        setAssets(result)
+        const host = getClientTenantHost()
+        const [assetResult, folderResult] = await Promise.all([
+            listMedia(host, {
+                limit: 100,
+                folderId: folderView ?? undefined,
+                recursive: includeSubfolders,
+                unassignedOnly: folderView === null && !includeSubfolders,
+            }),
+            listMediaFolders(host),
+        ])
+        setAssets(assetResult)
+        setFolders(folderResult)
 
-        const privateImageIds = result
+        const privateImageIds = assetResult
             .filter((a) => a.assetType === 'IMAGE' && a.cdnUrl == null)
             .map((a) => a.id)
         if (privateImageIds.length > 0) {
@@ -171,7 +216,7 @@ export default function MediaLibraryClient(): React.JSX.Element {
             active = false
             mountedRef.current = false
         }
-    }, [reloadToken, router])
+    }, [folderView, includeSubfolders, reloadToken, router])
 
     async function uploadFile(file: File | undefined): Promise<void> {
         if (file === undefined) {
@@ -196,6 +241,7 @@ export default function MediaLibraryClient(): React.JSX.Element {
             await uploadMediaFile(getClientTenantHost(), file, {
                 assetType,
                 visibility: 'PRIVATE',
+                folderId: folderView ?? undefined,
                 onProgress: (percent) => {
                     if (mountedRef.current) {
                         setUploadProgress({file, progress: percent})
@@ -296,22 +342,39 @@ export default function MediaLibraryClient(): React.JSX.Element {
         }
     }
 
-    const visibleAssets = useMemo(
-        () =>
-            assets.filter((asset) => {
-                if (typeFilter.length > 0 && asset.assetType !== typeFilter) {
-                    return false
+    const visibleAssets = useMemo(() => {
+        const acceptedFolders = new Set<number | null>()
+        if (folderView === null) {
+            acceptedFolders.add(null)
+            if (includeSubfolders) {
+                for (const folder of folders) {
+                    acceptedFolders.add(folder.id)
                 }
-                if (statusFilter.length > 0 && asset.status !== statusFilter) {
-                    return false
+            }
+        } else {
+            acceptedFolders.add(folderView)
+            if (includeSubfolders) {
+                for (const id of descendantFolderIds(folders, folderView)) {
+                    acceptedFolders.add(id)
                 }
-                if (orphanOnly && asset.episodeId !== null) {
-                    return false
-                }
-                return true
-            }),
-        [assets, orphanOnly, statusFilter, typeFilter],
-    )
+            }
+        }
+        return assets.filter((asset) => {
+            if (typeFilter.length > 0 && asset.assetType !== typeFilter) {
+                return false
+            }
+            if (statusFilter.length > 0 && asset.status !== statusFilter) {
+                return false
+            }
+            if (orphanOnly && asset.episodeId !== null) {
+                return false
+            }
+            if (!acceptedFolders.has(assetFolderId(asset))) {
+                return false
+            }
+            return true
+        })
+    }, [assets, folders, folderView, includeSubfolders, orphanOnly, statusFilter, typeFilter])
 
     const visibleAssetIds = useMemo(
         () => visibleAssets.map((asset) => asset.id),
@@ -399,6 +462,142 @@ export default function MediaLibraryClient(): React.JSX.Element {
         )
     }
 
+    function openFolderDialog(dialog: {mode: 'create'} | {mode: 'rename'; folder: MediaFolder}): void {
+        setFolderDialogError(null)
+        setFolderDialog(dialog)
+    }
+
+    async function handleFolderSubmit(name: string, parentId: number | null): Promise<void> {
+        if (folderDialog === null) {
+            return
+        }
+        setIsBusy(true)
+        setFolderDialogError(null)
+        try {
+            const host = getClientTenantHost()
+            const folder =
+                folderDialog.mode === 'create'
+                    ? await createMediaFolder(host, name, parentId)
+                    : await renameMediaFolder(host, folderDialog.folder.id, name)
+            setFolders((current) => {
+                const next = current.filter((entry) => entry.id !== folder.id)
+                return [...next, folder]
+            })
+            setFolderDialog(null)
+            setStatusMessage(
+                folderDialog.mode === 'create'
+                    ? `Ordner „${folder.name}“ angelegt.`
+                    : `Ordner in „${folder.name}“ umbenannt.`,
+            )
+        } catch (error) {
+            if (authRedirect(error)) return
+            setFolderDialogError(folderErrorMessage(error))
+        } finally {
+            setIsBusy(false)
+        }
+    }
+
+    async function handleMoveSubmit(targetId: number | null): Promise<void> {
+        if (moveState === null && moveFolderState === null) {
+            return
+        }
+        if (moveFolderState !== null) {
+            const movedId = moveFolderState.id
+            setIsBusy(true)
+            setFolderDialogError(null)
+            try {
+                const moved = await moveMediaFolder(getClientTenantHost(), movedId, targetId)
+                setFolders((current) =>
+                    current.map((entry) => (entry.id === moved.id ? moved : entry)),
+                )
+                setMoveFolderState(null)
+                setStatusMessage(`Ordner „${moved.name}“ verschoben.`)
+            } catch (error) {
+                if (authRedirect(error)) return
+                setFolderDialogError(folderErrorMessage(error))
+            } finally {
+                setIsBusy(false)
+            }
+            return
+        }
+
+        const targets = moveState?.assets ?? []
+        setIsBusy(true)
+        setFolderDialogError(null)
+        setErrorMessage(null)
+        setStatusMessage(null)
+        try {
+            const host = getClientTenantHost()
+            const results = await Promise.allSettled(
+                targets.map((asset) => moveMediaAsset(host, asset.id, targetId)),
+            )
+            const movedById = new Map<number, MediaAsset>()
+            const failures: number[] = []
+            results.forEach((result, index) => {
+                if (result.status === 'fulfilled') {
+                    movedById.set(result.value.id, result.value)
+                } else {
+                    failures.push(targets[index].id)
+                }
+            })
+            if (movedById.size > 0) {
+                setAssets((current) =>
+                    current.map((item) => movedById.get(item.id) ?? item),
+                )
+                clearSelection()
+            }
+            if (failures.length === 0) {
+                setMoveState(null)
+                setStatusMessage(
+                    targetId === null
+                        ? `${movedById.size} Datei(en) in die Bibliothek verschoben.`
+                        : `${movedById.size} Datei(en) verschoben.`,
+                )
+            } else {
+                if (results.some((result) => result.status === 'rejected'
+                    && authRedirect((result as PromiseRejectedResult).reason))) {
+                    return
+                }
+                setFolderDialogError(
+                    `Verschieben fehlgeschlagen für Medien-IDs: ${failures.join(', ')}.`,
+                )
+            }
+        } finally {
+            setIsBusy(false)
+        }
+    }
+
+    async function handleDeleteFolder(mode: MediaFolderDeleteMode): Promise<void> {
+        if (deleteFolderTarget === null) {
+            return
+        }
+        const target = deleteFolderTarget
+        setIsBusy(true)
+        setFolderDialogError(null)
+        try {
+            await deleteMediaFolder(getClientTenantHost(), target.id, mode)
+            setDeleteFolderTarget(null)
+            setFolderView(folderParentId(target))
+            try {
+                // Contents moved up or were deleted — reload both lists for truth.
+                await reload()
+            } catch (reloadError) {
+                if (authRedirect(reloadError)) return
+                setErrorMessage(
+                    reloadError instanceof Error
+                        ? reloadError.message
+                        : 'Medien konnten nicht geladen werden.',
+                )
+            }
+            setStatusMessage(`Ordner „${target.name}“ gelöscht.`)
+        } catch (error) {
+            if (authRedirect(error)) return
+            setFolderDialogError(folderErrorMessage(error))
+        } finally {
+            setIsBusy(false)
+        }
+    }
+
     function renderAssetPreview(asset: MediaAsset): React.JSX.Element {
         const imgSrc =
             safeImageSrc(asset.cdnUrl) ?? safeImageSrc(previewUrls[asset.id])
@@ -431,6 +630,14 @@ export default function MediaLibraryClient(): React.JSX.Element {
 
     const pendingCount = assets.filter((asset) => asset.status === 'PENDING').length
     const hasActiveFilters = typeFilter.length > 0 || statusFilter.length > 0 || orphanOnly
+    const breadcrumb = folderPath(folders, folderView)
+    const currentFolder =
+        folderView !== null
+            ? (folders.find((folder) => folder.id === folderView) ?? null)
+            : null
+    const visibleChildFolders = childFolders(folders, folderView)
+    const currentFolderName =
+        currentFolder !== null ? currentFolder.name : 'Bibliothek'
 
     function resetFilters(): void {
         setTypeFilter('')
@@ -461,17 +668,34 @@ export default function MediaLibraryClient(): React.JSX.Element {
             ) : undefined,
         description: viewMode === 'list' ? renderAssetMeta(asset) : undefined,
         actions: (
-            <Button
-                disabled={isBusy}
-                onClick={() => {
-                    void handleDelete(asset.id)
-                }}
-                size="sm"
-                type="button"
-                variant="outline"
-            >
-                Löschen
-            </Button>
+            <span className="flex flex-wrap gap-1">
+                <Button
+                    disabled={isBusy}
+                    onClick={() => {
+                        setFolderDialogError(null)
+                        setMoveState({
+                            assets: [asset],
+                            title: `„${asset.originalFilename ?? `Asset #${asset.id}`}“ verschieben`,
+                        })
+                    }}
+                    size="sm"
+                    type="button"
+                    variant="outline"
+                >
+                    Verschieben
+                </Button>
+                <Button
+                    disabled={isBusy}
+                    onClick={() => {
+                        void handleDelete(asset.id)
+                    }}
+                    size="sm"
+                    type="button"
+                    variant="outline"
+                >
+                    Löschen
+                </Button>
+            </span>
         ),
     }))
 
@@ -553,6 +777,9 @@ export default function MediaLibraryClient(): React.JSX.Element {
                 </p>
                 <p className="mt-1 text-muted-foreground">
                     Audio, Bilder, Video oder PDF/DOC. Alternativ über „Datei hochladen“ oder Enter drücken.
+                    {folderView !== null && currentFolder !== null
+                        ? ` Uploads landen in „${currentFolder.name}“.`
+                        : ''}
                 </p>
                 <p className="mt-1 text-xs text-muted-foreground">
                     Audio bis {MEDIA_TYPE_LIMITS.AUDIO.label} · Video bis {MEDIA_TYPE_LIMITS.VIDEO.label}
@@ -567,11 +794,116 @@ export default function MediaLibraryClient(): React.JSX.Element {
                 />
             ) : null}
 
+            <section aria-label="Ordner" className="flex flex-col gap-3">
+                <div className="flex flex-wrap items-center gap-1">
+                    <nav aria-label="Brotkrumen" className="flex min-w-0 flex-wrap items-center gap-1 text-sm">
+                        <Button
+                            onClick={() => setFolderView(null)}
+                            size="sm"
+                            type="button"
+                            variant={folderView === null ? 'secondary' : 'ghost'}
+                        >
+                            Bibliothek
+                        </Button>
+                        {breadcrumb.map((segment) => (
+                            <span className="flex items-center gap-1" key={segment.id}>
+                                <span aria-hidden="true" className="text-muted-foreground">/</span>
+                                <Button
+                                    onClick={() => setFolderView(segment.id)}
+                                    size="sm"
+                                    type="button"
+                                    variant={segment.id === folderView ? 'secondary' : 'ghost'}
+                                >
+                                    {segment.name}
+                                </Button>
+                            </span>
+                        ))}
+                    </nav>
+                    <Button
+                        className="ml-auto"
+                        disabled={isBusy}
+                        onClick={() => openFolderDialog({mode: 'create'})}
+                        size="sm"
+                        type="button"
+                        variant="outline"
+                    >
+                        Neuer Ordner
+                    </Button>
+                </div>
+                {currentFolder !== null ? (
+                    <div className="flex flex-wrap items-center gap-2 text-sm">
+                        <span className="text-muted-foreground">
+                            Ordner „{currentFolder.name}“ verwalten:
+                        </span>
+                        <Button
+                            disabled={isBusy}
+                            onClick={() => openFolderDialog({mode: 'rename', folder: currentFolder})}
+                            size="sm"
+                            type="button"
+                            variant="outline"
+                        >
+                            Umbenennen
+                        </Button>
+                        <Button
+                            disabled={isBusy}
+                            onClick={() => {
+                                setFolderDialogError(null)
+                                setMoveFolderState(currentFolder)
+                            }}
+                            size="sm"
+                            type="button"
+                            variant="outline"
+                        >
+                            Verschieben
+                        </Button>
+                        <Button
+                            disabled={isBusy}
+                            onClick={() => {
+                                setFolderDialogError(null)
+                                setDeleteFolderTarget(currentFolder)
+                            }}
+                            size="sm"
+                            type="button"
+                            variant="outline"
+                        >
+                            Löschen
+                        </Button>
+                    </div>
+                ) : null}
+                {visibleChildFolders.length > 0 ? (
+                    <ul className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+                        {visibleChildFolders.map((folder) => {
+                            const fileCount = assetsInFolder(assets, folder.id).length
+                            const subCount = childFolders(folders, folder.id).length
+                            return (
+                                <li key={folder.id}>
+                                    <button
+                                        className="flex w-full flex-col gap-1 rounded-lg border bg-muted/20 p-3 text-left outline-none transition-colors hover:border-primary focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+                                        onClick={() => setFolderView(folder.id)}
+                                        type="button"
+                                    >
+                                        <span className="truncate text-sm font-medium">
+                                            {folder.name}
+                                        </span>
+                                        <span className="text-xs text-muted-foreground">
+                                            {fileCount} {fileCount === 1 ? 'Datei' : 'Dateien'}
+                                            {subCount > 0
+                                                ? ` · ${subCount} ${subCount === 1 ? 'Ordner' : 'Ordner'}`
+                                                : ''}
+                                        </span>
+                                    </button>
+                                </li>
+                            )
+                        })}
+                    </ul>
+                ) : null}
+            </section>
+
             <section aria-labelledby="media-filter-heading" className="flex flex-col gap-4">
                 <SectionHeader
                     id="media-filter-heading"
                     title="Filter"
-                    description={`${visibleAssets.length} von ${assets.length} Dateien angezeigt.`}
+                    description={`${visibleAssets.length} von ${assets.length} Dateien angezeigt · Ort: ${currentFolderName}${includeSubfolders ? ' (inkl. Unterordner)' : ''}.`}
                     action={
                         hasActiveFilters ? (
                             <Button onClick={resetFilters} size="sm" type="button" variant="ghost">
@@ -580,7 +912,7 @@ export default function MediaLibraryClient(): React.JSX.Element {
                         ) : undefined
                     }
                 />
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                 <label className="grid gap-2 text-sm font-medium" htmlFor="typeFilter">
                     Typ filtern
                     <SelectControl
@@ -615,6 +947,14 @@ export default function MediaLibraryClient(): React.JSX.Element {
                         onCheckedChange={(checked) => setOrphanOnly(checked === true)}
                     />
                     <span>Nur unverknüpfte Dateien</span>
+                </Label>
+                <Label className="flex items-end gap-2 text-sm font-medium">
+                    <Checkbox
+                        checked={includeSubfolders}
+                        id="subfolderFilter"
+                        onCheckedChange={(checked) => setIncludeSubfolders(checked === true)}
+                    />
+                    <span>Unterordner einbeziehen</span>
                 </Label>
             </div>
             </section>
@@ -666,10 +1006,22 @@ export default function MediaLibraryClient(): React.JSX.Element {
                 </Alert>
             ) : null}
 
-            {assets.length === 0 ? (
+            {assets.length === 0 && folders.length === 0 ? (
                 <EmptyState
                     title="Noch keine Medien"
                     description="Lade die erste Datei hoch, um sie später in Folgen und Beiträgen zu verwenden."
+                    action={uploadButton}
+                />
+            ) : visibleChildFolders.length === 0 &&
+              visibleAssets.length === 0 &&
+              !hasActiveFilters ? (
+                <EmptyState
+                    title="Dieser Ordner ist leer"
+                    description={
+                        folderView === null
+                            ? 'Lade Dateien hoch oder lege einen Ordner an, um Ordnung zu schaffen.'
+                            : `„${currentFolderName}“ enthält noch keine Dateien. Lade direkt hierher hoch oder verschiebe Dateien aus der Bibliothek.`
+                    }
                     action={uploadButton}
                 />
             ) : visibleAssets.length === 0 ? (
@@ -687,15 +1039,35 @@ export default function MediaLibraryClient(): React.JSX.Element {
                     allSelected={allSelected}
                     bulkActions={
                         selectedCount > 0 ? (
-                            <Button
-                                disabled={isBusy}
-                                onClick={() => void handleBulkDeleteSelected()}
-                                size="sm"
-                                type="button"
-                                variant="outline"
-                            >
-                                {isBusy ? 'Wird gelöscht…' : `${selectedCount} löschen`}
-                            </Button>
+                            <span className="flex flex-wrap gap-2">
+                                <Button
+                                    disabled={isBusy}
+                                    onClick={() => {
+                                        const selected = visibleAssets.filter((asset) =>
+                                            selectedIds.has(asset.id),
+                                        )
+                                        setFolderDialogError(null)
+                                        setMoveState({
+                                            assets: selected,
+                                            title: `${selected.length} Datei(en) verschieben`,
+                                        })
+                                    }}
+                                    size="sm"
+                                    type="button"
+                                    variant="outline"
+                                >
+                                    Auswahl verschieben
+                                </Button>
+                                <Button
+                                    disabled={isBusy}
+                                    onClick={() => void handleBulkDeleteSelected()}
+                                    size="sm"
+                                    type="button"
+                                    variant="outline"
+                                >
+                                    {isBusy ? 'Wird gelöscht…' : `${selectedCount} löschen`}
+                                </Button>
+                            </span>
                         ) : null
                     }
                     disabled={isBusy}
@@ -710,6 +1082,77 @@ export default function MediaLibraryClient(): React.JSX.Element {
                     viewMode={viewMode}
                 />
             )}
+            {folderDialog !== null ? (
+                <MediaFolderDialog
+                    errorMessage={folderDialogError}
+                    folder={folderDialog.mode === 'rename' ? folderDialog.folder : null}
+                    folders={folders}
+                    initialParentId={folderView}
+                    isSaving={isBusy}
+                    mode={folderDialog.mode}
+                    onOpenChange={(open) => {
+                        if (!open) {
+                            setFolderDialog(null)
+                        }
+                    }}
+                    onSubmit={(name, parentId) => {
+                        void handleFolderSubmit(name, parentId)
+                    }}
+                    open
+                />
+            ) : null}
+            {moveState !== null || moveFolderState !== null ? (
+                <MediaMoveDialog
+                    description={
+                        moveFolderState !== null
+                            ? `„${moveFolderState.name}“ samt Inhalt in einen anderen Ordner legen.`
+                            : moveState !== null
+                              ? moveState.title
+                              : ''
+                    }
+                    errorMessage={folderDialogError}
+                    excludeFolderIds={
+                        moveFolderState !== null
+                            ? new Set([
+                                moveFolderState.id,
+                                ...descendantFolderIds(folders, moveFolderState.id),
+                            ])
+                            : undefined
+                    }
+                    folders={folders}
+                    initialParentId={folderView}
+                    isSaving={isBusy}
+                    onOpenChange={(open) => {
+                        if (!open) {
+                            setMoveState(null)
+                            setMoveFolderState(null)
+                        }
+                    }}
+                    onSubmit={(targetId) => {
+                        void handleMoveSubmit(targetId)
+                    }}
+                    open
+                    title={
+                        moveFolderState !== null ? 'Ordner verschieben' : 'Dateien verschieben'
+                    }
+                />
+            ) : null}
+            <MediaFolderDeleteDialog
+                assets={assets}
+                errorMessage={folderDialogError}
+                folder={deleteFolderTarget}
+                folders={folders}
+                isSaving={isBusy}
+                onConfirm={(mode) => {
+                    void handleDeleteFolder(mode)
+                }}
+                onOpenChange={(open) => {
+                    if (!open) {
+                        setDeleteFolderTarget(null)
+                    }
+                }}
+                open={deleteFolderTarget !== null}
+            />
         </PageStack>
     )
 }

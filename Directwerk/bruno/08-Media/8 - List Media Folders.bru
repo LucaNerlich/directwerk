@@ -1,0 +1,21 @@
+meta {
+  name: 8 - List Media Folders
+  type: http
+  seq: 8
+}
+
+get {
+  url: {{baseUrl}}/api/v1/media/folders
+  body: none
+  auth: inherit
+}
+
+tests {
+  test("returns expected status", function() {
+    expect(res.getStatus() === 200 || res.getStatus() === 503).to.equal(true);
+  });
+}
+
+docs {
+  Flat folder list (id, name, parentId); clients build the tree. Null parentId means library root.
+}

@@ -1,19 +1,27 @@
 package de.pnnit.directwerk.controller.media;
 
 import de.pnnit.directwerk.api.MediaUploadCommandMapper;
+import de.pnnit.directwerk.api.dto.CreateMediaFolderRequest;
 import de.pnnit.directwerk.api.dto.CreateUploadUrlRequest;
 import de.pnnit.directwerk.api.dto.MediaAssetView;
+import de.pnnit.directwerk.api.dto.MediaFolderView;
+import de.pnnit.directwerk.api.dto.MoveMediaAssetRequest;
+import de.pnnit.directwerk.api.dto.MoveMediaFolderRequest;
+import de.pnnit.directwerk.api.dto.RenameMediaFolderRequest;
 import de.pnnit.directwerk.api.dto.UploadUrlResponse;
 import de.pnnit.directwerk.api.response.Response;
 import de.pnnit.directwerk.modules.core.RequiresModule;
 import de.pnnit.directwerk.modules.digital.DigitalContentModule;
 import de.pnnit.directwerk.modules.digital.api.AssetAccessApi;
+import de.pnnit.directwerk.modules.digital.api.FolderDeleteMode;
 import de.pnnit.directwerk.modules.digital.api.MediaAssetLifecycleApi;
 import de.pnnit.directwerk.modules.digital.api.MediaAssetQueryApi;
+import de.pnnit.directwerk.modules.digital.api.MediaFolderApi;
 import de.pnnit.directwerk.modules.digital.api.UploadApi;
 import de.pnnit.directwerk.modules.digital.entity.AssetStatus;
 import de.pnnit.directwerk.modules.digital.entity.AssetType;
 import de.pnnit.directwerk.modules.digital.entity.MediaAsset;
+import de.pnnit.directwerk.modules.digital.entity.MediaFolder;
 import de.pnnit.directwerk.modules.digital.exception.MediaAssetNotFoundException;
 import de.pnnit.directwerk.api.MediaAssetViewMapper;
 import de.pnnit.directwerk.multitenancy.TenantContext;
@@ -31,6 +39,7 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -46,6 +55,7 @@ public class MediaController {
     private final MediaAssetQueryApi mediaAssetQueryApi;
     private final AssetAccessApi assetAccessApi;
     private final MediaAssetLifecycleApi mediaAssetLifecycleApi;
+    private final MediaFolderApi mediaFolderApi;
     private final MediaAssetViewMapper mediaAssetViewMapper;
     private final MediaUploadCommandMapper mediaUploadCommandMapper;
 
@@ -54,6 +64,7 @@ public class MediaController {
             MediaAssetQueryApi mediaAssetQueryApi,
             AssetAccessApi assetAccessApi,
             MediaAssetLifecycleApi mediaAssetLifecycleApi,
+            MediaFolderApi mediaFolderApi,
             MediaAssetViewMapper mediaAssetViewMapper,
             MediaUploadCommandMapper mediaUploadCommandMapper
     ) {
@@ -61,6 +72,7 @@ public class MediaController {
         this.mediaAssetQueryApi = mediaAssetQueryApi;
         this.assetAccessApi = assetAccessApi;
         this.mediaAssetLifecycleApi = mediaAssetLifecycleApi;
+        this.mediaFolderApi = mediaFolderApi;
         this.mediaAssetViewMapper = mediaAssetViewMapper;
         this.mediaUploadCommandMapper = mediaUploadCommandMapper;
     }
@@ -90,9 +102,13 @@ public class MediaController {
     ResponseEntity<Response<List<MediaAssetView>>> list(
             @RequestParam(required = false) AssetType assetType,
             @RequestParam(required = false) AssetStatus status,
+            @RequestParam(required = false) Long folderId,
+            @RequestParam(defaultValue = "false") boolean recursive,
+            @RequestParam(defaultValue = "false") boolean unassignedOnly,
             @RequestParam(defaultValue = "50") @Min(1) @Max(100) int limit
     ) {
-        List<MediaAssetView> assets = mediaAssetQueryApi.list(assetType, status, limit).stream()
+        List<MediaAssetView> assets = mediaAssetQueryApi
+                .listInFolder(assetType, status, folderId, recursive, unassignedOnly, limit).stream()
                 .map(mediaAssetViewMapper::toView)
                 .toList();
         return ResponseEntity.ok(Response.ok(assets));
@@ -126,6 +142,80 @@ public class MediaController {
                 new MediaAssetLifecycleApi.DeleteCommand(id, principal, false)
         );
         return ResponseEntity.ok(Response.ok(mediaAssetViewMapper.toView(deleted)));
+    }
+
+    @PostMapping("/{id}/move")
+    ResponseEntity<Response<MediaAssetView>> moveAsset(
+            @PathVariable("id") Long id,
+            @Valid @RequestBody MoveMediaAssetRequest request
+    ) {
+        Long tenantId = TenantContext.requireTenantId();
+        MediaAsset asset = mediaAssetQueryApi.findById(id)
+                .orElseThrow(() -> new MediaAssetNotFoundException(id));
+        requireTenantAsset(asset, id);
+        MediaAsset moved = mediaFolderApi.moveAsset(tenantId, id, request.folderId());
+        return ResponseEntity.ok(Response.ok(mediaAssetViewMapper.toView(moved)));
+    }
+
+    @PostMapping("/folders")
+    ResponseEntity<Response<MediaFolderView>> createFolder(
+            @Valid @RequestBody CreateMediaFolderRequest request
+    ) {
+        Long tenantId = TenantContext.requireTenantId();
+        MediaFolder folder = mediaFolderApi.createFolder(tenantId, request.name(), request.parentId());
+        return ResponseEntity.status(HttpStatus.CREATED).body(Response.created(toFolderView(folder)));
+    }
+
+    @GetMapping("/folders")
+    ResponseEntity<Response<List<MediaFolderView>>> listFolders() {
+        Long tenantId = TenantContext.requireTenantId();
+        List<MediaFolderView> folders = mediaFolderApi.list(tenantId).stream()
+                .map(MediaController::toFolderView)
+                .toList();
+        return ResponseEntity.ok(Response.ok(folders));
+    }
+
+    @PutMapping("/folders/{id}")
+    ResponseEntity<Response<MediaFolderView>> renameFolder(
+            @PathVariable("id") Long id,
+            @Valid @RequestBody RenameMediaFolderRequest request
+    ) {
+        Long tenantId = TenantContext.requireTenantId();
+        MediaFolder folder = mediaFolderApi.renameFolder(tenantId, id, request.name());
+        return ResponseEntity.ok(Response.ok(toFolderView(folder)));
+    }
+
+    @PostMapping("/folders/{id}/move")
+    ResponseEntity<Response<MediaFolderView>> moveFolder(
+            @PathVariable("id") Long id,
+            @Valid @RequestBody MoveMediaFolderRequest request
+    ) {
+        Long tenantId = TenantContext.requireTenantId();
+        MediaFolder folder = mediaFolderApi.moveFolder(tenantId, id, request.parentId());
+        return ResponseEntity.ok(Response.ok(toFolderView(folder)));
+    }
+
+    @DeleteMapping("/folders/{id}")
+    ResponseEntity<Response<MediaFolderView>> deleteFolder(
+            @PathVariable("id") Long id,
+            @RequestParam(defaultValue = "move_to_parent") String mode
+    ) {
+        Long tenantId = TenantContext.requireTenantId();
+        DirectwerkUserPrincipal principal = SecurityUtils.requirePrincipal();
+        // Snapshot the view first: after removal the entity is detached.
+        MediaFolderView deleted = toFolderView(mediaFolderApi.requireFolder(tenantId, id));
+        mediaFolderApi.deleteFolder(tenantId, id, FolderDeleteMode.parse(mode), principal);
+        return ResponseEntity.ok(Response.ok(deleted));
+    }
+
+    static MediaFolderView toFolderView(MediaFolder folder) {
+        return new MediaFolderView(
+                folder.getId(),
+                folder.getName(),
+                folder.getParent() != null ? folder.getParent().getId() : null,
+                folder.getCreatedAt(),
+                folder.getUpdatedAt()
+        );
     }
 
     public record PreviewUrlResponse(String url) {

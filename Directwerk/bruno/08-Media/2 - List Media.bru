@@ -11,7 +11,7 @@ get {
 }
 
 docs {
-  Default list excludes tombstoned assets (ARCHIVED, PENDING_DELETE). Pass ?status=ARCHIVED to inspect deleted rows.
+  Default list excludes tombstoned assets (ARCHIVED, PENDING_DELETE). Pass ?status=ARCHIVED to inspect deleted rows. Filter by folder with ?folderId=1, include descendants with ?folderId=1&recursive=true, or list root-level assets with ?unassignedOnly=true.
 }
 
 params:query {

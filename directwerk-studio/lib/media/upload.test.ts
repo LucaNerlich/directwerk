@@ -82,6 +82,7 @@ describe('uploadMediaFile', () => {
         const promise = uploadMediaFile('tenant.test', file, {
             assetType: 'AUDIO',
             visibility: 'PRIVATE',
+            folderId: 11,
             onProgress,
         })
 
@@ -96,6 +97,7 @@ describe('uploadMediaFile', () => {
         expect(xhr.getRequestHeader('x-visibility')).toBe('PRIVATE')
         expect(xhr.getRequestHeader('x-asset-type')).toBe('AUDIO')
         expect(xhr.getRequestHeader('x-episode-id')).toBeNull()
+        expect(xhr.getRequestHeader('x-folder-id')).toBe('11')
 
         xhr.upload.onprogress?.({lengthComputable: true, loaded: 50, total: 100})
         expect(onProgress).toHaveBeenLastCalledWith(50)
@@ -144,6 +146,7 @@ describe('uploadMediaFile', () => {
             bytesTransferred: 0,
             episodeId: null,
             ownerUserId: null,
+            folderId: null,
             cdnUrl: null,
             createdAt: '2026-07-20T12:00:00Z',
             updatedAt: '2026-07-20T12:00:00Z',

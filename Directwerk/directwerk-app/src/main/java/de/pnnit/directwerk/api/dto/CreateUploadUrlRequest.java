@@ -16,6 +16,7 @@ public record CreateUploadUrlRequest(
         AssetVisibility intendedVisibility,
         AssetScope scope,
         @Positive Long episodeId,
-        @Positive Long ownerUserId
+        @Positive Long ownerUserId,
+        @Positive Long folderId
 ) {
 }

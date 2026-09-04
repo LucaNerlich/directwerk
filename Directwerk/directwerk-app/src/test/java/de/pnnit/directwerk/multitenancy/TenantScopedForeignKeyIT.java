@@ -295,6 +295,49 @@ class TenantScopedForeignKeyIT {
     }
 
     @Test
+    void rejectsCrossTenantMediaFolderReferences() {
+        TenantFixture tenantA = insertTenant("folder-a-" + suffix());
+        TenantFixture tenantB = insertTenant("folder-b-" + suffix());
+        long foreignFolderId = insertMediaFolder(tenantB.id(), "Foreign", null);
+
+        assertThatThrownBy(() -> insertMediaFolder(tenantA.id(), "Cross parent", foreignFolderId))
+                .isInstanceOf(DataIntegrityViolationException.class);
+
+        long assetId = insertMediaAsset(
+                tenantA.id(), tenantA.slug() + "/public/images/folder.jpg", "IMAGE");
+        assertThatThrownBy(() -> jdbcTemplate.update(
+                "UPDATE media_assets SET folder_id = ? WHERE id = ?",
+                foreignFolderId,
+                assetId
+        )).isInstanceOf(DataIntegrityViolationException.class);
+    }
+
+    @Test
+    void deletingMediaFolderNullsReferencesWithoutClearingTenant() {
+        TenantFixture tenant = insertTenant("folder-del-" + suffix());
+        long parentId = insertMediaFolder(tenant.id(), "Parent", null);
+        long childId = insertMediaFolder(tenant.id(), "Child", parentId);
+        long assetId = insertMediaAsset(
+                tenant.id(), tenant.slug() + "/public/images/folder-delete.jpg", "IMAGE");
+        jdbcTemplate.update("UPDATE media_assets SET folder_id = ? WHERE id = ?", parentId, assetId);
+
+        jdbcTemplate.update("DELETE FROM media_folders WHERE id = ?", parentId);
+
+        assertThat(jdbcTemplate.queryForObject(
+                "SELECT tenant_id FROM media_folders WHERE id = ?", Long.class, childId))
+                .isEqualTo(tenant.id());
+        assertThat(jdbcTemplate.queryForObject(
+                "SELECT parent_id FROM media_folders WHERE id = ?", Long.class, childId))
+                .isNull();
+        assertThat(jdbcTemplate.queryForObject(
+                "SELECT tenant_id FROM media_assets WHERE id = ?", Long.class, assetId))
+                .isEqualTo(tenant.id());
+        assertThat(jdbcTemplate.queryForObject(
+                "SELECT folder_id FROM media_assets WHERE id = ?", Long.class, assetId))
+                .isNull();
+    }
+
+    @Test
     void rejectsCrossTenantProductAccessRuleProductAndScope() {
         TenantFixture tenantA = insertTenant("rule-a-" + suffix());
         TenantFixture tenantB = insertTenant("rule-b-" + suffix());
@@ -495,6 +538,20 @@ class TenantScopedForeignKeyIT {
                 tenantId,
                 s3Key,
                 assetType
+        );
+    }
+
+    private long insertMediaFolder(long tenantId, String name, Long parentId) {
+        return jdbcTemplate.queryForObject(
+                """
+                INSERT INTO media_folders (tenant_id, parent_id, name)
+                VALUES (?, ?, ?)
+                RETURNING id
+                """,
+                Long.class,
+                tenantId,
+                parentId,
+                name
         );
     }
 
