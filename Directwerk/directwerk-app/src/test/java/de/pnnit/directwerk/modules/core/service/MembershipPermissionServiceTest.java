@@ -92,6 +92,25 @@ class MembershipPermissionServiceTest {
     }
 
     @Test
+    void replaceForUserCollapsesMixedScopesWithDenyWinning() {
+        Tenant tenant = new Tenant();
+        tenant.setId(10L);
+        TenantMembership membership = membership(7L, tenant, EnumSet.of(Role.EDITOR));
+        when(tenantRepository.requireById(10L)).thenReturn(tenant);
+        when(tenantMembershipRepository.findByTenantIdAndUserId(10L, 5L))
+                .thenReturn(Optional.of(membership));
+
+        List<MembershipPermissionOverride> saved = service.replaceForUser(10L, 5L, List.of(
+                new MembershipPermissionService.OverrideInput(
+                        ContentEntityType.EPISODE, ContentOperation.DELETE, RestrictionScope.OTHERS_ONLY),
+                new MembershipPermissionService.OverrideInput(
+                        ContentEntityType.EPISODE, ContentOperation.DELETE, RestrictionScope.DENY)));
+
+        assertThat(saved).hasSize(1);
+        assertThat(saved.getFirst().getScope()).isEqualTo(RestrictionScope.DENY);
+    }
+
+    @Test
     void replaceForUserWithEmptyInputLiftsAllRestrictions() {
         Tenant tenant = new Tenant();
         tenant.setId(10L);

@@ -17,7 +17,7 @@ import de.pnnit.directwerk.security.DirectwerkUserPrincipal;
 import de.pnnit.directwerk.security.SecurityUtils;
 import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.LinkedHashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -163,13 +163,20 @@ public class MembershipPermissionService {
                     "Permission restrictions only apply to members with the EDITOR role");
         }
         List<OverrideInput> sanitized = inputs == null ? List.of() : inputs;
-        Set<OverrideInput> distinct = new LinkedHashSet<>(sanitized);
-        for (OverrideInput input : distinct) {
+        // The unique index covers (entity, operation) without scope: collapse
+        // mixed scopes per pair with DENY winning, mirroring evaluation order.
+        Map<List<Enum<?>>, OverrideInput> collapsed = new LinkedHashMap<>();
+        for (OverrideInput input : sanitized) {
             validateInput(input);
+            List<Enum<?>> key = List.of(input.entityType(), input.operation());
+            OverrideInput previous = collapsed.get(key);
+            if (previous == null || input.scope() == RestrictionScope.DENY) {
+                collapsed.put(key, input);
+            }
         }
         overrideRepository.deleteByTenantIdAndMembershipId(tenantId, membership.getId());
         List<MembershipPermissionOverride> saved = new ArrayList<>();
-        for (OverrideInput input : distinct) {
+        for (OverrideInput input : collapsed.values()) {
             MembershipPermissionOverride override = new MembershipPermissionOverride();
             override.setMembership(membership);
             override.setTenant(membership.getTenant());
