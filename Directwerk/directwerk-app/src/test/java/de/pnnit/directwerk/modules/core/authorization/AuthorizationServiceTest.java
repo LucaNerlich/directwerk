@@ -51,7 +51,7 @@ class AuthorizationServiceTest {
         for (ContentEntityType entity : ContentEntityType.values()) {
             for (ContentOperation operation : ContentOperation.values()) {
                 AuthorizationService.requireContentAccess(
-                        editor, entity, operation, STRANGER, AuthorizationService.noOverrides());
+                        editor, entity, operation, STRANGER, Set.of());
             }
         }
     }

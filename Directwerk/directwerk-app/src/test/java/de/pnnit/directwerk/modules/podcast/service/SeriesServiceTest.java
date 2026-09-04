@@ -22,6 +22,7 @@ import de.pnnit.directwerk.modules.core.service.MembershipPermissionService;
 import de.pnnit.directwerk.modules.digital.service.HtmlSanitizer;
 import de.pnnit.directwerk.modules.podcast.entity.PodcastSeries;
 import de.pnnit.directwerk.modules.podcast.entity.SeriesStatus;
+import de.pnnit.directwerk.modules.podcast.job.RssFeedRefreshJobProducer;
 import de.pnnit.directwerk.modules.podcast.repository.PodcastSeriesRepository;
 import de.pnnit.directwerk.security.DirectwerkUserPrincipal;
 import java.util.Arrays;
@@ -53,7 +54,7 @@ class SeriesServiceTest {
     private PodcastCoverAssetResolver podcastCoverAssetResolver;
 
     @Mock
-    private RssFeedRefreshScheduler rssFeedRefreshScheduler;
+    private RssFeedRefreshJobProducer rssFeedRefreshScheduler;
 
     @Mock
     private HtmlSanitizer htmlSanitizer;

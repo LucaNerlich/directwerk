@@ -20,6 +20,7 @@ import de.pnnit.directwerk.modules.newsletter.entity.Article;
 import de.pnnit.directwerk.modules.newsletter.entity.ArticleStatus;
 import de.pnnit.directwerk.modules.newsletter.exception.ArticleNotFoundException;
 import de.pnnit.directwerk.modules.newsletter.exception.ArticleValidationException;
+import de.pnnit.directwerk.modules.newsletter.job.ArticleRssFeedRefreshJobProducer;
 import de.pnnit.directwerk.modules.newsletter.repository.ArticleRepository;
 import de.pnnit.directwerk.modules.digital.service.CategoryService;
 import de.pnnit.directwerk.modules.digital.service.HtmlSanitizer;
@@ -42,7 +43,7 @@ public class ArticleService {
     private final TenantRepository tenantRepository;
     private final MediaAssetQueryApi mediaAssetQueryApi;
     private final HtmlSanitizer htmlSanitizer;
-    private final ArticleRssFeedRefreshScheduler articleRssFeedRefreshScheduler;
+    private final ArticleRssFeedRefreshJobProducer articleRssFeedRefreshScheduler;
     private final MembershipPermissionService permissionService;
 
     @Transactional(readOnly = true)

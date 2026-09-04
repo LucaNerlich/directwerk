@@ -22,6 +22,7 @@ import de.pnnit.directwerk.modules.newsletter.exception.ArticleValidationExcepti
 import de.pnnit.directwerk.modules.content.PublicationTransitions;
 import de.pnnit.directwerk.modules.content.InvalidPublicationTransitionException;
 import de.pnnit.directwerk.modules.digital.service.HtmlSanitizer;
+import de.pnnit.directwerk.modules.newsletter.job.ArticleRssFeedRefreshJobProducer;
 import de.pnnit.directwerk.modules.newsletter.repository.ArticleRepository;
 import de.pnnit.directwerk.multitenancy.TenantContext;
 import java.time.Instant;
@@ -44,7 +45,7 @@ public class ArticlePublicationWorkflowService {
     private final ScheduledPublicationExecutor scheduledPublicationExecutor;
     private final ContentPublishedNotifier contentPublishedNotifier;
     private final SubscriberNotificationGate notificationGate;
-    private final ArticleRssFeedRefreshScheduler articleRssFeedRefreshScheduler;
+    private final ArticleRssFeedRefreshJobProducer articleRssFeedRefreshScheduler;
     private final ObjectProvider<ArticlePublicationWorkflowService> self;
     private final MembershipPermissionService permissionService;
 

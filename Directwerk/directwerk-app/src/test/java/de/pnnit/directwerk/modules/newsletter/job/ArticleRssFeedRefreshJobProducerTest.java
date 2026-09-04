@@ -12,6 +12,7 @@ import de.pnnit.directwerk.config.DirectwerkConfig;
 import de.pnnit.directwerk.modules.content.TenantRssSnapshotStaleEvent;
 import de.pnnit.directwerk.modules.digital.storage.FeedSnapshotStateStore;
 import de.pnnit.directwerk.modules.queue.JobEnqueueMetadata;
+import de.pnnit.directwerk.modules.queue.QueueNames;
 import de.pnnit.directwerk.modules.queue.QueueService;
 import de.pnnit.directwerk.testsupport.TestObjectProviders;
 import org.junit.jupiter.api.Test;
@@ -41,7 +42,7 @@ class ArticleRssFeedRefreshJobProducerTest {
         ArgumentCaptor<JsonNode> payload = ArgumentCaptor.forClass(JsonNode.class);
         ArgumentCaptor<JobEnqueueMetadata> metadata = ArgumentCaptor.forClass(JobEnqueueMetadata.class);
         verify(queueService).enqueue(
-                eq(ArticleRssFeedRefreshQueueNames.ARTICLE_RSS_FEED_REFRESH),
+                eq(QueueNames.ARTICLE_RSS_FEED_REFRESH),
                 payload.capture(),
                 eq(0),
                 eq(null),
@@ -92,7 +93,7 @@ class ArticleRssFeedRefreshJobProducerTest {
         verify(stateStore).recordStalePrefix(10L, "old-alpha");
         verify(stateStore).clearWritten(10L);
         verify(queueService).enqueue(
-                eq(ArticleRssFeedRefreshQueueNames.ARTICLE_RSS_FEED_REFRESH),
+                eq(QueueNames.ARTICLE_RSS_FEED_REFRESH),
                 any(JsonNode.class),
                 eq(0),
                 eq(null),

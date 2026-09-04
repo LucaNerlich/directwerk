@@ -6,8 +6,10 @@ import static org.mockito.Mockito.when;
 
 import de.pnnit.directwerk.modules.core.repository.TenantRepository;
 import de.pnnit.directwerk.modules.core.entity.Tenant;
+import de.pnnit.directwerk.modules.core.service.MembershipPermissionService;
 import de.pnnit.directwerk.modules.digital.service.HtmlSanitizer;
 import de.pnnit.directwerk.modules.podcast.entity.PodcastSeries;
+import de.pnnit.directwerk.modules.podcast.job.RssFeedRefreshJobProducer;
 import de.pnnit.directwerk.modules.podcast.repository.PodcastSeriesRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -25,7 +27,9 @@ class SeriesServiceTest {
     @Mock
     private PodcastCoverAssetResolver podcastCoverAssetResolver;
     @Mock
-    private RssFeedRefreshScheduler rssFeedRefreshScheduler;
+    private RssFeedRefreshJobProducer rssFeedRefreshScheduler;
+    @Mock
+    private MembershipPermissionService permissionService;
 
     @Test
     void createSeriesSanitizesDescription() {
@@ -34,7 +38,8 @@ class SeriesServiceTest {
                 tenantRepository,
                 podcastCoverAssetResolver,
                 rssFeedRefreshScheduler,
-                new HtmlSanitizer()
+                new HtmlSanitizer(),
+                permissionService
         );
         Tenant tenant = new Tenant();
         tenant.setId(10L);
@@ -70,7 +75,8 @@ class SeriesServiceTest {
                 tenantRepository,
                 podcastCoverAssetResolver,
                 rssFeedRefreshScheduler,
-                new HtmlSanitizer()
+                new HtmlSanitizer(),
+                permissionService
         );
         PodcastSeries existing = new PodcastSeries();
         Tenant tenant = new Tenant();

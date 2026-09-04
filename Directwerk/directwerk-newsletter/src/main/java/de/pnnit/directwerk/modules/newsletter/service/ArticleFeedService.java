@@ -17,6 +17,7 @@ import de.pnnit.directwerk.modules.newsletter.feed.ArticleFeed;
 import de.pnnit.directwerk.modules.newsletter.feed.ArticleFeedCategoryMatcher;
 import de.pnnit.directwerk.modules.newsletter.feed.ArticleFeedNotFoundException;
 import de.pnnit.directwerk.modules.newsletter.feed.ArticleFeedRepository;
+import de.pnnit.directwerk.modules.newsletter.job.ArticleRssFeedRefreshJobProducer;
 import de.pnnit.directwerk.modules.newsletter.ArticleFeedBuilderModule;
 import java.util.Collection;
 import java.util.LinkedHashSet;
@@ -44,7 +45,7 @@ public class ArticleFeedService {
     private final FeedTokenGenerator feedTokenGenerator;
     private final ModuleGateService moduleGateService;
     private final ArticleRssFeedSnapshotService articleRssFeedSnapshotService;
-    private final ArticleRssFeedRefreshScheduler articleRssFeedRefreshScheduler;
+    private final ArticleRssFeedRefreshJobProducer articleRssFeedRefreshScheduler;
 
     @Transactional(readOnly = true)
     public ArticleFeed requireFeedByToken(String feedToken) {

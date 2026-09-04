@@ -174,9 +174,4 @@ public final class AuthorizationService {
         return principal.getAuthorities().stream()
                 .anyMatch(granted -> authority.equals(granted.getAuthority()));
     }
-
-    /** Empty override set constant for unrestricted callers and tests. */
-    public static Set<MembershipPermissionOverride> noOverrides() {
-        return Set.of();
-    }
 }

@@ -4,22 +4,19 @@ import de.pnnit.directwerk.config.DirectwerkConfig;
 import de.pnnit.directwerk.modules.content.TenantEntitlementsChangedEvent;
 import de.pnnit.directwerk.modules.content.TenantRssSnapshotStaleEvent;
 import de.pnnit.directwerk.modules.digital.storage.FeedSnapshotStateStore;
-import de.pnnit.directwerk.modules.podcast.service.RssFeedRefreshScheduler;
-import de.pnnit.directwerk.modules.queue.JobEnqueueMetadata;
+import de.pnnit.directwerk.modules.queue.QueueNames;
 import de.pnnit.directwerk.modules.queue.QueueService;
+import de.pnnit.directwerk.modules.queue.TenantRefreshJobProducer;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
-import de.pnnit.directwerk.modules.core.transaction.TransactionAfterCommit;
 import tools.jackson.databind.ObjectMapper;
 
 /** Enqueues durable RSS regeneration only after the content transaction commits. */
 @Service
-public class RssFeedRefreshJobProducer implements RssFeedRefreshScheduler {
+public class RssFeedRefreshJobProducer {
 
-    private final ObjectProvider<QueueService> queueService;
-    private final ObjectMapper objectMapper;
-    private final DirectwerkConfig directwerkConfig;
+    private final TenantRefreshJobProducer delegate;
     private final FeedSnapshotStateStore snapshotStateStore;
 
     public RssFeedRefreshJobProducer(
@@ -28,18 +25,18 @@ public class RssFeedRefreshJobProducer implements RssFeedRefreshScheduler {
             DirectwerkConfig directwerkConfig,
             FeedSnapshotStateStore snapshotStateStore
     ) {
-        this.queueService = queueService;
-        this.objectMapper = objectMapper;
-        this.directwerkConfig = directwerkConfig;
+        this.delegate = new TenantRefreshJobProducer(
+                queueService,
+                objectMapper,
+                directwerkConfig,
+                QueueNames.PODCAST_RSS_FEED_REFRESH,
+                RssFeedRefreshJobPayload::new
+        );
         this.snapshotStateStore = snapshotStateStore;
     }
 
-    @Override
     public void requestRefreshAfterCommit(Long tenantId) {
-        if (tenantId == null || tenantId < 1) {
-            throw new IllegalArgumentException("tenantId must be a positive id");
-        }
-        TransactionAfterCommit.run(() -> requestRefresh(tenantId));
+        delegate.requestRefreshAfterCommit(tenantId);
     }
 
     @EventListener
@@ -54,23 +51,5 @@ public class RssFeedRefreshJobProducer implements RssFeedRefreshScheduler {
             snapshotStateStore.clearWritten(event.tenantId());
         }
         requestRefreshAfterCommit(event.tenantId());
-    }
-
-    private void requestRefresh(Long tenantId) {
-        if (!directwerkConfig.isQueueEnabled()) {
-            return;
-        }
-        queueService.getObject().enqueue(
-                RssFeedRefreshQueueNames.PODCAST_RSS_FEED_REFRESH,
-                objectMapper.valueToTree(new RssFeedRefreshJobPayload(tenantId)),
-                0,
-                null,
-                null,
-                new JobEnqueueMetadata(
-                        tenantId,
-                        RssFeedRefreshQueueNames.PODCAST_RSS_FEED_REFRESH + "-" + tenantId,
-                        null
-                )
-        );
     }
 }

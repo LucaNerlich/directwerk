@@ -9,6 +9,7 @@ import de.pnnit.directwerk.modules.core.util.SlugNormalizer;
 import de.pnnit.directwerk.modules.digital.entity.MediaAsset;
 import de.pnnit.directwerk.modules.podcast.PodcastModule;
 import de.pnnit.directwerk.modules.podcast.entity.Format;
+import de.pnnit.directwerk.modules.podcast.job.RssFeedRefreshJobProducer;
 import de.pnnit.directwerk.modules.podcast.exception.FormatNotFoundException;
 import de.pnnit.directwerk.modules.podcast.repository.FormatRepository;
 import java.util.List;
@@ -26,7 +27,7 @@ public class FormatService {
     private final FormatRepository formatRepository;
     private final TenantRepository tenantRepository;
     private final PodcastCoverAssetResolver podcastCoverAssetResolver;
-    private final RssFeedRefreshScheduler rssFeedRefreshScheduler;
+    private final RssFeedRefreshJobProducer rssFeedRefreshScheduler;
 
     @Transactional(readOnly = true)
     public List<Format> listFormats(Long tenantId, boolean activeOnly) {

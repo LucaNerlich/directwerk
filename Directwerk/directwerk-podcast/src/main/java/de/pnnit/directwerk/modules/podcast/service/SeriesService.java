@@ -11,6 +11,7 @@ import de.pnnit.directwerk.modules.core.util.SlugNormalizer;
 import de.pnnit.directwerk.modules.core.util.TitleNormalizer;
 import de.pnnit.directwerk.modules.digital.service.HtmlSanitizer;
 import de.pnnit.directwerk.modules.podcast.PodcastModule;
+import de.pnnit.directwerk.modules.podcast.job.RssFeedRefreshJobProducer;
 import de.pnnit.directwerk.modules.podcast.entity.PodcastSeries;
 import de.pnnit.directwerk.modules.podcast.entity.SeriesStatus;
 import de.pnnit.directwerk.modules.podcast.exception.SeriesNotFoundException;
@@ -31,7 +32,7 @@ public class SeriesService {
     private final PodcastSeriesRepository podcastSeriesRepository;
     private final TenantRepository tenantRepository;
     private final PodcastCoverAssetResolver podcastCoverAssetResolver;
-    private final RssFeedRefreshScheduler rssFeedRefreshScheduler;
+    private final RssFeedRefreshJobProducer rssFeedRefreshScheduler;
     private final HtmlSanitizer htmlSanitizer;
     private final MembershipPermissionService permissionService;
 

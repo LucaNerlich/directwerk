@@ -27,6 +27,7 @@ import de.pnnit.directwerk.modules.digital.service.HtmlSanitizer;
 import de.pnnit.directwerk.modules.podcast.entity.Episode;
 import de.pnnit.directwerk.modules.podcast.entity.EpisodeStatus;
 import de.pnnit.directwerk.modules.podcast.exception.EpisodeNotFoundException;
+import de.pnnit.directwerk.modules.podcast.job.RssFeedRefreshJobProducer;
 import de.pnnit.directwerk.modules.podcast.repository.EpisodeRepository;
 import de.pnnit.directwerk.modules.podcast.repository.FormatRepository;
 import de.pnnit.directwerk.security.DirectwerkUserPrincipal;
@@ -74,7 +75,7 @@ class EpisodeServiceTest {
     private PodcastCoverAssetResolver podcastCoverAssetResolver;
 
     @Mock
-    private RssFeedRefreshScheduler rssFeedRefreshScheduler;
+    private RssFeedRefreshJobProducer rssFeedRefreshScheduler;
 
     @Mock
     private PlatformAuditService platformAuditService;

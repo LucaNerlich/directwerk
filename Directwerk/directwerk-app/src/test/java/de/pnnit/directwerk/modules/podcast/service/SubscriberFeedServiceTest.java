@@ -16,6 +16,7 @@ import de.pnnit.directwerk.modules.podcast.feed.FeedBuilderException;
 import de.pnnit.directwerk.modules.podcast.feed.SubscriberFeed;
 import de.pnnit.directwerk.modules.podcast.feed.SubscriberFeedNotFoundException;
 import de.pnnit.directwerk.modules.podcast.feed.SubscriberFeedRepository;
+import de.pnnit.directwerk.modules.podcast.job.RssFeedRefreshJobProducer;
 import de.pnnit.directwerk.modules.podcast.repository.FormatRepository;
 import java.util.List;
 import java.util.Optional;
@@ -56,7 +57,7 @@ class SubscriberFeedServiceTest {
     private RssFeedSnapshotService rssFeedSnapshotService;
 
     @Mock
-    private RssFeedRefreshScheduler rssFeedRefreshScheduler;
+    private RssFeedRefreshJobProducer rssFeedRefreshScheduler;
 
     @Mock
     private de.pnnit.directwerk.modules.core.util.FeedTokenGenerator feedTokenGenerator;
