@@ -27,13 +27,10 @@ function Probe({
 
 function renderProbe(
     ownerUserId?: number | null,
-    userId: number | null = 5,
+    userId: number = 5,
     roles: string[] = ['EDITOR'],
 ) {
-    const me =
-        userId === null
-            ? null
-            : {userId, email: 'e@x.de', name: 'E', roles, tenantId: 1}
+    const me = {userId, email: 'e@x.de', name: 'E', roles, tenantId: 1}
     render(
         <MeProvider me={me}>
             <Probe ownerUserId={ownerUserId} />
