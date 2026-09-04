@@ -101,6 +101,24 @@ afterEach(() => {
 })
 
 describe('EpisodeEditor tagging', () => {
+    it('sends an explicit signal when removing the cover asset', async () => {
+        const user = userEvent.setup()
+        updateEpisode.mockClear()
+        getEpisode.mockResolvedValueOnce({...draftEpisode, coverAssetId: 12})
+        render(<EpisodeEditor episodeId={1} />)
+
+        await user.click(await screen.findByRole('button', {name: 'Titelbild entfernen'}))
+        await user.click(screen.getByRole('button', {name: 'Speichern'}))
+
+        await waitFor(() =>
+            expect(updateEpisode).toHaveBeenCalledWith(
+                'tenant.test',
+                1,
+                expect.objectContaining({clearCoverAsset: true}),
+            ),
+        )
+    })
+
     it('renders Mindest-Stufe as a dropdown with an explanatory hint', async () => {
         render(<EpisodeEditor episodeId={1} />)
 

@@ -1,5 +1,6 @@
 package de.pnnit.directwerk.modules.podcast.service;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.never;
@@ -9,6 +10,7 @@ import static org.mockito.Mockito.when;
 import de.pnnit.directwerk.modules.core.entity.Tenant;
 import de.pnnit.directwerk.modules.core.repository.TenantRepository;
 import de.pnnit.directwerk.modules.digital.api.EpisodeMediaApi;
+import de.pnnit.directwerk.modules.digital.entity.MediaAsset;
 import de.pnnit.directwerk.modules.digital.service.CategoryService;
 import de.pnnit.directwerk.modules.digital.service.HtmlSanitizer;
 import de.pnnit.directwerk.modules.podcast.entity.Episode;
@@ -101,6 +103,31 @@ class EpisodeServiceTest {
 
         assertThatThrownBy(() -> episodeService.deleteEpisode(TENANT_ID, EPISODE_ID))
                 .isInstanceOf(EpisodeNotFoundException.class);
+    }
+
+    @Test
+    void updateDraftCanClearCoverAsset() {
+        Episode draft = episode(EpisodeStatus.DRAFT);
+        draft.setCoverAsset(new MediaAsset());
+        when(episodeRepository.findByIdAndTenantId(EPISODE_ID, TENANT_ID)).thenReturn(Optional.of(draft));
+        when(episodeRepository.save(draft)).thenReturn(draft);
+
+        Episode updated = episodeService.updateDraft(
+                TENANT_ID,
+                EPISODE_ID,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                true
+        );
+
+        assertThat(updated.getCoverAsset()).isNull();
+        verify(episodeRepository).save(draft);
     }
 
     private static Episode episode(EpisodeStatus status) {

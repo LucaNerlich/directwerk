@@ -11,4 +11,12 @@
         content: attr(data-placeholder);
         @apply text-muted-foreground;
     }
+
+    .editor-surface img {
+        @apply h-auto max-w-full rounded-lg;
+    }
+
+    .editor-surface img.ProseMirror-selectednode {
+        @apply outline-2 outline-primary;
+    }
 }

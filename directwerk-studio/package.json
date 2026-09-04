@@ -12,9 +12,10 @@
     "dependencies": {
         "@directwerk/api": "workspace:*",
         "@directwerk/ui": "workspace:*",
-        "@tiptap/extension-link": "^3.30.5",
-        "@tiptap/react": "^3.30.5",
-        "@tiptap/starter-kit": "^3.30.5",
+        "@tiptap/extension-image": "^3.31.2",
+        "@tiptap/extension-link": "^3.31.2",
+        "@tiptap/react": "^3.31.2",
+        "@tiptap/starter-kit": "^3.31.2",
         "next": "^16.3.3",
         "react": "^19.2.8",
         "react-dom": "^19.2.8",

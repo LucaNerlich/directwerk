@@ -38,4 +38,25 @@ class HtmlSanitizerTest {
         assertThat(sanitized).contains("call");
         assertThat(sanitized).doesNotContain("javascript");
     }
+
+    @Test
+    void allowsInlineImagesWithHttpsSrc() {
+        String sanitized = htmlSanitizer.sanitize(
+                "<p>Text</p><figure><img src=\"https://cdn.example.test/tenant/public/images/asset-1_cover.png\" alt=\"Cover\" /></figure>");
+
+        assertThat(sanitized).contains("<img");
+        assertThat(sanitized).contains("src=\"https://cdn.example.test/tenant/public/images/asset-1_cover.png\"");
+        assertThat(sanitized).contains("alt=\"Cover\"");
+    }
+
+    @Test
+    void stripsUnsafeImageSourcesAndHandlers() {
+        String sanitized = htmlSanitizer.sanitize(
+                "<p><img src=\"data:image/png;base64,AAA\" onerror=\"alert(1)\" alt=\"x\" />"
+                        + "<img src=\"javascript:alert(1)\" alt=\"y\" /></p>");
+
+        assertThat(sanitized).doesNotContain("data:");
+        assertThat(sanitized).doesNotContain("javascript");
+        assertThat(sanitized).doesNotContain("onerror");
+    }
 }

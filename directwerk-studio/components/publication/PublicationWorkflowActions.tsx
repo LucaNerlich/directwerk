@@ -21,6 +21,9 @@ interface PublicationWorkflowActionsProps {
     onPublishedAtChange: (value: string) => void
     publishValidationError?: string | null
     scheduleValidationError?: string | null
+    /** Hides the primary action buttons (Save/Publish/…). Used when the
+     * surrounding layout renders them in a sticky header instead. */
+    showPrimaryActions?: boolean
     onSave: () => void
     onPublish: () => void
     onSchedule: () => void
@@ -44,6 +47,7 @@ export default function PublicationWorkflowActions({
     onPublishedAtChange,
     publishValidationError = null,
     scheduleValidationError = null,
+    showPrimaryActions = true,
     onSave,
     onPublish,
     onSchedule,
@@ -60,6 +64,7 @@ export default function PublicationWorkflowActions({
     return (
         <fieldset className="m-0 flex min-w-0 flex-col gap-3 border-0 p-0" disabled={isSaving}>
             <legend className="sr-only">Veröffentlichung</legend>
+            {showPrimaryActions ? (
             <div className="flex flex-wrap items-end gap-2">
                 {isDraft && (
                     <Button type="button" variant="outline" onClick={onSave}>
@@ -91,6 +96,7 @@ export default function PublicationWorkflowActions({
                     </Button>
                 )}
             </div>
+            ) : null}
 
             {(isDraft || isScheduled) && (
                 <div className="flex flex-wrap items-end gap-2">

@@ -3,9 +3,16 @@
 import {Button} from '@directwerk/ui/components/button'
 
 import Link from '@tiptap/extension-link'
+import Image from '@tiptap/extension-image'
 import {EditorContent, useEditor} from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
-import {useEffect, useId} from 'react'
+import {useEffect, useId, useState} from 'react'
+
+import MediaInlinePickerDialog, {
+    inlineInsertKind,
+} from '@/components/media/MediaInlinePickerDialog'
+import type {MediaAsset} from '@directwerk/api/types'
+import {safeImageSrc, safeLinkHref} from '@/lib/url/safeUrl'
 
 
 const SAFE_LINK_PROTOCOLS = new Set(['https:', 'http:', 'mailto:', 'tel:'])
@@ -18,14 +25,51 @@ function isSafeLinkHref(value: string): boolean {
     }
 }
 
+function escapeHtml(value: string): string {
+    return value
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+}
+
+export function sanitizePastedHtml(html: string): string {
+    const parsed = new DOMParser().parseFromString(
+        html
+            .replace(/\s(?:style|class|id)="[^"]*"/gi, '')
+            .replace(/\son[a-z0-9-]+\s*=\s*("[^"]*"|'[^']*')/gi, '')
+            .replace(/href\s*=\s*("|')\s*(?:javascript|data):[^"']*\1/gi, '')
+            .replace(/<(script|style|iframe)[\s\S]*?<\/\1>/gi, ''),
+        'text/html',
+    )
+
+    parsed.body.querySelectorAll('img').forEach((image) => {
+        const src = safeImageSrc(image.getAttribute('src'))
+        if (src === null) {
+            image.remove()
+            return
+        }
+        image.setAttribute('src', src)
+    })
+
+    return parsed.body.innerHTML
+}
+
 /**
  * Provides a rich-text editor for show notes or post content.
+ *
+ * Inline media from the media library (PUBLIC READY assets) can be inserted at
+ * the cursor: images are embedded as `<img>`, audio/video/documents as links.
+ * Private assets are excluded by the picker — their preview URLs expire and
+ * must never end up in public HTML.
  *
  * @param value - The editor's HTML content.
  * @param onChange - Called with the updated HTML content.
  * @param label - The label displayed above the editor.
  * @param placeholder - The placeholder displayed when the editor is empty.
  * @param disabled - Disables editing and toolbar controls when `true`.
+ * @param allowMediaInsert - Shows the "Medium" toolbar button when `true`.
+ * @param onAuthRequired - Called when the media library reports an expired session.
  */
 export default function ShowNotesEditor({
     value,
@@ -34,6 +78,8 @@ export default function ShowNotesEditor({
     placeholder = 'Shownotes oder Beitragstext…',
     disabled = false,
     helperText,
+    allowMediaInsert = true,
+    onAuthRequired,
 }: {
     value: string
     onChange: (html: string) => void
@@ -41,10 +87,13 @@ export default function ShowNotesEditor({
     placeholder?: string
     disabled?: boolean
     helperText?: string
+    allowMediaInsert?: boolean
+    onAuthRequired?: () => void
 }) {
     const labelId = useId()
     const toolbarLabelId = useId()
     const helperId = useId()
+    const [mediaDialogOpen, setMediaDialogOpen] = useState(false)
     const editor = useEditor({
         // Required for Next.js App Router — avoids SSR/client hydration mismatch.
         immediatelyRender: false,
@@ -59,6 +108,12 @@ export default function ShowNotesEditor({
                 link: false,
             }),
             Link.configure({openOnClick: false, autolink: true}),
+            Image.configure({
+                // Base64 would bloat the database and never survive the
+                // backend sanitizer — only https CDN URLs from the library.
+                allowBase64: false,
+                HTMLAttributes: {loading: 'lazy'},
+            }),
         ],
         content: value,
         onUpdate: ({editor: currentEditor}) => {
@@ -72,11 +127,7 @@ export default function ShowNotesEditor({
                 'data-placeholder': placeholder,
             },
             transformPastedHTML(html) {
-                return html
-                    .replace(/\s(?:style|class|id)="[^"]*"/gi, '')
-                    .replace(/\son[a-z0-9-]+\s*=\s*("[^"]*"|'[^']*')/gi, '')
-                    .replace(/href\s*=\s*("|')\s*(?:javascript|data):[^"']*\1/gi, '')
-                    .replace(/<(script|style|iframe)[\s\S]*?<\/\1>/gi, '')
+                return sanitizePastedHtml(html)
             },
         },
     })
@@ -100,6 +151,31 @@ export default function ShowNotesEditor({
     if (!editor) {
         return null
     }
+
+    const handleInsertMedia = (asset: MediaAsset): void => {
+        const fileLabel = asset.originalFilename ?? `Datei ${asset.id}`
+        if (inlineInsertKind(asset) === 'image') {
+            const src = safeImageSrc(asset.cdnUrl)
+            if (src === null) {
+                return
+            }
+            editor.chain().focus().setImage({src, alt: fileLabel, title: fileLabel}).run()
+            return
+        }
+        const href = safeLinkHref(asset.cdnUrl)
+        if (href === null) {
+            return
+        }
+        editor
+            .chain()
+            .focus()
+            .insertContent(
+                `<a href="${href}">${escapeHtml(fileLabel)}</a>`,
+            )
+            .run()
+    }
+
+    const mediaDisabled = disabled || !allowMediaInsert
 
     return (
         <div className="grid gap-2">
@@ -212,6 +288,19 @@ export default function ShowNotesEditor({
                 >
                     Link
                 </Button>
+                {allowMediaInsert ? (
+                    <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        disabled={mediaDisabled}
+                        aria-label="Medium aus Mediathek einfügen"
+                        title="Bild einbetten oder Audio/Video/Dokument verlinken (nur öffentliche Dateien)"
+                        onClick={() => setMediaDialogOpen(true)}
+                    >
+                        Medium
+                    </Button>
+                ) : null}
             </div>
             <div aria-labelledby={labelId}>
                 <EditorContent editor={editor} />
@@ -219,6 +308,14 @@ export default function ShowNotesEditor({
             <p className="text-xs font-normal text-muted-foreground" id={helperId}>
                 {helperText ?? 'Formatierung über die Werkzeugleiste. Links brauchen https://, http://, mailto: oder tel:.'}
             </p>
+            {allowMediaInsert ? (
+                <MediaInlinePickerDialog
+                    onAuthRequired={onAuthRequired ?? (() => {})}
+                    onInsert={handleInsertMedia}
+                    onOpenChange={setMediaDialogOpen}
+                    open={mediaDialogOpen}
+                />
+            ) : null}
         </div>
     )
 }
