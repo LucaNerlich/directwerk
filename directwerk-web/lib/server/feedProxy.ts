@@ -101,9 +101,13 @@ export async function fetchTenantFeed(
 
     let upstreamResponse: Response
     try {
+        // no-store: the upstream 302 is a per-request tracked redirect —
+        // a cached replay would serve audio without ever hitting the
+        // backend, silently skipping analytics on repeat plays.
         upstreamResponse = await fetch(targetUrl, {
             method: 'GET',
             redirect: 'manual',
+            cache: 'no-store',
             headers: {'X-Tenant-Host': normalizedHost},
             signal: AbortSignal.timeout(UPSTREAM_TIMEOUT_MS),
         })
