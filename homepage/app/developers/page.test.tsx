@@ -21,7 +21,7 @@ describe('DevelopersPage', () => {
         ).toBeInTheDocument()
         expect(
             screen.getByRole('link', {name: 'Dokumentation öffnen'}),
-        ).toHaveAttribute('href', 'http://localhost:5173')
+        ).toHaveAttribute('href', 'https://docs.directwerk.org')
         expect(
             screen.getByRole('button', {name: 'OAuth-Token-Beispiel anzeigen'}),
         ).toBeInTheDocument()
