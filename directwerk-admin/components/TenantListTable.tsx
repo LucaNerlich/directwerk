@@ -12,20 +12,8 @@ import {Input} from '@directwerk/ui/components/input'
 import {Label} from '@directwerk/ui/components/label'
 import {useListViewMode} from '@directwerk/ui/hooks/use-list-view-mode'
 
+import {formatTimestamp} from '@directwerk/api/format/datetime'
 import type {Tenant} from '@directwerk/api/types'
-
-function formatTimestamp(value: string | undefined): string {
-    if (!value) {
-        return '—'
-    }
-
-    const parsed = Date.parse(value)
-    if (Number.isNaN(parsed)) {
-        return value
-    }
-
-    return new Date(parsed).toLocaleDateString()
-}
 
 interface TenantListTableProps {
     tenants: Tenant[]

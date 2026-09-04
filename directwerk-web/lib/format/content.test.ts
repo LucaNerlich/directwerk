@@ -1,20 +1,14 @@
 import {describe, expect, it} from 'vitest'
 
 import {
-    accessPolicyLabel,
     assetTypeLabel,
     entitlementLabel,
     entitlementState,
     formatDuration,
-    formatFileSize,
 } from '@/lib/format/content'
+import {formatBytes} from '@directwerk/api/format/bytes'
 
 describe('content format helpers', () => {
-    it('labels access policies in German', () => {
-        expect(accessPolicyLabel('FREE')).toBe('Frei')
-        expect(accessPolicyLabel('PAID')).toBe('Bezahlt')
-    })
-
     it('derives entitlement states from policy and access', () => {
         expect(entitlementState('FREE', false)).toBe('free')
         expect(entitlementState('FREE', true)).toBe('free')
@@ -36,9 +30,9 @@ describe('content format helpers', () => {
     })
 
     it('formats file sizes', () => {
-        expect(formatFileSize(512)).toBe('512 B')
-        expect(formatFileSize(2048)).toBe('2 KB')
-        expect(formatFileSize(5 * 1024 * 1024)).toBe('5.0 MB')
+        expect(formatBytes(512)).toBe('512 B')
+        expect(formatBytes(2048)).toBe('2 KB')
+        expect(formatBytes(5 * 1024 * 1024)).toBe('5.0 MB')
     })
 
     it('labels asset types', () => {

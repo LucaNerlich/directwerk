@@ -22,6 +22,8 @@ import {AdminLoadingText, TableSkeleton} from '@/components/AdminLoading'
 import TenantStorageUploadForm from '@/components/TenantStorageUploadForm'
 import {deletePlatformData, getPlatformData} from '@/lib/api/client'
 import {AUTH_REQUIRED} from '@directwerk/api/constants'
+import {formatBytes} from '@directwerk/api/format/bytes'
+import {formatTimestamp} from '@directwerk/api/format/datetime'
 import {
     ASSET_STATUSES,
     ASSET_TYPES,
@@ -37,38 +39,6 @@ interface TenantStoragePageProps {
 
 const DEFAULT_QUERY: TenantMediaQuery = {
     limit: 50,
-}
-
-const TIMESTAMP_FORMATTER = new Intl.DateTimeFormat('en-GB', {
-    dateStyle: 'short',
-    timeStyle: 'medium',
-    timeZone: 'UTC',
-})
-
-function formatTimestamp(value: string): string {
-    const parsed = Date.parse(value)
-
-    if (Number.isNaN(parsed)) {
-        return value
-    }
-
-    return TIMESTAMP_FORMATTER.format(new Date(parsed))
-}
-
-function formatBytes(value: number | null): string {
-    if (value === null || value < 0) {
-        return '—'
-    }
-
-    if (value < 1024) {
-        return `${value} B`
-    }
-
-    if (value < 1024 * 1024) {
-        return `${(value / 1024).toFixed(1)} KB`
-    }
-
-    return `${(value / (1024 * 1024)).toFixed(1)} MB`
 }
 
 function buildMediaPath(tenantId: string, query: TenantMediaQuery): string {
@@ -374,7 +344,7 @@ export default function TenantStoragePage({params}: TenantStoragePageProps) {
                                         Displayed asset data
                                     </p>
                                     <p className="mt-1 text-2xl font-semibold tracking-tight">
-                                        {formatBytes(totalBytes)}
+                                        {formatBytes(totalBytes) ?? '—'}
                                     </p>
                                 </div>
                                 <div className="rounded-xl border bg-card p-4 shadow-sm">
@@ -556,7 +526,7 @@ export default function TenantStoragePage({params}: TenantStoragePageProps) {
                                                 })()}
                                             </TableCell>
                                             <TableCell>
-                                                {formatBytes(asset.sizeBytes)}
+                                                {formatBytes(asset.sizeBytes) ?? '—'}
                                             </TableCell>
                                             <TableCell>
                                                 <code>{asset.s3Key}</code>

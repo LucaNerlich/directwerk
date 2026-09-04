@@ -1,9 +1,5 @@
 import type {AccessPolicy} from '@directwerk/api/types'
 
-export function accessPolicyLabel(policy: AccessPolicy): string {
-    return policy === 'PAID' ? 'Bezahlt' : 'Frei'
-}
-
 /**
  * Entitlement-aware badge state. `isEntitled` reflects whether the viewer can
  * actually consume the item right now (e.g. playable audio / readable body),
@@ -51,20 +47,6 @@ export function formatDuration(seconds: number | null): string | null {
         return `${hours}:${String(minutes).padStart(2, '0')}:${String(remainingSeconds).padStart(2, '0')}`
     }
     return `${minutes}:${String(remainingSeconds).padStart(2, '0')}`
-}
-
-export function formatFileSize(bytes: number | null): string | null {
-    if (bytes === null || bytes <= 0) {
-        return null
-    }
-    if (bytes < 1024) {
-        return `${bytes} B`
-    }
-    if (bytes < 1024 * 1024) {
-        return `${Math.max(1, Math.round(bytes / 1024))} KB`
-    }
-    const mb = bytes / (1024 * 1024)
-    return `${mb >= 10 ? Math.round(mb) : mb.toFixed(1)} MB`
 }
 
 export function assetTypeLabel(assetType: string): string {

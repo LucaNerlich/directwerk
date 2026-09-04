@@ -177,7 +177,7 @@ export default function HomePage(): React.JSX.Element {
                     />
                     {overview.recentAudit.length > 0 ? (
                         <ResponsiveTable label="Recent audit events">
-                            <RecentAuditTable compact events={overview.recentAudit} />
+                            <RecentAuditTable events={overview.recentAudit} />
                         </ResponsiveTable>
                     ) : (
                         <EmptyState

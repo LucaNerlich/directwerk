@@ -12,9 +12,10 @@ import PageHeader from '@directwerk/ui/components/page-header'
 import PageStack from '@directwerk/ui/components/page-stack'
 
 import {CardGridSkeleton} from '@/components/ContentLoadingSkeleton'
-import {assetTypeLabel, formatFileSize} from '@/lib/format/content'
+import {assetTypeLabel} from '@/lib/format/content'
 import {listMyDownloads} from '@/lib/api/client'
 import {userFacingDownloadsError} from '@/lib/billing/userFacingBillingError'
+import {formatBytes} from '@directwerk/api/format/bytes'
 import type {SubscriberDownload} from '@directwerk/api/types'
 import {getClientTenantHost} from '@/lib/tenant/clientHost'
 import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
@@ -96,7 +97,7 @@ export default function DownloadsPage(): React.JSX.Element {
                     </p>
                     <ul className="grid gap-4 sm:grid-cols-2">
                         {downloads.map((item) => {
-                            const sizeLabel = formatFileSize(item.sizeBytes)
+                            const sizeLabel = formatBytes(item.sizeBytes)
                             const unlockedBy = packageHint(item)
                             return (
                                 <li key={item.id}>

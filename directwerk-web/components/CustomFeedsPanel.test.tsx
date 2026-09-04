@@ -1,7 +1,7 @@
 import {cleanup, fireEvent, render, screen, waitFor} from '@testing-library/react'
 import {afterEach, describe, expect, it, vi} from 'vitest'
 
-import CustomFeedsPanel from '@/components/CustomFeedsPanel'
+import CustomFeedsPanel, {podcastCustomFeedsConfig} from '@/components/CustomFeedsPanel'
 import type {SubscriberFeedView} from '@directwerk/api/types'
 
 const listPublicFormatsMock = vi.fn()
@@ -16,6 +16,13 @@ vi.mock('@/lib/api/client', () => ({
     setFeedEnabled: (...args: unknown[]) => setFeedEnabledMock(...args),
     rotateFeedToken: vi.fn(),
     deleteCustomFeed: vi.fn(),
+    listPublicArticleCategories: vi.fn(),
+    previewCustomArticleFeed: vi.fn(),
+    createCustomArticleFeed: vi.fn(),
+    updateCustomArticleFeed: vi.fn(),
+    setArticleFeedEnabledForUser: vi.fn(),
+    rotateArticleFeedToken: vi.fn(),
+    deleteCustomArticleFeed: vi.fn(),
 }))
 
 afterEach(() => {
@@ -55,6 +62,7 @@ describe('CustomFeedsPanel', () => {
         render(
             <CustomFeedsPanel
                 canBuild
+                config={podcastCustomFeedsConfig}
                 feeds={[feed()]}
                 onAuthRequired={() => undefined}
                 onError={() => undefined}
@@ -76,6 +84,7 @@ describe('CustomFeedsPanel', () => {
         render(
             <CustomFeedsPanel
                 canBuild={false}
+                config={podcastCustomFeedsConfig}
                 feeds={[
                     feed(),
                     feed({
@@ -126,6 +135,7 @@ describe('CustomFeedsPanel', () => {
         render(
             <CustomFeedsPanel
                 canBuild
+                config={podcastCustomFeedsConfig}
                 feeds={[
                     feed({
                         id: 9,

@@ -13,8 +13,10 @@ import PageStack from '@directwerk/ui/components/page-stack'
 import ListPanel, {ListPanelRow} from '@directwerk/ui/components/list-panel'
 import SectionHeader from '@directwerk/ui/components/section-header'
 
-import ArticleCustomFeedsPanel from '@/components/ArticleCustomFeedsPanel'
-import CustomFeedsPanel from '@/components/CustomFeedsPanel'
+import CustomFeedsPanel, {
+    articleCustomFeedsConfig,
+    podcastCustomFeedsConfig,
+} from '@/components/CustomFeedsPanel'
 import FeedUrlDisplay from '@/components/FeedUrlDisplay'
 import HowToListen from '@/components/HowToListen'
 import {ListPanelSkeleton} from '@/components/ContentLoadingSkeleton'
@@ -436,6 +438,7 @@ export default function FeedsPage() {
                 )}
                 <CustomFeedsPanel
                     canBuild={canBuildPodcastFeeds}
+                    config={podcastCustomFeedsConfig}
                     feeds={podcastPrivateFeeds}
                     onAuthRequired={() =>
                         setPodcastCustomError(
@@ -598,8 +601,9 @@ export default function FeedsPage() {
                         <AlertDescription>{articleCustomError}</AlertDescription>
                     </Alert>
                 )}
-                <ArticleCustomFeedsPanel
+                <CustomFeedsPanel
                     canBuild={canBuildArticleFeeds}
+                    config={articleCustomFeedsConfig}
                     feeds={articlePrivateFeeds}
                     onAuthRequired={() =>
                         setArticleCustomError(

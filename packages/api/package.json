@@ -38,7 +38,8 @@
         "./client/createBrowserTransport": "./src/client/createBrowserTransport.ts",
         "./client/platformApiCore": "./src/client/platformApiCore.ts",
         "./generated/openapi": "./src/generated/openapi.ts",
-        "./format/datetime": "./src/format/datetime.ts"
+        "./format/datetime": "./src/format/datetime.ts",
+        "./format/bytes": "./src/format/bytes.ts"
     },
     "scripts": {
         "test": "vitest run",
