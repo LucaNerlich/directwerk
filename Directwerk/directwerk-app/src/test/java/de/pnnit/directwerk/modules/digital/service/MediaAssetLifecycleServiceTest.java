@@ -3,6 +3,7 @@ package de.pnnit.directwerk.modules.digital.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.never;
@@ -12,6 +13,17 @@ import static org.mockito.Mockito.when;
 import de.pnnit.directwerk.config.DirectwerkConfig;
 import de.pnnit.directwerk.config.DirectwerkProperties;
 import de.pnnit.directwerk.modules.core.entity.Tenant;
+import de.pnnit.directwerk.modules.core.audit.PlatformAuditService;
+import de.pnnit.directwerk.modules.core.authorization.ContentEntityType;
+import de.pnnit.directwerk.modules.core.authorization.ContentOperation;
+import de.pnnit.directwerk.modules.core.authorization.RestrictionScope;
+import de.pnnit.directwerk.modules.core.entity.MembershipPermissionOverride;
+import de.pnnit.directwerk.modules.core.entity.Role;
+import de.pnnit.directwerk.modules.core.exception.ContentAccessDeniedException;
+import de.pnnit.directwerk.modules.core.repository.MembershipPermissionOverrideRepository;
+import de.pnnit.directwerk.modules.core.repository.TenantMembershipRepository;
+import de.pnnit.directwerk.modules.core.service.MembershipPermissionService;
+import de.pnnit.directwerk.security.DirectwerkUserPrincipal;
 import de.pnnit.directwerk.modules.core.repository.TenantRepository;
 import de.pnnit.directwerk.modules.digital.api.MediaAssetLifecycleApi;
 import de.pnnit.directwerk.modules.digital.entity.AssetScope;
@@ -52,6 +64,15 @@ class MediaAssetLifecycleServiceTest {
 
     @Mock
     private MediaDeleteJobProducer mediaDeleteJobProducer;
+    @Mock
+    private PlatformAuditService platformAuditService;
+
+    @Mock
+    private MembershipPermissionOverrideRepository overrideRepository;
+
+    @Mock
+    private TenantMembershipRepository tenantMembershipRepository;
+
 
     private MediaAssetLifecycleService lifecycleService;
     private Tenant tenant;
@@ -63,7 +84,10 @@ class MediaAssetLifecycleServiceTest {
                 tenantRepository,
                 directwerkConfig,
                 new S3PublicUrlBuilder("https://cdn.example.test"),
-                mediaDeleteJobProducer
+                mediaDeleteJobProducer,
+                new MembershipPermissionService(
+                        overrideRepository, tenantMembershipRepository, tenantRepository,
+                        platformAuditService)
         );
         tenant = new Tenant();
         tenant.setId(10L);
@@ -249,6 +273,34 @@ class MediaAssetLifecycleServiceTest {
                 10L,
                 List.of(new SimpleGrantedAuthority(RoleConstants.TENANT_ADMIN))
         );
+    }
+
+    @Test
+    void deleteDeniedForStrangerWithOwnOnlyRestriction() {
+        MediaAsset asset = privateContentAsset(70L);
+        asset.setCreatedBy(99L);
+        when(directwerkConfig.isStorageEnabled()).thenReturn(true);
+        when(directwerkConfig.storage()).thenReturn(storageProps());
+        when(tenantRepository.requireById(10L)).thenReturn(tenant);
+        when(mediaAssetRepository.findById(70L)).thenReturn(Optional.of(asset));
+        when(overrideRepository.findByTenantIdAndUserId(10L, 3L)).thenReturn(List.of(
+                override(ContentEntityType.MEDIA_ASSET, ContentOperation.DELETE, RestrictionScope.OTHERS_ONLY)));
+
+        assertThatThrownBy(() -> lifecycleService.delete(
+                        new MediaAssetLifecycleApi.DeleteCommand(70L, editor(3L), false)))
+                .isInstanceOf(ContentAccessDeniedException.class)
+                .extracting(ex -> ((ContentAccessDeniedException) ex).getCode())
+                .isEqualTo(ContentAccessDeniedException.NOT_CONTENT_OWNER);
+        verify(mediaDeleteJobProducer, never()).enqueueS3Delete(anyLong(), any(), any());
+    }
+
+    private static MembershipPermissionOverride override(
+            ContentEntityType entity, ContentOperation operation, RestrictionScope scope) {
+        MembershipPermissionOverride override = new MembershipPermissionOverride();
+        override.setEntityType(entity);
+        override.setOperation(operation);
+        override.setScope(scope);
+        return override;
     }
 
     private static DirectwerkProperties.Storage storageProps() {

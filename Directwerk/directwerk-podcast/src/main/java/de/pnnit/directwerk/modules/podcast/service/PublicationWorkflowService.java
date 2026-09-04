@@ -7,7 +7,10 @@ import de.pnnit.directwerk.modules.content.ScheduledPublishing.DueItem;
 import de.pnnit.directwerk.modules.content.ContentPublishedNotifier;
 import de.pnnit.directwerk.modules.content.ContentType;
 import de.pnnit.directwerk.modules.core.RequiresModule;
+import de.pnnit.directwerk.modules.core.authorization.ContentEntityType;
+import de.pnnit.directwerk.modules.core.authorization.ContentOperation;
 import de.pnnit.directwerk.modules.core.notification.SubscriberNotificationGate;
+import de.pnnit.directwerk.modules.core.service.MembershipPermissionService;
 import de.pnnit.directwerk.modules.core.service.ScheduledPublicationExecutor;
 import de.pnnit.directwerk.modules.digital.api.EpisodeMediaApi;
 import de.pnnit.directwerk.modules.digital.entity.AssetVisibility;
@@ -21,6 +24,7 @@ import de.pnnit.directwerk.modules.podcast.exception.EpisodeValidationException;
 import de.pnnit.directwerk.modules.content.PublicationTransitions;
 import de.pnnit.directwerk.modules.digital.service.HtmlSanitizer;
 import de.pnnit.directwerk.modules.podcast.repository.EpisodeRepository;
+import de.pnnit.directwerk.security.SecurityUtils;
 import java.time.Instant;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -44,6 +48,18 @@ public class PublicationWorkflowService {
     private final SubscriberNotificationGate notificationGate;
     private final RssFeedRefreshScheduler rssFeedRefreshScheduler;
     private final ObjectProvider<PublicationWorkflowService> self;
+    private final MembershipPermissionService permissionService;
+
+    /**
+     * RBAC gate (issue #148). The principal resolves from the security context;
+     * trusted system paths (scheduled publishing) call the internal methods
+     * directly and were authorized when the user scheduled. New callers must run
+     * with an authenticated context to be gated.
+     */
+    private void requireAccess(ContentOperation operation, Long ownerUserId) {
+        permissionService.requireContentAccess(
+                SecurityUtils.currentPrincipal(), ContentEntityType.EPISODE, operation, ownerUserId);
+    }
 
     @Transactional
     @RequiresModule(PodcastModule.KEY)
@@ -66,6 +82,7 @@ public class PublicationWorkflowService {
             Instant publishedAt
     ) {
         Episode episode = episodeService.requireEpisode(tenantId, episodeId);
+        requireAccess(ContentOperation.PUBLISH, episode.getCreatedBy());
         return publishInternal(tenantId, episode, notifySubscribers, publishedAt);
     }
 
@@ -79,6 +96,7 @@ public class PublicationWorkflowService {
     @RequiresModule(PodcastModule.KEY)
     public Episode schedule(Long tenantId, Long episodeId, Instant scheduledAt, boolean notifySubscribers) {
         Episode episode = episodeService.requireEpisode(tenantId, episodeId);
+        requireAccess(ContentOperation.SCHEDULE, episode.getCreatedBy());
         requirePublishedSeries(episode);
         PublicationLifecycleSupport.schedule(
                 scheduledAt,
@@ -98,6 +116,7 @@ public class PublicationWorkflowService {
     @RequiresModule(PodcastModule.KEY)
     public Episode cancelSchedule(Long tenantId, Long episodeId) {
         Episode episode = episodeService.requireEpisode(tenantId, episodeId);
+        requireAccess(ContentOperation.SCHEDULE, episode.getCreatedBy());
         PublicationTransitions.requireScheduledStatus(episode.getStatus() == EpisodeStatus.SCHEDULED, "episodes");
         episode.setStatus(EpisodeStatus.DRAFT);
         episode.setScheduledAt(null);
@@ -108,6 +127,7 @@ public class PublicationWorkflowService {
     @RequiresModule(PodcastModule.KEY)
     public Episode unpublish(Long tenantId, Long episodeId) {
         Episode episode = episodeService.requireEpisode(tenantId, episodeId);
+        requireAccess(ContentOperation.UNPUBLISH, episode.getCreatedBy());
         PublicationLifecycleSupport.unpublish(
                 () -> episode.getStatus() == EpisodeStatus.PUBLISHED,
                 "episodes",
@@ -126,6 +146,7 @@ public class PublicationWorkflowService {
     @RequiresModule(PodcastModule.KEY)
     public Episode archive(Long tenantId, Long episodeId) {
         Episode episode = episodeService.requireEpisode(tenantId, episodeId);
+        requireAccess(ContentOperation.ARCHIVE, episode.getCreatedBy());
         PublicationTransitions.requirePublishedStatus(episode.getStatus() == EpisodeStatus.PUBLISHED, "episodes");
         demotePublicAudioIfNeeded(episode);
         episode.setStatus(EpisodeStatus.ARCHIVED);
@@ -139,6 +160,7 @@ public class PublicationWorkflowService {
     @RequiresModule(PodcastModule.KEY)
     public Episode unarchive(Long tenantId, Long episodeId) {
         Episode episode = episodeService.requireEpisode(tenantId, episodeId);
+        requireAccess(ContentOperation.UNARCHIVE, episode.getCreatedBy());
         PublicationTransitions.requireArchivedStatus(episode.getStatus() == EpisodeStatus.ARCHIVED, "episodes");
         episode.setStatus(EpisodeStatus.DRAFT);
         episode.setPublishedAt(null);

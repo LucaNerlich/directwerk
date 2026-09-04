@@ -3,7 +3,10 @@ package de.pnnit.directwerk.modules.podcast.service;
 import de.pnnit.directwerk.modules.core.exception.ConflictException;
 import de.pnnit.directwerk.modules.core.exception.ConflictCodes;
 import de.pnnit.directwerk.modules.core.RequiresModule;
+import de.pnnit.directwerk.modules.core.authorization.ContentEntityType;
+import de.pnnit.directwerk.modules.core.authorization.ContentOperation;
 import de.pnnit.directwerk.modules.core.repository.TenantRepository;
+import de.pnnit.directwerk.modules.core.service.MembershipPermissionService;
 import de.pnnit.directwerk.modules.core.util.FieldConstraints;
 import de.pnnit.directwerk.modules.core.util.SlugNormalizer;
 import de.pnnit.directwerk.modules.core.util.TitleNormalizer;
@@ -22,6 +25,7 @@ import de.pnnit.directwerk.modules.digital.service.CategoryService;
 import de.pnnit.directwerk.modules.digital.service.HtmlSanitizer;
 import de.pnnit.directwerk.modules.podcast.repository.EpisodeRepository;
 import de.pnnit.directwerk.modules.podcast.repository.FormatRepository;
+import de.pnnit.directwerk.security.SecurityUtils;
 import java.time.Instant;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -43,6 +47,7 @@ public class EpisodeService {
     private final HtmlSanitizer htmlSanitizer;
     private final PodcastCoverAssetResolver podcastCoverAssetResolver;
     private final RssFeedRefreshScheduler rssFeedRefreshScheduler;
+    private final MembershipPermissionService permissionService;
 
     @Transactional(readOnly = true)
     public List<Episode> listEpisodes(Long tenantId) {
@@ -53,6 +58,18 @@ public class EpisodeService {
     public Episode requireEpisode(Long tenantId, Long episodeId) {
         return episodeRepository.findByIdAndTenantId(episodeId, tenantId)
                 .orElseThrow(() -> new EpisodeNotFoundException(episodeId));
+    }
+
+    /**
+     * RBAC gate (issue #148). The acting principal resolves from the security
+     * context, which every authenticated HTTP path carries — checks therefore
+     * always run in production. A {@code null} principal means a trusted system
+     * path (schedulers, workers) whose user-facing action was authorized
+     * upstream; new callers must run with an authenticated context to be gated.
+     */
+    private void requireAccess(ContentOperation operation, Long ownerUserId) {
+        permissionService.requireContentAccess(
+                SecurityUtils.currentPrincipal(), ContentEntityType.EPISODE, operation, ownerUserId);
     }
 
     @Transactional
@@ -72,6 +89,7 @@ public class EpisodeService {
             Set<Long> formatIds,
             Set<Long> categoryIds
     ) {
+        requireAccess(ContentOperation.CREATE, null);
         return createDraftInternal(
                 tenantId,
                 seriesId,
@@ -120,6 +138,7 @@ public class EpisodeService {
         if (importIdentity == null || !importIdentity.matches("[a-f0-9]{64}")) {
             throw new EpisodeValidationException("importIdentity must be a lowercase SHA-256 digest");
         }
+        requireAccess(ContentOperation.CREATE, null);
         return createDraftInternal(
                 tenantId,
                 seriesId,
@@ -176,6 +195,7 @@ public class EpisodeService {
         Episode episode = new Episode();
         episode.setTenant(tenantRepository.getReferenceById(tenantId));
         episode.setSeries(series);
+        episode.setCreatedBy(SecurityUtils.currentUserId());
         episode.setEpisodeNumber(FieldConstraints.requirePositive(episodeNumber, "episodeNumber"));
         episode.setSlug(slug);
         episode.setImportIdentity(importIdentity);
@@ -218,6 +238,7 @@ public class EpisodeService {
             Boolean clearCoverAsset
     ) {
         Episode episode = requireDraftEpisode(tenantId, episodeId);
+        requireAccess(ContentOperation.UPDATE, episode.getCreatedBy());
         if (episodeNumber != null) {
             episode.setEpisodeNumber(FieldConstraints.requirePositive(episodeNumber, "episodeNumber"));
         }
@@ -256,6 +277,7 @@ public class EpisodeService {
     @RequiresModule(PodcastModule.KEY)
     public Episode replaceFormats(Long tenantId, Long episodeId, Set<Long> formatIds) {
         Episode episode = requireDraftEpisode(tenantId, episodeId);
+        requireAccess(ContentOperation.UPDATE, episode.getCreatedBy());
         episode.getFormats().clear();
         episode.getFormats().addAll(resolveFormats(tenantId, formatIds));
         episodeRepository.save(episode);
@@ -266,6 +288,7 @@ public class EpisodeService {
     @RequiresModule(PodcastModule.KEY)
     public Episode replaceCategories(Long tenantId, Long episodeId, Set<Long> categoryIds) {
         Episode episode = requireDraftEpisode(tenantId, episodeId);
+        requireAccess(ContentOperation.UPDATE, episode.getCreatedBy());
         episode.getCategories().clear();
         episode.getCategories().addAll(categoryService.resolveActiveCategories(tenantId, categoryIds,
                 id -> { throw new EpisodeValidationException("Category is inactive: " + id); }));
@@ -277,6 +300,7 @@ public class EpisodeService {
     @RequiresModule(PodcastModule.KEY)
     public Episode attachAudio(Long tenantId, Long episodeId, Long audioAssetId) {
         Episode episode = requireDraftEpisode(tenantId, episodeId);
+        requireAccess(ContentOperation.UPDATE, episode.getCreatedBy());
         MediaAsset audio = episodeMediaApi.requireReadyAudio(audioAssetId);
         episode.setAudioAsset(audio);
         episodeRepository.save(episode);
@@ -289,6 +313,7 @@ public class EpisodeService {
     @RequiresModule(PodcastModule.KEY)
     public Episode setEnclosureEnabled(Long tenantId, Long episodeId, boolean enclosureEnabled) {
         Episode episode = requireEpisode(tenantId, episodeId);
+        requireAccess(ContentOperation.UPDATE, episode.getCreatedBy());
         episode.setEnclosureEnabled(enclosureEnabled);
         Episode saved = episodeRepository.save(episode);
         if (episode.getStatus() == EpisodeStatus.PUBLISHED) {
@@ -314,6 +339,7 @@ public class EpisodeService {
         if (episode.getTenant() == null || !tenantId.equals(episode.getTenant().getId())) {
             throw new EpisodeNotFoundException(episodeId);
         }
+        requireAccess(ContentOperation.DELETE, episode.getCreatedBy());
         boolean wasVisible = episode.getStatus() == EpisodeStatus.PUBLISHED
                 || episode.getStatus() == EpisodeStatus.SCHEDULED;
         episodeRepository.delete(episode);

@@ -1,6 +1,9 @@
 package de.pnnit.directwerk.modules.digital.service;
 
 import de.pnnit.directwerk.modules.core.RequiresModule;
+import de.pnnit.directwerk.modules.core.authorization.ContentEntityType;
+import de.pnnit.directwerk.modules.core.authorization.ContentOperation;
+import de.pnnit.directwerk.modules.core.service.MembershipPermissionService;
 import de.pnnit.directwerk.modules.core.exception.ConflictCodes;
 import de.pnnit.directwerk.modules.core.exception.ConflictException;
 import de.pnnit.directwerk.modules.core.repository.TenantRepository;
@@ -16,6 +19,7 @@ import de.pnnit.directwerk.modules.digital.exception.MediaFolderNotFoundExceptio
 import de.pnnit.directwerk.modules.digital.repository.MediaAssetRepository;
 import de.pnnit.directwerk.modules.digital.repository.MediaFolderRepository;
 import de.pnnit.directwerk.security.DirectwerkUserPrincipal;
+import de.pnnit.directwerk.security.SecurityUtils;
 import jakarta.persistence.EntityManager;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -42,12 +46,30 @@ public class MediaFolderService implements MediaFolderApi {
     private final MediaAssetRepository mediaAssetRepository;
     private final MediaAssetLifecycleApi mediaAssetLifecycleApi;
     private final TenantRepository tenantRepository;
+    private final MembershipPermissionService permissionService;
     private final EntityManager entityManager;
 
     @Override
     @Transactional(readOnly = true)
     public List<MediaFolder> list(Long tenantId) {
         return mediaFolderRepository.findByTenantIdOrderByNameAscIdAsc(tenantId);
+    }
+
+    /**
+     * RBAC gate (issue #148). The acting principal resolves from the security
+     * context, which every authenticated HTTP path carries — checks therefore
+     * always run in production. A {@code null} principal means a trusted system
+     * path whose user-facing action was authorized upstream; new callers must run
+     * with an authenticated context to be gated.
+     */
+    private void requireAccess(ContentOperation operation, Long ownerUserId) {
+        permissionService.requireContentAccess(
+                SecurityUtils.currentPrincipal(), ContentEntityType.MEDIA_FOLDER, operation, ownerUserId);
+    }
+
+    private void requireAssetAccess(ContentOperation operation, Long ownerUserId) {
+        permissionService.requireContentAccess(
+                SecurityUtils.currentPrincipal(), ContentEntityType.MEDIA_ASSET, operation, ownerUserId);
     }
 
     @Override
@@ -66,12 +88,14 @@ public class MediaFolderService implements MediaFolderApi {
     public MediaFolder createFolder(Long tenantId, String name, Long parentId) {
         String normalized = normalizeName(name);
         acquireTenantFolderLock(tenantId);
+        requireAccess(ContentOperation.CREATE, null);
         MediaFolder parent = resolveParent(tenantId, parentId);
         assertDepthAllows(parent, 1);
         assertNameAvailable(tenantId, parent, normalized, null);
 
         MediaFolder folder = new MediaFolder();
         folder.setTenant(tenantRepository.getReferenceById(tenantId));
+        folder.setCreatedBy(SecurityUtils.currentUserId());
         folder.setName(normalized);
         folder.setParent(parent);
         return mediaFolderRepository.save(folder);
@@ -82,6 +106,7 @@ public class MediaFolderService implements MediaFolderApi {
     @RequiresModule(DigitalContentModule.KEY)
     public MediaFolder renameFolder(Long tenantId, Long folderId, String name) {
         MediaFolder folder = requireFolder(tenantId, folderId);
+        requireAccess(ContentOperation.UPDATE, folder.getCreatedBy());
         String normalized = normalizeName(name);
         assertNameAvailable(tenantId, folder.getParent(), normalized, folderId);
         folder.setName(normalized);
@@ -96,6 +121,7 @@ public class MediaFolderService implements MediaFolderApi {
         if (newParentId != null && newParentId.equals(folderId)) {
             throw new IllegalArgumentException("Folder cannot be its own parent");
         }
+        requireAccess(ContentOperation.MOVE, folder.getCreatedBy());
         acquireTenantFolderLock(tenantId);
         MediaFolder newParent = resolveParent(tenantId, newParentId);
         assertNoCycle(newParent, folderId);
@@ -118,6 +144,7 @@ public class MediaFolderService implements MediaFolderApi {
     public MediaFolder deleteFolder(
             Long tenantId, Long folderId, FolderDeleteMode mode, DirectwerkUserPrincipal principal) {
         MediaFolder folder = requireFolder(tenantId, folderId);
+        requireAccess(ContentOperation.DELETE, folder.getCreatedBy());
         acquireTenantFolderLock(tenantId);
         // Re-read inside the lock so the tree walk below sees a stable snapshot.
         folder = requireFolder(tenantId, folderId);
@@ -271,6 +298,7 @@ public class MediaFolderService implements MediaFolderApi {
         if (folderId != null) {
             requireFolder(tenantId, folderId);
         }
+        requireAssetAccess(ContentOperation.MOVE, asset.getCreatedBy());
         asset.setFolderId(folderId);
     }
 

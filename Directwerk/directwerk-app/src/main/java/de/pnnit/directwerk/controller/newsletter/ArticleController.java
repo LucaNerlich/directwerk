@@ -217,6 +217,7 @@ public class ArticleController {
                         .sorted(CategoryView.DISPLAY_ORDER)
                         .map(CategoryView::of)
                         .toList(),
+                article.getCreatedBy(),
                 article.getCreatedAt(),
                 article.getUpdatedAt()
         );
@@ -271,6 +272,7 @@ public class ArticleController {
             Instant publishedAt,
             Instant scheduledAt,
             List<CategoryView> categories,
+            Long createdBy,
             Instant createdAt,
             Instant updatedAt
     ) {

@@ -301,6 +301,7 @@ public class EpisodeController {
             Instant scheduledAt,
             List<FormatView> formats,
             List<CategoryView> categories,
+            Long createdBy,
             Instant createdAt,
             Instant updatedAt
     ) {

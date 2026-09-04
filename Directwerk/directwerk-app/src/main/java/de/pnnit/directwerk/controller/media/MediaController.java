@@ -213,6 +213,7 @@ public class MediaController {
                 folder.getId(),
                 folder.getName(),
                 folder.getParent() != null ? folder.getParent().getId() : null,
+                folder.getCreatedBy(),
                 folder.getCreatedAt(),
                 folder.getUpdatedAt()
         );

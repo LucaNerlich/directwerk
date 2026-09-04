@@ -34,6 +34,7 @@ public class TenantMembershipManagementService {
 
     private final TenantMembershipRepository tenantMembershipRepository;
     private final PlatformAuditService platformAuditService;
+    private final MembershipPermissionService membershipPermissionService;
     private final EntityManager entityManager;
     private final ApplicationEventPublisher eventPublisher;
 
@@ -127,6 +128,9 @@ public class TenantMembershipManagementService {
 
         membership.setRoles(EnumSet.of(newRole));
         TenantMembership saved = tenantMembershipRepository.save(membership);
+        // Restriction rows only apply to editors: clear them on every role change
+        // so stale rows can never silently reactivate on a later demotion.
+        membershipPermissionService.clearForMembership(tenantId, membership.getId());
         platformAuditService.record(
                 PlatformAuditActions.MEMBERSHIP_ROLE_CHANGED,
                 tenantId,

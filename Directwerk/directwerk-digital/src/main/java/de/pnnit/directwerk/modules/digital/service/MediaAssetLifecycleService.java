@@ -3,6 +3,9 @@ package de.pnnit.directwerk.modules.digital.service;
 import de.pnnit.directwerk.config.DirectwerkConfig;
 import de.pnnit.directwerk.modules.digital.storage.StorageConfigs;
 import de.pnnit.directwerk.modules.core.RequiresModule;
+import de.pnnit.directwerk.modules.core.authorization.ContentEntityType;
+import de.pnnit.directwerk.modules.core.authorization.ContentOperation;
+import de.pnnit.directwerk.modules.core.service.MembershipPermissionService;
 import de.pnnit.directwerk.modules.core.entity.Tenant;
 import de.pnnit.directwerk.modules.core.repository.TenantRepository;
 import de.pnnit.directwerk.modules.core.util.TenantAssetKeys;
@@ -40,6 +43,7 @@ public class MediaAssetLifecycleService implements MediaAssetLifecycleApi {
     private final DirectwerkConfig directwerkConfig;
     private final S3PublicUrlBuilder publicUrlBuilder;
     private final MediaDeleteJobProducer mediaDeleteJobProducer;
+    private final MembershipPermissionService permissionService;
 
     @Override
     @Transactional
@@ -59,6 +63,14 @@ public class MediaAssetLifecycleService implements MediaAssetLifecycleApi {
 
         MediaAssetTenantCheck.assertTenantMatch(asset);
         TenantAssetKeys.requireTenantPrefix(tenant.getSlug(), asset.getS3Key());
+        // RBAC gate (issue #148) alongside the scope-based check below. The
+        // principal resolves from the command: HTTP paths pass the authenticated
+        // user, platform ops pass the platform admin (always allowed).
+        permissionService.requireContentAccess(
+                command.principal(),
+                ContentEntityType.MEDIA_ASSET,
+                ContentOperation.DELETE,
+                asset.getCreatedBy());
         authorizeDelete(asset, command.principal(), command.platformOps());
 
         if (asset.getStatus() == AssetStatus.PENDING_DELETE) {

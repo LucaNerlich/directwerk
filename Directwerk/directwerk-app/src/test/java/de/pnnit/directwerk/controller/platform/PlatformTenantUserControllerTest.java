@@ -1,5 +1,6 @@
 package de.pnnit.directwerk.controller.platform;
 
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -132,5 +133,24 @@ class PlatformTenantUserControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"role\":\"TENANT_ADMIN\"}"))
                 .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    @WithMockUser(roles = "PLATFORM_ADMIN")
+    void effectiveRightsResolveUnrestrictedEditorMatrix() throws Exception {
+        mockMvc.perform(get("/api/v1/platform/tenants/{tenantId}/users/{userId}/effective-rights", tenantId, editorUserId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.userId").value(editorUserId))
+                .andExpect(jsonPath("$.data.roles[0]").value("EDITOR"))
+                .andExpect(jsonPath("$.data.restrictions").isArray())
+                .andExpect(jsonPath("$.data.effective.EPISODE.DELETE").value("FULL"))
+                .andExpect(jsonPath("$.data.effective.MEDIA_ASSET.MOVE").value("FULL"));
+    }
+
+    @Test
+    @WithMockUser(roles = "TENANT_ADMIN")
+    void effectiveRightsRejectNonPlatformUser() throws Exception {
+        mockMvc.perform(get("/api/v1/platform/tenants/{tenantId}/users/{userId}/effective-rights", tenantId, editorUserId))
+                .andExpect(status().isForbidden());
     }
 }

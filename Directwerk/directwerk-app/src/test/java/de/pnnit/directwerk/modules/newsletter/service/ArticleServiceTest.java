@@ -9,7 +9,17 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import de.pnnit.directwerk.modules.core.authorization.ContentEntityType;
+import de.pnnit.directwerk.modules.core.audit.PlatformAuditService;
+import de.pnnit.directwerk.modules.core.authorization.ContentOperation;
+import de.pnnit.directwerk.modules.core.authorization.RestrictionScope;
+import de.pnnit.directwerk.modules.core.entity.MembershipPermissionOverride;
+import de.pnnit.directwerk.modules.core.entity.Role;
 import de.pnnit.directwerk.modules.core.entity.Tenant;
+import de.pnnit.directwerk.modules.core.exception.ContentAccessDeniedException;
+import de.pnnit.directwerk.modules.core.repository.MembershipPermissionOverrideRepository;
+import de.pnnit.directwerk.modules.core.repository.TenantMembershipRepository;
+import de.pnnit.directwerk.modules.core.service.MembershipPermissionService;
 import de.pnnit.directwerk.modules.core.exception.ConflictException;
 import de.pnnit.directwerk.modules.core.repository.TenantRepository;
 import de.pnnit.directwerk.modules.digital.api.MediaAssetQueryApi;
@@ -24,14 +34,21 @@ import de.pnnit.directwerk.modules.newsletter.entity.Article;
 import de.pnnit.directwerk.modules.newsletter.entity.ArticleStatus;
 import de.pnnit.directwerk.modules.newsletter.exception.ArticleNotFoundException;
 import de.pnnit.directwerk.modules.newsletter.exception.ArticleValidationException;
-import de.pnnit.directwerk.modules.newsletter.repository.ArticleRepository;import java.util.Optional;
+import de.pnnit.directwerk.modules.newsletter.repository.ArticleRepository;
+import de.pnnit.directwerk.security.DirectwerkUserPrincipal;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Optional;
+import org.junit.jupiter.api.AfterEach;
 import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 @ExtendWith(MockitoExtension.class)
 class ArticleServiceTest {
@@ -54,7 +71,16 @@ class ArticleServiceTest {
     @Mock
     private ArticleRssFeedRefreshScheduler articleRssFeedRefreshScheduler;
 
-    @InjectMocks
+    @Mock
+    private PlatformAuditService platformAuditService;
+
+    @Mock
+    private MembershipPermissionOverrideRepository overrideRepository;
+
+    @Mock
+    private TenantMembershipRepository tenantMembershipRepository;
+
+
     private ArticleService articleService;
 
     private final HtmlSanitizer htmlSanitizer = new HtmlSanitizer();
@@ -67,8 +93,16 @@ class ArticleServiceTest {
                 tenantRepository,
                 mediaAssetQueryApi,
                 htmlSanitizer,
-                articleRssFeedRefreshScheduler
+                articleRssFeedRefreshScheduler,
+                new MembershipPermissionService(
+                        overrideRepository, tenantMembershipRepository, tenantRepository,
+                        platformAuditService)
         );
+    }
+
+    @AfterEach
+    void clearAuthentication() {
+        SecurityContextHolder.clearContext();
     }
 
     @Test
@@ -307,5 +341,81 @@ class ArticleServiceTest {
         asset.setAssetType(type);
         asset.setStatus(status);
         return asset;
+    }
+
+    @Test
+    void updateDraftDeniedForStrangerWithOwnOnlyRestriction() {
+        Article draft = draftArticle();
+        draft.setCreatedBy(99L);
+        when(articleRepository.findByIdAndTenantId(ARTICLE_ID, TENANT_ID))
+                .thenReturn(Optional.of(draft));
+        when(overrideRepository.findByTenantIdAndUserId(TENANT_ID, 5L)).thenReturn(List.of(
+                override(ContentEntityType.ARTICLE, ContentOperation.UPDATE, RestrictionScope.OTHERS_ONLY)));
+        authenticate(5L, Role.EDITOR);
+
+        assertThatThrownBy(() -> articleService.updateDraft(
+                        TENANT_ID, ARTICLE_ID, null, null, null, null, null, null, null, null, null))
+                .isInstanceOf(ContentAccessDeniedException.class)
+                .extracting(ex -> ((ContentAccessDeniedException) ex).getCode())
+                .isEqualTo(ContentAccessDeniedException.NOT_CONTENT_OWNER);
+        verify(articleRepository, never()).save(any(Article.class));
+    }
+
+    @Test
+    void deleteDeniedWithDenyOverrideEvenForOwner() {
+        Article draft = draftArticle();
+        draft.setCreatedBy(5L);
+        when(articleRepository.findByIdAndTenantId(ARTICLE_ID, TENANT_ID))
+                .thenReturn(Optional.of(draft));
+        when(overrideRepository.findByTenantIdAndUserId(TENANT_ID, 5L)).thenReturn(List.of(
+                override(ContentEntityType.ARTICLE, ContentOperation.DELETE, RestrictionScope.DENY)));
+        authenticate(5L, Role.EDITOR);
+
+        assertThatThrownBy(() -> articleService.deleteArticle(TENANT_ID, ARTICLE_ID))
+                .isInstanceOf(ContentAccessDeniedException.class);
+        verify(articleRepository, never()).delete(any(Article.class));
+    }
+
+    @Test
+    void createDraftRecordsCreatorFromContext() {
+        Tenant tenant = tenant();
+        when(articleRepository.existsByTenantIdAndSlug(TENANT_ID, "hello-world")).thenReturn(false);
+        when(tenantRepository.getReferenceById(TENANT_ID)).thenReturn(tenant);
+        when(categoryService.resolveActiveCategories(eq(TENANT_ID), eq(Set.of()), any())).thenReturn(Set.of());
+        when(articleRepository.save(any(Article.class))).thenAnswer(invocation -> {
+            Article article = invocation.getArgument(0);
+            article.setId(ARTICLE_ID);
+            return article;
+        });
+        when(articleRepository.findByIdAndTenantId(ARTICLE_ID, TENANT_ID))
+                .thenReturn(Optional.of(draftArticle()));
+        authenticate(5L, Role.EDITOR);
+
+        articleService.createDraft(
+                TENANT_ID, "hello-world", "Hello", "<p>Body</p>", null, null, null,
+                AccessPolicy.FREE, 0, Set.of());
+
+        org.mockito.ArgumentCaptor<Article> captor = org.mockito.ArgumentCaptor.forClass(Article.class);
+        verify(articleRepository).save(captor.capture());
+        assertThat(captor.getValue().getCreatedBy()).isEqualTo(5L);
+    }
+
+    private static void authenticate(Long userId, Role... roles) {
+        List<SimpleGrantedAuthority> authorities = Arrays.stream(roles)
+                .map(role -> new SimpleGrantedAuthority("ROLE_" + role.name()))
+                .toList();
+        DirectwerkUserPrincipal principal = new DirectwerkUserPrincipal(
+                userId, "user@example.com", "hash", TENANT_ID, authorities);
+        SecurityContextHolder.getContext().setAuthentication(
+                new UsernamePasswordAuthenticationToken(principal, null, authorities));
+    }
+
+    private static MembershipPermissionOverride override(
+            ContentEntityType entity, ContentOperation operation, RestrictionScope scope) {
+        MembershipPermissionOverride override = new MembershipPermissionOverride();
+        override.setEntityType(entity);
+        override.setOperation(operation);
+        override.setScope(scope);
+        return override;
     }
 }

@@ -1,6 +1,9 @@
 package de.pnnit.directwerk.modules.podcast.service;
 
 import de.pnnit.directwerk.modules.core.notification.SubscriberNotificationGate;
+import de.pnnit.directwerk.modules.core.audit.PlatformAuditService;
+import de.pnnit.directwerk.modules.core.service.MembershipPermissionService;
+import de.pnnit.directwerk.security.DirectwerkUserPrincipal;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
@@ -15,6 +18,15 @@ import de.pnnit.directwerk.modules.content.ContentPublishedNotifier;
 import de.pnnit.directwerk.modules.core.entity.Tenant;
 import de.pnnit.directwerk.modules.core.service.ModuleGateService;
 import de.pnnit.directwerk.modules.core.service.ScheduledPublicationExecutor;
+import de.pnnit.directwerk.modules.core.authorization.ContentEntityType;
+import de.pnnit.directwerk.modules.core.authorization.ContentOperation;
+import de.pnnit.directwerk.modules.core.authorization.RestrictionScope;
+import de.pnnit.directwerk.modules.core.entity.MembershipPermissionOverride;
+import de.pnnit.directwerk.modules.core.entity.Role;
+import de.pnnit.directwerk.modules.core.exception.ContentAccessDeniedException;
+import de.pnnit.directwerk.modules.core.repository.MembershipPermissionOverrideRepository;
+import de.pnnit.directwerk.modules.core.repository.TenantMembershipRepository;
+import de.pnnit.directwerk.modules.core.repository.TenantRepository;
 import de.pnnit.directwerk.modules.digital.api.EpisodeMediaApi;
 import de.pnnit.directwerk.modules.digital.entity.AssetScope;
 import de.pnnit.directwerk.modules.digital.entity.AssetStatus;
@@ -32,12 +44,17 @@ import de.pnnit.directwerk.modules.content.InvalidPublicationTransitionException
 import de.pnnit.directwerk.modules.digital.service.HtmlSanitizer;
 import de.pnnit.directwerk.modules.podcast.repository.EpisodeRepository;
 import java.time.Instant;
+import java.util.Arrays;
 import java.util.List;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.beans.factory.ObjectProvider;
 
 @ExtendWith(MockitoExtension.class)
@@ -72,6 +89,19 @@ class PublicationWorkflowServiceTest {
     @Mock
     private ObjectProvider<PublicationWorkflowService> selfProvider;
 
+    @Mock
+    private PlatformAuditService platformAuditService;
+
+    @Mock
+    private MembershipPermissionOverrideRepository overrideRepository;
+
+    @Mock
+    private TenantMembershipRepository tenantMembershipRepository;
+
+    @Mock
+    private TenantRepository tenantRepository;
+
+
     private ScheduledPublicationExecutor scheduledPublicationExecutor;
 
     @BeforeEach
@@ -87,11 +117,20 @@ class PublicationWorkflowServiceTest {
                 contentPublishedNotifier,
                 notificationGate,
                 rssFeedRefreshScheduler,
-                selfProvider
+                selfProvider,
+                new MembershipPermissionService(
+                        overrideRepository, tenantMembershipRepository, tenantRepository,
+                        platformAuditService)
         );
         lenient().when(notificationGate.enabled(anyLong(), any(), anyLong())).thenReturn(true);
         lenient().when(selfProvider.getObject()).thenReturn(publicationWorkflowService);
         lenient().when(episodeRepository.save(any(Episode.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        SecurityContextHolder.clearContext();
+    }
+
+    @AfterEach
+    void clearAuthentication() {
+        SecurityContextHolder.clearContext();
     }
 
     @Test
@@ -385,6 +424,63 @@ class PublicationWorkflowServiceTest {
         assertThat(episode.getStatus()).isEqualTo(EpisodeStatus.DRAFT);
         verify(episodeMediaApi, never()).requireReadyAudio(any());
         verify(episodeRepository, never()).save(any());
+    }
+
+    @Test
+    void publishDeniedForStrangerWithOwnOnlyRestriction() {
+        Episode episode = draftEpisode();
+        episode.setCreatedBy(99L);
+        episode.getFormats().add(activeFormat());
+        when(episodeService.requireEpisode(10L, 55L)).thenReturn(episode);
+        when(overrideRepository.findByTenantIdAndUserId(10L, 5L)).thenReturn(List.of(
+                override(ContentEntityType.EPISODE, ContentOperation.PUBLISH, RestrictionScope.OTHERS_ONLY)));
+        authenticate(5L, Role.EDITOR);
+
+        assertThatThrownBy(() -> publicationWorkflowService.publish(10L, 55L))
+                .isInstanceOf(ContentAccessDeniedException.class)
+                .extracting(ex -> ((ContentAccessDeniedException) ex).getCode())
+                .isEqualTo(ContentAccessDeniedException.NOT_CONTENT_OWNER);
+        verify(episodeMediaApi, never()).requireReadyAudio(any());
+    }
+
+    @Test
+    void publishAllowedForOwnerWithOwnOnlyRestriction() {
+        Episode episode = draftEpisode();
+        episode.setCreatedBy(5L);
+        episode.getFormats().add(activeFormat());
+        MediaAsset privateAudio = audio(99L, AssetVisibility.PRIVATE, AssetScope.CONTENT, "alpha/private/audio/ep.mp3");
+        MediaAsset publicAudio = audio(99L, AssetVisibility.PUBLIC, AssetScope.TENANT_PUBLIC, "alpha/public/audio/ep.mp3");
+        episode.setAudioAsset(privateAudio);
+        when(episodeService.requireEpisode(10L, 55L)).thenReturn(episode);
+        when(overrideRepository.findByTenantIdAndUserId(10L, 5L)).thenReturn(List.of(
+                override(ContentEntityType.EPISODE, ContentOperation.PUBLISH, RestrictionScope.OTHERS_ONLY)));
+        when(formatService.hasActiveFormats(10L)).thenReturn(true);
+        when(episodeMediaApi.requireReadyAudio(99L)).thenReturn(privateAudio);
+        when(episodeMediaApi.promoteToPublic(99L)).thenReturn(publicAudio);
+        authenticate(5L, Role.EDITOR);
+
+        Episode published = publicationWorkflowService.publish(10L, 55L);
+
+        assertThat(published.getStatus()).isEqualTo(EpisodeStatus.PUBLISHED);
+    }
+
+    private static void authenticate(Long userId, Role... roles) {
+        List<SimpleGrantedAuthority> authorities = Arrays.stream(roles)
+                .map(role -> new SimpleGrantedAuthority("ROLE_" + role.name()))
+                .toList();
+        DirectwerkUserPrincipal principal = new DirectwerkUserPrincipal(
+                userId, "user@example.com", "hash", 10L, authorities);
+        SecurityContextHolder.getContext().setAuthentication(
+                new UsernamePasswordAuthenticationToken(principal, null, authorities));
+    }
+
+    private static MembershipPermissionOverride override(
+            ContentEntityType entity, ContentOperation operation, RestrictionScope scope) {
+        MembershipPermissionOverride override = new MembershipPermissionOverride();
+        override.setEntityType(entity);
+        override.setOperation(operation);
+        override.setScope(scope);
+        return override;
     }
 
     private static Episode draftEpisode() {

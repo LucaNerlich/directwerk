@@ -63,4 +63,11 @@ public class PodcastSeries extends BaseEntity implements TenantOwned {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 16)
     private SeriesStatus status = SeriesStatus.DRAFT;
+
+    /**
+     * Creator for the RBAC permission model (issue #148). {@code null} means a
+     * legacy row and counts as not-owned — tenant admins can still act on it.
+     */
+    @Column(name = "created_by")
+    private Long createdBy;
 }

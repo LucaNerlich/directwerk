@@ -13,6 +13,17 @@ import static org.mockito.Mockito.when;
 import de.pnnit.directwerk.config.DirectwerkConfig;
 import de.pnnit.directwerk.config.DirectwerkProperties;
 import de.pnnit.directwerk.modules.core.entity.Tenant;
+import de.pnnit.directwerk.modules.core.audit.PlatformAuditService;
+import de.pnnit.directwerk.modules.core.authorization.ContentEntityType;
+import de.pnnit.directwerk.modules.core.authorization.ContentOperation;
+import de.pnnit.directwerk.modules.core.authorization.RestrictionScope;
+import de.pnnit.directwerk.modules.core.entity.MembershipPermissionOverride;
+import de.pnnit.directwerk.modules.core.entity.Role;
+import de.pnnit.directwerk.modules.core.exception.ContentAccessDeniedException;
+import de.pnnit.directwerk.modules.core.repository.MembershipPermissionOverrideRepository;
+import de.pnnit.directwerk.modules.core.repository.TenantMembershipRepository;
+import de.pnnit.directwerk.modules.core.service.MembershipPermissionService;
+import de.pnnit.directwerk.security.DirectwerkUserPrincipal;
 import de.pnnit.directwerk.modules.core.repository.TenantRepository;
 import de.pnnit.directwerk.modules.digital.api.MediaFolderApi;
 import de.pnnit.directwerk.modules.digital.api.UploadApi;
@@ -28,6 +39,7 @@ import de.pnnit.directwerk.modules.digital.repository.MediaAssetRepository;
 import de.pnnit.directwerk.multitenancy.TenantContext;
 import java.net.URI;
 import java.time.Duration;
+import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -76,6 +88,15 @@ class UploadServiceTest {
 
     @Mock
     private MediaFolderApi mediaFolderApi;
+    @Mock
+    private PlatformAuditService platformAuditService;
+
+    @Mock
+    private MembershipPermissionOverrideRepository overrideRepository;
+
+    @Mock
+    private TenantMembershipRepository tenantMembershipRepository;
+
 
     @Mock
     private PresignedPutObjectRequest presignedPut;
@@ -94,7 +115,10 @@ class UploadServiceTest {
                 stagingCleanupService,
                 mediaDeleteJobProducer,
                 transactionManager,
-                mediaFolderApi
+                mediaFolderApi,
+                new MembershipPermissionService(
+                        overrideRepository, tenantMembershipRepository, tenantRepository,
+                        platformAuditService)
         );
         lenient().when(transactionManager.getTransaction(org.mockito.ArgumentMatchers.any()))
                 .thenReturn(new SimpleTransactionStatus());
@@ -107,6 +131,7 @@ class UploadServiceTest {
     @AfterEach
     void clear() {
         TenantContext.clear();
+        org.springframework.security.core.context.SecurityContextHolder.clearContext();
     }
 
     @Test
@@ -380,5 +405,80 @@ class UploadServiceTest {
                 null,
                 null
         );
+    }
+
+    @Test
+    void createUploadUrlRecordsCreatorFromContext() throws Exception {
+        when(directwerkConfig.isStorageEnabled()).thenReturn(true);
+        when(directwerkConfig.storage()).thenReturn(storageProps());
+        when(tenantRepository.requireById(10L)).thenReturn(tenant);
+        when(mediaAssetRepository.saveAndFlush(any(MediaAsset.class))).thenAnswer(invocation -> {
+            MediaAsset asset = invocation.getArgument(0);
+            asset.setId(1001L);
+            return asset;
+        });
+        when(presignedPut.url()).thenReturn(URI.create("https://s3.example/put").toURL());
+        when(s3Presigner.presignPutObject(any(PutObjectPresignRequest.class))).thenReturn(presignedPut);
+        authenticate(10L, 5L, Role.EDITOR);
+
+        uploadService.createUploadUrl(new UploadApi.CreateUploadUrlCommand(
+                "episode.mp3",
+                "audio/mpeg",
+                2048,
+                AssetType.AUDIO,
+                AssetVisibility.PRIVATE,
+                AssetScope.CONTENT,
+                null,
+                null,
+                null
+        ));
+
+        ArgumentCaptor<MediaAsset> assetCaptor = ArgumentCaptor.forClass(MediaAsset.class);
+        verify(mediaAssetRepository).saveAndFlush(assetCaptor.capture());
+        assertThat(assetCaptor.getValue().getCreatedBy()).isEqualTo(5L);
+    }
+
+    @Test
+    void createUploadUrlDeniedWithDenyCreateOverride() {
+        when(directwerkConfig.isStorageEnabled()).thenReturn(true);
+        when(directwerkConfig.storage()).thenReturn(storageProps());
+        when(overrideRepository.findByTenantIdAndUserId(10L, 5L)).thenReturn(List.of(
+                override(ContentEntityType.MEDIA_ASSET, ContentOperation.CREATE, RestrictionScope.DENY)));
+        authenticate(10L, 5L, Role.EDITOR);
+
+        assertThatThrownBy(() -> uploadService.createUploadUrl(new UploadApi.CreateUploadUrlCommand(
+                "episode.mp3",
+                "audio/mpeg",
+                2048,
+                AssetType.AUDIO,
+                AssetVisibility.PRIVATE,
+                AssetScope.CONTENT,
+                null,
+                null,
+                null
+        ))).isInstanceOf(ContentAccessDeniedException.class);
+        verify(mediaAssetRepository, never()).saveAndFlush(any(MediaAsset.class));
+    }
+
+    private static void authenticate(Long tenantId, Long userId, Role... roles) {
+        java.util.List<org.springframework.security.core.authority.SimpleGrantedAuthority> authorities =
+                java.util.Arrays.stream(roles)
+                        .map(role -> new org.springframework.security.core.authority.SimpleGrantedAuthority(
+                                "ROLE_" + role.name()))
+                        .toList();
+        DirectwerkUserPrincipal principal = new DirectwerkUserPrincipal(
+                userId, "user@example.com", "hash", tenantId, authorities);
+        org.springframework.security.core.context.SecurityContextHolder.getContext().setAuthentication(
+                new org.springframework.security.authentication.UsernamePasswordAuthenticationToken(
+                        principal, null, authorities));
+    }
+
+    private static MembershipPermissionOverride override(
+            ContentEntityType entity, ContentOperation operation, RestrictionScope scope) {
+        MembershipPermissionOverride override = new MembershipPermissionOverride();
+        override.setEntityType(entity);
+        override.setOperation(operation);
+        override.setScope(scope);
+        return override;
     }
 }

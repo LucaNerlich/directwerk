@@ -40,4 +40,11 @@ public class MediaFolder extends BaseEntity implements TenantOwned {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "parent_id")
     private MediaFolder parent;
+
+    /**
+     * Creator for the RBAC permission model (issue #148). {@code null} means a
+     * legacy row and counts as not-owned — tenant admins can still act on it.
+     */
+    @Column(name = "created_by")
+    private Long createdBy;
 }

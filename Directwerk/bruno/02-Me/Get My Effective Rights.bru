@@ -1,0 +1,21 @@
+meta {
+  name: Get My Effective Rights
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/api/v1/me/effective-rights
+  body: none
+  auth: inherit
+}
+
+tests {
+  test("returns expected status", function() {
+    expect(res.getStatus() === 200).to.equal(true);
+  });
+}
+
+docs {
+  Own server-resolved rights matrix (FULL | OWN_ONLY | DENIED per entity and operation) plus restriction rows. Drives studio UI adaptation; the backend still enforces authoritatively per row.
+}

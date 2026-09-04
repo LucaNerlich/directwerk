@@ -64,6 +64,13 @@ public class MediaAsset extends BaseEntity implements TenantOwned {
     private Long episodeId;
 
     /**
+     * Creator for the RBAC permission model (issue #148). {@code null} means a
+     * legacy row and counts as not-owned — tenant admins can still act on it.
+     */
+    @Column(name = "created_by")
+    private Long createdBy;
+
+    /**
      * Media library folder assignment (issue #146). {@code null} means the asset
      * lives at the library root. Plain id (like {@code episodeId}) — the folder
      * service validates existence and tenant match explicitly.

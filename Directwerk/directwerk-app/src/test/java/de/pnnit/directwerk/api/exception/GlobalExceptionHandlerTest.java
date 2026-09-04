@@ -2,6 +2,7 @@ package de.pnnit.directwerk.api.exception;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import de.pnnit.directwerk.modules.core.exception.ContentAccessDeniedException;
 import de.pnnit.directwerk.modules.core.service.CannotDeactivateLastAdminException;
 import de.pnnit.directwerk.modules.core.service.CannotDeactivateSelfException;
 import de.pnnit.directwerk.modules.core.service.CannotRevokeLastPlatformAdminException;
@@ -79,6 +80,23 @@ class GlobalExceptionHandlerTest {
         var response = handler.handleCannotRevokeLastPlatformAdmin(new CannotRevokeLastPlatformAdminException(5L));
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
         assertThat(response.getBody().errors().getFirst().code()).isEqualTo("CANNOT_REVOKE_LAST_ADMIN");
+    }
+
+    @Test
+    void mapsContentAccessDeniedToForbiddenWithCode() {
+        var response = handler.handleContentAccessDenied(new ContentAccessDeniedException(
+                ContentAccessDeniedException.OPERATION_DENIED_BY_POLICY, "EPISODE", "DELETE", "denied"));
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+        assertThat(response.getBody().errors().getFirst().code())
+                .isEqualTo("OPERATION_DENIED_BY_POLICY");
+    }
+
+    @Test
+    void mapsNotContentOwnerToForbiddenWithCode() {
+        var response = handler.handleContentAccessDenied(new ContentAccessDeniedException(
+                ContentAccessDeniedException.NOT_CONTENT_OWNER, "ARTICLE", "UPDATE", "foreign content"));
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+        assertThat(response.getBody().errors().getFirst().code()).isEqualTo("NOT_CONTENT_OWNER");
     }
 
     @Test

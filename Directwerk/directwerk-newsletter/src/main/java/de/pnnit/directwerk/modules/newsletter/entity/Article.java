@@ -84,6 +84,13 @@ public class Article extends BaseEntity implements TenantOwned {
     @Column(name = "notify_subscribers_on_publish", nullable = false)
     private boolean notifySubscribersOnPublish = false;
 
+    /**
+     * Creator for the RBAC permission model (issue #148). {@code null} means a
+     * legacy row and counts as not-owned — tenant admins can still act on it.
+     */
+    @Column(name = "created_by")
+    private Long createdBy;
+
     @ManyToMany
     @JoinTable(
             name = "article_categories",

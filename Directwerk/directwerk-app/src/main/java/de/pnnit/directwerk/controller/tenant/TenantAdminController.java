@@ -1,10 +1,14 @@
 package de.pnnit.directwerk.controller.tenant;
 
 import de.pnnit.directwerk.api.dto.DomainView;
+import de.pnnit.directwerk.api.dto.EffectiveRightsView;
 import de.pnnit.directwerk.api.dto.InvitationResponseMapper;
+import de.pnnit.directwerk.api.dto.PermissionRestrictionView;
+import de.pnnit.directwerk.api.dto.ReplaceRestrictionsRequest;
 import de.pnnit.directwerk.api.response.Response;
 import de.pnnit.directwerk.modules.core.entity.TenantBranding;
 import de.pnnit.directwerk.modules.core.entity.TenantDomain;
+import de.pnnit.directwerk.modules.core.service.MembershipPermissionService;
 import de.pnnit.directwerk.modules.core.service.TenantBrandingService;
 import de.pnnit.directwerk.modules.core.service.TenantDomainService;
 import de.pnnit.directwerk.modules.core.service.TenantInvitationService;
@@ -39,6 +43,7 @@ public class TenantAdminController {
     private final TenantInvitationService tenantInvitationService;
     private final TenantUserQueryService tenantUserQueryService;
     private final TenantMembershipManagementService tenantMembershipManagementService;
+    private final MembershipPermissionService membershipPermissionService;
     private final InvitationResponseMapper invitationResponseMapper;
 
     public TenantAdminController(
@@ -47,6 +52,7 @@ public class TenantAdminController {
             TenantInvitationService tenantInvitationService,
             TenantUserQueryService tenantUserQueryService,
             TenantMembershipManagementService tenantMembershipManagementService,
+            MembershipPermissionService membershipPermissionService,
             InvitationResponseMapper invitationResponseMapper
     ) {
         this.tenantBrandingService = tenantBrandingService;
@@ -54,6 +60,7 @@ public class TenantAdminController {
         this.tenantInvitationService = tenantInvitationService;
         this.tenantUserQueryService = tenantUserQueryService;
         this.tenantMembershipManagementService = tenantMembershipManagementService;
+        this.membershipPermissionService = membershipPermissionService;
         this.invitationResponseMapper = invitationResponseMapper;
     }
 
@@ -191,6 +198,63 @@ public class TenantAdminController {
         return ResponseEntity.ok(Response.ok(
                 tenantMembershipManagementService.reactivateMembership(TenantContext.requireTenantId(), userId)
         ));
+    }
+
+    /**
+     * Lists a member's permission restrictions (issue #148). Rows are deny-only
+     * overrides of the role baseline; an empty list means unrestricted.
+     */
+    @GetMapping("/users/{userId}/restrictions")
+    ResponseEntity<Response<List<PermissionRestrictionView>>> listRestrictions(@PathVariable Long userId) {
+        Long tenantId = TenantContext.requireTenantId();
+        List<PermissionRestrictionView> restrictions = membershipPermissionService
+                .listForUser(tenantId, userId).stream()
+                .map(override -> new PermissionRestrictionView(
+                        override.getEntityType(), override.getOperation(), override.getScope()))
+                .toList();
+        return ResponseEntity.ok(Response.ok(restrictions));
+    }
+
+    /**
+     * Atomically replaces a member's permission restrictions. An empty list lifts
+     * every restriction. Restrictions only apply to editors; tenant admins always
+     * keep full rights.
+     */
+    @PutMapping("/users/{userId}/restrictions")
+    ResponseEntity<Response<List<PermissionRestrictionView>>> replaceRestrictions(
+            @PathVariable Long userId,
+            @Valid @RequestBody ReplaceRestrictionsRequest request
+    ) {
+        Long tenantId = TenantContext.requireTenantId();
+        List<PermissionRestrictionView> restrictions = membershipPermissionService.replaceForUser(
+                        tenantId,
+                        userId,
+                        request.restrictions().stream()
+                                .map(input -> new MembershipPermissionService.OverrideInput(
+                                        input.entityType(), input.operation(), input.scope()))
+                                .toList()).stream()
+                .map(override -> new PermissionRestrictionView(
+                        override.getEntityType(), override.getOperation(), override.getScope()))
+                .toList();
+        return ResponseEntity.ok(Response.ok(restrictions));
+    }
+
+    /**
+     * Resolves a member's effective rights matrix for the RBAC dashboard and
+     * studio UI adaptation. Computed server-side so the UI cannot drift from
+     * the backend matrix.
+     */
+    @GetMapping("/users/{userId}/effective-rights")
+    ResponseEntity<Response<EffectiveRightsView>> effectiveRights(@PathVariable Long userId) {
+        Long tenantId = TenantContext.requireTenantId();
+        MembershipPermissionService.MemberRights rights =
+                membershipPermissionService.effectiveRightsForMember(tenantId, userId);
+        List<PermissionRestrictionView> restrictions = rights.restrictions().stream()
+                .map(override -> new PermissionRestrictionView(
+                        override.getEntityType(), override.getOperation(), override.getScope()))
+                .toList();
+        return ResponseEntity.ok(Response.ok(new EffectiveRightsView(
+                rights.userId(), rights.roles(), restrictions, rights.effective())));
     }
 
     private BrandingView toView(TenantBranding branding) {

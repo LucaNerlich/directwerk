@@ -3,7 +3,10 @@ package de.pnnit.directwerk.modules.newsletter.service;
 import de.pnnit.directwerk.modules.core.exception.ConflictException;
 import de.pnnit.directwerk.modules.core.exception.ConflictCodes;
 import de.pnnit.directwerk.modules.core.RequiresModule;
+import de.pnnit.directwerk.modules.core.authorization.ContentEntityType;
+import de.pnnit.directwerk.modules.core.authorization.ContentOperation;
 import de.pnnit.directwerk.modules.core.repository.TenantRepository;
+import de.pnnit.directwerk.modules.core.service.MembershipPermissionService;
 import de.pnnit.directwerk.modules.newsletter.ArticlesModule;
 import de.pnnit.directwerk.modules.core.util.FieldConstraints;
 import de.pnnit.directwerk.modules.core.util.SlugNormalizer;
@@ -21,6 +24,7 @@ import de.pnnit.directwerk.modules.newsletter.exception.ArticleValidationExcepti
 import de.pnnit.directwerk.modules.newsletter.repository.ArticleRepository;
 import de.pnnit.directwerk.modules.digital.service.CategoryService;
 import de.pnnit.directwerk.modules.digital.service.HtmlSanitizer;
+import de.pnnit.directwerk.security.SecurityUtils;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
@@ -40,6 +44,7 @@ public class ArticleService {
     private final MediaAssetQueryApi mediaAssetQueryApi;
     private final HtmlSanitizer htmlSanitizer;
     private final ArticleRssFeedRefreshScheduler articleRssFeedRefreshScheduler;
+    private final MembershipPermissionService permissionService;
 
     @Transactional(readOnly = true)
     public List<Article> listArticles(Long tenantId) {
@@ -50,6 +55,18 @@ public class ArticleService {
     public Article requireArticle(Long tenantId, Long articleId) {
         return articleRepository.findByIdAndTenantId(articleId, tenantId)
                 .orElseThrow(() -> new ArticleNotFoundException(articleId));
+    }
+
+    /**
+     * RBAC gate (issue #148). The acting principal resolves from the security
+     * context, which every authenticated HTTP path carries — checks therefore
+     * always run in production. A {@code null} principal means a trusted system
+     * path whose user-facing action was authorized upstream; new callers must run
+     * with an authenticated context to be gated.
+     */
+    private void requireAccess(ContentOperation operation, Long ownerUserId) {
+        permissionService.requireContentAccess(
+                SecurityUtils.currentPrincipal(), ContentEntityType.ARTICLE, operation, ownerUserId);
     }
 
     @Transactional
@@ -66,6 +83,7 @@ public class ArticleService {
             Integer requiredLevelSortOrder,
             Set<Long> categoryIds
     ) {
+        requireAccess(ContentOperation.CREATE, null);
         String slug = SlugNormalizer.normalize(rawSlug);
         if (articleRepository.existsByTenantIdAndSlug(tenantId, slug)) {
             throw new ConflictException(ConflictCodes.ARTICLE_SLUG_EXISTS, "Article slug already exists: " + slug);
@@ -73,6 +91,7 @@ public class ArticleService {
 
         Article article = new Article();
         article.setTenant(tenantRepository.getReferenceById(tenantId));
+        article.setCreatedBy(SecurityUtils.currentUserId());
         article.setSlug(slug);
         article.setTitle(TitleNormalizer.normalize(title, "Article"));
         article.setBody(htmlSanitizer.sanitize(body));
@@ -104,6 +123,7 @@ public class ArticleService {
             Boolean clearHeroAsset
     ) {
         Article article = requireDraftArticle(tenantId, articleId);
+        requireAccess(ContentOperation.UPDATE, article.getCreatedBy());
         if (rawSlug != null) {
             String slug = SlugNormalizer.normalize(rawSlug);
             if (articleRepository.existsByTenantIdAndSlugAndIdNot(tenantId, slug, articleId)) {
@@ -142,6 +162,7 @@ public class ArticleService {
     @RequiresModule(ArticlesModule.KEY)
     public Article replaceCategories(Long tenantId, Long articleId, Set<Long> categoryIds) {
         Article article = requireDraftArticle(tenantId, articleId);
+        requireAccess(ContentOperation.UPDATE, article.getCreatedBy());
         article.getCategories().clear();
         article.getCategories().addAll(categoryService.resolveActiveCategories(tenantId, categoryIds,
                 id -> { throw new ArticleValidationException("Category is inactive: " + id); }));
@@ -164,6 +185,7 @@ public class ArticleService {
         if (article.getTenant() == null || !tenantId.equals(article.getTenant().getId())) {
             throw new ArticleNotFoundException(articleId);
         }
+        requireAccess(ContentOperation.DELETE, article.getCreatedBy());
         boolean wasVisible = article.getStatus() == ArticleStatus.PUBLISHED
                 || article.getStatus() == ArticleStatus.SCHEDULED;
         articleRepository.delete(article);

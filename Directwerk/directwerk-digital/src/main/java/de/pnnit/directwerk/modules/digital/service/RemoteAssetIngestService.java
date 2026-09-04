@@ -3,6 +3,9 @@ package de.pnnit.directwerk.modules.digital.service;
 import de.pnnit.directwerk.config.DirectwerkConfig;
 import de.pnnit.directwerk.config.DirectwerkProperties;
 import de.pnnit.directwerk.modules.core.RequiresModule;
+import de.pnnit.directwerk.modules.core.authorization.ContentEntityType;
+import de.pnnit.directwerk.modules.core.authorization.ContentOperation;
+import de.pnnit.directwerk.modules.core.service.MembershipPermissionService;
 import de.pnnit.directwerk.modules.core.entity.Tenant;
 import de.pnnit.directwerk.modules.core.repository.TenantRepository;
 import de.pnnit.directwerk.modules.core.util.TenantAssetKeys;
@@ -22,6 +25,7 @@ import de.pnnit.directwerk.modules.digital.repository.MediaAssetRepository;
 import de.pnnit.directwerk.modules.digital.storage.StorageConfigs;
 import de.pnnit.directwerk.modules.queue.QueueJob;
 import de.pnnit.directwerk.multitenancy.TenantContext;
+import de.pnnit.directwerk.security.SecurityUtils;
 import java.io.FilterInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -72,6 +76,7 @@ public class RemoteAssetIngestService implements RemoteAssetIngestApi {
     private final DirectwerkConfig directwerkConfig;
     private final PlatformTransactionManager transactionManager;
     private final RemoteAssetIngestJobProducer remoteAssetIngestJobProducer;
+    private final MembershipPermissionService permissionService;
 
     /**
      * Imports a remote HTTP(S) asset into the active tenant's storage.
@@ -203,6 +208,13 @@ public class RemoteAssetIngestService implements RemoteAssetIngestApi {
     private PreparedIngest prepareIngest(IngestCommand command) {
         StorageConfigs.requireEnabled(directwerkConfig);
         Long tenantId = TenantContext.requireTenantId();
+        // RBAC gate (issue #148): minting a row is a create. Trusted worker
+        // paths reuse existing rows and never reach this method.
+        permissionService.requireContentAccess(
+                SecurityUtils.currentPrincipal(),
+                ContentEntityType.MEDIA_ASSET,
+                ContentOperation.CREATE,
+                null);
         Tenant tenant = tenantRepository.requireById(tenantId);
         URI source = RemoteUrlValidator.requirePublicHttpUrl(command.sourceUrl());
         String canonicalSource = RemoteUrlValidator.canonicalImportSourceUrl(source);
@@ -219,6 +231,7 @@ public class RemoteAssetIngestService implements RemoteAssetIngestApi {
 
         MediaAsset asset = new MediaAsset();
         asset.setTenant(tenant);
+        asset.setCreatedBy(SecurityUtils.currentUserId());
         asset.setVisibility(visibility);
         asset.setScope(scope);
         asset.setAssetType(assetType);

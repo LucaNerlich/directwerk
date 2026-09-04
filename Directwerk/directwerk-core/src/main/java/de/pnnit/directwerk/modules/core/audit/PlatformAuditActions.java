@@ -15,6 +15,7 @@ public final class PlatformAuditActions {
     public static final String MEMBERSHIP_DEACTIVATED = "MEMBERSHIP_DEACTIVATED";
     public static final String MEMBERSHIP_REACTIVATED = "MEMBERSHIP_REACTIVATED";
     public static final String MEMBERSHIP_ROLE_CHANGED = "MEMBERSHIP_ROLE_CHANGED";
+    public static final String MEMBER_RESTRICTIONS_CHANGED = "MEMBER_RESTRICTIONS_CHANGED";
     public static final String PLATFORM_ADMIN_REVOKED = "PLATFORM_ADMIN_REVOKED";
 
     private PlatformAuditActions() {

@@ -1,0 +1,42 @@
+meta {
+  name: 6 - Replace User Restrictions
+  type: http
+  seq: 6
+}
+
+put {
+  url: {{baseUrl}}/api/v1/tenant/users/{{editorUserId}}/restrictions
+  body: json
+  auth: inherit
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "restrictions": [
+      {
+        "entityType": "EPISODE",
+        "operation": "DELETE",
+        "scope": "DENY"
+      },
+      {
+        "entityType": "ARTICLE",
+        "operation": "PUBLISH",
+        "scope": "OTHERS_ONLY"
+      }
+    ]
+  }
+}
+
+tests {
+  test("returns expected status", function() {
+    expect(res.getStatus() === 200).to.equal(true);
+  });
+}
+
+docs {
+  Atomically replaces all restriction rows (empty array lifts everything). DENY forbids outright; OTHERS_ONLY limits the operation to the editor's own content. READ cannot be restricted; CREATE does not support OTHERS_ONLY. Unknown enum values are rejected with 400; tenant-admin targets with 400.
+}
