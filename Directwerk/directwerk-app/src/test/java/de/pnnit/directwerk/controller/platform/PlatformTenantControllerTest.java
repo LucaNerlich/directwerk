@@ -221,6 +221,18 @@ class PlatformTenantControllerTest {
     }
 
     @Test
+    @WithMockUser(roles = "PLATFORM_ADMIN")
+    void createTenantRejectsNameExceedingMaxLength() throws Exception {
+        String tooLongName = "a".repeat(256);
+        mockMvc.perform(post("/api/v1/platform/tenants")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\":\"" + tooLongName + "\",\"slug\":\"toolong-" + UUID.randomUUID().toString().substring(0, 8) + "\"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.statusCode").value(400))
+                .andExpect(jsonPath("$.errors[0].code").value("VALIDATION_ERROR"));
+    }
+
+    @Test
     @WithMockUser(roles = "TENANT_ADMIN")
     void updateTenantRejectsNonPlatformUser() throws Exception {
         mockMvc.perform(patch("/api/v1/platform/tenants/{id}", tenant.getId())

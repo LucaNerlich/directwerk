@@ -78,6 +78,7 @@ export default function FeedManagementClient(): React.JSX.Element {
     const [isLoading, setIsLoading] = useState(true)
     const [busyFeedId, setBusyFeedId] = useState<number | null>(null)
     const [copiedUrl, setCopiedUrl] = useState<string | null>(null)
+    const [reloadToken, setReloadToken] = useState(0)
     const {viewMode, setViewMode} = useListViewMode()
     const showSubscriberFeeds = hasModule(config, 'SUBSCRIPTION')
 
@@ -94,6 +95,8 @@ export default function FeedManagementClient(): React.JSX.Element {
     useEffect(() => {
         let active = true
 
+        setIsLoading(true)
+        setErrorMessage(null)
         async function load(): Promise<void> {
             try {
                 const host = getClientTenantHost()
@@ -123,7 +126,7 @@ export default function FeedManagementClient(): React.JSX.Element {
         return () => {
             active = false
         }
-    }, [handleAuthError, showSubscriberFeeds])
+    }, [handleAuthError, reloadToken, showSubscriberFeeds])
 
     async function handleCopy(url: string): Promise<void> {
         setErrorMessage(null)
@@ -138,6 +141,9 @@ export default function FeedManagementClient(): React.JSX.Element {
     async function handleToggleFeed(
         feed: SubscriberFeedAdminView,
     ): Promise<void> {
+        if (busyFeedId !== null) {
+            return
+        }
         setBusyFeedId(feed.id)
         setErrorMessage(null)
         try {
@@ -266,6 +272,14 @@ export default function FeedManagementClient(): React.JSX.Element {
             {errorMessage !== null ? (
                 <Alert variant="destructive">
                     <AlertDescription>{errorMessage}</AlertDescription>
+                    <Button
+                        className="mt-3"
+                        onClick={() => setReloadToken((value) => value + 1)}
+                        type="button"
+                        variant="outline"
+                    >
+                        Erneut versuchen
+                    </Button>
                 </Alert>
             ) : null}
 

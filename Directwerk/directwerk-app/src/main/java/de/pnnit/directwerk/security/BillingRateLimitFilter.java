@@ -6,6 +6,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.List;
+import java.util.Set;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.filter.OncePerRequestFilter;
@@ -19,12 +20,14 @@ public class BillingRateLimitFilter extends OncePerRequestFilter {
     private final FixedWindowRateLimiter rateLimiter = new FixedWindowRateLimiter();
 
     private final int limitPerMinute;
+    private final Set<String> trustedProxies;
 
-    public BillingRateLimitFilter(int limitPerMinute) {
+    public BillingRateLimitFilter(int limitPerMinute, List<String> trustedProxies) {
         if (limitPerMinute <= 0) {
             throw new IllegalArgumentException("Billing rate limit must be positive");
         }
         this.limitPerMinute = limitPerMinute;
+        this.trustedProxies = ClientIpExtractor.trustedProxySet(trustedProxies);
     }
 
     @Override
@@ -49,7 +52,7 @@ public class BillingRateLimitFilter extends OncePerRequestFilter {
     }
 
     private List<String> clientKeys(HttpServletRequest request) {
-        String clientIp = request.getRemoteAddr() != null ? request.getRemoteAddr() : "unknown";
+        String clientIp = ClientIpExtractor.extractClientIp(request, trustedProxies);
         String ipKey = "billing:ip:" + clientIp;
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication != null && authentication.getPrincipal() instanceof DirectwerkUserPrincipal principal) {

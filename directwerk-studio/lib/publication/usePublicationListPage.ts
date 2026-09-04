@@ -75,6 +75,8 @@ export function usePublicationListPage<T extends {
 
     const load = useCallback(async (): Promise<void> => {
         const current = configRef.current
+        setIsLoading(true)
+        setListError(null)
         try {
             const loaded = await current.load()
             setItems(loaded)
@@ -135,6 +137,7 @@ export function usePublicationListPage<T extends {
         listError,
         displayError,
         statusMessage,
+        reload: load,
         isBulkBusy: bulkActions.isBulkBusy,
         publishableCount: bulkActions.publishableCount,
         unpublishableCount: bulkActions.unpublishableCount,

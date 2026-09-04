@@ -334,6 +334,9 @@ export default function ArticleEditor({articleId}: {articleId?: number}) {
         (candidate: string) => isSlugTaken(allArticles, candidate, articleId),
         [allArticles, articleId],
     )
+    /** Saving and hero uploads share one busy flag so a manual save cannot
+     * persist the article while the hero image is still uploading. */
+    const busy = isSaving || isUploadingHero
 
     const publishBlockedReason = articlePublishBlockReason({title, body})
     const publishedUrl = useMemo(() => {
@@ -390,7 +393,7 @@ export default function ArticleEditor({articleId}: {articleId?: number}) {
                 markDirty()
             }}
             slugTaken={slugTaken}
-            isSaving={isSaving}
+            isSaving={busy}
             saveHint={saveHint}
             errorMessage={errorMessage}
             canPublish={publishBlockedReason === null}
@@ -534,7 +537,7 @@ export default function ArticleEditor({articleId}: {articleId?: number}) {
                     {article !== null ? (
                         <FormatCategoryPicker
                             categories={availableCategories}
-                            disabled={isSaving}
+                            disabled={busy}
                             onCategoryChange={(ids) => {
                                 setSelectedCategoryIds(ids)
                                 markDirty()

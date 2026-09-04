@@ -29,8 +29,10 @@
 
 x-nextjs-service: &nextjs-service
     restart: unless-stopped
-    env_file:
-        - Directwerk/.env
+    # No env_file here: frontend containers must not receive the full backend
+    # .env (DB passwords, mail, JWT keys). Each service declares only the
+    # vars it needs via `environment` below; compose interpolation still reads
+    # Directwerk/.env through `--env-file` on the CLI.
     depends_on:
         directwerk:
             condition: service_healthy

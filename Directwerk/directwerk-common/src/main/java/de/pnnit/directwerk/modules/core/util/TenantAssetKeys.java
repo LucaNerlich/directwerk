@@ -107,6 +107,7 @@ public final class TenantAssetKeys {
      * @throws IllegalArgumentException if {@code relativePath} starts with {@code "/"} or contains {@code ".."}
      */
     private static String build(String tenantSlug, String visibility, String relativePath) {
+        Objects.requireNonNull(tenantSlug, "tenantSlug");
         Objects.requireNonNull(relativePath, "relativePath");
         String relative = relativePath.trim();
         if (relative.startsWith("/") || relative.contains("..")) {

@@ -359,6 +359,44 @@ describe('createPublicContentParsers', () => {
         })
         expect(parsed?.data[0]?.audioCdnUrl).toBeNull()
     })
+
+    it('coerces unsafe series feed URLs to null without failing the series', () => {
+        const parsed = parsers.parsePublicSeriesListEnvelope({
+            statusCode: 200,
+            data: [
+                {
+                    id: 1,
+                    slug: 'show',
+                    title: 'Show',
+                    description: null,
+                    coverAssetId: null,
+                    language: null,
+                    itunesCategory: null,
+                    rssUrl: 'javascript:alert(1)',
+                },
+            ],
+        })
+        expect(parsed?.data[0]?.rssUrl).toBeNull()
+    })
+
+    it('keeps safe https series feed URLs', () => {
+        const parsed = parsers.parsePublicSeriesListEnvelope({
+            statusCode: 200,
+            data: [
+                {
+                    id: 1,
+                    slug: 'show',
+                    title: 'Show',
+                    description: null,
+                    coverAssetId: null,
+                    language: null,
+                    itunesCategory: null,
+                    rssUrl: 'https://cdn.example.com/show.xml',
+                },
+            ],
+        })
+        expect(parsed?.data[0]?.rssUrl).toBe('https://cdn.example.com/show.xml')
+    })
 })
 
 describe('isQueueJob', () => {

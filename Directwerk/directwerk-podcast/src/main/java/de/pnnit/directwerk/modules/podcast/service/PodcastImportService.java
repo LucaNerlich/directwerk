@@ -12,6 +12,7 @@ import de.pnnit.directwerk.modules.digital.net.RemoteUrlValidator;
 import de.pnnit.directwerk.modules.podcast.PodcastModule;
 import de.pnnit.directwerk.modules.podcast.entity.Episode;
 import de.pnnit.directwerk.modules.podcast.exception.RssImportException;
+import de.pnnit.directwerk.modules.core.util.SlugNormalizer;
 import de.pnnit.directwerk.modules.podcast.importrss.ImportSlugSuggester;
 import de.pnnit.directwerk.modules.podcast.importrss.ParsedRssFeed;
 import de.pnnit.directwerk.modules.podcast.importrss.RssFeedParser;
@@ -309,9 +310,16 @@ public class PodcastImportService {
      * @throws RssImportException if no unique slug is available after 50 attempts
      */
     private String uniqueSlug(Long tenantId, String requested, String title) {
-        String base = requested == null || requested.isBlank()
-                ? ImportSlugSuggester.suggest(title)
-                : requested.trim().toLowerCase(Locale.ROOT);
+        String base;
+        if (requested == null || requested.isBlank()) {
+            base = ImportSlugSuggester.suggest(title);
+        } else {
+            try {
+                base = SlugNormalizer.normalize(requested);
+            } catch (IllegalArgumentException invalid) {
+                base = ImportSlugSuggester.suggest(requested);
+            }
+        }
         for (int attempt = 1; attempt <= 50; attempt++) {
             String candidate = ImportSlugSuggester.withSuffix(base, attempt);
             if (!episodeRepository.existsByTenantIdAndSlug(tenantId, candidate)) {

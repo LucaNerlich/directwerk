@@ -1,6 +1,6 @@
 export function formatPublishedAt(value: string | null): string {
     if (value === null) {
-        return 'Unknown date'
+        return 'Unbekanntes Datum'
     }
     const date = new Date(value)
     if (Number.isNaN(date.getTime())) {

@@ -58,9 +58,11 @@ export default function FormatEditor({formatId}: FormatEditorProps): React.JSX.E
     const [isLoading, setIsLoading] = useState(!isNew)
     const [isDeactivating, setIsDeactivating] = useState(false)
     const [deactivateError, setDeactivateError] = useState<string | null>(null)
+    const [reloadToken, setReloadToken] = useState(0)
     const [coverAssetId, setCoverAssetId] = useState<number | null>(null)
     const [coverPreviewUrl, setCoverPreviewUrl] = useState<string | null>(null)
     const [isUploadingCover, setIsUploadingCover] = useState(false)
+    const [coverUploadError, setCoverUploadError] = useState<string | null>(null)
     const [uploadProgress, setUploadProgress] = useState<{file: File; progress: number} | null>(
         null,
     )
@@ -71,6 +73,8 @@ export default function FormatEditor({formatId}: FormatEditorProps): React.JSX.E
             setIsLoading(false)
             return
         }
+        setIsLoading(true)
+        setLoadError(null)
 
         const resolvedId = formatId
         let active = true
@@ -105,7 +109,7 @@ export default function FormatEditor({formatId}: FormatEditorProps): React.JSX.E
         return () => {
             active = false
         }
-    }, [formatId, router])
+    }, [formatId, reloadToken, router])
 
     useEffect(() => {
         mountedRef.current = true
@@ -144,6 +148,7 @@ export default function FormatEditor({formatId}: FormatEditorProps): React.JSX.E
             return
         }
         setIsUploadingCover(true)
+        setCoverUploadError(null)
         setUploadProgress({file, progress: 0})
         try {
             const asset = await uploadMediaFile(getClientTenantHost(), file, {
@@ -158,6 +163,9 @@ export default function FormatEditor({formatId}: FormatEditorProps): React.JSX.E
             setCoverAssetId(asset.id)
         } catch (error) {
             if (authRedirect(error)) return
+            setCoverUploadError(
+                error instanceof Error ? error.message : 'Cover-Upload fehlgeschlagen.',
+            )
         } finally {
             if (mountedRef.current) {
                 setIsUploadingCover(false)
@@ -243,9 +251,22 @@ export default function FormatEditor({formatId}: FormatEditorProps): React.JSX.E
 
     if (loadError) {
         return (
-            <p>
-                {loadError} <Link href="/podcast/formats">Zurück zur Liste</Link>
-            </p>
+            <PageStack className="gap-6">
+                <Alert variant="destructive">
+                    <AlertDescription>{loadError}</AlertDescription>
+                    <Button
+                        className="mt-3"
+                        onClick={() => setReloadToken((value) => value + 1)}
+                        type="button"
+                        variant="outline"
+                    >
+                        Erneut versuchen
+                    </Button>
+                </Alert>
+                <p className="text-sm text-muted-foreground">
+                    <Link href="/podcast/formats">Zurück zur Liste</Link>
+                </p>
+            </PageStack>
         )
     }
 
@@ -358,6 +379,11 @@ export default function FormatEditor({formatId}: FormatEditorProps): React.JSX.E
                     {uploadProgress !== null ? (
                         <UploadProgress file={uploadProgress.file} progress={uploadProgress.progress} />
                     ) : null}
+                    {coverUploadError !== null ? (
+                        <p className="text-sm text-destructive" role="alert">
+                            {coverUploadError}
+                        </p>
+                    ) : null}
                 </section>
                 <section aria-labelledby="format-access-heading" className="grid gap-4">
                     <SectionHeader
@@ -398,7 +424,7 @@ export default function FormatEditor({formatId}: FormatEditorProps): React.JSX.E
                     </div>
                 </section>
                 <div className="flex flex-wrap gap-2">
-                    <Button disabled={pending} type="submit">
+                    <Button disabled={pending || isUploadingCover} type="submit">
                         {pending ? 'Speichert…' : 'Speichern'}
                     </Button>
                     {!isNew && format?.active ? (

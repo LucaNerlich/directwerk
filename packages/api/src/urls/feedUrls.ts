@@ -39,7 +39,7 @@ function normalizeOrigin(originOrHost: string): string {
 
 /** Public tenant-level podcast feed: `/feeds/{tenantSlug}/podcast.xml`. */
 export function tenantPodcastFeed(origin: string, tenantSlug: string): string {
-    return `${normalizeOrigin(origin)}/feeds/${tenantSlug}/podcast.xml`
+    return `${normalizeOrigin(origin)}/feeds/${encodeURIComponent(tenantSlug)}/podcast.xml`
 }
 
 /** Public per-series feed: `/feeds/{tenantSlug}/{seriesSlug}.xml`. */
@@ -48,7 +48,7 @@ export function seriesFeed(
     tenantSlug: string,
     seriesSlug: string,
 ): string {
-    return `${normalizeOrigin(origin)}/feeds/${tenantSlug}/${seriesSlug}.xml`
+    return `${normalizeOrigin(origin)}/feeds/${encodeURIComponent(tenantSlug)}/${encodeURIComponent(seriesSlug)}.xml`
 }
 
 /** Token-authenticated subscriber feed: `/feeds/{tenantSlug}/u/{feedToken}.xml`. */
@@ -57,7 +57,7 @@ export function subscriberFeed(
     tenantSlug: string,
     feedToken: string,
 ): string {
-    return `${normalizeOrigin(origin)}/feeds/${tenantSlug}/u/${feedToken}.xml`
+    return `${normalizeOrigin(origin)}/feeds/${encodeURIComponent(tenantSlug)}/u/${encodeURIComponent(feedToken)}.xml`
 }
 
 /** Public episode enclosure proxy: `/feeds/{tenantSlug}/e/{episodeSlug}.mp3`. */
@@ -66,7 +66,7 @@ export function publicEnclosure(
     tenantSlug: string,
     episodeSlug: string,
 ): string {
-    return `${normalizeOrigin(origin)}/feeds/${tenantSlug}/e/${episodeSlug}.mp3`
+    return `${normalizeOrigin(origin)}/feeds/${encodeURIComponent(tenantSlug)}/e/${encodeURIComponent(episodeSlug)}.mp3`
 }
 
 /** Private episode enclosure proxy. */
@@ -77,8 +77,8 @@ export function privateEnclosure(
     episodeSlug: string,
 ): string {
     return (
-        `${normalizeOrigin(origin)}/feeds/${tenantSlug}/u/${feedToken}` +
-        `/e/${episodeSlug}.mp3`
+        `${normalizeOrigin(origin)}/feeds/${encodeURIComponent(tenantSlug)}/u/${encodeURIComponent(feedToken)}` +
+        `/e/${encodeURIComponent(episodeSlug)}.mp3`
     )
 }
 

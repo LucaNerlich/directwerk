@@ -1,7 +1,9 @@
 import {render, screen, waitFor} from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import {beforeEach, describe, expect, it, vi} from 'vitest'
 
 import SeriesEditor from '@/components/podcast/SeriesEditor'
+import {createSeries, updateSeries} from '@/lib/api/podcastApi'
 import {clearCachedTenantData} from '@directwerk/api/client/useCachedTenantQuery'
 
 // `useRouter()` in Next.js returns a stable/memoized object across re-renders.
@@ -31,6 +33,7 @@ vi.mock('@/lib/api/subscriptionApi', () => ({
 }))
 vi.mock('@/lib/api/mediaApi', () => ({
     getMediaPreviewUrl: vi.fn(),
+    listMedia: vi.fn().mockResolvedValue([]),
 }))
 vi.mock('@/lib/media/upload', () => ({uploadMediaFile: vi.fn()}))
 
@@ -77,5 +80,39 @@ describe('SeriesEditor RSS URL', () => {
         )
         expect(screen.getByRole('button', {name: 'Sendung veröffentlichen'})).toBeInTheDocument()
         expect(screen.getByText('iTunes-Kategorie')).toBeInTheDocument()
+    })
+
+    it('retries a failed publish-on-create as an update instead of duplicating', async () => {
+        const created = {
+            id: 9, slug: 'neue-sendung', title: 'Neue Sendung', description: null,
+            coverAssetId: null, language: 'de', itunesCategory: null,
+            itunesExplicit: false, defaultRequiredLevelSortOrder: null,
+            rssUrl: null, status: 'DRAFT' as const,
+        }
+        vi.mocked(createSeries).mockResolvedValueOnce(created)
+        vi.mocked(updateSeries)
+            .mockRejectedValueOnce(new Error('Veröffentlichung fehlgeschlagen.'))
+            .mockResolvedValueOnce({...created, status: 'PUBLISHED' as const})
+
+        const user = userEvent.setup()
+        render(<SeriesEditor />)
+
+        await user.type(screen.getByLabelText('Titel'), 'Neue Sendung')
+        await user.click(screen.getByRole('checkbox', {name: 'Sendung sofort veröffentlichen'}))
+        await user.click(screen.getByRole('button', {name: 'Sendung anlegen'}))
+
+        await waitFor(() =>
+            expect(screen.getByRole('alert')).toHaveTextContent(
+                'Veröffentlichung fehlgeschlagen.',
+            ),
+        )
+        expect(createSeries).toHaveBeenCalledTimes(1)
+        // Still editing the created series — not a fresh "new" form.
+        expect(screen.getByRole('button', {name: 'Speichern'})).toBeInTheDocument()
+
+        await user.click(screen.getByRole('button', {name: 'Speichern'}))
+
+        await waitFor(() => expect(updateSeries).toHaveBeenCalledTimes(2))
+        expect(createSeries).toHaveBeenCalledTimes(1)
     })
 })

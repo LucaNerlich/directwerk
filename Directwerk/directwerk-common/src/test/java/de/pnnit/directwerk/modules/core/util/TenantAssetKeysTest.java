@@ -95,4 +95,14 @@ class TenantAssetKeysTest {
         assertThat(TenantAssetKeys.isPublicKey("", "alpha/public/x")).isFalse();
         assertThat(TenantAssetKeys.isPublicKey("alpha", "  ")).isFalse();
     }
+
+    @Test
+    void rejectsNullTenantWhenBuildingKeys() {
+        assertThatThrownBy(() -> TenantAssetKeys.publicKey(null, "cover.jpg"))
+                .isInstanceOf(NullPointerException.class)
+                .hasMessageContaining("tenantSlug");
+        assertThatThrownBy(() -> TenantAssetKeys.stagingKey(null, "upload.bin"))
+                .isInstanceOf(NullPointerException.class)
+                .hasMessageContaining("tenantSlug");
+    }
 }

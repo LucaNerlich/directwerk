@@ -127,4 +127,10 @@ class MediaUploadRulesTest {
         assertThat(MediaUploadRules.ensureUsableExtension("import.bin", AssetType.AUDIO))
                 .isEqualTo("import.mp3");
     }
+
+    @Test
+    void rejectsDotOnlyFilename() {
+        assertThatThrownBy(() -> MediaUploadRules.sanitizeFilename("."))
+                .isInstanceOf(UploadValidationException.class);
+    }
 }

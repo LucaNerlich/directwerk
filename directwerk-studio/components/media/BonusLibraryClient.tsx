@@ -40,10 +40,13 @@ export default function BonusLibraryClient(): React.JSX.Element {
     const [assets, setAssets] = useState<MediaAsset[]>([])
     const [errorMessage, setErrorMessage] = useState<string | null>(null)
     const [isLoading, setIsLoading] = useState(true)
+    const [reloadToken, setReloadToken] = useState(0)
     const {viewMode, setViewMode} = useListViewMode()
 
     useEffect(() => {
         let active = true
+        setIsLoading(true)
+        setErrorMessage(null)
         listMedia(getClientTenantHost())
             .then((result) => {
                 if (!active) {
@@ -72,7 +75,7 @@ export default function BonusLibraryClient(): React.JSX.Element {
         return () => {
             active = false
         }
-    }, [router])
+    }, [reloadToken, router])
 
     if (isLoading) {
         return (
@@ -122,6 +125,14 @@ export default function BonusLibraryClient(): React.JSX.Element {
             {errorMessage !== null && (
                 <Alert variant="destructive">
                     <AlertDescription>{errorMessage}</AlertDescription>
+                    <Button
+                        className="mt-3"
+                        onClick={() => setReloadToken((value) => value + 1)}
+                        type="button"
+                        variant="outline"
+                    >
+                        Erneut versuchen
+                    </Button>
                 </Alert>
             )}
             {assets.length === 0 ? (

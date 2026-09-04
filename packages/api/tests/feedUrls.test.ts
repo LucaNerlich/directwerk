@@ -83,6 +83,30 @@ describe('feedUrls', () => {
         )
     })
 
+    it('encodes tenant slug path segments', () => {
+        expect(tenantPodcastFeed('https://alpha.example.test', 'alpha show')).toBe(
+            'https://alpha.example.test/feeds/alpha%20show/podcast.xml',
+        )
+        expect(tenantArticleFeed('https://alpha.example.test', 'alpha show')).toBe(
+            'https://alpha.example.test/feeds/alpha%20show/articles.xml',
+        )
+    })
+
+    it('encodes every path segment of series, subscriber, and enclosure URLs', () => {
+        expect(seriesFeed('https://alpha.example.test', 'alpha show', 'my show')).toBe(
+            'https://alpha.example.test/feeds/alpha%20show/my%20show.xml',
+        )
+        expect(
+            subscriberFeed('https://alpha.example.test', 'alpha show', 'tok 123'),
+        ).toBe('https://alpha.example.test/feeds/alpha%20show/u/tok%20123.xml')
+        expect(
+            publicEnclosure('https://demo.test', 'my tenant', 'episode 1'),
+        ).toBe('https://demo.test/feeds/my%20tenant/e/episode%201.mp3')
+        expect(
+            privateEnclosure('https://demo.test', 'my tenant', 'tok 123', 'episode 1'),
+        ).toBe('https://demo.test/feeds/my%20tenant/u/tok%20123/e/episode%201.mp3')
+    })
+
     it('matches Java tenantArticleFeed', () => {
         expect(tenantArticleFeed('https://alpha.example.test', 'alpha')).toBe(
             'https://alpha.example.test/feeds/alpha/articles.xml',

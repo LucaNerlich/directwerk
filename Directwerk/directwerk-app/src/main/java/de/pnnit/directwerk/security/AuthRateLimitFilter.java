@@ -36,9 +36,7 @@ public class AuthRateLimitFilter extends OncePerRequestFilter {
         this.forgotPasswordLimitPerMinute = forgotPasswordLimitPerMinute;
         this.authLimitPerMinute = authLimitPerMinute;
         this.contactLimitPerMinute = contactLimitPerMinute;
-        this.trustedProxies = trustedProxies == null
-                ? Set.of()
-                : Set.copyOf(trustedProxies.stream().filter(StringUtils::hasText).map(String::trim).toList());
+        this.trustedProxies = ClientIpExtractor.trustedProxySet(trustedProxies);
     }
 
     @Override
@@ -120,26 +118,7 @@ public class AuthRateLimitFilter extends OncePerRequestFilter {
     }
 
     private String extractClientIp(HttpServletRequest request) {
-        String remoteAddr = request.getRemoteAddr();
-        if (remoteAddr == null || trustedProxies.isEmpty() || !trustedProxies.contains(remoteAddr)) {
-            // Without a trusted immediate peer, never honor client-supplied forwarding headers.
-            return remoteAddr != null ? remoteAddr : "unknown";
-        }
-
-        String forwardedFor = request.getHeader("X-Forwarded-For");
-        if (!StringUtils.hasText(forwardedFor)) {
-            return remoteAddr;
-        }
-
-        // Proxies append; walk the chain from the trusted peer outward to find the client.
-        String[] hops = forwardedFor.split(",");
-        for (int i = hops.length - 1; i >= 0; i--) {
-            String ip = hops[i].trim();
-            if (StringUtils.hasText(ip) && !trustedProxies.contains(ip)) {
-                return ip;
-            }
-        }
-        return remoteAddr;
+        return ClientIpExtractor.extractClientIp(request, trustedProxies);
     }
 
     private record RateLimitRule(String group, int limit) {

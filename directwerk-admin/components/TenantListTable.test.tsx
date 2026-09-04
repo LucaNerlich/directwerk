@@ -55,4 +55,14 @@ describe('TenantListTable', () => {
         ).toBeInTheDocument()
         expect(screen.queryByRole('list', {name: 'Tenants'})).not.toBeInTheDocument()
     })
+
+    it('shows a create-first empty state when no filters are active', () => {
+        render(<TenantListTable tenants={[]} />)
+
+        expect(screen.getByText('No tenants yet')).toBeInTheDocument()
+        expect(
+            screen.getByText('Create the first tenant to begin.')
+        ).toBeInTheDocument()
+        expect(screen.queryByRole('button', {name: 'Clear filters'})).not.toBeInTheDocument()
+    })
 })

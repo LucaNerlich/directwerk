@@ -156,7 +156,7 @@ public class PlatformTenantController {
     }
 
     public record CreateTenantRequest(
-            @NotBlank String name,
+            @NotBlank @Size(max = 255) String name,
             @NotBlank
             @Pattern(regexp = "^[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,62}[a-zA-Z0-9])?$")
             String slug,

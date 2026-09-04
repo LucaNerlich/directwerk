@@ -38,6 +38,10 @@ describe('AdminSideNav', () => {
             'href',
             '/admins',
         )
+        expect(screen.getByRole('link', {name: 'Audit log'})).toHaveAttribute(
+            'href',
+            '/audit',
+        )
         expect(screen.getByRole('link', {name: 'Jobs'})).toHaveAttribute('href', '/jobs')
     })
 

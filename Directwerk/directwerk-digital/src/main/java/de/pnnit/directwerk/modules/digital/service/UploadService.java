@@ -320,6 +320,15 @@ public class UploadService implements UploadApi {
 
     private static void validateScope(AssetScope scope, Long ownerUserId, Long episodeId) {
         AssetScope effective = scope == null ? AssetScope.CONTENT : scope;
+        if (effective == AssetScope.SYSTEM) {
+            // SYSTEM assets are server-owned (never minted via the upload API): the SYSTEM
+            // branch in AssetAccessService/MediaAssetLifecycleService bypasses CONTENT
+            // entitlement checks, so editors must not be able to opt into it.
+            throw new UploadValidationException(
+                    "UPLOAD_VALIDATION_FAILED",
+                    "scope SYSTEM is not available for uploads"
+            );
+        }
         if (effective == AssetScope.USER && ownerUserId == null) {
             throw new UploadValidationException(
                     "UPLOAD_VALIDATION_FAILED",

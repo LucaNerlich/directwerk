@@ -20,3 +20,18 @@ export function storeTenantTokens(tokens: Parameters<typeof tenantTokenStore.set
     tenantTokenStore.setTokens(tokens, tenantHost)
 }
 export const clearTenantTokens = tenantTokenStore.clearTokens.bind(tenantTokenStore)
+export const subscribeToTenantTokenStore =
+    tenantTokenStore.subscribeToTokenStore.bind(tenantTokenStore)
+
+/**
+ * SSR-safe host read. The underlying store touches `sessionStorage`, which
+ * does not exist during server rendering — callers must use this (or read
+ * inside effects/event handlers) instead of `getTenantSessionHost()` in
+ * render-time initializers.
+ */
+export function getTenantSessionHostSafe(): string | null {
+    if (typeof window === 'undefined') {
+        return null
+    }
+    return tenantTokenStore.getTenantHost()
+}

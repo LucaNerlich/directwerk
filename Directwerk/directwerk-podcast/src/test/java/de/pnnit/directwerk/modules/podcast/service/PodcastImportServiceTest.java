@@ -176,4 +176,58 @@ class PodcastImportServiceTest {
 
         verify(remoteAssetIngestApi).discard(11L);
     }
+
+    @Test
+    void sanitizesInvalidRequestedSlugBeforeAllocating() {
+        String feedUrl = "https://example.com/feed.xml";
+        String guid = "episode-9";
+        String identity = PodcastImportService.importIdentity(feedUrl, guid);
+        when(episodeRepository.findByTenantIdAndImportIdentity(10L, identity))
+                .thenReturn(Optional.empty());
+        when(episodeRepository.existsByTenantIdAndSlug(10L, "my-episode")).thenReturn(false);
+        Episode created = new Episode();
+        created.setId(23L);
+        when(episodeService.createImportedDraft(
+                eq(10L),
+                eq(7L),
+                eq(1),
+                eq("my-episode"),
+                eq("Episode 9"),
+                eq("Shownotes"),
+                eq(null),
+                eq(null),
+                eq(60),
+                eq(AccessPolicy.FREE),
+                eq(null),
+                eq(Set.of()),
+                eq(Set.of()),
+                eq(identity),
+                eq(null)
+        )).thenReturn(created);
+
+        PodcastImportService.ImportedEpisode result = service.importEpisode(
+                new PodcastImportService.ImportEpisodeCommand(
+                        7L,
+                        feedUrl,
+                        guid,
+                        "My Episode!",
+                        "Episode 9",
+                        "Shownotes",
+                        1,
+                        60,
+                        null,
+                        null,
+                        Set.of(),
+                        Set.of(),
+                        null,
+                        null,
+                        null,
+                        null,
+                        null
+                )
+        );
+
+        assertThat(result.alreadyImported()).isFalse();
+        assertThat(result.episode().getId()).isEqualTo(23L);
+    }
 }

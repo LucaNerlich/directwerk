@@ -78,4 +78,39 @@ describe('HowToSubscribe', () => {
             screen.getByRole('heading', {name: 'So liest du im Feed-Reader'}),
         ).toBeInTheDocument()
     })
+
+    it('hides private feed token URLs from guests for both kinds', () => {
+        const {container} = render(
+            <HowToSubscribe
+                podcast={{
+                    publicFeedUrl: 'https://tenant.example/feed.xml',
+                    privateFeedUrl: 'https://tenant.example/feed/u/podcast-token.xml',
+                }}
+                articles={{
+                    publicFeedUrl: 'https://tenant.example/articles.xml',
+                    privateFeedUrl:
+                        'https://tenant.example/articles/u/article-token.xml',
+                }}
+                isAuthenticated={false}
+            />,
+        )
+
+        expect(container.innerHTML).not.toContain('podcast-token.xml')
+        expect(container.innerHTML).not.toContain('article-token.xml')
+    })
+
+    it('shows private article feed URLs when authenticated', () => {
+        render(
+            <HowToSubscribe
+                articles={{
+                    publicFeedUrl: 'https://tenant.example/articles.xml',
+                    privateFeedUrl:
+                        'https://tenant.example/articles/u/article-token.xml',
+                }}
+                isAuthenticated
+            />,
+        )
+
+        expect(screen.getByText('Dein privater Beitrags-Feed')).toBeInTheDocument()
+    })
 })

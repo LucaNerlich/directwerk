@@ -99,6 +99,11 @@ function LoginForm() {
                     enterStudio()
                     return INITIAL_STATE
                 }
+                if (discovered.length === 0) {
+                    return {
+                        error: 'Für diese Anmeldung wurde kein Workspace gefunden. Bitte Einladung prüfen.',
+                    }
+                }
 
                 setPendingInput(input)
                 setWorkspaces(discovered)

@@ -41,18 +41,19 @@ public class BillingDashboardService {
         YearMonth month = YearMonth.now(clock.withZone(ZoneOffset.UTC));
         Instant monthStart = month.atDay(1).atStartOfDay().toInstant(ZoneOffset.UTC);
         Instant nextMonthStart = month.plusMonths(1).atDay(1).atStartOfDay().toInstant(ZoneOffset.UTC);
+        Instant now = clock.instant();
 
-        long active = subscriptions.stream().filter(this::isActive).count();
+        long active = subscriptions.stream().filter(subscription -> isCurrentlyActive(subscription, now)).count();
         long paid = subscriptions.stream()
-                .filter(this::isActive)
+                .filter(subscription -> isCurrentlyActive(subscription, now))
                 .filter((subscription) -> subscription.getSource() == SubscriptionSource.STRIPE)
                 .count();
         long grants = subscriptions.stream()
-                .filter(this::isActive)
+                .filter(subscription -> isCurrentlyActive(subscription, now))
                 .filter((subscription) -> subscription.getSource() != SubscriptionSource.STRIPE)
                 .count();
         long uniqueMembers = subscriptions.stream()
-                .filter(this::isActive)
+                .filter(subscription -> isCurrentlyActive(subscription, now))
                 .map((subscription) -> subscription.getUser().getId())
                 .distinct()
                 .count();
@@ -74,7 +75,7 @@ public class BillingDashboardService {
                 .filter((subscription) -> subscription.getStatus() == SubscriptionStatus.INCOMPLETE)
                 .count();
         int estimatedMonthlyCents = subscriptions.stream()
-                .filter(this::isActive)
+                .filter(subscription -> isCurrentlyActive(subscription, now))
                 .filter((subscription) -> subscription.getSource() == SubscriptionSource.STRIPE)
                 .mapToInt(this::monthlyCents)
                 .sum();
@@ -112,8 +113,17 @@ public class BillingDashboardService {
         );
     }
 
-    private boolean isActive(Subscription subscription) {
-        return subscription.getStatus() == SubscriptionStatus.ACTIVE;
+    /**
+     * Entitlement-consistent liveness: mirrors {@code EntitlementService#isCurrentlyActive}.
+     * An ACTIVE row whose period already ended grants nothing, so the dashboard must not
+     * count it (or its MRR) as active either.
+     */
+    private boolean isCurrentlyActive(Subscription subscription, Instant now) {
+        if (subscription.getStatus() != SubscriptionStatus.ACTIVE) {
+            return false;
+        }
+        Instant endsAt = subscription.getEndsAt();
+        return endsAt == null || endsAt.isAfter(now);
     }
 
     private int statusRank(Subscription subscription) {
@@ -131,7 +141,7 @@ public class BillingDashboardService {
             return 0;
         }
         if (product.getBillingInterval() == BillingInterval.YEAR) {
-            return product.getPriceCents() / 12;
+            return (int) Math.round(product.getPriceCents() / 12.0);
         }
         if (product.getBillingInterval() == BillingInterval.MONTH) {
             return product.getPriceCents();

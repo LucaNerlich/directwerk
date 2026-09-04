@@ -19,7 +19,7 @@ describe('formatMoney', () => {
 
 describe('formatPublishedAt', () => {
     it('returns fallback for null', () => {
-        expect(formatPublishedAt(null)).toBe('Unknown date')
+        expect(formatPublishedAt(null)).toBe('Unbekanntes Datum')
     })
 
     it('returns original string for invalid dates', () => {
@@ -28,7 +28,7 @@ describe('formatPublishedAt', () => {
 
     it('formats valid ISO timestamps', () => {
         const formatted = formatPublishedAt('2024-06-01T12:00:00.000Z')
-        expect(formatted).not.toBe('Unknown date')
+        expect(formatted).not.toBe('Unbekanntes Datum')
         expect(formatted).not.toBe('2024-06-01T12:00:00.000Z')
     })
 })

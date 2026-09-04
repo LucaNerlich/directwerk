@@ -84,6 +84,20 @@ class TenantIsolationFilterChainIT {
                 .andExpect(jsonPath("$.errors[0].code").value("PLATFORM_TENANT_ACCESS_DENIED"));
     }
 
+    @Test
+    void unexpectedTenantResolutionFailureReturnsInternalErrorEnvelope() throws Exception {
+        when(tenantResolver.requireActiveHost("tenant-b.localhost"))
+                .thenThrow(new RuntimeException("tenant cache unavailable"));
+
+        Authentication tenantAUser = tenantPrincipal(1L, RoleConstants.TENANT_ADMIN);
+
+        mockMvc.perform(get(URI.create("http://tenant-b.localhost/api/v1/tenant/branding"))
+                        .with(authentication(tenantAUser)))
+                .andExpect(status().isInternalServerError())
+                .andExpect(jsonPath("$.statusCode").value(500))
+                .andExpect(jsonPath("$.errors[0].code").value("INTERNAL_ERROR"));
+    }
+
     private static Authentication tenantPrincipal(Long tenantId, String roleAuthority) {
         DirectwerkUserPrincipal principal = new DirectwerkUserPrincipal(
                 5L,

@@ -30,10 +30,13 @@ export default function MediaLibraryPicker({
     const [assets, setAssets] = useState<MediaAsset[]>([])
     const [isLoading, setIsLoading] = useState(true)
     const [errorMessage, setErrorMessage] = useState<string | null>(null)
+    const [reloadToken, setReloadToken] = useState(0)
     const helpId = useId()
 
     useEffect(() => {
         let active = true
+        setIsLoading(true)
+        setErrorMessage(null)
 
         async function load(): Promise<void> {
             try {
@@ -71,7 +74,7 @@ export default function MediaLibraryPicker({
         return () => {
             active = false
         }
-    }, [assetType, onAuthRequired])
+    }, [assetType, onAuthRequired, reloadToken])
 
     return (
         <div className="grid gap-2">
@@ -110,9 +113,18 @@ export default function MediaLibraryPicker({
                 </SelectControl>
             )}
             {errorMessage !== null ? (
-                <p className="text-sm text-destructive" role="alert">
-                    {errorMessage}
-                </p>
+                <div className="grid gap-1.5">
+                    <p className="text-sm text-destructive" role="alert">
+                        {errorMessage}
+                    </p>
+                    <button
+                        className="justify-self-start text-sm font-medium text-primary underline-offset-4 hover:underline"
+                        onClick={() => setReloadToken((value) => value + 1)}
+                        type="button"
+                    >
+                        Erneut versuchen
+                    </button>
+                </div>
             ) : null}
         </label>
         <p className="text-xs text-muted-foreground" id={`${helpId}-help`}>

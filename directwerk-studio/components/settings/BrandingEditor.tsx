@@ -39,6 +39,15 @@ function normalizeColor(value: FormDataEntryValue | null): string | null | undef
     return text
 }
 
+// Native color inputs require a valid #rrggbb value at all times, so map
+// empty/invalid drafts to a neutral fallback. The fallback never leaks into
+// the submitted text field — only an explicit pick updates the draft.
+const COLOR_PICKER_FALLBACK = '#000000'
+
+function colorPickerValue(draft: string): string {
+    return COLOR_PATTERN.test(draft) ? draft.toLowerCase() : COLOR_PICKER_FALLBACK
+}
+
 export default function BrandingEditor(): React.JSX.Element {
     const router = useRouter()
     const authRedirect = useAuthRequired()
@@ -214,55 +223,51 @@ export default function BrandingEditor(): React.JSX.Element {
                 <div className="grid gap-2">
                     <Label htmlFor="primaryColor">Primärfarbe</Label>
                     <div className="flex items-center gap-3">
-                        <span
-                            aria-hidden="true"
-                            className="size-9 shrink-0 rounded-md border"
-                            style={{
-                                backgroundColor: COLOR_PATTERN.test(primaryColorDraft)
-                                    ? primaryColorDraft
-                                    : 'transparent',
-                            }}
+                        <Input
+                            aria-label="Primärfarbe Farbwähler"
+                            className="size-9 shrink-0 cursor-pointer p-1"
+                            onChange={(event) => setPrimaryColorDraft(event.target.value)}
+                            type="color"
+                            value={colorPickerValue(primaryColorDraft)}
                         />
                     <Input
                         aria-describedby="primaryColor-help"
-                        defaultValue={branding?.primaryColor ?? ''}
                         id="primaryColor"
                         maxLength={7}
                         name="primaryColor"
                         onChange={(event) => setPrimaryColorDraft(event.target.value)}
                         placeholder="#1a1a1a"
                         type="text"
+                        value={primaryColorDraft}
                     />
                     </div>
                     <p className="text-xs text-muted-foreground" id="primaryColor-help">
-                        Format #RRGGBB, z. B. #1a1a1a. Leer lassen für die Standardfarbe. Aktuell: {branding?.primaryColor ?? 'Standard'}.
+                        Farbwähler nutzen oder Hex-Wert im Format #RRGGBB eingeben, z. B. #1a1a1a. Leer lassen für die Standardfarbe. Aktuell: {branding?.primaryColor ?? 'Standard'}.
                     </p>
                 </div>
                 <div className="grid gap-2">
                     <Label htmlFor="secondaryColor">Sekundärfarbe</Label>
                     <div className="flex items-center gap-3">
-                        <span
-                            aria-hidden="true"
-                            className="size-9 shrink-0 rounded-md border"
-                            style={{
-                                backgroundColor: COLOR_PATTERN.test(secondaryColorDraft)
-                                    ? secondaryColorDraft
-                                    : 'transparent',
-                            }}
+                        <Input
+                            aria-label="Sekundärfarbe Farbwähler"
+                            className="size-9 shrink-0 cursor-pointer p-1"
+                            onChange={(event) => setSecondaryColorDraft(event.target.value)}
+                            type="color"
+                            value={colorPickerValue(secondaryColorDraft)}
                         />
                     <Input
                         aria-describedby="secondaryColor-help"
-                        defaultValue={branding?.secondaryColor ?? ''}
                         id="secondaryColor"
                         maxLength={7}
                         name="secondaryColor"
                         onChange={(event) => setSecondaryColorDraft(event.target.value)}
                         placeholder="#445566"
                         type="text"
+                        value={secondaryColorDraft}
                     />
                     </div>
                     <p className="text-xs text-muted-foreground" id="secondaryColor-help">
-                        Format #RRGGBB, z. B. #445566. Leer lassen für die Standardfarbe.
+                        Farbwähler nutzen oder Hex-Wert im Format #RRGGBB eingeben, z. B. #445566. Leer lassen für die Standardfarbe.
                     </p>
                 </div>
                 <div className="grid gap-2">

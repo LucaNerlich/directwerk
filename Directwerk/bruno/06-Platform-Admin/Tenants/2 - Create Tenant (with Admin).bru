@@ -43,6 +43,8 @@ docs {
   inviteToken only present with directwerk.account.expose-dev-tokens=true (local profile). Feed it into
   01-Auth-and-Tokens/9 - Accept Invite.
 
+  name max 255 chars (400 VALIDATION_ERROR beyond); slug lowercase-alphanumeric-hyphen.
+
   KNOWN BUG (found 2026-07-20 running this collection live): re-running this with a slug/domain that
   already exists returns a bare 500 instead of the documented 409 TENANT_SLUG_EXISTS. If you hit this,
   either change the slug/primaryDomain above or ignore it -- Suspend/Reactivate/Force Verify Domain

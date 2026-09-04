@@ -51,7 +51,7 @@ export default function TenantEditForm({
                 </CardDescription>
             </CardHeader>
             <CardContent>
-            <Form action={formAction} className="space-y-4">
+            <Form action={formAction} className="space-y-4" key={`${tenant.id}:${tenant.name}:${tenant.slug}`}>
                 <div className="space-y-2">
                     <Label htmlFor="tenant-edit-name">Name</Label>
                     <Input

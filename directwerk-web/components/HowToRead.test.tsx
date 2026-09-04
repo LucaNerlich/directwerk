@@ -6,11 +6,12 @@ import HowToRead from '@/components/HowToRead'
 afterEach(cleanup)
 
 describe('HowToRead', () => {
-    it('shows accessible public and private article feeds', () => {
+    it('shows accessible public and private article feeds when authenticated', () => {
         render(
             <HowToRead
                 publicFeedUrl="https://tenant.example/feeds/tenant/articles.xml"
                 privateFeedUrl="https://tenant.example/feeds/tenant/articles/u/token.xml"
+                isAuthenticated
             />,
         )
 
@@ -49,5 +50,20 @@ describe('HowToRead', () => {
             'href',
             '/feeds',
         )
+    })
+
+    it('hides the private article feed token URL from guests', () => {
+        render(
+            <HowToRead
+                publicFeedUrl="https://tenant.example/feeds/tenant/articles.xml"
+                privateFeedUrl="https://tenant.example/feeds/tenant/articles/u/token.xml"
+            />,
+        )
+
+        expect(screen.getByText('Öffentlicher Beitrags-Feed')).toBeInTheDocument()
+        expect(
+            screen.queryByText('Dein privater Beitrags-Feed'),
+        ).not.toBeInTheDocument()
+        expect(document.body.innerHTML).not.toContain('/u/token.xml')
     })
 })

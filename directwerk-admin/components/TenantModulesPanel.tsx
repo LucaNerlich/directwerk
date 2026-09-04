@@ -178,7 +178,14 @@ export default function TenantModulesPanel({tenantId}: TenantModulesPanelProps) 
             <CardContent className="space-y-5">
 
             {error ? (
-                <Alert aria-live="polite" variant="destructive"><AlertDescription>{error}</AlertDescription></Alert>
+                <>
+                    <Alert aria-live="polite" variant="destructive"><AlertDescription>{error}</AlertDescription></Alert>
+                    <div>
+                        <Button onClick={() => loadModules()} type="button" variant="outline">
+                            Retry
+                        </Button>
+                    </div>
+                </>
             ) : null}
             {status ? (
                 <p aria-live="polite" role="status" className="text-sm text-muted-foreground">

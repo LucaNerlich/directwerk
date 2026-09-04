@@ -36,6 +36,7 @@ export default function DeletePublicationDialog({
     contentLabel,
     pending,
     onConfirm,
+    errorMessage,
 }: {
     open: boolean
     onOpenChange: (open: boolean) => void
@@ -43,6 +44,12 @@ export default function DeletePublicationDialog({
     contentLabel: string
     pending: boolean
     onConfirm: () => void
+    /**
+     * Delete failure to surface inside the dialog. The dialog stays open on
+     * failure so a typed slug confirmation survives — without this the error
+     * would only exist behind the modal and be invisible to the user.
+     */
+    errorMessage?: string | null
 }): React.JSX.Element | null {
     const [typedToken, setTypedToken] = useState('')
 
@@ -67,7 +74,18 @@ export default function DeletePublicationDialog({
             <ConfirmDialog
                 cancelLabel="Abbrechen"
                 confirmLabel="Löschen"
-                description={`„${item.title}“ wird endgültig gelöscht. Dieser Vorgang kann nicht rückgängig gemacht werden.`}
+                description={
+                    <>
+                        <span>
+                            {`„${item.title}“ wird endgültig gelöscht. Dieser Vorgang kann nicht rückgängig gemacht werden.`}
+                        </span>
+                        {errorMessage != null && errorMessage.length > 0 ? (
+                            <span className="mt-2 block text-destructive" role="alert">
+                                {errorMessage}
+                            </span>
+                        ) : null}
+                    </>
+                }
                 destructive
                 onConfirm={onConfirm}
                 onOpenChange={onOpenChange}
@@ -108,6 +126,11 @@ export default function DeletePublicationDialog({
                         value={typedToken}
                     />
                 </label>
+                {errorMessage != null && errorMessage.length > 0 ? (
+                    <p className="text-sm text-destructive" role="alert">
+                        {errorMessage}
+                    </p>
+                ) : null}
                 <DialogFooter>
                     <Button
                         disabled={pending}

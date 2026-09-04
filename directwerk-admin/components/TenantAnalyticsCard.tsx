@@ -3,6 +3,7 @@
 import {useEffect, useState} from 'react'
 
 import {Badge} from '@directwerk/ui/components/badge'
+import {Button} from '@directwerk/ui/components/button'
 import {Card, CardContent, CardDescription, CardHeader, CardTitle} from '@directwerk/ui/components/card'
 import {Skeleton} from '@directwerk/ui/components/skeleton'
 import {getPlatformData} from '@/lib/api/client'
@@ -12,6 +13,7 @@ export default function TenantAnalyticsCard({tenantId}: {tenantId: string}): Rea
     const [branding, setBranding] = useState<PlatformBranding | null>(null)
     const [error, setError] = useState<string | null>(null)
     const [isLoading, setIsLoading] = useState(true)
+    const [reloadKey, setReloadKey] = useState(0)
 
     useEffect(() => {
         let active = true
@@ -33,7 +35,7 @@ export default function TenantAnalyticsCard({tenantId}: {tenantId: string}): Rea
         return () => {
             active = false
         }
-    }, [tenantId])
+    }, [tenantId, reloadKey])
 
     const trackingEnabled = branding?.umamiWebsiteId != null
 
@@ -48,9 +50,16 @@ export default function TenantAnalyticsCard({tenantId}: {tenantId: string}): Rea
             </CardHeader>
             <CardContent>
                 {error ? (
-                    <p className="text-sm text-destructive" role="alert">
-                        {error}
-                    </p>
+                    <>
+                        <p className="text-sm text-destructive" role="alert">
+                            {error}
+                        </p>
+                        <div className="mt-2">
+                            <Button onClick={() => setReloadKey((value) => value + 1)} type="button" variant="outline">
+                                Retry
+                            </Button>
+                        </div>
+                    </>
                 ) : null}
                 {!error && isLoading ? (
                     <>

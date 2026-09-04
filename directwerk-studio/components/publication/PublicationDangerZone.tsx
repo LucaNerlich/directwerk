@@ -43,14 +43,16 @@ export default function PublicationDangerZone({
         setErrorMessage(null)
         try {
             await onDelete(item.id)
+            setDialogOpen(false)
             onDeleted()
         } catch (error) {
+            // Keep the dialog open so a typed slug confirmation survives the
+            // failure and the user can retry directly from the dialog.
             setErrorMessage(
                 error instanceof Error ? error.message : deleteErrorMessage,
             )
         } finally {
             setPending(false)
-            setDialogOpen(false)
         }
     }
 
@@ -94,6 +96,7 @@ export default function PublicationDangerZone({
                     </div>
                     <DeletePublicationDialog
                         contentLabel={contentLabel}
+                        errorMessage={errorMessage}
                         item={item}
                         onConfirm={() => void runDelete()}
                         onOpenChange={setDialogOpen}

@@ -4,6 +4,7 @@ import {useState} from 'react'
 
 import {Button, buttonVariants} from '@directwerk/ui/components/button'
 import {cn} from '@directwerk/ui/lib/utils'
+import {isAllowedFeedUrl} from '@directwerk/api/validation/primitives'
 
 import CopyUrlButton from '@/components/CopyUrlButton'
 
@@ -11,6 +12,18 @@ const COLLAPSE_THRESHOLD = 80
 
 function isTokenUrl(url: string): boolean {
     return url.includes('/u/') || url.includes('token=')
+}
+
+/**
+ * Only https (or loopback http) and same-origin relative URLs are safe as
+ * link targets. Anything else (e.g. `javascript:` from a compromised record
+ * that bypassed parser validation) renders as text only — no clickable XSS.
+ */
+function isSafeHref(url: string): boolean {
+    if (url.startsWith('/') && !url.startsWith('//')) {
+        return true
+    }
+    return isAllowedFeedUrl(url)
 }
 
 function maskedUrl(url: string): string {
@@ -38,6 +51,7 @@ export default function FeedUrlDisplay({
     const shouldCollapse =
         defaultVisible ?? (!isTokenUrl(url) && url.length <= COLLAPSE_THRESHOLD)
     const [visible, setVisible] = useState(shouldCollapse)
+    const safeHref = isSafeHref(url)
 
     return (
         <div className={cn('flex flex-col gap-3', className)}>
@@ -49,17 +63,19 @@ export default function FeedUrlDisplay({
             </div>
             <div className="flex shrink-0 flex-wrap items-center gap-2">
                 <CopyUrlButton context={title} url={url} />
-                <a
-                    aria-label={
-                        title === undefined ? undefined : `Öffnen — ${title}`
-                    }
-                    className={buttonVariants({size: 'sm', variant: 'outline'})}
-                    href={url}
-                    rel="noreferrer"
-                    target="_blank"
-                >
-                    Öffnen
-                </a>
+                {safeHref ? (
+                    <a
+                        aria-label={
+                            title === undefined ? undefined : `Öffnen — ${title}`
+                        }
+                        className={buttonVariants({size: 'sm', variant: 'outline'})}
+                        href={url}
+                        rel="noreferrer"
+                        target="_blank"
+                    >
+                        Öffnen
+                    </a>
+                ) : null}
                 {url.length > COLLAPSE_THRESHOLD || isTokenUrl(url) ? (
                     <Button
                         aria-expanded={visible}

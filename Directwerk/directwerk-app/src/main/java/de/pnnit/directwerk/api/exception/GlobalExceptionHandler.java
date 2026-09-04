@@ -56,11 +56,16 @@ import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -75,6 +80,11 @@ public class GlobalExceptionHandler {
     private static ResponseEntity<Response<Void>> conflict(String code, Exception ex) {
         return ResponseEntity.status(HttpStatus.CONFLICT)
                 .body(Response.error(409, code, ex.getMessage()));
+    }
+
+    private static ResponseEntity<Response<Void>> conflict(String code, String message) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(Response.error(409, code, message));
     }
 
     @ExceptionHandler(TenantContextMissingException.class)
@@ -344,6 +354,8 @@ public class GlobalExceptionHandler {
      * Converts unique-constraint races (slug/domain/membership) into 409 responses.
      * Application-level pre-checks normally return these codes; this handler covers
      * concurrent requests that slip through between the check and the insert.
+     * Messages are static: the raw {@code DataIntegrityViolationException} text embeds
+     * SQL/constraint internals (table and constraint names) that must not leak to clients.
      */
     @ExceptionHandler(DataIntegrityViolationException.class)
     ResponseEntity<Response<Void>> handleDataIntegrity(DataIntegrityViolationException ex) {
@@ -352,16 +364,16 @@ public class GlobalExceptionHandler {
                 .orElse("")
                 .toLowerCase(Locale.ROOT);
         if (details.contains("slug")) {
-            return conflict("TENANT_SLUG_EXISTS", ex);
+            return conflict("TENANT_SLUG_EXISTS", "A resource with this slug already exists");
         }
         if (details.contains("host") || details.contains("domain")) {
-            return conflict("DOMAIN_ALREADY_EXISTS", ex);
+            return conflict("DOMAIN_ALREADY_EXISTS", "This domain is already in use");
         }
         if (details.contains("tenant_memberships") || details.contains("tenant_user")) {
-            return conflict("USER_ALREADY_MEMBER", ex);
+            return conflict("USER_ALREADY_MEMBER", "This user is already a member of the tenant");
         }
         log.warn("Unhandled data integrity violation", ex);
-        return conflict("CONFLICT", ex);
+        return conflict("CONFLICT", "A data conflict occurred");
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
@@ -374,13 +386,59 @@ public class GlobalExceptionHandler {
                 ))
                 .toList();
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .body(Response.error(400, "Validation failed", errors));
+                .body(Response.error(400, "VALIDATION_ERROR", errors));
     }
 
     @ExceptionHandler(ConstraintViolationException.class)
     ResponseEntity<Response<Void>> handleConstraintViolation(ConstraintViolationException ex) {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                 .body(Response.error(400, "VALIDATION_ERROR", ex.getMessage()));
+    }
+
+    /**
+     * Malformed request bodies (e.g. invalid JSON) must use the API envelope. Without this, a
+     * {@code HttpMessageNotReadableException} falls through to the catch-all and is reported as a
+     * {@code 500 INTERNAL_ERROR} for what is plainly a client mistake.
+     */
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    ResponseEntity<Response<Void>> handleNotReadable(HttpMessageNotReadableException ex) {
+        log.debug("Unreadable request body", ex);
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(Response.error(400, "MESSAGE_NOT_READABLE", "Request body is malformed or unreadable"));
+    }
+
+    /**
+     * Path-variable / query-parameter type mismatches (e.g. {@code /tenants/abc} for a
+     * {@code Long} id, or an unknown enum value) are client mistakes, not server errors.
+     */
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    ResponseEntity<Response<Void>> handleTypeMismatch(MethodArgumentTypeMismatchException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(Response.error(400, "VALIDATION_ERROR", ex.getMessage()));
+    }
+
+    @ExceptionHandler(MissingServletRequestParameterException.class)
+    ResponseEntity<Response<Void>> handleMissingParameter(MissingServletRequestParameterException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(Response.error(400, "VALIDATION_ERROR", ex.getMessage()));
+    }
+
+    /**
+     * Unknown API routes must 404 inside the envelope. Requires
+     * {@code spring.mvc.throw-exception-if-no-handler-found=true}; otherwise the container
+     * answers with Spring Boot's default error body, and any dispatch-level surprise that does
+     * reach the resolvers would be relabeled {@code 500 INTERNAL_ERROR} by the catch-all below.
+     */
+    @ExceptionHandler(NoResourceFoundException.class)
+    ResponseEntity<Response<Void>> handleNoResource(NoResourceFoundException ex) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(Response.error(404, "NOT_FOUND", "No handler found for " + ex.getResourcePath()));
+    }
+
+    @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
+    ResponseEntity<Response<Void>> handleMethodNotSupported(HttpRequestMethodNotSupportedException ex) {
+        return ResponseEntity.status(HttpStatus.METHOD_NOT_ALLOWED)
+                .body(Response.error(405, "METHOD_NOT_ALLOWED", ex.getMessage()));
     }
 
     @ExceptionHandler(BadCredentialsException.class)

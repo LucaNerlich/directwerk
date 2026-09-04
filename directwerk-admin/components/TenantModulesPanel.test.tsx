@@ -189,4 +189,28 @@ describe('TenantModulesPanel', () => {
             expect(screen.getByRole('status')).toHaveTextContent('Applied preset FREE_PODCAST.')
         })
     })
+
+    it('retries loading modules after a failure', async () => {
+        const user = userEvent.setup()
+        loadTenantModulesPanelData
+            .mockRejectedValueOnce(new Error('unavailable'))
+            .mockResolvedValue({
+                catalog: mockModulesCatalog,
+                enabledModules: new Set(['CORE_AUTH']),
+                activations: [],
+            })
+
+        render(<TenantModulesPanel tenantId="1" />)
+
+        expect(
+            await screen.findByText('Could not load modules.')
+        ).toBeInTheDocument()
+
+        await user.click(screen.getByRole('button', {name: 'Retry'}))
+
+        await waitFor(() => {
+            expect(loadTenantModulesPanelData).toHaveBeenCalledTimes(2)
+            expect(screen.getByText('Podcast Engine')).toBeInTheDocument()
+        })
+    })
 })
