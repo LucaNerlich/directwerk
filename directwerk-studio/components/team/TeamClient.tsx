@@ -96,6 +96,7 @@ export default function TeamClient(): React.JSX.Element {
     const [isLoading, setIsLoading] = useState(true)
     const [actionError, setActionError] = useState<string | null>(null)
     const [busyUserId, setBusyUserId] = useState<number | null>(null)
+    const [reloadToken, setReloadToken] = useState(0)
     const {viewMode, setViewMode} = useListViewMode()
 
     const reload = useCallback(async (): Promise<void> => {
@@ -106,6 +107,8 @@ export default function TeamClient(): React.JSX.Element {
     useEffect(() => {
         let active = true
 
+        setIsLoading(true)
+        setLoadError(null)
         reload()
             .then(() => {
                 if (!active) {
@@ -129,7 +132,7 @@ export default function TeamClient(): React.JSX.Element {
         return () => {
             active = false
         }
-    }, [reload, router])
+    }, [reload, reloadToken, router])
 
     async function inviteAction(
         _previous: InviteState,
@@ -222,6 +225,14 @@ export default function TeamClient(): React.JSX.Element {
                 />
                 <Alert variant="destructive">
                     <AlertDescription>{loadError}</AlertDescription>
+                    <Button
+                        className="mt-3"
+                        onClick={() => setReloadToken((value) => value + 1)}
+                        type="button"
+                        variant="outline"
+                    >
+                        Erneut versuchen
+                    </Button>
                 </Alert>
             </PageStack>
         )

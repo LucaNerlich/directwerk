@@ -1,6 +1,6 @@
 'use client'
 
-import {useState, type FormEvent} from 'react'
+import {useEffect, useState, type FormEvent} from 'react'
 
 import {Alert, AlertDescription} from '@directwerk/ui/components/alert'
 import {Badge} from '@directwerk/ui/components/badge'
@@ -11,7 +11,8 @@ import {Label} from '@directwerk/ui/components/label'
 
 import {
     clearTenantTokens,
-    getTenantSessionHost,
+    getTenantSessionHostSafe,
+    subscribeToTenantTokenStore,
 } from '@/lib/auth/tenantTokenStore'
 import {loginTenantSession} from '@/lib/auth/tenantSession'
 import {parseTenantHost} from '@directwerk/api/proxy'
@@ -23,17 +24,26 @@ interface TenantSessionPanelProps {
 export default function TenantSessionPanel({
     onSessionChange,
 }: TenantSessionPanelProps) {
-    const [tenantHost, setTenantHost] = useState(
-        () => getTenantSessionHost() ?? ''
-    )
+    // Initialized empty/null so server rendering never touches sessionStorage
+    // (which does not exist on the server); hydrated from the store on mount.
+    const [tenantHost, setTenantHost] = useState('')
     const [email, setEmail] = useState('')
     const [password, setPassword] = useState('')
-    const [connectedHost, setConnectedHost] = useState<string | null>(() =>
-        getTenantSessionHost()
-    )
+    const [connectedHost, setConnectedHost] = useState<string | null>(null)
     const [error, setError] = useState<string | null>(null)
     const [status, setStatus] = useState<string | null>(null)
     const [pending, setPending] = useState(false)
+
+    useEffect(() => {
+        const storedHost = getTenantSessionHostSafe()
+        setTenantHost(storedHost ?? '')
+        setConnectedHost(storedHost)
+        // Stay in sync when another panel clears the session (e.g. an
+        // expired tenant token cleared by the products panel).
+        return subscribeToTenantTokenStore(() => {
+            setConnectedHost(getTenantSessionHostSafe())
+        })
+    }, [])
 
     async function handleLogin(event: FormEvent<HTMLFormElement>): Promise<void> {
         event.preventDefault()

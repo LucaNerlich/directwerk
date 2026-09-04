@@ -36,7 +36,9 @@ interface SeriesEditorProps {
 export default function SeriesEditor({seriesId}: SeriesEditorProps): React.JSX.Element {
     const router = useRouter()
     const authRedirect = useAuthRequired()
-    const isNew = seriesId === undefined
+    const [createdId, setCreatedId] = useState<number | null>(null)
+    const effectiveSeriesId = seriesId ?? createdId ?? undefined
+    const isNew = effectiveSeriesId === undefined
     const [title, setTitle] = useState('')
     const [slug, setSlug] = useState('')
     const [description, setDescription] = useState('')
@@ -58,6 +60,7 @@ export default function SeriesEditor({seriesId}: SeriesEditorProps): React.JSX.E
     const [isLoading, setIsLoading] = useState(!isNew)
     const [isSaving, setIsSaving] = useState(false)
     const [loadError, setLoadError] = useState(false)
+    const [reloadToken, setReloadToken] = useState(0)
 
     useEffect(() => {
         mountedRef.current = true
@@ -65,6 +68,9 @@ export default function SeriesEditor({seriesId}: SeriesEditorProps): React.JSX.E
             setIsLoading(false)
             return
         }
+        setIsLoading(true)
+        setLoadError(false)
+        setErrorMessage(null)
 
         const resolvedSeriesId = seriesId
         let active = true
@@ -109,7 +115,7 @@ export default function SeriesEditor({seriesId}: SeriesEditorProps): React.JSX.E
             active = false
             mountedRef.current = false
         }
-    }, [router, seriesId])
+    }, [reloadToken, router, seriesId])
 
     useEffect(() => {
         let active = true
@@ -212,15 +218,16 @@ export default function SeriesEditor({seriesId}: SeriesEditorProps): React.JSX.E
     }
 
     async function handlePublishSeries(): Promise<void> {
-        if (isNew || seriesId === undefined) {
+        if (effectiveSeriesId === undefined) {
             return
         }
+        const targetId = effectiveSeriesId
         setIsSaving(true)
         setErrorMessage(null)
         try {
             const updated = await updateSeries(
                 getClientTenantHost(),
-                seriesId,
+                targetId,
                 seriesUpdatePayload('PUBLISHED'),
             )
             applySeries(updated)
@@ -254,19 +261,35 @@ export default function SeriesEditor({seriesId}: SeriesEditorProps): React.JSX.E
                     coverAssetId: coverAssetId ?? undefined,
                     defaultRequiredLevelSortOrder: defaultRequiredLevelSortOrder ?? undefined,
                 })
+                // Remember the created series so a failed follow-up publish
+                // retries as an update instead of creating a duplicate.
+                setCreatedId(created.id)
                 if (publishOnCreate) {
-                    await updateSeries(host, created.id, {
-                        ...seriesUpdatePayload('PUBLISHED'),
-                        slug: created.slug,
-                    })
+                    try {
+                        await updateSeries(host, created.id, {
+                            ...seriesUpdatePayload('PUBLISHED'),
+                            slug: created.slug,
+                        })
+                    } catch (publishError) {
+                        applySeries(created)
+                        setErrorMessage(
+                            publishError instanceof Error
+                                ? publishError.message
+                                : 'Veröffentlichung fehlgeschlagen.',
+                        )
+                        return
+                    }
                 }
                 router.replace(`/podcast/series/${created.id}`)
                 return
             }
 
+            if (effectiveSeriesId === undefined) {
+                return
+            }
             const updated = await updateSeries(
                 host,
-                seriesId,
+                effectiveSeriesId,
                 seriesUpdatePayload(status),
             )
             applySeries(updated)
@@ -286,10 +309,24 @@ export default function SeriesEditor({seriesId}: SeriesEditorProps): React.JSX.E
 
     if (loadError) {
         return (
-            <p>
-                {errorMessage ?? 'Sendung konnte nicht geladen werden.'}{' '}
-                <Link href="/podcast/series">Zurück zur Übersicht</Link>
-            </p>
+            <PageStack className="gap-6">
+                <Alert variant="destructive">
+                    <AlertDescription>
+                        {errorMessage ?? 'Sendung konnte nicht geladen werden.'}
+                    </AlertDescription>
+                    <Button
+                        className="mt-3"
+                        onClick={() => setReloadToken((value) => value + 1)}
+                        type="button"
+                        variant="outline"
+                    >
+                        Erneut versuchen
+                    </Button>
+                </Alert>
+                <p className="text-sm text-muted-foreground">
+                    <Link href="/podcast/series">Zurück zur Übersicht</Link>
+                </p>
+            </PageStack>
         )
     }
 
@@ -535,7 +572,7 @@ export default function SeriesEditor({seriesId}: SeriesEditorProps): React.JSX.E
                         </>
                     )}
                     <div>
-                        <Button type="submit" disabled={isSaving}>
+                        <Button type="submit" disabled={isSaving || isUploadingCover}>
                             {isSaving ? 'Speichert…' : isNew ? 'Sendung anlegen' : 'Speichern'}
                         </Button>
                     </div>

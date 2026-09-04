@@ -87,4 +87,33 @@ class GlobalExceptionHandlerTest {
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR);
         assertThat(response.getBody().errors().getFirst().code()).isEqualTo("INTERNAL_ERROR");
     }
+
+    @Test
+    void dataIntegrityViolationNeverEchoesRawSqlMessage() {
+        var cause = new RuntimeException(
+                "ERROR: duplicate key value violates unique constraint \"episodes_tenant_id_slug_key\" "
+                        + "Detail: Key (tenant_id, slug)=(7, hello) already exists.");
+        var ex = new org.springframework.dao.DataIntegrityViolationException(
+                "could not execute statement [insert into episodes (tenant_id,slug) values (?,?)]; "
+                        + "SQL [insert into episodes]; constraint [episodes_tenant_id_slug_key]",
+                cause);
+
+        var response = handler.handleDataIntegrity(ex);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
+        assertThat(response.getBody().errors().getFirst().code()).isEqualTo("TENANT_SLUG_EXISTS");
+        assertThat(response.getBody().errors().getFirst().message()).doesNotContain("insert into");
+    }
+
+    @Test
+    void dataIntegrityFallbackUsesGenericMessage() {
+        var ex = new org.springframework.dao.DataIntegrityViolationException(
+                "could not execute statement [delete from tenants]; SQL [delete]; constraint [fk_secret_internal]");
+
+        var response = handler.handleDataIntegrity(ex);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
+        assertThat(response.getBody().errors().getFirst().code()).isEqualTo("CONFLICT");
+        assertThat(response.getBody().errors().getFirst().message()).doesNotContain("fk_secret_internal");
+    }
 }

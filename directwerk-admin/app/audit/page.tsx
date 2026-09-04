@@ -45,6 +45,7 @@ export default function AuditPage(): React.JSX.Element {
     const [error, setError] = useState<string | null>(null)
     const [filterError, setFilterError] = useState<string | null>(null)
     const [isLoading, setIsLoading] = useState(true)
+    const [reloadKey, setReloadKey] = useState(0)
     const latestRequestId = useRef(0)
 
     const loadAudit = useCallback(
@@ -89,7 +90,7 @@ export default function AuditPage(): React.JSX.Element {
 
     useEffect(() => {
         return loadAudit(query)
-    }, [loadAudit, query])
+    }, [loadAudit, query, reloadKey])
 
     function applyFilters(formData: FormData): void {
         const tenantIdRaw = String(formData.get('tenantId') ?? '').trim()
@@ -219,9 +220,16 @@ export default function AuditPage(): React.JSX.Element {
             </Card>
 
             {error ? (
-                <Alert variant="destructive">
-                    <AlertDescription>{error}</AlertDescription>
-                </Alert>
+                <>
+                    <Alert variant="destructive">
+                        <AlertDescription>{error}</AlertDescription>
+                    </Alert>
+                    <div>
+                        <Button onClick={() => setReloadKey((value) => value + 1)} type="button" variant="outline">
+                            Retry
+                        </Button>
+                    </div>
+                </>
             ) : null}
 
             {isLoading ? (

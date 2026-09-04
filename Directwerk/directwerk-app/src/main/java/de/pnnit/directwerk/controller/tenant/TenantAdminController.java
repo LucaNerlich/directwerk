@@ -206,8 +206,8 @@ public class TenantAdminController {
 
     public record BrandingUpdateRequest(
             @Size(max = 255) String siteTitle,
-            @Pattern(regexp = "^#[0-9A-Fa-f]{6}$") String primaryColor,
-            @Pattern(regexp = "^#[0-9A-Fa-f]{6}$") String secondaryColor,
+            @Pattern(regexp = "^\\s*$|^#[0-9A-Fa-f]{6}$") String primaryColor,
+            @Pattern(regexp = "^\\s*$|^#[0-9A-Fa-f]{6}$") String secondaryColor,
             String logoUrl,
             @Pattern(regexp = "^\\s*$|^[a-zA-Z0-9-]{8,64}$") String umamiWebsiteId,
             @Pattern(regexp = "^\\s*$|^https://[^/\\s?#@]+/?$") String umamiHostUrl

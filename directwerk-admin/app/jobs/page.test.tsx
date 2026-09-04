@@ -4,8 +4,14 @@ import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest'
 import JobsPage from '@/app/jobs/page'
 import {getPlatformJobList} from '@/lib/api/client'
 
+const {mockRouter} = vi.hoisted(() => ({
+    mockRouter: {replace: vi.fn()},
+}))
+
 vi.mock('next/navigation', () => ({
-    useRouter: () => ({replace: vi.fn()}),
+    // Stable router identity: a fresh object per render would retrigger the
+    // page's data effect on every render (production useRouter is stable).
+    useRouter: () => mockRouter,
 }))
 
 vi.mock('@/lib/api/client', () => ({
@@ -79,6 +85,55 @@ describe('JobsPage', () => {
                 offset: 0,
                 limit: 20,
             })
+        })
+    })
+
+    it('resets the offset when the queue filter changes mid-list', async () => {
+        render(<JobsPage />)
+
+        await waitFor(() => {
+            expect(getPlatformJobListMock).toHaveBeenCalledWith({
+                offset: 0,
+                limit: 20,
+            })
+        })
+
+        fireEvent.change(screen.getByRole('spinbutton', {name: 'Offset'}), {
+            target: {value: '40'},
+        })
+        fireEvent.click(screen.getByRole('button', {name: 'Apply filters'}))
+
+        await waitFor(() => {
+            expect(getPlatformJobListMock).toHaveBeenLastCalledWith({
+                offset: 40,
+                limit: 20,
+            })
+        })
+
+        fireEvent.change(screen.getByRole('combobox', {name: 'Queue'}), {
+            target: {value: 'email'},
+        })
+        fireEvent.click(screen.getByRole('button', {name: 'Apply filters'}))
+
+        await waitFor(() => {
+            expect(getPlatformJobListMock).toHaveBeenLastCalledWith({
+                queue: 'email',
+                offset: 0,
+                limit: 20,
+            })
+        })
+    })
+
+    it('retries loading jobs after a failure', async () => {
+        getPlatformJobListMock.mockRejectedValueOnce(new Error('unavailable'))
+        render(<JobsPage />)
+
+        expect(await screen.findByText('Could not load queue jobs.')).toBeInTheDocument()
+
+        fireEvent.click(screen.getByRole('button', {name: 'Retry'}))
+
+        await waitFor(() => {
+            expect(getPlatformJobListMock).toHaveBeenCalledTimes(2)
         })
     })
 })

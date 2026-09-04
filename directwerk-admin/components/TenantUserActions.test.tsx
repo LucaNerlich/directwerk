@@ -39,7 +39,7 @@ describe('TenantUserActions', () => {
             />,
         )
 
-        await user.selectOptions(screen.getByRole('combobox'), 'TENANT_ADMIN')
+        await user.selectOptions(screen.getByRole('combobox', {name: 'Role for editor@example.com'}), 'TENANT_ADMIN')
         await user.click(screen.getByRole('button', {name: /Change role/}))
 
         await waitFor(() => expect(changeTenantUserRoleAction).toHaveBeenCalled())

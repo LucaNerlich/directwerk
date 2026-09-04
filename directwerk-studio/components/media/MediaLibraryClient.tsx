@@ -113,12 +113,14 @@ export default function MediaLibraryClient(): React.JSX.Element {
     const [isLoading, setIsLoading] = useState(true)
     const [isBusy, setIsBusy] = useState(false)
     const [isDragging, setIsDragging] = useState(false)
+    const [reloadToken, setReloadToken] = useState(0)
     const [typeFilter, setTypeFilter] = useState('')
     const [statusFilter, setStatusFilter] = useState('')
     const [orphanOnly, setOrphanOnly] = useState(false)
     const [uploadProgress, setUploadProgress] = useState<{file: File; progress: number} | null>(
         null,
     )
+    const [failedUpload, setFailedUpload] = useState<{file: File} | null>(null)
     const {viewMode, setViewMode} = useListViewMode('grid')
 
     async function reload(): Promise<void> {
@@ -144,6 +146,8 @@ export default function MediaLibraryClient(): React.JSX.Element {
         mountedRef.current = true
         let active = true
 
+        setIsLoading(true)
+        setErrorMessage(null)
         reload()
             .then(() => {
                 if (active) {
@@ -167,7 +171,7 @@ export default function MediaLibraryClient(): React.JSX.Element {
             active = false
             mountedRef.current = false
         }
-    }, [router])
+    }, [reloadToken, router])
 
     async function uploadFile(file: File | undefined): Promise<void> {
         if (file === undefined) {
@@ -185,6 +189,7 @@ export default function MediaLibraryClient(): React.JSX.Element {
         setIsBusy(true)
         setErrorMessage(null)
         setStatusMessage(null)
+        setFailedUpload(null)
         setUploadProgress({file, progress: 0})
 
         try {
@@ -213,6 +218,7 @@ export default function MediaLibraryClient(): React.JSX.Element {
             setErrorMessage(
                 error instanceof Error ? error.message : 'Upload fehlgeschlagen.',
             )
+            setFailedUpload({file})
         } finally {
             if (mountedRef.current) {
                 setIsBusy(false)
@@ -632,6 +638,26 @@ export default function MediaLibraryClient(): React.JSX.Element {
             {errorMessage !== null ? (
                 <Alert variant="destructive">
                     <AlertDescription>{errorMessage}</AlertDescription>
+                    {failedUpload !== null ? (
+                        <Button
+                            className="mt-3"
+                            disabled={isBusy}
+                            onClick={() => void uploadFile(failedUpload.file)}
+                            type="button"
+                            variant="outline"
+                        >
+                            Upload erneut versuchen
+                        </Button>
+                    ) : (
+                        <Button
+                            className="mt-3"
+                            onClick={() => setReloadToken((value) => value + 1)}
+                            type="button"
+                            variant="outline"
+                        >
+                            Erneut versuchen
+                        </Button>
+                    )}
                 </Alert>
             ) : null}
             {statusMessage !== null ? (

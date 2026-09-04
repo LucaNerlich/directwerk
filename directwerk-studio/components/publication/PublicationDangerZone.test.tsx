@@ -74,8 +74,53 @@ describe('PublicationDangerZone', () => {
         })
         expect(onDeleted).not.toHaveBeenCalled()
 
-        await user.click(screen.getByRole('button', {name: 'Erneut versuchen'}))
+        // The dialog stays open on failure, so the retry happens directly
+        // from the dialog (the card-level retry sits behind the modal).
         await user.click(await screen.findByRole('button', {name: 'Löschen'}))
+
+        await waitFor(() => {
+            expect(onDeleted).toHaveBeenCalledTimes(1)
+        })
+    })
+
+    it('keeps a published item dialog open on failure so the typed slug survives', async () => {
+        const user = userEvent.setup()
+        const publishedItem = {
+            id: 9,
+            slug: 'live-folge',
+            title: 'Live Folge',
+            status: 'PUBLISHED' as const,
+        }
+        const onDelete = vi
+            .fn()
+            .mockRejectedValueOnce(new Error('Löschen fehlgeschlagen.'))
+            .mockResolvedValueOnce(undefined)
+        const onDeleted = vi.fn()
+
+        render(
+            <PublicationDangerZone
+                contentLabel="Folge"
+                deleteErrorMessage="Folge konnte nicht gelöscht werden."
+                item={publishedItem}
+                onDelete={onDelete}
+                onDeleted={onDeleted}
+            />,
+        )
+
+        await user.click(screen.getByRole('button', {name: 'Folge löschen…'}))
+        await user.type(
+            await screen.findByLabelText('Slug zur Bestätigung'),
+            'live-folge',
+        )
+        await user.click(screen.getByRole('button', {name: 'Endgültig löschen'}))
+
+        await waitFor(() => {
+            expect(screen.getByRole('alert')).toHaveTextContent('Löschen fehlgeschlagen.')
+        })
+        // Dialog stays open with the typed slug intact for a direct retry.
+        const confirmButton = screen.getByRole('button', {name: 'Endgültig löschen'})
+        expect(confirmButton).toBeEnabled()
+        await user.click(confirmButton)
 
         await waitFor(() => {
             expect(onDeleted).toHaveBeenCalledTimes(1)

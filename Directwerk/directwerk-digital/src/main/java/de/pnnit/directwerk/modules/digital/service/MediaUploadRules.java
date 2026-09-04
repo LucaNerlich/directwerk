@@ -168,7 +168,7 @@ public final class MediaUploadRules {
             throw new UploadValidationException("UPLOAD_VALIDATION_FAILED", "filename is invalid");
         }
         String cleaned = UNSAFE_FILENAME.matcher(base).replaceAll("_");
-        if (cleaned.isBlank() || cleaned.length() > 180) {
+        if (cleaned.isBlank() || cleaned.equals(".") || cleaned.equals("..") || cleaned.length() > 180) {
             throw new UploadValidationException("UPLOAD_VALIDATION_FAILED", "filename is invalid");
         }
         return cleaned;

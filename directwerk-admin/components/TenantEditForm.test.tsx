@@ -90,4 +90,31 @@ describe('TenantEditForm', () => {
         )
         expect(onUpdated).not.toHaveBeenCalled()
     })
+
+    it('refreshes the inputs when the parent tenant updates', async () => {
+        const initialTenant = {
+            id: 1,
+            slug: 'original-slug',
+            name: 'Original',
+            status: 'ACTIVE',
+            createdAt: '2026-01-01T00:00:00Z',
+            primaryDomain: 'original.example.com',
+            domains: [],
+        }
+        const {rerender} = render(
+            <TenantEditForm tenant={initialTenant} tenantId="1" />,
+        )
+
+        expect(screen.getByLabelText('Name')).toHaveValue('Original')
+
+        rerender(
+            <TenantEditForm
+                tenant={{...initialTenant, name: 'Renamed', slug: 'renamed-slug'}}
+                tenantId="1"
+            />,
+        )
+
+        expect(screen.getByLabelText('Name')).toHaveValue('Renamed')
+        expect(screen.getByLabelText('Slug')).toHaveValue('renamed-slug')
+    })
 })

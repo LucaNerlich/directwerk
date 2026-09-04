@@ -228,6 +228,26 @@ class PlatformTenantMediaControllerTest {
                 .andExpect(status().isForbidden());
     }
 
+    @Test
+    @WithMockUser(roles = "PLATFORM_ADMIN")
+    void listMediaRejectsLimitBelowMinimum() throws Exception {
+        mockMvc.perform(get("/api/v1/platform/tenants/42/media")
+                        .param("limit", "0"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.statusCode").value(400))
+                .andExpect(jsonPath("$.errors[0].code").value("VALIDATION_ERROR"));
+    }
+
+    @Test
+    @WithMockUser(roles = "PLATFORM_ADMIN")
+    void listMediaRejectsLimitAboveMaximum() throws Exception {
+        mockMvc.perform(get("/api/v1/platform/tenants/42/media")
+                        .param("limit", "1000"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.statusCode").value(400))
+                .andExpect(jsonPath("$.errors[0].code").value("VALIDATION_ERROR"));
+    }
+
     private static MediaAsset readyPublicImage(Long id, String slug) {
         Tenant tenant = new Tenant();
         tenant.setId(42L);

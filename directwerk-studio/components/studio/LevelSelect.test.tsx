@@ -109,4 +109,14 @@ describe('LevelSelect', () => {
         const trigger = screen.getByRole('combobox')
         await waitFor(() => expect(trigger).toBeDisabled())
     })
+
+    it('keeps a preset value visible and announces the failure', async () => {
+        listPublicLevels.mockRejectedValue(new Error('boom'))
+        render(<LevelSelect value={20} onChange={vi.fn()} />)
+
+        expect(await screen.findByRole('option', {name: 'Stufe 20'})).toBeInTheDocument()
+        expect(screen.getByRole('alert')).toHaveTextContent(
+            'Stufen konnten nicht geladen werden',
+        )
+    })
 })

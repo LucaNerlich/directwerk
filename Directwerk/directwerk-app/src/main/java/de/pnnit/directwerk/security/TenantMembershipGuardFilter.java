@@ -57,6 +57,12 @@ public class TenantMembershipGuardFilter extends OncePerRequestFilter {
         } catch (TenantMismatchException | PlatformTenantAccessDeniedException | TenantContextMissingException ex) {
             filterExceptionResolver.resolve(request, response, ex);
             return;
+        } catch (RuntimeException ex) {
+            // Unexpected membership-lookup failures (e.g. membership store unavailable) must still
+            // leave the API as the standard error envelope via the catch-all mapping — never as
+            // the container's default error page, which this pre-dispatch filter would otherwise cause.
+            filterExceptionResolver.resolve(request, response, ex);
+            return;
         }
 
         filterChain.doFilter(request, response);

@@ -40,6 +40,7 @@ export default function LevelSelect({
         !resolvedLevels.some((level) => level.sortOrder === value)
 
     return (
+        <span className="grid gap-1.5">
         <select
             className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50"
             disabled={disabled || state === 'loading' || state === 'error'}
@@ -53,7 +54,13 @@ export default function LevelSelect({
             {state === 'loading' ? (
                 <option value="">Stufen werden geladen…</option>
             ) : state === 'error' ? (
-                <option value="">Stufen konnten nicht geladen werden.</option>
+                <>
+                    {value !== null ? (
+                        <option value={selectedValue}>Stufe {selectedValue}</option>
+                    ) : (
+                        <option value="">Stufen konnten nicht geladen werden.</option>
+                    )}
+                </>
             ) : (
                 <>
                     <option value="">Öffentlich / Keine Mindeststufe</option>
@@ -68,5 +75,11 @@ export default function LevelSelect({
                 </>
             )}
         </select>
+        {state === 'error' ? (
+            <span className="text-xs text-destructive" role="alert">
+                Stufen konnten nicht geladen werden — die aktuelle Auswahl bleibt erhalten.
+            </span>
+        ) : null}
+        </span>
     )
 }

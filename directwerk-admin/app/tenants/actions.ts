@@ -5,7 +5,8 @@ import {ASSET_VISIBILITIES} from '@directwerk/api/types'
 
 import {performTenantMediaUpload} from '@/lib/server/mediaUpload'
 import {validateCreateTenantInput, validateTenantUserInviteInput} from '@/lib/validation'
-import {getTenantRoleLabel} from '@/lib/roles'
+import {getTenantRoleLabel, isTenantInvitableRole} from '@/lib/roles'
+import {parseTenantHost} from '@directwerk/api/proxy'
 import {
     callPlatformApi,
     createTenantConflictMessage,
@@ -28,8 +29,16 @@ import {
 } from '@/app/tenants/actionState'
 
 const MAX_UPLOAD_BYTES = 10 * 1024 * 1024
+const MAX_TENANT_NAME_LENGTH = 255
 const ASSET_VISIBILITY_VALUES = new Set<string>(ASSET_VISIBILITIES)
 const SLUG_PATTERN = /^[a-z0-9](?:[a-z0-9-]{0,62}[a-z0-9])?$/
+const NUMERIC_ID_PATTERN = /^\d+$/
+
+function invalidTenantIdentifier<T extends {error: string | null}>(
+    initial: T,
+): T {
+    return {...initial, error: 'Invalid tenant identifier.'}
+}
 
 export async function createTenantAction(
     _previousState: CreateTenantState,
@@ -84,11 +93,21 @@ export async function updateTenantAction(
     _previousState: TenantEditState,
     formData: FormData
 ): Promise<TenantEditState> {
+    if (!NUMERIC_ID_PATTERN.test(tenantId)) {
+        return invalidTenantIdentifier(INITIAL_TENANT_EDIT_STATE)
+    }
+
     const name = String(formData.get('name') ?? '').trim()
     const slug = String(formData.get('slug') ?? '').trim()
 
     if (name.length === 0 && slug.length === 0) {
         return {...INITIAL_TENANT_EDIT_STATE, error: 'Enter a name or slug to update.'}
+    }
+    if (name.length > MAX_TENANT_NAME_LENGTH) {
+        return {
+            ...INITIAL_TENANT_EDIT_STATE,
+            error: `Name must be ${MAX_TENANT_NAME_LENGTH} characters or fewer.`,
+        }
     }
     if (slug.length > 0 && !SLUG_PATTERN.test(slug)) {
         return {
@@ -123,18 +142,12 @@ export async function forceVerifyDomainAction(
     _previousState: DomainVerifyState,
     formData: FormData
 ): Promise<DomainVerifyState> {
-    const host = String(formData.get('host') ?? '').trim()
-    if (host.length === 0) {
-        return {...INITIAL_DOMAIN_VERIFY_STATE, error: 'Enter a domain host.'}
+    if (!NUMERIC_ID_PATTERN.test(tenantId)) {
+        return invalidTenantIdentifier(INITIAL_DOMAIN_VERIFY_STATE)
     }
 
-    if (
-        host.includes('/') ||
-        host === '.' ||
-        host === '..' ||
-        host.startsWith('.') ||
-        host.endsWith('.')
-    ) {
+    const host = parseTenantHost(String(formData.get('host') ?? ''))
+    if (host === null) {
         return {...INITIAL_DOMAIN_VERIFY_STATE, error: 'Enter a valid domain host.'}
     }
 
@@ -161,6 +174,10 @@ export async function inviteTenantUserAction(
     _previousState: InviteTenantUserState,
     formData: FormData
 ): Promise<InviteTenantUserState> {
+    if (!NUMERIC_ID_PATTERN.test(tenantId)) {
+        return invalidTenantIdentifier(INITIAL_INVITE_TENANT_USER_STATE)
+    }
+
     const validation = validateTenantUserInviteInput({
         email: formData.get('email'),
         name: formData.get('name'),
@@ -199,7 +216,18 @@ export async function changeTenantUserRoleAction(
     _previousState: RoleChangeState,
     formData: FormData
 ): Promise<RoleChangeState> {
+    if (
+        !NUMERIC_ID_PATTERN.test(tenantId) ||
+        !Number.isSafeInteger(userId) ||
+        userId < 1
+    ) {
+        return {error: 'Invalid tenant or user identifier.'}
+    }
+
     const role = String(formData.get('role') ?? '')
+    if (!isTenantInvitableRole(role)) {
+        return {error: 'Choose a valid role.'}
+    }
 
     const result = await callPlatformApi<TenantUser>(
         ['tenants', tenantId, 'users', String(userId)],
@@ -233,6 +261,10 @@ export async function uploadTenantMediaAction(
     _previousState: UploadMediaState,
     formData: FormData
 ): Promise<UploadMediaState> {
+    if (!NUMERIC_ID_PATTERN.test(tenantId)) {
+        return invalidTenantIdentifier(INITIAL_UPLOAD_MEDIA_STATE)
+    }
+
     const fileEntry = formData.get('file')
     const visibilityRaw = String(formData.get('visibility') ?? 'PUBLIC').trim()
 

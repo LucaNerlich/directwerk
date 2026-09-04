@@ -21,6 +21,7 @@ import {ingestRemoteAssetWithProgress} from '@/lib/media/remoteIngest'
 import {filenameFromImportUrl} from '@/lib/media/importFilename'
 import {deleteMedia} from '@/lib/api/mediaApi'
 import {isTenantAdminRole, suggestSlug} from '@/lib/api/studioHelpers'
+import {parseOptionalInt} from '@/lib/publication/parsePositiveInt'
 import {useOptionalMe} from '@/lib/auth/MeProvider'
 import {HTML_SLUG_PATTERN} from '@directwerk/api/constants'
 import type {
@@ -279,6 +280,7 @@ export default function RssImportWizard(): React.JSX.Element {
     }
 
     function goToEpisode(nextIndex: number): void {
+        setErrorMessage(null)
         if (preview == null || nextIndex >= preview.episodes.length) {
             setStep('done')
             return
@@ -342,7 +344,7 @@ export default function RssImportWizard(): React.JSX.Element {
             }
 
             setStreamProgress({label: 'Folge wird angelegt…', progress: 100})
-            const parsedNumber = Number.parseInt(episodeNumber, 10)
+            const parsedNumber = parseOptionalInt(episodeNumber, 1)
             const result = await importRssEpisode(host, {
                 seriesId: resolvedSeriesId,
                 feedUrl: preview.feedUrl,
@@ -350,7 +352,7 @@ export default function RssImportWizard(): React.JSX.Element {
                 slug: episodeSlug.trim() || item.suggestedSlug,
                 title: episodeTitle.trim() || item.title,
                 description: episodeDescription,
-                episodeNumber: Number.isSafeInteger(parsedNumber) && parsedNumber >= 1 ? parsedNumber : undefined,
+                episodeNumber: parsedNumber,
                 durationSeconds: item.durationSeconds ?? undefined,
                 accessPolicy,
                 requiredLevelSortOrder:
@@ -367,6 +369,17 @@ export default function RssImportWizard(): React.JSX.Element {
             }
             goToEpisode(episodeIndex + 1)
         } catch (error) {
+            // Best-effort cleanup: already-streamed assets would otherwise
+            // linger unreferenced in the media library.
+            const orphaned = [
+                audioAssetId,
+                coverAssetId,
+            ].filter((id): id is number => id !== undefined)
+            if (orphaned.length > 0) {
+                await Promise.allSettled(
+                    orphaned.map((id) => deleteMedia(host, id)),
+                )
+            }
             if (authRedirect(error)) {
                 return
             }
@@ -631,7 +644,7 @@ export default function RssImportWizard(): React.JSX.Element {
                         </div>
                     )}
                     <div className="flex gap-2">
-                        <Button disabled={busy} onClick={() => setStep('url')} type="button" variant="outline">
+                        <Button disabled={busy} onClick={() => { setErrorMessage(null); setStep('url') }} type="button" variant="outline">
                             Zurück
                         </Button>
                         <Button disabled={busy} onClick={() => void handleSeriesContinue()}>
@@ -692,7 +705,7 @@ export default function RssImportWizard(): React.JSX.Element {
                         </p>
                     )}
                     <div className="flex gap-2">
-                        <Button disabled={busy} onClick={() => setStep('series')} type="button" variant="outline">
+                        <Button disabled={busy} onClick={() => { setErrorMessage(null); setStep('series') }} type="button" variant="outline">
                             Zurück
                         </Button>
                         <Button disabled={busy} onClick={() => void handleFormatsContinue()}>
@@ -836,7 +849,7 @@ export default function RssImportWizard(): React.JSX.Element {
                         {episodeIndex === 0 ? (
                             <Button
                                 disabled={busy}
-                                onClick={() => setStep('formats')}
+                                onClick={() => { setErrorMessage(null); setStep('formats') }}
                                 type="button"
                                 variant="outline"
                             >

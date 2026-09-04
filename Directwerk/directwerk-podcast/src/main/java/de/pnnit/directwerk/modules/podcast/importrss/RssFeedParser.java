@@ -390,7 +390,7 @@ public class RssFeedParser {
         try {
             int seconds = 0;
             for (String part : parts) {
-                seconds = Math.addExact(Math.multiplyExact(seconds, 60), Integer.parseInt(part));
+                seconds = Math.addExact(Math.multiplyExact(seconds, 60), Integer.parseInt(part.trim()));
             }
             return seconds > 0 ? seconds : null;
         } catch (NumberFormatException | ArithmeticException ex) {

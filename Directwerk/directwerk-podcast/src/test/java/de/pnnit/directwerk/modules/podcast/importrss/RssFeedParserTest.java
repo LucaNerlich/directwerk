@@ -125,6 +125,13 @@ class RssFeedParserTest {
     }
 
     @Test
+    void parsesColonDurationsWithWhitespaceAroundParts() {
+        assertThat(RssFeedParser.parseDuration("1: 02")).isEqualTo(62);
+        assertThat(RssFeedParser.parseDuration(" 01 : 02 : 03 ")).isEqualTo(3723);
+        assertThat(RssFeedParser.parseDuration("1::02")).isNull();
+    }
+
+    @Test
     void neutralizesDoctypeAndExternalEntities(@TempDir Path tempDir) throws IOException {
         String marker = "directwerk-xxe-" + UUID.randomUUID();
         Path markerFile = tempDir.resolve("xxe-marker.txt");

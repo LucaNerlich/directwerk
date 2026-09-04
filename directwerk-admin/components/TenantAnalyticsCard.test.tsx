@@ -1,5 +1,5 @@
-import {act, render, screen, waitFor} from '@testing-library/react'
-import {beforeEach, describe, expect, it, vi} from 'vitest'
+import {act, cleanup, render, screen, waitFor} from '@testing-library/react'
+import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest'
 
 import TenantAnalyticsCard from './TenantAnalyticsCard'
 import {getPlatformData} from '@/lib/api/client'
@@ -27,6 +27,10 @@ function deferred<T>(): {
 describe('TenantAnalyticsCard', () => {
     beforeEach(() => {
         vi.clearAllMocks()
+    })
+
+    afterEach(() => {
+        cleanup()
     })
 
     it('resets loading and clears errors when switching tenants', async () => {
@@ -79,5 +83,32 @@ describe('TenantAnalyticsCard', () => {
         })
         expect(screen.queryByText('Analytics config unavailable.')).not.toBeInTheDocument()
         expect(getPlatformDataMock).toHaveBeenNthCalledWith(3, 'tenants/tenant-c/branding')
+    })
+
+    it('retries loading the branding after a failure', async () => {
+        getPlatformDataMock
+            .mockRejectedValueOnce(new Error('unavailable'))
+            .mockResolvedValueOnce({
+                umamiWebsiteId: 'website-123',
+                umamiHostUrl: null,
+            })
+
+        render(<TenantAnalyticsCard tenantId="tenant-a" />)
+
+        expect(
+            await screen.findByText('Analytics config unavailable.')
+        ).toBeInTheDocument()
+
+        await act(async () => {
+            screen.getByRole('button', {name: 'Retry'}).click()
+        })
+
+        await waitFor(() => {
+            expect(screen.getByText('website-123')).toBeInTheDocument()
+        })
+        expect(
+            screen.queryByText('Analytics config unavailable.')
+        ).not.toBeInTheDocument()
+        expect(getPlatformDataMock).toHaveBeenCalledTimes(2)
     })
 })

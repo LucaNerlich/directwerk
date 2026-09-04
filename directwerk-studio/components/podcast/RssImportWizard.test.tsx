@@ -353,6 +353,31 @@ describe('RssImportWizard', () => {
         expect(screen.getByPlaceholderText('https://example.com/podcast.xml')).toHaveValue('')
     })
 
+    it('discards streamed episode assets when the episode import fails', async () => {
+        const user = userEvent.setup()
+        renderWizard()
+        await loadFeed()
+        await user.click(screen.getByRole('button', {name: 'Weiter zu Formaten'}))
+        await waitFor(() => expect(screen.getByText('Formate zuordnen')).toBeInTheDocument())
+        await user.click(screen.getByRole('button', {name: 'Weiter zu den Folgen'}))
+        await waitFor(() => expect(screen.getByText('Folge 1 von 2')).toBeInTheDocument())
+
+        ingestRemoteAssetWithProgress
+            .mockResolvedValueOnce({id: 21})
+            .mockResolvedValueOnce({id: 22})
+        importRssEpisode.mockRejectedValueOnce(new Error('Import fehlgeschlagen.'))
+
+        await user.click(screen.getByRole('button', {name: 'Diese Folge importieren'}))
+
+        await waitFor(() =>
+            expect(screen.getByRole('alert')).toHaveTextContent('Import fehlgeschlagen.'),
+        )
+        expect(deleteMedia).toHaveBeenCalledWith('tenant.test', 21)
+        expect(deleteMedia).toHaveBeenCalledWith('tenant.test', 22)
+        // The failed episode stays open for a retry instead of advancing.
+        expect(screen.getByText('Folge 1 von 2')).toBeInTheDocument()
+    })
+
     it('advances past an existing episode without counting it as skipped', async () => {
         previewRssFeed.mockResolvedValue({
             ...preview,

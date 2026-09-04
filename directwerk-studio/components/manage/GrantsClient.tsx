@@ -68,9 +68,11 @@ export default function GrantsClient(): React.JSX.Element {
     const [productId, setProductId] = useState('')
     const [grants, setGrants] = useState<SubscriptionGrant[]>([])
     const [errorMessage, setErrorMessage] = useState<string | null>(null)
+    const [loadError, setLoadError] = useState<string | null>(null)
     const [statusMessage, setStatusMessage] = useState<string | null>(null)
     const [isLoading, setIsLoading] = useState(true)
     const [isBusy, setIsBusy] = useState(false)
+    const [reloadToken, setReloadToken] = useState(0)
     const [emailError, setEmailError] = useState<string | null>(null)
     const {viewMode, setViewMode} = useListViewMode()
     const emailHelpId = useId()
@@ -81,6 +83,8 @@ export default function GrantsClient(): React.JSX.Element {
     useEffect(() => {
         let active = true
 
+        setIsLoading(true)
+        setLoadError(null)
         Promise.all([
             listProducts(getClientTenantHost()),
             listSubscribers(getClientTenantHost()),
@@ -102,7 +106,7 @@ export default function GrantsClient(): React.JSX.Element {
                     return
                 }
                 if (authRedirect(error)) return
-                setErrorMessage(
+                setLoadError(
                     error instanceof Error
                         ? error.message
                         : 'Produkte konnten nicht geladen werden.',
@@ -113,7 +117,7 @@ export default function GrantsClient(): React.JSX.Element {
         return () => {
             active = false
         }
-    }, [router])
+    }, [reloadToken, router])
 
     async function handleGrant(event: FormEvent<HTMLFormElement>): Promise<void> {
         event.preventDefault()
@@ -229,7 +233,7 @@ export default function GrantsClient(): React.JSX.Element {
                 }
             />
 
-            {products.length === 0 ? (
+            {products.length === 0 && loadError === null ? (
                 <EmptyState
                     title="Zuerst ein Produkt anlegen"
                     description="Ohne aktives Abo-Produkt kannst du niemanden freischalten."
@@ -241,6 +245,19 @@ export default function GrantsClient(): React.JSX.Element {
                 />
             ) : null}
 
+            {loadError !== null ? (
+                <Alert variant="destructive">
+                    <AlertDescription>{loadError}</AlertDescription>
+                    <Button
+                        className="mt-3"
+                        onClick={() => setReloadToken((value) => value + 1)}
+                        type="button"
+                        variant="outline"
+                    >
+                        Erneut versuchen
+                    </Button>
+                </Alert>
+            ) : null}
             {errorMessage ? (
                 <Alert variant="destructive">
                     <AlertDescription>{errorMessage}</AlertDescription>

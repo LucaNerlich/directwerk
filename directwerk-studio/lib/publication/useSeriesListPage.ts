@@ -86,6 +86,8 @@ export function useSeriesListPage({
     })
 
     const loadItems = useCallback(async (): Promise<void> => {
+        setIsLoading(true)
+        setListError(null)
         try {
             const loaded = await actionsRef.current.load()
             setItems(loaded.map(toListItem))
@@ -113,6 +115,7 @@ export function useSeriesListPage({
         displayError:
             listError ?? listActions.errorMessage ?? bulkActions.bulkErrorMessage,
         statusMessage: listActions.statusMessage ?? bulkActions.bulkStatusMessage,
+        reload: loadItems,
         isBulkBusy: bulkActions.isBulkBusy,
         publishableCount: bulkActions.publishableCount,
         unpublishableCount: bulkActions.unpublishableCount,

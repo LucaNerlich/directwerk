@@ -25,6 +25,12 @@ export interface DirectwerkFetchRequest {
     body?: string
     contentType?: 'application/json' | 'application/x-www-form-urlencoded'
     useOAuthClient?: boolean
+    /**
+     * Canonical `?…` query appended to the upstream path. Only ever set from
+     * {@link buildSafePreviewQueryString} output, so it matches
+     * `?key=id(&key=id)*` by construction; anything else is rejected.
+     */
+    query?: string
 }
 
 function getApiUrl(apiUrlEnv: string): URL {
@@ -56,6 +62,8 @@ function getApiUrl(apiUrlEnv: string): URL {
 
     return apiUrl
 }
+
+const SAFE_PREVIEW_QUERY = /^\?[A-Za-z0-9_]+=\d+(&[A-Za-z0-9_]+=\d+)*$/
 
 function getOAuthAuthorization(clientIdEnv: string, clientSecretEnv: string): string {
     const clientId = process.env[clientIdEnv]
@@ -107,16 +115,24 @@ export function createDirectwerkServerClient(
             body,
             contentType,
             useOAuthClient = false,
+            query,
         }: DirectwerkFetchRequest): Promise<Response> {
             if (
                 !(path === '/oauth2/token' || path.startsWith('/api/v1/')) ||
-                path.includes('#')
+                path.includes('#') ||
+                path.includes('?')
             ) {
                 throw new Error('Directwerk request path is invalid')
             }
+            if (
+                query !== undefined &&
+                (query.length > 2048 || !SAFE_PREVIEW_QUERY.test(query))
+            ) {
+                throw new Error('Directwerk request query is invalid')
+            }
 
             const apiUrl = getApiUrl(apiUrlEnv)
-            const targetUrl = new URL(path, apiUrl)
+            const targetUrl = new URL(`${path}${query ?? ''}`, apiUrl)
             if (targetUrl.origin !== apiUrl.origin) {
                 throw new Error('Directwerk request target is invalid')
             }

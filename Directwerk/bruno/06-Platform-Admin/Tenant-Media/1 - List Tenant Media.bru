@@ -19,3 +19,8 @@ tests {
     expect(res.getStatus() === 200).to.equal(true);
   });
 }
+
+docs {
+  limit is 1..100 (validated via @Min/@Max + @Validated): out-of-range values
+  return 400 VALIDATION_ERROR in the standard envelope.
+}

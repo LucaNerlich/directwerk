@@ -48,12 +48,19 @@ export default function EpisodeListClient() {
     const [prereqLoading, setPrereqLoading] = useState(true)
 
     const loadPrerequisites = useCallback(async (): Promise<void> => {
+        setPrereqLoading(true)
+        setPrereqError(null)
         try {
             const host = getClientTenantHost()
             const [loadedSeries, loadedFormats, loadedCategories] = await Promise.all([
                 listSeries(host),
                 listFormats(host),
-                listCategories(host).catch(() => []),
+                listCategories(host).catch((error: unknown) => {
+                    if (authRedirect(error)) {
+                        throw error
+                    }
+                    return []
+                }),
             ])
             setSeries(loadedSeries)
             setFormats(loadedFormats)
@@ -100,6 +107,7 @@ export default function EpisodeListClient() {
         isLoading: episodesLoading,
         displayError: episodeError,
         statusMessage,
+        reload: reloadEpisodes,
         busyItemId: busyEpisodeId,
         isBulkBusy,
         selectedIds,
@@ -167,12 +175,17 @@ export default function EpisodeListClient() {
         if (deleteTarget === null || handleDelete === null) {
             return
         }
+        const targetId = deleteTarget.id
         setDeletePending(true)
         try {
             await handleDelete(deleteTarget)
         } finally {
             setDeletePending(false)
-            setDeleteTarget(null)
+            // Only close our own dialog: the user may have opened another
+            // item's dialog while this delete was still pending.
+            setDeleteTarget((current) =>
+                current !== null && current.id === targetId ? null : current,
+            )
         }
     }, [deleteTarget, handleDelete])
     const draftCount = useMemo(
@@ -220,6 +233,12 @@ export default function EpisodeListClient() {
     const isLoading = prereqLoading || episodesLoading
     const displayError = prereqError ?? episodeError
 
+    function handleRetry(): void {
+        setPrereqError(null)
+        void loadPrerequisites()
+        void reloadEpisodes()
+    }
+
     if (isLoading) {
         return (
             <p className="text-sm text-muted-foreground" role="status">
@@ -254,6 +273,14 @@ export default function EpisodeListClient() {
             {displayError !== null && (
                 <Alert variant="destructive">
                     <AlertDescription>{displayError}</AlertDescription>
+                    <Button
+                        className="mt-3"
+                        onClick={handleRetry}
+                        type="button"
+                        variant="outline"
+                    >
+                        Erneut versuchen
+                    </Button>
                 </Alert>
             )}
             {statusMessage !== null && (
@@ -326,7 +353,7 @@ export default function EpisodeListClient() {
                         item={deleteTarget}
                         onConfirm={() => void handleDeleteConfirm()}
                         onOpenChange={(open) => {
-                            if (!open) {
+                            if (!open && !deletePending) {
                                 setDeleteTarget(null)
                             }
                         }}

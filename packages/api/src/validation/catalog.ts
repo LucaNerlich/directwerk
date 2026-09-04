@@ -1175,8 +1175,8 @@ function parseTenantUser(value: unknown): TenantUser | null {
         !isNullableString(value.name, 200) ||
         !isStringArray(value.roles) ||
         !isMembershipStatus(value.status) ||
-        !isNullableString(value.invitedAt, 64) ||
-        !isNullableString(value.lastLoginAt, 64)
+        (value.invitedAt !== undefined && !isNullableString(value.invitedAt, 64)) ||
+        (value.lastLoginAt !== undefined && !isNullableString(value.lastLoginAt, 64))
     ) {
         return null
     }
@@ -1187,8 +1187,8 @@ function parseTenantUser(value: unknown): TenantUser | null {
         name: value.name,
         roles: value.roles,
         status: value.status,
-        invitedAt: value.invitedAt,
-        lastLoginAt: value.lastLoginAt,
+        invitedAt: value.invitedAt ?? null,
+        lastLoginAt: value.lastLoginAt ?? null,
     }
 }
 

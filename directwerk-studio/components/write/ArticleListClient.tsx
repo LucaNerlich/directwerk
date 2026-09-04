@@ -26,13 +26,16 @@ import type {ArticleDetail, CategorySummary} from '@directwerk/api/types'
 import {createPublicationBulkLabels} from '@/lib/publication/publicationBulkLabels'
 import {usePublicationListPage} from '@/lib/publication/usePublicationListPage'
 import {getClientTenantHost} from '@directwerk/api/tenant'
+import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
 
 export default function ArticleListClient() {
+    const authRedirect = useAuthRequired()
     const {
         items: articles,
         isLoading,
         displayError,
         statusMessage,
+        reload: reloadArticles,
         busyItemId: busyArticleId,
         isBulkBusy,
         selectedIds,
@@ -84,12 +87,17 @@ export default function ArticleListClient() {
         if (deleteTarget === null || handleDelete === null) {
             return
         }
+        const targetId = deleteTarget.id
         setDeletePending(true)
         try {
             await handleDelete(deleteTarget)
         } finally {
             setDeletePending(false)
-            setDeleteTarget(null)
+            // Only close our own dialog: the user may have opened another
+            // item's dialog while this delete was still pending.
+            setDeleteTarget((current) =>
+                current !== null && current.id === targetId ? null : current,
+            )
         }
     }, [deleteTarget, handleDelete])
 
@@ -99,10 +107,13 @@ export default function ArticleListClient() {
     const loadCategories = useCallback(async (): Promise<void> => {
         try {
             setCategories(await listCategories(getClientTenantHost()))
-        } catch {
+        } catch (error: unknown) {
+            if (authRedirect(error)) {
+                return
+            }
             setCategories([])
         }
-    }, [])
+    }, [authRedirect])
 
     useEffect(() => {
         if (!isBulkEditOpen || categories.length > 0) {
@@ -181,6 +192,14 @@ export default function ArticleListClient() {
             {displayError !== null && (
                 <Alert variant="destructive">
                     <AlertDescription>{displayError}</AlertDescription>
+                    <Button
+                        className="mt-3"
+                        onClick={() => void reloadArticles()}
+                        type="button"
+                        variant="outline"
+                    >
+                        Erneut versuchen
+                    </Button>
                 </Alert>
             )}
             {statusMessage !== null && (
@@ -228,7 +247,7 @@ export default function ArticleListClient() {
                         item={deleteTarget}
                         onConfirm={() => void handleDeleteConfirm()}
                         onOpenChange={(open) => {
-                            if (!open) {
+                            if (!open && !deletePending) {
                                 setDeleteTarget(null)
                             }
                         }}

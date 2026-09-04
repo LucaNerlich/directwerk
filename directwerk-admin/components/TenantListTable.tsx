@@ -140,7 +140,11 @@ export default function TenantListTable({
                             ? 'Try a different search term or status.'
                             : 'Create the first tenant to begin.'
                     }
-                    title="No tenants match your filters."
+                    title={
+                        hasActiveFilters
+                            ? 'No tenants match your filters.'
+                            : 'No tenants yet'
+                    }
                 />
             )}
         </div>

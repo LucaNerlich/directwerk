@@ -29,6 +29,7 @@ import {uploadMediaFile} from '@/lib/media/upload'
 import {episodePublishBlockReason} from '@/lib/podcast/episodePreflight'
 import {publicEpisodePageUrl} from '@directwerk/api/urls/publicContentUrls'
 import {isSlugTaken} from '@/lib/publication/slugAvailability'
+import {parseOptionalInt as optionalMinInt} from '@/lib/publication/parsePositiveInt'
 import {usePublicationEditorFields} from '@/lib/publication/usePublicationEditorFields'
 import {usePublicationEditorWorkflow} from '@/lib/publication/usePublicationEditorWorkflow'
 import {useNotifyAudienceHint} from '@/lib/studio/useNotifyAudienceHint'
@@ -36,18 +37,6 @@ import {useDefaultNotifySubscribers} from '@/lib/publication/useDefaultNotifySub
 import {useSiteConfig} from '@/lib/site/SiteConfigProvider'
 import {getClientTenantHost} from '@directwerk/api/tenant'
 import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
-
-function optionalMinInt(value: string, minimum: number): number | undefined {
-    const trimmed = value.trim()
-    if (trimmed.length === 0) {
-        return undefined
-    }
-    const parsed = Number.parseInt(trimmed, 10)
-    if (!Number.isSafeInteger(parsed) || parsed < minimum) {
-        return undefined
-    }
-    return parsed
-}
 
 export default function EpisodeEditor({episodeId}: {episodeId?: number}): React.JSX.Element {
     const router = useRouter()
@@ -716,6 +705,7 @@ export default function EpisodeEditor({episodeId}: {episodeId?: number}): React.
                                 <Input
                                     checked={episode.enclosureEnabled !== false}
                                     className="size-4 shrink-0"
+                                    disabled={busy || isEnclosureSaving}
                                     onChange={(event) => {
                                         void handleEnclosureChange(event.target.checked)
                                     }}

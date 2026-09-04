@@ -17,6 +17,7 @@ import RevokeAdminButton from '@/components/RevokeAdminButton'
 import {getPlatformData} from '@/lib/api/client'
 import {AUTH_REQUIRED} from '@directwerk/api/constants'
 import type {PlatformAdmin} from '@directwerk/api/types'
+import {Button} from '@directwerk/ui/components/button'
 
 export default function PlatformAdminsPage() {
     const router = useRouter()
@@ -69,9 +70,16 @@ export default function PlatformAdminsPage() {
                 title="Platform admins"
             />
             {error ? (
-                <Alert variant="destructive">
-                    <AlertDescription>{error}</AlertDescription>
-                </Alert>
+                <>
+                    <Alert variant="destructive">
+                        <AlertDescription>{error}</AlertDescription>
+                    </Alert>
+                    <div className="mt-2">
+                        <Button onClick={() => loadAdmins()} type="button" variant="outline">
+                            Retry
+                        </Button>
+                    </div>
+                </>
             ) : null}
             {!error && admins === null ? (
                 <>

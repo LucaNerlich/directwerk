@@ -6,7 +6,8 @@ import {deleteMedia, listMedia} from '@/lib/api/mediaApi'
 import {uploadMediaFile} from '@/lib/media/upload'
 import type {MediaAsset} from '@directwerk/api/types'
 
-vi.mock('next/navigation', () => ({useRouter: () => ({replace: vi.fn()})}))
+const mockRouter = {replace: vi.fn()}
+vi.mock('next/navigation', () => ({useRouter: () => mockRouter}))
 vi.mock('@directwerk/api/tenant', () => ({getClientTenantHost: () => 'tenant.test'}))
 vi.mock('@/lib/api/mediaApi', () => ({
     listMedia: vi.fn().mockResolvedValue([]),
@@ -223,5 +224,63 @@ describe('MediaLibraryClient', () => {
             screen.getByRole('checkbox', {name: '„other.png“ auswählen'}),
         ).toBeChecked()
         expect(screen.getByRole('button', {name: '1 löschen'})).toBeInTheDocument()
+    })
+
+    it('offers a retry for a failed upload without reselecting the file', async () => {
+        vi.mocked(listMedia).mockResolvedValue([])
+        vi.mocked(uploadMediaFile)
+            .mockRejectedValueOnce(new Error('Upload fehlgeschlagen.'))
+            .mockResolvedValue({
+                ...coverAsset,
+                id: 8,
+                assetType: 'AUDIO',
+                mimeType: 'audio/mpeg',
+                originalFilename: 'folge.mp3',
+                sizeBytes: 1024,
+                cdnUrl: null,
+            })
+
+        render(<MediaLibraryClient />)
+
+        await waitFor(() =>
+            expect(screen.getByText('Noch keine Medien')).toBeInTheDocument(),
+        )
+
+        const dropzone = screen.getByText('Datei hierher ziehen').parentElement
+        expect(dropzone).not.toBeNull()
+        const file = new File(['audio'], 'folge.mp3', {type: 'audio/mpeg'})
+        fireEvent.drop(dropzone as HTMLElement, {
+            dataTransfer: {files: [file]},
+        })
+
+        await waitFor(() =>
+            expect(screen.getByRole('alert')).toHaveTextContent('Upload fehlgeschlagen.'),
+        )
+        fireEvent.click(
+            screen.getByRole('button', {name: 'Upload erneut versuchen'}),
+        )
+
+        await waitFor(() => expect(vi.mocked(uploadMediaFile)).toHaveBeenCalledTimes(2))
+        await waitFor(() =>
+            expect(screen.getByRole('status')).toHaveTextContent('Hochgeladen: folge.mp3'),
+        )
+    })
+
+    it('retries loading the library after a load error', async () => {
+        vi.mocked(listMedia)
+            .mockRejectedValueOnce(new Error('Netzwerkfehler'))
+            .mockResolvedValueOnce([])
+
+        render(<MediaLibraryClient />)
+
+        await waitFor(() =>
+            expect(screen.getByRole('alert')).toHaveTextContent('Netzwerkfehler'),
+        )
+        fireEvent.click(screen.getByRole('button', {name: 'Erneut versuchen'}))
+
+        await waitFor(() =>
+            expect(screen.getByText('Noch keine Medien')).toBeInTheDocument(),
+        )
+        expect(vi.mocked(listMedia)).toHaveBeenCalledTimes(2)
     })
 })

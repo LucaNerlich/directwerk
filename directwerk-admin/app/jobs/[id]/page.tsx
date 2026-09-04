@@ -51,6 +51,7 @@ export default function JobPage({params}: JobPageProps) {
     const [isInitialLoad, setIsInitialLoad] = useState(true)
     const [actionBusy, setActionBusy] = useState(false)
     const [actionMessage, setActionMessage] = useState<string | null>(null)
+    const [reloadKey, setReloadKey] = useState(0)
 
     useEffect(() => {
         if (!UUID_PATTERN.test(id)) {
@@ -94,10 +95,16 @@ export default function JobPage({params}: JobPageProps) {
         return () => {
             isCurrent = false
         }
-    }, [id, router])
+    }, [id, router, reloadKey])
 
     async function handleComplete(): Promise<void> {
         if (job === null) {
+            return
+        }
+        const confirmed = window.confirm(
+            'Mark this job complete? Manual completion is for stuck jobs only — prefer letting the worker finish.',
+        )
+        if (!confirmed) {
             return
         }
         setActionBusy(true)
@@ -159,7 +166,16 @@ export default function JobPage({params}: JobPageProps) {
                     ]}
                 />
 
-                {error ? <Alert variant="destructive"><AlertDescription>{error}</AlertDescription></Alert> : null}
+                {error ? (
+                    <>
+                        <Alert variant="destructive"><AlertDescription>{error}</AlertDescription></Alert>
+                        <div>
+                            <Button onClick={() => setReloadKey((value) => value + 1)} type="button" variant="outline">
+                                Retry
+                            </Button>
+                        </div>
+                    </>
+                ) : null}
                 {!error && isInitialLoad ? (
                     <>
                         <FormSkeleton />

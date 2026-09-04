@@ -147,6 +147,29 @@ class UploadServiceTest {
     }
 
     @Test
+    void createUploadUrlRejectsSystemScope() {
+        when(directwerkConfig.isStorageEnabled()).thenReturn(true);
+        when(directwerkConfig.storage()).thenReturn(storageProps());
+        when(tenantRepository.requireById(10L)).thenReturn(tenant);
+
+        // Regression: SYSTEM assets bypass CONTENT entitlement checks server-side, so the
+        // upload API must never mint them — no server flow creates SYSTEM assets.
+        assertThatThrownBy(() -> uploadService.createUploadUrl(new UploadApi.CreateUploadUrlCommand(
+                "cover.jpg",
+                "image/jpeg",
+                1024,
+                AssetType.IMAGE,
+                AssetVisibility.PRIVATE,
+                AssetScope.SYSTEM,
+                null,
+                null
+        )))
+                .isInstanceOf(UploadValidationException.class)
+                .hasMessageContaining("SYSTEM");
+        verify(mediaAssetRepository, never()).saveAndFlush(any(MediaAsset.class));
+    }
+
+    @Test
     void createUploadUrlRejectsInvalidMime() {
         when(directwerkConfig.isStorageEnabled()).thenReturn(true);
         when(directwerkConfig.storage()).thenReturn(storageProps());

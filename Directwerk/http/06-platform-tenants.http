@@ -38,6 +38,7 @@ Accept: application/json
   "adminEmail": "admin-c@alpha-show.local",
   "adminName": "Tenant C Admin"
 }
+# name max 255 chars (400 VALIDATION_ERROR beyond); slug lowercase-alphanumeric-hyphen.
 
 > {%
     client.test("Create tenant with first admin", function() {

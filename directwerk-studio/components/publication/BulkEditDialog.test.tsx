@@ -150,4 +150,80 @@ describe('BulkEditDialog', () => {
 
         expect(onApply).toHaveBeenCalledWith({accessPolicy: 'PAID', kind: 'accessPolicy'})
     })
+
+    it('offers categories that arrive after the dialog opened', async () => {
+        const user = userEvent.setup()
+
+        const {rerender} = render(
+            <BulkEditDialog
+                busy={false}
+                categories={[]}
+                contentLabel="Beitrag"
+                draftCount={1}
+                onApply={vi.fn()}
+                onOpenChange={vi.fn()}
+                open
+                selectedCount={1}
+            />,
+        )
+
+        expect(screen.getByRole('radio', {name: 'Zugriff'})).toBeChecked()
+
+        rerender(
+            <BulkEditDialog
+                busy={false}
+                categories={mockCategories}
+                contentLabel="Beitrag"
+                draftCount={1}
+                onApply={vi.fn()}
+                onOpenChange={vi.fn()}
+                open
+                selectedCount={1}
+            />,
+        )
+
+        expect(screen.getByRole('radio', {name: 'Kategorien'})).toBeChecked()
+        await user.click(screen.getByRole('checkbox', {name: 'News'}))
+        expect(screen.getByRole('button', {name: 'Anwenden'})).toBeEnabled()
+    })
+
+    it('keeps an explicitly chosen kind when options arrive late', async () => {
+        const user = userEvent.setup()
+
+        const {rerender} = render(
+            <BulkEditDialog
+                busy={false}
+                categories={[]}
+                contentLabel="Beitrag"
+                draftCount={1}
+                formats={mockFormats}
+                onApply={vi.fn()}
+                onOpenChange={vi.fn()}
+                open
+                selectedCount={1}
+            />,
+        )
+
+        // 'Formate' is preselected while categories are still loading; picking
+        // a different kind is a real change and locks the choice in. (Clicking
+        // the already-selected radio would be a no-op without a change event.)
+        expect(screen.getByRole('radio', {name: 'Formate'})).toBeChecked()
+        await user.click(screen.getByRole('radio', {name: 'Zugriff'}))
+
+        rerender(
+            <BulkEditDialog
+                busy={false}
+                categories={mockCategories}
+                contentLabel="Beitrag"
+                draftCount={1}
+                formats={mockFormats}
+                onApply={vi.fn()}
+                onOpenChange={vi.fn()}
+                open
+                selectedCount={1}
+            />,
+        )
+
+        expect(screen.getByRole('radio', {name: 'Zugriff'})).toBeChecked()
+    })
 })

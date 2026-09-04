@@ -31,6 +31,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.validation.annotation.Validated;
 
 /**
  * Platform ops view of a tenant's media assets (directwerk-admin Storage page).
@@ -42,6 +43,7 @@ import org.springframework.web.bind.annotation.RestController;
  * S3 delete (+ CDN purge) jobs — workers tombstone as {@code ARCHIVED}. Restore is not supported.
  */
 @RestController
+@Validated
 @PreAuthorize("hasRole('PLATFORM_ADMIN')")
 @RequestMapping("/api/v1/platform/tenants/{tenantId}/media")
 public class PlatformTenantMediaController {

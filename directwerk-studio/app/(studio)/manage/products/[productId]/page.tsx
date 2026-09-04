@@ -10,6 +10,9 @@ export default async function ProductPage({
     params,
 }: ProductPageProps): Promise<React.JSX.Element> {
     const {productId} = await params
+    if (!/^\d+$/.test(productId)) {
+        return <p>Ungültige Produkt-ID.</p>
+    }
     const parsed = Number.parseInt(productId, 10)
 
     if (!Number.isSafeInteger(parsed) || parsed < 1) {

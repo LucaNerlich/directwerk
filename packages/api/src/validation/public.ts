@@ -329,7 +329,13 @@ export function createPublicContentParsers(policy: PublicContentPolicy) {
                     : value.coverAssetId,
             language: value.language,
             itunesCategory: value.itunesCategory,
-            rssUrl: value.rssUrl,
+            // Same URL-safety invariant as audioCdnUrl: https (or loopback
+            // http). Invalid values are coerced to null so a compromised
+            // record cannot turn FeedUrlDisplay hrefs into javascript: XSS.
+            rssUrl:
+                value.rssUrl !== null && isAllowedFeedUrl(value.rssUrl)
+                    ? value.rssUrl
+                    : null,
         }
     }
 

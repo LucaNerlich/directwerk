@@ -19,6 +19,7 @@ export default function SeriesPageClient(): React.JSX.Element {
         isLoading,
         displayError,
         statusMessage,
+        reload: reloadSeries,
         busyItemId,
         isBulkBusy,
         selectedIds,
@@ -68,6 +69,14 @@ export default function SeriesPageClient(): React.JSX.Element {
             {displayError !== null && (
                 <Alert variant="destructive">
                     <AlertDescription>{displayError}</AlertDescription>
+                    <Button
+                        className="mt-3"
+                        onClick={() => void reloadSeries()}
+                        type="button"
+                        variant="outline"
+                    >
+                        Erneut versuchen
+                    </Button>
                 </Alert>
             )}
             {statusMessage !== null && (

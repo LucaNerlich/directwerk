@@ -54,6 +54,7 @@ export default function TenantPage({params}: TenantPageProps) {
     const [isInitialLoad, setIsInitialLoad] = useState(true)
     const [lifecycleBusy, setLifecycleBusy] = useState(false)
     const [tenantSessionKey, setTenantSessionKey] = useState(0)
+    const [reloadKey, setReloadKey] = useState(0)
 
     const loadTenantData = useCallback(() => {
         if (!/^\d+$/.test(id)) {
@@ -104,7 +105,7 @@ export default function TenantPage({params}: TenantPageProps) {
         return () => {
             isCurrent = false
         }
-    }, [id, router])
+    }, [id, router, reloadKey])
 
     useEffect(() => {
         return loadTenantData()
@@ -162,7 +163,16 @@ export default function TenantPage({params}: TenantPageProps) {
                         {label: data?.tenant.name ?? `Tenant ${id}`},
                     ]}
                 />
-                {error ? <Alert variant="destructive"><AlertDescription>{error}</AlertDescription></Alert> : null}
+                {error ? (
+                    <>
+                        <Alert variant="destructive"><AlertDescription>{error}</AlertDescription></Alert>
+                        <div>
+                            <Button onClick={() => setReloadKey((value) => value + 1)} type="button" variant="outline">
+                                Retry
+                            </Button>
+                        </div>
+                    </>
+                ) : null}
                 {!error && isInitialLoad ? (
                     <>
                         <TableSkeleton rows={3} />
@@ -314,7 +324,7 @@ export default function TenantPage({params}: TenantPageProps) {
                             }
                         />
 
-                        <DomainForceVerifyForm tenantId={id} />
+                        <DomainForceVerifyForm onVerified={loadTenantData} tenantId={id} />
 
                         <TenantProductsPanel sessionKey={tenantSessionKey} />
 

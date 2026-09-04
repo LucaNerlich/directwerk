@@ -56,6 +56,7 @@ export default function JobsPage() {
     const [error, setError] = useState<string | null>(null)
     const [filterError, setFilterError] = useState<string | null>(null)
     const [isInitialLoad, setIsInitialLoad] = useState(true)
+    const [reloadKey, setReloadKey] = useState(0)
 
     const loadJobs = useCallback(
         (nextQuery: JobListQuery) => {
@@ -98,7 +99,7 @@ export default function JobsPage() {
     useEffect(() => {
         const cleanup = loadJobs(query)
         return cleanup
-    }, [loadJobs, query])
+    }, [loadJobs, query, reloadKey])
 
     function applyFilters(formData: FormData): void {
         const validation = validateJobListQuery({
@@ -114,10 +115,19 @@ export default function JobsPage() {
         }
 
         setFilterError(null)
-        setQuery({
-            ...validation.data,
-            offset: validation.data.offset ?? 0,
-            limit: validation.data.limit ?? 20,
+        setQuery((current) => {
+            // Changing the queue/status filters narrows the result set, so a
+            // carried-over offset would land on an arbitrary (often empty)
+            // page. Reset to the first page; an explicitly edited offset is
+            // honored when the filters themselves are unchanged.
+            const filtersChanged =
+                validation.data.queue !== current.queue ||
+                validation.data.status !== current.status
+            return {
+                ...validation.data,
+                offset: filtersChanged ? 0 : (validation.data.offset ?? 0),
+                limit: validation.data.limit ?? 20,
+            }
         })
     }
 
@@ -240,7 +250,16 @@ export default function JobsPage() {
                     </CardContent>
                 </Card>
 
-                {error ? <Alert variant="destructive"><AlertDescription>{error}</AlertDescription></Alert> : null}
+                {error ? (
+                    <>
+                        <Alert variant="destructive"><AlertDescription>{error}</AlertDescription></Alert>
+                        <div>
+                            <Button onClick={() => setReloadKey((value) => value + 1)} type="button" variant="outline">
+                                Retry
+                            </Button>
+                        </div>
+                    </>
+                ) : null}
                 {!error && isInitialLoad ? (
                     <>
                         <TableSkeleton rows={6} />

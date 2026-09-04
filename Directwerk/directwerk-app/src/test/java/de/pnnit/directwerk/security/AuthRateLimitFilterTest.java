@@ -135,6 +135,23 @@ class AuthRateLimitFilterTest {
         assertThat(fourth.getStatus()).isEqualTo(429);
     }
 
+    @Test
+    void rateLimitResponseUsesErrorEnvelope() throws Exception {
+        AuthRateLimitFilter filter = new AuthRateLimitFilter(100, 100, 100, 1, List.of());
+        FilterChain chain = mock(FilterChain.class);
+
+        MockHttpServletResponse first = new MockHttpServletResponse();
+        filter.doFilter(publicContactRequest("203.0.113.1"), first, chain);
+
+        MockHttpServletResponse second = new MockHttpServletResponse();
+        filter.doFilter(publicContactRequest("203.0.113.1"), second, chain);
+
+        assertThat(second.getStatus()).isEqualTo(429);
+        assertThat(second.getHeader("Retry-After")).isEqualTo("60");
+        assertThat(second.getContentAsString()).contains("\"statusCode\":429");
+        assertThat(second.getContentAsString()).contains("\"code\":\"RATE_LIMIT_EXCEEDED\"");
+    }
+
     private HttpServletRequest publicContactRequest(String remoteAddr) {
         HttpServletRequest request = mock(HttpServletRequest.class);
         when(request.getMethod()).thenReturn("POST");

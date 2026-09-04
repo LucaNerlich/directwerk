@@ -128,4 +128,15 @@ describe('DeskSwitcher', () => {
         const {container} = render(<DeskSwitcher config={config({studioDesks: []})} />)
         expect(container).toBeEmptyDOMElement()
     })
+
+    it('survives desk-count changes without a hooks-order crash', () => {
+        const {rerender} = render(<DeskSwitcher config={config({studioDesks: ['WRITE']})} />)
+        expect(screen.queryByRole('navigation', {name: 'Desks'})).not.toBeInTheDocument()
+
+        rerender(<DeskSwitcher config={config()} />)
+        expect(screen.getByRole('link', {name: 'Schreiben'})).toBeInTheDocument()
+
+        rerender(<DeskSwitcher config={config({studioDesks: ['PODCAST']})} />)
+        expect(screen.queryByRole('navigation', {name: 'Desks'})).not.toBeInTheDocument()
+    })
 })

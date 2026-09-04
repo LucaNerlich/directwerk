@@ -52,4 +52,37 @@ describe('DomainForceVerifyForm', () => {
             ),
         )
     })
+
+    it('notifies the parent on success so the domains list refreshes', async () => {
+        const user = userEvent.setup()
+        const onVerified = vi.fn()
+        forceVerifyDomainAction.mockResolvedValue({
+            error: null,
+            success: 'tenant.example.com force-verified.',
+        })
+        render(<DomainForceVerifyForm onVerified={onVerified} tenantId="1" />)
+
+        await user.type(screen.getByLabelText('Host'), 'tenant.example.com')
+        await user.click(screen.getByRole('button', {name: /Force verify/}))
+
+        await waitFor(() => expect(onVerified).toHaveBeenCalledTimes(1))
+    })
+
+    it('does not notify the parent when verification fails', async () => {
+        const user = userEvent.setup()
+        const onVerified = vi.fn()
+        forceVerifyDomainAction.mockResolvedValue({
+            error: 'Enter a valid domain host.',
+            success: null,
+        })
+        render(<DomainForceVerifyForm onVerified={onVerified} tenantId="1" />)
+
+        await user.type(screen.getByLabelText('Host'), '..')
+        await user.click(screen.getByRole('button', {name: /Force verify/}))
+
+        await waitFor(() =>
+            expect(screen.getByRole('alert')).toBeInTheDocument()
+        )
+        expect(onVerified).not.toHaveBeenCalled()
+    })
 })

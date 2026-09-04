@@ -31,6 +31,8 @@ import {listTenantProducts} from '@/lib/api/tenantProductsApi'
 import {
     clearTenantTokens,
     getTenantSessionHost,
+    getTenantSessionHostSafe,
+    subscribeToTenantTokenStore,
 } from '@/lib/auth/tenantTokenStore'
 
 interface TenantProductsPanelProps {
@@ -111,16 +113,36 @@ export default function TenantProductsPanel({
         loadProducts()
     }, [loadProducts, sessionKey])
 
+    // Clear the panel when another surface ends the tenant session, so the
+    // products table never lingers after the credentials are gone.
+    useEffect(
+        () =>
+            subscribeToTenantTokenStore(() => {
+                if (getTenantSessionHostSafe() === null) {
+                    setHasSession(false)
+                    setProducts([])
+                }
+            }),
+        []
+    )
+
     async function handleCreate(event: FormEvent<HTMLFormElement>): Promise<void> {
         event.preventDefault()
         setError(null)
         setStatus(null)
 
+        const slug = newSlug.trim()
+        const title = newTitle.trim()
+        if (slug.length === 0 || title.length === 0) {
+            setError('Enter a product slug and title.')
+            return
+        }
+
         const sortOrder = Number.parseInt(newSortOrder, 10)
         try {
             await postTenantData<SubscriptionProduct>('tenant/products', {
-                slug: newSlug.trim(),
-                title: newTitle.trim(),
+                slug,
+                title,
                 sortOrder: Number.isSafeInteger(sortOrder) ? sortOrder : 0,
                 offeringType: newOfferingType,
             })
@@ -180,15 +202,20 @@ export default function TenantProductsPanel({
             return
         }
 
-        const rulesPayload =
-            ruleScopeType === 'ALL_PODCASTS'
-                ? [{scopeType: 'ALL_PODCASTS', scopeId: null}]
-                : [
-                      {
-                          scopeType: ruleScopeType,
-                          scopeId: Number.parseInt(ruleScopeId, 10),
-                      },
-                  ]
+        setError(null)
+        setStatus(null)
+
+        let rulesPayload: Array<{scopeType: string; scopeId: number | null}>
+        if (ruleScopeType === 'ALL_PODCASTS') {
+            rulesPayload = [{scopeType: 'ALL_PODCASTS', scopeId: null}]
+        } else {
+            const scopeId = Number.parseInt(ruleScopeId.trim(), 10)
+            if (!Number.isSafeInteger(scopeId) || scopeId < 1) {
+                setError('Enter a valid scope ID (positive integer).')
+                return
+            }
+            rulesPayload = [{scopeType: ruleScopeType, scopeId}]
+        }
 
         try {
             const saved = await putTenantData<ProductAccessRule[]>(
@@ -207,12 +234,23 @@ export default function TenantProductsPanel({
         setError(null)
         setStatus(null)
 
+        const email = grantEmail.trim()
+        if (email.length === 0) {
+            setError('Enter a subscriber email.')
+            return
+        }
+
         const productId = Number.parseInt(grantProductId, 10)
+        if (!Number.isSafeInteger(productId) || productId < 1) {
+            setError('Choose an active product to grant.')
+            return
+        }
+
         try {
             const grant = await postTenantData<SubscriptionGrant>(
                 'tenant/subscriptions',
                 {
-                    email: grantEmail.trim(),
+                    email,
                     productId,
                 }
             )
@@ -269,6 +307,8 @@ export default function TenantProductsPanel({
         )
     }
 
+    const activeProducts = products.filter((product) => product.active)
+
     return (
         <Card aria-labelledby="tenant-products-heading" role="region">
             <CardHeader>
@@ -280,7 +320,14 @@ export default function TenantProductsPanel({
             </CardHeader>
             <CardContent className="space-y-6">
             {error ? (
-                <Alert aria-live="polite" variant="destructive"><AlertDescription>{error}</AlertDescription></Alert>
+                <>
+                    <Alert aria-live="polite" variant="destructive"><AlertDescription>{error}</AlertDescription></Alert>
+                    <div>
+                        <Button onClick={() => loadProducts()} type="button" variant="outline">
+                            Retry
+                        </Button>
+                    </div>
+                </>
             ) : null}
             {status ? (
                 <p aria-live="polite" role="status" className="text-sm text-muted-foreground">
@@ -507,7 +554,7 @@ export default function TenantProductsPanel({
                             ))}
                     </select>
                 </div>
-                <Button className="w-fit sm:col-span-2" type="submit">Grant</Button>
+                <Button className="w-fit sm:col-span-2" disabled={activeProducts.length === 0} title={activeProducts.length === 0 ? 'Create an active product first.' : undefined} type="submit">Grant</Button>
             </form>
 
             {grants.length > 0 ? (

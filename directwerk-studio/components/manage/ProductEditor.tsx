@@ -20,6 +20,7 @@ import {useRouter} from 'next/navigation'
 import {useCallback, useEffect, useState, type FormEvent} from 'react'
 
 import ProductRulesEditor from '@/components/manage/ProductRulesEditor'
+import {parsePriceEurosToCents} from '@/lib/manage/productPrice'
 import {createProduct, deactivateProduct, listProducts, syncProductStripe, updateProduct} from '@/lib/api/subscriptionApi'
 import type {BillingInterval, OfferingType, SubscriptionProduct} from '@directwerk/api/types'
 import {formatMoney} from '@directwerk/api/format'
@@ -125,10 +126,13 @@ export default function ProductEditor({
         const nextSortOrder = Number.isSafeInteger(parsedSort) && parsedSort >= 0
             ? parsedSort
             : 0
-        const parsedEuros = Number.parseFloat(priceEuros.replace(',', '.'))
-        const priceCents = Number.isFinite(parsedEuros) && parsedEuros >= 0
-            ? Math.round(parsedEuros * 100)
-            : undefined
+        const parsedPrice = parsePriceEurosToCents(priceEuros)
+        if (!parsedPrice.valid) {
+            setErrorMessage(parsedPrice.message)
+            setIsSaving(false)
+            return
+        }
+        const priceCents = parsedPrice.priceCents
 
         try {
             if (isNew) {
@@ -355,11 +359,10 @@ export default function ProductEditor({
                     <Input
                         aria-describedby="product-price-help"
                         id="product-price"
-                        min={0}
+                        inputMode="decimal"
                         onChange={(event) => setPriceEuros(event.target.value)}
                         placeholder="z. B. 14,90"
-                        step="0.01"
-                        type="number"
+                        type="text"
                         value={priceEuros}
                     />
                     <p className="text-xs text-muted-foreground" id="product-price-help">

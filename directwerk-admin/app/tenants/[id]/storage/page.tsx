@@ -326,7 +326,16 @@ export default function TenantStoragePage({params}: TenantStoragePageProps) {
                     ]}
                 />
 
-                {error ? <Alert variant="destructive"><AlertDescription>{error}</AlertDescription></Alert> : null}
+                {error ? (
+                    <>
+                        <Alert variant="destructive"><AlertDescription>{error}</AlertDescription></Alert>
+                        <div>
+                            <Button onClick={() => loadStorage({assetType, status, limit})} type="button" variant="outline">
+                                Retry
+                            </Button>
+                        </div>
+                    </>
+                ) : null}
                 {!error && isInitialLoad ? (
                     <>
                         <TableSkeleton rows={6} />

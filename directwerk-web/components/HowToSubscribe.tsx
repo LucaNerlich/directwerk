@@ -83,7 +83,13 @@ function PodcastBlock({
     )
 }
 
-function ArticlesBlock({pair}: {pair: SubscribeFeedPair}): React.JSX.Element {
+function ArticlesBlock({
+    pair,
+    isAuthenticated,
+}: {
+    pair: SubscribeFeedPair
+    isAuthenticated: boolean
+}): React.JSX.Element {
     return (
         <div className="space-y-4">
             <div className="space-y-1">
@@ -108,7 +114,9 @@ function ArticlesBlock({pair}: {pair: SubscribeFeedPair}): React.JSX.Element {
                     url={pair.publicFeedUrl}
                 />
             ) : null}
-            {pair.privateFeedUrl != null && pair.privateFeedUrl.length > 0 ? (
+            {isAuthenticated &&
+            pair.privateFeedUrl != null &&
+            pair.privateFeedUrl.length > 0 ? (
                 <FeedUrlDisplay
                     description="Enthält Beiträge, die deine Mitgliedschaft freischaltet."
                     title="Dein privater Beitrags-Feed"
@@ -150,7 +158,9 @@ export default function HowToSubscribe({
             {showPodcast && showArticles ? (
                 <div aria-hidden="true" className="border-t" />
             ) : null}
-            {showArticles ? <ArticlesBlock pair={articles} /> : null}
+            {showArticles ? (
+                <ArticlesBlock pair={articles} isAuthenticated={isAuthenticated} />
+            ) : null}
         </section>
     )
 }

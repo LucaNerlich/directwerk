@@ -24,11 +24,11 @@ function handleDeskSelect(desk: StudioDesk): void {
 }
 
 export default function DeskSwitcher({config}: {config: SiteConfig}): React.JSX.Element | null {
+    const activeDesk = useActiveDesk(config)
+
     if (!hasDesk(config, 'WRITE') || !hasDesk(config, 'PODCAST')) {
         return null
     }
-
-    const activeDesk = useActiveDesk(config)
 
     return (
         <nav

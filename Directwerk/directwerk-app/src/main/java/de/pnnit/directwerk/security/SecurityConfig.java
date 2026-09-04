@@ -115,7 +115,9 @@ public class SecurityConfig {
             BffTenantRoutingHostFilter bffTenantRoutingHostFilter,
             TenantMembershipGuardFilter tenantMembershipGuardFilter,
             DirectwerkJwtAuthenticationConverter jwtAuthenticationConverter,
-            BillingRateLimitFilter billingRateLimitFilter
+            BillingRateLimitFilter billingRateLimitFilter,
+            ApiAuthenticationEntryPoint apiAuthenticationEntryPoint,
+            ApiAccessDeniedHandler apiAccessDeniedHandler
     ) throws Exception {
 
         http.securityMatcher("/**")
@@ -167,7 +169,16 @@ public class SecurityConfig {
                 .oauth2ResourceServer(oauth2 -> oauth2.jwt(jwt -> jwt
                         .decoder(jwtDecoder)
                         .jwtAuthenticationConverter(jwtAuthenticationConverter)
-                ))
+                )
+                        // Bearer-token failures (missing/expired/invalid JWT) must use the API's
+                        // Response<T> error envelope, not Spring Security's default empty 401/403.
+                        .authenticationEntryPoint(apiAuthenticationEntryPoint)
+                        .accessDeniedHandler(apiAccessDeniedHandler)
+                )
+                .exceptionHandling(exceptions -> exceptions
+                        .authenticationEntryPoint(apiAuthenticationEntryPoint)
+                        .accessDeniedHandler(apiAccessDeniedHandler)
+                )
                 .addFilterAfter(tenantContextFilter, org.springframework.security.oauth2.server.resource.web.authentication.BearerTokenAuthenticationFilter.class)
                 .addFilterBefore(bffTenantRoutingHostFilter, TenantContextFilter.class)
                 .addFilterAfter(billingRateLimitFilter, TenantContextFilter.class)
@@ -183,7 +194,7 @@ public class SecurityConfig {
         if (billingLimit <= 0) {
             throw new IllegalStateException("Billing rate limit must be positive, got: " + billingLimit);
         }
-        return new BillingRateLimitFilter(billingLimit);
+        return new BillingRateLimitFilter(billingLimit, security.trustedProxies());
     }
 
     @Bean

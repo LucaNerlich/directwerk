@@ -16,6 +16,19 @@ import {loginAction, type LoginActionState} from './actions'
 
 const INITIAL_STATE: LoginActionState = {error: null, tokens: null}
 
+/**
+ * Post-login destination requested via `?next=`. Only same-origin absolute
+ * paths are honored — anything else falls back to `/` so a crafted link can
+ * never turn the admin login into an open redirect.
+ */
+export function resolvePostLoginPath(search: string): string {
+    const next = new URLSearchParams(search).get('next')
+    if (next !== null && next.startsWith('/') && !next.startsWith('//')) {
+        return next
+    }
+    return '/'
+}
+
 export default function LoginForm() {
     const router = useRouter()
 
@@ -26,7 +39,7 @@ export default function LoginForm() {
 
     // Client-side effects after a successful server action: store the access
     // token, reset any in-flight refresh for the previous identity, and enter
-    // the admin area.
+    // the admin area (or the deep link the auth proxy captured in `?next=`).
     useEffect(() => {
         if (state.tokens === null) {
             return
@@ -34,7 +47,7 @@ export default function LoginForm() {
 
         invalidatePendingRefresh()
         storeTokens(state.tokens)
-        router.replace('/')
+        router.replace(resolvePostLoginPath(window.location.search))
     }, [state.tokens, router])
 
     return (

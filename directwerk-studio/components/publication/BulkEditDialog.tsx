@@ -57,6 +57,7 @@ export default function BulkEditDialog({
 }: BulkEditDialogProps): React.JSX.Element {
     const contentLabelPlural = contentLabelPluralForms(contentLabel)
     const [kind, setKind] = useState<BulkEditKind>('accessPolicy')
+    const [kindChosen, setKindChosen] = useState(false)
     const [selectedFormatIds, setSelectedFormatIds] = useState<number[]>([])
     const [selectedCategoryIds, setSelectedCategoryIds] = useState<number[]>([])
     const [accessPolicy, setAccessPolicy] = useState<AccessPolicy>('FREE')
@@ -72,12 +73,30 @@ export default function BulkEditDialog({
         setSelectedFormatIds([])
         setSelectedCategoryIds([])
         setAccessPolicy('FREE')
+        setKindChosen(false)
         setKind(
             hasFormats ? 'formats' : hasCategories ? 'categories' : 'accessPolicy',
         )
         // Reset only when the dialog opens; option availability is captured at open time.
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [open])
+
+    // Options can arrive after the dialog opened (e.g. categories are loaded
+    // lazily on open). Follow availability until the user picks a kind
+    // explicitly, without wiping their selections.
+    useEffect(() => {
+        if (!open || kindChosen) {
+            return
+        }
+        setKind(
+            hasFormats ? 'formats' : hasCategories ? 'categories' : 'accessPolicy',
+        )
+    }, [hasCategories, hasFormats, kindChosen, open])
+
+    function chooseKind(next: BulkEditKind): void {
+        setKindChosen(true)
+        setKind(next)
+    }
 
     const applyEnabled =
         draftCount > 0 &&
@@ -135,7 +154,7 @@ export default function BulkEditDialog({
                                 checked={kind === 'formats'}
                                 className="size-4 shrink-0"
                                 name="bulk-edit-kind"
-                                onChange={() => setKind('formats')}
+                                onChange={() => chooseKind('formats')}
                                 type="radio"
                             />
                             Formate
@@ -147,7 +166,7 @@ export default function BulkEditDialog({
                                 checked={kind === 'categories'}
                                 className="size-4 shrink-0"
                                 name="bulk-edit-kind"
-                                onChange={() => setKind('categories')}
+                                onChange={() => chooseKind('categories')}
                                 type="radio"
                             />
                             Kategorien
@@ -158,7 +177,7 @@ export default function BulkEditDialog({
                             checked={kind === 'accessPolicy'}
                             className="size-4 shrink-0"
                             name="bulk-edit-kind"
-                            onChange={() => setKind('accessPolicy')}
+                            onChange={() => chooseKind('accessPolicy')}
                             type="radio"
                         />
                         Zugriff
