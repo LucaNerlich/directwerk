@@ -20,4 +20,16 @@
     .content-prose :where(a) {
         @apply text-primary underline underline-offset-4;
     }
+
+    .content-prose :where(img) {
+        @apply h-auto max-w-full rounded-lg;
+    }
+
+    .content-prose :where(figure) {
+        margin-block: 1rem;
+    }
+
+    .content-prose :where(figcaption) {
+        @apply mt-2 text-sm text-muted-foreground;
+    }
 }

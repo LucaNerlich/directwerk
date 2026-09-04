@@ -294,7 +294,7 @@ Use Jakarta Bean Validation (`@Valid`) on request records + domain validators in
 | Framework | Spring Boot | 4.1.0 (BOM) | Web, Security, Data JPA, Validation |
 | Migrations | Flyway | 12+ (BOM) | Owns schema |
 | S3 | `software.amazon.awssdk:s3` | BOM-managed | Pre-signed PUT/GET; Hetzner/Bunny path-style |
-| HTML sanitization (show notes) | `com.googlecode.owasp-java-html-sanitizer:owasp-java-html-sanitizer` | 20240325.1+ | **Server-side only** — allow `p`, `br`, `strong`, `em`, `a[href]`, `ul`, `ol`, `li`, `h2`, `h3` |
+| HTML sanitization (show notes) | `com.googlecode.owasp-java-html-sanitizer:owasp-java-html-sanitizer` | 20240325.1+ | **Server-side only** — allow `p`, `br`, `strong`, `em`, `a[href]`, `ul`, `ol`, `li`, `h2`, `h3`, plus inline library media: `img[src=https-only,alt,title]`, `figure`, `figcaption` |
 | Markdown → HTML (articles) | `com.vladsch.flexmark:flexmark-all` | 0.64.8+ | CommonMark + GFM tables; render at read time **or** store both MD + cached HTML |
 | Slug generation | `com.github.slugify:slugify` | 3.0.7+ | German transliteration (`setUnderscoreSeparator(true)` → hyphen) |
 | Scheduling | Spring `@Scheduled` or Quartz | Boot starter | Publish `SCHEDULED` → `PUBLISHED` |
@@ -391,8 +391,11 @@ Full `package.json` starter: [§ 10 Library summary](#10-library-summary-copy-pa
 import { useEditor, EditorContent } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import Link from '@tiptap/extension-link'
+import Image from '@tiptap/extension-image'
 
-// Allow only: paragraph, bold, italic, link, bullet/ordered list, h2, h3
+// Allow only: paragraph, bold, italic, link, bullet/ordered list, h2, h3,
+// plus inline library media (images embedded as <img>, audio/video/documents
+// as links — only PUBLIC READY assets with a stable https CDN URL).
 const extensions = [
     StarterKit.configure({
         heading: { levels: [2, 3] },
@@ -401,6 +404,7 @@ const extensions = [
         horizontalRule: false,
     }),
     Link.configure({ openOnClick: false, autolink: true }),
+    Image.configure({ allowBase64: false, HTMLAttributes: { loading: 'lazy' } }),
 ]
 ```
 

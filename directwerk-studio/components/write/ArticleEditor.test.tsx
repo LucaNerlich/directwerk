@@ -79,7 +79,7 @@ describe('ArticleEditor tagging', () => {
 
         await waitFor(() => expect(screen.getByRole('combobox')).toBeDisabled())
         expect(
-            screen.getByText(/Nur relevant für kostenpflichtige Beiträge/),
+            screen.getByText(/Nur relevant für kostenpflichtige Inhalte/),
         ).toBeInTheDocument()
     })
 

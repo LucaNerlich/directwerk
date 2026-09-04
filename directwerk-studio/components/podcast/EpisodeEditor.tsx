@@ -2,12 +2,13 @@
 
 import SelectControl from '@/components/studio/SelectControl'
 import {suggestSlug} from '@/lib/api/studioHelpers'
-import LevelSelect from '@/components/studio/LevelSelect'
 
 import {Button} from '@directwerk/ui/components/button'
+import {Card, CardContent} from '@directwerk/ui/components/card'
 import {Input} from '@directwerk/ui/components/input'
 import EmptyState from '@directwerk/ui/components/empty-state'
 import PageStack from '@directwerk/ui/components/page-stack'
+import SectionHeader from '@directwerk/ui/components/section-header'
 
 import Link from 'next/link'
 import {useRouter} from 'next/navigation'
@@ -165,6 +166,7 @@ export default function EpisodeEditor({episodeId}: {episodeId?: number}): React.
         errorMessage,
         setErrorMessage,
         saveHint,
+        isDirty,
         markDirty,
         save,
         runWorkflow,
@@ -569,6 +571,21 @@ export default function EpisodeEditor({episodeId}: {episodeId?: number}): React.
                 accessPolicy={accessPolicy}
                 slug={slug}
                 slugTaken={slugTaken}
+                requiredLevelSortOrder={requiredLevelSortOrder}
+                onRequiredLevelChange={(value) => {
+                    setRequiredLevelSortOrder(value)
+                    markDirty()
+                }}
+                isDirty={isDirty}
+                previewImageUrl={coverPreviewUrl}
+                previewImageAlt={title.trim().length > 0 ? `Cover: ${title}` : 'Folgen-Cover'}
+                previewUrl={episodePageUrl}
+                previewUrlHint={
+                    episode?.status === 'PUBLISHED'
+                        ? 'Live-URL der Folge:'
+                        : 'So lautet die URL nach dem Veröffentlichen:'
+                }
+                onAuthRequired={handleAuthRequired}
                 onTitleChange={(value) => {
                     setTitle(value)
                     markDirty()
@@ -669,112 +686,21 @@ export default function EpisodeEditor({episodeId}: {episodeId?: number}): React.
                                 hint="Direkt nach dem Veröffentlichen kann der Feed noch 404 liefern, bis der Snapshot geschrieben ist. Danach leitet Directwerk mit 302 zur Datei weiter."
                             />
                         ) : null}
-                        <label className="grid gap-2 text-sm font-medium">
-                            <span>Folgennummer</span>
-                            <Input
-                                min={1}
-                                onChange={(event) => {
-                                    setEpisodeNumber(event.target.value)
-                                    markDirty()
-                                }}
-                                type="number"
-                                value={episodeNumber}
-                            />
-                        </label>
-                        <label className="grid gap-2 text-sm font-medium">
-                            <span>Mindest-Stufe</span>
-                            <LevelSelect
-                                disabled={accessPolicy === 'FREE'}
-                                onChange={(value) => {
-                                    setRequiredLevelSortOrder(value)
-                                    markDirty()
-                                }}
-                                value={requiredLevelSortOrder}
-                            />
-                            <span className="font-normal text-muted-foreground">
-                                Niedrigste Stufe, die Zugriff erhält. Zugriff hat, wessen
-                                höchste Stufe ≥ Mindest-Stufe ist. „Öffentlich“ = jede aktive
-                                Stufe reicht.
-                                {accessPolicy === 'FREE'
-                                    ? ' Nur relevant für kostenpflichtige Inhalte.'
-                                    : ''}
-                            </span>
-                        </label>
-                        {episode !== null ? (
-                            <label className="flex cursor-pointer items-center gap-2 text-sm font-medium">
-                                <Input
-                                    checked={episode.enclosureEnabled !== false}
-                                    className="size-4 shrink-0"
-                                    disabled={busy || isEnclosureSaving}
-                                    onChange={(event) => {
-                                        void handleEnclosureChange(event.target.checked)
-                                    }}
-                                    type="checkbox"
+                        <Card>
+                            <CardContent className="flex flex-col gap-3 pt-(--card-spacing)">
+                                <SectionHeader
+                                    as="h3"
+                                    description="Pflicht für den Feed — hochladen oder aus der Mediathek wählen."
+                                    title="Audio"
                                 />
-                                Audio im Feed (Enclosure)
-                            </label>
-                        ) : null}
-                        <div className="grid gap-2">
-                            <p className="text-sm font-semibold">Titelbild (RSS)</p>
-                            <p className="text-xs text-muted-foreground">
-                                Wird im Feed als Folgen-Cover genutzt. Ohne eigenes Bild gilt
-                                das Format- oder Sendungs-Titelbild.
-                            </p>
-                            {coverPreviewUrl !== null ? (
-                                <img
-                                    alt=""
-                                    className="block max-w-48"
-                                    src={coverPreviewUrl}
-                                />
-                            ) : null}
-                            <label className="grid gap-2 text-sm font-medium">
-                                <span>{coverAssetId !== null ? 'Titelbild ersetzen' : 'Titelbild hochladen'}</span>
-                                <Input
-                                    accept="image/png,image/jpeg,image/webp"
-                                    disabled={busy}
-                                    onChange={(event) => {
-                                        const file = event.target.files?.[0] ?? null
-                                        void handleCoverUpload(file)
-                                        event.target.value = ''
-                                    }}
-                                    type="file"
-                                />
-                                <span className="text-xs font-normal text-muted-foreground">
-                                    Max. {mediaLimitLabel('IMAGE')}.
-                                </span>
-                            </label>
-                            {hasDigitalContent ? (
-                                <MediaLibraryPicker
-                                    assetType="IMAGE"
-                                    disabled={busy}
-                                    label="Titelbild aus Mediathek"
-                                    onAuthRequired={handleAuthRequired}
-                                    onSelect={(asset) => {
-                                        setCoverAssetId(asset.id)
-                                        markDirty()
-                                    }}
-                                    selectedId={coverAssetId}
-                                />
-                            ) : null}
-                            {coverUploadProgress !== null ? (
-                                <UploadProgress
-                                    file={coverUploadProgress.file}
-                                    progress={coverUploadProgress.progress}
-                                />
-                            ) : null}
-                        </div>
-                        <div className="grid gap-2">
-                            <p className="text-sm font-semibold">Audio</p>
                             {hasAudio ? (
                                 <>
-                                    <p className="text-xs text-muted-foreground">
-                                        Audio angehängt (Asset-ID {episode?.audioAssetId}
+                                    <p className="text-xs text-muted-foreground" role="status">
                                         {audioStatusKnown
                                             ? audioReady
-                                                ? ', READY'
-                                                : ', noch nicht READY'
-                                            : ''}
-                                        ).
+                                                ? 'Audio bereit.'
+                                                : 'Audio wird noch verarbeitet…'
+                                            : 'Audio-Status wird geladen…'}
                                     </p>
                                     {audioPreviewUrl !== null ? (
                                         <audio
@@ -833,7 +759,114 @@ export default function EpisodeEditor({episodeId}: {episodeId?: number}): React.
                                     progress={uploadProgress.progress}
                                 />
                             ) : null}
-                        </div>
+                            </CardContent>
+                        </Card>
+                        <Card>
+                            <CardContent className="flex flex-col gap-3 pt-(--card-spacing)">
+                                <SectionHeader
+                                    as="h3"
+                                    description="Wird im Feed als Folgen-Cover genutzt. Ohne eigenes Bild gilt das Format- oder Sendungs-Titelbild."
+                                    title="Titelbild (RSS)"
+                                />
+                            {coverPreviewUrl !== null ? (
+                                <img
+                                    alt={title.trim().length > 0 ? `Cover: ${title}` : 'Folgen-Cover'}
+                                    className="block aspect-video w-full rounded-lg object-cover"
+                                    src={coverPreviewUrl}
+                                />
+                            ) : null}
+                            <label className="grid gap-2 text-sm font-medium">
+                                <span>{coverAssetId !== null ? 'Titelbild ersetzen' : 'Titelbild hochladen'}</span>
+                                <Input
+                                    accept="image/png,image/jpeg,image/webp"
+                                    disabled={busy}
+                                    onChange={(event) => {
+                                        const file = event.target.files?.[0] ?? null
+                                        void handleCoverUpload(file)
+                                        event.target.value = ''
+                                    }}
+                                    type="file"
+                                />
+                                <span className="text-xs font-normal text-muted-foreground">
+                                    Max. {mediaLimitLabel('IMAGE')}.
+                                </span>
+                            </label>
+                            {hasDigitalContent ? (
+                                <MediaLibraryPicker
+                                    assetType="IMAGE"
+                                    disabled={busy}
+                                    label="Titelbild aus Mediathek"
+                                    onAuthRequired={handleAuthRequired}
+                                    onSelect={(asset) => {
+                                        setCoverAssetId(asset.id)
+                                        markDirty()
+                                    }}
+                                    selectedId={coverAssetId}
+                                />
+                            ) : null}
+                            {coverAssetId !== null ? (
+                                <Button
+                                    disabled={busy}
+                                    onClick={() => {
+                                        setCoverAssetId(null)
+                                        markDirty()
+                                    }}
+                                    size="sm"
+                                    type="button"
+                                    variant="outline"
+                                >
+                                    Titelbild entfernen
+                                </Button>
+                            ) : null}
+                            {coverUploadProgress !== null ? (
+                                <UploadProgress
+                                    file={coverUploadProgress.file}
+                                    progress={coverUploadProgress.progress}
+                                />
+                            ) : null}
+                            </CardContent>
+                        </Card>
+                        <Card>
+                            <CardContent className="flex flex-col gap-4 pt-(--card-spacing)">
+                                <SectionHeader
+                                    as="h3"
+                                    description="Nummer, Feed-Aufnahme und Kategorien."
+                                    title="Einordnung"
+                                />
+                        <label className="grid gap-2 text-sm font-medium">
+                            <span>Folgennummer</span>
+                            <Input
+                                min={1}
+                                onChange={(event) => {
+                                    setEpisodeNumber(event.target.value)
+                                    markDirty()
+                                }}
+                                type="number"
+                                value={episodeNumber}
+                            />
+                            <span className="text-xs font-normal text-muted-foreground">
+                                Optional. Bestimmt die Reihenfolge im Feed.
+                            </span>
+                        </label>
+                        {episode !== null ? (
+                            <label className="grid gap-2 text-sm font-medium">
+                                <span className="flex cursor-pointer items-center gap-2">
+                                    <Input
+                                        checked={episode.enclosureEnabled !== false}
+                                        className="size-4 shrink-0"
+                                        disabled={busy || isEnclosureSaving}
+                                        onChange={(event) => {
+                                            void handleEnclosureChange(event.target.checked)
+                                        }}
+                                        type="checkbox"
+                                    />
+                                    Audio im Feed (Enclosure)
+                                </span>
+                                <span className="text-xs font-normal text-muted-foreground">
+                                    Ausgeschaltet bleibt die Folge im Feed ohne Audiodatei.
+                                </span>
+                            </label>
+                        ) : null}
                         {episode !== null ? (
                             <FormatCategoryPicker
                                 categories={availableCategories}
@@ -851,6 +884,8 @@ export default function EpisodeEditor({episodeId}: {episodeId?: number}): React.
                                 selectedFormatIds={selectedFormatIds}
                             />
                         ) : null}
+                            </CardContent>
+                        </Card>
                     </>
                 }
             />

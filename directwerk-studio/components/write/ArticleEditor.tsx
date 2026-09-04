@@ -1,6 +1,9 @@
 'use client'
 
+import {Button} from '@directwerk/ui/components/button'
 import {Input} from '@directwerk/ui/components/input'
+import {Card, CardContent} from '@directwerk/ui/components/card'
+import SectionHeader from '@directwerk/ui/components/section-header'
 import {suggestSlug} from '@/lib/api/studioHelpers'
 
 import {useRouter} from 'next/navigation'
@@ -12,7 +15,6 @@ import FormatCategoryPicker from '@/components/publication/FormatCategoryPicker'
 import PublicationDangerZone from '@/components/publication/PublicationDangerZone'
 import PublishedLinksPanel from '@/components/publication/PublishedLinksPanel'
 import PublicationEditorLayout from '@/components/publication/PublicationEditorLayout'
-import LevelSelect from '@/components/studio/LevelSelect'
 import {listCategories, replaceArticleCategories} from '@/lib/api/catalogApi'
 import {getMediaPreviewUrl} from '@/lib/api/mediaApi'
 import {
@@ -154,6 +156,7 @@ export default function ArticleEditor({articleId}: {articleId?: number}) {
         errorMessage,
         setErrorMessage: setWorkflowError,
         saveHint,
+        isDirty,
         markDirty,
         save,
         runWorkflow,
@@ -365,6 +368,22 @@ export default function ArticleEditor({articleId}: {articleId?: number}) {
             slug={slug}
             excerpt={excerpt}
             seoDescription={seoDescription}
+            requiredLevelSortOrder={requiredLevelSortOrder}
+            onRequiredLevelChange={(value) => {
+                setRequiredLevelSortOrder(value)
+                markDirty()
+            }}
+            isDirty={isDirty}
+            previewImageUrl={heroPreviewUrl}
+            previewImageAlt={title.trim().length > 0 ? `Titelbild: ${title}` : 'Titelbild'}
+            previewExcerpt={excerpt}
+            previewUrl={publishedUrl ?? publicArticlePageUrl(config.publicSiteUrl, slug.trim() || suggestSlug(title) || 'beitrag')}
+            previewUrlHint={
+                publishedUrl !== null
+                    ? 'Live-URL des Beitrags:'
+                    : 'So lautet die URL nach dem Veröffentlichen:'
+            }
+            onAuthRequired={handleAuthRequired}
             onTitleChange={(value) => {
                 setTitle(value)
                 markDirty()
@@ -473,34 +492,21 @@ export default function ArticleEditor({articleId}: {articleId?: number}) {
                             links={[{label: 'Beitragsseite', url: publishedUrl}]}
                         />
                     ) : null}
-                    <label className="grid gap-2 text-sm font-medium">
-                        <span>Mindest-Stufe</span>
-                        <LevelSelect
-                            disabled={accessPolicy === 'FREE'}
-                            onChange={(value) => {
-                                setRequiredLevelSortOrder(value)
-                                markDirty()
-                            }}
-                            value={requiredLevelSortOrder}
-                        />
-                        <span className="font-normal text-muted-foreground">
-                            Niedrigste Stufe, die Zugriff erhält. Zugriff hat, wessen höchste
-                            Stufe ≥ Mindest-Stufe ist. „Öffentlich“ = jede aktive Stufe reicht.
-                            {accessPolicy === 'FREE'
-                                ? ' Nur relevant für kostenpflichtige Beiträge.'
-                                : ''}
-                        </span>
-                    </label>
-                    <div>
-                        <p className="text-sm font-semibold">Titelbild</p>
+                    <Card>
+                        <CardContent className="flex flex-col gap-3 pt-(--card-spacing)">
+                            <SectionHeader
+                                as="h3"
+                                description="Aufmacher für Karten und Beitragsseite."
+                                title="Titelbild"
+                            />
                         {heroPreviewUrl !== null ? (
                             <img
-                                alt=""
-                                className="mt-2 max-w-[12rem] rounded-md"
+                                alt={title.trim().length > 0 ? `Titelbild: ${title}` : 'Titelbild'}
+                                className="aspect-video w-full rounded-lg object-cover"
                                 src={heroPreviewUrl}
                             />
                         ) : null}
-                        <label className="mt-2 grid gap-2 text-sm">
+                        <label className="grid gap-2 text-sm font-medium">
                             <span>{heroAssetId === null ? 'Bild hochladen' : 'Bild ersetzen'}</span>
                             <Input
                                 accept="image/png,image/jpeg,image/webp"
@@ -512,7 +518,7 @@ export default function ArticleEditor({articleId}: {articleId?: number}) {
                                 }}
                                 type="file"
                             />
-                            <span className="text-xs text-muted-foreground">
+                            <span className="text-xs font-normal text-muted-foreground">
                                 Max. {mediaLimitLabel('IMAGE')}.
                             </span>
                         </label>
@@ -533,8 +539,30 @@ export default function ArticleEditor({articleId}: {articleId?: number}) {
                             }}
                             selectedId={heroAssetId}
                         />
-                    </div>
+                        {heroAssetId !== null ? (
+                            <Button
+                                disabled={isSaving || isUploadingHero}
+                                onClick={() => {
+                                    setHeroAssetId(null)
+                                    markDirty()
+                                }}
+                                size="sm"
+                                type="button"
+                                variant="outline"
+                            >
+                                Titelbild entfernen
+                            </Button>
+                        ) : null}
+                        </CardContent>
+                    </Card>
                     {article !== null ? (
+                        <Card>
+                            <CardContent className="flex flex-col gap-4 pt-(--card-spacing)">
+                                <SectionHeader
+                                    as="h3"
+                                    description="Kategorien strukturieren Website und Feeds."
+                                    title="Einordnung"
+                                />
                         <FormatCategoryPicker
                             categories={availableCategories}
                             disabled={busy}
@@ -545,6 +573,8 @@ export default function ArticleEditor({articleId}: {articleId?: number}) {
                             selectedCategoryIds={selectedCategoryIds}
                             selectedFormatIds={new Set()}
                         />
+                            </CardContent>
+                        </Card>
                     ) : null}
                 </>
             }

@@ -36,4 +36,18 @@ describe('sanitizeContentHtml', () => {
             sanitizeContentHtml('<p><a href="tel:+491234567890">call</a></p>'),
         ).toBe('<p><a href="tel:+491234567890">call</a></p>')
     })
+
+    it('preserves inline library images, strips unsafe sources', () => {
+        expect(
+            sanitizeContentHtml(
+                '<p>Text</p><figure><img src="https://cdn.example.test/t/public/images/a.png" alt="Cover" /></figure>',
+            ),
+        ).toContain('src="https://cdn.example.test/t/public/images/a.png"')
+        expect(
+            sanitizeContentHtml('<p><img src="data:image/png;base64,AAA" alt="x" /></p>'),
+        ).not.toContain('data:')
+        expect(
+            sanitizeContentHtml('<p><img src="javascript:alert(1)" alt="x" /></p>'),
+        ).not.toContain('javascript:')
+    })
 })
