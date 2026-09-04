@@ -152,14 +152,17 @@ export default function EpisodeEditor({episodeId}: {episodeId?: number}): React.
             return created
         }
 
-        const updated = await updateEpisode(host, episodeId, payload)
+        const updated = await updateEpisode(host, episodeId, {
+            ...payload,
+            clearCoverAsset: coverAssetId === null,
+        })
         const withTags = await persistTags(updated)
         setEpisode(withTags)
         setAllEpisodes((current) =>
             current.map((item) => (item.id === withTags.id ? withTags : item)),
         )
         return withTags
-    }, [episodeFields, episodeId, persistTags, router, seriesId])
+    }, [coverAssetId, episodeFields, episodeId, persistTags, router, seriesId])
 
     const {
         isSaving,

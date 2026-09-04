@@ -10,8 +10,8 @@ import SectionHeader from '@directwerk/ui/components/section-header'
 import {Textarea} from '@directwerk/ui/components/textarea'
 
 import Link from 'next/link'
-import type {ReactNode} from 'react'
-import {useState} from 'react'
+import type {KeyboardEvent, ReactNode} from 'react'
+import {useId, useState} from 'react'
 
 import AccessPolicySelect from '@/components/publication/AccessPolicySelect'
 import PublishConfirmDialog from '@/components/publication/PublishConfirmDialog'
@@ -22,6 +22,7 @@ import LevelSelect from '@/components/studio/LevelSelect'
 import {ShowNotesEditor} from '@/lib/dynamic/studioHeavy'
 import {safeLinkHref} from '@/lib/url/safeUrl'
 import type {AccessPolicy, PublicationStatus} from '@directwerk/api/types'
+import {sanitizeContentHtml} from '@directwerk/api/content/sanitizeContentHtml'
 
 interface PublicationEditorLayoutProps {
     kind: 'article' | 'episode'
@@ -133,6 +134,11 @@ export default function PublicationEditorLayout({
     const resolvedBackLabel = backLabel ?? (kind === 'episode' ? 'Alle Folgen' : 'Alle Beiträge')
     const [publishDialogOpen, setPublishDialogOpen] = useState(false)
     const [activeTab, setActiveTab] = useState<'write' | 'preview'>('write')
+    const tabIdPrefix = useId()
+    const writeTabId = `${tabIdPrefix}-write-tab`
+    const previewTabId = `${tabIdPrefix}-preview-tab`
+    const writePanelId = `${tabIdPrefix}-write-panel`
+    const previewPanelId = `${tabIdPrefix}-preview-panel`
 
     const slugBlocked =
         slug !== undefined &&
@@ -147,6 +153,20 @@ export default function PublicationEditorLayout({
     const isPublished = status === 'PUBLISHED'
     const isArchived = status === 'ARCHIVED'
     const previewLink = previewUrl !== null ? safeLinkHref(previewUrl) : null
+    const sanitizedBody = sanitizeContentHtml(body)
+
+    const handleTabKeyDown = (
+        event: KeyboardEvent<HTMLButtonElement>,
+        currentTab: 'write' | 'preview',
+    ): void => {
+        if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') {
+            return
+        }
+        event.preventDefault()
+        const nextTab = currentTab === 'write' ? 'preview' : 'write'
+        setActiveTab(nextTab)
+        document.getElementById(nextTab === 'write' ? writeTabId : previewTabId)?.focus()
+    }
 
     return (
         <PageStack className="gap-0">
@@ -298,28 +318,41 @@ export default function PublicationEditorLayout({
                         ) : null}
                         <div className="flex gap-1 border-b pb-3" role="tablist" aria-label="Inhalt oder Vorschau">
                             <Button
+                                aria-controls={writePanelId}
                                 aria-selected={activeTab === 'write'}
+                                id={writeTabId}
                                 onClick={() => setActiveTab('write')}
+                                onKeyDown={(event) => handleTabKeyDown(event, 'write')}
                                 role="tab"
                                 size="sm"
+                                tabIndex={activeTab === 'write' ? 0 : -1}
                                 type="button"
                                 variant={activeTab === 'write' ? 'secondary' : 'ghost'}
                             >
                                 Schreiben
                             </Button>
                             <Button
+                                aria-controls={previewPanelId}
                                 aria-selected={activeTab === 'preview'}
+                                id={previewTabId}
                                 onClick={() => setActiveTab('preview')}
+                                onKeyDown={(event) => handleTabKeyDown(event, 'preview')}
                                 role="tab"
                                 size="sm"
+                                tabIndex={activeTab === 'preview' ? 0 : -1}
                                 type="button"
                                 variant={activeTab === 'preview' ? 'secondary' : 'ghost'}
                             >
                                 Vorschau
                             </Button>
                         </div>
-                        {activeTab === 'write' ? (
-                            <div role="tabpanel">
+                        <div
+                            aria-labelledby={writeTabId}
+                            hidden={activeTab !== 'write'}
+                            id={writePanelId}
+                            role="tabpanel"
+                            tabIndex={activeTab === 'write' ? 0 : -1}
+                        >
                                 <ShowNotesEditor
                                     helperText={
                                         kind === 'episode'
@@ -332,9 +365,15 @@ export default function PublicationEditorLayout({
                                     disabled={fieldsDisabled}
                                     onAuthRequired={onAuthRequired}
                                 />
-                            </div>
-                        ) : (
-                            <div role="tabpanel" className="grid gap-4">
+                        </div>
+                        <div
+                            aria-labelledby={previewTabId}
+                            className="grid gap-4"
+                            hidden={activeTab !== 'preview'}
+                            id={previewPanelId}
+                            role="tabpanel"
+                            tabIndex={activeTab === 'preview' ? 0 : -1}
+                        >
                                 <p className="text-xs text-muted-foreground">
                                     So sieht der Text ungefähr auf der öffentlichen Seite aus. Eingebettete Bilder stammen aus der Mediathek (öffentliche Dateien).
                                 </p>
@@ -368,11 +407,9 @@ export default function PublicationEditorLayout({
                                         </p>
                                     ) : null}
                                     {body.trim().length > 0 ? (
-                                        /* Author preview of their own draft input; the API
-                                           sanitizes authoritatively on save. */
                                         <div
                                             className="content-prose"
-                                            dangerouslySetInnerHTML={{__html: body}}
+                                            dangerouslySetInnerHTML={{__html: sanitizedBody}}
                                         />
                                     ) : (
                                         <p className="text-sm text-muted-foreground">
@@ -380,8 +417,7 @@ export default function PublicationEditorLayout({
                                         </p>
                                     )}
                                 </article>
-                            </div>
-                        )}
+                        </div>
                         {kind === 'article' && onSeoDescriptionChange !== undefined ? (
                             <details className="grid gap-2 rounded-lg border p-3">
                                 <summary className="cursor-pointer text-sm font-medium">

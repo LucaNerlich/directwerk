@@ -57,10 +57,32 @@ vi.mock('@/lib/api/catalogApi', () => ({
 }))
 vi.mock('@/lib/api/mediaApi', () => ({
     listMedia: vi.fn().mockResolvedValue([]),
-    getMediaPreviewUrl: vi.fn(),
+    getMediaPreviewUrl: vi.fn().mockResolvedValue('https://cdn.example/preview.jpg'),
 }))
 
 describe('ArticleEditor tagging', () => {
+    it('sends an explicit signal when removing the hero asset', async () => {
+        const user = userEvent.setup()
+        updateArticle.mockClear()
+        getArticle.mockResolvedValueOnce({
+            id: 1, slug: 'beitrag', title: 'Beitrag', status: 'DRAFT', accessPolicy: 'FREE', publishedAt: null,
+            body: null, excerpt: null, seoDescription: null, heroAssetId: 12,
+            requiredLevelSortOrder: null, scheduledAt: null, categories: [],
+        })
+        render(<ArticleEditor articleId={1} />)
+
+        await user.click(await screen.findByRole('button', {name: 'Titelbild entfernen'}))
+        await user.click(screen.getByRole('button', {name: 'Speichern'}))
+
+        await waitFor(() =>
+            expect(updateArticle).toHaveBeenCalledWith(
+                'tenant.test',
+                1,
+                expect.objectContaining({clearHeroAsset: true}),
+            ),
+        )
+    })
+
     it('persists selected categories on save', async () => {
         const user = userEvent.setup()
         render(<ArticleEditor articleId={1} />)

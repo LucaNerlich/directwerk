@@ -238,7 +238,11 @@ export interface paths {
         get: operations["getEpisode"];
         put: operations["updateDraft"];
         post?: never;
-        delete?: never;
+        /**
+         * Delete an episode
+         * @description Deletes an episode in any status. Media assets are detached, never deleted (S3 objects survive); format/category assignments are removed with the episode. Custom and subscriber feeds select by format/category at read time and never reference episode ids, so no feed rules need cleanup — feeds simply stop including the episode. Returns 204 with an empty body.
+         */
+        delete: operations["deleteEpisode"];
         options?: never;
         head?: never;
         patch?: never;
@@ -318,7 +322,11 @@ export interface paths {
         get: operations["getArticle"];
         put: operations["updateDraft_1"];
         post?: never;
-        delete?: never;
+        /**
+         * Delete an article
+         * @description Deletes an article in any status. The hero asset is detached, never deleted (S3 objects survive); category assignments are removed with the article. Custom article feeds select by category at read time and never reference article ids, so no feed rules need cleanup — feeds simply stop including the article. Returns 204 with an empty body.
+         */
+        delete: operations["deleteArticle"];
         options?: never;
         head?: never;
         patch?: never;
@@ -2783,6 +2791,7 @@ export interface components {
             accessPolicy?: "FREE" | "PAID";
             /** Format: int32 */
             requiredLevelSortOrder?: number;
+            clearCoverAsset?: boolean;
         };
         CategoryView: {
             /** Format: int64 */
@@ -3339,17 +3348,20 @@ export interface components {
             empty?: boolean;
             null?: boolean;
             float?: boolean;
-            integralNumber?: boolean;
-            floatingPointNumber?: boolean;
-            number?: boolean;
             container?: boolean;
+            number?: boolean;
             /** @enum {string} */
             nodeType?: "ARRAY" | "BINARY" | "BOOLEAN" | "MISSING" | "NULL" | "NUMBER" | "OBJECT" | "POJO" | "STRING";
             string?: boolean;
+            integralNumber?: boolean;
             missingNode?: boolean;
             valueNode?: boolean;
             object?: boolean;
+            pojo?: boolean;
+            floatingPointNumber?: boolean;
             short?: boolean;
+            int?: boolean;
+            long?: boolean;
             double?: boolean;
             bigDecimal?: boolean;
             bigInteger?: boolean;
@@ -3357,9 +3369,6 @@ export interface components {
             textual?: boolean;
             boolean?: boolean;
             binary?: boolean;
-            pojo?: boolean;
-            int?: boolean;
-            long?: boolean;
             embeddedValue?: boolean;
         };
         QueueJob: {
@@ -5092,6 +5101,33 @@ export interface operations {
             };
         };
     };
+    deleteEpisode: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                episodeId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Episode deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Unknown id, or id belongs to another tenant (EPISODE_NOT_FOUND) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     replaceFormats: {
         parameters: {
             query?: never;
@@ -5263,6 +5299,33 @@ export interface operations {
                 content: {
                     "*/*": components["schemas"]["ResponseArticleView"];
                 };
+            };
+        };
+    };
+    deleteArticle: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                articleId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Article deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Unknown id, or id belongs to another tenant (ARTICLE_NOT_FOUND) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };

@@ -214,7 +214,8 @@ public class EpisodeService {
             Long coverAssetId,
             Integer durationSeconds,
             AccessPolicy accessPolicy,
-            Integer requiredLevelSortOrder
+            Integer requiredLevelSortOrder,
+            Boolean clearCoverAsset
     ) {
         Episode episode = requireDraftEpisode(tenantId, episodeId);
         if (episodeNumber != null) {
@@ -233,7 +234,9 @@ public class EpisodeService {
         if (description != null) {
             episode.setDescription(htmlSanitizer.sanitize(description));
         }
-        if (coverAssetId != null) {
+        if (Boolean.TRUE.equals(clearCoverAsset)) {
+            episode.setCoverAsset(null);
+        } else if (coverAssetId != null) {
             episode.setCoverAsset(podcastCoverAssetResolver.resolveCoverAsset(tenantId, coverAssetId));
         }
         if (durationSeconds != null) {

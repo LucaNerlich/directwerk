@@ -18,6 +18,7 @@
         "./validation/adminModules": "./src/validation/adminModules.ts",
         "./format": "./src/format/money.ts",
         "./media/browserUpload": "./src/media/browserUpload.ts",
+        "./content/sanitizeContentHtml": "./src/content/sanitizeContentHtml.ts",
         "./proxy": "./src/proxy/index.ts",
         "./proxy/*": "./src/proxy/*",
         "./proxy/platformRouteHandler": "./src/proxy/platformRouteHandler.ts",
@@ -46,11 +47,13 @@
         "check:openapi": "pnpm generate:openapi && git diff --exit-code -- src/generated/openapi.ts"
     },
     "dependencies": {
+        "sanitize-html": "2.17.5",
         "server-only": "^0.0.1"
     },
     "devDependencies": {
         "@types/node": "^22.20.1",
         "@types/react": "^19.2.18",
+        "@types/sanitize-html": "^2.16.1",
         "jsdom": "^26.1.0",
         "openapi-typescript": "^7.10.1",
         "typescript": "^5.9.3",

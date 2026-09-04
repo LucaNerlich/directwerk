@@ -295,7 +295,8 @@ Accept: application/json
 {
   "title": "Harness Episode Updated",
   "description": "<p>Updated show notes.</p>",
-  "accessPolicy": "FREE"
+  "accessPolicy": "FREE",
+  "clearCoverAsset": false
 }
 
 > {%

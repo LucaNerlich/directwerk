@@ -33,6 +33,28 @@ function escapeHtml(value: string): string {
         .replace(/"/g, '&quot;')
 }
 
+export function sanitizePastedHtml(html: string): string {
+    const parsed = new DOMParser().parseFromString(
+        html
+            .replace(/\s(?:style|class|id)="[^"]*"/gi, '')
+            .replace(/\son[a-z0-9-]+\s*=\s*("[^"]*"|'[^']*')/gi, '')
+            .replace(/href\s*=\s*("|')\s*(?:javascript|data):[^"']*\1/gi, '')
+            .replace(/<(script|style|iframe)[\s\S]*?<\/\1>/gi, ''),
+        'text/html',
+    )
+
+    parsed.body.querySelectorAll('img').forEach((image) => {
+        const src = safeImageSrc(image.getAttribute('src'))
+        if (src === null) {
+            image.remove()
+            return
+        }
+        image.setAttribute('src', src)
+    })
+
+    return parsed.body.innerHTML
+}
+
 /**
  * Provides a rich-text editor for show notes or post content.
  *
@@ -105,13 +127,7 @@ export default function ShowNotesEditor({
                 'data-placeholder': placeholder,
             },
             transformPastedHTML(html) {
-                return html
-                    .replace(/\s(?:style|class|id)="[^"]*"/gi, '')
-                    .replace(/\son[a-z0-9-]+\s*=\s*("[^"]*"|'[^']*')/gi, '')
-                    .replace(/\ssrc\s*=\s*("|')\s*(?:javascript|data):[^"']*\1/gi, '')
-                    .replace(/href\s*=\s*("|')\s*(?:javascript|data):[^"']*\1/gi, '')
-                    .replace(/<(script|style|iframe)[\s\S]*?<\/\1>/gi, '')
-                    .replace(/<img(?![^>]*\ssrc\s*=)[^>]*>/gi, '')
+                return sanitizePastedHtml(html)
             },
         },
     })

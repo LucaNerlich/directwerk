@@ -112,7 +112,8 @@ public class EpisodeController {
                 request.coverAssetId(),
                 request.durationSeconds(),
                 request.accessPolicy(),
-                request.requiredLevelSortOrder()
+                request.requiredLevelSortOrder(),
+                request.clearCoverAsset()
         );
         return ResponseEntity.ok(Response.ok(publicEpisodeViewMapper.toStudioView(episode)));
     }
@@ -261,7 +262,8 @@ public class EpisodeController {
             @Min(1) Long coverAssetId,
             @Min(1) Integer durationSeconds,
             AccessPolicy accessPolicy,
-            @Min(0) Integer requiredLevelSortOrder
+            @Min(0) Integer requiredLevelSortOrder,
+            Boolean clearCoverAsset
     ) {
     }
 

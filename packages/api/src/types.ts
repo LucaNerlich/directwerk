@@ -183,6 +183,7 @@ export interface UpdateArticleInput {
     seoDescription?: string
     accessPolicy?: AccessPolicy
     heroAssetId?: number
+    clearHeroAsset?: boolean
     requiredLevelSortOrder?: number
 }
 
@@ -205,6 +206,7 @@ export interface UpdateEpisodeInput {
     episodeNumber?: number
     requiredLevelSortOrder?: number
     coverAssetId?: number
+    clearCoverAsset?: boolean
 }
 
 export interface CreateSeriesInput {

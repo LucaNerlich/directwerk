@@ -2,7 +2,7 @@ import {render, screen, waitFor} from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import {describe, expect, it, vi} from 'vitest'
 
-import ShowNotesEditor from '@/components/editors/ShowNotesEditor'
+import ShowNotesEditor, {sanitizePastedHtml} from '@/components/editors/ShowNotesEditor'
 
 vi.mock('@directwerk/api/tenant', () => ({getClientTenantHost: () => 'tenant.test'}))
 vi.mock('next/link', () => ({
@@ -49,6 +49,18 @@ vi.mock('@/lib/api/mediaApi', () => ({
 }))
 
 describe('ShowNotesEditor', () => {
+    it('rejects unquoted unsafe pasted image sources and preserves HTTPS sources', () => {
+        const sanitized = sanitizePastedHtml(
+            '<p><img src=javascript:alert(1) alt="bad"><img src=data:image/png;base64,AAA alt="data"><img src="https://cdn.example.test/image.png" alt="good"></p>',
+        )
+
+        expect(sanitized).not.toContain('javascript:')
+        expect(sanitized).not.toContain('data:image')
+        expect(sanitized).not.toContain('alt="bad"')
+        expect(sanitized).not.toContain('alt="data"')
+        expect(sanitized).toContain('src="https://cdn.example.test/image.png"')
+    })
+
     it('does not report a content change when mounted or disabled', async () => {
         const onChange = vi.fn()
         const {container, rerender} = render(

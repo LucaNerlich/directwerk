@@ -129,7 +129,10 @@ export default function ArticleEditor({articleId}: {articleId?: number}) {
                 return created
             }
 
-            const updated = await updateArticle(host, articleId, payload)
+            const updated = await updateArticle(host, articleId, {
+                ...payload,
+                clearHeroAsset: heroAssetId === null,
+            })
             const withTags = await persistTags(updated)
             setArticle(withTags)
             setAllArticles((current) =>
