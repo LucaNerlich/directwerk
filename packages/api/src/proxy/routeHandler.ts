@@ -3,7 +3,7 @@ import {parseJsonText} from '../validation/json'
 import {readBoundedRequestBody} from './boundedBody'
 import {
     buildProxyPath,
-    buildSafePreviewQueryString,
+    buildSafeProxyQuery,
     hasUnsupportedProxyQuery,
     readBearerToken,
 } from './path'
@@ -18,8 +18,9 @@ export interface UpstreamFetchRequest {
     body?: string
     contentType?: 'application/json' | 'application/x-www-form-urlencoded'
     /**
-     * Canonical `?…` query for the feed-builder preview paths (built by
-     * {@link buildSafePreviewQueryString}); undefined everywhere else.
+     * Canonical `?…` query for allowlisted paths (feed-builder previews,
+     * media library list/delete — built by {@link buildSafeProxyQuery});
+     * undefined everywhere else.
      */
     query?: string
 }
@@ -56,7 +57,8 @@ export type TenantProxyRouteHandlers = Record<
  * Behaviour (identical across apps):
  * - requires a valid `X-Tenant-Host` header
  * - rejects unsafe path segments and query strings except the allowlisted
- *   feed-builder preview id lists (`formatIds` / `categoryIds`)
+ *   feed-builder preview id lists (`formatIds` / `categoryIds`) and the
+ *   media-library list/delete filter params
  * - requires a bearer token unless the path is public (`/api/v1/public/…`)
  * - enforces a JSON-only request body within the configured byte limit
  * - normalizes upstream failures into JSON error responses
@@ -150,17 +152,15 @@ export function createTenantProxyRouteHandler(
         }
 
         if (hasUnsupportedProxyQuery(request.url)) {
-            // Feed-builder previews are the only tenant-proxy calls with a
-            // query string; anything else (or a malformed preview query)
-            // keeps the blanket rejection.
-            const previewQuery =
-                method === 'GET'
-                    ? buildSafePreviewQueryString(
-                          apiPath,
-                          new URL(request.url).searchParams,
-                      )
-                    : null
-            if (previewQuery === null) {
+            // Only the feed-builder previews and the media-library
+            // list/delete endpoints carry query strings; anything else
+            // (or a malformed query) keeps the blanket rejection.
+            const query = buildSafeProxyQuery(
+                apiPath,
+                method,
+                new URL(request.url).searchParams,
+            )
+            if (query === null) {
                 return jsonError('Query parameters are not supported.', 400)
             }
             return proxyUpstream(request, {
@@ -168,7 +168,7 @@ export function createTenantProxyRouteHandler(
                 apiPath,
                 method,
                 bearerToken: bearerToken ?? undefined,
-                query: previewQuery,
+                query,
             })
         }
 

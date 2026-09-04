@@ -1,4 +1,12 @@
-export {buildProxyPath, buildSafePreviewQueryString, hasUnsupportedProxyQuery, readBearerToken} from './path'
+export {
+    buildProxyPath,
+    buildSafeMediaFolderDeleteQueryString,
+    buildSafeMediaListQueryString,
+    buildSafePreviewQueryString,
+    buildSafeProxyQuery,
+    hasUnsupportedProxyQuery,
+    readBearerToken,
+} from './path'
 export {parseTenantHost} from './tenantHost'
 export {jsonError, toClientResponse, NO_STORE_HEADERS} from './upstreamResponse'
 export {readBoundedBody, readBoundedRequestBody} from './boundedBody'
