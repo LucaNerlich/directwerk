@@ -13,7 +13,6 @@ export interface UseAuthedQueryResult<T> {
 
 export interface UseAuthedQueryOptions {
     fallbackError?: string
-    enabled?: boolean
 }
 
 export function useAuthedQuery<T>(
@@ -22,11 +21,10 @@ export function useAuthedQuery<T>(
 ): UseAuthedQueryResult<T> {
     const authRedirect = useAuthRequired()
     const fallbackError = options.fallbackError ?? 'Laden fehlgeschlagen.'
-    const enabled = options.enabled !== false
 
     const [data, setData] = useState<T | null>(null)
     const [error, setError] = useState<string | null>(null)
-    const [isLoading, setIsLoading] = useState(enabled)
+    const [isLoading, setIsLoading] = useState(true)
     const [reloadToken, setReloadToken] = useState(0)
 
     const reload = useCallback(() => {
@@ -34,11 +32,6 @@ export function useAuthedQuery<T>(
     }, [])
 
     useEffect(() => {
-        if (!enabled) {
-            setIsLoading(false)
-            return
-        }
-
         let active = true
         setIsLoading(true)
         setError(null)
@@ -70,7 +63,7 @@ export function useAuthedQuery<T>(
         return () => {
             active = false
         }
-    }, [authRedirect, enabled, fallbackError, reloadToken])
+    }, [authRedirect, fallbackError, reloadToken])
 
     return {data, error, isLoading, reload}
 }

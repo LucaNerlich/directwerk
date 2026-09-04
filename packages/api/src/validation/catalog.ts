@@ -180,20 +180,7 @@ function parseTag(value: unknown): Tag | null {
 }
 
 function parseTagArray(value: unknown): Tag[] | null {
-    if (!Array.isArray(value) || value.length > 100) {
-        return null
-    }
-
-    const parsed: Tag[] = []
-    for (const item of value) {
-        const tag = parseTag(item)
-        if (tag === null) {
-            return null
-        }
-        parsed.push(tag)
-    }
-
-    return parsed
+    return parseBoundedArray(value, 100, parseTag)
 }
 
 function parseArticleDetail(value: unknown): ArticleDetail | null {
@@ -1582,20 +1569,18 @@ function parseTenantSubscriber(value: unknown): TenantSubscriber | null {
         !isPositiveSafeInteger(value.userId) ||
         !isBoundedString(value.email, 254) ||
         !isNullableString(value.name, 255) ||
-        !isBoundedString(value.status, 64) ||
-        !Array.isArray(value.subscriptions) ||
-        value.subscriptions.length > 100
+        !isBoundedString(value.status, 64)
     ) {
         return null
     }
 
-    const subscriptions: TenantSubscriberSubscription[] = []
-    for (const item of value.subscriptions) {
-        const subscription = parseTenantSubscriberSubscription(item)
-        if (subscription === null) {
-            return null
-        }
-        subscriptions.push(subscription)
+    const subscriptions = parseBoundedArray(
+        value.subscriptions,
+        100,
+        parseTenantSubscriberSubscription,
+    )
+    if (subscriptions === null) {
+        return null
     }
 
     return {

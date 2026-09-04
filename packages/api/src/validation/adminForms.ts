@@ -12,7 +12,7 @@ import {
     PLATFORM_TENANT_INVITABLE_ROLES,
 } from '../types'
 import {parseTenantHost} from '../proxy'
-import {isRecord} from './primitives'
+import {isRecord, isValidEmail} from './primitives'
 import type {LoginInput} from './input'
 
 export type LoginCredentials = LoginInput
@@ -48,7 +48,6 @@ export type CreateTenantValidationResult =
     | {success: true; data: CreateTenantInput}
     | {success: false; error: string}
 
-const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const LOGIN_KEYS = new Set(['email', 'password'])
 const TENANT_INVITE_KEYS = new Set(['email', 'name', 'role'])
 const PLATFORM_ADMIN_INVITE_KEYS = new Set(['email', 'name'])
@@ -90,7 +89,7 @@ export function validateLoginInput(input: unknown): LoginValidationResult {
     const normalizedEmail = typeof email === 'string' ? email.trim() : ''
 
     if (
-        !EMAIL_PATTERN.test(normalizedEmail) ||
+        !isValidEmail(normalizedEmail) ||
         normalizedEmail.length > 254 ||
         typeof password !== 'string' ||
         password.length < 1 ||
@@ -135,7 +134,7 @@ export function validateTenantUserInviteInput(
             : null
 
     if (
-        !EMAIL_PATTERN.test(normalizedEmail) ||
+        !isValidEmail(normalizedEmail) ||
         normalizedEmail.length > 254 ||
         (normalizedName !== null && normalizedName.length > MAX_NAME_LENGTH) ||
         typeof role !== 'string' ||
@@ -183,7 +182,7 @@ export function validatePlatformAdminInviteInput(
             : null
 
     if (
-        !EMAIL_PATTERN.test(normalizedEmail) ||
+        !isValidEmail(normalizedEmail) ||
         normalizedEmail.length > 254 ||
         (normalizedName !== null && normalizedName.length > MAX_NAME_LENGTH)
     ) {
@@ -229,7 +228,11 @@ function parseOptionalInstant(value: unknown): string | undefined {
     return normalized
 }
 
-function parseOptionalOffset(value: unknown): number | undefined {
+function parseOptionalIntInRange(
+    value: unknown,
+    min: number,
+    max: number,
+): number | undefined {
     if (value === undefined || value === null || value === '') {
         return undefined
     }
@@ -241,30 +244,19 @@ function parseOptionalOffset(value: unknown): number | undefined {
               ? Number.parseInt(value.trim(), 10)
               : Number.NaN
 
-    if (!Number.isSafeInteger(parsed) || parsed < 0) {
+    if (!Number.isSafeInteger(parsed) || parsed < min || parsed > max) {
         return undefined
     }
 
     return parsed
 }
 
+function parseOptionalOffset(value: unknown): number | undefined {
+    return parseOptionalIntInRange(value, 0, Infinity)
+}
+
 function parseOptionalLimit(value: unknown): number | undefined {
-    if (value === undefined || value === null || value === '') {
-        return undefined
-    }
-
-    const parsed =
-        typeof value === 'number'
-            ? value
-            : typeof value === 'string' && /^\d+$/.test(value.trim())
-              ? Number.parseInt(value.trim(), 10)
-              : Number.NaN
-
-    if (!Number.isSafeInteger(parsed) || parsed < 1 || parsed > 100) {
-        return undefined
-    }
-
-    return parsed
+    return parseOptionalIntInRange(value, 1, 100)
 }
 
 export function validateCreateTenantInput(
@@ -305,7 +297,7 @@ export function validateCreateTenantInput(
 
     if (
         adminEmail !== undefined &&
-        (!EMAIL_PATTERN.test(adminEmail) || adminEmail.length > 254)
+        (!isValidEmail(adminEmail) || adminEmail.length > 254)
     ) {
         return {success: false, error: 'Enter a valid admin email.'}
     }
