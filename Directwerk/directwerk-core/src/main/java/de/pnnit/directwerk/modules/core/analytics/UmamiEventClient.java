@@ -5,6 +5,7 @@ import de.pnnit.directwerk.config.DirectwerkProperties;
 import de.pnnit.directwerk.modules.core.util.UmamiHostUrlValidator;
 import jakarta.annotation.PreDestroy;
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.InetAddress;
 import java.net.URI;
 import java.net.UnknownHostException;
@@ -38,6 +39,7 @@ import tools.jackson.databind.ObjectMapper;
 public class UmamiEventClient {
 
     private static final Duration REQUEST_TIMEOUT = Duration.ofSeconds(5);
+    static final int RESPONSE_PREFIX_BYTES = 8 * 1024;
 
     /**
      * Collector {@code User-Agent} for {@code POST /api/send}.
@@ -262,7 +264,7 @@ public class UmamiEventClient {
         }
     }
 
-    private record JdkEventSender(HttpClient httpClient) implements EventSender {
+    record JdkEventSender(HttpClient httpClient) implements EventSender {
 
         @Override
         public UmamiDelivery send(URI uri, String body, String userAgent, String clientIp)
@@ -277,8 +279,12 @@ public class UmamiEventClient {
                 builder.header("X-Forwarded-For", clientIp.trim());
             }
             HttpRequest request = builder.build();
-            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-            return new UmamiDelivery(response.statusCode(), response.body());
+            HttpResponse<InputStream> response = httpClient.send(
+                    request,
+                    HttpResponse.BodyHandlers.ofInputStream());
+            try (InputStream responseBody = response.body()) {
+                return new UmamiDelivery(response.statusCode(), readResponsePrefix(responseBody));
+            }
         }
     }
 
@@ -332,12 +338,15 @@ public class UmamiEventClient {
                         .build());
                 // The URI keeps the original hostname, so the default TLS verifier checks it
                 // while the custom resolver connects only to the already validated addresses.
-                return client.execute(request, response -> new UmamiDelivery(
+                return client.execute(request, response -> toDelivery(
                         response.getCode(),
-                        response.getEntity() == null
-                                ? null
-                                : org.apache.hc.core5.http.io.entity.EntityUtils.toString(
-                                        response.getEntity(), StandardCharsets.UTF_8)));
+                        response.getEntity() == null ? null : response.getEntity().getContent()));
+            }
+        }
+
+        static UmamiDelivery toDelivery(int statusCode, InputStream responseBody) throws IOException {
+            try (responseBody) {
+                return new UmamiDelivery(statusCode, readResponsePrefix(responseBody));
             }
         }
 
@@ -347,6 +356,13 @@ public class UmamiEventClient {
             }
             return host;
         }
+    }
+
+    private static String readResponsePrefix(InputStream responseBody) throws IOException {
+        if (responseBody == null) {
+            return null;
+        }
+        return new String(responseBody.readNBytes(RESPONSE_PREFIX_BYTES), StandardCharsets.UTF_8);
     }
 
     private record UmamiRequest(String type, UmamiPayload payload) {
