@@ -1,7 +1,9 @@
 package de.pnnit.directwerk.controller.publicapi;
 
+import de.pnnit.directwerk.config.DirectwerkConfig;
 import de.pnnit.directwerk.modules.core.RequiresModule;
 import de.pnnit.directwerk.modules.core.analytics.FeedFetchAnalyticsService;
+import de.pnnit.directwerk.modules.core.util.ClientIpExtractor;
 import de.pnnit.directwerk.modules.core.entity.Tenant;
 import de.pnnit.directwerk.modules.digital.DigitalContentModule;
 import de.pnnit.directwerk.modules.digital.storage.FeedRedirects;
@@ -13,7 +15,10 @@ import de.pnnit.directwerk.modules.newsletter.service.ArticleViewDeliveryFacade;
 import de.pnnit.directwerk.modules.subscription.SubscriptionModule;
 import de.pnnit.directwerk.multitenancy.TenantResolver;
 import jakarta.servlet.http.HttpServletRequest;
+import java.util.Set;
+import java.util.stream.Collectors;
 import org.springframework.http.ResponseEntity;
+import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -28,19 +33,25 @@ public class ArticleRssFeedController {
     private final ArticleRssFeedSnapshotService articleRssFeedSnapshotService;
     private final ArticleViewDeliveryFacade articleViewDeliveryFacade;
     private final FeedFetchAnalyticsService feedFetchAnalyticsService;
+    private final Set<String> trustedProxies;
 
     public ArticleRssFeedController(
             TenantResolver tenantResolver,
             ArticleFeedService articleFeedService,
             ArticleRssFeedSnapshotService articleRssFeedSnapshotService,
             ArticleViewDeliveryFacade articleViewDeliveryFacade,
-            FeedFetchAnalyticsService feedFetchAnalyticsService
+            FeedFetchAnalyticsService feedFetchAnalyticsService,
+            DirectwerkConfig directwerkConfig
     ) {
         this.tenantResolver = tenantResolver;
         this.articleFeedService = articleFeedService;
         this.articleRssFeedSnapshotService = articleRssFeedSnapshotService;
         this.articleViewDeliveryFacade = articleViewDeliveryFacade;
         this.feedFetchAnalyticsService = feedFetchAnalyticsService;
+        this.trustedProxies = directwerkConfig.security().trustedProxies().stream()
+                .filter(StringUtils::hasText)
+                .map(String::trim)
+                .collect(Collectors.toUnmodifiableSet());
     }
 
     @GetMapping("/articles.xml")
@@ -51,7 +62,12 @@ public class ArticleRssFeedController {
     ) {
         Tenant tenant = tenantResolver.requireHostTenantBySlug(tenantSlug);
         feedFetchAnalyticsService.trackFeedFetch(
-                tenant.getId(), "article", "public", request.getServerName(), request.getHeader("User-Agent"));
+                tenant.getId(),
+                "article",
+                "public",
+                request.getServerName(),
+                request.getHeader("User-Agent"),
+                clientIp(request));
         var delivery = articleRssFeedSnapshotService.publicTenantFeed(tenant);
         return FeedRedirects.rssRedirect(delivery.redirectUrl(), delivery.ready());
     }
@@ -66,7 +82,12 @@ public class ArticleRssFeedController {
         Tenant tenant = tenantResolver.requireHostTenantBySlug(tenantSlug);
         ArticleFeed feed = articleFeedService.requireDeliverableFeed(tenant.getId(), feedToken);
         feedFetchAnalyticsService.trackFeedFetch(
-                tenant.getId(), "article", "private", request.getServerName(), request.getHeader("User-Agent"));
+                tenant.getId(),
+                "article",
+                "private",
+                request.getServerName(),
+                request.getHeader("User-Agent"),
+                clientIp(request));
         var delivery = articleRssFeedSnapshotService.privateFeed(tenant, feed);
         return FeedRedirects.rssRedirect(delivery.redirectUrl(), delivery.ready());
     }
@@ -85,7 +106,8 @@ public class ArticleRssFeedController {
                 request.getScheme(),
                 request.getServerName(),
                 request.getServerPort(),
-                request.getHeader("User-Agent")
+                request.getHeader("User-Agent"),
+                clientIp(request)
         ).response();
     }
 
@@ -105,7 +127,19 @@ public class ArticleRssFeedController {
                 request.getScheme(),
                 request.getServerName(),
                 request.getServerPort(),
-                request.getHeader("User-Agent")
+                request.getHeader("User-Agent"),
+                clientIp(request)
         ).response();
+    }
+
+    private String clientIp(HttpServletRequest request) {
+        String remoteAddr = request.getRemoteAddr();
+        if (remoteAddr == null || !trustedProxies.contains(remoteAddr)) {
+            return ClientIpExtractor.extract(null, null, remoteAddr);
+        }
+        return ClientIpExtractor.extract(
+                request.getHeader("X-Forwarded-For"),
+                request.getHeader("X-Real-IP"),
+                remoteAddr);
     }
 }

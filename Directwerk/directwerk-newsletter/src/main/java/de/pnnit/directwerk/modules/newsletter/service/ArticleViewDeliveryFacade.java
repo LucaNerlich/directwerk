@@ -53,11 +53,25 @@ public class ArticleViewDeliveryFacade {
             int port,
             String clientUserAgent
     ) {
+        return publicView(tenantId, articleSlug, scheme, requestHost, port, clientUserAgent, null);
+    }
+
+    @Transactional(readOnly = true)
+    public TrackedArticleRedirect publicView(
+            Long tenantId,
+            String articleSlug,
+            String scheme,
+            String requestHost,
+            int port,
+            String clientUserAgent,
+            String clientIp
+    ) {
         Article article = publicArticleQueryService.requirePublishedArticle(tenantId, articleSlug);
         if (!PublicSurfacePolicy.includesInPublicRss(article.getAccessPolicy().name())) {
             throw new ArticleNotFoundException(articleSlug);
         }
-        articleViewAnalyticsService.trackArticleView(tenantId, article, "rss-click", requestHost, clientUserAgent);
+        articleViewAnalyticsService.trackArticleView(
+                tenantId, article, "rss-click", requestHost, clientUserAgent, clientIp);
         return redirect(article, tenantId, scheme, requestHost, port);
     }
 
@@ -80,13 +94,27 @@ public class ArticleViewDeliveryFacade {
             int port,
             String clientUserAgent
     ) {
+        return privateView(feed, articleSlug, scheme, requestHost, port, clientUserAgent, null);
+    }
+
+    @Transactional(readOnly = true)
+    public TrackedArticleRedirect privateView(
+            ArticleFeed feed,
+            String articleSlug,
+            String scheme,
+            String requestHost,
+            int port,
+            String clientUserAgent,
+            String clientIp
+    ) {
         Long tenantId = feed.getTenant().getId();
         Article article = publicArticleQueryService.requirePublishedArticle(tenantId, articleSlug);
         if (!articleFeedAccess.hasArticleAccess(tenantId, feed.getUser().getId(), feed, article)) {
             // Never 403 — avoids feed-token oracle.
             throw new ArticleNotFoundException(articleSlug);
         }
-        articleViewAnalyticsService.trackArticleView(tenantId, article, "private-rss", requestHost, clientUserAgent);
+        articleViewAnalyticsService.trackArticleView(
+                tenantId, article, "private-rss", requestHost, clientUserAgent, clientIp);
         return redirect(article, tenantId, scheme, requestHost, port);
     }
 

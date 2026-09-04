@@ -48,7 +48,7 @@ class ArticleViewDeliveryFacadeTest {
         assertThat(tracked.response().getHeaders().getCacheControl()).isEqualTo("no-store");
         assertThat(tracked.targetUrl()).isEqualTo("https://alpha.example.test/articles/hello-world");
         verify(articleViewAnalyticsService)
-                .trackArticleView(10L, article, "rss-click", "alpha.example.test", "Reader/1.0");
+                .trackArticleView(10L, article, "rss-click", "alpha.example.test", "Reader/1.0", null);
     }
 
     @Test

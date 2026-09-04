@@ -5,6 +5,7 @@ import de.pnnit.directwerk.config.DirectwerkProperties;
 import de.pnnit.directwerk.modules.core.util.UmamiHostUrlValidator;
 import jakarta.annotation.PreDestroy;
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.InetAddress;
 import java.net.URI;
 import java.net.UnknownHostException;
@@ -38,6 +39,20 @@ import tools.jackson.databind.ObjectMapper;
 public class UmamiEventClient {
 
     private static final Duration REQUEST_TIMEOUT = Duration.ofSeconds(5);
+    static final int RESPONSE_PREFIX_BYTES = 8 * 1024;
+
+    /**
+     * Collector {@code User-Agent} for {@code POST /api/send}.
+     *
+     * <p>Umami runs {@code isbot} on the collector request and silently drops bot-classified
+     * events with HTTP 200 {@code {"beep":"boop"}}, so a custom token such as
+     * {@code Directwerk/1.0} never reaches the dashboard even though delivery "succeeds".
+     * Podcatcher UAs must not be forwarded either (they are bot-classified too) — the real
+     * client stays in the event {@code data} ({@code clientUserAgent}) while this stable
+     * browser UA satisfies the bot filter.
+     */
+    static final String COLLECTOR_USER_AGENT =
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36";
 
     private final DirectwerkConfig directwerkConfig;
     private final ObjectMapper objectMapper;
@@ -86,6 +101,18 @@ public class UmamiEventClient {
             String eventName,
             Map<String, Object> data
     ) {
+        trackEvent(hostUrl, websiteId, hostname, url, eventName, data, null);
+    }
+
+    public void trackEvent(
+            String hostUrl,
+            String websiteId,
+            String hostname,
+            String url,
+            String eventName,
+            Map<String, Object> data,
+            String clientIp
+    ) {
         if (isBlank(websiteId)) {
             return;
         }
@@ -95,7 +122,8 @@ public class UmamiEventClient {
         }
 
         try {
-            executor.execute(() -> sendEvent(sendUri.get(), websiteId, hostname, url, eventName, data));
+            executor.execute(() -> sendEvent(
+                    sendUri.get(), websiteId, hostname, url, eventName, data, clientIp));
         } catch (RuntimeException ex) {
             log.debug("Umami event task could not be scheduled: {}", ex.toString());
         }
@@ -118,7 +146,8 @@ public class UmamiEventClient {
             String hostname,
             String url,
             String eventName,
-            Map<String, Object> data
+            Map<String, Object> data,
+            String clientIp
     ) {
         try {
             String body = objectMapper.writeValueAsString(new UmamiRequest(
@@ -131,14 +160,19 @@ public class UmamiEventClient {
                             data == null ? Map.of() : Map.copyOf(data)
                     )
             ));
-            String userAgent = directwerkConfig.analytics().userAgent();
-            int statusCode = eventSender.send(
-                    sendUri,
-                    body,
-                    isBlank(userAgent) ? "Directwerk/1.0" : userAgent
-            );
+            String userAgent = resolveCollectorUserAgent();
+            UmamiDelivery delivery = eventSender.send(sendUri, body, userAgent, clientIp);
+            int statusCode = delivery.statusCode();
             if (statusCode < 200 || statusCode >= 300) {
                 log.warn("Umami event returned HTTP {} for event {}", statusCode, eventName);
+            } else if (delivery.isBotDrop()) {
+                log.warn(
+                        "Umami silently dropped event {} as bot traffic (isbot matched collector User-Agent '{}'). "
+                                + "Check DIRECTWERK_ANALYTICS_USER_AGENT — it must look like a real browser.",
+                        eventName,
+                        userAgent);
+            } else {
+                log.debug("Umami event {} delivered to {}", eventName, sendUri.getHost());
             }
         } catch (Exception ex) {
             if (ex instanceof InterruptedException) {
@@ -146,6 +180,26 @@ public class UmamiEventClient {
             }
             log.warn("Umami event delivery failed for event {}: {}", eventName, ex.toString());
         }
+    }
+
+    /**
+     * Returns the configured collector UA only when it looks like a real browser; any custom
+     * token ({@code Directwerk/1.0}, podcatcher UAs, empty) is replaced with the safe default
+     * so existing deployments recover without an env change.
+     */
+    String resolveCollectorUserAgent() {
+        String configured = directwerkConfig.analytics() == null
+                ? null
+                : directwerkConfig.analytics().userAgent();
+        if (!isBlank(configured) && configured.toLowerCase(java.util.Locale.ROOT).contains("mozilla")) {
+            return configured.trim();
+        }
+        if (!isBlank(configured)) {
+            log.debug(
+                    "Ignoring bot-classified analytics User-Agent '{}'; using browser collector UA instead",
+                    configured);
+        }
+        return COLLECTOR_USER_AGENT;
     }
 
     private Optional<URI> sendUri(String hostUrlOverride) {
@@ -199,21 +253,38 @@ public class UmamiEventClient {
     @FunctionalInterface
     private interface EventSender {
 
-        int send(URI uri, String body, String userAgent) throws IOException, InterruptedException;
+        UmamiDelivery send(URI uri, String body, String userAgent, String clientIp)
+                throws IOException, InterruptedException;
     }
 
-    private record JdkEventSender(HttpClient httpClient) implements EventSender {
+    record UmamiDelivery(int statusCode, String responseBody) {
+
+        boolean isBotDrop() {
+            return responseBody != null && responseBody.contains("beep");
+        }
+    }
+
+    record JdkEventSender(HttpClient httpClient) implements EventSender {
 
         @Override
-        public int send(URI uri, String body, String userAgent) throws IOException, InterruptedException {
-            HttpRequest request = HttpRequest.newBuilder(uri)
+        public UmamiDelivery send(URI uri, String body, String userAgent, String clientIp)
+                throws IOException, InterruptedException {
+            HttpRequest.Builder builder = HttpRequest.newBuilder(uri)
                     .timeout(REQUEST_TIMEOUT)
                     .header("Content-Type", "application/json")
                     .header("Accept", "application/json")
                     .header("User-Agent", userAgent)
-                    .POST(HttpRequest.BodyPublishers.ofString(body, StandardCharsets.UTF_8))
-                    .build();
-            return httpClient.send(request, HttpResponse.BodyHandlers.discarding()).statusCode();
+                    .POST(HttpRequest.BodyPublishers.ofString(body, StandardCharsets.UTF_8));
+            if (!isBlank(clientIp)) {
+                builder.header("X-Forwarded-For", clientIp.trim());
+            }
+            HttpRequest request = builder.build();
+            HttpResponse<InputStream> response = httpClient.send(
+                    request,
+                    HttpResponse.BodyHandlers.ofInputStream());
+            try (InputStream responseBody = response.body()) {
+                return new UmamiDelivery(response.statusCode(), readResponsePrefix(responseBody));
+            }
         }
     }
 
@@ -221,7 +292,7 @@ public class UmamiEventClient {
     static final class PinnedEventSender implements EventSender {
 
         @Override
-        public int send(URI uri, String body, String userAgent) throws IOException {
+        public UmamiDelivery send(URI uri, String body, String userAgent, String clientIp) throws IOException {
             String expectedHost = uri.getHost();
             String expectedDnsHost = stripIpv6Brackets(expectedHost);
             InetAddress[] pinnedAddresses = UmamiHostUrlValidator.resolvePublicAddresses(expectedDnsHost);
@@ -258,13 +329,24 @@ public class UmamiEventClient {
                 HttpPost request = new HttpPost(uri);
                 request.setHeader("Accept", "application/json");
                 request.setHeader("User-Agent", userAgent);
+                if (!isBlank(clientIp)) {
+                    request.setHeader("X-Forwarded-For", clientIp.trim());
+                }
                 request.setEntity(new StringEntity(body, ContentType.APPLICATION_JSON));
                 request.setConfig(RequestConfig.custom()
                         .setResponseTimeout(Timeout.ofMilliseconds(REQUEST_TIMEOUT.toMillis()))
                         .build());
                 // The URI keeps the original hostname, so the default TLS verifier checks it
                 // while the custom resolver connects only to the already validated addresses.
-                return client.execute(request, response -> response.getCode());
+                return client.execute(request, response -> toDelivery(
+                        response.getCode(),
+                        response.getEntity() == null ? null : response.getEntity().getContent()));
+            }
+        }
+
+        static UmamiDelivery toDelivery(int statusCode, InputStream responseBody) throws IOException {
+            try (responseBody) {
+                return new UmamiDelivery(statusCode, readResponsePrefix(responseBody));
             }
         }
 
@@ -274,6 +356,13 @@ public class UmamiEventClient {
             }
             return host;
         }
+    }
+
+    private static String readResponsePrefix(InputStream responseBody) throws IOException {
+        if (responseBody == null) {
+            return null;
+        }
+        return new String(responseBody.readNBytes(RESPONSE_PREFIX_BYTES), StandardCharsets.UTF_8);
     }
 
     private record UmamiRequest(String type, UmamiPayload payload) {

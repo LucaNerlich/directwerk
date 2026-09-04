@@ -5,8 +5,10 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import de.pnnit.directwerk.config.DirectwerkConfig;
 import de.pnnit.directwerk.config.DirectwerkProperties;
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.Authenticator;
 import java.net.CookieHandler;
 import java.net.ProxySelector;
@@ -41,15 +43,49 @@ class UmamiEventClientTest {
         assertThatThrownBy(() -> sender.send(
                 URI.create("https://127.0.0.1/api/send"),
                 "{}",
-                "Directwerk-Test/1.0"
+                UmamiEventClient.COLLECTOR_USER_AGENT,
+                null
         )).isInstanceOf(java.net.UnknownHostException.class);
     }
 
     @Test
+    void jdkSenderRetainsOnlyBoundedResponsePrefix() throws Exception {
+        String responseBody = "a".repeat(UmamiEventClient.RESPONSE_PREFIX_BYTES) + "beep";
+        CapturingHttpClient httpClient = new CapturingHttpClient(200, responseBody);
+
+        UmamiEventClient.UmamiDelivery delivery = new UmamiEventClient.JdkEventSender(httpClient).send(
+                URI.create("https://umami.example.test/api/send"),
+                "{}",
+                UmamiEventClient.COLLECTOR_USER_AGENT,
+                null);
+
+        assertThat(delivery.responseBody()).hasSize(UmamiEventClient.RESPONSE_PREFIX_BYTES);
+        assertThat(delivery.isBotDrop()).isFalse();
+        assertThat(httpClient.responseStream().bytesRead()).isEqualTo(UmamiEventClient.RESPONSE_PREFIX_BYTES);
+        assertThat(httpClient.responseStream().closed()).isTrue();
+    }
+
+    @Test
+    void pinnedSenderRetainsOnlyBoundedResponsePrefix() throws Exception {
+        String responseBody = "a".repeat(UmamiEventClient.RESPONSE_PREFIX_BYTES) + "beep";
+        TrackingInputStream responseStream = new TrackingInputStream(
+                responseBody.getBytes(StandardCharsets.UTF_8));
+
+        UmamiEventClient.UmamiDelivery delivery = UmamiEventClient.PinnedEventSender.toDelivery(
+                200,
+                responseStream);
+
+        assertThat(delivery.responseBody()).hasSize(UmamiEventClient.RESPONSE_PREFIX_BYTES);
+        assertThat(delivery.isBotDrop()).isFalse();
+        assertThat(responseStream.bytesRead()).isEqualTo(UmamiEventClient.RESPONSE_PREFIX_BYTES);
+        assertThat(responseStream.closed()).isTrue();
+    }
+
+    @Test
     void postsEventBodyAndHeadersWhenEnabled() throws Exception {
-        CapturingHttpClient httpClient = new CapturingHttpClient(200);
+        CapturingHttpClient httpClient = new CapturingHttpClient(200, null);
         UmamiEventClient client = new UmamiEventClient(
-                directwerkConfig(true, "https://umami.example.test", "Directwerk-Test/1.0"),
+                directwerkConfig(true, "https://umami.example.test", UmamiEventClient.COLLECTOR_USER_AGENT),
                 new ObjectMapper(),
                 httpClient,
                 Runnable::run
@@ -67,7 +103,7 @@ class UmamiEventClientTest {
         HttpRequest request = httpClient.request();
         assertThat(request.method()).isEqualTo("POST");
         assertThat(request.uri()).hasToString("https://umami.example.test/api/send");
-        assertThat(request.headers().firstValue("User-Agent")).contains("Directwerk-Test/1.0");
+        assertThat(request.headers().firstValue("User-Agent")).contains(UmamiEventClient.COLLECTOR_USER_AGENT);
         assertThat(request.headers().firstValue("Content-Type")).contains("application/json");
         assertThat(httpClient.body()).contains("\"type\":\"event\"");
         assertThat(httpClient.body()).contains("\"website\":\"123e4567-e89b-12d3-a456-426614174000\"");
@@ -78,10 +114,60 @@ class UmamiEventClientTest {
     }
 
     @Test
-    void doesNotSendWhenAnalyticsDisabled() throws Exception {
-        CapturingHttpClient httpClient = new CapturingHttpClient(200);
+    void fallsBackToBrowserCollectorUserAgentWhenConfiguredValueIsBotClassified() throws Exception {
+        CapturingHttpClient httpClient = new CapturingHttpClient(200, null);
         UmamiEventClient client = new UmamiEventClient(
-                directwerkConfig(false, "https://umami.example.test", "Directwerk-Test/1.0"),
+                directwerkConfig(true, "https://umami.example.test", "Directwerk/1.0"),
+                new ObjectMapper(),
+                httpClient,
+                Runnable::run
+        );
+
+        client.trackEvent(
+                "123e4567-e89b-12d3-a456-426614174000",
+                "alpha.example.test",
+                "/episodes/episode-1",
+                "episode-download",
+                Map.of()
+        );
+
+        assertThat(httpClient.await()).isTrue();
+        assertThat(httpClient.request().headers().firstValue("User-Agent"))
+                .contains(UmamiEventClient.COLLECTOR_USER_AGENT);
+    }
+
+    @Test
+    void forwardsClientIpWhenProvided() throws Exception {
+        CapturingHttpClient httpClient = new CapturingHttpClient(200, null);
+        UmamiEventClient client = new UmamiEventClient(
+                directwerkConfig(true, "https://umami.example.test", UmamiEventClient.COLLECTOR_USER_AGENT),
+                new ObjectMapper(),
+                httpClient,
+                Runnable::run
+        );
+
+        client.trackEvent(
+                "https://tenant.umami.example.test",
+                "123e4567-e89b-12d3-a456-426614174000",
+                "alpha.example.test",
+                "/episodes/episode-1",
+                "episode-download",
+                Map.of(),
+                "203.0.113.7"
+        );
+
+        assertThat(httpClient.await()).isTrue();
+        assertThat(httpClient.request().headers().firstValue("X-Forwarded-For")).contains("203.0.113.7");
+        // Collector UA stays a stable browser token even though the client IP is forwarded.
+        assertThat(httpClient.request().headers().firstValue("User-Agent"))
+                .contains(UmamiEventClient.COLLECTOR_USER_AGENT);
+    }
+
+    @Test
+    void doesNotSendWhenAnalyticsDisabled() throws Exception {
+        CapturingHttpClient httpClient = new CapturingHttpClient(200, null);
+        UmamiEventClient client = new UmamiEventClient(
+                directwerkConfig(false, "https://umami.example.test", UmamiEventClient.COLLECTOR_USER_AGENT),
                 new ObjectMapper(),
                 httpClient,
                 Runnable::run
@@ -101,9 +187,9 @@ class UmamiEventClientTest {
 
     @Test
     void sendsWhenTenantHostProvidedEvenIfPlatformAnalyticsDisabled() throws Exception {
-        CapturingHttpClient httpClient = new CapturingHttpClient(200);
+        CapturingHttpClient httpClient = new CapturingHttpClient(200, null);
         UmamiEventClient client = new UmamiEventClient(
-                directwerkConfig(false, "https://umami.example.test", "Directwerk-Test/1.0"),
+                directwerkConfig(false, "https://umami.example.test", UmamiEventClient.COLLECTOR_USER_AGENT),
                 new ObjectMapper(),
                 httpClient,
                 Runnable::run
@@ -124,9 +210,9 @@ class UmamiEventClientTest {
 
     @Test
     void doesNotSendWhenHostIsNotHttps() throws Exception {
-        CapturingHttpClient httpClient = new CapturingHttpClient(200);
+        CapturingHttpClient httpClient = new CapturingHttpClient(200, null);
         UmamiEventClient client = new UmamiEventClient(
-                directwerkConfig(true, "http://umami.example.test", "Directwerk-Test/1.0"),
+                directwerkConfig(true, "http://umami.example.test", UmamiEventClient.COLLECTOR_USER_AGENT),
                 new ObjectMapper(),
                 httpClient,
                 Runnable::run
@@ -162,11 +248,20 @@ class UmamiEventClientTest {
 
         private final CountDownLatch latch = new CountDownLatch(1);
         private final int statusCode;
+        private final byte[] responseBody;
         private HttpRequest request;
         private String body;
+        private TrackingInputStream responseStream;
 
         private CapturingHttpClient(int statusCode) {
+            this(statusCode, null);
+        }
+
+        private CapturingHttpClient(int statusCode, String responseBody) {
             this.statusCode = statusCode;
+            this.responseBody = responseBody == null
+                    ? new byte[0]
+                    : responseBody.getBytes(StandardCharsets.UTF_8);
         }
 
         boolean await() throws InterruptedException {
@@ -179,6 +274,10 @@ class UmamiEventClientTest {
 
         String body() {
             return body;
+        }
+
+        TrackingInputStream responseStream() {
+            return responseStream;
         }
 
         @Override
@@ -196,7 +295,10 @@ class UmamiEventClientTest {
             } finally {
                 latch.countDown();
             }
-            return response(request, statusCode);
+            responseStream = new TrackingInputStream(responseBody);
+            @SuppressWarnings("unchecked")
+            T typedResponseBody = (T) responseStream;
+            return response(request, statusCode, typedResponseBody);
         }
 
         @Override
@@ -299,7 +401,7 @@ class UmamiEventClientTest {
             return output.toString(StandardCharsets.UTF_8);
         }
 
-        private static <T> HttpResponse<T> response(HttpRequest request, int statusCode) {
+        private static <T> HttpResponse<T> response(HttpRequest request, int statusCode, T responseBody) {
             return new HttpResponse<>() {
                 @Override
                 public int statusCode() {
@@ -323,7 +425,7 @@ class UmamiEventClientTest {
 
                 @Override
                 public T body() {
-                    return null;
+                    return responseBody;
                 }
 
                 @Override
@@ -341,6 +443,49 @@ class UmamiEventClientTest {
                     return Version.HTTP_2;
                 }
             };
+        }
+    }
+
+    private static final class TrackingInputStream extends InputStream {
+
+        private final ByteArrayInputStream delegate;
+        private int bytesRead;
+        private boolean closed;
+
+        private TrackingInputStream(byte[] body) {
+            this.delegate = new ByteArrayInputStream(body);
+        }
+
+        @Override
+        public int read() {
+            int value = delegate.read();
+            if (value >= 0) {
+                bytesRead++;
+            }
+            return value;
+        }
+
+        @Override
+        public int read(byte[] buffer, int offset, int length) {
+            int count = delegate.read(buffer, offset, length);
+            if (count > 0) {
+                bytesRead += count;
+            }
+            return count;
+        }
+
+        @Override
+        public void close() throws IOException {
+            closed = true;
+            delegate.close();
+        }
+
+        int bytesRead() {
+            return bytesRead;
+        }
+
+        boolean closed() {
+            return closed;
         }
     }
 }

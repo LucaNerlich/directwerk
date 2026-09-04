@@ -130,7 +130,10 @@ Tenant overrides work even when no platform default is set, but non-routable hos
 (loopback/private/reserved) fall back to the platform host. When the tenant `ANALYTICS`
 module and a website ID are present, stream/download/RSS enclosure redirects emit
 `episode-download` with `{episodeSlug, seriesSlug, accessPolicy, source, isRangeRequest,
-clientUserAgent}` (truncated UA, no IP — privacy-safe, geo-blind). Feed XML fetches emit
+clientUserAgent}` (truncated UA in event data; the client IP is forwarded to Umami via
+`X-Forwarded-For` for session attribution while the collector `User-Agent` stays a stable
+browser token — Umami `isbot`-drops custom/bot UAs with HTTP 200, so the real podcatcher UA
+is never used as the collector header). Feed XML fetches emit
 `feed-fetch {feedKind=podcast, visibility}`. Public+private RSS enclosures are stable
 proxies (`/feeds/{tenant}/e/{episode}.mp3`, `/feeds/{tenant}/u/{token}/e/{episode}.mp3`,
 legacy alias `/api/v1/public/episodes/{slug}/download`) with `Cache-Control: no-store`

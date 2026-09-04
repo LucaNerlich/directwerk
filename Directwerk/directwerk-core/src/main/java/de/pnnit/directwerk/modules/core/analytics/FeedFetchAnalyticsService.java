@@ -49,6 +49,18 @@ public class FeedFetchAnalyticsService {
             String hostname,
             String clientUserAgent
     ) {
+        trackFeedFetch(tenantId, feedKind, visibility, hostname, clientUserAgent, null);
+    }
+
+    @Transactional(readOnly = true)
+    public void trackFeedFetch(
+            Long tenantId,
+            String feedKind,
+            String visibility,
+            String hostname,
+            String clientUserAgent,
+            String clientIp
+    ) {
         try {
             if (tenantId == null
                     || hostname == null
@@ -79,7 +91,8 @@ public class FeedFetchAnalyticsService {
                             "feedKind", feedKind,
                             "visibility", visibility,
                             "clientUserAgent", truncate(clientUserAgent)
-                    )
+                    ),
+                    clientIp
             );
         } catch (RuntimeException ex) {
             // Analytics is intentionally fail-open for feed delivery.

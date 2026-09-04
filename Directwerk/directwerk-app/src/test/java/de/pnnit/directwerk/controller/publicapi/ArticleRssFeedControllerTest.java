@@ -2,9 +2,12 @@ package de.pnnit.directwerk.controller.publicapi;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import de.pnnit.directwerk.config.DirectwerkConfig;
+import de.pnnit.directwerk.config.DirectwerkProperties;
 import de.pnnit.directwerk.modules.core.entity.Tenant;
 import de.pnnit.directwerk.modules.digital.storage.GeneratedFeedSnapshotStore.FeedDelivery;
 import de.pnnit.directwerk.modules.newsletter.feed.ArticleFeed;
@@ -19,6 +22,7 @@ import de.pnnit.directwerk.multitenancy.TenantResolver;
 import jakarta.servlet.http.HttpServletRequest;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.List;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -110,6 +114,35 @@ class ArticleRssFeedControllerTest {
     }
 
     @Test
+    void ignoresForwardingHeadersFromUntrustedPeer() {
+        Tenant tenant = tenant(10L, "alpha");
+        when(tenantResolver.requireHostTenantBySlug("alpha")).thenReturn(tenant);
+        when(articleRssFeedSnapshotService.publicTenantFeed(tenant)).thenReturn(FeedDelivery.notReady());
+        when(request.getRemoteAddr()).thenReturn("198.51.100.4");
+        lenient().when(request.getHeader("X-Forwarded-For")).thenReturn("203.0.113.7");
+        lenient().when(request.getHeader("X-Real-IP")).thenReturn("203.0.113.8");
+
+        controller(List.of("10.0.0.1")).publicArticleFeed("alpha", request);
+
+        verify(feedFetchAnalyticsService).trackFeedFetch(
+                10L, "article", "public", null, null, "198.51.100.4");
+    }
+
+    @Test
+    void usesForwardingHeadersWhenPeerIsTrustedProxy() {
+        Tenant tenant = tenant(10L, "alpha");
+        when(tenantResolver.requireHostTenantBySlug("alpha")).thenReturn(tenant);
+        when(articleRssFeedSnapshotService.publicTenantFeed(tenant)).thenReturn(FeedDelivery.notReady());
+        when(request.getRemoteAddr()).thenReturn("10.0.0.1");
+        lenient().when(request.getHeader("X-Real-IP")).thenReturn("203.0.113.8");
+
+        controller(List.of(" 10.0.0.1 ")).publicArticleFeed("alpha", request);
+
+        verify(feedFetchAnalyticsService).trackFeedFetch(
+                10L, "article", "public", null, null, "203.0.113.8");
+    }
+
+    @Test
     void publicArticleFeedThrowsNotFoundWhenPathSlugDoesNotMatchHostTenant() {
         when(tenantResolver.requireHostTenantBySlug("other")).thenThrow(new TenantNotFoundException("other"));
 
@@ -127,13 +160,13 @@ class ArticleRssFeedControllerTest {
         var tracked = org.mockito.Mockito.mock(
                 de.pnnit.directwerk.modules.newsletter.service.ArticleViewDeliveryFacade.TrackedArticleRedirect.class);
         org.mockito.Mockito.when(tracked.response()).thenReturn(ResponseEntity.status(HttpStatus.FOUND).build());
-        when(articleViewDeliveryFacade.publicView(10L, "hello-world", "https", "alpha.example.test", 443, null))
+        when(articleViewDeliveryFacade.publicView(10L, "hello-world", "https", "alpha.example.test", 443, null, null))
                 .thenReturn(tracked);
 
         ResponseEntity<Void> response = controller().publicArticleView("alpha", "hello-world", request);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.FOUND);
-        verify(articleViewDeliveryFacade).publicView(10L, "hello-world", "https", "alpha.example.test", 443, null);
+        verify(articleViewDeliveryFacade).publicView(10L, "hello-world", "https", "alpha.example.test", 443, null, null);
     }
 
     @Test
@@ -148,7 +181,7 @@ class ArticleRssFeedControllerTest {
         var tracked = org.mockito.Mockito.mock(
                 de.pnnit.directwerk.modules.newsletter.service.ArticleViewDeliveryFacade.TrackedArticleRedirect.class);
         org.mockito.Mockito.when(tracked.response()).thenReturn(ResponseEntity.status(HttpStatus.FOUND).build());
-        when(articleViewDeliveryFacade.privateView(feed, "hello-world", "https", "alpha.example.test", 443, null))
+        when(articleViewDeliveryFacade.privateView(feed, "hello-world", "https", "alpha.example.test", 443, null, null))
                 .thenReturn(tracked);
 
         ResponseEntity<Void> response = controller().privateArticleView("alpha", "tok", "hello-world", request);
@@ -157,13 +190,26 @@ class ArticleRssFeedControllerTest {
     }
 
     private ArticleRssFeedController controller() {
+        return controller(List.of());
+    }
+
+    private ArticleRssFeedController controller(List<String> trustedProxies) {
         return new ArticleRssFeedController(
                 tenantResolver,
                 articleFeedService,
                 articleRssFeedSnapshotService,
                 articleViewDeliveryFacade,
-                feedFetchAnalyticsService
+                feedFetchAnalyticsService,
+                directwerkConfig(trustedProxies)
         );
+    }
+
+    private static DirectwerkConfig directwerkConfig(List<String> trustedProxies) {
+        var security = new DirectwerkProperties.Security(
+                null, null, null, null, null, null, null, null, null,
+                null, null, null, null, trustedProxies);
+        return new DirectwerkConfig(new DirectwerkProperties(
+                security, null, null, null, null, null, null, null, null));
     }
 
     private static Tenant tenant(Long id, String slug) {

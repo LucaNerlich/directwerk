@@ -114,7 +114,11 @@ directwerk:
     analytics:
         enabled: ${DIRECTWERK_ANALYTICS_ENABLED:false}
         umami-host-url: ${DIRECTWERK_ANALYTICS_UMAMI_HOST_URL:}
-        user-agent: ${DIRECTWERK_ANALYTICS_USER_AGENT:Directwerk/1.0}
+        # Collector User-Agent for POST /api/send. Umami runs isbot on this header and silently
+        # drops bot-classified events with HTTP 200 {"beep":"boop"}, so this must look like a real
+        # browser. The client UA stays in the event data (clientUserAgent); never forward podcatcher
+        # UAs here. Blank or non-browser values fall back to the built-in Chrome UA in code.
+        user-agent: ${DIRECTWERK_ANALYTICS_USER_AGENT:Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36}
     storage:
         enabled: ${DIRECTWERK_STORAGE_ENABLED:false}
         provider: ${DIRECTWERK_STORAGE_PROVIDER:hetzner}
