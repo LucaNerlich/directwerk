@@ -42,13 +42,29 @@ public class EpisodePlaybackDeliveryFacade {
             String clientUserAgent,
             boolean isRangeRequest
     ) {
+        return deliverEnclosure(
+                tenantId, redirect, analyticsSource, requestHost, privateFeed,
+                clientUserAgent, isRangeRequest, null);
+    }
+
+    public TrackedRedirect deliverEnclosure(
+            Long tenantId,
+            EnclosureRedirect redirect,
+            String analyticsSource,
+            String requestHost,
+            boolean privateFeed,
+            String clientUserAgent,
+            boolean isRangeRequest,
+            String clientIp
+    ) {
         episodeDownloadAnalyticsService.trackEpisodeDownload(
                 tenantId,
                 redirect.episode(),
                 analyticsSource,
                 requestHost,
                 clientUserAgent,
-                isRangeRequest
+                isRangeRequest,
+                clientIp
         );
         // noStore on both public and private: a cached 302 would skip tracking on repeat plays.
         ResponseEntity.BodyBuilder builder = ResponseEntity.status(HttpStatus.FOUND)
@@ -71,13 +87,24 @@ public class EpisodePlaybackDeliveryFacade {
             String requestHost,
             String clientUserAgent
     ) {
+        return deliverStream(tenantId, stream, requestHost, clientUserAgent, null);
+    }
+
+    public TrackedRedirect deliverStream(
+            Long tenantId,
+            EpisodeStream stream,
+            String requestHost,
+            String clientUserAgent,
+            String clientIp
+    ) {
         episodeDownloadAnalyticsService.trackEpisodeDownload(
                 tenantId,
                 stream.episode(),
                 "stream",
                 requestHost,
                 clientUserAgent,
-                false
+                false,
+                clientIp
         );
         return new TrackedRedirect(
                 stream.episode(),

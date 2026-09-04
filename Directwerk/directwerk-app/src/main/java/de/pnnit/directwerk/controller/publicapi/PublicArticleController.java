@@ -4,6 +4,7 @@ import de.pnnit.directwerk.api.PublicArticleViewMapper;
 import de.pnnit.directwerk.api.dto.PublicCategoryView;
 import de.pnnit.directwerk.api.response.Response;
 import de.pnnit.directwerk.modules.core.RequiresModule;
+import de.pnnit.directwerk.modules.core.util.ClientIpExtractor;
 import de.pnnit.directwerk.modules.digital.DigitalContentModule;
 import de.pnnit.directwerk.modules.digital.service.CategoryService;
 import de.pnnit.directwerk.modules.newsletter.entity.Article;
@@ -73,7 +74,15 @@ public class PublicArticleController {
         Long tenantId = TenantContext.getTenantId();
         Article article = publicArticleQueryService.requirePublishedArticle(tenantId, slug);
         articleViewAnalyticsService.trackArticleView(
-                tenantId, article, "public-view", request.getServerName(), request.getHeader("User-Agent"));
+                tenantId,
+                article,
+                "public-view",
+                request.getServerName(),
+                request.getHeader("User-Agent"),
+                ClientIpExtractor.extract(
+                        request.getHeader("X-Forwarded-For"),
+                        request.getHeader("X-Real-IP"),
+                        request.getRemoteAddr()));
         return ResponseEntity.ok(Response.ok(publicArticleViewMapper.toPublicView(article)));
     }
 

@@ -127,13 +127,13 @@ class ArticleRssFeedControllerTest {
         var tracked = org.mockito.Mockito.mock(
                 de.pnnit.directwerk.modules.newsletter.service.ArticleViewDeliveryFacade.TrackedArticleRedirect.class);
         org.mockito.Mockito.when(tracked.response()).thenReturn(ResponseEntity.status(HttpStatus.FOUND).build());
-        when(articleViewDeliveryFacade.publicView(10L, "hello-world", "https", "alpha.example.test", 443, null))
+        when(articleViewDeliveryFacade.publicView(10L, "hello-world", "https", "alpha.example.test", 443, null, null))
                 .thenReturn(tracked);
 
         ResponseEntity<Void> response = controller().publicArticleView("alpha", "hello-world", request);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.FOUND);
-        verify(articleViewDeliveryFacade).publicView(10L, "hello-world", "https", "alpha.example.test", 443, null);
+        verify(articleViewDeliveryFacade).publicView(10L, "hello-world", "https", "alpha.example.test", 443, null, null);
     }
 
     @Test
@@ -148,7 +148,7 @@ class ArticleRssFeedControllerTest {
         var tracked = org.mockito.Mockito.mock(
                 de.pnnit.directwerk.modules.newsletter.service.ArticleViewDeliveryFacade.TrackedArticleRedirect.class);
         org.mockito.Mockito.when(tracked.response()).thenReturn(ResponseEntity.status(HttpStatus.FOUND).build());
-        when(articleViewDeliveryFacade.privateView(feed, "hello-world", "https", "alpha.example.test", 443, null))
+        when(articleViewDeliveryFacade.privateView(feed, "hello-world", "https", "alpha.example.test", 443, null, null))
                 .thenReturn(tracked);
 
         ResponseEntity<Void> response = controller().privateArticleView("alpha", "tok", "hello-world", request);

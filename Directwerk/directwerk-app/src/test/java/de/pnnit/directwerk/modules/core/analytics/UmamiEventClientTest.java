@@ -41,15 +41,16 @@ class UmamiEventClientTest {
         assertThatThrownBy(() -> sender.send(
                 URI.create("https://127.0.0.1/api/send"),
                 "{}",
-                "Directwerk-Test/1.0"
+                UmamiEventClient.COLLECTOR_USER_AGENT,
+                null
         )).isInstanceOf(java.net.UnknownHostException.class);
     }
 
     @Test
     void postsEventBodyAndHeadersWhenEnabled() throws Exception {
-        CapturingHttpClient httpClient = new CapturingHttpClient(200);
+        CapturingHttpClient httpClient = new CapturingHttpClient(200, null);
         UmamiEventClient client = new UmamiEventClient(
-                directwerkConfig(true, "https://umami.example.test", "Directwerk-Test/1.0"),
+                directwerkConfig(true, "https://umami.example.test", UmamiEventClient.COLLECTOR_USER_AGENT),
                 new ObjectMapper(),
                 httpClient,
                 Runnable::run
@@ -67,7 +68,7 @@ class UmamiEventClientTest {
         HttpRequest request = httpClient.request();
         assertThat(request.method()).isEqualTo("POST");
         assertThat(request.uri()).hasToString("https://umami.example.test/api/send");
-        assertThat(request.headers().firstValue("User-Agent")).contains("Directwerk-Test/1.0");
+        assertThat(request.headers().firstValue("User-Agent")).contains(UmamiEventClient.COLLECTOR_USER_AGENT);
         assertThat(request.headers().firstValue("Content-Type")).contains("application/json");
         assertThat(httpClient.body()).contains("\"type\":\"event\"");
         assertThat(httpClient.body()).contains("\"website\":\"123e4567-e89b-12d3-a456-426614174000\"");
@@ -78,10 +79,60 @@ class UmamiEventClientTest {
     }
 
     @Test
-    void doesNotSendWhenAnalyticsDisabled() throws Exception {
-        CapturingHttpClient httpClient = new CapturingHttpClient(200);
+    void fallsBackToBrowserCollectorUserAgentWhenConfiguredValueIsBotClassified() throws Exception {
+        CapturingHttpClient httpClient = new CapturingHttpClient(200, null);
         UmamiEventClient client = new UmamiEventClient(
-                directwerkConfig(false, "https://umami.example.test", "Directwerk-Test/1.0"),
+                directwerkConfig(true, "https://umami.example.test", "Directwerk/1.0"),
+                new ObjectMapper(),
+                httpClient,
+                Runnable::run
+        );
+
+        client.trackEvent(
+                "123e4567-e89b-12d3-a456-426614174000",
+                "alpha.example.test",
+                "/episodes/episode-1",
+                "episode-download",
+                Map.of()
+        );
+
+        assertThat(httpClient.await()).isTrue();
+        assertThat(httpClient.request().headers().firstValue("User-Agent"))
+                .contains(UmamiEventClient.COLLECTOR_USER_AGENT);
+    }
+
+    @Test
+    void forwardsClientIpWhenProvided() throws Exception {
+        CapturingHttpClient httpClient = new CapturingHttpClient(200, null);
+        UmamiEventClient client = new UmamiEventClient(
+                directwerkConfig(true, "https://umami.example.test", UmamiEventClient.COLLECTOR_USER_AGENT),
+                new ObjectMapper(),
+                httpClient,
+                Runnable::run
+        );
+
+        client.trackEvent(
+                "https://tenant.umami.example.test",
+                "123e4567-e89b-12d3-a456-426614174000",
+                "alpha.example.test",
+                "/episodes/episode-1",
+                "episode-download",
+                Map.of(),
+                "203.0.113.7"
+        );
+
+        assertThat(httpClient.await()).isTrue();
+        assertThat(httpClient.request().headers().firstValue("X-Forwarded-For")).contains("203.0.113.7");
+        // Collector UA stays a stable browser token even though the client IP is forwarded.
+        assertThat(httpClient.request().headers().firstValue("User-Agent"))
+                .contains(UmamiEventClient.COLLECTOR_USER_AGENT);
+    }
+
+    @Test
+    void doesNotSendWhenAnalyticsDisabled() throws Exception {
+        CapturingHttpClient httpClient = new CapturingHttpClient(200, null);
+        UmamiEventClient client = new UmamiEventClient(
+                directwerkConfig(false, "https://umami.example.test", UmamiEventClient.COLLECTOR_USER_AGENT),
                 new ObjectMapper(),
                 httpClient,
                 Runnable::run
@@ -101,9 +152,9 @@ class UmamiEventClientTest {
 
     @Test
     void sendsWhenTenantHostProvidedEvenIfPlatformAnalyticsDisabled() throws Exception {
-        CapturingHttpClient httpClient = new CapturingHttpClient(200);
+        CapturingHttpClient httpClient = new CapturingHttpClient(200, null);
         UmamiEventClient client = new UmamiEventClient(
-                directwerkConfig(false, "https://umami.example.test", "Directwerk-Test/1.0"),
+                directwerkConfig(false, "https://umami.example.test", UmamiEventClient.COLLECTOR_USER_AGENT),
                 new ObjectMapper(),
                 httpClient,
                 Runnable::run
@@ -124,9 +175,9 @@ class UmamiEventClientTest {
 
     @Test
     void doesNotSendWhenHostIsNotHttps() throws Exception {
-        CapturingHttpClient httpClient = new CapturingHttpClient(200);
+        CapturingHttpClient httpClient = new CapturingHttpClient(200, null);
         UmamiEventClient client = new UmamiEventClient(
-                directwerkConfig(true, "http://umami.example.test", "Directwerk-Test/1.0"),
+                directwerkConfig(true, "http://umami.example.test", UmamiEventClient.COLLECTOR_USER_AGENT),
                 new ObjectMapper(),
                 httpClient,
                 Runnable::run
@@ -166,6 +217,10 @@ class UmamiEventClientTest {
         private String body;
 
         private CapturingHttpClient(int statusCode) {
+            this(statusCode, null);
+        }
+
+        private CapturingHttpClient(int statusCode, String responseBody) {
             this.statusCode = statusCode;
         }
 

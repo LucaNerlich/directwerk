@@ -53,6 +53,18 @@ public class ArticleViewAnalyticsService {
             String hostname,
             String clientUserAgent
     ) {
+        trackArticleView(tenantId, article, source, hostname, clientUserAgent, null);
+    }
+
+    @Transactional(readOnly = true)
+    public void trackArticleView(
+            Long tenantId,
+            Article article,
+            String source,
+            String hostname,
+            String clientUserAgent,
+            String clientIp
+    ) {
         try {
             if (tenantId == null
                     || article == null
@@ -85,7 +97,8 @@ public class ArticleViewAnalyticsService {
                             "accessPolicy", article.getAccessPolicy().name(),
                             "source", source,
                             "clientUserAgent", truncate(clientUserAgent)
-                    )
+                    ),
+                    clientIp
             );
         } catch (RuntimeException ex) {
             // Analytics is intentionally fail-open for article reads.

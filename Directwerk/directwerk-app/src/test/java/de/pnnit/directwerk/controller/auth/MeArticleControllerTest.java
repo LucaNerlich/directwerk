@@ -108,7 +108,7 @@ class MeArticleControllerTest {
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         verify(articleViewAnalyticsService).trackArticleView(
-                10L, article, "private-view", "alpha.example.test", null);
+                10L, article, "private-view", "alpha.example.test", null, null);
     }
 
     private static DirectwerkUserPrincipal subscriber() {

@@ -40,6 +40,19 @@ public class RssFeedDeliveryFacade {
             String clientUserAgent,
             boolean isRangeRequest
     ) {
+        return publicEnclosure(
+                tenantId, episodeSlug, analyticsSource, requestHost, clientUserAgent, isRangeRequest, null);
+    }
+
+    public TrackedEnclosureRedirect publicEnclosure(
+            Long tenantId,
+            String episodeSlug,
+            String analyticsSource,
+            String requestHost,
+            String clientUserAgent,
+            boolean isRangeRequest,
+            String clientIp
+    ) {
         EnclosureRedirect redirect = episodeEnclosureService.resolvePublicRedirect(tenantId, episodeSlug);
         TrackedRedirect tracked = episodePlaybackDeliveryFacade.deliverEnclosure(
                 tenantId,
@@ -48,7 +61,8 @@ public class RssFeedDeliveryFacade {
                 requestHost,
                 false,
                 clientUserAgent,
-                isRangeRequest
+                isRangeRequest,
+                clientIp
         );
         return new TrackedEnclosureRedirect(redirect, tracked.response());
     }
@@ -70,7 +84,22 @@ public class RssFeedDeliveryFacade {
             String clientUserAgent,
             boolean isRangeRequest
     ) {
-        return publicEnclosure(tenant.getId(), episodeSlug, analyticsSource, requestHost, clientUserAgent, isRangeRequest);
+        return publicEnclosure(
+                tenant.getId(), episodeSlug, analyticsSource, requestHost, clientUserAgent, isRangeRequest);
+    }
+
+    public TrackedEnclosureRedirect publicEnclosure(
+            Tenant tenant,
+            String episodeSlug,
+            String analyticsSource,
+            String requestHost,
+            String clientUserAgent,
+            boolean isRangeRequest,
+            String clientIp
+    ) {
+        return publicEnclosure(
+                tenant.getId(), episodeSlug, analyticsSource, requestHost,
+                clientUserAgent, isRangeRequest, clientIp);
     }
 
     public TrackedEnclosureRedirect privateEnclosure(
@@ -92,6 +121,21 @@ public class RssFeedDeliveryFacade {
             String clientUserAgent,
             boolean isRangeRequest
     ) {
+        return privateEnclosure(
+                tenant, feedToken, episodeSlug, analyticsSource, requestHost,
+                clientUserAgent, isRangeRequest, null);
+    }
+
+    public TrackedEnclosureRedirect privateEnclosure(
+            Tenant tenant,
+            String feedToken,
+            String episodeSlug,
+            String analyticsSource,
+            String requestHost,
+            String clientUserAgent,
+            boolean isRangeRequest,
+            String clientIp
+    ) {
         SubscriberFeed feed = subscriberFeedService.requireDeliverableFeed(tenant.getId(), feedToken);
         EnclosureRedirect redirect = episodeEnclosureService.resolvePrivateRedirect(feed, episodeSlug);
         TrackedRedirect tracked = episodePlaybackDeliveryFacade.deliverEnclosure(
@@ -101,7 +145,8 @@ public class RssFeedDeliveryFacade {
                 requestHost,
                 true,
                 clientUserAgent,
-                isRangeRequest
+                isRangeRequest,
+                clientIp
         );
         return new TrackedEnclosureRedirect(redirect, tracked.response());
     }

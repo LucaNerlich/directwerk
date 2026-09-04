@@ -76,7 +76,8 @@ class ArticleViewAnalyticsServiceTest {
                 eq("alpha.example.test"),
                 eq("/articles/article-1"),
                 eq("article-view"),
-                dataCaptor.capture()
+                dataCaptor.capture(),
+                org.mockito.ArgumentMatchers.isNull()
         );
         Assertions.assertThat(dataCaptor.getValue())
                 .containsEntry("articleSlug", "article-1")
@@ -110,7 +111,8 @@ class ArticleViewAnalyticsServiceTest {
                 eq("alpha.example.test"),
                 eq("/articles/article-1"),
                 eq("article-view"),
-                org.mockito.ArgumentMatchers.any()
+                org.mockito.ArgumentMatchers.any(),
+                org.mockito.ArgumentMatchers.isNull()
         );
     }
 
@@ -131,7 +133,8 @@ class ArticleViewAnalyticsServiceTest {
                 eq("alpha.example.test"),
                 eq("/articles/article-1"),
                 eq("article-view"),
-                org.mockito.ArgumentMatchers.any()
+                org.mockito.ArgumentMatchers.any(),
+                org.mockito.ArgumentMatchers.isNull()
         );
     }
 
@@ -146,6 +149,7 @@ class ArticleViewAnalyticsServiceTest {
 
     private void verifyNeverTracked() {
         verify(umamiEventClient, never()).trackEvent(
+                org.mockito.ArgumentMatchers.any(),
                 org.mockito.ArgumentMatchers.any(),
                 org.mockito.ArgumentMatchers.any(),
                 org.mockito.ArgumentMatchers.any(),

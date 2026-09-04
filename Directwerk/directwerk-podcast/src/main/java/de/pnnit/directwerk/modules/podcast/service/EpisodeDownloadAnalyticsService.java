@@ -50,6 +50,19 @@ public class EpisodeDownloadAnalyticsService {
             String clientUserAgent,
             boolean isRangeRequest
     ) {
+        trackEpisodeDownload(tenantId, episode, source, hostname, clientUserAgent, isRangeRequest, null);
+    }
+
+    @Transactional(readOnly = true)
+    public void trackEpisodeDownload(
+            Long tenantId,
+            Episode episode,
+            String source,
+            String hostname,
+            String clientUserAgent,
+            boolean isRangeRequest,
+            String clientIp
+    ) {
         try {
             if (tenantId == null
                     || episode == null
@@ -98,7 +111,8 @@ public class EpisodeDownloadAnalyticsService {
                             "source", source,
                             "isRangeRequest", isRangeRequest ? "true" : "false",
                             "clientUserAgent", truncate(clientUserAgent)
-                    )
+                    ),
+                    clientIp
             );
         } catch (RuntimeException ex) {
             // Analytics is intentionally fail-open for episode playback.

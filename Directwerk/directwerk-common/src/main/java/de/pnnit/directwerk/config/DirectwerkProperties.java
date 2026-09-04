@@ -116,7 +116,10 @@ public record DirectwerkProperties(
     ) {
         public Analytics {
             umamiHostUrl = umamiHostUrl == null ? "" : umamiHostUrl.trim();
-            userAgent = userAgent == null || userAgent.isBlank() ? "Directwerk/1.0" : userAgent.trim();
+            // Must stay browser-like: Umami isbot-drops custom tokens (see UmamiEventClient).
+            userAgent = userAgent == null || userAgent.isBlank()
+                    ? "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36"
+                    : userAgent.trim();
         }
 
         @AssertTrue(message = "umami-host-url must be an absolute HTTPS URL with a host")

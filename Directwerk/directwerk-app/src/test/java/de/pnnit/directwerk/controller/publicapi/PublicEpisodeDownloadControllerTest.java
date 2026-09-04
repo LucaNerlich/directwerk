@@ -52,7 +52,8 @@ class PublicEpisodeDownloadControllerTest {
                 "public-download",
                 "alpha.example.test",
                 null,
-                false
+                false,
+                null
         )).thenReturn(new RssFeedDeliveryFacade.TrackedEnclosureRedirect(
                 new EpisodeEnclosureService.EnclosureRedirect(
                         episode,
@@ -81,7 +82,8 @@ class PublicEpisodeDownloadControllerTest {
                 "public-download",
                 null,
                 null,
-                false
+                false,
+                null
         )).thenThrow(new EpisodeNotFoundException("episode-1"));
 
         assertThatThrownBy(() -> controller.downloadEpisode("episode-1", request))

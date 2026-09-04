@@ -36,12 +36,23 @@ public class PortalStreamDeliveryFacade {
             String requestHost,
             String clientUserAgent
     ) {
+        return streamEpisode(user, episodeSlug, requestHost, clientUserAgent, null);
+    }
+
+    public TrackedStreamRedirect streamEpisode(
+            DirectwerkUserPrincipal user,
+            String episodeSlug,
+            String requestHost,
+            String clientUserAgent,
+            String clientIp
+    ) {
         EpisodeStream stream = subscriberPortalAccessService.resolveStream(user, episodeSlug);
         TrackedRedirect tracked = episodePlaybackDeliveryFacade.deliverStream(
                 user.tenantId(),
                 stream,
                 requestHost,
-                clientUserAgent
+                clientUserAgent,
+                clientIp
         );
         return new TrackedStreamRedirect(stream, tracked.response());
     }

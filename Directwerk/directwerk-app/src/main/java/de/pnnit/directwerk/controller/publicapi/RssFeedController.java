@@ -1,6 +1,7 @@
 package de.pnnit.directwerk.controller.publicapi;
 
 import de.pnnit.directwerk.modules.core.analytics.FeedFetchAnalyticsService;
+import de.pnnit.directwerk.modules.core.util.ClientIpExtractor;
 import de.pnnit.directwerk.modules.core.RequiresModule;
 import de.pnnit.directwerk.modules.core.entity.Tenant;
 import de.pnnit.directwerk.modules.podcast.FeedBuilderModule;
@@ -52,7 +53,12 @@ public class RssFeedController {
     ) {
         Tenant tenant = tenantResolver.requireHostTenantBySlug(tenantSlug);
         feedFetchAnalyticsService.trackFeedFetch(
-                tenant.getId(), "podcast", "public", request.getServerName(), request.getHeader("User-Agent"));
+                tenant.getId(),
+                "podcast",
+                "public",
+                request.getServerName(),
+                request.getHeader("User-Agent"),
+                clientIp(request));
         var delivery = rssFeedSnapshotService.publicTenantFeed(tenant);
         return FeedRedirects.rssRedirect(delivery.redirectUrl(), delivery.ready());
     }
@@ -66,7 +72,12 @@ public class RssFeedController {
     ) {
         Tenant tenant = tenantResolver.requireHostTenantBySlug(tenantSlug);
         feedFetchAnalyticsService.trackFeedFetch(
-                tenant.getId(), "podcast", "public", request.getServerName(), request.getHeader("User-Agent"));
+                tenant.getId(),
+                "podcast",
+                "public",
+                request.getServerName(),
+                request.getHeader("User-Agent"),
+                clientIp(request));
         var delivery = rssFeedSnapshotService.publicSeriesFeed(tenant, seriesSlug);
         return FeedRedirects.rssRedirect(delivery.redirectUrl(), delivery.ready());
     }
@@ -81,7 +92,12 @@ public class RssFeedController {
         Tenant tenant = tenantResolver.requireHostTenantBySlug(tenantSlug);
         SubscriberFeed feed = subscriberFeedService.requireDeliverableFeed(tenant.getId(), feedToken);
         feedFetchAnalyticsService.trackFeedFetch(
-                tenant.getId(), "podcast", "private", request.getServerName(), request.getHeader("User-Agent"));
+                tenant.getId(),
+                "podcast",
+                "private",
+                request.getServerName(),
+                request.getHeader("User-Agent"),
+                clientIp(request));
         var delivery = rssFeedSnapshotService.privateFeed(tenant, feed);
         return FeedRedirects.rssRedirect(delivery.redirectUrl(), delivery.ready());
     }
@@ -100,7 +116,8 @@ public class RssFeedController {
                 "public-rss",
                 request.getServerName(),
                 request.getHeader("User-Agent"),
-                request.getHeader("Range") != null
+                request.getHeader("Range") != null,
+                clientIp(request)
         ).response();
     }
 
@@ -120,7 +137,15 @@ public class RssFeedController {
                 "private-rss",
                 request.getServerName(),
                 request.getHeader("User-Agent"),
-                request.getHeader("Range") != null
+                request.getHeader("Range") != null,
+                clientIp(request)
         ).response();
+    }
+
+    private static String clientIp(HttpServletRequest request) {
+        return ClientIpExtractor.extract(
+                request.getHeader("X-Forwarded-For"),
+                request.getHeader("X-Real-IP"),
+                request.getRemoteAddr());
     }
 }
