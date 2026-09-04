@@ -1,6 +1,6 @@
 # Homepage
 
-Platform marketing site for **Directwerk** (`directwerk.de`) — separate from tenant
+Platform marketing site for **Directwerk** (`directwerk.org`) — separate from tenant
 [`directwerk-web`](../directwerk-web/) subscriber portals.
 
 ## Run locally

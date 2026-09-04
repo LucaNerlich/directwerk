@@ -7,8 +7,8 @@ interface MediaImageRemotePattern {
 
 const DEFAULT_MEDIA_IMAGE_HOSTS = [
     'directwerk-dev.b-cdn.net',
-    'cdn.stage.directwerk.de',
-    'cdn.directwerk.de',
+    'cdn.stage.directwerk.org',
+    'cdn.directwerk.org',
 ]
 
 const EXACT_HOSTNAME_PATTERN = /^(?=.{1,253}$)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/

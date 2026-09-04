@@ -42,7 +42,7 @@ class ContactFormServiceTest {
 
         verify(altchaService).verifyPayload("payload");
         verify(emailJobProducer).enqueueContactForm(
-                "hello@directwerk.de",
+                "hello@directwerk.org",
                 java.util.Map.of(
                         "name", "Jane Doe",
                         "email", "jane@example.com",
@@ -74,7 +74,7 @@ class ContactFormServiceTest {
                 .isInstanceOf(CaptchaVerificationException.class);
 
         verify(emailJobProducer, times(1)).enqueueContactForm(
-                "hello@directwerk.de",
+                "hello@directwerk.org",
                 java.util.Map.of(
                         "name", "Jane Doe",
                         "email", "jane@example.com",
@@ -88,7 +88,7 @@ class ContactFormServiceTest {
         when(directwerkConfig.marketing()).thenReturn(new DirectwerkProperties.Marketing(
                 new DirectwerkProperties.Contact(
                         true,
-                        "hello@directwerk.de",
+                        "hello@directwerk.org",
                         5,
                         List.of("http://localhost:3005"),
                         new DirectwerkProperties.Altcha("test-key", 300)

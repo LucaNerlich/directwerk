@@ -72,7 +72,7 @@ class AltchaServiceTest {
                 null,
                 new DirectwerkProperties.Marketing(new DirectwerkProperties.Contact(
                         false,
-                        "hello@directwerk.de",
+                        "hello@directwerk.org",
                         5,
                         List.of(),
                         new DirectwerkProperties.Altcha("key", 300)
@@ -106,7 +106,7 @@ class AltchaServiceTest {
                 null,
                 new DirectwerkProperties.Marketing(new DirectwerkProperties.Contact(
                         true,
-                        "hello@directwerk.de",
+                        "hello@directwerk.org",
                         5,
                         List.of("http://localhost:3005"),
                         new DirectwerkProperties.Altcha(hmacKey, 300)

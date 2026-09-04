@@ -98,7 +98,7 @@ Directwerk fails domain/trademark clearance.
 | Creator SaaS collision | No obvious creator membership platform named Directwerk |
 | Nearby brands | NL **DirectWerk** / Directwerk Zorg (care staffing); DE **Direktwerke** GmbH electronics record |
 | Similar rejected forms | Directworks (manufacturing sourcing SaaS); Directforge (liked but too long) |
-| Still required | `directwerk.de` / `.com` / `.io`; EUIPO Classes 9/42; DPMA; lawyer sign-off |
+| Still required | `directwerk.org` (+ `.com` / `.io` if wanted); EUIPO Classes 9/42; DPMA; lawyer sign-off |
 
 ---
 
@@ -152,7 +152,7 @@ Full parked / rejected tables kept below for reference.
 | **Repo folders** | `directwerk/` monorepo (`Directwerk/`, `directwerk-studio/`, …) |
 | **Java package** | `de.pnnit.directwerk` |
 | **Reference apps** | `directwerk-web`, `directwerk-studio`, `directwerk-admin` |
-| **API Host** | `api.directwerk.de` (or chosen TLD) — still TODO, see [Validation checklist](#validation-checklist-before-public-launch) |
+| **API Host** | `api.directwerk.org` — still TODO, see [Validation checklist](#validation-checklist-before-public-launch) |
 | **OpenAPI `title`** | Directwerk API |
 | **Docs** | “Directwerk platform” |
 

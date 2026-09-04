@@ -9,8 +9,8 @@ describe('parseMediaImageRemoteHosts', () => {
     it('uses explicit platform CDN hosts when env is empty', () => {
         expect(parseMediaImageRemoteHosts(undefined)).toEqual([
             'directwerk-dev.b-cdn.net',
-            'cdn.stage.directwerk.de',
-            'cdn.directwerk.de',
+            'cdn.stage.directwerk.org',
+            'cdn.directwerk.org',
         ])
     })
 
@@ -19,8 +19,8 @@ describe('parseMediaImageRemoteHosts', () => {
             parseMediaImageRemoteHosts('*.b-cdn.net, https://cdn.example.test'),
         ).toEqual([
             'directwerk-dev.b-cdn.net',
-            'cdn.stage.directwerk.de',
-            'cdn.directwerk.de',
+            'cdn.stage.directwerk.org',
+            'cdn.directwerk.org',
         ])
     })
 

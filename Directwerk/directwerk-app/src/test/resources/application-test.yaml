@@ -71,7 +71,7 @@ directwerk:
     marketing:
         contact:
             enabled: false
-            inbox-email: hello@directwerk.de
+            inbox-email: hello@directwerk.org
             allowed-origins:
                 - http://localhost:3005
             altcha:

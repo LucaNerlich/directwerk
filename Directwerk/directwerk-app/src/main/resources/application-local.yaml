@@ -57,7 +57,7 @@ directwerk:
     marketing:
         contact:
             enabled: true
-            inbox-email: ${DIRECTWERK_CONTACT_INBOX_EMAIL:hello@directwerk.de}
+            inbox-email: ${DIRECTWERK_CONTACT_INBOX_EMAIL:hello@directwerk.org}
             allowed-origins:
                 - http://localhost:3005
             altcha:

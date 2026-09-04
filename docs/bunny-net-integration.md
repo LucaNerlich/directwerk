@@ -96,7 +96,7 @@ flowchart TB
     subgraph bunny [bunny.net]
         S3[Bunny Storage S3 endpoint]
         Zone[Storage Zone directwerk-prod]
-        PublicCDN[Public PZ cdn.directwerk.de]
+        PublicCDN[Public PZ cdn.directwerk.org]
         PrivateCDN[Private PZ Token Auth]
     end
 
@@ -184,7 +184,7 @@ audio when `private-cdn-base-url` and `cdn-token-auth-key` are configured.
 
 - Origin type: **Bunny Storage Zone** → select `publish-{env}` / `directwerk-{env}` zone (same
   zone for both PZs).
-- Public hostname: `cdn.directwerk.de` (platform) or per-tenant CNAME (post-MVP).
+- Public hostname: `cdn.directwerk.org` (platform) or per-tenant CNAME (post-MVP).
 - Long cache for public UUID-keyed media via **Pull Zone edge rules** (S3 `PutObject` does not
   support `Cache-Control` — see [S3 known limitations](https://docs.bunny.net/storage/s3#known-limitations)).
 - **Public PZ edge rules:** Block `*/private/*`, `*/staging/*`, `*/user/*` (required).
@@ -531,8 +531,8 @@ One storage zone, **two** pull zones. Operator checklist first; app wiring liste
 - [ ] **CDN** → **Add Pull Zone** (or open existing `directwerk-{env}`).
 - [ ] Name e.g. `directwerk-prod` → hostname `directwerk-prod.b-cdn.net`.
 - [ ] Origin type: **Storage Zone** → same zone as S3 (`directwerk-prod`).
-- [ ] **Hostnames** → add `cdn.directwerk.de` (or env equivalent); CNAME + free TLS.
-- [ ] Set `DIRECTWERK_STORAGE_PUBLIC_CDN_BASE_URL=https://cdn.directwerk.de` (Coolify / `.env`).
+- [ ] **Hostnames** → add `cdn.directwerk.org` (or env equivalent); CNAME + free TLS.
+- [ ] Set `DIRECTWERK_STORAGE_PUBLIC_CDN_BASE_URL=https://cdn.directwerk.org` (Coolify / `.env`).
 - [ ] **Do not** enable Token Authentication on this PZ.
 
 #### Todo — edge rules (required for path-reuse invariant)
@@ -553,11 +553,11 @@ Order so block rules win before any catch-all cache rules.
 
 ```bash
 # Public object (expect 200, then HIT on repeat)
-curl -I "https://cdn.directwerk.de/{tenant}/public/audio/test.mp3"
+curl -I "https://cdn.directwerk.org/{tenant}/public/audio/test.mp3"
 
 # Private / staging must be 403 even if the object exists in storage
-curl -I "https://cdn.directwerk.de/{tenant}/private/audio/test.mp3"
-curl -I "https://cdn.directwerk.de/{tenant}/staging/audio/test.mp3"
+curl -I "https://cdn.directwerk.org/{tenant}/private/audio/test.mp3"
+curl -I "https://cdn.directwerk.org/{tenant}/staging/audio/test.mp3"
 ```
 
 ### B. Private Pull Zone (Token Auth — paid CDN target)
@@ -568,7 +568,7 @@ Same storage zone origin; separate hostname; Token Auth **on**.
 
 - [ ] **CDN** → **Add Pull Zone** e.g. `directwerk-prod-private`.
 - [ ] Origin: **same** Storage Zone as the public PZ (`directwerk-prod`).
-- [ ] Hostname e.g. `cdn-private.directwerk.de` → CNAME to `….b-cdn.net` + TLS
+- [ ] Hostname e.g. `cdn-private.directwerk.org` → CNAME to `….b-cdn.net` + TLS
       (or use `directwerk-prod-private.b-cdn.net` for stage/dev).
 - [ ] Optional edge rules: block `*/staging/*` here too; allow `*/private/*` (required for paid).
 - [ ] Optional: block `*/public/*` on the private PZ so paid delivery cannot be confused with FREE
@@ -594,13 +594,13 @@ Docs: [Advanced Token Authentication](https://docs.bunny.net/cdn/security/token-
 
 ```bash
 # Without token → expect 403
-curl -I "https://cdn-private.directwerk.de/{tenant}/private/audio/test.mp3"
+curl -I "https://cdn-private.directwerk.org/{tenant}/private/audio/test.mp3"
 
 # With an Advanced HS256 token (app-minted or BunnyCDN.TokenSigner) → expect 200
-curl -I "https://cdn-private.directwerk.de/{tenant}/private/audio/test.mp3?token=HS256-…&expires=…"
+curl -I "https://cdn-private.directwerk.org/{tenant}/private/audio/test.mp3?token=HS256-…&expires=…"
 
 # Critical: same private key on PUBLIC PZ must still be 403
-curl -I "https://cdn.directwerk.de/{tenant}/private/audio/test.mp3"
+curl -I "https://cdn.directwerk.org/{tenant}/private/audio/test.mp3"
 ```
 
 ### C. Public URL builder (unchanged)
@@ -650,19 +650,19 @@ Use when tenant custom domains should CNAME to the platform CDN or app edge.
 
 ### 1. Platform zone
 
-1. **DNS** → Add zone `directwerk.de` (or your platform domain).
+1. **DNS** → Add zone `directwerk.org` (or your platform domain).
 2. Records:
-   - `api.directwerk.de` A/AAAA → Hetzner app IP (or CNAME to Coolify)
-   - `cdn.directwerk.de` CNAME → `directwerk-prod.b-cdn.net`
-   - `studio.directwerk.de` CNAME → Vercel/Hetzner frontend
+   - `api.directwerk.org` A/AAAA → Hetzner app IP (or CNAME to Coolify)
+   - `cdn.directwerk.org` CNAME → `directwerk-prod.b-cdn.net`
+   - `studio.directwerk.org` CNAME → Vercel/Hetzner frontend
 
 ### 2. Tenant custom domain flow
 
 Aligns with `TenantDomain` verification in Directwerk:
 
 1. Tenant adds `podcast.creator.de` in studio.
-2. API returns verification CNAME: `podcast.creator.de` → `tenants.directwerk.de` (or unique
-   `{tenant}.edge.directwerk.de`).
+2. API returns verification CNAME: `podcast.creator.de` → `tenants.directwerk.org` (or unique
+   `{tenant}.edge.directwerk.org`).
 3. Platform creates Pull Zone hostname or reverse-proxy route for that host.
 4. On DNS check success, set `verified = true`.
 
@@ -702,8 +702,8 @@ real traffic.
 | Env | Storage zone | Public PZ | Private PZ (Token Auth) | Public CDN hostname |
 |-----|--------------|-----------|-------------------------|---------------------|
 | Local / Bunny dev | `directwerk-dev` | `directwerk-dev` | `directwerk-dev-private` | `directwerk-dev.b-cdn.net` |
-| Stage | `directwerk-stage` | `directwerk-stage` | `directwerk-stage-private` | `cdn.stage.directwerk.de` |
-| Prod | `directwerk-prod` | `directwerk-prod` | `directwerk-prod-private` | `cdn.directwerk.de` |
+| Stage | `directwerk-stage` | `directwerk-stage` | `directwerk-stage-private` | `cdn.stage.directwerk.org` |
+| Prod | `directwerk-prod` | `directwerk-prod` | `directwerk-prod-private` | `cdn.directwerk.org` |
 
 Private PZ hostnames can stay on `*.b-cdn.net` until a `cdn-private.*` custom hostname is needed.
 Credentials: separate zone password per environment; Token Auth key is **per private PZ** — never

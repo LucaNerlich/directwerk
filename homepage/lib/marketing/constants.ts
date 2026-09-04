@@ -1,4 +1,4 @@
-export const CONTACT_EMAIL = 'hello@directwerk.de'
+export const CONTACT_EMAIL = 'hello@directwerk.org'
 
 export const API_URL =
     process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, '') ?? 'http://localhost:8080'

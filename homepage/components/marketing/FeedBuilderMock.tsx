@@ -8,7 +8,7 @@ function buildFeedUrl(selected: ReadonlySet<string>): string {
     const params = [...selected]
         .map((format) => `format=${encodeURIComponent(format)}`)
         .join('&')
-    return `https://deine-show.directwerk.de/feeds/deine-show/u/dein-token.xml${params.length > 0 ? `?${params}` : ''}`
+    return `https://deine-show.directwerk.org/feeds/deine-show/u/dein-token.xml${params.length > 0 ? `?${params}` : ''}`
 }
 
 export default function FeedBuilderMock(): React.JSX.Element {
