@@ -28,7 +28,7 @@ Copy [`.env.local.example`](.env.local.example) to `.env.local`.
 | Variable | Purpose |
 |----------|---------|
 | `NEXT_PUBLIC_API_URL` | Directwerk API for contact form + ALTCHA (default `http://localhost:8080`) |
-| `NEXT_PUBLIC_DOCS_URL` | Public VitePress docs (default `http://localhost:5173`) |
+| `NEXT_PUBLIC_DOCS_URL` | Public VitePress docs (default `https://docs.directwerk.org`) |
 | `NEXT_PUBLIC_SWAGGER_URL` | External link to staging Swagger UI on `/developers` |
 | `NEXT_PUBLIC_UMAMI_WEBSITE_ID` | Platform Umami website ID — unset disables analytics entirely |
 | `NEXT_PUBLIC_UMAMI_URL` | Umami instance base URL (e.g. `https://umami.example.com`) |

@@ -20,7 +20,7 @@ const PAIRS = [
 
 export default function ProblemSolutionSection(): React.JSX.Element {
     return (
-        <section className="marketing-section border-t bg-muted/20" id="features">
+        <section className="marketing-section border-t border-foreground/10" id="features">
             <div className="marketing-container">
                 <SectionLabel>Warum Directwerk</SectionLabel>
                 <h2 className="mt-4 max-w-3xl text-balance text-3xl font-semibold tracking-tight sm:text-4xl">
@@ -29,7 +29,7 @@ export default function ProblemSolutionSection(): React.JSX.Element {
                 <div className="mt-10 grid gap-6 lg:grid-cols-3">
                     {PAIRS.map((item, index) => (
                         <article
-                            className="rounded-xl border bg-card p-6"
+                            className="glass-panel rounded-2xl p-6"
                             key={item.problem.slice(0, 24)}
                         >
                             <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">

@@ -33,6 +33,7 @@ export default function RootLayout({
     return (
         <html lang="de" className={`${geistSans.variable} ${geistMono.variable}`}>
             <body className="min-h-screen antialiased">
+                <div aria-hidden="true" className="aurora-bg" />
                 <UmamiAnalytics />
                 <MarketingShell>{children}</MarketingShell>
             </body>
