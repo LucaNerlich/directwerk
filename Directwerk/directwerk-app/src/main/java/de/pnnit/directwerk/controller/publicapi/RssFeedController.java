@@ -1,8 +1,8 @@
 package de.pnnit.directwerk.controller.publicapi;
 
-import de.pnnit.directwerk.modules.core.analytics.FeedFetchAnalyticsService;
-import de.pnnit.directwerk.modules.core.util.ClientIpExtractor;
+import de.pnnit.directwerk.controller.RequestClientIpExtractor;
 import de.pnnit.directwerk.modules.core.RequiresModule;
+import de.pnnit.directwerk.modules.core.analytics.FeedFetchAnalyticsService;
 import de.pnnit.directwerk.modules.core.entity.Tenant;
 import de.pnnit.directwerk.modules.podcast.FeedBuilderModule;
 import de.pnnit.directwerk.modules.podcast.PodcastModule;
@@ -58,7 +58,7 @@ public class RssFeedController {
                 "public",
                 request.getServerName(),
                 request.getHeader("User-Agent"),
-                ClientIpExtractor.extract(request));
+                RequestClientIpExtractor.extract(request));
         var delivery = rssFeedSnapshotService.publicTenantFeed(tenant);
         return FeedRedirects.rssRedirect(delivery.redirectUrl(), delivery.ready());
     }
@@ -77,7 +77,7 @@ public class RssFeedController {
                 "public",
                 request.getServerName(),
                 request.getHeader("User-Agent"),
-                ClientIpExtractor.extract(request));
+                RequestClientIpExtractor.extract(request));
         var delivery = rssFeedSnapshotService.publicSeriesFeed(tenant, seriesSlug);
         return FeedRedirects.rssRedirect(delivery.redirectUrl(), delivery.ready());
     }
@@ -97,7 +97,7 @@ public class RssFeedController {
                 "private",
                 request.getServerName(),
                 request.getHeader("User-Agent"),
-                ClientIpExtractor.extract(request));
+                RequestClientIpExtractor.extract(request));
         var delivery = rssFeedSnapshotService.privateFeed(tenant, feed);
         return FeedRedirects.rssRedirect(delivery.redirectUrl(), delivery.ready());
     }
@@ -117,7 +117,7 @@ public class RssFeedController {
                 request.getServerName(),
                 request.getHeader("User-Agent"),
                 request.getHeader("Range") != null,
-                ClientIpExtractor.extract(request)
+                RequestClientIpExtractor.extract(request)
         ).response();
     }
 
@@ -138,7 +138,7 @@ public class RssFeedController {
                 request.getServerName(),
                 request.getHeader("User-Agent"),
                 request.getHeader("Range") != null,
-                ClientIpExtractor.extract(request)
+                RequestClientIpExtractor.extract(request)
         ).response();
     }
 }

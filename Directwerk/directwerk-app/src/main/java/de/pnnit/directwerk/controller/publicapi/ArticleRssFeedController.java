@@ -1,6 +1,7 @@
 package de.pnnit.directwerk.controller.publicapi;
 
 import de.pnnit.directwerk.config.DirectwerkConfig;
+import de.pnnit.directwerk.controller.RequestClientIpExtractor;
 import de.pnnit.directwerk.modules.core.RequiresModule;
 import de.pnnit.directwerk.modules.core.analytics.FeedFetchAnalyticsService;
 import de.pnnit.directwerk.modules.core.util.ClientIpExtractor;
@@ -137,6 +138,6 @@ public class ArticleRssFeedController {
         if (remoteAddr == null || !trustedProxies.contains(remoteAddr)) {
             return ClientIpExtractor.extract(null, null, remoteAddr);
         }
-        return ClientIpExtractor.extract(request);
+        return RequestClientIpExtractor.extract(request);
     }
 }

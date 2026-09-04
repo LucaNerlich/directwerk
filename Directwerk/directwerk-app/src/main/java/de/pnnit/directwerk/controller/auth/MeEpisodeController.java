@@ -4,8 +4,8 @@ import de.pnnit.directwerk.api.PublicEpisodeViewMapper;
 import de.pnnit.directwerk.api.dto.CategoryView;
 import de.pnnit.directwerk.api.dto.FormatView;
 import de.pnnit.directwerk.api.response.Response;
+import de.pnnit.directwerk.controller.RequestClientIpExtractor;
 import de.pnnit.directwerk.modules.core.RequiresModule;
-import de.pnnit.directwerk.modules.core.util.ClientIpExtractor;
 import de.pnnit.directwerk.modules.podcast.PodcastModule;
 import de.pnnit.directwerk.modules.podcast.access.SubscriberPortalAccessService;
 import de.pnnit.directwerk.modules.podcast.service.PortalStreamDeliveryFacade;
@@ -72,7 +72,7 @@ public class MeEpisodeController {
                 slug,
                 request.getServerName(),
                 request.getHeader("User-Agent"),
-                ClientIpExtractor.extract(request));
+                RequestClientIpExtractor.extract(request));
         return tracked.response();
     }
 

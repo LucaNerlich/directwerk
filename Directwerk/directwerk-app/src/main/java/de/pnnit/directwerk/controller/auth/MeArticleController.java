@@ -3,8 +3,8 @@ package de.pnnit.directwerk.controller.auth;
 import de.pnnit.directwerk.api.PublicArticleViewMapper;
 import de.pnnit.directwerk.api.dto.PublicCategoryView;
 import de.pnnit.directwerk.api.response.Response;
+import de.pnnit.directwerk.controller.RequestClientIpExtractor;
 import de.pnnit.directwerk.modules.core.RequiresModule;
-import de.pnnit.directwerk.modules.core.util.ClientIpExtractor;
 import de.pnnit.directwerk.modules.digital.DigitalContentModule;
 import de.pnnit.directwerk.modules.newsletter.access.SubscriberPortalArticleAccessService;
 import de.pnnit.directwerk.modules.newsletter.entity.Article;
@@ -69,7 +69,7 @@ public class MeArticleController {
                 "private-view",
                 request.getServerName(),
                 request.getHeader("User-Agent"),
-                ClientIpExtractor.extract(request));
+                RequestClientIpExtractor.extract(request));
         return ResponseEntity.ok(Response.ok(publicArticleViewMapper.toPortalView(article)));
     }
 
