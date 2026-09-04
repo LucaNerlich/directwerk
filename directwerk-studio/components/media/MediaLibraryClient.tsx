@@ -48,23 +48,11 @@ import MediaFolderDeleteDialog from '@/components/media/MediaFolderDeleteDialog'
 import MediaFolderDialog from '@/components/media/MediaFolderDialog'
 import MediaMoveDialog from '@/components/media/MediaMoveDialog'
 import {uploadMediaFile} from '@/lib/media/upload'
+import {formatBytes} from '@/lib/media/format'
 import {assetTypeLabel, mediaStatusLabel, visibilityLabel} from '@/lib/subscription/displayLabels'
 import {getClientTenantHost} from '@directwerk/api/tenant'
 import {safeImageSrc} from '@/lib/url/safeUrl'
 import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
-
-function formatBytes(sizeBytes: number | null): string {
-    if (sizeBytes === null || sizeBytes <= 0) {
-        return '—'
-    }
-    if (sizeBytes < 1024) {
-        return `${sizeBytes} B`
-    }
-    if (sizeBytes < 1024 * 1024) {
-        return `${(sizeBytes / 1024).toFixed(1)} KB`
-    }
-    return `${(sizeBytes / (1024 * 1024)).toFixed(1)} MB`
-}
 
 function resolveAssetType(
     file: File,

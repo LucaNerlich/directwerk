@@ -28,6 +28,7 @@ import {archiveEpisode, attachEpisodeAudio, cancelScheduleEpisode, createEpisode
 import type {CategorySummary, EpisodeDetail, FormatSummary, SeriesSummary} from '@directwerk/api/types'
 import {mediaLimitLabel} from '@/lib/media/limits'
 import {uploadMediaFile} from '@/lib/media/upload'
+import {useCoverImageUpload} from '@/lib/media/useCoverImageUpload'
 import {episodePublishBlockReason} from '@/lib/podcast/episodePreflight'
 import {publicEpisodePageUrl} from '@directwerk/api/urls/publicContentUrls'
 import {isSlugTaken} from '@/lib/publication/slugAvailability'
@@ -99,10 +100,6 @@ export default function EpisodeEditor({episodeId}: {episodeId?: number}): React.
     const [selectedCategoryIds, setSelectedCategoryIds] = useState<Set<number>>(new Set())
     const [coverAssetId, setCoverAssetId] = useState<number | null>(null)
     const [coverPreviewUrl, setCoverPreviewUrl] = useState<string | null>(null)
-    const [isUploadingCover, setIsUploadingCover] = useState(false)
-    const [coverUploadProgress, setCoverUploadProgress] = useState<{file: File; progress: number} | null>(
-        null,
-    )
     const audioAssetId = episode?.audioAssetId ?? null
     const hasDigitalContent = hasModule(config, 'DIGITAL_CONTENT')
 
@@ -208,6 +205,14 @@ export default function EpisodeEditor({episodeId}: {episodeId?: number}): React.
         },
         [authRedirect, setErrorMessage],
     )
+
+    const coverUpload = useCoverImageUpload({
+        onUploaded: (assetId) => {
+            setCoverAssetId(assetId)
+            markDirty()
+        },
+        onError: handleAuthError,
+    })
 
     useEffect(() => {
         let active = true
@@ -427,33 +432,9 @@ export default function EpisodeEditor({episodeId}: {episodeId?: number}): React.
         [handleAuthError, save],
     )
 
-    async function handleCoverUpload(file: File | null): Promise<void> {
-        if (file === null) {
-            return
-        }
-        setIsUploadingCover(true)
+    function handleCoverUpload(file: File | null): Promise<void> {
         setErrorMessage(null)
-        setCoverUploadProgress({file, progress: 0})
-        try {
-            const asset = await uploadMediaFile(getClientTenantHost(), file, {
-                assetType: 'IMAGE',
-                visibility: 'PUBLIC',
-                onProgress: (percent) => {
-                    if (mountedRef.current) {
-                        setCoverUploadProgress({file, progress: percent})
-                    }
-                },
-            })
-            setCoverAssetId(asset.id)
-            markDirty()
-        } catch (error) {
-            handleAuthError(error)
-        } finally {
-            if (mountedRef.current) {
-                setIsUploadingCover(false)
-                setCoverUploadProgress(null)
-            }
-        }
+        return coverUpload.upload(file)
     }
 
     const handleEnclosureChange = useCallback(
@@ -512,7 +493,7 @@ export default function EpisodeEditor({episodeId}: {episodeId?: number}): React.
         )
     }
 
-    const busy = isSaving || isUploading || isUploadingCover || isEnclosureSaving
+    const busy = isSaving || isUploading || coverUpload.isUploading || isEnclosureSaving
     const hasAudio = audioAssetId !== null
     const selectedSeries = series.find((item) => item.id === seriesId) ?? null
     const publishBlockedReason = episodePublishBlockReason({
@@ -832,10 +813,10 @@ export default function EpisodeEditor({episodeId}: {episodeId?: number}): React.
                                     Titelbild entfernen
                                 </Button>
                             ) : null}
-                            {coverUploadProgress !== null ? (
+                            {coverUpload.uploadProgress !== null ? (
                                 <UploadProgress
-                                    file={coverUploadProgress.file}
-                                    progress={coverUploadProgress.progress}
+                                    file={coverUpload.uploadProgress.file}
+                                    progress={coverUpload.uploadProgress.progress}
                                 />
                             ) : null}
                             </CardContent>

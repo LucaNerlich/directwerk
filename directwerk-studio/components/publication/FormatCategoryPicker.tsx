@@ -14,7 +14,6 @@ interface FormatCategoryPickerProps {
     onFormatChange?: (ids: Set<number>) => void
     onCategoryChange: (ids: Set<number>) => void
     disabled?: boolean
-    formatsNewHref?: string
 }
 
 export default function FormatCategoryPicker({
@@ -25,7 +24,6 @@ export default function FormatCategoryPicker({
     onFormatChange,
     onCategoryChange,
     disabled = false,
-    formatsNewHref = '/podcast/formats/new',
 }: FormatCategoryPickerProps): React.JSX.Element {
     const showFormats = formats !== undefined && onFormatChange !== undefined
 
@@ -41,7 +39,7 @@ export default function FormatCategoryPicker({
                     {formats.length === 0 ? (
                         <p className="text-xs text-muted-foreground">
                             Keine Formate angelegt.{' '}
-                            <Link href={formatsNewHref}>Formate einrichten</Link>
+                            <Link href="/podcast/formats/new">Formate einrichten</Link>
                         </p>
                     ) : (
                         formats.map((format) => (

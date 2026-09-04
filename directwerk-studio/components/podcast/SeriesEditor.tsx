@@ -15,7 +15,7 @@ import SectionHeader from '@directwerk/ui/components/section-header'
 
 import Link from 'next/link'
 import {useRouter} from 'next/navigation'
-import {useCallback, useEffect, useRef, useState, type FormEvent} from 'react'
+import {useCallback, useEffect, useState, type FormEvent} from 'react'
 
 import MediaLibraryPicker from '@/components/media/MediaLibraryPicker'
 import UploadProgress from '@/components/media/UploadProgress'
@@ -25,7 +25,7 @@ import {getMediaPreviewUrl} from '@/lib/api/mediaApi'
 import {createSeries, getSeries, updateSeries} from '@/lib/api/podcastApi'
 import type {SeriesDetail, SeriesStatus} from '@directwerk/api/types'
 import {mediaLimitLabel} from '@/lib/media/limits'
-import {uploadMediaFile} from '@/lib/media/upload'
+import {useCoverImageUpload} from '@/lib/media/useCoverImageUpload'
 import {getClientTenantHost} from '@directwerk/api/tenant'
 import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
 
@@ -48,11 +48,6 @@ export default function SeriesEditor({seriesId}: SeriesEditorProps): React.JSX.E
     const [status, setStatus] = useState<SeriesStatus>('DRAFT')
     const [coverAssetId, setCoverAssetId] = useState<number | null>(null)
     const [coverPreviewUrl, setCoverPreviewUrl] = useState<string | null>(null)
-    const [isUploadingCover, setIsUploadingCover] = useState(false)
-    const [uploadProgress, setUploadProgress] = useState<{file: File; progress: number} | null>(
-        null,
-    )
-    const mountedRef = useRef(true)
     const [defaultRequiredLevelSortOrder, setDefaultRequiredLevelSortOrder] = useState<number | null>(null)
     const [rssUrl, setRssUrl] = useState<string | null>(null)
     const [publishOnCreate, setPublishOnCreate] = useState(false)
@@ -63,7 +58,6 @@ export default function SeriesEditor({seriesId}: SeriesEditorProps): React.JSX.E
     const [reloadToken, setReloadToken] = useState(0)
 
     useEffect(() => {
-        mountedRef.current = true
         if (seriesId === undefined) {
             setIsLoading(false)
             return
@@ -113,7 +107,6 @@ export default function SeriesEditor({seriesId}: SeriesEditorProps): React.JSX.E
 
         return () => {
             active = false
-            mountedRef.current = false
         }
     }, [reloadToken, router, seriesId])
 
@@ -158,35 +151,19 @@ export default function SeriesEditor({seriesId}: SeriesEditorProps): React.JSX.E
         router.replace('/login')
     }, [router])
 
-    async function handleCoverUpload(file: File | null): Promise<void> {
-        if (file === null) {
-            return
-        }
-        setIsUploadingCover(true)
-        setErrorMessage(null)
-        setUploadProgress({file, progress: 0})
-        try {
-            const asset = await uploadMediaFile(getClientTenantHost(), file, {
-                assetType: 'IMAGE',
-                visibility: 'PUBLIC',
-                onProgress: (percent) => {
-                    if (mountedRef.current) {
-                        setUploadProgress({file, progress: percent})
-                    }
-                },
-            })
-            setCoverAssetId(asset.id)
-        } catch (error) {
+    const coverUpload = useCoverImageUpload({
+        onUploaded: setCoverAssetId,
+        onError: (error) => {
             if (authRedirect(error)) return
             setErrorMessage(
                 error instanceof Error ? error.message : 'Cover-Upload fehlgeschlagen.',
             )
-        } finally {
-            if (mountedRef.current) {
-                setIsUploadingCover(false)
-                setUploadProgress(null)
-            }
-        }
+        },
+    })
+
+    function handleCoverUpload(file: File | null): Promise<void> {
+        setErrorMessage(null)
+        return coverUpload.upload(file)
     }
 
     function seriesUpdatePayload(nextStatus: SeriesStatus) {
@@ -469,7 +446,7 @@ export default function SeriesEditor({seriesId}: SeriesEditorProps): React.JSX.E
                     <Input
                         accept="image/png,image/jpeg,image/webp"
                         aria-label="Titelbild hochladen"
-                        disabled={isUploadingCover}
+                        disabled={coverUpload.isUploading}
                         onChange={(event) => {
                             const file = event.target.files?.[0] ?? null
                             void handleCoverUpload(file)
@@ -482,7 +459,7 @@ export default function SeriesEditor({seriesId}: SeriesEditorProps): React.JSX.E
                     </span>
                     <MediaLibraryPicker
                         assetType="IMAGE"
-                        disabled={isUploadingCover || isSaving}
+                        disabled={coverUpload.isUploading || isSaving}
                         label="Titelbild aus Mediathek"
                         onAuthRequired={handleAuthRequired}
                         onSelect={(asset) => {
@@ -490,10 +467,10 @@ export default function SeriesEditor({seriesId}: SeriesEditorProps): React.JSX.E
                         }}
                         selectedId={coverAssetId}
                     />
-                    {uploadProgress !== null ? (
+                    {coverUpload.uploadProgress !== null ? (
                         <UploadProgress
-                            file={uploadProgress.file}
-                            progress={uploadProgress.progress}
+                            file={coverUpload.uploadProgress.file}
+                            progress={coverUpload.uploadProgress.progress}
                         />
                     ) : null}
                 </section>
@@ -572,7 +549,7 @@ export default function SeriesEditor({seriesId}: SeriesEditorProps): React.JSX.E
                         </>
                     )}
                     <div>
-                        <Button type="submit" disabled={isSaving || isUploadingCover}>
+                        <Button type="submit" disabled={isSaving || coverUpload.isUploading}>
                             {isSaving ? 'Speichert…' : isNew ? 'Sendung anlegen' : 'Speichern'}
                         </Button>
                     </div>

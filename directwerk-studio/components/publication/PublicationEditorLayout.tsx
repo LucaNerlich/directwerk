@@ -4,6 +4,7 @@ import {Alert, AlertDescription} from '@directwerk/ui/components/alert'
 import {Badge} from '@directwerk/ui/components/badge'
 import {Button} from '@directwerk/ui/components/button'
 import {Card, CardContent} from '@directwerk/ui/components/card'
+import {Checkbox} from '@directwerk/ui/components/checkbox'
 import {Input} from '@directwerk/ui/components/input'
 import PageStack from '@directwerk/ui/components/page-stack'
 import SectionHeader from '@directwerk/ui/components/section-header'
@@ -16,7 +17,6 @@ import {useId, useState} from 'react'
 import AccessPolicySelect from '@/components/publication/AccessPolicySelect'
 import PublishConfirmDialog from '@/components/publication/PublishConfirmDialog'
 import PublicationStatusBadge from '@/components/publication/PublicationStatusBadge'
-import PublicationWorkflowActions from '@/components/publication/PublicationWorkflowActions'
 import SlugField from '@/components/publication/SlugField'
 import LevelSelect from '@/components/studio/LevelSelect'
 import {ShowNotesEditor} from '@/lib/dynamic/studioHeavy'
@@ -492,31 +492,82 @@ export default function PublicationEditorLayout({
                                 description="Planen, zurückdatieren und benachrichtigen."
                                 title="Veröffentlichung"
                             />
-                            <PublicationWorkflowActions
-                                status={status}
-                                isSaving={isSaving}
-                                disabled={readOnly}
-                                canPublish={!publishDisabled}
-                                publishBlockedReason={blockedReason}
-                                showNotify={showNotify}
-                                notifySubscribers={notifySubscribers}
-                                onNotifyChange={onNotifyChange}
-                                notifyAudienceHint={notifyAudienceHint}
-                                scheduledAt={scheduledAt}
-                                onScheduledAtChange={onScheduledAtChange}
-                                publishedAt={publishedAt}
-                                onPublishedAtChange={onPublishedAtChange}
-                                publishValidationError={publishValidationError}
-                                scheduleValidationError={scheduleValidationError}
-                                showPrimaryActions={false}
-                                onSave={onSave}
-                                onPublish={() => setPublishDialogOpen(true)}
-                                onSchedule={onSchedule}
-                                onCancelSchedule={onCancelSchedule}
-                                onUnpublish={onUnpublish}
-                                onArchive={onArchive}
-                                onUnarchive={onUnarchive}
-                            />
+                            <fieldset className="m-0 flex min-w-0 flex-col gap-3 border-0 p-0" disabled={isSaving || readOnly}>
+                                <legend className="sr-only">Veröffentlichung</legend>
+                                {(isDraft || isScheduled) && (
+                                    <div className="flex flex-wrap items-end gap-2">
+                                        <label className="grid gap-2 text-sm font-medium">
+                                            <span>Veröffentlicht am</span>
+                                            <Input
+                                                type="datetime-local"
+                                                value={publishedAt}
+                                                onChange={(event) => onPublishedAtChange(event.target.value)}
+                                            />
+                                            <span className="text-xs font-normal text-muted-foreground">
+                                                Optional. Leer lassen für „jetzt“. Vergangenes Datum zum Backdaten.
+                                            </span>
+                                        </label>
+                                    </div>
+                                )}
+
+                                {(isDraft || isScheduled) && (
+                                    <div className="flex flex-wrap items-end gap-2">
+                                        <label className="grid gap-2 text-sm font-medium">
+                                            <span>Geplant für</span>
+                                            <Input
+                                                aria-describedby="publication-scheduled-hint"
+                                                aria-invalid={scheduleValidationError !== null}
+                                                type="datetime-local"
+                                                value={scheduledAt}
+                                                onChange={(event) => onScheduledAtChange(event.target.value)}
+                                            />
+                                            <span className="text-xs font-normal text-muted-foreground" id="publication-scheduled-hint">
+                                                Zeitpunkt in deiner lokalen Zeitzone. Erst mit „Planen“ wirksam.
+                                            </span>
+                                        </label>
+                                        {isDraft && (
+                                            <Button
+                                                type="button"
+                                                variant="outline"
+                                                onClick={onSchedule}
+                                                disabled={publishDisabled || scheduledAt.trim().length === 0}
+                                            >
+                                                Planen
+                                            </Button>
+                                        )}
+                                        {isScheduled && (
+                                            <Button type="button" variant="outline" onClick={onCancelSchedule}>
+                                                Planung aufheben
+                                            </Button>
+                                        )}
+                                    </div>
+                                )}
+
+                                {showNotify && (isDraft || isScheduled) && (
+                                    <label className="flex cursor-pointer items-center gap-2 text-sm font-normal">
+                                        <Checkbox
+                                            checked={notifySubscribers}
+                                            onCheckedChange={(checked) => onNotifyChange(checked === true)}
+                                        />
+                                        <span>Abonnenten benachrichtigen (beim Veröffentlichen)</span>
+                                    </label>
+                                )}
+                                {publishValidationError !== null && (isDraft || isScheduled) ? (
+                                    <p className="text-xs text-destructive" role="alert">
+                                        {publishValidationError}
+                                    </p>
+                                ) : null}
+                                {scheduleValidationError !== null && (isDraft || isScheduled) ? (
+                                    <p className="text-xs text-destructive" role="alert">
+                                        {scheduleValidationError}
+                                    </p>
+                                ) : null}
+                                {blockedReason !== null && (isDraft || isScheduled) ? (
+                                    <p className="text-xs text-muted-foreground" role="status">
+                                        Vor dem Veröffentlichen: {blockedReason}
+                                    </p>
+                                ) : null}
+                            </fieldset>
                         </CardContent>
                     </Card>
                     {sidebarExtra}

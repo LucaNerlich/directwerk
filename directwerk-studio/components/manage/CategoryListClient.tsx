@@ -5,10 +5,10 @@ import Link from 'next/link'
 import {Alert, AlertDescription} from '@directwerk/ui/components/alert'
 import {Button} from '@directwerk/ui/components/button'
 import EmptyState from '@directwerk/ui/components/empty-state'
+import {EntityListSection} from '@directwerk/ui/components/entity-list-section'
 import PageHeader from '@directwerk/ui/components/page-header'
 import PageStack from '@directwerk/ui/components/page-stack'
 import {Skeleton} from '@directwerk/ui/components/skeleton'
-import {SlugEntityListSection} from '@directwerk/ui/components/slug-entity-list-section'
 import {useListViewMode} from '@directwerk/ui/hooks/use-list-view-mode'
 
 import {listCategories} from '@/lib/api/catalogApi'
@@ -27,10 +27,14 @@ export default function CategoryListClient(): React.JSX.Element {
     const listItems =
         categories?.map((category) => ({
             id: category.id,
-            name: category.name,
-            slug: category.slug,
-            trailing: category.active ? 'Aktiv' : 'Inaktiv',
+            title: category.name,
             href: `/manage/categories/${category.id}`,
+            description: (
+                <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-xs">
+                    {category.slug}
+                </code>
+            ),
+            trailing: category.active ? 'Aktiv' : 'Inaktiv',
         })) ?? []
 
     return (
@@ -75,7 +79,7 @@ export default function CategoryListClient(): React.JSX.Element {
                 />
             ) : null}
             {categories && categories.length > 0 ? (
-                <SlugEntityListSection
+                <EntityListSection
                     items={listItems}
                     linkComponent={Link}
                     onViewModeChange={setViewMode}

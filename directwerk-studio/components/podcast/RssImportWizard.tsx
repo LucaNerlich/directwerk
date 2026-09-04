@@ -19,6 +19,7 @@ import {createSeries, listSeries} from '@/lib/api/podcastApi'
 import {importRssEpisode, previewRssFeed} from '@/lib/api/podcastImportApi'
 import {ingestRemoteAssetWithProgress} from '@/lib/media/remoteIngest'
 import {filenameFromImportUrl} from '@/lib/media/importFilename'
+import {formatBytes} from '@/lib/media/format'
 import {deleteMedia} from '@/lib/api/mediaApi'
 import {isTenantAdminRole, suggestSlug} from '@/lib/api/studioHelpers'
 import {parseOptionalInt} from '@/lib/publication/parsePositiveInt'
@@ -47,16 +48,6 @@ function formatDuration(seconds: number | null): string {
         return `${hours}:${String(minutes).padStart(2, '0')}:${String(rest).padStart(2, '0')}`
     }
     return `${minutes}:${String(rest).padStart(2, '0')}`
-}
-
-function formatBytes(bytes: number | null): string {
-    if (bytes === null || bytes <= 0) {
-        return 'Größe unbekannt'
-    }
-    if (bytes < 1024 * 1024) {
-        return `${Math.round(bytes / 1024)} KB`
-    }
-    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
 }
 
 export default function RssImportWizard(): React.JSX.Element {
