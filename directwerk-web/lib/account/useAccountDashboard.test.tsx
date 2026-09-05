@@ -182,4 +182,24 @@ describe('useAccountDashboard', () => {
             'Einige private Feeds konnten nicht geladen werden.',
         )
     })
+
+    it('skips subscriptions without failing when the module is disabled', async () => {
+        getSiteConfig.mockResolvedValue({
+            data: {
+                enabledModules: ['PODCAST_RSS', 'ARTICLE_RSS'],
+                publicRssUrl: 'https://tenant.example/feeds/tenant/podcast.xml',
+                publicArticleRssUrl:
+                    'https://tenant.example/feeds/tenant/articles.xml',
+            },
+        })
+
+        const {result} = renderHook(() => useAccountDashboard())
+
+        await waitFor(() => expect(result.current.isLoading).toBe(false))
+
+        expect(listMySubscriptions).not.toHaveBeenCalled()
+        expect(result.current.me?.email).toBe('reader@example.com')
+        expect(result.current.subscriptions).toEqual([])
+        expect(result.current.error).toBeNull()
+    })
 })

@@ -1,5 +1,5 @@
 import type {ErrorMessageCatalog} from '../envelope'
-import {extractApiErrorMessage} from '../envelope'
+import {extractApiErrorMessage, withApiErrorContext} from '../envelope'
 
 /**
  * Browser-side authenticated request loop shared by all three frontends.
@@ -191,12 +191,16 @@ export function createAuthedRequest(config: AuthedRequestConfig): AuthedRequestF
                 throw new Error('AUTH_REQUIRED')
             }
 
-            throw new Error(
-                extractApiErrorMessage(
-                    value,
-                    response.status,
-                    config.catalog ?? {fallback: () => invalidResponseMessage},
+            throw withApiErrorContext(
+                new Error(
+                    extractApiErrorMessage(
+                        value,
+                        response.status,
+                        config.catalog ?? {fallback: () => invalidResponseMessage},
+                    ),
                 ),
+                response.status,
+                value,
             )
         }
 
@@ -229,8 +233,12 @@ export function createJsonRequest(config: {
             config.invalidResponseMessage,
         )
         if (!response.ok) {
-            throw new Error(
-                extractApiErrorMessage(value, response.status, config.catalog),
+            throw withApiErrorContext(
+                new Error(
+                    extractApiErrorMessage(value, response.status, config.catalog),
+                ),
+                response.status,
+                value,
             )
         }
 

@@ -2,10 +2,13 @@ import {describe, expect, it} from 'vitest'
 
 import {AUTH_REQUIRED} from '../src/constants'
 import {
+    apiErrorCode,
+    apiErrorStatus,
     extractApiErrorCode,
     extractApiErrorMessage,
     parseApiEnvelope,
     parsePaginatedApiEnvelope,
+    withApiErrorContext,
 } from '../src/envelope'
 
 describe('parseApiEnvelope', () => {
@@ -49,6 +52,36 @@ describe('extractApiErrorCode', () => {
         expect(extractApiErrorCode(null)).toBeNull()
         expect(extractApiErrorCode({errors: []})).toBeNull()
         expect(extractApiErrorCode({errors: [{message: 'No code'}]})).toBeNull()
+    })
+})
+
+describe('withApiErrorContext', () => {
+    it('attaches status and code while keeping the message', () => {
+        const error = withApiErrorContext(
+            new Error('Module SUBSCRIPTION is not active for this tenant'),
+            403,
+            {errors: [{code: 'FEATURE_NOT_ENABLED', message: 'Module SUBSCRIPTION is not active'}]},
+        )
+
+        expect(error.message).toBe('Module SUBSCRIPTION is not active for this tenant')
+        expect(apiErrorStatus(error)).toBe(403)
+        expect(apiErrorCode(error)).toBe('FEATURE_NOT_ENABLED')
+    })
+
+    it('attaches status without code for unstructured bodies', () => {
+        const error = withApiErrorContext(new Error('Nope'), 500, null)
+
+        expect(apiErrorStatus(error)).toBe(500)
+        expect(apiErrorCode(error)).toBeNull()
+    })
+
+    it('reads nothing from plain errors', () => {
+        const error = new Error('plain')
+
+        expect(apiErrorStatus(error)).toBeNull()
+        expect(apiErrorCode(error)).toBeNull()
+        expect(apiErrorStatus(null)).toBeNull()
+        expect(apiErrorCode('kaputt')).toBeNull()
     })
 })
 

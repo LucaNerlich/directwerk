@@ -1,4 +1,21 @@
 import {AUTH_REQUIRED} from '@directwerk/api/constants'
+import {apiErrorCode} from '@directwerk/api/envelope'
+
+const FEATURE_NOT_ENABLED = 'FEATURE_NOT_ENABLED'
+
+const FEATURE_DISABLED_COPY: Record<UserFacingErrorContext, string> = {
+    checkout:
+        'Abos sind bei diesem Anbieter deaktiviert. Wende dich für Zugang an die Redaktion.',
+    portal:
+        'Abos sind bei diesem Anbieter deaktiviert. Wende dich für Zugang an die Redaktion.',
+    feeds: 'Private Feeds sind bei diesem Anbieter deaktiviert.',
+    downloads: 'Bonusdateien sind bei diesem Anbieter deaktiviert.',
+    account:
+        'Mitgliedschaften sind bei diesem Anbieter deaktiviert. Profil, Zugang und Feeds bleiben verfügbar.',
+    preferences:
+        'Einstellungen konnten nicht gespeichert werden. Bitte versuche es später erneut.',
+    general: 'Diese Funktion ist bei diesem Anbieter deaktiviert.',
+}
 
 const STRIPE_UNAVAILABLE_CODES = new Set([
     'STRIPE_NOT_IMPLEMENTED',
@@ -65,6 +82,9 @@ export function userFacingBillingError(
     const message = error.message.trim()
     if (message === '' || message === AUTH_REQUIRED) {
         return fallback
+    }
+    if (apiErrorCode(error) === FEATURE_NOT_ENABLED) {
+        return FEATURE_DISABLED_COPY[context] ?? FALLBACK_COPY.general
     }
     if (
         STRIPE_UNAVAILABLE_CODES.has(message) ||
