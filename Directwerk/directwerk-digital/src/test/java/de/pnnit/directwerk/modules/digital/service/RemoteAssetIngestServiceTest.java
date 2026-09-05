@@ -16,6 +16,7 @@ import de.pnnit.directwerk.config.DirectwerkConfig;
 import de.pnnit.directwerk.config.DirectwerkProperties;
 import de.pnnit.directwerk.modules.core.entity.Tenant;
 import de.pnnit.directwerk.modules.core.repository.TenantRepository;
+import de.pnnit.directwerk.modules.core.service.MembershipPermissionService;
 import de.pnnit.directwerk.modules.digital.api.RemoteAssetIngestApi;
 import de.pnnit.directwerk.modules.digital.entity.AssetStatus;
 import de.pnnit.directwerk.modules.digital.entity.AssetType;
@@ -70,6 +71,8 @@ class RemoteAssetIngestServiceTest {
     private PlatformTransactionManager transactionManager;
     @Mock
     private RemoteAssetIngestJobProducer remoteAssetIngestJobProducer;
+    @Mock
+    private MembershipPermissionService permissionService;
 
     private RemoteAssetIngestService service;
     private TransactionStatus transactionStatus;
@@ -86,7 +89,8 @@ class RemoteAssetIngestServiceTest {
                 tenantRepository,
                 directwerkConfig,
                 transactionManager,
-                remoteAssetIngestJobProducer
+                remoteAssetIngestJobProducer,
+                permissionService
         );
     }
 
