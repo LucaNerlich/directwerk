@@ -32,8 +32,7 @@ describe('filenameFromImportUrl', () => {
         )
     })
 
-    it('falls back for generic stems that identify nothing', () => {
-        expect(filenameFromImportUrl('https://cdn.example/download.mp3', 'episode.mp3')).toBe(
+    it('falls back for generic stems that identify nothing', () => {        expect(filenameFromImportUrl('https://cdn.example/download.mp3', 'episode.mp3')).toBe(
             'episode.mp3',
         )
         expect(filenameFromImportUrl('https://cdn.example/Download.MP3?x=1', 'episode.mp3')).toBe(
@@ -45,5 +44,21 @@ describe('filenameFromImportUrl', () => {
         expect(isGenericFilenameStem('download')).toBe(true)
         expect(isGenericFilenameStem(' Download ')).toBe(true)
         expect(isGenericFilenameStem('folge-1')).toBe(false)
+    })
+
+    it('prefers the given stem and keeps the real extension', () => {
+        expect(
+            filenameFromImportUrl('https://cdn.example/ep1.mp3', 'episode.mp3', 'folge-1'),
+        ).toBe('folge-1.mp3')
+        expect(
+            filenameFromImportUrl('https://cdn.example/download', 'episode.mp3', 'folge-1'),
+        ).toBe('folge-1.mp3')
+        expect(
+            filenameFromImportUrl('https://cdn.example/cover.png', 'cover.jpg', 'folge-1'),
+        ).toBe('folge-1.png')
+        expect(filenameFromImportUrl('', 'episode.mp3', 'folge-1')).toBe('folge-1.mp3')
+        expect(filenameFromImportUrl('https://cdn.example/ep1.mp3', 'episode.mp3', '  ')).toBe(
+            'ep1.mp3',
+        )
     })
 })

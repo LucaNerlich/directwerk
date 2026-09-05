@@ -206,7 +206,11 @@ export default function RssImportWizard(): React.JSX.Element {
                         sourceUrl: preview.channel.imageUrl,
                         assetType: 'IMAGE',
                         visibility: 'PUBLIC',
-                        filename: filenameFromImportUrl(preview.channel.imageUrl, 'series-cover.jpg'),
+                        filename: filenameFromImportUrl(
+                            preview.channel.imageUrl,
+                            'series-cover.jpg',
+                            seriesSlug.trim() || suggestSlug(seriesTitle) || undefined,
+                        ),
                     },
                     (progress) => {
                         setStreamProgress({label: 'Sendungs-Cover', progress})
@@ -346,7 +350,11 @@ export default function RssImportWizard(): React.JSX.Element {
                         sourceUrl: item.audioUrl,
                         assetType: 'AUDIO',
                         visibility: 'PRIVATE',
-                        filename: filenameFromImportUrl(item.audioUrl, 'episode.mp3'),
+                        filename: filenameFromImportUrl(
+                            item.audioUrl,
+                            'episode.mp3',
+                            suggestSlug(episodeTitle.trim() || item.title) || undefined,
+                        ),
                     },
                     (progress, asset) => {
                         const estimatedProgress =
@@ -371,7 +379,11 @@ export default function RssImportWizard(): React.JSX.Element {
                         sourceUrl: item.imageUrl,
                         assetType: 'IMAGE',
                         visibility: 'PUBLIC',
-                        filename: filenameFromImportUrl(item.imageUrl, 'cover.jpg'),
+                        filename: filenameFromImportUrl(
+                            item.imageUrl,
+                            'cover.jpg',
+                            suggestSlug(episodeTitle.trim() || item.title) || undefined,
+                        ),
                     },
                     (progress) => {
                         setStreamProgress({label: 'Cover', progress})

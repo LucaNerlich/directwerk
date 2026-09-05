@@ -182,6 +182,50 @@ class PodcastImportServiceTest {
     }
 
     @Test
+    void prefersTitleSlugOverMeaningfulUrlStems() {
+        String feedUrl = "https://example.com/feed.xml";
+        String guid = "episode-9";
+        String identity = PodcastImportService.importIdentity(feedUrl, guid);
+        when(episodeRepository.findByTenantIdAndImportIdentity(10L, identity))
+                .thenReturn(Optional.empty());
+        when(episodeRepository.existsByTenantIdAndSlug(10L, "episode-9")).thenReturn(false);
+        MediaAsset audio = new MediaAsset();
+        audio.setId(11L);
+        when(remoteAssetIngestApi.ingestFromUrl(any())).thenReturn(audio);
+        Episode created = new Episode();
+        created.setId(22L);
+        when(episodeService.createImportedDraft(
+                any(), any(), any(), any(), any(), any(), any(), any(), any(),
+                any(), any(), any(), any(), any(), any()
+        )).thenReturn(created);
+
+        service.importEpisode(new PodcastImportService.ImportEpisodeCommand(
+                7L,
+                feedUrl,
+                guid,
+                "episode-9",
+                "Episode 9",
+                "Shownotes",
+                9,
+                60,
+                null,
+                null,
+                Set.of(),
+                Set.of(),
+                "https://cdn.example.com/ep1.mp3",
+                null,
+                null,
+                null,
+                Instant.parse("2026-07-20T12:00:00Z")
+        ));
+
+        ArgumentCaptor<RemoteAssetIngestApi.IngestCommand> ingest =
+                ArgumentCaptor.forClass(RemoteAssetIngestApi.IngestCommand.class);
+        verify(remoteAssetIngestApi).ingestFromUrl(ingest.capture());
+        assertThat(ingest.getValue().filenameHint()).isEqualTo("episode-9.mp3");
+    }
+
+    @Test
     void discardsStreamedAudioWhenEpisodeCreationFails() {
         String feedUrl = "https://example.com/feed.xml";
         String guid = "episode-1";

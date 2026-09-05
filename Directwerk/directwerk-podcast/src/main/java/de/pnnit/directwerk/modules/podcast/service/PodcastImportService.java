@@ -349,19 +349,17 @@ public class PodcastImportService {
             last = last.substring(0, query);
         }
         int dot = last.lastIndexOf('.');
-        if (dot > 0) {
-            if (!MediaUploadRules.isGenericFilenameStem(last.substring(0, dot))) {
-                return last;
-            }
-            // Generic stem (e.g. download.mp3): keep the real extension, but
-            // derive a readable stem from the episode title.
-            String slug = ImportSlugSuggester.suggest(title);
-            String stem = "folge".equals(slug) ? fallbackStem : slug;
-            return stem + last.substring(dot);
-        }
+        boolean hasExtension = dot > 0 && dot < last.length() - 1;
+        // The episode title is the readable identifier in media libraries, so it
+        // always wins; the URL only contributes its real extension, if any.
         String slug = ImportSlugSuggester.suggest(title);
-        String stem = "folge".equals(slug) ? fallbackStem : slug;
-        return stem + "." + extension;
+        if (!"folge".equals(slug)) {
+            return slug + (hasExtension ? last.substring(dot) : "." + extension);
+        }
+        if (hasExtension && !MediaUploadRules.isGenericFilenameStem(last.substring(0, dot))) {
+            return last;
+        }
+        return fallbackStem + (hasExtension ? last.substring(dot) : "." + extension);
     }
 
     /**
