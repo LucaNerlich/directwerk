@@ -86,7 +86,7 @@ class StudioWorkspaceDiscoveryServiceTest {
                 .thenReturn(List.of(membership));
 
         assertThatThrownBy(() -> service.discoverWorkspaces("subscriber@example.com", "ValidPassword12!"))
-                .isInstanceOf(StudioAccessDeniedException.class);
+                .isInstanceOf(BadCredentialsException.class);
     }
 
     @Test

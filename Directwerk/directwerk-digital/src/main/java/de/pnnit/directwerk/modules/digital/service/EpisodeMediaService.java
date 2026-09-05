@@ -4,6 +4,7 @@ import de.pnnit.directwerk.config.DirectwerkConfig;
 import de.pnnit.directwerk.config.DirectwerkProperties;
 import de.pnnit.directwerk.modules.core.util.TenantAssetKeys;
 import de.pnnit.directwerk.modules.digital.api.CdnPurgeClient;
+import de.pnnit.directwerk.modules.digital.api.EpisodeLinkValidator;
 import de.pnnit.directwerk.modules.digital.api.EpisodeMediaApi;
 import de.pnnit.directwerk.modules.digital.entity.AssetScope;
 import de.pnnit.directwerk.modules.digital.entity.AssetStatus;
@@ -42,6 +43,7 @@ public class EpisodeMediaService implements EpisodeMediaApi {
     private final PublicCdnUrlResolver publicCdnUrlResolver;
     private final DirectwerkConfig directwerkConfig;
     private final PlatformTransactionManager transactionManager;
+    private final ObjectProvider<EpisodeLinkValidator> episodeLinkValidators;
 
     @Override
     @Transactional(readOnly = true)
@@ -63,6 +65,10 @@ public class EpisodeMediaService implements EpisodeMediaApi {
             throw new UploadValidationException("UPLOAD_VALIDATION_FAILED", "episodeId is required");
         }
         MediaAsset asset = requireTenantAsset(assetId);
+        EpisodeLinkValidator validator = episodeLinkValidators.getIfAvailable();
+        if (validator == null || !validator.episodeExists(asset.getTenant().getId(), episodeId)) {
+            throw new UploadValidationException("UPLOAD_VALIDATION_FAILED", "Unknown episode");
+        }
         asset.setEpisodeId(episodeId);
         mediaAssetRepository.save(asset);
     }

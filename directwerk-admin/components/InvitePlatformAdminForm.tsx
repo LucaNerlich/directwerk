@@ -76,7 +76,7 @@ export default function InvitePlatformAdminForm({
                         {state.success}
                     </p>
                 ) : null}
-                {state.inviteToken ? (
+                {state.inviteToken && process.env.NODE_ENV !== 'production' ? (
                     <div className="space-y-2">
                         <Label htmlFor="platform-admin-invite-token">
                             Dev invite token

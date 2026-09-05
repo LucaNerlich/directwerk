@@ -16,6 +16,7 @@ import {assetTypeLabel} from '@/lib/format/content'
 import {listMyDownloads} from '@/lib/api/client'
 import {userFacingDownloadsError} from '@/lib/billing/userFacingBillingError'
 import {formatBytes} from '@directwerk/api/format/bytes'
+import {isAllowedFeedUrl} from '@directwerk/api/validation/primitives'
 import type {SubscriberDownload} from '@directwerk/api/types'
 import {getClientTenantHost} from '@/lib/tenant/clientHost'
 import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
@@ -102,6 +103,12 @@ export default function DownloadsPage(): React.JSX.Element {
                         {downloads.map((item) => {
                             const sizeLabel = formatBytes(item.sizeBytes)
                             const unlockedBy = packageHint(item)
+                            // Signed download URLs are validated before render
+                            // so a compromised record cannot turn the button
+                            // into a javascript:/data: link.
+                            const safeDownloadUrl = isAllowedFeedUrl(item.downloadUrl)
+                                ? item.downloadUrl
+                                : null
                             return (
                                 <li key={item.id}>
                                     <FeatureCard
@@ -124,16 +131,22 @@ export default function DownloadsPage(): React.JSX.Element {
                                                 'Über ein Paket freigeschaltet.'
                                             )}
                                         </p>
+                                        {safeDownloadUrl !== null ? (
                                         <Button
                                             nativeButton={false}
                                             render={
-                                                <a href={item.downloadUrl} rel="noreferrer" />
+                                                <a href={safeDownloadUrl} rel="noreferrer" />
                                             }
                                             size="sm"
                                             variant="outline"
                                         >
                                             Herunterladen
                                         </Button>
+                                        ) : (
+                                            <p className="text-sm text-muted-foreground" role="alert">
+                                                Download-Link ungültig.
+                                            </p>
+                                        )}
                                     </FeatureCard>
                                 </li>
                             )

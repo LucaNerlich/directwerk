@@ -7,7 +7,7 @@ outline: deep
 <!-- source: docs/payment.md -->
 
 Implementation brief for **Phase 8 / `STRIPE_BILLING`**: live Stripe Connect billing on
-Directwerk. Complements the design sketch in [`../README.md`](../../../docs/platform-design.md#payments-and-billing)
+Directwerk. Complements the internal `docs/platform-design.md` payments sketch
 and the entitlement model in [`content-subscriptions-and-entitlements.md`](/operators/subscriptions-and-entitlements).
 
 | | |
@@ -399,13 +399,13 @@ Gradle: add official Stripe Java SDK; pin version in BOM/catalog if used.
 
 | Doc | Why |
 |-----|-----|
-| [`../README.md`](../../../docs/platform-design.md#payments-and-billing) | Original product design (Connect, checkout sequence, webhooks) |
+| Internal `docs/platform-design.md` | Original product design (Connect, checkout sequence, webhooks) |
 | [`content-subscriptions-and-entitlements.md`](/operators/subscriptions-and-entitlements) | LEVEL/PACKAGE access rules (must keep working) |
 | [`poc-alpha-setup.md`](/install/local-development) | HTTP harness run order |
-| [`directwerk-studio-implementation.md`](directwerk-studio-implementation.md) | Studio integrations / sync-stripe UI notes |
-| [`user-backend-implementation.md`](user-backend-implementation.md) | `/api/v1/webhooks/**` signature filter pattern |
-| [`../Directwerk/bruno/README.md`](../Directwerk/bruno/README.md) | Bruno maintenance rule |
-| [`../AGENTS.md`](../AGENTS.md) | API-first + Bruno/http lockstep |
+| Internal `directwerk-studio-implementation.md` | Studio integrations / sync-stripe UI notes |
+| Internal `user-backend-implementation.md` | `/api/v1/webhooks/**` signature filter pattern |
+| Internal `Directwerk/bruno/README.md` | Bruno maintenance rule |
+| Internal `AGENTS.md` | API-first + Bruno/http lockstep |
 
 ---
 

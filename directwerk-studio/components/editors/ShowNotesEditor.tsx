@@ -12,6 +12,7 @@ import MediaInlinePickerDialog, {
     inlineInsertKind,
 } from '@/components/media/MediaInlinePickerDialog'
 import type {MediaAsset} from '@directwerk/api/types'
+import {sanitizeContentHtml} from '@directwerk/api/content/sanitizeContentHtml'
 import {safeImageSrc, safeLinkHref} from '@/lib/url/safeUrl'
 
 
@@ -35,11 +36,7 @@ function escapeHtml(value: string): string {
 
 export function sanitizePastedHtml(html: string): string {
     const parsed = new DOMParser().parseFromString(
-        html
-            .replace(/\s(?:style|class|id)="[^"]*"/gi, '')
-            .replace(/\son[a-z0-9-]+\s*=\s*("[^"]*"|'[^']*')/gi, '')
-            .replace(/href\s*=\s*("|')\s*(?:javascript|data):[^"']*\1/gi, '')
-            .replace(/<(script|style|iframe)[\s\S]*?<\/\1>/gi, ''),
+        sanitizeContentHtml(html),
         'text/html',
     )
 
@@ -50,6 +47,15 @@ export function sanitizePastedHtml(html: string): string {
             return
         }
         image.setAttribute('src', src)
+    })
+
+    parsed.body.querySelectorAll('a').forEach((anchor) => {
+        const href = safeLinkHref(anchor.getAttribute('href'))
+        if (href === null) {
+            anchor.removeAttribute('href')
+            return
+        }
+        anchor.setAttribute('href', href)
     })
 
     return parsed.body.innerHTML

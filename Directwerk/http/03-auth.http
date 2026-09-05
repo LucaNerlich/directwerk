@@ -176,6 +176,8 @@ Accept: application/json
 ###
 
 ### @name studioWorkspaces
+# Note: valid credentials without studio-eligible memberships return 401
+# INVALID_CREDENTIALS (indistinguishable from bad credentials — no oracle).
 POST {{baseUrl}}/api/v1/auth/studio/workspaces
 Content-Type: application/json
 Accept: application/json

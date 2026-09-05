@@ -1,6 +1,8 @@
 package de.pnnit.directwerk.controller.auth;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -48,6 +50,9 @@ class MeFeedControllerTest {
                 subscriberFeedService,
                 new FeedUrlResolver(tenantPublicHostResolver)
         );
+        // Pass-through for fixture tokens (production rows are encrypted).
+        lenient().when(subscriberFeedService.revealToken(any())).thenAnswer(
+                invocation -> ((SubscriberFeed) invocation.getArgument(0)).getFeedToken());
     }
 
     @Test
@@ -158,6 +163,9 @@ class MeFeedControllerTest {
 
         assertThat(response.getStatusCode().value()).isEqualTo(201);
         assertThat(response.getBody().data().isDefault()).isFalse();
+        // Create responses reveal the tokenized URL once.
+        assertThat(response.getBody().data().url())
+                .isEqualTo("https://alpha.example.test/feeds/alpha/u/tok-custom.xml");
         assertThat(response.getBody().data().formatIds()).containsExactly(3L);
         assertThat(response.getBody().data().formats())
                 .extracting(FormatView::name)

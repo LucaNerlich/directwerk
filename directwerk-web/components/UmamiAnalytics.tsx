@@ -1,6 +1,7 @@
 import Script from 'next/script'
 
 import type {SiteAnalytics} from '@directwerk/api/types'
+import {isAllowedFeedUrl} from '@directwerk/api/validation/primitives'
 
 interface UmamiAnalyticsProps {
     analytics: SiteAnalytics | null
@@ -13,10 +14,17 @@ export default function UmamiAnalytics({
         return <></>
     }
 
+    if (!isAllowedFeedUrl(analytics.umamiScriptUrl)) {
+        return <></>
+    }
+
     const sampleRate = process.env.NEXT_PUBLIC_UMAMI_SAMPLE_RATE ?? '0.25'
     const maskLevel = process.env.NEXT_PUBLIC_UMAMI_MASK_LEVEL ?? 'moderate'
     const maxDuration = process.env.NEXT_PUBLIC_UMAMI_MAX_DURATION ?? '300000'
     const recorderUrl = `${analytics.umamiHostUrl}/recorder.js`
+    if (!isAllowedFeedUrl(recorderUrl)) {
+        return <></>
+    }
 
     return (
         <>

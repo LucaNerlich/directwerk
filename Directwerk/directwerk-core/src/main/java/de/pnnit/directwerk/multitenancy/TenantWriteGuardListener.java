@@ -2,6 +2,7 @@ package de.pnnit.directwerk.multitenancy;
 
 import de.pnnit.directwerk.modules.core.entity.Tenant;
 import jakarta.persistence.PrePersist;
+import jakarta.persistence.PreRemove;
 import jakarta.persistence.PreUpdate;
 
 /**
@@ -18,6 +19,7 @@ public class TenantWriteGuardListener {
      */
     @PrePersist
     @PreUpdate
+    @PreRemove
     public void enforceTenant(Object entity) {
         if (!(entity instanceof TenantOwned owned)) {
             return;

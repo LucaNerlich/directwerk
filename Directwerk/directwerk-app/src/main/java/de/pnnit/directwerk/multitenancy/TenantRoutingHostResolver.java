@@ -32,12 +32,17 @@ public class TenantRoutingHostResolver {
             return resolveFromBffHeaders(request, platformApiHost, explicitTenant, serverName);
         }
 
-        // BFF upstream: explicit tenant header on the platform API hostname even when issuer
-        // metadata is missing or getServerName() was already rewritten by the reverse proxy.
-        if (explicitTenant.isPresent() && !explicitTenant.get().equalsIgnoreCase(serverName)) {
+        // Direct tenant traffic: never trust client-supplied tenant headers when
+        // the platform API hostname is known — the verified Host (serverName)
+        // is authoritative. The headers are only meaningful for BFF upstream
+        // calls arriving on the platform API hostname (handled above).
+        // Fallback: when issuer metadata is missing the platform host is
+        // unknown, so BFF calls could never select a tenant without honoring
+        // the explicit header — preserve that legacy behavior.
+        if (platformApiHost == null && explicitTenant.isPresent()
+                && !explicitTenant.get().equalsIgnoreCase(serverName)) {
             return explicitTenant.get();
         }
-
         return serverName;
     }
 

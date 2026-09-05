@@ -21,7 +21,7 @@ const PUBLIC_PATHS = new Set([
     '/article-feeds',
 ])
 
-const PROTECTED_PATHS = new Set(['/account'])
+const PROTECTED_PATHS = new Set(['/account', '/downloads'])
 
 function isPublicPath(pathname: string): boolean {
     if (PUBLIC_PATHS.has(pathname)) {

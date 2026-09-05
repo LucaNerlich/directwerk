@@ -4,6 +4,7 @@ import de.pnnit.directwerk.modules.core.entity.Tenant;
 import de.pnnit.directwerk.modules.core.repository.TenantRepository;
 import de.pnnit.directwerk.modules.core.service.ModuleGateService;
 import de.pnnit.directwerk.modules.core.service.ModuleNotEnabledException;
+import de.pnnit.directwerk.modules.core.service.FeedTokenProtector;
 import de.pnnit.directwerk.modules.podcast.FeedBuilderModule;
 import de.pnnit.directwerk.modules.core.repository.UserRepository;
 import de.pnnit.directwerk.modules.digital.exception.StorageNotConfiguredException;
@@ -12,6 +13,7 @@ import de.pnnit.directwerk.modules.podcast.entity.Format;
 import de.pnnit.directwerk.modules.podcast.job.RssFeedRefreshJobProducer;
 import de.pnnit.directwerk.modules.podcast.repository.FormatRepository;
 import de.pnnit.directwerk.modules.core.util.FeedTokenGenerator;
+import de.pnnit.directwerk.modules.core.util.TokenHashUtil;
 import de.pnnit.directwerk.modules.podcast.feed.FeedBuilderException;
 import de.pnnit.directwerk.modules.podcast.feed.SubscriberFeed;
 import de.pnnit.directwerk.modules.podcast.access.SubscriberFeedAccess;
@@ -44,6 +46,7 @@ public class SubscriberFeedService {
     private final FormatRepository formatRepository;
     private final SubscriberFeedAccess subscriberFeedAccess;
     private final FeedTokenGenerator feedTokenGenerator;
+    private final FeedTokenProtector feedTokenProtector;
     private final ModuleGateService moduleGateService;
     private final RssFeedSnapshotService rssFeedSnapshotService;
     private final RssFeedRefreshJobProducer rssFeedRefreshScheduler;
@@ -51,14 +54,27 @@ public class SubscriberFeedService {
     /**
      * Resolves a subscriber feed by its token.
      *
-     * @param feedToken the token identifying the feed
+     * <p>The presented raw token is hashed first and matched against the
+     * {@code feed_token_hash} blind index; the encrypted {@code feed_token}
+     * column is never compared directly.
+     *
+     * @param feedToken the raw token identifying the feed
      * @return the matching subscriber feed
      * @throws SubscriberFeedNotFoundException if no feed matches the token
      */
     @Transactional(readOnly = true)
     public SubscriberFeed requireFeedByToken(String feedToken) {
-        return subscriberFeedRepository.findByFeedToken(feedToken)
+        return subscriberFeedRepository.findByFeedTokenHash(TokenHashUtil.sha256Hex(feedToken))
                 .orElseThrow(SubscriberFeedNotFoundException::new);
+    }
+
+    /**
+     * @param feed a feed resolved via this service
+     * @return the cleartext bearer token for URL building (views, snapshots)
+     */
+    @Transactional(readOnly = true)
+    public String revealToken(SubscriberFeed feed) {
+        return feedTokenProtector.reveal(feed.getFeedToken());
     }
 
     /**
@@ -164,7 +180,9 @@ public class SubscriberFeedService {
         feed.setTitle(title);
         feed.setDefaultFeed(false);
         feed.setEnabled(true);
-        feed.setFeedToken(generateUniqueToken());
+        String rawToken = generateRawToken();
+        feed.setFeedToken(feedTokenProtector.protect(rawToken));
+        feed.setFeedTokenHash(TokenHashUtil.sha256Hex(rawToken));
         feed.getFormats().addAll(resolveActiveFormats(tenantId, formatIds));
 
         try {
@@ -297,7 +315,9 @@ public class SubscriberFeedService {
     }
 
     private SubscriberFeed rotateToken(SubscriberFeed feed) {
-        feed.setFeedToken(generateUniqueToken());
+        String rawToken = generateRawToken();
+        feed.setFeedToken(feedTokenProtector.protect(rawToken));
+        feed.setFeedTokenHash(TokenHashUtil.sha256Hex(rawToken));
         SubscriberFeed saved = subscriberFeedRepository.save(feed);
         rssFeedRefreshScheduler.requestRefreshAfterCommit(saved.getTenant().getId());
         return saved;
@@ -362,17 +382,19 @@ public class SubscriberFeedService {
         feed.setUser(userRepository.getReferenceById(userId));
         feed.setTitle(tenant.getName() + " Private Feed");
         feed.setDefaultFeed(true);
-        feed.setFeedToken(generateUniqueToken());
+        String defaultRawToken = generateRawToken();
+        feed.setFeedToken(feedTokenProtector.protect(defaultRawToken));
+        feed.setFeedTokenHash(TokenHashUtil.sha256Hex(defaultRawToken));
         SubscriberFeed saved = subscriberFeedRepository.save(feed);
         rssFeedRefreshScheduler.requestRefreshAfterCommit(tenantId);
         return saved;
     }
 
-    private String generateUniqueToken() {
+    private String generateRawToken() {
         String token;
         do {
             token = feedTokenGenerator.generate();
-        } while (subscriberFeedRepository.existsByFeedToken(token));
+        } while (subscriberFeedRepository.existsByFeedTokenHash(TokenHashUtil.sha256Hex(token)));
         return token;
     }
 }

@@ -101,6 +101,10 @@ class UploadServiceTest {
     @Mock
     private PresignedPutObjectRequest presignedPut;
 
+    @Mock
+    private org.springframework.beans.factory.ObjectProvider<
+            de.pnnit.directwerk.modules.digital.api.EpisodeLinkValidator> episodeLinkValidators;
+
     private UploadService uploadService;
     private Tenant tenant;
 
@@ -118,7 +122,8 @@ class UploadServiceTest {
                 mediaFolderApi,
                 new MembershipPermissionService(
                         overrideRepository, tenantMembershipRepository, tenantRepository,
-                        platformAuditService)
+                        platformAuditService),
+                episodeLinkValidators
         );
         lenient().when(transactionManager.getTransaction(org.mockito.ArgumentMatchers.any()))
                 .thenReturn(new SimpleTransactionStatus());
@@ -436,6 +441,56 @@ class UploadServiceTest {
         ArgumentCaptor<MediaAsset> assetCaptor = ArgumentCaptor.forClass(MediaAsset.class);
         verify(mediaAssetRepository).saveAndFlush(assetCaptor.capture());
         assertThat(assetCaptor.getValue().getCreatedBy()).isEqualTo(5L);
+    }
+
+    @Test
+    void createUploadUrlRejectsForeignOwnerUserId() {
+        when(directwerkConfig.isStorageEnabled()).thenReturn(true);
+        when(directwerkConfig.storage()).thenReturn(storageProps());
+        when(tenantRepository.requireById(10L)).thenReturn(tenant);
+        authenticate(10L, 5L, Role.EDITOR);
+
+        // Regression: an editor must not mint USER-scoped assets owned by
+        // another user (would plant files into the victim's private library).
+        assertThatThrownBy(() -> uploadService.createUploadUrl(new UploadApi.CreateUploadUrlCommand(
+                "notes.pdf",
+                "application/pdf",
+                1024,
+                AssetType.DOCUMENT,
+                AssetVisibility.PRIVATE,
+                AssetScope.USER,
+                null,
+                6L,
+                null
+        )))
+                .isInstanceOf(UploadValidationException.class)
+                .hasMessageContaining("ownerUserId");
+        verify(mediaAssetRepository, never()).saveAndFlush(any(MediaAsset.class));
+    }
+
+    @Test
+    void createUploadUrlRejectsUnknownEpisodeId() {
+        when(directwerkConfig.isStorageEnabled()).thenReturn(true);
+        when(directwerkConfig.storage()).thenReturn(storageProps());
+        when(tenantRepository.requireById(10L)).thenReturn(tenant);
+        authenticate(10L, 5L, Role.EDITOR);
+
+        // Regression: caller-supplied episodeId must resolve to an episode of
+        // the current tenant — no validator available here, so fail closed.
+        assertThatThrownBy(() -> uploadService.createUploadUrl(new UploadApi.CreateUploadUrlCommand(
+                "episode.mp3",
+                "audio/mpeg",
+                2048,
+                AssetType.AUDIO,
+                AssetVisibility.PRIVATE,
+                AssetScope.CONTENT,
+                999L,
+                null,
+                null
+        )))
+                .isInstanceOf(UploadValidationException.class)
+                .hasMessageContaining("Unknown episode");
+        verify(mediaAssetRepository, never()).saveAndFlush(any(MediaAsset.class));
     }
 
     @Test

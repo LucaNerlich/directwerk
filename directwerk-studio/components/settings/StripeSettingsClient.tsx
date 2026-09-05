@@ -17,6 +17,7 @@ import {getStripeStatus, startStripeOnboard} from '@/lib/api/subscriptionApi'
 import type {StripeStatus} from '@directwerk/api/types'
 import {getClientTenantHost} from '@directwerk/api/tenant'
 import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
+import {safeLinkHref} from '@/lib/url/safeUrl'
 
 function stripeStatusLabel(status: string): string {
     switch (status) {
@@ -79,6 +80,9 @@ export default function StripeSettingsClient(): React.JSX.Element {
                 `${origin}/settings/stripe?onboard=return`,
                 `${origin}/settings/stripe?onboard=refresh`,
             )
+            if (safeLinkHref(url) === null) {
+                throw new Error('Stripe-Onboarding ist noch nicht verfügbar.')
+            }
             window.location.assign(url)
         } catch (error: unknown) {
             if (authRedirect(error)) return

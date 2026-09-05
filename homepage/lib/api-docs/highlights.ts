@@ -15,7 +15,7 @@ export const API_HIGHLIGHTS: readonly ApiHighlight[] = [
     {
         method: 'GET',
         path: '/api/v1/public/episodes',
-        description: 'Öffentlicher Podcast-Katalog (FREE, veröffentlicht).',
+        description: 'Öffentlicher Katalog (FREE spielbar; PAID nur Metadaten, audioCdnUrl = null).',
     },
     {
         method: 'GET',
@@ -24,12 +24,12 @@ export const API_HIGHLIGHTS: readonly ApiHighlight[] = [
     },
     {
         method: 'GET',
-        path: '/feeds/{slug}/podcast.xml',
-        description: 'Öffentlicher RSS-Feed für Podcatcher.',
+        path: '/feeds/{tenantSlug}/podcast.xml',
+        description: 'Öffentlicher RSS-Feed für Podcatcher (mandantenbezogen wie die API).',
     },
     {
         method: 'GET',
-        path: '/feeds/{slug}/u/{token}.xml',
+        path: '/feeds/{tenantSlug}/u/{feedToken}.xml',
         description: 'Privater Abonnenten-Feed (tokenisierte URL).',
     },
     {

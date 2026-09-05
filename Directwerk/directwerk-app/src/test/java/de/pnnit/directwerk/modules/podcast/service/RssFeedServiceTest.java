@@ -51,6 +51,9 @@ class RssFeedServiceTest {
     @Mock
     private PublicCdnUrlResolver publicCdnUrlResolver;
 
+    @Mock
+    private de.pnnit.directwerk.modules.core.service.FeedTokenProtector feedTokenProtector;
+
     private RssFeedService rssFeedService;
 
     @BeforeEach
@@ -62,8 +65,10 @@ class RssFeedServiceTest {
                 new RssXmlBuilder(new HtmlSanitizer()),
                 episodeDownloadAnalyticsService,
                 publicCdnUrlResolver,
-                new EpisodeCoverResolver()
+                new EpisodeCoverResolver(),
+                feedTokenProtector
         );
+        lenient().when(feedTokenProtector.reveal(any())).thenAnswer(invocation -> invocation.getArgument(0));
         lenient().when(publicCdnUrlResolver.resolve(any())).thenAnswer(invocation -> {
             MediaAsset asset = invocation.getArgument(0);
             if (asset != null && asset.getVisibility() == AssetVisibility.PUBLIC) {

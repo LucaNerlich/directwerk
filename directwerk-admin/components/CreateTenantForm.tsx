@@ -127,7 +127,7 @@ export default function CreateTenantForm({onCreated}: CreateTenantFormProps) {
                         {state.success}
                     </p>
                 ) : null}
-                {state.inviteToken ? (
+                {state.inviteToken && process.env.NODE_ENV !== 'production' ? (
                     <div className="space-y-2 md:col-span-2">
                         <Label htmlFor="create-tenant-invite-token">
                             Dev invite token

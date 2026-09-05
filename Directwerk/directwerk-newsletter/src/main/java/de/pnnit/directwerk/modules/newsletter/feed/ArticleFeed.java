@@ -38,8 +38,16 @@ public class ArticleFeed extends BaseEntity implements TenantOwned {
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
-    @Column(name = "feed_token", nullable = false, unique = true, length = 64)
+    @Column(name = "feed_token", nullable = false, length = 255)
+    /**
+     * AES-256-GCM ciphertext of the bearer token (see {@code FeedTokenProtector}).
+     * Raw tokens must stay recoverable server-side for snapshot enclosure URLs,
+     * so lookups use the {@code feed_token_hash} blind index instead.
+     */
     private String feedToken;
+
+    @Column(name = "feed_token_hash", nullable = false, unique = true, length = 64)
+    private String feedTokenHash;
 
     @Column(nullable = false)
     private String title;

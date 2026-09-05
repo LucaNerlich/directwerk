@@ -50,7 +50,9 @@ export default function PlatformAdminsPage() {
     }, [loadAdmins])
 
     const adminItems: EntityListViewItem[] =
-        admins?.map((admin) => ({
+        admins?.map((admin) => {
+            const isLastAdmin = admins.length <= 1
+            return {
             id: admin.userId,
             title: admin.name ?? admin.email,
             description: admin.name !== null ? admin.email : undefined,
@@ -59,8 +61,20 @@ export default function PlatformAdminsPage() {
                     ? `Last login: ${new Date(admin.lastLoginAt).toLocaleString()}`
                     : 'Last login: —',
             ],
-            actions: <RevokeAdminButton onRevoked={loadAdmins} userId={admin.userId} />,
-        })) ?? []
+            actions: (
+                <RevokeAdminButton
+                    disabled={isLastAdmin}
+                    disabledReason={
+                        isLastAdmin
+                            ? 'Cannot revoke the last platform admin.'
+                            : null
+                    }
+                    onRevoked={loadAdmins}
+                    userId={admin.userId}
+                />
+            ),
+            }
+        }) ?? []
 
     return (
         <PageStack>

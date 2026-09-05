@@ -213,7 +213,7 @@ public class MeFeedController {
                 request.getScheme(),
                 request.getServerPort(),
                 feed.getTenant().getSlug(),
-                feed.getFeedToken()
+                subscriberFeedService.revealToken(feed)
         );
         List<FormatView> formats = feed.getFormats() == null
                 ? List.of()
@@ -247,6 +247,9 @@ public class MeFeedController {
     public record FeedPreviewView(int episodeCount, List<String> sampleTitles) {
     }
 
+    /**
+     * @param url the full tokenized feed URL for the owner (decrypted server-side).
+     */
     public record SubscriberFeedView(
             Long id,
             String title,

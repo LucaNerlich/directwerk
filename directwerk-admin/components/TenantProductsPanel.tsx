@@ -1,6 +1,6 @@
 'use client'
 
-import {useCallback, useEffect, useState, type FormEvent} from 'react'
+import {useCallback, useEffect, useRef, useState, type FormEvent} from 'react'
 
 import {Alert, AlertDescription} from '@directwerk/ui/components/alert'
 import {Badge} from '@directwerk/ui/components/badge'
@@ -64,19 +64,37 @@ export default function TenantProductsPanel({
     const [ruleScopeType, setRuleScopeType] = useState('ALL_PODCASTS')
     const [ruleScopeId, setRuleScopeId] = useState('')
 
+    // Guards against slow responses for a previous tenant session
+    // overwriting the current one (see audit page pattern).
+    const latestRequestId = useRef(0)
+
     const loadProducts = useCallback(() => {
         if (!getTenantSessionHost()) {
+            latestRequestId.current += 1
             setHasSession(false)
             setProducts([])
+            setGrants([])
+            setSelectedProductId(null)
             return
         }
+
+        const requestId = latestRequestId.current + 1
+        latestRequestId.current = requestId
 
         setHasSession(true)
         setIsLoading(true)
         setError(null)
+        // Drop previous-tenant data synchronously so it never flashes while
+        // the new tenant's products load.
+        setProducts([])
+        setGrants([])
+        setSelectedProductId(null)
 
         listTenantProducts()
             .then((products) => {
+                if (latestRequestId.current !== requestId) {
+                    return
+                }
                 setProducts(products)
                 const activeProducts = products.filter((product) => product.active)
                 const firstActive = activeProducts[0]
@@ -93,6 +111,9 @@ export default function TenantProductsPanel({
                 })
             })
             .catch((requestError: unknown) => {
+                if (latestRequestId.current !== requestId) {
+                    return
+                }
                 if (
                     requestError instanceof Error &&
                     requestError.message === AUTH_REQUIRED
@@ -105,6 +126,9 @@ export default function TenantProductsPanel({
                 setError('Could not load products (is SUBSCRIPTION enabled?).')
             })
             .finally(() => {
+                if (latestRequestId.current !== requestId) {
+                    return
+                }
                 setIsLoading(false)
             })
     }, [])

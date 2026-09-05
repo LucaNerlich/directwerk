@@ -127,7 +127,8 @@ export default function ArticleEditor({articleId}: {articleId?: number}) {
                 seoDescription: seoDescription.trim() || undefined,
                 accessPolicy,
                 heroAssetId: heroAssetId ?? undefined,
-                requiredLevelSortOrder: requiredLevelSortOrder ?? undefined,
+                requiredLevelSortOrder:
+                    accessPolicy === 'PAID' ? (requiredLevelSortOrder ?? undefined) : undefined,
             }
 
             if (articleId === undefined) {

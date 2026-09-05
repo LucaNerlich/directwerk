@@ -1,6 +1,8 @@
 import type {MetadataRoute} from 'next'
 import {headers} from 'next/headers'
 
+import {parseTenantHost} from '@directwerk/api/proxy'
+
 import {
     fetchPublicArticleSlugsServer,
     fetchPublicEpisodeSlugsServer,
@@ -23,7 +25,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     const headerStore = await headers()
     const rawHost =
         headerStore.get('x-forwarded-host') ?? headerStore.get('host')
-    const origin = resolveTenantOrigin(rawHost)
+    // Same validation as robots.ts — never build canonical URLs from a raw
+    // forwarded host.
+    const firstHost = rawHost?.split(',')[0]?.trim() ?? null
+    const validatedHost = parseTenantHost(firstHost)
+    const origin = resolveTenantOrigin(validatedHost)
 
     // Static routes carry no per-request timestamp: `lastModified` must be
     // stable so crawlers do not see every page as changed on each fetch.

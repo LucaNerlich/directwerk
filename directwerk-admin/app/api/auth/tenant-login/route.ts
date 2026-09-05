@@ -2,25 +2,24 @@ import {safeUpstreamResponse} from '@directwerk/api/server'
 import {requestTenantToken} from '@/lib/server/api'
 import {readBoundedRequestBody} from '@directwerk/api/proxy'
 import {parseTenantHost} from '@directwerk/api/proxy'
-import {PLATFORM_REFRESH_COOKIE, TENANT_REFRESH_COOKIE} from '@/lib/server/api'
-import {readRequestCookie, sealRefreshToken} from '@directwerk/api/auth/cookies'
+import {TENANT_HOST_COOKIE, TENANT_REFRESH_COOKIE} from '@/lib/server/api'
+import {sealRefreshToken} from '@directwerk/api/auth/cookies'
+import {resolvePlatformAuthorization} from '@/lib/server/platform'
 import {validateLoginInput} from '@/lib/validation'
 
 const MAX_LOGIN_BODY_SIZE = 16 * 1024
 
 export async function POST(request: Request): Promise<Response> {
-    // Brokering tenant logins must require an authenticated platform admin
-    // session. Without this gate the route is an open relay: anyone on the
-    // internet can password-spray arbitrary tenants through this deployment,
-    // hiding their origin and tripping upstream rate limits. The httpOnly
-    // platform refresh cookie is only issued after a successful platform login.
-    if (readRequestCookie(request, PLATFORM_REFRESH_COOKIE) === null) {
+    // Brokering tenant logins requires an authenticated platform admin
+    // session. Cookie presence alone is client-forgeable, so validate the
+    // platform session server-side (refresh round-trip upstream).
+    const platform = await resolvePlatformAuthorization()
+    if (!platform.ok) {
         return Response.json(
             {error: 'A platform admin session is required.'},
             {status: 401}
         )
     }
-
     const tenantHost = parseTenantHost(request.headers.get('x-tenant-host'))
     if (tenantHost === null) {
         return Response.json(
@@ -67,6 +66,14 @@ export async function POST(request: Request): Promise<Response> {
         const headers = new Headers(sealed.headers)
         headers.set('Cache-Control', 'no-store')
         headers.set('Pragma', 'no-cache')
+        // Bind the tenant refresh cookie to the login host so a stolen
+        // refresh token cannot be replayed against another tenant host.
+        // Note: this cookie is a replay-scope hint, not a security boundary
+        // on its own — the platform-session gate above is the enforcement.
+        headers.append(
+            'Set-Cookie',
+            `${TENANT_HOST_COOKIE}=${encodeURIComponent(tenantHost)}; Path=/; HttpOnly; SameSite=Strict${process.env.NODE_ENV === 'production' ? '; Secure' : ''}`,
+        )
         return new Response(sealed.body, {
             status: sealed.status,
             statusText: sealed.statusText,

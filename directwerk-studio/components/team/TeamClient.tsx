@@ -430,7 +430,7 @@ export default function TeamClient(): React.JSX.Element {
                                 <AlertDescription>{inviteState.success}</AlertDescription>
                             </Alert>
                         ) : null}
-                        {inviteState.inviteToken ? (
+                        {inviteState.inviteToken && process.env.NODE_ENV !== 'production' ? (
                             <div className="grid gap-2">
                                 <Label htmlFor="invite-token">Dev-Einladungs-Token</Label>
                                 <Input

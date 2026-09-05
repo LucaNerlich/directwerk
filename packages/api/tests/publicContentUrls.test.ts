@@ -28,4 +28,10 @@ describe('publicContentUrls', () => {
         expect(publicEpisodePageUrl(null, 'folge-1')).toBeNull()
         expect(publicArticlePageUrl(null, 'slug')).toBeNull()
     })
+
+    it('rejects javascript: site URLs instead of interpolating them', () => {
+        expect(publicSiteOrigin('javascript:alert(1)')).toBeNull()
+        expect(publicEpisodePageUrl('javascript:alert(1)', 'folge-1')).toBeNull()
+        expect(publicArticlePageUrl('javascript:alert(1)', 'slug')).toBeNull()
+    })
 })

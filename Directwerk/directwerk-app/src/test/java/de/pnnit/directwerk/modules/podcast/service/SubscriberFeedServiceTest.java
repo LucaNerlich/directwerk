@@ -36,6 +36,10 @@ class SubscriberFeedServiceTest {
     void stubTokenGeneration() {
         org.mockito.Mockito.lenient().doReturn("tok-default")
                 .when(feedTokenGenerator).generate();
+        org.mockito.Mockito.lenient().doAnswer(invocation -> "enc:" + invocation.getArgument(0))
+                .when(feedTokenProtector).protect(org.mockito.ArgumentMatchers.anyString());
+        org.mockito.Mockito.lenient().doAnswer(invocation -> ((String) invocation.getArgument(0)).replaceFirst("^enc:", ""))
+                .when(feedTokenProtector).reveal(org.mockito.ArgumentMatchers.anyString());
     }
 
     @Mock
@@ -63,6 +67,9 @@ class SubscriberFeedServiceTest {
     private de.pnnit.directwerk.modules.core.util.FeedTokenGenerator feedTokenGenerator;
 
     @Mock
+    private de.pnnit.directwerk.modules.core.service.FeedTokenProtector feedTokenProtector;
+
+    @Mock
     private de.pnnit.directwerk.modules.core.service.ModuleGateService moduleGateService;
 
     @InjectMocks
@@ -82,6 +89,15 @@ class SubscriberFeedServiceTest {
 
         assertThatThrownBy(() -> subscriberFeedService.requireFeed(99L, 1L))
                 .isInstanceOf(SubscriberFeedNotFoundException.class);
+    }
+
+    @Test
+    void requireFeedByTokenHashesPresentedToken() {
+        SubscriberFeed feed = feed(10L, 1L);
+        String hashed = de.pnnit.directwerk.modules.core.util.TokenHashUtil.sha256Hex("raw-token");
+        when(subscriberFeedRepository.findByFeedTokenHash(hashed)).thenReturn(Optional.of(feed));
+
+        assertThat(subscriberFeedService.requireFeedByToken("raw-token")).isSameAs(feed);
     }
 
     @Test
@@ -138,7 +154,7 @@ class SubscriberFeedServiceTest {
         when(tenantRepository.getReferenceById(10L)).thenReturn(defaultFeed.getTenant());
         when(userRepository.getReferenceById(99L)).thenReturn(defaultFeed.getUser());
         when(formatRepository.findByIdAndTenantId(3L, 10L)).thenReturn(Optional.of(format(3L, true)));
-        when(subscriberFeedRepository.existsByFeedToken(org.mockito.ArgumentMatchers.anyString())).thenReturn(false);
+        when(subscriberFeedRepository.existsByFeedTokenHash(org.mockito.ArgumentMatchers.anyString())).thenReturn(false);
         when(subscriberFeedRepository.save(any(SubscriberFeed.class))).thenAnswer(invocation -> {
             SubscriberFeed saved = invocation.getArgument(0);
             saved.setId(12L);
@@ -150,6 +166,11 @@ class SubscriberFeedServiceTest {
         assertThat(created.isDefaultFeed()).isFalse();
         assertThat(created.getTitle()).isEqualTo("Nur Interviews");
         assertThat(created.getFormats()).extracting(Format::getId).containsExactly(3L);
+        // Token encrypted at rest; blind index holds the hash of the raw token.
+        assertThat(created.getFeedToken()).isEqualTo("enc:tok-default");
+        assertThat(created.getFeedTokenHash())
+                .isEqualTo(de.pnnit.directwerk.modules.core.util.TokenHashUtil.sha256Hex("tok-default"));
+        assertThat(subscriberFeedService.revealToken(created)).isEqualTo("tok-default");
         verify(rssFeedRefreshScheduler).requestRefreshAfterCommit(10L);
     }
 

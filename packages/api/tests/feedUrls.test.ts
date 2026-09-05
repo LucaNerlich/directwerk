@@ -142,4 +142,18 @@ describe('feedUrls', () => {
             ),
         ).toBe('https://web.example.test/feeds/alpha/podcast.xml')
     })
+
+    it('never produces executable URLs from hostile origins', () => {
+        // Bare pseudo-schemes without `://` are treated as hostnames and get an
+        // https prefix, so the result can never execute as script.
+        const neutralized = tenantPodcastFeed('javascript:alert(1)', 'alpha')
+        expect(neutralized.startsWith('https://')).toBe(true)
+        // Origins with `://` go through URL parsing + allow-listing.
+        expect(() => tenantPodcastFeed('javascript://evil/x', 'alpha')).toThrow()
+        expect(() => tenantArticleFeed('data:text/html,<p>x</p>', 'alpha')).toThrow()
+    })
+
+    it('rejects hosts containing path separators', () => {
+        expect(() => publicPodcastFeedUrl('evil.com/x', 'demo')).toThrow()
+    })
 })

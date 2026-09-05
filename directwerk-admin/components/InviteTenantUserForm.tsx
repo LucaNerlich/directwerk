@@ -91,7 +91,7 @@ export default function InviteTenantUserForm({
                         {state.success}
                     </p>
                 ) : null}
-                {state.inviteToken ? (
+                {state.inviteToken && process.env.NODE_ENV !== 'production' ? (
                     <div className="space-y-2">
                         <Label htmlFor="invite-token">Dev invite token</Label>
                         <Input

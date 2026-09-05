@@ -129,6 +129,11 @@ export default function TenantUserActions({
 
     return (
         <>
+            {user.roles.length > 1 ? (
+                <p className="text-sm text-muted-foreground" role="note">
+                    Aktuelle Rollen: {user.roles.join(', ')}. Speichern ersetzt sie durch eine Rolle.
+                </p>
+            ) : null}
             <form action={roleAction} className="flex min-w-64 flex-wrap gap-2">
                 <select className="native-select w-auto flex-1" aria-label={`Role for ${user.email}`} defaultValue={user.roles[0] ?? 'EDITOR'} key={user.roles[0] ?? 'EDITOR'} name="role">
                     {PLATFORM_TENANT_INVITABLE_ROLES.map((role) => (

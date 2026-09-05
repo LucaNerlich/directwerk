@@ -7,6 +7,7 @@
  */
 
 import type {PublicSiteConfig} from '../types'
+import {isAllowedFeedUrl} from '../validation/primitives'
 
 const LOOPBACK_HOSTS = new Set(['localhost', '127.0.0.1', '[::1]'])
 
@@ -18,9 +19,25 @@ function isLoopbackHostname(hostname: string): boolean {
     return normalized.endsWith('.localhost')
 }
 
+const HOSTNAME_PATTERN = /^[A-Za-z0-9](?:[A-Za-z0-9.-]*[A-Za-z0-9])?$/
+
 /** Resolve an API/public origin from a hostname (no path). */
 export function publicFeedOrigin(hostname: string, apiPort = 8080): string {
     const host = hostname.trim().toLowerCase()
+    if (
+        host.length === 0 ||
+        host.includes('/') ||
+        host.includes('?') ||
+        host.includes('#') ||
+        host.includes('@') ||
+        /\s/.test(host)
+    ) {
+        throw new Error('Invalid feed origin host')
+    }
+    const bare = host.startsWith('[') ? host : host.split(':')[0]!
+    if (!isLoopbackHostname(host) && !HOSTNAME_PATTERN.test(bare)) {
+        throw new Error('Invalid feed origin host')
+    }
     if (isLoopbackHostname(host)) {
         if (host.includes(':')) {
             return `http://${host}`
@@ -32,7 +49,16 @@ export function publicFeedOrigin(hostname: string, apiPort = 8080): string {
 
 function normalizeOrigin(originOrHost: string): string {
     if (originOrHost.includes('://')) {
-        return originOrHost.replace(/\/$/, '')
+        let candidate: string
+        try {
+            candidate = new URL(originOrHost).origin
+        } catch {
+            throw new Error('Invalid feed origin')
+        }
+        if (!isAllowedFeedUrl(candidate)) {
+            throw new Error('Invalid feed origin')
+        }
+        return candidate
     }
     return publicFeedOrigin(originOrHost)
 }
@@ -131,7 +157,12 @@ export function resolvePublicArticleFeedUrl(
     const preferredOrigin =
         options.webOrigin ?? config.publicSiteUrl ?? options.originHost ?? null
     if (preferredOrigin !== null) {
-        return tenantArticleFeed(preferredOrigin, config.tenant.slug)
+        try {
+            return tenantArticleFeed(preferredOrigin, config.tenant.slug)
+        } catch {
+            // Unvalidated caller-supplied origin — fall through to the
+            // server-provided (validated) URL below.
+        }
     }
 
     return config.publicArticleRssUrl
@@ -157,7 +188,12 @@ export function resolvePublicPodcastFeedUrl(
     const preferredOrigin =
         options.webOrigin ?? config.publicSiteUrl ?? options.originHost ?? null
     if (preferredOrigin !== null) {
-        return tenantPodcastFeed(preferredOrigin, config.tenant.slug)
+        try {
+            return tenantPodcastFeed(preferredOrigin, config.tenant.slug)
+        } catch {
+            // Unvalidated caller-supplied origin — fall through to the
+            // server-provided (validated) URL below.
+        }
     }
 
     return config.publicRssUrl

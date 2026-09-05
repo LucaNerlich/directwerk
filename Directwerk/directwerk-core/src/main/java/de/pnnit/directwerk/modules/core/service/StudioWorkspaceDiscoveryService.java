@@ -45,8 +45,9 @@ public class StudioWorkspaceDiscoveryService {
      * @param email    account email
      * @param password account password
      * @return workspaces sorted by tenant name
-     * @throws BadCredentialsException when email/password do not match an active account
-     * @throws StudioAccessDeniedException when the account has no studio-eligible memberships
+     * @throws BadCredentialsException when email/password do not match an active account,
+     *         or when the account has no studio-eligible memberships (deliberately
+     *         indistinguishable to avoid a credential-validation oracle)
      */
     @Transactional(readOnly = true)
     public List<StudioWorkspaceView> discoverWorkspaces(String email, String password) {
@@ -91,7 +92,9 @@ public class StudioWorkspaceDiscoveryService {
         workspaces.sort(Comparator.comparing(StudioWorkspaceView::name, String.CASE_INSENSITIVE_ORDER));
 
         if (workspaces.isEmpty()) {
-            throw new StudioAccessDeniedException();
+            // Same 401 as bad credentials: distinguishing "valid login, no
+            // studio access" (403) would let attackers verify guessed passwords.
+            throw invalidCredentials();
         }
 
         return workspaces;

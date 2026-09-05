@@ -1,6 +1,6 @@
 'use client'
 
-import {useCallback, useEffect, useState} from 'react'
+import {useCallback, useEffect, useRef, useState} from 'react'
 
 import {useAuthRequired} from '../auth/useAuthRequired'
 
@@ -38,12 +38,17 @@ export function useAuthedQuery<T>(
         setReloadToken((current) => current + 1)
     }, [])
 
+    // Latest fetcher wins without forcing callers to stabilize it: storing in
+    // a ref avoids stale closures over changed props (tenant host, IDs).
+    const fetcherRef = useRef(fetcher)
+    fetcherRef.current = fetcher
+
     useEffect(() => {
         let active = true
         setIsLoading(true)
         setError(null)
 
-        fetcher()
+        fetcherRef.current()
             .then((result) => {
                 if (!active) {
                     return
