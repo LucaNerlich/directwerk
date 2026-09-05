@@ -6,7 +6,7 @@ import {useCallback, useEffect, useState} from 'react'
 import {listMyArticleFeeds} from '@/lib/api/client'
 import {AUTH_REQUIRED} from '@directwerk/api/constants'
 import type {ArticleFeedView} from '@directwerk/api/types'
-import {getClientTenantHost} from '@/lib/tenant/clientHost'
+import {getWebClientTenantHost} from '@/lib/tenant/clientHost'
 import {userFacingFeedsError} from '@/lib/billing/userFacingBillingError'
 
 export interface ArticleFeedsState {
@@ -40,7 +40,7 @@ export function useArticleFeeds(isAuthenticated: boolean): ArticleFeedsState {
         setIsLoading(true)
         setError(null)
 
-        listMyArticleFeeds(getClientTenantHost())
+        listMyArticleFeeds(getWebClientTenantHost())
             .then((feedList) => {
                 if (!active) {
                     return

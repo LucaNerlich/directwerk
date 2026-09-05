@@ -27,13 +27,13 @@ import {useSubscriberAuth} from '@/lib/auth/useSubscriberAuth'
 import {formatMoney} from '@directwerk/api/format'
 import {userFacingBillingError} from '@/lib/billing/userFacingBillingError'
 import {useSiteConfig} from '@/lib/site/SiteConfigProvider'
-import {getClientTenantHost} from '@/lib/tenant/clientHost'
+import {getWebClientTenantHost} from '@/lib/tenant/clientHost'
 
 function PricingContent(): React.JSX.Element {
     const router = useRouter()
     const searchParams = useSearchParams()
     const pendingBuy = searchParams.get('buy') ?? ''
-    const tenantHost = getClientTenantHost()
+    const tenantHost = getWebClientTenantHost()
     const config = useSiteConfig()
     const {isAuthenticated} = useSubscriberAuth()
     const [products, setProducts] = useState<PublicProduct[]>([])

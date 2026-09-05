@@ -12,7 +12,7 @@ import PageStack from '@directwerk/ui/components/page-stack'
 import {getAccess, listMySubscriptions} from '@/lib/api/client'
 import {AUTH_REQUIRED} from '@directwerk/api/constants'
 import type {Access, SubscriptionSummary} from '@directwerk/api/types'
-import {getClientTenantHost} from '@/lib/tenant/clientHost'
+import {getWebClientTenantHost} from '@/lib/tenant/clientHost'
 import {userFacingBillingError} from '@/lib/billing/userFacingBillingError'
 import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
 
@@ -51,7 +51,7 @@ function CheckoutSuccessContent(): React.JSX.Element {
 
         async function poll(): Promise<void> {
             try {
-                const tenantHost = getClientTenantHost()
+                const tenantHost = getWebClientTenantHost()
                 const [accessResponse, subscriptionList] = await Promise.all([
                     getAccess(tenantHost),
                     listMySubscriptions(tenantHost),

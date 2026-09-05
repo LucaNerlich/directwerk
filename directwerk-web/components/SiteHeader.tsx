@@ -11,7 +11,7 @@ import BrandLogo from '@/components/BrandLogo'
 import SiteFooter from '@/components/SiteFooter'
 import {clearTokens} from '@/lib/auth/tokenStore'
 import {useSubscriberAuth} from '@/lib/auth/useSubscriberAuth'
-import {getClientTenantHost} from '@/lib/tenant/clientHost'
+import {getWebClientTenantHost} from '@/lib/tenant/clientHost'
 import {useSiteConfig} from '@/lib/site/SiteConfigProvider'
 
 interface NavItem {
@@ -49,7 +49,7 @@ export default function SiteHeader({
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-Tenant-Host': getClientTenantHost(),
+                    'X-Tenant-Host': getWebClientTenantHost(),
                 },
                 body: '{}',
             })

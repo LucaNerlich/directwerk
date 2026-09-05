@@ -22,6 +22,3 @@ export function getWebClientTenantHost(): string {
 
     return ''
 }
-
-/** Alias kept for call sites that mirror the shared API naming. */
-export const getClientTenantHost = getWebClientTenantHost

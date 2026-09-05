@@ -137,8 +137,7 @@ function ArticlesBlock({
 
 /**
  * Unified subscribe instructions for podcast and article feeds. Renders the
- * podcast block, the articles block, or both in one card; when only one kind
- * is given the output matches the legacy `HowToListen` / `HowToRead` copy.
+ * podcast block, the articles block, or both in one card.
  */
 export default function HowToSubscribe({
     podcast,

@@ -22,7 +22,7 @@ import {findUnlockProduct, unlockHref} from '@/lib/catalog/unlock'
 import {usePublicProducts} from '@/lib/catalog/usePublicProducts'
 import type {PublicArticle} from '@directwerk/api/types'
 import {formatPublishedAt} from '@directwerk/api/format/datetime'
-import {getClientTenantHost} from '@/lib/tenant/clientHost'
+import {getWebClientTenantHost} from '@/lib/tenant/clientHost'
 
 function readTokenClient(): string | null {
     return getAccessToken()
@@ -46,7 +46,7 @@ export default function ArticleDetailClient({
     /** Preloaded public catalog entry rendered server-side; skips the public fetch. */
     initialPublicArticle?: PublicArticle | null
 }): React.JSX.Element {
-    const tenantHost = getClientTenantHost()
+    const tenantHost = getWebClientTenantHost()
     const accessToken = useSyncExternalStore(
         subscribeToTokenStore,
         readTokenClient,

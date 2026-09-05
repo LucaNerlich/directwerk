@@ -20,12 +20,12 @@ import {findUnlockProduct, unlockHref} from '@/lib/catalog/unlock'
 import {usePublicProducts} from '@/lib/catalog/usePublicProducts'
 import {useArticleFeeds} from '@/lib/auth/useArticleFeeds'
 import {useSubscriberAuth} from '@/lib/auth/useSubscriberAuth'
-import {getClientTenantHost} from '@/lib/tenant/clientHost'
+import {getWebClientTenantHost} from '@/lib/tenant/clientHost'
 import {webPublicArticleFeedUrl} from '@/lib/feeds/webPublicFeedUrl'
 import {formatPublishedAt} from '@directwerk/api/format/datetime'
 
 export default function ArticlesPage() {
-    const tenantHost = getClientTenantHost()
+    const tenantHost = getWebClientTenantHost()
     const {isAuthenticated} = useSubscriberAuth()
     const {siteConfig, articles, errorMessage, isLoading} = usePublicArticles({
         tenantHost,

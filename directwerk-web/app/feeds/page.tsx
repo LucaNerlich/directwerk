@@ -18,7 +18,7 @@ import CustomFeedsPanel, {
     podcastCustomFeedsConfig,
 } from '@/components/CustomFeedsPanel'
 import FeedUrlDisplay from '@/components/FeedUrlDisplay'
-import HowToListen from '@/components/HowToListen'
+import HowToSubscribe from '@/components/HowToSubscribe'
 import {ListPanelSkeleton} from '@/components/ContentLoadingSkeleton'
 import SubscriberContextBanner from '@/components/SubscriberContextBanner'
 import {
@@ -39,7 +39,7 @@ import {useSubscriberAuth} from '@/lib/auth/useSubscriberAuth'
 import {useArticleFeeds} from '@/lib/auth/useArticleFeeds'
 import {useSubscriberFeeds} from '@/lib/auth/useSubscriberFeeds'
 import {formatPublishedAt} from '@directwerk/api/format/datetime'
-import {getClientTenantHost} from '@/lib/tenant/clientHost'
+import {getWebClientTenantHost} from '@/lib/tenant/clientHost'
 import {userFacingFeedsError} from '@/lib/billing/userFacingBillingError'
 import {
     webPublicArticleFeedUrl,
@@ -148,7 +148,7 @@ function LoginHint({kind}: {kind: 'podcast' | 'articles'}): React.JSX.Element {
  * Displays enabled podcast and article feeds, including public, private, and custom feeds.
  */
 export default function FeedsPage() {
-    const tenantHost = getClientTenantHost()
+    const tenantHost = getWebClientTenantHost()
     const {isAuthenticated} = useSubscriberAuth()
 
     const {data: siteConfig} = useSWR<PublicSiteConfig>(
@@ -658,14 +658,15 @@ export default function FeedsPage() {
             <SubscriberContextBanner showWhenAuthenticated={false} />
 
             {showPodcastFeeds ? (
-                <HowToListen
+                <HowToSubscribe
                     isAuthenticated={isAuthenticated}
-                    privateFeedUrl={
-                        defaultPodcastPrivate?.enabled === true
-                            ? defaultPodcastPrivate.url
-                            : null
-                    }
-                    publicFeedUrl={podcastFeedUrl}
+                    podcast={{
+                        publicFeedUrl: podcastFeedUrl,
+                        privateFeedUrl:
+                            defaultPodcastPrivate?.enabled === true
+                                ? defaultPodcastPrivate.url
+                                : null,
+                    }}
                 />
             ) : null}
 
