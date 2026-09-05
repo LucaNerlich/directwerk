@@ -35,7 +35,8 @@ RUN cp /ctx/package.json /ctx/pnpm-lock.yaml /ctx/pnpm-workspace.yaml /ctx/.npmr
          done; \
        fi
 
-RUN pnpm install --frozen-lockfile --filter directwerk-docs...
+RUN --mount=type=cache,target=/root/.local/share/pnpm/store \
+    pnpm install --frozen-lockfile --filter directwerk-docs...
 
 ENV VITEPRESS_LAST_UPDATED=0
 RUN pnpm --filter directwerk-docs build \
@@ -52,9 +53,7 @@ ENV HOSTNAME=0.0.0.0
 
 RUN addgroup -S docs && adduser -S docs -G docs
 
-COPY --from=build /deploy ./
-
-RUN chown -R docs:docs /app
+COPY --from=build --chown=docs:docs /deploy ./
 
 USER docs
 EXPOSE 3006

@@ -188,7 +188,7 @@ class PodcastImportServiceTest {
         String identity = PodcastImportService.importIdentity(feedUrl, guid);
         when(episodeRepository.findByTenantIdAndImportIdentity(10L, identity))
                 .thenReturn(Optional.empty());
-        when(episodeRepository.existsByTenantIdAndSlug(10L, "episode-9")).thenReturn(false);
+        when(episodeRepository.existsByTenantIdAndSlug(10L, "requested-episode")).thenReturn(false);
         MediaAsset audio = new MediaAsset();
         audio.setId(11L);
         when(remoteAssetIngestApi.ingestFromUrl(any())).thenReturn(audio);
@@ -203,7 +203,7 @@ class PodcastImportServiceTest {
                 7L,
                 feedUrl,
                 guid,
-                "episode-9",
+                "requested-episode",
                 "Episode 9",
                 "Shownotes",
                 9,
