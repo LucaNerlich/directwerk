@@ -29,6 +29,13 @@ public class FormatService {
     private final PodcastCoverAssetResolver podcastCoverAssetResolver;
     private final RssFeedRefreshJobProducer rssFeedRefreshScheduler;
 
+    /**
+     * Lists podcast formats for a tenant in sort order and ID order.
+     *
+     * @param tenantId  the tenant identifier
+     * @param activeOnly whether to include only active formats
+     * @return the tenant's formats, optionally limited to active formats
+     */
     @Transactional(readOnly = true)
     public List<Format> listFormats(Long tenantId, boolean activeOnly) {
         if (activeOnly) {

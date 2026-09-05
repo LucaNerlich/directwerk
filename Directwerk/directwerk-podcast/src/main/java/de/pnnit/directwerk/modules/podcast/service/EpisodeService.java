@@ -49,6 +49,12 @@ public class EpisodeService {
     private final RssFeedRefreshJobProducer rssFeedRefreshScheduler;
     private final MembershipPermissionService permissionService;
 
+    /**
+     * Lists all episodes belonging to a tenant, ordered by creation time and ID in descending order.
+     *
+     * @param tenantId the tenant whose episodes are listed
+     * @return the tenant's episodes
+     */
     @Transactional(readOnly = true)
     public List<Episode> listEpisodes(Long tenantId) {
         return episodeRepository.findByTenantIdOrderByCreatedAtDescIdDesc(tenantId);

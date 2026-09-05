@@ -45,6 +45,11 @@ import {articlePublishBlockReason} from '@/lib/write/articlePreflight'
 import {publicArticlePageUrl} from '@directwerk/api/urls/publicContentUrls'
 import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
 
+/**
+ * Renders the article editor for creating or editing an article.
+ *
+ * @param articleId - The identifier of the article to edit; omit to create a new article
+ */
 export default function ArticleEditor({articleId}: {articleId?: number}) {
     const router = useRouter()
     const authRedirect = useAuthRequired()

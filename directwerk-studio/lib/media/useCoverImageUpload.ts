@@ -6,6 +6,13 @@ import {getClientTenantHost} from '@directwerk/api/tenant'
 
 import {uploadMediaFile} from '@/lib/media/upload'
 
+/**
+ * Provides state and controls for uploading a cover image.
+ *
+ * @param onUploaded - Called with the uploaded asset ID when the upload succeeds
+ * @param onError - Called with the upload error when the upload fails
+ * @returns Upload state and a function for starting an upload
+ */
 export function useCoverImageUpload({
     onUploaded,
     onError,

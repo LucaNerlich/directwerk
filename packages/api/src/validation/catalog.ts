@@ -166,6 +166,12 @@ function parseArticleSummary(value: unknown): ArticleSummary | null {
     }
 }
 
+/**
+ * Parses an unknown value into a tag.
+ *
+ * @param value - The value to parse
+ * @returns The parsed tag, or `null` if the value is invalid
+ */
 function parseTag(value: unknown): Tag | null {
     if (
         !isRecord(value) ||
@@ -179,10 +185,22 @@ function parseTag(value: unknown): Tag | null {
     return {id: value.id, slug: value.slug, name: value.name}
 }
 
+/**
+ * Parses an array of tags with a maximum of 100 entries.
+ *
+ * @param value - The value to parse
+ * @returns The parsed tags, or `null` if the value is invalid
+ */
 function parseTagArray(value: unknown): Tag[] | null {
     return parseBoundedArray(value, 100, parseTag)
 }
 
+/**
+ * Parses an article detail response.
+ *
+ * @param value - The value to validate and parse
+ * @returns The parsed article detail, or `null` if the value is invalid
+ */
 function parseArticleDetail(value: unknown): ArticleDetail | null {
     const summary = parseArticleSummary(value)
     if (summary === null || !isRecord(value)) {
@@ -1563,6 +1581,12 @@ function parseTenantSubscriberSubscription(
     }
 }
 
+/**
+ * Parses a tenant subscriber response.
+ *
+ * @param value - The value to validate and convert into a tenant subscriber
+ * @returns A parsed tenant subscriber, or `null` for an invalid value
+ */
 function parseTenantSubscriber(value: unknown): TenantSubscriber | null {
     if (
         !isRecord(value) ||

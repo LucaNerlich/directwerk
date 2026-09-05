@@ -66,6 +66,12 @@ public class PublicArticleController {
         return ResponseEntity.ok(Response.ok(articles));
     }
 
+    /**
+     * Retrieves a published article by its slug for the current tenant and records a public view.
+     *
+     * @param slug the article slug
+     * @return the published article's public view
+     */
     @GetMapping("/articles/{slug}")
     ResponseEntity<Response<PublicArticleView>> getArticle(
             @PathVariable String slug,

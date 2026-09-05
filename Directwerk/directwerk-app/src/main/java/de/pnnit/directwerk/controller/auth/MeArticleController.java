@@ -55,6 +55,12 @@ public class MeArticleController {
         return ResponseEntity.ok(Response.ok(views));
     }
 
+    /**
+     * Retrieves an entitled article and records a private-view analytics event.
+     *
+     * @param slug the article slug
+     * @return the article view
+     */
     @GetMapping("/{slug}")
     ResponseEntity<Response<MeArticleView>> getArticle(
             @PathVariable String slug,

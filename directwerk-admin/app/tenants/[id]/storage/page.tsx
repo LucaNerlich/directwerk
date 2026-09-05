@@ -41,6 +41,13 @@ const DEFAULT_QUERY: TenantMediaQuery = {
     limit: 50,
 }
 
+/**
+ * Builds the API path for retrieving a tenant's media assets.
+ *
+ * @param tenantId - The tenant whose media assets are requested
+ * @param query - Optional media filters and result limit
+ * @returns The tenant media API path with applicable query parameters
+ */
 function buildMediaPath(tenantId: string, query: TenantMediaQuery): string {
     const params = new URLSearchParams()
 
@@ -95,6 +102,11 @@ function resolveCdnUrl(
     }
 }
 
+/**
+ * Displays a tenant's media assets and storage management controls.
+ *
+ * @param params - Route parameters containing the tenant identifier.
+ */
 export default function TenantStoragePage({params}: TenantStoragePageProps) {
     const {id} = use(params)
     const router = useRouter()

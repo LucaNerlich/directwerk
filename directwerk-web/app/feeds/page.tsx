@@ -144,6 +144,9 @@ function LoginHint({kind}: {kind: 'podcast' | 'articles'}): React.JSX.Element {
     )
 }
 
+/**
+ * Displays enabled podcast and article feeds, including public, private, and custom feeds.
+ */
 export default function FeedsPage() {
     const tenantHost = getClientTenantHost()
     const {isAuthenticated} = useSubscriberAuth()

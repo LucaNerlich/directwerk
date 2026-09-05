@@ -15,6 +15,13 @@ export interface UseAuthedQueryOptions {
     fallbackError?: string
 }
 
+/**
+ * Fetches authenticated data and exposes its loading, error, and reload state.
+ *
+ * @param fetcher - Asynchronous operation that retrieves the data
+ * @param options - Optional configuration, including the fallback error message
+ * @returns The fetched data, current error message, loading state, and reload function
+ */
 export function useAuthedQuery<T>(
     fetcher: () => Promise<T>,
     options: UseAuthedQueryOptions = {},

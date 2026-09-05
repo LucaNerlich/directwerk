@@ -47,6 +47,13 @@ public class ArticleFeedService {
     private final ArticleRssFeedSnapshotService articleRssFeedSnapshotService;
     private final ArticleRssFeedRefreshJobProducer articleRssFeedRefreshScheduler;
 
+    /**
+     * Retrieves the article feed associated with a token.
+     *
+     * @param feedToken the token identifying the feed
+     * @return the matching article feed
+     * @throws ArticleFeedNotFoundException if no feed matches the token
+     */
     @Transactional(readOnly = true)
     public ArticleFeed requireFeedByToken(String feedToken) {
         return articleFeedRepository.findByFeedToken(feedToken)

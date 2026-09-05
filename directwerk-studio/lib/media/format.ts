@@ -1,3 +1,9 @@
+/**
+ * Formats a byte count using bytes, kilobytes, or megabytes.
+ *
+ * @param sizeBytes - The byte count, or `null` when unavailable
+ * @returns A formatted size string, or `—` for null or nonpositive values
+ */
 export function formatBytes(sizeBytes: number | null): string {
     if (sizeBytes === null || sizeBytes <= 0) {
         return '—'

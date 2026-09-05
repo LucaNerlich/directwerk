@@ -17,6 +17,12 @@ public class TenantRefreshJobProducer {
     private final String queueName;
     private final Function<Long, Object> payloadFactory;
 
+    /**
+     * Creates a producer for tenant-specific refresh jobs.
+     *
+     * @param queueName      the queue to which refresh jobs are submitted
+     * @param payloadFactory creates a refresh-job payload for a tenant
+     */
     public TenantRefreshJobProducer(
             ObjectProvider<QueueService> queueService,
             ObjectMapper objectMapper,
@@ -31,6 +37,13 @@ public class TenantRefreshJobProducer {
         this.payloadFactory = payloadFactory;
     }
 
+    /**
+     * Requests a refresh for a tenant after the current transaction commits.
+     * If no transaction synchronization is active, the refresh is requested immediately.
+     *
+     * @param tenantId the positive identifier of the tenant to refresh
+     * @throws IllegalArgumentException if {@code tenantId} is null or not positive
+     */
     public void requestRefreshAfterCommit(Long tenantId) {
         if (tenantId == null || tenantId < 1) {
             throw new IllegalArgumentException("tenantId must be a positive id");

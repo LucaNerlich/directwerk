@@ -9,6 +9,12 @@ public final class RequestClientIpExtractor {
     private RequestClientIpExtractor() {
     }
 
+    /**
+     * Extracts the client IP address from an HTTP request.
+     *
+     * @param request the HTTP request
+     * @return the extracted client IP address
+     */
     public static String extract(HttpServletRequest request) {
         return ClientIpExtractor.extract(
                 request.getHeader("X-Forwarded-For"),

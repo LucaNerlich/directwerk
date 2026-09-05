@@ -41,6 +41,12 @@ import {useSiteConfig} from '@/lib/site/SiteConfigProvider'
 import {getClientTenantHost} from '@directwerk/api/tenant'
 import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
 
+/**
+ * Creates or edits a podcast episode, including its metadata, publication status, audio, cover image, and classifications.
+ *
+ * @param episodeId - The identifier of the episode to edit; omitted when creating a new episode.
+ * @returns The rendered episode editor.
+ */
 export default function EpisodeEditor({episodeId}: {episodeId?: number}): React.JSX.Element {
     const router = useRouter()
     const authRedirect = useAuthRequired()

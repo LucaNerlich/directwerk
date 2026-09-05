@@ -84,16 +84,35 @@ public class GlobalExceptionHandler {
                 .body(Response.error(409, code, ex.getMessage()));
     }
 
+    /**
+     * Creates a conflict response with the specified error code and message.
+     *
+     * @param code    the application-specific error code
+     * @param message the error message
+     * @return       a conflict response containing the error details
+     */
     private static ResponseEntity<Response<Void>> conflict(String code, String message) {
         return ResponseEntity.status(HttpStatus.CONFLICT)
                 .body(Response.error(409, code, message));
     }
 
+    /**
+     * Creates a bad-request response containing the specified error code and exception message.
+     *
+     * @param code the application-specific error code
+     * @param ex   the exception providing the error message
+     * @return the HTTP 400 error response
+     */
     private static ResponseEntity<Response<Void>> badRequest(String code, Exception ex) {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                 .body(Response.error(400, code, ex.getMessage()));
     }
 
+    /**
+     * Handles requests that lack the required tenant context.
+     *
+     * @return a 400 response with the {@code TENANT_REQUIRED} error code
+     */
     @ExceptionHandler(TenantContextMissingException.class)
     ResponseEntity<Response<Void>> handleTenantContextMissing(TenantContextMissingException ex) {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
@@ -407,6 +426,12 @@ public class GlobalExceptionHandler {
                 .body(Response.error(400, "VALIDATION_ERROR", errors));
     }
 
+    /**
+     * Handles constraint violations by returning a standardized validation error response.
+     *
+     * @param ex the constraint violation exception
+     * @return a 400 response containing the validation error
+     */
     @ExceptionHandler(ConstraintViolationException.class)
     ResponseEntity<Response<Void>> handleConstraintViolation(ConstraintViolationException ex) {
         return badRequest("VALIDATION_ERROR", ex);
@@ -425,14 +450,21 @@ public class GlobalExceptionHandler {
     }
 
     /**
-     * Path-variable / query-parameter type mismatches (e.g. {@code /tenants/abc} for a
-     * {@code Long} id, or an unknown enum value) are client mistakes, not server errors.
+     * Handles request parameters whose values cannot be converted to the expected type.
+     *
+     * @return a 400 BAD_REQUEST response with a validation error
      */
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)
     ResponseEntity<Response<Void>> handleTypeMismatch(MethodArgumentTypeMismatchException ex) {
         return badRequest("VALIDATION_ERROR", ex);
     }
 
+    /**
+     * Handles requests that omit a required servlet request parameter.
+     *
+     * @param ex the exception describing the missing request parameter
+     * @return a bad-request response with a validation error
+     */
     @ExceptionHandler(MissingServletRequestParameterException.class)
     ResponseEntity<Response<Void>> handleMissingParameter(MissingServletRequestParameterException ex) {
         return badRequest("VALIDATION_ERROR", ex);

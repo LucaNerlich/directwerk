@@ -29,6 +29,9 @@ import {getPlatformData, getPlatformJobList, getPlatformOverview} from '@/lib/ap
 import {AUTH_REQUIRED} from '@directwerk/api/constants'
 import type {PlatformOverview, TenantList} from '@directwerk/api/types'
 
+/**
+ * Renders the platform administration overview with operational statistics, audit activity, and tenant management.
+ */
 export default function HomePage(): React.JSX.Element {
     const router = useRouter()
     const [overview, setOverview] = useState<PlatformOverview | null>(null)

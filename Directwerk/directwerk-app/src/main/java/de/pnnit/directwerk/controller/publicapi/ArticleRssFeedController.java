@@ -133,6 +133,12 @@ public class ArticleRssFeedController {
         ).response();
     }
 
+    /**
+     * Determines the client IP address for a request, using forwarded headers only when the request originates from a trusted proxy.
+     *
+     * @param request the HTTP request
+     * @return the client IP address
+     */
     private String clientIp(HttpServletRequest request) {
         String remoteAddr = request.getRemoteAddr();
         if (remoteAddr == null || !trustedProxies.contains(remoteAddr)) {

@@ -4,6 +4,12 @@ import {useCallback, useEffect, useRef, useState} from 'react'
 
 export type CopyState = 'idle' | 'copied' | 'failed'
 
+/**
+ * Copies text to the clipboard using the available browser clipboard mechanism.
+ *
+ * @param text - The text to copy
+ * @returns `true` if the text was copied successfully, `false` otherwise
+ */
 async function copyToClipboard(text: string): Promise<boolean> {
     try {
         if (
@@ -40,6 +46,11 @@ async function copyToClipboard(text: string): Promise<boolean> {
     }
 }
 
+/**
+ * Provides clipboard copy state and actions.
+ *
+ * @returns The current copy state, a function that copies text, and a function that resets the state
+ */
 export function useCopyToClipboard() {
     const [state, setState] = useState<CopyState>('idle')
     const resetTimerRef = useRef<number | null>(null)

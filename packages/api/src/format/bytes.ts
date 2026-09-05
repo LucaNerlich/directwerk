@@ -1,3 +1,9 @@
+/**
+ * Formats a byte count as a human-readable size.
+ *
+ * @param bytes - The byte count to format
+ * @returns A formatted size string, or `null` for `null` or negative values
+ */
 export function formatBytes(bytes: number | null): string | null {
     if (bytes === null || bytes < 0) {
         return null

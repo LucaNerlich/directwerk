@@ -48,6 +48,13 @@ public class SubscriberFeedService {
     private final RssFeedSnapshotService rssFeedSnapshotService;
     private final RssFeedRefreshJobProducer rssFeedRefreshScheduler;
 
+    /**
+     * Resolves a subscriber feed by its token.
+     *
+     * @param feedToken the token identifying the feed
+     * @return the matching subscriber feed
+     * @throws SubscriberFeedNotFoundException if no feed matches the token
+     */
     @Transactional(readOnly = true)
     public SubscriberFeed requireFeedByToken(String feedToken) {
         return subscriberFeedRepository.findByFeedToken(feedToken)

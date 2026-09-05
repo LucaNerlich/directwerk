@@ -79,6 +79,23 @@ interface PublicationEditorLayoutProps {
     sidebarExtra?: ReactNode
 }
 
+/**
+ * Renders an editor for article and podcast episode publications.
+ *
+ * The layout provides content editing, access controls, preview, publication
+ * scheduling, subscriber notifications, and status-specific workflow actions.
+ * Fields and actions are disabled according to the publication status, save
+ * state, permissions, validation results, and slug availability.
+ *
+ * @param kind - The publication type, either an article or an episode.
+ * @param status - The current publication status.
+ * @param readOnlyReason - Explains why editing is unavailable, when applicable.
+ * @param canPublish - Whether publication is currently permitted.
+ * @param publishBlockedReason - Explains why publication is unavailable, when applicable.
+ * @param slugTaken - Checks whether a proposed slug is already in use.
+ * @param sidebarExtra - Additional content rendered below the publication controls.
+ * @returns The publication editor layout.
+ */
 export default function PublicationEditorLayout({
     kind,
     status,

@@ -16,6 +16,18 @@ interface FormatCategoryPickerProps {
     disabled?: boolean
 }
 
+/**
+ * Provides controls for selecting podcast formats and categories.
+ *
+ * @param formats - Available podcast formats; the formats section is omitted when unavailable.
+ * @param categories - Available podcast categories.
+ * @param selectedFormatIds - IDs of the currently selected formats.
+ * @param selectedCategoryIds - IDs of the currently selected categories.
+ * @param onFormatChange - Called with the updated format selection.
+ * @param onCategoryChange - Called with the updated category selection.
+ * @param disabled - Whether all selection controls are disabled.
+ * @returns The format and category selection controls.
+ */
 export default function FormatCategoryPicker({
     formats,
     categories,

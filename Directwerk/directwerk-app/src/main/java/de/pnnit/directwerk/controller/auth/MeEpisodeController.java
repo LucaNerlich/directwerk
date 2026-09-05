@@ -56,6 +56,12 @@ public class MeEpisodeController {
         return ResponseEntity.ok(Response.ok(views));
     }
 
+    /**
+     * Streams an accessible episode for the authenticated subscriber.
+     *
+     * @param slug the episode slug
+     * @return the HTTP response for the streaming request
+     */
     @GetMapping("/{slug}/stream")
     @RequiresModule(PodcastModule.KEY)
     ResponseEntity<Void> streamEpisode(

@@ -102,6 +102,17 @@ const MAX_CUSTOM_FEEDS = 5
 
 type RowAction = 'toggle' | 'rotate' | 'delete'
 
+/**
+ * Displays and manages custom feeds, including creation, editing, previewing, activation, token rotation, and deletion.
+ *
+ * @param config - Feed-specific labels, renderers, preview handling, and API operations.
+ * @param tenantHost - Host identifying the tenant whose feeds are managed.
+ * @param feeds - All feeds available to the tenant.
+ * @param canBuild - Whether the tenant can create or edit feeds.
+ * @param onFeedsChange - Called with the updated feed list after a successful mutation.
+ * @param onError - Called with a user-facing error message when an operation fails.
+ * @param onAuthRequired - Called when an operation requires authentication.
+ */
 export default function CustomFeedsPanel<
     TFeed extends CustomFeedBase,
     TOption extends CustomFeedOption,

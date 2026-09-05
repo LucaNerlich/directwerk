@@ -37,6 +37,12 @@ import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
 
 type WizardStep = 'url' | 'series' | 'formats' | 'episode' | 'done'
 
+/**
+ * Formats a positive duration as minutes and seconds or hours, minutes, and seconds.
+ *
+ * @param seconds - The duration in seconds.
+ * @returns A formatted duration string, or `"unbekannt"` for null or non-positive values.
+ */
 function formatDuration(seconds: number | null): string {
     if (seconds === null || seconds <= 0) {
         return 'unbekannt'
@@ -50,6 +56,9 @@ function formatDuration(seconds: number | null): string {
     return `${minutes}:${String(rest).padStart(2, '0')}`
 }
 
+/**
+ * Provides a multi-step wizard for importing podcast episodes from an RSS feed.
+ */
 export default function RssImportWizard(): React.JSX.Element {
     const authRedirect = useAuthRequired()
     const authRedirectRef = useRef(authRedirect)

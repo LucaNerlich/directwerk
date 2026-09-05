@@ -9,6 +9,9 @@ import tools.jackson.databind.ObjectMapper;
 @Component
 public class RssFeedRefreshJobHandler extends TenantRefreshJobHandler<RssFeedRefreshJobPayload> {
 
+    /**
+     * Initializes the handler for tenant-specific RSS feed refresh jobs.
+     */
     public RssFeedRefreshJobHandler(ObjectMapper objectMapper, RssFeedSnapshotService snapshotService) {
         super(
                 objectMapper,

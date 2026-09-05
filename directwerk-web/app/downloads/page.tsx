@@ -35,6 +35,9 @@ function packageHint(item: SubscriberDownload): string | null {
     return null
 }
 
+/**
+ * Displays subscriber downloads and their associated package information.
+ */
 export default function DownloadsPage(): React.JSX.Element {
     const router = useRouter()
     const authRedirect = useAuthRequired()

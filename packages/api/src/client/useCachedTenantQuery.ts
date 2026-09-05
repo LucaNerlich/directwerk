@@ -56,6 +56,13 @@ export interface UseCachedTenantQueryOptions extends UseAuthedQueryOptions {
     tenantHost: string
 }
 
+/**
+ * Provides an authenticated query that caches data separately for each tenant.
+ *
+ * @param fetcher - Fetches tenant data using the tenant host.
+ * @param options - Configures the cache namespace, tenant host, and fallback error.
+ * @returns The query result with a reload function that clears the tenant cache before fetching fresh data.
+ */
 export function useCachedTenantQuery<T>(
     fetcher: (host: string) => Promise<T>,
     options: UseCachedTenantQueryOptions,

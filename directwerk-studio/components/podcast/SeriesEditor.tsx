@@ -33,6 +33,12 @@ interface SeriesEditorProps {
     seriesId?: number
 }
 
+/**
+ * Renders a form for creating or editing a podcast series.
+ *
+ * @param seriesId - The identifier of the series to edit; omit to create a new series.
+ * @returns The series editor interface.
+ */
 export default function SeriesEditor({seriesId}: SeriesEditorProps): React.JSX.Element {
     const router = useRouter()
     const authRedirect = useAuthRequired()

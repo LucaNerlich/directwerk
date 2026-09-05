@@ -19,6 +19,9 @@ public class RssFeedRefreshJobProducer {
     private final TenantRefreshJobProducer delegate;
     private final FeedSnapshotStateStore snapshotStateStore;
 
+    /**
+     * Creates a producer for tenant podcast RSS feed refresh jobs.
+     */
     public RssFeedRefreshJobProducer(
             ObjectProvider<QueueService> queueService,
             ObjectMapper objectMapper,
@@ -35,15 +38,31 @@ public class RssFeedRefreshJobProducer {
         this.snapshotStateStore = snapshotStateStore;
     }
 
+    /**
+     * Schedules an RSS feed refresh for the specified tenant after the current transaction commits.
+     *
+     * @param tenantId the tenant whose RSS feed should be refreshed
+     */
     public void requestRefreshAfterCommit(Long tenantId) {
         delegate.requestRefreshAfterCommit(tenantId);
     }
 
+    /**
+     * Requests an RSS feed refresh after a tenant's entitlements change.
+     *
+     * @param event the tenant entitlement change event
+     */
     @EventListener
     public void onEntitlementsChanged(TenantEntitlementsChangedEvent event) {
         requestRefreshAfterCommit(event.tenantId());
     }
 
+    /**
+     * Handles a stale RSS snapshot event by recording the previous slug, clearing the written snapshot state,
+     * and scheduling a refresh for the affected tenant.
+     *
+     * @param event the event describing the tenant whose RSS snapshot is stale
+     */
     @EventListener
     public void onSnapshotStale(TenantRssSnapshotStaleEvent event) {
         if (event.previousSlug() != null) {

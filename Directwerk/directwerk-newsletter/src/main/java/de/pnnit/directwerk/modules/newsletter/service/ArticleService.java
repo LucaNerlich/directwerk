@@ -46,6 +46,12 @@ public class ArticleService {
     private final ArticleRssFeedRefreshJobProducer articleRssFeedRefreshScheduler;
     private final MembershipPermissionService permissionService;
 
+    /**
+     * Lists all articles for a tenant, ordered by creation time and ID in descending order.
+     *
+     * @param tenantId the tenant whose articles are retrieved
+     * @return the tenant's articles
+     */
     @Transactional(readOnly = true)
     public List<Article> listArticles(Long tenantId) {
         return articleRepository.findByTenantIdOrderByCreatedAtDescIdDesc(tenantId);

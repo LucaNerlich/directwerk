@@ -9,6 +9,12 @@ import tools.jackson.databind.ObjectMapper;
 @Component
 public class ArticleRssFeedRefreshJobHandler extends TenantRefreshJobHandler<ArticleRssFeedRefreshJobPayload> {
 
+    /**
+     * Creates a handler for refreshing tenant-specific article RSS feed snapshots.
+     *
+     * @param objectMapper   the object mapper used to convert job payloads
+     * @param snapshotService the service used to refresh tenant snapshots
+     */
     public ArticleRssFeedRefreshJobHandler(ObjectMapper objectMapper, ArticleRssFeedSnapshotService snapshotService) {
         super(
                 objectMapper,
