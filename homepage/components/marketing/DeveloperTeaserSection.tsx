@@ -1,6 +1,6 @@
 import Link from 'next/link'
 
-import {Button} from '@directwerk/ui/components/button'
+import {buttonVariants} from '@directwerk/ui/components/button'
 import {Card, CardContent} from '@directwerk/ui/components/card'
 
 import SectionLabel from '@/components/marketing/SectionLabel'
@@ -24,22 +24,20 @@ export default function DeveloperTeaserSection(): React.JSX.Element {
                             </p>
                         </div>
                         <div className="flex flex-wrap gap-2 lg:justify-end">
-                            <Button render={<Link href="/developers" />} size="lg">
+                            <Link
+                                className={buttonVariants({size: 'lg'})}
+                                href="/developers"
+                            >
                                 API-Auszug ansehen
-                            </Button>
-                            <Button
-                                render={
-                                    <a
-                                        href={DOCS_URL}
-                                        rel="noopener noreferrer"
-                                        target="_blank"
-                                    />
-                                }
-                                size="lg"
-                                variant="outline"
+                            </Link>
+                            <a
+                                className={buttonVariants({variant: 'outline', size: 'lg'})}
+                                href={DOCS_URL}
+                                rel="noopener noreferrer"
+                                target="_blank"
                             >
                                 Vollständige Docs
-                            </Button>
+                            </a>
                         </div>
                     </CardContent>
                 </Card>

@@ -1,4 +1,4 @@
-import {Button} from '@directwerk/ui/components/button'
+import {buttonVariants} from '@directwerk/ui/components/button'
 
 import SectionLabel from '@/components/marketing/SectionLabel'
 import {DOCS_URL} from '@/lib/marketing/constants'
@@ -92,28 +92,32 @@ export default function HeroSection(): React.JSX.Element {
                         US-Cloud-Zwang.
                     </p>
                     <div className="mt-8 flex flex-wrap gap-3">
-                        <Button render={<a href="#products" />} size="lg">
+                        <a
+                            className={buttonVariants({size: 'lg'})}
+                            href="#products"
+                        >
                             Plattform entdecken
-                        </Button>
-                        <Button render={<a href="#feeds" />} size="lg" variant="outline">
+                        </a>
+                        <a
+                            className={buttonVariants({variant: 'outline', size: 'lg'})}
+                            href="#feeds"
+                        >
                             Private Feeds ansehen
-                        </Button>
-                        <Button
-                            render={
-                                <a
-                                    href={DOCS_URL}
-                                    rel="noopener noreferrer"
-                                    target="_blank"
-                                />
-                            }
-                            size="lg"
-                            variant="outline"
+                        </a>
+                        <a
+                            className={buttonVariants({variant: 'outline', size: 'lg'})}
+                            href={DOCS_URL}
+                            rel="noopener noreferrer"
+                            target="_blank"
                         >
                             Dokumentation
-                        </Button>
-                        <Button render={<a href="#contact" />} size="lg" variant="outline">
+                        </a>
+                        <a
+                            className={buttonVariants({variant: 'outline', size: 'lg'})}
+                            href="#contact"
+                        >
                             Kontakt
-                        </Button>
+                        </a>
                     </div>
                     <dl className="mt-10 grid max-w-xl grid-cols-2 gap-3 sm:grid-cols-4">
                         {TRUST_ITEMS.map(([title, copy]) => (

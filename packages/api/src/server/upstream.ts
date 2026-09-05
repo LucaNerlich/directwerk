@@ -27,8 +27,10 @@ export interface DirectwerkFetchRequest {
     useOAuthClient?: boolean
     /**
      * Canonical `?…` query appended to the upstream path. Only ever set from
-     * {@link buildSafePreviewQueryString} output, so it matches
-     * `?key=id(&key=id)*` by construction; anything else is rejected.
+     * the canonical builders in `proxy/path.ts` (`buildSafePreviewQueryString`,
+     * `buildSafeMediaListQueryString`, `buildSafeMediaFolderDeleteQueryString`),
+     * so it matches `?key=value(&key=value)*` with word-char keys/values by
+     * construction; anything else is rejected.
      */
     query?: string
 }
@@ -63,7 +65,7 @@ function getApiUrl(apiUrlEnv: string): URL {
     return apiUrl
 }
 
-const SAFE_PREVIEW_QUERY = /^\?[A-Za-z0-9_]+=\d+(&[A-Za-z0-9_]+=\d+)*$/
+const SAFE_PROXY_QUERY = /^\?[A-Za-z0-9_]+=[A-Za-z0-9_]+(&[A-Za-z0-9_]+=[A-Za-z0-9_]+)*$/
 
 function getOAuthAuthorization(clientIdEnv: string, clientSecretEnv: string): string {
     const clientId = process.env[clientIdEnv]
@@ -126,7 +128,7 @@ export function createDirectwerkServerClient(
             }
             if (
                 query !== undefined &&
-                (query.length > 2048 || !SAFE_PREVIEW_QUERY.test(query))
+                (query.length > 2048 || !SAFE_PROXY_QUERY.test(query))
             ) {
                 throw new Error('Directwerk request query is invalid')
             }

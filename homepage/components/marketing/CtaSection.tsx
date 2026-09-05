@@ -1,4 +1,4 @@
-import {Button} from '@directwerk/ui/components/button'
+import {buttonVariants} from '@directwerk/ui/components/button'
 
 import {CONTACT_EMAIL, DOCS_URL} from '@/lib/marketing/constants'
 
@@ -18,35 +18,40 @@ export default function CtaSection(): React.JSX.Element {
                         Access, Migration von Patreon/Steady und Custom-Frontends.
                     </p>
                     <div className="mt-8 flex flex-wrap gap-3">
-                        <Button
-                            className="bg-primary-foreground text-primary hover:bg-primary-foreground/90"
-                            render={<a href={`mailto:${CONTACT_EMAIL}`} />}
-                            size="lg"
+                        <a
+                            className={buttonVariants({
+                                size: 'lg',
+                                className:
+                                    'bg-primary-foreground text-primary hover:bg-primary-foreground/90',
+                            })}
+                            href={`mailto:${CONTACT_EMAIL}`}
                         >
                             {CONTACT_EMAIL}
-                        </Button>
-                        <Button
-                            className="border-primary-foreground/30 bg-transparent text-primary-foreground hover:bg-primary-foreground/10"
-                            render={<a href="/developers" />}
-                            size="lg"
-                            variant="outline"
+                        </a>
+                        <a
+                            className={buttonVariants({
+                                variant: 'outline',
+                                size: 'lg',
+                                className:
+                                    'border-primary-foreground/30 bg-transparent text-primary-foreground hover:bg-primary-foreground/10',
+                            })}
+                            href="/developers"
                         >
                             API-Auszug
-                        </Button>
-                        <Button
-                            className="border-primary-foreground/30 bg-transparent text-primary-foreground hover:bg-primary-foreground/10"
-                            render={
-                                <a
-                                    href={DOCS_URL}
-                                    rel="noopener noreferrer"
-                                    target="_blank"
-                                />
-                            }
-                            size="lg"
-                            variant="outline"
+                        </a>
+                        <a
+                            className={buttonVariants({
+                                variant: 'outline',
+                                size: 'lg',
+                                className:
+                                    'border-primary-foreground/30 bg-transparent text-primary-foreground hover:bg-primary-foreground/10',
+                            })}
+                            href={DOCS_URL}
+                            rel="noopener noreferrer"
+                            target="_blank"
                         >
                             Dokumentation
-                        </Button>
+                        </a>
                     </div>
                 </div>
             </div>

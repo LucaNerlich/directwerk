@@ -6,7 +6,7 @@ import {use, useCallback, useEffect, useState} from 'react'
 
 import {Alert, AlertDescription} from '@directwerk/ui/components/alert'
 import {Badge} from '@directwerk/ui/components/badge'
-import {Button} from '@directwerk/ui/components/button'
+import {Button, buttonVariants} from '@directwerk/ui/components/button'
 import {Card, CardContent, CardDescription, CardHeader, CardTitle} from '@directwerk/ui/components/card'
 import EmptyState from '@directwerk/ui/components/empty-state'
 import {EntityListSection} from '@directwerk/ui/components/entity-list-section'
@@ -218,7 +218,7 @@ export default function TenantPage({params}: TenantPageProps) {
                 {data ? (
                     <>
                         <PageHeader
-                            actions={<Button render={<Link href={`/tenants/${id}/storage`} />}>Storage</Button>}
+                            actions={<Link className={buttonVariants()} href={`/tenants/${id}/storage`}>Storage</Link>}
                             description={`Tenant slug: ${data.tenant.slug}`}
                             eyebrow="Tenant"
                             title={data.tenant.name}

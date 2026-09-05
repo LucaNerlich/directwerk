@@ -4,7 +4,7 @@ import Link from 'next/link'
 import {usePathname} from 'next/navigation'
 import {useEffect, useState} from 'react'
 
-import {Button} from '@directwerk/ui/components/button'
+import {Button, buttonVariants} from '@directwerk/ui/components/button'
 import {cn} from '@directwerk/ui/lib/utils'
 
 import {DOCS_URL} from '@/lib/marketing/constants'
@@ -184,9 +184,12 @@ export default function MarketingHeader(): React.JSX.Element {
                         </a>
                     </nav>
                     <div className="ml-auto hidden shrink-0 items-center gap-2 md:flex lg:ml-0">
-                        <Button render={<a href="/#contact" />} size="default">
+                        <a
+                            className={buttonVariants()}
+                            href="/#contact"
+                        >
                             Gespräch vereinbaren
-                        </Button>
+                        </a>
                     </div>
                     <Button
                         aria-controls="marketing-mobile-nav"

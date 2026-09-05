@@ -1,4 +1,4 @@
-import {Button} from '@directwerk/ui/components/button'
+import {buttonVariants} from '@directwerk/ui/components/button'
 import {Card, CardContent} from '@directwerk/ui/components/card'
 
 import {CONTACT_EMAIL, DOCS_URL} from '@/lib/marketing/constants'
@@ -20,37 +20,30 @@ export default function DocsCta(): React.JSX.Element {
                     </p>
                 </div>
                 <div className="flex shrink-0 flex-wrap gap-2">
-                    <Button
-                        render={
-                            <a
-                                href={DOCS_URL}
-                                rel="noopener noreferrer"
-                                target="_blank"
-                            />
-                        }
-                    >
-                        Dokumentation öffnen
-                    </Button>
+                        <a
+                            className={buttonVariants()}
+                            href={DOCS_URL}
+                            rel="noopener noreferrer"
+                            target="_blank"
+                        >
+                            Dokumentation öffnen
+                        </a>
                     {swaggerUrl ? (
-                        <Button
-                            render={
-                                <a
-                                    href={swaggerUrl}
-                                    rel="noopener noreferrer"
-                                    target="_blank"
-                                />
-                            }
-                            variant="outline"
+                        <a
+                            className={buttonVariants({variant: 'outline'})}
+                            href={swaggerUrl}
+                            rel="noopener noreferrer"
+                            target="_blank"
                         >
                             Swagger (Staging)
-                        </Button>
+                        </a>
                     ) : null}
-                    <Button
-                        render={<a href={`mailto:${CONTACT_EMAIL}`} />}
-                        variant="outline"
+                    <a
+                        className={buttonVariants({variant: 'outline'})}
+                        href={`mailto:${CONTACT_EMAIL}`}
                     >
                         Integrator-Zugang
-                    </Button>
+                    </a>
                 </div>
             </CardContent>
         </Card>

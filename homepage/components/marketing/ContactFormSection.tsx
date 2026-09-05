@@ -2,7 +2,7 @@
 
 import {useState} from 'react'
 
-import {Button} from '@directwerk/ui/components/button'
+import {Button, buttonVariants} from '@directwerk/ui/components/button'
 import {Input} from '@directwerk/ui/components/input'
 import {Label} from '@directwerk/ui/components/label'
 import {Textarea} from '@directwerk/ui/components/textarea'
@@ -167,15 +167,17 @@ export default function ContactFormSection(): React.JSX.Element {
                             >
                                 {status === 'submitting' ? 'Wird gesendet…' : 'Nachricht senden'}
                             </Button>
-                            <Button
-                                className="border-primary-foreground/30 bg-transparent text-primary-foreground hover:bg-primary-foreground/10"
-                                render={<a href="/developers" />}
-                                size="lg"
-                                type="button"
-                                variant="outline"
+                            <a
+                                className={buttonVariants({
+                                    variant: 'outline',
+                                    size: 'lg',
+                                    className:
+                                        'border-primary-foreground/30 bg-transparent text-primary-foreground hover:bg-primary-foreground/10',
+                                })}
+                                href="/developers"
                             >
                                 API-Auszug
-                            </Button>
+                            </a>
                         </div>
                     </form>
                 </div>

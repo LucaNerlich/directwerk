@@ -788,6 +788,66 @@ export default function MediaLibraryClient(): React.JSX.Element {
                 />
             ) : null}
 
+            <section aria-labelledby="media-filter-heading" className="flex flex-col gap-4">
+                <SectionHeader
+                    id="media-filter-heading"
+                    title="Filter"
+                    description={`${visibleAssets.length} von ${assets.length} Dateien angezeigt · Ort: ${currentFolderName}${includeSubfolders ? ' (inkl. Unterordner)' : ''}.`}
+                    action={
+                        hasActiveFilters ? (
+                            <Button onClick={resetFilters} size="sm" type="button" variant="ghost">
+                                Filter zurücksetzen
+                            </Button>
+                        ) : undefined
+                    }
+                />
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                <label className="grid gap-2 text-sm font-medium" htmlFor="typeFilter">
+                    Typ filtern
+                    <SelectControl
+                        id="typeFilter"
+                        onChange={(event) => setTypeFilter(event.target.value)}
+                        value={typeFilter}
+                    >
+                        <option value="">Alle</option>
+                        <option value="AUDIO">Audio</option>
+                        <option value="IMAGE">Bild</option>
+                        <option value="VIDEO">Video</option>
+                        <option value="DOCUMENT">Dokument</option>
+                    </SelectControl>
+                </label>
+                <label className="grid gap-2 text-sm font-medium" htmlFor="statusFilter">
+                    Status filtern
+                    <SelectControl
+                        id="statusFilter"
+                        onChange={(event) => setStatusFilter(event.target.value)}
+                        value={statusFilter}
+                    >
+                        <option value="">Alle</option>
+                        <option value="PENDING">Ausstehend</option>
+                        <option value="READY">Bereit</option>
+                        <option value="ARCHIVED">Archiviert</option>
+                    </SelectControl>
+                </label>
+                <Label className="flex items-end gap-2 text-sm font-medium">
+                    <Checkbox
+                        checked={orphanOnly}
+                        id="orphanFilter"
+                        onCheckedChange={(checked) => setOrphanOnly(checked === true)}
+                    />
+                    <span>Nur unverknüpfte Dateien</span>
+                </Label>
+                <Label className="flex items-end gap-2 text-sm font-medium">
+                    <Checkbox
+                        checked={includeSubfolders}
+                        id="subfolderFilter"
+                        onCheckedChange={(checked) => setIncludeSubfolders(checked === true)}
+                    />
+                    <span>Unterordner einbeziehen</span>
+                </Label>
+            </div>
+            </section>
+
             <section aria-label="Ordner" className="flex flex-col gap-3">
                 <div className="flex flex-wrap items-center gap-1">
                     <nav aria-label="Brotkrumen" className="flex min-w-0 flex-wrap items-center gap-1 text-sm">
@@ -891,66 +951,6 @@ export default function MediaLibraryClient(): React.JSX.Element {
                         })}
                     </ul>
                 ) : null}
-            </section>
-
-            <section aria-labelledby="media-filter-heading" className="flex flex-col gap-4">
-                <SectionHeader
-                    id="media-filter-heading"
-                    title="Filter"
-                    description={`${visibleAssets.length} von ${assets.length} Dateien angezeigt · Ort: ${currentFolderName}${includeSubfolders ? ' (inkl. Unterordner)' : ''}.`}
-                    action={
-                        hasActiveFilters ? (
-                            <Button onClick={resetFilters} size="sm" type="button" variant="ghost">
-                                Filter zurücksetzen
-                            </Button>
-                        ) : undefined
-                    }
-                />
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                <label className="grid gap-2 text-sm font-medium" htmlFor="typeFilter">
-                    Typ filtern
-                    <SelectControl
-                        id="typeFilter"
-                        onChange={(event) => setTypeFilter(event.target.value)}
-                        value={typeFilter}
-                    >
-                        <option value="">Alle</option>
-                        <option value="AUDIO">Audio</option>
-                        <option value="IMAGE">Bild</option>
-                        <option value="VIDEO">Video</option>
-                        <option value="DOCUMENT">Dokument</option>
-                    </SelectControl>
-                </label>
-                <label className="grid gap-2 text-sm font-medium" htmlFor="statusFilter">
-                    Status filtern
-                    <SelectControl
-                        id="statusFilter"
-                        onChange={(event) => setStatusFilter(event.target.value)}
-                        value={statusFilter}
-                    >
-                        <option value="">Alle</option>
-                        <option value="PENDING">Ausstehend</option>
-                        <option value="READY">Bereit</option>
-                        <option value="ARCHIVED">Archiviert</option>
-                    </SelectControl>
-                </label>
-                <Label className="flex items-end gap-2 text-sm font-medium">
-                    <Checkbox
-                        checked={orphanOnly}
-                        id="orphanFilter"
-                        onCheckedChange={(checked) => setOrphanOnly(checked === true)}
-                    />
-                    <span>Nur unverknüpfte Dateien</span>
-                </Label>
-                <Label className="flex items-end gap-2 text-sm font-medium">
-                    <Checkbox
-                        checked={includeSubfolders}
-                        id="subfolderFilter"
-                        onCheckedChange={(checked) => setIncludeSubfolders(checked === true)}
-                    />
-                    <span>Unterordner einbeziehen</span>
-                </Label>
-            </div>
             </section>
 
             {pendingCount > 0 ? (

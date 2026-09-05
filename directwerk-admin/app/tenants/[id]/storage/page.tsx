@@ -6,7 +6,7 @@ import {use, useCallback, useEffect, useState} from 'react'
 
 import {Alert, AlertDescription} from '@directwerk/ui/components/alert'
 import {Badge} from '@directwerk/ui/components/badge'
-import {Button} from '@directwerk/ui/components/button'
+import {Button, buttonVariants} from '@directwerk/ui/components/button'
 import {Card, CardContent, CardDescription, CardHeader, CardTitle} from '@directwerk/ui/components/card'
 import EmptyState from '@directwerk/ui/components/empty-state'
 import {Input} from '@directwerk/ui/components/input'
@@ -328,7 +328,7 @@ export default function TenantStoragePage({params}: TenantStoragePageProps) {
                 {tenant ? (
                     <>
                         <PageHeader
-                            actions={<Button render={<Link href={`/tenants/${id}`} />}>Tenant details</Button>}
+                            actions={<Link className={buttonVariants()} href={`/tenants/${id}`}>Tenant details</Link>}
                             description={`Media for ${tenant.slug} — list, test-upload, and queue permanent deletes.`}
                             eyebrow="Tenant storage"
                             title={tenant.name}
