@@ -2,6 +2,7 @@ package de.pnnit.directwerk.multitenancy;
 
 import de.pnnit.directwerk.modules.core.entity.Tenant;
 import jakarta.persistence.PrePersist;
+import jakarta.persistence.PreRemove;
 import jakarta.persistence.PreUpdate;
 
 /**
@@ -13,11 +14,12 @@ public class TenantWriteGuardListener {
     /**
      * Enforces that a tenant-owned entity targets the tenant in the current context.
      *
-     * @param entity the entity being persisted or updated
+     * @param entity the entity being persisted, updated, or removed
      * @throws TenantMismatchException if the entity has no tenant identity or targets a different tenant
      */
     @PrePersist
     @PreUpdate
+    @PreRemove
     public void enforceTenant(Object entity) {
         if (!(entity instanceof TenantOwned owned)) {
             return;

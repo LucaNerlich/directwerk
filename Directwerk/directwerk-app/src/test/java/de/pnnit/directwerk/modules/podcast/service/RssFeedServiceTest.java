@@ -51,6 +51,9 @@ class RssFeedServiceTest {
     @Mock
     private PublicCdnUrlResolver publicCdnUrlResolver;
 
+    @Mock
+    private de.pnnit.directwerk.modules.core.service.FeedTokenProtector feedTokenProtector;
+
     private RssFeedService rssFeedService;
 
     @BeforeEach
@@ -62,8 +65,10 @@ class RssFeedServiceTest {
                 new RssXmlBuilder(new HtmlSanitizer()),
                 episodeDownloadAnalyticsService,
                 publicCdnUrlResolver,
-                new EpisodeCoverResolver()
+                new EpisodeCoverResolver(),
+                feedTokenProtector
         );
+        lenient().when(feedTokenProtector.reveal("enc:tok")).thenReturn("tok");
         lenient().when(publicCdnUrlResolver.resolve(any())).thenAnswer(invocation -> {
             MediaAsset asset = invocation.getArgument(0);
             if (asset != null && asset.getVisibility() == AssetVisibility.PUBLIC) {
@@ -310,6 +315,7 @@ class RssFeedServiceTest {
         assertThat(xml).contains("https://alpha.example.test/feeds/alpha/u/tok/e/episode-2.mp3");
         assertThat(xml).contains("<itunes:image href=\"https://cdn.example.test/alpha/public/series.jpg\"/>");
         assertThat(xml).doesNotContain("X-Amz-Signature");
+        verify(feedTokenProtector).reveal("enc:tok");
     }
 
     @Test
@@ -383,7 +389,7 @@ class RssFeedServiceTest {
         feed.setId(1L);
         feed.setTenant(tenant);
         feed.setUser(user);
-        feed.setFeedToken("tok");
+        feed.setFeedToken("enc:tok");
         feed.setTitle("Private");
         feed.setEnabled(true);
         return feed;

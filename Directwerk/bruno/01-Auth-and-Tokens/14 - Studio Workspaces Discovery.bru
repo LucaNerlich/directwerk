@@ -34,4 +34,6 @@ docs {
   Host-agnostic studio login helper for shared directwerk-studio deployments.
   Uses the API host (not a tenant domain). Returns verified routing hosts for memberships
   with EDITOR or TENANT_ADMIN roles.
+  Valid credentials without studio-eligible memberships return 401 INVALID_CREDENTIALS
+  (deliberately indistinguishable from bad credentials — no credential oracle).
 }

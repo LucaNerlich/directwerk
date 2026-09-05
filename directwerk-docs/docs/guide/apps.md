@@ -17,7 +17,7 @@ Directwerk ships as one **Spring Boot API** plus several **Next.js frontends**. 
 | [**directwerk-studio**](#directwerk-studio) | 3003 | `EDITOR`, `TENANT_ADMIN` | Creator dashboard — publish content, manage products and subscribers |
 | [**directwerk-web**](#directwerk-web) | 3004 | `GUEST`, `SUBSCRIBER` | Public site + subscriber portal on the tenant domain |
 | [**directwerk-admin**](#directwerk-admin) | 3001 | `PLATFORM_ADMIN` | Platform superadmin — tenants, modules, job queue |
-| [**homepage**](#homepage) | 3002 | Public | Directwerk marketing site (not tenant-scoped) |
+| [**homepage**](#homepage) | 3005 | Public | Directwerk marketing site (not tenant-scoped) |
 | [**directwerk-docs**](#directwerk-docs) | 5173 | Public | This documentation site |
 | **example-fe** | 3000 | Demo | Legacy API harness / subscriber demo |
 
@@ -126,7 +126,7 @@ Marketing site for Directwerk the product (not tenant-scoped). Includes platform
 
 ```sh
 cd homepage
-pnpm dev   # http://localhost:3002
+pnpm dev   # http://localhost:3005
 ```
 
 ## directwerk-docs

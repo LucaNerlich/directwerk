@@ -6,9 +6,9 @@ outline: deep
 
 <!-- source: docs/asset-storage.md -->
 
-Companion to [`README.md`](../../../docs/platform-design.md) (full design),
+Companion to the internal `docs/platform-design.md` (full design),
 [`poc-alpha-setup.md`](/install/local-development) (alpha bootstrap), and
-[`product-naming.md`](product-naming.md) (public product name history).
+the internal `docs/product-naming.md` (public product name history).
 
 | | |
 |---|---|
@@ -49,7 +49,7 @@ not via bucket policies or user-prefix browsing.
 | EU data residency | Hetzner DE/FI or Bunny EU regions only |
 | No API upload proxy | Pre-signed PUT for uploads; pre-signed GET for private downloads |
 | CDN for public | Stable URLs on public pull zone; cacheable `public/` objects; edge-block `private/` |
-| CDN for private | Second pull zone + Advanced Token Auth; see [`bunny-net-integration.md`](bunny-net-integration.md#implementation-guide-cdn-pull-zones) |
+| CDN for private | Second pull zone + Advanced Token Auth (see the Bunny.net storage docs on CDN pull zones) |
 
 ---
 
@@ -100,9 +100,10 @@ layout as staging and production; only bucket name and credentials differ.
 | Staging / prod | Hetzner (default) or Bunny per deployment |
 
 Local infra is `Directwerk/compose.yaml` (PostgreSQL + Mailpit) — see
-[`../Directwerk/docs/build-and-deploy.md`](../Directwerk/docs/build-and-deploy.md). S3 is **not** in
-Compose; configure a Hetzner or Bunny **dev** bucket via env vars (`S3_ENDPOINT`, `S3_BUCKET`,
-`S3_ACCESS_KEY`, `S3_SECRET_KEY`) when implementing uploads.
+the build-and-deploy guide in the backend repo (`Directwerk/docs/build-and-deploy.md`). S3 is **not** in
+Compose; configure a Hetzner or Bunny **dev** bucket via env vars (`DIRECTWERK_STORAGE_ENDPOINT`,
+`DIRECTWERK_STORAGE_BUCKET`, `DIRECTWERK_STORAGE_ACCESS_KEY`, `DIRECTWERK_STORAGE_SECRET_KEY`,
+`DIRECTWERK_STORAGE_PUBLIC_CDN_BASE_URL` — see the environment-variables reference) when implementing uploads.
 
 Create the dev bucket once in Hetzner Console or Bunny dashboard; enable S3 compatibility on
 Bunny at zone creation if using Bunny.
@@ -220,7 +221,7 @@ Unique index: `(tenant_id, s3_key)`. Never reuse `s3_key` across tenants or asse
 ## Module gating
 
 Per-tenant feature modules control **which asset flows are reachable** before any S3 presign runs.
-See [`README.md` § Feature Modules](../../../docs/platform-design.md#feature-modules) for the full catalog and
+See the operators guide for the module catalog and
 dependency graph; this section covers storage implications only.
 
 **There is no separate `ASSET_STORAGE` module.** S3 upload, `MediaAsset`, and the media library
@@ -392,10 +393,10 @@ boolean hasAccess(Long tenantId, Long userId, Long episodeId);
 boolean hasDigitalAssetAccess(Long tenantId, Long userId, Long mediaAssetId);
 ```
 
-**Alpha today:** [`EntitlementService`](../Directwerk/directwerk-subscription/src/main/java/de/pnnit/directwerk/modules/subscription/service/EntitlementService.java)
-exposes `resolveAccess` / `hasLevelAtLeast` only (LEVEL summary). Full `hasAccess(contentId)` and
-`ProductAccessRule` support are **Phase 4b** — see [`poc-alpha-setup.md`](/install/local-development).
-Until then, `AssetAccessService` uses a fail-closed stub for paid `CONTENT` assets.
+**Current contract:** `EntitlementService` evaluates shipped LEVEL-union-PACKAGE rules
+(`hasEpisodeAccess` / `hasAccess` with `ProductAccessRule`) — see
+[Subscriptions & entitlements](/operators/subscriptions-and-entitlements). Historical note: an
+earlier alpha exposed only `resolveAccess` / `hasLevelAtLeast` (LEVEL summary, Phase 4b).
 
 ---
 
@@ -650,8 +651,8 @@ directwerk:
     public-bucket:             # optional dual-bucket mode
     endpoint: https://nbg1.your-objectstorage.com
     force-path-style: false    # true for Bunny
-    access-key: ${S3_ACCESS_KEY}
-    secret-key: ${S3_SECRET_KEY}
+    access-key: ${DIRECTWERK_STORAGE_ACCESS_KEY}
+    secret-key: ${DIRECTWERK_STORAGE_SECRET_KEY}
     public-cdn-base-url: https://cdn.directwerk.example.com
     presign-upload-ttl: 15m
     presign-download-ttl-api: 1h
@@ -698,9 +699,9 @@ directwerk:
     endpoint: https://nbg1.your-objectstorage.com
     force-path-style: false
     bucket: directwerk-dev
-    access-key: ${S3_ACCESS_KEY}
-    secret-key: ${S3_SECRET_KEY}
-    public-cdn-base-url: ${S3_PUBLIC_CDN_BASE_URL:https://directwerk-dev.nbg1.your-objectstorage.com}
+    access-key: ${DIRECTWERK_STORAGE_ACCESS_KEY}
+    secret-key: ${DIRECTWERK_STORAGE_SECRET_KEY}
+    public-cdn-base-url: ${DIRECTWERK_STORAGE_PUBLIC_CDN_BASE_URL:https://directwerk-dev.nbg1.your-objectstorage.com}
 ```
 
 **Bunny.net:**
@@ -712,18 +713,18 @@ directwerk:
     endpoint: https://de-s3.storage.bunnycdn.com
     force-path-style: true
     bucket: directwerk-dev          # storage zone name
-    access-key: ${S3_ACCESS_KEY} # zone name
-    secret-key: ${S3_SECRET_KEY} # zone password
-    public-cdn-base-url: ${S3_PUBLIC_CDN_BASE_URL}
+    access-key: ${DIRECTWERK_STORAGE_ACCESS_KEY} # zone name
+    secret-key: ${DIRECTWERK_STORAGE_SECRET_KEY} # zone password
+    public-cdn-base-url: ${DIRECTWERK_STORAGE_PUBLIC_CDN_BASE_URL}
 ```
 
 | Variable | Purpose |
 |----------|---------|
-| `S3_ENDPOINT` | Provider endpoint (region-specific) |
-| `S3_BUCKET` | Bucket / storage zone name |
-| `S3_ACCESS_KEY` | Hetzner access key or Bunny zone name |
-| `S3_SECRET_KEY` | Hetzner secret key or Bunny zone password |
-| `S3_PUBLIC_CDN_BASE_URL` | CDN origin for `{tenant}/public/` URLs |
+| `DIRECTWERK_STORAGE_ENDPOINT` | Provider endpoint (region-specific) |
+| `DIRECTWERK_STORAGE_BUCKET` | Bucket / storage zone name |
+| `DIRECTWERK_STORAGE_ACCESS_KEY` | Hetzner access key or Bunny zone name |
+| `DIRECTWERK_STORAGE_SECRET_KEY` | Hetzner secret key or Bunny zone password |
+| `DIRECTWERK_STORAGE_PUBLIC_CDN_BASE_URL` | CDN origin for `{tenant}/public/` URLs |
 
 ---
 
@@ -852,8 +853,8 @@ Group entitlement scenarios (13–18): see [Group entitlements](#group-entitleme
 
 ## Related documents
 
-- [`README.md`](../../../docs/platform-design.md) — Media Storage, S3 Layout, Upload Flow, Entitlements, Feature Modules
+- Internal `docs/platform-design.md` — Media Storage, S3 Layout, Upload Flow, Entitlements, Feature Modules
 - [`poc-alpha-setup.md`](/install/local-development) — HTTP harness run order
-- [`product-naming.md`](product-naming.md) — Directwerk public product name
+- Internal `docs/product-naming.md` — Directwerk public product name
 - [Hetzner Object Storage docs](https://docs.hetzner.com/storage/object-storage/)
 - [Bunny.net S3 compatibility](https://docs.bunny.net/storage/s3)

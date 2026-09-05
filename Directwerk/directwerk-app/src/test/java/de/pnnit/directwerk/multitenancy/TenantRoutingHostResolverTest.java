@@ -63,6 +63,15 @@ class TenantRoutingHostResolverTest {
     }
 
     @Test
+    void ignoresTenantHostHeaderOnDirectTenantTraffic() {
+        HttpServletRequest request = mock(HttpServletRequest.class);
+        when(request.getServerName()).thenReturn("tenant-a.directwerk.org");
+        when(request.getHeader("X-Tenant-Host")).thenReturn("tenant-b.directwerk.org");
+
+        assertThat(resolver.resolve(request)).isEqualTo("tenant-a.directwerk.org");
+    }
+
+    @Test
     void parseForwardedHeaderExtractsHostParameter() {
         assertThat(TenantRoutingHostResolver.parseForwardedHeader(
                 "for=127.0.0.1;host=lucanerlich.directwerk.org;proto=https"
@@ -78,7 +87,7 @@ class TenantRoutingHostResolverTest {
     }
 
     @Test
-    void resolvesExplicitTenantHostWhenIssuerMetadataMissing() {
+    void ignoresExplicitTenantHostWhenIssuerMetadataMissing() {
         DirectwerkConfig config = mock(DirectwerkConfig.class);
         DirectwerkProperties.Security security = mock(DirectwerkProperties.Security.class);
         when(config.security()).thenReturn(security);
@@ -89,6 +98,6 @@ class TenantRoutingHostResolverTest {
         when(request.getServerName()).thenReturn("api.directwerk.org");
         when(request.getHeader("X-Tenant-Host")).thenReturn("lucanerlich.directwerk.org");
 
-        assertThat(resolver.resolve(request)).isEqualTo("lucanerlich.directwerk.org");
+        assertThat(resolver.resolve(request)).isEqualTo("api.directwerk.org");
     }
 }

@@ -1,6 +1,7 @@
 package de.pnnit.directwerk.modules.podcast.service;
 
 import de.pnnit.directwerk.modules.core.entity.Tenant;
+import de.pnnit.directwerk.modules.core.service.FeedTokenProtector;
 import de.pnnit.directwerk.modules.core.util.PublicUrlBuilder;
 import de.pnnit.directwerk.modules.content.PublicSurfacePolicy;
 import de.pnnit.directwerk.modules.digital.entity.AssetStatus;
@@ -28,6 +29,7 @@ public class RssFeedService {
     private final EpisodeDownloadAnalyticsService episodeDownloadAnalyticsService;
     private final PublicCdnUrlResolver publicCdnUrlResolver;
     private final EpisodeCoverResolver episodeCoverResolver;
+    private final FeedTokenProtector feedTokenProtector;
 
     /**
      * Builds a public RSS feed containing eligible free episodes for a tenant or series.
@@ -83,7 +85,7 @@ public class RssFeedService {
         List<RssXmlBuilder.RssEpisode> episodes = entitled
                 .stream()
                 .filter(Episode::isEnclosureEnabled)
-                .map(episode -> toPrivateRssEpisode(episode, tenant, feed.getFeedToken(), scheme, host, port))
+                .map(episode -> toPrivateRssEpisode(episode, tenant, feedTokenProtector.reveal(feed.getFeedToken()), scheme, host, port))
                 .flatMap(Optional::stream)
                 .toList();
         String channelCoverUrl = resolvePublicCoverUrl(channelCoverFromSeries(entitled));

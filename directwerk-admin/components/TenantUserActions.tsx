@@ -9,7 +9,7 @@ import {postPlatformData} from '@/lib/api/client'
 import {AUTH_REQUIRED, CONFLICT, FORBIDDEN} from '@directwerk/api/constants'
 import type {TenantUser} from '@directwerk/api/types'
 import {PLATFORM_TENANT_INVITABLE_ROLES} from '@directwerk/api/types'
-import {getTenantRoleLabel} from '@/lib/roles'
+import {getTenantRoleLabel, isTenantInvitableRole} from '@/lib/roles'
 
 import {changeTenantUserRoleAction} from '@/app/tenants/actions'
 import {INITIAL_ROLE_CHANGE_STATE} from '@/app/tenants/actionState'
@@ -129,6 +129,13 @@ export default function TenantUserActions({
 
     return (
         <>
+            {user.roles.length > 1 ? (
+                <p className="text-sm text-muted-foreground" role="note">
+                    Current roles: {user.roles.map((role) =>
+                        isTenantInvitableRole(role) ? getTenantRoleLabel(role) : role
+                    ).join(', ')}. Saving replaces them with one role.
+                </p>
+            ) : null}
             <form action={roleAction} className="flex min-w-64 flex-wrap gap-2">
                 <select className="native-select w-auto flex-1" aria-label={`Role for ${user.email}`} defaultValue={user.roles[0] ?? 'EDITOR'} key={user.roles[0] ?? 'EDITOR'} name="role">
                     {PLATFORM_TENANT_INVITABLE_ROLES.map((role) => (

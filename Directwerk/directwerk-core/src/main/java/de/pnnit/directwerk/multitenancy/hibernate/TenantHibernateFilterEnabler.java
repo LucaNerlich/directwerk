@@ -20,7 +20,12 @@ import org.springframework.stereotype.Component;
  * hands out a throwaway session per operation and a filter enabled there is
  * lost. Every code path that touches {@code TenantOwned} entities must run
  * inside a transactional boundary; services that query repositories directly
- * should be annotated {@code @Transactional(readOnly = true)}.</p>
+ * should be annotated {@code @Transactional(readOnly = true)}.
+ *
+ * <p>Discipline rule: inject Spring Data repositories only into
+ * {@code @Service} (or config) classes — never into {@code @Component},
+ * {@code @Controller}, or listeners directly. Non-service callers must go
+ * through a transactional service so this aspect fires on a bound session.</p>
  */
 @Aspect
 @Component

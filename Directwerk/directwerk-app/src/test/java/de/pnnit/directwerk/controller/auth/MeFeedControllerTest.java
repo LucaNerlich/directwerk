@@ -1,6 +1,8 @@
 package de.pnnit.directwerk.controller.auth;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -48,6 +50,8 @@ class MeFeedControllerTest {
                 subscriberFeedService,
                 new FeedUrlResolver(tenantPublicHostResolver)
         );
+        lenient().when(subscriberFeedService.revealToken(any())).thenAnswer(
+                invocation -> ((SubscriberFeed) invocation.getArgument(0)).getFeedToken().substring("enc:".length()));
     }
 
     @Test
@@ -69,6 +73,7 @@ class MeFeedControllerTest {
         assertThat(view.formatIds()).isEmpty();
         assertThat(view.formats()).isEmpty();
         verify(subscriberFeedService).ensureDefaultFeed(5L, 1L);
+        verify(subscriberFeedService).revealToken(feed);
     }
 
     @Test
@@ -158,6 +163,9 @@ class MeFeedControllerTest {
 
         assertThat(response.getStatusCode().value()).isEqualTo(201);
         assertThat(response.getBody().data().isDefault()).isFalse();
+        // Create responses reveal the tokenized URL once.
+        assertThat(response.getBody().data().url())
+                .isEqualTo("https://alpha.example.test/feeds/alpha/u/tok-custom.xml");
         assertThat(response.getBody().data().formatIds()).containsExactly(3L);
         assertThat(response.getBody().data().formats())
                 .extracting(FormatView::name)
@@ -202,7 +210,7 @@ class MeFeedControllerTest {
         SubscriberFeed feed = new SubscriberFeed();
         feed.setId(1L);
         feed.setTenant(tenant);
-        feed.setFeedToken(feedToken);
+        feed.setFeedToken("enc:" + feedToken);
         feed.setTitle("Default Feed");
         feed.setDefaultFeed(true);
         feed.setEnabled(true);

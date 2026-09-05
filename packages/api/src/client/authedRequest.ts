@@ -155,6 +155,15 @@ export function createAuthedRequest(config: AuthedRequestConfig): AuthedRequestF
         if (config.fixedErrorMessagesOnly === true) {
             // Admin-style loop: statuses map to fixed codes without reading
             // the error body.
+            if (
+                config.finalUnauthorized === 'clear-and-auth-required' &&
+                response.status === 401
+            ) {
+                // Retried request still unauthorized — the session is dead.
+                config.clearTokens()
+                throw new Error('AUTH_REQUIRED')
+            }
+
             if (statusError !== undefined) {
                 // Authorization denied with a valid token — the session is fine.
                 throw new Error(statusError)

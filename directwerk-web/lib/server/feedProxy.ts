@@ -118,6 +118,18 @@ export async function fetchTenantFeed(
     const location = upstreamResponse.headers.get('location')
     const safeLocation =
         location !== null && isSafeRedirectTarget(location) ? location : null
+    if (upstreamResponse.status >= 200 && upstreamResponse.status < 300) {
+        // Upstream served content directly (not the assumed 302-to-CDN):
+        // stream the body with its content type instead of an empty response.
+        const contentType = upstreamResponse.headers.get('content-type')
+        return new Response(upstreamResponse.body, {
+            status: upstreamResponse.status,
+            headers: {
+                'Cache-Control': 'no-store',
+                ...(contentType === null ? {} : {'Content-Type': contentType}),
+            },
+        })
+    }
     return new Response(null, {
         status: upstreamResponse.status,
         headers: {

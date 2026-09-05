@@ -25,6 +25,8 @@ const transport = createServerTransport({
 
 export const PLATFORM_REFRESH_COOKIE = 'dw_admin_refresh'
 export const TENANT_REFRESH_COOKIE = 'dw_admin_tenant_refresh'
+/** Host the tenant refresh cookie was issued for (replay-scope binding). */
+export const TENANT_HOST_COOKIE = 'dw_admin_tenant_host'
 
 function getPlatformEnvironment(): DirectwerkEnvironment {
     const apiUrl = process.env.DIRECTWERK_API_URL

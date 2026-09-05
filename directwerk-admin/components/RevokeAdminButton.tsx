@@ -11,11 +11,15 @@ import {AUTH_REQUIRED, FORBIDDEN} from '@directwerk/api/constants'
 interface RevokeAdminButtonProps {
     userId: number
     onRevoked: () => void
+    disabled?: boolean
+    disabledReason?: string | null
 }
 
 export default function RevokeAdminButton({
     userId,
     onRevoked,
+    disabled = false,
+    disabledReason = null,
 }: RevokeAdminButtonProps) {
     const [isRevoking, setIsRevoking] = useState(false)
     const [error, setError] = useState<string | null>(null)
@@ -59,9 +63,10 @@ export default function RevokeAdminButton({
 
     return (
         <>
-            <Button disabled={isRevoking} onClick={() => void handleRevoke()} type="button" variant="destructive">
+            <Button disabled={isRevoking || disabled} onClick={() => void handleRevoke()} title={disabledReason ?? undefined} type="button" variant="destructive">
                 {isRevoking ? 'Revoking…' : 'Revoke'}
             </Button>
+            {disabled && disabledReason ? <p className="text-xs text-muted-foreground">{disabledReason}</p> : null}
             {error ? <Alert aria-live="polite" variant="destructive"><AlertDescription>{error}</AlertDescription></Alert> : null}
         </>
     )

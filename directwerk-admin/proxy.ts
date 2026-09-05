@@ -23,6 +23,10 @@ function isPublicPath(pathname: string): boolean {
 export function proxy(request: NextRequest) {
     const {pathname} = request.nextUrl
 
+    // UX-only redirect: cookie presence is client-forgeable, so this never
+    // authorizes anything. Real enforcement lives in the brokering routes
+    // (tenant-login/tenant-refresh validate the platform session upstream)
+    // and in upstream role checks.
     if (
         !isPublicPath(pathname) &&
         !pathname.startsWith('/_next/') &&
@@ -38,13 +42,37 @@ export function proxy(request: NextRequest) {
     const nonce = Buffer.from(crypto.randomUUID()).toString('base64')
     const isDev = process.env.NODE_ENV === 'development'
 
+    // Optional Umami analytics origin. Under `strict-dynamic`, host
+    // allowlists are ignored and the un-nonced third-party Umami scripts
+    // would be blocked — so when a cross-origin Umami host is configured we
+    // fall back to an explicit host allowlist (nonce + host) instead.
+    let umamiOrigin: string | null = null
+    const configuredUmami = process.env.NEXT_PUBLIC_UMAMI_URL
+    if (configuredUmami !== undefined && configuredUmami.length > 0) {
+        try {
+            const parsed = new URL(configuredUmami)
+            if (parsed.protocol === 'https:') {
+                umamiOrigin = parsed.origin
+            }
+        } catch {
+            umamiOrigin = null
+        }
+    }
+
+    const scriptSrc =
+        umamiOrigin !== null
+            ? `script-src 'self' 'nonce-${nonce}' ${umamiOrigin}${isDev ? " 'unsafe-eval'" : ''}`
+            : `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'${isDev ? " 'unsafe-eval'" : ''}`
+    const connectSrc =
+        umamiOrigin !== null ? `connect-src 'self' ${umamiOrigin}` : "connect-src 'self'"
+
     const cspHeader = [
         "default-src 'self'",
-        `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'${isDev ? " 'unsafe-eval'" : ''}`,
+        scriptSrc,
         "style-src 'self' 'unsafe-inline'",
         "img-src 'self' data:",
         "font-src 'self'",
-        "connect-src 'self'",
+        connectSrc,
         "frame-ancestors 'none'",
         "base-uri 'self'",
         "form-action 'self'",

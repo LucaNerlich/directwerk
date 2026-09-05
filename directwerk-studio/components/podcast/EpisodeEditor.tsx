@@ -40,6 +40,7 @@ import {useDefaultNotifySubscribers} from '@/lib/publication/useDefaultNotifySub
 import {useSiteConfig} from '@/lib/site/SiteConfigProvider'
 import {getClientTenantHost} from '@directwerk/api/tenant'
 import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
+import {safeImageSrc} from '@/lib/url/safeUrl'
 
 /**
  * Creates or edits a podcast episode, including its metadata, publication status, audio, cover image, and classifications.
@@ -121,7 +122,8 @@ export default function EpisodeEditor({episodeId}: {episodeId?: number}): React.
             description: body,
             accessPolicy,
             episodeNumber: optionalMinInt(episodeNumber, 1),
-            requiredLevelSortOrder: requiredLevelSortOrder ?? undefined,
+            requiredLevelSortOrder:
+                accessPolicy === 'PAID' ? (requiredLevelSortOrder ?? undefined) : undefined,
             coverAssetId: coverAssetId ?? undefined,
         }
     }, [accessPolicy, body, coverAssetId, episodeNumber, requiredLevelSortOrder, slug, title])
@@ -246,7 +248,13 @@ export default function EpisodeEditor({episodeId}: {episodeId?: number}): React.
                 if (!active) {
                     return
                 }
-                setAudioPreviewUrl(url)
+                const previewUrl = safeImageSrc(url)
+                setAudioPreviewUrl(previewUrl)
+                setAudioPreviewError(
+                    previewUrl === null
+                        ? 'Audio-Vorschau ist nicht verfügbar.'
+                        : null,
+                )
                 setAudioReady(asset.status === 'READY')
                 setAudioStatusKnown(true)
             } catch (error) {
@@ -282,7 +290,7 @@ export default function EpisodeEditor({episodeId}: {episodeId?: number}): React.
         getMediaPreviewUrl(getClientTenantHost(), coverAssetId)
             .then((url) => {
                 if (active) {
-                    setCoverPreviewUrl(url)
+                    setCoverPreviewUrl(safeImageSrc(url))
                 }
             })
             .catch((error) => {

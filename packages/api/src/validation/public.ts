@@ -93,7 +93,11 @@ export function parsePublicSiteConfigEnvelope(
             tenant: {slug: data.tenant.slug, name: data.tenant.name},
             enabledModules: data.enabledModules,
             branding,
-            publicSiteUrl: isNullableString(data.publicSiteUrl) ? data.publicSiteUrl : null,
+            publicSiteUrl:
+                isNullableString(data.publicSiteUrl) &&
+                (data.publicSiteUrl === null || isAllowedFeedUrl(data.publicSiteUrl))
+                    ? data.publicSiteUrl
+                    : null,
             publicRssUrl:
                 isNullableString(data.publicRssUrl) &&
                 data.publicRssUrl !== null &&
@@ -207,7 +211,12 @@ export interface PublicContentPolicy {
 }
 
 function sanitize(policy: PublicContentPolicy, html: string): string {
-    return policy.sanitizeHtml !== undefined ? policy.sanitizeHtml(html) : html
+    if (policy.sanitizeHtml === undefined) {
+        throw new Error(
+            'createPublicContentParsers requires a sanitizeHtml policy',
+        )
+    }
+    return policy.sanitizeHtml(html)
 }
 
 function parsePublicCategoryInternal(value: unknown): PublicCategory | null {

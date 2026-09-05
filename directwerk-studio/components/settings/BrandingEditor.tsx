@@ -20,6 +20,7 @@ import {useSiteConfig} from '@/lib/site/SiteConfigProvider'
 import type {TenantBranding} from '@directwerk/api/types'
 import {getClientTenantHost} from '@directwerk/api/tenant'
 import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
+import {safeImageSrc} from '@/lib/url/safeUrl'
 
 interface BrandingFormState {
     error: string | null
@@ -133,6 +134,12 @@ export default function BrandingEditor(): React.JSX.Element {
         if (umamiWebsiteId.length === 0 && umamiHostUrl.length > 0) {
             return {
                 error: 'Umami-Server ist ohne Website-ID wirkungslos — bitte auch die Website-ID setzen oder den Server leer lassen.',
+                success: null,
+            }
+        }
+        if (logoUrl.length > 0 && safeImageSrc(logoUrl) === null) {
+            return {
+                error: 'Logo-URL muss eine absolute https://-URL sein.',
                 success: null,
             }
         }

@@ -14,6 +14,15 @@ describe('formatMoney', () => {
             'Preis folgt',
         )
     })
+
+    it('falls back to EUR for malformed currency codes without throwing', () => {
+        expect(() => formatMoney(1999, 'AB!')).not.toThrow()
+        expect(formatMoney(1999, 'AB!')).toBe(formatMoney(1999, 'EUR'))
+    })
+
+    it('returns the null label for non-finite amounts', () => {
+        expect(formatMoney(Number.NaN, 'EUR')).toBe('Kein Preis')
+    })
 })
 
 

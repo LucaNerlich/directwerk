@@ -101,8 +101,11 @@ Successful responses wrap data:
 
 ```json
 {
+  "statusCode": 200,
+  "statusMessage": "OK",
   "data": { ... },
-  "errors": []
+  "errors": [],
+  "metadata": {}
 }
 ```
 
@@ -110,6 +113,8 @@ Errors use a structured envelope with machine-readable `code` fields:
 
 ```json
 {
+  "statusCode": 403,
+  "statusMessage": "Forbidden",
   "data": null,
   "errors": [
     {
@@ -117,7 +122,8 @@ Errors use a structured envelope with machine-readable `code` fields:
       "message": "JWT tenant does not match Host tenant",
       "field": null
     }
-  ]
+  ],
+  "metadata": {}
 }
 ```
 

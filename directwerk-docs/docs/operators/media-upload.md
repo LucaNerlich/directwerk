@@ -88,7 +88,9 @@ sign `Content-Length` — browsers cannot set that header reliably.
 CORS must be handled at the CDN level — the storage S3 endpoint does **not** emit CORS headers.
 Browser PUTs to `https://{region}-s3.storage.bunnycdn.com/...` fail with no Spring logs.
 directwerk-admin therefore proxies the PUT through
-`POST /api/tenants/{id}/media/upload`. For curl/harness tests, PUT from the
+its own same-origin BFF route `POST /api/tenants/{id}/media/upload` on the
+admin deployment (a Next.js admin-app route, not a platform API path — platform
+media routes live under `/api/v1/platform/tenants/...`). For curl/harness tests, PUT from the
 same machine as usual.
 
 ---

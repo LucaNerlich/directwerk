@@ -2,6 +2,7 @@ package de.pnnit.directwerk.modules.newsletter.service;
 
 import de.pnnit.directwerk.modules.content.PublicSurfacePolicy;
 import de.pnnit.directwerk.modules.core.entity.Tenant;
+import de.pnnit.directwerk.modules.core.service.FeedTokenProtector;
 import de.pnnit.directwerk.modules.core.util.PublicUrlBuilder;
 import de.pnnit.directwerk.modules.newsletter.access.ArticleFeedAccess;
 import de.pnnit.directwerk.modules.newsletter.entity.Article;
@@ -20,6 +21,7 @@ public class ArticleRssFeedService {
     private final ArticleFeedAccess articleFeedAccess;
     private final ArticleRssXmlBuilder articleRssXmlBuilder;
     private final ArticleViewDeliveryFacade articleViewDeliveryFacade;
+    private final FeedTokenProtector feedTokenProtector;
 
     /**
      * Builds a public RSS feed containing every free published article for a tenant.
@@ -70,7 +72,7 @@ public class ArticleRssFeedService {
                             host,
                             port,
                             tenant.getSlug(),
-                            feed.getFeedToken(),
+                            feedTokenProtector.reveal(feed.getFeedToken()),
                             article.getSlug());
                 }
         );

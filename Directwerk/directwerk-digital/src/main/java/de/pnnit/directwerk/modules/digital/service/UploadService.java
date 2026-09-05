@@ -7,6 +7,7 @@ import de.pnnit.directwerk.modules.digital.DigitalContentModule;
 import de.pnnit.directwerk.modules.core.authorization.ContentEntityType;
 import de.pnnit.directwerk.modules.core.authorization.ContentOperation;
 import de.pnnit.directwerk.modules.core.service.MembershipPermissionService;
+import de.pnnit.directwerk.modules.digital.api.EpisodeLinkValidator;
 import de.pnnit.directwerk.modules.digital.api.MediaFolderApi;
 import de.pnnit.directwerk.modules.digital.api.UploadApi;
 import de.pnnit.directwerk.modules.digital.entity.AssetScope;
@@ -24,6 +25,8 @@ import de.pnnit.directwerk.config.DirectwerkConfig;
 import de.pnnit.directwerk.config.DirectwerkProperties;
 import de.pnnit.directwerk.modules.digital.storage.StorageConfigs;
 import de.pnnit.directwerk.multitenancy.TenantContext;
+import de.pnnit.directwerk.security.DirectwerkUserPrincipal;
+import de.pnnit.directwerk.security.RoleConstants;
 import de.pnnit.directwerk.security.SecurityUtils;
 import java.time.Duration;
 import java.time.Instant;
@@ -32,6 +35,7 @@ import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.annotation.Transactional;
@@ -74,6 +78,7 @@ public class UploadService implements UploadApi {
     private final PlatformTransactionManager transactionManager;
     private final MediaFolderApi mediaFolderApi;
     private final MembershipPermissionService permissionService;
+    private final ObjectProvider<EpisodeLinkValidator> episodeLinkValidators;
 
     /**
      * Creates a pending media asset and a presigned URL for uploading its content.
@@ -114,7 +119,7 @@ public class UploadService implements UploadApi {
         AssetScope scope = command.scope() == null
                 ? (intended == AssetVisibility.PUBLIC ? AssetScope.TENANT_PUBLIC : AssetScope.CONTENT)
                 : command.scope();
-        validateScope(scope, command.ownerUserId(), command.episodeId());
+        validateScope(scope, command.ownerUserId(), command.episodeId(), tenantId);
         if (intended == AssetVisibility.PUBLIC && scope != AssetScope.TENANT_PUBLIC) {
             throw new UploadValidationException(
                     "UPLOAD_VALIDATION_FAILED",
@@ -341,7 +346,7 @@ public class UploadService implements UploadApi {
                 : TenantAssetKeys.privateKey(tenantSlug, relative);
     }
 
-    private static void validateScope(AssetScope scope, Long ownerUserId, Long episodeId) {
+    private void validateScope(AssetScope scope, Long ownerUserId, Long episodeId, Long tenantId) {
         AssetScope effective = scope == null ? AssetScope.CONTENT : scope;
         if (effective == AssetScope.SYSTEM) {
             // SYSTEM assets are server-owned (never minted via the upload API): the SYSTEM
@@ -352,17 +357,41 @@ public class UploadService implements UploadApi {
                     "scope SYSTEM is not available for uploads"
             );
         }
-        if (effective == AssetScope.USER && ownerUserId == null) {
-            throw new UploadValidationException(
-                    "UPLOAD_VALIDATION_FAILED",
-                    "ownerUserId is required when scope is USER"
-            );
+        if (effective == AssetScope.USER) {
+            if (ownerUserId == null) {
+                throw new UploadValidationException(
+                        "UPLOAD_VALIDATION_FAILED",
+                        "ownerUserId is required when scope is USER"
+                );
+            }
+            // Editors must not plant files into another user's private library:
+            // the owner must be the caller unless a tenant admin acts explicitly.
+            DirectwerkUserPrincipal principal = SecurityUtils.currentPrincipal();
+            boolean tenantAdmin = principal != null && principal.getAuthorities().stream()
+                    .anyMatch(a -> RoleConstants.TENANT_ADMIN.equals(a.getAuthority()));
+            if (!tenantAdmin && !ownerUserId.equals(SecurityUtils.currentUserId())) {
+                throw new UploadValidationException(
+                        "UPLOAD_VALIDATION_FAILED",
+                        "ownerUserId must be the calling user"
+                );
+            }
         }
         if (effective == AssetScope.TENANT_PUBLIC && episodeId != null) {
             throw new UploadValidationException(
                     "UPLOAD_VALIDATION_FAILED",
                     "episodeId is not valid for TENANT_PUBLIC scope"
             );
+        }
+        if (episodeId != null) {
+            // Orphan/foreign-tenant episode links would let entitlement-adjacent
+            // flows reason about an attacker-chosen episode — resolve it now.
+            EpisodeLinkValidator validator = episodeLinkValidators.getIfAvailable();
+            if (validator == null || !validator.episodeExists(tenantId, episodeId)) {
+                throw new UploadValidationException(
+                        "UPLOAD_VALIDATION_FAILED",
+                        "Unknown episode"
+                );
+            }
         }
     }
 

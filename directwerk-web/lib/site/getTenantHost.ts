@@ -8,6 +8,10 @@ import {resolveTenantHostFromHeaders} from '@directwerk/api/tenant'
 export async function getTenantHost(): Promise<string | null> {
     const headerStore = await headers()
     return resolveTenantHostFromHeaders(headerStore, {
-        preferForwardedHost: true,
+        // Prefer the direct Host header: x-forwarded-host is only honored as
+        // a fallback so a spoofed forwarding header cannot select another
+        // tenant's config when a direct host is present. Values are still
+        // validated via parseTenantHost (invalid input resolves to null).
+        preferForwardedHost: false,
     })
 }

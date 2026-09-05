@@ -5,7 +5,9 @@ import de.pnnit.directwerk.modules.core.repository.TenantRepository;
 import de.pnnit.directwerk.modules.core.repository.UserRepository;
 import de.pnnit.directwerk.modules.core.service.ModuleGateService;
 import de.pnnit.directwerk.modules.core.service.ModuleNotEnabledException;
+import de.pnnit.directwerk.modules.core.service.FeedTokenProtector;
 import de.pnnit.directwerk.modules.core.util.FeedTokenGenerator;
+import de.pnnit.directwerk.modules.core.util.TokenHashUtil;
 import de.pnnit.directwerk.modules.digital.entity.Category;
 import de.pnnit.directwerk.modules.digital.exception.CategoryNotFoundException;
 import de.pnnit.directwerk.modules.digital.exception.StorageNotConfiguredException;
@@ -43,6 +45,7 @@ public class ArticleFeedService {
     private final CategoryService categoryService;
     private final ArticleFeedAccess articleFeedAccess;
     private final FeedTokenGenerator feedTokenGenerator;
+    private final FeedTokenProtector feedTokenProtector;
     private final ModuleGateService moduleGateService;
     private final ArticleRssFeedSnapshotService articleRssFeedSnapshotService;
     private final ArticleRssFeedRefreshJobProducer articleRssFeedRefreshScheduler;
@@ -50,14 +53,27 @@ public class ArticleFeedService {
     /**
      * Retrieves the article feed associated with a token.
      *
-     * @param feedToken the token identifying the feed
+     * <p>The presented raw token is hashed first and matched against the
+     * {@code feed_token_hash} blind index; the encrypted {@code feed_token}
+     * column is never compared directly.
+     *
+     * @param feedToken the raw token identifying the feed
      * @return the matching article feed
      * @throws ArticleFeedNotFoundException if no feed matches the token
      */
     @Transactional(readOnly = true)
     public ArticleFeed requireFeedByToken(String feedToken) {
-        return articleFeedRepository.findByFeedToken(feedToken)
+        return articleFeedRepository.findByFeedTokenHash(TokenHashUtil.sha256Hex(feedToken))
                 .orElseThrow(ArticleFeedNotFoundException::new);
+    }
+
+    /**
+     * @param feed a feed resolved via this service
+     * @return the cleartext bearer token for URL building (views, snapshots)
+     */
+    @Transactional(readOnly = true)
+    public String revealToken(ArticleFeed feed) {
+        return feedTokenProtector.reveal(feed.getFeedToken());
     }
 
     /**
@@ -163,7 +179,9 @@ public class ArticleFeedService {
         feed.setTitle(title);
         feed.setDefaultFeed(false);
         feed.setEnabled(true);
-        feed.setFeedToken(generateUniqueToken());
+        String rawToken = generateRawToken();
+        feed.setFeedToken(feedTokenProtector.protect(rawToken));
+        feed.setFeedTokenHash(TokenHashUtil.sha256Hex(rawToken));
         feed.getCategories().addAll(resolveActiveCategories(tenantId, categoryIds));
 
         try {
@@ -294,7 +312,9 @@ public class ArticleFeedService {
     }
 
     private ArticleFeed rotateToken(ArticleFeed feed) {
-        feed.setFeedToken(generateUniqueToken());
+        String rawToken = generateRawToken();
+        feed.setFeedToken(feedTokenProtector.protect(rawToken));
+        feed.setFeedTokenHash(TokenHashUtil.sha256Hex(rawToken));
         ArticleFeed saved = articleFeedRepository.save(feed);
         articleRssFeedRefreshScheduler.requestRefreshAfterCommit(saved.getTenant().getId());
         return saved;
@@ -352,7 +372,9 @@ public class ArticleFeedService {
         feed.setUser(userRepository.getReferenceById(userId));
         feed.setTitle(tenant.getName() + " Private Article Feed");
         feed.setDefaultFeed(true);
-        feed.setFeedToken(generateUniqueToken());
+        String defaultRawToken = generateRawToken();
+        feed.setFeedToken(feedTokenProtector.protect(defaultRawToken));
+        feed.setFeedTokenHash(TokenHashUtil.sha256Hex(defaultRawToken));
         try {
             ArticleFeed saved = articleFeedRepository.save(feed);
             articleRssFeedRefreshScheduler.requestRefreshAfterCommit(tenantId);
@@ -370,11 +392,11 @@ public class ArticleFeedService {
         }
     }
 
-    private String generateUniqueToken() {
+    private String generateRawToken() {
         String token;
         do {
             token = feedTokenGenerator.generate();
-        } while (articleFeedRepository.existsByFeedToken(token));
+        } while (articleFeedRepository.existsByFeedTokenHash(TokenHashUtil.sha256Hex(token)));
         return token;
     }
 }

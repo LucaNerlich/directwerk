@@ -8,6 +8,9 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 
 import de.pnnit.directwerk.modules.core.service.ModuleGateService;
+import de.pnnit.directwerk.modules.digital.api.EpisodeLinkValidator;
+import de.pnnit.directwerk.modules.podcast.service.EpisodeLinkValidatorImpl;
+import de.pnnit.directwerk.modules.podcast.service.EpisodeService;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
@@ -129,6 +132,19 @@ class RequiresModuleAspectTest {
         verify(moduleGateService).requireModule("DIGITAL_CONTENT");
     }
 
+    @Test
+    void episodeLinkValidatorIsFailClosedWhenPodcastModuleIsDisabled() {
+        ModuleGateService moduleGateService = mock(ModuleGateService.class);
+        RuntimeException rejection = new RuntimeException("PODCAST disabled");
+        org.mockito.Mockito.doThrow(rejection).when(moduleGateService).requireModule("PODCAST");
+        context = bootstrapContext(moduleGateService);
+        EpisodeLinkValidator validator = context.getBeanProvider(EpisodeLinkValidator.class).getIfAvailable();
+
+        assertThat(validator).isNotNull();
+        assertThat(org.assertj.core.api.Assertions.catchThrowable(() -> validator.episodeExists(1L, 2L)))
+                .isSameAs(rejection);
+    }
+
     private static AnnotationConfigApplicationContext bootstrapContext(ModuleGateService moduleGateService) {
         AnnotationConfigApplicationContext ctx = new AnnotationConfigApplicationContext();
         ctx.registerBean(ModuleGateService.class, () -> moduleGateService);
@@ -169,6 +185,16 @@ class RequiresModuleAspectTest {
         @Bean
         SingleKeyStillWorks singleKeyStillWorks() {
             return new SingleKeyStillWorks();
+        }
+
+        @Bean
+        EpisodeLinkValidatorImpl episodeLinkValidator(EpisodeService episodeService) {
+            return new EpisodeLinkValidatorImpl(episodeService);
+        }
+
+        @Bean
+        EpisodeService episodeService() {
+            return mock(EpisodeService.class);
         }
     }
 

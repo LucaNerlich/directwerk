@@ -213,7 +213,7 @@ public class MeArticleFeedController {
                 request.getScheme(),
                 request.getServerPort(),
                 feed.getTenant().getSlug(),
-                feed.getFeedToken()
+                articleFeedService.revealToken(feed)
         );
         List<PublicCategoryView> categories = feed.getCategories() == null
                 ? List.of()
@@ -247,6 +247,9 @@ public class MeArticleFeedController {
     public record FeedPreviewView(int articleCount, List<String> sampleTitles) {
     }
 
+    /**
+     * @param url the full tokenized feed URL for the owner (decrypted server-side).
+     */
     public record ArticleFeedView(
             Long id,
             String title,

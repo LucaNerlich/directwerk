@@ -405,6 +405,47 @@ describe('createPublicContentParsers', () => {
         })
         expect(parsed?.data[0]?.rssUrl).toBe('https://cdn.example.com/show.xml')
     })
+
+    it('fails closed when no sanitizer is provided', () => {
+        const unsafe = createPublicContentParsers({})
+        expect(() =>
+            unsafe.parsePublicArticleListEnvelope({
+                statusCode: 200,
+                data: [
+                    {
+                        id: 1,
+                        slug: 'hello',
+                        title: 'Hello',
+                        body: '<p>Hi</p>',
+                        excerpt: null,
+                        seoDescription: null,
+                        heroAssetId: null,
+                        accessPolicy: 'FREE',
+                        requiredLevelSortOrder: null,
+                        publishedAt: null,
+                        categories: [],
+                    },
+                ],
+            }),
+        ).toThrow('sanitizeHtml')
+
+        expect(() =>
+            unsafe.parsePublicEpisode({
+                id: 1,
+                seriesId: 2,
+                seriesSlug: 'show',
+                episodeNumber: 1,
+                slug: 'episode-1',
+                title: 'Episode 1',
+                description: '<img src=x onerror=alert(1)>',
+                durationSeconds: 60,
+                accessPolicy: 'FREE',
+                requiredLevelSortOrder: null,
+                publishedAt: null,
+                audioCdnUrl: null,
+            }),
+        ).toThrow('sanitizeHtml')
+    })
 })
 
 describe('isQueueJob', () => {

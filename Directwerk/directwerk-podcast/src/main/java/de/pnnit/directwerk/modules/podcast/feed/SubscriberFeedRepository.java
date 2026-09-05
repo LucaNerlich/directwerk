@@ -12,7 +12,7 @@ import org.springframework.stereotype.Repository;
 public interface SubscriberFeedRepository extends JpaRepository<SubscriberFeed, Long> {
 
     @EntityGraph(attributePaths = {"tenant", "user", "formats"})
-    Optional<SubscriberFeed> findByFeedToken(String feedToken);
+    Optional<SubscriberFeed> findByFeedTokenHash(String feedTokenHash);
 
     @EntityGraph(attributePaths = {"tenant", "user", "formats"})
     Optional<SubscriberFeed> findByTenantIdAndUserIdAndDefaultFeedTrue(Long tenantId, Long userId);
@@ -33,7 +33,7 @@ public interface SubscriberFeedRepository extends JpaRepository<SubscriberFeed, 
     @EntityGraph(attributePaths = {"tenant", "user", "formats"})
     List<SubscriberFeed> findByTenantIdOrderByIdAsc(Long tenantId);
 
-    boolean existsByFeedToken(String feedToken);
+    boolean existsByFeedTokenHash(String feedTokenHash);
 
     long countByTenantIdAndUserIdAndDefaultFeedFalse(Long tenantId, Long userId);
 

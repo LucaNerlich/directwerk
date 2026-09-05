@@ -1,13 +1,15 @@
-import {beforeEach, describe, expect, it, vi} from 'vitest'
+import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest'
 
 import {
     changeTenantUserRoleAction,
+    createTenantAction,
     forceVerifyDomainAction,
     inviteTenantUserAction,
     updateTenantAction,
     updateUploadLimitsAction,
 } from './actions'
 import {
+    INITIAL_CREATE_TENANT_STATE,
     INITIAL_DOMAIN_VERIFY_STATE,
     INITIAL_INVITE_TENANT_USER_STATE,
     INITIAL_ROLE_CHANGE_STATE,
@@ -28,6 +30,10 @@ vi.mock('@/lib/server/platform', () => ({
 import {callPlatformApi} from '@/lib/server/platform'
 
 const callPlatformApiMock = vi.mocked(callPlatformApi)
+
+afterEach(() => {
+    vi.unstubAllEnvs()
+})
 
 function formData(entries: Record<string, string>): FormData {
     const data = new FormData()
@@ -130,6 +136,53 @@ describe('tenant server-action guards', () => {
 
         expect(result.error).toBe('Invalid tenant identifier.')
         expect(callPlatformApiMock).not.toHaveBeenCalled()
+    })
+
+    it('does not return tenant-creation invite tokens in production', async () => {
+        vi.stubEnv('NODE_ENV', 'production')
+        callPlatformApiMock.mockResolvedValue({
+            ok: true,
+            data: {
+                id: 7,
+                name: 'Alpha',
+                slug: 'alpha',
+                adminInvitation: {
+                    email: 'admin@example.com',
+                    status: 'INVITED',
+                    inviteToken: 'secret-create-token',
+                },
+            },
+        })
+
+        const result = await createTenantAction(
+            INITIAL_CREATE_TENANT_STATE,
+            formData({
+                name: 'Alpha',
+                slug: 'alpha',
+                primaryDomain: '',
+                modulePreset: '',
+                adminEmail: 'admin@example.com',
+                adminName: 'Admin',
+            }),
+        )
+
+        expect(result.inviteToken).toBeNull()
+    })
+
+    it('does not return tenant-user invite tokens in production', async () => {
+        vi.stubEnv('NODE_ENV', 'production')
+        callPlatformApiMock.mockResolvedValue({
+            ok: true,
+            data: {email: 'editor@example.com', inviteToken: 'secret-user-token'},
+        })
+
+        const result = await inviteTenantUserAction(
+            '7',
+            INITIAL_INVITE_TENANT_USER_STATE,
+            formData({email: 'editor@example.com', name: 'Editor', role: 'EDITOR'}),
+        )
+
+        expect(result.inviteToken).toBeNull()
     })
 
     it('sends upload limits in bytes and empties as defaults', async () => {

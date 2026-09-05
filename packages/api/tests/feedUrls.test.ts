@@ -142,4 +142,23 @@ describe('feedUrls', () => {
             ),
         ).toBe('https://web.example.test/feeds/alpha/podcast.xml')
     })
+
+    it('never produces executable URLs from hostile origins', () => {
+        expect(() => tenantPodcastFeed('javascript:alert(1)', 'alpha')).toThrow()
+        // Origins with `://` go through URL parsing + allow-listing.
+        expect(() => tenantPodcastFeed('javascript://evil/x', 'alpha')).toThrow()
+        expect(() => tenantArticleFeed('data:text/html,<p>x</p>', 'alpha')).toThrow()
+    })
+
+    it('rejects hosts containing path separators', () => {
+        expect(() => publicPodcastFeedUrl('evil.com/x', 'demo')).toThrow()
+    })
+
+    it('rejects invalid ports and preserves bracketed IPv6 loopback hosts', () => {
+        expect(() => publicPodcastFeedUrl('example.test:not-a-port', 'demo')).toThrow()
+        expect(() => publicPodcastFeedUrl('example.test:65536', 'demo')).toThrow()
+        expect(publicPodcastFeedUrl('[::1]:9090', 'demo')).toBe(
+            'http://[::1]:9090/feeds/demo/podcast.xml',
+        )
+    })
 })

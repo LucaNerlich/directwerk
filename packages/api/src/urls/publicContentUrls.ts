@@ -1,6 +1,9 @@
+import {isAllowedFeedUrl} from '../validation/primitives'
+
 export function publicSiteOrigin(publicSiteUrl: string | null): string | null {
     if (publicSiteUrl != null && publicSiteUrl.trim().length > 0) {
-        return publicSiteUrl.replace(/\/$/, '')
+        const candidate = publicSiteUrl.trim().replace(/\/+$/, '')
+        return isAllowedFeedUrl(candidate) ? candidate : null
     }
     return null
 }

@@ -162,9 +162,10 @@ export default function AccountPage() {
                         error: null,
                         success: true,
                         resetHref:
-                            result.devResetToken === null
-                                ? null
-                                : `/reset-password?token=${encodeURIComponent(result.devResetToken)}`,
+                            process.env.NODE_ENV !== 'production' &&
+                            result.devResetToken !== null
+                                ? `/reset-password?token=${encodeURIComponent(result.devResetToken)}`
+                                : null,
                     }
                 } catch (requestError: unknown) {
                     return {

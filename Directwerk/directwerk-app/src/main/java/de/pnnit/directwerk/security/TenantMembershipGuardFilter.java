@@ -71,6 +71,12 @@ public class TenantMembershipGuardFilter extends OncePerRequestFilter {
     /**
      * Role gate from <em>DB membership</em> (not JWT claims alone) — the DB check closes the
      * window where a deactivated or demoted member still holds a valid access token.
+     *
+     * <p>Note: {@code MEMBER} scope ({@code /me}, {@code /security}) intentionally accepts any
+     * ACTIVE membership here; fine-grained roles on those routes come from method-level
+     * {@code @PreAuthorize} on JWT claims. Access tokens live 15 minutes
+     * ({@code OAuth2RegisteredClientFactory}), so a demotion takes effect at most 15 minutes
+     * after it happens — the standard JWT tradeoff, refreshed membership state on refresh.
      */
     private static boolean hasRequiredRole(Set<Role> roles, RequestScope scope) {
         if (roles == null || roles.isEmpty()) {
