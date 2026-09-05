@@ -20,6 +20,7 @@ import de.pnnit.directwerk.modules.newsletter.entity.Article;
 import de.pnnit.directwerk.modules.newsletter.entity.ArticleStatus;
 import de.pnnit.directwerk.modules.newsletter.exception.ArticleNotFoundException;
 import de.pnnit.directwerk.modules.newsletter.exception.ArticleValidationException;
+import de.pnnit.directwerk.modules.newsletter.job.ArticleRssFeedRefreshJobProducer;
 import de.pnnit.directwerk.modules.newsletter.repository.ArticleRepository;
 import de.pnnit.directwerk.modules.digital.service.CategoryService;
 import de.pnnit.directwerk.modules.digital.service.HtmlSanitizer;
@@ -42,9 +43,15 @@ public class ArticleService {
     private final TenantRepository tenantRepository;
     private final MediaAssetQueryApi mediaAssetQueryApi;
     private final HtmlSanitizer htmlSanitizer;
-    private final ArticleRssFeedRefreshScheduler articleRssFeedRefreshScheduler;
+    private final ArticleRssFeedRefreshJobProducer articleRssFeedRefreshScheduler;
     private final MembershipPermissionService permissionService;
 
+    /**
+     * Lists all articles for a tenant, ordered by creation time and ID in descending order.
+     *
+     * @param tenantId the tenant whose articles are retrieved
+     * @return the tenant's articles
+     */
     @Transactional(readOnly = true)
     public List<Article> listArticles(Long tenantId) {
         return articleRepository.findByTenantIdOrderByCreatedAtDescIdDesc(tenantId);

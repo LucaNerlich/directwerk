@@ -2,8 +2,16 @@
 
 import {useState} from 'react'
 
+import {useCopyToClipboard} from '@directwerk/ui/hooks/use-copy-to-clipboard'
+
 const FORMATS = ['Hauptfolge', 'Interview', 'Bonus'] as const
 
+/**
+ * Builds a feed URL containing the selected formats as query parameters.
+ *
+ * @param selected - The formats to include in the feed
+ * @returns The feed URL with URL-encoded format parameters
+ */
 function buildFeedUrl(selected: ReadonlySet<string>): string {
     const params = [...selected]
         .map((format) => `format=${encodeURIComponent(format)}`)
@@ -11,11 +19,16 @@ function buildFeedUrl(selected: ReadonlySet<string>): string {
     return `https://deine-show.directwerk.org/feeds/deine-show/u/dein-token.xml${params.length > 0 ? `?${params}` : ''}`
 }
 
+/**
+ * Renders an interactive feed builder for selecting podcast formats and copying the resulting feed URL.
+ *
+ * @returns The feed builder interface
+ */
 export default function FeedBuilderMock(): React.JSX.Element {
     const [selected, setSelected] = useState<ReadonlySet<string>>(
         () => new Set<string>(['Hauptfolge']),
     )
-    const [copied, setCopied] = useState(false)
+    const {state, copy, reset} = useCopyToClipboard()
 
     function toggle(format: string): void {
         setSelected((previous) => {
@@ -27,16 +40,7 @@ export default function FeedBuilderMock(): React.JSX.Element {
             }
             return next
         })
-        setCopied(false)
-    }
-
-    async function copy(): Promise<void> {
-        try {
-            await navigator.clipboard.writeText(buildFeedUrl(selected))
-            setCopied(true)
-        } catch {
-            setCopied(false)
-        }
+        reset()
     }
 
     return (
@@ -81,10 +85,10 @@ export default function FeedBuilderMock(): React.JSX.Element {
                 </p>
                 <button
                     className="mt-3 rounded-full border border-foreground/15 px-4 py-1.5 text-sm font-medium hover:bg-accent"
-                    onClick={() => void copy()}
+                    onClick={() => void copy(buildFeedUrl(selected))}
                     type="button"
                 >
-                    {copied ? 'Kopiert!' : 'URL kopieren'}
+                    {state === 'copied' ? 'Kopiert!' : 'URL kopieren'}
                 </button>
             </div>
             <p className="mt-4 text-xs leading-5 text-muted-foreground">

@@ -1,8 +1,8 @@
 package de.pnnit.directwerk.controller.publicapi;
 
-import de.pnnit.directwerk.modules.core.analytics.FeedFetchAnalyticsService;
-import de.pnnit.directwerk.modules.core.util.ClientIpExtractor;
+import de.pnnit.directwerk.controller.RequestClientIpExtractor;
 import de.pnnit.directwerk.modules.core.RequiresModule;
+import de.pnnit.directwerk.modules.core.analytics.FeedFetchAnalyticsService;
 import de.pnnit.directwerk.modules.core.entity.Tenant;
 import de.pnnit.directwerk.modules.podcast.FeedBuilderModule;
 import de.pnnit.directwerk.modules.podcast.PodcastModule;
@@ -45,6 +45,12 @@ public class RssFeedController {
         this.feedFetchAnalyticsService = feedFetchAnalyticsService;
     }
 
+    /**
+     * Provides the public podcast RSS feed for a tenant.
+     *
+     * @param tenantSlug the tenant's URL slug
+     * @return a response redirecting to the tenant's public RSS feed
+     */
     @GetMapping("/podcast.xml")
     @RequiresModule(PodcastRssModule.KEY)
     ResponseEntity<String> publicPodcastFeed(
@@ -58,11 +64,19 @@ public class RssFeedController {
                 "public",
                 request.getServerName(),
                 request.getHeader("User-Agent"),
-                clientIp(request));
+                RequestClientIpExtractor.extract(request));
         var delivery = rssFeedSnapshotService.publicTenantFeed(tenant);
         return FeedRedirects.rssRedirect(delivery.redirectUrl(), delivery.ready());
     }
 
+    /**
+     * Provides the public RSS feed for a podcast series within a tenant.
+     *
+     * @param tenantSlug the tenant identifier in the request path
+     * @param seriesSlug the podcast series identifier in the request path
+     * @param request    the HTTP request containing client metadata
+     * @return a redirect response for the series RSS feed
+     */
     @GetMapping("/{seriesSlug}.xml")
     @RequiresModule(PodcastRssModule.KEY)
     ResponseEntity<String> publicSeriesFeed(
@@ -77,11 +91,18 @@ public class RssFeedController {
                 "public",
                 request.getServerName(),
                 request.getHeader("User-Agent"),
-                clientIp(request));
+                RequestClientIpExtractor.extract(request));
         var delivery = rssFeedSnapshotService.publicSeriesFeed(tenant, seriesSlug);
         return FeedRedirects.rssRedirect(delivery.redirectUrl(), delivery.ready());
     }
 
+    /**
+     * Delivers a tenant's private subscriber RSS feed.
+     *
+     * @param tenantSlug the tenant's URL slug
+     * @param feedToken  the subscriber feed access token
+     * @return an RSS redirect response for the private feed
+     */
     @GetMapping("/u/{feedToken}.xml")
     @RequiresModule({PodcastRssModule.KEY, SubscriptionModule.MODULE_KEY})
     ResponseEntity<String> privateSubscriberFeed(
@@ -97,11 +118,18 @@ public class RssFeedController {
                 "private",
                 request.getServerName(),
                 request.getHeader("User-Agent"),
-                clientIp(request));
+                RequestClientIpExtractor.extract(request));
         var delivery = rssFeedSnapshotService.privateFeed(tenant, feed);
         return FeedRedirects.rssRedirect(delivery.redirectUrl(), delivery.ready());
     }
 
+    /**
+     * Delivers a public podcast episode enclosure.
+     *
+     * @param tenantSlug  the tenant identifier
+     * @param episodeSlug the episode identifier
+     * @return the enclosure delivery response
+     */
     @GetMapping("/e/{episodeSlug}.mp3")
     @RequiresModule({PodcastModule.KEY, PodcastRssModule.KEY})
     ResponseEntity<Void> publicEnclosure(
@@ -117,10 +145,17 @@ public class RssFeedController {
                 request.getServerName(),
                 request.getHeader("User-Agent"),
                 request.getHeader("Range") != null,
-                clientIp(request)
+                RequestClientIpExtractor.extract(request)
         ).response();
     }
 
+    /**
+     * Delivers a private podcast episode enclosure for a subscriber feed.
+     *
+     * @param feedToken   the subscriber feed token
+     * @param episodeSlug the episode identifier
+     * @return the HTTP response for the episode enclosure
+     */
     @GetMapping("/u/{feedToken}/e/{episodeSlug}.mp3")
     @RequiresModule({PodcastModule.KEY, PodcastRssModule.KEY, SubscriptionModule.MODULE_KEY})
     ResponseEntity<Void> privateEnclosure(
@@ -138,14 +173,7 @@ public class RssFeedController {
                 request.getServerName(),
                 request.getHeader("User-Agent"),
                 request.getHeader("Range") != null,
-                clientIp(request)
+                RequestClientIpExtractor.extract(request)
         ).response();
-    }
-
-    private static String clientIp(HttpServletRequest request) {
-        return ClientIpExtractor.extract(
-                request.getHeader("X-Forwarded-For"),
-                request.getHeader("X-Real-IP"),
-                request.getRemoteAddr());
     }
 }

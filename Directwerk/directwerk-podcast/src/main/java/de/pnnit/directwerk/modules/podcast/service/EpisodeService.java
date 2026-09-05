@@ -13,6 +13,7 @@ import de.pnnit.directwerk.modules.digital.api.EpisodeMediaApi;
 import de.pnnit.directwerk.modules.digital.entity.MediaAsset;
 import de.pnnit.directwerk.modules.podcast.PodcastModule;
 import de.pnnit.directwerk.modules.digital.entity.AccessPolicy;
+import de.pnnit.directwerk.modules.podcast.job.RssFeedRefreshJobProducer;
 import de.pnnit.directwerk.modules.podcast.entity.Episode;
 import de.pnnit.directwerk.modules.podcast.entity.EpisodeStatus;
 import de.pnnit.directwerk.modules.podcast.entity.Format;
@@ -45,9 +46,15 @@ public class EpisodeService {
     private final EpisodeMediaApi episodeMediaApi;
     private final HtmlSanitizer htmlSanitizer;
     private final PodcastCoverAssetResolver podcastCoverAssetResolver;
-    private final RssFeedRefreshScheduler rssFeedRefreshScheduler;
+    private final RssFeedRefreshJobProducer rssFeedRefreshScheduler;
     private final MembershipPermissionService permissionService;
 
+    /**
+     * Lists all episodes belonging to a tenant, ordered by creation time and ID in descending order.
+     *
+     * @param tenantId the tenant whose episodes are listed
+     * @return the tenant's episodes
+     */
     @Transactional(readOnly = true)
     public List<Episode> listEpisodes(Long tenantId) {
         return episodeRepository.findByTenantIdOrderByCreatedAtDescIdDesc(tenantId);

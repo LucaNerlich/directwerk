@@ -1,9 +1,5 @@
 import type {AccessPolicy} from '@directwerk/api/types'
 
-export function accessPolicyLabel(policy: AccessPolicy): string {
-    return policy === 'PAID' ? 'Bezahlt' : 'Frei'
-}
-
 /**
  * Entitlement-aware badge state. `isEntitled` reflects whether the viewer can
  * actually consume the item right now (e.g. playable audio / readable body),
@@ -40,6 +36,12 @@ export function entitlementLabel(
     }
 }
 
+/**
+ * Formats a duration in seconds as a clock-style time string.
+ *
+ * @param seconds - The duration in seconds
+ * @returns The formatted duration, or `null` for null or non-positive values
+ */
 export function formatDuration(seconds: number | null): string | null {
     if (seconds === null || seconds <= 0) {
         return null
@@ -53,20 +55,12 @@ export function formatDuration(seconds: number | null): string | null {
     return `${minutes}:${String(remainingSeconds).padStart(2, '0')}`
 }
 
-export function formatFileSize(bytes: number | null): string | null {
-    if (bytes === null || bytes <= 0) {
-        return null
-    }
-    if (bytes < 1024) {
-        return `${bytes} B`
-    }
-    if (bytes < 1024 * 1024) {
-        return `${Math.max(1, Math.round(bytes / 1024))} KB`
-    }
-    const mb = bytes / (1024 * 1024)
-    return `${mb >= 10 ? Math.round(mb) : mb.toFixed(1)} MB`
-}
-
+/**
+ * Converts an asset type to its German display label.
+ *
+ * @param assetType - The asset type to label
+ * @returns The corresponding display label, or `assetType` when the type is unrecognized
+ */
 export function assetTypeLabel(assetType: string): string {
     switch (assetType.toUpperCase()) {
         case 'PDF':

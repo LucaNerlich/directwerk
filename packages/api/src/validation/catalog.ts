@@ -166,6 +166,12 @@ function parseArticleSummary(value: unknown): ArticleSummary | null {
     }
 }
 
+/**
+ * Parses an unknown value into a tag.
+ *
+ * @param value - The value to parse
+ * @returns The parsed tag, or `null` if the value is invalid
+ */
 function parseTag(value: unknown): Tag | null {
     if (
         !isRecord(value) ||
@@ -179,23 +185,22 @@ function parseTag(value: unknown): Tag | null {
     return {id: value.id, slug: value.slug, name: value.name}
 }
 
+/**
+ * Parses an array of tags with a maximum of 100 entries.
+ *
+ * @param value - The value to parse
+ * @returns The parsed tags, or `null` if the value is invalid
+ */
 function parseTagArray(value: unknown): Tag[] | null {
-    if (!Array.isArray(value) || value.length > 100) {
-        return null
-    }
-
-    const parsed: Tag[] = []
-    for (const item of value) {
-        const tag = parseTag(item)
-        if (tag === null) {
-            return null
-        }
-        parsed.push(tag)
-    }
-
-    return parsed
+    return parseBoundedArray(value, 100, parseTag)
 }
 
+/**
+ * Parses an article detail response.
+ *
+ * @param value - The value to validate and parse
+ * @returns The parsed article detail, or `null` if the value is invalid
+ */
 function parseArticleDetail(value: unknown): ArticleDetail | null {
     const summary = parseArticleSummary(value)
     if (summary === null || !isRecord(value)) {
@@ -1576,26 +1581,30 @@ function parseTenantSubscriberSubscription(
     }
 }
 
+/**
+ * Parses a tenant subscriber response.
+ *
+ * @param value - The value to validate and convert into a tenant subscriber
+ * @returns A parsed tenant subscriber, or `null` for an invalid value
+ */
 function parseTenantSubscriber(value: unknown): TenantSubscriber | null {
     if (
         !isRecord(value) ||
         !isPositiveSafeInteger(value.userId) ||
         !isBoundedString(value.email, 254) ||
         !isNullableString(value.name, 255) ||
-        !isBoundedString(value.status, 64) ||
-        !Array.isArray(value.subscriptions) ||
-        value.subscriptions.length > 100
+        !isBoundedString(value.status, 64)
     ) {
         return null
     }
 
-    const subscriptions: TenantSubscriberSubscription[] = []
-    for (const item of value.subscriptions) {
-        const subscription = parseTenantSubscriberSubscription(item)
-        if (subscription === null) {
-            return null
-        }
-        subscriptions.push(subscription)
+    const subscriptions = parseBoundedArray(
+        value.subscriptions,
+        100,
+        parseTenantSubscriberSubscription,
+    )
+    if (subscriptions === null) {
+        return null
     }
 
     return {

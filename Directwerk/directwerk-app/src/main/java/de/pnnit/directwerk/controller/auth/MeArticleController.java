@@ -3,8 +3,8 @@ package de.pnnit.directwerk.controller.auth;
 import de.pnnit.directwerk.api.PublicArticleViewMapper;
 import de.pnnit.directwerk.api.dto.PublicCategoryView;
 import de.pnnit.directwerk.api.response.Response;
+import de.pnnit.directwerk.controller.RequestClientIpExtractor;
 import de.pnnit.directwerk.modules.core.RequiresModule;
-import de.pnnit.directwerk.modules.core.util.ClientIpExtractor;
 import de.pnnit.directwerk.modules.digital.DigitalContentModule;
 import de.pnnit.directwerk.modules.newsletter.access.SubscriberPortalArticleAccessService;
 import de.pnnit.directwerk.modules.newsletter.entity.Article;
@@ -55,6 +55,12 @@ public class MeArticleController {
         return ResponseEntity.ok(Response.ok(views));
     }
 
+    /**
+     * Retrieves an entitled article and records a private-view analytics event.
+     *
+     * @param slug the article slug
+     * @return the article view
+     */
     @GetMapping("/{slug}")
     ResponseEntity<Response<MeArticleView>> getArticle(
             @PathVariable String slug,
@@ -69,10 +75,7 @@ public class MeArticleController {
                 "private-view",
                 request.getServerName(),
                 request.getHeader("User-Agent"),
-                ClientIpExtractor.extract(
-                        request.getHeader("X-Forwarded-For"),
-                        request.getHeader("X-Real-IP"),
-                        request.getRemoteAddr()));
+                RequestClientIpExtractor.extract(request));
         return ResponseEntity.ok(Response.ok(publicArticleViewMapper.toPortalView(article)));
     }
 

@@ -9,6 +9,7 @@ import de.pnnit.directwerk.modules.core.repository.UserRepository;
 import de.pnnit.directwerk.modules.digital.exception.StorageNotConfiguredException;
 import de.pnnit.directwerk.modules.podcast.entity.Episode;
 import de.pnnit.directwerk.modules.podcast.entity.Format;
+import de.pnnit.directwerk.modules.podcast.job.RssFeedRefreshJobProducer;
 import de.pnnit.directwerk.modules.podcast.repository.FormatRepository;
 import de.pnnit.directwerk.modules.core.util.FeedTokenGenerator;
 import de.pnnit.directwerk.modules.podcast.feed.FeedBuilderException;
@@ -45,8 +46,15 @@ public class SubscriberFeedService {
     private final FeedTokenGenerator feedTokenGenerator;
     private final ModuleGateService moduleGateService;
     private final RssFeedSnapshotService rssFeedSnapshotService;
-    private final RssFeedRefreshScheduler rssFeedRefreshScheduler;
+    private final RssFeedRefreshJobProducer rssFeedRefreshScheduler;
 
+    /**
+     * Resolves a subscriber feed by its token.
+     *
+     * @param feedToken the token identifying the feed
+     * @return the matching subscriber feed
+     * @throws SubscriberFeedNotFoundException if no feed matches the token
+     */
     @Transactional(readOnly = true)
     public SubscriberFeed requireFeedByToken(String feedToken) {
         return subscriberFeedRepository.findByFeedToken(feedToken)

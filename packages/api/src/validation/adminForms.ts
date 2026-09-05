@@ -12,7 +12,7 @@ import {
     PLATFORM_TENANT_INVITABLE_ROLES,
 } from '../types'
 import {parseTenantHost} from '../proxy'
-import {isRecord} from './primitives'
+import {isRecord, isValidEmail} from './primitives'
 import type {LoginInput} from './input'
 
 export type LoginCredentials = LoginInput
@@ -48,7 +48,6 @@ export type CreateTenantValidationResult =
     | {success: true; data: CreateTenantInput}
     | {success: false; error: string}
 
-const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const LOGIN_KEYS = new Set(['email', 'password'])
 const TENANT_INVITE_KEYS = new Set(['email', 'name', 'role'])
 const PLATFORM_ADMIN_INVITE_KEYS = new Set(['email', 'name'])
@@ -78,6 +77,12 @@ const SAFE_QUEUE_NAME = /^[A-Za-z0-9_-]+$/
 const ISO_INSTANT =
     /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,9})?(?:Z|[+-]\d{2}:\d{2})$/
 
+/**
+ * Validates and normalizes login credentials.
+ *
+ * @param input - The value containing the login credentials
+ * @returns A successful validation result with trimmed email and password, or a validation error
+ */
 export function validateLoginInput(input: unknown): LoginValidationResult {
     if (
         !isRecord(input) ||
@@ -90,7 +95,7 @@ export function validateLoginInput(input: unknown): LoginValidationResult {
     const normalizedEmail = typeof email === 'string' ? email.trim() : ''
 
     if (
-        !EMAIL_PATTERN.test(normalizedEmail) ||
+        !isValidEmail(normalizedEmail) ||
         normalizedEmail.length > 254 ||
         typeof password !== 'string' ||
         password.length < 1 ||
@@ -109,6 +114,12 @@ export function validateLoginInput(input: unknown): LoginValidationResult {
 }
 
 
+/**
+ * Validates and normalizes a tenant user invitation request.
+ *
+ * @param input - The untrusted invitation data to validate
+ * @returns A successful result with normalized invitation data, or a validation error
+ */
 export function validateTenantUserInviteInput(
     input: unknown
 ): TenantUserInviteValidationResult {
@@ -135,7 +146,7 @@ export function validateTenantUserInviteInput(
             : null
 
     if (
-        !EMAIL_PATTERN.test(normalizedEmail) ||
+        !isValidEmail(normalizedEmail) ||
         normalizedEmail.length > 254 ||
         (normalizedName !== null && normalizedName.length > MAX_NAME_LENGTH) ||
         typeof role !== 'string' ||
@@ -157,6 +168,12 @@ export function validateTenantUserInviteInput(
     }
 }
 
+/**
+ * Validates and normalizes a platform administrator invitation request.
+ *
+ * @param input - The invitation data to validate
+ * @returns A successful validation result with a trimmed email and optional name, or an error result
+ */
 export function validatePlatformAdminInviteInput(
     input: unknown
 ): PlatformAdminInviteValidationResult {
@@ -183,7 +200,7 @@ export function validatePlatformAdminInviteInput(
             : null
 
     if (
-        !EMAIL_PATTERN.test(normalizedEmail) ||
+        !isValidEmail(normalizedEmail) ||
         normalizedEmail.length > 254 ||
         (normalizedName !== null && normalizedName.length > MAX_NAME_LENGTH)
     ) {
@@ -215,6 +232,12 @@ function parseOptionalString(value: unknown): string | undefined {
     return trimmed.length > 0 ? trimmed : undefined
 }
 
+/**
+ * Parses an optional ISO instant value.
+ *
+ * @param value - The value to parse
+ * @returns The trimmed ISO instant string, or `undefined` if the value is missing or invalid
+ */
 function parseOptionalInstant(value: unknown): string | undefined {
     const normalized = parseOptionalString(value)
 
@@ -229,44 +252,62 @@ function parseOptionalInstant(value: unknown): string | undefined {
     return normalized
 }
 
+/**
+ * Parses an optional integer and restricts it to an inclusive range.
+ *
+ * @param value - The value to parse
+ * @param min - The minimum allowed value
+ * @param max - The maximum allowed value
+ * @returns The parsed integer if valid, otherwise `undefined`
+ */
+function parseOptionalIntInRange(
+    value: unknown,
+    min: number,
+    max: number,
+): number | undefined {
+    if (value === undefined || value === null || value === '') {
+        return undefined
+    }
+
+    const parsed =
+        typeof value === 'number'
+            ? value
+            : typeof value === 'string' && /^\d+$/.test(value.trim())
+              ? Number.parseInt(value.trim(), 10)
+              : Number.NaN
+
+    if (!Number.isSafeInteger(parsed) || parsed < min || parsed > max) {
+        return undefined
+    }
+
+    return parsed
+}
+
+/**
+ * Parses an optional pagination offset.
+ *
+ * @returns A nonnegative safe integer, or `undefined` for invalid or absent input.
+ */
 function parseOptionalOffset(value: unknown): number | undefined {
-    if (value === undefined || value === null || value === '') {
-        return undefined
-    }
-
-    const parsed =
-        typeof value === 'number'
-            ? value
-            : typeof value === 'string' && /^\d+$/.test(value.trim())
-              ? Number.parseInt(value.trim(), 10)
-              : Number.NaN
-
-    if (!Number.isSafeInteger(parsed) || parsed < 0) {
-        return undefined
-    }
-
-    return parsed
+    return parseOptionalIntInRange(value, 0, Infinity)
 }
 
+/**
+ * Parses an optional page size within the supported range.
+ *
+ * @param value - The value to parse
+ * @returns An integer from 1 through 100, or `undefined` for invalid or absent values
+ */
 function parseOptionalLimit(value: unknown): number | undefined {
-    if (value === undefined || value === null || value === '') {
-        return undefined
-    }
-
-    const parsed =
-        typeof value === 'number'
-            ? value
-            : typeof value === 'string' && /^\d+$/.test(value.trim())
-              ? Number.parseInt(value.trim(), 10)
-              : Number.NaN
-
-    if (!Number.isSafeInteger(parsed) || parsed < 1 || parsed > 100) {
-        return undefined
-    }
-
-    return parsed
+    return parseOptionalIntInRange(value, 1, 100)
 }
 
+/**
+ * Validates and normalizes tenant creation data.
+ *
+ * @param input - The untrusted tenant creation input
+ * @returns A normalized tenant input on success, or a validation error
+ */
 export function validateCreateTenantInput(
     input: unknown
 ): CreateTenantValidationResult {
@@ -305,7 +346,7 @@ export function validateCreateTenantInput(
 
     if (
         adminEmail !== undefined &&
-        (!EMAIL_PATTERN.test(adminEmail) || adminEmail.length > 254)
+        (!isValidEmail(adminEmail) || adminEmail.length > 254)
     ) {
         return {success: false, error: 'Enter a valid admin email.'}
     }

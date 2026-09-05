@@ -33,7 +33,7 @@ import {
 } from '@/lib/api/writeApi'
 import type {ArticleDetail, CategorySummary} from '@directwerk/api/types'
 import {mediaLimitLabel} from '@/lib/media/limits'
-import {uploadMediaFile} from '@/lib/media/upload'
+import {useCoverImageUpload} from '@/lib/media/useCoverImageUpload'
 import {usePublicationEditorFields} from '@/lib/publication/usePublicationEditorFields'
 import {usePublicationEditorWorkflow} from '@/lib/publication/usePublicationEditorWorkflow'
 import {isSlugTaken} from '@/lib/publication/slugAvailability'
@@ -45,6 +45,11 @@ import {articlePublishBlockReason} from '@/lib/write/articlePreflight'
 import {publicArticlePageUrl} from '@directwerk/api/urls/publicContentUrls'
 import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
 
+/**
+ * Renders the article editor for creating or editing an article.
+ *
+ * @param articleId - The identifier of the article to edit; omit to create a new article
+ */
 export default function ArticleEditor({articleId}: {articleId?: number}) {
     const router = useRouter()
     const authRedirect = useAuthRequired()
@@ -90,10 +95,6 @@ export default function ArticleEditor({articleId}: {articleId?: number}) {
     })
     const [heroAssetId, setHeroAssetId] = useState<number | null>(null)
     const [heroPreviewUrl, setHeroPreviewUrl] = useState<string | null>(null)
-    const [isUploadingHero, setIsUploadingHero] = useState(false)
-    const [uploadProgress, setUploadProgress] = useState<{file: File; progress: number} | null>(
-        null,
-    )
     const mountedRef = useRef(true)
     const [isLoading, setIsLoading] = useState(articleId !== undefined)
     const [loadError, setLoadError] = useState(false)
@@ -162,6 +163,19 @@ export default function ArticleEditor({articleId}: {articleId?: number}) {
         ],
     )
 
+    const heroUpload = useCoverImageUpload({
+        onUploaded: (assetId) => {
+            setHeroAssetId(assetId)
+            markDirty()
+        },
+        onError: (error) => {
+            if (authRedirect(error)) return
+            setWorkflowError(
+                error instanceof Error ? error.message : 'Upload fehlgeschlagen.',
+            )
+        },
+    })
+
     const {
         isSaving,
         errorMessage,
@@ -182,7 +196,7 @@ export default function ArticleEditor({articleId}: {articleId?: number}) {
             applyPublicationSchedule(next.scheduledAt)
             applyPublicationPublishedAt(next.publishedAt)
         },
-        autosaveBlocked: isUploadingHero,
+        autosaveBlocked: heroUpload.isUploading,
         authRedirect,
     })
 
@@ -310,38 +324,11 @@ export default function ArticleEditor({articleId}: {articleId?: number}) {
     }, [])
 
     const handleHeroUpload = useCallback(
-        async (file: File | null) => {
-            if (file === null) {
-                return
-            }
-            setIsUploadingHero(true)
+        (file: File | null): Promise<void> => {
             setWorkflowError(null)
-            setUploadProgress({file, progress: 0})
-            try {
-                const asset = await uploadMediaFile(getClientTenantHost(), file, {
-                    assetType: 'IMAGE',
-                    visibility: 'PUBLIC',
-                    onProgress: (percent) => {
-                        if (mountedRef.current) {
-                            setUploadProgress({file, progress: percent})
-                        }
-                    },
-                })
-                setHeroAssetId(asset.id)
-                markDirty()
-            } catch (error) {
-                if (authRedirect(error)) return
-                setWorkflowError(
-                    error instanceof Error ? error.message : 'Upload fehlgeschlagen.',
-                )
-            } finally {
-                if (mountedRef.current) {
-                    setIsUploadingHero(false)
-                    setUploadProgress(null)
-                }
-            }
+            return heroUpload.upload(file)
         },
-        [authRedirect, markDirty, setWorkflowError],
+        [heroUpload, setWorkflowError],
     )
 
     const slugTaken = useCallback(
@@ -350,7 +337,7 @@ export default function ArticleEditor({articleId}: {articleId?: number}) {
     )
     /** Saving and hero uploads share one busy flag so a manual save cannot
      * persist the article while the hero image is still uploading. */
-    const busy = isSaving || isUploadingHero
+    const busy = isSaving || heroUpload.isUploading
     const readOnly = !desk.canEdit
 
     const publishBlockedReason = articlePublishBlockReason({title, body})
@@ -523,7 +510,7 @@ export default function ArticleEditor({articleId}: {articleId?: number}) {
                             <span>{heroAssetId === null ? 'Bild hochladen' : 'Bild ersetzen'}</span>
                             <Input
                                 accept="image/png,image/jpeg,image/webp"
-                                disabled={isSaving || isUploadingHero || readOnly}
+                                disabled={isSaving || heroUpload.isUploading || readOnly}
                                 onChange={(event) => {
                                     const file = event.target.files?.[0] ?? null
                                     void handleHeroUpload(file)
@@ -535,15 +522,15 @@ export default function ArticleEditor({articleId}: {articleId?: number}) {
                                 Max. {mediaLimitLabel('IMAGE')}.
                             </span>
                         </label>
-                        {uploadProgress !== null ? (
+                        {heroUpload.uploadProgress !== null ? (
                             <UploadProgress
-                                file={uploadProgress.file}
-                                progress={uploadProgress.progress}
+                                file={heroUpload.uploadProgress.file}
+                                progress={heroUpload.uploadProgress.progress}
                             />
                         ) : null}
                         <MediaLibraryPicker
                             assetType="IMAGE"
-                            disabled={isSaving || isUploadingHero || readOnly}
+                            disabled={isSaving || heroUpload.isUploading || readOnly}
                             label="Titelbild aus Mediathek"
                             onAuthRequired={handleAuthRequired}
                             onSelect={(asset) => {
@@ -554,7 +541,7 @@ export default function ArticleEditor({articleId}: {articleId?: number}) {
                         />
                         {heroAssetId !== null ? (
                             <Button
-                                disabled={isSaving || isUploadingHero || readOnly}
+                                disabled={isSaving || heroUpload.isUploading || readOnly}
                                 onClick={() => {
                                     setHeroAssetId(null)
                                     markDirty()

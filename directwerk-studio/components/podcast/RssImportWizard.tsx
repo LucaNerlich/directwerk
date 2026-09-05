@@ -19,6 +19,7 @@ import {createSeries, listSeries} from '@/lib/api/podcastApi'
 import {importRssEpisode, previewRssFeed} from '@/lib/api/podcastImportApi'
 import {ingestRemoteAssetWithProgress} from '@/lib/media/remoteIngest'
 import {filenameFromImportUrl} from '@/lib/media/importFilename'
+import {formatBytes} from '@/lib/media/format'
 import {deleteMedia} from '@/lib/api/mediaApi'
 import {isTenantAdminRole, suggestSlug} from '@/lib/api/studioHelpers'
 import {parseOptionalInt} from '@/lib/publication/parsePositiveInt'
@@ -36,6 +37,12 @@ import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
 
 type WizardStep = 'url' | 'series' | 'formats' | 'episode' | 'done'
 
+/**
+ * Formats a positive duration as minutes and seconds or hours, minutes, and seconds.
+ *
+ * @param seconds - The duration in seconds.
+ * @returns A formatted duration string, or `"unbekannt"` for null or non-positive values.
+ */
 function formatDuration(seconds: number | null): string {
     if (seconds === null || seconds <= 0) {
         return 'unbekannt'
@@ -49,16 +56,9 @@ function formatDuration(seconds: number | null): string {
     return `${minutes}:${String(rest).padStart(2, '0')}`
 }
 
-function formatBytes(bytes: number | null): string {
-    if (bytes === null || bytes <= 0) {
-        return 'Größe unbekannt'
-    }
-    if (bytes < 1024 * 1024) {
-        return `${Math.round(bytes / 1024)} KB`
-    }
-    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
-}
-
+/**
+ * Provides a multi-step wizard for importing podcast episodes from an RSS feed.
+ */
 export default function RssImportWizard(): React.JSX.Element {
     const authRedirect = useAuthRequired()
     const authRedirectRef = useRef(authRedirect)

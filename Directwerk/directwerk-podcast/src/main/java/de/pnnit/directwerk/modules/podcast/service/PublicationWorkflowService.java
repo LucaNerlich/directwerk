@@ -16,6 +16,7 @@ import de.pnnit.directwerk.modules.digital.entity.AssetVisibility;
 import de.pnnit.directwerk.modules.digital.entity.MediaAsset;
 import de.pnnit.directwerk.modules.podcast.PodcastModule;
 import de.pnnit.directwerk.modules.digital.entity.AccessPolicy;
+import de.pnnit.directwerk.modules.podcast.job.RssFeedRefreshJobProducer;
 import de.pnnit.directwerk.modules.podcast.entity.Episode;
 import de.pnnit.directwerk.modules.podcast.entity.EpisodeStatus;
 import de.pnnit.directwerk.modules.podcast.entity.SeriesStatus;
@@ -44,7 +45,7 @@ public class PublicationWorkflowService {
     private final ScheduledPublicationExecutor scheduledPublicationExecutor;
     private final ContentPublishedNotifier contentPublishedNotifier;
     private final SubscriberNotificationGate notificationGate;
-    private final RssFeedRefreshScheduler rssFeedRefreshScheduler;
+    private final RssFeedRefreshJobProducer rssFeedRefreshScheduler;
     private final ObjectProvider<PublicationWorkflowService> self;
     private final MembershipPermissionService permissionService;
 

@@ -33,6 +33,7 @@ import de.pnnit.directwerk.modules.digital.entity.AccessPolicy;
 import de.pnnit.directwerk.modules.newsletter.entity.Article;
 import de.pnnit.directwerk.modules.newsletter.entity.ArticleStatus;
 import de.pnnit.directwerk.modules.newsletter.exception.ArticleValidationException;
+import de.pnnit.directwerk.modules.newsletter.job.ArticleRssFeedRefreshJobProducer;
 import de.pnnit.directwerk.modules.content.InvalidPublicationTransitionException;
 import de.pnnit.directwerk.modules.newsletter.repository.ArticleRepository;
 import de.pnnit.directwerk.security.DirectwerkUserPrincipal;
@@ -75,7 +76,7 @@ class ArticlePublicationWorkflowServiceTest {
     private SubscriberNotificationGate notificationGate;
 
     @Mock
-    private ArticleRssFeedRefreshScheduler articleRssFeedRefreshScheduler;
+    private ArticleRssFeedRefreshJobProducer articleRssFeedRefreshScheduler;
 
     @Mock
     private ObjectProvider<ArticlePublicationWorkflowService> selfProvider;

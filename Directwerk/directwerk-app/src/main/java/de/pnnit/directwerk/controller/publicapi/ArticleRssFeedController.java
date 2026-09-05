@@ -1,6 +1,7 @@
 package de.pnnit.directwerk.controller.publicapi;
 
 import de.pnnit.directwerk.config.DirectwerkConfig;
+import de.pnnit.directwerk.controller.RequestClientIpExtractor;
 import de.pnnit.directwerk.modules.core.RequiresModule;
 import de.pnnit.directwerk.modules.core.analytics.FeedFetchAnalyticsService;
 import de.pnnit.directwerk.modules.core.util.ClientIpExtractor;
@@ -132,14 +133,17 @@ public class ArticleRssFeedController {
         ).response();
     }
 
+    /**
+     * Determines the client IP address for a request, using forwarded headers only when the request originates from a trusted proxy.
+     *
+     * @param request the HTTP request
+     * @return the client IP address
+     */
     private String clientIp(HttpServletRequest request) {
         String remoteAddr = request.getRemoteAddr();
         if (remoteAddr == null || !trustedProxies.contains(remoteAddr)) {
             return ClientIpExtractor.extract(null, null, remoteAddr);
         }
-        return ClientIpExtractor.extract(
-                request.getHeader("X-Forwarded-For"),
-                request.getHeader("X-Real-IP"),
-                remoteAddr);
+        return RequestClientIpExtractor.extract(request);
     }
 }

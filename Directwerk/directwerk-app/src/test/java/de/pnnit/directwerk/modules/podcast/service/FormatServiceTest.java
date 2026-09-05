@@ -11,6 +11,7 @@ import de.pnnit.directwerk.modules.core.entity.Tenant;
 import de.pnnit.directwerk.modules.core.repository.TenantRepository;
 import de.pnnit.directwerk.modules.podcast.entity.Format;
 import de.pnnit.directwerk.modules.podcast.exception.FormatNotFoundException;
+import de.pnnit.directwerk.modules.podcast.job.RssFeedRefreshJobProducer;
 import de.pnnit.directwerk.modules.podcast.repository.FormatRepository;
 import java.util.List;
 import java.util.Optional;
@@ -30,7 +31,7 @@ class FormatServiceTest {
     private TenantRepository tenantRepository;
 
     @Mock
-    private RssFeedRefreshScheduler rssFeedRefreshScheduler;
+    private RssFeedRefreshJobProducer rssFeedRefreshScheduler;
 
     @Mock
     private PodcastCoverAssetResolver podcastCoverAssetResolver;

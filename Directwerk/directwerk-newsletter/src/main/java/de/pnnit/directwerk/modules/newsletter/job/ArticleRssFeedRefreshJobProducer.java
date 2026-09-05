@@ -3,56 +3,71 @@ package de.pnnit.directwerk.modules.newsletter.job;
 import de.pnnit.directwerk.config.DirectwerkConfig;
 import de.pnnit.directwerk.modules.content.TenantEntitlementsChangedEvent;
 import de.pnnit.directwerk.modules.content.TenantRssSnapshotStaleEvent;
-import de.pnnit.directwerk.modules.core.transaction.TransactionAfterCommit;
 import de.pnnit.directwerk.modules.digital.storage.FeedSnapshotStateStore;
-import de.pnnit.directwerk.modules.newsletter.service.ArticleRssFeedRefreshScheduler;
-import de.pnnit.directwerk.modules.queue.JobEnqueueMetadata;
+import de.pnnit.directwerk.modules.queue.QueueNames;
 import de.pnnit.directwerk.modules.queue.QueueService;
+import de.pnnit.directwerk.modules.queue.TenantRefreshJobProducer;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
 import tools.jackson.databind.ObjectMapper;
 
-/**
- * Enqueues durable article RSS regeneration only after the content transaction commits.
- * Reacts to the same tenant-level content events the podcast RSS producer reacts to
- * ({@code directwerk-common}'s {@code modules.content} package) — directwerk-newsletter and
- * directwerk-podcast are Gradle siblings, so this is the decoupling seam rather than a shared
- * scheduler interface.
- */
+/** Enqueues durable article RSS regeneration only after the content transaction commits. */
 @Service
-public class ArticleRssFeedRefreshJobProducer implements ArticleRssFeedRefreshScheduler {
+public class ArticleRssFeedRefreshJobProducer {
 
-    private final ObjectProvider<QueueService> queueService;
-    private final ObjectMapper objectMapper;
-    private final DirectwerkConfig directwerkConfig;
+    private final TenantRefreshJobProducer delegate;
     private final FeedSnapshotStateStore snapshotStateStore;
 
+    /**
+     * Creates a producer for article RSS feed refresh jobs.
+     *
+     * @param queueService       the queue service provider used to enqueue refresh jobs
+     * @param objectMapper       the object mapper used to serialize job payloads
+     * @param directwerkConfig   the application configuration for job enqueueing
+     * @param snapshotStateStore the store for tenant RSS snapshot state
+     */
     public ArticleRssFeedRefreshJobProducer(
             ObjectProvider<QueueService> queueService,
             ObjectMapper objectMapper,
             DirectwerkConfig directwerkConfig,
             FeedSnapshotStateStore snapshotStateStore
     ) {
-        this.queueService = queueService;
-        this.objectMapper = objectMapper;
-        this.directwerkConfig = directwerkConfig;
+        this.delegate = new TenantRefreshJobProducer(
+                queueService,
+                objectMapper,
+                directwerkConfig,
+                QueueNames.ARTICLE_RSS_FEED_REFRESH,
+                ArticleRssFeedRefreshJobPayload::new
+        );
         this.snapshotStateStore = snapshotStateStore;
     }
 
-    @Override
+    /**
+     * Requests regeneration of the tenant's article RSS feed after the current transaction commits.
+     *
+     * @param tenantId the tenant whose RSS feed should be regenerated
+     */
     public void requestRefreshAfterCommit(Long tenantId) {
-        if (tenantId == null || tenantId < 1) {
-            throw new IllegalArgumentException("tenantId must be a positive id");
-        }
-        TransactionAfterCommit.run(() -> requestRefresh(tenantId));
+        delegate.requestRefreshAfterCommit(tenantId);
     }
 
+    /**
+     * Requests an article RSS feed refresh when a tenant's entitlements change.
+     *
+     * @param event the tenant entitlements change event
+     */
     @EventListener
     public void onEntitlementsChanged(TenantEntitlementsChangedEvent event) {
         requestRefreshAfterCommit(event.tenantId());
     }
 
+    /**
+     * Handles a stale RSS snapshot event by recording the previous slug, clearing the
+     * written snapshot state when applicable, and scheduling a tenant refresh.
+     *
+     * @param event the event containing the tenant identifier and optional previous slug
+     */
     @EventListener
     public void onSnapshotStale(TenantRssSnapshotStaleEvent event) {
         if (event.previousSlug() != null) {
@@ -60,19 +75,5 @@ public class ArticleRssFeedRefreshJobProducer implements ArticleRssFeedRefreshSc
             snapshotStateStore.clearWritten(event.tenantId());
         }
         requestRefreshAfterCommit(event.tenantId());
-    }
-
-    private void requestRefresh(Long tenantId) {
-        if (!directwerkConfig.isQueueEnabled()) {
-            return;
-        }
-        queueService.getObject().enqueue(
-                ArticleRssFeedRefreshQueueNames.ARTICLE_RSS_FEED_REFRESH,
-                objectMapper.valueToTree(new ArticleRssFeedRefreshJobPayload(tenantId)),
-                0,
-                null,
-                null,
-                new JobEnqueueMetadata(tenantId, "article-rss-feed-refresh-" + tenantId, null)
-        );
     }
 }

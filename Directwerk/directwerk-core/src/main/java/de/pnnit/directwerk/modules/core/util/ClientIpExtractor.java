@@ -3,8 +3,7 @@ package de.pnnit.directwerk.modules.core.util;
 /**
  * Extracts the originating client IP for server-side analytics attribution.
  *
- * <p>Controllers pass raw header values so this utility stays free of the servlet API.
- * The first entry of {@code X-Forwarded-For} wins (proxy chain order), then
+ * <p>The first entry of {@code X-Forwarded-For} wins (proxy chain order), then
  * {@code X-Real-IP}, then the connection's remote address. Blank, {@code unknown},
  * and spoof-prone values never propagate — callers treat {@code null} as unattributed.
  */

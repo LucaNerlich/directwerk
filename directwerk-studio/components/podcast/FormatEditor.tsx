@@ -15,13 +15,13 @@ import LevelSelect from '@/components/studio/LevelSelect'
 import Link from 'next/link'
 import Form from 'next/form'
 import {useRouter} from 'next/navigation'
-import {useActionState, useCallback, useEffect, useRef, useState} from 'react'
+import {useActionState, useCallback, useEffect, useState} from 'react'
 
 import MediaLibraryPicker from '@/components/media/MediaLibraryPicker'
 import UploadProgress from '@/components/media/UploadProgress'
 import {getMediaPreviewUrl} from '@/lib/api/mediaApi'
 import {mediaLimitLabel} from '@/lib/media/limits'
-import {uploadMediaFile} from '@/lib/media/upload'
+import {useCoverImageUpload} from '@/lib/media/useCoverImageUpload'
 
 import {createFormat, deactivateFormat, listFormats, updateFormat} from '@/lib/api/catalogApi'
 import type {FormatSummary} from '@directwerk/api/types'
@@ -48,6 +48,12 @@ function parseOptionalInt(value: FormDataEntryValue | null): number | undefined 
     return Number.isSafeInteger(parsed) && parsed >= 0 ? parsed : undefined
 }
 
+/**
+ * Provides a form for creating a podcast format or editing an existing one.
+ *
+ * @param formatId - The identifier of the format to edit, or `undefined` to create a new format
+ * @returns The format editor interface
+ */
 export default function FormatEditor({formatId}: FormatEditorProps): React.JSX.Element {
     const router = useRouter()
     const authRedirect = useAuthRequired()
@@ -61,12 +67,7 @@ export default function FormatEditor({formatId}: FormatEditorProps): React.JSX.E
     const [reloadToken, setReloadToken] = useState(0)
     const [coverAssetId, setCoverAssetId] = useState<number | null>(null)
     const [coverPreviewUrl, setCoverPreviewUrl] = useState<string | null>(null)
-    const [isUploadingCover, setIsUploadingCover] = useState(false)
     const [coverUploadError, setCoverUploadError] = useState<string | null>(null)
-    const [uploadProgress, setUploadProgress] = useState<{file: File; progress: number} | null>(
-        null,
-    )
-    const mountedRef = useRef(true)
 
     useEffect(() => {
         if (formatId === undefined) {
@@ -112,13 +113,6 @@ export default function FormatEditor({formatId}: FormatEditorProps): React.JSX.E
     }, [formatId, reloadToken, router])
 
     useEffect(() => {
-        mountedRef.current = true
-        return () => {
-            mountedRef.current = false
-        }
-    }, [])
-
-    useEffect(() => {
         let active = true
 
         if (coverAssetId === null) {
@@ -143,36 +137,23 @@ export default function FormatEditor({formatId}: FormatEditorProps): React.JSX.E
         }
     }, [coverAssetId])
 
-    const handleCoverUpload = useCallback(async (file: File | null): Promise<void> => {
-        if (file === null) {
-            return
-        }
-        setIsUploadingCover(true)
-        setCoverUploadError(null)
-        setUploadProgress({file, progress: 0})
-        try {
-            const asset = await uploadMediaFile(getClientTenantHost(), file, {
-                assetType: 'IMAGE',
-                visibility: 'PUBLIC',
-                onProgress: (percent) => {
-                    if (mountedRef.current) {
-                        setUploadProgress({file, progress: percent})
-                    }
-                },
-            })
-            setCoverAssetId(asset.id)
-        } catch (error) {
+    const coverUpload = useCoverImageUpload({
+        onUploaded: setCoverAssetId,
+        onError: (error) => {
             if (authRedirect(error)) return
             setCoverUploadError(
                 error instanceof Error ? error.message : 'Cover-Upload fehlgeschlagen.',
             )
-        } finally {
-            if (mountedRef.current) {
-                setIsUploadingCover(false)
-                setUploadProgress(null)
-            }
-        }
-    }, [authRedirect])
+        },
+    })
+
+    const handleCoverUpload = useCallback(
+        (file: File | null): Promise<void> => {
+            setCoverUploadError(null)
+            return coverUpload.upload(file)
+        },
+        [coverUpload],
+    )
 
     async function saveAction(
         _previous: FormatFormState,
@@ -357,7 +338,7 @@ export default function FormatEditor({formatId}: FormatEditorProps): React.JSX.E
                     <Input
                         accept="image/png,image/jpeg,image/webp"
                         aria-label="Titelbild hochladen"
-                        disabled={pending || isUploadingCover}
+                        disabled={pending || coverUpload.isUploading}
                         onChange={(event) => {
                             const file = event.target.files?.[0] ?? null
                             void handleCoverUpload(file)
@@ -370,14 +351,14 @@ export default function FormatEditor({formatId}: FormatEditorProps): React.JSX.E
                     </span>
                     <MediaLibraryPicker
                         assetType="IMAGE"
-                        disabled={pending || isUploadingCover}
+                        disabled={pending || coverUpload.isUploading}
                         label="Titelbild aus Mediathek"
                         onAuthRequired={() => router.replace('/login')}
                         onSelect={(asset) => setCoverAssetId(asset.id)}
                         selectedId={coverAssetId}
                     />
-                    {uploadProgress !== null ? (
-                        <UploadProgress file={uploadProgress.file} progress={uploadProgress.progress} />
+                    {coverUpload.uploadProgress !== null ? (
+                        <UploadProgress file={coverUpload.uploadProgress.file} progress={coverUpload.uploadProgress.progress} />
                     ) : null}
                     {coverUploadError !== null ? (
                         <p className="text-sm text-destructive" role="alert">
@@ -424,7 +405,7 @@ export default function FormatEditor({formatId}: FormatEditorProps): React.JSX.E
                     </div>
                 </section>
                 <div className="flex flex-wrap gap-2">
-                    <Button disabled={pending || isUploadingCover} type="submit">
+                    <Button disabled={pending || coverUpload.isUploading} type="submit">
                         {pending ? 'Speichert…' : 'Speichern'}
                     </Button>
                     {!isNew && format?.active ? (

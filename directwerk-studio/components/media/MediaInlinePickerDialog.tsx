@@ -23,23 +23,11 @@ import {listMedia, listMediaFolders} from '@/lib/api/mediaApi'
 import type {MediaAsset, MediaFolder} from '@directwerk/api/types'
 import {getClientTenantHost} from '@directwerk/api/tenant'
 import {buildFolderTree, flattenFolderTree} from '@/lib/media/folders'
+import {formatBytes} from '@/lib/media/format'
 import {assetTypeLabel} from '@/lib/subscription/displayLabels'
 import {safeImageSrc, safeLinkHref} from '@/lib/url/safeUrl'
 
 export type EmbeddableAssetFilter = 'ALL' | 'IMAGE' | 'AUDIO' | 'VIDEO' | 'DOCUMENT'
-
-function formatBytes(sizeBytes: number | null): string {
-    if (sizeBytes === null || sizeBytes <= 0) {
-        return '—'
-    }
-    if (sizeBytes < 1024) {
-        return `${sizeBytes} B`
-    }
-    if (sizeBytes < 1024 * 1024) {
-        return `${(sizeBytes / 1024).toFixed(1)} KB`
-    }
-    return `${(sizeBytes / (1024 * 1024)).toFixed(1)} MB`
-}
 
 /**
  * A media asset that can be embedded inline into rich text: it must be READY,

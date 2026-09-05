@@ -1,47 +1,15 @@
 'use client'
 
-import {useState} from 'react'
-
 import {Button} from '@directwerk/ui/components/button'
+import {useCopyToClipboard} from '@directwerk/ui/hooks/use-copy-to-clipboard'
 
-type CopyState = 'idle' | 'copied' | 'failed'
-
-async function copyText(text: string): Promise<boolean> {
-    try {
-        if (
-            typeof navigator !== 'undefined' &&
-            navigator.clipboard?.writeText !== undefined
-        ) {
-            await navigator.clipboard.writeText(text)
-            return true
-        }
-    } catch {
-        // Fall through to legacy fallback below.
-    }
-    let area: HTMLTextAreaElement | null = null
-    try {
-        if (typeof document === 'undefined') {
-            return false
-        }
-        area = document.createElement('textarea')
-        area.value = text
-        area.setAttribute('readonly', '')
-        area.style.position = 'fixed'
-        area.style.opacity = '0'
-        document.body.appendChild(area)
-        area.select()
-        return document.execCommand('copy')
-    } catch {
-        return false
-    } finally {
-        try {
-            area?.remove()
-        } catch {
-            // Copy failures stay non-fatal even if DOM cleanup also fails.
-        }
-    }
-}
-
+/**
+ * Renders a button that copies a URL to the clipboard and reports the copy status.
+ *
+ * @param url - The URL to copy
+ * @param context - Optional context appended to the button's accessible label
+ * @returns A copy button with status feedback
+ */
 export default function CopyUrlButton({
     url,
     className,
@@ -53,17 +21,7 @@ export default function CopyUrlButton({
     size?: 'default' | 'sm' | 'lg' | 'icon'
     context?: string
 }): React.JSX.Element {
-    const [state, setState] = useState<CopyState>('idle')
-
-    async function handleCopy(): Promise<void> {
-        const ok = await copyText(url)
-        setState(ok ? 'copied' : 'failed')
-        if (ok) {
-            window.setTimeout(() => {
-                setState((current) => (current === 'copied' ? 'idle' : current))
-            }, 2000)
-        }
-    }
+    const {state, copy} = useCopyToClipboard()
 
     return (
         <span className="inline-flex flex-col gap-1">
@@ -75,7 +33,7 @@ export default function CopyUrlButton({
                 }
                 className={className}
                 onClick={() => {
-                    void handleCopy()
+                    void copy(url)
                 }}
                 size={size}
                 type="button"

@@ -170,13 +170,15 @@ public final class AuthorizationService {
         return ownerUserId != null && ownerUserId.equals(principal.userId());
     }
 
+    /**
+     * Determines whether a principal has the specified authority.
+     *
+     * @param principal the principal whose authorities are checked
+     * @param authority the authority to find
+     * @return {@code true} if the principal has the authority, {@code false} otherwise
+     */
     private static boolean hasAuthority(DirectwerkUserPrincipal principal, String authority) {
         return principal.getAuthorities().stream()
                 .anyMatch(granted -> authority.equals(granted.getAuthority()));
-    }
-
-    /** Empty override set constant for unrestricted callers and tests. */
-    public static Set<MembershipPermissionOverride> noOverrides() {
-        return Set.of();
     }
 }

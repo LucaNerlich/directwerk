@@ -1,8 +1,8 @@
 'use client'
 
-import {useCallback, useEffect, useRef, useState} from 'react'
+import {useCallback, useEffect, useRef} from 'react'
 
-import {useAuthRequired} from '../auth/useAuthRequired'
+import {useAuthedQuery} from './useAuthedQuery'
 import type {UseAuthedQueryOptions, UseAuthedQueryResult} from './useAuthedQuery'
 
 const tenantCaches = new Map<string, Map<string, Promise<unknown>>>()
@@ -56,66 +56,42 @@ export interface UseCachedTenantQueryOptions extends UseAuthedQueryOptions {
     tenantHost: string
 }
 
+/**
+ * Provides an authenticated query that caches data separately for each tenant.
+ *
+ * @param fetcher - Fetches tenant data using the tenant host.
+ * @param options - Configures the cache namespace, tenant host, and fallback error.
+ * @returns The query result with a reload function that clears the tenant cache before fetching fresh data.
+ */
 export function useCachedTenantQuery<T>(
     fetcher: (host: string) => Promise<T>,
     options: UseCachedTenantQueryOptions,
 ): UseAuthedQueryResult<T> {
-    const authRedirect = useAuthRequired()
-    const fallbackError = options.fallbackError ?? 'Laden fehlgeschlagen.'
-    const enabled = options.enabled !== false
-    const {namespace, tenantHost} = options
-
-    const [data, setData] = useState<T | null>(null)
-    const [error, setError] = useState<string | null>(null)
-    const [isLoading, setIsLoading] = useState(enabled)
-    const [reloadToken, setReloadToken] = useState(0)
+    const {namespace, tenantHost, fallbackError} = options
 
     const fetcherRef = useRef(fetcher)
     fetcherRef.current = fetcher
 
-    const reload = useCallback(() => {
-        clearCachedTenantData(namespace, tenantHost)
-        setReloadToken((current) => current + 1)
-    }, [namespace, tenantHost])
+    const cachedFetcher = useCallback(
+        () => fetchCachedTenantData(namespace, tenantHost, fetcherRef.current),
+        [namespace, tenantHost],
+    )
 
+    const query = useAuthedQuery(cachedFetcher, {fallbackError})
+
+    const isMounted = useRef(false)
     useEffect(() => {
-        if (!enabled) {
-            setIsLoading(false)
+        if (!isMounted.current) {
+            isMounted.current = true
             return
         }
+        query.reload()
+    }, [namespace, query.reload, tenantHost])
 
-        let active = true
-        setIsLoading(true)
-        setError(null)
+    const reload = useCallback(() => {
+        clearCachedTenantData(namespace, tenantHost)
+        query.reload()
+    }, [namespace, query.reload, tenantHost])
 
-        fetchCachedTenantData(namespace, tenantHost, fetcherRef.current)
-            .then((result) => {
-                if (!active) {
-                    return
-                }
-                setData(result)
-            })
-            .catch((caught: unknown) => {
-                if (!active) {
-                    return
-                }
-                if (authRedirect(caught)) {
-                    return
-                }
-                setError(
-                    caught instanceof Error ? caught.message : fallbackError,
-                )
-            })
-            .finally(() => {
-                if (active) {
-                    setIsLoading(false)
-                }
-            })
-
-        return () => {
-            active = false
-        }
-    }, [authRedirect, enabled, fallbackError, namespace, reloadToken, tenantHost])
-
-    return {data, error, isLoading, reload}
+    return {...query, reload}
 }

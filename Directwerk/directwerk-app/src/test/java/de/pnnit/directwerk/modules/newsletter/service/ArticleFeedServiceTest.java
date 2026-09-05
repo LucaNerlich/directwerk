@@ -18,6 +18,7 @@ import de.pnnit.directwerk.modules.newsletter.exception.ArticleFeedBuilderExcept
 import de.pnnit.directwerk.modules.newsletter.feed.ArticleFeed;
 import de.pnnit.directwerk.modules.newsletter.feed.ArticleFeedNotFoundException;
 import de.pnnit.directwerk.modules.newsletter.feed.ArticleFeedRepository;
+import de.pnnit.directwerk.modules.newsletter.job.ArticleRssFeedRefreshJobProducer;
 import java.sql.SQLException;
 import java.util.List;
 import java.util.Optional;
@@ -61,7 +62,7 @@ class ArticleFeedServiceTest {
     private ArticleRssFeedSnapshotService articleRssFeedSnapshotService;
 
     @Mock
-    private ArticleRssFeedRefreshScheduler articleRssFeedRefreshScheduler;
+    private ArticleRssFeedRefreshJobProducer articleRssFeedRefreshScheduler;
 
     @Mock
     private de.pnnit.directwerk.modules.core.util.FeedTokenGenerator feedTokenGenerator;

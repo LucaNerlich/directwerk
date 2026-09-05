@@ -10,9 +10,28 @@ import PageStack from '@directwerk/ui/components/page-stack'
 
 import PublicationListSection from '@/components/publication/PublicationListSection'
 import {listSeries, publishSeries, unpublishSeries} from '@/lib/api/podcastApi'
-import {useSeriesListPage} from '@/lib/publication/useSeriesListPage'
+import {createPublicationBulkLabels} from '@/lib/publication/publicationBulkLabels'
+import {usePublicationListPage} from '@/lib/publication/usePublicationListPage'
 import {getClientTenantHost} from '@directwerk/api/tenant'
+import type {SeriesSummary} from '@directwerk/api/types'
 
+type SeriesListItem = SeriesSummary & {publishedAt: null}
+
+/**
+ * Converts a series summary into a list item by adding its publication timestamp.
+ *
+ * @param series - The series summary to convert
+ * @returns The series list item with no publication timestamp
+ */
+function toListItem(series: SeriesSummary): SeriesListItem {
+    return {...series, publishedAt: null}
+}
+
+/**
+ * Renders the podcast series management page with publication controls and creation links.
+ *
+ * @returns The series management page.
+ */
 export default function SeriesPageClient(): React.JSX.Element {
     const {
         items: series,
@@ -34,10 +53,29 @@ export default function SeriesPageClient(): React.JSX.Element {
         handleUnpublish,
         handleBulkPublish,
         handleBulkUnpublish,
-    } = useSeriesListPage({
-        load: () => listSeries(getClientTenantHost()),
-        publish: (id) => publishSeries(getClientTenantHost(), id),
-        unpublish: (id) => unpublishSeries(getClientTenantHost(), id),
+    } = usePublicationListPage<SeriesListItem>({
+        load: async () => (await listSeries(getClientTenantHost())).map(toListItem),
+        publish: async (id) => toListItem(await publishSeries(getClientTenantHost(), id)),
+        unpublish: async (id) => toListItem(await unpublishSeries(getClientTenantHost(), id)),
+        cancelSchedule: async () => {
+            throw new Error('Sendungen unterstützen keine Planung.')
+        },
+        unarchive: async () => {
+            throw new Error('Sendungen unterstützen kein Archiv.')
+        },
+        labels: {
+            loadError: 'Sendungen konnten nicht geladen werden.',
+            publishSuccess: (title) => `Sendung „${title}“ wurde veröffentlicht.`,
+            unpublishSuccess: (title) =>
+                `Sendung „${title}“ wurde zurückgezogen (Entwurf).`,
+            cancelScheduleSuccess: () => '',
+            unarchiveSuccess: () => '',
+            publishError: 'Sendung konnte nicht veröffentlicht werden.',
+            unpublishError: 'Sendung konnte nicht zurückgezogen werden.',
+            cancelScheduleError: '',
+            unarchiveError: '',
+            bulk: createPublicationBulkLabels('Sendung', 'Sendungen'),
+        },
     })
 
     if (isLoading) {
