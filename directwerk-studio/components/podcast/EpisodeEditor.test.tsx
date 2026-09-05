@@ -4,6 +4,7 @@ import {afterEach, describe, expect, it, vi} from 'vitest'
 
 import EpisodeEditor from '@/components/podcast/EpisodeEditor'
 import {getMyEffectiveRights} from '@/lib/api/tenantSettingsApi'
+import {getMediaPreviewUrl} from '@/lib/api/mediaApi'
 import {useOptionalMe} from '@/lib/auth/MeProvider'
 import type {EffectiveRights} from '@directwerk/api/types'
 
@@ -107,9 +108,19 @@ afterEach(() => {
     cleanup()
     vi.mocked(useOptionalMe).mockReturnValue(null)
     vi.mocked(getMyEffectiveRights).mockResolvedValue(null as unknown as EffectiveRights)
+    vi.mocked(getMediaPreviewUrl).mockResolvedValue('https://cdn.example/preview.mp3')
 })
 
 describe('EpisodeEditor tagging', () => {
+    it('finishes loading with an unavailable message for an unsafe audio preview URL', async () => {
+        vi.mocked(getMediaPreviewUrl).mockResolvedValueOnce('javascript:alert(1)')
+
+        render(<EpisodeEditor episodeId={1} />)
+
+        expect(await screen.findByText('Audio-Vorschau ist nicht verfügbar.')).toBeInTheDocument()
+        expect(screen.queryByText('Vorschau wird geladen…')).not.toBeInTheDocument()
+    })
+
     it('sends an explicit signal when removing the cover asset', async () => {
         const user = userEvent.setup()
         updateEpisode.mockClear()

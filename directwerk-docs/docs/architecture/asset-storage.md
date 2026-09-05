@@ -720,11 +720,11 @@ directwerk:
 
 | Variable | Purpose |
 |----------|---------|
-| `S3_ENDPOINT` | Provider endpoint (region-specific) |
-| `S3_BUCKET` | Bucket / storage zone name |
-| `S3_ACCESS_KEY` | Hetzner access key or Bunny zone name |
-| `S3_SECRET_KEY` | Hetzner secret key or Bunny zone password |
-| `S3_PUBLIC_CDN_BASE_URL` | CDN origin for `{tenant}/public/` URLs |
+| `DIRECTWERK_STORAGE_ENDPOINT` | Provider endpoint (region-specific) |
+| `DIRECTWERK_STORAGE_BUCKET` | Bucket / storage zone name |
+| `DIRECTWERK_STORAGE_ACCESS_KEY` | Hetzner access key or Bunny zone name |
+| `DIRECTWERK_STORAGE_SECRET_KEY` | Hetzner secret key or Bunny zone password |
+| `DIRECTWERK_STORAGE_PUBLIC_CDN_BASE_URL` | CDN origin for `{tenant}/public/` URLs |
 
 ---
 

@@ -3,6 +3,7 @@ package de.pnnit.directwerk.modules.core.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import de.pnnit.directwerk.modules.core.entity.MembershipStatus;
@@ -87,6 +88,27 @@ class StudioWorkspaceDiscoveryServiceTest {
 
         assertThatThrownBy(() -> service.discoverWorkspaces("subscriber@example.com", "ValidPassword12!"))
                 .isInstanceOf(BadCredentialsException.class);
+    }
+
+    @Test
+    void wrongPasswordStillPerformsBoundedWorkspaceDiscoveryForActiveUser() {
+        User user = activeUser();
+        Tenant tenant = activeTenant("alpha-show-a", "Alpha Show A");
+        TenantMembership membership = editorMembership(user, tenant);
+
+        when(userRepository.findByEmailIgnoreCase("editor@example.com")).thenReturn(Optional.of(user));
+        when(passwordEncoder.matches("WrongPassword12!", "hash")).thenReturn(false);
+        when(tenantMembershipRepository.findActiveMembershipsByUserId(1L, MembershipStatus.ACTIVE))
+                .thenReturn(List.of(membership));
+        when(tenantDomainRepository.findVerifiedByTenantIdOrderByPrimaryDescIdAsc(10L))
+                .thenReturn(List.of());
+
+        assertThatThrownBy(() -> service.discoverWorkspaces("editor@example.com", "WrongPassword12!"))
+                .isInstanceOf(BadCredentialsException.class)
+                .hasMessage("Invalid credentials");
+
+        verify(tenantMembershipRepository).findActiveMembershipsByUserId(1L, MembershipStatus.ACTIVE);
+        verify(tenantDomainRepository).findVerifiedByTenantIdOrderByPrimaryDescIdAsc(10L);
     }
 
     @Test

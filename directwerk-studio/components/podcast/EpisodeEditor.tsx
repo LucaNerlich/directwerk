@@ -248,7 +248,13 @@ export default function EpisodeEditor({episodeId}: {episodeId?: number}): React.
                 if (!active) {
                     return
                 }
-                setAudioPreviewUrl(safeImageSrc(url))
+                const previewUrl = safeImageSrc(url)
+                setAudioPreviewUrl(previewUrl)
+                setAudioPreviewError(
+                    previewUrl === null
+                        ? 'Audio-Vorschau ist nicht verfügbar.'
+                        : null,
+                )
                 setAudioReady(asset.status === 'READY')
                 setAudioStatusKnown(true)
             } catch (error) {

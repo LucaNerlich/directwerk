@@ -36,13 +36,6 @@ public class TenantRoutingHostResolver {
         // the platform API hostname is known — the verified Host (serverName)
         // is authoritative. The headers are only meaningful for BFF upstream
         // calls arriving on the platform API hostname (handled above).
-        // Fallback: when issuer metadata is missing the platform host is
-        // unknown, so BFF calls could never select a tenant without honoring
-        // the explicit header — preserve that legacy behavior.
-        if (platformApiHost == null && explicitTenant.isPresent()
-                && !explicitTenant.get().equalsIgnoreCase(serverName)) {
-            return explicitTenant.get();
-        }
         return serverName;
     }
 

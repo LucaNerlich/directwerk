@@ -17,7 +17,7 @@ export async function POST(request: Request): Promise<Response> {
     if (!platform.ok) {
         return Response.json(
             {error: 'A platform admin session is required.'},
-            {status: 401}
+            {status: platform.status}
         )
     }
     const tenantHost = parseTenantHost(request.headers.get('x-tenant-host'))

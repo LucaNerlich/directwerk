@@ -1,10 +1,10 @@
--- Feed bearer tokens at rest: AES-256-GCM ciphertext in feed_token (see
--- FeedTokenProtector) with a SHA-256 blind index for lookups. V64 backfills
--- existing rows; V65 enforces NOT NULL + uniqueness on the hash columns.
+-- Expand phase for feed bearer-token protection. Keep the original VARCHAR(64)
+-- column in place so this deploy does not rewrite either feed table under an
+-- ACCESS EXCLUSIVE ALTER COLUMN TYPE lock. The application moves to the wider
+-- protected column; a later maintenance-window contract migration may remove
+-- the legacy column after all deployments use it only as a hash mirror.
 ALTER TABLE subscriber_feeds ADD COLUMN IF NOT EXISTS feed_token_hash VARCHAR(64);
-ALTER TABLE subscriber_feeds ALTER COLUMN feed_token TYPE VARCHAR(255);
-ALTER TABLE subscriber_feeds DROP CONSTRAINT IF EXISTS uq_subscriber_feeds_token;
+ALTER TABLE subscriber_feeds ADD COLUMN IF NOT EXISTS feed_token_protected VARCHAR(255);
 
 ALTER TABLE article_feeds ADD COLUMN IF NOT EXISTS feed_token_hash VARCHAR(64);
-ALTER TABLE article_feeds ALTER COLUMN feed_token TYPE VARCHAR(255);
-ALTER TABLE article_feeds DROP CONSTRAINT IF EXISTS uq_article_feeds_token;
+ALTER TABLE article_feeds ADD COLUMN IF NOT EXISTS feed_token_protected VARCHAR(255);

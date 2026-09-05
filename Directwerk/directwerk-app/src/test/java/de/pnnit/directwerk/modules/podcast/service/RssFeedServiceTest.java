@@ -68,7 +68,7 @@ class RssFeedServiceTest {
                 new EpisodeCoverResolver(),
                 feedTokenProtector
         );
-        lenient().when(feedTokenProtector.reveal(any())).thenAnswer(invocation -> invocation.getArgument(0));
+        lenient().when(feedTokenProtector.reveal("enc:tok")).thenReturn("tok");
         lenient().when(publicCdnUrlResolver.resolve(any())).thenAnswer(invocation -> {
             MediaAsset asset = invocation.getArgument(0);
             if (asset != null && asset.getVisibility() == AssetVisibility.PUBLIC) {
@@ -315,6 +315,7 @@ class RssFeedServiceTest {
         assertThat(xml).contains("https://alpha.example.test/feeds/alpha/u/tok/e/episode-2.mp3");
         assertThat(xml).contains("<itunes:image href=\"https://cdn.example.test/alpha/public/series.jpg\"/>");
         assertThat(xml).doesNotContain("X-Amz-Signature");
+        verify(feedTokenProtector).reveal("enc:tok");
     }
 
     @Test
@@ -388,7 +389,7 @@ class RssFeedServiceTest {
         feed.setId(1L);
         feed.setTenant(tenant);
         feed.setUser(user);
-        feed.setFeedToken("tok");
+        feed.setFeedToken("enc:tok");
         feed.setTitle("Private");
         feed.setEnabled(true);
         return feed;

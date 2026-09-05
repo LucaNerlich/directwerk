@@ -42,6 +42,9 @@ export async function invitePlatformAdminAction(
     return {
         error: null,
         success: `Invitation sent to ${result.data.email}.`,
-        inviteToken: result.data.inviteToken,
+        inviteToken:
+            process.env.NODE_ENV === 'production'
+                ? null
+                : result.data.inviteToken,
     }
 }

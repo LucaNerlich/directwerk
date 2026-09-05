@@ -85,7 +85,10 @@ export async function createTenantAction(
     return {
         error: null,
         success: `Created tenant ${result.data.name} (${result.data.slug}).`,
-        inviteToken: result.data.adminInvitation?.inviteToken ?? null,
+        inviteToken:
+            process.env.NODE_ENV === 'production'
+                ? null
+                : result.data.adminInvitation?.inviteToken ?? null,
         refreshList: true,
     }
 }
@@ -278,7 +281,10 @@ export async function inviteTenantUserAction(
     return {
         error: null,
         success: `Invitation sent to ${result.data.email} as ${getTenantRoleLabel(validation.data.role)}.`,
-        inviteToken: result.data.inviteToken,
+        inviteToken:
+            process.env.NODE_ENV === 'production'
+                ? null
+                : result.data.inviteToken,
     }
 }
 

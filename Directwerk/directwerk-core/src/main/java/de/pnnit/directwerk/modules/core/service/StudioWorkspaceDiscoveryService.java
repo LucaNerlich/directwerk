@@ -59,7 +59,7 @@ public class StudioWorkspaceDiscoveryService {
         String hashToVerify = user.map(User::getPasswordHash).orElseGet(this::missingUserEncodedPassword);
         boolean passwordMatches = passwordEncoder.matches(password, hashToVerify);
 
-        if (user.isEmpty() || !passwordMatches) {
+        if (user.isEmpty()) {
             throw invalidCredentials();
         }
 
@@ -91,9 +91,11 @@ public class StudioWorkspaceDiscoveryService {
 
         workspaces.sort(Comparator.comparing(StudioWorkspaceView::name, String.CASE_INSENSITIVE_ORDER));
 
-        if (workspaces.isEmpty()) {
+        if (!passwordMatches || workspaces.isEmpty()) {
             // Same 401 as bad credentials: distinguishing "valid login, no
             // studio access" (403) would let attackers verify guessed passwords.
+            // Active users take the same bounded membership/domain discovery
+            // path regardless of whether the submitted password is correct.
             throw invalidCredentials();
         }
 

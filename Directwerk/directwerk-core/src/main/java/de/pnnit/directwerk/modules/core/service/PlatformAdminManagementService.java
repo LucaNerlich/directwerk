@@ -108,14 +108,17 @@ public class PlatformAdminManagementService {
      */
     @Transactional
     public PlatformAdminView revokeAdmin(Long userId) {
-        PlatformAdmin admin = platformAdminRepository.findByUserId(userId)
+        List<PlatformAdmin> lockedAdmins = platformAdminRepository.findAllForUpdate();
+        PlatformAdmin admin = lockedAdmins.stream()
+                .filter(candidate -> candidate.getUser().getId().equals(userId))
+                .findFirst()
                 .orElseThrow(() -> new PlatformAdminNotFoundException(userId));
 
         Long callerUserId = SecurityUtils.currentUserId();
         if (callerUserId != null && callerUserId.equals(userId)) {
             throw new CannotRevokeSelfException(userId);
         }
-        if (platformAdminRepository.count() <= 1) {
+        if (lockedAdmins.size() <= 1) {
             throw new CannotRevokeLastPlatformAdminException(userId);
         }
 

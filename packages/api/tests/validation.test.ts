@@ -428,6 +428,23 @@ describe('createPublicContentParsers', () => {
                 ],
             }),
         ).toThrow('sanitizeHtml')
+
+        expect(() =>
+            unsafe.parsePublicEpisode({
+                id: 1,
+                seriesId: 2,
+                seriesSlug: 'show',
+                episodeNumber: 1,
+                slug: 'episode-1',
+                title: 'Episode 1',
+                description: '<img src=x onerror=alert(1)>',
+                durationSeconds: 60,
+                accessPolicy: 'FREE',
+                requiredLevelSortOrder: null,
+                publishedAt: null,
+                audioCdnUrl: null,
+            }),
+        ).toThrow('sanitizeHtml')
     })
 })
 

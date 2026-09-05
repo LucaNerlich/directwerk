@@ -11,16 +11,18 @@ function jsonResponse(status: number): Response {
 
 describe('createAuthedRequest fixed-message mode', () => {
     it('clears tokens and throws AUTH_REQUIRED on a retried 401', async () => {
+        const fetchMock = vi.fn(async () => jsonResponse(401))
+        const refreshAccessToken = vi.fn(async () => 'token')
         vi.stubGlobal(
             'fetch',
-            vi.fn(async () => jsonResponse(401)),
+            fetchMock,
         )
         try {
             let cleared = 0
             const request = createAuthedRequest({
                 session: {
                     getValidAccessToken: async () => 'token',
-                    refreshAccessToken: async () => 'token',
+                    refreshAccessToken,
                 },
                 clearTokens: () => {
                     cleared += 1
@@ -33,6 +35,8 @@ describe('createAuthedRequest fixed-message mode', () => {
 
             await expect(request('/api/admin/things')).rejects.toThrow('AUTH_REQUIRED')
             expect(cleared).toBe(1)
+            expect(refreshAccessToken).toHaveBeenCalledOnce()
+            expect(fetchMock).toHaveBeenCalledTimes(2)
         } finally {
             vi.unstubAllGlobals()
         }

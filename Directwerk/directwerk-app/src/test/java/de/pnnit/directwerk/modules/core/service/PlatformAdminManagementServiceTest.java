@@ -162,8 +162,7 @@ class PlatformAdminManagementServiceTest {
         PlatformAdmin admin = new PlatformAdmin();
         admin.setUser(user);
 
-        when(platformAdminRepository.findByUserId(20L)).thenReturn(Optional.of(admin));
-        when(platformAdminRepository.count()).thenReturn(2L);
+        when(platformAdminRepository.findAllForUpdate()).thenReturn(List.of(admin, platformAdmin(30L, "third@example.com")));
 
         PlatformAdminManagementService.PlatformAdminView revoked = service.revokeAdmin(20L);
 
@@ -180,8 +179,7 @@ class PlatformAdminManagementServiceTest {
         PlatformAdmin admin = new PlatformAdmin();
         admin.setUser(user);
 
-        when(platformAdminRepository.findByUserId(10L)).thenReturn(Optional.of(admin));
-        when(platformAdminRepository.count()).thenReturn(1L);
+        when(platformAdminRepository.findAllForUpdate()).thenReturn(List.of(admin));
 
         assertThatThrownBy(() -> service.revokeAdmin(10L))
                 .isInstanceOf(CannotRevokeLastPlatformAdminException.class);
@@ -191,7 +189,7 @@ class PlatformAdminManagementServiceTest {
 
     @Test
     void revokeAdminRejectsUnknownUser() {
-        when(platformAdminRepository.findByUserId(999_999L)).thenReturn(Optional.empty());
+        when(platformAdminRepository.findAllForUpdate()).thenReturn(List.of(platformAdmin(10L, "admin@example.com")));
 
         assertThatThrownBy(() -> service.revokeAdmin(999_999L))
                 .isInstanceOf(PlatformAdminNotFoundException.class);
@@ -206,7 +204,7 @@ class PlatformAdminManagementServiceTest {
         PlatformAdmin admin = new PlatformAdmin();
         admin.setUser(user);
 
-        when(platformAdminRepository.findByUserId(10L)).thenReturn(Optional.of(admin));
+        when(platformAdminRepository.findAllForUpdate()).thenReturn(List.of(admin, platformAdmin(20L, "other@example.com")));
 
         assertThatThrownBy(() -> service.revokeAdmin(10L))
                 .isInstanceOf(CannotRevokeSelfException.class);
@@ -225,5 +223,14 @@ class PlatformAdminManagementServiceTest {
         SecurityContextHolder.getContext().setAuthentication(
                 UsernamePasswordAuthenticationToken.authenticated(principal, null, principal.getAuthorities())
         );
+    }
+
+    private static PlatformAdmin platformAdmin(Long userId, String email) {
+        User user = new User();
+        user.setId(userId);
+        user.setEmail(email);
+        PlatformAdmin admin = new PlatformAdmin();
+        admin.setUser(user);
+        return admin;
     }
 }

@@ -67,16 +67,59 @@ export default function TenantProductsPanel({
     // Guards against slow responses for a previous tenant session
     // overwriting the current one (see audit page pattern).
     const latestRequestId = useRef(0)
+    const productsSession = useRef<{host: string; sessionKey: number} | null>(null)
+    const sessionIdentity = useRef({
+        generation: 0,
+        host: getTenantSessionHostSafe(),
+        sessionKey,
+    })
+    const observedHost = getTenantSessionHostSafe()
+    if (
+        sessionIdentity.current.host !== observedHost ||
+        sessionIdentity.current.sessionKey !== sessionKey
+    ) {
+        sessionIdentity.current = {
+            generation: sessionIdentity.current.generation + 1,
+            host: observedHost,
+            sessionKey,
+        }
+    }
+
+    function captureSession(): {generation: number; host: string | null} {
+        return {
+            generation: sessionIdentity.current.generation,
+            host: getTenantSessionHostSafe(),
+        }
+    }
+
+    function isCurrentSession(captured: {
+        generation: number
+        host: string | null
+    }): boolean {
+        return (
+            sessionIdentity.current.generation === captured.generation &&
+            captured.host !== null &&
+            getTenantSessionHostSafe() === captured.host
+        )
+    }
 
     const loadProducts = useCallback(() => {
-        if (!getTenantSessionHost()) {
+        const host = getTenantSessionHost()
+        if (!host) {
             latestRequestId.current += 1
+            productsSession.current = null
             setHasSession(false)
             setProducts([])
             setGrants([])
+            setRules([])
             setSelectedProductId(null)
             return
         }
+
+        const sessionChanged =
+            productsSession.current?.host !== host ||
+            productsSession.current?.sessionKey !== sessionKey
+        productsSession.current = {host, sessionKey}
 
         const requestId = latestRequestId.current + 1
         latestRequestId.current = requestId
@@ -87,8 +130,11 @@ export default function TenantProductsPanel({
         // Drop previous-tenant data synchronously so it never flashes while
         // the new tenant's products load.
         setProducts([])
-        setGrants([])
         setSelectedProductId(null)
+        setRules([])
+        if (sessionChanged) {
+            setGrants([])
+        }
 
         listTenantProducts()
             .then((products) => {
@@ -131,7 +177,7 @@ export default function TenantProductsPanel({
                 }
                 setIsLoading(false)
             })
-    }, [])
+    }, [sessionKey])
 
     useEffect(() => {
         loadProducts()
@@ -143,8 +189,13 @@ export default function TenantProductsPanel({
         () =>
             subscribeToTenantTokenStore(() => {
                 if (getTenantSessionHostSafe() === null) {
+                    latestRequestId.current += 1
+                    productsSession.current = null
                     setHasSession(false)
                     setProducts([])
+                    setGrants([])
+                    setRules([])
+                    setSelectedProductId(null)
                 }
             }),
         []
@@ -152,6 +203,7 @@ export default function TenantProductsPanel({
 
     async function handleCreate(event: FormEvent<HTMLFormElement>): Promise<void> {
         event.preventDefault()
+        const requestSession = captureSession()
         setError(null)
         setStatus(null)
 
@@ -170,11 +222,17 @@ export default function TenantProductsPanel({
                 sortOrder: Number.isSafeInteger(sortOrder) ? sortOrder : 0,
                 offeringType: newOfferingType,
             })
+            if (!isCurrentSession(requestSession)) {
+                return
+            }
             setNewSlug('')
             setNewTitle('')
             setStatus('Product created.')
             loadProducts()
         } catch (requestError: unknown) {
+            if (!isCurrentSession(requestSession)) {
+                return
+            }
             if (
                 requestError instanceof Error &&
                 requestError.message === CONFLICT
@@ -193,30 +251,44 @@ export default function TenantProductsPanel({
         if (!confirmed) {
             return
         }
+        const requestSession = captureSession()
         setError(null)
         setStatus(null)
         try {
             await deleteTenantData<SubscriptionProduct>(`tenant/products/${productId}`)
+            if (!isCurrentSession(requestSession)) {
+                return
+            }
             setStatus('Product deactivated.')
             loadProducts()
         } catch {
+            if (!isCurrentSession(requestSession)) {
+                return
+            }
             setError('Could not deactivate product.')
         }
     }
 
     async function loadRules(productId: number): Promise<void> {
+        const requestSession = captureSession()
         setSelectedProductId(productId)
         setError(null)
         try {
             const result = await getTenantData<ProductAccessRule[]>(
                 `tenant/products/${productId}/rules`
             )
+            if (!isCurrentSession(requestSession)) {
+                return
+            }
             if (!Array.isArray(result)) {
                 setError('Could not load rules.')
                 return
             }
             setRules(result)
         } catch {
+            if (!isCurrentSession(requestSession)) {
+                return
+            }
             setError('Could not load rules.')
         }
     }
@@ -225,6 +297,7 @@ export default function TenantProductsPanel({
         if (selectedProductId === null) {
             return
         }
+        const requestSession = captureSession()
 
         setError(null)
         setStatus(null)
@@ -246,15 +319,22 @@ export default function TenantProductsPanel({
                 `tenant/products/${selectedProductId}/rules`,
                 {rules: rulesPayload}
             )
+            if (!isCurrentSession(requestSession)) {
+                return
+            }
             setRules(Array.isArray(saved) ? saved : [])
             setStatus('Rules saved.')
         } catch {
+            if (!isCurrentSession(requestSession)) {
+                return
+            }
             setError('Could not save rules (PACKAGE products only).')
         }
     }
 
     async function handleGrant(event: FormEvent<HTMLFormElement>): Promise<void> {
         event.preventDefault()
+        const requestSession = captureSession()
         setError(null)
         setStatus(null)
 
@@ -278,10 +358,16 @@ export default function TenantProductsPanel({
                     productId,
                 }
             )
+            if (!isCurrentSession(requestSession)) {
+                return
+            }
             setGrants((current) => [grant, ...current])
             setGrantEmail('')
             setStatus(`Granted ${grant.email} → ${grant.productTitle}`)
         } catch (requestError: unknown) {
+            if (!isCurrentSession(requestSession)) {
+                return
+            }
             if (
                 requestError instanceof Error &&
                 requestError.message === REQUEST_FAILED
@@ -300,10 +386,14 @@ export default function TenantProductsPanel({
         if (!confirmed) {
             return
         }
+        const requestSession = captureSession()
         try {
             const revoked = await deleteTenantData<SubscriptionGrant>(
                 `tenant/subscriptions/${subscriptionId}`
             )
+            if (!isCurrentSession(requestSession)) {
+                return
+            }
             setGrants((current) =>
                 current.map((grant) =>
                     grant.id === subscriptionId ? revoked : grant
@@ -311,6 +401,9 @@ export default function TenantProductsPanel({
             )
             setStatus(`Revoked subscription ${subscriptionId}.`)
         } catch {
+            if (!isCurrentSession(requestSession)) {
+                return
+            }
             setError('Revoke failed.')
         }
     }

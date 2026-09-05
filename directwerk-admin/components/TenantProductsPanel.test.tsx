@@ -4,7 +4,7 @@ import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest'
 
 import TenantProductsPanel from '@/components/TenantProductsPanel'
 import {tenantTokenStore} from '@/lib/auth/tenantTokenStore'
-import type {SubscriptionProduct} from '@directwerk/api/types'
+import type {ProductAccessRule, SubscriptionProduct} from '@directwerk/api/types'
 
 const listTenantProducts = vi.fn()
 const getTenantData = vi.fn()
@@ -33,6 +33,14 @@ function packageProduct(overrides: Partial<SubscriptionProduct> = {}): Subscript
         active: true,
         ...overrides,
     } as SubscriptionProduct
+}
+
+function deferred<T>(): {promise: Promise<T>; resolve: (value: T) => void} {
+    let resolve!: (value: T) => void
+    const promise = new Promise<T>((accept) => {
+        resolve = accept
+    })
+    return {promise, resolve}
 }
 
 beforeEach(() => {
@@ -132,5 +140,54 @@ describe('TenantProductsPanel', () => {
         await waitFor(() =>
             expect(screen.getAllByText('Pro').length).toBeGreaterThanOrEqual(1)
         )
+    })
+
+    it('preserves grants when products are refreshed after creation', async () => {
+        const user = userEvent.setup()
+        postTenantData.mockImplementation(async (path: string) => {
+            if (path === 'tenant/subscriptions') {
+                return {
+                    id: 9,
+                    email: 'reader@example.com',
+                    productId: 1,
+                    productTitle: 'Pro',
+                    status: 'ACTIVE',
+                }
+            }
+            return packageProduct({id: 2, slug: 'plus', title: 'Plus'})
+        })
+        render(<TenantProductsPanel sessionKey={0} />)
+
+        await screen.findByRole('button', {name: 'Grant'})
+        await user.type(screen.getByLabelText('Email'), 'reader@example.com')
+        await user.click(screen.getByRole('button', {name: 'Grant'}))
+        expect(await screen.findByText('reader@example.com')).toBeInTheDocument()
+
+        await user.type(screen.getByLabelText('Slug'), 'plus')
+        await user.type(screen.getByLabelText('Title'), 'Plus')
+        await user.click(screen.getByRole('button', {name: 'Create'}))
+
+        await waitFor(() => expect(listTenantProducts).toHaveBeenCalledTimes(2))
+        expect(screen.getByText('reader@example.com')).toBeInTheDocument()
+    })
+
+    it('ignores a stale rules response after switching tenant sessions', async () => {
+        const user = userEvent.setup()
+        const pendingRules = deferred<ProductAccessRule[]>()
+        getTenantData.mockReturnValueOnce(pendingRules.promise)
+        const {rerender} = render(<TenantProductsPanel sessionKey={0} />)
+
+        await user.click(await screen.findByRole('button', {name: 'Edit rules'}))
+        tenantTokenStore.setTokens(
+            {access_token: 'tenant-b-access', expires_in: 900},
+            'tenant-b.localhost',
+        )
+        rerender(<TenantProductsPanel sessionKey={1} />)
+        pendingRules.resolve([
+            {id: 77, scopeType: 'ALL_PODCASTS', scopeId: null, effect: 'ALLOW'},
+        ] as ProductAccessRule[])
+
+        await waitFor(() => expect(listTenantProducts).toHaveBeenCalledTimes(2))
+        expect(screen.queryByText('ALL_PODCASTS')).not.toBeInTheDocument()
     })
 })

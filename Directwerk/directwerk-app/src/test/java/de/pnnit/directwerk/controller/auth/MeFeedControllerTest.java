@@ -50,9 +50,8 @@ class MeFeedControllerTest {
                 subscriberFeedService,
                 new FeedUrlResolver(tenantPublicHostResolver)
         );
-        // Pass-through for fixture tokens (production rows are encrypted).
         lenient().when(subscriberFeedService.revealToken(any())).thenAnswer(
-                invocation -> ((SubscriberFeed) invocation.getArgument(0)).getFeedToken());
+                invocation -> ((SubscriberFeed) invocation.getArgument(0)).getFeedToken().substring("enc:".length()));
     }
 
     @Test
@@ -74,6 +73,7 @@ class MeFeedControllerTest {
         assertThat(view.formatIds()).isEmpty();
         assertThat(view.formats()).isEmpty();
         verify(subscriberFeedService).ensureDefaultFeed(5L, 1L);
+        verify(subscriberFeedService).revealToken(feed);
     }
 
     @Test
@@ -210,7 +210,7 @@ class MeFeedControllerTest {
         SubscriberFeed feed = new SubscriberFeed();
         feed.setId(1L);
         feed.setTenant(tenant);
-        feed.setFeedToken(feedToken);
+        feed.setFeedToken("enc:" + feedToken);
         feed.setTitle("Default Feed");
         feed.setDefaultFeed(true);
         feed.setEnabled(true);

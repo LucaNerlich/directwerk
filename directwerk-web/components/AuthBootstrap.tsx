@@ -45,7 +45,9 @@ export default function AuthBootstrap({
 }>) {
     const pathname = usePathname()
     const router = useRouter()
-    const [ready, setReady] = useState(() => isPublicPath(pathname))
+    const [readyPathname, setReadyPathname] = useState<string | null>(() =>
+        isPublicPath(pathname) ? pathname : null
+    )
 
     useEffect(() => {
         let active = true
@@ -53,14 +55,14 @@ export default function AuthBootstrap({
         async function bootstrap(): Promise<void> {
             if (isPublicPath(pathname) && !isProtectedPath(pathname)) {
                 if (active) {
-                    setReady(true)
+                    setReadyPathname(pathname)
                 }
                 return
             }
 
             if (getAccessToken() === null) {
                 if (active) {
-                    setReady(false)
+                    setReadyPathname(null)
                     router.replace('/login')
                 }
                 return
@@ -69,18 +71,18 @@ export default function AuthBootstrap({
             try {
                 await ensureAuthenticated()
                 if (active) {
-                    setReady(true)
+                    setReadyPathname(pathname)
                 }
             } catch (error: unknown) {
                 if (!active) {
                     return
                 }
                 if (error instanceof Error && error.message === AUTH_REQUIRED) {
-                    setReady(false)
+                    setReadyPathname(null)
                     router.replace('/login')
                     return
                 }
-                setReady(false)
+                setReadyPathname(null)
                 router.replace('/login')
             }
         }
@@ -92,7 +94,7 @@ export default function AuthBootstrap({
         }
     }, [pathname, router])
 
-    if (!ready && isProtectedPath(pathname)) {
+    if (readyPathname !== pathname && isProtectedPath(pathname)) {
         return <p>Wird geladen…</p>
     }
 

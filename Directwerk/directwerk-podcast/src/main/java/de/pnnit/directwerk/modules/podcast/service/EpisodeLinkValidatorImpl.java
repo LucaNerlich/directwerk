@@ -1,6 +1,8 @@
 package de.pnnit.directwerk.modules.podcast.service;
 
+import de.pnnit.directwerk.modules.core.RequiresModule;
 import de.pnnit.directwerk.modules.digital.api.EpisodeLinkValidator;
+import de.pnnit.directwerk.modules.podcast.PodcastModule;
 import de.pnnit.directwerk.modules.podcast.exception.EpisodeNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -11,6 +13,7 @@ import org.springframework.stereotype.Service;
  */
 @Service
 @RequiredArgsConstructor
+@RequiresModule(PodcastModule.KEY)
 public class EpisodeLinkValidatorImpl implements EpisodeLinkValidator {
 
     private final EpisodeService episodeService;

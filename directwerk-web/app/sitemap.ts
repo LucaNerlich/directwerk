@@ -29,6 +29,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     // forwarded host.
     const firstHost = rawHost?.split(',')[0]?.trim() ?? null
     const validatedHost = parseTenantHost(firstHost)
+    if (validatedHost === null) {
+        return []
+    }
     const origin = resolveTenantOrigin(validatedHost)
 
     // Static routes carry no per-request timestamp: `lastModified` must be
