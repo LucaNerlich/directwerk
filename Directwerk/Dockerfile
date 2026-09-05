@@ -16,7 +16,8 @@ COPY directwerk-subscription ./directwerk-subscription
 COPY directwerk-stripe-billing ./directwerk-stripe-billing
 COPY directwerk-app ./directwerk-app
 
-RUN chmod +x gradlew \
+RUN --mount=type=cache,target=/root/.gradle/caches \
+    chmod +x gradlew \
     && ./gradlew :directwerk-app:bootJar --no-daemon -x test
 
 FROM eclipse-temurin:21-jre-alpine
@@ -25,8 +26,7 @@ RUN apk add --no-cache curl \
     && adduser -S directwerk -G directwerk
 
 WORKDIR /app
-COPY --from=build /workspace/directwerk-app/build/libs/directwerk-app.jar ./app.jar
-RUN chown directwerk:directwerk app.jar
+COPY --from=build --chown=directwerk:directwerk /workspace/directwerk-app/build/libs/directwerk-app.jar ./app.jar
 
 USER directwerk
 EXPOSE 8080

@@ -21,7 +21,8 @@ COPY . /ctx
 RUN chmod +x /ctx/scripts/docker-assemble-app.sh \
     && /ctx/scripts/docker-assemble-app.sh directwerk-admin
 
-RUN pnpm install --frozen-lockfile --filter directwerk-admin...
+RUN --mount=type=cache,target=/root/.local/share/pnpm/store \
+    pnpm install --frozen-lockfile --filter directwerk-admin...
 
 ENV NEXT_TELEMETRY_DISABLED=1
 RUN mkdir -p directwerk-admin/public \
@@ -40,16 +41,14 @@ ENV HOSTNAME=0.0.0.0
 
 RUN addgroup -S nextjs && adduser -S nextjs -G nextjs
 
-COPY --from=build /deploy ./
+COPY --from=build --chown=nextjs:nextjs /deploy ./
 # next.config.ts imports ../packages/next-config (monorepo path outside /app)
-COPY --from=build /workspace/packages/next-config /packages/next-config
-
-RUN chown -R nextjs:nextjs /app /packages
+COPY --from=build --chown=nextjs:nextjs /workspace/packages/next-config /packages/next-config
 
 USER nextjs
 EXPOSE 3001
 
-HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
     CMD node -e "fetch('http://127.0.0.1:' + process.env.PORT + '/api/health').then((r) => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"
 
 CMD ["sh", "-c", "node node_modules/next/dist/bin/next start -p ${PORT}"]
