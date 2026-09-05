@@ -134,3 +134,34 @@ Accept: application/json
         );
     });
 %}
+###
+
+### @name bulkImportEpisodes
+POST {{baseUrl}}/api/v1/podcast/import/bulk
+Host: {{tenantAHost}}
+Authorization: Bearer {{tenantAAccessToken}}
+Content-Type: application/json
+Accept: application/json
+
+{
+  "feedUrl": "https://example.com/podcast.xml",
+  "seriesId": {{podcastSeriesId}},
+  "formatIds": [],
+  "accessPolicy": "FREE",
+  "importAudio": true,
+  "importImage": true
+}
+
+> {%
+    client.test("Bulk import episodes", function() {
+        client.assert(
+            response.status === 202 || response.status === 400
+                || response.status === 403 || response.status === 404 || response.status === 503,
+            "Expected queued, validation, or storage gate"
+        );
+        if (response.status === 202) {
+            client.assert(typeof response.body.data.jobId === "string", "Expected jobId");
+            client.assert(typeof response.body.data.totalEpisodes === "number", "Expected totalEpisodes");
+        }
+    });
+%}

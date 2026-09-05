@@ -1,0 +1,39 @@
+meta {
+  name: 4 - Bulk Import Episodes
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{baseUrl}}/api/v1/podcast/import/bulk
+  body: json
+  auth: inherit
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "feedUrl": "https://example.com/podcast.xml",
+    "seriesId": {{podcastSeriesId}},
+    "formatIds": [],
+    "accessPolicy": "FREE",
+    "importAudio": true,
+    "importImage": true
+  }
+}
+
+tests {
+  test("returns expected status", function() {
+    expect([202, 400, 403, 404, 503]).to.include(res.getStatus());
+  });
+}
+
+docs {
+  Previews the feed synchronously, then queues one background job importing
+  every not-yet-imported episode with the shared defaults (202). Already
+  imported episodes are skipped; a summary email goes to the requesting editor
+  when the job finishes. Queued duplicates coalesce via correlation id.
+}

@@ -8,6 +8,7 @@ import type {Me, RssImportPreview, SeriesSummary} from '@directwerk/api/types'
 
 const previewRssFeed = vi.fn()
 const importRssEpisode = vi.fn()
+const bulkImportRss = vi.fn()
 const ingestRemoteAssetWithProgress = vi.fn()
 const createSeries = vi.fn()
 const createFormat = vi.fn()
@@ -39,6 +40,7 @@ vi.mock('@/lib/media/remoteIngest', () => ({
 vi.mock('@/lib/api/podcastImportApi', () => ({
     previewRssFeed: (...args: unknown[]) => previewRssFeed(...args),
     importRssEpisode: (...args: unknown[]) => importRssEpisode(...args),
+    bulkImportRss: (...args: unknown[]) => bulkImportRss(...args),
 }))
 vi.mock('@/lib/api/mediaApi', () => ({
     deleteMedia: (...args: unknown[]) => deleteMedia(...args),
@@ -174,6 +176,12 @@ beforeEach(() => {
     })
     ingestRemoteAssetWithProgress.mockResolvedValue({id: 99})
     deleteMedia.mockResolvedValue({id: 99})
+    bulkImportRss.mockResolvedValue({
+        jobId: 'job-1',
+        totalEpisodes: 2,
+        alreadyImported: 1,
+        notifyEmail: 'admin@example.com',
+    })
     importRssEpisode.mockResolvedValue({
         alreadyImported: false,
         episode: {
@@ -380,8 +388,7 @@ describe('RssImportWizard', () => {
         expect(screen.getByText('Folge 1 von 2')).toBeInTheDocument()
     })
 
-    it('advances past an existing episode without counting it as skipped', async () => {
-        previewRssFeed.mockResolvedValue({
+    it('advances past an existing episode without counting it as skipped', async () => {        previewRssFeed.mockResolvedValue({
             ...preview,
             episodes: [
                 {...preview.episodes[0], alreadyImportedEpisodeId: 42},
@@ -405,5 +412,43 @@ describe('RssImportWizard', () => {
                 screen.getByText(/0 Folgen importiert, 1 bereits vorhanden, 1 übersprungen/),
             ).toBeInTheDocument(),
         )
+    })
+
+    it('queues all new episodes with shared defaults and shows the queued state', async () => {
+        previewRssFeed.mockResolvedValue({
+            ...preview,
+            episodes: [
+                {...preview.episodes[0], alreadyImportedEpisodeId: null},
+                {...preview.episodes[1], alreadyImportedEpisodeId: 42},
+            ],
+        })
+        const user = userEvent.setup()
+        renderWizard()
+        await loadFeed()
+        await user.click(screen.getByRole('button', {name: 'Weiter zu Formaten'}))
+        await waitFor(() => expect(screen.getByText('Formate zuordnen')).toBeInTheDocument())
+
+        expect(
+            screen.getByText(/1 neue Folgen mit diesen Einstellungen importieren/),
+        ).toBeInTheDocument()
+
+        await user.click(screen.getByRole('button', {name: /als Hintergrund-Job importieren/i}))
+
+        await waitFor(() =>
+            expect(screen.getByText('Stapelimport gestartet')).toBeInTheDocument(),
+        )
+        expect(bulkImportRss).toHaveBeenCalledWith('tenant.test', {
+            feedUrl: preview.feedUrl,
+            seriesId: 7,
+            formatIds: [],
+            accessPolicy: 'FREE',
+            requiredLevelSortOrder: undefined,
+            importAudio: true,
+            importImage: true,
+        })
+        expect(
+            screen.getByText(/E-Mail an admin@example\.com/),
+        ).toBeInTheDocument()
+        expect(importRssEpisode).not.toHaveBeenCalled()
     })
 })
