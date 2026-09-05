@@ -6,7 +6,7 @@
 
 Viele Podcaster und Publisher hängen heute an Patreon, Steady oder einem geschlossenen CMS. Domain, Abonnentenliste und Ausspielung liegen woanders. Directwerk geht den anderen Weg: Du bekommst die Infrastruktur, die Marke bleibt deine.
 
-Directwerk ist eine Multi-Tenant-Whitelabel-Plattform für digitales Publishing. Primär Podcast, dazu Abonnements, private RSS-Feeds und (schrittweise) Artikel. Creators arbeiten im Studio. Hörer kommen über die Website, den Podcatcher oder beides. Agenturen können das Frontend selbst bauen und sprechen dieselbe REST-API an.
+Directwerk ist eine Multi-Tenant-Whitelabel-Plattform für digitales Publishing. Primär Podcast, dazu Abonnements, private RSS-Feeds und (schrittweise) Artikel. Das Backend mit REST-API unter `/api/v1/` ist der Vertrag. Darum herum liegen fünf sichtbare Oberflächen, die unterschiedliche Jobs erledigen.
 
 ## Was das Problem ist
 
@@ -14,60 +14,105 @@ Mitgliedschaft, Podcast-Hosting und Website sind oft drei Tools. Abonnenten-Date
 
 Für Agenturen kommt noch dazu: Ein monolithisches CMS lässt sich schlecht als Whitelabel für zehn Kunden betreiben. Jeder Kunde braucht Isolation, eigene Domain, eigene Module, aber keine zehn Deployments.
 
-## Was Directwerk liefert
+## Die Apps im Überblick
 
-Das Produkt ist im Kern das Backend. Darum herum liegen die Apps, die die meisten Creators brauchen:
+| App | Rolle | Wer nutzt sie |
+|-----|------|----------------|
+| `homepage` | Marketing der Plattform | Interessenten, Presse, Integratoren auf dem Weg zur Doku |
+| `directwerk-admin` | Plattform-Betrieb | Platform-Admins |
+| `directwerk-studio` | Creator-Dashboard | Tenant-Admins, Editoren |
+| `directwerk-web` | Öffentliche Site + Abonnenten-Portal | Hörer, Gäste, zahlende Mitglieder |
+| `directwerk-docs` | Öffentliche Dokumentation | Operatoren, Agenturen, API-Clients |
 
-| Schicht | Name | Aufgabe |
-|--------|------|---------|
-| Creator-Dashboard | `directwerk-studio` | Episoden, Medien, Produkte, Team |
-| Öffentliche Site | `directwerk-web` | Marketing, Pricing, Account, private Feeds |
-| Plattform-Betrieb | `directwerk-admin` | Mandanten, Module, Jobs, Storage |
-| Vertrag | REST API unter `/api/v1/` | Alles, was Studio und Web können, auch maschinell |
+Frontend pro Mandant ist optional. Entweder Referenz-UI von uns, oder ihr bringt euer eigenes mit. Beides hängt am gleichen API-Vertrag.
 
-Frontend pro Mandant ist optional. Entweder Referenz-UI von uns, oder ihr bringt euer eigenes mit. Beides hängt am gleichen API-Vertrag. OpenAPI ist Teil des Produkts, kein Nachtrag.
+## homepage
 
-## Der Weg vom Setup zum privaten Feed
+Die `homepage` ist die Marketing-Site der Plattform (z. B. `directwerk.org`). Sie erklärt das Produkt, den Creator-Pfad und den Stack. Sie ist **nicht** die Website eines einzelnen Podcasts.
 
-1. **Einrichten**  
-   Mandant anlegen, Domain verbinden, Branding und Module aktivieren.
+Typische Flächen:
 
-2. **Veröffentlichen**  
-   Audio und Medien hochladen, Episoden im Studio freigeben.
+- Landing mit Problem, Produktstack und Creator-Journey
+- `/developers` mit einem API-Ausschnitt und Link zur vollen Doku
+- Kontaktformular gegen die Directwerk-API
 
-3. **Monetarisieren**  
-   Produkte definieren (LEVEL und PACKAGE), Stripe anbinden, Abonnenten verwalten.
+Wer hier landet, soll verstehen: Directwerk ist Infrastruktur unter eigener Marke, nicht noch eine geschlossene Creator-Plattform. Danach geht es entweder in die Doku, zum Kontakt oder (für uns intern) in Admin und Studio.
 
-4. **Ausliefern**  
-   Öffentliche Feeds für Reichweite, private URLs pro Abonnent, optional Feed-Builder für Formate.
+## directwerk-admin
 
-Das ist der Alltagspfad ohne API-Kenntnisse. Darunter liegt die technische Schicht, die den Alltag möglich macht.
+`directwerk-admin` ist die Betriebs-Konsole für die Plattform. Hier entstehen Mandanten, hier werden Module geschaltet, Domains und Storage betrachtet. Creators und Hörer kommen hier nicht hin.
 
-## Praxis: Liedermacherleben in fünf Minuten
+Kernaufgaben:
 
-Theorie ist schön. Besser ist, wenn der nächste Tenant wirklich schnell steht.
+- Tenant anlegen, suspendieren, Module zuweisen
+- Domains und Verifikation im Blick behalten
+- Platform-weite Jobs und Ops-Flächen
 
-Auf Coolify läuft inzwischen ein zweites Domain-Setup: Wildcard `*.directwerk.org`. Damit bekommt jeder Mandant eine Subdomain, ohne pro Show DNS und TLS von Hand zu verdrahten. In `directwerk-admin` habe ich Simons Podcast **Liedermacherleben** als neuen Tenant angelegt: Mandant, Domain, Module. Ungefähr fünf Minuten, dann war die Marke unter der eigenen Subdomain erreichbar.
+### Praxis: Liedermacherleben in fünf Minuten
 
-Was noch fehlt, ist der Inhalt: RSS-Import in `directwerk-studio`. Sobald der Feed drin ist, hängen Episoden, öffentliche Feeds und der Rest am gleichen Stack wie jeder andere Tenant. Der Betriebsschritt (Domain + Isolation) und der Redaktionsschritt (Import) sind bewusst getrennt. Admin richtet die Welt ein, Studio füllt sie.
+Auf Coolify läuft ein Wildcard-Setup `*.directwerk.org`. Damit bekommt jeder Mandant eine Subdomain, ohne pro Show DNS und TLS von Hand zu verdrahten. In Admin habe ich Simons Podcast **Liedermacherleben** als neuen Tenant angelegt: Mandant, Domain, Module. Ungefähr fünf Minuten, dann war die Marke unter der eigenen Subdomain erreichbar.
 
-Genau dafür ist das Multi-Tenant-Modell gebaut: zweiter Creator, gleiche Infrastruktur, kein zweites Deployment.
+Admin richtet die Welt ein. Den Inhalt liefert danach Studio.
 
-## Multi-Tenancy: ein Deployment, viele Marken
+## directwerk-studio
 
-Jeder Creator (oder jede Agentur-Kundenmarke) ist ein **Tenant**. Traffic wird über den Host aufgelöst: Nur verifizierte Domains binden Anfragen. JWT und Host müssen denselben Tenant ergeben, sonst gibt es `403 TENANT_MISMATCH`.
+`directwerk-studio` ist das Publisher-Backoffice. Hier arbeiten nicht-technische Creators und Redaktionen: Medien hochladen, Episoden und Artikel pflegen, Produkte und Abonnenten verwalten, Branding und Domains für den Tenant.
 
-Technisch heißt das:
+Creators müssen die REST-API nicht kennen. Studio spricht denselben `/api/v1/`-Vertrag wie jede Agentur-Integration.
+
+Typischer Alltag:
+
+1. Serie und Formate anlegen
+2. Audio und Cover in die Media Library
+3. Episoden schreiben, `FREE`/`PAID` setzen, veröffentlichen
+4. LEVEL- und PACKAGE-Produkte pflegen, Stripe anbinden
+5. Team und Rollen im Tenant
+
+Beim Liedermacherleben-Onboarding fehlt genau der nächste Schritt: **RSS-Import in Studio**. Sobald der bestehende Feed drin ist, hängen Episoden, öffentliche Feeds und der Rest am gleichen Stack wie jeder andere Tenant. Betrieb (Admin) und Redaktion (Studio) bleiben bewusst getrennt.
+
+## directwerk-web
+
+`directwerk-web` ist die Referenz-Website **pro Mandant**: Marketing der Show, Pricing, Registrierung, Account und private Feeds. Auf der Tenant-Domain (oder der `*.directwerk.org`-Subdomain) landet der Hörer hier, nicht auf der Plattform-Homepage.
+
+Was die App abdeckt:
+
+- Öffentliche Flächen: Show, freie Episoden, Preise
+- Abonnenten-Portal: Login, Abo-Status, persönliche Feed-URLs
+- Checkout-Pfade gegen Stripe (soweit angebunden)
+
+Agenturen können `directwerk-web` ersetzen und trotzdem Studio und Admin behalten. Die API bleibt der Vertrag. Für die meisten Creators ist die Referenz-App aber der schnellste Weg zu einer fertigen Hörer-Oberfläche.
+
+## directwerk-docs
+
+`directwerk-docs` ist die öffentliche Doku-Site (VitePress). Install, Betrieb, Architektur und die interaktive API-Referenz leben hier. Die internen Markdown-Dateien unter `docs/` und `Directwerk/docs/` bleiben die Quellen fürs Team; die VitePress-Site kuratiert, was nach außen geht.
+
+Interessant für Integratoren:
+
+- OpenAPI kommt aus dem laufenden Spring-Boot (Export per Gradle), nicht aus handgeschriebenem Spec-Drift
+- Operator-Themen wie Multi-Tenancy, Assets, RSS und Entitlements haben eigene Seiten
+- Dieselbe Wahrheit wie Bruno/`.http`-Harness und Controller: API-first auch in der Doku
+
+Wer ein BYO-Frontend baut, startet hier. Wer nur Studio nutzt, braucht die Doku selten, aber sie existiert als Produktlieferung, nicht als Nebenbei-Wiki.
+
+## Was darunter liegt
+
+Die fünf Apps sind Clients. Die gemeinsame Schicht macht Whitelabel erst möglich.
+
+### Multi-Tenancy
+
+Jeder Creator (oder jede Agentur-Kundenmarke) ist ein **Tenant**. Traffic wird über den Host aufgelöst. Nur verifizierte Domains binden Anfragen. JWT und Host müssen denselben Tenant ergeben, sonst `403 TENANT_MISMATCH`.
+
+Technisch:
 
 - Shared Schema in PostgreSQL, Zeilen mit `tenant_id`
-- Hibernate-Filter und Write-Guards gegen Leaks zwischen Mandanten
+- Hibernate-Filter und Write-Guards
 - Users global, Zugehörigkeit über `tenant_memberships`
 - Domain-Verifikation per DNS-TXT (`directwerk-verify=…`)
-- In Produktion u. a. Wildcard-Hosts wie `*.directwerk.org` über Coolify, damit neue Tenants ohne Extra-Zertifikat-Tanz live gehen
+- In Produktion Wildcard-Hosts wie `*.directwerk.org` über Coolify
 
-Für den Creator fühlt sich das wie „meine Seite auf meiner Domain“ an. Für den Betrieb ist es ein Deployment mit klarer Isolation.
+Zweiter Creator, gleiche Infrastruktur, kein zweites Deployment. Genau das hat das Liedermacherleben-Setup gezeigt.
 
-## Module statt Feature-Forks
+### Module
 
 Nicht jeder Tenant braucht alles. Module schalten Fähigkeiten frei, ohne den Code zu forken:
 
@@ -77,41 +122,27 @@ DIGITAL_CONTENT  →  PODCAST  →  PODCAST_RSS  →  FEED_BUILDER
                  →  BONUS_CONTENT
 ```
 
-Dazu kommen Abonnements, Stripe-Billing und (geplant) Patreon/Steady-Sync. Fehlt ein Modul, antwortet die öffentliche Oberfläche mit `403 FEATURE_NOT_ENABLED`. Keine leeren Kataloge, die so tun, als gäbe es den Tenant nicht.
+Fehlt ein Modul, antwortet die öffentliche Oberfläche mit `403 FEATURE_NOT_ENABLED`.
 
-## Inhalte und Zugriffe: FREE vs PAID
+### Zugriffe: FREE vs PAID
 
-Zugang läuft in zwei Schritten:
-
-1. **Content-Gate** am Inhalt: `accessPolicy` ist `FREE` oder `PAID`
-2. **Entitlement-Gate** nur bei `PAID`: Union aller aktiven Abos des Users
+1. **Content-Gate:** `accessPolicy` ist `FREE` oder `PAID`
+2. **Entitlement-Gate** nur bei `PAID`: Union aller aktiven Abos
 
 Zwei Produkttypen:
 
-- **LEVEL** – Stufenleiter über `sortOrder`. Wer Level 3 hat, sieht Inhalte bis Level 3.
-- **PACKAGE** – benannte Bundles. Regeln matchen Serie, Format, Kategorie oder „alles Podcast“.
+- **LEVEL** – Stufenleiter über `sortOrder`
+- **PACKAGE** – Bundles über Regeln (Serie, Format, Kategorie, …)
 
-Wichtig: Die Rolle `SUBSCRIBER` bedeutet nur „kann sich anmelden“. Freigeschaltet ist, was die aktiven Subscriptions hergeben. Admins und Editoren können Preview-Wege nutzen; Hörer bekommen nur, was sie bezahlt oder freigeschaltet haben.
+Die Rolle `SUBSCRIBER` bedeutet nur „kann sich anmelden“. Freigeschaltet ist, was die aktiven Subscriptions hergeben.
 
-## RSS: öffentlich für alle, privat pro Hörer
+### RSS und Assets
 
-Öffentliche Feeds (`podcast.xml` und vergleichbare Artikel-Feeds) tragen freie Inhalte. Geeignet für Apple Podcasts, Spotify, Fyyd und Co.
+Öffentliche Feeds tragen freie Inhalte (Apple, Spotify, Fyyd, …). Private Feeds sind tokenisierte URLs pro Abonnent mit Entitlement-Filter. Der optionale Feed-Builder filtert Formate; der Entitlement-Filter bleibt aktiv.
 
-Private Feeds sind tokenisierte URLs pro Abonnent. Der Entitlement-Filter sitzt im Feed selbst: Der Podcatcher sieht nur Episoden, die das Abo freischaltet. Token lassen sich rotieren und widerrufen. Der optionale Feed-Builder lässt Hörer Formate zusammenstellen; der Filter bleibt trotzdem aktiv. Ohne Filter würde der Feed bezahlte Episoden leaken. Das ist hart verdrahtet.
+Audio und Dateien liegen in S3-kompatiblem EU-Storage, Keys tenant-präfixiert. Private Bytes nur über signierte URLs nach Entitlement-Check.
 
-Beispielhafte Form (schematisch):
-
-```text
-https://podcast.beispiel.de/feeds/show/u/<persönlicher-token>.xml
-```
-
-## Assets: alles in Object Storage
-
-Audio und Dateien liegen in S3-kompatiblem Storage (EU, z. B. Hetzner/Bunny), Keys tenant-präfixiert. Öffentliche und private Sichtbarkeit sind getrennt. Private Bytes laufen über signierte URLs nach Entitlement-Check (`AssetAccessService`). Uploads gehen über Presign in einen Staging-Bereich mit Mime-/Size-Allowlist.
-
-Kurz: Die Datei ist nicht „irgendwo im CMS“, sondern ein adressierbares Asset mit klarer Zugangsregel.
-
-## Stack (kurz und ehrlich)
+### Stack
 
 | Bereich | Technik |
 |--------|---------|
@@ -120,24 +151,17 @@ Kurz: Die Datei ist nicht „irgendwo im CMS“, sondern ein adressierbares Asse
 | Auth | OAuth2 Resource Server / Auth Server, JWT mit `tenant_id` |
 | Jobs / Mail | Postgres-Queue, Mailpit lokal |
 | Frontends | Next.js, shared UI-Paket `@directwerk/ui` |
+| Docs | VitePress + exportierte OpenAPI |
 | Billing | Stripe Connect (Scaffold), Patreon/Steady als Sync-Pfad |
 | Betrieb | Docker, Coolify auf Hetzner |
 
-Lokal startet Infra mit Compose (Postgres + Mailpit), die App mit `bootRun`. Health unter `/actuator/health`, Swagger unter `/swagger-ui.html`.
-
-## API-first als Arbeitsregel
-
-Jede Fähigkeit hat einen REST-Endpunkt. Studio und Web sind Clients derselben API. Keine UI-only-Workflows. Fehler tragen strukturierte `code`-Felder für Integratoren. Bruno-Collection und `.http`-Harness bleiben mit Controllern synchron, damit manuelle Tests nicht wegrutschen.
-
-Für Agenturen heißt das: Ihr könnt ein eigenes Frontend bauen und trotzdem Studio für die Redaktion lassen. Oder nur die API nutzen und alles selbst verdrahten.
+Jede Fähigkeit hat einen REST-Endpunkt. Studio, Web und Admin sind Clients derselben API. Fehler tragen strukturierte `code`-Felder. Bruno und `.http`-Harness bleiben mit Controllern synchron.
 
 ## Was schon steht, was noch kommt
 
-**Alpha / vorhanden (Stand Doku 2026-08):** Multi-Tenancy, Module, Studio/Web/Admin-Referenz, Podcast-Domain, öffentliches und privates RSS, Entitlements, Asset-Storage, Stripe-Scaffold.
+**Alpha / vorhanden:** Multi-Tenancy, Module, Admin/Studio/Web/Docs/Homepage, Podcast-Domain, öffentliches und privates RSS, Entitlements, Asset-Storage, Stripe-Scaffold, Wildcard-Onboarding wie bei Liedermacherleben.
 
-**Danach u. a.:** härteres Stripe-Billing, Patreon/Steady-Migration mit Dual-Run, Artikel-Desk ausbauen, Plattform-SaaS-Billing für Tenants, E-Mail-Alerts, Outbound-Webhooks, GDPR-Export/Delete.
-
-Directwerk ist also kein fertiges „alles für jeden“-Produkt im Patreon-Sinne, sondern eine Infrastruktur, die den Membership-Podcast-Stack unter eigener Marke trägt und API-seitig erweiterbar bleibt.
+**Danach u. a.:** härteres Stripe-Billing, Patreon/Steady-Migration, Artikel-Desk ausbauen, Plattform-SaaS-Billing, E-Mail-Alerts, Outbound-Webhooks, GDPR-Export/Delete.
 
 ## Für wen das Sinn ergibt
 
@@ -153,7 +177,8 @@ Wenn du eher ein integriertes Blog+Newsletter-Produkt suchst (à la Ghost), ist 
 - Entitlements: `docs/content-subscriptions-and-entitlements.md`
 - Multi-Tenancy: `Directwerk/docs/multi-tenancy.md`
 - Asset-Storage: `docs/asset-storage.md`
-- Öffentliche Doku (VitePress): `directwerk-docs/`
+- Öffentliche Doku: `directwerk-docs/`
+- Marketing-Site: `homepage/`
 
 ---
 
