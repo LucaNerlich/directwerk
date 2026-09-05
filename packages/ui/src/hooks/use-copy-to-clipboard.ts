@@ -38,11 +38,7 @@ async function copyToClipboard(text: string): Promise<boolean> {
     } catch {
         return false
     } finally {
-        try {
-            area?.remove()
-        } catch {
-            // Copy failures stay non-fatal even if DOM cleanup also fails.
-        }
+        area?.remove()
     }
 }
 

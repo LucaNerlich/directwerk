@@ -2,6 +2,7 @@
 
 import {parseMediaAssetEnvelope} from '@directwerk/api/validation/catalog'
 
+import {AUTH_REQUIRED} from '@directwerk/api/constants'
 import type {IngestRemoteAssetInput, MediaAsset} from '@directwerk/api/types'
 import {getIngestAsset} from '@/lib/api/podcastImportApi'
 import {jsonInit, studioMutate} from '@/lib/api/studioApiCore'
@@ -38,7 +39,13 @@ async function waitForRemoteIngest(
         let asset: MediaAsset
         try {
             asset = await getIngestAsset(tenantHost, assetId)
-        } catch {
+        } catch (error: unknown) {
+            if (
+                error instanceof Error &&
+                (error.message === AUTH_REQUIRED || error.name === 'AbortError')
+            ) {
+                throw error
+            }
             throw new Error(INGEST_FAILED_MESSAGE)
         }
 
