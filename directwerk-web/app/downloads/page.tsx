@@ -18,7 +18,7 @@ import {userFacingDownloadsError} from '@/lib/billing/userFacingBillingError'
 import {formatBytes} from '@directwerk/api/format/bytes'
 import {isAllowedFeedUrl} from '@directwerk/api/validation/primitives'
 import type {SubscriberDownload} from '@directwerk/api/types'
-import {getClientTenantHost} from '@/lib/tenant/clientHost'
+import {getWebClientTenantHost} from '@/lib/tenant/clientHost'
 import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
 
 function packageHint(item: SubscriberDownload): string | null {
@@ -42,7 +42,7 @@ function packageHint(item: SubscriberDownload): string | null {
 export default function DownloadsPage(): React.JSX.Element {
     const router = useRouter()
     const authRedirect = useAuthRequired()
-    const tenantHost = getClientTenantHost()
+    const tenantHost = getWebClientTenantHost()
     const [downloads, setDownloads] = useState<SubscriberDownload[]>([])
     const [errorMessage, setErrorMessage] = useState<string | null>(null)
     const [isLoading, setIsLoading] = useState(true)

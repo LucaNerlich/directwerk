@@ -6,7 +6,7 @@ import {useCallback, useEffect, useState} from 'react'
 import {listMyFeeds} from '@/lib/api/client'
 import {AUTH_REQUIRED} from '@directwerk/api/constants'
 import type {SubscriberFeedView} from '@directwerk/api/types'
-import {getClientTenantHost} from '@/lib/tenant/clientHost'
+import {getWebClientTenantHost} from '@/lib/tenant/clientHost'
 import {userFacingFeedsError} from '@/lib/billing/userFacingBillingError'
 
 export interface SubscriberFeedsState {
@@ -40,7 +40,7 @@ export function useSubscriberFeeds(isAuthenticated: boolean): SubscriberFeedsSta
         setIsLoading(true)
         setError(null)
 
-        listMyFeeds(getClientTenantHost())
+        listMyFeeds(getWebClientTenantHost())
             .then((feedList) => {
                 if (!active) {
                     return

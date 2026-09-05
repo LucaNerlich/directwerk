@@ -22,7 +22,7 @@ import type {
     SubscriberFeedView,
     SubscriptionSummary,
 } from '@directwerk/api/types'
-import {getClientTenantHost} from '@/lib/tenant/clientHost'
+import {getWebClientTenantHost} from '@/lib/tenant/clientHost'
 import {userFacingBillingError} from '@/lib/billing/userFacingBillingError'
 
 export interface AccountDashboardState {
@@ -71,7 +71,7 @@ export function useAccountDashboard(): AccountDashboardState {
 
     useEffect(() => {
         let isCurrent = true
-        const tenantHost = getClientTenantHost()
+        const tenantHost = getWebClientTenantHost()
         Promise.all([
             getMe(tenantHost),
             getAccess(tenantHost),
@@ -195,7 +195,7 @@ export function useAccountDashboard(): AccountDashboardState {
         setPrefsMessageKind(null)
         try {
             const result = await updateNotificationPreferences(
-                getClientTenantHost(),
+                getWebClientTenantHost(),
                 nextValue,
             )
             setEmailNotificationsEnabled(result.emailNotificationsEnabled)
@@ -222,7 +222,7 @@ export function useAccountDashboard(): AccountDashboardState {
         try {
             const returnUrl = `${window.location.origin}/account`
             const portalUrl = await createPortalSession(
-                getClientTenantHost(),
+                getWebClientTenantHost(),
                 returnUrl,
             )
             if (portalUrl === null) {

@@ -23,12 +23,12 @@ import {usePublicProducts} from '@/lib/catalog/usePublicProducts'
 import {useSubscriberAuth} from '@/lib/auth/useSubscriberAuth'
 import {useSubscriberFeeds} from '@/lib/auth/useSubscriberFeeds'
 import {formatDuration} from '@/lib/format/content'
-import {getClientTenantHost} from '@/lib/tenant/clientHost'
+import {getWebClientTenantHost} from '@/lib/tenant/clientHost'
 import {webPublicPodcastFeedUrl} from '@/lib/feeds/webPublicFeedUrl'
 import {formatPublishedAt} from '@directwerk/api/format/datetime'
 
 export default function EpisodesPage() {
-    const tenantHost = getClientTenantHost()
+    const tenantHost = getWebClientTenantHost()
     const {isAuthenticated} = useSubscriberAuth()
     const {siteConfig, series, episodes, errorMessage, isLoading} = usePublicCatalog({
         tenantHost,

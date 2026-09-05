@@ -14,7 +14,7 @@ const listMySubscriptions = vi.fn()
 
 vi.mock('next/navigation', () => ({useRouter: () => router}))
 vi.mock('@/lib/tenant/clientHost', () => ({
-    getClientTenantHost: () => 'tenant.example',
+    getWebClientTenantHost: () => 'tenant.example',
 }))
 vi.mock('@/lib/api/client', () => ({
     createPortalSession: vi.fn(),

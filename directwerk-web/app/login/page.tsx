@@ -17,7 +17,7 @@ import {parseLoginInput} from '@directwerk/api/validation/input'
 import {setTokens} from '@/lib/auth/tokenStore'
 import {safeReturnTo} from '@/lib/auth/safeReturnTo'
 import {userFacingAuthError} from '@/lib/billing/userFacingBillingError'
-import {getClientTenantHost} from '@/lib/tenant/clientHost'
+import {getWebClientTenantHost} from '@/lib/tenant/clientHost'
 
 interface LoginState {
     error: string | null
@@ -42,7 +42,7 @@ function LoginForm() {
             }
 
             try {
-                const tokens = await login(getClientTenantHost(), input)
+                const tokens = await login(getWebClientTenantHost(), input)
                 setTokens(tokens)
                 window.location.assign(returnTo)
                 return INITIAL_STATE

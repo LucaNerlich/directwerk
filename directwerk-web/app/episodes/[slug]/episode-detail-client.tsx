@@ -22,7 +22,7 @@ import {usePublicProducts} from '@/lib/catalog/usePublicProducts'
 import type {PublicEpisode} from '@directwerk/api/types'
 import {formatPublishedAt} from '@directwerk/api/format/datetime'
 import {formatDuration} from '@/lib/format/content'
-import {getClientTenantHost} from '@/lib/tenant/clientHost'
+import {getWebClientTenantHost} from '@/lib/tenant/clientHost'
 
 function readTokenClient(): string | null {
     return getAccessToken()
@@ -46,7 +46,7 @@ export default function EpisodeDetailClient({
     /** Preloaded public catalog entry rendered server-side; skips the public fetch. */
     initialPublicEpisode?: PublicEpisode | null
 }): React.JSX.Element {
-    const tenantHost = getClientTenantHost()
+    const tenantHost = getWebClientTenantHost()
     const accessToken = useSyncExternalStore(
         subscribeToTokenStore,
         readTokenClient,

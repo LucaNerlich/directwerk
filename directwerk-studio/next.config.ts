@@ -7,6 +7,12 @@ const nextConfig: NextConfig = {
     async redirects() {
         return [
             {
+                // Former workspace-picker route; the picker now lives on `/login`.
+                source: '/select-tenant',
+                destination: '/login',
+                permanent: true,
+            },
+            {
                 source: '/manage/formats',
                 destination: '/podcast/formats',
                 permanent: true,

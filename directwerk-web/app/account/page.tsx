@@ -34,7 +34,7 @@ import {userFacingGeneralError} from '@/lib/billing/userFacingBillingError'
 import {formatPublishedAt} from '@directwerk/api/format/datetime'
 
 import {clearTokens} from '@/lib/auth/tokenStore'
-import {getClientTenantHost} from '@/lib/tenant/clientHost'
+import {getWebClientTenantHost} from '@/lib/tenant/clientHost'
 
 interface LogoutState {
     complete: boolean
@@ -126,7 +126,7 @@ export default function AccountPage() {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'X-Tenant-Host': getClientTenantHost(),
+                        'X-Tenant-Host': getWebClientTenantHost(),
                     },
                     body: '{}',
                 })

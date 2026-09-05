@@ -25,7 +25,7 @@ import {formatMoney} from '@directwerk/api/format'
 import {formatDuration} from '@/lib/format/content'
 import {webPublicFeedUrls} from '@/lib/feeds/webPublicFeedUrl'
 import {useSiteConfig} from '@/lib/site/SiteConfigProvider'
-import {getClientTenantHost} from '@/lib/tenant/clientHost'
+import {getWebClientTenantHost} from '@/lib/tenant/clientHost'
 import {useSubscriberAuth} from '@/lib/auth/useSubscriberAuth'
 
 export default function HomePage(): React.JSX.Element {
@@ -36,7 +36,7 @@ export default function HomePage(): React.JSX.Element {
     const showArticles =
         config.enabledModules.includes('DIGITAL_CONTENT') || showPodcast
     const showPricing = config.enabledModules.includes('SUBSCRIPTION')
-    const tenantHost = getClientTenantHost()
+    const tenantHost = getWebClientTenantHost()
     const {podcast: podcastFeedUrl, articles: articleFeedUrl} = webPublicFeedUrls(
         config,
         tenantHost,
