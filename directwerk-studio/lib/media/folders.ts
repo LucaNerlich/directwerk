@@ -2,7 +2,7 @@
 
 import type {MediaAsset, MediaFolder} from '@directwerk/api/types'
 
-export const MAX_FOLDER_NAME_LENGTH = 255
+const MAX_FOLDER_NAME_LENGTH = 255
 
 /** Maximum nesting depth enforced by the API. Root-level folders are depth 1. */
 export const MAX_FOLDER_DEPTH = 8

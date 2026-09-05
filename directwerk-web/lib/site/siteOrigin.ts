@@ -6,7 +6,7 @@
  * request host is used over HTTPS. `https://localhost` is the last-resort
  * fallback so metadata generation never throws.
  */
-export function originFromHost(raw: string): string {
+function originFromHost(raw: string): string {
     const host = raw.includes('://') ? new URL(raw).host : raw
     return `https://${host}`
 }

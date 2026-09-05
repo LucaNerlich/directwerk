@@ -37,7 +37,7 @@ export function createDirectwerkContentSecurityPolicy(
  * deliberately CSP-free: apps that need CSP add it at their own response
  * boundary, using a per-request proxy nonce or app-specific headers.
  */
-export function directwerkSecurityHeaders(): {key: string; value: string}[] {
+function directwerkSecurityHeaders(): {key: string; value: string}[] {
     return [
         {key: 'X-Content-Type-Options', value: 'nosniff'},
         {key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin'},

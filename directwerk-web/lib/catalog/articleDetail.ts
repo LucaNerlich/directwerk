@@ -8,7 +8,7 @@ const {parsePublicArticleEnvelope} = createWebPublicParsers()
 const NOT_FOUND_PATTERN = /(status 404|\(404\))/
 
 /** True when a transport error message carries an HTTP 404 status. */
-export function isNotFoundError(error: unknown): boolean {
+function isNotFoundError(error: unknown): boolean {
     return error instanceof Error && NOT_FOUND_PATTERN.test(error.message)
 }
 

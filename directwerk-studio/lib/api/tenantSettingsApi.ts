@@ -171,18 +171,6 @@ export async function replaceUserRestrictions(
     )
 }
 
-export async function getUserEffectiveRights(
-    tenantHost: string,
-    userId: number,
-): Promise<EffectiveRights> {
-    return studioGet(
-        `/api/proxy/tenant/users/${userId}/effective-rights`,
-        tenantHost,
-        parseEffectiveRightsEnvelope,
-        'Der Server hat ungültige Rechtdaten gesendet.',
-    )
-}
-
 export async function getMyEffectiveRights(tenantHost: string): Promise<EffectiveRights> {
     return studioGet(
         '/api/proxy/me/effective-rights',

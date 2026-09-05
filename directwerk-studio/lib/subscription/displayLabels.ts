@@ -25,19 +25,6 @@ export function subscriptionStatusLabel(status: string): string {
     }
 }
 
-export function billingIntervalLabel(interval: string | null | undefined): string {
-    switch (interval) {
-        case 'MONTH':
-            return 'Monatlich'
-        case 'YEAR':
-            return 'Jährlich'
-        case 'ONE_TIME':
-            return 'Einmalig'
-        default:
-            return interval ?? '—'
-    }
-}
-
 export function offeringTypeLabel(offeringType: string | null | undefined): string {
     switch (offeringType) {
         case 'LEVEL':
