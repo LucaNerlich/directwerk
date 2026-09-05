@@ -7,13 +7,10 @@ import de.pnnit.directwerk.modules.digital.api.MediaAssetLifecycleApi;
 import de.pnnit.directwerk.modules.digital.api.UploadApi;
 import de.pnnit.directwerk.modules.digital.service.MediaAssetLifecycleService;
 import de.pnnit.directwerk.modules.digital.service.UploadService;
-import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.TestPropertySource;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.presigner.S3Presigner;
@@ -28,29 +25,11 @@ import software.amazon.awssdk.services.s3.presigner.S3Presigner;
         "directwerk.storage.bucket=directwerk-test",
         "directwerk.storage.endpoint=https://de-s3.storage.bunnycdn.com",
         "directwerk.storage.force-path-style=true",
-        "directwerk.storage.public-cdn-base-url=https://cdn.example.test"
+        "directwerk.storage.public-cdn-base-url=https://cdn.example.test",
+        "directwerk.storage.access-key=test-access-key",
+        "directwerk.storage.secret-key=test-secret-key"
 })
 class StorageEnabledContextTest {
-
-    @DynamicPropertySource
-    static void registerEphemeralSecrets(DynamicPropertyRegistry registry) {
-        registry.add(
-                "directwerk.security.platform-client-secret",
-                () -> "test-platform-" + UUID.randomUUID()
-        );
-        registry.add(
-                "directwerk.security.tenant-client-secret",
-                () -> "test-tenant-" + UUID.randomUUID()
-        );
-        registry.add(
-                "directwerk.storage.access-key",
-                () -> "test-access-" + UUID.randomUUID()
-        );
-        registry.add(
-                "directwerk.storage.secret-key",
-                () -> "test-secret-" + UUID.randomUUID()
-        );
-    }
 
     @Autowired
     private UploadApi uploadApi;

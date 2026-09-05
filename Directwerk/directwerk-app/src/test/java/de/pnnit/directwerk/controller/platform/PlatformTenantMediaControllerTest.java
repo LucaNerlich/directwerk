@@ -24,7 +24,6 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -33,8 +32,6 @@ import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -57,14 +54,6 @@ class PlatformTenantMediaControllerTest {
 
     @MockitoBean
     private MediaAssetRepository mediaAssetRepository;
-
-    @DynamicPropertySource
-    static void registerEphemeralSecrets(DynamicPropertyRegistry registry) {
-        String platformClientSecret = "test-platform-" + UUID.randomUUID();
-        String tenantClientSecret = "test-tenant-" + UUID.randomUUID();
-        registry.add("directwerk.security.platform-client-secret", () -> platformClientSecret);
-        registry.add("directwerk.security.tenant-client-secret", () -> tenantClientSecret);
-    }
 
     @Test
     @WithMockUser(roles = "PLATFORM_ADMIN")

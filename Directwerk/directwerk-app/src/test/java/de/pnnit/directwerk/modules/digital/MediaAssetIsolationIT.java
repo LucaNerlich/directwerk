@@ -73,8 +73,6 @@ class MediaAssetIsolationIT {
 
     @DynamicPropertySource
     static void registerSecrets(DynamicPropertyRegistry registry) {
-        registry.add("directwerk.security.platform-client-secret", () -> "test-platform-" + UUID.randomUUID());
-        registry.add("directwerk.security.tenant-client-secret", () -> "test-tenant-" + UUID.randomUUID());
         registry.add("directwerk.queue.enabled", () -> "false");
         registry.add("spring.quartz.auto-startup", () -> "false");
     }

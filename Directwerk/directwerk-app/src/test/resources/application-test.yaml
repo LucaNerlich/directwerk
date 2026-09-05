@@ -25,8 +25,8 @@ directwerk:
         audience: directwerk-api
         platform-client-id: directwerk-platform-admin
         tenant-client-id: directwerk-tenant-frontend
-        platform-client-secret: ${DIRECTWERK_PLATFORM_CLIENT_SECRET:}
-        tenant-client-secret: ${DIRECTWERK_TENANT_CLIENT_SECRET:}
+        platform-client-secret: test-platform-secret
+        tenant-client-secret: test-tenant-secret
         authorization-store: memory
     email:
         provider: none

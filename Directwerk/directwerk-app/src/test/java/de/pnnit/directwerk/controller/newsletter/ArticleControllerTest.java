@@ -12,7 +12,6 @@ import de.pnnit.directwerk.modules.newsletter.exception.ArticleNotFoundException
 import de.pnnit.directwerk.modules.newsletter.service.ArticlePublicationWorkflowService;
 import de.pnnit.directwerk.modules.newsletter.service.ArticleService;
 import de.pnnit.directwerk.multitenancy.TenantContext;
-import java.util.UUID;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -22,8 +21,6 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -43,14 +40,6 @@ class ArticleControllerTest {
 
     @MockitoBean
     private ModuleGateService moduleGateService;
-
-    @DynamicPropertySource
-    static void registerEphemeralSecrets(DynamicPropertyRegistry registry) {
-        String platformClientSecret = "test-platform-" + UUID.randomUUID();
-        String tenantClientSecret = "test-tenant-" + UUID.randomUUID();
-        registry.add("directwerk.security.platform-client-secret", () -> platformClientSecret);
-        registry.add("directwerk.security.tenant-client-secret", () -> tenantClientSecret);
-    }
 
     @BeforeEach
     void setUpTenantContext() {

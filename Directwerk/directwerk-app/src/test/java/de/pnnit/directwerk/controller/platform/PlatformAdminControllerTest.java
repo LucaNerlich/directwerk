@@ -25,8 +25,6 @@ import org.springframework.security.oauth2.jwt.JwtEncoder;
 import org.springframework.security.oauth2.jwt.JwtEncoderParameters;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 
 @SpringBootTest
@@ -48,14 +46,6 @@ class PlatformAdminControllerTest {
 
     private Long firstAdminUserId;
     private Long secondAdminUserId;
-
-    @DynamicPropertySource
-    static void registerEphemeralSecrets(DynamicPropertyRegistry registry) {
-        String platformClientSecret = "test-platform-" + UUID.randomUUID();
-        String tenantClientSecret = "test-tenant-" + UUID.randomUUID();
-        registry.add("directwerk.security.platform-client-secret", () -> platformClientSecret);
-        registry.add("directwerk.security.tenant-client-secret", () -> tenantClientSecret);
-    }
 
     @BeforeEach
     void seedAdmins() {
