@@ -2,7 +2,7 @@ import type {Metadata} from 'next'
 import {Geist, Geist_Mono} from 'next/font/google'
 
 import MarketingShell from '@/components/marketing/MarketingShell'
-import UmamiAnalytics from '@/components/UmamiAnalytics'
+import UmamiAnalytics from '@directwerk/ui/components/umami-analytics'
 
 import './globals.css'
 
@@ -34,7 +34,7 @@ export default function RootLayout({
         <html lang="de" className={`${geistSans.variable} ${geistMono.variable}`}>
             <body className="min-h-screen antialiased">
                 <div aria-hidden="true" className="aurora-bg" />
-                <UmamiAnalytics />
+                <UmamiAnalytics maskLevel="moderate" />
                 <MarketingShell>{children}</MarketingShell>
             </body>
         </html>

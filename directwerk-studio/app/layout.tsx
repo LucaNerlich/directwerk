@@ -1,7 +1,7 @@
 import type {Metadata} from 'next'
 import {connection} from 'next/server'
 
-import UmamiAnalytics from '@/components/UmamiAnalytics'
+import UmamiAnalytics from '@directwerk/ui/components/umami-analytics'
 
 import './globals.css'
 

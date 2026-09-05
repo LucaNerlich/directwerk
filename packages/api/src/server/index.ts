@@ -6,10 +6,13 @@ export {
 } from './fetchSiteConfigServer'
 export {
     createTenantLoginRoute,
+    createTenantPassthroughAuthRoute,
     createTenantRefreshRoute,
+    type PassthroughAuthRouteCodes,
     type TenantAuthRouteConfig,
     type TenantLoginRouteConfig,
     type TenantOAuthFetchRequest,
+    type TenantPassthroughAuthRouteConfig,
 } from './authRoutes'
 export {
     createServerTransport,

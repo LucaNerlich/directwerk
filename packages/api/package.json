@@ -20,7 +20,7 @@
         "./media/browserUpload": "./src/media/browserUpload.ts",
         "./content/sanitizeContentHtml": "./src/content/sanitizeContentHtml.ts",
         "./proxy": "./src/proxy/index.ts",
-        "./proxy/*": "./src/proxy/*",
+        "./proxy/*": "./src/proxy/*.ts",
         "./proxy/platformRouteHandler": "./src/proxy/platformRouteHandler.ts",
         "./tenant": "./src/tenant/index.ts",
         "./validation": "./src/validation/index.ts",

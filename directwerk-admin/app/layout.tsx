@@ -3,7 +3,7 @@ import {connection} from 'next/server'
 
 import AuthBootstrap from '@/components/AuthBootstrap'
 import Header from '@/components/Header'
-import UmamiAnalytics from '@/components/UmamiAnalytics'
+import UmamiAnalytics from '@directwerk/ui/components/umami-analytics'
 
 import './globals.css'
 

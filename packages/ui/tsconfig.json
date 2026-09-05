@@ -10,7 +10,7 @@
         "jsx": "react-jsx",
         "skipLibCheck": true,
         "isolatedModules": true,
-        "types": ["vitest/globals", "@testing-library/jest-dom"],
+        "types": ["vitest/globals", "@testing-library/jest-dom", "node"],
         "baseUrl": ".",
         "paths": {
             "#components": ["./src/components"],
