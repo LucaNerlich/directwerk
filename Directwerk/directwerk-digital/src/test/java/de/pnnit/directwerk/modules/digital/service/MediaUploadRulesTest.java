@@ -170,4 +170,14 @@ class MediaUploadRulesTest {
         assertThatThrownBy(() -> MediaUploadRules.sanitizeFilename("."))
                 .isInstanceOf(UploadValidationException.class);
     }
+
+    @Test
+    void detectsGenericFilenameStems() {
+        assertThat(MediaUploadRules.isGenericFilenameStem("download")).isTrue();
+        assertThat(MediaUploadRules.isGenericFilenameStem(" Download ")).isTrue();
+        assertThat(MediaUploadRules.isGenericFilenameStem("EPISODE")).isTrue();
+        assertThat(MediaUploadRules.isGenericFilenameStem("folge-1")).isFalse();
+        assertThat(MediaUploadRules.isGenericFilenameStem("my-show-ep12")).isFalse();
+        assertThat(MediaUploadRules.isGenericFilenameStem(null)).isFalse();
+    }
 }

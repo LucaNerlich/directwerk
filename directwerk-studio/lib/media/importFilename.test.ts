@@ -1,6 +1,6 @@
 import {describe, expect, it} from 'vitest'
 
-import {filenameFromImportUrl} from '@/lib/media/importFilename'
+import {filenameFromImportUrl, isGenericFilenameStem} from '@/lib/media/importFilename'
 
 describe('filenameFromImportUrl', () => {
     it('uses the last path segment from an absolute URL', () => {
@@ -27,8 +27,23 @@ describe('filenameFromImportUrl', () => {
     })
 
     it('keeps segments with uppercase extensions', () => {
-        expect(filenameFromImportUrl('https://cdn.example/Episode.MP3', 'episode.mp3')).toBe(
-            'Episode.MP3',
+        expect(filenameFromImportUrl('https://cdn.example/Finale.MP3', 'episode.mp3')).toBe(
+            'Finale.MP3',
         )
+    })
+
+    it('falls back for generic stems that identify nothing', () => {
+        expect(filenameFromImportUrl('https://cdn.example/download.mp3', 'episode.mp3')).toBe(
+            'episode.mp3',
+        )
+        expect(filenameFromImportUrl('https://cdn.example/Download.MP3?x=1', 'episode.mp3')).toBe(
+            'episode.mp3',
+        )
+        expect(filenameFromImportUrl('https://cdn.example/Episode.MP3', 'episode.mp3')).toBe(
+            'episode.mp3',
+        )
+        expect(isGenericFilenameStem('download')).toBe(true)
+        expect(isGenericFilenameStem(' Download ')).toBe(true)
+        expect(isGenericFilenameStem('folge-1')).toBe(false)
     })
 })

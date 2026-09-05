@@ -9,6 +9,7 @@ import de.pnnit.directwerk.modules.digital.entity.MediaAsset;
 import de.pnnit.directwerk.modules.digital.exception.UploadValidationException;
 import de.pnnit.directwerk.modules.digital.net.RemoteContentClient;
 import de.pnnit.directwerk.modules.digital.net.RemoteUrlValidator;
+import de.pnnit.directwerk.modules.digital.service.MediaUploadRules;
 import de.pnnit.directwerk.modules.podcast.PodcastModule;
 import de.pnnit.directwerk.modules.podcast.entity.Episode;
 import de.pnnit.directwerk.modules.podcast.exception.RssImportException;
@@ -347,8 +348,16 @@ public class PodcastImportService {
         if (query >= 0) {
             last = last.substring(0, query);
         }
-        if (last.lastIndexOf('.') > 0) {
-            return last;
+        int dot = last.lastIndexOf('.');
+        if (dot > 0) {
+            if (!MediaUploadRules.isGenericFilenameStem(last.substring(0, dot))) {
+                return last;
+            }
+            // Generic stem (e.g. download.mp3): keep the real extension, but
+            // derive a readable stem from the episode title.
+            String slug = ImportSlugSuggester.suggest(title);
+            String stem = "folge".equals(slug) ? fallbackStem : slug;
+            return stem + last.substring(dot);
         }
         String slug = ImportSlugSuggester.suggest(title);
         String stem = "folge".equals(slug) ? fallbackStem : slug;
