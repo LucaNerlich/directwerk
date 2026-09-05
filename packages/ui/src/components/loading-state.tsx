@@ -4,11 +4,9 @@ import {Skeleton} from '#components/skeleton'
 import {cn} from '#lib/utils'
 
 /**
- * Shared loading fallback for list, form, and panel clients.
- *
- * Replaces ad-hoc `<p>Wird geladen…</p>` placeholders with a consistent
- * `role="status"` live region plus skeleton bars. The message is announced
- * by screen readers; the skeleton artwork is hidden from assistive tech.
+ * Shared loading fallback for list, form, and panel clients: a `role="status"`
+ * live region plus skeleton bars. The message is announced by screen readers;
+ * the skeleton artwork is hidden from assistive tech.
  */
 export default function LoadingState({
     message,

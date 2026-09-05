@@ -55,12 +55,6 @@ import {getClientTenantHost} from '@directwerk/api/tenant'
 import {safeImageSrc} from '@/lib/url/safeUrl'
 import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
 
-/**
- * Determines the supported media category for a file.
- *
- * @param file - The file to classify by MIME type and filename extension.
- * @returns The file's media category, or `null` if the file type is unsupported.
- */
 function resolveAssetType(
     file: File,
 ): 'AUDIO' | 'IMAGE' | 'VIDEO' | 'DOCUMENT' | null {

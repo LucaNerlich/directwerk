@@ -17,12 +17,6 @@ interface RecentAuditTableProps {
     events: PlatformAuditEvent[]
 }
 
-/**
- * Renders a table of recent platform audit events.
- *
- * @param events - The audit events to display
- * @returns The rendered audit event table
- */
 export default function RecentAuditTable({
     events,
 }: RecentAuditTableProps): React.JSX.Element {

@@ -68,14 +68,6 @@ export function sanitizePastedHtml(html: string): string {
  * the cursor: images are embedded as `<img>`, audio/video/documents as links.
  * Private assets are excluded by the picker — their preview URLs expire and
  * must never end up in public HTML.
- *
- * @param value - The editor's HTML content.
- * @param onChange - Called with the updated HTML content.
- * @param label - The label displayed above the editor.
- * @param placeholder - The placeholder displayed when the editor is empty.
- * @param disabled - Disables editing and toolbar controls when `true`.
- * @param allowMediaInsert - Shows the "Medium" toolbar button when `true`.
- * @param onAuthRequired - Called when the media library reports an expired session.
  */
 export default function ShowNotesEditor({
     value,

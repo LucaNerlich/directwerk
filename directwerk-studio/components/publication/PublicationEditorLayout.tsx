@@ -94,7 +94,6 @@ interface PublicationEditorLayoutProps {
  * @param publishBlockedReason - Explains why publication is unavailable, when applicable.
  * @param slugTaken - Checks whether a proposed slug is already in use.
  * @param sidebarExtra - Additional content rendered below the publication controls.
- * @returns The publication editor layout.
  */
 export default function PublicationEditorLayout({
     kind,

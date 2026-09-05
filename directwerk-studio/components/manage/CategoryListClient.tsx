@@ -16,11 +16,6 @@ import type {CategorySummary} from '@directwerk/api/types'
 import {getClientTenantHost} from '@directwerk/api/tenant'
 import {useAuthedQuery} from '@directwerk/api/client/useAuthedQuery'
 
-/**
- * Displays and manages the podcast categories for the current organisation.
- *
- * @returns The rendered category management page
- */
 export default function CategoryListClient(): React.JSX.Element {
     const {viewMode, setViewMode} = useListViewMode()
     const {data: categories, error: errorMessage, isLoading, reload} = useAuthedQuery<

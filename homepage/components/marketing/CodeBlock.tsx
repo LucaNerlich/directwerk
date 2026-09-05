@@ -3,13 +3,6 @@
 import {Button} from '@directwerk/ui/components/button'
 import {useCopyToClipboard} from '@directwerk/ui/hooks/use-copy-to-clipboard'
 
-/**
- * Displays source code in a styled, horizontally scrollable block with copy controls.
- *
- * @param code - The source code to display and copy
- * @param label - The label displayed above the code block
- * @returns The rendered code block
- */
 export default function CodeBlock({
     code,
     label,
