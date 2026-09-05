@@ -1,0 +1,35 @@
+meta {
+  name: 9 - Update Upload Limits
+  type: http
+  seq: 9
+}
+
+put {
+  url: {{baseUrl}}/api/v1/platform/tenants/{{tenantCId}}/upload-limits
+  body: json
+  auth: inherit
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "maxAudioBytes": 104857600,
+    "maxImageBytes": null,
+    "maxVideoBytes": null,
+    "maxDocumentBytes": 52428800
+  }
+}
+
+tests {
+  test("returns expected status", function() {
+    expect(res.getStatus() === 200 || res.getStatus() === 400 || res.getStatus() === 404).to.equal(true);
+  });
+}
+
+docs {
+  Sets per-type upload overrides in bytes on tenant C (null resets a type to
+  the platform default). Values are bounded 1..5368709120 (5 GiB).
+}

@@ -40,4 +40,10 @@ public interface MediaAssetQueryApi {
      * applying {@code TenantContext} so the Hibernate tenant filter scopes the query.
      */
     List<MediaAsset> listForTenant(Long tenantId, AssetType assetType, AssetStatus status, int limit);
+
+    /**
+     * Resolves the tenant's effective per-asset-type upload limits in bytes
+     * (per-tenant overrides where set, platform defaults otherwise).
+     */
+    EffectiveUploadLimits effectiveUploadLimits(Long tenantId);
 }

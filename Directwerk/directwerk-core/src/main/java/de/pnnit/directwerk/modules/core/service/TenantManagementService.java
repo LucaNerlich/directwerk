@@ -242,11 +242,34 @@ public class TenantManagementService {
     }
 
     /**
-     * Retrieves a tenant by its identifier.
+     * Updates the specified tenant's per-asset-type upload size overrides.
+     * {@code null} components reset that type to the platform default.
      *
-     * @param tenantId the tenant identifier
-     * @return the matching tenant
+     * @param tenantId the identifier of the tenant to update
+     * @param limits   the overrides to persist (validated on construction)
+     * @return the updated overrides
      */
+    @Transactional
+    public TenantUploadLimits updateUploadLimits(Long tenantId, TenantUploadLimits limits) {
+        Tenant tenant = tenantRepository.requireById(tenantId);
+        tenant.setMaxAudioBytes(limits.maxAudioBytes());
+        tenant.setMaxImageBytes(limits.maxImageBytes());
+        tenant.setMaxVideoBytes(limits.maxVideoBytes());
+        tenant.setMaxDocumentBytes(limits.maxDocumentBytes());
+        tenantRepository.save(tenant);
+        cacheEviction.evictTenantPublicCachesAfterCommit(tenantId);
+        platformAuditService.record(
+                PlatformAuditActions.TENANT_UPDATED,
+                tenantId,
+                Map.of(
+                        "maxAudioBytes", String.valueOf(limits.maxAudioBytes()),
+                        "maxImageBytes", String.valueOf(limits.maxImageBytes()),
+                        "maxVideoBytes", String.valueOf(limits.maxVideoBytes()),
+                        "maxDocumentBytes", String.valueOf(limits.maxDocumentBytes())
+                )
+        );
+        return limits;
+    }
 
     private TenantDetailView toView(Tenant tenant) {
         List<TenantDomain> domains = tenantDomainRepository.findByTenantId(tenant.getId());
@@ -265,7 +288,13 @@ public class TenantManagementService {
                 primaryDomain,
                 domains.stream()
                         .map(domain -> new TenantDomainView(domain.getHost(), domain.isPrimary(), domain.isVerified()))
-                        .toList()
+                        .toList(),
+                new TenantUploadLimits(
+                        tenant.getMaxAudioBytes(),
+                        tenant.getMaxImageBytes(),
+                        tenant.getMaxVideoBytes(),
+                        tenant.getMaxDocumentBytes()
+                )
         );
     }
 
@@ -294,7 +323,8 @@ public class TenantManagementService {
             String status,
             Instant createdAt,
             String primaryDomain,
-            List<TenantDomainView> domains
+            List<TenantDomainView> domains,
+            TenantUploadLimits uploadLimits
     ) {
     }
 

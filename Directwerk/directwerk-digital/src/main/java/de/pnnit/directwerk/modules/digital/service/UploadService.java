@@ -95,7 +95,11 @@ public class UploadService implements UploadApi {
                 null);
         Tenant tenant = tenantRepository.requireById(tenantId);
 
-        MediaUploadRules.validateMimeAndSize(command.assetType(), command.mimeType(), command.sizeBytes());
+        MediaUploadRules.validateMimeAndSize(
+                command.assetType(),
+                command.mimeType(),
+                command.sizeBytes(),
+                MediaUploadRules.limitOverride(tenant, command.assetType()));
         String filename = MediaUploadRules.sanitizeFilename(command.filename());
         if ("bin".equals(MediaUploadRules.fileExtension(filename))) {
             String ext = MediaUploadRules.extensionForMime(command.mimeType());

@@ -1,0 +1,23 @@
+meta {
+  name: 13 - Get Upload Limits
+  type: http
+  seq: 13
+}
+
+get {
+  url: {{baseUrl}}/api/v1/media/limits
+  body: none
+  auth: inherit
+}
+
+docs {
+  Effective per-type upload limits in bytes for the calling tenant
+  (per-tenant overrides where set, platform defaults otherwise). The studio
+  media library uses these for labels and pre-upload warnings.
+}
+
+tests {
+  test("returns expected status", function() {
+    expect(res.getStatus() === 200 || res.getStatus() === 503).to.equal(true);
+  });
+}

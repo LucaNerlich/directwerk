@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import de.pnnit.directwerk.modules.digital.entity.AssetType;
 import de.pnnit.directwerk.modules.digital.exception.UploadValidationException;
+import de.pnnit.directwerk.modules.core.entity.Tenant;
 import org.junit.jupiter.api.Test;
 
 class MediaUploadRulesTest {
@@ -40,6 +41,42 @@ class MediaUploadRulesTest {
         MediaUploadRules.validateMimeAndSize(AssetType.VIDEO, "video/mp4", 5L * 1024 * 1024 * 1024);
         assertThatThrownBy(() -> MediaUploadRules.validateMimeAndSize(
                 AssetType.VIDEO, "video/mp4", 5L * 1024 * 1024 * 1024 + 1
+        )).isInstanceOf(UploadValidationException.class);
+    }
+
+    @Test
+    void resolvesTenantOverrideFromEntity() {
+        Tenant tenant = new Tenant();
+        tenant.setMaxImageBytes(20L * 1024 * 1024);
+        assertThat(MediaUploadRules.limitOverride(tenant, AssetType.IMAGE)).isEqualTo(20L * 1024 * 1024);
+        assertThat(MediaUploadRules.limitOverride(tenant, AssetType.AUDIO)).isNull();
+        assertThat(MediaUploadRules.limitOverride(null, AssetType.AUDIO)).isNull();
+    }
+
+    @Test
+    void enforcesLoweredTenantOverride() {
+        MediaUploadRules.validateMimeAndSize(AssetType.IMAGE, "image/jpeg", 4L * 1024 * 1024, 5L * 1024 * 1024);
+        assertThatThrownBy(() -> MediaUploadRules.validateMimeAndSize(
+                AssetType.IMAGE, "image/jpeg", 10L * 1024 * 1024, 5L * 1024 * 1024
+        )).isInstanceOf(UploadValidationException.class);
+    }
+
+    @Test
+    void enforcesRaisedTenantOverride() {
+        MediaUploadRules.validateMimeAndSize(AssetType.IMAGE, "image/jpeg", 20L * 1024 * 1024, 25L * 1024 * 1024);
+        assertThatThrownBy(() -> MediaUploadRules.validateMimeAndSize(
+                AssetType.IMAGE, "image/jpeg", 26L * 1024 * 1024, 25L * 1024 * 1024
+        )).isInstanceOf(UploadValidationException.class);
+    }
+
+    @Test
+    void rejectsOutOfRangeOverride() {
+        assertThat(MediaUploadRules.effectiveMaxBytes(AssetType.AUDIO, null))
+                .isEqualTo(MediaUploadRules.maxBytes(AssetType.AUDIO));
+        assertThatThrownBy(() -> MediaUploadRules.effectiveMaxBytes(AssetType.AUDIO, 0L))
+                .isInstanceOf(UploadValidationException.class);
+        assertThatThrownBy(() -> MediaUploadRules.effectiveMaxBytes(
+                AssetType.AUDIO, 6L * 1024 * 1024 * 1024
         )).isInstanceOf(UploadValidationException.class);
     }
 

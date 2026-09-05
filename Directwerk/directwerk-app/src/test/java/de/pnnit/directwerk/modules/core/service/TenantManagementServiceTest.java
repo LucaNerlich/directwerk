@@ -209,4 +209,52 @@ class TenantManagementServiceTest {
         assertThat(updated.name()).isEqualTo("Renamed Only");
         assertThat(updated.slug()).isEqualTo("keep-slug");
     }
+
+    @Test
+    void updateUploadLimitsPersistsOverridesAndResetsOthersToDefault() {
+        Tenant tenant = new Tenant();
+        tenant.setId(7L);
+        when(tenantRepository.requireById(7L)).thenReturn(tenant);
+        when(tenantRepository.save(tenant)).thenReturn(tenant);
+
+        TenantUploadLimits result = service.updateUploadLimits(
+                7L, new TenantUploadLimits(100L * 1024 * 1024, null, null, 50L * 1024 * 1024));
+
+        assertThat(result.maxAudioBytes()).isEqualTo(100L * 1024 * 1024);
+        assertThat(result.maxImageBytes()).isNull();
+        assertThat(result.maxVideoBytes()).isNull();
+        assertThat(result.maxDocumentBytes()).isEqualTo(50L * 1024 * 1024);
+        assertThat(tenant.getMaxAudioBytes()).isEqualTo(100L * 1024 * 1024);
+        assertThat(tenant.getMaxImageBytes()).isNull();
+        verify(cacheEviction).evictTenantPublicCachesAfterCommit(7L);
+    }
+
+    @Test
+    void updateUploadLimitsRejectsOutOfRangeOverride() {
+        // Range validation happens in the TenantUploadLimits constructor, before
+        // any repository access — invalid input never reaches persistence.
+        assertThatThrownBy(() -> service.updateUploadLimits(
+                7L, new TenantUploadLimits(0L, null, null, null)))
+                .isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> service.updateUploadLimits(
+                7L, new TenantUploadLimits(null, 6L * 1024 * 1024 * 1024, null, null)))
+                .isInstanceOf(IllegalArgumentException.class);
+        verify(tenantRepository, never()).save(any(Tenant.class));
+    }
+
+    @Test
+    void tenantDetailViewExposesUploadLimits() {
+        Tenant tenant = new Tenant();
+        tenant.setId(7L);
+        tenant.setSlug("acme");
+        tenant.setName("Acme");
+        tenant.setStatus(TenantStatus.ACTIVE);
+        tenant.setMaxAudioBytes(100L * 1024 * 1024);
+        when(tenantRepository.requireById(7L)).thenReturn(tenant);
+
+        TenantManagementService.TenantDetailView view = service.getTenant(7L);
+
+        assertThat(view.uploadLimits().maxAudioBytes()).isEqualTo(100L * 1024 * 1024);
+        assertThat(view.uploadLimits().maxVideoBytes()).isNull();
+    }
 }

@@ -293,3 +293,23 @@ Accept: application/json
         client.assert(response.status === 200 || response.status === 404 || response.status === 503, "Expected 200/404/503");
     });
 %}
+###
+
+### @name getMediaUploadLimits
+### Effective per-type upload limits in bytes (overrides resolved).
+GET {{baseUrl}}/api/v1/media/limits
+Authorization: Bearer {{tenantAAccessToken}}
+Host: {{tenantAHost}}
+Accept: application/json
+
+> {%
+    client.test("Get media upload limits", function() {
+        client.assert(response.status === 200 || response.status === 503, "Expected 200/503");
+        if (response.status === 200) {
+            client.assert(typeof response.body.data.maxAudioBytes === "number", "Expected maxAudioBytes");
+            client.assert(typeof response.body.data.maxImageBytes === "number", "Expected maxImageBytes");
+            client.assert(typeof response.body.data.maxVideoBytes === "number", "Expected maxVideoBytes");
+            client.assert(typeof response.body.data.maxDocumentBytes === "number", "Expected maxDocumentBytes");
+        }
+    });
+%}

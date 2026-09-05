@@ -1,6 +1,6 @@
 'use server'
 
-import type {MediaAsset, TenantCreationResponse, TenantDetail, TenantDomain, TenantUser} from '@directwerk/api/types'
+import type {MediaAsset, TenantCreationResponse, TenantDetail, TenantDomain, TenantUploadLimits, TenantUser} from '@directwerk/api/types'
 import {ASSET_VISIBILITIES} from '@directwerk/api/types'
 
 import {performTenantMediaUpload} from '@/lib/server/mediaUpload'
@@ -19,12 +19,14 @@ import {
     INITIAL_INVITE_TENANT_USER_STATE,
     INITIAL_ROLE_CHANGE_STATE,
     INITIAL_TENANT_EDIT_STATE,
+    INITIAL_UPLOAD_LIMITS_STATE,
     INITIAL_UPLOAD_MEDIA_STATE,
     type CreateTenantState,
     type DomainVerifyState,
     type InviteTenantUserState,
     type RoleChangeState,
     type TenantEditState,
+    type UploadLimitsState,
     type UploadMediaState,
 } from '@/app/tenants/actionState'
 
@@ -135,6 +137,69 @@ export async function updateTenantAction(
     }
 
     return {error: null, success: 'Tenant updated.', tenant: result.data}
+}
+
+const MAX_UPLOAD_LIMIT_MB = 5120
+const UPLOAD_LIMIT_FIELDS = [
+    'maxAudioBytes',
+    'maxImageBytes',
+    'maxVideoBytes',
+    'maxDocumentBytes',
+] as const
+
+function parseLimitField(value: FormDataEntryValue | null): number | null | undefined {
+    if (value === null) {
+        return undefined
+    }
+    const text = String(value).trim()
+    if (text.length === 0) {
+        // Empty resets the type to the platform default.
+        return null
+    }
+    const megabytes = Number(text)
+    if (!Number.isFinite(megabytes) || megabytes < 1 || megabytes > MAX_UPLOAD_LIMIT_MB) {
+        return undefined
+    }
+    return Math.round(megabytes * 1024 * 1024)
+}
+
+export async function updateUploadLimitsAction(
+    tenantId: string,
+    _previousState: UploadLimitsState,
+    formData: FormData
+): Promise<UploadLimitsState> {
+    if (!NUMERIC_ID_PATTERN.test(tenantId)) {
+        return invalidTenantIdentifier(INITIAL_UPLOAD_LIMITS_STATE)
+    }
+
+    const body: Record<string, number | null> = {}
+    for (const field of UPLOAD_LIMIT_FIELDS) {
+        const parsed = parseLimitField(formData.get(field))
+        if (parsed === undefined) {
+            return {
+                ...INITIAL_UPLOAD_LIMITS_STATE,
+                error: `Enter 1–${MAX_UPLOAD_LIMIT_MB} MB per type, or leave empty for the platform default.`,
+            }
+        }
+        body[field] = parsed
+    }
+
+    const result = await callPlatformApi<TenantUploadLimits>(
+        ['tenants', tenantId, 'upload-limits'],
+        {method: 'PUT', body}
+    )
+
+    if (!result.ok) {
+        return {
+            ...INITIAL_UPLOAD_LIMITS_STATE,
+            error: statusToFormError(result.status, {
+                conflict: 'Upload limits could not be saved.',
+                fallback: 'Upload limits could not be saved. Check the values and try again.',
+            }),
+        }
+    }
+
+    return {error: null, success: 'Upload limits updated.', limits: result.data}
 }
 
 export async function forceVerifyDomainAction(

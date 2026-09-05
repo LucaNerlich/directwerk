@@ -25,6 +25,7 @@ import DomainForceVerifyForm from '@/components/DomainForceVerifyForm'
 import InviteTenantUserForm from '@/components/InviteTenantUserForm'
 import TenantAnalyticsCard from '@/components/TenantAnalyticsCard'
 import TenantEditForm from '@/components/TenantEditForm'
+import TenantUploadLimitsForm from '@/components/TenantUploadLimitsForm'
 import TenantModulesPanel from '@/components/TenantModulesPanel'
 import TenantProductsPanel from '@/components/TenantProductsPanel'
 import TenantSessionPanel from '@/components/TenantSessionPanel'
@@ -290,6 +291,12 @@ export default function TenantPage({params}: TenantPageProps) {
                                 )
                             }
                             tenant={data.tenant}
+                            tenantId={id}
+                        />
+
+                        <TenantUploadLimitsForm
+                            limits={data.tenant.uploadLimits}
+                            onSaved={() => setReloadKey((value) => value + 1)}
                             tenantId={id}
                         />
 

@@ -2,12 +2,14 @@ import {describe, expect, it} from 'vitest'
 
 import {
     createPublicContentParsers,
+    parseBulkImportQueuedEnvelope,
     parseEffectiveRightsEnvelope,
     parseImportedEpisodeEnvelope,
     parseMeEnvelope,
     parseMediaAsset,
     parseMediaFolder,
     parseMediaFolderListEnvelope,
+    parseMediaUploadLimitsEnvelope,
     parsePermissionRestriction,
     parsePermissionRestrictionListEnvelope,
     parseRssImportPreviewEnvelope,
@@ -493,6 +495,68 @@ describe('isQueueJob', () => {
         })
 
         expect(parsed?.data).toHaveLength(501)
+    })
+
+    it('parses effective media upload limits, rejecting partial bounds', () => {
+        expect(
+            parseMediaUploadLimitsEnvelope({
+                statusCode: 200,
+                statusMessage: 'OK',
+                data: {
+                    maxAudioBytes: 104857600,
+                    maxImageBytes: 20971520,
+                    maxVideoBytes: 1073741824,
+                    maxDocumentBytes: 52428800,
+                },
+                errors: [],
+                metadata: {},
+            })?.data,
+        ).toEqual({
+            maxAudioBytes: 104857600,
+            maxImageBytes: 20971520,
+            maxVideoBytes: 1073741824,
+            maxDocumentBytes: 52428800,
+        })
+        expect(
+            parseMediaUploadLimitsEnvelope({
+                statusCode: 200,
+                statusMessage: 'OK',
+                data: {maxAudioBytes: 1},
+                errors: [],
+                metadata: {},
+            }),
+        ).toBeNull()
+    })
+
+    it('parses queued bulk imports, rejecting malformed payloads', () => {
+        expect(
+            parseBulkImportQueuedEnvelope({
+                statusCode: 202,
+                statusMessage: 'OK',
+                data: {
+                    jobId: '9f2c1a4e-3b1f-4e5a-9c2d-7f6a5b4c3d2e1',
+                    totalEpisodes: 40,
+                    alreadyImported: 3,
+                    notifyEmail: 'editor@example.com',
+                },
+                errors: [],
+                metadata: {},
+            })?.data,
+        ).toEqual({
+            jobId: '9f2c1a4e-3b1f-4e5a-9c2d-7f6a5b4c3d2e1',
+            totalEpisodes: 40,
+            alreadyImported: 3,
+            notifyEmail: 'editor@example.com',
+        })
+        expect(
+            parseBulkImportQueuedEnvelope({
+                statusCode: 202,
+                statusMessage: 'OK',
+                data: {jobId: 'x', totalEpisodes: 1},
+                errors: [],
+                metadata: {},
+            }),
+        ).toBeNull()
     })
 
     it('parses media asset folder ids, tolerating older responses without one', () => {        const base = {

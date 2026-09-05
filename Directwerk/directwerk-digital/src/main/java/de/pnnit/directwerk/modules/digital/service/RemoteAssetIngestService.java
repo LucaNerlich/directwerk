@@ -284,7 +284,9 @@ public class RemoteAssetIngestService implements RemoteAssetIngestApi {
             String filename = resolveFilename(prepared.command().filenameHint(), remote.finalUri());
             String mimeType = resolveMime(prepared.assetType(), remote.contentType(), filename);
             filename = withExtensionForMime(filename, mimeType);
-            long maxBytes = MediaUploadRules.maxBytes(prepared.assetType());
+            long maxBytes = MediaUploadRules.effectiveMaxBytes(
+                    prepared.assetType(),
+                    MediaUploadRules.limitOverride(prepared.asset().getTenant(), prepared.assetType()));
             if (remote.contentLength() != null && remote.contentLength() > maxBytes) {
                 throw new UploadValidationException(
                         "UPLOAD_VALIDATION_FAILED",

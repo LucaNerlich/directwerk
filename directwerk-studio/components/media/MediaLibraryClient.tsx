@@ -26,6 +26,7 @@ import {
     deleteMedia,
     deleteMediaFolder,
     getMediaPreviewUrl,
+    getMediaUploadLimits,
     listMedia,
     listMediaFolders,
     moveMediaAsset,
@@ -33,8 +34,8 @@ import {
     renameMediaFolder,
     type MediaFolderDeleteMode,
 } from '@/lib/api/mediaApi'
-import type {MediaAsset, MediaFolder} from '@directwerk/api/types'
-import {MEDIA_TYPE_LIMITS} from '@/lib/media/limits'
+import type {MediaAsset, MediaFolder, MediaUploadLimits} from '@directwerk/api/types'
+import {MEDIA_TYPE_LIMITS, mediaLimitLabelFor, resolveMediaLimits} from '@/lib/media/limits'
 import {
     assetsInFolder,
     assetFolderId,
@@ -125,6 +126,7 @@ export default function MediaLibraryClient(): React.JSX.Element {
     const mountedRef = useRef(true)
     const [assets, setAssets] = useState<MediaAsset[]>([])
     const [folders, setFolders] = useState<MediaFolder[]>([])
+    const [uploadLimits, setUploadLimits] = useState(() => MEDIA_TYPE_LIMITS)
     const [previewUrls, setPreviewUrls] = useState<Record<number, string>>({})
     const [errorMessage, setErrorMessage] = useState<string | null>(null)
     const [statusMessage, setStatusMessage] = useState<string | null>(null)
@@ -163,8 +165,17 @@ export default function MediaLibraryClient(): React.JSX.Element {
             }),
             listMediaFolders(host),
         ])
+        // Limits are display hints only — the backend enforces the truth, so a
+        // failed fetch keeps the platform defaults instead of failing the page.
+        let effective: MediaUploadLimits | null = null
+        try {
+            effective = await getMediaUploadLimits(host)
+        } catch {
+            effective = null
+        }
         setAssets(assetResult)
         setFolders(folderResult)
+        setUploadLimits(resolveMediaLimits(effective))
 
         const privateImageIds = assetResult
             .filter((a) => a.assetType === 'IMAGE' && a.cdnUrl == null)
@@ -236,6 +247,7 @@ export default function MediaLibraryClient(): React.JSX.Element {
                 assetType,
                 visibility: 'PRIVATE',
                 folderId: folderView ?? undefined,
+                limits: uploadLimits,
                 onProgress: (percent) => {
                     if (mountedRef.current) {
                         setUploadProgress({file, progress: percent})
@@ -776,8 +788,8 @@ export default function MediaLibraryClient(): React.JSX.Element {
                         : ''}
                 </p>
                 <p className="mt-1 text-xs text-muted-foreground">
-                    Audio bis {MEDIA_TYPE_LIMITS.AUDIO.label} · Video bis {MEDIA_TYPE_LIMITS.VIDEO.label}
-                    {' · '}Bilder bis {MEDIA_TYPE_LIMITS.IMAGE.label} · Dokumente bis {MEDIA_TYPE_LIMITS.DOCUMENT.label}
+                    Audio bis {mediaLimitLabelFor(uploadLimits, 'AUDIO')} · Video bis {mediaLimitLabelFor(uploadLimits, 'VIDEO')}
+                    {' · '}Bilder bis {mediaLimitLabelFor(uploadLimits, 'IMAGE')} · Dokumente bis {mediaLimitLabelFor(uploadLimits, 'DOCUMENT')}
                 </p>
             </div>
 
