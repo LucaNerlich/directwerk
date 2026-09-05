@@ -287,7 +287,7 @@ describe('RssImportWizard', () => {
                 sourceUrl: 'https://cdn.example.com/show.jpg',
                 assetType: 'IMAGE',
                 visibility: 'PUBLIC',
-                filename: 'show.jpg',
+                filename: 'alpha-show.jpg',
             },
             expect.any(Function),
         )

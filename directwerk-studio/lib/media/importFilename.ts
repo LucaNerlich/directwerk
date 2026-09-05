@@ -39,16 +39,37 @@ function filenameOrFallback(segment: string, fallback: string): string {
     return isGenericFilenameStem(stem) ? fallback : segment
 }
 
-export function filenameFromImportUrl(url: string, fallback: string): string {
+/**
+ * Derives an import filename from a remote URL.
+ *
+ * @param preferredStem - when provided (e.g. the episode-title slug), it always
+ * wins and only the URL's real extension is kept; otherwise a meaningful URL
+ * stem is kept and generic/extensionless segments fall back.
+ */
+export function filenameFromImportUrl(url: string, fallback: string, preferredStem?: string): string {
+    const stem = preferredStem === undefined ? '' : preferredStem.trim()
+    const fallbackExtension = (() => {
+        const dot = fallback.lastIndexOf('.')
+        return dot > 0 && dot < fallback.length - 1 ? fallback.slice(dot + 1) : 'bin'
+    })()
+    const withStem = (segment: string): string => {
+        if (!hasFileExtension(segment)) {
+            return stem.length > 0 ? `${stem}.${fallbackExtension}` : fallback
+        }
+        if (stem.length > 0) {
+            return `${stem}${segment.slice(segment.lastIndexOf('.'))}`
+        }
+        return filenameOrFallback(segment, fallback)
+    }
     const trimmed = url.trim()
     if (trimmed.length === 0) {
-        return fallback
+        return stem.length > 0 ? `${stem}.${fallbackExtension}` : fallback
     }
     try {
         const parsed = new URL(trimmed)
         const slash = parsed.pathname.lastIndexOf('/')
         const last = slash >= 0 ? parsed.pathname.slice(slash + 1) : parsed.pathname
-        return filenameOrFallback(last, fallback)
+        return withStem(last)
     } catch {
         const slash = trimmed.lastIndexOf('/')
         let last = slash >= 0 ? trimmed.slice(slash + 1) : trimmed
@@ -56,6 +77,6 @@ export function filenameFromImportUrl(url: string, fallback: string): string {
         if (query >= 0) {
             last = last.slice(0, query)
         }
-        return filenameOrFallback(last, fallback)
+        return withStem(last)
     }
 }
