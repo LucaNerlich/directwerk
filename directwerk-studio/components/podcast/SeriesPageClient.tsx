@@ -17,20 +17,12 @@ import type {SeriesSummary} from '@directwerk/api/types'
 
 type SeriesListItem = SeriesSummary & {publishedAt: null}
 
-/**
- * Converts a series summary into a list item by adding its publication timestamp.
- *
- * @param series - The series summary to convert
- * @returns The series list item with no publication timestamp
- */
 function toListItem(series: SeriesSummary): SeriesListItem {
     return {...series, publishedAt: null}
 }
 
 /**
  * Renders the podcast series management page with publication controls and creation links.
- *
- * @returns The series management page.
  */
 export default function SeriesPageClient(): React.JSX.Element {
     const {

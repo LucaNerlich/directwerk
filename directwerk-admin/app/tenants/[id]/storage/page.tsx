@@ -102,11 +102,6 @@ function resolveCdnUrl(
     }
 }
 
-/**
- * Displays a tenant's media assets and storage management controls.
- *
- * @param params - Route parameters containing the tenant identifier.
- */
 export default function TenantStoragePage({params}: TenantStoragePageProps) {
     const {id} = use(params)
     const router = useRouter()

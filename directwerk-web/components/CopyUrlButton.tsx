@@ -3,13 +3,6 @@
 import {Button} from '@directwerk/ui/components/button'
 import {useCopyToClipboard} from '@directwerk/ui/hooks/use-copy-to-clipboard'
 
-/**
- * Renders a button that copies a URL to the clipboard and reports the copy status.
- *
- * @param url - The URL to copy
- * @param context - Optional context appended to the button's accessible label
- * @returns A copy button with status feedback
- */
 export default function CopyUrlButton({
     url,
     className,

@@ -38,12 +38,7 @@ import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
 
 type WizardStep = 'url' | 'series' | 'formats' | 'episode' | 'done'
 
-/**
- * Formats a positive duration as minutes and seconds or hours, minutes, and seconds.
- *
- * @param seconds - The duration in seconds.
- * @returns A formatted duration string, or `"unbekannt"` for null or non-positive values.
- */
+/** Formats a positive duration; returns `"unbekannt"` for null or non-positive values. */
 function formatDuration(seconds: number | null): string {
     if (seconds === null || seconds <= 0) {
         return 'unbekannt'

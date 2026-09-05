@@ -18,9 +18,8 @@ export function entitlementState(
 }
 
 /**
- * User-facing entitlement label shown on badges. Replaces the bare
- * `accessPolicyLabel` ("Bezahlt") wherever the viewer cares about access:
- * "Frei" / "Enthalten" / "Mitgliedschaft nötig".
+ * User-facing entitlement label shown on badges wherever the viewer cares
+ * about access: "Frei" / "Enthalten" / "Mitgliedschaft nötig".
  */
 export function entitlementLabel(
     policy: AccessPolicy,
@@ -36,12 +35,7 @@ export function entitlementLabel(
     }
 }
 
-/**
- * Formats a duration in seconds as a clock-style time string.
- *
- * @param seconds - The duration in seconds
- * @returns The formatted duration, or `null` for null or non-positive values
- */
+/** Formats a duration in seconds as a clock-style time string; `null` for null or non-positive values. */
 export function formatDuration(seconds: number | null): string | null {
     if (seconds === null || seconds <= 0) {
         return null
@@ -55,12 +49,7 @@ export function formatDuration(seconds: number | null): string | null {
     return `${minutes}:${String(remainingSeconds).padStart(2, '0')}`
 }
 
-/**
- * Converts an asset type to its German display label.
- *
- * @param assetType - The asset type to label
- * @returns The corresponding display label, or `assetType` when the type is unrecognized
- */
+/** Converts an asset type to its German display label; returns `assetType` when unrecognized. */
 export function assetTypeLabel(assetType: string): string {
     switch (assetType.toUpperCase()) {
         case 'PDF':

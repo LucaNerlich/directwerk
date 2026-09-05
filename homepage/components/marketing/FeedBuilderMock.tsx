@@ -6,12 +6,7 @@ import {useCopyToClipboard} from '@directwerk/ui/hooks/use-copy-to-clipboard'
 
 const FORMATS = ['Hauptfolge', 'Interview', 'Bonus'] as const
 
-/**
- * Builds a feed URL containing the selected formats as query parameters.
- *
- * @param selected - The formats to include in the feed
- * @returns The feed URL with URL-encoded format parameters
- */
+/** Builds a feed URL containing the selected formats as query parameters. */
 function buildFeedUrl(selected: ReadonlySet<string>): string {
     const params = [...selected]
         .map((format) => `format=${encodeURIComponent(format)}`)
@@ -19,11 +14,6 @@ function buildFeedUrl(selected: ReadonlySet<string>): string {
     return `https://deine-show.directwerk.org/feeds/deine-show/u/dein-token.xml${params.length > 0 ? `?${params}` : ''}`
 }
 
-/**
- * Renders an interactive feed builder for selecting podcast formats and copying the resulting feed URL.
- *
- * @returns The feed builder interface
- */
 export default function FeedBuilderMock(): React.JSX.Element {
     const [selected, setSelected] = useState<ReadonlySet<string>>(
         () => new Set<string>(['Hauptfolge']),

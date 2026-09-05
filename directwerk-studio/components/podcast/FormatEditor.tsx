@@ -52,7 +52,6 @@ function parseOptionalInt(value: FormDataEntryValue | null): number | undefined 
  * Provides a form for creating a podcast format or editing an existing one.
  *
  * @param formatId - The identifier of the format to edit, or `undefined` to create a new format
- * @returns The format editor interface
  */
 export default function FormatEditor({formatId}: FormatEditorProps): React.JSX.Element {
     const router = useRouter()

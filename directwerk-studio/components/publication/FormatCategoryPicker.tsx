@@ -26,7 +26,6 @@ interface FormatCategoryPickerProps {
  * @param onFormatChange - Called with the updated format selection.
  * @param onCategoryChange - Called with the updated category selection.
  * @param disabled - Whether all selection controls are disabled.
- * @returns The format and category selection controls.
  */
 export default function FormatCategoryPicker({
     formats,
