@@ -1,8 +1,10 @@
 package de.pnnit.directwerk.controller.podcast;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -11,6 +13,7 @@ import de.pnnit.directwerk.api.PublicEpisodeViewMapper;
 import de.pnnit.directwerk.modules.core.service.UserAccountService;
 import de.pnnit.directwerk.modules.digital.api.MediaAssetQueryApi;
 import de.pnnit.directwerk.modules.podcast.service.PodcastImportService;
+import de.pnnit.directwerk.modules.podcast.exception.RssImportException;
 import de.pnnit.directwerk.modules.queue.JobEnqueueMetadata;
 import de.pnnit.directwerk.modules.queue.QueueJob;
 import de.pnnit.directwerk.modules.queue.QueueNames;
@@ -162,6 +165,41 @@ class PodcastImportBulkControllerTest {
         );
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+    }
+
+    @Test
+    void bulkRejectsTruncatedPreviewBeforeEnqueueing() {
+        when(userAccountService.findAccount(20L)).thenReturn(Optional.of(
+                new UserAccountService.AccountView(7L, "editor@example.test", "Eddie")));
+        when(podcastImportService.preview("https://example.com/feed.xml")).thenReturn(new PodcastImportService.Preview(
+                "https://example.com/feed.xml",
+                new PodcastImportService.PreviewChannel(
+                        "Show", "About", "de", "News", null, null, "show"),
+                List.of(episode("guid-1", null)),
+                true
+        ));
+
+        assertThatThrownBy(() -> controller.importBulk(
+                new PodcastImportController.BulkImportRequest(
+                        "https://example.com/feed.xml",
+                        3L,
+                        Set.of(),
+                        null,
+                        null,
+                        true,
+                        true
+                ),
+                new DirectwerkUserPrincipal(
+                        20L,
+                        "editor@example.test",
+                        "hash",
+                        10L,
+                        List.of(new SimpleGrantedAuthority(RoleConstants.EDITOR)))
+        ))
+                .isInstanceOf(RssImportException.class)
+                .hasMessageContaining("truncated");
+
+        verify(queueService, never()).enqueue(any(), any(), any(Integer.class), any(), any(), any());
     }
 
     private static PodcastImportService.PreviewEpisode episode(String guid, Long existingId) {

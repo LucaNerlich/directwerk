@@ -13,4 +13,4 @@ ALTER TABLE tenants
         AND (max_image_bytes IS NULL OR max_image_bytes > 0)
         AND (max_video_bytes IS NULL OR max_video_bytes > 0)
         AND (max_document_bytes IS NULL OR max_document_bytes > 0)
-    );
+    ) NOT VALID;

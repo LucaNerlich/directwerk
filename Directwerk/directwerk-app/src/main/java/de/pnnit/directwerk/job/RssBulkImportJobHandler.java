@@ -2,6 +2,7 @@ package de.pnnit.directwerk.job;
 
 import de.pnnit.directwerk.modules.email.EmailTemplate;
 import de.pnnit.directwerk.modules.email.TransactionalEmailService;
+import de.pnnit.directwerk.modules.podcast.exception.RssImportException;
 import de.pnnit.directwerk.modules.podcast.service.PodcastImportService;
 import de.pnnit.directwerk.modules.queue.JobHandler;
 import de.pnnit.directwerk.modules.queue.QueueJob;
@@ -58,6 +59,13 @@ public class RssBulkImportJobHandler implements JobHandler {
         }
 
         PodcastImportService.Preview preview = podcastImportService.preview(payload.feedUrl());
+        if (preview.truncated()) {
+            throw new RssImportException(
+                    400,
+                    "RSS_FEED_INVALID",
+                    "A truncated RSS feed preview cannot be used for bulk import"
+            );
+        }
         int imported = 0;
         int skipped = 0;
         int failed = 0;

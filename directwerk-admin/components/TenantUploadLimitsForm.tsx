@@ -37,7 +37,7 @@ function bytesToMegabytes(value: number | null | undefined): string {
     if (value === null || value === undefined) {
         return ''
     }
-    return String(Math.round((value / MB) * 100) / 100)
+    return String(value / MB)
 }
 
 interface TenantUploadLimitsFormProps {
@@ -93,10 +93,10 @@ export default function TenantUploadLimitsForm({
                                 id={`tenant-limits-${field.name}`}
                                 inputMode="decimal"
                                 max={5120}
-                                min={1}
+                                min={1 / MB}
                                 name={field.name}
                                 placeholder={`Default: ${DEFAULT_LIMIT_MB[field.name]}`}
-                                step="any"
+                                step={1 / MB}
                                 type="number"
                             />
                         </div>

@@ -113,7 +113,7 @@ describe('useAccountDashboard', () => {
         )
     })
 
-    it('does not call private feed endpoints when subscriptions are disabled', async () => {
+    it('loads enabled RSS feeds when subscriptions are disabled', async () => {
         getSiteConfig.mockResolvedValue({
             data: {
                 enabledModules: ['PODCAST_RSS', 'ARTICLE_RSS'],
@@ -127,10 +127,12 @@ describe('useAccountDashboard', () => {
 
         await waitFor(() => expect(result.current.isLoading).toBe(false))
 
-        expect(listMyFeeds).not.toHaveBeenCalled()
-        expect(listMyArticleFeeds).not.toHaveBeenCalled()
-        expect(result.current.feeds).toEqual([])
-        expect(result.current.articleFeeds).toEqual([])
+        expect(listMySubscriptions).not.toHaveBeenCalled()
+        expect(listMyFeeds).toHaveBeenCalledWith('tenant.example')
+        expect(listMyArticleFeeds).toHaveBeenCalledWith('tenant.example')
+        expect(result.current.subscriptions).toEqual([])
+        expect(result.current.feeds).toEqual([podcastFeed])
+        expect(result.current.articleFeeds).toEqual([articleFeed])
     })
 
     it('loads only article feeds for an article-only tenant', async () => {

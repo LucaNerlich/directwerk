@@ -86,15 +86,11 @@ export function useAccountDashboard(): AccountDashboardState {
                     siteConfig.data.enabledModules.includes('SUBSCRIPTION')
                         ? await listMySubscriptions(tenantHost)
                         : []
-                const hasSubscriptions =
-                    siteConfig.data.enabledModules.includes('SUBSCRIPTION')
                 const podcastFeedsPromise: Promise<SubscriberFeedView[]> =
-                    hasSubscriptions &&
                     siteConfig.data.enabledModules.includes('PODCAST_RSS')
                         ? listMyFeeds(tenantHost)
                         : Promise.resolve([])
                 const articleFeedsPromise: Promise<ArticleFeedView[]> =
-                    hasSubscriptions &&
                     siteConfig.data.enabledModules.includes('ARTICLE_RSS')
                         ? listMyArticleFeeds(tenantHost)
                         : Promise.resolve([])

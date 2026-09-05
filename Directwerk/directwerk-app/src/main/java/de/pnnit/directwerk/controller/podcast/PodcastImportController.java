@@ -14,6 +14,7 @@ import de.pnnit.directwerk.modules.digital.entity.AssetVisibility;
 import de.pnnit.directwerk.modules.digital.entity.MediaAsset;
 import de.pnnit.directwerk.modules.digital.exception.MediaAssetNotFoundException;
 import de.pnnit.directwerk.modules.podcast.PodcastModule;
+import de.pnnit.directwerk.modules.podcast.exception.RssImportException;
 import de.pnnit.directwerk.modules.podcast.service.PodcastImportService;
 import de.pnnit.directwerk.modules.queue.JobEnqueueMetadata;
 import de.pnnit.directwerk.modules.queue.QueueNames;
@@ -200,6 +201,13 @@ public class PodcastImportController {
         }
 
         PodcastImportService.Preview preview = podcastImportService.preview(request.feedUrl());
+        if (preview.truncated()) {
+            throw new RssImportException(
+                    400,
+                    "RSS_FEED_INVALID",
+                    "A truncated RSS feed preview cannot be used for bulk import"
+            );
+        }
         long alreadyImported = preview.episodes().stream()
                 .filter(episode -> episode.alreadyImportedEpisodeId() != null)
                 .count();

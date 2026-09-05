@@ -139,6 +139,8 @@ export async function updateTenantAction(
     return {error: null, success: 'Tenant updated.', tenant: result.data}
 }
 
+const BYTES_PER_MB = 1024 * 1024
+const MIN_UPLOAD_LIMIT_MB = 1 / BYTES_PER_MB
 const MAX_UPLOAD_LIMIT_MB = 5120
 const UPLOAD_LIMIT_FIELDS = [
     'maxAudioBytes',
@@ -157,10 +159,15 @@ function parseLimitField(value: FormDataEntryValue | null): number | null | unde
         return null
     }
     const megabytes = Number(text)
-    if (!Number.isFinite(megabytes) || megabytes < 1 || megabytes > MAX_UPLOAD_LIMIT_MB) {
+    const bytes = megabytes * BYTES_PER_MB
+    if (
+        !Number.isSafeInteger(bytes) ||
+        megabytes < MIN_UPLOAD_LIMIT_MB ||
+        megabytes > MAX_UPLOAD_LIMIT_MB
+    ) {
         return undefined
     }
-    return Math.round(megabytes * 1024 * 1024)
+    return bytes
 }
 
 export async function updateUploadLimitsAction(
@@ -178,7 +185,7 @@ export async function updateUploadLimitsAction(
         if (parsed === undefined) {
             return {
                 ...INITIAL_UPLOAD_LIMITS_STATE,
-                error: `Enter 1–${MAX_UPLOAD_LIMIT_MB} MB per type, or leave empty for the platform default.`,
+                error: `Enter 1 byte–${MAX_UPLOAD_LIMIT_MB} MB per type in whole-byte increments, or leave empty for the platform default.`,
             }
         }
         body[field] = parsed

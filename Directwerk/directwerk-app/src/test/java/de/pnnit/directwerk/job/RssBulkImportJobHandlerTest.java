@@ -6,6 +6,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -14,6 +15,7 @@ import de.pnnit.directwerk.modules.digital.entity.AccessPolicy;
 import de.pnnit.directwerk.modules.email.EmailTemplate;
 import de.pnnit.directwerk.modules.email.TransactionalEmailService;
 import de.pnnit.directwerk.modules.podcast.entity.Episode;
+import de.pnnit.directwerk.modules.podcast.exception.RssImportException;
 import de.pnnit.directwerk.modules.podcast.service.PodcastImportService;
 import de.pnnit.directwerk.modules.queue.JobStatus;
 import de.pnnit.directwerk.modules.queue.QueueJob;
@@ -114,6 +116,34 @@ class RssBulkImportJobHandlerTest {
         assertThatThrownBy(() -> handler.handle(job(new RssBulkImportPayload(
                 null, "", null, null, null, true, true, "", null))))
                 .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
+    void rejectsTruncatedPreviewWithoutImportingEpisodes() {
+        PodcastImportService.Preview truncatedPreview = new PodcastImportService.Preview(
+                preview().feedUrl(),
+                preview().channel(),
+                preview().episodes(),
+                true
+        );
+        when(podcastImportService.preview("https://example.com/feed.xml")).thenReturn(truncatedPreview);
+
+        assertThatThrownBy(() -> handler.handle(job(new RssBulkImportPayload(
+                3L,
+                "https://example.com/feed.xml",
+                Set.of(),
+                AccessPolicy.FREE,
+                null,
+                true,
+                true,
+                "editor@example.com",
+                "Eddie"
+        ))))
+                .isInstanceOf(RssImportException.class)
+                .hasMessageContaining("truncated");
+
+        verify(podcastImportService, never()).importEpisode(any());
+        verify(emailService, never()).sendFromPayload(any(), any(), any(), any(), any());
     }
 
     private PodcastImportService.Preview preview() {

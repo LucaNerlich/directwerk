@@ -173,6 +173,42 @@ describe('tenant server-action guards', () => {
         })
     })
 
+    it('preserves a sub-megabyte upload limit with byte precision', async () => {
+        callPlatformApiMock.mockResolvedValue({
+            ok: true,
+            data: {
+                maxAudioBytes: 1,
+                maxImageBytes: null,
+                maxVideoBytes: null,
+                maxDocumentBytes: null,
+            },
+        })
+
+        await updateUploadLimitsAction(
+            '7',
+            INITIAL_UPLOAD_LIMITS_STATE,
+            formData({
+                maxAudioBytes: String(1 / (1024 * 1024)),
+                maxImageBytes: '',
+                maxVideoBytes: '',
+                maxDocumentBytes: '',
+            }),
+        )
+
+        expect(callPlatformApiMock).toHaveBeenCalledWith(
+            ['tenants', '7', 'upload-limits'],
+            {
+                method: 'PUT',
+                body: {
+                    maxAudioBytes: 1,
+                    maxImageBytes: null,
+                    maxVideoBytes: null,
+                    maxDocumentBytes: null,
+                },
+            },
+        )
+    })
+
     it('rejects out-of-range upload limits without calling the API', async () => {
         const result = await updateUploadLimitsAction(
             '7',
@@ -180,7 +216,7 @@ describe('tenant server-action guards', () => {
             formData({maxAudioBytes: '0', maxImageBytes: '', maxVideoBytes: '', maxDocumentBytes: ''}),
         )
 
-        expect(result.error).toContain('1–5120 MB')
+        expect(result.error).toContain('1 byte–5120 MB')
         expect(callPlatformApiMock).not.toHaveBeenCalled()
     })
 })
