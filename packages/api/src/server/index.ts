@@ -45,4 +45,5 @@ export {
     safeUpstreamResponse,
     type DirectwerkEnvironment,
     type DirectwerkRequest,
+    type RequestInitWithDuplex,
 } from './platform'

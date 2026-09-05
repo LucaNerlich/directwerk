@@ -9,9 +9,17 @@ export interface DirectwerkEnvironment {
     clientSecret: string
 }
 
+/**
+ * `RequestInit` in the bundled TypeScript DOM lib has no `duplex` field yet;
+ * Node 18+ fetch requires `duplex: 'half'` for streamed request bodies.
+ */
+export interface RequestInitWithDuplex extends RequestInit {
+    duplex?: 'half'
+}
+
 export interface DirectwerkRequest {
     url: string
-    init: RequestInit
+    init: RequestInitWithDuplex
 }
 
 const SAFE_PATH_SEGMENT = /^[A-Za-z0-9_.-]+$/
@@ -374,8 +382,8 @@ export function createPlatformApiRequest(
                     : request.body,
             cache: 'no-store',
             redirect: 'manual',
-            duplex: request.body ? ('half' as never) : undefined,
-        } as RequestInit,
+            duplex: request.body ? 'half' : undefined,
+        },
     }
 }
 

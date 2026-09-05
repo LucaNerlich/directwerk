@@ -2,13 +2,15 @@ import {JOB_STATUSES} from '../constants'
 import type {QueueJob} from '../types'
 import {isRecord} from './primitives'
 
+const JOB_STATUS_VALUES = new Set<string>(JOB_STATUSES)
+
 /** Guard for platform queue jobs (`QueueJobView`). */
 export function isQueueJob(value: unknown): value is QueueJob {
     if (!isRecord(value)) {
         return false
     }
 
-    const job = value as Record<string, unknown>
+    const job = value
 
     return (
         typeof job.id === 'string' &&
@@ -16,7 +18,7 @@ export function isQueueJob(value: unknown): value is QueueJob {
         Object.hasOwn(job, 'payload') &&
         typeof job.priority === 'number' &&
         typeof job.status === 'string' &&
-        JOB_STATUSES.includes(job.status as never) &&
+        JOB_STATUS_VALUES.has(job.status) &&
         typeof job.availableAt === 'string' &&
         typeof job.attempts === 'number' &&
         typeof job.maxAttempts === 'number' &&

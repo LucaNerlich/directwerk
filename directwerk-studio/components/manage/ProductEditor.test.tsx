@@ -3,6 +3,7 @@ import {describe, expect, it, vi} from 'vitest'
 
 import ProductEditor from '@/components/manage/ProductEditor'
 import {createProduct} from '@/lib/api/subscriptionApi'
+import type {SubscriptionProduct} from '@directwerk/api/types'
 
 // Stable across renders, like the real Next.js useRouter().
 const mockRouter = {replace: vi.fn()}
@@ -42,7 +43,7 @@ describe('ProductEditor price validation', () => {
     })
 
     it('converts a German price to cents when creating the product', async () => {
-        vi.mocked(createProduct).mockResolvedValue({id: 3} as never)
+        vi.mocked(createProduct).mockResolvedValue({id: 3} as SubscriptionProduct)
         render(<ProductEditor />)
 
         fireEvent.change(screen.getByLabelText('Titel'), {
