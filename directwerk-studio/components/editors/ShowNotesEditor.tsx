@@ -16,16 +16,6 @@ import {sanitizeContentHtml} from '@directwerk/api/content/sanitizeContentHtml'
 import {safeImageSrc, safeLinkHref} from '@/lib/url/safeUrl'
 
 
-const SAFE_LINK_PROTOCOLS = new Set(['https:', 'http:', 'mailto:', 'tel:'])
-
-function isSafeLinkHref(value: string): boolean {
-    try {
-        return SAFE_LINK_PROTOCOLS.has(new URL(value).protocol)
-    } catch {
-        return false
-    }
-}
-
 function escapeHtml(value: string): string {
     return value
         .replace(/&/g, '&amp;')
@@ -285,7 +275,7 @@ export default function ShowNotesEditor({
                             editor.chain().focus().unsetLink().run()
                             return
                         }
-                        if (!isSafeLinkHref(trimmed)) {
+                        if (safeLinkHref(trimmed) === null) {
                             window.alert('Bitte eine gültige URL (https://, http://, mailto: oder tel:) eingeben.')
                             return
                         }

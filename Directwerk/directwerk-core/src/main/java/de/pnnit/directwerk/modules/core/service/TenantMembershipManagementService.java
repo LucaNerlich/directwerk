@@ -109,9 +109,12 @@ public class TenantMembershipManagementService {
     public TenantUserQueryService.TenantUserView updateRole(Long tenantId, Long userId, String role) {
         acquireTenantMembershipLock(tenantId);
         Role newRole;
+        if (role == null) {
+            throw new IllegalArgumentException("Unknown role: null");
+        }
         try {
             newRole = Role.valueOf(role);
-        } catch (IllegalArgumentException | NullPointerException ex) {
+        } catch (IllegalArgumentException ex) {
             throw new IllegalArgumentException("Unknown role: " + role, ex);
         }
         if (newRole == Role.PLATFORM_ADMIN) {
