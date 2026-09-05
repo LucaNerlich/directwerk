@@ -5,7 +5,13 @@ import {uploadMediaFileBrowser} from '@directwerk/api/media/browserUpload'
 import {confirmUpload} from '@/lib/api/mediaApi'
 import {getValidAccessToken} from '@/lib/auth/session'
 import {clearTokens} from '@/lib/auth/tokenStore'
-import {exceedsMediaLimit, mediaLimitLabel} from '@/lib/media/limits'
+import {
+    exceedsMediaLimit,
+    exceedsMediaLimitFor,
+    mediaLimitLabel,
+    mediaLimitLabelFor,
+    type ResolvedMediaLimits,
+} from '@/lib/media/limits'
 
 export async function uploadMediaFile(
     tenantHost: string,
@@ -15,9 +21,12 @@ export async function uploadMediaFile(
         visibility?: 'PUBLIC' | 'PRIVATE'
         episodeId?: number
         folderId?: number
+        /** Effective tenant limits; defaults to the platform limits when omitted. */
+        limits?: ResolvedMediaLimits
         onProgress?: (percent: number) => void
     },
 ) {
+    const limits = options?.limits
     return uploadMediaFileBrowser({
         tenantHost,
         file,
@@ -29,7 +38,13 @@ export async function uploadMediaFile(
         getAccessToken: getValidAccessToken,
         onAuthRequired: clearTokens,
         confirmUpload,
-        exceedsLimit: exceedsMediaLimit,
-        limitLabel: mediaLimitLabel,
+        exceedsLimit:
+            limits === undefined
+                ? exceedsMediaLimit
+                : (assetType, size) => exceedsMediaLimitFor(limits, assetType, size),
+        limitLabel:
+            limits === undefined
+                ? mediaLimitLabel
+                : (assetType) => mediaLimitLabelFor(limits, assetType),
     })
 }

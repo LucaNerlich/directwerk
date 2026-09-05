@@ -1,8 +1,8 @@
 'use client'
 
-import {parseMediaAssetEnvelope, parseMediaFolderEnvelope, parseMediaFolderListEnvelope, parseMediaListEnvelope, parsePreviewUrlEnvelope} from '@directwerk/api/validation/catalog'
+import {parseMediaAssetEnvelope, parseMediaFolderEnvelope, parseMediaFolderListEnvelope, parseMediaListEnvelope, parseMediaUploadLimitsEnvelope, parsePreviewUrlEnvelope} from '@directwerk/api/validation/catalog'
 
-import type {MediaAsset, MediaFolder, TenantMediaQuery} from '@directwerk/api/types'
+import type {MediaAsset, MediaFolder, MediaUploadLimits, TenantMediaQuery} from '@directwerk/api/types'
 import {authenticatedRequest, studioGet, studioMutate} from './studioApiCore'
 import {jsonInit} from './studioTransport'
 
@@ -103,6 +103,15 @@ export async function listMediaFolders(tenantHost: string): Promise<MediaFolder[
         tenantHost,
         parseMediaFolderListEnvelope,
         'Der Server hat eine ungültige Ordnerliste gesendet.',
+    )
+}
+
+export async function getMediaUploadLimits(tenantHost: string): Promise<MediaUploadLimits> {
+    return studioGet(
+        '/api/proxy/media/limits',
+        tenantHost,
+        parseMediaUploadLimitsEnvelope,
+        'Der Server hat ungültige Upload-Limits gesendet.',
     )
 }
 

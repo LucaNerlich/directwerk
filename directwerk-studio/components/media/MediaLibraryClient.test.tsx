@@ -6,6 +6,7 @@ import {
     createMediaFolder,
     deleteMedia,
     deleteMediaFolder,
+    getMediaUploadLimits,
     listMedia,
     listMediaFolders,
     moveMediaAsset,
@@ -22,6 +23,7 @@ vi.mock('@/lib/api/mediaApi', () => ({
     listMedia: vi.fn().mockResolvedValue([]),
     deleteMedia: vi.fn(),
     listMediaFolders: vi.fn().mockResolvedValue([]),
+    getMediaUploadLimits: vi.fn().mockResolvedValue(null),
     createMediaFolder: vi.fn(),
     renameMediaFolder: vi.fn(),
     moveMediaFolder: vi.fn(),
@@ -76,6 +78,13 @@ describe('MediaLibraryClient', () => {
         vi.mocked(deleteMedia).mockResolvedValue(coverAsset)
         vi.mocked(listMediaFolders).mockReset()
         vi.mocked(listMediaFolders).mockResolvedValue([])
+        vi.mocked(getMediaUploadLimits).mockReset()
+        vi.mocked(getMediaUploadLimits).mockResolvedValue({
+            maxAudioBytes: 500 * 1024 * 1024,
+            maxImageBytes: 10 * 1024 * 1024,
+            maxVideoBytes: 5 * 1024 * 1024 * 1024,
+            maxDocumentBytes: 50 * 1024 * 1024,
+        })
         vi.mocked(createMediaFolder).mockReset()
         vi.mocked(renameMediaFolder).mockReset()
         vi.mocked(moveMediaFolder).mockReset()
@@ -105,6 +114,22 @@ describe('MediaLibraryClient', () => {
             expect(screen.getByText('Noch keine Medien')).toBeInTheDocument(),
         )
         expect(screen.getAllByRole('button', {name: 'Datei hochladen'}).length).toBeGreaterThan(0)
+    })
+
+    it('shows the tenant upload limits from the API', async () => {
+        vi.mocked(getMediaUploadLimits).mockResolvedValue({
+            maxAudioBytes: 100 * 1024 * 1024,
+            maxImageBytes: 20 * 1024 * 1024,
+            maxVideoBytes: 1024 * 1024 * 1024,
+            maxDocumentBytes: 50 * 1024 * 1024,
+        })
+
+        render(<MediaLibraryClient />)
+
+        await waitFor(() =>
+            expect(screen.getByText(/Audio bis 100 MB/)).toBeInTheDocument(),
+        )
+        expect(screen.getByText(/Video bis 1 GB/)).toBeInTheDocument()
     })
 
     it('renders a media grid and uploads a dropped file', async () => {

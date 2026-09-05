@@ -16,7 +16,7 @@ import LevelSelect from '@/components/studio/LevelSelect'
 import StreamProgress from '@/components/media/StreamProgress'
 import {createFormat, listFormats} from '@/lib/api/catalogApi'
 import {createSeries, listSeries} from '@/lib/api/podcastApi'
-import {importRssEpisode, previewRssFeed} from '@/lib/api/podcastImportApi'
+import {bulkImportRss, importRssEpisode, previewRssFeed} from '@/lib/api/podcastImportApi'
 import {ingestRemoteAssetWithProgress} from '@/lib/media/remoteIngest'
 import {filenameFromImportUrl} from '@/lib/media/importFilename'
 import {formatBytes} from '@/lib/media/format'
@@ -27,6 +27,7 @@ import {useOptionalMe} from '@/lib/auth/MeProvider'
 import {HTML_SLUG_PATTERN} from '@directwerk/api/constants'
 import type {
     AccessPolicy,
+    BulkImportQueuedResult,
     FormatSummary,
     RssImportEpisodePreview,
     RssImportPreview,
@@ -95,6 +96,7 @@ export default function RssImportWizard(): React.JSX.Element {
     const [importedCount, setImportedCount] = useState(0)
     const [skippedCount, setSkippedCount] = useState(0)
     const [alreadyImportedCount, setAlreadyImportedCount] = useState(0)
+    const [bulkResult, setBulkResult] = useState<BulkImportQueuedResult | null>(null)
     const [errorMessage, setErrorMessage] = useState<string | null>(null)
     const [streamProgress, setStreamProgress] = useState<{
         label: string
@@ -246,22 +248,27 @@ export default function RssImportWizard(): React.JSX.Element {
         }
     }
 
+    async function ensureDefaultFormatIds(): Promise<Set<number>> {
+        const nextDefaultFormatIds = new Set(defaultFormatIds)
+        const name = canCreateFormats ? newFormatName.trim() : ''
+        if (name.length > 0) {
+            const created = await createFormat(getClientTenantHost(), {
+                slug: suggestSlug(name) || 'format',
+                name,
+            })
+            setFormats((current) => [...current, created])
+            nextDefaultFormatIds.add(created.id)
+            setDefaultFormatIds(nextDefaultFormatIds)
+            setNewFormatName('')
+        }
+        return nextDefaultFormatIds
+    }
+
     async function handleFormatsContinue(): Promise<void> {
         setErrorMessage(null)
         setBusy(true)
         try {
-            const nextDefaultFormatIds = new Set(defaultFormatIds)
-            const name = canCreateFormats ? newFormatName.trim() : ''
-            if (name.length > 0) {
-                const created = await createFormat(getClientTenantHost(), {
-                    slug: suggestSlug(name) || 'format',
-                    name,
-                })
-                setFormats((current) => [...current, created])
-                nextDefaultFormatIds.add(created.id)
-                setDefaultFormatIds(nextDefaultFormatIds)
-                setNewFormatName('')
-            }
+            const nextDefaultFormatIds = await ensureDefaultFormatIds()
             if (preview != null && preview.episodes.length > 0) {
                 applyEpisode(preview.episodes[0], nextDefaultFormatIds)
                 setEpisodeIndex(0)
@@ -274,6 +281,36 @@ export default function RssImportWizard(): React.JSX.Element {
                 return
             }
             setErrorMessage(error instanceof Error ? error.message : 'Format konnte nicht angelegt werden.')
+        } finally {
+            setBusy(false)
+        }
+    }
+
+    async function handleBulkImport(): Promise<void> {
+        if (preview == null || resolvedSeriesId == null) {
+            return
+        }
+        setErrorMessage(null)
+        setBusy(true)
+        try {
+            const nextDefaultFormatIds = await ensureDefaultFormatIds()
+            const queued = await bulkImportRss(getClientTenantHost(), {
+                feedUrl: preview.feedUrl,
+                seriesId: resolvedSeriesId,
+                formatIds: Array.from(nextDefaultFormatIds),
+                accessPolicy,
+                requiredLevelSortOrder:
+                    accessPolicy === 'PAID' ? (requiredLevelSortOrder ?? undefined) : undefined,
+                importAudio,
+                importImage,
+            })
+            setBulkResult(queued)
+            setStep('done')
+        } catch (error) {
+            if (authRedirect(error)) {
+                return
+            }
+            setErrorMessage(error instanceof Error ? error.message : 'Stapelimport konnte nicht gestartet werden.')
         } finally {
             setBusy(false)
         }
@@ -429,6 +466,7 @@ export default function RssImportWizard(): React.JSX.Element {
         setImportedCount(0)
         setSkippedCount(0)
         setAlreadyImportedCount(0)
+        setBulkResult(null)
         setErrorMessage(null)
         setStreamProgress(null)
         setBusy(false)
@@ -436,6 +474,9 @@ export default function RssImportWizard(): React.JSX.Element {
 
     const currentEpisode = preview?.episodes[episodeIndex] ?? null
     const remaining = preview == null ? 0 : preview.episodes.length - episodeIndex
+    const bulkAlreadyImportedCount =
+        preview?.episodes.filter((episode) => episode.alreadyImportedEpisodeId !== null).length ?? 0
+    const bulkPendingCount = (preview?.episodes.length ?? 0) - bulkAlreadyImportedCount
 
     return (
         <PageStack>
@@ -712,6 +753,71 @@ export default function RssImportWizard(): React.JSX.Element {
                             {busy ? 'Wird gespeichert…' : 'Weiter zu den Folgen'}
                         </Button>
                     </div>
+                    {preview !== null && resolvedSeriesId !== null && preview.episodes.length > 0 ? (
+                        <div className="grid gap-3 rounded-xl border bg-muted/20 p-4">
+                            <div>
+                                <p className="text-sm font-medium">Stapelimport im Hintergrund</p>
+                                <p className="mt-1 text-sm text-muted-foreground">
+                                    {bulkPendingCount} neue Folgen mit diesen Einstellungen importieren
+                                    {bulkAlreadyImportedCount > 0
+                                        ? ` (${bulkAlreadyImportedCount} bereits vorhanden werden übersprungen)`
+                                        : ''}
+                                    . Du erhältst eine E-Mail, sobald der Import fertig ist.
+                                </p>
+                            </div>
+                            <SelectControl
+                                aria-label="Zugriff für alle Folgen"
+                                disabled={busy}
+                                onChange={(event) =>
+                                    setAccessPolicy(event.target.value === 'PAID' ? 'PAID' : 'FREE')
+                                }
+                                value={accessPolicy}
+                            >
+                                <option value="FREE">Alle frei</option>
+                                <option value="PAID">Alle bezahlt</option>
+                            </SelectControl>
+                            {accessPolicy === 'PAID' ? (
+                                <label className="grid gap-1.5">
+                                    <span className="text-sm font-medium">Mindest-Stufe für alle</span>
+                                    <LevelSelect
+                                        disabled={busy}
+                                        onChange={setRequiredLevelSortOrder}
+                                        value={requiredLevelSortOrder}
+                                    />
+                                </label>
+                            ) : null}
+                            <label className="flex items-center gap-2 text-sm">
+                                <input
+                                    checked={importAudio}
+                                    disabled={busy}
+                                    onChange={(event) => setImportAudio(event.target.checked)}
+                                    type="checkbox"
+                                />
+                                MP3s nach S3 streamen
+                            </label>
+                            <label className="flex items-center gap-2 text-sm">
+                                <input
+                                    checked={importImage}
+                                    disabled={busy}
+                                    onChange={(event) => setImportImage(event.target.checked)}
+                                    type="checkbox"
+                                />
+                                Cover nach S3 streamen
+                            </label>
+                            <div>
+                                <Button
+                                    disabled={busy || bulkPendingCount === 0}
+                                    onClick={() => void handleBulkImport()}
+                                    type="button"
+                                    variant="outline"
+                                >
+                                    {busy
+                                        ? 'Wird gestartet…'
+                                        : `${bulkPendingCount} Folgen als Hintergrund-Job importieren`}
+                                </Button>
+                            </div>
+                        </div>
+                    ) : null}
                 </section>
             ) : null}
 
@@ -871,10 +977,17 @@ export default function RssImportWizard(): React.JSX.Element {
 
             {step === 'done' ? (
                 <section className="flex max-w-2xl flex-col gap-4">
-                    <SectionHeader
-                        title="Import abgeschlossen"
-                        description={`${importedCount} Folgen importiert, ${alreadyImportedCount} bereits vorhanden, ${skippedCount} übersprungen. Entwürfe kannst du jetzt prüfen und veröffentlichen.`}
-                    />
+                    {bulkResult !== null ? (
+                        <SectionHeader
+                            title="Stapelimport gestartet"
+                            description={`${bulkResult.totalEpisodes - bulkResult.alreadyImported} Folgen sind in der Warteschlange (${bulkResult.alreadyImported} bereits vorhanden). Du erhältst eine E-Mail an ${bulkResult.notifyEmail}, sobald der Import fertig ist. Entwürfe kannst du danach prüfen und veröffentlichen.`}
+                        />
+                    ) : (
+                        <SectionHeader
+                            title="Import abgeschlossen"
+                            description={`${importedCount} Folgen importiert, ${alreadyImportedCount} bereits vorhanden, ${skippedCount} übersprungen. Entwürfe kannst du jetzt prüfen und veröffentlichen.`}
+                        />
+                    )}
                     <div className="flex flex-wrap gap-2">
                         <Button nativeButton={false} render={<Link href="/podcast/episodes" />}>
                             Zur Folgenliste

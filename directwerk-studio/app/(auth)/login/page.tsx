@@ -17,6 +17,7 @@ import {
     login,
     selectTenantHost,
 } from '@/lib/api/authApi'
+import WorkspaceChooser from '@/components/studio/WorkspaceChooser'
 import {parseLoginInput} from '@directwerk/api/validation/input'
 import type {StudioWorkspace} from '@directwerk/api/types'
 
@@ -79,7 +80,8 @@ function LoginForm() {
         password: string
     } | null>(null)
     const [workspaceError, setWorkspaceError] = useState<string | null>(null)
-    const [isOpeningWorkspace, setIsOpeningWorkspace] = useState(false)
+    const [openingWorkspaceHost, setOpeningWorkspaceHost] = useState<string | null>(null)
+    const isOpeningWorkspace = openingWorkspaceHost !== null
     const [state, formAction, isPending] = useActionState(
         async (_previousState: LoginState, formData: FormData) => {
             const input = parseLoginInput({
@@ -121,14 +123,14 @@ function LoginForm() {
         }
 
         setWorkspaceError(null)
-        setIsOpeningWorkspace(true)
+        setOpeningWorkspaceHost(workspace.host)
         try {
             await completeLogin(workspace, pendingInput)
             enterStudio()
         } catch (error) {
             setWorkspaceError(mapAuthError(error))
         } finally {
-            setIsOpeningWorkspace(false)
+            setOpeningWorkspaceHost(null)
         }
     }
 
@@ -138,44 +140,21 @@ function LoginForm() {
                 description="Schritt 2 von 2 — wähle den Workspace, den du verwalten möchtest."
                 title="Workspace auswählen"
             >
-                <div aria-busy={isOpeningWorkspace} className="grid gap-2">
-                    {workspaces.map((workspace) => (
-                        <Button
-                            aria-label={`${workspace.name} (${workspace.host}) öffnen`}
-                            disabled={isOpeningWorkspace}
-                            key={workspace.tenantId}
-                            onClick={() => {
-                                void openWorkspace(workspace)
-                            }}
-                            type="button"
-                            variant="outline"
-                        >
-                            <span className="flex flex-col items-start gap-0.5 text-left">
-                                <span className="font-medium">{workspace.name}</span>
-                                <span className="text-xs text-muted-foreground">
-                                    {workspace.host}
-                                </span>
-                            </span>
-                        </Button>
-                    ))}
+                <div aria-busy={isOpeningWorkspace}>
+                    <WorkspaceChooser
+                        error={workspaceError}
+                        onBack={() => {
+                            setWorkspaces(null)
+                            setPendingInput(null)
+                            setWorkspaceError(null)
+                        }}
+                        onSelect={(workspace) => {
+                            void openWorkspace(workspace)
+                        }}
+                        openingHost={openingWorkspaceHost}
+                        workspaces={workspaces}
+                    />
                 </div>
-                {workspaceError !== null ? (
-                    <Alert variant="destructive">
-                        <AlertDescription>{workspaceError}</AlertDescription>
-                    </Alert>
-                ) : null}
-                <Button
-                    disabled={isOpeningWorkspace}
-                    onClick={() => {
-                        setWorkspaces(null)
-                        setPendingInput(null)
-                        setWorkspaceError(null)
-                    }}
-                    type="button"
-                    variant="ghost"
-                >
-                    Zurück
-                </Button>
             </AuthCard>
         )
     }

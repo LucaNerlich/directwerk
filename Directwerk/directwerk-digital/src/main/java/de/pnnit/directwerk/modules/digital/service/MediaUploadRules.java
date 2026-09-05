@@ -2,6 +2,8 @@ package de.pnnit.directwerk.modules.digital.service;
 
 import de.pnnit.directwerk.modules.digital.entity.AssetType;
 import de.pnnit.directwerk.modules.digital.exception.UploadValidationException;
+import de.pnnit.directwerk.modules.core.entity.Tenant;
+import de.pnnit.directwerk.modules.core.service.TenantUploadLimits;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
@@ -30,6 +32,13 @@ public final class MediaUploadRules {
             AssetType.DOCUMENT, 50L * MB
     );
 
+    /**
+     * Upper bound for per-tenant overrides — S3's single-PUT object ceiling, which is
+     * also what presigned browser uploads use. Mirrors
+     * {@code TenantUploadLimits.MAX_BYTES}.
+     */
+    public static final long MAX_OVERRIDE_BYTES = TenantUploadLimits.MAX_BYTES;
+
     private MediaUploadRules() {
     }
 
@@ -49,6 +58,49 @@ public final class MediaUploadRules {
             );
         }
         return max;
+    }
+
+    /**
+     * Resolves the tenant's configured override for an asset type, or {@code null}
+     * for the platform default.
+     *
+     * @param tenant    the tenant whose overrides apply (may be {@code null})
+     * @param assetType the asset category
+     * @return the override in bytes, or {@code null} when the platform default applies
+     */
+    public static Long limitOverride(Tenant tenant, AssetType assetType) {
+        if (tenant == null || assetType == null) {
+            return null;
+        }
+        return switch (assetType) {
+            case AUDIO -> tenant.getMaxAudioBytes();
+            case IMAGE -> tenant.getMaxImageBytes();
+            case VIDEO -> tenant.getMaxVideoBytes();
+            case DOCUMENT -> tenant.getMaxDocumentBytes();
+        };
+    }
+
+    /**
+     * Gets the effective maximum upload size for an asset type: the tenant override
+     * when set, otherwise the platform default.
+     *
+     * @param assetType     the type of asset whose size limit is requested
+     * @param overrideBytes the tenant override in bytes, or {@code null} for the default
+     * @return the effective maximum size in bytes
+     * @throws UploadValidationException if no size limit is configured, or the override
+     *                                   is out of range
+     */
+    public static long effectiveMaxBytes(AssetType assetType, Long overrideBytes) {
+        if (overrideBytes != null) {
+            if (overrideBytes < TenantUploadLimits.MIN_BYTES || overrideBytes > MAX_OVERRIDE_BYTES) {
+                throw new UploadValidationException(
+                        "UPLOAD_VALIDATION_FAILED",
+                        "Upload limit override out of range for assetType " + assetType
+                );
+            }
+            return overrideBytes;
+        }
+        return maxBytes(assetType);
     }
 
     /**
@@ -129,6 +181,20 @@ public final class MediaUploadRules {
      * @throws UploadValidationException if the MIME type is missing or unsupported, no size limit is configured, or the size is not within the allowed range
      */
     public static void validateMimeAndSize(AssetType assetType, String mimeType, long sizeBytes) {
+        validateMimeAndSize(assetType, mimeType, sizeBytes, null);
+    }
+
+    /**
+     * Validates the MIME type and size of an uploaded asset against the tenant's
+     * effective limit (override or platform default).
+     *
+     * @param assetType     the asset category used to determine allowed MIME types and maximum size
+     * @param mimeType      the asset's MIME type
+     * @param sizeBytes     the asset size in bytes
+     * @param overrideBytes the tenant override in bytes, or {@code null} for the platform default
+     * @throws UploadValidationException if the MIME type is missing or unsupported, no size limit is configured, or the size is not within the allowed range
+     */
+    public static void validateMimeAndSize(AssetType assetType, String mimeType, long sizeBytes, Long overrideBytes) {
         if (mimeType == null || mimeType.isBlank()) {
             throw new UploadValidationException("UPLOAD_VALIDATION_FAILED", "mimeType is required");
         }
@@ -140,13 +206,7 @@ public final class MediaUploadRules {
                     "mimeType not allowed for assetType " + assetType + ": " + mimeType
             );
         }
-        Long max = MAX_BYTES.get(assetType);
-        if (max == null) {
-            throw new UploadValidationException(
-                    "UPLOAD_VALIDATION_FAILED",
-                    "No size limit configured for assetType " + assetType
-            );
-        }
+        long max = effectiveMaxBytes(assetType, overrideBytes);
         if (sizeBytes <= 0 || sizeBytes > max) {
             throw new UploadValidationException(
                     "UPLOAD_VALIDATION_FAILED",

@@ -128,6 +128,51 @@ export function extractApiErrorCode(value: unknown): string | null {
     return null
 }
 
+/**
+ * Attaches the HTTP status and structured API error `code` (when present) to
+ * a thrown request error, so UI mappers can distinguish stable failure kinds
+ * (e.g. `FEATURE_NOT_ENABLED`) without parsing localized messages. The
+ * `message` stays the only user-visible surface; `status`/`code` are
+ * machine-readable metadata.
+ */
+export function withApiErrorContext(
+    error: Error,
+    status: number,
+    body: unknown,
+): Error {
+    const code = extractApiErrorCode(body)
+    return Object.assign(error, {
+        status,
+        ...(code === null ? {} : {code}),
+    })
+}
+
+/** Reads the HTTP status attached by {@link withApiErrorContext}, if any. */
+export function apiErrorStatus(error: unknown): number | null {
+    if (
+        error instanceof Error &&
+        'status' in error &&
+        typeof error.status === 'number' &&
+        Number.isSafeInteger(error.status)
+    ) {
+        return error.status
+    }
+    return null
+}
+
+/** Reads the structured API error `code` attached by {@link withApiErrorContext}, if any. */
+export function apiErrorCode(error: unknown): string | null {
+    if (
+        error instanceof Error &&
+        'code' in error &&
+        typeof error.code === 'string' &&
+        error.code.length > 0
+    ) {
+        return error.code
+    }
+    return null
+}
+
 export function extractApiErrorMessage(
     value: unknown,
     status: number,

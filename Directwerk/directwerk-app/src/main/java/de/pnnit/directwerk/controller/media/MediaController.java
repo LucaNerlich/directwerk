@@ -13,6 +13,7 @@ import de.pnnit.directwerk.api.response.Response;
 import de.pnnit.directwerk.modules.core.RequiresModule;
 import de.pnnit.directwerk.modules.digital.DigitalContentModule;
 import de.pnnit.directwerk.modules.digital.api.AssetAccessApi;
+import de.pnnit.directwerk.modules.digital.api.EffectiveUploadLimits;
 import de.pnnit.directwerk.modules.digital.api.FolderDeleteMode;
 import de.pnnit.directwerk.modules.digital.api.MediaAssetLifecycleApi;
 import de.pnnit.directwerk.modules.digital.api.MediaAssetQueryApi;
@@ -112,6 +113,12 @@ public class MediaController {
                 .map(mediaAssetViewMapper::toView)
                 .toList();
         return ResponseEntity.ok(Response.ok(assets));
+    }
+
+    @GetMapping("/limits")
+    ResponseEntity<Response<EffectiveUploadLimits>> uploadLimits() {
+        return ResponseEntity.ok(Response.ok(
+                mediaAssetQueryApi.effectiveUploadLimits(TenantContext.requireTenantId())));
     }
 
     @GetMapping("/{id}")

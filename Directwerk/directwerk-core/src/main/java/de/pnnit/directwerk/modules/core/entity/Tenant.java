@@ -25,6 +25,23 @@ public class Tenant extends BaseEntity {
     private TenantStatus status = TenantStatus.ACTIVE;
 
     /**
+     * Per-asset-type upload size overrides in bytes. {@code null} means "platform
+     * default" (see {@code MediaUploadRules}); bounds are validated in
+     * {@code TenantUploadLimits} before persistence.
+     */
+    @Column(name = "max_audio_bytes")
+    private Long maxAudioBytes;
+
+    @Column(name = "max_image_bytes")
+    private Long maxImageBytes;
+
+    @Column(name = "max_video_bytes")
+    private Long maxVideoBytes;
+
+    @Column(name = "max_document_bytes")
+    private Long maxDocumentBytes;
+
+    /**
      * Single definition of "tenant may serve traffic" — used by resolution, filters and
      * registration alike so new statuses cannot silently diverge the checks.
      */

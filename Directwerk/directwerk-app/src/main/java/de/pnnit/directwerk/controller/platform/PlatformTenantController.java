@@ -12,8 +12,11 @@ import de.pnnit.directwerk.modules.core.service.TenantManagementService;
 import de.pnnit.directwerk.modules.core.service.TenantManagementService.TenantCreationResult;
 import de.pnnit.directwerk.modules.core.service.TenantManagementService.TenantDetailView;
 import de.pnnit.directwerk.modules.core.service.TenantManagementService.TenantListItemView;
+import de.pnnit.directwerk.modules.core.service.TenantUploadLimits;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
@@ -25,6 +28,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -107,6 +111,24 @@ public class PlatformTenantController {
         ));
     }
 
+    @PutMapping("/{tenantId}/upload-limits")
+    ResponseEntity<Response<TenantUploadLimits>> updateUploadLimits(
+            @PathVariable Long tenantId,
+            @Valid @RequestBody UpdateUploadLimitsRequest request
+    ) {
+        return ResponseEntity.ok(Response.ok(
+                tenantManagementService.updateUploadLimits(
+                        tenantId,
+                        new TenantUploadLimits(
+                                request.maxAudioBytes(),
+                                request.maxImageBytes(),
+                                request.maxVideoBytes(),
+                                request.maxDocumentBytes()
+                        )
+                )
+        ));
+    }
+
     @PostMapping("/{tenantId}/suspend")
     ResponseEntity<Response<TenantDetailView>> suspendTenant(@PathVariable Long tenantId) {
         return ResponseEntity.ok(Response.ok(tenantManagementService.suspendTenant(tenantId)));
@@ -171,6 +193,18 @@ public class PlatformTenantController {
             @Size(max = 255) String name,
             @Pattern(regexp = "^$|^[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,62}[a-zA-Z0-9])?$")
             String slug
+    ) {
+    }
+
+    /**
+     * Per-asset-type upload size overrides in bytes. A {@code null} value resets
+     * that type to the platform default.
+     */
+    public record UpdateUploadLimitsRequest(
+            @Min(1) @Max(5368709120L) Long maxAudioBytes,
+            @Min(1) @Max(5368709120L) Long maxImageBytes,
+            @Min(1) @Max(5368709120L) Long maxVideoBytes,
+            @Min(1) @Max(5368709120L) Long maxDocumentBytes
     ) {
     }
 

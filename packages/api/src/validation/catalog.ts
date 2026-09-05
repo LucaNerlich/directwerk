@@ -25,6 +25,8 @@ import type {
     LevelSummary,
     Me,
     MediaAsset,
+    MediaUploadLimits,
+    BulkImportQueuedResult,
     MembershipStatus,
     OfferingType,
     PermissionRestriction,
@@ -492,6 +494,32 @@ export function parseImportedEpisodeEnvelope(
     return parseEnvelope(value, parseImportedEpisodeResult)
 }
 
+export function parseBulkImportQueued(value: unknown): BulkImportQueuedResult | null {
+    if (
+        !isRecord(value) ||
+        !isBoundedString(value.jobId, 64) ||
+        !isNonNegativeSafeInteger(value.totalEpisodes) ||
+        !isNonNegativeSafeInteger(value.alreadyImported) ||
+        typeof value.notifyEmail !== 'string' ||
+        !isValidEmail(value.notifyEmail)
+    ) {
+        return null
+    }
+
+    return {
+        jobId: value.jobId,
+        totalEpisodes: value.totalEpisodes,
+        alreadyImported: value.alreadyImported,
+        notifyEmail: value.notifyEmail,
+    }
+}
+
+export function parseBulkImportQueuedEnvelope(
+    value: unknown,
+): ApiEnvelope<BulkImportQueuedResult> | null {
+    return parseEnvelope(value, parseBulkImportQueued)
+}
+
 // ---------------------------------------------------------------------------
 // Series
 // ---------------------------------------------------------------------------
@@ -666,6 +694,32 @@ export function parseMediaFolderListEnvelope(
     return parseEnvelope(value, (data) =>
         parseBoundedArray(data, Number.MAX_SAFE_INTEGER, parseMediaFolder),
     )
+}
+
+/** Effective per-type upload limits; all four bounds are required. */
+export function parseMediaUploadLimits(value: unknown): MediaUploadLimits | null {
+    if (
+        !isRecord(value) ||
+        !isPositiveSafeInteger(value.maxAudioBytes) ||
+        !isPositiveSafeInteger(value.maxImageBytes) ||
+        !isPositiveSafeInteger(value.maxVideoBytes) ||
+        !isPositiveSafeInteger(value.maxDocumentBytes)
+    ) {
+        return null
+    }
+
+    return {
+        maxAudioBytes: value.maxAudioBytes,
+        maxImageBytes: value.maxImageBytes,
+        maxVideoBytes: value.maxVideoBytes,
+        maxDocumentBytes: value.maxDocumentBytes,
+    }
+}
+
+export function parseMediaUploadLimitsEnvelope(
+    value: unknown,
+): ApiEnvelope<MediaUploadLimits> | null {
+    return parseEnvelope(value, parseMediaUploadLimits)
 }
 
 // ---------------------------------------------------------------------------

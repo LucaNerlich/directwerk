@@ -297,6 +297,23 @@ export interface ImportedEpisodeResult {
     alreadyImported: boolean
 }
 
+export interface BulkImportInput {
+    feedUrl: string
+    seriesId: number
+    formatIds?: number[]
+    accessPolicy?: AccessPolicy
+    requiredLevelSortOrder?: number
+    importAudio?: boolean
+    importImage?: boolean
+}
+
+export interface BulkImportQueuedResult {
+    jobId: string
+    totalEpisodes: number
+    alreadyImported: number
+    notifyEmail: string
+}
+
 export interface IngestRemoteAssetInput {
     sourceUrl: string
     assetType: AssetType
@@ -381,6 +398,25 @@ export interface MediaFolder {
     createdBy: number | null
     createdAt: string
     updatedAt: string
+}
+
+/**
+ * Per-tenant media upload size overrides in bytes from the platform admin.
+ * Null means the platform default applies for that asset type.
+ */
+export interface TenantUploadLimits {
+    maxAudioBytes: number | null
+    maxImageBytes: number | null
+    maxVideoBytes: number | null
+    maxDocumentBytes: number | null
+}
+
+/** Effective per-asset-type upload limits in bytes (overrides resolved). */
+export interface MediaUploadLimits {
+    maxAudioBytes: number
+    maxImageBytes: number
+    maxVideoBytes: number
+    maxDocumentBytes: number
 }
 
 // ---------------------------------------------------------------------------
@@ -1000,6 +1036,8 @@ export interface TenantDetail {
     createdAt: string
     primaryDomain: string | null
     domains: TenantDomainSummary[]
+    /** Per-type upload overrides; absent on older backends. */
+    uploadLimits?: TenantUploadLimits | null
 }
 
 export interface TenantDetailResponse {

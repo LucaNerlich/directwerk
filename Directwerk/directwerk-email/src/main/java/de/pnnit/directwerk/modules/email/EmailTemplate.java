@@ -35,6 +35,11 @@ public enum EmailTemplate {
             "email/contact-form.html",
             "Contact form: {{name}}",
             null
+    ),
+    RSS_BULK_IMPORT_FINISHED(
+            "email/rss-bulk-import-finished.html",
+            "RSS import finished: {{importedCount}} new, {{skippedCount}} skipped, {{failedCount}} failed",
+            null
     );
 
     private final String classpathPath;

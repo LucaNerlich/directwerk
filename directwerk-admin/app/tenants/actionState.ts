@@ -1,4 +1,4 @@
-import type {MediaAsset, TenantDetail} from '@directwerk/api/types'
+import type {MediaAsset, TenantDetail, TenantUploadLimits} from '@directwerk/api/types'
 
 export interface CreateTenantState {
     error: string | null
@@ -65,4 +65,16 @@ export const INITIAL_UPLOAD_MEDIA_STATE: UploadMediaState = {
     error: null,
     success: null,
     asset: null,
+}
+
+export interface UploadLimitsState {
+    error: string | null
+    success: string | null
+    limits: TenantUploadLimits | null
+}
+
+export const INITIAL_UPLOAD_LIMITS_STATE: UploadLimitsState = {
+    error: null,
+    success: null,
+    limits: null,
 }

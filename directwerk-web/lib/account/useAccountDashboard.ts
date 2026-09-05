@@ -76,19 +76,21 @@ export function useAccountDashboard(): AccountDashboardState {
             getMe(tenantHost),
             getAccess(tenantHost),
             getNotificationPreferences(tenantHost),
-            listMySubscriptions(tenantHost),
             getSiteConfig(tenantHost),
         ])
-            .then(async ([meResponse, accessResponse, prefs, subscriptionList, siteConfig]) => {
-                const hasSubscriptions =
+            .then(async ([meResponse, accessResponse, prefs, siteConfig]) => {
+                // Subscriptions live behind the SUBSCRIPTION module: only call
+                // the endpoint when it is active so a disabled module cannot
+                // fail the whole account page with FEATURE_NOT_ENABLED.
+                const subscriptionList: SubscriptionSummary[] =
                     siteConfig.data.enabledModules.includes('SUBSCRIPTION')
+                        ? await listMySubscriptions(tenantHost)
+                        : []
                 const podcastFeedsPromise: Promise<SubscriberFeedView[]> =
-                    hasSubscriptions &&
                     siteConfig.data.enabledModules.includes('PODCAST_RSS')
                         ? listMyFeeds(tenantHost)
                         : Promise.resolve([])
                 const articleFeedsPromise: Promise<ArticleFeedView[]> =
-                    hasSubscriptions &&
                     siteConfig.data.enabledModules.includes('ARTICLE_RSS')
                         ? listMyArticleFeeds(tenantHost)
                         : Promise.resolve([])

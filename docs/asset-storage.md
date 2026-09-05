@@ -228,6 +228,16 @@ URLs. Rules:
 - Folders grant nothing: private delivery still checks per-asset entitlement
   (`AssetAccessService`), never a folder/prefix grant.
 
+### Per-tenant upload limits
+
+Upload size caps default per asset type (audio/video 5 GB, images 10 MB,
+documents 50 MB) and can be overridden per tenant by platform admins
+(`PUT /api/v1/platform/tenants/{id}/upload-limits`, `NULL` resets a type to the
+default, hard ceiling 5 GiB). Overrides are enforced at `upload-url` creation
+and during RSS remote ingest; tenants read their effective limits via
+`GET /api/v1/media/limits`, which Studio uses for labels and pre-upload
+warnings.
+
 ---
 
 ## Module gating
@@ -571,7 +581,7 @@ Validations:
 | Tenant | `TenantContext.getTenantId()` |
 | Role | `EDITOR` or `TENANT_ADMIN` |
 | Mime allow-list | Per `assetType` (e.g. audio: `audio/mpeg`, `audio/mp4`) |
-| Max size | e.g. 500 MB audio, 10 MB images |
+| Max size | Platform default (audio/video 5 GB, images 10 MB, documents 50 MB), overridable per tenant — see below |
 | Key | `{tenant}/staging/{uploadSessionUuid}/{sanitizedFilename}` — session id server-generated |
 
 Response:

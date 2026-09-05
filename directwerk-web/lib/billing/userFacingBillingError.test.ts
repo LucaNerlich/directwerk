@@ -68,6 +68,37 @@ describe('userFacingBillingError', () => {
             'Bonusdateien konnten nicht geladen werden. Bitte versuche es später erneut.',
         )
     })
+
+    it('maps FEATURE_NOT_ENABLED to descriptive copy per context', () => {
+        const coded = (message: string) =>
+            Object.assign(new Error(message), {
+                code: 'FEATURE_NOT_ENABLED',
+                status: 403,
+            })
+        const backendMessage = 'Module SUBSCRIPTION is not active for this tenant'
+
+        expect(userFacingAccountError(coded(backendMessage))).toBe(
+            'Mitgliedschaften sind bei diesem Anbieter deaktiviert. Profil, Zugang und Feeds bleiben verfügbar.',
+        )
+        expect(userFacingFeedsError(coded(backendMessage))).toBe(
+            'Private Feeds sind bei diesem Anbieter deaktiviert.',
+        )
+        expect(userFacingDownloadsError(coded(backendMessage))).toBe(
+            'Bonusdateien sind bei diesem Anbieter deaktiviert.',
+        )
+        expect(userFacingBillingError(coded(backendMessage), 'checkout')).toBe(
+            'Abos sind bei diesem Anbieter deaktiviert. Wende dich für Zugang an die Redaktion.',
+        )
+    })
+
+    it('does not leak the raw backend message for disabled features', () => {
+        const error = Object.assign(
+            new Error('Module SUBSCRIPTION is not active for this tenant'),
+            {code: 'FEATURE_NOT_ENABLED', status: 403},
+        )
+
+        expect(userFacingAccountError(error)).not.toContain('Module SUBSCRIPTION')
+    })
 })
 
 describe('userFacingGeneralError', () => {

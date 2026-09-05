@@ -1,12 +1,15 @@
 'use client'
 
 import {
+    parseBulkImportQueuedEnvelope,
     parseImportedEpisodeEnvelope,
     parseMediaAssetEnvelope,
     parseRssImportPreviewEnvelope,
 } from '@directwerk/api/validation/catalog'
 
 import type {
+    BulkImportInput,
+    BulkImportQueuedResult,
     ImportEpisodeInput,
     ImportedEpisodeResult,
     MediaAsset,
@@ -52,5 +55,23 @@ export async function importRssEpisode(
         jsonInit('POST', input),
         parseImportedEpisodeEnvelope,
         'Die Folge konnte nicht importiert werden.',
+    )
+}
+
+/**
+ * Queues a background bulk import of every not-yet-imported feed episode with
+ * shared defaults. The backend previews synchronously, imports asynchronously,
+ * and emails a summary to the requesting editor.
+ */
+export async function bulkImportRss(
+    tenantHost: string,
+    input: BulkImportInput,
+): Promise<BulkImportQueuedResult> {
+    return studioMutate(
+        '/api/proxy/podcast/import/bulk',
+        tenantHost,
+        jsonInit('POST', input),
+        parseBulkImportQueuedEnvelope,
+        'Der Stapelimport konnte nicht gestartet werden.',
     )
 }

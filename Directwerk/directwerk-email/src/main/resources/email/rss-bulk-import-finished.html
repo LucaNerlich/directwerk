@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>RSS import finished</title>
+</head>
+<body style="font-family: Arial, sans-serif; line-height: 1.5; color: #1f2937;">
+    <p>Hi {{recipientName}},</p>
+    <p>The RSS bulk import for <strong>{{feedUrl}}</strong> has finished:</p>
+    <ul>
+        <li>{{importedCount}} episodes imported</li>
+        <li>{{skippedCount}} episodes skipped (already imported)</li>
+        <li>{{failedCount}} episodes failed</li>
+    </ul>
+    <p>{{failedDetails}}</p>
+    <p>You can review the imported drafts in Studio.</p>
+</body>
+</html>

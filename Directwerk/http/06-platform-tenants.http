@@ -97,6 +97,32 @@ Accept: application/json
 
 ###
 
+### @name updateUploadLimitsC
+PUT {{baseUrl}}/api/v1/platform/tenants/{{tenantCId}}/upload-limits
+Authorization: Bearer {{platformAccessToken}}
+Content-Type: application/json
+Accept: application/json
+
+{
+  "maxAudioBytes": 104857600,
+  "maxImageBytes": null,
+  "maxVideoBytes": null,
+  "maxDocumentBytes": 52428800
+}
+
+> {%
+    client.test("Update upload limits", function() {
+        client.assert(response.status === 200 || response.status === 400 || response.status === 404,
+            "Expected 200/400/404");
+        if (response.status === 200) {
+            client.assert(response.body.data.maxAudioBytes === 104857600, "Expected audio override");
+            client.assert(response.body.data.maxImageBytes === null, "Expected image default");
+        }
+    });
+%}
+
+###
+
 ### @name suspendTenantC
 POST {{baseUrl}}/api/v1/platform/tenants/{{tenantCId}}/suspend
 Authorization: Bearer {{platformAccessToken}}

@@ -2,6 +2,7 @@ package de.pnnit.directwerk.modules.digital.service;
 
 import de.pnnit.directwerk.modules.core.repository.TenantRepository;
 import de.pnnit.directwerk.modules.digital.api.MediaAssetQueryApi;
+import de.pnnit.directwerk.modules.digital.api.EffectiveUploadLimits;
 import de.pnnit.directwerk.modules.digital.entity.AssetStatus;
 import de.pnnit.directwerk.modules.digital.entity.AssetType;
 import de.pnnit.directwerk.modules.digital.entity.MediaAsset;
@@ -116,5 +117,16 @@ public class MediaAssetQueryService implements MediaAssetQueryApi {
     public List<MediaAsset> listForTenant(Long tenantId, AssetType assetType, AssetStatus status, int limit) {
         tenantRepository.requireById(tenantId);
         return TenantContext.callWithTenant(tenantId, () -> list(assetType, status, limit));
+    }
+
+    @Override
+    public EffectiveUploadLimits effectiveUploadLimits(Long tenantId) {
+        var tenant = tenantRepository.requireById(tenantId);
+        return new EffectiveUploadLimits(
+                MediaUploadRules.effectiveMaxBytes(AssetType.AUDIO, tenant.getMaxAudioBytes()),
+                MediaUploadRules.effectiveMaxBytes(AssetType.IMAGE, tenant.getMaxImageBytes()),
+                MediaUploadRules.effectiveMaxBytes(AssetType.VIDEO, tenant.getMaxVideoBytes()),
+                MediaUploadRules.effectiveMaxBytes(AssetType.DOCUMENT, tenant.getMaxDocumentBytes())
+        );
     }
 }

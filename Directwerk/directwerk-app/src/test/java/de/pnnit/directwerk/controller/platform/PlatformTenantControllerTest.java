@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -167,6 +168,43 @@ class PlatformTenantControllerTest {
                         .content("{\"name\":\"Renamed Tenant\"}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.name").value("Renamed Tenant"));
+    }
+
+    @Test
+    @WithMockUser(roles = "PLATFORM_ADMIN")
+    void updateUploadLimitsPersistsOverridesAndResetsOthersToDefault() throws Exception {
+        mockMvc.perform(put("/api/v1/platform/tenants/{id}/upload-limits", tenant.getId())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"maxAudioBytes\":104857600,\"maxDocumentBytes\":52428800}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.maxAudioBytes").value(104857600))
+                .andExpect(jsonPath("$.data.maxDocumentBytes").value(52428800));
+
+        Tenant reloaded = tenantRepository.findById(tenant.getId()).orElseThrow();
+        assertThat(reloaded.getMaxAudioBytes()).isEqualTo(104857600L);
+        assertThat(reloaded.getMaxImageBytes()).isNull();
+        assertThat(reloaded.getMaxVideoBytes()).isNull();
+        assertThat(reloaded.getMaxDocumentBytes()).isEqualTo(52428800L);
+    }
+
+    @Test
+    @WithMockUser(roles = "PLATFORM_ADMIN")
+    void updateUploadLimitsRejectsOutOfRangeOverride() throws Exception {
+        mockMvc.perform(put("/api/v1/platform/tenants/{id}/upload-limits", tenant.getId())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"maxAudioBytes\":0}"))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @WithMockUser(roles = "PLATFORM_ADMIN")
+    void getTenantExposesUploadLimits() throws Exception {
+        tenant.setMaxAudioBytes(104857600L);
+        tenantRepository.save(tenant);
+
+        mockMvc.perform(get("/api/v1/platform/tenants/{id}", tenant.getId()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.tenant.uploadLimits.maxAudioBytes").value(104857600));
     }
 
     @Test
