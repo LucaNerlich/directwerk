@@ -5,6 +5,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import de.pnnit.directwerk.api.PublicArticleViewMapper;
+import de.pnnit.directwerk.api.dto.PublicArticleView;
 import de.pnnit.directwerk.modules.core.entity.Tenant;
 import de.pnnit.directwerk.modules.digital.entity.AccessPolicy;
 import de.pnnit.directwerk.modules.digital.service.CategoryService;
@@ -50,7 +51,7 @@ class PublicArticleControllerTest {
     void getArticleTracksPublicViewAndReturnsMappedArticle() {
         TenantContext.setTenantId(10L);
         Article article = freeArticle();
-        PublicArticleController.PublicArticleView view = new PublicArticleController.PublicArticleView(
+        PublicArticleView view = new PublicArticleView(
                 article.getId(),
                 article.getSlug(),
                 article.getTitle(),

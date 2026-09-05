@@ -1,11 +1,12 @@
 package de.pnnit.directwerk.api;
 
 import de.pnnit.directwerk.api.dto.CategoryView;
+import de.pnnit.directwerk.api.dto.EpisodeView;
 import de.pnnit.directwerk.api.dto.FormatView;
+import de.pnnit.directwerk.api.dto.MeEpisodeView;
 import de.pnnit.directwerk.api.dto.PublicCategoryView;
-import de.pnnit.directwerk.controller.podcast.EpisodeController;
-import de.pnnit.directwerk.controller.publicapi.PublicPodcastController;
-import de.pnnit.directwerk.controller.auth.MeEpisodeController;
+import de.pnnit.directwerk.api.dto.PublicEpisodeView;
+import de.pnnit.directwerk.api.dto.PublicFormatView;
 import de.pnnit.directwerk.modules.content.PublicSurfacePolicy;
 import de.pnnit.directwerk.modules.digital.api.EpisodeMediaApi;
 import de.pnnit.directwerk.modules.digital.entity.Category;
@@ -25,7 +26,7 @@ public class PublicEpisodeViewMapper {
 
     private final EpisodeMediaApi episodeMediaApi;
 
-    public PublicPodcastController.PublicEpisodeView toPublicView(Episode episode) {
+    public PublicEpisodeView toPublicView(Episode episode) {
         String audioCdnUrl = null;
         if (PublicSurfacePolicy.exposesFullContent(episode.getAccessPolicy().name())
                 && episode.getAudioAsset() != null) {
@@ -33,7 +34,7 @@ public class PublicEpisodeViewMapper {
                     .map(URL::toString)
                     .orElse(null);
         }
-        return new PublicPodcastController.PublicEpisodeView(
+        return new PublicEpisodeView(
                 episode.getId(),
                 episode.getSeries().getId(),
                 episode.getSeries().getSlug(),
@@ -57,8 +58,8 @@ public class PublicEpisodeViewMapper {
         );
     }
 
-    public MeEpisodeController.MeEpisodeView toPortalView(Episode episode, URL audioUrl) {
-        return new MeEpisodeController.MeEpisodeView(
+    public MeEpisodeView toPortalView(Episode episode, URL audioUrl) {
+        return new MeEpisodeView(
                 episode.getId(),
                 episode.getSeries().getId(),
                 episode.getSeries().getSlug(),
@@ -82,8 +83,8 @@ public class PublicEpisodeViewMapper {
         );
     }
 
-    public EpisodeController.EpisodeView toStudioView(Episode episode) {
-        return new EpisodeController.EpisodeView(
+    public EpisodeView toStudioView(Episode episode) {
+        return new EpisodeView(
                 episode.getId(),
                 episode.getSeries().getId(),
                 episode.getSeries().getSlug(),
@@ -114,8 +115,8 @@ public class PublicEpisodeViewMapper {
         );
     }
 
-    private static PublicPodcastController.PublicFormatView toPublicFormatView(Format format) {
-        return new PublicPodcastController.PublicFormatView(
+    private static PublicFormatView toPublicFormatView(Format format) {
+        return new PublicFormatView(
                 format.getId(),
                 format.getSlug(),
                 format.getName(),

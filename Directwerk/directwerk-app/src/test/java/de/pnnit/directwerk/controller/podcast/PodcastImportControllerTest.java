@@ -12,6 +12,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import de.pnnit.directwerk.api.MediaAssetViewMapper;
 import de.pnnit.directwerk.api.PublicEpisodeViewMapper;
+import de.pnnit.directwerk.api.dto.EpisodeView;
 import de.pnnit.directwerk.api.dto.MediaAssetView;
 import de.pnnit.directwerk.modules.core.entity.Tenant;
 import de.pnnit.directwerk.modules.core.service.ModuleGateService;
@@ -166,7 +167,7 @@ class PodcastImportControllerTest {
         when(podcastImportService.importEpisode(any())).thenReturn(
                 new PodcastImportService.ImportedEpisode(episode, false)
         );
-        when(publicEpisodeViewMapper.toStudioView(episode)).thenReturn(new EpisodeController.EpisodeView(
+        when(publicEpisodeViewMapper.toStudioView(episode)).thenReturn(new EpisodeView(
                 5L,
                 7L,
                 "main-show",

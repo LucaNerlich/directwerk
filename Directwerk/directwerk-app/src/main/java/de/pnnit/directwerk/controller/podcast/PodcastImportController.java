@@ -2,6 +2,7 @@ package de.pnnit.directwerk.controller.podcast;
 
 import de.pnnit.directwerk.api.MediaAssetViewMapper;
 import de.pnnit.directwerk.api.PublicEpisodeViewMapper;
+import de.pnnit.directwerk.api.dto.EpisodeView;
 import de.pnnit.directwerk.api.dto.MediaAssetView;
 import de.pnnit.directwerk.api.response.Response;
 import de.pnnit.directwerk.job.RssBulkImportPayload;
@@ -380,7 +381,7 @@ public class PodcastImportController {
     }
 
     public record ImportedEpisodeView(
-            EpisodeController.EpisodeView episode,
+            EpisodeView episode,
             boolean alreadyImported
     ) {
     }

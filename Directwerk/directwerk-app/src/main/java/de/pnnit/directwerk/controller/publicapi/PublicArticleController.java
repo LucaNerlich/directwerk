@@ -1,6 +1,7 @@
 package de.pnnit.directwerk.controller.publicapi;
 
 import de.pnnit.directwerk.api.PublicArticleViewMapper;
+import de.pnnit.directwerk.api.dto.PublicArticleView;
 import de.pnnit.directwerk.api.dto.PublicCategoryView;
 import de.pnnit.directwerk.api.response.Response;
 import de.pnnit.directwerk.controller.RequestClientIpExtractor;
@@ -12,7 +13,6 @@ import de.pnnit.directwerk.modules.newsletter.service.ArticleViewAnalyticsServic
 import de.pnnit.directwerk.modules.newsletter.service.PublicArticleQueryService;
 import de.pnnit.directwerk.multitenancy.TenantContext;
 import jakarta.servlet.http.HttpServletRequest;
-import java.time.Instant;
 import java.util.List;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -87,20 +87,5 @@ public class PublicArticleController {
                 request.getHeader("User-Agent"),
                 RequestClientIpExtractor.extract(request));
         return ResponseEntity.ok(Response.ok(publicArticleViewMapper.toPublicView(article)));
-    }
-
-    public record PublicArticleView(
-            Long id,
-            String slug,
-            String title,
-            String body,
-            String excerpt,
-            String seoDescription,
-            Long heroAssetId,
-            String accessPolicy,
-            Integer requiredLevelSortOrder,
-            Instant publishedAt,
-            List<PublicCategoryView> categories
-    ) {
     }
 }

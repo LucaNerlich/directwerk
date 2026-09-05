@@ -2,6 +2,8 @@ package de.pnnit.directwerk.controller.publicapi;
 
 import de.pnnit.directwerk.api.PublicEpisodeViewMapper;
 import de.pnnit.directwerk.api.dto.PublicCategoryView;
+import de.pnnit.directwerk.api.dto.PublicEpisodeView;
+import de.pnnit.directwerk.api.dto.PublicFormatView;
 import de.pnnit.directwerk.api.response.Response;
 import de.pnnit.directwerk.modules.core.RequiresModule;
 import de.pnnit.directwerk.modules.core.util.FeedUrlResolver;
@@ -13,7 +15,6 @@ import de.pnnit.directwerk.modules.podcast.service.PublicPodcastQueryService;
 import de.pnnit.directwerk.modules.podcast.service.RssFeedSnapshotService;
 import de.pnnit.directwerk.multitenancy.TenantContext;
 import jakarta.servlet.http.HttpServletRequest;
-import java.time.Instant;
 import java.util.List;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -128,34 +129,6 @@ public class PublicPodcastController {
             String language,
             String itunesCategory,
             String rssUrl
-    ) {
-    }
-
-    public record PublicEpisodeView(
-            Long id,
-            Long seriesId,
-            String seriesSlug,
-            Integer episodeNumber,
-            String slug,
-            String title,
-            String description,
-            Integer durationSeconds,
-            String accessPolicy,
-            Integer requiredLevelSortOrder,
-            Instant publishedAt,
-            String audioCdnUrl,
-            List<PublicFormatView> formats,
-            List<PublicCategoryView> categories
-    ) {
-    }
-
-    public record PublicFormatView(
-            Long id,
-            String slug,
-            String name,
-            String description,
-            Integer requiredLevelSortOrder,
-            int sortOrder
     ) {
     }
 }

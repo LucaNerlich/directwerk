@@ -1,8 +1,8 @@
 package de.pnnit.directwerk.api;
 
 import de.pnnit.directwerk.api.dto.PublicCategoryView;
-import de.pnnit.directwerk.controller.auth.MeArticleController;
-import de.pnnit.directwerk.controller.publicapi.PublicArticleController;
+import de.pnnit.directwerk.api.dto.MeArticleView;
+import de.pnnit.directwerk.api.dto.PublicArticleView;
 import de.pnnit.directwerk.modules.content.PublicSurfacePolicy;
 import de.pnnit.directwerk.api.dto.CategoryView;
 import de.pnnit.directwerk.modules.newsletter.entity.Article;
@@ -16,8 +16,8 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class PublicArticleViewMapper {
 
-    public PublicArticleController.PublicArticleView toPublicView(Article article) {
-        return new PublicArticleController.PublicArticleView(
+    public PublicArticleView toPublicView(Article article) {
+        return new PublicArticleView(
                 article.getId(),
                 article.getSlug(),
                 article.getTitle(),
@@ -35,8 +35,8 @@ public class PublicArticleViewMapper {
         );
     }
 
-    public MeArticleController.MeArticleView toPortalView(Article article) {
-        return new MeArticleController.MeArticleView(
+    public MeArticleView toPortalView(Article article) {
+        return new MeArticleView(
                 article.getId(),
                 article.getSlug(),
                 article.getTitle(),

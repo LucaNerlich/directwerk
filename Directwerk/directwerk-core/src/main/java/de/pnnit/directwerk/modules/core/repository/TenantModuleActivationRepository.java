@@ -1,7 +1,6 @@
 package de.pnnit.directwerk.modules.core.repository;
 
 import de.pnnit.directwerk.modules.core.entity.TenantModuleActivation;
-import de.pnnit.directwerk.modules.core.repository.TenantModuleActivationRepository;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;

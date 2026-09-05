@@ -1,8 +1,7 @@
 package de.pnnit.directwerk.controller.auth;
 
 import de.pnnit.directwerk.api.PublicEpisodeViewMapper;
-import de.pnnit.directwerk.api.dto.CategoryView;
-import de.pnnit.directwerk.api.dto.FormatView;
+import de.pnnit.directwerk.api.dto.MeEpisodeView;
 import de.pnnit.directwerk.api.response.Response;
 import de.pnnit.directwerk.controller.RequestClientIpExtractor;
 import de.pnnit.directwerk.modules.core.RequiresModule;
@@ -12,7 +11,6 @@ import de.pnnit.directwerk.modules.podcast.service.PortalStreamDeliveryFacade;
 import de.pnnit.directwerk.security.DirectwerkUserPrincipal;
 import de.pnnit.directwerk.security.SecurityUtils;
 import jakarta.servlet.http.HttpServletRequest;
-import java.time.Instant;
 import java.util.List;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -80,23 +78,5 @@ public class MeEpisodeController {
                 request.getHeader("User-Agent"),
                 RequestClientIpExtractor.extract(request));
         return tracked.response();
-    }
-
-    public record MeEpisodeView(
-            Long id,
-            Long seriesId,
-            String seriesSlug,
-            Integer episodeNumber,
-            String slug,
-            String title,
-            String description,
-            Integer durationSeconds,
-            String accessPolicy,
-            Integer requiredLevelSortOrder,
-            Instant publishedAt,
-            String audioCdnUrl,
-            List<FormatView> formats,
-            List<CategoryView> categories
-    ) {
     }
 }

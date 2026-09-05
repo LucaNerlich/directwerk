@@ -1,7 +1,6 @@
 package de.pnnit.directwerk.controller.podcast;
 
-import de.pnnit.directwerk.api.dto.CategoryView;
-import de.pnnit.directwerk.api.dto.FormatView;
+import de.pnnit.directwerk.api.dto.EpisodeView;
 import de.pnnit.directwerk.api.PublicEpisodeViewMapper;
 import de.pnnit.directwerk.api.dto.PublishOptionsRequest;
 import de.pnnit.directwerk.api.dto.ReplaceCategoriesRequest;
@@ -279,31 +278,6 @@ public class EpisodeController {
     public record ScheduleEpisodeRequest(
             @NotNull Instant scheduledAt,
             Boolean notifySubscribers
-    ) {
-    }
-
-    public record EpisodeView(
-            Long id,
-            Long seriesId,
-            String seriesSlug,
-            Integer episodeNumber,
-            String slug,
-            String title,
-            String description,
-            Long audioAssetId,
-            Long coverAssetId,
-            Integer durationSeconds,
-            String accessPolicy,
-            Integer requiredLevelSortOrder,
-            String status,
-            boolean enclosureEnabled,
-            Instant publishedAt,
-            Instant scheduledAt,
-            List<FormatView> formats,
-            List<CategoryView> categories,
-            Long createdBy,
-            Instant createdAt,
-            Instant updatedAt
     ) {
     }
 }

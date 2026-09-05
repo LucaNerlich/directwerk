@@ -5,6 +5,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import de.pnnit.directwerk.api.PublicArticleViewMapper;
+import de.pnnit.directwerk.api.dto.MeArticleView;
 import de.pnnit.directwerk.modules.core.entity.Tenant;
 import de.pnnit.directwerk.modules.digital.entity.AccessPolicy;
 import de.pnnit.directwerk.modules.newsletter.access.SubscriberPortalArticleAccessService;
@@ -51,7 +52,7 @@ class MeArticleControllerTest {
         );
         DirectwerkUserPrincipal principal = subscriber();
         Article article = paidArticle();
-        MeArticleController.MeArticleView view = new MeArticleController.MeArticleView(
+        MeArticleView view = new MeArticleView(
                 article.getId(),
                 article.getSlug(),
                 article.getTitle(),
@@ -84,7 +85,7 @@ class MeArticleControllerTest {
         );
         DirectwerkUserPrincipal principal = subscriber();
         Article article = paidArticle();
-        MeArticleController.MeArticleView view = new MeArticleController.MeArticleView(
+        MeArticleView view = new MeArticleView(
                 article.getId(),
                 article.getSlug(),
                 article.getTitle(),
