@@ -73,9 +73,9 @@ export function filenameFromImportUrl(url: string, fallback: string, preferredSt
     } catch {
         const slash = trimmed.lastIndexOf('/')
         let last = slash >= 0 ? trimmed.slice(slash + 1) : trimmed
-        const query = last.indexOf('?')
-        if (query >= 0) {
-            last = last.slice(0, query)
+        const suffix = last.search(/[?#]/)
+        if (suffix >= 0) {
+            last = last.slice(0, suffix)
         }
         return withStem(last)
     }

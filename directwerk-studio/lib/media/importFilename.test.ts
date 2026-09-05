@@ -32,6 +32,12 @@ describe('filenameFromImportUrl', () => {
         )
     })
 
+    it('removes fragments from relative URL segments', () => {
+        expect(filenameFromImportUrl('episodes/finale.mp3#player', 'episode.mp3', 'folge-1')).toBe(
+            'folge-1.mp3',
+        )
+    })
+
     it('falls back for generic stems that identify nothing', () => {        expect(filenameFromImportUrl('https://cdn.example/download.mp3', 'episode.mp3')).toBe(
             'episode.mp3',
         )
