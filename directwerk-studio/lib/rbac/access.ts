@@ -14,8 +14,6 @@ import {
     RBAC_RESTRICTABLE_OPERATIONS,
 } from '@directwerk/api/types'
 
-export type RbacAccess = 'FULL' | 'OWN_ONLY' | 'DENIED'
-
 export function rbacEntityLabel(entity: RbacEntityType): string {
     switch (entity) {
         case 'EPISODE':
@@ -56,7 +54,7 @@ export function rbacOperationLabel(operation: RbacOperation): string {
     }
 }
 
-export function rbacAccessLabel(access: RbacAccess): string {
+export function rbacAccessLabel(access: RbacEffectiveAccess): string {
     switch (access) {
         case 'FULL':
             return 'Vollzugriff'
@@ -97,7 +95,7 @@ export function restrictionAccess(
     restrictions: PermissionRestriction[],
     entity: RbacEntityType,
     operation: RbacOperation,
-): RbacAccess {
+): RbacEffectiveAccess {
     let ownOnly = false
     for (const restriction of restrictions) {
         if (restriction.entityType !== entity || restriction.operation !== operation) {
@@ -116,7 +114,7 @@ export function restrictionAccess(
  * baseline (FULL, or invalid combinations like OWN_ONLY on CREATE) produce no rows.
  */
 export function restrictionsFromAccess(
-    selections: Partial<Record<RbacEntityType, Partial<Record<RbacOperation, RbacAccess>>>>,
+    selections: Partial<Record<RbacEntityType, Partial<Record<RbacOperation, RbacEffectiveAccess>>>>,
 ): PermissionRestriction[] {
     const restrictions: PermissionRestriction[] = []
     for (const entity of RBAC_ENTITY_TYPES) {

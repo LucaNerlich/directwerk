@@ -10,6 +10,7 @@ import {
     RBAC_OWN_ONLY_OPERATIONS,
     RBAC_RESTRICTABLE_OPERATIONS,
     type PermissionRestriction,
+    type RbacEffectiveAccess,
     type RbacEntityType,
     type RbacOperation,
     type TenantUser,
@@ -24,10 +25,9 @@ import {
     rbacOperationLabel,
     restrictionAccess,
     restrictionsFromAccess,
-    type RbacAccess,
 } from '@/lib/rbac/access'
 
-type AccessMatrix = Partial<Record<RbacEntityType, Partial<Record<RbacOperation, RbacAccess>>>>
+type AccessMatrix = Partial<Record<RbacEntityType, Partial<Record<RbacOperation, RbacEffectiveAccess>>>>
 
 function matrixFromRestrictions(restrictions: PermissionRestriction[]): AccessMatrix {
     const matrix: AccessMatrix = {}
@@ -114,7 +114,7 @@ export default function MemberRightsEditor({
         )
     }
 
-    function setAccess(entity: RbacEntityType, operation: RbacOperation, access: RbacAccess): void {
+    function setAccess(entity: RbacEntityType, operation: RbacOperation, access: RbacEffectiveAccess): void {
         setMatrix((current) => ({...current, [entity]: {...current[entity], [operation]: access}}))
         setStatusMessage(null)
     }
@@ -165,7 +165,7 @@ export default function MemberRightsEditor({
                                         className="native-select"
                                         disabled={isSaving}
                                         onChange={(event) =>
-                                            setAccess(entity, operation, event.target.value as RbacAccess)
+                                            setAccess(entity, operation, event.target.value as RbacEffectiveAccess)
                                         }
                                         value={value}
                                     >
