@@ -44,8 +44,6 @@ class FlywaySchemaValidationIntegrationTest {
 
     @DynamicPropertySource
     static void registerOAuthSecrets(DynamicPropertyRegistry registry) {
-        registry.add("directwerk.security.platform-client-secret", () -> "test-platform-" + UUID.randomUUID());
-        registry.add("directwerk.security.tenant-client-secret", () -> "test-tenant-" + UUID.randomUUID());
     }
 
     @Test

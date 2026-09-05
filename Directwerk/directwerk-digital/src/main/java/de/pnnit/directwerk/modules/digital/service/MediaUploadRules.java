@@ -18,6 +18,16 @@ public final class MediaUploadRules {
     private static final int MAX_FILENAME_STEM_LENGTH = 100;
     private static final long MB = 1024L * 1024L;
 
+    /**
+     * Filename stems that carry no identifying information. Hosts often serve
+     * enclosures from generic routes (e.g. {@code .../download.mp3},
+     * {@code .../episode.mp3}); importing those verbatim fills media libraries
+     * with indistinguishable names, so callers fall back to a title slug.
+     */
+    private static final Set<String> GENERIC_FILENAME_STEMS = Set.of(
+            "download", "downloads", "file", "audio", "video", "image", "media",
+            "track", "episode", "podcast", "attachment", "cover");
+
     private static final Map<AssetType, Set<String>> ALLOWED_MIME = Map.of(
             AssetType.AUDIO, Set.of("audio/mpeg", "audio/mp4", "audio/x-m4a", "audio/wav", "audio/ogg", "audio/webm"),
             AssetType.IMAGE, Set.of("image/jpeg", "image/png", "image/webp", "image/gif"),
@@ -213,6 +223,17 @@ public final class MediaUploadRules {
                     "sizeBytes out of range for assetType " + assetType + " (max " + max + ")"
             );
         }
+    }
+
+    /**
+     * Determines whether a filename stem identifies nothing (e.g. {@code download}
+     * in {@code download.mp3}). Comparison is case-insensitive.
+     *
+     * @param stem the filename stem without extension, may be {@code null}
+     * @return {@code true} when callers should prefer a title-derived name
+     */
+    public static boolean isGenericFilenameStem(String stem) {
+        return stem != null && GENERIC_FILENAME_STEMS.contains(stem.trim().toLowerCase(Locale.ROOT));
     }
 
     public static String sanitizeFilename(String filename) {

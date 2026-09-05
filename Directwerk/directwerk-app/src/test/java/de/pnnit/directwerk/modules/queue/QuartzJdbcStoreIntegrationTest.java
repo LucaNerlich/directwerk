@@ -3,7 +3,6 @@ package de.pnnit.directwerk.modules.queue;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
-import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -30,8 +29,6 @@ class QuartzJdbcStoreIntegrationTest {
 
     @DynamicPropertySource
     static void registerOAuthSecrets(DynamicPropertyRegistry registry) {
-        registry.add("directwerk.security.platform-client-secret", () -> "test-platform-" + UUID.randomUUID());
-        registry.add("directwerk.security.tenant-client-secret", () -> "test-tenant-" + UUID.randomUUID());
     }
 
     @Test
