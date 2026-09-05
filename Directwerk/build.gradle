@@ -64,6 +64,11 @@ subprojects {
 
     tasks.named('test') {
         useJUnitPlatform()
+        // Test workers default to -Xmx512m (Gradle default, nothing overrides
+        // it here). A single full-app Spring context needs several hundred MB;
+        // with ~30 of them cached in one fork the suite OOMs (see #154).
+        // 2g fits local dev (62 GB) and CI runners (16 GB) comfortably.
+        maxHeapSize = '2g'
         finalizedBy tasks.named('jacocoTestReport')
     }
 
