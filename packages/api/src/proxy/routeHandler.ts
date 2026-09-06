@@ -1,6 +1,5 @@
 import type {HttpMethod} from '../server/transport'
-import {parseJsonText} from '../validation/json'
-import {readBoundedRequestBody} from './boundedBody'
+import {readJsonBody} from './boundedBody'
 import {
     buildProxyPath,
     buildSafeProxyQuery,
@@ -44,10 +43,10 @@ export interface ProxyRouteContext {
     params: Promise<{path: string[]}>
 }
 
-type ProxyMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'
+type ProxyMethod = 'GET' | 'HEAD' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'
 
 export type TenantProxyRouteHandlers = Record<
-    'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE',
+    'GET' | 'HEAD' | 'POST' | 'PUT' | 'PATCH' | 'DELETE',
     (request: Request, context: ProxyRouteContext) => Promise<Response>
 >
 
@@ -78,36 +77,32 @@ export function createTenantProxyRouteHandler(
     ): Promise<Response> {
         const {tenantHost, apiPath, method, bearerToken, query} = resolved
         let body: string | undefined
-        if (method !== 'GET') {
-            const contentType = request.headers.get('content-type') ?? ''
+        // HEAD is treated exactly like GET: no body is read; the method is
+        // forwarded as HEAD (PROXY_POLICIES rows set allowHead: true).
+        if (method !== 'GET' && method !== 'HEAD') {
             // Never trust Content-Length for the size gate — chunked/streamed
-            // bodies can lie. Read the stream with a hard byte cap instead.
-            const bounded = await readBoundedRequestBody(
-                request,
-                config.jsonBodyLimit,
-            )
-            if (!bounded.ok) {
+            // bodies can lie. readJsonBody reads the stream with a hard byte
+            // cap instead (oversize -> 413).
+            const parsed = await readJsonBody(request, {
+                jsonBodyLimit: config.jsonBodyLimit,
+                allowMissingBody: config.allowMissingBody === true,
+            })
+            if (!parsed.ok) {
+                if (parsed.status === 413) {
+                    return jsonError('The request body is too large.', 413)
+                }
+                if (parsed.status === 415) {
+                    return jsonError(
+                        'Content-Type must be application/json.',
+                        415,
+                    )
+                }
                 return jsonError(
-                    bounded.status === 413
-                        ? 'The request body is too large.'
-                        : 'A valid JSON request body is required.',
-                    bounded.status === 413 ? 413 : 400,
+                    'A valid JSON request body is required.',
+                    400,
                 )
             }
-            if (config.allowMissingBody === true && bounded.text.length === 0) {
-                body = undefined
-            } else if (
-                !contentType.toLowerCase().includes('application/json') ||
-                bounded.text.length === 0 ||
-                bounded.text.length > config.jsonBodyLimit
-            ) {
-                return jsonError('A valid JSON request body is required.', 400)
-            } else {
-                body = bounded.text
-                if (parseJsonText(body) === null) {
-                    return jsonError('A valid JSON request body is required.', 400)
-                }
-            }
+            body = parsed.text
         }
 
         try {
@@ -154,10 +149,11 @@ export function createTenantProxyRouteHandler(
         if (hasUnsupportedProxyQuery(request.url)) {
             // Only the feed-builder previews and the media-library
             // list/delete endpoints carry query strings; anything else
-            // (or a malformed query) keeps the blanket rejection.
+            // (or a malformed query) keeps the blanket rejection. HEAD is
+            // validated like GET but still forwarded as HEAD.
             const query = buildSafeProxyQuery(
                 apiPath,
-                method,
+                method === 'HEAD' ? 'GET' : method,
                 new URL(request.url).searchParams,
             )
             if (query === null) {
@@ -182,6 +178,7 @@ export function createTenantProxyRouteHandler(
 
     return {
         GET: (request, context) => handleProxy(request, context, 'GET'),
+        HEAD: (request, context) => handleProxy(request, context, 'HEAD'),
         POST: (request, context) => handleProxy(request, context, 'POST'),
         PUT: (request, context) => handleProxy(request, context, 'PUT'),
         PATCH: (request, context) => handleProxy(request, context, 'PATCH'),

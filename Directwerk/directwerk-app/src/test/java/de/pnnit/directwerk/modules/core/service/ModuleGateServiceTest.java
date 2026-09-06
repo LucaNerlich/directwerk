@@ -2,6 +2,8 @@ package de.pnnit.directwerk.modules.core.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import de.pnnit.directwerk.modules.core.entity.TenantModuleActivation;
@@ -11,11 +13,13 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.beans.factory.ObjectProvider;
 
 @ExtendWith(MockitoExtension.class)
 class ModuleGateServiceTest {
@@ -23,8 +27,20 @@ class ModuleGateServiceTest {
     @Mock
     private TenantModuleActivationRepository tenantModuleActivationRepository;
 
+    @Mock
+    private ObjectProvider<ModuleGateService> selfProvider;
+
     @InjectMocks
     private ModuleGateService moduleGateService;
+
+    @BeforeEach
+    void wireSelfReference() {
+        // Mirrors the Spring runtime: the provider hands out the (proxied) service itself,
+        // so the cached enabledModuleKeys read participates in caching. Lenient: tests that
+        // never enforce (isModuleActive, direct enabledModuleKeys reads, fail-closed paths)
+        // legitimately leave the provider untouched.
+        org.mockito.Mockito.lenient().when(selfProvider.getObject()).thenReturn(moduleGateService);
+    }
 
     @AfterEach
     void cleanup() {
@@ -40,11 +56,12 @@ class ModuleGateServiceTest {
     @Test
     void requireModuleThrowsWhenModuleInactive() {
         TenantContext.setTenantId(1L);
-        when(tenantModuleActivationRepository.findByTenantIdAndModuleKey(1L, "PODCAST"))
-                .thenReturn(Optional.empty());
+        when(tenantModuleActivationRepository.findByTenantIdAndActiveTrue(1L))
+                .thenReturn(List.of());
 
         assertThatThrownBy(() -> moduleGateService.requireModule("PODCAST"))
-                .isInstanceOf(ModuleNotEnabledException.class);
+                .isInstanceOf(ModuleNotEnabledException.class)
+                .hasMessageContaining("PODCAST");
     }
 
     @Test
@@ -53,10 +70,45 @@ class ModuleGateServiceTest {
         TenantModuleActivation activation = new TenantModuleActivation();
         activation.setModuleKey("PODCAST");
         activation.setActive(true);
-        when(tenantModuleActivationRepository.findByTenantIdAndModuleKey(1L, "PODCAST"))
-                .thenReturn(Optional.of(activation));
+        when(tenantModuleActivationRepository.findByTenantIdAndActiveTrue(1L))
+                .thenReturn(List.of(activation));
 
         moduleGateService.requireModule("PODCAST");
+    }
+
+    @Test
+    void requireModulesEnforcesEveryKeyWithASingleActivationRead() {
+        TenantContext.setTenantId(1L);
+        when(tenantModuleActivationRepository.findByTenantIdAndActiveTrue(1L))
+                .thenReturn(List.of(active("PODCAST"), active("PODCAST_RSS"), active("SUBSCRIPTION")));
+
+        moduleGateService.requireModules(List.of("PODCAST", "PODCAST_RSS", "SUBSCRIPTION"));
+
+        verify(tenantModuleActivationRepository, times(1)).findByTenantIdAndActiveTrue(1L);
+    }
+
+    @Test
+    void requireModulesNamesTheFirstMissingKey() {
+        TenantContext.setTenantId(1L);
+        when(tenantModuleActivationRepository.findByTenantIdAndActiveTrue(1L))
+                .thenReturn(List.of(active("PODCAST")));
+
+        assertThatThrownBy(() -> moduleGateService.requireModules(List.of("PODCAST", "PODCAST_RSS")))
+                .isInstanceOf(ModuleNotEnabledException.class)
+                .hasMessageContaining("PODCAST_RSS");
+    }
+
+    @Test
+    void requireModulesFailsClosedWithoutTenantContext() {
+        assertThatThrownBy(() -> moduleGateService.requireModules(List.of("PODCAST")))
+                .isInstanceOf(ModuleNotEnabledException.class);
+    }
+
+    private static TenantModuleActivation active(String moduleKey) {
+        TenantModuleActivation activation = new TenantModuleActivation();
+        activation.setModuleKey(moduleKey);
+        activation.setActive(true);
+        return activation;
     }
 
     @Test

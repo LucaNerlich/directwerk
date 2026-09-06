@@ -38,10 +38,21 @@ class RequestScopeTest {
     }
 
     @Test
+    void tenantAdminContentBasesAreTenantAdminArea() {
+        // Formats/categories are reserved to tenant admins — matches the SecurityConfig
+        // matcher table, which never granted EDITOR here.
+        for (String base : new String[] {"/api/v1/formats", "/api/v1/categories"}) {
+            assertThat(RequestScope.of(base)).isEqualTo(RequestScope.TENANT_ADMIN_AREA);
+            assertThat(RequestScope.of(base + "/7")).isEqualTo(RequestScope.TENANT_ADMIN_AREA);
+            assertThat(RequestScope.of(base).roleRequirement())
+                    .isEqualTo(RequestScope.RoleRequirement.TENANT_ADMIN);
+        }
+    }
+
+    @Test
     void editorContentBasesRequireEditorOrAdmin() {
         for (String base : new String[] {"/api/v1/media", "/api/v1/series", "/api/v1/episodes",
-                "/api/v1/articles", "/api/v1/formats", "/api/v1/categories",
-                "/api/v1/podcast/import"}) {
+                "/api/v1/articles", "/api/v1/podcast/import"}) {
             assertThat(RequestScope.of(base)).isEqualTo(RequestScope.EDITOR_CONTENT);
             assertThat(RequestScope.of(base + "/7")).isEqualTo(RequestScope.EDITOR_CONTENT);
             assertThat(RequestScope.of(base).roleRequirement())

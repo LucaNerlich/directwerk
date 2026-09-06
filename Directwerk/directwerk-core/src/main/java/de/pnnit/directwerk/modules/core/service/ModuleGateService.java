@@ -3,9 +3,12 @@ package de.pnnit.directwerk.modules.core.service;
 import de.pnnit.directwerk.config.DirectwerkCacheNames;
 import de.pnnit.directwerk.modules.core.repository.TenantModuleActivationRepository;
 import de.pnnit.directwerk.multitenancy.TenantContext;
+import java.util.Collection;
+import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -15,6 +18,17 @@ import org.springframework.transaction.annotation.Transactional;
 public class ModuleGateService {
 
     private final TenantModuleActivationRepository tenantModuleActivationRepository;
+    /**
+     * Proxied self-reference — the single enforcement Seam of this Module.
+     *
+     * <p>Spring AOP proxies do not intercept self-invocation, so the cached
+     * {@link #enabledModuleKeys} read below must go through the proxy. Never call
+     * {@code this.enabledModuleKeys(..)} — it silently bypasses the tenant-module-keys
+     * cache and turns every gate check into a repository query. Both the declarative
+     * ({@code RequiresModuleAspect}) and every programmatic {@code requireModule} caller
+     * converge on {@link #requireModules}, which performs exactly one cached read.
+     */
+    private final ObjectProvider<ModuleGateService> self;
 
     /**
      * Transactional so repository access runs on a transaction-bound session
@@ -22,15 +36,27 @@ public class ModuleGateService {
      */
     @Transactional(readOnly = true)
     public void requireModule(String moduleKey) {
+        requireModules(List.of(moduleKey));
+    }
+
+    /**
+     * Batch enforcement behind the same Seam: one cached activation read covers every key.
+     * Missing tenant context fails closed as disabled (deliberate, status-stable: callers
+     * and {@code GlobalExceptionHandler} keep mapping this to {@code FEATURE_NOT_ENABLED},
+     * never to {@code TENANT_REQUIRED}).
+     */
+    @Transactional(readOnly = true)
+    public void requireModules(Collection<String> moduleKeys) {
         Long tenantId = TenantContext.getTenantId();
         if (tenantId == null) {
-            throw new ModuleNotEnabledException(moduleKey);
+            throw new ModuleNotEnabledException(
+                    moduleKeys.stream().findFirst().orElse("<unknown>"));
         }
-        boolean active = tenantModuleActivationRepository.findByTenantIdAndModuleKey(tenantId, moduleKey)
-                .map(activation -> activation.isActive())
-                .orElse(false);
-        if (!active) {
-            throw new ModuleNotEnabledException(moduleKey);
+        Set<String> enabled = self.getObject().enabledModuleKeys(tenantId);
+        for (String moduleKey : moduleKeys) {
+            if (!enabled.contains(moduleKey)) {
+                throw new ModuleNotEnabledException(moduleKey);
+            }
         }
     }
 

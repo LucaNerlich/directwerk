@@ -246,4 +246,29 @@ class SubscriberFeedServiceTest {
         feed.setEnabled(true);
         return feed;
     }
+
+    @Test
+    void ensureDefaultFeedRecoversWhenAConcurrentCallAlreadyInsertedTheDefaultFeed() {
+        SubscriberFeed winner = feed(10L, 1L);
+        when(subscriberFeedRepository.findByTenantIdAndUserIdAndDefaultFeedTrue(10L, 99L))
+                .thenReturn(Optional.empty())
+                .thenReturn(Optional.of(winner));
+        when(tenantRepository.getReferenceById(10L)).thenReturn(winner.getTenant());
+        when(userRepository.getReferenceById(99L)).thenReturn(winner.getUser());
+        when(subscriberFeedRepository.save(any(SubscriberFeed.class))).thenThrow(
+                new org.springframework.dao.DataIntegrityViolationException(
+                        "duplicate default feed",
+                        new org.hibernate.exception.ConstraintViolationException(
+                                "duplicate key value violates unique constraint",
+                                new java.sql.SQLException("duplicate key"),
+                                "uq_subscriber_feeds_default"
+                        )
+                )
+        );
+
+        SubscriberFeed result = subscriberFeedService.ensureDefaultFeed(10L, 99L);
+
+        assertThat(result).isSameAs(winner);
+        verify(rssFeedRefreshScheduler, never()).requestRefreshAfterCommit(any());
+    }
 }

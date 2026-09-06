@@ -1,6 +1,7 @@
 package de.pnnit.directwerk.security;
 
 import jakarta.annotation.Nullable;
+import java.util.List;
 
 /**
  * The one taxonomy for "what kind of API route is this?".
@@ -8,7 +9,10 @@ import jakarta.annotation.Nullable;
  * <p>Previously restated as divergent prefix lists in {@code TenantContextFilter} and
  * {@code TenantMembershipGuardFilter}; both now consume this classification so adding a
  * route means updating one place. Method-level {@code @PreAuthorize} and the SecurityConfig
- * matcher table remain separate, deliberate enforcement layers.</p>
+ * matcher table remain separate, deliberate enforcement layers — but SecurityConfig builds
+ * its content matchers from {@link #editorContentBases()} and
+ * {@link #tenantAdminContentBases()}, and {@code RequestScopeSecurityConsistencyTest} pins
+ * the two taxonomies together, so a new content route cannot silently drift.</p>
  */
 public enum RequestScope {
 
@@ -59,9 +63,32 @@ public enum RequestScope {
     private static final String[] PLATFORM_PREFIXES = {"/api/v1/platform/", "/api/v1/webhooks/"};
     private static final String[] EDITOR_CONTENT_BASES = {
             "/api/v1/media", "/api/v1/series", "/api/v1/episodes",
-            "/api/v1/articles", "/api/v1/formats", "/api/v1/categories",
-            "/api/v1/podcast/import"
+            "/api/v1/articles", "/api/v1/podcast/import"
     };
+    /**
+     * Content routes reserved to tenant admins. Classified as {@link #TENANT_ADMIN_AREA}
+     * (not {@link #EDITOR_CONTENT}) to match the SecurityConfig matcher table, which has
+     * always required {@code TENANT_ADMIN} JWT role here — the membership re-check now agrees
+     * instead of being the looser layer.
+     */
+    private static final String[] TENANT_ADMIN_CONTENT_BASES = {
+            "/api/v1/formats", "/api/v1/categories"
+    };
+
+    /** Content path roots shared with the SecurityConfig matcher table — the single owner. */
+    public static List<String> editorContentBases() {
+        return List.of(EDITOR_CONTENT_BASES);
+    }
+
+    /** Tenant-admin-only content path roots shared with the SecurityConfig matcher table. */
+    public static List<String> tenantAdminContentBases() {
+        return List.of(TENANT_ADMIN_CONTENT_BASES);
+    }
+
+    /** Turns content bases into {@code <base>/**} matcher patterns. */
+    public static List<String> antPatterns(List<String> bases) {
+        return bases.stream().map(base -> base + "/**").toList();
+    }
 
     /**
      * Classifies a request path. Order matters: the platform-exact security path wins over
@@ -86,6 +113,9 @@ public enum RequestScope {
         if ("/api/v1/me".equals(path) || path.startsWith("/api/v1/me/")
                 || path.startsWith("/api/v1/security/")) {
             return MEMBER;
+        }
+        if (isUnderAny(path, TENANT_ADMIN_CONTENT_BASES)) {
+            return TENANT_ADMIN_AREA;
         }
         if (isEditorContent(path)) {
             return EDITOR_CONTENT;

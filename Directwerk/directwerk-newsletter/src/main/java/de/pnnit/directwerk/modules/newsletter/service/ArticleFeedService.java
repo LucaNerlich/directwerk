@@ -1,6 +1,7 @@
 package de.pnnit.directwerk.modules.newsletter.service;
 
 import de.pnnit.directwerk.modules.core.entity.Tenant;
+import de.pnnit.directwerk.modules.core.feed.FeedProvisioningSupport;
 import de.pnnit.directwerk.modules.core.repository.TenantRepository;
 import de.pnnit.directwerk.modules.core.repository.UserRepository;
 import de.pnnit.directwerk.modules.core.service.ModuleGateService;
@@ -26,7 +27,6 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import lombok.RequiredArgsConstructor;
-import org.hibernate.exception.ConstraintViolationException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -34,10 +34,6 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @RequiredArgsConstructor
 public class ArticleFeedService {
-
-    public static final int MAX_CUSTOM_FEEDS_PER_USER = 5;
-    public static final int MAX_TITLE_LENGTH = 80;
-    public static final int PREVIEW_SAMPLE_SIZE = 5;
 
     private final ArticleFeedRepository articleFeedRepository;
     private final TenantRepository tenantRepository;
@@ -158,14 +154,10 @@ public class ArticleFeedService {
         articleFeedRepository.findWithLockByTenantIdAndUserIdAndDefaultFeedTrue(tenantId, userId)
                 .orElseThrow(() -> new IllegalStateException("Default feed not found after ensureDefaultFeed"));
 
-        if (articleFeedRepository.countByTenantIdAndUserIdAndDefaultFeedFalse(tenantId, userId)
-                >= MAX_CUSTOM_FEEDS_PER_USER) {
-            throw ArticleFeedBuilderException.conflict(
-                    "FEED_LIMIT_REACHED",
-                    "At most " + MAX_CUSTOM_FEEDS_PER_USER + " custom feeds are allowed"
-            );
-        }
-        String title = normalizeTitle(rawTitle);
+        FeedProvisioningSupport.requireBelowCustomFeedLimit(
+                articleFeedRepository.countByTenantIdAndUserIdAndDefaultFeedFalse(tenantId, userId),
+                ArticleFeedBuilderException::conflict);
+        String title = FeedProvisioningSupport.normalizeTitle(rawTitle, ArticleFeedBuilderException::badRequest);
         if (articleFeedRepository.existsByTenantIdAndUserIdAndDefaultFeedFalseAndTitleIgnoreCase(
                 tenantId, userId, title
         )) {
@@ -179,9 +171,12 @@ public class ArticleFeedService {
         feed.setTitle(title);
         feed.setDefaultFeed(false);
         feed.setEnabled(true);
-        String rawToken = generateRawToken();
-        feed.setFeedToken(feedTokenProtector.protect(rawToken));
-        feed.setFeedTokenHash(TokenHashUtil.sha256Hex(rawToken));
+        FeedProvisioningSupport.IssuedToken issued = FeedProvisioningSupport.issueUniqueToken(
+                feedTokenGenerator::generate,
+                articleFeedRepository::existsByFeedTokenHash,
+                feedTokenProtector::protect);
+        feed.setFeedToken(issued.protectedToken());
+        feed.setFeedTokenHash(issued.tokenHash());
         feed.getCategories().addAll(resolveActiveCategories(tenantId, categoryIds));
 
         try {
@@ -189,11 +184,8 @@ public class ArticleFeedService {
             articleRssFeedRefreshScheduler.requestRefreshAfterCommit(tenantId);
             return saved;
         } catch (DataIntegrityViolationException ex) {
-            if (ex.getCause() instanceof ConstraintViolationException cve) {
-                String constraintName = cve.getConstraintName();
-                if (constraintName != null && constraintName.contains("uq_article_feeds_custom_title")) {
-                    throw ArticleFeedBuilderException.conflict("FEED_TITLE_DUPLICATE", "A custom feed with this title already exists");
-                }
+            if (FeedProvisioningSupport.isUniqueConstraintViolation(ex, "uq_article_feeds_custom_title")) {
+                throw ArticleFeedBuilderException.conflict("FEED_TITLE_DUPLICATE", "A custom feed with this title already exists");
             }
             throw ex;
         }
@@ -218,7 +210,7 @@ public class ArticleFeedService {
             throw ArticleFeedBuilderException.badRequest("FEED_TITLE_INVALID", "title or categoryIds is required");
         }
         if (rawTitle != null) {
-            String title = normalizeTitle(rawTitle);
+            String title = FeedProvisioningSupport.normalizeTitle(rawTitle, ArticleFeedBuilderException::badRequest);
             if (articleFeedRepository.existsByTenantIdAndUserIdAndDefaultFeedFalseAndIdNotAndTitleIgnoreCase(
                     tenantId, userId, feedId, title
             )) {
@@ -279,7 +271,7 @@ public class ArticleFeedService {
     private FeedPreview previewMatching(Long tenantId, Long userId, Set<Long> activeCategoryIds) {
         List<Article> matches = articleFeedAccess.listEntitledArticlesForCategories(tenantId, userId, activeCategoryIds);
         List<String> samples = matches.stream()
-                .limit(PREVIEW_SAMPLE_SIZE)
+                .limit(FeedProvisioningSupport.PREVIEW_SAMPLE_SIZE)
                 .map(Article::getTitle)
                 .toList();
         return new FeedPreview(matches.size(), samples);
@@ -312,9 +304,12 @@ public class ArticleFeedService {
     }
 
     private ArticleFeed rotateToken(ArticleFeed feed) {
-        String rawToken = generateRawToken();
-        feed.setFeedToken(feedTokenProtector.protect(rawToken));
-        feed.setFeedTokenHash(TokenHashUtil.sha256Hex(rawToken));
+        FeedProvisioningSupport.IssuedToken issued = FeedProvisioningSupport.issueUniqueToken(
+                feedTokenGenerator::generate,
+                articleFeedRepository::existsByFeedTokenHash,
+                feedTokenProtector::protect);
+        feed.setFeedToken(issued.protectedToken());
+        feed.setFeedTokenHash(issued.tokenHash());
         ArticleFeed saved = articleFeedRepository.save(feed);
         articleRssFeedRefreshScheduler.requestRefreshAfterCommit(saved.getTenant().getId());
         return saved;
@@ -342,20 +337,6 @@ public class ArticleFeedService {
         }
     }
 
-    private static String normalizeTitle(String rawTitle) {
-        if (rawTitle == null || rawTitle.isBlank()) {
-            throw ArticleFeedBuilderException.badRequest("FEED_TITLE_INVALID", "Feed title is required");
-        }
-        String title = rawTitle.trim();
-        if (title.length() > MAX_TITLE_LENGTH) {
-            throw ArticleFeedBuilderException.badRequest(
-                    "FEED_TITLE_INVALID",
-                    "Feed title must be at most " + MAX_TITLE_LENGTH + " characters"
-            );
-        }
-        return title;
-    }
-
     private void withdrawSnapshot(ArticleFeed feed) {
         try {
             articleRssFeedSnapshotService.withdrawPrivateFeed(feed.getTenant(), feed.getId());
@@ -372,17 +353,18 @@ public class ArticleFeedService {
         feed.setUser(userRepository.getReferenceById(userId));
         feed.setTitle(tenant.getName() + " Private Article Feed");
         feed.setDefaultFeed(true);
-        String defaultRawToken = generateRawToken();
-        feed.setFeedToken(feedTokenProtector.protect(defaultRawToken));
-        feed.setFeedTokenHash(TokenHashUtil.sha256Hex(defaultRawToken));
+        FeedProvisioningSupport.IssuedToken issued = FeedProvisioningSupport.issueUniqueToken(
+                feedTokenGenerator::generate,
+                articleFeedRepository::existsByFeedTokenHash,
+                feedTokenProtector::protect);
+        feed.setFeedToken(issued.protectedToken());
+        feed.setFeedTokenHash(issued.tokenHash());
         try {
             ArticleFeed saved = articleFeedRepository.save(feed);
             articleRssFeedRefreshScheduler.requestRefreshAfterCommit(tenantId);
             return saved;
         } catch (DataIntegrityViolationException ex) {
-            if (ex.getCause() instanceof ConstraintViolationException cve
-                    && cve.getConstraintName() != null
-                    && cve.getConstraintName().contains("uq_article_feeds_default")) {
+            if (FeedProvisioningSupport.isUniqueConstraintViolation(ex, "uq_article_feeds_default")) {
                 // Concurrent first-time ensureDefaultFeed calls can both attempt the insert;
                 // the loser just reads back the row the winner committed.
                 return articleFeedRepository.findByTenantIdAndUserIdAndDefaultFeedTrue(tenantId, userId)
@@ -390,13 +372,5 @@ public class ArticleFeedService {
             }
             throw ex;
         }
-    }
-
-    private String generateRawToken() {
-        String token;
-        do {
-            token = feedTokenGenerator.generate();
-        } while (articleFeedRepository.existsByFeedTokenHash(TokenHashUtil.sha256Hex(token)));
-        return token;
     }
 }

@@ -70,7 +70,7 @@ class TenantSubscriberFeedControllerTest {
                 .andExpect(jsonPath("$.data[0].formatIds").isArray());
 
         verify(subscriberFeedService).listTenantFeeds(10L);
-        verify(moduleGateService).requireModule(SubscriptionModule.MODULE_KEY);
+        verify(moduleGateService).requireModules(List.of(PodcastRssModule.KEY, SubscriptionModule.MODULE_KEY));
     }
 
     @Test
@@ -88,7 +88,7 @@ class TenantSubscriberFeedControllerTest {
                 .andExpect(jsonPath("$.data.enabled").value(false));
 
         verify(subscriberFeedService).setFeedEnabled(10L, 42L, false);
-        verify(moduleGateService).requireModule(SubscriptionModule.MODULE_KEY);
+        verify(moduleGateService).requireModules(List.of(PodcastRssModule.KEY, SubscriptionModule.MODULE_KEY));
     }
 
     @Test

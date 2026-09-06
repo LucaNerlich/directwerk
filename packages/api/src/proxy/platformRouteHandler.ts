@@ -1,7 +1,7 @@
 import type {HttpMethod} from '../server/transport'
 import {buildPlatformApiPath, buildSafePlatformQueryString, buildTenantApiPath} from '../server/platform'
 import {parseBearerAuthorization, safeUpstreamResponse} from '../server/platform'
-import {readBoundedRequestBody} from './boundedBody'
+import {readJsonBody} from './boundedBody'
 import {parseTenantHost} from './tenantHost'
 import {jsonError} from './upstreamResponse'
 import type {ProxyRouteContext} from './routeHandler'
@@ -35,38 +35,19 @@ export interface AdminTenantProxyRouteHandlerConfig {
     jsonBodyLimit: number
 }
 
-function validateJsonBody(
-    request: Request,
-    body: string,
-    method: string,
-): Response | null {
-    const isBodylessDelete = method === 'DELETE' && body.length === 0
-    if (isBodylessDelete) {
-        return null
+/**
+ * Maps a shared {@link readJsonBody} rejection to the platform JSON error
+ * shape. Bodyless DELETE is allowed by passing `allowMissingBody: true`
+ * for DELETE at the call sites below.
+ */
+function jsonBodyError(status: 400 | 413 | 415): Response {
+    if (status === 413) {
+        return jsonError('Request body is too large.', 413)
     }
-
-    if (!request.headers.get('content-type')?.includes('application/json')) {
+    if (status === 415) {
         return jsonError('Content-Type must be application/json.', 415)
     }
-
-    try {
-        JSON.parse(body)
-    } catch {
-        return jsonError('Invalid JSON request.', 400)
-    }
-
-    return null
-}
-
-async function readProxyBody(
-    request: Request,
-    limit: number,
-): Promise<{ok: true; text: string} | {ok: false; response: Response}> {
-    const bounded = await readBoundedRequestBody(request, limit)
-    if (!bounded.ok) {
-        return {ok: false, response: jsonError(bounded.error, bounded.status)}
-    }
-    return {ok: true, text: bounded.text}
+    return jsonError('Invalid JSON request.', 400)
 }
 
 export function createPlatformProxyRouteHandler(
@@ -105,18 +86,14 @@ export function createPlatformProxyRouteHandler(
 
         let body: string | undefined
         if (method !== 'GET' && method !== 'HEAD') {
-            const read = await readProxyBody(request, config.jsonBodyLimit)
+            const read = await readJsonBody(request, {
+                jsonBodyLimit: config.jsonBodyLimit,
+                allowMissingBody: method === 'DELETE',
+            })
             if (!read.ok) {
-                return read.response
+                return jsonBodyError(read.status)
             }
             body = read.text
-            const validation = validateJsonBody(request, body, method)
-            if (validation !== null) {
-                return validation
-            }
-            if (method === 'DELETE' && body.length === 0) {
-                body = undefined
-            }
         }
 
         const upstreamRequest = new Request(request.url, {
@@ -189,23 +166,17 @@ export function createAdminTenantProxyRouteHandler(
 
         let body: string | undefined
         if (method !== 'GET' && method !== 'HEAD') {
-            const contentLength = request.headers.get('content-length')
-            if (contentLength && Number(contentLength) > config.jsonBodyLimit) {
-                return jsonError('Request body is too large.', 413)
-            }
-
-            const read = await readProxyBody(request, config.jsonBodyLimit)
+            // No Content-Length pre-check: readJsonBody enforces the byte
+            // cap on the stream itself, so a lying header cannot bypass it
+            // (same 413 outcome via the bounded read).
+            const read = await readJsonBody(request, {
+                jsonBodyLimit: config.jsonBodyLimit,
+                allowMissingBody: method === 'DELETE',
+            })
             if (!read.ok) {
-                return read.response
+                return jsonBodyError(read.status)
             }
             body = read.text
-            const validation = validateJsonBody(request, body, method)
-            if (validation !== null) {
-                return validation
-            }
-            if (method === 'DELETE' && body.length === 0) {
-                body = undefined
-            }
         }
 
         try {

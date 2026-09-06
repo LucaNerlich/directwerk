@@ -25,7 +25,7 @@ publication** (`Article`), with different **delivery channels**:
 Mirrors the podcast RSS/feed stack (`directwerk-podcast`'s `feed`/`service`/`job` packages),
 adapted for articles: one default public feed (`/feeds/{tenantSlug}/articles.xml`, all free
 published articles), one default private per-user feed, and up to
-`ArticleFeedService.MAX_CUSTOM_FEEDS_PER_USER` feed-builder custom feeds filtered by `Category`
+`FeedProvisioningSupport.MAX_CUSTOM_FEEDS_PER_USER` feed-builder custom feeds filtered by `Category`
 (articles have no per-series grouping, so there is no series-feed equivalent). Object storage
 mechanics (S3 upload/withdraw/deliver, presence tracking) are shared with the podcast RSS stack
 via `directwerk-digital`'s `GeneratedFeedSnapshotStore`/`FeedSnapshotStateStore` — see

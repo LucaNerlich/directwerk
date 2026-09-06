@@ -317,4 +317,74 @@ class EntitlementServiceTest {
         rule.setScopeId(scopeId);
         return rule;
     }
+
+    // --- unified evaluation Seam ---------------------------------------------------------
+
+    @Test
+    void unifiedSingleMatchesBatchForEveryKind() {
+        SubscriptionProduct producer = product(2L, "producer", 3);
+        SubscriptionProduct bundle = product(9L, "bundle", 0);
+        bundle.setOfferingType(OfferingType.PACKAGE);
+        when(subscriptionRepository.findActiveWithProducts(10L, 20L, SubscriptionStatus.ACTIVE))
+                .thenReturn(List.of(activeSubscription(producer), activeSubscription(bundle)));
+        when(productAccessRuleRepository.findByTenantIdAndProductIdInOrderByProductIdAscIdAsc(10L, List.of(9L)))
+                .thenReturn(List.of(
+                        rule(bundle, ProductAccessScopeType.FORMAT, 40L),
+                        rule(bundle, ProductAccessScopeType.CATEGORY, 50L),
+                        rule(bundle, ProductAccessScopeType.DIGITAL_ASSET, 501L)));
+
+        EntitlementService.EpisodeAccessSubject episode = new EntitlementService.EpisodeAccessSubject(
+                false, 2, 30L, Set.of(40L), Set.of(), 3);
+        EntitlementService.ArticleAccessSubject article = new EntitlementService.ArticleAccessSubject(
+                false, 3, Set.of(50L));
+        EntitlementService.DigitalAssetSubject grantedAsset =
+                new EntitlementService.DigitalAssetSubject(501L);
+        EntitlementService.DigitalAssetSubject deniedAsset =
+                new EntitlementService.DigitalAssetSubject(999L);
+
+        assertThat(entitlementService.hasAccess(10L, 20L, episode)).isTrue();
+        assertThat(entitlementService.hasAccess(10L, 20L, article)).isTrue();
+        assertThat(entitlementService.hasAccess(10L, 20L, grantedAsset)).isTrue();
+        assertThat(entitlementService.hasAccess(10L, 20L, deniedAsset)).isFalse();
+
+        Set<Long> accessible = entitlementService.filterAccessible(10L, 20L, java.util.Map.of(
+                1L, episode,
+                2L, article,
+                3L, grantedAsset,
+                4L, deniedAsset));
+
+        assertThat(accessible).containsExactlyInAnyOrder(1L, 2L, 3L);
+    }
+
+    @Test
+    void unifiedDigitalAssetsIgnoreLevelAndStayPackageOnly() {
+        SubscriptionProduct producer = product(2L, "producer", 9);
+        when(subscriptionRepository.findActiveWithProducts(10L, 20L, SubscriptionStatus.ACTIVE))
+                .thenReturn(List.of(activeSubscription(producer)));
+
+        assertThat(entitlementService.hasDigitalAssetAccess(10L, 20L, 501L)).isFalse();
+        assertThat(entitlementService.filterAccessibleDigitalAssetIds(10L, 20L, List.of(501L))).isEmpty();
+        org.mockito.Mockito.verifyNoInteractions(productAccessRuleRepository);
+    }
+
+    @Test
+    void unifiedPackageCategoryGrantAppliesToArticlesAndEpisodes() {
+        SubscriptionProduct bundle = product(9L, "bundle", 0);
+        bundle.setOfferingType(OfferingType.PACKAGE);
+        when(subscriptionRepository.findActiveWithProducts(10L, 20L, SubscriptionStatus.ACTIVE))
+                .thenReturn(List.of(activeSubscription(bundle)));
+        when(productAccessRuleRepository.findByTenantIdAndProductIdInOrderByProductIdAscIdAsc(10L, List.of(9L)))
+                .thenReturn(List.of(rule(bundle, ProductAccessScopeType.CATEGORY, 50L)));
+
+        EntitlementService.ArticleAccessSubject matchingArticle =
+                new EntitlementService.ArticleAccessSubject(false, 10, Set.of(50L));
+        EntitlementService.ArticleAccessSubject otherArticle =
+                new EntitlementService.ArticleAccessSubject(false, 10, Set.of(51L));
+        EntitlementService.EpisodeAccessSubject matchingEpisode =
+                new EntitlementService.EpisodeAccessSubject(false, 10, 30L, Set.of(), Set.of(50L), null);
+
+        assertThat(entitlementService.hasAccess(10L, 20L, matchingArticle)).isTrue();
+        assertThat(entitlementService.hasAccess(10L, 20L, otherArticle)).isFalse();
+        assertThat(entitlementService.hasAccess(10L, 20L, matchingEpisode)).isTrue();
+    }
 }

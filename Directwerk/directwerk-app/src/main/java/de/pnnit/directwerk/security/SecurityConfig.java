@@ -136,36 +136,20 @@ public class SecurityConfig {
                                 + "connect-src 'self'"
                 )))
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .authorizeHttpRequests(auth -> auth
-                        .requestMatchers(
-                                "/api/v1/public/**",
-                                "/feeds/**",
-                                "/actuator/health",
-                                "/actuator/info",
-                                "/swagger-ui/**",
-                                "/swagger-ui.html",
-                                "/v3/api-docs/**",
-                                "/api/v1/auth/register",
-                                "/api/v1/auth/accept-invite",
-                                "/api/v1/auth/studio/**",
-                                "/api/v1/auth/forgot-password",
-                                "/api/v1/auth/reset-password",
-                                "/api/v1/auth/verify-email",
-                                "/api/v1/webhooks/stripe"
-                        ).permitAll()
-                        .requestMatchers("/api/v1/platform/**").hasRole("PLATFORM_ADMIN")
-                        .requestMatchers("/api/v1/tenant/**").hasRole("TENANT_ADMIN")
-                        .requestMatchers("/api/v1/media/**").hasAnyRole("EDITOR", "TENANT_ADMIN")
-                        .requestMatchers("/api/v1/series/**", "/api/v1/episodes/**")
-                        .hasAnyRole("EDITOR", "TENANT_ADMIN")
-                        .requestMatchers("/api/v1/articles/**", "/api/v1/podcast/import/**")
-                        .hasAnyRole("EDITOR", "TENANT_ADMIN")
-                        .requestMatchers("/api/v1/formats/**", "/api/v1/categories/**").hasRole("TENANT_ADMIN")
-                        .requestMatchers("/api/v1/probes/**").hasAnyRole("EDITOR", "TENANT_ADMIN")
-                        .requestMatchers("/api/v1/security/**").authenticated()
-                        .requestMatchers("/api/v1/me/**").authenticated()
-                        .anyRequest().authenticated()
-                )
+                .authorizeHttpRequests(auth -> {
+                    for (ApiAuthorizationRule rule : apiAuthorizationRules()) {
+                        String[] patterns = rule.patterns().toArray(String[]::new);
+                        switch (rule.access()) {
+                            case PERMIT_ALL -> auth.requestMatchers(patterns).permitAll();
+                            case PLATFORM_ADMIN -> auth.requestMatchers(patterns).hasRole("PLATFORM_ADMIN");
+                            case TENANT_ADMIN -> auth.requestMatchers(patterns).hasRole("TENANT_ADMIN");
+                            case EDITOR_OR_TENANT_ADMIN ->
+                                    auth.requestMatchers(patterns).hasAnyRole("EDITOR", "TENANT_ADMIN");
+                            case AUTHENTICATED -> auth.requestMatchers(patterns).authenticated();
+                        }
+                    }
+                    auth.anyRequest().authenticated();
+                })
                 .oauth2ResourceServer(oauth2 -> oauth2.jwt(jwt -> jwt
                         .decoder(jwtDecoder)
                         .jwtAuthenticationConverter(jwtAuthenticationConverter)
@@ -185,6 +169,57 @@ public class SecurityConfig {
                 .addFilterAfter(tenantMembershipGuardFilter, BillingRateLimitFilter.class);
 
         return http.build();
+    }
+
+    /** JWT-layer access level for one ordered matcher row. */
+    enum ApiAccess {
+        PERMIT_ALL, PLATFORM_ADMIN, TENANT_ADMIN, EDITOR_OR_TENANT_ADMIN, AUTHENTICATED
+    }
+
+    /** One ordered row of the API authorization table (first match wins). */
+    record ApiAuthorizationRule(ApiAccess access, List<String> patterns) {
+    }
+
+    /**
+     * The API authorization table, extracted so {@code RequestScopeSecurityConsistencyTest}
+     * can pin it against the {@link RequestScope} taxonomy.
+     *
+     * <p>Content matchers derive from {@link RequestScope#editorContentBases()} and
+     * {@link RequestScope#tenantAdminContentBases()} — {@code RequestScope} is the single
+     * owner of content path roots. The permitAll block stays a deliberate narrow list
+     * (not wholesale {@code PUBLIC} prefixes): actuator exposes only health/info, auth only
+     * the anonymous endpoints (login/refresh/logout live behind the authorization-server
+     * chain), and {@code /api/v1/webhooks/stripe} is reachable without a JWT because Stripe
+     * cannot present one (verified via webhook signature instead).
+     */
+    static List<ApiAuthorizationRule> apiAuthorizationRules() {
+        List<ApiAuthorizationRule> rules = new java.util.ArrayList<>();
+        rules.add(new ApiAuthorizationRule(ApiAccess.PERMIT_ALL, List.of(
+                "/api/v1/public/**",
+                "/feeds/**",
+                "/actuator/health",
+                "/actuator/info",
+                "/swagger-ui/**",
+                "/swagger-ui.html",
+                "/v3/api-docs/**",
+                "/api/v1/auth/register",
+                "/api/v1/auth/accept-invite",
+                "/api/v1/auth/studio/**",
+                "/api/v1/auth/forgot-password",
+                "/api/v1/auth/reset-password",
+                "/api/v1/auth/verify-email",
+                "/api/v1/webhooks/stripe")));
+        rules.add(new ApiAuthorizationRule(ApiAccess.PLATFORM_ADMIN, List.of("/api/v1/platform/**")));
+        List<String> tenantAdminPatterns = new java.util.ArrayList<>(List.of("/api/v1/tenant/**"));
+        tenantAdminPatterns.addAll(RequestScope.antPatterns(RequestScope.tenantAdminContentBases()));
+        rules.add(new ApiAuthorizationRule(ApiAccess.TENANT_ADMIN, List.copyOf(tenantAdminPatterns)));
+        List<String> editorPatterns =
+                new java.util.ArrayList<>(RequestScope.antPatterns(RequestScope.editorContentBases()));
+        editorPatterns.add("/api/v1/probes/**");
+        rules.add(new ApiAuthorizationRule(ApiAccess.EDITOR_OR_TENANT_ADMIN, List.copyOf(editorPatterns)));
+        rules.add(new ApiAuthorizationRule(ApiAccess.AUTHENTICATED,
+                List.of("/api/v1/security/**", "/api/v1/me/**")));
+        return List.copyOf(rules);
     }
 
     @Bean
