@@ -124,6 +124,9 @@ importers:
       '@directwerk/api':
         specifier: workspace:*
         version: link:../packages/api
+      '@directwerk/legal':
+        specifier: workspace:*
+        version: link:../packages/legal
       '@directwerk/ui':
         specifier: workspace:*
         version: link:../packages/ui
@@ -201,6 +204,9 @@ importers:
       '@directwerk/api':
         specifier: workspace:*
         version: link:../packages/api
+      '@directwerk/legal':
+        specifier: workspace:*
+        version: link:../packages/legal
       '@directwerk/ui':
         specifier: workspace:*
         version: link:../packages/ui
@@ -271,6 +277,9 @@ importers:
       '@directwerk/api':
         specifier: workspace:*
         version: link:../packages/api
+      '@directwerk/legal':
+        specifier: workspace:*
+        version: link:../packages/legal
       '@directwerk/ui':
         specifier: workspace:*
         version: link:../packages/ui
@@ -326,6 +335,9 @@ importers:
 
   homepage:
     dependencies:
+      '@directwerk/legal':
+        specifier: workspace:*
+        version: link:../packages/legal
       '@directwerk/ui':
         specifier: workspace:*
         version: link:../packages/ui
@@ -413,11 +425,26 @@ importers:
         specifier: ^4.1.10
         version: 4.1.11(@types/node@22.20.1)(jsdom@26.1.0(supports-color@10.2.2))(vite@8.2.2(@types/node@22.20.1)(jiti@2.7.0))
 
+  packages/legal:
+    devDependencies:
+      '@types/node':
+        specifier: ^22.20.1
+        version: 22.20.1
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
+      vitest:
+        specifier: ^4.1.10
+        version: 4.1.11(@types/node@22.20.1)(jsdom@26.1.0(supports-color@10.2.2))(vite@8.2.2(@types/node@22.20.1)(jiti@2.7.0))
+
   packages/ui:
     dependencies:
       '@base-ui/react':
         specifier: latest
-        version: 1.7.0(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
+        version: 1.8.0(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
+      '@directwerk/legal':
+        specifier: workspace:*
+        version: link:../legal
       class-variance-authority:
         specifier: latest
         version: 0.7.1
@@ -426,7 +453,7 @@ importers:
         version: 2.1.1
       lucide-react:
         specifier: latest
-        version: 1.37.0(react@19.2.8)
+        version: 1.41.0(react@19.2.8)
       next:
         specifier: ^16.3.0
         version: 16.3.3(@types/node@22.20.1)(babel-plugin-react-compiler@1.0.0)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
@@ -523,8 +550,8 @@ packages:
     resolution: {integrity: sha512-Vj1jF3cPfxg7OAfoI7QnVKLoILlm2JF9pnVHrX8qx7AHMiYWT+NDAA7jChlNgRS4WTLc/fD1lXLmPixluj+3Gg==}
     engines: {node: '>=6.9.0'}
 
-  '@base-ui/react@1.7.0':
-    resolution: {integrity: sha512-j+8QjX44C32jrXD/qyEAGpFr70FRpGL2CY61mQd9nBPWN737CK0xxD1ceJ055rW4RtdvFDT1e7otzdlfxvsYug==}
+  '@base-ui/react@1.8.0':
+    resolution: {integrity: sha512-P0/1sxo6SBVZOklKMIedvTWqw2s2IQzi9x5bIVsXu980cuSOD4NeuRSs+/L7LZQfDkZP/uRZyGPyfFl/B1oH+Q==}
     engines: {node: '>=14.0.0'}
     peerDependencies:
       '@date-fns/tz': ^1.2.0
@@ -540,8 +567,8 @@ packages:
       date-fns:
         optional: true
 
-  '@base-ui/utils@0.3.2':
-    resolution: {integrity: sha512-oWy1aq/I2GmYjpl4PhEAhzflF8VPGKgZeq0xAWTbfD5KBWyxcN0ZP2+WHSUm/5Z6lVMBDLReLcoXwSYoRc/zNQ==}
+  '@base-ui/utils@0.4.0':
+    resolution: {integrity: sha512-bO9fz25kKtPf+aZVyfQrC0PDmJdmVni31W2hCS5/Owb+inwdIL3XU26pCPRPlt4LSxZrBgLwubXQXQlKaFEZzw==}
     peerDependencies:
       '@types/react': ^17 || ^18 || ^19
       react: ^17 || ^18 || ^19
@@ -2205,8 +2232,8 @@ packages:
     resolution: {integrity: sha512-4pfM1Ff0x50o0tQwb5ucw/RzNyD0/YJME6IVcStalZuMWxdt3sR3huStTtxz4PUmvZfRguvDejasvQ2kifR11g==}
     engines: {node: 20 || >=22}
 
-  lucide-react@1.37.0:
-    resolution: {integrity: sha512-LPsB4rD1TD6wZu1djKOf9vUnS1jTNaHbolXebXDgiTdb6jeA1agIJhJsIybCmjKmQClcOaal1o1OaiYahEftyQ==}
+  lucide-react@1.41.0:
+    resolution: {integrity: sha512-6lksP35l6KszDKUeRTi4LV7i6DEe0Yzl2ALJm9j4c5xEYN91GdW1xGsawGMOg2mgjF5GHBVX8pKX9kP+cWsP3Q==}
     peerDependencies:
       react: ^16.5.1 || ^17.0.0 || ^18.0.0 || ^19.0.0
 
@@ -3045,10 +3072,10 @@ snapshots:
       '@babel/helper-string-parser': 7.29.7
       '@babel/helper-validator-identifier': 7.29.7
 
-  '@base-ui/react@1.7.0(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)':
+  '@base-ui/react@1.8.0(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)':
     dependencies:
       '@babel/runtime': 7.29.7
-      '@base-ui/utils': 0.3.2(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
+      '@base-ui/utils': 0.4.0(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
       '@floating-ui/react-dom': 2.1.9(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
       '@floating-ui/utils': 0.2.12
       react: 19.2.8
@@ -3057,7 +3084,7 @@ snapshots:
     optionalDependencies:
       '@types/react': 19.2.18
 
-  '@base-ui/utils@0.3.2(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)':
+  '@base-ui/utils@0.4.0(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)':
     dependencies:
       '@babel/runtime': 7.29.7
       '@floating-ui/utils': 0.2.12
@@ -4523,7 +4550,7 @@ snapshots:
 
   lru-cache@11.5.2: {}
 
-  lucide-react@1.37.0(react@19.2.8):
+  lucide-react@1.41.0(react@19.2.8):
     dependencies:
       react: 19.2.8
 

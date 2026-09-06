@@ -11,6 +11,7 @@
     },
     "dependencies": {
         "@directwerk/api": "workspace:*",
+        "@directwerk/legal": "workspace:*",
         "@directwerk/ui": "workspace:*",
         "@tiptap/extension-image": "^3.31.2",
         "@tiptap/extension-link": "^3.31.2",
