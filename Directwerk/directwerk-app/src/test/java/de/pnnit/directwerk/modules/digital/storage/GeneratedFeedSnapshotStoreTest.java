@@ -16,6 +16,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.beans.factory.ObjectProvider;
+import software.amazon.awssdk.core.exception.SdkClientException;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.HeadObjectRequest;
 import software.amazon.awssdk.services.s3.model.HeadObjectResponse;
@@ -128,9 +129,8 @@ class GeneratedFeedSnapshotStoreTest {
     }
 
     @Test
-    void inconclusiveProbeFailsToTheLastKnownStateWithoutMutatingTheRow() throws Exception {
-        S3Exception blip =
-                (S3Exception) S3Exception.builder().statusCode(500).message("boom").build();
+    void clientFailureFailsToTheLastKnownRowStateWithoutMutatingIt() throws Exception {
+        SdkClientException blip = SdkClientException.create("connection failed");
 
         when(snapshotStateStore.isWritten(10L, "TENANT", 0L)).thenReturn(true);
         when(s3Client.headObject(any(HeadObjectRequest.class))).thenThrow(blip);

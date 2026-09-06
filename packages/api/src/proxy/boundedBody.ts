@@ -91,7 +91,8 @@ export async function readJsonBody(
     }
 
     const contentType = request.headers.get('content-type') ?? ''
-    if (!contentType.toLowerCase().includes('application/json')) {
+    const mediaType = contentType.split(';', 1)[0]?.trim().toLowerCase()
+    if (mediaType !== 'application/json') {
         return {ok: false, status: 415}
     }
 

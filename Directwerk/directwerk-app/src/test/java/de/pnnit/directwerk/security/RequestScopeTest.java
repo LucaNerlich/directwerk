@@ -50,6 +50,12 @@ class RequestScopeTest {
     }
 
     @Test
+    void tenantAdminContentBasesDoNotMatchNearMissPaths() {
+        assertThat(RequestScope.of("/api/v1/formats-export")).isEqualTo(RequestScope.MEMBER);
+        assertThat(RequestScope.of("/api/v1/categories2")).isEqualTo(RequestScope.MEMBER);
+    }
+
+    @Test
     void editorContentBasesRequireEditorOrAdmin() {
         for (String base : new String[] {"/api/v1/media", "/api/v1/series", "/api/v1/episodes",
                 "/api/v1/articles", "/api/v1/podcast/import"}) {

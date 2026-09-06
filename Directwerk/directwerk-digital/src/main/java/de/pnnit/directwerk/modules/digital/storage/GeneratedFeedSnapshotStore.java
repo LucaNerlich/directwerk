@@ -16,6 +16,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
+import software.amazon.awssdk.core.exception.SdkException;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
@@ -186,6 +187,9 @@ public class GeneratedFeedSnapshotStore {
             if (ex.statusCode() == 404) {
                 return ObjectPresence.ABSENT;
             }
+            log.warn("Feed snapshot presence probe inconclusive for tenant prefix {}", ref.tenantSlug());
+            return ObjectPresence.UNKNOWN;
+        } catch (SdkException ex) {
             log.warn("Feed snapshot presence probe inconclusive for tenant prefix {}", ref.tenantSlug());
             return ObjectPresence.UNKNOWN;
         }

@@ -441,29 +441,32 @@ describe('createTenantProxyRouteHandler body limits', () => {
         expect(response.status).toBe(413)
     })
 
-    it('rejects non-JSON content types with 415', async () => {
-        const fetchUpstream = vi.fn(async () => new Response('{}'))
-        const handlers = createTenantProxyRouteHandler({
-            fetchUpstream,
-            jsonBodyLimit: 16_384,
-        })
+    it.each(['text/plain', 'application/jsonp', 'text/application/json'])(
+        'rejects non-JSON content type %s with 415',
+        async (contentType) => {
+            const fetchUpstream = vi.fn(async () => new Response('{}'))
+            const handlers = createTenantProxyRouteHandler({
+                fetchUpstream,
+                jsonBodyLimit: 16_384,
+            })
 
-        const request = new Request('http://local/api/proxy/me', {
-            method: 'POST',
-            headers: {
-                'content-type': 'text/plain',
-                'x-tenant-host': 'tenant.example',
-                authorization: 'Bearer token123',
-            },
-            body: '{"a":1}',
-        })
+            const request = new Request('http://local/api/proxy/me', {
+                method: 'POST',
+                headers: {
+                    'content-type': contentType,
+                    'x-tenant-host': 'tenant.example',
+                    authorization: 'Bearer token123',
+                },
+                body: '{"a":1}',
+            })
 
-        const response = await handlers.POST(request, {
-            params: Promise.resolve({path: ['me']}),
-        })
-        expect(response.status).toBe(415)
-        expect(fetchUpstream).not.toHaveBeenCalled()
-    })
+            const response = await handlers.POST(request, {
+                params: Promise.resolve({path: ['me']}),
+            })
+            expect(response.status).toBe(415)
+            expect(fetchUpstream).not.toHaveBeenCalled()
+        },
+    )
 
     it('rejects malformed JSON with 400', async () => {
         const fetchUpstream = vi.fn(async () => new Response('{}'))

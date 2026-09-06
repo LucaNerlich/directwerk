@@ -27,10 +27,14 @@ import java.util.Comparator;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.function.Supplier;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 
 @Service
 @RequiredArgsConstructor
@@ -46,6 +50,7 @@ public class SubscriberFeedService {
     private final ModuleGateService moduleGateService;
     private final RssFeedSnapshotService rssFeedSnapshotService;
     private final RssFeedRefreshJobProducer rssFeedRefreshScheduler;
+    private final PlatformTransactionManager transactionManager;
 
     /**
      * Resolves a subscriber feed by its token.
@@ -356,31 +361,39 @@ public class SubscriberFeedService {
     }
 
     private SubscriberFeed createDefaultFeed(Long tenantId, Long userId) {
-        Tenant tenant = tenantRepository.getReferenceById(tenantId);
-
-        SubscriberFeed feed = new SubscriberFeed();
-        feed.setTenant(tenant);
-        feed.setUser(userRepository.getReferenceById(userId));
-        feed.setTitle(tenant.getName() + " Private Feed");
-        feed.setDefaultFeed(true);
-        FeedProvisioningSupport.IssuedToken issued = FeedProvisioningSupport.issueUniqueToken(
-                feedTokenGenerator::generate,
-                subscriberFeedRepository::existsByFeedTokenHash,
-                feedTokenProtector::protect);
-        feed.setFeedToken(issued.protectedToken());
-        feed.setFeedTokenHash(issued.tokenHash());
         try {
-            SubscriberFeed saved = subscriberFeedRepository.save(feed);
-            rssFeedRefreshScheduler.requestRefreshAfterCommit(tenantId);
-            return saved;
+            return inNewTransaction(() -> {
+                Tenant tenant = tenantRepository.getReferenceById(tenantId);
+                SubscriberFeed feed = new SubscriberFeed();
+                feed.setTenant(tenant);
+                feed.setUser(userRepository.getReferenceById(userId));
+                feed.setTitle(tenant.getName() + " Private Feed");
+                feed.setDefaultFeed(true);
+                FeedProvisioningSupport.IssuedToken issued = FeedProvisioningSupport.issueUniqueToken(
+                        feedTokenGenerator::generate,
+                        subscriberFeedRepository::existsByFeedTokenHash,
+                        feedTokenProtector::protect);
+                feed.setFeedToken(issued.protectedToken());
+                feed.setFeedTokenHash(issued.tokenHash());
+                SubscriberFeed saved = subscriberFeedRepository.saveAndFlush(feed);
+                rssFeedRefreshScheduler.requestRefreshAfterCommit(tenantId);
+                return saved;
+            });
         } catch (DataIntegrityViolationException ex) {
             if (FeedProvisioningSupport.isUniqueConstraintViolation(ex, "uq_subscriber_feeds_default")) {
                 // Concurrent first-time ensureDefaultFeed calls can both attempt the insert;
-                // the loser just reads back the row the winner committed.
-                return subscriberFeedRepository.findByTenantIdAndUserIdAndDefaultFeedTrue(tenantId, userId)
-                        .orElseThrow(() -> ex);
+                // the loser reads back the winner in a clean transaction.
+                return inNewTransaction(() -> subscriberFeedRepository
+                        .findByTenantIdAndUserIdAndDefaultFeedTrue(tenantId, userId)
+                        .orElseThrow(() -> ex));
             }
             throw ex;
         }
+    }
+
+    private <T> T inNewTransaction(Supplier<T> operation) {
+        TransactionTemplate transaction = new TransactionTemplate(transactionManager);
+        transaction.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
+        return transaction.execute(status -> operation.get());
     }
 }

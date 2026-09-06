@@ -2,10 +2,13 @@ package de.pnnit.directwerk.modules.core.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import de.pnnit.directwerk.config.DirectwerkCacheNames;
 import de.pnnit.directwerk.modules.core.entity.TenantModuleActivation;
 import de.pnnit.directwerk.modules.core.repository.TenantModuleActivationRepository;
 import de.pnnit.directwerk.multitenancy.TenantContext;
@@ -16,30 +19,34 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.cache.CacheManager;
+import org.springframework.cache.annotation.EnableCaching;
+import org.springframework.cache.concurrent.ConcurrentMapCacheManager;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 
-@ExtendWith(MockitoExtension.class)
+@ExtendWith(SpringExtension.class)
+@ContextConfiguration(classes = ModuleGateServiceTest.TestConfig.class)
 class ModuleGateServiceTest {
 
-    @Mock
+    @Autowired
     private TenantModuleActivationRepository tenantModuleActivationRepository;
 
-    @Mock
-    private ObjectProvider<ModuleGateService> selfProvider;
-
-    @InjectMocks
+    @Autowired
     private ModuleGateService moduleGateService;
 
+    @Autowired
+    private CacheManager cacheManager;
+
     @BeforeEach
-    void wireSelfReference() {
-        // Mirrors the Spring runtime: the provider hands out the (proxied) service itself,
-        // so the cached enabledModuleKeys read participates in caching. Lenient: tests that
-        // never enforce (isModuleActive, direct enabledModuleKeys reads, fail-closed paths)
-        // legitimately leave the provider untouched.
-        org.mockito.Mockito.lenient().when(selfProvider.getObject()).thenReturn(moduleGateService);
+    void resetState() {
+        reset(tenantModuleActivationRepository);
+        cacheManager.getCache(DirectwerkCacheNames.TENANT_MODULE_KEYS).clear();
+        TenantContext.clear();
     }
 
     @AfterEach
@@ -77,12 +84,13 @@ class ModuleGateServiceTest {
     }
 
     @Test
-    void requireModulesEnforcesEveryKeyWithASingleActivationRead() {
+    void requireModulesUsesCachedSpringProxyReadAcrossCalls() {
         TenantContext.setTenantId(1L);
         when(tenantModuleActivationRepository.findByTenantIdAndActiveTrue(1L))
                 .thenReturn(List.of(active("PODCAST"), active("PODCAST_RSS"), active("SUBSCRIPTION")));
 
         moduleGateService.requireModules(List.of("PODCAST", "PODCAST_RSS", "SUBSCRIPTION"));
+        moduleGateService.requireModule("PODCAST");
 
         verify(tenantModuleActivationRepository, times(1)).findByTenantIdAndActiveTrue(1L);
     }
@@ -137,5 +145,29 @@ class ModuleGateServiceTest {
 
         assertThat(moduleGateService.isModuleActive(3L, "SUBSCRIPTION")).isTrue();
         assertThat(moduleGateService.isModuleActive(3L, "PODCAST")).isFalse();
+    }
+
+    @Configuration(proxyBeanMethods = false)
+    @EnableCaching
+    static class TestConfig {
+
+        @Bean
+        TenantModuleActivationRepository tenantModuleActivationRepository() {
+            return mock(TenantModuleActivationRepository.class);
+        }
+
+        @Bean
+        CacheManager cacheManager() {
+            return new ConcurrentMapCacheManager(
+                    DirectwerkCacheNames.TENANT_MODULE_KEYS);
+        }
+
+        @Bean
+        ModuleGateService moduleGateService(
+                TenantModuleActivationRepository repository,
+                ObjectProvider<ModuleGateService> selfProvider
+        ) {
+            return new ModuleGateService(repository, selfProvider);
+        }
     }
 }

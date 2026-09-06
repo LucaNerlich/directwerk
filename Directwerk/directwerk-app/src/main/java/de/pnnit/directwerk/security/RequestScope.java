@@ -114,7 +114,7 @@ public enum RequestScope {
                 || path.startsWith("/api/v1/security/")) {
             return MEMBER;
         }
-        if (isUnderAny(path, TENANT_ADMIN_CONTENT_BASES)) {
+        if (isAtOrUnderAny(path, TENANT_ADMIN_CONTENT_BASES)) {
             return TENANT_ADMIN_AREA;
         }
         if (isEditorContent(path)) {
@@ -128,7 +128,11 @@ public enum RequestScope {
     }
 
     private static boolean isEditorContent(String path) {
-        for (String base : EDITOR_CONTENT_BASES) {
+        return isAtOrUnderAny(path, EDITOR_CONTENT_BASES);
+    }
+
+    private static boolean isAtOrUnderAny(String path, String... bases) {
+        for (String base : bases) {
             if (path.equals(base) || path.startsWith(base + "/")) {
                 return true;
             }
