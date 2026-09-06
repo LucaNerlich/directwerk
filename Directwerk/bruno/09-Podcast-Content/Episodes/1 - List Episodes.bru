@@ -1,7 +1,7 @@
 meta {
   name: 1 - List Episodes
   type: http
-  seq: 1
+  seq: 3
 }
 
 get {
@@ -17,8 +17,11 @@ tests {
 
   test("episode views expose coverImageUrl", function() {
     const data = res.body && res.body.data;
-    if (Array.isArray(data) && data.length > 0) {
-      expect('coverImageUrl' in data[0]).to.equal(true);
-    }
+    const episodeId = Number(bru.getVar("podcastEpisodeId"));
+    const episode = Array.isArray(data)
+      ? data.find((item) => item.id === episodeId)
+      : undefined;
+    expect(episode).to.not.equal(undefined);
+    expect('coverImageUrl' in episode).to.equal(true);
   });
 }

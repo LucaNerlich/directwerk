@@ -54,6 +54,8 @@ describe('PublicationListSection covers', () => {
 
             const images = screen.getAllByRole('img')
             expect(images).toHaveLength(1)
+            expect(images[0]).toHaveAttribute('alt', 'Titelbild: Folge 1')
+            expect(images[0]).toHaveAttribute('loading', 'lazy')
             expect(images[0]).toHaveAttribute(
                 'src',
                 'https://cdn.test/covers/ep-1.jpg',
