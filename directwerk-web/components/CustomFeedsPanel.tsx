@@ -98,7 +98,9 @@ interface CustomFeedsPanelProps<
     onAuthRequired: () => void
 }
 
-const MAX_CUSTOM_FEEDS = 5
+// Client-side mirror of the backend policy
+// (FeedProvisioningSupport.MAX_CUSTOM_FEEDS_PER_USER); the server is authoritative.
+const MAX_CUSTOM_FEEDS = 50
 
 type RowAction = 'toggle' | 'rotate' | 'delete'
 

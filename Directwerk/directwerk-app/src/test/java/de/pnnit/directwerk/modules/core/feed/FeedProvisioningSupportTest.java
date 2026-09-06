@@ -18,7 +18,7 @@ class FeedProvisioningSupportTest {
 
     @Test
     void limitsAreTheSharedFeedBuilderPolicy() {
-        assertThat(FeedProvisioningSupport.MAX_CUSTOM_FEEDS_PER_USER).isEqualTo(5);
+        assertThat(FeedProvisioningSupport.MAX_CUSTOM_FEEDS_PER_USER).isEqualTo(50);
         assertThat(FeedProvisioningSupport.MAX_TITLE_LENGTH).isEqualTo(80);
         assertThat(FeedProvisioningSupport.PREVIEW_SAMPLE_SIZE).isEqualTo(5);
     }
