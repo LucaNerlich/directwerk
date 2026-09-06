@@ -27,7 +27,7 @@ describe('proxy', () => {
     })
 
     it('keeps the shared page-only matcher', () => {
-        expect(config).toBe(directwerkProxyMatcher)
+        expect(config).toEqual(directwerkProxyMatcher)
         expect(config).toEqual({
             matcher: [
                 {

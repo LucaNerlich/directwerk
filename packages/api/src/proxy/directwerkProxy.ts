@@ -45,7 +45,16 @@ export function createDirectwerkProxyHandler(
     }
 }
 
-/** Shared proxy matcher: every page route, never API/static/prefetch. */
+/**
+ * Shared proxy matcher: every page route, never API/static/prefetch.
+ *
+ * NOTE: do NOT `export const config = directwerkProxyMatcher` from a
+ * `proxy.ts` — Next.js/Turbopack must statically parse `config` and fails the
+ * build with "can't recognize the exported `config` field" for imported
+ * values. Copy this literal inline in each app's `proxy.ts` instead (the
+ * per-app `proxy.test.ts` asserts `toEqual` against this constant to catch
+ * drift).
+ */
 export const directwerkProxyMatcher = {
     matcher: [
         {
