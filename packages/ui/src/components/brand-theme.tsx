@@ -27,10 +27,13 @@ function foregroundFor(hex: string): string {
 
 export default function BrandTheme({
     primaryHex,
+    secondaryHex,
     children,
     className,
 }: {
     primaryHex?: string | null
+    /** Optional tenant secondary color → `--secondary` surfaces (buttons, badges, toggles). Unset keeps the theme default. */
+    secondaryHex?: string | null
     children: ReactNode
     className?: string
 }): React.JSX.Element {
@@ -38,12 +41,20 @@ export default function BrandTheme({
         HEX_COLOR.test(primaryHex)
         ? primaryHex
         : '#3f352b'
+    const secondaryVars: Record<string, string> =
+        secondaryHex !== null && secondaryHex !== undefined && HEX_COLOR.test(secondaryHex)
+            ? {
+                  '--secondary': secondaryHex,
+                  '--secondary-foreground': foregroundFor(secondaryHex),
+              }
+            : {}
     const style = {
         '--primary': primary,
         '--ring': primary,
         '--sidebar-primary': primary,
         '--primary-foreground': foregroundFor(primary),
         '--sidebar-primary-foreground': foregroundFor(primary),
+        ...secondaryVars,
     } as CSSProperties
 
     return (

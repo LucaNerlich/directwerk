@@ -144,6 +144,7 @@ export default async function RootLayout({
         }
     }
     const primary = config.branding.primaryColor
+    const secondary = config.branding.secondaryColor
     const siteName = config.branding.siteTitle ?? config.tenant.name
     const websiteJsonLd = buildWebsiteJsonLd({name: siteName, origin})
 
@@ -156,7 +157,7 @@ export default async function RootLayout({
                 />
                 <UmamiAnalytics analytics={config.analytics} />
                 <SiteConfigProvider config={config}>
-                    <BrandTheme primaryHex={primary}>
+                    <BrandTheme primaryHex={primary} secondaryHex={secondary}>
                         <AuthBootstrap>
                             <SiteHeader>{children}</SiteHeader>
                         </AuthBootstrap>

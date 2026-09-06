@@ -133,6 +133,22 @@ describe('BrandingEditor color picker', () => {
         )
     })
 
+    it('previews saved primary and draft secondary colors live', async () => {
+        render(<BrandingEditor />)
+        await screen.findByLabelText('Primärfarbe')
+
+        const previewButton = screen.getByRole('button', {name: 'Sekundär'})
+        const previewScope = previewButton.closest('div[style]')
+        expect(previewScope).toHaveStyle({'--primary': '#112233'})
+
+        fireEvent.change(screen.getByLabelText('Sekundärfarbe'), {
+            target: {value: '#ff0000'},
+        })
+        expect(previewButton.closest('div[style]')).toHaveStyle({
+            '--secondary': '#ff0000',
+        })
+    })
+
     it('warns when a website ID is set but the ANALYTICS module is off', async () => {
         getBranding.mockResolvedValue({...branding, umamiWebsiteId: 'abc12345'})
         render(<BrandingEditor />)
