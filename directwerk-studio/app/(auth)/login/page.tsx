@@ -168,6 +168,14 @@ function LoginForm() {
                     <Link className="underline" href="/accept-invite">
                         Einladung annehmen
                     </Link>
+                    {' · '}
+                    <Link className="underline" href="/imprint">
+                        Impressum
+                    </Link>
+                    {' · '}
+                    <Link className="underline" href="/privacy">
+                        Datenschutz
+                    </Link>
                 </span>
             }
             title="Studio anmelden"

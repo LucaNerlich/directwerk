@@ -62,7 +62,8 @@ export default function Header({children}: {children: ReactNode}) {
     return (
         <AdminShell
             footer={
-                hasToken ? (
+                <>
+                {hasToken ? (
                     <div className="space-y-2">
                         {logoutError ? (
                             <p className="text-xs text-destructive" role="alert">
@@ -90,7 +91,16 @@ export default function Header({children}: {children: ReactNode}) {
                     >
                         Log in
                     </Button>
-                )
+                )}
+                <nav aria-label="Legal" className="flex gap-4 px-1 pt-1 text-xs text-muted-foreground">
+                    <Link className="hover:text-foreground hover:underline" href="/imprint">
+                        Imprint
+                    </Link>
+                    <Link className="hover:text-foreground hover:underline" href="/privacy">
+                        Privacy
+                    </Link>
+                </nav>
+                </>
             }
             brand={
                 <Link className="block min-w-0" href="/">

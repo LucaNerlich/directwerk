@@ -39,6 +39,8 @@ export default function SiteFooter(): React.JSX.Element {
                             <Link className="inline-flex min-h-[44px] items-center" href="/downloads">Bonusdateien</Link>
                         ) : null}
                         <Link className="inline-flex min-h-[44px] items-center" href="/account">{isAuthenticated ? 'Mein Konto' : 'Konto'}</Link>
+                        <Link className="inline-flex min-h-[44px] items-center" href="/imprint">Impressum</Link>
+                        <Link className="inline-flex min-h-[44px] items-center" href="/privacy">Datenschutz</Link>
                         {!isAuthenticated ? (
                             <>
                                 <Link className="inline-flex min-h-[44px] items-center" href="/login">Anmelden</Link>

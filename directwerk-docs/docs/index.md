@@ -53,3 +53,8 @@ features:
     link: /api/reference/
     linkText: Explore the API
 ---
+
+## Rechtliches
+
+- [Impressum](/imprint)
+- [Datenschutzerklärung](/privacy)

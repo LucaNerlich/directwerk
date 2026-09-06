@@ -22,6 +22,7 @@
     },
     "dependencies": {
         "@base-ui/react": "latest",
+        "@directwerk/legal": "workspace:*",
         "class-variance-authority": "latest",
         "clsx": "latest",
         "lucide-react": "latest",

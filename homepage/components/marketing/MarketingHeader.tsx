@@ -11,7 +11,7 @@ import {DOCS_URL} from '@/lib/marketing/constants'
 
 const PLATFORM_LINKS = [
     {href: '/#features', label: 'Plattform', description: 'Studio, Portal & Module'},
-    {href: '/#datenschutz', label: 'Datenschutz', description: 'EU-Hosting & DSGVO'},
+    {href: '/privacy', label: 'Datenschutz', description: 'EU-Hosting & DSGVO'},
     {href: '/#feeds', label: 'Feeds', description: 'Privat & pro Hörer'},
     {href: '/#products', label: 'Produkte', description: 'Studio, Web & API'},
 ] as const

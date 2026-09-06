@@ -11,6 +11,7 @@
     },
     "dependencies": {
         "@directwerk/api": "workspace:*",
+        "@directwerk/legal": "workspace:*",
         "@directwerk/ui": "workspace:*",
         "next": "^16.3.1",
         "react": "^19.2.8",

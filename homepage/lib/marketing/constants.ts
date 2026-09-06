@@ -8,10 +8,11 @@ export const DOCS_URL =
 
 export const NAV_ITEMS = [
     {href: '/#features', label: 'Plattform'},
-    {href: '/#datenschutz', label: 'Datenschutz'},
+    {href: '/privacy', label: 'Datenschutz'},
     {href: '/#feeds', label: 'Feeds'},
     {href: '/#products', label: 'Produkte'},
     {href: '/developers', label: 'Entwickler'},
     {href: '/#contact', label: 'Kontakt'},
+    {href: '/imprint', label: 'Impressum'},
     {href: DOCS_URL, label: 'Dokumentation', external: true},
 ] as const
