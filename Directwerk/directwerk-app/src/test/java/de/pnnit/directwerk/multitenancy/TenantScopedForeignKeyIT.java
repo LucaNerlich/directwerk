@@ -387,14 +387,18 @@ class TenantScopedForeignKeyIT {
                 productId
         )).isInstanceOf(DataIntegrityViolationException.class);
 
+        String foreignToken = "token-" + suffix();
         assertThatThrownBy(() -> jdbcTemplate.update(
                 """
-                INSERT INTO subscriber_feeds (tenant_id, user_id, feed_token, title)
-                VALUES (?, ?, ?, ?)
+                INSERT INTO subscriber_feeds
+                    (tenant_id, user_id, feed_token_protected, feed_token_hash, feed_token, title)
+                VALUES (?, ?, ?, ?, ?, ?)
                 """,
                 tenantA.id(),
                 userId,
-                "token-" + suffix(),
+                "prot-" + foreignToken,
+                hashedToken(foreignToken),
+                hashedToken(foreignToken),
                 "Foreign feed"
         )).isInstanceOf(DataIntegrityViolationException.class);
     }
@@ -461,14 +465,18 @@ class TenantScopedForeignKeyIT {
                 userId,
                 productId
         );
+        String okToken = "ok-token-" + suffix();
         jdbcTemplate.update(
                 """
-                INSERT INTO subscriber_feeds (tenant_id, user_id, feed_token, title)
-                VALUES (?, ?, ?, ?)
+                INSERT INTO subscriber_feeds
+                    (tenant_id, user_id, feed_token_protected, feed_token_hash, feed_token, title)
+                VALUES (?, ?, ?, ?, ?, ?)
                 """,
                 tenant.id(),
                 userId,
-                "ok-token-" + suffix(),
+                "prot-" + okToken,
+                hashedToken(okToken),
+                hashedToken(okToken),
                 "OK feed"
         );
 
@@ -626,6 +634,10 @@ class TenantScopedForeignKeyIT {
 
     private static String suffix() {
         return UUID.randomUUID().toString().substring(0, 8);
+    }
+
+    private static String hashedToken(String rawToken) {
+        return de.pnnit.directwerk.modules.core.util.TokenHashUtil.sha256Hex(rawToken);
     }
 
     private record TenantFixture(long id, String slug) {}
