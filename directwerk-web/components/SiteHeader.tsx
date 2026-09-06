@@ -23,7 +23,6 @@ interface NavItem {
 }
 
 const NAV_ITEMS: readonly NavItem[] = [
-    {href: '/', label: 'Start'},
     {href: '/episodes', label: 'Podcast', module: 'PODCAST'},
     {href: '/articles', label: 'Beiträge', module: 'DIGITAL_CONTENT'},
     {href: '/pricing', label: 'Preise', module: 'SUBSCRIPTION'},
@@ -81,9 +80,7 @@ export default function SiteHeader({
 
     const navigation = items.map((item) => {
         const isActive =
-            item.href === '/'
-                ? pathname === '/'
-                : pathname === item.href || pathname.startsWith(`${item.href}/`)
+            pathname === item.href || pathname.startsWith(`${item.href}/`)
         const label =
             item.href === '/account' && isAuthenticated ? 'Mein Konto' : item.label
         return (
