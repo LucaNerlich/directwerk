@@ -212,7 +212,7 @@ class ArticleFeedServiceTest {
                 .thenReturn(Optional.of(defaultFeed));
         when(articleFeedRepository.findWithLockByTenantIdAndUserIdAndDefaultFeedTrue(10L, 99L))
                 .thenReturn(Optional.of(defaultFeed));
-        when(articleFeedRepository.countByTenantIdAndUserIdAndDefaultFeedFalse(10L, 99L)).thenReturn(5L);
+        when(articleFeedRepository.countByTenantIdAndUserIdAndDefaultFeedFalse(10L, 99L)).thenReturn(25L);
 
         assertThatThrownBy(() -> articleFeedService.createCustomFeed(10L, 99L, "Extra", List.of(3L)))
                 .isInstanceOf(ArticleFeedBuilderException.class)
