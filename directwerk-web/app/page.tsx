@@ -119,7 +119,7 @@ export default function HomePage(): React.JSX.Element {
             {isLoading ? (
                 <HeroSkeleton />
             ) : (
-                <section className="mx-auto flex max-w-3xl flex-col gap-6 py-8 sm:py-14">
+                <section className="mx-auto flex max-w-6xl flex-col gap-6 py-8 sm:py-14">
                     <BrandLogo
                         className="h-14 w-auto"
                         logoUrl={config.branding.logoUrl}
@@ -175,11 +175,11 @@ export default function HomePage(): React.JSX.Element {
                 </section>
             )}
 
-            <div className="mx-auto mt-2 max-w-3xl">
+            <div className="mx-auto mt-2 max-w-6xl">
                 <SubscriberContextBanner />
             </div>
 
-            <section className="mx-auto mt-6 grid max-w-3xl gap-4 sm:grid-cols-3">
+            <section className="mx-auto mt-6 grid max-w-6xl gap-4 sm:grid-cols-3">
                 <StatCard
                     hint={
                         showPodcast
@@ -206,11 +206,11 @@ export default function HomePage(): React.JSX.Element {
             </section>
 
             {isLoading ? (
-                <div className="mx-auto mt-10 max-w-3xl">
+                <div className="mx-auto mt-10 max-w-6xl">
                     <CardGridSkeleton cards={2} columns={2} />
                 </div>
             ) : latestEpisode !== null || latestArticle !== null ? (
-                <section className="mx-auto mt-10 grid max-w-3xl gap-4 sm:grid-cols-2">
+                <section className="mx-auto mt-10 grid max-w-6xl gap-4 sm:grid-cols-2">
                     {latestEpisode !== null ? (
                         <FeatureCard
                             description={
@@ -289,7 +289,7 @@ export default function HomePage(): React.JSX.Element {
             ) : null}
 
             {showPricing && products.length > 0 ? (
-                <section className="mx-auto mt-10 max-w-3xl space-y-4">
+                <section className="mx-auto mt-10 max-w-6xl space-y-4">
                     <SectionHeader
                         description="Mitgliedschaften und Pakete auf einen Blick."
                         title="Was du freischalten kannst"
@@ -328,7 +328,7 @@ export default function HomePage(): React.JSX.Element {
             ) : null}
 
             {podcastFeedUrl !== null || articleFeedUrl !== null ? (
-                <div className="mx-auto mt-10 max-w-3xl">
+                <div className="mx-auto mt-10 max-w-6xl">
                     <HowToSubscribe
                         podcast={
                             podcastFeedUrl !== null
@@ -346,7 +346,7 @@ export default function HomePage(): React.JSX.Element {
             ) : null}
 
             {!isLoading && showPodcast && latestEpisode === null && latestArticle === null ? (
-                <div className="mx-auto mt-8 max-w-3xl">
+                <div className="mx-auto mt-8 max-w-6xl">
                     <EmptyState
                         title="Noch keine veröffentlichten Inhalte"
                         description="Sobald die Redaktion eine Folge oder einen Beitrag veröffentlicht, erscheint sie hier."
