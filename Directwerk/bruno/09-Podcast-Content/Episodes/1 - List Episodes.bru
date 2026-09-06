@@ -14,4 +14,11 @@ tests {
   test("returns expected status", function() {
     expect(res.getStatus() === 200).to.equal(true);
   });
+
+  test("episode views expose coverImageUrl", function() {
+    const data = res.body && res.body.data;
+    if (Array.isArray(data) && data.length > 0) {
+      expect('coverImageUrl' in data[0]).to.equal(true);
+    }
+  });
 }

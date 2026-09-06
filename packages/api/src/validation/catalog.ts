@@ -324,6 +324,8 @@ function parseEpisodeDetail(value: unknown): EpisodeDetail | null {
                 : isPositiveSafeInteger(value.coverAssetId)
                   ? value.coverAssetId
                   : null,
+        coverImageUrl:
+            isNullableString(value.coverImageUrl, 2048) ? value.coverImageUrl : null,
         enclosureEnabled: value.enclosureEnabled === false ? false : true,
         requiredLevelSortOrder:
             value.requiredLevelSortOrder === null ||

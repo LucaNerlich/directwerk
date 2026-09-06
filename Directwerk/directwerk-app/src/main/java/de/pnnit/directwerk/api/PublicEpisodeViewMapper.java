@@ -12,6 +12,7 @@ import de.pnnit.directwerk.modules.digital.api.EpisodeMediaApi;
 import de.pnnit.directwerk.modules.digital.entity.Category;
 import de.pnnit.directwerk.modules.podcast.entity.Episode;
 import de.pnnit.directwerk.modules.podcast.entity.Format;
+import de.pnnit.directwerk.modules.podcast.service.EpisodeCoverResolver;
 import java.net.URL;
 import java.util.Comparator;
 import lombok.RequiredArgsConstructor;
@@ -25,6 +26,7 @@ import org.springframework.stereotype.Component;
 public class PublicEpisodeViewMapper {
 
     private final EpisodeMediaApi episodeMediaApi;
+    private final EpisodeCoverResolver episodeCoverResolver;
 
     public PublicEpisodeView toPublicView(Episode episode) {
         String audioCdnUrl = null;
@@ -84,6 +86,13 @@ public class PublicEpisodeViewMapper {
     }
 
     public EpisodeView toStudioView(Episode episode) {
+        // Same artwork rule as RSS enclosures (episode → format → series) and the same
+        // public-only URL policy as list thumbnails: private covers stay null, editors
+        // keep resolving those per asset through the media preview endpoint.
+        String coverImageUrl = episodeCoverResolver.resolveCoverAsset(episode)
+                .flatMap(episodeMediaApi::publicCdnUrl)
+                .map(URL::toString)
+                .orElse(null);
         return new EpisodeView(
                 episode.getId(),
                 episode.getSeries().getId(),
@@ -94,6 +103,7 @@ public class PublicEpisodeViewMapper {
                 episode.getDescription(),
                 episode.getAudioAsset() != null ? episode.getAudioAsset().getId() : null,
                 episode.getCoverAsset() != null ? episode.getCoverAsset().getId() : null,
+                coverImageUrl,
                 episode.getDurationSeconds(),
                 episode.getAccessPolicy().name(),
                 episode.getRequiredLevelSortOrder(),

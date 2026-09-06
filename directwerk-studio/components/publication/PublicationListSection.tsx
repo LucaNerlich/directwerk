@@ -27,6 +27,8 @@ export interface PublicationListItem {
     categories?: {id: number; name: string}[]
     seriesLabel?: string | null
     episodeNumber?: number | null
+    /** Public cover URL (episode → format → series fallback); omitted while private. */
+    coverImageUrl?: string | null
 }
 
 interface PublicationListSectionProps<T extends PublicationListItem> {
@@ -224,12 +226,22 @@ function toEntityItems<T extends PublicationListItem>({
 
         const blockedReason = publishBlockedReason?.(item) ?? null
         const statusBadge = <PublicationStatusBadge status={item.status} />
+        const cover =
+            item.coverImageUrl !== undefined && item.coverImageUrl !== null ? (
+                <img
+                    alt={`Titelbild: ${item.title}`}
+                    className="h-16 w-16 shrink-0 rounded-md object-cover"
+                    loading="lazy"
+                    src={item.coverImageUrl}
+                />
+            ) : undefined
 
         return {
             id: item.id,
             title: item.title,
             href: `${editorBasePath}/${item.id}`,
             descriptions,
+            leading: cover,
             selectionDisabled:
                 !isBulkPublicationStatus(item.status) ||
                 (item.status === 'DRAFT' && blockedReason !== null),
