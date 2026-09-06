@@ -98,7 +98,10 @@ interface CustomFeedsPanelProps<
     onAuthRequired: () => void
 }
 
-const MAX_CUSTOM_FEEDS = 5
+// Client-side mirror of the backend policy
+// (FeedProvisioningSupport.MAX_CUSTOM_FEEDS_PER_USER in directwerk-core);
+// the server is authoritative, but this must match or the form hides early.
+const MAX_CUSTOM_FEEDS = 25
 
 type RowAction = 'toggle' | 'rotate' | 'delete'
 

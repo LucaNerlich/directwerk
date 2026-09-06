@@ -186,4 +186,81 @@ describe('CustomFeedsPanel', () => {
             expect(button).toBeDisabled()
         }
     })
+
+    it('still offers the create form below the backend limit of 25 custom feeds', async () => {
+        listPublicFormatsMock.mockResolvedValue([
+            {
+                id: 3,
+                slug: 'interview',
+                name: 'Interview',
+                description: null,
+                requiredLevelSortOrder: null,
+                sortOrder: 1,
+            },
+        ])
+        previewCustomFeedMock.mockResolvedValue({episodeCount: 0, sampleTitles: []})
+        const feeds = [
+            feed(),
+            ...Array.from({length: 5}, (_, index) =>
+                feed({id: 100 + index, title: `Feed ${index}`, isDefault: false}),
+            ),
+        ]
+
+        render(
+            <CustomFeedsPanel
+                canBuild
+                config={podcastCustomFeedsConfig}
+                feeds={feeds}
+                onAuthRequired={() => undefined}
+                onError={() => undefined}
+                onFeedsChange={() => undefined}
+                tenantHost="alpha-a.localhost"
+            />,
+        )
+
+        await waitFor(() =>
+            expect(screen.getByText('Neuen Feed anlegen')).toBeInTheDocument(),
+        )
+        expect(
+            screen.queryByText(/höchstens .* eigene Feeds anlegen/),
+        ).not.toBeInTheDocument()
+    })
+
+    it('hides the create form and names the backend limit once reached', async () => {
+        listPublicFormatsMock.mockResolvedValue([
+            {
+                id: 3,
+                slug: 'interview',
+                name: 'Interview',
+                description: null,
+                requiredLevelSortOrder: null,
+                sortOrder: 1,
+            },
+        ])
+        const feeds = [
+            feed(),
+            ...Array.from({length: 25}, (_, index) =>
+                feed({id: 100 + index, title: `Feed ${index}`, isDefault: false}),
+            ),
+        ]
+
+        render(
+            <CustomFeedsPanel
+                canBuild
+                config={podcastCustomFeedsConfig}
+                feeds={feeds}
+                onAuthRequired={() => undefined}
+                onError={() => undefined}
+                onFeedsChange={() => undefined}
+                tenantHost="alpha-a.localhost"
+            />,
+        )
+
+        await waitFor(() =>
+            expect(
+                screen.getByText('Du kannst höchstens 25 eigene Feeds anlegen.'),
+            ).toBeInTheDocument(),
+        )
+        expect(screen.queryByText('Neuen Feed anlegen')).not.toBeInTheDocument()
+    })
 })
