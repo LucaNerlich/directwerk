@@ -21,6 +21,7 @@ export default function StudioShell({
             <BrandTheme
                 className="min-h-svh"
                 primaryHex={config.branding.primaryColor}
+                secondaryHex={config.branding.secondaryColor}
             >
                 <AppShell
                     brand={

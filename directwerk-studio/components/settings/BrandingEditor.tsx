@@ -2,6 +2,7 @@
 
 import {Alert, AlertDescription} from '@directwerk/ui/components/alert'
 import {Button} from '@directwerk/ui/components/button'
+import BrandTheme from '@directwerk/ui/components/brand-theme'
 import {Card, CardContent, CardDescription, CardHeader, CardTitle} from '@directwerk/ui/components/card'
 import {Input} from '@directwerk/ui/components/input'
 import {Label} from '@directwerk/ui/components/label'
@@ -176,6 +177,13 @@ export default function BrandingEditor(): React.JSX.Element {
     }
 
     const [state, formAction, pending] = useActionState(saveAction, INITIAL_STATE)
+
+    // Live preview from drafts (falling back to saved values): admins see where
+    // both colors land before saving.
+    const previewPrimary =
+        primaryColorDraft.trim().length > 0 ? primaryColorDraft : (branding?.primaryColor ?? null)
+    const previewSecondary =
+        secondaryColorDraft.trim().length > 0 ? secondaryColorDraft : (branding?.secondaryColor ?? null)
 
     if (isLoading) {
         return (
@@ -361,6 +369,26 @@ export default function BrandingEditor(): React.JSX.Element {
                         <AlertDescription>{state.success}</AlertDescription>
                     </Alert>
                 ) : null}
+                <div className="grid gap-2">
+                    <p className="text-sm font-medium" id="branding-preview-label">Vorschau</p>
+                    <BrandTheme primaryHex={previewPrimary} secondaryHex={previewSecondary}>
+                        <div
+                            aria-labelledby="branding-preview-label"
+                            className="flex flex-wrap items-center gap-2 rounded-lg border bg-background p-4"
+                        >
+                            <Button type="button">Primär</Button>
+                            <Button type="button" variant="secondary">
+                                Sekundär
+                            </Button>
+                            <span className="text-sm font-medium text-primary">
+                                Akzent-Text
+                            </span>
+                        </div>
+                    </BrandTheme>
+                    <p className="text-xs text-muted-foreground">
+                        Live-Vorschau aus deinen Entwürfen — nach dem Speichern gelten die Farben für Studio und Website.
+                    </p>
+                </div>
                 <div>
                 <Button disabled={pending} type="submit">
                     {pending ? 'Speichern…' : 'Speichern'}

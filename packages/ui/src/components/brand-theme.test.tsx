@@ -29,4 +29,29 @@ describe('BrandTheme', () => {
             '--primary': '#3f352b',
         })
     })
+
+    it('applies the tenant secondary color with a readable foreground', () => {
+        render(
+            <BrandTheme primaryHex="#3f352b" secondaryHex="#e94560">
+                <span>Secondary content</span>
+            </BrandTheme>,
+        )
+
+        expect(screen.getByText('Secondary content').parentElement).toHaveStyle({
+            '--secondary': '#e94560',
+            '--secondary-foreground': '#171717',
+        })
+    })
+
+    it('leaves secondary surfaces on the theme default without a valid color', () => {
+        const {container} = render(
+            <BrandTheme primaryHex="#3f352b" secondaryHex="not-a-color">
+                <span>Default secondary</span>
+            </BrandTheme>,
+        )
+
+        expect(container.firstElementChild?.getAttribute('style')).not.toContain(
+            '--secondary',
+        )
+    })
 })
