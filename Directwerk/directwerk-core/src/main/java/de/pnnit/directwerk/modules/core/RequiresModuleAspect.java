@@ -51,9 +51,8 @@ public class RequiresModuleAspect {
                     "RequiresModuleAspect matched a join point without a resolvable @RequiresModule annotation: "
                             + joinPoint.getSignature());
         }
-        for (String moduleKey : moduleKeys) {
-            moduleGateService.requireModule(moduleKey);
-        }
+        // One cached read for every key — see ModuleGateService's enforcement Seam.
+        moduleGateService.requireModules(moduleKeys);
     }
 
     /**

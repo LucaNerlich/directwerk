@@ -340,6 +340,38 @@ Domain glossary and deepening modules for AI navigation. Terms here name **seams
 **Interface:** Auth-aware private feed list with shared error handling.  
 **Seam:** `/feeds` page is presentation-only; matches account dashboard loading pattern (#28).
 
+## Wave 8 deepened modules (agreed 2026-09-06, grilling decisions)
+
+### 63. Unified Entitlement filter Module
+
+**Interface:** Single + batch access checks for Episode, article, and standalone MediaAsset behind one Seam.
+**Seam:** PUBLISHED guard, Feature-module gating, tenant→module→entitlement error precedence, and oracle-safe 403-to-404 relabeling live inside; `FailClosedEntitlementApi` stays as the default deny-all Adapter.
+
+### 64. Parameterized Feed provisioning Module
+
+**Interface:** Token mint/hash/rotate, deliverability guard, custom-feed limits shared across podcast and article feeds.
+**Seam:** Filter axis (formats vs categories), preview enclosure rule, default title, and lost-update handling sit behind the Seam as Adapters.
+
+### 65. Snapshot object-truth
+
+**Interface:** Deliver and refresh treat object existence as authoritative; the `isWritten` row is a fast-path hint.
+**Seam:** `GeneratedFeedSnapshotStore` callers no longer need to reason about row/object divergence.
+
+### 66. Single Tenant taxonomy
+
+**Interface:** `RequestScope` owns scope + role requirement; `SecurityConfig` and Tenant filters derive from it.
+**Seam:** New routes declare scope once; Hibernate enablement and write-guard registration follow.
+
+### 67. Converged gate enforcement
+
+**Interface:** Declarative annotation and programmatic calls route through one enforcement Seam.
+**Seam:** Shared key resolution, shared cache, and podcatcher-safe error translation; one place for the self-invocation rule.
+
+### 68. Unified BFF proxy policy
+
+**Interface:** One body/query/limit table; each route declares its row (limits, empty-body tolerance, HEAD support).
+**Seam:** Tenant and platform handlers share trust assumptions (never trust `Content-Length`); per-app factories delegate.
+
 ## Migration order
 
 1. Transport policies (#3)  

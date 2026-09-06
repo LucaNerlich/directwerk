@@ -11,6 +11,7 @@ import de.pnnit.directwerk.modules.core.service.ModuleGateService;
 import de.pnnit.directwerk.modules.digital.api.EpisodeLinkValidator;
 import de.pnnit.directwerk.modules.podcast.service.EpisodeLinkValidatorImpl;
 import de.pnnit.directwerk.modules.podcast.service.EpisodeService;
+import java.util.List;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
@@ -33,7 +34,7 @@ import org.springframework.stereotype.Component;
  * <p>Before the fix, invoking the method-annotated bean threw a bare {@link NullPointerException}
  * from inside the aspect (binding {@code @annotation(requiresModule) || @within(requiresModule)}
  * to a single formal resolved to {@code null} for this shape) instead of ever reaching
- * {@link ModuleGateService#requireModule(String)}. Both shapes must now correctly gate through
+ * {@link ModuleGateService#requireModules(java.util.Collection)}. Both shapes must now correctly gate through
  * {@code ModuleGateService}, and unannotated methods on annotated classes must gate too, while
  * methods on unannotated classes without their own annotation must NOT be gated at all.
  */
@@ -56,7 +57,7 @@ class RequiresModuleAspectTest {
 
         assertThatCode(bean::createSomething).doesNotThrowAnyException();
 
-        verify(moduleGateService).requireModule(eq("PODCAST"));
+        verify(moduleGateService).requireModules(eq(List.of("PODCAST")));
     }
 
     @Test
@@ -67,7 +68,7 @@ class RequiresModuleAspectTest {
 
         assertThatCode(bean::handle).doesNotThrowAnyException();
 
-        verify(moduleGateService).requireModule(eq("SUBSCRIPTION"));
+        verify(moduleGateService).requireModules(eq(List.of("SUBSCRIPTION")));
     }
 
     @Test
@@ -85,7 +86,7 @@ class RequiresModuleAspectTest {
     void propagatesModuleGateServiceRejectionRatherThanSwallowingIt() {
         ModuleGateService moduleGateService = mock(ModuleGateService.class);
         RuntimeException rejection = new RuntimeException("module not enabled");
-        org.mockito.Mockito.doThrow(rejection).when(moduleGateService).requireModule("PODCAST");
+        org.mockito.Mockito.doThrow(rejection).when(moduleGateService).requireModules(List.of("PODCAST"));
         context = bootstrapContext(moduleGateService);
         MethodAnnotatedService bean = context.getBean(MethodAnnotatedService.class);
 
@@ -101,11 +102,8 @@ class RequiresModuleAspectTest {
 
         assertThatCode(bean::handle).doesNotThrowAnyException();
 
-        // method keys first (declaration order), then class key — all enforced
-        org.mockito.InOrder inOrder = org.mockito.Mockito.inOrder(moduleGateService);
-        inOrder.verify(moduleGateService).requireModule("SUBSCRIPTION");
-        inOrder.verify(moduleGateService).requireModule("PODCAST_RSS");
-        inOrder.verify(moduleGateService).requireModule("PODCAST");
+        // One batched enforcement call: method keys first (declaration order), then class key.
+        verify(moduleGateService).requireModules(eq(List.of("SUBSCRIPTION", "PODCAST_RSS", "PODCAST")));
         org.mockito.Mockito.verifyNoMoreInteractions(moduleGateService);
     }
 
@@ -117,8 +115,9 @@ class RequiresModuleAspectTest {
 
         assertThatCode(bean::ungatedMethod).doesNotThrowAnyException();
 
-        verify(moduleGateService).requireModule("PODCAST");
-        verify(moduleGateService, org.mockito.Mockito.times(1)).requireModule(org.mockito.ArgumentMatchers.anyString());
+        verify(moduleGateService).requireModules(eq(List.of("PODCAST")));
+        verify(moduleGateService, org.mockito.Mockito.times(1))
+                .requireModules(org.mockito.ArgumentMatchers.anyList());
     }
 
     @Test
@@ -129,14 +128,14 @@ class RequiresModuleAspectTest {
 
         assertThatCode(bean::createSomething).doesNotThrowAnyException();
 
-        verify(moduleGateService).requireModule("DIGITAL_CONTENT");
+        verify(moduleGateService).requireModules(eq(List.of("DIGITAL_CONTENT")));
     }
 
     @Test
     void episodeLinkValidatorIsFailClosedWhenPodcastModuleIsDisabled() {
         ModuleGateService moduleGateService = mock(ModuleGateService.class);
         RuntimeException rejection = new RuntimeException("PODCAST disabled");
-        org.mockito.Mockito.doThrow(rejection).when(moduleGateService).requireModule("PODCAST");
+        org.mockito.Mockito.doThrow(rejection).when(moduleGateService).requireModules(List.of("PODCAST"));
         context = bootstrapContext(moduleGateService);
         EpisodeLinkValidator validator = context.getBeanProvider(EpisodeLinkValidator.class).getIfAvailable();
 

@@ -17,7 +17,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.OptionalInt;
 import java.util.Set;
-import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -77,36 +76,7 @@ public class EntitlementService {
     }
 
     public boolean hasEpisodeAccess(Long tenantId, Long userId, EpisodeAccessSubject subject) {
-        if (subject.free()) {
-            return true;
-        }
-
-        List<Subscription> activeSubscriptions = activeSubscriptions(tenantId, userId);
-        OptionalInt maxLevelSortOrder = activeSubscriptions.stream()
-                .map(Subscription::getProduct)
-                .filter(product -> product.getOfferingType() == OfferingType.LEVEL)
-                .mapToInt(product -> product.getSortOrder())
-                .max();
-        if (maxLevelSortOrder.isPresent()
-                && maxLevelSortOrder.getAsInt() >= subject.requiredLevelSortOrder()
-                && (subject.maxFormatRequiredLevel() == null
-                        || maxLevelSortOrder.getAsInt() >= subject.maxFormatRequiredLevel())) {
-            return true;
-        }
-
-        List<Long> packageProductIds = activeSubscriptions.stream()
-                .map(Subscription::getProduct)
-                .filter(product -> product.getOfferingType() == OfferingType.PACKAGE)
-                .map(product -> product.getId())
-                .toList();
-        if (packageProductIds.isEmpty()) {
-            return false;
-        }
-
-        return productAccessRuleRepository
-                .findByTenantIdAndProductIdInOrderByProductIdAscIdAsc(tenantId, packageProductIds)
-                .stream()
-                .anyMatch(rule -> grantsEpisode(rule, subject));
+        return hasAccess(tenantId, userId, subject);
     }
 
     /**
@@ -115,80 +85,11 @@ public class EntitlementService {
      * share a single subscription fetch and a single rule fetch.
      */
     public Set<Long> filterAccessibleEpisodes(Long tenantId, Long userId, Map<Long, EpisodeAccessSubject> subjects) {
-        if (subjects.isEmpty()) {
-            return Set.of();
-        }
-        Set<Long> accessible = new HashSet<>();
-        Map<Long, EpisodeAccessSubject> paid = new LinkedHashMap<>();
-        for (Map.Entry<Long, EpisodeAccessSubject> entry : subjects.entrySet()) {
-            if (entry.getValue().free()) {
-                accessible.add(entry.getKey());
-            } else {
-                paid.put(entry.getKey(), entry.getValue());
-            }
-        }
-        if (paid.isEmpty()) {
-            return Set.copyOf(accessible);
-        }
-
-        List<Subscription> activeSubscriptions = activeSubscriptions(tenantId, userId);
-        OptionalInt maxLevelSortOrder = activeSubscriptions.stream()
-                .map(Subscription::getProduct)
-                .filter(product -> product.getOfferingType() == OfferingType.LEVEL)
-                .mapToInt(SubscriptionProduct::getSortOrder)
-                .max();
-        List<Long> packageProductIds = activeSubscriptions.stream()
-                .map(Subscription::getProduct)
-                .filter(product -> product.getOfferingType() == OfferingType.PACKAGE)
-                .map(SubscriptionProduct::getId)
-                .toList();
-        List<ProductAccessRule> rules = packageProductIds.isEmpty()
-                ? List.of()
-                : productAccessRuleRepository.findByTenantIdAndProductIdInOrderByProductIdAscIdAsc(
-                        tenantId, packageProductIds);
-
-        for (Map.Entry<Long, EpisodeAccessSubject> entry : paid.entrySet()) {
-            EpisodeAccessSubject subject = entry.getValue();
-            boolean levelGrants = maxLevelSortOrder.isPresent()
-                    && maxLevelSortOrder.getAsInt() >= subject.requiredLevelSortOrder()
-                    && (subject.maxFormatRequiredLevel() == null
-                            || maxLevelSortOrder.getAsInt() >= subject.maxFormatRequiredLevel());
-            if (levelGrants || rules.stream().anyMatch(rule -> grantsEpisode(rule, subject))) {
-                accessible.add(entry.getKey());
-            }
-        }
-        return Set.copyOf(accessible);
+        return filterAccessible(tenantId, userId, subjects);
     }
 
     public boolean hasArticleAccess(Long tenantId, Long userId, ArticleAccessSubject subject) {
-        if (subject.free()) {
-            return true;
-        }
-
-        List<Subscription> activeSubscriptions = activeSubscriptions(tenantId, userId);
-        OptionalInt maxLevelSortOrder = activeSubscriptions.stream()
-                .map(Subscription::getProduct)
-                .filter(product -> product.getOfferingType() == OfferingType.LEVEL)
-                .mapToInt(SubscriptionProduct::getSortOrder)
-                .max();
-        if (maxLevelSortOrder.isPresent()
-                && maxLevelSortOrder.getAsInt() >= subject.requiredLevelSortOrder()) {
-            return true;
-        }
-
-        List<Long> packageProductIds = activeSubscriptions.stream()
-                .map(Subscription::getProduct)
-                .filter(product -> product.getOfferingType() == OfferingType.PACKAGE)
-                .map(SubscriptionProduct::getId)
-                .toList();
-        if (packageProductIds.isEmpty()) {
-            return false;
-        }
-
-        return productAccessRuleRepository
-                .findByTenantIdAndProductIdInOrderByProductIdAscIdAsc(tenantId, packageProductIds)
-                .stream()
-                .anyMatch(rule -> grantsArticle(rule, subject));
+        return hasAccess(tenantId, userId, subject);
     }
 
     /**
@@ -196,64 +97,11 @@ public class EntitlementService {
      * subscriptions and access rules.
      */
     public Set<Long> filterAccessibleArticles(Long tenantId, Long userId, Map<Long, ArticleAccessSubject> subjects) {
-        if (subjects.isEmpty()) {
-            return Set.of();
-        }
-        Set<Long> accessible = new HashSet<>();
-        Map<Long, ArticleAccessSubject> paid = new LinkedHashMap<>();
-        for (Map.Entry<Long, ArticleAccessSubject> entry : subjects.entrySet()) {
-            if (entry.getValue().free()) {
-                accessible.add(entry.getKey());
-            } else {
-                paid.put(entry.getKey(), entry.getValue());
-            }
-        }
-        if (paid.isEmpty()) {
-            return Set.copyOf(accessible);
-        }
-
-        List<Subscription> activeSubscriptions = activeSubscriptions(tenantId, userId);
-        OptionalInt maxLevelSortOrder = activeSubscriptions.stream()
-                .map(Subscription::getProduct)
-                .filter(product -> product.getOfferingType() == OfferingType.LEVEL)
-                .mapToInt(SubscriptionProduct::getSortOrder)
-                .max();
-        List<Long> packageProductIds = activeSubscriptions.stream()
-                .map(Subscription::getProduct)
-                .filter(product -> product.getOfferingType() == OfferingType.PACKAGE)
-                .map(SubscriptionProduct::getId)
-                .toList();
-        List<ProductAccessRule> rules = packageProductIds.isEmpty()
-                ? List.of()
-                : productAccessRuleRepository.findByTenantIdAndProductIdInOrderByProductIdAscIdAsc(
-                        tenantId, packageProductIds);
-
-        for (Map.Entry<Long, ArticleAccessSubject> entry : paid.entrySet()) {
-            ArticleAccessSubject subject = entry.getValue();
-            boolean levelGrants = maxLevelSortOrder.isPresent()
-                    && maxLevelSortOrder.getAsInt() >= subject.requiredLevelSortOrder();
-            if (levelGrants || rules.stream().anyMatch(rule -> grantsArticle(rule, subject))) {
-                accessible.add(entry.getKey());
-            }
-        }
-        return Set.copyOf(accessible);
+        return filterAccessible(tenantId, userId, subjects);
     }
 
     public boolean hasDigitalAssetAccess(Long tenantId, Long userId, Long mediaAssetId) {
-        List<Long> packageProductIds = activeSubscriptions(tenantId, userId).stream()
-                .map(Subscription::getProduct)
-                .filter(product -> product.getOfferingType() == OfferingType.PACKAGE)
-                .map(product -> product.getId())
-                .toList();
-        if (packageProductIds.isEmpty()) {
-            return false;
-        }
-
-        return productAccessRuleRepository
-                .findByTenantIdAndProductIdInOrderByProductIdAscIdAsc(tenantId, packageProductIds)
-                .stream()
-                .anyMatch(rule -> rule.getScopeType() == ProductAccessScopeType.DIGITAL_ASSET
-                        && mediaAssetId.equals(rule.getScopeId()));
+        return hasAccess(tenantId, userId, new DigitalAssetSubject(mediaAssetId));
     }
 
     /**
@@ -264,27 +112,84 @@ public class EntitlementService {
         if (mediaAssetIds.isEmpty()) {
             return Set.of();
         }
-        List<Long> packageProductIds = activeSubscriptions(tenantId, userId).stream()
+        Map<Long, ContentSubject> subjects = new LinkedHashMap<>();
+        for (Long mediaAssetId : mediaAssetIds) {
+            subjects.put(mediaAssetId, new DigitalAssetSubject(mediaAssetId));
+        }
+        return filterAccessible(tenantId, userId, subjects);
+    }
+
+    /**
+     * The unified evaluation Seam of this Module: one decision procedure for every content kind.
+     * Single checks are batch-of-one through the same fetch path, so single/batch parity holds
+     * by construction — LEVEL evaluation, PACKAGE rule fetch, and FREE short-circuit happen
+     * exactly once per call, shared across all subjects.
+     */
+    public boolean hasAccess(Long tenantId, Long userId, ContentSubject subject) {
+        return filterAccessible(tenantId, userId, Map.of(0L, subject)).contains(0L);
+    }
+
+    public Set<Long> filterAccessible(
+            Long tenantId, Long userId, Map<Long, ? extends ContentSubject> subjects) {
+        if (subjects.isEmpty()) {
+            return Set.of();
+        }
+        Set<Long> accessible = new HashSet<>();
+        Map<Long, ContentSubject> paid = new LinkedHashMap<>();
+        for (Map.Entry<Long, ? extends ContentSubject> entry : subjects.entrySet()) {
+            if (entry.getValue().free()) {
+                accessible.add(entry.getKey());
+            } else {
+                paid.put(entry.getKey(), entry.getValue());
+            }
+        }
+        if (paid.isEmpty()) {
+            return Set.copyOf(accessible);
+        }
+
+        List<Subscription> subscriptions = activeSubscriptions(tenantId, userId);
+        OptionalInt maxLevelSortOrder = subscriptions.stream()
+                .map(Subscription::getProduct)
+                .filter(product -> product.getOfferingType() == OfferingType.LEVEL)
+                .mapToInt(SubscriptionProduct::getSortOrder)
+                .max();
+        List<Long> packageProductIds = subscriptions.stream()
                 .map(Subscription::getProduct)
                 .filter(product -> product.getOfferingType() == OfferingType.PACKAGE)
                 .map(SubscriptionProduct::getId)
                 .toList();
-        if (packageProductIds.isEmpty()) {
-            return Set.of();
-        }
+        List<ProductAccessRule> rules = packageProductIds.isEmpty()
+                ? List.of()
+                : productAccessRuleRepository.findByTenantIdAndProductIdInOrderByProductIdAscIdAsc(
+                        tenantId, packageProductIds);
 
-        return productAccessRuleRepository
-                .findByTenantIdAndProductIdInOrderByProductIdAscIdAsc(tenantId, packageProductIds)
-                .stream()
-                .filter(rule -> rule.getScopeType() == ProductAccessScopeType.DIGITAL_ASSET)
-                .map(ProductAccessRule::getScopeId)
-                .filter(Objects::nonNull)
-                .filter(mediaAssetIds::contains)
-                .collect(Collectors.toUnmodifiableSet());
+        for (Map.Entry<Long, ContentSubject> entry : paid.entrySet()) {
+            ContentSubject subject = entry.getValue();
+            if (levelGrants(maxLevelSortOrder, subject)
+                    || rules.stream().anyMatch(rule -> grantedBy(rule, subject))) {
+                accessible.add(entry.getKey());
+            }
+        }
+        return Set.copyOf(accessible);
     }
 
-    public List<Long> listEntitledDigitalAssetIds(Long tenantId, Long userId) {
-        List<Long> packageProductIds = activeSubscriptions(tenantId, userId).stream()
+    private boolean levelGrants(OptionalInt maxLevelSortOrder, ContentSubject subject) {
+        return subject.levelApplies()
+                && maxLevelSortOrder.isPresent()
+                && maxLevelSortOrder.getAsInt() >= subject.requiredLevelSortOrder()
+                && (subject.maxFormatRequiredLevel() == null
+                        || maxLevelSortOrder.getAsInt() >= subject.maxFormatRequiredLevel());
+    }
+
+    private boolean grantedBy(ProductAccessRule rule, ContentSubject subject) {
+        return switch (subject) {
+            case EpisodeAccessSubject episode -> grantsEpisode(rule, episode);
+            case ArticleAccessSubject article -> grantsArticle(rule, article);
+            case DigitalAssetSubject asset -> grantsDigitalAsset(rule, asset);
+        };
+    }
+
+    public List<Long> listEntitledDigitalAssetIds(Long tenantId, Long userId) {        List<Long> packageProductIds = activeSubscriptions(tenantId, userId).stream()
                 .map(Subscription::getProduct)
                 .filter(product -> product.getOfferingType() == OfferingType.PACKAGE)
                 .map(SubscriptionProduct::getId)
@@ -320,6 +225,12 @@ public class EntitlementService {
         };
     }
 
+    private boolean grantsDigitalAsset(ProductAccessRule rule, DigitalAssetSubject subject) {
+        return rule.getScopeType() == ProductAccessScopeType.DIGITAL_ASSET
+                && subject.mediaAssetId() != null
+                && subject.mediaAssetId().equals(rule.getScopeId());
+    }
+
     private List<Subscription> activeSubscriptions(Long tenantId, Long userId) {
         return subscriptionRepository.findActiveWithProducts(
                 tenantId,
@@ -335,6 +246,27 @@ public class EntitlementService {
         return endsAt == null || endsAt.isAfter(Instant.now());
     }
 
+    /**
+     * Subject model for the unified evaluation Seam. Every content kind answers the same
+     * questions; kind-specific scope matching stays in the {@code grants*} methods above.
+     */
+    public sealed interface ContentSubject
+            permits EpisodeAccessSubject, ArticleAccessSubject, DigitalAssetSubject {
+        boolean free();
+
+        int requiredLevelSortOrder();
+
+        /** Format-level gate; null unless the kind supports it (episodes). */
+        default Integer maxFormatRequiredLevel() {
+            return null;
+        }
+
+        /** Standalone digital assets are PACKAGE-only; LEVEL never grants them. */
+        default boolean levelApplies() {
+            return true;
+        }
+    }
+
     public record EpisodeAccessSubject(
             boolean free,
             int requiredLevelSortOrder,
@@ -342,7 +274,7 @@ public class EntitlementService {
             Set<Long> formatIds,
             Set<Long> categoryIds,
             Integer maxFormatRequiredLevel
-    ) {
+    ) implements ContentSubject {
         public EpisodeAccessSubject {
             formatIds = formatIds == null ? Set.of() : Set.copyOf(formatIds);
             categoryIds = categoryIds == null ? Set.of() : Set.copyOf(categoryIds);
@@ -353,9 +285,26 @@ public class EntitlementService {
             boolean free,
             int requiredLevelSortOrder,
             Set<Long> categoryIds
-    ) {
+    ) implements ContentSubject {
         public ArticleAccessSubject {
             categoryIds = categoryIds == null ? Set.of() : Set.copyOf(categoryIds);
+        }
+    }
+
+    public record DigitalAssetSubject(Long mediaAssetId) implements ContentSubject {
+        @Override
+        public boolean free() {
+            return false;
+        }
+
+        @Override
+        public int requiredLevelSortOrder() {
+            return 0;
+        }
+
+        @Override
+        public boolean levelApplies() {
+            return false;
         }
     }
 

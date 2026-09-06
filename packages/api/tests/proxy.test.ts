@@ -10,6 +10,7 @@ import {
 import {parseTenantHost} from '../src/proxy/tenantHost'
 import {readBoundedRequestBody} from '../src/proxy/boundedBody'
 import {createTenantProxyRouteHandler} from '../src/proxy/routeHandler'
+import {PROXY_POLICIES} from '../src/proxy/proxyPolicy'
 
 describe('buildProxyPath', () => {
     it('joins safe segments under /api/v1', () => {
@@ -438,5 +439,160 @@ describe('createTenantProxyRouteHandler body limits', () => {
             params: Promise.resolve({path: ['me']}),
         })
         expect(response.status).toBe(413)
+    })
+
+    it.each(['text/plain', 'application/jsonp', 'text/application/json'])(
+        'rejects non-JSON content type %s with 415',
+        async (contentType) => {
+            const fetchUpstream = vi.fn(async () => new Response('{}'))
+            const handlers = createTenantProxyRouteHandler({
+                fetchUpstream,
+                jsonBodyLimit: 16_384,
+            })
+
+            const request = new Request('http://local/api/proxy/me', {
+                method: 'POST',
+                headers: {
+                    'content-type': contentType,
+                    'x-tenant-host': 'tenant.example',
+                    authorization: 'Bearer token123',
+                },
+                body: '{"a":1}',
+            })
+
+            const response = await handlers.POST(request, {
+                params: Promise.resolve({path: ['me']}),
+            })
+            expect(response.status).toBe(415)
+            expect(fetchUpstream).not.toHaveBeenCalled()
+        },
+    )
+
+    it('rejects malformed JSON with 400', async () => {
+        const fetchUpstream = vi.fn(async () => new Response('{}'))
+        const handlers = createTenantProxyRouteHandler({
+            fetchUpstream,
+            jsonBodyLimit: 16_384,
+        })
+
+        const request = new Request('http://local/api/proxy/me', {
+            method: 'POST',
+            headers: {
+                'content-type': 'application/json',
+                'x-tenant-host': 'tenant.example',
+                authorization: 'Bearer token123',
+            },
+            body: '{"a":',
+        })
+
+        const response = await handlers.POST(request, {
+            params: Promise.resolve({path: ['me']}),
+        })
+        expect(response.status).toBe(400)
+        expect(fetchUpstream).not.toHaveBeenCalled()
+    })
+})
+
+describe('createTenantProxyRouteHandler HEAD support', () => {
+    function headHandlers(
+        fetchUpstream: (request: {
+            path: string
+            method: string
+            query?: string
+        }) => Promise<Response>,
+    ) {
+        return createTenantProxyRouteHandler({
+            fetchUpstream: (request) =>
+                fetchUpstream({
+                    path: request.path,
+                    method: request.method,
+                    query: request.query,
+                }),
+            jsonBodyLimit: 16_384,
+        })
+    }
+
+    function headRequest(url: string): Request {
+        return new Request(url, {
+            method: 'HEAD',
+            headers: {
+                'x-tenant-host': 'tenant.example',
+                authorization: 'Bearer token123',
+            },
+        })
+    }
+
+    it('forwards HEAD upstream without reading a body', async () => {
+        const seen: Array<{path: string; method: string; body?: string}> = []
+        const handlers = createTenantProxyRouteHandler({
+            fetchUpstream: (request) => {
+                seen.push({
+                    path: request.path,
+                    method: request.method,
+                    body: request.body,
+                })
+                return Promise.resolve(
+                    Response.json({statusCode: 200, statusMessage: 'OK', data: {}, errors: [], metadata: {}}),
+                )
+            },
+            jsonBodyLimit: 16_384,
+        })
+
+        const response = await handlers.HEAD(
+            headRequest('http://local/api/proxy/me'),
+            {params: Promise.resolve({path: ['me']})},
+        )
+
+        expect(response.status).toBe(200)
+        expect(seen).toEqual([{path: '/api/v1/me', method: 'HEAD', body: undefined}])
+    })
+
+    it('validates HEAD preview queries like GET', async () => {
+        const seen: Array<{path: string; method: string; query?: string}> = []
+        const handlers = headHandlers(async (request) => {
+            seen.push(request)
+            return Response.json({statusCode: 200, statusMessage: 'OK', data: {episodeCount: 0, sampleTitles: []}, errors: [], metadata: {}})
+        })
+
+        const response = await handlers.HEAD(
+            headRequest(
+                'http://local/api/proxy/me/feeds/preview?formatIds=3&formatIds=7',
+            ),
+            {params: Promise.resolve({path: ['me', 'feeds', 'preview']})},
+        )
+
+        expect(response.status).toBe(200)
+        expect(seen).toEqual([
+            {path: '/api/v1/me/feeds/preview', method: 'HEAD', query: '?formatIds=3&formatIds=7'},
+        ])
+    })
+})
+
+describe('PROXY_POLICIES', () => {
+    it('pins the agreed per-app body limits and flags', () => {
+        expect(PROXY_POLICIES.studioTenant).toEqual({
+            name: 'studioTenant',
+            jsonBodyLimit: 1_048_576,
+            allowMissingBody: true,
+            allowHead: true,
+        })
+        expect(PROXY_POLICIES.webTenant).toEqual({
+            name: 'webTenant',
+            jsonBodyLimit: 16_384,
+            allowMissingBody: false,
+            allowHead: true,
+        })
+        expect(PROXY_POLICIES.platform).toEqual({
+            name: 'platform',
+            jsonBodyLimit: 65_536,
+            allowMissingBody: false,
+            allowHead: true,
+        })
+        expect(PROXY_POLICIES.adminTenant).toEqual({
+            name: 'adminTenant',
+            jsonBodyLimit: 65_536,
+            allowMissingBody: false,
+            allowHead: true,
+        })
     })
 })

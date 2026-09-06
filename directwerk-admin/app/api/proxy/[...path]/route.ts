@@ -1,10 +1,8 @@
+import {PROXY_POLICIES} from '@directwerk/api/proxy'
 import {createPlatformProxyRouteHandler} from '@directwerk/api/proxy/platformRouteHandler'
 import {createConfiguredPlatformApiRequest} from '@/lib/server/api'
 
-const MAX_PROXY_BODY_SIZE = 64 * 1024
-
 const handlers = createPlatformProxyRouteHandler({
-    jsonBodyLimit: MAX_PROXY_BODY_SIZE,
     fetchUpstream: async (segments, request, authorization) => {
         const upstreamRequest = createConfiguredPlatformApiRequest(
             segments,
@@ -13,6 +11,7 @@ const handlers = createPlatformProxyRouteHandler({
         )
         return fetch(upstreamRequest.url, upstreamRequest.init)
     },
+    ...PROXY_POLICIES.platform,
 })
 
 export const GET = handlers.GET

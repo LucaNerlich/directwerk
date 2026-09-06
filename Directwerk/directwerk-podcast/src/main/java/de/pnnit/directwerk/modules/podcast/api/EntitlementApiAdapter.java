@@ -1,7 +1,6 @@
 package de.pnnit.directwerk.modules.podcast.api;
 
 import de.pnnit.directwerk.modules.content.api.EntitlementApi;
-import de.pnnit.directwerk.modules.podcast.access.PublishedEpisodeEntitlementGate;
 import de.pnnit.directwerk.modules.subscription.service.EntitlementService;
 import java.util.Collection;
 import java.util.List;
@@ -15,12 +14,18 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class EntitlementApiAdapter implements EntitlementApi {
 
-    private final PublishedEpisodeEntitlementGate publishedEpisodeEntitlementGate;
+    /**
+     * Canonical published-episode path: {@link EpisodeAccessApi} is the single adapter behind
+     * the episode Seam (PUBLISHED guard + evaluation). This adapter only translates the
+     * cross-module {@link EntitlementApi} onto it instead of splitting gate/service calls
+     * a second time.
+     */
+    private final EpisodeAccessApi episodeAccessApi;
     private final EntitlementService entitlementService;
 
     @Override
     public boolean hasAccess(Long tenantId, Long userId, Long episodeId) {
-        return publishedEpisodeEntitlementGate.hasAccess(tenantId, userId, episodeId);
+        return episodeAccessApi.hasAccess(tenantId, userId, episodeId);
     }
 
     @Override

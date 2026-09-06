@@ -16,9 +16,11 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
+import software.amazon.awssdk.core.exception.SdkException;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
+import software.amazon.awssdk.services.s3.model.HeadObjectRequest;
 import software.amazon.awssdk.services.s3.model.NoSuchKeyException;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 import software.amazon.awssdk.services.s3.model.S3Exception;
@@ -57,12 +59,30 @@ public class GeneratedFeedSnapshotStore {
         this.directwerkConfig = directwerkConfig;
     }
 
+    /**
+     * Object existence is authoritative; the presence row is only a hint.
+     *
+     * <p>Row present: deliver, unless the object is conclusively gone — then heal the row
+     * and report not-ready instead of redirecting at a 404. Row absent: probe before
+     * 404ing, so an object written out-of-band (or a row lost to a failed clear) still
+     * delivers and re-marks the row. Inconclusive probes (S3 blips, permission errors)
+     * fail to the last known state: deliver when the row says written, not-ready otherwise,
+     * and never mutate the row.
+     */
     public FeedDelivery deliver(FeedSnapshotRef ref) {
         StorageConfigs.requireEnabled(directwerkConfig);
-        if (!snapshotStateStore.isWritten(ref.tenantId(), ref.kind(), ref.subjectId())) {
-            return FeedDelivery.notReady();
+        if (snapshotStateStore.isWritten(ref.tenantId(), ref.kind(), ref.subjectId())) {
+            if (probeObject(ref) == ObjectPresence.ABSENT) {
+                snapshotStateStore.clearWritten(ref.tenantId(), ref.kind(), ref.subjectId());
+                return FeedDelivery.notReady();
+            }
+            return new FeedDelivery(remoteUrl(ref));
         }
-        return new FeedDelivery(remoteUrl(ref));
+        if (probeObject(ref) == ObjectPresence.PRESENT) {
+            snapshotStateStore.markWritten(ref.tenantId(), ref.kind(), ref.subjectId());
+            return new FeedDelivery(remoteUrl(ref));
+        }
+        return FeedDelivery.notReady();
     }
 
     public void upload(FeedSnapshotRef ref, byte[] bytes, String contentType) {
@@ -144,8 +164,38 @@ public class GeneratedFeedSnapshotStore {
         }
     }
 
-    private S3Client s3Client() {
-        if (!directwerkConfig.isStorageEnabled()) {
+    private enum ObjectPresence {
+        PRESENT, ABSENT, UNKNOWN
+    }
+
+    /**
+     * Lightweight existence check: one {@code HeadObject}, no body transfer. Only a
+     * conclusive miss (no-such-key / HTTP 404) counts as {@link ObjectPresence#ABSENT};
+     * anything else exceptional is {@link ObjectPresence#UNKNOWN} so transient failures
+     * can never flip delivery state.
+     */
+    private ObjectPresence probeObject(FeedSnapshotRef ref) {
+        try {
+            s3Client().headObject(HeadObjectRequest.builder()
+                    .bucket(StorageConfigs.requireEnabled(directwerkConfig).bucket())
+                    .key(ref.objectKey())
+                    .build());
+            return ObjectPresence.PRESENT;
+        } catch (NoSuchKeyException ex) {
+            return ObjectPresence.ABSENT;
+        } catch (S3Exception ex) {
+            if (ex.statusCode() == 404) {
+                return ObjectPresence.ABSENT;
+            }
+            log.warn("Feed snapshot presence probe inconclusive for tenant prefix {}", ref.tenantSlug());
+            return ObjectPresence.UNKNOWN;
+        } catch (SdkException ex) {
+            log.warn("Feed snapshot presence probe inconclusive for tenant prefix {}", ref.tenantSlug());
+            return ObjectPresence.UNKNOWN;
+        }
+    }
+
+    private S3Client s3Client() {        if (!directwerkConfig.isStorageEnabled()) {
             throw new StorageNotConfiguredException("Object storage is required for feed delivery");
         }
         return Optional.ofNullable(s3Client.getIfAvailable())

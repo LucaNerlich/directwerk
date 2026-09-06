@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -27,6 +28,9 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.SimpleTransactionStatus;
 
 @ExtendWith(MockitoExtension.class)
 @org.mockito.junit.jupiter.MockitoSettings(strictness = org.mockito.quality.Strictness.LENIENT)
@@ -40,6 +44,8 @@ class SubscriberFeedServiceTest {
                 .when(feedTokenProtector).protect(org.mockito.ArgumentMatchers.anyString());
         org.mockito.Mockito.lenient().doAnswer(invocation -> ((String) invocation.getArgument(0)).replaceFirst("^enc:", ""))
                 .when(feedTokenProtector).reveal(org.mockito.ArgumentMatchers.anyString());
+        org.mockito.Mockito.lenient().when(transactionManager.getTransaction(any()))
+                .thenAnswer(invocation -> new SimpleTransactionStatus());
     }
 
     @Mock
@@ -71,6 +77,9 @@ class SubscriberFeedServiceTest {
 
     @Mock
     private de.pnnit.directwerk.modules.core.service.ModuleGateService moduleGateService;
+
+    @Mock
+    private PlatformTransactionManager transactionManager;
 
     @InjectMocks
     private SubscriberFeedService subscriberFeedService;
@@ -245,5 +254,54 @@ class SubscriberFeedServiceTest {
         feed.setDefaultFeed(true);
         feed.setEnabled(true);
         return feed;
+    }
+
+    @Test
+    void ensureDefaultFeedRecoversWhenAConcurrentCallAlreadyInsertedTheDefaultFeed() {
+        SubscriberFeed winner = feed(10L, 1L);
+        when(subscriberFeedRepository.findByTenantIdAndUserIdAndDefaultFeedTrue(10L, 99L))
+                .thenReturn(Optional.empty())
+                .thenReturn(Optional.of(winner));
+        when(tenantRepository.getReferenceById(10L)).thenReturn(winner.getTenant());
+        when(userRepository.getReferenceById(99L)).thenReturn(winner.getUser());
+        when(subscriberFeedRepository.saveAndFlush(any(SubscriberFeed.class))).thenThrow(
+                new org.springframework.dao.DataIntegrityViolationException(
+                        "duplicate default feed",
+                        new org.hibernate.exception.ConstraintViolationException(
+                                "duplicate key value violates unique constraint",
+                                new java.sql.SQLException("duplicate key"),
+                                "uq_subscriber_feeds_default"
+                        )
+                )
+        );
+
+        SubscriberFeed result = subscriberFeedService.ensureDefaultFeed(10L, 99L);
+
+        assertThat(result).isSameAs(winner);
+        verify(rssFeedRefreshScheduler, never()).requestRefreshAfterCommit(any());
+        verify(transactionManager, times(2)).getTransaction(any());
+    }
+
+    @Test
+    void ensureDefaultFeedPropagatesNonDefaultFeedConstraintViolations() {
+        when(subscriberFeedRepository.findByTenantIdAndUserIdAndDefaultFeedTrue(10L, 99L))
+                .thenReturn(Optional.empty());
+        Tenant tenant = feed(10L, 1L).getTenant();
+        when(tenantRepository.getReferenceById(10L)).thenReturn(tenant);
+        when(userRepository.getReferenceById(99L)).thenReturn(feed(10L, 1L).getUser());
+        DataIntegrityViolationException failure = new DataIntegrityViolationException(
+                "duplicate token",
+                new org.hibernate.exception.ConstraintViolationException(
+                        "duplicate key value violates unique constraint",
+                        new java.sql.SQLException("duplicate key"),
+                        "uq_subscriber_feeds_token_hash"
+                )
+        );
+        when(subscriberFeedRepository.saveAndFlush(any(SubscriberFeed.class))).thenThrow(failure);
+
+        assertThatThrownBy(() -> subscriberFeedService.ensureDefaultFeed(10L, 99L))
+                .isSameAs(failure);
+
+        verify(transactionManager, times(1)).getTransaction(any());
     }
 }

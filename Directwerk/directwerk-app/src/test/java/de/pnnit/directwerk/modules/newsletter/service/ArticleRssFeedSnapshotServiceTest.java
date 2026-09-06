@@ -53,11 +53,16 @@ class ArticleRssFeedSnapshotServiceTest {
     void feedRequestReturnsNotReadyWhenSnapshotHasNotBeenWritten() {
         Fixture fixture = fixture();
         when(fixture.stateStore.isWritten(10L, ArticleFeedSnapshotKind.ARTICLE_TENANT.name(), 0L)).thenReturn(false);
+        when(fixture.s3Client.headObject(any(software.amazon.awssdk.services.s3.model.HeadObjectRequest.class)))
+                .thenThrow(software.amazon.awssdk.services.s3.model.NoSuchKeyException.builder()
+                        .message("gone")
+                        .build());
 
         var delivery = fixture.service.publicTenantFeed(fixture.tenant);
 
         assertThat(delivery.ready()).isFalse();
         assertThat(delivery.redirectUrl()).isNull();
+        verify(fixture.stateStore, never()).markWritten(any(), any(), any(long.class));
     }
 
     @Test

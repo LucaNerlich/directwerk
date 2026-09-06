@@ -1,10 +1,8 @@
+import {PROXY_POLICIES} from '@directwerk/api/proxy'
 import {createAdminTenantProxyRouteHandler} from '@directwerk/api/proxy/platformRouteHandler'
 import {requestTenantApi} from '@/lib/server/api'
 
-const MAX_PROXY_BODY_SIZE = 64 * 1024
-
 const handlers = createAdminTenantProxyRouteHandler({
-    jsonBodyLimit: MAX_PROXY_BODY_SIZE,
     fetchUpstream: async (pathWithQuery, tenantHost, method, authorization, body) =>
         requestTenantApi(
             pathWithQuery,
@@ -13,6 +11,7 @@ const handlers = createAdminTenantProxyRouteHandler({
             authorization,
             body,
         ),
+    ...PROXY_POLICIES.adminTenant,
 })
 
 export const GET = handlers.GET
