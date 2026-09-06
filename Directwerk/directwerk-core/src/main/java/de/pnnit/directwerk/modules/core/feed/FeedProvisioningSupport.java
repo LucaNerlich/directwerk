@@ -22,7 +22,7 @@ import org.springframework.dao.DataIntegrityViolationException;
  */
 public final class FeedProvisioningSupport {
 
-    public static final int MAX_CUSTOM_FEEDS_PER_USER = 5;
+    public static final int MAX_CUSTOM_FEEDS_PER_USER = 25;
     public static final int MAX_TITLE_LENGTH = 80;
     public static final int PREVIEW_SAMPLE_SIZE = 5;
 
