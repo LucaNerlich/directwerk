@@ -198,6 +198,37 @@ describe('RSS import envelopes', () => {
             }),
         ).toBeNull()
     })
+
+    it('parses the studio cover image URL and coerces unsafe values to null', () => {
+        const withCover = parseImportedEpisodeEnvelope({
+            statusCode: 200,
+            data: {
+                episode: {
+                    ...importedEpisode,
+                    coverImageUrl: 'https://cdn.example.com/covers/ep-1.jpg',
+                },
+                alreadyImported: false,
+            },
+        })
+        expect(withCover?.data.episode.coverImageUrl).toBe(
+            'https://cdn.example.com/covers/ep-1.jpg',
+        )
+
+        const withoutCover = parseImportedEpisodeEnvelope({
+            statusCode: 200,
+            data: {episode: importedEpisode, alreadyImported: false},
+        })
+        expect(withoutCover?.data.episode.coverImageUrl).toBeNull()
+
+        const unsafeCover = parseImportedEpisodeEnvelope({
+            statusCode: 200,
+            data: {
+                episode: {...importedEpisode, coverImageUrl: 'x'.repeat(3000)},
+                alreadyImported: false,
+            },
+        })
+        expect(unsafeCover?.data.episode.coverImageUrl).toBeNull()
+    })
 })
 
 describe('site-config envelopes', () => {

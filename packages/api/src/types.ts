@@ -126,6 +126,8 @@ export interface EpisodeDetail extends EpisodeSummary {
     episodeNumber: number | null
     audioAssetId: number | null
     coverAssetId: number | null
+    /** Public CDN cover (episode → format → series fallback); null while private. */
+    coverImageUrl: string | null
     enclosureEnabled: boolean
     requiredLevelSortOrder: number | null
     scheduledAt: string | null

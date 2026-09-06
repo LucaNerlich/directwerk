@@ -190,7 +190,7 @@ class SubscriberFeedServiceTest {
                 .thenReturn(Optional.of(defaultFeed));
         when(subscriberFeedRepository.findWithLockByTenantIdAndUserIdAndDefaultFeedTrue(10L, 99L))
                 .thenReturn(Optional.of(defaultFeed));
-        when(subscriberFeedRepository.countByTenantIdAndUserIdAndDefaultFeedFalse(10L, 99L)).thenReturn(5L);
+        when(subscriberFeedRepository.countByTenantIdAndUserIdAndDefaultFeedFalse(10L, 99L)).thenReturn(25L);
 
         assertThatThrownBy(() -> subscriberFeedService.createCustomFeed(10L, 99L, "Extra", List.of(3L)))
                 .isInstanceOf(FeedBuilderException.class)

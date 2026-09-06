@@ -223,23 +223,6 @@ Accept: application/json
 
 ###
 
-### @name listPodcastEpisodes
-GET {{baseUrl}}/api/v1/episodes
-Host: {{tenantAHost}}
-Authorization: Bearer {{tenantAAccessToken}}
-Accept: application/json
-
-> {%
-    client.test("List podcast episodes", function() {
-        client.assert(response.status === 200 || response.status === 403, "Expected 200 or 403");
-        if (response.status === 200) {
-            client.assert(Array.isArray(response.body.data), "Expected episodes array");
-        }
-    });
-%}
-
-###
-
 ### @name createPodcastEpisodeDraft
 < {%
   client.global.set("podcastEpisodeSlug", "episode-" + Date.now().toString(36));
@@ -271,6 +254,26 @@ Accept: application/json
 
 ###
 
+### @name listPodcastEpisodes
+GET {{baseUrl}}/api/v1/episodes
+Host: {{tenantAHost}}
+Authorization: Bearer {{tenantAAccessToken}}
+Accept: application/json
+
+> {%
+    client.test("List podcast episodes", function() {
+        client.assert(response.status === 200 || response.status === 403, "Expected 200 or 403");
+        if (response.status === 200) {
+            client.assert(Array.isArray(response.body.data), "Expected episodes array");
+            const episode = response.body.data.find(item => item.id === Number(client.global.get("podcastEpisodeId")));
+            client.assert(episode !== undefined, "Expected created episode in list response");
+            client.assert("coverImageUrl" in episode, "Expected coverImageUrl on created episode view");
+        }
+    });
+%}
+
+###
+
 ### @name getPodcastEpisode
 GET {{baseUrl}}/api/v1/episodes/{{podcastEpisodeId}}
 Host: {{tenantAHost}}
@@ -280,6 +283,9 @@ Accept: application/json
 > {%
     client.test("Get podcast episode", function() {
         client.assert(response.status === 200 || response.status === 404, "Expected 200 or 404");
+        if (response.status === 200) {
+            client.assert("coverImageUrl" in response.body.data, "Expected coverImageUrl on episode view");
+        }
     });
 %}
 

@@ -14,4 +14,11 @@ tests {
   test("returns expected status", function() {
     expect(res.getStatus() === 200 || res.getStatus() === 404).to.equal(true);
   });
+
+  test("episode view exposes coverImageUrl", function() {
+    const data = res.body && res.body.data;
+    if (res.getStatus() === 200 && data !== undefined && data !== null) {
+      expect('coverImageUrl' in data).to.equal(true);
+    }
+  });
 }

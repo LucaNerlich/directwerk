@@ -13,6 +13,7 @@ public record EpisodeView(
         String description,
         Long audioAssetId,
         Long coverAssetId,
+        String coverImageUrl,
         Integer durationSeconds,
         String accessPolicy,
         Integer requiredLevelSortOrder,
