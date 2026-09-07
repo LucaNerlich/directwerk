@@ -58,6 +58,13 @@ export function mediaLimitLabel(assetType: AssetType): string {
     return MEDIA_TYPE_LIMITS[assetType].label
 }
 
+/**
+ * Gets the configured size limit label for an asset type.
+ *
+ * @param limits - The resolved media limits to query
+ * @param assetType - The asset type whose limit label to retrieve
+ * @returns The configured size limit label
+ */
 export function mediaLimitLabelFor(
     limits: ResolvedMediaLimits,
     assetType: AssetType,
@@ -65,6 +72,14 @@ export function mediaLimitLabelFor(
     return limits[assetType].label
 }
 
+/**
+ * Determines whether a media file exceeds the configured limit for its asset type.
+ *
+ * @param limits - The resolved media limits to apply
+ * @param assetType - The type of media being checked
+ * @param sizeBytes - The file size in bytes
+ * @returns `true` if the file size exceeds the configured limit, `false` otherwise.
+ */
 export function exceedsMediaLimitFor(
     limits: ResolvedMediaLimits,
     assetType: AssetType,

@@ -35,6 +35,15 @@ function maskedUrl(url: string): string {
     }
 }
 
+/**
+ * Displays a feed URL with optional metadata, copying, safe opening, and privacy masking.
+ *
+ * @param url - The feed URL to display.
+ * @param title - Optional title shown above the URL.
+ * @param description - Optional description shown below the title.
+ * @param className - Optional CSS class applied to the component container.
+ * @returns The rendered feed URL display.
+ */
 export default function FeedUrlDisplay({
     url,
     title,

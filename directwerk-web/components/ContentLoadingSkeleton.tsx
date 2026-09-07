@@ -1,5 +1,11 @@
 import {Skeleton} from '@directwerk/ui/components/skeleton'
 
+/**
+ * Renders a loading placeholder for a bordered list panel.
+ *
+ * @param rows - The number of placeholder rows to display; defaults to 4.
+ * @returns The list panel skeleton.
+ */
 export function ListPanelSkeleton({
     rows = 4,
 }: {
@@ -23,6 +29,12 @@ export function ListPanelSkeleton({
     )
 }
 
+/**
+ * Renders a responsive grid of card-shaped loading placeholders.
+ *
+ * @param cards - The number of cards to render
+ * @param columns - The number of columns at large screen sizes
+ */
 export function CardGridSkeleton({
     cards = 4,
     columns = 2,

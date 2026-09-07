@@ -2,6 +2,13 @@ import {Button} from '@directwerk/ui/components/button'
 
 import {safeLinkHref} from '@/lib/url/safeUrl'
 
+/**
+ * Renders controls for opening and copying a feed URL.
+ *
+ * @param copiedUrl - The URL most recently copied, if any
+ * @param onCopy - Callback invoked with the URL to copy
+ * @param url - The feed URL
+ */
 export default function FeedUrlActions({
     copiedUrl,
     onCopy,

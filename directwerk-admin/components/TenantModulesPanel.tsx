@@ -32,10 +32,22 @@ interface TenantModulesPanelProps {
     tenantId: string
 }
 
+/**
+ * Converts a module preset key into title-style text.
+ *
+ * @param preset - The enum-style preset key to format
+ * @returns The preset key with capitalized words separated by spaces
+ */
 function presetLabel(preset: ModulePresetKey): string {
     return preset.toLowerCase().split('_').map((part) => part[0].toUpperCase() + part.slice(1)).join(' ')
 }
 
+/**
+ * Manages the platform modules enabled for a tenant.
+ *
+ * @param tenantId - The tenant whose modules are managed
+ * @returns The tenant module management panel
+ */
 export default function TenantModulesPanel({tenantId}: TenantModulesPanelProps) {
     const router = useRouter()
     const [catalog, setCatalog] = useState<ModuleDescriptor[]>([])

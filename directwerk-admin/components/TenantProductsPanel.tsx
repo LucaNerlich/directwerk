@@ -40,6 +40,11 @@ interface TenantProductsPanelProps {
     sessionKey: number
 }
 
+/**
+ * Manages tenant subscription products, access rules, and manual subscription grants.
+ *
+ * @param sessionKey - Identifier for the current tenant session.
+ */
 export default function TenantProductsPanel({
     sessionKey,
 }: TenantProductsPanelProps) {

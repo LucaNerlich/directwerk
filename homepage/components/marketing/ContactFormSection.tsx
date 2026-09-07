@@ -24,6 +24,11 @@ type AltchaElement = HTMLElement & {
     reset?: () => void
 }
 
+/**
+ * Renders the contact form section for submitting inquiries.
+ *
+ * @returns The contact form section element.
+ */
 export default function ContactFormSection(): React.JSX.Element {
     const [status, setStatus] = useState<FormStatus>('idle')
     const [errorMessage, setErrorMessage] = useState<string | null>(null)

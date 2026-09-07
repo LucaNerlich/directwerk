@@ -5,6 +5,12 @@ export type ActionState<TExtra extends object = object> = {
     success?: string | null
 } & TExtra
 
+/**
+ * Creates an action state with no error or success result and the provided extra fields.
+ *
+ * @param extra - Additional fields to include in the action state
+ * @returns An action state initialized with `error` and `success` set to `null`
+ */
 function initialActionState<TExtra extends object>(extra: TExtra): ActionState<TExtra> {
     return {error: null, success: null, ...extra}
 }

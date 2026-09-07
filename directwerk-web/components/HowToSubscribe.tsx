@@ -7,6 +7,13 @@ export interface SubscribeFeedPair {
     privateFeedUrl?: string | null
 }
 
+/**
+ * Determines whether a private feed URL is available for an authenticated user.
+ *
+ * @param pair - The feed pair containing the optional private URL
+ * @param isAuthenticated - Whether the user is authenticated
+ * @returns The private feed URL when available, or `null` otherwise
+ */
 function visiblePrivateFeedUrl(
     pair: SubscribeFeedPair,
     isAuthenticated: boolean,
@@ -24,6 +31,13 @@ interface HowToSubscribeProps {
     isAuthenticated: boolean
 }
 
+/**
+ * Renders podcast-app instructions and the available public or private feed URLs.
+ *
+ * @param pair - The public and optional private podcast feed URLs
+ * @param isAuthenticated - Whether the current user is authenticated
+ * @returns The podcast subscription instructions
+ */
 function PodcastBlock({
     pair,
     isAuthenticated,
@@ -92,6 +106,12 @@ function PodcastBlock({
     )
 }
 
+/**
+ * Renders instructions and available public and private article feeds for feed readers.
+ *
+ * @param pair - The public and optional private article feed URLs
+ * @returns The article feed subscription instructions
+ */
 function ArticlesBlock({
     pair,
     isAuthenticated,

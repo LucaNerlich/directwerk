@@ -19,9 +19,11 @@ const FEED_NOUN: Record<PublicFeedKind, string> = {
 }
 
 /**
- * Compact above-the-fold feed strip: public feed URL with copy action plus a
- * link to the full feed management. Rendered near the top of the episode and
- * article catalog pages so the public URL is visible without scrolling.
+ * Displays a public feed URL with a copy action and a link to feed management.
+ *
+ * @param kind - The feed type used to select podcast- or article-specific labeling
+ * @param publicFeedUrl - The public feed URL to display and copy
+ * @returns The public feed subscription section
  */
 export function PublicFeedStrip({
     kind,

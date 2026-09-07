@@ -8,6 +8,12 @@ package de.pnnit.directwerk.modules.core.exception;
  */
 public class ConflictException extends CodedException {
 
+    /**
+     * Creates an exception representing a resource conflict.
+     *
+     * @param code    the API error code
+     * @param message the conflict description
+     */
     public ConflictException(String code, String message) {
         super(code, message);
     }

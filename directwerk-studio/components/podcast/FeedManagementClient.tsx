@@ -26,6 +26,11 @@ import {useSiteConfig} from '@/lib/site/SiteConfigProvider'
 import {getClientTenantHost} from '@directwerk/api/tenant'
 import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
 
+/**
+ * Renders the podcast feed management interface.
+ *
+ * @returns The feed management page.
+ */
 export default function FeedManagementClient(): React.JSX.Element {
     const authRedirect = useAuthRequired()
     const config = useSiteConfig()

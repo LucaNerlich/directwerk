@@ -6,6 +6,13 @@ import {API_URL} from '@/lib/marketing/constants'
 
 type AltchaElement = HTMLElement & AltchaWidgetMethods
 
+/**
+ * Renders the Altcha verification widget and reports whether verification succeeds.
+ *
+ * @param onVerifiedChange - Callback invoked when the widget's verification state changes
+ * @param widgetRef - Callback receiving the widget element after loading, or `null` before loading
+ * @returns The verification widget when ready, otherwise `null`
+ */
 export default function AltchaWidget({
     onVerifiedChange,
     widgetRef,

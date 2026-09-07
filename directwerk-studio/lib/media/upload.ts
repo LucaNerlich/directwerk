@@ -12,6 +12,14 @@ import {
     type ResolvedMediaLimits,
 } from '@/lib/media/limits'
 
+/**
+ * Uploads a media file for a tenant.
+ *
+ * @param tenantHost - The tenant host associated with the upload
+ * @param file - The media file to upload
+ * @param options - Optional upload settings, including asset type, visibility, destination IDs, media limits, and progress reporting
+ * @returns The result of the completed media upload
+ */
 export async function uploadMediaFile(
     tenantHost: string,
     file: File,

@@ -21,6 +21,9 @@ import {useSiteConfig} from '@/lib/site/SiteConfigProvider'
 import {getClientTenantHost} from '@directwerk/api/tenant'
 import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
 
+/**
+ * Renders the article feed management page, including public and subscriber feeds.
+ */
 export default function ArticleFeedManagementClient(): React.JSX.Element {
     const authRedirect = useAuthRequired()
     const config = useSiteConfig()

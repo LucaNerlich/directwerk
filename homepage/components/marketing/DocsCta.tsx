@@ -3,6 +3,9 @@ import {Card, CardContent} from '@directwerk/ui/components/card'
 
 import {CONTACT_EMAIL, DOCS_URL} from '@/lib/marketing/constants'
 
+/**
+ * Renders a call-to-action card linking to the complete documentation, optional Swagger staging documentation, and integrator access contact.
+ */
 export default function DocsCta(): React.JSX.Element {
     const swaggerUrl = process.env.NEXT_PUBLIC_SWAGGER_URL
 
