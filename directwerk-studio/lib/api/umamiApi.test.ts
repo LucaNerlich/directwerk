@@ -28,8 +28,8 @@ describe('parseUmamiStats', () => {
                     },
                 },
                 pageviews: {
-                    pageviews: [{t: '2026-08-01T00:00:00Z', y: 5}],
-                    sessions: [{t: '2026-08-01T00:00:00Z', y: 2}],
+                    pageviews: [{x: '2026-08-01T00:00:00Z', y: 5}],
+                    sessions: [{x: '2026-08-01T00:00:00Z', y: 2}],
                 },
             },
         })
@@ -47,7 +47,7 @@ describe('parseUmamiStats', () => {
                 data: {
                     range: '7d',
                     stats: {pageviews: 1, visitors: 1, visits: 1, bounces: 0},
-                    pageviews: {pageviews: [{t: 'x'}], sessions: []},
+                    pageviews: {pageviews: [{x: 'x'}], sessions: []},
                 },
             }),
         ).toBeNull()

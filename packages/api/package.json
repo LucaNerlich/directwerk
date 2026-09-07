@@ -9,6 +9,7 @@
         "./envelope": "./src/envelope.ts",
         "./site/createSiteConfigProvider": "./src/site/createSiteConfigProvider.tsx",
         "./server": "./src/server/index.ts",
+        "./server/originGuard": "./src/server/originGuard.ts",
         "./auth/*": "./src/auth/*.ts",
         "./client": "./src/client/index.ts",
         "./client/policies": "./src/client/policies.ts",

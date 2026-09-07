@@ -1,5 +1,6 @@
 import 'server-only'
 
+import {isAllowedOrigin} from './originGuard'
 import type {ServerTransportRequest} from './transport'
 
 type DirectwerkMethod = 'GET' | 'HEAD' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'
@@ -42,23 +43,7 @@ function getApiUrl(apiUrlEnv: string): URL {
     }
 
     const apiUrl = new URL(configuredUrl)
-    const isLoopback =
-        apiUrl.hostname === 'localhost' ||
-        apiUrl.hostname === '127.0.0.1' ||
-        apiUrl.hostname === '[::1]'
-    // Plain HTTP is limited to loopback for the documented local Directwerk setup.
-    // Any non-local deployment must provide an HTTPS API URL.
-    const usesAllowedProtocol =
-        apiUrl.protocol === 'https:' || (apiUrl.protocol === 'http:' && isLoopback)
-
-    if (
-        !usesAllowedProtocol ||
-        apiUrl.username !== '' ||
-        apiUrl.password !== '' ||
-        apiUrl.search !== '' ||
-        apiUrl.hash !== '' ||
-        (apiUrl.pathname !== '' && apiUrl.pathname !== '/')
-    ) {
+    if (!isAllowedOrigin(apiUrl)) {
         throw new Error(`${apiUrlEnv} is invalid`)
     }
 
