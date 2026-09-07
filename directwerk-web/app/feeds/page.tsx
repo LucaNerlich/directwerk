@@ -54,20 +54,20 @@ function feedsPageCopy(showPodcastFeeds: boolean, showArticleFeeds: boolean): {
         return {
             title: 'RSS-Feeds',
             description:
-                'Öffentliche Feeds für freie Folgen und Beiträge. Nach der Anmeldung kommen private Feeds für bezahlte Inhalte.',
+                'Öffentliche Standard-Feeds für freie Folgen und Beiträge (für alle). Nach der Anmeldung: dein privater Standard-Feed mit allem Freigeschalteten — plus optional eigene filterbare Feeds.',
         }
     }
     if (showArticleFeeds) {
         return {
             title: 'Beitrags-Feeds',
             description:
-                'Öffentlicher Feed für freie Beiträge. Nach der Anmeldung kommt der private Feed für bezahlte Beiträge.',
+                'Öffentlicher Standard-Feed für freie Beiträge (für alle). Nach der Anmeldung: dein privater Standard-Feed mit allem Freigeschalteten — plus optional eigene filterbare Feeds.',
         }
     }
     return {
         title: 'RSS-Feeds',
         description:
-            'Öffentliche Feeds für freie Folgen. Nach der Anmeldung kommt der private Feed für bezahlte Inhalte.',
+            'Öffentliche Standard-Feeds für freie Folgen (für alle). Nach der Anmeldung: dein privater Standard-Feed mit allem Freigeschalteten — plus optional eigene filterbare Feeds.',
     }
 }
 
@@ -330,10 +330,16 @@ export default function FeedsPage() {
                 <div className="min-w-0 flex-1 space-y-3">
                     <div className="flex flex-wrap items-center gap-2">
                         <p className="font-medium">{feed.title}</p>
+                        <Badge>Standard</Badge>
                         <Badge variant={feed.enabled ? 'secondary' : 'outline'}>
                             {feed.enabled ? 'Aktiv' : 'Deaktiviert'}
                         </Badge>
                     </div>
+                    <p className="text-sm text-muted-foreground">
+                        Standard-Feed · automatisch angelegt · enthält alles, was
+                        du freigeschaltet hast · nicht löschbar — im Unterschied
+                        zu deinen eigenen Feeds weiter unten.
+                    </p>
                     <p className="text-sm text-muted-foreground">
                         Aktualisiert {formatPublishedAt(feed.updatedAt)}
                     </p>
@@ -363,8 +369,9 @@ export default function FeedsPage() {
         return (
             <section className="flex flex-col gap-4">
                 <SectionHeader
-                    description="Ein Feed für alles: Enthält alle Folgen, die dein Abo freischaltet — alle Formate in einer URL. Teile die URL nicht — sie ist persönlich."
-                    title="Dein privater Podcast-Feed"
+                    action={<Badge>Privat · nur für dich</Badge>}
+                    description="Dein automatisch angelegter Standard-Feed: Ein Feed für alles — enthält alle Folgen, die dein Abo freischaltet, alle Formate in einer URL. Im Unterschied zu deinen eigenen Feeds unten ist er nicht filter- oder löschbar. Teile die URL nicht — sie ist persönlich."
+                    title="Dein Standard-Feed (Podcast)"
                 />
                 {!isAuthenticated ? (
                     <LoginHint kind="podcast" />
@@ -425,7 +432,7 @@ export default function FeedsPage() {
                 return (
                     <p className="text-sm text-muted-foreground">
                         Eigene Feeds nach Format sind für dieses Angebot
-                        deaktiviert. Dein privater Feed oben enthält trotzdem
+                        deaktiviert. Dein Standard-Feed oben enthält trotzdem
                         alles, was du freigeschaltet hast.
                     </p>
                 )
@@ -472,13 +479,25 @@ export default function FeedsPage() {
                 {!isSeriesLoading && seriesErrorMessage === null && (
                     <section className="flex flex-col gap-4">
                         <SectionHeader
-                            description="Nur veröffentlichte freie Folgen. Bezahlte Folgen erscheinen im privaten Feed."
+                            action={
+                                <Badge variant="outline">
+                                    Öffentlich · für alle
+                                </Badge>
+                            }
+                            description="Die Standard-Feeds für alle: Nur veröffentlichte freie Folgen, ohne Anmeldung. Bezahlte Folgen erscheinen in deinem privaten Standard-Feed und deinen eigenen Feeds."
                             title="Podcast — öffentliche Feeds"
                         />
                         <ListPanel>
                             <ListPanelRow>
                                 <div className="min-w-0 flex-1">
-                                    <p className="font-medium">Alle freien Folgen</p>
+                                    <div className="flex flex-wrap items-center gap-2">
+                                        <p className="font-medium">
+                                            Alle freien Folgen
+                                        </p>
+                                        <Badge variant="outline">
+                                            Öffentlich · Standard
+                                        </Badge>
+                                    </div>
                                     {podcastFeedUrl !== null ? (
                                         <div className="mt-3">
                                             <FeedUrlDisplay url={podcastFeedUrl} />
@@ -502,7 +521,14 @@ export default function FeedsPage() {
                                     return (
                                         <ListPanelRow key={item.id}>
                                             <div className="min-w-0 flex-1">
-                                                <p className="font-medium">{item.title}</p>
+                                                <div className="flex flex-wrap items-center gap-2">
+                                                    <p className="font-medium">
+                                                        {item.title}
+                                                    </p>
+                                                    <Badge variant="outline">
+                                                        Öffentlich
+                                                    </Badge>
+                                                </div>
                                                 {feedUrl !== null ? (
                                                     <div className="mt-3">
                                                         <FeedUrlDisplay url={feedUrl} />
@@ -528,8 +554,9 @@ export default function FeedsPage() {
         return (
             <section className="flex flex-col gap-4">
                 <SectionHeader
-                    description="Ein Feed für alles: Enthält alle Beiträge, die dein Abo freischaltet — alle Kategorien in einer URL. Teile die URL nicht — sie ist persönlich."
-                    title="Dein privater Beitrags-Feed"
+                    action={<Badge>Privat · nur für dich</Badge>}
+                    description="Dein automatisch angelegter Standard-Feed: Ein Feed für alles — enthält alle Beiträge, die dein Abo freischaltet, alle Kategorien in einer URL. Im Unterschied zu deinen eigenen Feeds unten ist er nicht filter- oder löschbar. Teile die URL nicht — sie ist persönlich."
+                    title="Dein Standard-Feed (Beiträge)"
                 />
                 {!isAuthenticated ? (
                     <LoginHint kind="articles" />
@@ -590,7 +617,7 @@ export default function FeedsPage() {
                 return (
                     <p className="text-sm text-muted-foreground">
                         Eigene Feeds nach Kategorie sind für dieses Angebot
-                        deaktiviert. Dein privater Feed oben enthält trotzdem
+                        deaktiviert. Dein Standard-Feed oben enthält trotzdem
                         alles, was du freigeschaltet hast.
                     </p>
                 )
@@ -628,13 +655,23 @@ export default function FeedsPage() {
         return (
             <section className="flex flex-col gap-4">
                 <SectionHeader
-                    description="Nur veröffentlichte freie Beiträge. Bezahlte Beiträge erscheinen im privaten Feed."
+                    action={
+                        <Badge variant="outline">Öffentlich · für alle</Badge>
+                    }
+                    description="Der Standard-Feed für alle: Nur veröffentlichte freie Beiträge, ohne Anmeldung. Bezahlte Beiträge erscheinen in deinem privaten Standard-Feed und deinen eigenen Feeds."
                     title="Beiträge — öffentlicher Feed"
                 />
                 <ListPanel>
                     <ListPanelRow>
                         <div className="min-w-0 flex-1">
-                            <p className="font-medium">Alle freien Beiträge</p>
+                            <div className="flex flex-wrap items-center gap-2">
+                                <p className="font-medium">
+                                    Alle freien Beiträge
+                                </p>
+                                <Badge variant="outline">
+                                    Öffentlich · Standard
+                                </Badge>
+                            </div>
                             {articleFeedUrl !== null ? (
                                 <div className="mt-3">
                                     <FeedUrlDisplay url={articleFeedUrl} />

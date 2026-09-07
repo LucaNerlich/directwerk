@@ -17,7 +17,7 @@ describe('HowToSubscribe', () => {
         expect(
             screen.getByRole('heading', {name: 'So hörst du in der Podcast-App'}),
         ).toBeInTheDocument()
-        expect(screen.getByText('Öffentlicher Feed')).toBeInTheDocument()
+        expect(screen.getByText('Öffentlicher Standard-Feed')).toBeInTheDocument()
         expect(
             screen.queryByRole('heading', {name: 'So liest du im Feed-Reader'}),
         ).not.toBeInTheDocument()
@@ -34,7 +34,9 @@ describe('HowToSubscribe', () => {
         expect(
             screen.getByRole('heading', {name: 'So liest du im Feed-Reader'}),
         ).toBeInTheDocument()
-        expect(screen.getByText('Öffentlicher Beitrags-Feed')).toBeInTheDocument()
+        expect(
+            screen.getByText('Öffentlicher Standard-Feed (Beiträge)'),
+        ).toBeInTheDocument()
         expect(
             screen.queryByRole('heading', {name: 'So hörst du in der Podcast-App'}),
         ).not.toBeInTheDocument()
@@ -118,6 +120,25 @@ describe('HowToSubscribe', () => {
             />,
         )
 
-        expect(screen.getByText('Dein privater Beitrags-Feed')).toBeInTheDocument()
+        expect(
+            screen.getByText('Dein privater Standard-Feed (Beiträge)'),
+        ).toBeInTheDocument()
+    })
+
+    it('labels the private podcast feed as the personal standard feed', () => {
+        render(
+            <HowToSubscribe
+                podcast={{
+                    publicFeedUrl: 'https://tenant.example/feed.xml',
+                    privateFeedUrl:
+                        'https://tenant.example/feed/u/podcast-token.xml',
+                }}
+                isAuthenticated
+            />,
+        )
+
+        expect(
+            screen.getByText('Dein privater Standard-Feed'),
+        ).toBeInTheDocument()
     })
 })

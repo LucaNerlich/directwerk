@@ -69,15 +69,15 @@ function PodcastBlock({
             </ol>
             {pair.publicFeedUrl !== null ? (
                 <FeedUrlDisplay
-                    description="Enthält nur freie Folgen."
-                    title="Öffentlicher Feed"
+                    description="Öffentlicher Standard-Feed für alle: Enthält nur freie Folgen."
+                    title="Öffentlicher Standard-Feed"
                     url={pair.publicFeedUrl}
                 />
             ) : null}
             {privateFeedUrl !== null ? (
                 <FeedUrlDisplay
-                    description="Enthält Folgen, die deine Mitgliedschaft freischaltet."
-                    title="Dein privater Feed"
+                    description="Dein automatisch angelegter Standard-Feed: Enthält Folgen, die deine Mitgliedschaft freischaltet."
+                    title="Dein privater Standard-Feed"
                     url={privateFeedUrl}
                 />
             ) : null}
@@ -139,15 +139,15 @@ function ArticlesBlock({
             </ol>
             {pair.publicFeedUrl !== null ? (
                 <FeedUrlDisplay
-                    description="Enthält nur freie Beiträge."
-                    title="Öffentlicher Beitrags-Feed"
+                    description="Öffentlicher Standard-Feed für alle: Enthält nur freie Beiträge."
+                    title="Öffentlicher Standard-Feed (Beiträge)"
                     url={pair.publicFeedUrl}
                 />
             ) : null}
             {privateFeedUrl !== null ? (
                 <FeedUrlDisplay
-                    description="Enthält Beiträge, die deine Mitgliedschaft freischaltet."
-                    title="Dein privater Beitrags-Feed"
+                    description="Dein automatisch angelegter Standard-Feed: Enthält Beiträge, die deine Mitgliedschaft freischaltet."
+                    title="Dein privater Standard-Feed (Beiträge)"
                     url={privateFeedUrl}
                 />
             ) : null}

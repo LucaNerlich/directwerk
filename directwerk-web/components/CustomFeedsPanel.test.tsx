@@ -75,7 +75,59 @@ describe('CustomFeedsPanel', () => {
             expect(screen.getByText('Neuen Feed anlegen')).toBeInTheDocument(),
         )
         expect(screen.getByText('Interview')).toBeInTheDocument()
-        expect(screen.getByText('Noch keine eigenen Feeds.')).toBeInTheDocument()
+        expect(screen.getByText(/Noch keine eigenen Feeds\./)).toBeInTheDocument()
+        expect(
+            screen.getByText(/Dein Standard-Feed oben/),
+        ).toBeInTheDocument()
+    })
+
+    it('labels custom feeds as own feeds distinct from the standard feed', async () => {
+        listPublicFormatsMock.mockResolvedValue([
+            {
+                id: 3,
+                slug: 'interview',
+                name: 'Interview',
+                description: null,
+                requiredLevelSortOrder: null,
+                sortOrder: 1,
+            },
+        ])
+        previewCustomFeedMock.mockResolvedValue({episodeCount: 0, sampleTitles: []})
+
+        render(
+            <CustomFeedsPanel
+                canBuild
+                config={podcastCustomFeedsConfig}
+                feeds={[
+                    feed(),
+                    feed({
+                        id: 9,
+                        title: 'Nur Interviews',
+                        isDefault: false,
+                        formatIds: [3],
+                        formats: [
+                            {
+                                id: 3,
+                                slug: 'interview',
+                                name: 'Interview',
+                                requiredLevelSortOrder: null,
+                                sortOrder: 1,
+                            },
+                        ],
+                    }),
+                ]}
+                onAuthRequired={() => undefined}
+                onError={() => undefined}
+                onFeedsChange={() => undefined}
+                tenantHost="alpha-a.localhost"
+            />,
+        )
+
+        await waitFor(() =>
+            expect(screen.getByText('Nur Interviews')).toBeInTheDocument(),
+        )
+        expect(screen.getByText('Eigener Feed')).toBeInTheDocument()
+        expect(screen.getByText(/Im Unterschied zum Standard-Feed oben/)).toBeInTheDocument()
     })
 
     it('lists leftover custom feeds without the create form when the module is off', async () => {

@@ -344,7 +344,11 @@ export default function CustomFeedsPanel<
 
     return (
         <section className="flex flex-col gap-4">
-            <SectionHeader description={config.headerDescription} title={config.headerTitle} />
+            <SectionHeader
+                action={<Badge variant="outline">Eigene · privat</Badge>}
+                description={config.headerDescription}
+                title={config.headerTitle}
+            />
             {optionsError !== null ? (
                 <Alert variant="destructive">
                     <AlertDescription>{optionsError}</AlertDescription>
@@ -435,7 +439,11 @@ export default function CustomFeedsPanel<
                 </Card>
             ) : null}
             {customFeeds.length === 0 ? (
-                <p className="text-sm text-muted-foreground">Noch keine eigenen Feeds.</p>
+                <p className="text-sm text-muted-foreground">
+                    Noch keine eigenen Feeds. Dein Standard-Feed oben
+                    funktioniert auch ohne eigene Feeds — lege hier nur an, was
+                    du filtern willst.
+                </p>
             ) : (
                 <ListPanel>
                     {customFeeds.map((feed) => (
@@ -443,6 +451,7 @@ export default function CustomFeedsPanel<
                             <div className="min-w-0 flex-1 space-y-3">
                                 <div className="flex flex-wrap items-center gap-2">
                                     <p className="font-medium">{feed.title}</p>
+                                    <Badge variant="outline">Eigener Feed</Badge>
                                     <Badge variant={feed.enabled ? 'secondary' : 'outline'}>
                                         {feed.enabled ? 'Aktiv' : 'Deaktiviert'}
                                     </Badge>
@@ -523,7 +532,7 @@ export const podcastCustomFeedsConfig: CustomFeedsPanelConfig<
 > = {
     headerTitle: 'Eigene Feeds (Formate)',
     headerDescription:
-        'Baue private RSS-Feeds nur mit den Formaten, die du hören willst. Es erscheinen nur Folgen, die du freigeschaltet hast.',
+        'Deine eigenen, filterbaren Feeds: Baue private RSS-Feeds nur mit den Formaten, die du hören willst. Im Unterschied zum Standard-Feed oben, der automatisch alles enthält, bestimmst du hier die Filter und kannst Feeds löschen. Es erscheinen nur Folgen, die du freigeschaltet hast.',
     optionsLegend: 'Formate',
     noOptionsMessage: 'Der Verlag hat noch keine Formate angelegt.',
     noOptionsSelectedLabel: 'Keine Formate',
@@ -564,7 +573,7 @@ export const articleCustomFeedsConfig: CustomFeedsPanelConfig<
 > = {
     headerTitle: 'Eigene Feeds (Kategorien)',
     headerDescription:
-        'Baue private RSS-Feeds nur mit den Kategorien, die dich interessieren. Es erscheinen nur Beiträge, die du freigeschaltet hast.',
+        'Deine eigenen, filterbaren Feeds: Baue private RSS-Feeds nur mit den Kategorien, die dich interessieren. Im Unterschied zum Standard-Feed oben, der automatisch alles enthält, bestimmst du hier die Filter und kannst Feeds löschen. Es erscheinen nur Beiträge, die du freigeschaltet hast.',
     optionsLegend: 'Kategorien',
     noOptionsMessage: 'Der Verlag hat noch keine Kategorien angelegt.',
     noOptionsSelectedLabel: 'Keine Kategorien',
