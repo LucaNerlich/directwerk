@@ -5,7 +5,11 @@ import {useCallback, useEffect, useMemo, useRef, useState} from 'react'
 import type {PublicationStatus} from '@directwerk/api/types'
 import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
 
-import {usePublicationBulkActions, type PublicationBulkActionLabels} from './usePublicationBulkActions'
+import {
+    usePublicationBulkActions,
+    type PublicationBulkActionLabels,
+    type PublicationBulkRequestResult,
+} from './usePublicationBulkActions'
 import {usePublicationListActions} from './usePublicationListActions'
 import {usePublicationListState} from './usePublicationListState'
 import {isBulkPublicationStatus} from './publicationBulkEligibility'
@@ -36,6 +40,9 @@ export interface PublicationListPageConfig<T extends {
     cancelSchedule: (id: number) => Promise<T>
     unarchive: (id: number) => Promise<T>
     remove?: (id: number) => Promise<void>
+    publishMany: (ids: number[]) => Promise<PublicationBulkRequestResult<T>>
+    unpublishMany: (ids: number[]) => Promise<PublicationBulkRequestResult<T>>
+    removeMany?: (ids: number[]) => Promise<number[]>
     labels: PublicationListPageLabels
     loadingMessage?: string
     /** Excludes drafts from bulk publishing even when their status would allow it. */
@@ -111,10 +118,17 @@ export function usePublicationListPage<T extends {
     const bulkActions = usePublicationBulkActions({
         items,
         selectedIds: selection.selectedIds,
-        publish: (id) => configRef.current.publish(id),
-        unpublish: (id) => configRef.current.unpublish(id),
+        publishMany: (ids) => configRef.current.publishMany(ids),
+        unpublishMany: (ids) => configRef.current.unpublishMany(ids),
+        removeMany: config.removeMany === undefined
+            ? undefined
+            : (ids) => {
+                const removeMany = configRef.current.removeMany
+                return removeMany === undefined ? Promise.resolve([]) : removeMany(ids)
+            },
         setItems,
         clearSelection: selection.clearSelection,
+        retainSelection: selection.retainSelection,
         labels: config.labels.bulk,
         authRedirect,
     })
@@ -143,6 +157,7 @@ export function usePublicationListPage<T extends {
         unpublishableCount: bulkActions.unpublishableCount,
         handleBulkPublish: bulkActions.handleBulkPublish,
         handleBulkUnpublish: bulkActions.handleBulkUnpublish,
+        handleBulkDelete: bulkActions.handleBulkDelete,
         runBulkEdit: bulkActions.runBulkEdit,
         ...selection,
         busyItemId: listActions.busyItemId,

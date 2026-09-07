@@ -2,6 +2,9 @@ package de.pnnit.directwerk.controller.podcast;
 
 import de.pnnit.directwerk.api.dto.EpisodeView;
 import de.pnnit.directwerk.api.PublicEpisodeViewMapper;
+import de.pnnit.directwerk.api.dto.BulkDeleteView;
+import de.pnnit.directwerk.api.dto.BulkIdsRequest;
+import de.pnnit.directwerk.api.dto.BulkPublishRequest;
 import de.pnnit.directwerk.api.dto.PublishOptionsRequest;
 import de.pnnit.directwerk.api.dto.ReplaceCategoriesRequest;
 import de.pnnit.directwerk.api.response.Response;
@@ -213,6 +216,73 @@ public class EpisodeController {
     ResponseEntity<Response<EpisodeView>> unarchive(@PathVariable Long episodeId) {
         Long tenantId = TenantContext.requireTenantId();
         return ResponseEntity.ok(Response.ok(publicEpisodeViewMapper.toStudioView(publicationWorkflowService.unarchive(tenantId, episodeId))));
+    }
+
+    @Operation(
+            summary = "Publish multiple episodes",
+            description = "Publishes every id in a single transaction with a single RSS refresh. "
+                    + "Atomic: the first failure rolls back all changes. Duplicate ids are "
+                    + "published once. Accepts 1-100 ids."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "All episodes published"),
+            @ApiResponse(responseCode = "400", description = "Empty id list, or an episode failed validation (EPISODE_VALIDATION_FAILED)"),
+            @ApiResponse(responseCode = "404", description = "Unknown id, or id belongs to another tenant (EPISODE_NOT_FOUND)"),
+            @ApiResponse(responseCode = "409", description = "An episode is not publishable (PUBLICATION_INVALID_TRANSITION)")
+    })
+    @PostMapping("/bulk/publish")
+    ResponseEntity<Response<List<EpisodeView>>> bulkPublish(@Valid @RequestBody BulkPublishRequest request) {
+        Long tenantId = TenantContext.requireTenantId();
+        boolean notifySubscribers = Boolean.TRUE.equals(request.notifySubscribers());
+        List<EpisodeView> published = publicationWorkflowService
+                .bulkPublish(tenantId, request.ids(), notifySubscribers, request.publishedAt())
+                .stream()
+                .map(publicEpisodeViewMapper::toStudioView)
+                .toList();
+        return ResponseEntity.ok(Response.ok(published));
+    }
+
+    @Operation(
+            summary = "Unpublish multiple episodes",
+            description = "Unpublishes every id in a single transaction with a single RSS refresh. "
+                    + "Atomic: the first failure rolls back all changes. Duplicate ids are "
+                    + "unpublished once. Accepts 1-100 ids."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "All episodes unpublished"),
+            @ApiResponse(responseCode = "400", description = "Empty id list (VALIDATION_ERROR)"),
+            @ApiResponse(responseCode = "404", description = "Unknown id, or id belongs to another tenant (EPISODE_NOT_FOUND)"),
+            @ApiResponse(responseCode = "409", description = "An episode is not published (PUBLICATION_INVALID_TRANSITION)")
+    })
+    @PostMapping("/bulk/unpublish")
+    ResponseEntity<Response<List<EpisodeView>>> bulkUnpublish(@Valid @RequestBody BulkIdsRequest request) {
+        Long tenantId = TenantContext.requireTenantId();
+        List<EpisodeView> unpublished = publicationWorkflowService
+                .bulkUnpublish(tenantId, request.ids())
+                .stream()
+                .map(publicEpisodeViewMapper::toStudioView)
+                .toList();
+        return ResponseEntity.ok(Response.ok(unpublished));
+    }
+
+    @Operation(
+            summary = "Delete multiple episodes",
+            description = "Deletes every id in a single transaction with at most one RSS refresh "
+                    + "(only when a visible episode was deleted). Atomic: the first failure "
+                    + "rolls back all deletes. Duplicate ids are deleted once. "
+                    + "Accepts 1-100 ids."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "All episodes deleted"),
+            @ApiResponse(responseCode = "400", description = "Empty id list (VALIDATION_ERROR)"),
+            @ApiResponse(responseCode = "404", description = "Unknown id, or id belongs to another tenant (EPISODE_NOT_FOUND)")
+    })
+    @PostMapping("/bulk/delete")
+    ResponseEntity<Response<BulkDeleteView>> bulkDelete(@Valid @RequestBody BulkIdsRequest request) {
+        Long tenantId = TenantContext.requireTenantId();
+        return ResponseEntity.ok(Response.ok(
+                new BulkDeleteView(episodeService.bulkDelete(tenantId, request.ids()))
+        ));
     }
 
     @Operation(

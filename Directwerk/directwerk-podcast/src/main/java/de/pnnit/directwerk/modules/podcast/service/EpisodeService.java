@@ -27,6 +27,7 @@ import de.pnnit.directwerk.modules.podcast.repository.EpisodeRepository;
 import de.pnnit.directwerk.modules.podcast.repository.FormatRepository;
 import de.pnnit.directwerk.security.SecurityUtils;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
@@ -340,6 +341,35 @@ public class EpisodeService {
         if (wasVisible) {
             rssFeedRefreshScheduler.requestRefreshAfterCommit(tenantId);
         }
+    }
+
+    /**
+     * Deletes every id in a single transaction with at most one RSS refresh.
+     * Atomic: the first failure (unknown id, cross-tenant id, denied access)
+     * rolls back all deletes. Returns the deleted ids in request order
+     * (duplicates removed).
+     */
+    @Transactional
+    @RequiresModule(PodcastModule.KEY)
+    public List<Long> bulkDelete(Long tenantId, List<Long> episodeIds) {
+        List<Long> deleted = new ArrayList<>();
+        boolean anyVisible = false;
+        for (Long episodeId : new LinkedHashSet<>(episodeIds)) {
+            Episode episode = requireEpisode(tenantId, episodeId);
+            if (episode.getTenant() == null || !tenantId.equals(episode.getTenant().getId())) {
+                throw new EpisodeNotFoundException(episodeId);
+            }
+            permissionService.requireEpisodeAccess(ContentOperation.DELETE, episode.getCreatedBy());
+            anyVisible = anyVisible
+                    || episode.getStatus() == EpisodeStatus.PUBLISHED
+                    || episode.getStatus() == EpisodeStatus.SCHEDULED;
+            episodeRepository.delete(episode);
+            deleted.add(episodeId);
+        }
+        if (anyVisible) {
+            rssFeedRefreshScheduler.requestRefreshAfterCommit(tenantId);
+        }
+        return deleted;
     }
 
     private Episode requireDraftEpisode(Long tenantId, Long episodeId) {

@@ -58,6 +58,14 @@ export function useEntityListSelection<T extends EntityListItemId>(itemIds: T[])
         setSelectedIds(new Set())
     }, [])
 
+    const retainSelection = useCallback((ids: T[]) => {
+        const retainedIds = new Set(ids)
+        setSelectedIds((current) => {
+            const next = new Set([...current].filter((id) => retainedIds.has(id)))
+            return next.size === current.size ? current : next
+        })
+    }, [])
+
     return {
         selectedIds: prunedSelectedIds,
         selectedCount,
@@ -65,5 +73,6 @@ export function useEntityListSelection<T extends EntityListItemId>(itemIds: T[])
         toggleSelection,
         toggleSelectAll,
         clearSelection,
+        retainSelection,
     }
 }

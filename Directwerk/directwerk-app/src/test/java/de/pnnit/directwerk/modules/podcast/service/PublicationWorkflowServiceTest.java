@@ -12,6 +12,7 @@ import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -39,6 +40,7 @@ import de.pnnit.directwerk.modules.podcast.entity.EpisodeStatus;
 import de.pnnit.directwerk.modules.podcast.entity.Format;
 import de.pnnit.directwerk.modules.podcast.entity.PodcastSeries;
 import de.pnnit.directwerk.modules.podcast.entity.SeriesStatus;
+import de.pnnit.directwerk.modules.podcast.exception.EpisodeNotFoundException;
 import de.pnnit.directwerk.modules.podcast.exception.EpisodeValidationException;
 import de.pnnit.directwerk.modules.podcast.job.RssFeedRefreshJobProducer;
 import de.pnnit.directwerk.modules.content.InvalidPublicationTransitionException;
@@ -465,8 +467,56 @@ class PublicationWorkflowServiceTest {
         assertThat(published.getStatus()).isEqualTo(EpisodeStatus.PUBLISHED);
     }
 
-    private static void authenticate(Long userId, Role... roles) {
-        List<SimpleGrantedAuthority> authorities = Arrays.stream(roles)
+    @Test
+    void bulkPublishPublishesAllWithSingleRefreshAndDedupesIds() {
+        Episode first = draftEpisode();
+        Episode second = draftEpisode();
+        second.setId(56L);
+        when(episodeService.requireEpisode(10L, 55L)).thenReturn(first);
+        when(episodeService.requireEpisode(10L, 56L)).thenReturn(second);
+        when(formatService.hasActiveFormats(10L)).thenReturn(false);
+        when(episodeMediaApi.requireReadyAudio(99L)).thenReturn(first.getAudioAsset());
+
+        List<Episode> published = publicationWorkflowService.bulkPublish(
+                10L, List.of(55L, 56L, 55L), false, null);
+
+        assertThat(published).hasSize(2);
+        assertThat(published).allMatch(episode -> episode.getStatus() == EpisodeStatus.PUBLISHED);
+        verify(rssFeedRefreshScheduler, times(1)).requestRefreshAfterCommit(10L);
+    }
+
+    @Test
+    void bulkPublishFailsFastOnUnknownId() {
+        Episode first = draftEpisode();
+        when(episodeService.requireEpisode(10L, 55L)).thenReturn(first);
+        when(episodeService.requireEpisode(10L, 56L)).thenThrow(new EpisodeNotFoundException(56L));
+        when(formatService.hasActiveFormats(10L)).thenReturn(false);
+        when(episodeMediaApi.requireReadyAudio(99L)).thenReturn(first.getAudioAsset());
+
+        assertThatThrownBy(() -> publicationWorkflowService.bulkPublish(
+                10L, List.of(55L, 56L), false, null))
+                .isInstanceOf(EpisodeNotFoundException.class)
+                .hasMessageContaining("56");
+    }
+
+    @Test
+    void bulkUnpublishUnpublishesAllWithSingleRefresh() {
+        Episode first = draftEpisode();
+        first.setStatus(EpisodeStatus.PUBLISHED);
+        Episode second = draftEpisode();
+        second.setId(56L);
+        second.setStatus(EpisodeStatus.PUBLISHED);
+        when(episodeService.requireEpisode(10L, 55L)).thenReturn(first);
+        when(episodeService.requireEpisode(10L, 56L)).thenReturn(second);
+
+        List<Episode> unpublished = publicationWorkflowService.bulkUnpublish(10L, List.of(55L, 56L));
+
+        assertThat(unpublished).hasSize(2);
+        assertThat(unpublished).allMatch(episode -> episode.getStatus() == EpisodeStatus.DRAFT);
+        verify(rssFeedRefreshScheduler, times(1)).requestRefreshAfterCommit(10L);
+    }
+
+    private static void authenticate(Long userId, Role... roles) {        List<SimpleGrantedAuthority> authorities = Arrays.stream(roles)
                 .map(role -> new SimpleGrantedAuthority("ROLE_" + role.name()))
                 .toList();
         DirectwerkUserPrincipal principal = new DirectwerkUserPrincipal(

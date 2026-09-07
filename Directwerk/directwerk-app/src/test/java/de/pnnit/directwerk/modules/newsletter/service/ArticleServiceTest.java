@@ -7,6 +7,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -313,6 +314,48 @@ class ArticleServiceTest {
 
         assertThatThrownBy(() -> articleService.deleteArticle(TENANT_ID, ARTICLE_ID))
                 .isInstanceOf(ArticleNotFoundException.class);
+    }
+
+    @Test
+    void bulkDeleteDeletesAllWithSingleRefreshAndDedupesIds() {
+        Article published = draftArticle();
+        published.setStatus(ArticleStatus.PUBLISHED);
+        Article draft = draftArticle();
+        draft.setId(8L);
+        when(articleRepository.findByIdAndTenantId(ARTICLE_ID, TENANT_ID)).thenReturn(Optional.of(published));
+        when(articleRepository.findByIdAndTenantId(8L, TENANT_ID)).thenReturn(Optional.of(draft));
+
+        List<Long> deleted = articleService.bulkDelete(TENANT_ID, List.of(ARTICLE_ID, 8L, ARTICLE_ID));
+
+        assertThat(deleted).containsExactly(ARTICLE_ID, 8L);
+        verify(articleRepository).delete(published);
+        verify(articleRepository).delete(draft);
+        verify(articleRssFeedRefreshScheduler, times(1)).requestRefreshAfterCommit(TENANT_ID);
+    }
+
+    @Test
+    void bulkDeleteDraftsOnlySkipsRefresh() {
+        Article first = draftArticle();
+        Article second = draftArticle();
+        second.setId(8L);
+        when(articleRepository.findByIdAndTenantId(ARTICLE_ID, TENANT_ID)).thenReturn(Optional.of(first));
+        when(articleRepository.findByIdAndTenantId(8L, TENANT_ID)).thenReturn(Optional.of(second));
+
+        List<Long> deleted = articleService.bulkDelete(TENANT_ID, List.of(ARTICLE_ID, 8L));
+
+        assertThat(deleted).containsExactly(ARTICLE_ID, 8L);
+        verify(articleRssFeedRefreshScheduler, never()).requestRefreshAfterCommit(anyLong());
+    }
+
+    @Test
+    void bulkDeleteFailsFastOnUnknownId() {
+        Article draft = draftArticle();
+        when(articleRepository.findByIdAndTenantId(ARTICLE_ID, TENANT_ID)).thenReturn(Optional.of(draft));
+        when(articleRepository.findByIdAndTenantId(9L, TENANT_ID)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> articleService.bulkDelete(TENANT_ID, List.of(ARTICLE_ID, 9L)))
+                .isInstanceOf(ArticleNotFoundException.class)
+                .hasMessageContaining("9");
     }
 
     private static Tenant tenant() {

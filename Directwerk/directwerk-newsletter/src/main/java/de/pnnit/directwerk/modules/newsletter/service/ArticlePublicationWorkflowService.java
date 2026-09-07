@@ -26,6 +26,8 @@ import de.pnnit.directwerk.modules.newsletter.job.ArticleRssFeedRefreshJobProduc
 import de.pnnit.directwerk.modules.newsletter.repository.ArticleRepository;
 import de.pnnit.directwerk.multitenancy.TenantContext;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -66,7 +68,7 @@ public class ArticlePublicationWorkflowService {
     public Article publish(Long tenantId, Long articleId, boolean notifySubscribers, Instant publishedAt) {
         Article article = articleService.requireArticle(tenantId, articleId);
         permissionService.requireArticleAccess(ContentOperation.PUBLISH, article.getCreatedBy());
-        return publishInternal(tenantId, article, notifySubscribers, publishedAt);
+        return publishInternal(tenantId, article, notifySubscribers, publishedAt, true);
     }
 
     @Transactional
@@ -192,14 +194,69 @@ public class ArticlePublicationWorkflowService {
         )) {
             return;
         }
-        publishInternal(tenantId, article, article.isNotifySubscribersOnPublish(), null);
+        publishInternal(tenantId, article, article.isNotifySubscribersOnPublish(), null, true);
+    }
+
+    /**
+     * Publishes every id in a single transaction with a single RSS refresh.
+     * The call is atomic: the first failure (unknown id, wrong status,
+     * validation) rolls back all changes and surfaces that item's error.
+     */
+    @Transactional
+    @RequiresModule(ArticlesModule.KEY)
+    public List<Article> bulkPublish(
+            Long tenantId,
+            List<Long> articleIds,
+            boolean notifySubscribers,
+            Instant publishedAt
+    ) {
+        List<Article> published = new ArrayList<>();
+        for (Long articleId : dedupe(articleIds)) {
+            Article article = articleService.requireArticle(tenantId, articleId);
+            permissionService.requireArticleAccess(ContentOperation.PUBLISH, article.getCreatedBy());
+            published.add(publishInternal(tenantId, article, notifySubscribers, publishedAt, false));
+        }
+        articleRssFeedRefreshScheduler.requestRefreshAfterCommit(tenantId);
+        return published;
+    }
+
+    /**
+     * Unpublishes every id in a single transaction with a single RSS refresh.
+     * Atomic like {@link #bulkPublish(Long, List, boolean, Instant)}.
+     */
+    @Transactional
+    @RequiresModule(ArticlesModule.KEY)
+    public List<Article> bulkUnpublish(Long tenantId, List<Long> articleIds) {
+        List<Article> unpublished = new ArrayList<>();
+        for (Long articleId : dedupe(articleIds)) {
+            Article article = articleService.requireArticle(tenantId, articleId);
+            permissionService.requireArticleAccess(ContentOperation.UNPUBLISH, article.getCreatedBy());
+            PublicationLifecycleSupport.unpublish(
+                    () -> article.getStatus() == ArticleStatus.PUBLISHED,
+                    "articles",
+                    () -> {
+                        article.setStatus(ArticleStatus.DRAFT);
+                        article.setPublishedAt(null);
+                        article.setScheduledAt(null);
+                    },
+                    null
+            );
+            unpublished.add(articleRepository.save(article));
+        }
+        articleRssFeedRefreshScheduler.requestRefreshAfterCommit(tenantId);
+        return unpublished;
+    }
+
+    private static List<Long> dedupe(List<Long> ids) {
+        return new ArrayList<>(new LinkedHashSet<>(ids));
     }
 
     private Article publishInternal(
             Long tenantId,
             Article article,
             boolean notifySubscribers,
-            Instant requestedPublishedAt
+            Instant requestedPublishedAt,
+            boolean refresh
     ) {
         PublicationTransitions.requireDraftOrScheduled(
                 article.getStatus() == ArticleStatus.DRAFT || article.getStatus() == ArticleStatus.SCHEDULED,
@@ -223,7 +280,9 @@ public class ArticlePublicationWorkflowService {
         article.setScheduledAt(null);
         Article published = articleRepository.save(article);
 
-        articleRssFeedRefreshScheduler.requestRefreshAfterCommit(tenantId);
+        if (refresh) {
+            articleRssFeedRefreshScheduler.requestRefreshAfterCommit(tenantId);
+        }
         maybeNotifySubscribers(tenantId, published, notifySubscribers);
         return published;
     }

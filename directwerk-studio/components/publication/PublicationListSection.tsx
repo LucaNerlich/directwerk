@@ -46,6 +46,7 @@ interface PublicationListSectionProps<T extends PublicationListItem> {
     onViewModeChange: (mode: ViewMode) => void
     onBulkPublish: () => void
     onBulkUnpublish: () => void
+    onBulkDelete?: () => void
     onToggleSelection: (id: number) => void
     onPublish: (item: T) => void
     onUnpublish: (item: T) => void
@@ -272,6 +273,7 @@ export default function PublicationListSection<T extends PublicationListItem>(
         contentLabelPlural,
         isBulkBusy,
         items,
+        onBulkDelete,
         onBulkEdit,
         onBulkPublish,
         onBulkUnpublish,
@@ -412,6 +414,19 @@ export default function PublicationListSection<T extends PublicationListItem>(
                             variant="outline"
                         >
                             Bearbeiten…
+                        </Button>
+                    ) : null}
+                    {onBulkDelete !== undefined && selectedIds.size > 0 ? (
+                        <Button
+                            disabled={isBulkBusy}
+                            onClick={onBulkDelete}
+                            size="sm"
+                            type="button"
+                            variant="destructive"
+                        >
+                            {isBulkBusy
+                                ? 'Wird gelöscht…'
+                                : `${selectedIds.size} löschen`}
                         </Button>
                     ) : null}
                 </>

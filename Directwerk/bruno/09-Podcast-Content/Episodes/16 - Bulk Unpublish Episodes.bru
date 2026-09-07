@@ -1,0 +1,39 @@
+meta {
+  name: 16 - Bulk Unpublish Episodes
+  type: http
+  seq: 16
+}
+
+post {
+  url: {{baseUrl}}/api/v1/episodes/bulk/unpublish
+  body: json
+  auth: inherit
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "ids": [{{podcastEpisodeId}}]
+  }
+}
+
+tests {
+  test("returns expected status", function() {
+    expect(res.getStatus() === 200 || res.getStatus() === 400 || res.getStatus() === 404 || res.getStatus() === 409).to.equal(true);
+  });
+  test("returns one view per id on success", function() {
+    if (res.getStatus() === 200) {
+      expect(res.body.data.length).to.equal(1);
+    }
+  });
+}
+
+docs {
+  Atomic bulk unpublish: all ids in one transaction with a single RSS refresh.
+  Accepts 1-100 ids; duplicates are unpublished once.
+  409 PUBLICATION_INVALID_TRANSITION when an episode is not published.
+  Run 15 before 16 (publish → unpublish).
+}

@@ -25,6 +25,8 @@ import de.pnnit.directwerk.modules.content.PublicationTransitions;
 import de.pnnit.directwerk.modules.digital.service.HtmlSanitizer;
 import de.pnnit.directwerk.modules.podcast.repository.EpisodeRepository;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -71,7 +73,7 @@ public class PublicationWorkflowService {
     ) {
         Episode episode = episodeService.requireEpisode(tenantId, episodeId);
         permissionService.requireEpisodeAccess(ContentOperation.PUBLISH, episode.getCreatedBy());
-        return publishInternal(tenantId, episode, notifySubscribers, publishedAt);
+        return publishInternal(tenantId, episode, notifySubscribers, publishedAt, true);
     }
 
     @Transactional
@@ -194,14 +196,70 @@ public class PublicationWorkflowService {
         )) {
             return;
         }
-        publishInternal(tenantId, episode, episode.isNotifySubscribersOnPublish(), null);
+        publishInternal(tenantId, episode, episode.isNotifySubscribersOnPublish(), null, true);
+    }
+
+    /**
+     * Publishes every id in a single transaction with a single RSS refresh.
+     * The call is atomic: the first failure (unknown id, wrong status,
+     * validation) rolls back all changes and surfaces that item's error.
+     */
+    @Transactional
+    @RequiresModule(PodcastModule.KEY)
+    public List<Episode> bulkPublish(
+            Long tenantId,
+            List<Long> episodeIds,
+            boolean notifySubscribers,
+            Instant publishedAt
+    ) {
+        List<Episode> published = new ArrayList<>();
+        for (Long episodeId : dedupe(episodeIds)) {
+            Episode episode = episodeService.requireEpisode(tenantId, episodeId);
+            permissionService.requireEpisodeAccess(ContentOperation.PUBLISH, episode.getCreatedBy());
+            published.add(publishInternal(tenantId, episode, notifySubscribers, publishedAt, false));
+        }
+        rssFeedRefreshScheduler.requestRefreshAfterCommit(tenantId);
+        return published;
+    }
+
+    /**
+     * Unpublishes every id in a single transaction with a single RSS refresh.
+     * Atomic like {@link #bulkPublish(Long, List, boolean, Instant)}.
+     */
+    @Transactional
+    @RequiresModule(PodcastModule.KEY)
+    public List<Episode> bulkUnpublish(Long tenantId, List<Long> episodeIds) {
+        List<Episode> unpublished = new ArrayList<>();
+        for (Long episodeId : dedupe(episodeIds)) {
+            Episode episode = episodeService.requireEpisode(tenantId, episodeId);
+            permissionService.requireEpisodeAccess(ContentOperation.UNPUBLISH, episode.getCreatedBy());
+            PublicationLifecycleSupport.unpublish(
+                    () -> episode.getStatus() == EpisodeStatus.PUBLISHED,
+                    "episodes",
+                    () -> {
+                        demotePublicAudioIfNeeded(episode);
+                        episode.setStatus(EpisodeStatus.DRAFT);
+                        episode.setPublishedAt(null);
+                        episode.setScheduledAt(null);
+                    },
+                    null
+            );
+            unpublished.add(episodeRepository.save(episode));
+        }
+        rssFeedRefreshScheduler.requestRefreshAfterCommit(tenantId);
+        return unpublished;
+    }
+
+    private static List<Long> dedupe(List<Long> ids) {
+        return new ArrayList<>(new LinkedHashSet<>(ids));
     }
 
     private Episode publishInternal(
             Long tenantId,
             Episode episode,
             boolean notifySubscribers,
-            Instant requestedPublishedAt
+            Instant requestedPublishedAt,
+            boolean refresh
     ) {
         PublicationTransitions.requireDraftOrScheduled(
                 episode.getStatus() == EpisodeStatus.DRAFT || episode.getStatus() == EpisodeStatus.SCHEDULED,
@@ -244,7 +302,9 @@ public class PublicationWorkflowService {
         episode.setScheduledAt(null);
         Episode published = episodeRepository.save(episode);
 
-        rssFeedRefreshScheduler.requestRefreshAfterCommit(tenantId);
+        if (refresh) {
+            rssFeedRefreshScheduler.requestRefreshAfterCommit(tenantId);
+        }
         maybeNotifySubscribers(tenantId, published, notifySubscribers);
         return published;
     }

@@ -5,6 +5,9 @@ import {afterEach, describe, expect, it, vi} from 'vitest'
 import ArticleListClient from '@/components/write/ArticleListClient'
 import {listCategories, replaceArticleCategories} from '@/lib/api/catalogApi'
 import {
+    bulkDeleteArticles,
+    bulkPublishArticles,
+    bulkUnpublishArticles,
     cancelScheduleArticle,
     deleteArticle,
     listArticles,
@@ -42,6 +45,9 @@ vi.mock('@/lib/api/writeApi', () => ({
     unarchiveArticle: vi.fn(),
     updateArticle: vi.fn(),
     deleteArticle: vi.fn(),
+    bulkPublishArticles: vi.fn(),
+    bulkUnpublishArticles: vi.fn(),
+    bulkDeleteArticles: vi.fn(),
 }))
 
 vi.mock('@/lib/api/catalogApi', () => ({
@@ -263,14 +269,16 @@ describe('ArticleListClient', () => {
         })
     })
 
-    it('bulk publishes selected draft articles', async () => {
+    it('bulk publishes selected draft articles with a single request', async () => {
         const user = userEvent.setup()
         vi.mocked(listArticles).mockResolvedValue(mockArticles)
-        vi.mocked(publishArticle).mockResolvedValue({
-            ...mockArticles[0],
-            status: 'PUBLISHED',
-            publishedAt: '2026-08-30T12:00:00Z',
-        })
+        vi.mocked(bulkPublishArticles).mockResolvedValue([
+            {
+                ...mockArticles[0],
+                status: 'PUBLISHED',
+                publishedAt: '2026-08-30T12:00:00Z',
+            },
+        ])
 
         render(<ArticleListClient />)
 
@@ -287,22 +295,25 @@ describe('ArticleListClient', () => {
         await user.click(screen.getByRole('button', {name: '1 veröffentlichen'}))
 
         await waitFor(() => {
-            expect(publishArticle).toHaveBeenCalledWith('tenant.test', 1)
+            expect(bulkPublishArticles).toHaveBeenCalledWith('tenant.test', {ids: [1]})
         })
+        expect(publishArticle).not.toHaveBeenCalled()
 
         await waitFor(() => {
             expect(screen.getByText('1 Beitrag wurde veröffentlicht.')).toBeInTheDocument()
         })
     })
 
-    it('bulk unpublishes selected published articles', async () => {
+    it('bulk unpublishes selected published articles with a single request', async () => {
         const user = userEvent.setup()
         vi.mocked(listArticles).mockResolvedValue(mockArticles)
-        vi.mocked(unpublishArticle).mockResolvedValue({
-            ...mockArticles[1],
-            status: 'DRAFT',
-            publishedAt: null,
-        })
+        vi.mocked(bulkUnpublishArticles).mockResolvedValue([
+            {
+                ...mockArticles[1],
+                status: 'DRAFT',
+                publishedAt: null,
+            },
+        ])
 
         render(<ArticleListClient />)
 
@@ -319,13 +330,49 @@ describe('ArticleListClient', () => {
         await user.click(screen.getByRole('button', {name: '1 zurückziehen'}))
 
         await waitFor(() => {
-            expect(unpublishArticle).toHaveBeenCalledWith('tenant.test', 2)
+            expect(bulkUnpublishArticles).toHaveBeenCalledWith('tenant.test', [2])
         })
+        expect(unpublishArticle).not.toHaveBeenCalled()
 
         await waitFor(() => {
             expect(
                 screen.getByText('1 Beitrag wurde zurückgezogen (Entwurf).'),
             ).toBeInTheDocument()
+        })
+    })
+
+    it('bulk deletes selected articles after confirmation', async () => {
+        const user = userEvent.setup()
+        vi.mocked(listArticles).mockResolvedValue(mockArticles)
+        vi.mocked(bulkDeleteArticles).mockResolvedValue([1])
+
+        render(<ArticleListClient />)
+
+        await waitFor(() => {
+            expect(screen.getByText('Draft Post')).toBeInTheDocument()
+        })
+
+        await user.click(screen.getByRole('checkbox', {name: '„Draft Post“ auswählen'}))
+
+        await waitFor(() => {
+            expect(screen.getByText('1 ausgewählt')).toBeInTheDocument()
+        })
+
+        await user.click(screen.getByRole('button', {name: '1 löschen'}))
+
+        await waitFor(() => {
+            expect(screen.getByText('Beitrag löschen?')).toBeInTheDocument()
+        })
+
+        await user.click(screen.getByRole('button', {name: 'Löschen'}))
+
+        await waitFor(() => {
+            expect(bulkDeleteArticles).toHaveBeenCalledWith('tenant.test', [1])
+        })
+        expect(deleteArticle).not.toHaveBeenCalled()
+
+        await waitFor(() => {
+            expect(screen.getByText('1 Beitrag wurde gelöscht.')).toBeInTheDocument()
         })
     })
 
