@@ -22,6 +22,13 @@ import StatCard from '@directwerk/ui/components/stat-card'
 import {listEpisodes, listSeries} from '@/lib/api/podcastApi'
 import {getBillingDashboard} from '@/lib/api/subscriptionApi'
 import type {BillingDashboard} from '@directwerk/api/types'
+import {
+    UMAMI_RANGES,
+    deltaPercent,
+    getUmamiStats,
+    type UmamiRange,
+    type UmamiStats,
+} from '@/lib/api/umamiApi'
 import {listArticles} from '@/lib/api/writeApi'
 
 interface AnalyticsDashboardProps {
@@ -64,15 +71,117 @@ function formatDate(value: string | null): string {
     })
 }
 
+function rangeHint(range: UmamiRange): string {
+    switch (range) {
+        case '7d':
+            return 'letzte 7 Tage'
+        case '12m':
+            return 'letzte 12 Monate'
+        default:
+            return 'letzte 30 Tage'
+    }
+}
+
+function deltaHint(delta: number | null, range: UmamiRange): string {
+    if (delta === null) {
+        return rangeHint(range)
+    }
+    return `${delta >= 0 ? '+' : ''}${delta} % ggü. Vorperiode`
+}
+
+function UmamiLiveStats({
+    stats,
+    umamiHostUrl,
+    websiteId,
+}: {
+    stats: UmamiStats
+    umamiHostUrl: string
+    websiteId: string
+}): React.JSX.Element {
+    const comparison = stats.stats.comparison
+    const recent = stats.pageviews.slice(-14)
+    const max = Math.max(1, ...recent.map((point) => point.y))
+    return (
+        <div className="flex flex-col gap-4">
+            <div className="grid gap-4 sm:grid-cols-3">
+                <StatCard
+                    label="Besucher"
+                    value={stats.stats.visitors}
+                    hint={deltaHint(
+                        comparison === null
+                            ? null
+                            : deltaPercent(stats.stats.visitors, comparison.visitors),
+                        stats.range,
+                    )}
+                />
+                <StatCard
+                    label="Seitenaufrufe"
+                    value={stats.stats.pageviews}
+                    hint={deltaHint(
+                        comparison === null
+                            ? null
+                            : deltaPercent(stats.stats.pageviews, comparison.pageviews),
+                        stats.range,
+                    )}
+                />
+                <StatCard
+                    label="Besuche"
+                    value={stats.stats.visits}
+                    hint={deltaHint(
+                        comparison === null
+                            ? null
+                            : deltaPercent(stats.stats.visits, comparison.visits),
+                        stats.range,
+                    )}
+                />
+            </div>
+            {recent.length > 0 ? (
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="text-base">Aufrufe pro Tag</CardTitle>
+                        <CardDescription>{`Tageswerte der ${rangeHint(stats.range)}.`}</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <ol className="flex flex-col gap-1.5">
+                            {recent.map((point) => (
+                                <li
+                                    className="grid grid-cols-[5.5rem_1fr_3rem] items-center gap-2 text-xs"
+                                    key={point.t}
+                                >
+                                    <span className="text-muted-foreground">
+                                        {formatDate(point.t)}
+                                    </span>
+                                    <span
+                                        aria-hidden="true"
+                                        className="h-2 rounded-sm bg-primary/70"
+                                        style={{width: `${Math.max(2, Math.round((point.y / max) * 100))}%`}}
+                                    />
+                                    <span className="text-right font-medium tabular-nums">
+                                        {point.y}
+                                    </span>
+                                </li>
+                            ))}
+                        </ol>
+                    </CardContent>
+                </Card>
+            ) : null}
+            <div>
+                <Button nativeButton={false} render={<a href={`${umamiHostUrl}/dashboard/websites/${websiteId}`} rel="noreferrer" target="_blank" />} variant="outline">
+                    In Umami öffnen
+                </Button>
+            </div>
+        </div>
+    )
+}
+
 /**
  * Tenant statistics dashboard (issue #191).
  *
  * Aggregates first-party data the studio can already fetch — content inventory
  * per desk plus subscriber/revenue stats when SUBSCRIPTION is on. Live Umami
- * reader stats are deliberately not fetched here: the Umami API needs admin
- * credentials or an API key per website, which the backend does not store
- * (only host URL + website ID). The Umami panel therefore links out to the
- * configured dashboard until a credentialed backend proxy exists.
+ * reader stats come from the studio BFF (`/api/umami/stats`), which keeps the
+ * Umami API key server-side and resolves tenant/website from the site-config
+ * so the route cannot be pivoted into an open proxy.
  */
 export default function AnalyticsDashboardClient({
     desks,
@@ -88,9 +197,13 @@ export default function AnalyticsDashboardClient({
     const [series, setSeries] = useState<SeriesSummary[]>([])
     const [billing, setBilling] = useState<BillingDashboard | null>(null)
     const [billingUnavailable, setBillingUnavailable] = useState(false)
+    const [umami, setUmami] = useState<UmamiStats | null>(null)
+    const [umamiRange, setUmamiRange] = useState<UmamiRange>('30d')
+    const [umamiKeyMissing, setUmamiKeyMissing] = useState(false)
     const [errorMessage, setErrorMessage] = useState<string | null>(null)
     const [isLoading, setIsLoading] = useState(showWrite || showPodcast)
     const [attempt, setAttempt] = useState(0)
+    const umamiActive = analyticsModuleEnabled && analytics !== null
 
     useEffect(() => {
         if (!showWrite && !showPodcast) {
@@ -155,6 +268,44 @@ export default function AnalyticsDashboardClient({
         }
     }, [authRedirect, attempt, showPodcast, showWrite, subscriptionEnabled])
 
+    useEffect(() => {
+        if (!umamiActive) {
+            return
+        }
+        let active = true
+        setUmami(null)
+        setUmamiKeyMissing(false)
+
+        async function loadUmami(): Promise<void> {
+            try {
+                const stats = await getUmamiStats(getClientTenantHost(), umamiRange)
+                if (active) {
+                    setUmami(stats)
+                }
+            } catch (error: unknown) {
+                if (!active) {
+                    return
+                }
+                if (authRedirect(error)) return
+                if (
+                    typeof error === 'object' &&
+                    error !== null &&
+                    'status' in error &&
+                    (error as {status: unknown}).status === 503
+                ) {
+                    setUmamiKeyMissing(true)
+                }
+                setUmami(null)
+            }
+        }
+
+        void loadUmami()
+
+        return () => {
+            active = false
+        }
+    }, [authRedirect, attempt, umamiActive, umamiRange])
+
     if (isLoading) {
         return (
             <div aria-busy="true" aria-live="polite" className="flex flex-col gap-4" role="status">
@@ -188,7 +339,6 @@ export default function AnalyticsDashboardClient({
 
     const publishedEpisodes = recentPublished(episodes)
     const publishedArticles = recentPublished(articles)
-    const umamiActive = analyticsModuleEnabled && analytics !== null
 
     return (
         <div className="flex flex-col gap-8">
@@ -343,28 +493,49 @@ export default function AnalyticsDashboardClient({
                 <SectionHeader
                     description="Seitenaufrufe und Hörer-Kennzahlen aus der Reichweitenmessung."
                     title="Reichweite (Umami)"
+                    action={
+                        umamiActive ? (
+                            <span className="flex gap-1" role="group" aria-label="Zeitraum">
+                                {UMAMI_RANGES.map((option) => (
+                                    <Button
+                                        key={option.value}
+                                        onClick={() => setUmamiRange(option.value)}
+                                        size="sm"
+                                        type="button"
+                                        variant={umamiRange === option.value ? 'secondary' : 'ghost'}
+                                    >
+                                        {option.label}
+                                    </Button>
+                                ))}
+                            </span>
+                        ) : undefined
+                    }
                 />
                 {umamiActive && analytics !== null ? (
-                    <Card>
-                        <CardHeader>
-                            <CardTitle className="text-base">Messung aktiv</CardTitle>
-                            <CardDescription>
-                                {`Reichweite wird über ${analytics.umamiHostUrl} gemessen.`}
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent className="flex flex-col gap-3 text-sm">
-                            <p className="text-muted-foreground">
-                                Live-Kennzahlen (Besucher, Aufrufe, Ereignisse) folgen,
-                                sobald die Umami-API mit Zugangsdaten angebunden ist —
-                                der Browser fragt sie aus Sicherheitsgründen nicht direkt ab.
-                            </p>
-                            <div>
-                                <Button nativeButton={false} render={<a href={`${analytics.umamiHostUrl}/dashboard/websites/${analytics.umamiWebsiteId}`} rel="noreferrer" target="_blank" />} variant="outline">
-                                    In Umami öffnen
-                                </Button>
-                            </div>
-                        </CardContent>
-                    </Card>
+                    umami !== null ? (
+                        <UmamiLiveStats stats={umami} umamiHostUrl={analytics.umamiHostUrl} websiteId={analytics.umamiWebsiteId} />
+                    ) : (
+                        <Card>
+                            <CardHeader>
+                                <CardTitle className="text-base">Messung aktiv</CardTitle>
+                                <CardDescription>
+                                    {`Reichweite wird über ${analytics.umamiHostUrl} gemessen.`}
+                                </CardDescription>
+                            </CardHeader>
+                            <CardContent className="flex flex-col gap-3 text-sm">
+                                <p className="text-muted-foreground">
+                                    {umamiKeyMissing
+                                        ? 'Live-Kennzahlen sind noch nicht verfügbar: Auf dem Studio-Server fehlt der Umami-API-Key (UMAMI_API_KEY).'
+                                        : 'Live-Kennzahlen konnten nicht geladen werden.'}
+                                </p>
+                                <div>
+                                    <Button nativeButton={false} render={<a href={`${analytics.umamiHostUrl}/dashboard/websites/${analytics.umamiWebsiteId}`} rel="noreferrer" target="_blank" />} variant="outline">
+                                        In Umami öffnen
+                                    </Button>
+                                </div>
+                            </CardContent>
+                        </Card>
+                    )
                 ) : (
                     <Card>
                         <CardHeader>
