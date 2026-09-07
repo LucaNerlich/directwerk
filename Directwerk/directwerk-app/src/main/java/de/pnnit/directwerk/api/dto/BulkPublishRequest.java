@@ -12,7 +12,7 @@ import java.util.List;
  * publication timestamp.
  */
 public record BulkPublishRequest(
-        @NotNull @Size(min = 1, max = BulkIdsRequest.MAX_IDS) List<@Min(1) Long> ids,
+        @NotNull @Size(min = 1, max = BulkIdsRequest.MAX_IDS) List<@NotNull @Min(1) Long> ids,
         Boolean notifySubscribers,
         Instant publishedAt
 ) {

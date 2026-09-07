@@ -5,7 +5,11 @@ import {useCallback, useEffect, useMemo, useRef, useState} from 'react'
 import type {PublicationStatus} from '@directwerk/api/types'
 import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
 
-import {usePublicationBulkActions, type PublicationBulkActionLabels} from './usePublicationBulkActions'
+import {
+    usePublicationBulkActions,
+    type PublicationBulkActionLabels,
+    type PublicationBulkRequestResult,
+} from './usePublicationBulkActions'
 import {usePublicationListActions} from './usePublicationListActions'
 import {usePublicationListState} from './usePublicationListState'
 import {isBulkPublicationStatus} from './publicationBulkEligibility'
@@ -36,8 +40,8 @@ export interface PublicationListPageConfig<T extends {
     cancelSchedule: (id: number) => Promise<T>
     unarchive: (id: number) => Promise<T>
     remove?: (id: number) => Promise<void>
-    publishMany: (ids: number[]) => Promise<T[]>
-    unpublishMany: (ids: number[]) => Promise<T[]>
+    publishMany: (ids: number[]) => Promise<PublicationBulkRequestResult<T>>
+    unpublishMany: (ids: number[]) => Promise<PublicationBulkRequestResult<T>>
     removeMany?: (ids: number[]) => Promise<number[]>
     labels: PublicationListPageLabels
     loadingMessage?: string
@@ -124,6 +128,7 @@ export function usePublicationListPage<T extends {
             },
         setItems,
         clearSelection: selection.clearSelection,
+        retainSelection: selection.retainSelection,
         labels: config.labels.bulk,
         authRedirect,
     })

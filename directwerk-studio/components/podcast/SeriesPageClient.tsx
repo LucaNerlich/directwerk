@@ -11,6 +11,7 @@ import PageStack from '@directwerk/ui/components/page-stack'
 import PublicationListSection from '@/components/publication/PublicationListSection'
 import {listSeries, publishSeries, unpublishSeries} from '@/lib/api/podcastApi'
 import {createPublicationBulkLabels} from '@/lib/publication/publicationBulkLabels'
+import {runSequentialPublicationBulkAction} from '@/lib/publication/usePublicationBulkActions'
 import {usePublicationListPage} from '@/lib/publication/usePublicationListPage'
 import {getClientTenantHost} from '@directwerk/api/tenant'
 import type {SeriesSummary} from '@directwerk/api/types'
@@ -58,19 +59,15 @@ export default function SeriesPageClient(): React.JSX.Element {
         // Series have no bulk endpoint: sequential per-item updates in one action.
         publishMany: async (ids) => {
             const host = getClientTenantHost()
-            const updated: SeriesListItem[] = []
-            for (const id of ids) {
-                updated.push(toListItem(await publishSeries(host, id)))
-            }
-            return updated
+            return runSequentialPublicationBulkAction(ids, async (id) =>
+                toListItem(await publishSeries(host, id)),
+            )
         },
         unpublishMany: async (ids) => {
             const host = getClientTenantHost()
-            const updated: SeriesListItem[] = []
-            for (const id of ids) {
-                updated.push(toListItem(await unpublishSeries(host, id)))
-            }
-            return updated
+            return runSequentialPublicationBulkAction(ids, async (id) =>
+                toListItem(await unpublishSeries(host, id)),
+            )
         },
         labels: {
             loadError: 'Sendungen konnten nicht geladen werden.',

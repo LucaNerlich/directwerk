@@ -11,7 +11,7 @@ import java.util.List;
  * single request stays bounded in transaction time.
  */
 public record BulkIdsRequest(
-        @NotNull @Size(min = 1, max = BulkIdsRequest.MAX_IDS) List<@Min(1) Long> ids
+        @NotNull @Size(min = 1, max = BulkIdsRequest.MAX_IDS) List<@NotNull @Min(1) Long> ids
 ) {
     public static final int MAX_IDS = 100;
 }

@@ -9,10 +9,14 @@ export function createPublicationBulkLabels(
             count === 1
                 ? `1 ${contentLabel} wurde veröffentlicht.`
                 : `${count} ${contentLabelPlural} wurden veröffentlicht.`,
+        publishPartial: (successCount, failureCount) =>
+            `${successCount} von ${successCount + failureCount} ${contentLabelPlural} wurden veröffentlicht.`,
         unpublishSuccess: (count) =>
             count === 1
                 ? `1 ${contentLabel} wurde zurückgezogen (Entwurf).`
                 : `${count} ${contentLabelPlural} wurden zurückgezogen (Entwurf).`,
+        unpublishPartial: (successCount, failureCount) =>
+            `${successCount} von ${successCount + failureCount} ${contentLabelPlural} wurden zurückgezogen (Entwurf).`,
         deleteSuccess: (count) =>
             count === 1
                 ? `1 ${contentLabel} wurde gelöscht.`

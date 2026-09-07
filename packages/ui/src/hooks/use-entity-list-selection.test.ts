@@ -4,6 +4,15 @@ import {describe, expect, it} from 'vitest'
 import {useEntityListSelection} from './use-entity-list-selection'
 
 describe('useEntityListSelection', () => {
+    it('retains only the requested selected items', () => {
+        const {result} = renderHook(() => useEntityListSelection([1, 2, 3]))
+
+        act(() => result.current.toggleSelectAll())
+        act(() => result.current.retainSelection([2]))
+
+        expect(result.current.selectedIds).toEqual(new Set([2]))
+    })
+
     it('does not restore a selection when an item leaves and re-enters the list', () => {
         const {result, rerender} = renderHook(
             ({itemIds}: {itemIds: number[]}) => useEntityListSelection(itemIds),

@@ -37,7 +37,9 @@ describe('usePublicationListPage', () => {
             unarchiveError: 'unarchive failed',
             bulk: {
                 publishSuccess: () => 'published',
+                publishPartial: () => 'partially published',
                 unpublishSuccess: () => 'unpublished',
+                unpublishPartial: () => 'partially unpublished',
                 deleteSuccess: () => 'deleted',
                 publishError: 'publish failed',
                 unpublishError: 'unpublish failed',
@@ -97,7 +99,9 @@ describe('usePublicationListPage', () => {
             unarchiveError: 'unarchive failed',
             bulk: {
                 publishSuccess: () => 'published',
+                publishPartial: () => 'partially published',
                 unpublishSuccess: () => 'unpublished',
+                unpublishPartial: () => 'partially unpublished',
                 deleteSuccess: () => 'deleted',
                 publishError: 'publish failed',
                 unpublishError: 'unpublish failed',

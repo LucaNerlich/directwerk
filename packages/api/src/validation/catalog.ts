@@ -528,6 +528,7 @@ export function parseBulkDeleteResult(value: unknown): BulkDeleteResult | null {
         return null
     }
     if (
+        value.deletedIds.length < 1 ||
         value.deletedIds.length > 100 ||
         !value.deletedIds.every((id) => isPositiveSafeInteger(id))
     ) {

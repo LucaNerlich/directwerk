@@ -1,6 +1,9 @@
 import {describe, expect, it, vi} from 'vitest'
 
-import {usePublicationBulkActions} from '@/lib/publication/usePublicationBulkActions'
+import {
+    runSequentialPublicationBulkAction,
+    usePublicationBulkActions,
+} from '@/lib/publication/usePublicationBulkActions'
 import type {PublicationStatus} from '@directwerk/api/types'
 import {renderHook, act, waitFor} from '@testing-library/react'
 
@@ -12,7 +15,11 @@ describe('usePublicationBulkActions', () => {
     ]
     const labels = {
         publishSuccess: (count: number) => `${count} published`,
+        publishPartial: (successCount: number, failureCount: number) =>
+            `${successCount} of ${successCount + failureCount} published`,
         unpublishSuccess: (count: number) => `${count} unpublished`,
+        unpublishPartial: (successCount: number, failureCount: number) =>
+            `${successCount} of ${successCount + failureCount} unpublished`,
         deleteSuccess: (count: number) => `${count} deleted`,
         publishError: 'publish failed',
         unpublishError: 'unpublish failed',
@@ -20,6 +27,20 @@ describe('usePublicationBulkActions', () => {
         noPublishable: 'none to publish',
         noUnpublishable: 'none to unpublish',
     }
+
+    it('settles sequential updates without dropping successful results', async () => {
+        const action = vi
+            .fn<(id: number) => Promise<number>>()
+            .mockResolvedValueOnce(10)
+            .mockRejectedValueOnce(new Error('boom'))
+            .mockResolvedValueOnce(30)
+
+        const settled = await runSequentialPublicationBulkAction([1, 2, 3], action)
+
+        expect(settled.updated).toEqual([10, 30])
+        expect(settled.failures).toEqual([{id: 2, reason: expect.any(Error)}])
+        expect(action).toHaveBeenCalledTimes(3)
+    })
 
     it('bulk publishes drafts with a single request', async () => {
         const publishMany = vi.fn().mockResolvedValue([
@@ -111,6 +132,42 @@ describe('usePublicationBulkActions', () => {
         expect(setItems).not.toHaveBeenCalled()
         expect(clearSelection).not.toHaveBeenCalled()
         expect(result.current.isBulkBusy).toBe(false)
+    })
+
+    it('applies settled publish successes and reports a partial result', async () => {
+        const published = {id: 1, title: 'Draft One', status: 'PUBLISHED' as const}
+        const publishMany = vi.fn().mockResolvedValue({
+            updated: [published],
+            failures: [{id: 3, reason: new Error('boom')}],
+        })
+        const setItems = vi.fn()
+        const clearSelection = vi.fn()
+        const retainSelection = vi.fn()
+
+        const {result} = renderHook(() =>
+            usePublicationBulkActions({
+                items,
+                selectedIds: new Set([1, 3]),
+                publishMany,
+                unpublishMany: vi.fn(),
+                setItems,
+                clearSelection,
+                retainSelection,
+                labels,
+                authRedirect: () => false,
+            }),
+        )
+
+        await act(async () => {
+            await result.current.handleBulkPublish()
+        })
+
+        const applyUpdates = setItems.mock.calls[0]?.[0] as (current: typeof items) => typeof items
+        expect(applyUpdates(items)).toEqual([published, items[1], items[2]])
+        expect(result.current.bulkStatusMessage).toBe('1 of 2 published')
+        expect(result.current.bulkErrorMessage).toBeNull()
+        expect(clearSelection).not.toHaveBeenCalled()
+        expect(retainSelection).toHaveBeenCalledWith([3])
     })
 
     it('bulk deletes the selection with a single request', async () => {

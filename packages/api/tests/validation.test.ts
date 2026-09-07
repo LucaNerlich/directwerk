@@ -86,6 +86,7 @@ describe('parseBulkDeleteEnvelope', () => {
     it.each([
         ['missing ids', {}],
         ['non-array ids', {deletedIds: '7'}],
+        ['empty ids', {deletedIds: []}],
         ['zero id', {deletedIds: [0]}],
         ['negative id', {deletedIds: [-1]}],
     ])('rejects %s', (_, data) => {

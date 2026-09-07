@@ -6,13 +6,40 @@ import type {PublicationStatus} from '@directwerk/api/types'
 
 export interface PublicationBulkActionLabels {
     publishSuccess: (count: number) => string
+    publishPartial: (successCount: number, failureCount: number) => string
     unpublishSuccess: (count: number) => string
+    unpublishPartial: (successCount: number, failureCount: number) => string
     deleteSuccess: (count: number) => string
     publishError: string
     unpublishError: string
     deleteError: string
     noPublishable: string
     noUnpublishable: string
+}
+
+export interface PublicationBulkSettledResult<T> {
+    updated: T[]
+    failures: Array<{id: number; reason: unknown}>
+}
+
+export type PublicationBulkRequestResult<T> = T[] | PublicationBulkSettledResult<T>
+
+export async function runSequentialPublicationBulkAction<T>(
+    ids: number[],
+    action: (id: number) => Promise<T>,
+): Promise<PublicationBulkSettledResult<T>> {
+    const updated: T[] = []
+    const failures: PublicationBulkSettledResult<T>['failures'] = []
+
+    for (const id of ids) {
+        try {
+            updated.push(await action(id))
+        } catch (reason) {
+            failures.push({id, reason})
+        }
+    }
+
+    return {updated, failures}
 }
 
 export function usePublicationBulkActions<T extends {
@@ -27,16 +54,18 @@ export function usePublicationBulkActions<T extends {
     removeMany,
     setItems,
     clearSelection,
+    retainSelection,
     labels,
     authRedirect,
 }: {
     items: T[]
     selectedIds: Set<number>
-    publishMany: (ids: number[]) => Promise<T[]>
-    unpublishMany: (ids: number[]) => Promise<T[]>
+    publishMany: (ids: number[]) => Promise<PublicationBulkRequestResult<T>>
+    unpublishMany: (ids: number[]) => Promise<PublicationBulkRequestResult<T>>
     removeMany?: (ids: number[]) => Promise<number[]>
     setItems: React.Dispatch<React.SetStateAction<T[]>>
     clearSelection: () => void
+    retainSelection?: (ids: number[]) => void
     labels: PublicationBulkActionLabels
     authRedirect: (error: unknown) => boolean
 }) {
@@ -109,8 +138,9 @@ export function usePublicationBulkActions<T extends {
     const runBulkRequest = useCallback(
         async (
             ids: number[],
-            request: (ids: number[]) => Promise<T[]>,
+            request: (ids: number[]) => Promise<PublicationBulkRequestResult<T>>,
             successMessage: (count: number) => string,
+            partialMessage: (successCount: number, failureCount: number) => string,
             errorMessageText: string,
         ) => {
             setIsBulkBusy(true)
@@ -118,13 +148,33 @@ export function usePublicationBulkActions<T extends {
             setStatusMessage(null)
 
             try {
-                const updated = await request(ids)
+                const result = await request(ids)
+                const updated = Array.isArray(result) ? result : result.updated
+                const failures = Array.isArray(result) ? [] : result.failures
                 const updates = new Map(updated.map((item) => [item.id, item] as const))
-                setItems((current) =>
-                    current.map((entry) => updates.get(entry.id) ?? entry),
-                )
-                setStatusMessage(successMessage(updated.length))
-                clearSelection()
+                if (updates.size > 0) {
+                    setItems((current) =>
+                        current.map((entry) => updates.get(entry.id) ?? entry),
+                    )
+                }
+                if (failures.length > 0) {
+                    retainSelection?.(failures.map(({id}) => id))
+                }
+
+                if (failures.some(({reason}) => authRedirect(reason))) {
+                    return
+                }
+                if (failures.length === 0) {
+                    setStatusMessage(successMessage(updated.length))
+                    clearSelection()
+                } else if (updated.length > 0) {
+                    setStatusMessage(partialMessage(updated.length, failures.length))
+                } else {
+                    const reason = failures[failures.length - 1]?.reason
+                    setErrorMessage(
+                        reason instanceof Error ? reason.message : errorMessageText,
+                    )
+                }
             } catch (error) {
                 if (authRedirect(error)) {
                     return
@@ -136,7 +186,7 @@ export function usePublicationBulkActions<T extends {
                 setIsBulkBusy(false)
             }
         },
-        [authRedirect, clearSelection, setItems],
+        [authRedirect, clearSelection, retainSelection, setItems],
     )
 
     const handleBulkPublish = useCallback(async () => {
@@ -149,6 +199,7 @@ export function usePublicationBulkActions<T extends {
             eligible.map((item) => item.id),
             publishMany,
             labels.publishSuccess,
+            labels.publishPartial,
             labels.publishError,
         )
     }, [labels, publishMany, runBulkRequest, selectedItems])
@@ -163,6 +214,7 @@ export function usePublicationBulkActions<T extends {
             eligible.map((item) => item.id),
             unpublishMany,
             labels.unpublishSuccess,
+            labels.unpublishPartial,
             labels.unpublishError,
         )
     }, [labels, runBulkRequest, selectedItems, unpublishMany])

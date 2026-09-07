@@ -3,6 +3,7 @@ package de.pnnit.directwerk.controller.podcast;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -21,6 +22,8 @@ import java.util.List;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentMatchers;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -125,6 +128,19 @@ class EpisodeControllerTest {
                         .content("{\"ids\":[]}"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.errors[0].code").value("VALIDATION_ERROR"));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"publish", "unpublish", "delete"})
+    @WithMockUser(roles = "EDITOR")
+    void bulkOperationsRejectNullIdsBeforeCallingServices(String operation) throws Exception {
+        mockMvc.perform(post("/api/v1/episodes/bulk/{operation}", operation)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"ids\":[7,null]}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors[0].code").value("VALIDATION_ERROR"));
+
+        verifyNoInteractions(publicationWorkflowService, episodeService);
     }
 
     @Test
