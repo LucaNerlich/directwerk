@@ -282,6 +282,12 @@ Accept: application/json
             response.status === 200 || response.status === 400 || response.status === 404 || response.status === 503,
             "Expected 200/400/404/503"
         );
+        if (response.status === 200) {
+            client.assert(
+                response.body.data.originalFilename === "interview-final.mp3",
+                "Expected the renamed original filename"
+            );
+        }
     });
 %}
 

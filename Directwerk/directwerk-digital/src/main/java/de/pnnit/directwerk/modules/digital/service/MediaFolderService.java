@@ -161,7 +161,7 @@ public class MediaFolderService implements MediaFolderApi {
     @Transactional
     @RequiresModule(DigitalContentModule.KEY)
     public MediaAsset renameAsset(Long tenantId, Long assetId, String filename) {
-        MediaAsset asset = mediaAssetRepository.findById(assetId)
+        MediaAsset asset = mediaAssetRepository.findByIdForUpdate(assetId)
                 .filter(candidate -> candidate.getTenant() != null
                         && tenantId.equals(candidate.getTenant().getId()))
                 .orElseThrow(() -> new MediaAssetNotFoundException(assetId));

@@ -431,7 +431,7 @@ class MediaFolderServiceTest {
     @Test
     void renameAssetTrimsAndSanitizes() {
         MediaAsset asset = assetWithId(7L, 10L);
-        when(mediaAssetRepository.findById(7L)).thenReturn(Optional.of(asset));
+        when(mediaAssetRepository.findByIdForUpdate(7L)).thenReturn(Optional.of(asset));
 
         MediaAsset renamed = service.renameAsset(10L, 7L, "  my episode.mp3  ");
 
@@ -441,7 +441,7 @@ class MediaFolderServiceTest {
     @Test
     void renameAssetRejectsBlankName() {
         MediaAsset asset = assetWithId(7L, 10L);
-        when(mediaAssetRepository.findById(7L)).thenReturn(Optional.of(asset));
+        when(mediaAssetRepository.findByIdForUpdate(7L)).thenReturn(Optional.of(asset));
 
         assertThatThrownBy(() -> service.renameAsset(10L, 7L, "   "))
                 .isInstanceOf(de.pnnit.directwerk.modules.digital.exception.UploadValidationException.class);
@@ -451,7 +451,7 @@ class MediaFolderServiceTest {
     @Test
     void renameAssetRejectsForeignTenantAsset() {
         MediaAsset asset = assetWithId(7L, 99L);
-        when(mediaAssetRepository.findById(7L)).thenReturn(Optional.of(asset));
+        when(mediaAssetRepository.findByIdForUpdate(7L)).thenReturn(Optional.of(asset));
 
         assertThatThrownBy(() -> service.renameAsset(10L, 7L, "new.mp3"))
                 .isInstanceOf(MediaAssetNotFoundException.class);
@@ -461,7 +461,7 @@ class MediaFolderServiceTest {
     void renameAssetRejectsTombstonedAsset() {
         MediaAsset asset = assetWithId(7L, 10L);
         asset.setStatus(AssetStatus.PENDING_DELETE);
-        when(mediaAssetRepository.findById(7L)).thenReturn(Optional.of(asset));
+        when(mediaAssetRepository.findByIdForUpdate(7L)).thenReturn(Optional.of(asset));
 
         assertThatThrownBy(() -> service.renameAsset(10L, 7L, "new.mp3"))
                 .isInstanceOf(MediaAssetNotFoundException.class);
