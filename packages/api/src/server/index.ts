@@ -26,6 +26,7 @@ export {
     type DirectwerkServerClient,
     type DirectwerkServerClientConfig,
 } from './upstream'
+export {isAllowedOrigin} from './originGuard'
 export {
     createTenantBffClient,
     type CreateTenantBffClientOptions,

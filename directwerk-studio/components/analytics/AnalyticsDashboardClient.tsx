@@ -56,6 +56,14 @@ function recentPublished(
         .slice(0, 5)
 }
 
+function UmamiOpenButton({umamiHostUrl, websiteId}: {umamiHostUrl: string; websiteId: string}): React.JSX.Element {
+    return (
+        <Button nativeButton={false} render={<a href={`${umamiHostUrl}/dashboard/websites/${websiteId}`} rel="noreferrer" target="_blank" />} variant="outline">
+            In Umami öffnen
+        </Button>
+    )
+}
+
 function formatDate(value: string | null): string {
     if (value === null) {
         return '—'
@@ -166,9 +174,7 @@ function UmamiLiveStats({
                 </Card>
             ) : null}
             <div>
-                <Button nativeButton={false} render={<a href={`${umamiHostUrl}/dashboard/websites/${websiteId}`} rel="noreferrer" target="_blank" />} variant="outline">
-                    In Umami öffnen
-                </Button>
+                <UmamiOpenButton umamiHostUrl={umamiHostUrl} websiteId={websiteId} />
             </div>
         </div>
     )
@@ -529,9 +535,10 @@ export default function AnalyticsDashboardClient({
                                         : 'Live-Kennzahlen konnten nicht geladen werden.'}
                                 </p>
                                 <div>
-                                    <Button nativeButton={false} render={<a href={`${analytics.umamiHostUrl}/dashboard/websites/${analytics.umamiWebsiteId}`} rel="noreferrer" target="_blank" />} variant="outline">
-                                        In Umami öffnen
-                                    </Button>
+                                    <UmamiOpenButton
+                                        umamiHostUrl={analytics.umamiHostUrl}
+                                        websiteId={analytics.umamiWebsiteId}
+                                    />
                                 </div>
                             </CardContent>
                         </Card>

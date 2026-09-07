@@ -1,5 +1,6 @@
 import {parseTenantHost, readBearerToken} from '@directwerk/api/proxy'
 import {jsonError} from '@directwerk/api/proxy'
+import {isAllowedOrigin} from '@directwerk/api/server/originGuard'
 
 import {fetchSiteConfigServerOptional} from '@/lib/site/fetchSiteConfigServer'
 
@@ -12,29 +13,14 @@ const RANGES = {
     '12m': {days: 365, unit: 'month'},
 } as const
 
-export type UmamiRangeKey = keyof typeof RANGES
+type UmamiRangeKey = keyof typeof RANGES
 
 function isAllowedApiBase(value: string): boolean {
-    let url: URL
     try {
-        url = new URL(value)
+        return isAllowedOrigin(new URL(value))
     } catch {
         return false
     }
-    if (url.username.length > 0 || url.password.length > 0) {
-        return false
-    }
-    if (url.search.length > 0 || url.hash.length > 0) {
-        return false
-    }
-    if (url.pathname.length > 0 && url.pathname !== '/') {
-        return false
-    }
-    const isLoopback =
-        url.hostname === 'localhost' ||
-        url.hostname === '127.0.0.1' ||
-        url.hostname === '[::1]'
-    return url.protocol === 'https:' || (url.protocol === 'http:' && isLoopback)
 }
 
 function isValidWebsiteId(value: string): boolean {
@@ -68,6 +54,7 @@ async function login(base: string, username: string, password: string): Promise<
     try {
         response = await fetch(`${base}/api/auth/login`, {
             method: 'POST',
+            redirect: 'error',
             headers: {'Content-Type': 'application/json', Accept: 'application/json'},
             body: JSON.stringify({username, password}),
             signal: AbortSignal.timeout(UPSTREAM_TIMEOUT_MS),

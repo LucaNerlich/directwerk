@@ -37,55 +37,52 @@ export interface UmamiStats {
     sessions: UmamiSeriesPoint[]
 }
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-    return typeof value === 'object' && value !== null
-}
-
-function isNumber(value: unknown): value is number {
+function isFiniteNumber(value: unknown): value is number {
     return typeof value === 'number' && Number.isFinite(value)
 }
 
 function parseComparison(value: unknown): UmamiStatsSummary['comparison'] {
-    if (!isRecord(value)) {
+    if (typeof value !== 'object' || value === null) {
         return null
     }
+    const {pageviews, visitors, visits, bounces, totaltime} = value as Record<string, unknown>
     if (
-        !isNumber(value.pageviews) ||
-        !isNumber(value.visitors) ||
-        !isNumber(value.visits) ||
-        !isNumber(value.bounces) ||
-        !isNumber(value.totaltime)
+        !isFiniteNumber(pageviews) ||
+        !isFiniteNumber(visitors) ||
+        !isFiniteNumber(visits) ||
+        !isFiniteNumber(bounces) ||
+        !isFiniteNumber(totaltime)
     ) {
         return null
     }
-    return {
-        pageviews: value.pageviews,
-        visitors: value.visitors,
-        visits: value.visits,
-        bounces: value.bounces,
-        totaltime: value.totaltime,
-    }
+    return {pageviews, visitors, visits, bounces, totaltime}
 }
 
 function parseSummary(value: unknown): UmamiStatsSummary | null {
-    if (!isRecord(value)) {
+    if (typeof value !== 'object' || value === null) {
         return null
     }
+    const {pageviews, visitors, visits, bounces, totaltime, comparison} = value as Record<string, unknown>
     if (
-        !isNumber(value.pageviews) ||
-        !isNumber(value.visitors) ||
-        !isNumber(value.visits) ||
-        !isNumber(value.bounces)
+        !isFiniteNumber(pageviews) ||
+        !isFiniteNumber(visitors) ||
+        !isFiniteNumber(visits) ||
+        !isFiniteNumber(bounces) ||
+        (totaltime !== undefined && totaltime !== null && !isFiniteNumber(totaltime))
     ) {
         return null
     }
+    const parsedComparison = parseComparison(comparison)
+    if (comparison !== undefined && comparison !== null && parsedComparison === null) {
+        return null
+    }
     return {
-        pageviews: value.pageviews,
-        visitors: value.visitors,
-        visits: value.visits,
-        bounces: value.bounces,
-        totaltime: isNumber(value.totaltime) ? value.totaltime : null,
-        comparison: parseComparison(value.comparison),
+        pageviews,
+        visitors,
+        visits,
+        bounces,
+        totaltime: isFiniteNumber(totaltime) ? totaltime : null,
+        comparison: parsedComparison,
     }
 }
 
@@ -95,32 +92,43 @@ function parseSeries(value: unknown): UmamiSeriesPoint[] | null {
     }
     const points: UmamiSeriesPoint[] = []
     for (const entry of value) {
-        if (!isRecord(entry) || typeof entry.t !== 'string' || !isNumber(entry.y)) {
+        if (typeof entry !== 'object' || entry === null) {
             return null
         }
-        points.push({t: entry.t, y: entry.y})
+        // Umami's own field name is `x`, not `t` — this is the sole place that
+        // reads the raw upstream field name.
+        const {x, y} = entry as Record<string, unknown>
+        if (typeof x !== 'string' || !isFiniteNumber(y)) {
+            return null
+        }
+        points.push({t: x, y})
     }
     return points
 }
 
 export function parseUmamiStats(value: unknown): UmamiStats | null {
-    if (!isRecord(value) || !isRecord(value.data)) {
+    if (typeof value !== 'object' || value === null) {
         return null
     }
-    const data = value.data
-    if (data.range !== '7d' && data.range !== '30d' && data.range !== '12m') {
+    const data = (value as Record<string, unknown>).data
+    if (typeof data !== 'object' || data === null) {
         return null
     }
-    const stats = parseSummary(data.stats)
-    if (stats === null || !isRecord(data.pageviews)) {
+    const {range, stats: rawStats, pageviews: rawPageviews} = data as Record<string, unknown>
+    if (range !== '7d' && range !== '30d' && range !== '12m') {
         return null
     }
-    const pageviews = parseSeries(data.pageviews.pageviews)
-    const sessions = parseSeries(data.pageviews.sessions)
+    const stats = parseSummary(rawStats)
+    if (stats === null || typeof rawPageviews !== 'object' || rawPageviews === null) {
+        return null
+    }
+    const {pageviews: rawPageviewSeries, sessions: rawSessionSeries} = rawPageviews as Record<string, unknown>
+    const pageviews = parseSeries(rawPageviewSeries)
+    const sessions = parseSeries(rawSessionSeries)
     if (pageviews === null || sessions === null) {
         return null
     }
-    return {range: data.range, stats, pageviews, sessions}
+    return {range, stats, pageviews, sessions}
 }
 
 /** Percent change of current vs previous period; null when not computable. */
