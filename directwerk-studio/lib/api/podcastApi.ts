@@ -3,6 +3,7 @@
 import {parseEpisodeEnvelope, parseEpisodeListEnvelope, parseSeriesEnvelope, parseSeriesListEnvelope} from '@directwerk/api/validation/catalog'
 
 import type {
+    BulkPublishInput,
     CreateEpisodeInput,
     CreateSeriesInput,
     EpisodeDetail,
@@ -11,6 +12,7 @@ import type {
     UpdateEpisodeInput,
     UpdateSeriesInput,
 } from '@directwerk/api/types'
+import {parseBulkDeleteEnvelope} from '@directwerk/api/validation/catalog'
 import {createPublicationWorkflowApi, jsonInit, studioDelete, studioGet, studioMutate} from './studioApiCore'
 
 const episodeApi = createPublicationWorkflowApi<
@@ -46,6 +48,47 @@ export async function deleteEpisode(
 }
 
 const invalidEpisodeMessage = 'Der Server hat eine ungültige Folge gesendet.'
+const invalidBulkDeleteMessage = 'Der Server hat eine ungültige Löschantwort gesendet.'
+
+export async function bulkPublishEpisodes(
+    tenantHost: string,
+    input: BulkPublishInput,
+): Promise<EpisodeDetail[]> {
+    return studioMutate(
+        '/api/proxy/episodes/bulk/publish',
+        tenantHost,
+        jsonInit('POST', input),
+        parseEpisodeListEnvelope,
+        invalidEpisodeMessage,
+    )
+}
+
+export async function bulkUnpublishEpisodes(
+    tenantHost: string,
+    ids: number[],
+): Promise<EpisodeDetail[]> {
+    return studioMutate(
+        '/api/proxy/episodes/bulk/unpublish',
+        tenantHost,
+        jsonInit('POST', {ids}),
+        parseEpisodeListEnvelope,
+        invalidEpisodeMessage,
+    )
+}
+
+export async function bulkDeleteEpisodes(
+    tenantHost: string,
+    ids: number[],
+): Promise<number[]> {
+    const result = await studioMutate(
+        '/api/proxy/episodes/bulk/delete',
+        tenantHost,
+        jsonInit('POST', {ids}),
+        parseBulkDeleteEnvelope,
+        invalidBulkDeleteMessage,
+    )
+    return result.deletedIds
+}
 
 export async function setEpisodeEnclosureEnabled(
     tenantHost: string,

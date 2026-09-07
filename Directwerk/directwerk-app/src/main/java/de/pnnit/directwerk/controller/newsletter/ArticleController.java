@@ -1,6 +1,9 @@
 package de.pnnit.directwerk.controller.newsletter;
 
 import de.pnnit.directwerk.api.dto.CategoryView;
+import de.pnnit.directwerk.api.dto.BulkDeleteView;
+import de.pnnit.directwerk.api.dto.BulkIdsRequest;
+import de.pnnit.directwerk.api.dto.BulkPublishRequest;
 import de.pnnit.directwerk.api.dto.PublishOptionsRequest;
 import de.pnnit.directwerk.api.dto.ReplaceCategoriesRequest;
 import de.pnnit.directwerk.api.response.Response;
@@ -178,6 +181,73 @@ public class ArticleController {
         return ResponseEntity.ok(Response.ok(toView(
                 articlePublicationWorkflowService.unarchive(tenantId, articleId)
         )));
+    }
+
+    @Operation(
+            summary = "Publish multiple articles",
+            description = "Publishes every id in a single transaction with a single RSS refresh. "
+                    + "Atomic: the first failure rolls back all changes. Duplicate ids are "
+                    + "published once. Accepts 1-100 ids."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "All articles published"),
+            @ApiResponse(responseCode = "400", description = "Empty id list, or an article failed validation (ARTICLE_VALIDATION_FAILED)"),
+            @ApiResponse(responseCode = "404", description = "Unknown id, or id belongs to another tenant (ARTICLE_NOT_FOUND)"),
+            @ApiResponse(responseCode = "409", description = "An article is not publishable (PUBLICATION_INVALID_TRANSITION)")
+    })
+    @PostMapping("/bulk/publish")
+    ResponseEntity<Response<List<ArticleView>>> bulkPublish(@Valid @RequestBody BulkPublishRequest request) {
+        Long tenantId = TenantContext.requireTenantId();
+        boolean notifySubscribers = Boolean.TRUE.equals(request.notifySubscribers());
+        List<ArticleView> published = articlePublicationWorkflowService
+                .bulkPublish(tenantId, request.ids(), notifySubscribers, request.publishedAt())
+                .stream()
+                .map(ArticleController::toView)
+                .toList();
+        return ResponseEntity.ok(Response.ok(published));
+    }
+
+    @Operation(
+            summary = "Unpublish multiple articles",
+            description = "Unpublishes every id in a single transaction with a single RSS refresh. "
+                    + "Atomic: the first failure rolls back all changes. Duplicate ids are "
+                    + "unpublished once. Accepts 1-100 ids."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "All articles unpublished"),
+            @ApiResponse(responseCode = "400", description = "Empty id list (VALIDATION_ERROR)"),
+            @ApiResponse(responseCode = "404", description = "Unknown id, or id belongs to another tenant (ARTICLE_NOT_FOUND)"),
+            @ApiResponse(responseCode = "409", description = "An article is not published (PUBLICATION_INVALID_TRANSITION)")
+    })
+    @PostMapping("/bulk/unpublish")
+    ResponseEntity<Response<List<ArticleView>>> bulkUnpublish(@Valid @RequestBody BulkIdsRequest request) {
+        Long tenantId = TenantContext.requireTenantId();
+        List<ArticleView> unpublished = articlePublicationWorkflowService
+                .bulkUnpublish(tenantId, request.ids())
+                .stream()
+                .map(ArticleController::toView)
+                .toList();
+        return ResponseEntity.ok(Response.ok(unpublished));
+    }
+
+    @Operation(
+            summary = "Delete multiple articles",
+            description = "Deletes every id in a single transaction with at most one RSS refresh "
+                    + "(only when a visible article was deleted). Atomic: the first failure "
+                    + "rolls back all deletes. Duplicate ids are deleted once. "
+                    + "Accepts 1-100 ids."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "All articles deleted"),
+            @ApiResponse(responseCode = "400", description = "Empty id list (VALIDATION_ERROR)"),
+            @ApiResponse(responseCode = "404", description = "Unknown id, or id belongs to another tenant (ARTICLE_NOT_FOUND)")
+    })
+    @PostMapping("/bulk/delete")
+    ResponseEntity<Response<BulkDeleteView>> bulkDelete(@Valid @RequestBody BulkIdsRequest request) {
+        Long tenantId = TenantContext.requireTenantId();
+        return ResponseEntity.ok(Response.ok(
+                new BulkDeleteView(articleService.bulkDelete(tenantId, request.ids()))
+        ));
     }
 
     @Operation(

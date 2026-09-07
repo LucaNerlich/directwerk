@@ -27,6 +27,7 @@ import type {
     MediaAsset,
     MediaUploadLimits,
     BulkImportQueuedResult,
+    BulkDeleteResult,
     MembershipStatus,
     OfferingType,
     PermissionRestriction,
@@ -520,6 +521,25 @@ export function parseBulkImportQueuedEnvelope(
     value: unknown,
 ): ApiEnvelope<BulkImportQueuedResult> | null {
     return parseEnvelope(value, parseBulkImportQueued)
+}
+
+export function parseBulkDeleteResult(value: unknown): BulkDeleteResult | null {
+    if (!isRecord(value) || !Array.isArray(value.deletedIds)) {
+        return null
+    }
+    if (
+        value.deletedIds.length > 100 ||
+        !value.deletedIds.every((id) => isPositiveSafeInteger(id))
+    ) {
+        return null
+    }
+    return {deletedIds: [...value.deletedIds]}
+}
+
+export function parseBulkDeleteEnvelope(
+    value: unknown,
+): ApiEnvelope<BulkDeleteResult> | null {
+    return parseEnvelope(value, parseBulkDeleteResult)
 }
 
 // ---------------------------------------------------------------------------

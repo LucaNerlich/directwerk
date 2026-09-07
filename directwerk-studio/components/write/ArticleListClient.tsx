@@ -11,9 +11,13 @@ import PageStack from '@directwerk/ui/components/page-stack'
 
 import PublicationListSection from '@/components/publication/PublicationListSection'
 import BulkEditDialog, {type BulkEditOperation} from '@/components/publication/BulkEditDialog'
+import BulkDeletePublicationDialog from '@/components/publication/BulkDeletePublicationDialog'
 import DeletePublicationDialog from '@/components/publication/DeletePublicationDialog'
 import {listCategories, replaceArticleCategories} from '@/lib/api/catalogApi'
 import {
+    bulkDeleteArticles,
+    bulkPublishArticles,
+    bulkUnpublishArticles,
     cancelScheduleArticle,
     deleteArticle,
     listArticles,
@@ -53,6 +57,7 @@ export default function ArticleListClient() {
         handleDelete,
         handleBulkPublish,
         handleBulkUnpublish,
+        handleBulkDelete,
         runBulkEdit,
     } = usePublicationListPage<ArticleDetail>({
         load: () => listArticles(getClientTenantHost()),
@@ -61,6 +66,9 @@ export default function ArticleListClient() {
         cancelSchedule: (id) => cancelScheduleArticle(getClientTenantHost(), id),
         unarchive: (id) => unarchiveArticle(getClientTenantHost(), id),
         remove: (id) => deleteArticle(getClientTenantHost(), id),
+        publishMany: (ids) => bulkPublishArticles(getClientTenantHost(), {ids}),
+        unpublishMany: (ids) => bulkUnpublishArticles(getClientTenantHost(), ids),
+        removeMany: (ids) => bulkDeleteArticles(getClientTenantHost(), ids),
         labels: {
             loadError: 'Beiträge konnten nicht geladen werden.',
             publishSuccess: (title) => `Beitrag „${title}“ wurde veröffentlicht.`,
@@ -82,6 +90,8 @@ export default function ArticleListClient() {
 
     const [deleteTarget, setDeleteTarget] = useState<ArticleDetail | null>(null)
     const [deletePending, setDeletePending] = useState(false)
+    const [isBulkDeleteOpen, setIsBulkDeleteOpen] = useState(false)
+    const [bulkDeletePending, setBulkDeletePending] = useState(false)
 
     const handleDeleteConfirm = useCallback(async (): Promise<void> => {
         if (deleteTarget === null || handleDelete === null) {
@@ -100,6 +110,23 @@ export default function ArticleListClient() {
             )
         }
     }, [deleteTarget, handleDelete])
+
+    const bulkDeleteItems = useMemo(
+        () => articles.filter((article) => selectedIds.has(article.id)),
+        [articles, selectedIds],
+    )
+    const handleBulkDeleteConfirm = useCallback(async (): Promise<void> => {
+        if (handleBulkDelete === null) {
+            return
+        }
+        setBulkDeletePending(true)
+        try {
+            await handleBulkDelete()
+        } finally {
+            setBulkDeletePending(false)
+            setIsBulkDeleteOpen(false)
+        }
+    }, [handleBulkDelete])
 
     const [isBulkEditOpen, setIsBulkEditOpen] = useState(false)
     const [categories, setCategories] = useState<CategorySummary[]>([])
@@ -226,6 +253,7 @@ export default function ArticleListClient() {
                         editorBasePath="/write/articles"
                         isBulkBusy={isBulkBusy}
                         items={articles}
+                        onBulkDelete={handleBulkDelete === null ? undefined : () => setIsBulkDeleteOpen(true)}
                         onBulkEdit={() => setIsBulkEditOpen(true)}
                         onBulkPublish={() => void handleBulkPublish()}
                         onBulkUnpublish={() => void handleBulkUnpublish()}
@@ -253,6 +281,19 @@ export default function ArticleListClient() {
                         }}
                         open={deleteTarget !== null}
                         pending={deletePending}
+                    />
+                    <BulkDeletePublicationDialog
+                        contentLabel="Beitrag"
+                        contentLabelPlural="Beiträge"
+                        items={bulkDeleteItems}
+                        onConfirm={() => void handleBulkDeleteConfirm()}
+                        onOpenChange={(open) => {
+                            if (!open && !bulkDeletePending) {
+                                setIsBulkDeleteOpen(false)
+                            }
+                        }}
+                        open={isBulkDeleteOpen}
+                        pending={bulkDeletePending}
                     />
                     <BulkEditDialog
                         busy={isBulkBusy}

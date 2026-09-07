@@ -36,6 +36,7 @@ export {
     parseMediaFolderListEnvelope,
     parseMediaUploadLimitsEnvelope,
     parseBulkImportQueuedEnvelope,
+    parseBulkDeleteEnvelope,
     parsePermissionRestriction,
     parsePermissionRestrictionListEnvelope,
     parseEffectiveRightsEnvelope,

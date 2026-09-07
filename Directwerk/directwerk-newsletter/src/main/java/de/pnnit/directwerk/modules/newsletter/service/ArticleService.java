@@ -25,6 +25,7 @@ import de.pnnit.directwerk.modules.newsletter.repository.ArticleRepository;
 import de.pnnit.directwerk.modules.digital.service.CategoryService;
 import de.pnnit.directwerk.modules.digital.service.HtmlSanitizer;
 import de.pnnit.directwerk.security.SecurityUtils;
+import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
@@ -186,6 +187,35 @@ public class ArticleService {
         if (wasVisible) {
             articleRssFeedRefreshScheduler.requestRefreshAfterCommit(tenantId);
         }
+    }
+
+    /**
+     * Deletes every id in a single transaction with at most one RSS refresh.
+     * Atomic: the first failure (unknown id, cross-tenant id, denied access)
+     * rolls back all deletes. Returns the deleted ids in request order
+     * (duplicates removed).
+     */
+    @Transactional
+    @RequiresModule(ArticlesModule.KEY)
+    public List<Long> bulkDelete(Long tenantId, List<Long> articleIds) {
+        List<Long> deleted = new ArrayList<>();
+        boolean anyVisible = false;
+        for (Long articleId : new LinkedHashSet<>(articleIds)) {
+            Article article = requireArticle(tenantId, articleId);
+            if (article.getTenant() == null || !tenantId.equals(article.getTenant().getId())) {
+                throw new ArticleNotFoundException(articleId);
+            }
+            permissionService.requireArticleAccess(ContentOperation.DELETE, article.getCreatedBy());
+            anyVisible = anyVisible
+                    || article.getStatus() == ArticleStatus.PUBLISHED
+                    || article.getStatus() == ArticleStatus.SCHEDULED;
+            articleRepository.delete(article);
+            deleted.add(articleId);
+        }
+        if (anyVisible) {
+            articleRssFeedRefreshScheduler.requestRefreshAfterCommit(tenantId);
+        }
+        return deleted;
     }
 
     private Article requireDraftArticle(Long tenantId, Long articleId) {

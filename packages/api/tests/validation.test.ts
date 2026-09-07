@@ -3,6 +3,7 @@ import {describe, expect, it} from 'vitest'
 import {
     createPublicContentParsers,
     parseBulkImportQueuedEnvelope,
+    parseBulkDeleteEnvelope,
     parseEffectiveRightsEnvelope,
     parseImportedEpisodeEnvelope,
     parseMeEnvelope,
@@ -70,6 +71,29 @@ const importedEpisode = {
     formats: [],
     categories: [],
 }
+
+describe('parseBulkDeleteEnvelope', () => {
+    it('parses deleted ids', () => {
+        const parsed = parseBulkDeleteEnvelope({
+            statusCode: 200,
+            statusMessage: 'OK',
+            data: {deletedIds: [7, 8]},
+        })
+
+        expect(parsed?.data).toEqual({deletedIds: [7, 8]})
+    })
+
+    it.each([
+        ['missing ids', {}],
+        ['non-array ids', {deletedIds: '7'}],
+        ['zero id', {deletedIds: [0]}],
+        ['negative id', {deletedIds: [-1]}],
+    ])('rejects %s', (_, data) => {
+        expect(
+            parseBulkDeleteEnvelope({statusCode: 200, data}),
+        ).toBeNull()
+    })
+})
 
 describe('parseTokenResponse', () => {
     it('accepts minimal bearer payloads and rejects whitespace tokens', () => {

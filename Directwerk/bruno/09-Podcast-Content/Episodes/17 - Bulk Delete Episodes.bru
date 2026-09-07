@@ -1,0 +1,39 @@
+meta {
+  name: 17 - Bulk Delete Episodes
+  type: http
+  seq: 17
+}
+
+post {
+  url: {{baseUrl}}/api/v1/episodes/bulk/delete
+  body: json
+  auth: inherit
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "ids": [{{podcastEpisodeId}}]
+  }
+}
+
+tests {
+  test("returns expected status", function() {
+    expect(res.getStatus() === 200 || res.getStatus() === 400 || res.getStatus() === 404).to.equal(true);
+  });
+  test("echoes deleted ids on success", function() {
+    if (res.getStatus() === 200) {
+      expect(res.body.data.deletedIds.length).to.be.above(0);
+    }
+  });
+}
+
+docs {
+  Atomic bulk delete: all ids in one transaction with at most one RSS refresh
+  (only when a visible episode was deleted). Duplicates are deleted once.
+  404 EPISODE_NOT_FOUND for unknown ids and cross-tenant ids.
+  Destructive — run last or re-create the draft afterwards (3 - Create Episode Draft).
+}

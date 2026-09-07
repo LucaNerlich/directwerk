@@ -38,10 +38,10 @@ describe('usePublicationListPage', () => {
             bulk: {
                 publishSuccess: () => 'published',
                 unpublishSuccess: () => 'unpublished',
-                publishPartial: () => 'partially published',
-                unpublishPartial: () => 'partially unpublished',
+                deleteSuccess: () => 'deleted',
                 publishError: 'publish failed',
                 unpublishError: 'unpublish failed',
+                deleteError: 'delete failed',
                 noPublishable: 'none to publish',
                 noUnpublishable: 'none to unpublish',
             },
@@ -55,6 +55,8 @@ describe('usePublicationListPage', () => {
                     unpublish: mutate,
                     cancelSchedule: mutate,
                     unarchive: mutate,
+                    publishMany: (ids) => Promise.resolve(ids.map(() => episode)),
+                    unpublishMany: (ids) => Promise.resolve(ids.map(() => episode)),
                     isBulkPublishEligible: (item) =>
                         item.seriesId === 10 && seriesStatus === 'PUBLISHED',
                     labels,
@@ -96,10 +98,10 @@ describe('usePublicationListPage', () => {
             bulk: {
                 publishSuccess: () => 'published',
                 unpublishSuccess: () => 'unpublished',
-                publishPartial: () => 'partially published',
-                unpublishPartial: () => 'partially unpublished',
+                deleteSuccess: () => 'deleted',
                 publishError: 'publish failed',
                 unpublishError: 'unpublish failed',
+                deleteError: 'delete failed',
                 noPublishable: 'none to publish',
                 noUnpublishable: 'none to unpublish',
             },
@@ -112,6 +114,8 @@ describe('usePublicationListPage', () => {
                 unpublish: mutate,
                 cancelSchedule: mutate,
                 unarchive: mutate,
+                publishMany: (ids) => Promise.resolve(ids.map(() => item)),
+                unpublishMany: (ids) => Promise.resolve(ids.map(() => item)),
                 labels,
             }),
         )

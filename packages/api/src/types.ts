@@ -316,6 +316,22 @@ export interface BulkImportQueuedResult {
     notifyEmail: string
 }
 
+/** Bulk publish/unpublish/delete selection. Mirrors the backend 1–100 id cap. */
+export interface BulkIdsInput {
+    ids: number[]
+}
+
+export interface BulkPublishInput extends BulkIdsInput {
+    notifySubscribers?: boolean
+    /** ISO instant; omit to publish with the current time. */
+    publishedAt?: string
+}
+
+/** Atomic bulk-delete result: every echoed id was deleted. */
+export interface BulkDeleteResult {
+    deletedIds: number[]
+}
+
 export interface IngestRemoteAssetInput {
     sourceUrl: string
     assetType: AssetType

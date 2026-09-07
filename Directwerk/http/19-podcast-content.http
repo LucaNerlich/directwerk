@@ -603,3 +603,79 @@ Accept: application/json
         client.assert(response.status === 204 || response.status === 404, "Expected 204 or 404");
     });
 %}
+###
+
+### @name bulkPublishPodcastEpisodes
+# Atomic: all ids in one transaction with a single RSS refresh. Accepts 1-100 ids.
+# Run before bulkUnpublishPodcastEpisodes (publish -> unpublish).
+POST {{baseUrl}}/api/v1/episodes/bulk/publish
+Host: {{tenantAHost}}
+Authorization: Bearer {{tenantAAccessToken}}
+Content-Type: application/json
+Accept: application/json
+
+{
+  "ids": [{{podcastEpisodeId}}],
+  "notifySubscribers": false
+}
+
+> {%
+    client.test("Bulk publish podcast episodes", function() {
+        client.assert(
+            response.status === 200 || response.status === 400 || response.status === 404 || response.status === 409,
+            "Expected bulk publish response"
+        );
+        if (response.status === 200) {
+            client.assert(Array.isArray(response.body.data), "Expected episode array");
+        }
+    });
+%}
+
+###
+
+### @name bulkUnpublishPodcastEpisodes
+# Atomic: all ids in one transaction with a single RSS refresh.
+POST {{baseUrl}}/api/v1/episodes/bulk/unpublish
+Host: {{tenantAHost}}
+Authorization: Bearer {{tenantAAccessToken}}
+Content-Type: application/json
+Accept: application/json
+
+{
+  "ids": [{{podcastEpisodeId}}]
+}
+
+> {%
+    client.test("Bulk unpublish podcast episodes", function() {
+        client.assert(
+            response.status === 200 || response.status === 400 || response.status === 404 || response.status === 409,
+            "Expected bulk unpublish response"
+        );
+    });
+%}
+
+###
+
+### @name bulkDeletePodcastEpisodes
+# Destructive: atomic delete of all ids with at most one RSS refresh. Run last for the episode.
+POST {{baseUrl}}/api/v1/episodes/bulk/delete
+Host: {{tenantAHost}}
+Authorization: Bearer {{tenantAAccessToken}}
+Content-Type: application/json
+Accept: application/json
+
+{
+  "ids": [{{podcastEpisodeId}}]
+}
+
+> {%
+    client.test("Bulk delete podcast episodes", function() {
+        client.assert(
+            response.status === 200 || response.status === 400 || response.status === 404,
+            "Expected bulk delete response"
+        );
+        if (response.status === 200) {
+            client.assert(Array.isArray(response.body.data.deletedIds), "Expected deletedIds array");
+        }
+    });
+%}

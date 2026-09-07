@@ -1,0 +1,39 @@
+meta {
+  name: 14 - Bulk Unpublish Articles
+  type: http
+  seq: 14
+}
+
+post {
+  url: {{baseUrl}}/api/v1/articles/bulk/unpublish
+  body: json
+  auth: inherit
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "ids": [{{articleId}}]
+  }
+}
+
+tests {
+  test("returns expected status", function() {
+    expect(res.getStatus() === 200 || res.getStatus() === 404 || res.getStatus() === 409).to.equal(true);
+  });
+  test("returns one view per id on success", function() {
+    if (res.getStatus() === 200) {
+      expect(res.body.data.length).to.equal(1);
+    }
+  });
+}
+
+docs {
+  Atomic bulk unpublish: all ids in one transaction with a single RSS refresh.
+  Accepts 1-100 ids; duplicates are unpublished once.
+  409 PUBLICATION_INVALID_TRANSITION when an article is not published.
+  Run 13 before 14 (publish → unpublish).
+}

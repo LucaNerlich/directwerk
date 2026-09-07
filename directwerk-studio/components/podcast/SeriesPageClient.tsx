@@ -55,6 +55,23 @@ export default function SeriesPageClient(): React.JSX.Element {
         unarchive: async () => {
             throw new Error('Sendungen unterstützen kein Archiv.')
         },
+        // Series have no bulk endpoint: sequential per-item updates in one action.
+        publishMany: async (ids) => {
+            const host = getClientTenantHost()
+            const updated: SeriesListItem[] = []
+            for (const id of ids) {
+                updated.push(toListItem(await publishSeries(host, id)))
+            }
+            return updated
+        },
+        unpublishMany: async (ids) => {
+            const host = getClientTenantHost()
+            const updated: SeriesListItem[] = []
+            for (const id of ids) {
+                updated.push(toListItem(await unpublishSeries(host, id)))
+            }
+            return updated
+        },
         labels: {
             loadError: 'Sendungen konnten nicht geladen werden.',
             publishSuccess: (title) => `Sendung „${title}“ wurde veröffentlicht.`,

@@ -36,6 +36,9 @@ export interface PublicationListPageConfig<T extends {
     cancelSchedule: (id: number) => Promise<T>
     unarchive: (id: number) => Promise<T>
     remove?: (id: number) => Promise<void>
+    publishMany: (ids: number[]) => Promise<T[]>
+    unpublishMany: (ids: number[]) => Promise<T[]>
+    removeMany?: (ids: number[]) => Promise<number[]>
     labels: PublicationListPageLabels
     loadingMessage?: string
     /** Excludes drafts from bulk publishing even when their status would allow it. */
@@ -111,8 +114,14 @@ export function usePublicationListPage<T extends {
     const bulkActions = usePublicationBulkActions({
         items,
         selectedIds: selection.selectedIds,
-        publish: (id) => configRef.current.publish(id),
-        unpublish: (id) => configRef.current.unpublish(id),
+        publishMany: (ids) => configRef.current.publishMany(ids),
+        unpublishMany: (ids) => configRef.current.unpublishMany(ids),
+        removeMany: config.removeMany === undefined
+            ? undefined
+            : (ids) => {
+                const removeMany = configRef.current.removeMany
+                return removeMany === undefined ? Promise.resolve([]) : removeMany(ids)
+            },
         setItems,
         clearSelection: selection.clearSelection,
         labels: config.labels.bulk,
@@ -143,6 +152,7 @@ export function usePublicationListPage<T extends {
         unpublishableCount: bulkActions.unpublishableCount,
         handleBulkPublish: bulkActions.handleBulkPublish,
         handleBulkUnpublish: bulkActions.handleBulkUnpublish,
+        handleBulkDelete: bulkActions.handleBulkDelete,
         runBulkEdit: bulkActions.runBulkEdit,
         ...selection,
         busyItemId: listActions.busyItemId,

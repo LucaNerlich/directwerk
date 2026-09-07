@@ -287,3 +287,79 @@ Accept: application/json
         client.assert(response.status === 204 || response.status === 404, "Expected 204 or 404");
     });
 %}
+###
+
+### @name bulkPublishArticles
+# Atomic: all ids in one transaction with a single RSS refresh. Accepts 1-100 ids.
+# Run before bulkUnpublishArticles (publish -> unpublish).
+POST {{baseUrl}}/api/v1/articles/bulk/publish
+Host: {{tenantAHost}}
+Authorization: Bearer {{tenantAAccessToken}}
+Content-Type: application/json
+Accept: application/json
+
+{
+  "ids": [{{articleId}}],
+  "notifySubscribers": false
+}
+
+> {%
+    client.test("Bulk publish articles", function() {
+        client.assert(
+            response.status === 200 || response.status === 400 || response.status === 404 || response.status === 409,
+            "Expected bulk publish response"
+        );
+        if (response.status === 200) {
+            client.assert(Array.isArray(response.body.data), "Expected article array");
+        }
+    });
+%}
+
+###
+
+### @name bulkUnpublishArticles
+# Atomic: all ids in one transaction with a single RSS refresh.
+POST {{baseUrl}}/api/v1/articles/bulk/unpublish
+Host: {{tenantAHost}}
+Authorization: Bearer {{tenantAAccessToken}}
+Content-Type: application/json
+Accept: application/json
+
+{
+  "ids": [{{articleId}}]
+}
+
+> {%
+    client.test("Bulk unpublish articles", function() {
+        client.assert(
+            response.status === 200 || response.status === 400 || response.status === 404 || response.status === 409,
+            "Expected bulk unpublish response"
+        );
+    });
+%}
+
+###
+
+### @name bulkDeleteArticles
+# Destructive: atomic delete of all ids with at most one RSS refresh. Run last for the article.
+POST {{baseUrl}}/api/v1/articles/bulk/delete
+Host: {{tenantAHost}}
+Authorization: Bearer {{tenantAAccessToken}}
+Content-Type: application/json
+Accept: application/json
+
+{
+  "ids": [{{articleId}}]
+}
+
+> {%
+    client.test("Bulk delete articles", function() {
+        client.assert(
+            response.status === 200 || response.status === 400 || response.status === 404,
+            "Expected bulk delete response"
+        );
+        if (response.status === 200) {
+            client.assert(Array.isArray(response.body.data.deletedIds), "Expected deletedIds array");
+        }
+    });
+%}

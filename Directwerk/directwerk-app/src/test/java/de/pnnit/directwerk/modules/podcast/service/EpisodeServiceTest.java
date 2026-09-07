@@ -6,6 +6,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -140,6 +141,47 @@ class EpisodeServiceTest {
 
         assertThatThrownBy(() -> episodeService.deleteEpisode(TENANT_ID, EPISODE_ID))
                 .isInstanceOf(EpisodeNotFoundException.class);
+    }
+
+    @Test
+    void bulkDeleteDeletesAllWithSingleRefreshAndDedupesIds() {
+        Episode published = episode(EpisodeStatus.PUBLISHED);
+        Episode draft = episode(EpisodeStatus.DRAFT);
+        draft.setId(8L);
+        when(episodeRepository.findByIdAndTenantId(EPISODE_ID, TENANT_ID)).thenReturn(Optional.of(published));
+        when(episodeRepository.findByIdAndTenantId(8L, TENANT_ID)).thenReturn(Optional.of(draft));
+
+        List<Long> deleted = episodeService.bulkDelete(TENANT_ID, List.of(EPISODE_ID, 8L, EPISODE_ID));
+
+        assertThat(deleted).containsExactly(EPISODE_ID, 8L);
+        verify(episodeRepository).delete(published);
+        verify(episodeRepository).delete(draft);
+        verify(rssFeedRefreshScheduler, times(1)).requestRefreshAfterCommit(TENANT_ID);
+    }
+
+    @Test
+    void bulkDeleteDraftsOnlySkipsRefresh() {
+        Episode first = episode(EpisodeStatus.DRAFT);
+        Episode second = episode(EpisodeStatus.DRAFT);
+        second.setId(8L);
+        when(episodeRepository.findByIdAndTenantId(EPISODE_ID, TENANT_ID)).thenReturn(Optional.of(first));
+        when(episodeRepository.findByIdAndTenantId(8L, TENANT_ID)).thenReturn(Optional.of(second));
+
+        List<Long> deleted = episodeService.bulkDelete(TENANT_ID, List.of(EPISODE_ID, 8L));
+
+        assertThat(deleted).containsExactly(EPISODE_ID, 8L);
+        verify(rssFeedRefreshScheduler, never()).requestRefreshAfterCommit(anyLong());
+    }
+
+    @Test
+    void bulkDeleteFailsFastOnUnknownId() {
+        Episode draft = episode(EpisodeStatus.DRAFT);
+        when(episodeRepository.findByIdAndTenantId(EPISODE_ID, TENANT_ID)).thenReturn(Optional.of(draft));
+        when(episodeRepository.findByIdAndTenantId(9L, TENANT_ID)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> episodeService.bulkDelete(TENANT_ID, List.of(EPISODE_ID, 9L)))
+                .isInstanceOf(EpisodeNotFoundException.class)
+                .hasMessageContaining("9");
     }
 
     @Test

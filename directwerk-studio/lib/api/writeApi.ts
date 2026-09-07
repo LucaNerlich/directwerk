@@ -4,10 +4,12 @@ import {parseArticleEnvelope, parseArticleListEnvelope} from '@directwerk/api/va
 
 import type {
     ArticleDetail,
+    BulkPublishInput,
     CreateArticleInput,
     UpdateArticleInput,
 } from '@directwerk/api/types'
-import {createPublicationWorkflowApi, studioDelete} from './studioApiCore'
+import {parseBulkDeleteEnvelope} from '@directwerk/api/validation/catalog'
+import {createPublicationWorkflowApi, jsonInit, studioDelete, studioMutate} from './studioApiCore'
 
 const articleApi = createPublicationWorkflowApi<
     ArticleDetail,
@@ -39,4 +41,47 @@ export async function deleteArticle(
     articleId: number,
 ): Promise<void> {
     return studioDelete(`/api/proxy/articles/${articleId}`, tenantHost)
+}
+
+const invalidArticleMessage = 'Der Server hat einen ungültigen Beitrag gesendet.'
+const invalidBulkDeleteMessage = 'Der Server hat eine ungültige Löschantwort gesendet.'
+
+export async function bulkPublishArticles(
+    tenantHost: string,
+    input: BulkPublishInput,
+): Promise<ArticleDetail[]> {
+    return studioMutate(
+        '/api/proxy/articles/bulk/publish',
+        tenantHost,
+        jsonInit('POST', input),
+        parseArticleListEnvelope,
+        invalidArticleMessage,
+    )
+}
+
+export async function bulkUnpublishArticles(
+    tenantHost: string,
+    ids: number[],
+): Promise<ArticleDetail[]> {
+    return studioMutate(
+        '/api/proxy/articles/bulk/unpublish',
+        tenantHost,
+        jsonInit('POST', {ids}),
+        parseArticleListEnvelope,
+        invalidArticleMessage,
+    )
+}
+
+export async function bulkDeleteArticles(
+    tenantHost: string,
+    ids: number[],
+): Promise<number[]> {
+    const result = await studioMutate(
+        '/api/proxy/articles/bulk/delete',
+        tenantHost,
+        jsonInit('POST', {ids}),
+        parseBulkDeleteEnvelope,
+        invalidBulkDeleteMessage,
+    )
+    return result.deletedIds
 }

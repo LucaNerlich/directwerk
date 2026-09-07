@@ -19,6 +19,7 @@ import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -32,6 +33,7 @@ import de.pnnit.directwerk.modules.core.service.ScheduledPublicationExecutor;
 import de.pnnit.directwerk.modules.digital.entity.AccessPolicy;
 import de.pnnit.directwerk.modules.newsletter.entity.Article;
 import de.pnnit.directwerk.modules.newsletter.entity.ArticleStatus;
+import de.pnnit.directwerk.modules.newsletter.exception.ArticleNotFoundException;
 import de.pnnit.directwerk.modules.newsletter.exception.ArticleValidationException;
 import de.pnnit.directwerk.modules.newsletter.job.ArticleRssFeedRefreshJobProducer;
 import de.pnnit.directwerk.modules.content.InvalidPublicationTransitionException;
@@ -321,8 +323,52 @@ class ArticlePublicationWorkflowServiceTest {
         assertThat(published.getStatus()).isEqualTo(ArticleStatus.PUBLISHED);
     }
 
-    private static void authenticate(Long userId, Role... roles) {
-        List<SimpleGrantedAuthority> authorities = Arrays.stream(roles)
+    @Test
+    void bulkPublishPublishesAllWithSingleRefreshAndDedupesIds() {
+        Article first = draftArticle();
+        Article second = draftArticle();
+        second.setId(8L);
+        when(articleService.requireArticle(10L, 7L)).thenReturn(first);
+        when(articleService.requireArticle(10L, 8L)).thenReturn(second);
+
+        List<Article> published = articlePublicationWorkflowService.bulkPublish(
+                10L, List.of(7L, 8L, 7L), false, null);
+
+        assertThat(published).hasSize(2);
+        assertThat(published).allMatch(article -> article.getStatus() == ArticleStatus.PUBLISHED);
+        verify(articleRssFeedRefreshScheduler, times(1)).requestRefreshAfterCommit(10L);
+    }
+
+    @Test
+    void bulkPublishFailsFastOnUnknownId() {
+        Article first = draftArticle();
+        when(articleService.requireArticle(10L, 7L)).thenReturn(first);
+        when(articleService.requireArticle(10L, 8L)).thenThrow(new ArticleNotFoundException(8L));
+
+        assertThatThrownBy(() -> articlePublicationWorkflowService.bulkPublish(
+                10L, List.of(7L, 8L), false, null))
+                .isInstanceOf(ArticleNotFoundException.class)
+                .hasMessageContaining("8");
+    }
+
+    @Test
+    void bulkUnpublishUnpublishesAllWithSingleRefresh() {
+        Article first = draftArticle();
+        first.setStatus(ArticleStatus.PUBLISHED);
+        Article second = draftArticle();
+        second.setId(8L);
+        second.setStatus(ArticleStatus.PUBLISHED);
+        when(articleService.requireArticle(10L, 7L)).thenReturn(first);
+        when(articleService.requireArticle(10L, 8L)).thenReturn(second);
+
+        List<Article> unpublished = articlePublicationWorkflowService.bulkUnpublish(10L, List.of(7L, 8L));
+
+        assertThat(unpublished).hasSize(2);
+        assertThat(unpublished).allMatch(article -> article.getStatus() == ArticleStatus.DRAFT);
+        verify(articleRssFeedRefreshScheduler, times(1)).requestRefreshAfterCommit(10L);
+    }
+
+    private static void authenticate(Long userId, Role... roles) {        List<SimpleGrantedAuthority> authorities = Arrays.stream(roles)
                 .map(role -> new SimpleGrantedAuthority("ROLE_" + role.name()))
                 .toList();
         DirectwerkUserPrincipal principal = new DirectwerkUserPrincipal(
