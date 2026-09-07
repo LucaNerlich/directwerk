@@ -224,6 +224,23 @@ describe('SideNav', () => {
         expect(screen.queryByText('Abos')).not.toBeInTheDocument()
     })
 
+    it('shows Statistiken in Auswertung for tenants with content', () => {
+        renderNavigation(<SideNav config={config()} />)
+        expect(screen.getByRole('link', {name: 'Statistiken'})).toHaveAttribute(
+            'href',
+            '/analytics',
+        )
+    })
+
+    it('hides Statistiken when the tenant has no desks or modules', () => {
+        renderNavigation(
+            <SideNav
+                config={config({enabledModules: [], studioDesks: []})}
+            />,
+        )
+        expect(screen.queryByRole('link', {name: 'Statistiken'})).not.toBeInTheDocument()
+    })
+
     it('shows Settings and Team links for TENANT_ADMIN', () => {
         renderNavigation(
             <MeProvider me={adminMe()}>
