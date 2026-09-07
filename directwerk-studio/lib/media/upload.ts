@@ -6,10 +6,9 @@ import {confirmUpload} from '@/lib/api/mediaApi'
 import {getValidAccessToken} from '@/lib/auth/session'
 import {clearTokens} from '@/lib/auth/tokenStore'
 import {
-    exceedsMediaLimit,
     exceedsMediaLimitFor,
-    mediaLimitLabel,
     mediaLimitLabelFor,
+    MEDIA_TYPE_LIMITS,
     type ResolvedMediaLimits,
 } from '@/lib/media/limits'
 
@@ -26,7 +25,7 @@ export async function uploadMediaFile(
         onProgress?: (percent: number) => void
     },
 ) {
-    const limits = options?.limits
+    const limits = options?.limits ?? MEDIA_TYPE_LIMITS
     return uploadMediaFileBrowser({
         tenantHost,
         file,
@@ -38,13 +37,7 @@ export async function uploadMediaFile(
         getAccessToken: getValidAccessToken,
         onAuthRequired: clearTokens,
         confirmUpload,
-        exceedsLimit:
-            limits === undefined
-                ? exceedsMediaLimit
-                : (assetType, size) => exceedsMediaLimitFor(limits, assetType, size),
-        limitLabel:
-            limits === undefined
-                ? mediaLimitLabel
-                : (assetType) => mediaLimitLabelFor(limits, assetType),
+        exceedsLimit: (assetType, size) => exceedsMediaLimitFor(limits, assetType, size),
+        limitLabel: (assetType) => mediaLimitLabelFor(limits, assetType),
     })
 }

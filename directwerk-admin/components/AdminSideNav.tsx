@@ -12,6 +12,7 @@ import {
 } from '@directwerk/ui/components/sidebar'
 
 import type {NavigationItem} from '@directwerk/ui/lib/navigation'
+import {cn} from '@directwerk/ui/lib/utils'
 
 const NAV_ITEMS: readonly NavigationItem[] = [
     {href: '/', label: 'Overview'},
@@ -29,16 +30,12 @@ function isActivePath(pathname: string, href: string): boolean {
 }
 
 function linkClassName(active: boolean): string {
-    return [
+    return cn(
         'flex h-8 w-full items-center rounded-md px-2 text-sm outline-none transition-colors',
         'hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
         'focus-visible:ring-2 focus-visible:ring-sidebar-ring',
-        active
-            ? 'bg-sidebar-accent font-medium text-sidebar-accent-foreground'
-            : '',
-    ]
-        .filter((part) => part.length > 0)
-        .join(' ')
+        active && 'bg-sidebar-accent font-medium text-sidebar-accent-foreground',
+    )
 }
 
 export default function AdminSideNav(): React.JSX.Element {

@@ -20,14 +20,14 @@ export default function DocsCta(): React.JSX.Element {
                     </p>
                 </div>
                 <div className="flex shrink-0 flex-wrap gap-2">
-                        <a
-                            className={buttonVariants()}
-                            href={DOCS_URL}
-                            rel="noopener noreferrer"
-                            target="_blank"
-                        >
-                            Dokumentation öffnen
-                        </a>
+                    <a
+                        className={buttonVariants()}
+                        href={DOCS_URL}
+                        rel="noopener noreferrer"
+                        target="_blank"
+                    >
+                        Dokumentation öffnen
+                    </a>
                     {swaggerUrl ? (
                         <a
                             className={buttonVariants({variant: 'outline'})}

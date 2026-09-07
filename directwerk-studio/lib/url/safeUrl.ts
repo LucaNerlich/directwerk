@@ -8,27 +8,26 @@
  */
 
 const SAFE_LINK_PROTOCOLS = new Set(['http:', 'https:', 'mailto:', 'tel:'])
+const SAFE_IMAGE_PROTOCOLS = new Set(['https:'])
 
-
-export function safeLinkHref(value: string | null | undefined): string | null {
+function safeUrlWithProtocols(
+    value: string | null | undefined,
+    allowedProtocols: Set<string>,
+): string | null {
     if (value == null || value.length === 0 || value.length > 4096) {
         return null
     }
     try {
-        return SAFE_LINK_PROTOCOLS.has(new URL(value).protocol) ? value : null
+        return allowedProtocols.has(new URL(value).protocol) ? value : null
     } catch {
         return null
     }
 }
 
+export function safeLinkHref(value: string | null | undefined): string | null {
+    return safeUrlWithProtocols(value, SAFE_LINK_PROTOCOLS)
+}
 
 export function safeImageSrc(value: string | null | undefined): string | null {
-    if (value == null || value.length === 0 || value.length > 4096) {
-        return null
-    }
-    try {
-        return new URL(value).protocol === 'https:' ? value : null
-    } catch {
-        return null
-    }
+    return safeUrlWithProtocols(value, SAFE_IMAGE_PROTOCOLS)
 }

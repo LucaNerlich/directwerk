@@ -7,6 +7,16 @@ export interface SubscribeFeedPair {
     privateFeedUrl?: string | null
 }
 
+function visiblePrivateFeedUrl(
+    pair: SubscribeFeedPair,
+    isAuthenticated: boolean,
+): string | null {
+    if (isAuthenticated && pair.privateFeedUrl != null && pair.privateFeedUrl.length > 0) {
+        return pair.privateFeedUrl
+    }
+    return null
+}
+
 interface HowToSubscribeProps {
     /** Render the podcast block, the articles block, or both. */
     podcast?: SubscribeFeedPair | null
@@ -21,6 +31,7 @@ function PodcastBlock({
     pair: SubscribeFeedPair
     isAuthenticated: boolean
 }): React.JSX.Element {
+    const privateFeedUrl = visiblePrivateFeedUrl(pair, isAuthenticated)
     return (
         <div className="space-y-4">
             <div className="space-y-1">
@@ -49,13 +60,11 @@ function PodcastBlock({
                     url={pair.publicFeedUrl}
                 />
             ) : null}
-            {isAuthenticated &&
-            pair.privateFeedUrl != null &&
-            pair.privateFeedUrl.length > 0 ? (
+            {privateFeedUrl !== null ? (
                 <FeedUrlDisplay
                     description="Enthält Folgen, die deine Mitgliedschaft freischaltet."
                     title="Dein privater Feed"
-                    url={pair.privateFeedUrl}
+                    url={privateFeedUrl}
                 />
             ) : null}
             {!isAuthenticated ? (
@@ -90,6 +99,7 @@ function ArticlesBlock({
     pair: SubscribeFeedPair
     isAuthenticated: boolean
 }): React.JSX.Element {
+    const privateFeedUrl = visiblePrivateFeedUrl(pair, isAuthenticated)
     return (
         <div className="space-y-4">
             <div className="space-y-1">
@@ -114,13 +124,11 @@ function ArticlesBlock({
                     url={pair.publicFeedUrl}
                 />
             ) : null}
-            {isAuthenticated &&
-            pair.privateFeedUrl != null &&
-            pair.privateFeedUrl.length > 0 ? (
+            {privateFeedUrl !== null ? (
                 <FeedUrlDisplay
                     description="Enthält Beiträge, die deine Mitgliedschaft freischaltet."
                     title="Dein privater Beitrags-Feed"
-                    url={pair.privateFeedUrl}
+                    url={privateFeedUrl}
                 />
             ) : null}
             <p className="text-sm text-muted-foreground">

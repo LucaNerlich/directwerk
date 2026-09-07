@@ -17,9 +17,11 @@ import {Table, TableBody, TableCell, TableHead, TableHeader, TableRow} from '@di
 import {
     deleteTenantData,
     getTenantData,
+    getTenantEnvelope,
     postTenantData,
     putTenantData,
 } from '@/lib/api/tenantClient'
+import {parseProductListEnvelope} from '@directwerk/api/validation/catalog'
 import {AUTH_REQUIRED, CONFLICT, REQUEST_FAILED} from '@directwerk/api/constants'
 import type {
     OfferingType,
@@ -27,7 +29,6 @@ import type {
     SubscriptionGrant,
     SubscriptionProduct,
 } from '@directwerk/api/types'
-import {listTenantProducts} from '@/lib/api/tenantProductsApi'
 import {
     clearTenantTokens,
     getTenantSessionHost,
@@ -136,7 +137,11 @@ export default function TenantProductsPanel({
             setGrants([])
         }
 
-        listTenantProducts()
+        getTenantEnvelope(
+            'tenant/products',
+            parseProductListEnvelope,
+            'Could not load products.',
+        )
             .then((products) => {
                 if (latestRequestId.current !== requestId) {
                     return

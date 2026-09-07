@@ -12,11 +12,8 @@ const postTenantData = vi.fn()
 const putTenantData = vi.fn()
 const deleteTenantData = vi.fn()
 
-vi.mock('@/lib/api/tenantProductsApi', () => ({
-    listTenantProducts: (...args: unknown[]) => listTenantProducts(...args),
-}))
-
 vi.mock('@/lib/api/tenantClient', () => ({
+    getTenantEnvelope: (...args: unknown[]) => listTenantProducts(...args),
     getTenantData: (...args: unknown[]) => getTenantData(...args),
     postTenantData: (...args: unknown[]) => postTenantData(...args),
     putTenantData: (...args: unknown[]) => putTenantData(...args),

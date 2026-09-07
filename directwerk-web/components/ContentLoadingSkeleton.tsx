@@ -1,13 +1,5 @@
 import {Skeleton} from '@directwerk/ui/components/skeleton'
 
-export function PageLoadingMessage({
-    message = 'Wird geladen…',
-}: {
-    message?: string
-}): React.JSX.Element {
-    return <p className="text-sm text-muted-foreground">{message}</p>
-}
-
 export function ListPanelSkeleton({
     rows = 4,
 }: {
@@ -36,14 +28,9 @@ export function CardGridSkeleton({
     columns = 2,
 }: {
     cards?: number
-    columns?: 1 | 2 | 3
+    columns?: 2 | 3
 }): React.JSX.Element {
-    const gridClass =
-        columns === 3
-            ? 'sm:grid-cols-2 lg:grid-cols-3'
-            : columns === 1
-              ? 'grid-cols-1'
-              : 'sm:grid-cols-2'
+    const gridClass = columns === 3 ? 'sm:grid-cols-2 lg:grid-cols-3' : 'sm:grid-cols-2'
 
     return (
         <div className={`grid gap-5 ${gridClass}`}>

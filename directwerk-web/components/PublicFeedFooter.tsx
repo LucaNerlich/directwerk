@@ -7,27 +7,15 @@ import FeedUrlDisplay from '@/components/FeedUrlDisplay'
 
 export type PublicFeedKind = 'podcast' | 'articles'
 
-const KIND_COPY: Record<
-    PublicFeedKind,
-    {
-        publicTitle: string
-        privateTitle: string
-        feedNoun: string
-        manageLabel: string
-    }
-> = {
-    podcast: {
-        publicTitle: 'Öffentlicher Feed',
-        privateTitle: 'Dein privater Feed',
-        feedNoun: 'Folgen',
-        manageLabel: 'Alle Feeds verwalten',
-    },
-    articles: {
-        publicTitle: 'Öffentlicher Feed',
-        privateTitle: 'Dein privater Feed',
-        feedNoun: 'Beiträgen',
-        manageLabel: 'Alle Feeds verwalten',
-    },
+const SHARED_COPY = {
+    publicTitle: 'Öffentlicher Feed',
+    privateTitle: 'Dein privater Feed',
+    manageLabel: 'Alle Feeds verwalten',
+}
+
+const FEED_NOUN: Record<PublicFeedKind, string> = {
+    podcast: 'Folgen',
+    articles: 'Beiträgen',
 }
 
 /**
@@ -42,7 +30,6 @@ export function PublicFeedStrip({
     kind: PublicFeedKind
     publicFeedUrl: string
 }): React.JSX.Element {
-    const copy = KIND_COPY[kind]
     const label =
         kind === 'podcast' ? 'Öffentlicher Podcast-Feed' : 'Öffentlicher Beitrags-Feed'
     return (
@@ -50,7 +37,7 @@ export function PublicFeedStrip({
             aria-label="Feed abonnieren"
             className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-xl border bg-card px-4 py-3 text-sm shadow-sm"
         >
-            <span className="font-medium">{copy.publicTitle}</span>
+            <span className="font-medium">{SHARED_COPY.publicTitle}</span>
             <span
                 className="min-w-0 flex-1 truncate font-mono text-xs text-muted-foreground"
                 title={publicFeedUrl}
@@ -87,7 +74,6 @@ export default function PublicFeedFooter({
     if (publicFeedUrl === null) {
         return null
     }
-    const copy = KIND_COPY[kind]
     const description =
         kind === 'podcast'
             ? 'Alle freien Folgen in einer Podcast-App abonnieren.'
@@ -99,12 +85,12 @@ export default function PublicFeedFooter({
     return (
         <section className="flex flex-col gap-4">
             <SectionHeader description={description} title="Feeds" />
-            <FeedUrlDisplay title={copy.publicTitle} url={publicFeedUrl} />
+            <FeedUrlDisplay title={SHARED_COPY.publicTitle} url={publicFeedUrl} />
             {isAuthenticated ? (
                 privateFeedUrl != null && privateFeedUrl.length > 0 ? (
                     <FeedUrlDisplay
                         description={privateDescription}
-                        title={copy.privateTitle}
+                        title={SHARED_COPY.privateTitle}
                         url={privateFeedUrl}
                     />
                 ) : null
@@ -113,7 +99,7 @@ export default function PublicFeedFooter({
                     <Link className="underline" href="/login">
                         Anmelden
                     </Link>
-                    , um deinen privaten Feed mit freigeschalteten {copy.feedNoun}{' '}
+                    , um deinen privaten Feed mit freigeschalteten {FEED_NOUN[kind]}{' '}
                     zu sehen.
                 </p>
             )}
@@ -121,7 +107,7 @@ export default function PublicFeedFooter({
                 className="text-sm font-medium underline-offset-4 hover:underline"
                 href="/feeds"
             >
-                {copy.manageLabel}
+                {SHARED_COPY.manageLabel}
             </Link>
         </section>
     )

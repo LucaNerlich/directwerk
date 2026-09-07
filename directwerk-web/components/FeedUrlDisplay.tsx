@@ -40,17 +40,15 @@ export default function FeedUrlDisplay({
     title,
     description,
     className,
-    defaultVisible,
 }: {
     url: string
     title?: string
     description?: string
     className?: string
-    defaultVisible?: boolean
 }): React.JSX.Element {
-    const shouldCollapse =
-        defaultVisible ?? (!isTokenUrl(url) && url.length <= COLLAPSE_THRESHOLD)
-    const [visible, setVisible] = useState(shouldCollapse)
+    const [visible, setVisible] = useState(
+        !isTokenUrl(url) && url.length <= COLLAPSE_THRESHOLD,
+    )
     const safeHref = isSafeHref(url)
 
     return (

@@ -6,16 +6,9 @@ package de.pnnit.directwerk.modules.core.exception;
  * failure mode, handled once in {@code GlobalExceptionHandler} — controllers no longer
  * catch-and-relabel generic {@link IllegalStateException}s.
  */
-public class ConflictException extends RuntimeException {
-
-    private final String code;
+public class ConflictException extends CodedException {
 
     public ConflictException(String code, String message) {
-        super(message);
-        this.code = code;
-    }
-
-    public String getCode() {
-        return code;
+        super(code, message);
     }
 }

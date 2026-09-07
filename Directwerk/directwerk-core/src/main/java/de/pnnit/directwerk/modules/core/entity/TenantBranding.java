@@ -11,20 +11,27 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.MapsId;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
+import java.time.Instant;
 import lombok.Getter;
 import lombok.Setter;
 import org.hibernate.annotations.Filter;
+import org.springframework.data.annotation.LastModifiedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 @Entity
 @Table(name = "tenant_branding")
-@EntityListeners(TenantWriteGuardListener.class)
+@EntityListeners({TenantWriteGuardListener.class, AuditingEntityListener.class})
 @Filter(name = TenantFilters.FILTER_NAME, condition = TenantFilters.CONDITION)
 @Getter
 @Setter
-public class TenantBranding extends LastModifiedAuditable implements TenantOwned {
+public class TenantBranding implements TenantOwned {
 
     @Id
     private Long tenantId;
+
+    @LastModifiedDate
+    @Column(name = "updated_at", nullable = false)
+    private Instant updatedAt;
 
     @OneToOne(optional = false)
     @MapsId

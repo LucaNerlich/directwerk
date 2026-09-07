@@ -1,7 +1,6 @@
 import {describe, expect, it} from 'vitest'
 
 import {
-    exceedsMediaLimit,
     exceedsMediaLimitFor,
     formatLimitLabel,
     mediaLimitLabel,
@@ -18,11 +17,9 @@ describe('media limits', () => {
         expect(MEDIA_TYPE_LIMITS.DOCUMENT.maxBytes).toBe(50 * 1024 * 1024)
     })
 
-    it('formats labels and checks the limit', () => {
+    it('formats labels', () => {
         expect(mediaLimitLabel('AUDIO')).toBe('5 GB')
         expect(mediaLimitLabel('VIDEO')).toBe('5 GB')
-        expect(exceedsMediaLimit('IMAGE', 10 * 1024 * 1024)).toBe(false)
-        expect(exceedsMediaLimit('IMAGE', 10 * 1024 * 1024 + 1)).toBe(true)
     })
 
     it('resolves tenant overrides into labels and checks', () => {

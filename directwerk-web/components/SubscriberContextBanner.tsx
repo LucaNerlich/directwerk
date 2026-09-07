@@ -9,17 +9,12 @@ import {useSubscriberAuth} from '@/lib/auth/useSubscriberAuth'
 
 export default function SubscriberContextBanner({
     showWhenAuthenticated = true,
-    showWhenAnonymous = true,
 }: {
     showWhenAuthenticated?: boolean
-    showWhenAnonymous?: boolean
 }): React.JSX.Element | null {
     const {isAuthenticated} = useSubscriberAuth()
 
     if (isAuthenticated && !showWhenAuthenticated) {
-        return null
-    }
-    if (!isAuthenticated && !showWhenAnonymous) {
         return null
     }
 

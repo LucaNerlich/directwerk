@@ -65,10 +65,6 @@ export function mediaLimitLabelFor(
     return limits[assetType].label
 }
 
-export function exceedsMediaLimit(assetType: AssetType, sizeBytes: number): boolean {
-    return sizeBytes > MEDIA_TYPE_LIMITS[assetType].maxBytes
-}
-
 export function exceedsMediaLimitFor(
     limits: ResolvedMediaLimits,
     assetType: AssetType,

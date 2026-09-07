@@ -1,6 +1,6 @@
 'use client'
 
-import {useEffect, useRef, useState, useSyncExternalStore} from 'react'
+import {useEffect, useRef, useState} from 'react'
 
 import {API_URL} from '@/lib/marketing/constants'
 
@@ -15,11 +15,11 @@ export default function AltchaWidget({
 }): React.JSX.Element | null {
     const internalRef = useRef<AltchaElement>(null)
     const [altchaLoaded, setAltchaLoaded] = useState(false)
-    const isClient = useSyncExternalStore(
-        () => () => {},
-        () => true,
-        () => false,
-    )
+    const [isClient, setIsClient] = useState(false)
+
+    useEffect(() => {
+        setIsClient(true)
+    }, [])
 
     useEffect(() => {
         if (!isClient) {
