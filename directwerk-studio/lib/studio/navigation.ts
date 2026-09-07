@@ -1,4 +1,4 @@
-import {hasModule} from '@/lib/api/client'
+import {hasDesk, hasModule} from '@/lib/api/client'
 import {isTenantAdminRole} from '@/lib/api/studioHelpers'
 import type {Me, SiteConfig} from '@directwerk/api/types'
 import type {NavigationItem} from '@directwerk/ui/lib/navigation'
@@ -76,6 +76,18 @@ export function buildVerwaltungSections(
                 {href: '/manage/grants', label: 'Freischaltungen'},
                 {href: '/manage/subscribers', label: 'Abonnenten'},
             ],
+        })
+    }
+
+    const showAnalytics =
+        hasDesk(config, 'WRITE') ||
+        hasDesk(config, 'PODCAST') ||
+        showMedia ||
+        showSubscription
+    if (showAnalytics) {
+        sections.push({
+            label: 'Auswertung',
+            items: [{href: '/analytics', label: 'Statistiken'}],
         })
     }
 
