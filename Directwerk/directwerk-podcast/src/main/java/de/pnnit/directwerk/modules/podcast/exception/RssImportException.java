@@ -1,27 +1,29 @@
 package de.pnnit.directwerk.modules.podcast.exception;
 
-public class RssImportException extends RuntimeException {
+import de.pnnit.directwerk.modules.core.exception.CodedStatusException;
 
-    private final String code;
-    private final int status;
+public class RssImportException extends CodedStatusException {
 
+    /**
+     * Creates an RSS import exception with the specified status, error code, and message.
+     *
+     * @param status  the status associated with the exception
+     * @param code    the error code
+     * @param message the exception message
+     */
     public RssImportException(int status, String code, String message) {
-        super(message);
-        this.status = status;
-        this.code = code;
+        super(status, code, message);
     }
 
+    /**
+     * Creates an exception with a status, error code, message, and underlying cause.
+     *
+     * @param status the status associated with the error
+     * @param code the error code
+     * @param message the error message
+     * @param cause the underlying cause
+     */
     public RssImportException(int status, String code, String message, Throwable cause) {
-        super(message, cause);
-        this.status = status;
-        this.code = code;
-    }
-
-    public String getCode() {
-        return code;
-    }
-
-    public int getStatus() {
-        return status;
+        super(status, code, message, cause);
     }
 }

@@ -13,57 +13,17 @@ import PageHeader from '@directwerk/ui/components/page-header'
 import PageStack from '@directwerk/ui/components/page-stack'
 import SectionHeader from '@directwerk/ui/components/section-header'
 
+import FeedUrlActions from '@/components/publication/FeedUrlActions'
 import {hasModule} from '@/lib/api/client'
 import {listArticleFeeds, setArticleFeedEnabled} from '@/lib/api/subscriptionApi'
 import type {ArticleFeedAdminView} from '@directwerk/api/types'
 import {useSiteConfig} from '@/lib/site/SiteConfigProvider'
 import {getClientTenantHost} from '@directwerk/api/tenant'
-import {safeLinkHref} from '@/lib/url/safeUrl'
 import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
 
-function copyUrl(url: string): Promise<void> {
-    return navigator.clipboard.writeText(url)
-}
-
-function FeedUrlActions({
-    copiedUrl,
-    onCopy,
-    url,
-}: {
-    copiedUrl: string | null
-    onCopy: (url: string) => void
-    url: string
-}): React.JSX.Element {
-    return (
-        <div className="flex flex-wrap items-center gap-2">
-            {safeLinkHref(url) !== null ? (
-                <a
-                    className="text-sm font-medium text-primary underline-offset-4 hover:underline"
-                    href={url}
-                    rel="noreferrer"
-                    target="_blank"
-                >
-                    Öffnen
-                </a>
-            ) : null}
-            <Button
-                aria-label={copiedUrl === url ? 'Feed-URL kopiert' : 'Feed-URL kopieren'}
-                onClick={() => onCopy(url)}
-                size="sm"
-                type="button"
-                variant="outline"
-            >
-                {copiedUrl === url ? 'Kopiert!' : 'Kopieren'}
-            </Button>
-            {copiedUrl === url ? (
-                <span className="sr-only" role="status">
-                    Feed-URL kopiert.
-                </span>
-            ) : null}
-        </div>
-    )
-}
-
+/**
+ * Renders the article feed management page, including public and subscriber feeds.
+ */
 export default function ArticleFeedManagementClient(): React.JSX.Element {
     const authRedirect = useAuthRequired()
     const config = useSiteConfig()
@@ -119,7 +79,7 @@ export default function ArticleFeedManagementClient(): React.JSX.Element {
     async function handleCopy(url: string): Promise<void> {
         setErrorMessage(null)
         try {
-            await copyUrl(url)
+            await navigator.clipboard.writeText(url)
             setCopiedUrl(url)
         } catch (error) {
             handleAuthError(error)

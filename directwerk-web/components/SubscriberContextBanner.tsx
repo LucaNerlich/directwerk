@@ -7,19 +7,20 @@ import {buttonVariants} from '@directwerk/ui/components/button'
 
 import {useSubscriberAuth} from '@/lib/auth/useSubscriberAuth'
 
+/**
+ * Displays an authentication-context banner for subscriber content.
+ *
+ * @param showWhenAuthenticated - Whether to display the banner for authenticated users
+ * @returns The context banner, or `null` when authenticated users are excluded
+ */
 export default function SubscriberContextBanner({
     showWhenAuthenticated = true,
-    showWhenAnonymous = true,
 }: {
     showWhenAuthenticated?: boolean
-    showWhenAnonymous?: boolean
 }): React.JSX.Element | null {
     const {isAuthenticated} = useSubscriberAuth()
 
     if (isAuthenticated && !showWhenAuthenticated) {
-        return null
-    }
-    if (!isAuthenticated && !showWhenAnonymous) {
         return null
     }
 

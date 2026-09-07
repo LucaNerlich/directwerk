@@ -19,8 +19,9 @@ vi.mock('@/lib/media/limits', () => {
     type LimitType = keyof typeof limits
     return {
         MEDIA_TYPE_LIMITS: limits,
-        mediaLimitLabel: (type: LimitType) => limits[type].label,
-        exceedsMediaLimit: (type: LimitType, size: number) => size > limits[type].maxBytes,
+        mediaLimitLabelFor: (resolved: typeof limits, type: LimitType) => resolved[type].label,
+        exceedsMediaLimitFor: (resolved: typeof limits, type: LimitType, size: number) =>
+            size > resolved[type].maxBytes,
     }
 })
 

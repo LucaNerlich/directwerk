@@ -12,10 +12,23 @@ import {API_URL} from '@/lib/marketing/constants'
 
 type FormStatus = 'idle' | 'submitting' | 'success' | 'error'
 
+const CONTACT_ERROR_MESSAGES: Record<string, string> = {
+    CAPTCHA_INVALID: 'Die Sicherheitsprüfung ist abgelaufen. Bitte erneut versuchen.',
+    CONTACT_FORM_DISABLED: 'Das Kontaktformular ist derzeit nicht verfügbar.',
+    RATE_LIMIT_EXCEEDED: 'Zu viele Anfragen. Bitte später erneut versuchen.',
+}
+const DEFAULT_CONTACT_ERROR_MESSAGE =
+    'Nachricht konnte nicht gesendet werden. Bitte später erneut versuchen.'
+
 type AltchaElement = HTMLElement & {
     reset?: () => void
 }
 
+/**
+ * Renders the contact form section for submitting inquiries.
+ *
+ * @returns The contact form section element.
+ */
 export default function ContactFormSection(): React.JSX.Element {
     const [status, setStatus] = useState<FormStatus>('idle')
     const [errorMessage, setErrorMessage] = useState<string | null>(null)
@@ -57,16 +70,11 @@ export default function ContactFormSection(): React.JSX.Element {
                     errors?: Array<{code?: string; message?: string}>
                 } | null
                 const code = body?.errors?.[0]?.code
-                if (code === 'CAPTCHA_INVALID') {
-                    throw new Error('Die Sicherheitsprüfung ist abgelaufen. Bitte erneut versuchen.')
-                }
-                if (code === 'CONTACT_FORM_DISABLED') {
-                    throw new Error('Das Kontaktformular ist derzeit nicht verfügbar.')
-                }
-                if (code === 'RATE_LIMIT_EXCEEDED') {
-                    throw new Error('Zu viele Anfragen. Bitte später erneut versuchen.')
-                }
-                throw new Error('Nachricht konnte nicht gesendet werden. Bitte später erneut versuchen.')
+                throw new Error(
+                    code && Object.prototype.hasOwnProperty.call(CONTACT_ERROR_MESSAGES, code)
+                        ? CONTACT_ERROR_MESSAGES[code]
+                        : DEFAULT_CONTACT_ERROR_MESSAGE,
+                )
             }
 
             form.reset()
@@ -78,7 +86,7 @@ export default function ContactFormSection(): React.JSX.Element {
             setErrorMessage(
                 error instanceof Error
                     ? error.message
-                    : 'Nachricht konnte nicht gesendet werden. Bitte später erneut versuchen.',
+                    : DEFAULT_CONTACT_ERROR_MESSAGE,
             )
         }
     }

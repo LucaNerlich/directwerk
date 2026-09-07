@@ -7,6 +7,23 @@ export interface SubscribeFeedPair {
     privateFeedUrl?: string | null
 }
 
+/**
+ * Determines whether a private feed URL is available for an authenticated user.
+ *
+ * @param pair - The feed pair containing the optional private URL
+ * @param isAuthenticated - Whether the user is authenticated
+ * @returns The private feed URL when available, or `null` otherwise
+ */
+function visiblePrivateFeedUrl(
+    pair: SubscribeFeedPair,
+    isAuthenticated: boolean,
+): string | null {
+    if (isAuthenticated && pair.privateFeedUrl != null && pair.privateFeedUrl.length > 0) {
+        return pair.privateFeedUrl
+    }
+    return null
+}
+
 interface HowToSubscribeProps {
     /** Render the podcast block, the articles block, or both. */
     podcast?: SubscribeFeedPair | null
@@ -14,6 +31,13 @@ interface HowToSubscribeProps {
     isAuthenticated: boolean
 }
 
+/**
+ * Renders podcast-app instructions and the available public or private feed URLs.
+ *
+ * @param pair - The public and optional private podcast feed URLs
+ * @param isAuthenticated - Whether the current user is authenticated
+ * @returns The podcast subscription instructions
+ */
 function PodcastBlock({
     pair,
     isAuthenticated,
@@ -21,6 +45,7 @@ function PodcastBlock({
     pair: SubscribeFeedPair
     isAuthenticated: boolean
 }): React.JSX.Element {
+    const privateFeedUrl = visiblePrivateFeedUrl(pair, isAuthenticated)
     return (
         <div className="space-y-4">
             <div className="space-y-1">
@@ -49,13 +74,11 @@ function PodcastBlock({
                     url={pair.publicFeedUrl}
                 />
             ) : null}
-            {isAuthenticated &&
-            pair.privateFeedUrl != null &&
-            pair.privateFeedUrl.length > 0 ? (
+            {privateFeedUrl !== null ? (
                 <FeedUrlDisplay
                     description="Enthält Folgen, die deine Mitgliedschaft freischaltet."
                     title="Dein privater Feed"
-                    url={pair.privateFeedUrl}
+                    url={privateFeedUrl}
                 />
             ) : null}
             {!isAuthenticated ? (
@@ -83,6 +106,12 @@ function PodcastBlock({
     )
 }
 
+/**
+ * Renders instructions and available public and private article feeds for feed readers.
+ *
+ * @param pair - The public and optional private article feed URLs
+ * @returns The article feed subscription instructions
+ */
 function ArticlesBlock({
     pair,
     isAuthenticated,
@@ -90,6 +119,7 @@ function ArticlesBlock({
     pair: SubscribeFeedPair
     isAuthenticated: boolean
 }): React.JSX.Element {
+    const privateFeedUrl = visiblePrivateFeedUrl(pair, isAuthenticated)
     return (
         <div className="space-y-4">
             <div className="space-y-1">
@@ -114,13 +144,11 @@ function ArticlesBlock({
                     url={pair.publicFeedUrl}
                 />
             ) : null}
-            {isAuthenticated &&
-            pair.privateFeedUrl != null &&
-            pair.privateFeedUrl.length > 0 ? (
+            {privateFeedUrl !== null ? (
                 <FeedUrlDisplay
                     description="Enthält Beiträge, die deine Mitgliedschaft freischaltet."
                     title="Dein privater Beitrags-Feed"
-                    url={pair.privateFeedUrl}
+                    url={privateFeedUrl}
                 />
             ) : null}
             <p className="text-sm text-muted-foreground">

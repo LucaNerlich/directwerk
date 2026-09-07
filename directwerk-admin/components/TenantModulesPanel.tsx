@@ -1,6 +1,6 @@
 'use client'
 
-import {useCallback, useEffect, useRef, useState} from 'react'
+import {useCallback, useEffect, useState} from 'react'
 import {useRouter} from 'next/navigation'
 
 import {Alert, AlertDescription} from '@directwerk/ui/components/alert'
@@ -32,18 +32,24 @@ interface TenantModulesPanelProps {
     tenantId: string
 }
 
+/**
+ * Converts a module preset key into title-style text.
+ *
+ * @param preset - The enum-style preset key to format
+ * @returns The preset key with capitalized words separated by spaces
+ */
 function presetLabel(preset: ModulePresetKey): string {
-    return preset
-        .toLowerCase()
-        .split('_')
-        .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-        .join(' ')
+    return preset.toLowerCase().split('_').map((part) => part[0].toUpperCase() + part.slice(1)).join(' ')
 }
 
+/**
+ * Manages the platform modules enabled for a tenant.
+ *
+ * @param tenantId - The tenant whose modules are managed
+ * @returns The tenant module management panel
+ */
 export default function TenantModulesPanel({tenantId}: TenantModulesPanelProps) {
     const router = useRouter()
-    const routerRef = useRef(router)
-    routerRef.current = router
     const [catalog, setCatalog] = useState<ModuleDescriptor[]>([])
     const [enabled, setEnabled] = useState<Set<string>>(new Set())
     const [activations, setActivations] = useState<TenantModuleActivation[]>([])
@@ -77,7 +83,7 @@ export default function TenantModulesPanel({tenantId}: TenantModulesPanelProps) 
                     requestError instanceof Error &&
                     requestError.message === AUTH_REQUIRED
                 ) {
-                    routerRef.current.replace('/login')
+                    router.replace('/login')
                     return
                 }
 
@@ -88,7 +94,7 @@ export default function TenantModulesPanel({tenantId}: TenantModulesPanelProps) 
         return () => {
             isCurrent = false
         }
-    }, [tenantId])
+    }, [tenantId, router])
 
     useEffect(() => {
         return loadModules()
@@ -113,7 +119,7 @@ export default function TenantModulesPanel({tenantId}: TenantModulesPanelProps) 
                 requestError instanceof Error &&
                 requestError.message === AUTH_REQUIRED
             ) {
-                routerRef.current.replace('/login')
+                router.replace('/login')
                 return
             }
 

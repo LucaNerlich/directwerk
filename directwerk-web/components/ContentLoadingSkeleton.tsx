@@ -1,13 +1,11 @@
 import {Skeleton} from '@directwerk/ui/components/skeleton'
 
-export function PageLoadingMessage({
-    message = 'Wird geladen…',
-}: {
-    message?: string
-}): React.JSX.Element {
-    return <p className="text-sm text-muted-foreground">{message}</p>
-}
-
+/**
+ * Renders a loading placeholder for a bordered list panel.
+ *
+ * @param rows - The number of placeholder rows to display; defaults to 4.
+ * @returns The list panel skeleton.
+ */
 export function ListPanelSkeleton({
     rows = 4,
 }: {
@@ -31,19 +29,20 @@ export function ListPanelSkeleton({
     )
 }
 
+/**
+ * Renders a responsive grid of card-shaped loading placeholders.
+ *
+ * @param cards - The number of cards to render
+ * @param columns - The number of columns at large screen sizes
+ */
 export function CardGridSkeleton({
     cards = 4,
     columns = 2,
 }: {
     cards?: number
-    columns?: 1 | 2 | 3
+    columns?: 2 | 3
 }): React.JSX.Element {
-    const gridClass =
-        columns === 3
-            ? 'sm:grid-cols-2 lg:grid-cols-3'
-            : columns === 1
-              ? 'grid-cols-1'
-              : 'sm:grid-cols-2'
+    const gridClass = columns === 3 ? 'sm:grid-cols-2 lg:grid-cols-3' : 'sm:grid-cols-2'
 
     return (
         <div className={`grid gap-5 ${gridClass}`}>

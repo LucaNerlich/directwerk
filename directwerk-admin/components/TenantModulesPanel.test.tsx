@@ -9,11 +9,12 @@ const activateTenantModule = vi.fn()
 const deactivateTenantModule = vi.fn()
 const applyTenantModulePreset = vi.fn()
 const mockReplace = vi.fn()
+// Stable router identity: a fresh object per render would retrigger the
+// panel's data effect on every render (production useRouter is stable).
+const mockRouter = {replace: mockReplace}
 
 vi.mock('next/navigation', () => ({
-    useRouter: () => ({
-        replace: mockReplace,
-    }),
+    useRouter: () => mockRouter,
 }))
 
 vi.mock('@/lib/api/platformModulesApi', () => ({
