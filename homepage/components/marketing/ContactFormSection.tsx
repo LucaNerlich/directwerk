@@ -66,7 +66,9 @@ export default function ContactFormSection(): React.JSX.Element {
                 } | null
                 const code = body?.errors?.[0]?.code
                 throw new Error(
-                    (code && CONTACT_ERROR_MESSAGES[code]) ?? DEFAULT_CONTACT_ERROR_MESSAGE,
+                    code && Object.prototype.hasOwnProperty.call(CONTACT_ERROR_MESSAGES, code)
+                        ? CONTACT_ERROR_MESSAGES[code]
+                        : DEFAULT_CONTACT_ERROR_MESSAGE,
                 )
             }
 
