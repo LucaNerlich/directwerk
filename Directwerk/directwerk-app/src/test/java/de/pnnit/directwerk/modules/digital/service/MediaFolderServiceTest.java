@@ -428,6 +428,45 @@ class MediaFolderServiceTest {
                 .isInstanceOf(MediaFolderNotFoundException.class);
     }
 
+    @Test
+    void renameAssetTrimsAndSanitizes() {
+        MediaAsset asset = assetWithId(7L, 10L);
+        when(mediaAssetRepository.findById(7L)).thenReturn(Optional.of(asset));
+
+        MediaAsset renamed = service.renameAsset(10L, 7L, "  my episode.mp3  ");
+
+        assertThat(renamed.getOriginalFilename()).isEqualTo("my_episode.mp3");
+    }
+
+    @Test
+    void renameAssetRejectsBlankName() {
+        MediaAsset asset = assetWithId(7L, 10L);
+        when(mediaAssetRepository.findById(7L)).thenReturn(Optional.of(asset));
+
+        assertThatThrownBy(() -> service.renameAsset(10L, 7L, "   "))
+                .isInstanceOf(de.pnnit.directwerk.modules.digital.exception.UploadValidationException.class);
+        verify(mediaAssetRepository, never()).save(any(MediaAsset.class));
+    }
+
+    @Test
+    void renameAssetRejectsForeignTenantAsset() {
+        MediaAsset asset = assetWithId(7L, 99L);
+        when(mediaAssetRepository.findById(7L)).thenReturn(Optional.of(asset));
+
+        assertThatThrownBy(() -> service.renameAsset(10L, 7L, "new.mp3"))
+                .isInstanceOf(MediaAssetNotFoundException.class);
+    }
+
+    @Test
+    void renameAssetRejectsTombstonedAsset() {
+        MediaAsset asset = assetWithId(7L, 10L);
+        asset.setStatus(AssetStatus.PENDING_DELETE);
+        when(mediaAssetRepository.findById(7L)).thenReturn(Optional.of(asset));
+
+        assertThatThrownBy(() -> service.renameAsset(10L, 7L, "new.mp3"))
+                .isInstanceOf(MediaAssetNotFoundException.class);
+    }
+
     private void stubAdvisoryLock() {
         Query query = mock(Query.class);
         lenient().when(entityManager.createNativeQuery(any(String.class))).thenReturn(query);

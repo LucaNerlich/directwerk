@@ -43,4 +43,10 @@ public interface MediaFolderApi {
      * Assigns an asset to a folder. A {@code null} folder moves it to the library root.
      */
     MediaAsset moveAsset(Long tenantId, Long assetId, Long folderId);
+
+    /**
+     * Renames an asset's display filename ({@code originalFilename}). The S3 key
+     * stays untouched — folders and renames are metadata only.
+     */
+    MediaAsset renameAsset(Long tenantId, Long assetId, String filename);
 }

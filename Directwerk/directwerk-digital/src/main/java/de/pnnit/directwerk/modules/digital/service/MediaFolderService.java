@@ -160,6 +160,23 @@ public class MediaFolderService implements MediaFolderApi {
     @Override
     @Transactional
     @RequiresModule(DigitalContentModule.KEY)
+    public MediaAsset renameAsset(Long tenantId, Long assetId, String filename) {
+        MediaAsset asset = mediaAssetRepository.findById(assetId)
+                .filter(candidate -> candidate.getTenant() != null
+                        && tenantId.equals(candidate.getTenant().getId()))
+                .orElseThrow(() -> new MediaAssetNotFoundException(assetId));
+        if (asset.getStatus() == AssetStatus.ARCHIVED
+                || asset.getStatus() == AssetStatus.PENDING_DELETE) {
+            throw new MediaAssetNotFoundException(assetId);
+        }
+        permissionService.requireMediaAssetAccess(ContentOperation.UPDATE, asset.getCreatedBy());
+        asset.setOriginalFilename(MediaUploadRules.sanitizeFilename(filename));
+        return mediaAssetRepository.save(asset);
+    }
+
+    @Override
+    @Transactional
+    @RequiresModule(DigitalContentModule.KEY)
     public void assignAssetToFolder(Long tenantId, MediaAsset asset, Long folderId) {
         acquireTenantFolderLock(tenantId);
         validateAndAssignFolder(tenantId, asset, folderId);

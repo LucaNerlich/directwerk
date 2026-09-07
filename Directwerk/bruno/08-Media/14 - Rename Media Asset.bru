@@ -1,0 +1,31 @@
+meta {
+  name: 14 - Rename Media Asset
+  type: http
+  seq: 14
+}
+
+put {
+  url: {{baseUrl}}/api/v1/media/{{mediaAssetId}}
+  body: json
+  auth: inherit
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "filename": "interview-final.mp3"
+  }
+}
+
+tests {
+  test("returns expected status", function() {
+    expect(res.getStatus() === 200 || res.getStatus() === 400 || res.getStatus() === 404 || res.getStatus() === 503).to.equal(true);
+  });
+}
+
+docs {
+  Renames the asset display filename (originalFilename). The S3 key stays untouched — folders and renames are metadata only. Invalid names return 400.
+}

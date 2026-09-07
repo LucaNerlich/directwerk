@@ -31,6 +31,7 @@ import {
     listMediaFolders,
     moveMediaAsset,
     moveMediaFolder,
+    renameMediaAsset,
     renameMediaFolder,
     type MediaFolderDeleteMode,
 } from '@/lib/api/mediaApi'
@@ -46,6 +47,7 @@ import {
     folderPath,
 } from '@/lib/media/folders'
 import MediaFolderDeleteDialog from '@/components/media/MediaFolderDeleteDialog'
+import MediaAssetRenameDialog from '@/components/media/MediaAssetRenameDialog'
 import MediaFolderDialog from '@/components/media/MediaFolderDialog'
 import MediaMoveDialog from '@/components/media/MediaMoveDialog'
 import {uploadMediaFile} from '@/lib/media/upload'
@@ -141,6 +143,8 @@ export default function MediaLibraryClient(): React.JSX.Element {
     >(null)
     const [moveFolderState, setMoveFolderState] = useState<MediaFolder | null>(null)
     const [deleteFolderTarget, setDeleteFolderTarget] = useState<MediaFolder | null>(null)
+    const [renameAssetTarget, setRenameAssetTarget] = useState<MediaAsset | null>(null)
+    const [renameAssetError, setRenameAssetError] = useState<string | null>(null)
     const [folderDialogError, setFolderDialogError] = useState<string | null>(null)
     const [uploadProgress, setUploadProgress] = useState<{file: File; progress: number} | null>(
         null,
@@ -336,6 +340,32 @@ export default function MediaLibraryClient(): React.JSX.Element {
             if (authRedirect(error)) return
             setErrorMessage(
                 error instanceof Error ? error.message : 'Löschen fehlgeschlagen.',
+            )
+        } finally {
+            setIsBusy(false)
+        }
+    }
+
+    async function handleRenameAsset(filename: string): Promise<void> {
+        if (renameAssetTarget === null) {
+            return
+        }
+        const target = renameAssetTarget
+        setIsBusy(true)
+        setRenameAssetError(null)
+        setErrorMessage(null)
+        setStatusMessage(null)
+        try {
+            const renamed = await renameMediaAsset(getClientTenantHost(), target.id, filename)
+            setAssets((current) =>
+                current.map((item) => (item.id === renamed.id ? renamed : item)),
+            )
+            setRenameAssetTarget(null)
+            setStatusMessage(`Datei in „${renamed.originalFilename ?? renamed.id}“ umbenannt.`)
+        } catch (error: unknown) {
+            if (authRedirect(error)) return
+            setRenameAssetError(
+                error instanceof Error ? error.message : 'Umbenennen fehlgeschlagen.',
             )
         } finally {
             setIsBusy(false)
@@ -669,6 +699,18 @@ export default function MediaLibraryClient(): React.JSX.Element {
         description: viewMode === 'list' ? renderAssetMeta(asset) : undefined,
         actions: (
             <span className="flex flex-wrap gap-1">
+                <Button
+                    disabled={isBusy}
+                    onClick={() => {
+                        setRenameAssetError(null)
+                        setRenameAssetTarget(asset)
+                    }}
+                    size="sm"
+                    type="button"
+                    variant="outline"
+                >
+                    Umbenennen
+                </Button>
                 <Button
                     disabled={isBusy}
                     onClick={() => {
@@ -1152,6 +1194,21 @@ export default function MediaLibraryClient(): React.JSX.Element {
                     }
                 }}
                 open={deleteFolderTarget !== null}
+            />
+            <MediaAssetRenameDialog
+                asset={renameAssetTarget}
+                errorMessage={renameAssetError}
+                isSaving={isBusy}
+                onOpenChange={(open) => {
+                    if (!open) {
+                        setRenameAssetTarget(null)
+                        setRenameAssetError(null)
+                    }
+                }}
+                onSubmit={(filename) => {
+                    void handleRenameAsset(filename)
+                }}
+                open={renameAssetTarget !== null}
             />
         </PageStack>
     )

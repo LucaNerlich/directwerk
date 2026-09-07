@@ -7,6 +7,7 @@ import de.pnnit.directwerk.api.dto.MediaAssetView;
 import de.pnnit.directwerk.api.dto.MediaFolderView;
 import de.pnnit.directwerk.api.dto.MoveMediaAssetRequest;
 import de.pnnit.directwerk.api.dto.MoveMediaFolderRequest;
+import de.pnnit.directwerk.api.dto.RenameMediaAssetRequest;
 import de.pnnit.directwerk.api.dto.RenameMediaFolderRequest;
 import de.pnnit.directwerk.api.dto.UploadUrlResponse;
 import de.pnnit.directwerk.api.response.Response;
@@ -162,6 +163,19 @@ public class MediaController {
         requireTenantAsset(asset, id);
         MediaAsset moved = mediaFolderApi.moveAsset(tenantId, id, request.folderId());
         return ResponseEntity.ok(Response.ok(mediaAssetViewMapper.toView(moved)));
+    }
+
+    @PutMapping("/{id}")
+    ResponseEntity<Response<MediaAssetView>> renameAsset(
+            @PathVariable("id") Long id,
+            @Valid @RequestBody RenameMediaAssetRequest request
+    ) {
+        Long tenantId = TenantContext.requireTenantId();
+        MediaAsset asset = mediaAssetQueryApi.findById(id)
+                .orElseThrow(() -> new MediaAssetNotFoundException(id));
+        requireTenantAsset(asset, id);
+        MediaAsset renamed = mediaFolderApi.renameAsset(tenantId, id, request.filename());
+        return ResponseEntity.ok(Response.ok(mediaAssetViewMapper.toView(renamed)));
     }
 
     @PostMapping("/folders")
