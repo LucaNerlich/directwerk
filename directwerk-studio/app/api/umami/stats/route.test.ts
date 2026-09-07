@@ -48,7 +48,6 @@ const authed = {
 beforeEach(() => {
     vi.stubEnv('UMAMI_USERNAME', 'umami-user')
     vi.stubEnv('UMAMI_PASSWORD', 'umami-pass')
-    vi.stubEnv('UMAMI_API_KEY', '')
     vi.stubEnv('UMAMI_API_BASE_URL', '')
     __resetUmamiTokenCacheForTests()
     fetchSiteConfigMock.mockReset()
@@ -82,44 +81,12 @@ describe('GET /api/umami/stats', () => {
         expect(await response.json()).toMatchObject({code: 'UMAMI_CREDENTIALS_MISSING'})
     })
 
-    it('logs in with username/password and reuses the token', async () => {
+    it('proxies stats and pageviews with the login token', async () => {
         const fetchMock = vi.fn()
         fetchMock
             .mockResolvedValueOnce(
                 new Response(JSON.stringify({token: 'login-token'}), {status: 200}),
             )
-            .mockResolvedValueOnce(
-                new Response(JSON.stringify(upstreamStats()), {status: 200}),
-            )
-            .mockResolvedValueOnce(
-                new Response(JSON.stringify(upstreamPageviews()), {status: 200}),
-            )
-        vi.stubGlobal('fetch', fetchMock)
-
-        const response = await GET(request(authed))
-        expect(response.status).toBe(200)
-        const body = await response.json()
-        expect(body.data.stats).toMatchObject({visitors: 40, pageviews: 100})
-
-        const [loginUrl, loginInit] = fetchMock.mock.calls[0] as [string, RequestInit]
-        expect(loginUrl).toBe('https://umami.example.com/api/auth/login')
-        expect(JSON.parse(loginInit.body as string)).toEqual({
-            username: 'umami-user',
-            password: 'umami-pass',
-        })
-        const [, statsInit] = fetchMock.mock.calls[1] as [string, RequestInit]
-        expect((statsInit.headers as Record<string, string>).Authorization).toBe(
-            'Bearer login-token',
-        )
-        expect(fetchMock).toHaveBeenCalledTimes(3)
-    })
-
-    it('uses the API key directly when set (Cloud)', async () => {
-        vi.stubEnv('UMAMI_API_KEY', 'secret-key')
-        vi.stubEnv('UMAMI_USERNAME', '')
-        vi.stubEnv('UMAMI_PASSWORD', '')
-        const fetchMock = vi.fn()
-        fetchMock
             .mockResolvedValueOnce(
                 new Response(JSON.stringify(upstreamStats()), {status: 200}),
             )
@@ -138,17 +105,20 @@ describe('GET /api/umami/stats', () => {
         })
         expect(response.headers.get('Cache-Control')).toContain('max-age=300')
 
-        const [statsUrl, statsInit] = fetchMock.mock.calls[0] as [string, RequestInit]
-        expect(
-            statsUrl.startsWith('https://umami.example.com/api/websites/website-1/stats?'),
-        ).toBe(true)
-        expect((statsInit.headers as Record<string, string>)['x-umami-api-key']).toBe(
-            'secret-key',
+        const [loginUrl, loginInit] = fetchMock.mock.calls[0] as [string, RequestInit]
+        expect(loginUrl).toBe('https://umami.example.com/api/auth/login')
+        expect(JSON.parse(loginInit.body as string)).toEqual({
+            username: 'umami-user',
+            password: 'umami-pass',
+        })
+        const [, statsInit] = fetchMock.mock.calls[1] as [string, RequestInit]
+        expect((statsInit.headers as Record<string, string>).Authorization).toBe(
+            'Bearer login-token',
         )
-        const [pageviewsUrl] = fetchMock.mock.calls[1] as [string, RequestInit]
+        const [pageviewsUrl] = fetchMock.mock.calls[2] as [string, RequestInit]
         expect(pageviewsUrl).toContain('/api/websites/website-1/pageviews?')
         expect(pageviewsUrl).toContain('unit=day')
-        expect(fetchMock).toHaveBeenCalledTimes(2)
+        expect(fetchMock).toHaveBeenCalledTimes(3)
     })
 
     it('re-logs in once when the token expired', async () => {

@@ -92,18 +92,14 @@ async function login(base: string, username: string, password: string): Promise<
 }
 
 /**
- * Resolves the auth headers for Umami API calls. Umami Cloud uses an API key;
- * self-hosted instances authenticate via username/password login, whose token
- * is cached briefly and refreshed on auth failures.
+ * Resolves the auth headers for Umami API calls via username/password login;
+ * the token is cached briefly and refreshed on auth failures. Credentials stay
+ * server-side and are never logged or sent to the browser.
  */
 async function resolveAuthHeaders(
     base: string,
     forceRelogin: boolean,
 ): Promise<Record<string, string> | null> {
-    const apiKey = (process.env.UMAMI_API_KEY ?? '').trim()
-    if (apiKey.length > 0) {
-        return {Accept: 'application/json', 'x-umami-api-key': apiKey}
-    }
     const username = (process.env.UMAMI_USERNAME ?? '').trim()
     const password = process.env.UMAMI_PASSWORD ?? ''
     if (username.length === 0 || password.length === 0) {
@@ -129,14 +125,13 @@ async function resolveAuthHeaders(
  * Studio BFF proxy for Umami website statistics (issue #191).
  *
  * The Umami read API needs credentials the browser must never see, so they
- * stay in server-only env vars and this route calls Umami server-to-server:
- * self-hosted instances log in with `UMAMI_USERNAME`/`UMAMI_PASSWORD`
- * (`POST /api/auth/login`, token cached briefly), while Umami Cloud can use
- * `UMAMI_API_KEY` instead. Tenant and website are not client-controlled: they
- * resolve from the studio site-config, so callers cannot pivot this route
- * into an open proxy. An optional `UMAMI_API_BASE_URL` overrides the API
- * base when the credentials belong to a different host than the tenant's
- * configured Umami host.
+ * stay in the server-only `UMAMI_USERNAME`/`UMAMI_PASSWORD` env vars: this
+ * route logs in (`POST /api/auth/login`) server-to-server and calls the API
+ * with the resulting Bearer token, which is cached briefly. Tenant and
+ * website are not client-controlled: they resolve from the studio
+ * site-config, so callers cannot pivot this route into an open proxy. An
+ * optional `UMAMI_API_BASE_URL` overrides the API base when the credentials
+ * belong to a different host than the tenant's configured Umami host.
  */
 export async function GET(request: Request): Promise<Response> {
     const tenantHost = parseTenantHost(request.headers.get('x-tenant-host'))
@@ -179,7 +174,7 @@ export async function GET(request: Request): Promise<Response> {
         return loginFailed
             ? jsonError('Umami login failed.', 502, 'UMAMI_UNAUTHORIZED')
             : jsonError(
-                  'Umami credentials are missing. Set UMAMI_USERNAME/UMAMI_PASSWORD (self-hosted) or UMAMI_API_KEY (Cloud) on the studio server.',
+                  'Umami credentials are missing. Set UMAMI_USERNAME and UMAMI_PASSWORD on the studio server.',
                   503,
                   'UMAMI_CREDENTIALS_MISSING',
               )
@@ -219,10 +214,7 @@ export async function GET(request: Request): Promise<Response> {
         return jsonError('Umami is unavailable.', 502)
     }
 
-    if (
-        (statsResponse.status === 401 || statsResponse.status === 403) &&
-        authHeaders.Authorization !== undefined
-    ) {
+    if (statsResponse.status === 401 || statsResponse.status === 403) {
         // Token may have expired: log in once more and retry before giving up.
         const refreshed = await resolveAuthHeaders(base, true)
         if (refreshed !== null) {
