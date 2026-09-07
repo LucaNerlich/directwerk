@@ -106,7 +106,7 @@ class MediaAssetLifecycleServiceTest {
         when(directwerkConfig.isStorageEnabled()).thenReturn(true);
         when(directwerkConfig.storage()).thenReturn(storageProps());
         when(tenantRepository.requireById(10L)).thenReturn(tenant);
-        when(mediaAssetRepository.findById(55L)).thenReturn(Optional.of(asset));
+        when(mediaAssetRepository.findByIdForUpdate(55L)).thenReturn(Optional.of(asset));
         when(mediaAssetRepository.saveAndFlush(any(MediaAsset.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         MediaAsset result = lifecycleService.delete(new MediaAssetLifecycleApi.DeleteCommand(55L, null, true));
@@ -125,7 +125,7 @@ class MediaAssetLifecycleServiceTest {
         when(directwerkConfig.isStorageEnabled()).thenReturn(true);
         when(directwerkConfig.storage()).thenReturn(storageProps());
         when(tenantRepository.requireById(10L)).thenReturn(tenant);
-        when(mediaAssetRepository.findById(70L)).thenReturn(Optional.of(asset));
+        when(mediaAssetRepository.findByIdForUpdate(70L)).thenReturn(Optional.of(asset));
         when(mediaAssetRepository.saveAndFlush(any(MediaAsset.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         MediaAsset result = lifecycleService.delete(
@@ -146,7 +146,7 @@ class MediaAssetLifecycleServiceTest {
         when(directwerkConfig.isStorageEnabled()).thenReturn(true);
         when(directwerkConfig.storage()).thenReturn(storageProps());
         when(tenantRepository.requireById(10L)).thenReturn(tenant);
-        when(mediaAssetRepository.findById(80L)).thenReturn(Optional.of(asset));
+        when(mediaAssetRepository.findByIdForUpdate(80L)).thenReturn(Optional.of(asset));
         when(mediaAssetRepository.saveAndFlush(any(MediaAsset.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         MediaAsset result = lifecycleService.delete(
@@ -163,7 +163,7 @@ class MediaAssetLifecycleServiceTest {
         when(directwerkConfig.isStorageEnabled()).thenReturn(true);
         when(directwerkConfig.storage()).thenReturn(storageProps());
         when(tenantRepository.requireById(10L)).thenReturn(tenant);
-        when(mediaAssetRepository.findById(81L)).thenReturn(Optional.of(asset));
+        when(mediaAssetRepository.findByIdForUpdate(81L)).thenReturn(Optional.of(asset));
 
         assertThatThrownBy(() -> lifecycleService.delete(
                 new MediaAssetLifecycleApi.DeleteCommand(81L, editor(3L), false)
@@ -178,7 +178,7 @@ class MediaAssetLifecycleServiceTest {
         when(directwerkConfig.isStorageEnabled()).thenReturn(true);
         when(directwerkConfig.storage()).thenReturn(storageProps());
         when(tenantRepository.requireById(10L)).thenReturn(tenant);
-        when(mediaAssetRepository.findById(82L)).thenReturn(Optional.of(asset));
+        when(mediaAssetRepository.findByIdForUpdate(82L)).thenReturn(Optional.of(asset));
         when(mediaAssetRepository.saveAndFlush(any(MediaAsset.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         MediaAsset result = lifecycleService.delete(
@@ -195,7 +195,7 @@ class MediaAssetLifecycleServiceTest {
         when(directwerkConfig.isStorageEnabled()).thenReturn(true);
         when(directwerkConfig.storage()).thenReturn(storageProps());
         when(tenantRepository.requireById(10L)).thenReturn(tenant);
-        when(mediaAssetRepository.findById(90L)).thenReturn(Optional.of(asset));
+        when(mediaAssetRepository.findByIdForUpdate(90L)).thenReturn(Optional.of(asset));
 
         assertThatThrownBy(() -> lifecycleService.delete(
                 new MediaAssetLifecycleApi.DeleteCommand(90L, null, true)
@@ -211,7 +211,7 @@ class MediaAssetLifecycleServiceTest {
         when(directwerkConfig.isStorageEnabled()).thenReturn(true);
         when(directwerkConfig.storage()).thenReturn(storageProps());
         when(tenantRepository.requireById(10L)).thenReturn(tenant);
-        when(mediaAssetRepository.findById(91L)).thenReturn(Optional.of(asset));
+        when(mediaAssetRepository.findByIdForUpdate(91L)).thenReturn(Optional.of(asset));
 
         MediaAsset result = lifecycleService.delete(
                 new MediaAssetLifecycleApi.DeleteCommand(91L, null, true)
@@ -282,7 +282,7 @@ class MediaAssetLifecycleServiceTest {
         when(directwerkConfig.isStorageEnabled()).thenReturn(true);
         when(directwerkConfig.storage()).thenReturn(storageProps());
         when(tenantRepository.requireById(10L)).thenReturn(tenant);
-        when(mediaAssetRepository.findById(70L)).thenReturn(Optional.of(asset));
+        when(mediaAssetRepository.findByIdForUpdate(70L)).thenReturn(Optional.of(asset));
         when(overrideRepository.findByTenantIdAndUserId(10L, 3L)).thenReturn(List.of(
                 override(ContentEntityType.MEDIA_ASSET, ContentOperation.DELETE, RestrictionScope.OTHERS_ONLY)));
 

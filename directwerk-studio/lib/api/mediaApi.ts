@@ -97,6 +97,20 @@ export async function moveMediaAsset(
     )
 }
 
+export async function renameMediaAsset(
+    tenantHost: string,
+    assetId: number,
+    filename: string,
+): Promise<MediaAsset> {
+    return studioMutate(
+        `/api/proxy/media/${assetId}`,
+        tenantHost,
+        jsonInit('PUT', {filename}),
+        parseMediaAssetEnvelope,
+        invalidMediaMessage,
+    )
+}
+
 export async function listMediaFolders(tenantHost: string): Promise<MediaFolder[]> {
     return studioGet(
         '/api/proxy/media/folders',

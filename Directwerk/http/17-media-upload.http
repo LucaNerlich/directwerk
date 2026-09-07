@@ -264,6 +264,35 @@ Accept: application/json
 
 ###
 
+### @name renameMediaAsset
+### Renames the asset display filename (originalFilename). S3 keys are untouched.
+PUT {{baseUrl}}/api/v1/media/{{mediaAssetId}}
+Authorization: Bearer {{tenantAAccessToken}}
+Host: {{tenantAHost}}
+Content-Type: application/json
+Accept: application/json
+
+{
+  "filename": "interview-final.mp3"
+}
+
+> {%
+    client.test("Rename media asset", function() {
+        client.assert(
+            response.status === 200 || response.status === 400 || response.status === 404 || response.status === 503,
+            "Expected 200/400/404/503"
+        );
+        if (response.status === 200) {
+            client.assert(
+                response.body.data.originalFilename === "interview-final.mp3",
+                "Expected the renamed original filename"
+            );
+        }
+    });
+%}
+
+###
+
 ### @name deleteMedia
 DELETE {{baseUrl}}/api/v1/media/{{mediaAssetId}}
 Authorization: Bearer {{tenantAAccessToken}}

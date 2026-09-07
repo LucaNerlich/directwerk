@@ -52,7 +52,7 @@ public class MediaAssetLifecycleService implements MediaAssetLifecycleApi {
         Long tenantId = TenantContext.requireTenantId();
         Tenant tenant = tenantRepository.requireById(tenantId);
 
-        MediaAsset asset = mediaAssetRepository.findById(command.mediaAssetId())
+        MediaAsset asset = mediaAssetRepository.findByIdForUpdate(command.mediaAssetId())
                 .orElseThrow(() -> new MediaAssetNotFoundException(command.mediaAssetId()));
         if (!tenantId.equals(asset.getTenant().getId())) {
             throw new MediaAssetNotFoundException(command.mediaAssetId());

@@ -27,8 +27,8 @@ public interface MediaAssetRepository extends JpaRepository<MediaAsset, Long> {
     Optional<MediaAsset> findById(Long id);
 
     /**
-     * Re-selects the asset with a pessimistic write lock so concurrent confirm/delete transitions
-     * cannot both pass a status check (confirmUpload TOCTOU).
+     * Re-selects the asset with a pessimistic write lock so concurrent confirm, delete, and rename
+     * transitions cannot race past their status checks.
      */
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @EntityGraph(attributePaths = "tenant")
