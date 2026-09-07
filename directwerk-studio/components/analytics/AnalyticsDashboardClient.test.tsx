@@ -211,7 +211,7 @@ describe('AnalyticsDashboardClient', () => {
         )
 
         await waitFor(() =>
-            expect(screen.getByText(/UMAMI_API_KEY/)).toBeInTheDocument(),
+            expect(screen.getByText(/UMAMI_USERNAME/)).toBeInTheDocument(),
         )
     })
 

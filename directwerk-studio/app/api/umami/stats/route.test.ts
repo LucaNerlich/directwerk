@@ -1,6 +1,6 @@
 import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest'
 
-import {GET} from '@/app/api/umami/stats/route'
+import {GET, __resetUmamiTokenCacheForTests} from '@/app/api/umami/stats/route'
 
 const fetchSiteConfigMock = vi.fn()
 
@@ -46,8 +46,11 @@ const authed = {
 }
 
 beforeEach(() => {
-    vi.stubEnv('UMAMI_API_KEY', 'secret-key')
+    vi.stubEnv('UMAMI_USERNAME', 'umami-user')
+    vi.stubEnv('UMAMI_PASSWORD', 'umami-pass')
+    vi.stubEnv('UMAMI_API_KEY', '')
     vi.stubEnv('UMAMI_API_BASE_URL', '')
+    __resetUmamiTokenCacheForTests()
     fetchSiteConfigMock.mockReset()
     fetchSiteConfigMock.mockResolvedValue(analyticsConfig())
 })
@@ -71,14 +74,50 @@ describe('GET /api/umami/stats', () => {
         expect(await response.json()).toMatchObject({code: 'ANALYTICS_NOT_CONFIGURED'})
     })
 
-    it('returns 503 when the API key is missing', async () => {
-        vi.stubEnv('UMAMI_API_KEY', '')
+    it('returns 503 when the credentials are missing', async () => {
+        vi.stubEnv('UMAMI_USERNAME', '')
+        vi.stubEnv('UMAMI_PASSWORD', '')
         const response = await GET(request(authed))
         expect(response.status).toBe(503)
-        expect(await response.json()).toMatchObject({code: 'UMAMI_API_KEY_MISSING'})
+        expect(await response.json()).toMatchObject({code: 'UMAMI_CREDENTIALS_MISSING'})
     })
 
-    it('proxies stats and pageviews with the server-side key', async () => {
+    it('logs in with username/password and reuses the token', async () => {
+        const fetchMock = vi.fn()
+        fetchMock
+            .mockResolvedValueOnce(
+                new Response(JSON.stringify({token: 'login-token'}), {status: 200}),
+            )
+            .mockResolvedValueOnce(
+                new Response(JSON.stringify(upstreamStats()), {status: 200}),
+            )
+            .mockResolvedValueOnce(
+                new Response(JSON.stringify(upstreamPageviews()), {status: 200}),
+            )
+        vi.stubGlobal('fetch', fetchMock)
+
+        const response = await GET(request(authed))
+        expect(response.status).toBe(200)
+        const body = await response.json()
+        expect(body.data.stats).toMatchObject({visitors: 40, pageviews: 100})
+
+        const [loginUrl, loginInit] = fetchMock.mock.calls[0] as [string, RequestInit]
+        expect(loginUrl).toBe('https://umami.example.com/api/auth/login')
+        expect(JSON.parse(loginInit.body as string)).toEqual({
+            username: 'umami-user',
+            password: 'umami-pass',
+        })
+        const [, statsInit] = fetchMock.mock.calls[1] as [string, RequestInit]
+        expect((statsInit.headers as Record<string, string>).Authorization).toBe(
+            'Bearer login-token',
+        )
+        expect(fetchMock).toHaveBeenCalledTimes(3)
+    })
+
+    it('uses the API key directly when set (Cloud)', async () => {
+        vi.stubEnv('UMAMI_API_KEY', 'secret-key')
+        vi.stubEnv('UMAMI_USERNAME', '')
+        vi.stubEnv('UMAMI_PASSWORD', '')
         const fetchMock = vi.fn()
         fetchMock
             .mockResolvedValueOnce(
@@ -109,6 +148,40 @@ describe('GET /api/umami/stats', () => {
         const [pageviewsUrl] = fetchMock.mock.calls[1] as [string, RequestInit]
         expect(pageviewsUrl).toContain('/api/websites/website-1/pageviews?')
         expect(pageviewsUrl).toContain('unit=day')
+        expect(fetchMock).toHaveBeenCalledTimes(2)
+    })
+
+    it('re-logs in once when the token expired', async () => {
+        const fetchMock = vi.fn()
+        fetchMock
+            .mockResolvedValueOnce(
+                new Response(JSON.stringify({token: 'stale-token'}), {status: 200}),
+            )
+            .mockResolvedValueOnce(new Response('expired', {status: 401}))
+            .mockResolvedValueOnce(new Response('expired', {status: 401}))
+            .mockResolvedValueOnce(
+                new Response(JSON.stringify({token: 'fresh-token'}), {status: 200}),
+            )
+            .mockResolvedValueOnce(
+                new Response(JSON.stringify(upstreamStats()), {status: 200}),
+            )
+            .mockResolvedValueOnce(
+                new Response(JSON.stringify(upstreamPageviews()), {status: 200}),
+            )
+        vi.stubGlobal('fetch', fetchMock)
+
+        const response = await GET(request(authed))
+        expect(response.status).toBe(200)
+        expect((await response.json()).data.stats).toMatchObject({visitors: 40})
+        const loginCalls = fetchMock.mock.calls.filter(
+            ([calledUrl]) =>
+                (calledUrl as string) === 'https://umami.example.com/api/auth/login',
+        )
+        expect(loginCalls).toHaveLength(2)
+        const lastStatsInit = fetchMock.mock.calls[4]?.[1] as RequestInit
+        expect(
+            (lastStatsInit.headers as Record<string, string>).Authorization,
+        ).toBe('Bearer fresh-token')
     })
 
     it('maps upstream auth failures to 502 without leaking details', async () => {

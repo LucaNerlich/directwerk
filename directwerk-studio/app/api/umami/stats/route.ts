@@ -55,15 +55,88 @@ function isStatsPayload(value: unknown): boolean {
     )
 }
 
+/** Short-lived cache for the self-hosted login token (best-effort per worker). */
+let cachedToken: {token: string; obtainedAt: number} | null = null
+const TOKEN_TTL_MS = 15 * 60 * 1_000
+
+export function __resetUmamiTokenCacheForTests(): void {
+    cachedToken = null
+}
+
+async function login(base: string, username: string, password: string): Promise<string | null> {
+    let response: Response
+    try {
+        response = await fetch(`${base}/api/auth/login`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json', Accept: 'application/json'},
+            body: JSON.stringify({username, password}),
+            signal: AbortSignal.timeout(UPSTREAM_TIMEOUT_MS),
+        })
+    } catch {
+        return null
+    }
+    if (!response.ok) {
+        return null
+    }
+    let payload: unknown
+    try {
+        payload = await response.json()
+    } catch {
+        return null
+    }
+    if (typeof payload !== 'object' || payload === null) {
+        return null
+    }
+    const token = (payload as Record<string, unknown>).token
+    return typeof token === 'string' && token.length > 0 ? token : null
+}
+
+/**
+ * Resolves the auth headers for Umami API calls. Umami Cloud uses an API key;
+ * self-hosted instances authenticate via username/password login, whose token
+ * is cached briefly and refreshed on auth failures.
+ */
+async function resolveAuthHeaders(
+    base: string,
+    forceRelogin: boolean,
+): Promise<Record<string, string> | null> {
+    const apiKey = (process.env.UMAMI_API_KEY ?? '').trim()
+    if (apiKey.length > 0) {
+        return {Accept: 'application/json', 'x-umami-api-key': apiKey}
+    }
+    const username = (process.env.UMAMI_USERNAME ?? '').trim()
+    const password = process.env.UMAMI_PASSWORD ?? ''
+    if (username.length === 0 || password.length === 0) {
+        return null
+    }
+    if (
+        !forceRelogin &&
+        cachedToken !== null &&
+        Date.now() - cachedToken.obtainedAt < TOKEN_TTL_MS
+    ) {
+        return {Accept: 'application/json', Authorization: `Bearer ${cachedToken.token}`}
+    }
+    const token = await login(base, username, password)
+    if (token === null) {
+        cachedToken = null
+        return null
+    }
+    cachedToken = {token, obtainedAt: Date.now()}
+    return {Accept: 'application/json', Authorization: `Bearer ${token}`}
+}
+
 /**
  * Studio BFF proxy for Umami website statistics (issue #191).
  *
- * The Umami read API needs an API key the browser must never see, so the
- * key stays in the server-only `UMAMI_API_KEY` env var and this route calls
- * Umami server-to-server. Tenant and website are not client-controlled: they
+ * The Umami read API needs credentials the browser must never see, so they
+ * stay in server-only env vars and this route calls Umami server-to-server:
+ * self-hosted instances log in with `UMAMI_USERNAME`/`UMAMI_PASSWORD`
+ * (`POST /api/auth/login`, token cached briefly), while Umami Cloud can use
+ * `UMAMI_API_KEY` instead. Tenant and website are not client-controlled: they
  * resolve from the studio site-config, so callers cannot pivot this route
  * into an open proxy. An optional `UMAMI_API_BASE_URL` overrides the API
- * base (needed for Umami Cloud, whose API lives on a separate host).
+ * base when the credentials belong to a different host than the tenant's
+ * configured Umami host.
  */
 export async function GET(request: Request): Promise<Response> {
     const tenantHost = parseTenantHost(request.headers.get('x-tenant-host'))
@@ -90,15 +163,6 @@ export async function GET(request: Request): Promise<Response> {
         return jsonError('Umami is not configured for this tenant.', 404, 'ANALYTICS_NOT_CONFIGURED')
     }
 
-    const apiKey = (process.env.UMAMI_API_KEY ?? '').trim()
-    if (apiKey.length === 0) {
-        return jsonError(
-            'Umami API key is missing. Set UMAMI_API_KEY on the studio server.',
-            503,
-            'UMAMI_API_KEY_MISSING',
-        )
-    }
-
     const baseOverride = (process.env.UMAMI_API_BASE_URL ?? '').trim()
     const apiBase = baseOverride.length > 0 ? baseOverride : analytics.umamiHostUrl
     if (!isAllowedApiBase(apiBase)) {
@@ -107,30 +171,47 @@ export async function GET(request: Request): Promise<Response> {
     const base = apiBase.replace(/\/+$/, '')
     const websiteId = analytics.umamiWebsiteId.trim()
 
+    let authHeaders = await resolveAuthHeaders(base, false)
+    if (authHeaders === null) {
+        const loginFailed =
+            (process.env.UMAMI_USERNAME ?? '').trim().length > 0 &&
+            (process.env.UMAMI_PASSWORD ?? '').length > 0
+        return loginFailed
+            ? jsonError('Umami login failed.', 502, 'UMAMI_UNAUTHORIZED')
+            : jsonError(
+                  'Umami credentials are missing. Set UMAMI_USERNAME/UMAMI_PASSWORD (self-hosted) or UMAMI_API_KEY (Cloud) on the studio server.',
+                  503,
+                  'UMAMI_CREDENTIALS_MISSING',
+              )
+    }
+
     const endAt = Date.now()
     const startAt = endAt - RANGES[range].days * 24 * 60 * 60 * 1_000
+    const unit = RANGES[range].unit
     const query = new URLSearchParams({
         startAt: String(startAt),
         endAt: String(endAt),
     })
-    const headers = {
-        Accept: 'application/json',
-        'x-umami-api-key': apiKey,
-    }
 
-    let statsResponse: Response
-    let pageviewsResponse: Response
-    try {
-        ;[statsResponse, pageviewsResponse] = await Promise.all([
+    async function fetchStats(
+        headers: Record<string, string>,
+    ): Promise<[Response, Response]> {
+        return Promise.all([
             fetch(
                 `${base}/api/websites/${encodeURIComponent(websiteId)}/stats?${query}`,
                 {headers, signal: AbortSignal.timeout(UPSTREAM_TIMEOUT_MS)},
             ),
             fetch(
-                `${base}/api/websites/${encodeURIComponent(websiteId)}/pageviews?${query}&unit=${RANGES[range].unit}&timezone=UTC`,
+                `${base}/api/websites/${encodeURIComponent(websiteId)}/pageviews?${query}&unit=${unit}&timezone=UTC`,
                 {headers, signal: AbortSignal.timeout(UPSTREAM_TIMEOUT_MS)},
             ),
         ])
+    }
+
+    let statsResponse: Response
+    let pageviewsResponse: Response
+    try {
+        ;[statsResponse, pageviewsResponse] = await fetchStats(authHeaders)
     } catch (error: unknown) {
         if (error instanceof Error && error.name === 'TimeoutError') {
             return jsonError('Umami request timed out.', 504)
@@ -138,9 +219,28 @@ export async function GET(request: Request): Promise<Response> {
         return jsonError('Umami is unavailable.', 502)
     }
 
+    if (
+        (statsResponse.status === 401 || statsResponse.status === 403) &&
+        authHeaders.Authorization !== undefined
+    ) {
+        // Token may have expired: log in once more and retry before giving up.
+        const refreshed = await resolveAuthHeaders(base, true)
+        if (refreshed !== null) {
+            authHeaders = refreshed
+            try {
+                ;[statsResponse, pageviewsResponse] = await fetchStats(authHeaders)
+            } catch (error: unknown) {
+                if (error instanceof Error && error.name === 'TimeoutError') {
+                    return jsonError('Umami request timed out.', 504)
+                }
+                return jsonError('Umami is unavailable.', 502)
+            }
+        }
+    }
+
     if (statsResponse.status === 401 || statsResponse.status === 403) {
         return jsonError(
-            'Umami rejected the API key or website access.',
+            'Umami rejected the credentials or website access.',
             502,
             'UMAMI_UNAUTHORIZED',
         )
