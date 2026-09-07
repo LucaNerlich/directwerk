@@ -6,33 +6,37 @@ afterEach(() => {
     vi.clearAllMocks()
 })
 
-describe('parseUmamiStats', () => {
-    it('parses a stats + pageviews payload', () => {
-        const stats = parseUmamiStats({
-            data: {
-                range: '30d',
-                startAt: 1,
-                endAt: 2,
-                stats: {
-                    pageviews: 100,
-                    visitors: 40,
-                    visits: 50,
-                    bounces: 10,
-                    totaltime: 3600,
-                    comparison: {
-                        pageviews: 80,
-                        visitors: 30,
-                        visits: 40,
-                        bounces: 8,
-                        totaltime: 3000,
-                    },
-                },
-                pageviews: {
-                    pageviews: [{x: '2026-08-01T00:00:00Z', y: 5}],
-                    sessions: [{x: '2026-08-01T00:00:00Z', y: 2}],
+function umamiPayload() {
+    return {
+        data: {
+            range: '30d',
+            startAt: 1,
+            endAt: 2,
+            stats: {
+                pageviews: 100,
+                visitors: 40,
+                visits: 50,
+                bounces: 10,
+                totaltime: 3600,
+                comparison: {
+                    pageviews: 80,
+                    visitors: 30,
+                    visits: 40,
+                    bounces: 8,
+                    totaltime: 3000,
                 },
             },
-        })
+            pageviews: {
+                pageviews: [{x: '2026-08-01T00:00:00Z', y: 5}],
+                sessions: [{x: '2026-08-01T00:00:00Z', y: 2}],
+            },
+        },
+    }
+}
+
+describe('parseUmamiStats', () => {
+    it('parses a stats + pageviews payload', () => {
+        const stats = parseUmamiStats(umamiPayload())
 
         expect(stats?.range).toBe('30d')
         expect(stats?.stats.visitors).toBe(40)
@@ -52,6 +56,27 @@ describe('parseUmamiStats', () => {
             }),
         ).toBeNull()
         expect(parseUmamiStats(null)).toBeNull()
+    })
+
+    it('rejects overflowing metrics that JSON parses as Infinity', () => {
+        const overflow = JSON.parse('1e309') as number
+        expect(overflow).toBe(Number.POSITIVE_INFINITY)
+
+        const summary = umamiPayload()
+        summary.data.stats.pageviews = overflow
+        expect(parseUmamiStats(summary)).toBeNull()
+
+        const totalTime = umamiPayload()
+        totalTime.data.stats.totaltime = overflow
+        expect(parseUmamiStats(totalTime)).toBeNull()
+
+        const comparison = umamiPayload()
+        comparison.data.stats.comparison.visits = overflow
+        expect(parseUmamiStats(comparison)).toBeNull()
+
+        const series = umamiPayload()
+        series.data.pageviews.sessions[0]!.y = overflow
+        expect(parseUmamiStats(series)).toBeNull()
     })
 })
 

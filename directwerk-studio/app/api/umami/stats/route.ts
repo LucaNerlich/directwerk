@@ -54,6 +54,7 @@ async function login(base: string, username: string, password: string): Promise<
     try {
         response = await fetch(`${base}/api/auth/login`, {
             method: 'POST',
+            redirect: 'error',
             headers: {'Content-Type': 'application/json', Accept: 'application/json'},
             body: JSON.stringify({username, password}),
             signal: AbortSignal.timeout(UPSTREAM_TIMEOUT_MS),

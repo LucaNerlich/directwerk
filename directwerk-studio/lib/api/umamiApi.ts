@@ -37,17 +37,21 @@ export interface UmamiStats {
     sessions: UmamiSeriesPoint[]
 }
 
+function isFiniteNumber(value: unknown): value is number {
+    return typeof value === 'number' && Number.isFinite(value)
+}
+
 function parseComparison(value: unknown): UmamiStatsSummary['comparison'] {
     if (typeof value !== 'object' || value === null) {
         return null
     }
     const {pageviews, visitors, visits, bounces, totaltime} = value as Record<string, unknown>
     if (
-        typeof pageviews !== 'number' ||
-        typeof visitors !== 'number' ||
-        typeof visits !== 'number' ||
-        typeof bounces !== 'number' ||
-        typeof totaltime !== 'number'
+        !isFiniteNumber(pageviews) ||
+        !isFiniteNumber(visitors) ||
+        !isFiniteNumber(visits) ||
+        !isFiniteNumber(bounces) ||
+        !isFiniteNumber(totaltime)
     ) {
         return null
     }
@@ -60,11 +64,16 @@ function parseSummary(value: unknown): UmamiStatsSummary | null {
     }
     const {pageviews, visitors, visits, bounces, totaltime, comparison} = value as Record<string, unknown>
     if (
-        typeof pageviews !== 'number' ||
-        typeof visitors !== 'number' ||
-        typeof visits !== 'number' ||
-        typeof bounces !== 'number'
+        !isFiniteNumber(pageviews) ||
+        !isFiniteNumber(visitors) ||
+        !isFiniteNumber(visits) ||
+        !isFiniteNumber(bounces) ||
+        (totaltime !== undefined && totaltime !== null && !isFiniteNumber(totaltime))
     ) {
+        return null
+    }
+    const parsedComparison = parseComparison(comparison)
+    if (comparison !== undefined && comparison !== null && parsedComparison === null) {
         return null
     }
     return {
@@ -72,8 +81,8 @@ function parseSummary(value: unknown): UmamiStatsSummary | null {
         visitors,
         visits,
         bounces,
-        totaltime: typeof totaltime === 'number' ? totaltime : null,
-        comparison: parseComparison(comparison),
+        totaltime: isFiniteNumber(totaltime) ? totaltime : null,
+        comparison: parsedComparison,
     }
 }
 
@@ -89,7 +98,7 @@ function parseSeries(value: unknown): UmamiSeriesPoint[] | null {
         // Umami's own field name is `x`, not `t` — this is the sole place that
         // reads the raw upstream field name.
         const {x, y} = entry as Record<string, unknown>
-        if (typeof x !== 'string' || typeof y !== 'number') {
+        if (typeof x !== 'string' || !isFiniteNumber(y)) {
             return null
         }
         points.push({t: x, y})

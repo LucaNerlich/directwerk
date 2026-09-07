@@ -1,3 +1,6 @@
+import {createServer, type Server} from 'node:http'
+import type {AddressInfo} from 'node:net'
+
 import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest'
 
 import {GET, __resetUmamiTokenCacheForTests} from '@/app/api/umami/stats/route'
@@ -43,6 +46,18 @@ function request(headers: Record<string, string>, url = 'https://studio.test/api
 const authed = {
     'x-tenant-host': 'tenant.test',
     authorization: 'Bearer token',
+}
+
+async function listen(server: Server): Promise<string> {
+    await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve))
+    const address = server.address() as AddressInfo
+    return `http://127.0.0.1:${address.port}`
+}
+
+async function close(server: Server): Promise<void> {
+    await new Promise<void>((resolve, reject) =>
+        server.close((error) => (error === undefined ? resolve() : reject(error))),
+    )
 }
 
 beforeEach(() => {
@@ -119,6 +134,45 @@ describe('GET /api/umami/stats', () => {
         expect(pageviewsUrl).toContain('/api/websites/website-1/pageviews?')
         expect(pageviewsUrl).toContain('unit=day')
         expect(fetchMock).toHaveBeenCalledTimes(3)
+    })
+
+    it('does not send login credentials to a redirect target', async () => {
+        const redirectedBodies: string[] = []
+        const redirectTarget = createServer((request, response) => {
+            let body = ''
+            request.setEncoding('utf8')
+            request.on('data', (chunk: string) => {
+                body += chunk
+            })
+            request.on('end', () => {
+                redirectedBodies.push(body)
+                response.end(JSON.stringify({token: 'redirected-token'}))
+            })
+        })
+        const redirectTargetBase = await listen(redirectTarget)
+        const umamiServer = createServer((_request, response) => {
+            response.writeHead(307, {
+                Location: `${redirectTargetBase}/api/auth/login`,
+            })
+            response.end()
+        })
+        const umamiBase = await listen(umamiServer)
+        fetchSiteConfigMock.mockResolvedValue({
+            analytics: {
+                ...analyticsConfig().analytics,
+                umamiHostUrl: umamiBase,
+            },
+        })
+
+        try {
+            const response = await GET(request(authed))
+
+            expect(response.status).toBe(502)
+            expect(await response.json()).toMatchObject({code: 'UMAMI_UNAUTHORIZED'})
+            expect(redirectedBodies).toEqual([])
+        } finally {
+            await Promise.all([close(umamiServer), close(redirectTarget)])
+        }
     })
 
     it('re-logs in once when the token expired', async () => {
