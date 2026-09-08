@@ -11,10 +11,31 @@
 
     .content-prose :where(ul, ol) {
         padding-inline-start: 1.5rem;
+        list-style-position: outside;
+    }
+
+    .content-prose :where(ul) {
+        list-style-type: disc;
+    }
+
+    .content-prose :where(ol) {
+        list-style-type: decimal;
     }
 
     .content-prose :where(h2, h3) {
         @apply mt-8 mb-3 font-semibold tracking-tight;
+    }
+
+    .content-prose :where(blockquote) {
+        @apply border-l-4 border-muted-foreground/30 pl-4 text-muted-foreground italic;
+    }
+
+    .content-prose :where(hr) {
+        @apply my-8 border-0 border-t border-border;
+    }
+
+    .content-prose :where(s) {
+        text-decoration: line-through;
     }
 
     .content-prose :where(a) {

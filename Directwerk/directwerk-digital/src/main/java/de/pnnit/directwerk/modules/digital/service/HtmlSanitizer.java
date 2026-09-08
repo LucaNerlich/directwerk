@@ -12,8 +12,8 @@ public class HtmlSanitizer {
     private static final Pattern HTTPS_URL = Pattern.compile("^https://[^\\s\"<>`]+$");
 
     private static final PolicyFactory POLICY = new HtmlPolicyBuilder()
-            .allowElements("p", "br", "strong", "em", "a", "ul", "ol", "li", "h2", "h3",
-                    "img", "figure", "figcaption")
+            .allowElements("p", "br", "strong", "em", "s", "a", "ul", "ol", "li", "h2", "h3",
+                    "blockquote", "hr", "img", "figure", "figcaption")
             .allowUrlProtocols("https", "http", "mailto", "tel")
             .allowAttributes("href").onElements("a")
             .allowAttributes("src").matching(HTTPS_URL).onElements("img")

@@ -23,6 +23,20 @@ class HtmlSanitizerTest {
     }
 
     @Test
+    void allowsNewsletterFormattingTags() {
+        String sanitized = htmlSanitizer.sanitize("""
+                <blockquote><p>Quoted <s>old</s> line</p></blockquote>
+                <hr>
+                <p>After the break</p>
+                """);
+
+        assertThat(sanitized).contains("<blockquote>");
+        assertThat(sanitized).contains("<s>old</s>");
+        assertThat(sanitized).contains("<hr");
+        assertThat(sanitized).contains("After the break");
+    }
+
+    @Test
     void stripsUnsafeLinkProtocols() {
         String sanitized = htmlSanitizer.sanitize("<p><a href=\"javascript:alert(1)\">bad</a></p>");
 

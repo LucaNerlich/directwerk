@@ -4,9 +4,25 @@ import {Button} from '@directwerk/ui/components/button'
 
 import Link from '@tiptap/extension-link'
 import Image from '@tiptap/extension-image'
-import {EditorContent, useEditor} from '@tiptap/react'
+import {EditorContent, useEditor, useEditorState, type Editor} from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
-import {useEffect, useId, useState} from 'react'
+import {
+    Bold,
+    Heading2,
+    Heading3,
+    ImageIcon,
+    Italic,
+    Link2,
+    List,
+    ListOrdered,
+    Minus,
+    Quote,
+    Redo2,
+    RemoveFormatting,
+    Strikethrough,
+    Undo2,
+} from 'lucide-react'
+import {useEffect, useId, useState, type ReactNode} from 'react'
 
 import MediaInlinePickerDialog, {
     inlineInsertKind,
@@ -51,6 +67,237 @@ export function sanitizePastedHtml(html: string): string {
     return parsed.body.innerHTML
 }
 
+function ToolbarDivider() {
+    return <span aria-hidden="true" className="mx-0.5 h-6 w-px self-center bg-border" />
+}
+
+function ToolbarButton({
+    active,
+    disabled,
+    label,
+    onClick,
+    title,
+    children,
+}: {
+    active?: boolean
+    disabled: boolean
+    label: string
+    onClick: () => void
+    title: string
+    children: ReactNode
+}) {
+    return (
+        <Button
+            type="button"
+            size="sm"
+            variant={active ? 'secondary' : 'outline'}
+            disabled={disabled}
+            aria-label={label}
+            aria-pressed={active}
+            title={title}
+            onClick={onClick}
+            className="size-8 px-0"
+        >
+            {children}
+        </Button>
+    )
+}
+
+function EditorToolbar({
+    editor,
+    disabled,
+    formatLabel,
+    allowMediaInsert,
+    onOpenMedia,
+}: {
+    editor: Editor
+    disabled: boolean
+    formatLabel: string
+    allowMediaInsert: boolean
+    onOpenMedia: () => void
+}) {
+    const toolbarLabelId = useId()
+    const mediaDisabled = disabled || !allowMediaInsert
+    const toolbarState = useEditorState({
+        editor,
+        selector: ({editor: current}) => ({
+            canUndo: current.can().undo(),
+            canRedo: current.can().redo(),
+            bold: current.isActive('bold'),
+            italic: current.isActive('italic'),
+            strike: current.isActive('strike'),
+            h2: current.isActive('heading', {level: 2}),
+            h3: current.isActive('heading', {level: 3}),
+            bulletList: current.isActive('bulletList'),
+            orderedList: current.isActive('orderedList'),
+            blockquote: current.isActive('blockquote'),
+            link: current.isActive('link'),
+        }),
+    })
+
+    return (
+        <div
+            aria-labelledby={toolbarLabelId}
+            className="flex flex-wrap items-center gap-1 rounded-lg border bg-muted/40 p-1.5"
+            role="toolbar"
+        >
+            <span className="sr-only" id={toolbarLabelId}>
+                {formatLabel} formatieren
+            </span>
+            <ToolbarButton
+                disabled={disabled || !toolbarState.canUndo}
+                label="Rückgängig"
+                title="Rückgängig (Strg+Z)"
+                onClick={() => editor.chain().focus().undo().run()}
+            >
+                <Undo2 aria-hidden="true" className="size-4" />
+            </ToolbarButton>
+            <ToolbarButton
+                disabled={disabled || !toolbarState.canRedo}
+                label="Wiederholen"
+                title="Wiederholen (Strg+Shift+Z)"
+                onClick={() => editor.chain().focus().redo().run()}
+            >
+                <Redo2 aria-hidden="true" className="size-4" />
+            </ToolbarButton>
+
+            <ToolbarDivider />
+
+            <ToolbarButton
+                active={toolbarState.bold}
+                disabled={disabled}
+                label="Fett"
+                title="Fett (Strg+B)"
+                onClick={() => editor.chain().focus().toggleBold().run()}
+            >
+                <Bold aria-hidden="true" className="size-4" />
+            </ToolbarButton>
+            <ToolbarButton
+                active={toolbarState.italic}
+                disabled={disabled}
+                label="Kursiv"
+                title="Kursiv (Strg+I)"
+                onClick={() => editor.chain().focus().toggleItalic().run()}
+            >
+                <Italic aria-hidden="true" className="size-4" />
+            </ToolbarButton>
+            <ToolbarButton
+                active={toolbarState.strike}
+                disabled={disabled}
+                label="Durchgestrichen"
+                title="Durchgestrichen"
+                onClick={() => editor.chain().focus().toggleStrike().run()}
+            >
+                <Strikethrough aria-hidden="true" className="size-4" />
+            </ToolbarButton>
+            <ToolbarButton
+                disabled={disabled}
+                label="Formatierung entfernen"
+                title="Formatierung entfernen"
+                onClick={() => editor.chain().focus().unsetAllMarks().clearNodes().run()}
+            >
+                <RemoveFormatting aria-hidden="true" className="size-4" />
+            </ToolbarButton>
+
+            <ToolbarDivider />
+
+            <ToolbarButton
+                active={toolbarState.h2}
+                disabled={disabled}
+                label="Überschrift Ebene 2"
+                title="Überschrift Ebene 2"
+                onClick={() => editor.chain().focus().toggleHeading({level: 2}).run()}
+            >
+                <Heading2 aria-hidden="true" className="size-4" />
+            </ToolbarButton>
+            <ToolbarButton
+                active={toolbarState.h3}
+                disabled={disabled}
+                label="Überschrift Ebene 3"
+                title="Überschrift Ebene 3"
+                onClick={() => editor.chain().focus().toggleHeading({level: 3}).run()}
+            >
+                <Heading3 aria-hidden="true" className="size-4" />
+            </ToolbarButton>
+            <ToolbarButton
+                active={toolbarState.bulletList}
+                disabled={disabled}
+                label="Aufzählungsliste"
+                title="Aufzählungsliste"
+                onClick={() => editor.chain().focus().toggleBulletList().run()}
+            >
+                <List aria-hidden="true" className="size-4" />
+            </ToolbarButton>
+            <ToolbarButton
+                active={toolbarState.orderedList}
+                disabled={disabled}
+                label="Nummerierte Liste"
+                title="Nummerierte Liste"
+                onClick={() => editor.chain().focus().toggleOrderedList().run()}
+            >
+                <ListOrdered aria-hidden="true" className="size-4" />
+            </ToolbarButton>
+            <ToolbarButton
+                active={toolbarState.blockquote}
+                disabled={disabled}
+                label="Zitat"
+                title="Zitat"
+                onClick={() => editor.chain().focus().toggleBlockquote().run()}
+            >
+                <Quote aria-hidden="true" className="size-4" />
+            </ToolbarButton>
+            <ToolbarButton
+                disabled={disabled}
+                label="Trennlinie einfügen"
+                title="Trennlinie einfügen"
+                onClick={() => editor.chain().focus().setHorizontalRule().run()}
+            >
+                <Minus aria-hidden="true" className="size-4" />
+            </ToolbarButton>
+
+            <ToolbarDivider />
+
+            <ToolbarButton
+                active={toolbarState.link}
+                disabled={disabled}
+                label="Link einfügen oder entfernen"
+                title="Link einfügen oder entfernen"
+                onClick={() => {
+                    const previous = editor.getAttributes('link').href
+                    const href = window.prompt('Link-URL', previous ?? 'https://')
+                    if (href === null) {
+                        return
+                    }
+                    const trimmed = href.trim()
+                    if (trimmed.length === 0) {
+                        editor.chain().focus().unsetLink().run()
+                        return
+                    }
+                    if (safeLinkHref(trimmed) === null) {
+                        window.alert(
+                            'Bitte eine gültige URL (https://, http://, mailto: oder tel:) eingeben.',
+                        )
+                        return
+                    }
+                    editor.chain().focus().extendMarkRange('link').setLink({href: trimmed}).run()
+                }}
+            >
+                <Link2 aria-hidden="true" className="size-4" />
+            </ToolbarButton>
+            {allowMediaInsert ? (
+                <ToolbarButton
+                    disabled={mediaDisabled}
+                    label="Medium aus Mediathek einfügen"
+                    title="Bild einbetten oder Audio/Video/Dokument verlinken (nur öffentliche Dateien)"
+                    onClick={onOpenMedia}
+                >
+                    <ImageIcon aria-hidden="true" className="size-4" />
+                </ToolbarButton>
+            ) : null}
+        </div>
+    )
+}
+
 /**
  * Provides a rich-text editor for show notes or post content.
  *
@@ -79,7 +326,6 @@ export default function ShowNotesEditor({
     onAuthRequired?: () => void
 }) {
     const labelId = useId()
-    const toolbarLabelId = useId()
     const helperId = useId()
     const [mediaDialogOpen, setMediaDialogOpen] = useState(false)
     const editor = useEditor({
@@ -89,9 +335,7 @@ export default function ShowNotesEditor({
         extensions: [
             StarterKit.configure({
                 heading: {levels: [2, 3]},
-                blockquote: false,
                 codeBlock: false,
-                horizontalRule: false,
                 // StarterKit v3 ships Link; use the dedicated extension instead.
                 link: false,
             }),
@@ -163,133 +407,16 @@ export default function ShowNotesEditor({
             .run()
     }
 
-    const mediaDisabled = disabled || !allowMediaInsert
-
     return (
         <div className="grid gap-2">
             <p className="text-sm font-medium" id={labelId}>{label}</p>
-            <div
-                aria-labelledby={toolbarLabelId}
-                className="flex flex-wrap gap-1 rounded-lg border bg-muted/40 p-1.5"
-                role="toolbar"
-            >
-                <span className="sr-only" id={toolbarLabelId}>
-                    {label} formatieren
-                </span>
-                <Button
-                    type="button"
-                    size="sm"
-                    variant={editor.isActive('bold') ? 'secondary' : 'outline'}
-                    disabled={disabled}
-                    aria-label="Fett"
-                    aria-pressed={editor.isActive('bold')}
-                    title="Fett (Strg+B)"
-                    onClick={() => editor.chain().focus().toggleBold().run()}
-                >
-                    <span aria-hidden="true">B</span>
-                </Button>
-                <Button
-                    type="button"
-                    size="sm"
-                    variant={editor.isActive('italic') ? 'secondary' : 'outline'}
-                    disabled={disabled}
-                    aria-label="Kursiv"
-                    aria-pressed={editor.isActive('italic')}
-                    title="Kursiv (Strg+I)"
-                    onClick={() => editor.chain().focus().toggleItalic().run()}
-                >
-                    <span aria-hidden="true">I</span>
-                </Button>
-                <Button
-                    type="button"
-                    size="sm"
-                    variant={editor.isActive('heading', {level: 2}) ? 'secondary' : 'outline'}
-                    disabled={disabled}
-                    aria-label="Überschrift Ebene 2"
-                    aria-pressed={editor.isActive('heading', {level: 2})}
-                    title="Überschrift Ebene 2"
-                    onClick={() => editor.chain().focus().toggleHeading({level: 2}).run()}
-                >
-                    <span aria-hidden="true">H2</span>
-                </Button>
-                <Button
-                    type="button"
-                    size="sm"
-                    variant={editor.isActive('heading', {level: 3}) ? 'secondary' : 'outline'}
-                    disabled={disabled}
-                    aria-label="Überschrift Ebene 3"
-                    aria-pressed={editor.isActive('heading', {level: 3})}
-                    title="Überschrift Ebene 3"
-                    onClick={() => editor.chain().focus().toggleHeading({level: 3}).run()}
-                >
-                    <span aria-hidden="true">H3</span>
-                </Button>
-                <Button
-                    type="button"
-                    size="sm"
-                    variant={editor.isActive('bulletList') ? 'secondary' : 'outline'}
-                    disabled={disabled}
-                    aria-label="Aufzählungsliste"
-                    aria-pressed={editor.isActive('bulletList')}
-                    title="Aufzählungsliste"
-                    onClick={() => editor.chain().focus().toggleBulletList().run()}
-                >
-                    <span aria-hidden="true">•</span>
-                </Button>
-                <Button
-                    type="button"
-                    size="sm"
-                    variant={editor.isActive('orderedList') ? 'secondary' : 'outline'}
-                    disabled={disabled}
-                    aria-label="Nummerierte Liste"
-                    aria-pressed={editor.isActive('orderedList')}
-                    title="Nummerierte Liste"
-                    onClick={() => editor.chain().focus().toggleOrderedList().run()}
-                >
-                    <span aria-hidden="true">1.</span>
-                </Button>
-                <Button
-                    type="button"
-                    size="sm"
-                    variant={editor.isActive('link') ? 'secondary' : 'outline'}
-                    disabled={disabled}
-                    aria-label="Link einfügen oder entfernen"
-                    aria-pressed={editor.isActive('link')}
-                    title="Link einfügen oder entfernen"
-                    onClick={() => {
-                        const previous = editor.getAttributes('link').href
-                        const href = window.prompt('Link-URL', previous ?? 'https://')
-                        if (href === null) {
-                            return
-                        }
-                        const trimmed = href.trim()
-                        if (trimmed.length === 0) {
-                            editor.chain().focus().unsetLink().run()
-                            return
-                        }
-                        if (safeLinkHref(trimmed) === null) {
-                            window.alert('Bitte eine gültige URL (https://, http://, mailto: oder tel:) eingeben.')
-                            return
-                        }
-                        editor.chain().focus().setLink({href: trimmed}).run()
-                    }}
-                >
-                    Link
-                </Button>
-                {allowMediaInsert ? (
-                    <Button
-                        type="button"
-                        size="sm"
-                        variant="outline"
-                        disabled={mediaDisabled}
-                        aria-label="Medium aus Mediathek einfügen"
-                        title="Bild einbetten oder Audio/Video/Dokument verlinken (nur öffentliche Dateien)"
-                        onClick={() => setMediaDialogOpen(true)}
-                    >
-                        Medium
-                    </Button>
-                ) : null}
-            </div>
+            <EditorToolbar
+                allowMediaInsert={allowMediaInsert}
+                disabled={disabled}
+                editor={editor}
+                formatLabel={label}
+                onOpenMedia={() => setMediaDialogOpen(true)}
+            />
             <div aria-labelledby={labelId}>
                 <EditorContent editor={editor} />
             </div>

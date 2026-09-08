@@ -150,4 +150,19 @@ describe('ShowNotesEditor', () => {
             screen.queryByRole('button', {name: 'Medium aus Mediathek einfügen'}),
         ).not.toBeInTheDocument()
     })
+
+    it('exposes list and quote controls with sensible labels', async () => {
+        const {container} = render(
+            <ShowNotesEditor onChange={vi.fn()} value="<p>Draft</p>" />,
+        )
+
+        await waitFor(() =>
+            expect(container.querySelector('.ProseMirror')).toBeInTheDocument(),
+        )
+        expect(screen.getByRole('button', {name: 'Aufzählungsliste'})).toBeInTheDocument()
+        expect(screen.getByRole('button', {name: 'Nummerierte Liste'})).toBeInTheDocument()
+        expect(screen.getByRole('button', {name: 'Zitat'})).toBeInTheDocument()
+        expect(screen.getByRole('button', {name: 'Trennlinie einfügen'})).toBeInTheDocument()
+        expect(screen.getByRole('button', {name: 'Durchgestrichen'})).toBeInTheDocument()
+    })
 })

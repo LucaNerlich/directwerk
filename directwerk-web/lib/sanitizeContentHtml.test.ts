@@ -14,6 +14,16 @@ describe('sanitizeContentHtml', () => {
         )
     })
 
+    it('preserves newsletter blockquote, strike, and horizontal rules', () => {
+        const html =
+            '<blockquote><p>Quoted <s>old</s> line</p></blockquote><hr /><p>After</p>'
+        const sanitized = sanitizeContentHtml(html)
+        expect(sanitized).toContain('<blockquote>')
+        expect(sanitized).toContain('<s>old</s>')
+        expect(sanitized).toMatch(/<hr\s*\/?>/)
+        expect(sanitized).toContain('After')
+    })
+
     it('strips scripts, event handlers, and active SVG', () => {
         expect(
             sanitizeContentHtml('<p onclick="alert(1)">x</p><script>alert(2)</script>'),

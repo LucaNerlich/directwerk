@@ -19,4 +19,24 @@
     .editor-surface img.ProseMirror-selectednode {
         @apply outline-2 outline-primary;
     }
+
+    .editor-surface :where(ul) {
+        list-style-type: disc;
+    }
+
+    .editor-surface :where(ol) {
+        list-style-type: decimal;
+    }
+
+    .editor-surface :where(ul, ol) {
+        padding-inline-start: 1.5rem;
+    }
+
+    .editor-surface :where(blockquote) {
+        @apply border-l-4 border-muted-foreground/30 pl-4 text-muted-foreground italic;
+    }
+
+    .editor-surface :where(hr) {
+        @apply my-6 border-0 border-t border-border;
+    }
 }
