@@ -44,4 +44,16 @@ describe('AuthBootstrap', () => {
         await act(async () => finishAuthentication())
         expect(await screen.findByText('Page shell')).toBeInTheDocument()
     })
+
+    it('treats newsletter confirm as a public path', async () => {
+        navigation.pathname = '/newsletter/confirm'
+        render(<AuthBootstrap><p>Confirm page</p></AuthBootstrap>)
+
+        expect(screen.getByText('Confirm page')).toBeInTheDocument()
+        await act(async () => {
+            await Promise.resolve()
+        })
+        expect(replace).not.toHaveBeenCalled()
+        expect(ensureAuthenticated).not.toHaveBeenCalled()
+    })
 })

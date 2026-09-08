@@ -19,6 +19,9 @@ const PUBLIC_PATHS = new Set([
     '/pricing',
     '/feeds',
     '/article-feeds',
+    '/newsletter',
+    '/imprint',
+    '/privacy',
 ])
 
 const PROTECTED_PATHS = new Set(['/account', '/downloads'])
@@ -30,7 +33,8 @@ function isPublicPath(pathname: string): boolean {
     return (
         pathname.startsWith('/articles/') ||
         pathname.startsWith('/episodes/') ||
-        pathname.startsWith('/feeds/')
+        pathname.startsWith('/feeds/') ||
+        pathname.startsWith('/newsletter/')
     )
 }
 
