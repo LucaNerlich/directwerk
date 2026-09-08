@@ -71,6 +71,7 @@ const mockArticles: ArticleDetail[] = [
         scheduledAt: null,
         createdBy: null,
         categories: [{id: 11, slug: 'interview', name: 'Interview'}],
+        newsletterLists: [],
     },
     {
         id: 2,
@@ -87,6 +88,7 @@ const mockArticles: ArticleDetail[] = [
         scheduledAt: null,
         createdBy: null,
         categories: [{id: 12, slug: 'news', name: 'News'}],
+        newsletterLists: [],
     },
     {
         id: 3,
@@ -103,6 +105,7 @@ const mockArticles: ArticleDetail[] = [
         scheduledAt: '2026-09-01T12:00:00Z',
         createdBy: null,
         categories: [],
+        newsletterLists: [],
     },
     {
         id: 4,
@@ -119,6 +122,7 @@ const mockArticles: ArticleDetail[] = [
         scheduledAt: null,
         createdBy: null,
         categories: [],
+        newsletterLists: [],
     },
 ]
 
