@@ -97,7 +97,7 @@ export async function archiveNewsletterList(
     return studioMutate(
         `/api/proxy/newsletter-lists/${listId}`,
         tenantHost,
-        jsonInit('DELETE'),
+        {method: 'DELETE'},
         (value) => parseEnvelope(value, parseList),
         'Liste konnte nicht archiviert werden.',
     )
