@@ -3,6 +3,7 @@ package de.pnnit.directwerk.modules.newsletter.service;
 import de.pnnit.directwerk.modules.content.NewsletterNotifyAudienceApi;
 import de.pnnit.directwerk.modules.core.service.FeedTokenProtector;
 import de.pnnit.directwerk.modules.newsletter.entity.NewsletterList;
+import de.pnnit.directwerk.modules.newsletter.entity.NewsletterListStatus;
 import de.pnnit.directwerk.modules.newsletter.entity.NewsletterSubscription;
 import de.pnnit.directwerk.modules.newsletter.repository.ArticleRepository;
 import de.pnnit.directwerk.modules.newsletter.repository.NewsletterSubscriptionRepository;
@@ -30,6 +31,7 @@ public class NewsletterNotifyAudienceService implements NewsletterNotifyAudience
         return articleRepository.findByIdAndTenantId(articleId, tenantId)
                 .map(article -> {
                     Set<Long> listIds = article.getNewsletterLists().stream()
+                            .filter(list -> list.getStatus() == NewsletterListStatus.ACTIVE)
                             .map(NewsletterList::getId)
                             .collect(Collectors.toCollection(java.util.LinkedHashSet::new));
                     if (listIds.isEmpty()) {

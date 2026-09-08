@@ -94,6 +94,8 @@ class ContentNotifyJobHandlerTest {
                 ));
         when(publicContentUrlResolver.newsletterUnsubscribeUrl(TENANT_ID, "unsub-ada"))
                 .thenReturn("https://tenant.example/newsletter/unsubscribe?token=unsub-ada");
+        when(publicContentUrlResolver.newsletterUnsubscribeUrl(TENANT_ID, "unsub-grace"))
+                .thenReturn("https://tenant.example/newsletter/unsubscribe?token=unsub-grace");
 
         handler.handle(job(ContentNotifyJobPayload.from(
                 ContentType.ARTICLE,
@@ -104,26 +106,29 @@ class ContentNotifyJobHandlerTest {
                 "FREE"
         )));
 
-        ArgumentCaptor<Map<String, String>> variablesCaptor = ArgumentCaptor.forClass(Map.class);
+        ArgumentCaptor<Map<String, String>> adaVariablesCaptor = ArgumentCaptor.forClass(Map.class);
         verify(emailJobProducer).enqueueContentNotification(
                 eq(TENANT_ID),
                 eq("ada@example.com"),
                 eq(EmailTemplate.CONTENT_ARTICLE_PUBLISHED),
-                variablesCaptor.capture(),
+                adaVariablesCaptor.capture(),
                 any()
         );
+        ArgumentCaptor<Map<String, String>> graceVariablesCaptor = ArgumentCaptor.forClass(Map.class);
         verify(emailJobProducer).enqueueContentNotification(
                 eq(TENANT_ID),
                 eq("grace@example.com"),
                 eq(EmailTemplate.CONTENT_ARTICLE_PUBLISHED),
-                any(),
+                graceVariablesCaptor.capture(),
                 any()
         );
 
-        Map<String, String> variables = variablesCaptor.getValue();
-        assertThat(variables.get("title")).isEqualTo("Hello world");
-        assertThat(variables.get("unsubscribeUrl"))
+        Map<String, String> adaVariables = adaVariablesCaptor.getValue();
+        assertThat(adaVariables.get("title")).isEqualTo("Hello world");
+        assertThat(adaVariables.get("unsubscribeUrl"))
                 .isEqualTo("https://tenant.example/newsletter/unsubscribe?token=unsub-ada");
+        assertThat(graceVariablesCaptor.getValue().get("unsubscribeUrl"))
+                .isEqualTo("https://tenant.example/newsletter/unsubscribe?token=unsub-grace");
     }
 
     @Test
