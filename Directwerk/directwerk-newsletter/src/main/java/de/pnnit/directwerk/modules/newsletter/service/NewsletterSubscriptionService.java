@@ -5,10 +5,8 @@ import de.pnnit.directwerk.modules.core.util.EmailNormalizer;
 import de.pnnit.directwerk.modules.core.util.TokenHashUtil;
 import de.pnnit.directwerk.modules.email.TransactionalEmailNotifier;
 import de.pnnit.directwerk.modules.newsletter.entity.NewsletterList;
-import de.pnnit.directwerk.modules.newsletter.entity.NewsletterListStatus;
 import de.pnnit.directwerk.modules.newsletter.entity.NewsletterSubscription;
 import de.pnnit.directwerk.modules.newsletter.entity.NewsletterSubscriptionStatus;
-import de.pnnit.directwerk.modules.newsletter.exception.NewsletterListNotFoundException;
 import de.pnnit.directwerk.modules.newsletter.exception.NewsletterSubscriptionNotFoundException;
 import de.pnnit.directwerk.modules.newsletter.repository.NewsletterSubscriptionRepository;
 import java.time.Duration;
@@ -41,10 +39,7 @@ public class NewsletterSubscriptionService {
      */
     @Transactional
     public void requestSubscribe(Long tenantId, String listSlug, String rawEmail) {
-        NewsletterList list = newsletterListService.requireListBySlug(tenantId, listSlug);
-        if (list.getStatus() != NewsletterListStatus.ACTIVE) {
-            throw new NewsletterListNotFoundException(listSlug);
-        }
+        NewsletterList list = newsletterListService.requireActiveListBySlug(tenantId, listSlug);
         String email = EmailNormalizer.normalize(rawEmail);
         Optional<NewsletterSubscription> existing = subscriptionRepository.findByListIdAndEmail(list.getId(), email);
 

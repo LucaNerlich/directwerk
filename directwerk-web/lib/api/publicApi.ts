@@ -1,7 +1,14 @@
 'use client'
 
 import {parseLevelListEnvelope} from '@directwerk/api/validation/catalog'
-import {parsePublicCategoryListEnvelope, parsePublicFormatListEnvelope, parsePublicProductListEnvelope, parsePublicSiteConfigEnvelope} from '@directwerk/api/validation/public'
+import {
+    parsePublicCategoryListEnvelope,
+    parsePublicFormatListEnvelope,
+    parsePublicNewsletterListEnvelope,
+    parsePublicNewsletterListListEnvelope,
+    parsePublicProductListEnvelope,
+    parsePublicSiteConfigEnvelope,
+} from '@directwerk/api/validation/public'
 
 import type {
     ApiEnvelope,
@@ -10,6 +17,7 @@ import type {
     PublicCategory,
     PublicEpisode,
     PublicFormat,
+    PublicNewsletterList,
     PublicProduct,
     PublicSeries,
     PublicSiteConfig,
@@ -100,4 +108,29 @@ export async function listPublicProducts(
         await jsonRequest('/api/proxy/public/products'),
         'The server returned an invalid product list.',
     ).data
+}
+
+export async function listPublicNewsletterLists(): Promise<PublicNewsletterList[]> {
+    return envelopeResult(
+        parsePublicNewsletterListListEnvelope,
+        await jsonRequest('/api/proxy/public/newsletter-lists'),
+        'The server returned an invalid newsletter list catalog.',
+    ).data
+}
+
+export async function getPublicNewsletterList(
+    slug: string,
+): Promise<PublicNewsletterList | null> {
+    try {
+        return envelopeResult(
+            parsePublicNewsletterListEnvelope,
+            await jsonRequest(`/api/proxy/public/newsletter-lists/${encodeURIComponent(slug)}`),
+            'The server returned an invalid newsletter list.',
+        ).data
+    } catch (error: unknown) {
+        if (error instanceof Error && /(status 404|\(404\))/.test(error.message)) {
+            return null
+        }
+        throw error
+    }
 }

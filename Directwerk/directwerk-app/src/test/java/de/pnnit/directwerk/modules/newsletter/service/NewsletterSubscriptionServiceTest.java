@@ -56,7 +56,7 @@ class NewsletterSubscriptionServiceTest {
         when(subscriptionRepository.existsByConfirmTokenHash(anyString())).thenReturn(false);
         when(subscriptionRepository.existsByUnsubscribeTokenHash(anyString())).thenReturn(false);
         NewsletterList list = list();
-        when(newsletterListService.requireListBySlug(10L, "weekly")).thenReturn(list);
+        when(newsletterListService.requireActiveListBySlug(10L, "weekly")).thenReturn(list);
         when(subscriptionRepository.findByListIdAndEmail(1L, "ada@example.com")).thenReturn(Optional.empty());
 
         service.requestSubscribe(10L, "weekly", "Ada@Example.com");

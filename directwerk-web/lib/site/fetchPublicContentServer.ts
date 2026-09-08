@@ -2,7 +2,11 @@ import 'server-only'
 
 import {directwerkFetch} from '@/lib/server/api'
 import {createWebPublicParsers} from '@/lib/publicContent/parsers'
-import type {PublicArticle, PublicEpisode} from '@directwerk/api/types'
+import {
+    parsePublicNewsletterListEnvelope,
+    parsePublicNewsletterListListEnvelope,
+} from '@directwerk/api/validation/public'
+import type {PublicArticle, PublicEpisode, PublicNewsletterList} from '@directwerk/api/types'
 
 const {
     parsePublicArticleEnvelope,
@@ -125,4 +129,59 @@ export async function fetchPublicEpisodeSlugsServer(
         slug: episode.slug,
         publishedAt: episode.publishedAt,
     }))
+}
+
+/**
+ * Fetches a single public newsletter list by slug. Returns `null` for unknown
+ * or archived lists (HTTP 404).
+ */
+export async function fetchPublicNewsletterListServer(
+    host: string,
+    slug: string,
+): Promise<PublicNewsletterList | null> {
+    const response = await directwerkFetch({
+        path: `/api/v1/public/newsletter-lists/${encodeURIComponent(slug)}`,
+        tenantHost: host,
+        method: 'GET',
+    })
+
+    if (response.status === 404) {
+        return null
+    }
+    if (!response.ok) {
+        throw new Error(
+            `public newsletter list request failed (HTTP ${response.status}) for host ${host}`,
+        )
+    }
+
+    const parsed = parsePublicNewsletterListEnvelope(await response.json())
+    if (parsed === null) {
+        throw new Error(`public newsletter list response invalid for host ${host}`)
+    }
+
+    return parsed.data
+}
+
+/**
+ * Lists active public newsletter lists. Returns an empty list on failure so
+ * the catalog page can degrade gracefully.
+ */
+export async function fetchPublicNewsletterListsServer(
+    host: string,
+): Promise<PublicNewsletterList[]> {
+    const response = await directwerkFetch({
+        path: '/api/v1/public/newsletter-lists',
+        tenantHost: host,
+        method: 'GET',
+    })
+    if (!response.ok) {
+        return []
+    }
+
+    const parsed = parsePublicNewsletterListListEnvelope(await response.json())
+    if (parsed === null) {
+        return []
+    }
+
+    return parsed.data
 }

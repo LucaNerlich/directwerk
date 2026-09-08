@@ -3,7 +3,7 @@
 @baseUrl = http://localhost:8080
 @tenantHost = localhost:8080
 
-### List lists
+### List lists (admin)
 GET {{baseUrl}}/api/v1/newsletter-lists
 Host: {{tenantHost}}
 Authorization: Bearer {{tenantAdminAccessToken}}
@@ -19,6 +19,14 @@ Content-Type: application/json
   "name": "Weekly",
   "description": "Weekly digest"
 }
+
+### Public catalog (no auth)
+GET {{baseUrl}}/api/v1/public/newsletter-lists
+Host: {{tenantHost}}
+
+### Public list by slug (no auth)
+GET {{baseUrl}}/api/v1/public/newsletter-lists/weekly
+Host: {{tenantHost}}
 
 ### Public subscribe (no auth)
 POST {{baseUrl}}/api/v1/public/newsletter-lists/weekly/subscribe

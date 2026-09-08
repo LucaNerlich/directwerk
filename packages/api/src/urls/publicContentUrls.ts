@@ -31,3 +31,15 @@ export function publicArticlePageUrl(
 
     return `${origin}/articles/${encodeURIComponent(articleSlug.trim())}`
 }
+
+export function publicNewsletterSubscribeUrl(
+    publicSiteUrl: string | null,
+    listSlug: string,
+): string | null {
+    const origin = publicSiteOrigin(publicSiteUrl)
+    if (origin === null || listSlug.trim().length === 0) {
+        return null
+    }
+
+    return `${origin}/newsletter/${encodeURIComponent(listSlug.trim())}`
+}

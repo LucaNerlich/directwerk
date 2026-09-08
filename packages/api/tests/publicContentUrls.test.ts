@@ -3,6 +3,7 @@ import {describe, expect, it} from 'vitest'
 import {
     publicArticlePageUrl,
     publicEpisodePageUrl,
+    publicNewsletterSubscribeUrl,
     publicSiteOrigin,
 } from '../src/urls/publicContentUrls'
 
@@ -23,15 +24,23 @@ describe('publicContentUrls', () => {
         )
     })
 
+    it('builds newsletter subscribe URL', () => {
+        expect(publicNewsletterSubscribeUrl('https://demo.example', 'weekly')).toBe(
+            'https://demo.example/newsletter/weekly',
+        )
+    })
+
     it('returns null for missing site URLs', () => {
         expect(publicSiteOrigin(null)).toBeNull()
         expect(publicEpisodePageUrl(null, 'folge-1')).toBeNull()
         expect(publicArticlePageUrl(null, 'slug')).toBeNull()
+        expect(publicNewsletterSubscribeUrl(null, 'weekly')).toBeNull()
     })
 
     it('rejects javascript: site URLs instead of interpolating them', () => {
         expect(publicSiteOrigin('javascript:alert(1)')).toBeNull()
         expect(publicEpisodePageUrl('javascript:alert(1)', 'folge-1')).toBeNull()
         expect(publicArticlePageUrl('javascript:alert(1)', 'slug')).toBeNull()
+        expect(publicNewsletterSubscribeUrl('javascript:alert(1)', 'weekly')).toBeNull()
     })
 })

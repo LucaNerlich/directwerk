@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import {useParams} from 'next/navigation'
-import {useState} from 'react'
+import {useMemo, useState} from 'react'
 
 import {Alert, AlertDescription} from '@directwerk/ui/components/alert'
 import {Button} from '@directwerk/ui/components/button'
@@ -10,7 +10,9 @@ import {Input} from '@directwerk/ui/components/input'
 import PageHeader from '@directwerk/ui/components/page-header'
 import PageStack from '@directwerk/ui/components/page-stack'
 import {Skeleton} from '@directwerk/ui/components/skeleton'
+import {publicNewsletterSubscribeUrl} from '@directwerk/api/urls/publicContentUrls'
 
+import PublishedLinksPanel from '@/components/publication/PublishedLinksPanel'
 import {
     archiveNewsletterList,
     listNewsletterLists,
@@ -20,10 +22,12 @@ import {
 } from '@/lib/api/newsletterListsApi'
 import {getClientTenantHost} from '@directwerk/api/tenant'
 import {useAuthedQuery} from '@directwerk/api/client/useAuthedQuery'
+import {useSiteConfig} from '@/lib/site/SiteConfigProvider'
 
 export default function NewsletterListDetailClient(): React.JSX.Element {
     const params = useParams<{listId: string}>()
     const listId = Number(params.listId)
+    const config = useSiteConfig()
     const listsQuery = useAuthedQuery(
         () => listNewsletterLists(getClientTenantHost()),
         {fallbackError: 'Liste konnte nicht geladen werden.'},
@@ -38,6 +42,12 @@ export default function NewsletterListDetailClient(): React.JSX.Element {
     const [error, setError] = useState<string | null>(null)
 
     const displayName = name ?? list?.name ?? ''
+    const subscribeUrl = useMemo(() => {
+        if (list === null || list.status !== 'ACTIVE') {
+            return null
+        }
+        return publicNewsletterSubscribeUrl(config.publicSiteUrl, list.slug)
+    }, [config.publicSiteUrl, list])
 
     async function save(): Promise<void> {
         if (list === null) return
@@ -104,6 +114,21 @@ export default function NewsletterListDetailClient(): React.JSX.Element {
                         ) : null}
                     </div>
                 </div>
+            ) : null}
+            {list?.status === 'ACTIVE' ? (
+                <PublishedLinksPanel
+                    title="Anmelde-Link"
+                    links={
+                        subscribeUrl !== null
+                            ? [{label: 'Öffentliche Anmeldeseite', url: subscribeUrl}]
+                            : []
+                    }
+                    hint={
+                        subscribeUrl === null
+                            ? 'Öffentliche Site-URL ist noch nicht konfiguriert. Unter Einstellungen → Domains eine verifizierte Domain hinterlegen, dann erscheint hier der teilbare Link.'
+                            : 'Diesen Link teilen, damit Leser die Liste ohne Konto abonnieren können.'
+                    }
+                />
             ) : null}
             {error ? (
                 <Alert variant="destructive">

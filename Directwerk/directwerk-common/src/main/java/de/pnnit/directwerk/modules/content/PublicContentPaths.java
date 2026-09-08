@@ -27,4 +27,8 @@ public final class PublicContentPaths {
     public static String newsletterUnsubscribe() {
         return "/newsletter/unsubscribe";
     }
+
+    public static String newsletterSubscribe(String listSlug) {
+        return "/newsletter/" + listSlug;
+    }
 }

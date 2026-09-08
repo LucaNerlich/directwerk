@@ -75,6 +75,8 @@ export {
     parseFeedPreviewEnvelope,
     parsePublicCategoryListEnvelope,
     parsePublicFormatListEnvelope,
+    parsePublicNewsletterListEnvelope,
+    parsePublicNewsletterListListEnvelope,
     parsePublicProductListEnvelope,
     parsePublicSiteConfigEnvelope,
     parseSubscriberDownloadListEnvelope,

@@ -1,0 +1,15 @@
+meta {
+  name: 3b - Public List By Slug
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{baseUrl}}/api/v1/public/newsletter-lists/weekly
+  body: none
+  auth: none
+}
+
+headers {
+  Host: {{tenantAHost}}
+}

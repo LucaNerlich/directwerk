@@ -54,6 +54,15 @@ public class NewsletterListService {
     }
 
     @Transactional(readOnly = true)
+    public NewsletterList requireActiveListBySlug(Long tenantId, String slug) {
+        NewsletterList list = requireListBySlug(tenantId, slug);
+        if (list.getStatus() != NewsletterListStatus.ACTIVE) {
+            throw new NewsletterListNotFoundException(list.getSlug());
+        }
+        return list;
+    }
+
+    @Transactional(readOnly = true)
     public long countActiveSubscriptions(Long listId) {
         return newsletterSubscriptionRepository.countByListIdAndStatus(listId, NewsletterSubscriptionStatus.ACTIVE);
     }

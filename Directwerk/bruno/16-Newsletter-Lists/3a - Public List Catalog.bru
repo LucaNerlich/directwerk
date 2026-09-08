@@ -1,0 +1,15 @@
+meta {
+  name: 3a - Public List Catalog
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/api/v1/public/newsletter-lists
+  body: none
+  auth: none
+}
+
+headers {
+  Host: {{tenantAHost}}
+}

@@ -12,6 +12,7 @@ import type {
     PublicCategory,
     PublicEpisode,
     PublicFormat,
+    PublicNewsletterList,
     PublicProduct,
     PublicSeries,
     PublicSiteConfig,
@@ -732,6 +733,38 @@ export function parsePublicProductListEnvelope(
     return parseEnvelope(value, (data) =>
         parseBoundedArray(data, 200, parsePublicProduct),
     )
+}
+
+function parsePublicNewsletterList(value: unknown): PublicNewsletterList | null {
+    if (
+        !isRecord(value) ||
+        !isBoundedString(value.slug, 64) ||
+        !isBoundedString(value.name, 255) ||
+        !isNullableString(value.description, 4000)
+    ) {
+        return null
+    }
+    return {
+        slug: value.slug,
+        name: value.name,
+        description: value.description,
+    }
+}
+
+/** Parses the public catalog of active newsletter lists. */
+export function parsePublicNewsletterListListEnvelope(
+    value: unknown,
+): ApiEnvelope<PublicNewsletterList[]> | null {
+    return parseEnvelope(value, (data) =>
+        parseBoundedArray(data, 200, parsePublicNewsletterList),
+    )
+}
+
+/** Parses a single public newsletter list by slug. */
+export function parsePublicNewsletterListEnvelope(
+    value: unknown,
+): ApiEnvelope<PublicNewsletterList> | null {
+    return parseEnvelope(value, parsePublicNewsletterList)
 }
 
 /** Validates a checkout/portal `{data: {url}}` reply. */

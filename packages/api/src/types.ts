@@ -163,6 +163,13 @@ export interface NewsletterListSummary {
     updatedAt: string
 }
 
+/** Public guest view of an active newsletter list (no subscriber counts). */
+export interface PublicNewsletterList {
+    slug: string
+    name: string
+    description: string | null
+}
+
 export interface NewsletterSubscriptionSummary {
     id: number
     email: string

@@ -15,8 +15,11 @@ publication** (`Article`), with different **delivery channels**:
 
 Tenant-scoped mailing lists (many per tenant), managed in studio Write desk → **Listen**.
 
+- Public catalog: `GET /api/v1/public/newsletter-lists` (active lists: slug, name, description)
+- Public list page: `GET /api/v1/public/newsletter-lists/{slug}`
 - Guest subscribe: `POST /api/v1/public/newsletter-lists/{slug}/subscribe` (double opt-in)
 - Confirm / unsubscribe: token endpoints under `/api/v1/public/newsletter/*` (no account)
+- Public web pages: `/newsletter` (catalog), `/newsletter/{slug}` (subscribe), `/newsletter/confirm`, `/newsletter/unsubscribe`
 - Article attachment: `PUT /api/v1/articles/{id}/newsletter-lists`
 - On publish with notify + attached lists: ACTIVE subscriptions receive `CONTENT_ARTICLE_PUBLISHED`
 
