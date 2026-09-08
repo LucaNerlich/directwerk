@@ -48,7 +48,7 @@ export default function NewsletterIndexClient({
 
     if (!emailNotify) {
         return (
-            <PageStack>
+            <PageStack className="page-container">
                 <PageHeader title="Newsletter" description="Newsletter sind für diesen Tenant nicht aktiv." />
             </PageStack>
         )
@@ -56,7 +56,7 @@ export default function NewsletterIndexClient({
 
     if (lists === null && error === null) {
         return (
-            <PageStack>
+            <PageStack className="page-container">
                 <PageHeader
                     title="Newsletter abonnieren"
                     description="Keine Anmeldung nötig. Du bekommst eine Bestätigungsmail."
@@ -68,7 +68,7 @@ export default function NewsletterIndexClient({
 
     if (error !== null) {
         return (
-            <PageStack>
+            <PageStack className="page-container">
                 <PageHeader title="Newsletter" description={error} />
             </PageStack>
         )
@@ -78,7 +78,7 @@ export default function NewsletterIndexClient({
 
     if (rows.length === 0) {
         return (
-            <PageStack>
+            <PageStack className="page-container">
                 <PageHeader
                     title="Newsletter"
                     description="Zurzeit gibt es keine offenen Newsletter-Listen."
@@ -94,7 +94,7 @@ export default function NewsletterIndexClient({
     if (rows.length === 1) {
         const list = rows[0]
         return (
-            <PageStack>
+            <PageStack className="page-container">
                 <PageHeader
                     title={list.name}
                     description={
@@ -108,7 +108,7 @@ export default function NewsletterIndexClient({
     }
 
     return (
-        <PageStack>
+        <PageStack className="page-container">
             <PageHeader
                 title="Newsletter abonnieren"
                 description="Wähle eine Liste. Keine Anmeldung nötig — du bekommst eine Bestätigungsmail."

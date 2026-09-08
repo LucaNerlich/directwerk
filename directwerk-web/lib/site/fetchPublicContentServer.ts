@@ -132,8 +132,9 @@ export async function fetchPublicEpisodeSlugsServer(
 }
 
 /**
- * Fetches a single public newsletter list by slug. Returns `null` for unknown
- * or archived lists (HTTP 404).
+ * Fetches a single public newsletter list by slug. Returns `null` only when the
+ * list is missing/archived. Other failures (including undeployed routes) throw
+ * so the client can fall back to the share-link subscribe form.
  */
 export async function fetchPublicNewsletterListServer(
     host: string,
@@ -146,7 +147,19 @@ export async function fetchPublicNewsletterListServer(
     })
 
     if (response.status === 404) {
-        return null
+        const body: unknown = await response.json().catch(() => null)
+        const code =
+            typeof body === 'object' &&
+            body !== null &&
+            'errors' in body &&
+            Array.isArray((body as {errors: unknown}).errors) &&
+            (body as {errors: Array<{code?: string}>}).errors[0]?.code
+        if (code === 'NEWSLETTER_LIST_NOT_FOUND') {
+            return null
+        }
+        throw new Error(
+            `public newsletter list request failed (HTTP ${response.status}) for host ${host}`,
+        )
     }
     if (!response.ok) {
         throw new Error(
@@ -163,8 +176,8 @@ export async function fetchPublicNewsletterListServer(
 }
 
 /**
- * Lists active public newsletter lists. Returns an empty list on failure so
- * the catalog page can degrade gracefully.
+ * Lists active public newsletter lists. Throws on upstream failure so the page
+ * can fall back to a client fetch instead of showing a false empty catalog.
  */
 export async function fetchPublicNewsletterListsServer(
     host: string,
@@ -175,12 +188,14 @@ export async function fetchPublicNewsletterListsServer(
         method: 'GET',
     })
     if (!response.ok) {
-        return []
+        throw new Error(
+            `public newsletter lists request failed (HTTP ${response.status}) for host ${host}`,
+        )
     }
 
     const parsed = parsePublicNewsletterListListEnvelope(await response.json())
     if (parsed === null) {
-        return []
+        throw new Error(`public newsletter lists response invalid for host ${host}`)
     }
 
     return parsed.data

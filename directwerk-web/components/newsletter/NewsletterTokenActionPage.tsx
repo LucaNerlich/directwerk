@@ -61,7 +61,7 @@ function Inner({action}: {action: keyof typeof COPY}): React.JSX.Element {
     }, [action, token])
 
     return (
-        <PageStack>
+        <PageStack className="page-container">
             <PageHeader title={copy.title} />
             {status === 'loading' ? (
                 <p className="text-sm text-muted-foreground">{copy.loadingMessage}</p>

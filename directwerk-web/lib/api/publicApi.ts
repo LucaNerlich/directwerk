@@ -1,5 +1,6 @@
 'use client'
 
+import {apiErrorCode} from '@directwerk/api/envelope'
 import {parseLevelListEnvelope} from '@directwerk/api/validation/catalog'
 import {
     parsePublicCategoryListEnvelope,
@@ -128,7 +129,8 @@ export async function getPublicNewsletterList(
             'The server returned an invalid newsletter list.',
         ).data
     } catch (error: unknown) {
-        if (error instanceof Error && /(status 404|\(404\))/.test(error.message)) {
+        // Real missing/archived list — not a missing route or upstream outage.
+        if (apiErrorCode(error) === 'NEWSLETTER_LIST_NOT_FOUND') {
             return null
         }
         throw error
