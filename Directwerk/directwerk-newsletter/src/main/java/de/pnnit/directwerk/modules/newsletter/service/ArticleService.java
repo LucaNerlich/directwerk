@@ -18,6 +18,8 @@ import de.pnnit.directwerk.modules.digital.exception.MediaAssetNotFoundException
 import de.pnnit.directwerk.modules.digital.entity.AccessPolicy;
 import de.pnnit.directwerk.modules.newsletter.entity.Article;
 import de.pnnit.directwerk.modules.newsletter.entity.ArticleStatus;
+import de.pnnit.directwerk.modules.newsletter.entity.NewsletterList;
+import de.pnnit.directwerk.modules.newsletter.entity.NewsletterListStatus;
 import de.pnnit.directwerk.modules.newsletter.exception.ArticleNotFoundException;
 import de.pnnit.directwerk.modules.newsletter.exception.ArticleValidationException;
 import de.pnnit.directwerk.modules.newsletter.job.ArticleRssFeedRefreshJobProducer;
@@ -172,8 +174,15 @@ public class ArticleService {
         Article article = requireDraftArticle(tenantId, articleId);
         permissionService.requireArticleAccess(ContentOperation.UPDATE, article.getCreatedBy());
         article.getNewsletterLists().clear();
-        article.getNewsletterLists().addAll(newsletterListService.resolveActiveLists(tenantId, listIds,
-                id -> { throw new ArticleValidationException("Newsletter list is inactive: " + id); }));
+        if (listIds != null) {
+            for (Long listId : listIds) {
+                NewsletterList list = newsletterListService.requireList(tenantId, listId);
+                if (list.getStatus() != NewsletterListStatus.ACTIVE) {
+                    throw new ArticleValidationException("Newsletter list is inactive: " + listId);
+                }
+                article.getNewsletterLists().add(list);
+            }
+        }
         articleRepository.save(article);
         return requireArticle(tenantId, articleId);
     }

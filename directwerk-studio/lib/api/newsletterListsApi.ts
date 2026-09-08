@@ -36,7 +36,6 @@ function parseSubscription(value: unknown): NewsletterSubscriptionSummary | null
             value.status === 'PENDING' || value.status === 'UNSUBSCRIBED'
                 ? value.status
                 : 'ACTIVE',
-        source: typeof value.source === 'string' ? value.source : 'PUBLIC_FORM',
         confirmedAt: typeof value.confirmedAt === 'string' ? value.confirmedAt : null,
         unsubscribedAt: typeof value.unsubscribedAt === 'string' ? value.unsubscribedAt : null,
         createdAt: typeof value.createdAt === 'string' ? value.createdAt : '',

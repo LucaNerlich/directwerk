@@ -29,7 +29,6 @@ CREATE TABLE newsletter_subscriptions (
     unsubscribe_token_protected TEXT NOT NULL,
     confirmed_at                TIMESTAMPTZ,
     unsubscribed_at             TIMESTAMPTZ,
-    source                      VARCHAR(32) NOT NULL DEFAULT 'PUBLIC_FORM',
     created_at                  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at                  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     CONSTRAINT uq_newsletter_subscriptions_tenant_id UNIQUE (tenant_id, id),
@@ -41,9 +40,7 @@ CREATE TABLE newsletter_subscriptions (
         REFERENCES newsletter_lists (tenant_id, id)
         ON DELETE CASCADE,
     CONSTRAINT chk_newsletter_subscriptions_status
-        CHECK (status IN ('PENDING', 'ACTIVE', 'UNSUBSCRIBED')),
-    CONSTRAINT chk_newsletter_subscriptions_source
-        CHECK (source IN ('PUBLIC_FORM', 'STUDIO_IMPORT', 'ADMIN'))
+        CHECK (status IN ('PENDING', 'ACTIVE', 'UNSUBSCRIBED'))
 );
 
 CREATE INDEX idx_newsletter_subscriptions_tenant_id ON newsletter_subscriptions(tenant_id);

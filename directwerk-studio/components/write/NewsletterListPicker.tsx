@@ -25,11 +25,6 @@ export default function NewsletterListPicker({
     disabled = false,
     warnMissingAttachment = false,
 }: NewsletterListPickerProps): React.JSX.Element {
-    const selectedCount = selectedListIds.size
-    const selectedRecipients = lists
-        .filter((list) => selectedListIds.has(list.id))
-        .reduce((sum, list) => sum + list.activeCount, 0)
-
     return (
         <fieldset className="m-0 grid gap-2 border-0 p-0" disabled={disabled}>
             <legend className="text-sm font-semibold">Newsletter-Listen</legend>
@@ -80,15 +75,6 @@ export default function NewsletterListPicker({
                             </li>
                         ))}
                     </ul>
-                    {selectedCount > 0 ? (
-                        <p className="text-xs text-muted-foreground" role="status">
-                            {selectedCount === 1
-                                ? '1 Liste'
-                                : `${selectedCount} Listen`}
-                            {' · ca. '}
-                            {selectedRecipients} Empfänger
-                        </p>
-                    ) : null}
                     {warnMissingAttachment ? (
                         <p className="text-xs text-amber-700 dark:text-amber-400" role="status">
                             Benachrichtigen ist an, aber keine Liste angehängt — es wird

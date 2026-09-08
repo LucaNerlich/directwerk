@@ -60,8 +60,4 @@ public class NewsletterSubscription extends BaseEntity implements TenantOwned {
 
     @Column(name = "unsubscribed_at")
     private Instant unsubscribedAt;
-
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 32)
-    private NewsletterSubscriptionSource source = NewsletterSubscriptionSource.PUBLIC_FORM;
 }

@@ -7,7 +7,6 @@ import de.pnnit.directwerk.modules.email.TransactionalEmailNotifier;
 import de.pnnit.directwerk.modules.newsletter.entity.NewsletterList;
 import de.pnnit.directwerk.modules.newsletter.entity.NewsletterListStatus;
 import de.pnnit.directwerk.modules.newsletter.entity.NewsletterSubscription;
-import de.pnnit.directwerk.modules.newsletter.entity.NewsletterSubscriptionSource;
 import de.pnnit.directwerk.modules.newsletter.entity.NewsletterSubscriptionStatus;
 import de.pnnit.directwerk.modules.newsletter.exception.NewsletterListNotFoundException;
 import de.pnnit.directwerk.modules.newsletter.exception.NewsletterSubscriptionNotFoundException;
@@ -32,11 +31,8 @@ public class NewsletterSubscriptionService {
     private final TransactionalEmailNotifier emailNotifier;
 
     @Transactional(readOnly = true)
-    public List<NewsletterSubscription> listSubscriptions(Long tenantId, Long listId, NewsletterSubscriptionStatus status) {
+    public List<NewsletterSubscription> listSubscriptions(Long tenantId, Long listId) {
         newsletterListService.requireList(tenantId, listId);
-        if (status != null) {
-            return subscriptionRepository.findByListIdAndTenantIdAndStatusOrderByCreatedAtDescIdDesc(listId, tenantId, status);
-        }
         return subscriptionRepository.findByListIdAndTenantIdOrderByCreatedAtDescIdDesc(listId, tenantId);
     }
 
@@ -64,14 +60,12 @@ public class NewsletterSubscriptionService {
             subscription.setStatus(NewsletterSubscriptionStatus.PENDING);
             subscription.setUnsubscribedAt(null);
             subscription.setConfirmedAt(null);
-            subscription.setSource(NewsletterSubscriptionSource.PUBLIC_FORM);
         } else {
             subscription = new NewsletterSubscription();
             subscription.setTenant(list.getTenant());
             subscription.setList(list);
             subscription.setEmail(email);
             subscription.setStatus(NewsletterSubscriptionStatus.PENDING);
-            subscription.setSource(NewsletterSubscriptionSource.PUBLIC_FORM);
             confirmRaw = issueConfirmToken(subscription);
             issueUnsubscribeToken(subscription);
         }

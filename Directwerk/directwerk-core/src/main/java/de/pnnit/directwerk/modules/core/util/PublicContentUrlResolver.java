@@ -35,10 +35,6 @@ public class PublicContentUrlResolver {
         return buildAbsoluteUrl(tenantId, PublicContentPaths.notificationPreferences());
     }
 
-    public String newsletterConfirmUrl(Long tenantId, String rawToken) {
-        return appendQuery(buildAbsoluteUrl(tenantId, PublicContentPaths.newsletterConfirm()), "token", rawToken);
-    }
-
     public String newsletterUnsubscribeUrl(Long tenantId, String rawToken) {
         return appendQuery(buildAbsoluteUrl(tenantId, PublicContentPaths.newsletterUnsubscribe()), "token", rawToken);
     }

@@ -5,7 +5,6 @@ import de.pnnit.directwerk.modules.core.RequiresModule;
 import de.pnnit.directwerk.modules.newsletter.entity.NewsletterList;
 import de.pnnit.directwerk.modules.newsletter.entity.NewsletterListStatus;
 import de.pnnit.directwerk.modules.newsletter.entity.NewsletterSubscription;
-import de.pnnit.directwerk.modules.newsletter.entity.NewsletterSubscriptionStatus;
 import de.pnnit.directwerk.modules.newsletter.service.NewsletterListService;
 import de.pnnit.directwerk.modules.newsletter.service.NewsletterSubscriptionService;
 import de.pnnit.directwerk.multitenancy.TenantContext;
@@ -56,12 +55,6 @@ public class NewsletterListController {
         return ResponseEntity.ok(Response.ok(lists));
     }
 
-    @GetMapping("/{listId}")
-    ResponseEntity<Response<NewsletterListView>> getList(@PathVariable Long listId) {
-        Long tenantId = TenantContext.requireTenantId();
-        return ResponseEntity.ok(Response.ok(toListView(newsletterListService.requireList(tenantId, listId))));
-    }
-
     @PostMapping
     @PreAuthorize("hasRole('TENANT_ADMIN')")
     ResponseEntity<Response<NewsletterListView>> createList(@Valid @RequestBody CreateNewsletterListRequest request) {
@@ -101,13 +94,10 @@ public class NewsletterListController {
     }
 
     @GetMapping("/{listId}/subscriptions")
-    ResponseEntity<Response<List<NewsletterSubscriptionView>>> listSubscriptions(
-            @PathVariable Long listId,
-            @RequestParam(required = false) NewsletterSubscriptionStatus status
-    ) {
+    ResponseEntity<Response<List<NewsletterSubscriptionView>>> listSubscriptions(@PathVariable Long listId) {
         Long tenantId = TenantContext.requireTenantId();
         List<NewsletterSubscriptionView> rows = newsletterSubscriptionService
-                .listSubscriptions(tenantId, listId, status)
+                .listSubscriptions(tenantId, listId)
                 .stream()
                 .map(NewsletterListController::toSubscriptionView)
                 .toList();
@@ -144,7 +134,6 @@ public class NewsletterListController {
                 subscription.getId(),
                 subscription.getEmail(),
                 subscription.getStatus().name(),
-                subscription.getSource().name(),
                 subscription.getConfirmedAt(),
                 subscription.getUnsubscribedAt(),
                 subscription.getCreatedAt()
@@ -186,7 +175,6 @@ public class NewsletterListController {
             Long id,
             String email,
             String status,
-            String source,
             Instant confirmedAt,
             Instant unsubscribedAt,
             Instant createdAt

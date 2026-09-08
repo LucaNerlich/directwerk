@@ -25,12 +25,6 @@ public interface NewsletterSubscriptionRepository extends JpaRepository<Newslett
 
     List<NewsletterSubscription> findByListIdAndTenantIdOrderByCreatedAtDescIdDesc(Long listId, Long tenantId);
 
-    List<NewsletterSubscription> findByListIdAndTenantIdAndStatusOrderByCreatedAtDescIdDesc(
-            Long listId,
-            Long tenantId,
-            NewsletterSubscriptionStatus status
-    );
-
     long countByListIdAndStatus(Long listId, NewsletterSubscriptionStatus status);
 
     @Query("""

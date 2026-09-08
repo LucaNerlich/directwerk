@@ -12,10 +12,8 @@ import de.pnnit.directwerk.modules.newsletter.exception.NewsletterListNotFoundEx
 import de.pnnit.directwerk.modules.newsletter.repository.NewsletterListRepository;
 import de.pnnit.directwerk.modules.newsletter.repository.NewsletterSubscriptionRepository;
 import de.pnnit.directwerk.security.SecurityUtils;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.function.LongConsumer;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -116,21 +114,6 @@ public class NewsletterListService {
     @RequiresModule("EMAIL_NOTIFY")
     public NewsletterList archiveList(Long tenantId, Long listId) {
         return updateList(tenantId, listId, null, null, null, NewsletterListStatus.ARCHIVED);
-    }
-
-    public Set<NewsletterList> resolveActiveLists(Long tenantId, Set<Long> listIds, LongConsumer onInactive) {
-        if (listIds == null || listIds.isEmpty()) {
-            return Set.of();
-        }
-        Set<NewsletterList> lists = new LinkedHashSet<>();
-        for (Long listId : listIds) {
-            NewsletterList list = requireList(tenantId, listId);
-            if (list.getStatus() != NewsletterListStatus.ACTIVE) {
-                onInactive.accept(listId);
-            }
-            lists.add(list);
-        }
-        return lists;
     }
 
     private static String normalizeName(String name) {

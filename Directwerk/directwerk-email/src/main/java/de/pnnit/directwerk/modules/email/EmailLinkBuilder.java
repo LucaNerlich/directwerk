@@ -1,6 +1,7 @@
 package de.pnnit.directwerk.modules.email;
 
 import de.pnnit.directwerk.config.DirectwerkConfig;
+import de.pnnit.directwerk.modules.content.PublicContentPaths;
 import de.pnnit.directwerk.modules.core.entity.Tenant;
 import de.pnnit.directwerk.modules.core.repository.TenantRepository;
 import de.pnnit.directwerk.modules.core.service.TenantPublicHostResolver;
@@ -70,19 +71,7 @@ public class EmailLinkBuilder {
     }
 
     public String buildNewsletterConfirmUrl(String confirmToken, Long tenantId) {
-        return buildTenantPublicPathUrl(tenantId, "/newsletter/confirm", confirmToken);
-    }
-
-    private String buildTenantPublicPathUrl(Long tenantId, String path, String token) {
-        String baseUrl = resolveTenantAuthBaseUrl(tenantId);
-        String url = buildUrl(baseUrl, path, token);
-        if (tenantId != null && tenantPublicHostResolver.findPrimaryVerifiedHost(tenantId).isEmpty()) {
-            Tenant tenant = tenantRepository.findById(tenantId).orElse(null);
-            if (tenant != null && StringUtils.hasText(tenant.getSlug())) {
-                url += "&tenant=" + URLEncoder.encode(tenant.getSlug(), StandardCharsets.UTF_8);
-            }
-        }
-        return url;
+        return buildTenantAuthUrl(tenantId, PublicContentPaths.newsletterConfirm(), confirmToken);
     }
 
     private String buildTenantAuthUrl(Long tenantId, String path, String token) {

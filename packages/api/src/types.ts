@@ -167,7 +167,6 @@ export interface NewsletterSubscriptionSummary {
     id: number
     email: string
     status: 'PENDING' | 'ACTIVE' | 'UNSUBSCRIBED'
-    source: string
     confirmedAt: string | null
     unsubscribedAt: string | null
     createdAt: string
