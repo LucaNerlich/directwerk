@@ -4,7 +4,8 @@ public enum EmailTokenLink {
     STUDIO_ACCEPT_INVITE("acceptInviteUrl"),
     ADMIN_ACCEPT_INVITE("acceptInviteUrl"),
     RESET_PASSWORD("resetUrl"),
-    EMAIL_VERIFICATION("verifyUrl");
+    EMAIL_VERIFICATION("verifyUrl"),
+    NEWSLETTER_CONFIRM("confirmUrl");
 
     private final String variableName;
 

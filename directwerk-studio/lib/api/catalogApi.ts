@@ -160,3 +160,17 @@ export async function replaceArticleCategories(
         invalidArticleMessage,
     )
 }
+
+export async function replaceArticleNewsletterLists(
+    tenantHost: string,
+    articleId: number,
+    newsletterListIds: number[],
+): Promise<ArticleDetail> {
+    return studioMutate(
+        `/api/proxy/articles/${articleId}/newsletter-lists`,
+        tenantHost,
+        jsonInit('PUT', {newsletterListIds}),
+        parseArticleEnvelope,
+        invalidArticleMessage,
+    )
+}

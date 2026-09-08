@@ -1,4 +1,5 @@
 export * from './authApi'
+export * from './newsletterApi'
 export * from './publicApi'
 export * from './subscriberApi'
 export * from './billingApi'

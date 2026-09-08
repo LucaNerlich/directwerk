@@ -260,3 +260,47 @@ export function parseResetPasswordInput(value: unknown): ResetPasswordInput | nu
 
     return {token, newPassword: value.newPassword}
 }
+
+export interface NewsletterSubscribeInput {
+    listSlug: string
+    email: string
+}
+
+export interface NewsletterTokenInput {
+    token: string
+}
+
+const LIST_SLUG_PATTERN = /^[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,62}[a-zA-Z0-9])?$/
+
+/** Validates a newsletter subscribe body for the web BFF. */
+export function parseNewsletterSubscribeInput(
+    value: unknown,
+): NewsletterSubscribeInput | null {
+    if (!isRecord(value)) {
+        return null
+    }
+    if (typeof value.listSlug !== 'string' || typeof value.email !== 'string') {
+        return null
+    }
+    const listSlug = value.listSlug.trim()
+    if (listSlug.length === 0 || !LIST_SLUG_PATTERN.test(listSlug)) {
+        return null
+    }
+    const email = parseEmail(value.email, true)
+    if (email === null) {
+        return null
+    }
+    return {listSlug, email}
+}
+
+/** Validates confirm / unsubscribe token body for the web BFF. */
+export function parseNewsletterTokenInput(value: unknown): NewsletterTokenInput | null {
+    if (!isRecord(value) || typeof value.token !== 'string') {
+        return null
+    }
+    const token = value.token.trim()
+    if (token.length === 0 || token.length > MAX_TOKEN_LENGTH_WEB) {
+        return null
+    }
+    return {token}
+}

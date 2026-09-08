@@ -1,0 +1,21 @@
+meta {
+  name: 16-Newsletter-Lists
+  seq: 16
+}
+
+auth {
+  mode: bearer
+}
+
+auth:bearer {
+  token: {{tenantAdminAccessToken}}
+}
+
+headers {
+  Host: {{tenantAHost}}
+}
+
+docs {
+  Newsletter lists (EMAIL_NOTIFY) — CRUD, subscriptions, public subscribe/confirm/unsubscribe.
+  Run 01-Auth-and-Tokens (tenant admin) first. Article attach: PUT /api/v1/articles/{id}/newsletter-lists.
+}

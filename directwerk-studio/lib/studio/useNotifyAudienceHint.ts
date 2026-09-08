@@ -1,14 +1,13 @@
 'use client'
 
-import {useEffect, useState} from 'react'
-
 import {listSubscribers} from '@/lib/api/tenantSettingsApi'
 import {isTenantAdminRole} from '@/lib/api/studioHelpers'
 import {useOptionalMe} from '@/lib/auth/MeProvider'
 import {getClientTenantHost} from '@directwerk/api/tenant'
 import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
+import {useEffect, useState} from 'react'
 
-
+/** Audience hint for episode notify (account members). Articles compute list counts locally. */
 export function useNotifyAudienceHint(enabled: boolean): string | null {
     const me = useOptionalMe()
     const authRedirect = useAuthRequired()

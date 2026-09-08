@@ -6,6 +6,8 @@ import de.pnnit.directwerk.modules.content.PublicContentPaths;
 import de.pnnit.directwerk.modules.core.entity.Tenant;
 import de.pnnit.directwerk.modules.core.repository.TenantRepository;
 import de.pnnit.directwerk.modules.core.service.TenantPublicHostResolver;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
@@ -33,6 +35,14 @@ public class PublicContentUrlResolver {
         return buildAbsoluteUrl(tenantId, PublicContentPaths.notificationPreferences());
     }
 
+    public String newsletterConfirmUrl(Long tenantId, String rawToken) {
+        return appendQuery(buildAbsoluteUrl(tenantId, PublicContentPaths.newsletterConfirm()), "token", rawToken);
+    }
+
+    public String newsletterUnsubscribeUrl(Long tenantId, String rawToken) {
+        return appendQuery(buildAbsoluteUrl(tenantId, PublicContentPaths.newsletterUnsubscribe()), "token", rawToken);
+    }
+
     public String buildAbsoluteUrl(Long tenantId, String path) {
         return tenantPublicHostResolver.findPrimaryVerifiedHost(tenantId)
                 .map(host -> "https://" + host + path)
@@ -51,6 +61,11 @@ public class PublicContentUrlResolver {
             case EPISODE -> episodePageUrl(tenantId, slug);
             case ARTICLE -> articlePageUrl(tenantId, slug);
         };
+    }
+
+    private static String appendQuery(String url, String key, String value) {
+        String encoded = URLEncoder.encode(value, StandardCharsets.UTF_8);
+        return url + (url.contains("?") ? "&" : "?") + key + "=" + encoded;
     }
 
     private static String trimTrailingSlash(String value) {

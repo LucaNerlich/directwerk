@@ -41,8 +41,8 @@ export interface PassthroughAuthRouteCodes {
 export interface TenantPassthroughAuthRouteConfig<TParsed> {
     /** The app's configured SSRF-guarded upstream client. */
     directwerkFetch: (request: DirectwerkFetchRequest) => Promise<Response>
-    /** Upstream API path, e.g. `/api/v1/auth/register`. */
-    path: string
+    /** Upstream API path, or a builder from validated input. */
+    path: string | ((input: TParsed) => string)
     /** Validates the parsed JSON body; `null` rejects the request. */
     parse: (value: unknown) => TParsed | null
     /** User-facing message for the invalid-input (400) response. */
@@ -210,8 +210,10 @@ export function createTenantPassthroughAuthRoute<TParsed>(
         }
 
         try {
+            const path =
+                typeof config.path === 'function' ? config.path(input) : config.path
             const response = await config.directwerkFetch({
-                path: config.path,
+                path,
                 ...(tenantHost === undefined ? {} : {tenantHost}),
                 method: 'POST',
                 body: JSON.stringify(

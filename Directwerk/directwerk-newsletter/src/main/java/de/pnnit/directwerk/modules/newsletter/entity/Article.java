@@ -98,4 +98,12 @@ public class Article extends BaseEntity implements TenantOwned {
             inverseJoinColumns = @JoinColumn(name = "category_id")
     )
     private Set<Category> categories = new LinkedHashSet<>();
+
+    @ManyToMany
+    @JoinTable(
+            name = "article_newsletter_lists",
+            joinColumns = @JoinColumn(name = "article_id"),
+            inverseJoinColumns = @JoinColumn(name = "list_id")
+    )
+    private Set<NewsletterList> newsletterLists = new LinkedHashSet<>();
 }

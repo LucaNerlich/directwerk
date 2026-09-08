@@ -65,6 +65,9 @@ class ArticleServiceTest {
     private CategoryService categoryService;
 
     @Mock
+    private NewsletterListService newsletterListService;
+
+    @Mock
     private TenantRepository tenantRepository;
 
     @Mock
@@ -92,6 +95,7 @@ class ArticleServiceTest {
         articleService = new ArticleService(
                 articleRepository,
                 categoryService,
+                newsletterListService,
                 tenantRepository,
                 mediaAssetQueryApi,
                 htmlSanitizer,

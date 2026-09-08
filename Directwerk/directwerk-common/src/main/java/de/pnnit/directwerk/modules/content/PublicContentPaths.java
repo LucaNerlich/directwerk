@@ -19,4 +19,12 @@ public final class PublicContentPaths {
     public static String notificationPreferences() {
         return "/account/notifications";
     }
+
+    public static String newsletterConfirm() {
+        return "/newsletter/confirm";
+    }
+
+    public static String newsletterUnsubscribe() {
+        return "/newsletter/unsubscribe";
+    }
 }

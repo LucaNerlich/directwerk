@@ -33,6 +33,7 @@ public class EmailLinkBuilder {
             case ADMIN_ACCEPT_INVITE -> buildAdminAcceptInviteUrl(rawToken);
             case RESET_PASSWORD -> buildResetPasswordUrl(rawToken, tenantId);
             case EMAIL_VERIFICATION -> buildVerifyEmailUrl(rawToken, tenantId);
+            case NEWSLETTER_CONFIRM -> buildNewsletterConfirmUrl(rawToken, tenantId);
         };
     }
 
@@ -66,6 +67,22 @@ public class EmailLinkBuilder {
                 directwerkConfig.email().verifyEmailPath(),
                 verificationToken
         );
+    }
+
+    public String buildNewsletterConfirmUrl(String confirmToken, Long tenantId) {
+        return buildTenantPublicPathUrl(tenantId, "/newsletter/confirm", confirmToken);
+    }
+
+    private String buildTenantPublicPathUrl(Long tenantId, String path, String token) {
+        String baseUrl = resolveTenantAuthBaseUrl(tenantId);
+        String url = buildUrl(baseUrl, path, token);
+        if (tenantId != null && tenantPublicHostResolver.findPrimaryVerifiedHost(tenantId).isEmpty()) {
+            Tenant tenant = tenantRepository.findById(tenantId).orElse(null);
+            if (tenant != null && StringUtils.hasText(tenant.getSlug())) {
+                url += "&tenant=" + URLEncoder.encode(tenant.getSlug(), StandardCharsets.UTF_8);
+            }
+        }
+        return url;
     }
 
     private String buildTenantAuthUrl(Long tenantId, String path, String token) {

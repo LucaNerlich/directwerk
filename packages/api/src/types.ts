@@ -105,6 +105,7 @@ export interface Tag {
 
 export type FormatTag = Tag
 export type CategoryTag = Tag
+export type NewsletterListTag = Tag
 
 interface ContentSummary {
     id: number
@@ -147,6 +148,29 @@ export interface ArticleDetail extends ArticleSummary {
     /** Creator user id; null for legacy rows. */
     createdBy: number | null
     categories: CategoryTag[]
+    newsletterLists: NewsletterListTag[]
+}
+
+export interface NewsletterListSummary {
+    id: number
+    slug: string
+    name: string
+    description: string | null
+    status: 'ACTIVE' | 'ARCHIVED'
+    activeCount: number
+    pendingCount: number
+    createdAt: string
+    updatedAt: string
+}
+
+export interface NewsletterSubscriptionSummary {
+    id: number
+    email: string
+    status: 'PENDING' | 'ACTIVE' | 'UNSUBSCRIBED'
+    source: string
+    confirmedAt: string | null
+    unsubscribedAt: string | null
+    createdAt: string
 }
 
 export interface SeriesSummary {

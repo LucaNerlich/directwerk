@@ -1,0 +1,58 @@
+### Newsletter lists (EMAIL_NOTIFY)
+
+@baseUrl = http://localhost:8080
+@tenantHost = localhost:8080
+
+### List lists
+GET {{baseUrl}}/api/v1/newsletter-lists
+Host: {{tenantHost}}
+Authorization: Bearer {{tenantAdminAccessToken}}
+
+### Create list
+POST {{baseUrl}}/api/v1/newsletter-lists
+Host: {{tenantHost}}
+Authorization: Bearer {{tenantAdminAccessToken}}
+Content-Type: application/json
+
+{
+  "slug": "weekly",
+  "name": "Weekly",
+  "description": "Weekly digest"
+}
+
+### Public subscribe (no auth)
+POST {{baseUrl}}/api/v1/public/newsletter-lists/weekly/subscribe
+Host: {{tenantHost}}
+Content-Type: application/json
+
+{
+  "email": "reader@example.com"
+}
+
+### Attach lists to article draft
+PUT {{baseUrl}}/api/v1/articles/{{articleId}}/newsletter-lists
+Host: {{tenantHost}}
+Authorization: Bearer {{editorAccessToken}}
+Content-Type: application/json
+
+{
+  "newsletterListIds": [1]
+}
+
+### Confirm (token from Mailpit)
+POST {{baseUrl}}/api/v1/public/newsletter/confirm
+Host: {{tenantHost}}
+Content-Type: application/json
+
+{
+  "token": "{{confirmToken}}"
+}
+
+### Unsubscribe
+POST {{baseUrl}}/api/v1/public/newsletter/unsubscribe
+Host: {{tenantHost}}
+Content-Type: application/json
+
+{
+  "token": "{{unsubscribeToken}}"
+}

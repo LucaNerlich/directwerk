@@ -9,14 +9,23 @@ publication** (`Article`), with different **delivery channels**:
 | Channel | Module / mechanism | Notes |
 |---------|-------------------|-------|
 | **Web** | This module + public API | Substack-style archive, SEO, paid body gating |
-| **Email** | `EMAIL_NOTIFY` + `directwerk-email` | Optional on publish; excerpt or full body |
+| **Email** | `EMAIL_NOTIFY` + newsletter lists + `directwerk-email` | Attach lists on the article; publish enqueues `content-notify` → per-subscriber `email` jobs |
+
+## Newsletter lists
+
+Tenant-scoped mailing lists (many per tenant), managed in studio Write desk → **Listen**.
+
+- Guest subscribe: `POST /api/v1/public/newsletter-lists/{slug}/subscribe` (double opt-in)
+- Confirm / unsubscribe: token endpoints under `/api/v1/public/newsletter/*` (no account)
+- Article attachment: `PUT /api/v1/articles/{id}/newsletter-lists`
+- On publish with notify + attached lists: ACTIVE subscriptions receive `CONTENT_ARTICLE_PUBLISHED`
 
 | Concern | Module / gate |
 |---------|----------------|
 | Article CRUD + publish workflow | This module |
-| Feature flag for write ops | `DIGITAL_CONTENT` (`DigitalContentModule.KEY`) |
+| Feature flag for write ops | `ARTICLES` (`ArticlesModule.KEY`) |
 | Shared taxonomy | `Category` in `directwerk-digital` |
-| Send to subscribers on publish | `EMAIL_NOTIFY` (transport in `directwerk-email`) |
+| Send to list subscribers on publish | `EMAIL_NOTIFY` (transport in `directwerk-email`) |
 | RSS distribution | `ARTICLE_RSS` (`ArticleRssModule.KEY`) |
 | Subscriber-built private feeds filtered by Category | `ARTICLE_FEED_BUILDER` (`ArticleFeedBuilderModule.KEY`, needs `ARTICLE_RSS` + `SUBSCRIPTION`) |
 

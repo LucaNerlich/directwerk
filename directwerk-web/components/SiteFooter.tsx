@@ -33,6 +33,9 @@ export default function SiteFooter(): React.JSX.Element {
                     <nav aria-label="Fußzeile" className="flex flex-wrap gap-x-4 gap-y-2">
                         {showPodcast ? <Link className="inline-flex min-h-[44px] items-center" href="/episodes">Podcast</Link> : null}
                         {showArticles ? <Link className="inline-flex min-h-[44px] items-center" href="/articles">Beiträge</Link> : null}
+                        {config.emailNotifyAvailable ? (
+                            <Link className="inline-flex min-h-[44px] items-center" href="/newsletter">Newsletter</Link>
+                        ) : null}
                         {showPricing ? <Link className="inline-flex min-h-[44px] items-center" href="/pricing">Preise</Link> : null}
                         {showFeeds ? <Link className="inline-flex min-h-[44px] items-center" href="/feeds">Feeds</Link> : null}
                         {showDownloads && isAuthenticated ? (

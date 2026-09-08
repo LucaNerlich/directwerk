@@ -21,6 +21,11 @@ public enum EmailTemplate {
             "Verify your email address",
             EmailTokenLink.EMAIL_VERIFICATION
     ),
+    NEWSLETTER_CONFIRM(
+            "email/newsletter-confirm.html",
+            "Confirm your subscription to {{listName}}",
+            EmailTokenLink.NEWSLETTER_CONFIRM
+    ),
     CONTENT_EPISODE_PUBLISHED(
             "email/content-episode-published.html",
             "New episode: {{title}}",

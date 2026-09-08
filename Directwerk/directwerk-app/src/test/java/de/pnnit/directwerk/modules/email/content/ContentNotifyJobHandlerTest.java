@@ -9,10 +9,12 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import de.pnnit.directwerk.modules.content.ContentType;
+import de.pnnit.directwerk.modules.content.NewsletterNotifyAudienceApi;
 import de.pnnit.directwerk.modules.core.entity.MembershipStatus;
 import de.pnnit.directwerk.modules.core.entity.TenantMembership;
 import de.pnnit.directwerk.modules.core.entity.User;
 import de.pnnit.directwerk.modules.core.repository.TenantMembershipRepository;
+import de.pnnit.directwerk.modules.core.util.PublicContentUrlResolver;
 import de.pnnit.directwerk.modules.email.EmailJobProducer;
 import de.pnnit.directwerk.modules.email.EmailTemplate;
 import de.pnnit.directwerk.modules.queue.JobStatus;
@@ -28,6 +30,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.beans.factory.ObjectProvider;
 import tools.jackson.databind.ObjectMapper;
 
 @ExtendWith(MockitoExtension.class)
@@ -42,10 +45,19 @@ class ContentNotifyJobHandlerTest {
     private ContentPublicUrlBuilder contentPublicUrlBuilder;
 
     @Mock
+    private PublicContentUrlResolver publicContentUrlResolver;
+
+    @Mock
     private TenantContentBrandingResolver tenantContentBrandingResolver;
 
     @Mock
     private EmailJobProducer emailJobProducer;
+
+    @Mock
+    private ObjectProvider<NewsletterNotifyAudienceApi> newsletterNotifyAudienceApi;
+
+    @Mock
+    private NewsletterNotifyAudienceApi audienceApi;
 
     private final ObjectMapper objectMapper = new ObjectMapper();
     private ContentNotifyJobHandler handler;
@@ -56,8 +68,10 @@ class ContentNotifyJobHandlerTest {
                 objectMapper,
                 tenantMembershipRepository,
                 contentPublicUrlBuilder,
+                publicContentUrlResolver,
                 tenantContentBrandingResolver,
-                emailJobProducer
+                emailJobProducer,
+                newsletterNotifyAudienceApi
         );
     }
 
@@ -67,17 +81,19 @@ class ContentNotifyJobHandlerTest {
     }
 
     @Test
-    void notifiesEachOptedInRecipientWithPerUserCorrelationId() {
+    void notifiesArticleListRecipientsWithUnsubscribeUrl() {
         when(contentPublicUrlBuilder.buildPublicContentUrl(TENANT_ID, ContentType.ARTICLE, "hello-world"))
                 .thenReturn("https://tenant.example/articles/hello-world");
-        when(contentPublicUrlBuilder.buildNotificationPreferencesUrl(TENANT_ID))
-                .thenReturn("https://tenant.example/account/notifications");
         when(tenantContentBrandingResolver.resolve(TENANT_ID))
                 .thenReturn(new TenantContentBrandingResolver.BrandingContext("Acme", "Acme Magazine", "#123456"));
-        TenantMembership first = membership(1L, "ada@example.com", "Ada");
-        TenantMembership second = membership(2L, "grace@example.com", null);
-        when(tenantMembershipRepository.findNotificationOptedInMembers(TENANT_ID, MembershipStatus.ACTIVE))
-                .thenReturn(List.of(first, second));
+        when(newsletterNotifyAudienceApi.getIfAvailable()).thenReturn(audienceApi);
+        when(audienceApi.findActiveRecipientsForArticle(TENANT_ID, 7L))
+                .thenReturn(List.of(
+                        new NewsletterNotifyAudienceApi.Recipient("ada@example.com", "unsub-ada"),
+                        new NewsletterNotifyAudienceApi.Recipient("grace@example.com", "unsub-grace")
+                ));
+        when(publicContentUrlResolver.newsletterUnsubscribeUrl(TENANT_ID, "unsub-ada"))
+                .thenReturn("https://tenant.example/newsletter/unsubscribe?token=unsub-ada");
 
         handler.handle(job(ContentNotifyJobPayload.from(
                 ContentType.ARTICLE,
@@ -94,28 +110,24 @@ class ContentNotifyJobHandlerTest {
                 eq("ada@example.com"),
                 eq(EmailTemplate.CONTENT_ARTICLE_PUBLISHED),
                 variablesCaptor.capture(),
-                eq("content-notify-article-7-user-1")
+                any()
         );
         verify(emailJobProducer).enqueueContentNotification(
                 eq(TENANT_ID),
                 eq("grace@example.com"),
                 eq(EmailTemplate.CONTENT_ARTICLE_PUBLISHED),
                 any(),
-                eq("content-notify-article-7-user-2")
+                any()
         );
 
         Map<String, String> variables = variablesCaptor.getValue();
-        assertThat(variables.get("recipientName")).isEqualTo("Ada");
-        assertThat(variables.get("tenantName")).isEqualTo("Acme");
-        assertThat(variables.get("siteTitle")).isEqualTo("Acme Magazine");
         assertThat(variables.get("title")).isEqualTo("Hello world");
-        assertThat(variables.get("contentUrl")).isEqualTo("https://tenant.example/articles/hello-world");
-        assertThat(variables.get("preferencesUrl")).isEqualTo("https://tenant.example/account/notifications");
-        assertThat(variables.get("primaryColor")).isEqualTo("#123456");
+        assertThat(variables.get("unsubscribeUrl"))
+                .isEqualTo("https://tenant.example/newsletter/unsubscribe?token=unsub-ada");
     }
 
     @Test
-    void defaultsMissingRecipientNameToThere() {
+    void notifiesEpisodeMembersWithPreferencesUrl() {
         when(contentPublicUrlBuilder.buildPublicContentUrl(any(), any(), any())).thenReturn("https://tenant.example/x");
         when(contentPublicUrlBuilder.buildNotificationPreferencesUrl(any())).thenReturn("https://tenant.example/prefs");
         when(tenantContentBrandingResolver.resolve(TENANT_ID))
@@ -132,17 +144,16 @@ class ContentNotifyJobHandlerTest {
                 eq(TENANT_ID), eq("grace@example.com"), eq(EmailTemplate.CONTENT_EPISODE_PUBLISHED), variablesCaptor.capture(), any()
         );
         assertThat(variablesCaptor.getValue().get("recipientName")).isEqualTo("there");
-        assertThat(variablesCaptor.getValue().get("excerpt")).isEmpty();
+        assertThat(variablesCaptor.getValue().get("preferencesUrl")).isEqualTo("https://tenant.example/prefs");
     }
 
     @Test
-    void skipsEnqueueWhenNoRecipientsOptedIn() {
+    void skipsArticleEnqueueWhenNoListRecipients() {
         when(contentPublicUrlBuilder.buildPublicContentUrl(any(), any(), any())).thenReturn("https://tenant.example/x");
-        when(contentPublicUrlBuilder.buildNotificationPreferencesUrl(any())).thenReturn("https://tenant.example/prefs");
         when(tenantContentBrandingResolver.resolve(TENANT_ID))
                 .thenReturn(new TenantContentBrandingResolver.BrandingContext("Acme", "Acme", "#000000"));
-        when(tenantMembershipRepository.findNotificationOptedInMembers(TENANT_ID, MembershipStatus.ACTIVE))
-                .thenReturn(List.of());
+        when(newsletterNotifyAudienceApi.getIfAvailable()).thenReturn(audienceApi);
+        when(audienceApi.findActiveRecipientsForArticle(TENANT_ID, 7L)).thenReturn(List.of());
 
         handler.handle(job(ContentNotifyJobPayload.from(ContentType.ARTICLE, 7L, "Hello", null, "hello", "FREE")));
 
