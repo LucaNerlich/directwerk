@@ -15,17 +15,17 @@ public interface ArticleRepository extends JpaRepository<Article, Long> {
 
     // open-in-view=false: heroAsset.tenant for any CDN/access on hero; tenant for scheduled publish.
     @EntityGraph(attributePaths = {
-            "tenant", "heroAsset", "heroAsset.tenant", "categories", "categories.parent"
+            "tenant", "heroAsset", "heroAsset.tenant", "categories", "categories.parent", "newsletterLists"
     })
     List<Article> findByTenantIdOrderByCreatedAtDescIdDesc(Long tenantId);
 
     @EntityGraph(attributePaths = {
-            "tenant", "heroAsset", "heroAsset.tenant", "categories", "categories.parent"
+            "tenant", "heroAsset", "heroAsset.tenant", "categories", "categories.parent", "newsletterLists"
     })
     Optional<Article> findByIdAndTenantId(Long id, Long tenantId);
 
     @EntityGraph(attributePaths = {
-            "tenant", "heroAsset", "heroAsset.tenant", "categories", "categories.parent"
+            "tenant", "heroAsset", "heroAsset.tenant", "categories", "categories.parent", "newsletterLists"
     })
     Optional<Article> findByTenantIdAndSlug(Long tenantId, String slug);
 
@@ -34,12 +34,12 @@ public interface ArticleRepository extends JpaRepository<Article, Long> {
     boolean existsByTenantIdAndSlugAndIdNot(Long tenantId, String slug, Long id);
 
     @EntityGraph(attributePaths = {
-            "tenant", "heroAsset", "heroAsset.tenant", "categories", "categories.parent"
+            "tenant", "heroAsset", "heroAsset.tenant", "categories", "categories.parent", "newsletterLists"
     })
     List<Article> findByTenantIdAndStatusOrderByPublishedAtDescIdDesc(Long tenantId, ArticleStatus status);
 
     @EntityGraph(attributePaths = {
-            "tenant", "heroAsset", "heroAsset.tenant", "categories", "categories.parent"
+            "tenant", "heroAsset", "heroAsset.tenant", "categories", "categories.parent", "newsletterLists"
     })
     List<Article> findByStatusAndScheduledAtLessThanEqualOrderByScheduledAtAscIdAsc(
             ArticleStatus status,
