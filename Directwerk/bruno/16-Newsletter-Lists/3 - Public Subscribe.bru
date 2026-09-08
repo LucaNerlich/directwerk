@@ -1,0 +1,21 @@
+meta {
+  name: 3 - Public Subscribe
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{baseUrl}}/api/v1/public/newsletter-lists/weekly/subscribe
+  body: json
+  auth: none
+}
+
+headers {
+  Host: {{tenantAHost}}
+}
+
+body:json {
+  {
+    "email": "reader@example.com"
+  }
+}

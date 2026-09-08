@@ -288,6 +288,7 @@ public class ArticlePublicationWorkflowService {
     }
 
     private void maybeNotifySubscribers(Long tenantId, Article published, boolean notifySubscribers) {
+        boolean sendNewsletter = notifySubscribers && !published.getNewsletterLists().isEmpty();
         Instant notifiedAt = Instant.now();
         PublicationNotificationSupport.maybeNotify(
                 tenantId,
@@ -297,7 +298,7 @@ public class ArticlePublicationWorkflowService {
                 PublicationTexts.excerptOr(published.getExcerpt(), published.getBody()),
                 published.getSlug(),
                 published.getAccessPolicy().name(),
-                notifySubscribers,
+                sendNewsletter,
                 notificationGate,
                 contentPublishedNotifier,
                 () -> articleRepository.claimEmailNotification(tenantId, published.getId(), notifiedAt),

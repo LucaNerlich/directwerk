@@ -15,6 +15,9 @@ export function buildWriteDeskItems(config: SiteConfig): NavigationItem[] {
         {href: '/write', label: 'Start'},
         {href: '/write/articles', label: 'Beiträge'},
     ]
+    if (hasModule(config, 'EMAIL_NOTIFY')) {
+        items.push({href: '/write/lists', label: 'Listen'})
+    }
     if (hasModule(config, 'ARTICLE_RSS') || config.publicArticleRssUrl !== null) {
         items.push({href: '/write/feeds', label: 'Feeds'})
     }

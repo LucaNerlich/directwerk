@@ -6,11 +6,13 @@ import de.pnnit.directwerk.api.dto.BulkIdsRequest;
 import de.pnnit.directwerk.api.dto.BulkPublishRequest;
 import de.pnnit.directwerk.api.dto.PublishOptionsRequest;
 import de.pnnit.directwerk.api.dto.ReplaceCategoriesRequest;
+import de.pnnit.directwerk.api.dto.ReplaceNewsletterListsRequest;
 import de.pnnit.directwerk.api.response.Response;
 import de.pnnit.directwerk.modules.core.RequiresModule;
 import de.pnnit.directwerk.modules.digital.DigitalContentModule;
 import de.pnnit.directwerk.modules.digital.entity.AccessPolicy;
 import de.pnnit.directwerk.modules.newsletter.entity.Article;
+import de.pnnit.directwerk.modules.newsletter.entity.NewsletterList;
 import de.pnnit.directwerk.modules.digital.entity.Category;
 import de.pnnit.directwerk.modules.newsletter.service.ArticlePublicationWorkflowService;
 import de.pnnit.directwerk.modules.newsletter.service.ArticleService;
@@ -120,6 +122,17 @@ public class ArticleController {
         Long tenantId = TenantContext.requireTenantId();
         return ResponseEntity.ok(Response.ok(toView(
                 articleService.replaceCategories(tenantId, articleId, request.categoryIds())
+        )));
+    }
+
+    @PutMapping("/{articleId}/newsletter-lists")
+    ResponseEntity<Response<ArticleView>> replaceNewsletterLists(
+            @PathVariable Long articleId,
+            @Valid @RequestBody ReplaceNewsletterListsRequest request
+    ) {
+        Long tenantId = TenantContext.requireTenantId();
+        return ResponseEntity.ok(Response.ok(toView(
+                articleService.replaceNewsletterLists(tenantId, articleId, request.newsletterListIds())
         )));
     }
 
@@ -287,6 +300,11 @@ public class ArticleController {
                         .sorted(CategoryView.DISPLAY_ORDER)
                         .map(CategoryView::of)
                         .toList(),
+                article.getNewsletterLists().stream()
+                        .sorted(Comparator.comparing(NewsletterList::getName, String.CASE_INSENSITIVE_ORDER)
+                                .thenComparing(NewsletterList::getId))
+                        .map(list -> new NewsletterListTag(list.getId(), list.getSlug(), list.getName()))
+                        .toList(),
                 article.getCreatedBy(),
                 article.getCreatedAt(),
                 article.getUpdatedAt()
@@ -342,9 +360,13 @@ public class ArticleController {
             Instant publishedAt,
             Instant scheduledAt,
             List<CategoryView> categories,
+            List<NewsletterListTag> newsletterLists,
             Long createdBy,
             Instant createdAt,
             Instant updatedAt
     ) {
+    }
+
+    public record NewsletterListTag(Long id, String slug, String name) {
     }
 }

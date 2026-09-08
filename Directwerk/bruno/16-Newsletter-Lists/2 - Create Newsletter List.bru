@@ -1,0 +1,19 @@
+meta {
+  name: 2 - Create Newsletter List
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/api/v1/newsletter-lists
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "slug": "weekly",
+    "name": "Weekly",
+    "description": "Weekly digest"
+  }
+}

@@ -1,0 +1,21 @@
+meta {
+  name: 16-Newsletter-Lists
+  seq: 16
+}
+
+auth {
+  mode: bearer
+}
+
+auth:bearer {
+  token: {{tenantAdminAccessToken}}
+}
+
+headers {
+  Host: {{tenantAHost}}
+}
+
+docs {
+  Newsletter lists (EMAIL_NOTIFY) — list (GET), create (POST), public subscribe,
+  and article list replacement. Run 01-Auth-and-Tokens (tenant admin) first.
+}

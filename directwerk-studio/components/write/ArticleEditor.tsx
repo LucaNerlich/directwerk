@@ -12,10 +12,12 @@ import {useCallback, useEffect, useMemo, useRef, useState} from 'react'
 import MediaLibraryPicker from '@/components/media/MediaLibraryPicker'
 import UploadProgress from '@/components/media/UploadProgress'
 import FormatCategoryPicker from '@/components/publication/FormatCategoryPicker'
+import NewsletterListPicker from '@/components/write/NewsletterListPicker'
 import PublicationDangerZone from '@/components/publication/PublicationDangerZone'
 import PublishedLinksPanel from '@/components/publication/PublishedLinksPanel'
 import PublicationEditorLayout from '@/components/publication/PublicationEditorLayout'
-import {listCategories, replaceArticleCategories} from '@/lib/api/catalogApi'
+import {listCategories, replaceArticleCategories, replaceArticleNewsletterLists} from '@/lib/api/catalogApi'
+import {listNewsletterLists} from '@/lib/api/newsletterListsApi'
 import {getMediaPreviewUrl} from '@/lib/api/mediaApi'
 import {useDeskAccess} from '@/lib/rbac/useDeskAccess'
 import {
@@ -31,13 +33,12 @@ import {
     unpublishArticle,
     updateArticle,
 } from '@/lib/api/writeApi'
-import type {ArticleDetail, CategorySummary} from '@directwerk/api/types'
+import type {ArticleDetail, CategorySummary, NewsletterListSummary} from '@directwerk/api/types'
 import {mediaLimitLabel} from '@/lib/media/limits'
 import {useCoverImageUpload} from '@/lib/media/useCoverImageUpload'
 import {usePublicationEditorFields} from '@/lib/publication/usePublicationEditorFields'
 import {usePublicationEditorWorkflow} from '@/lib/publication/usePublicationEditorWorkflow'
 import {isSlugTaken} from '@/lib/publication/slugAvailability'
-import {useNotifyAudienceHint} from '@/lib/studio/useNotifyAudienceHint'
 import {useDefaultNotifySubscribers} from '@/lib/publication/useDefaultNotifySubscribers'
 import {useSiteConfig} from '@/lib/site/SiteConfigProvider'
 import {getClientTenantHost} from '@directwerk/api/tenant'
@@ -55,7 +56,6 @@ export default function ArticleEditor({articleId}: {articleId?: number}) {
     routerRef.current = router
     const config = useSiteConfig()
     const showNotify = config.emailNotifyAvailable === true
-    const notifyAudienceHint = useNotifyAudienceHint(showNotify)
     const [article, setArticle] = useState<ArticleDetail | null>(null)
     const [allArticles, setAllArticles] = useState<ArticleDetail[]>([])
     const [title, setTitle] = useState('')
@@ -98,19 +98,44 @@ export default function ArticleEditor({articleId}: {articleId?: number}) {
     const [loadError, setLoadError] = useState(false)
     const [availableCategories, setAvailableCategories] = useState<CategorySummary[]>([])
     const [selectedCategoryIds, setSelectedCategoryIds] = useState<Set<number>>(new Set())
+    const [availableNewsletterLists, setAvailableNewsletterLists] = useState<NewsletterListSummary[]>([])
+    const [selectedNewsletterListIds, setSelectedNewsletterListIds] = useState<Set<number>>(new Set())
+
+    const notifyAudienceHint = useMemo(() => {
+        if (!showNotify || selectedNewsletterListIds.size === 0) {
+            return null
+        }
+        const recipients = availableNewsletterLists
+            .filter((list) => selectedNewsletterListIds.has(list.id))
+            .reduce((sum, list) => sum + list.activeCount, 0)
+        const listLabel =
+            selectedNewsletterListIds.size === 1
+                ? '1 Liste'
+                : `${selectedNewsletterListIds.size} Listen`
+        return `${listLabel} · ca. ${recipients} Empfänger`
+    }, [availableNewsletterLists, selectedNewsletterListIds, showNotify])
 
     const persistTags = useCallback(
         async (current: ArticleDetail): Promise<ArticleDetail> => {
-            const updated = await replaceArticleCategories(
-                getClientTenantHost(),
+            const host = getClientTenantHost()
+            let updated = await replaceArticleCategories(
+                host,
                 current.id,
                 Array.from(selectedCategoryIds),
             )
+            if (showNotify) {
+                updated = await replaceArticleNewsletterLists(
+                    host,
+                    current.id,
+                    Array.from(selectedNewsletterListIds),
+                )
+            }
             setArticle(updated)
             setSelectedCategoryIds(new Set(updated.categories.map((tag) => tag.id)))
+            setSelectedNewsletterListIds(new Set(updated.newsletterLists.map((tag) => tag.id)))
             return updated
         },
-        [selectedCategoryIds],
+        [selectedCategoryIds, selectedNewsletterListIds, showNotify],
     )
 
     const saveImpl = useCallback(
@@ -218,10 +243,17 @@ export default function ArticleEditor({articleId}: {articleId?: number}) {
         })
 
         if (articleId === undefined) {
-            listCategories(getClientTenantHost())
-                .then((categoryList) => {
+            const host = getClientTenantHost()
+            Promise.all([
+                listCategories(host),
+                showNotify ? listNewsletterLists(host) : Promise.resolve([] as NewsletterListSummary[]),
+            ])
+                .then(([categoryList, newsletterLists]) => {
                     if (active) {
                         setAvailableCategories(categoryList.filter((item) => item.active))
+                        setAvailableNewsletterLists(
+                            newsletterLists.filter((item) => item.status === 'ACTIVE'),
+                        )
                     }
                 })
                 .catch((error: unknown) => {
@@ -247,14 +279,16 @@ export default function ArticleEditor({articleId}: {articleId?: number}) {
         async function load(): Promise<void> {
             try {
                 const host = getClientTenantHost()
-                const [categoryList, loaded] = await Promise.all([
+                const [categoryList, newsletterLists, loaded] = await Promise.all([
                     listCategories(host),
+                    showNotify ? listNewsletterLists(host) : Promise.resolve([] as NewsletterListSummary[]),
                     getArticle(host, resolvedArticleId),
                 ])
                 if (!active) {
                     return
                 }
                 setAvailableCategories(categoryList.filter((item) => item.active))
+                setAvailableNewsletterLists(newsletterLists.filter((item) => item.status === 'ACTIVE'))
                 setArticle(loaded)
                 setTitle(loaded.title)
                 setSlug(loaded.slug)
@@ -267,6 +301,7 @@ export default function ArticleEditor({articleId}: {articleId?: number}) {
                 applyPublicationSchedule(loaded.scheduledAt)
                 applyPublicationPublishedAt(loaded.publishedAt)
                 setSelectedCategoryIds(new Set(loaded.categories.map((tag) => tag.id)))
+                setSelectedNewsletterListIds(new Set(loaded.newsletterLists.map((tag) => tag.id)))
             } catch (error) {
                 if (active) {
                     setLoadError(true)
@@ -289,7 +324,7 @@ export default function ArticleEditor({articleId}: {articleId?: number}) {
             active = false
             mountedRef.current = false
         }
-    }, [articleId, authRedirect, setWorkflowError])
+    }, [articleId, authRedirect, setWorkflowError, showNotify])
 
     useEffect(() => {
         let active = true
@@ -572,6 +607,29 @@ export default function ArticleEditor({articleId}: {articleId?: number}) {
                             selectedCategoryIds={selectedCategoryIds}
                             selectedFormatIds={new Set()}
                         />
+                            </CardContent>
+                        </Card>
+                    ) : null}
+                    {showNotify ? (
+                        <Card>
+                            <CardContent className="flex flex-col gap-3 pt-(--card-spacing)">
+                                <SectionHeader
+                                    as="h3"
+                                    description="Angehängte Listen erhalten die E-Mail beim Veröffentlichen."
+                                    title="Newsletter"
+                                />
+                                <NewsletterListPicker
+                                    disabled={busy || readOnly}
+                                    lists={availableNewsletterLists}
+                                    onChange={(ids) => {
+                                        setSelectedNewsletterListIds(ids)
+                                        markDirty()
+                                    }}
+                                    selectedListIds={selectedNewsletterListIds}
+                                    warnMissingAttachment={
+                                        notifySubscribers && selectedNewsletterListIds.size === 0
+                                    }
+                                />
                             </CardContent>
                         </Card>
                     ) : null}

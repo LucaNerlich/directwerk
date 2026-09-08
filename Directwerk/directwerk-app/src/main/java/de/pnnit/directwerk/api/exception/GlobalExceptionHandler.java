@@ -22,6 +22,8 @@ import de.pnnit.directwerk.modules.digital.exception.StorageNotConfiguredExcepti
 import de.pnnit.directwerk.modules.digital.exception.UploadValidationException;
 import de.pnnit.directwerk.modules.newsletter.exception.ArticleFeedBuilderException;
 import de.pnnit.directwerk.modules.newsletter.exception.ArticleNotFoundException;
+import de.pnnit.directwerk.modules.newsletter.exception.NewsletterListNotFoundException;
+import de.pnnit.directwerk.modules.newsletter.exception.NewsletterSubscriptionNotFoundException;
 import de.pnnit.directwerk.modules.newsletter.exception.ArticleValidationException;
 import de.pnnit.directwerk.modules.newsletter.feed.ArticleFeedNotFoundException;
 import de.pnnit.directwerk.modules.digital.exception.CategoryNotFoundException;
@@ -302,6 +304,16 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(CategoryNotFoundException.class)
     ResponseEntity<Response<Void>> handleCategoryNotFound(CategoryNotFoundException ex) {
         return notFound("CATEGORY_NOT_FOUND", ex);
+    }
+
+    @ExceptionHandler(NewsletterListNotFoundException.class)
+    ResponseEntity<Response<Void>> handleNewsletterListNotFound(NewsletterListNotFoundException ex) {
+        return notFound("NEWSLETTER_LIST_NOT_FOUND", ex);
+    }
+
+    @ExceptionHandler(NewsletterSubscriptionNotFoundException.class)
+    ResponseEntity<Response<Void>> handleNewsletterSubscriptionNotFound(NewsletterSubscriptionNotFoundException ex) {
+        return notFound("NEWSLETTER_SUBSCRIPTION_NOT_FOUND", ex);
     }
 
     @ExceptionHandler(SubscriberFeedNotFoundException.class)

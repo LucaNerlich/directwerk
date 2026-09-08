@@ -214,10 +214,17 @@ function parseArticleDetail(value: unknown): ArticleDetail | null {
     if (categories === null) {
         return null
     }
+    const newsletterLists = value.newsletterLists === undefined
+        ? []
+        : parseTagArray(value.newsletterLists)
+    if (newsletterLists === null) {
+        return null
+    }
 
     return {
         ...summary,
         categories,
+        newsletterLists,
         body: isNullableString(value.body, 512_000) ? value.body : null,
         excerpt: isNullableString(value.excerpt, 4096) ? value.excerpt : null,
         seoDescription: isNullableString(value.seoDescription, 512)

@@ -119,6 +119,25 @@ public class EmailJobProducer implements TransactionalEmailNotifier {
         );
     }
 
+    @Override
+    public void sendNewsletterConfirm(
+            Long tenantId,
+            String to,
+            String listName,
+            String confirmToken,
+            Duration tokenLifetime
+    ) {
+        Map<String, String> variables = new LinkedHashMap<>();
+        variables.put("listName", listName);
+        variables.put("expiresIn", HumanReadableDuration.format(tokenLifetime));
+        enqueue(
+                tenantId,
+                null,
+                null,
+                () -> payload(EmailTemplate.NEWSLETTER_CONFIRM, to, variables, confirmToken)
+        );
+    }
+
     public void enqueueContentNotification(
             Long tenantId,
             String to,

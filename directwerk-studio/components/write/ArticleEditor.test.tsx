@@ -28,12 +28,12 @@ vi.mock('@/lib/api/tenantSettingsApi', () => ({
 const getArticle = vi.fn().mockResolvedValue({
     id: 1, slug: 'beitrag', title: 'Beitrag', status: 'DRAFT', accessPolicy: 'FREE', publishedAt: null,
     body: null, excerpt: null, seoDescription: null, heroAssetId: null,
-    requiredLevelSortOrder: null, scheduledAt: null, categories: [],
+    requiredLevelSortOrder: null, scheduledAt: null, categories: [], newsletterLists: [],
 })
 const updateArticle = vi.fn().mockResolvedValue({
     id: 1, slug: 'beitrag', title: 'Beitrag', status: 'DRAFT', accessPolicy: 'FREE', publishedAt: null,
     body: null, excerpt: null, seoDescription: null, heroAssetId: null,
-    requiredLevelSortOrder: null, scheduledAt: null, categories: [],
+    requiredLevelSortOrder: null, scheduledAt: null, categories: [], newsletterLists: [],
 })
 const listPublicLevels = vi.fn().mockResolvedValue([
     {id: 1, slug: 'fan', title: 'Fan', sortOrder: 10},
@@ -44,7 +44,7 @@ const replaceArticleCategories = vi.fn().mockResolvedValue({
     id: 1, slug: 'beitrag', title: 'Beitrag', status: 'DRAFT', accessPolicy: 'FREE', publishedAt: null,
     body: null, excerpt: null, seoDescription: null, heroAssetId: null,
     requiredLevelSortOrder: null, scheduledAt: null,
-    categories: [{id: 1, slug: 'news', name: 'News'}],
+    categories: [{id: 1, slug: 'news', name: 'News'}], newsletterLists: [],
 })
 
 vi.mock('@/lib/api/writeApi', () => ({
@@ -60,6 +60,16 @@ vi.mock('@/lib/api/catalogApi', () => ({
         {id: 1, slug: 'news', name: 'News', parentId: null, active: true},
     ]),
     replaceArticleCategories: (...args: unknown[]) => replaceArticleCategories(...args),
+    replaceArticleNewsletterLists: vi.fn().mockImplementation(async () => ({
+        id: 1, slug: 'beitrag', title: 'Beitrag', status: 'DRAFT', accessPolicy: 'FREE', publishedAt: null,
+        body: null, excerpt: null, seoDescription: null, heroAssetId: null,
+        requiredLevelSortOrder: null, scheduledAt: null,
+        categories: [{id: 1, slug: 'news', name: 'News'}],
+        newsletterLists: [],
+    })),
+}))
+vi.mock('@/lib/api/newsletterListsApi', () => ({
+    listNewsletterLists: vi.fn().mockResolvedValue([]),
 }))
 vi.mock('@/lib/api/mediaApi', () => ({
     listMedia: vi.fn().mockResolvedValue([]),
@@ -73,7 +83,7 @@ describe('ArticleEditor tagging', () => {
         getArticle.mockResolvedValueOnce({
             id: 1, slug: 'beitrag', title: 'Beitrag', status: 'DRAFT', accessPolicy: 'FREE', publishedAt: null,
             body: null, excerpt: null, seoDescription: null, heroAssetId: 12,
-            requiredLevelSortOrder: null, scheduledAt: null, categories: [],
+            requiredLevelSortOrder: null, scheduledAt: null, categories: [], newsletterLists: [],
         })
         render(<ArticleEditor articleId={1} />)
 
@@ -115,7 +125,7 @@ describe('ArticleEditor tagging', () => {
         getArticle.mockResolvedValueOnce({
             id: 1, slug: 'beitrag', title: 'Beitrag', status: 'DRAFT', accessPolicy: 'PAID', publishedAt: null,
             body: null, excerpt: null, seoDescription: null, heroAssetId: null,
-            requiredLevelSortOrder: null, scheduledAt: null, categories: [],
+            requiredLevelSortOrder: null, scheduledAt: null, categories: [], newsletterLists: [],
         })
         render(<ArticleEditor articleId={1} />)
 
@@ -154,7 +164,7 @@ describe('ArticleEditor RBAC', () => {
         getArticle.mockResolvedValueOnce({
             id: 1, slug: 'beitrag', title: 'Beitrag', status: 'DRAFT', accessPolicy: 'FREE', publishedAt: null,
             body: null, excerpt: null, seoDescription: null, heroAssetId: null,
-            requiredLevelSortOrder: null, scheduledAt: null, categories: [], createdBy: 99,
+            requiredLevelSortOrder: null, scheduledAt: null, categories: [], newsletterLists: [], createdBy: 99,
         })
         render(<ArticleEditor articleId={1} />)
 

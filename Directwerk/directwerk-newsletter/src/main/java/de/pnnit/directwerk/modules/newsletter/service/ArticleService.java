@@ -18,6 +18,8 @@ import de.pnnit.directwerk.modules.digital.exception.MediaAssetNotFoundException
 import de.pnnit.directwerk.modules.digital.entity.AccessPolicy;
 import de.pnnit.directwerk.modules.newsletter.entity.Article;
 import de.pnnit.directwerk.modules.newsletter.entity.ArticleStatus;
+import de.pnnit.directwerk.modules.newsletter.entity.NewsletterList;
+import de.pnnit.directwerk.modules.newsletter.entity.NewsletterListStatus;
 import de.pnnit.directwerk.modules.newsletter.exception.ArticleNotFoundException;
 import de.pnnit.directwerk.modules.newsletter.exception.ArticleValidationException;
 import de.pnnit.directwerk.modules.newsletter.job.ArticleRssFeedRefreshJobProducer;
@@ -41,6 +43,7 @@ public class ArticleService {
 
     private final ArticleRepository articleRepository;
     private final CategoryService categoryService;
+    private final NewsletterListService newsletterListService;
     private final TenantRepository tenantRepository;
     private final MediaAssetQueryApi mediaAssetQueryApi;
     private final HtmlSanitizer htmlSanitizer;
@@ -161,6 +164,25 @@ public class ArticleService {
         article.getCategories().clear();
         article.getCategories().addAll(categoryService.resolveActiveCategories(tenantId, categoryIds,
                 id -> { throw new ArticleValidationException("Category is inactive: " + id); }));
+        articleRepository.save(article);
+        return requireArticle(tenantId, articleId);
+    }
+
+    @Transactional
+    @RequiresModule(ArticlesModule.KEY)
+    public Article replaceNewsletterLists(Long tenantId, Long articleId, Set<Long> listIds) {
+        Article article = requireDraftArticle(tenantId, articleId);
+        permissionService.requireArticleAccess(ContentOperation.UPDATE, article.getCreatedBy());
+        article.getNewsletterLists().clear();
+        if (listIds != null) {
+            for (Long listId : listIds) {
+                NewsletterList list = newsletterListService.requireList(tenantId, listId);
+                if (list.getStatus() != NewsletterListStatus.ACTIVE) {
+                    throw new ArticleValidationException("Newsletter list is inactive: " + listId);
+                }
+                article.getNewsletterLists().add(list);
+            }
+        }
         articleRepository.save(article);
         return requireArticle(tenantId, articleId);
     }

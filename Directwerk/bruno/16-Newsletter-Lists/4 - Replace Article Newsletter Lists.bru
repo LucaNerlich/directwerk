@@ -1,0 +1,21 @@
+meta {
+  name: 4 - Replace Article Newsletter Lists
+  type: http
+  seq: 4
+}
+
+put {
+  url: {{baseUrl}}/api/v1/articles/{{articleId}}/newsletter-lists
+  body: json
+  auth: inherit
+}
+
+auth:bearer {
+  token: {{editorAccessToken}}
+}
+
+body:json {
+  {
+    "newsletterListIds": [{{newsletterListId}}]
+  }
+}

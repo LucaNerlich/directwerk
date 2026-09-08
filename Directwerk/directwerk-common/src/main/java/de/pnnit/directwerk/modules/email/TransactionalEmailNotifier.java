@@ -33,4 +33,12 @@ public interface TransactionalEmailNotifier {
             String verificationToken,
             Duration tokenLifetime
     );
+
+    void sendNewsletterConfirm(
+            Long tenantId,
+            String to,
+            String listName,
+            String confirmToken,
+            Duration tokenLifetime
+    );
 }

@@ -87,7 +87,11 @@ public class EmailJobHandler implements JobHandler {
                 requireVariable(variables, "recipientName", 200);
                 requireVariable(variables, "expiresIn", 100);
             }
-            case CONTENT_EPISODE_PUBLISHED, CONTENT_ARTICLE_PUBLISHED -> {
+            case NEWSLETTER_CONFIRM -> {
+                requireVariable(variables, "listName", 255);
+                requireVariable(variables, "expiresIn", 100);
+            }
+            case CONTENT_EPISODE_PUBLISHED -> {
                 requireVariable(variables, "recipientName", 200);
                 requireVariable(variables, "tenantName", 200);
                 requireVariable(variables, "siteTitle", 200);
@@ -97,10 +101,23 @@ public class EmailJobHandler implements JobHandler {
                 requireVariable(variables, "preferencesUrl", 2048);
                 requireVariable(variables, "primaryColor", 32);
             }
+            case CONTENT_ARTICLE_PUBLISHED -> {
+                requireVariable(variables, "recipientName", 200);
+                requireVariable(variables, "tenantName", 200);
+                requireVariable(variables, "siteTitle", 200);
+                requireVariable(variables, "title", 255);
+                requireVariable(variables, "excerpt", 2000, true);
+                requireVariable(variables, "contentUrl", 2048);
+                requireVariable(variables, "unsubscribeUrl", 2048);
+                requireVariable(variables, "primaryColor", 32);
+            }
             case CONTACT_FORM -> {
                 requireVariable(variables, "name", 120);
                 requireVariable(variables, "email", 254);
                 requireVariable(variables, "message", 5000);
+            }
+            case RSS_BULK_IMPORT_FINISHED -> {
+                // validated by producer
             }
         }
     }

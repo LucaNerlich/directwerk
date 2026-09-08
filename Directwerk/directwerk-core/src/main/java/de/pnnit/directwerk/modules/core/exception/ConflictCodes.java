@@ -15,6 +15,7 @@ public final class ConflictCodes {
     public static final String FORMAT_SLUG_EXISTS = "FORMAT_SLUG_EXISTS";
     public static final String CATEGORY_SLUG_EXISTS = "CATEGORY_SLUG_EXISTS";
     public static final String ARTICLE_SLUG_EXISTS = "ARTICLE_SLUG_EXISTS";
+    public static final String NEWSLETTER_LIST_SLUG_EXISTS = "NEWSLETTER_LIST_SLUG_EXISTS";
     public static final String PRODUCT_SLUG_EXISTS = "PRODUCT_SLUG_EXISTS";
     public static final String USER_EXISTS = "USER_EXISTS";
     public static final String USER_ALREADY_MEMBER = "USER_ALREADY_MEMBER";

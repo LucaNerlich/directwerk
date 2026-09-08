@@ -1,6 +1,7 @@
 package de.pnnit.directwerk.modules.email;
 
 import de.pnnit.directwerk.config.DirectwerkConfig;
+import de.pnnit.directwerk.modules.content.PublicContentPaths;
 import de.pnnit.directwerk.modules.core.entity.Tenant;
 import de.pnnit.directwerk.modules.core.repository.TenantRepository;
 import de.pnnit.directwerk.modules.core.service.TenantPublicHostResolver;
@@ -33,6 +34,7 @@ public class EmailLinkBuilder {
             case ADMIN_ACCEPT_INVITE -> buildAdminAcceptInviteUrl(rawToken);
             case RESET_PASSWORD -> buildResetPasswordUrl(rawToken, tenantId);
             case EMAIL_VERIFICATION -> buildVerifyEmailUrl(rawToken, tenantId);
+            case NEWSLETTER_CONFIRM -> buildNewsletterConfirmUrl(rawToken, tenantId);
         };
     }
 
@@ -66,6 +68,10 @@ public class EmailLinkBuilder {
                 directwerkConfig.email().verifyEmailPath(),
                 verificationToken
         );
+    }
+
+    public String buildNewsletterConfirmUrl(String confirmToken, Long tenantId) {
+        return buildTenantAuthUrl(tenantId, PublicContentPaths.newsletterConfirm(), confirmToken);
     }
 
     private String buildTenantAuthUrl(Long tenantId, String path, String token) {
