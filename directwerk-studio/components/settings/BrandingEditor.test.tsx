@@ -2,6 +2,7 @@ import {fireEvent, render, screen, waitFor} from '@testing-library/react'
 import {beforeEach, describe, expect, it, vi} from 'vitest'
 
 import BrandingEditor from '@/components/settings/BrandingEditor'
+import type {MediaAsset} from '@directwerk/api/types'
 
 const mockRouter = {replace: vi.fn()}
 vi.mock('next/navigation', () => ({useRouter: () => mockRouter}))
@@ -13,12 +14,54 @@ vi.mock('@directwerk/api/tenant', () => ({getClientTenantHost: () => 'tenant.tes
 const getBranding = vi.fn()
 const updateBranding = vi.fn()
 const siteConfig = {enabledModules: ['DIGITAL_CONTENT', 'PODCAST']}
+
+const {readyLogo} = vi.hoisted(() => {
+    const logo: MediaAsset = {
+        id: 42,
+        s3Key: 't/public/images/logo.png',
+        visibility: 'PUBLIC',
+        scope: 'LIBRARY',
+        assetType: 'IMAGE',
+        status: 'READY',
+        mimeType: 'image/png',
+        sizeBytes: 1024,
+        originalFilename: 'logo.png',
+        episodeId: null,
+        ownerUserId: null,
+        folderId: null,
+        createdBy: null,
+        cdnUrl: 'https://cdn.example.test/t/public/images/logo.png',
+        createdAt: '2026-01-01T00:00:00Z',
+        updatedAt: '2026-01-01T00:00:00Z',
+    }
+    return {readyLogo: logo}
+})
+
 vi.mock('@/lib/api/tenantSettingsApi', () => ({
     getBranding: (...args: unknown[]) => getBranding(...args),
     updateBranding: (...args: unknown[]) => updateBranding(...args),
 }))
 vi.mock('@/lib/site/SiteConfigProvider', () => ({
     useSiteConfig: () => siteConfig,
+}))
+vi.mock('@/components/media/MediaLibraryPicker', () => ({
+    default: ({
+        label,
+        onSelect,
+        disabled,
+    }: {
+        label: string
+        onSelect: (asset: MediaAsset) => void
+        disabled?: boolean
+    }) => (
+        <button
+            disabled={disabled}
+            onClick={() => onSelect(readyLogo)}
+            type="button"
+        >
+            {label}
+        </button>
+    ),
 }))
 
 const branding = {
@@ -173,5 +216,53 @@ describe('BrandingEditor color picker', () => {
         await screen.findByLabelText('Umami Website-ID')
 
         expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+    })
+
+    it('fills the logo URL from a media library image and submits it', async () => {
+        render(<BrandingEditor />)
+        const logoField = await screen.findByLabelText('Oder Logo-URL')
+        expect(logoField).toHaveValue('')
+
+        fireEvent.click(screen.getByRole('button', {name: 'Logo aus Mediathek'}))
+
+        expect(logoField).toHaveValue(readyLogo.cdnUrl)
+        expect(screen.getByAltText('Logo-Vorschau')).toHaveAttribute(
+            'src',
+            readyLogo.cdnUrl!,
+        )
+
+        fireEvent.submit(logoField.closest('form') as HTMLFormElement)
+
+        await waitFor(() =>
+            expect(updateBranding).toHaveBeenCalledWith('tenant.test', {
+                siteTitle: 'Meine Sendung',
+                primaryColor: '#112233',
+                secondaryColor: null,
+                logoUrl: readyLogo.cdnUrl,
+                umamiWebsiteId: null,
+                umamiHostUrl: null,
+            }),
+        )
+    })
+
+    it('still accepts a manually typed logo URL', async () => {
+        render(<BrandingEditor />)
+        const logoField = await screen.findByLabelText('Oder Logo-URL')
+
+        fireEvent.change(logoField, {
+            target: {value: 'https://cdn.example.test/external-logo.png'},
+        })
+        fireEvent.submit(logoField.closest('form') as HTMLFormElement)
+
+        await waitFor(() =>
+            expect(updateBranding).toHaveBeenCalledWith('tenant.test', {
+                siteTitle: 'Meine Sendung',
+                primaryColor: '#112233',
+                secondaryColor: null,
+                logoUrl: 'https://cdn.example.test/external-logo.png',
+                umamiWebsiteId: null,
+                umamiHostUrl: null,
+            }),
+        )
     })
 })

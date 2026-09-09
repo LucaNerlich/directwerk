@@ -12,9 +12,9 @@ import {Skeleton} from '@directwerk/ui/components/skeleton'
 
 import Form from 'next/form'
 import {useRouter} from 'next/navigation'
-import {useActionState, useEffect, useState} from 'react'
+import {useActionState, useCallback, useEffect, useState} from 'react'
 
-import {AUTH_REQUIRED} from '@directwerk/api/constants'
+import MediaLibraryPicker from '@/components/media/MediaLibraryPicker'
 import {getBranding, updateBranding} from '@/lib/api/tenantSettingsApi'
 import {hasModule} from '@/lib/api/client'
 import {useSiteConfig} from '@/lib/site/SiteConfigProvider'
@@ -65,8 +65,14 @@ export default function BrandingEditor(): React.JSX.Element {
     const [branding, setBranding] = useState<TenantBranding | null>(null)
     const [primaryColorDraft, setPrimaryColorDraft] = useState('')
     const [secondaryColorDraft, setSecondaryColorDraft] = useState('')
+    const [logoUrlDraft, setLogoUrlDraft] = useState('')
+    const [logoPickError, setLogoPickError] = useState<string | null>(null)
     const [loadError, setLoadError] = useState<string | null>(null)
     const [isLoading, setIsLoading] = useState(true)
+
+    const handleAuthRequired = useCallback(() => {
+        router.replace('/login')
+    }, [router])
 
     useEffect(() => {
         let active = true
@@ -79,6 +85,7 @@ export default function BrandingEditor(): React.JSX.Element {
                 setBranding(result)
                 setPrimaryColorDraft(result.primaryColor ?? '')
                 setSecondaryColorDraft(result.secondaryColor ?? '')
+                setLogoUrlDraft(result.logoUrl ?? '')
                 setIsLoading(false)
             })
             .catch((error: unknown) => {
@@ -97,7 +104,7 @@ export default function BrandingEditor(): React.JSX.Element {
         return () => {
             active = false
         }
-    }, [router])
+    }, [authRedirect, router])
 
     async function saveAction(
         _previous: BrandingFormState,
@@ -106,7 +113,7 @@ export default function BrandingEditor(): React.JSX.Element {
         const siteTitle = String(formData.get('siteTitle') ?? '').trim()
         const primaryColor = normalizeColor(formData.get('primaryColor'))
         const secondaryColor = normalizeColor(formData.get('secondaryColor'))
-        const logoUrl = String(formData.get('logoUrl') ?? '').trim()
+        const logoUrl = logoUrlDraft.trim()
         const umamiWebsiteId = String(formData.get('umamiWebsiteId') ?? '').trim()
         const umamiHostUrl = String(formData.get('umamiHostUrl') ?? '').trim()
 
@@ -157,6 +164,8 @@ export default function BrandingEditor(): React.JSX.Element {
             setBranding(updated)
             setPrimaryColorDraft(updated.primaryColor ?? '')
             setSecondaryColorDraft(updated.secondaryColor ?? '')
+            setLogoUrlDraft(updated.logoUrl ?? '')
+            setLogoPickError(null)
             if (!updated.umamiWebsiteId) {
                 return {error: null, success: 'Branding gespeichert. Analytics-Tracking ist deaktiviert (keine Website-ID).'}
             }
@@ -184,6 +193,7 @@ export default function BrandingEditor(): React.JSX.Element {
         primaryColorDraft.trim().length > 0 ? primaryColorDraft : (branding?.primaryColor ?? null)
     const previewSecondary =
         secondaryColorDraft.trim().length > 0 ? secondaryColorDraft : (branding?.secondaryColor ?? null)
+    const logoPreviewSrc = safeImageSrc(logoUrlDraft)
 
     if (isLoading) {
         return (
@@ -294,20 +304,73 @@ export default function BrandingEditor(): React.JSX.Element {
                         Farbwähler nutzen oder Hex-Wert im Format #RRGGBB eingeben, z. B. #445566. Leer lassen für die Standardfarbe.
                     </p>
                 </div>
-                <div className="grid gap-2">
-                    <Label htmlFor="logoUrl">Logo-URL</Label>
-                    <Input
-                        aria-describedby="logoUrl-help"
-                        defaultValue={branding?.logoUrl ?? ''}
-                        id="logoUrl"
-                        maxLength={2048}
-                        name="logoUrl"
-                        placeholder="https://…"
-                        type="url"
-                    />
-                    <p className="text-xs text-muted-foreground" id="logoUrl-help">
-                        Optionale absolute https-URL zu deinem Logo. Leer lassen für kein Logo.
-                    </p>
+                <div className="grid gap-3">
+                    <div className="grid gap-2">
+                        <p className="text-sm font-medium">Logo</p>
+                        {logoPreviewSrc !== null ? (
+                            <img
+                                alt="Logo-Vorschau"
+                                className="h-12 w-auto max-w-48 object-contain"
+                                src={logoPreviewSrc}
+                            />
+                        ) : null}
+                        <MediaLibraryPicker
+                            assetType="IMAGE"
+                            disabled={pending}
+                            label="Logo aus Mediathek"
+                            onAuthRequired={handleAuthRequired}
+                            onSelect={(asset) => {
+                                const src = safeImageSrc(asset.cdnUrl)
+                                if (src === null) {
+                                    setLogoPickError(
+                                        'Dieses Bild hat keine öffentliche HTTPS-URL. Wähle ein anderes oder gib eine URL ein.',
+                                    )
+                                    return
+                                }
+                                setLogoPickError(null)
+                                setLogoUrlDraft(src)
+                            }}
+                            selectedId={null}
+                        />
+                        {logoPickError !== null ? (
+                            <p className="text-sm text-destructive" role="alert">
+                                {logoPickError}
+                            </p>
+                        ) : null}
+                    </div>
+                    <div className="grid gap-2">
+                        <Label htmlFor="logoUrl">Oder Logo-URL</Label>
+                        <Input
+                            aria-describedby="logoUrl-help"
+                            id="logoUrl"
+                            maxLength={2048}
+                            name="logoUrl"
+                            onChange={(event) => {
+                                setLogoPickError(null)
+                                setLogoUrlDraft(event.target.value)
+                            }}
+                            placeholder="https://…"
+                            type="url"
+                            value={logoUrlDraft}
+                        />
+                        <p className="text-xs text-muted-foreground" id="logoUrl-help">
+                            Bild aus der Mediathek wählen oder absolute https-URL eingeben. Leer lassen für kein Logo.
+                        </p>
+                        {logoUrlDraft.length > 0 ? (
+                            <Button
+                                disabled={pending}
+                                onClick={() => {
+                                    setLogoPickError(null)
+                                    setLogoUrlDraft('')
+                                }}
+                                size="sm"
+                                type="button"
+                                variant="outline"
+                            >
+                                Logo entfernen
+                            </Button>
+                        ) : null}
+                    </div>
                 </div>
                     </CardContent>
                 </Card>
