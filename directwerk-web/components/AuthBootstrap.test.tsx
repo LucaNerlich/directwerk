@@ -56,4 +56,25 @@ describe('AuthBootstrap', () => {
         expect(replace).not.toHaveBeenCalled()
         expect(ensureAuthenticated).not.toHaveBeenCalled()
     })
+
+    it('treats imprint and privacy as public paths', async () => {
+        for (const pathname of ['/imprint', '/privacy']) {
+            navigation.pathname = pathname
+            replace.mockReset()
+            ensureAuthenticated.mockReset()
+            const {unmount} = render(
+                <AuthBootstrap>
+                    <p>Legal page</p>
+                </AuthBootstrap>,
+            )
+
+            expect(screen.getByText('Legal page')).toBeInTheDocument()
+            await act(async () => {
+                await Promise.resolve()
+            })
+            expect(replace).not.toHaveBeenCalled()
+            expect(ensureAuthenticated).not.toHaveBeenCalled()
+            unmount()
+        }
+    })
 })

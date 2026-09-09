@@ -7,6 +7,12 @@ import {AUTH_REQUIRED} from '@directwerk/api/constants'
 import {ensureAuthenticated} from '@/lib/auth/session'
 import {getAccessToken} from '@/lib/auth/tokenStore'
 
+const PUBLIC_PATHS = new Set(['/login', '/imprint', '/privacy'])
+
+function isPublicPath(pathname: string): boolean {
+    return PUBLIC_PATHS.has(pathname)
+}
+
 export default function AuthBootstrap({
     children,
 }: Readonly<{
@@ -14,14 +20,14 @@ export default function AuthBootstrap({
 }>) {
     const pathname = usePathname()
     const router = useRouter()
-    const [ready, setReady] = useState(pathname === '/login')
+    const [ready, setReady] = useState(isPublicPath(pathname))
 
     useEffect(() => {
         let active = true
 
         async function bootstrap(): Promise<void> {
-            if (pathname === '/login') {
-                if (getAccessToken() !== null) {
+            if (isPublicPath(pathname)) {
+                if (pathname === '/login' && getAccessToken() !== null) {
                     try {
                         await ensureAuthenticated()
                         if (active) {
@@ -64,8 +70,8 @@ export default function AuthBootstrap({
             }
         }
 
-        setReady(pathname === '/login')
-        bootstrap()
+        setReady(isPublicPath(pathname))
+        void bootstrap()
 
         return () => {
             active = false

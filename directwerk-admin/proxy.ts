@@ -5,6 +5,8 @@ const REFRESH_COOKIE = 'dw_admin_refresh'
 
 const PUBLIC_PATH_PREFIXES = [
     '/login',
+    '/imprint',
+    '/privacy',
     '/api/auth/login',
     '/api/auth/refresh',
 ]

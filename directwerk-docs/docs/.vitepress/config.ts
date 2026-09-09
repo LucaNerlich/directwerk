@@ -201,7 +201,8 @@ export default defineConfig({
     footer: {
       message:
         'Directwerk — whitelabel publication infrastructure · API-first · Hosted in the EU',
-      copyright: 'Copyright © Directwerk',
+      copyright:
+        'Copyright © Directwerk · <a href="/imprint">Impressum</a> · <a href="/privacy">Datenschutz</a>',
     },
   },
   extends: await openApiDocs({

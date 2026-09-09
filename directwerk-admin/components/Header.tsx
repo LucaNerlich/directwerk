@@ -55,7 +55,7 @@ export default function Header({children}: {children: ReactNode}) {
         router.push('/login')
     }
 
-    if (pathname === '/login') {
+    if (pathname === '/login' || pathname === '/imprint' || pathname === '/privacy') {
         return children
     }
 
