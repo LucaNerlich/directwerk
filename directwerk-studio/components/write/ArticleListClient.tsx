@@ -211,9 +211,14 @@ export default function ArticleListClient() {
                 title="Beiträge"
                 description="Artikel und Newsletter-Texte — mit Freigabe, Planung und Kategorien."
                 actions={
-                    <Button nativeButton={false} render={<Link href="/write/articles/new" />} size="lg">
-                        Neuer Beitrag
-                    </Button>
+                    <div className="flex flex-wrap gap-2">
+                        <Button nativeButton={false} render={<Link href="/write/import" />} size="lg" variant="outline">
+                            RSS importieren
+                        </Button>
+                        <Button nativeButton={false} render={<Link href="/write/articles/new" />} size="lg">
+                            Neuer Beitrag
+                        </Button>
+                    </div>
                 }
             />
             {displayError !== null && (

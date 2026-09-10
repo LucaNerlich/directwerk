@@ -1,0 +1,94 @@
+### Directwerk — Article RSS import
+### Prerequisites: 02-oauth2.http (tenantAAccessToken), ARTICLES module active.
+###                Storage must be enabled for ingest/import of images.
+
+### @name previewArticleRssFeed
+POST {{baseUrl}}/api/v1/articles/import/preview
+Host: {{tenantAHost}}
+Authorization: Bearer {{tenantAAccessToken}}
+Content-Type: application/json
+Accept: application/json
+
+{
+  "feedUrl": "https://example.com/articles.xml"
+}
+
+> {%
+    client.test("Preview article RSS feed", function() {
+        client.assert(response.status === 200 || response.status === 400 || response.status === 403,
+            "Expected 200, 400, or 403");
+    });
+%}
+
+###
+
+### @name ingestRemoteAssetForbiddenPrivateHost
+POST {{baseUrl}}/api/v1/articles/import/assets
+Host: {{tenantAHost}}
+Authorization: Bearer {{tenantAAccessToken}}
+Content-Type: application/json
+Accept: application/json
+
+{
+  "sourceUrl": "http://127.0.0.1/secret.jpg",
+  "assetType": "IMAGE",
+  "visibility": "PUBLIC"
+}
+
+> {%
+    client.test("Ingest rejects loopback", function() {
+        client.assert(response.status === 400 || response.status === 403 || response.status === 503,
+            "Expected 400, 403, or 503");
+    });
+%}
+
+###
+
+### @name importArticleDraft
+POST {{baseUrl}}/api/v1/articles/import/articles
+Host: {{tenantAHost}}
+Authorization: Bearer {{tenantAAccessToken}}
+Content-Type: application/json
+Accept: application/json
+
+{
+  "feedUrl": "https://example.com/articles.xml",
+  "guid": "example-guid-1",
+  "slug": "imported-article",
+  "title": "Imported article",
+  "body": "<p>Hello</p>",
+  "excerpt": "Hello",
+  "accessPolicy": "FREE",
+  "importHero": false,
+  "importInlineImages": false
+}
+
+> {%
+    client.test("Import article", function() {
+        client.assert(response.status === 200 || response.status === 201 || response.status === 400 || response.status === 403,
+            "Expected 200, 201, 400, or 403");
+    });
+%}
+
+###
+
+### @name bulkImportArticles
+POST {{baseUrl}}/api/v1/articles/import/bulk
+Host: {{tenantAHost}}
+Authorization: Bearer {{tenantAAccessToken}}
+Content-Type: application/json
+Accept: application/json
+
+{
+  "feedUrl": "https://example.com/articles.xml",
+  "accessPolicy": "FREE",
+  "importHero": true,
+  "importInlineImages": true
+}
+
+> {%
+    client.test("Bulk import articles", function() {
+        client.assert(response.status === 202 || response.status === 400 || response.status === 403,
+            "Expected 202, 400, or 403");
+    });
+%}

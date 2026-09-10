@@ -45,6 +45,8 @@
 ### | 30-article-rss.http | ArticleRssFeedController public/private feeds + FEATURE_NOT_ENABLED (after 22) |
 ### | 31-custom-article-feeds.http | MeArticleFeed custom feeds + private RSS category filter (after 24 + 30) |
 ### | 32-tenant-article-feeds.http | TenantArticleFeedController (list/enable/disable) |
+### | 33-newsletter-lists.http | Newsletter list CRUD + public subscribe |
+### | 34-article-import.http | ArticleImportController (RSS preview + stream ingest + bulk) |
 ###
 ### Controllers live under de.pnnit.directwerk.controller.*
 

@@ -27,6 +27,7 @@ import de.pnnit.directwerk.modules.newsletter.repository.ArticleRepository;
 import de.pnnit.directwerk.modules.digital.service.CategoryService;
 import de.pnnit.directwerk.modules.digital.service.HtmlSanitizer;
 import de.pnnit.directwerk.security.SecurityUtils;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -99,6 +100,56 @@ public class ArticleService {
         article.setAccessPolicy(accessPolicy != null ? accessPolicy : AccessPolicy.FREE);
         article.setRequiredLevelSortOrder(FieldConstraints.requireNonNegative(requiredLevelSortOrder, "requiredLevelSortOrder"));
         article.setStatus(ArticleStatus.DRAFT);
+        article.getCategories().addAll(categoryService.resolveActiveCategories(tenantId, categoryIds,
+                id -> { throw new ArticleValidationException("Category is inactive: " + id); }));
+        Article saved = articleRepository.save(article);
+        return requireArticle(tenantId, saved.getId());
+    }
+
+    /**
+     * Creates a draft article associated with a validated imported-article identity.
+     *
+     * @param importIdentity a lowercase 64-character hexadecimal SHA-256 digest identifying the imported article
+     */
+    @Transactional
+    @RequiresModule(ArticlesModule.KEY)
+    public Article createImportedDraft(
+            Long tenantId,
+            String rawSlug,
+            String title,
+            String body,
+            String excerpt,
+            Long heroAssetId,
+            AccessPolicy accessPolicy,
+            Integer requiredLevelSortOrder,
+            Set<Long> categoryIds,
+            String importIdentity,
+            Instant publishedAt
+    ) {
+        if (importIdentity == null || !importIdentity.matches("[a-f0-9]{64}")) {
+            throw new ArticleValidationException("importIdentity must be a lowercase SHA-256 digest");
+        }
+        permissionService.requireArticleAccess(ContentOperation.CREATE, null);
+        String slug = SlugNormalizer.normalize(rawSlug);
+        if (articleRepository.existsByTenantIdAndSlug(tenantId, slug)) {
+            throw new ConflictException(ConflictCodes.ARTICLE_SLUG_EXISTS, "Article slug already exists: " + slug);
+        }
+
+        Article article = new Article();
+        article.setTenant(tenantRepository.getReferenceById(tenantId));
+        article.setCreatedBy(SecurityUtils.currentUserId());
+        article.setSlug(slug);
+        article.setImportIdentity(importIdentity);
+        article.setTitle(TitleNormalizer.normalize(title, "Article"));
+        article.setBody(htmlSanitizer.sanitize(body));
+        article.setExcerpt(normalizeOptionalText(excerpt));
+        article.setHeroAsset(resolveHeroAsset(tenantId, heroAssetId));
+        article.setAccessPolicy(accessPolicy != null ? accessPolicy : AccessPolicy.FREE);
+        article.setRequiredLevelSortOrder(FieldConstraints.requireNonNegative(requiredLevelSortOrder, "requiredLevelSortOrder"));
+        article.setStatus(ArticleStatus.DRAFT);
+        if (publishedAt != null) {
+            article.setPublishedAt(publishedAt);
+        }
         article.getCategories().addAll(categoryService.resolveActiveCategories(tenantId, categoryIds,
                 id -> { throw new ArticleValidationException("Category is inactive: " + id); }));
         Article saved = articleRepository.save(article);

@@ -1,0 +1,39 @@
+meta {
+  name: 3 - Import Article
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{baseUrl}}/api/v1/articles/import/articles
+  body: json
+  auth: inherit
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "feedUrl": "https://example.com/articles.xml",
+    "guid": "example-guid-1",
+    "slug": "imported-article",
+    "title": "Imported article",
+    "body": "<p>Hello</p>",
+    "excerpt": "Hello",
+    "accessPolicy": "FREE",
+    "importHero": false,
+    "importInlineImages": false
+  }
+}
+
+tests {
+  test("returns expected status", function() {
+    expect([200, 201, 400, 403]).to.include(res.getStatus());
+  });
+}
+
+docs {
+  Imports one feed item as a DRAFT article. Idempotent on feedUrl+guid import identity.
+}

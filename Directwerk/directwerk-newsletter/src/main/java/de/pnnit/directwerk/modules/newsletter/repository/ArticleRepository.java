@@ -29,6 +29,11 @@ public interface ArticleRepository extends JpaRepository<Article, Long> {
     })
     Optional<Article> findByTenantIdAndSlug(Long tenantId, String slug);
 
+    @EntityGraph(attributePaths = {
+            "tenant", "heroAsset", "heroAsset.tenant", "categories", "categories.parent", "newsletterLists"
+    })
+    Optional<Article> findByTenantIdAndImportIdentity(Long tenantId, String importIdentity);
+
     boolean existsByTenantIdAndSlug(Long tenantId, String slug);
 
     boolean existsByTenantIdAndSlugAndIdNot(Long tenantId, String slug, Long id);

@@ -30,6 +30,7 @@ import de.pnnit.directwerk.modules.digital.exception.CategoryNotFoundException;
 import de.pnnit.directwerk.modules.podcast.exception.EpisodeNotFoundException;
 import de.pnnit.directwerk.modules.podcast.exception.EpisodeValidationException;
 import de.pnnit.directwerk.modules.podcast.exception.FormatNotFoundException;
+import de.pnnit.directwerk.modules.newsletter.exception.ArticleRssImportException;
 import de.pnnit.directwerk.modules.podcast.exception.RssImportException;
 import de.pnnit.directwerk.modules.content.InvalidPublicationTransitionException;
 import de.pnnit.directwerk.modules.podcast.exception.SeriesNotFoundException;
@@ -351,6 +352,12 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(RssImportException.class)
     ResponseEntity<Response<Void>> handleRssImport(RssImportException ex) {
+        return ResponseEntity.status(ex.getStatus())
+                .body(Response.error(ex.getStatus(), ex.getCode(), ex.getMessage()));
+    }
+
+    @ExceptionHandler(ArticleRssImportException.class)
+    ResponseEntity<Response<Void>> handleArticleRssImport(ArticleRssImportException ex) {
         return ResponseEntity.status(ex.getStatus())
                 .body(Response.error(ex.getStatus(), ex.getCode(), ex.getMessage()));
     }

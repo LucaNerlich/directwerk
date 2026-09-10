@@ -46,7 +46,7 @@ public class RssBulkImportJobHandler implements JobHandler {
 
     @Override
     public String queueName() {
-        return QueueNames.RSS_BULK_IMPORT;
+        return QueueNames.PODCAST_RSS_BULK_IMPORT;
     }
 
     @Override
@@ -55,7 +55,7 @@ public class RssBulkImportJobHandler implements JobHandler {
         if (payload == null || payload.seriesId() == null || payload.feedUrl() == null
                 || payload.feedUrl().isBlank() || payload.notifyEmail() == null
                 || payload.notifyEmail().isBlank()) {
-            throw new IllegalArgumentException("Invalid rss-bulk-import job payload");
+            throw new IllegalArgumentException("Invalid podcast-rss-bulk-import job payload");
         }
 
         PodcastImportService.Preview preview = podcastImportService.preview(payload.feedUrl());

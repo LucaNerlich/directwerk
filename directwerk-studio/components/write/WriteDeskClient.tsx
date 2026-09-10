@@ -132,9 +132,14 @@ export default function WriteDeskClient(): React.JSX.Element {
                 title="Inhalte erstellen"
                 description="Beitrag für Beitrag veröffentlichen. Kategorien sind optional — der wöchentliche Weg führt über die Beiträge."
                 actions={
-                    <Button nativeButton={false} render={<Link href="/write/articles/new" />} size="lg">
-                        Neuer Beitrag
-                    </Button>
+                    <div className="flex flex-wrap gap-2">
+                        <Button nativeButton={false} render={<Link href="/write/import" />} size="lg" variant="outline">
+                            RSS importieren
+                        </Button>
+                        <Button nativeButton={false} render={<Link href="/write/articles/new" />} size="lg">
+                            Neuer Beitrag
+                        </Button>
+                    </div>
                 }
             />
 

@@ -45,6 +45,13 @@ public class Article extends BaseEntity implements TenantOwned {
     @Column(nullable = false, length = 64)
     private String slug;
 
+    /**
+     * SHA-256 hex of canonical feed URL + GUID when this article was imported from RSS.
+     * Null for hand-authored articles.
+     */
+    @Column(name = "import_identity", length = 64)
+    private String importIdentity;
+
     @Column(nullable = false)
     private String title;
 
