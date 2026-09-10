@@ -32,6 +32,7 @@ import java.security.NoSuchAlgorithmException;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HexFormat;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -74,12 +75,21 @@ public class ArticleImportService {
     public Preview preview(String feedUrl) {
         Long tenantId = TenantContext.requireTenantId();
         ParsedArticleRssFeed parsed = fetchAndParse(feedUrl);
+        List<String> identities = parsed.items().stream()
+                .map(item -> importIdentity(parsed.feedUrl(), item.guid()))
+                .toList();
+        Map<String, Long> existingByIdentity = new HashMap<>();
+        if (!identities.isEmpty()) {
+            for (ArticleRepository.ImportIdentityId row : articleRepository.findIdsByTenantIdAndImportIdentityIn(
+                    tenantId,
+                    identities
+            )) {
+                existingByIdentity.put(row.getImportIdentity(), row.getId());
+            }
+        }
         List<PreviewArticle> articles = new ArrayList<>();
         for (ParsedArticleRssFeed.Item item : parsed.items()) {
             String identity = importIdentity(parsed.feedUrl(), item.guid());
-            Long existingId = articleRepository.findByTenantIdAndImportIdentity(tenantId, identity)
-                    .map(Article::getId)
-                    .orElse(null);
             articles.add(new PreviewArticle(
                     item.guid(),
                     item.title(),
@@ -88,7 +98,7 @@ public class ArticleImportService {
                     item.publishedAt(),
                     item.imageUrl(),
                     ImportSlugSuggester.suggest(item.title()),
-                    existingId
+                    existingByIdentity.get(identity)
             ));
         }
         ParsedArticleRssFeed.Channel channel = parsed.channel();
@@ -221,15 +231,19 @@ public class ArticleImportService {
             return new BodyRewrite(body == null ? "" : body);
         }
         Matcher matcher = IMG_SRC.matcher(body);
-        Map<String, String> replacements = new LinkedHashMap<>();
-        while (matcher.find() && replacements.size() < MAX_INLINE_IMAGES) {
+        Map<String, String> srcReplacements = new LinkedHashMap<>();
+        LinkedHashSet<String> seenSources = new LinkedHashSet<>();
+        while (matcher.find() && srcReplacements.size() < MAX_INLINE_IMAGES) {
             String source = matcher.group(1);
-            if (source == null || source.isBlank() || replacements.containsKey(source)) {
+            if (source == null || source.isBlank() || !seenSources.add(source)) {
                 continue;
             }
             if (!source.startsWith("http://") && !source.startsWith("https://")) {
                 continue;
             }
+            Long assetId = null;
+            Optional<URL> cdn = Optional.empty();
+            RuntimeException resolveFailure = null;
             try {
                 MediaAsset asset = ingestAsset(
                         source,
@@ -237,20 +251,45 @@ public class ArticleImportService {
                         AssetVisibility.PUBLIC,
                         importFilenameHint(title, source, "inline", "jpg")
                 );
-                ingestedAssetIds.add(asset.getId());
-                Optional<URL> cdn = publicCdnUrlResolver.resolve(asset);
-                if (cdn.isPresent()) {
-                    replacements.put(source, cdn.get().toString());
+                assetId = asset.getId();
+                ingestedAssetIds.add(assetId);
+                try {
+                    cdn = publicCdnUrlResolver.resolve(asset);
+                } catch (RuntimeException ex) {
+                    resolveFailure = ex;
                 }
-            } catch (RuntimeException ex) {
-                log.warn("Skipping inline image ingest for {}", source, ex);
+            } catch (RuntimeException ingestFailure) {
+                log.warn("Skipping inline image ingest for {}", source, ingestFailure);
+                continue;
             }
+            if (cdn.isEmpty() || resolveFailure != null) {
+                // Discard failure must propagate so outer cleanup can retry.
+                remoteAssetIngestApi.discard(assetId);
+                ingestedAssetIds.remove(assetId);
+                if (resolveFailure != null) {
+                    log.warn("Skipping inline image after CDN resolve failure for {}", source, resolveFailure);
+                }
+                continue;
+            }
+            srcReplacements.put(source, cdn.get().toString());
         }
-        String rewritten = body;
-        for (Map.Entry<String, String> entry : replacements.entrySet()) {
-            rewritten = rewritten.replace(entry.getKey(), entry.getValue());
+        matcher = IMG_SRC.matcher(body);
+        StringBuilder rewritten = new StringBuilder();
+        while (matcher.find()) {
+            String source = matcher.group(1);
+            String cdnUrl = source == null ? null : srcReplacements.get(source);
+            if (cdnUrl == null) {
+                matcher.appendReplacement(rewritten, Matcher.quoteReplacement(matcher.group(0)));
+                continue;
+            }
+            String tag = matcher.group(0);
+            int srcStart = matcher.start(1) - matcher.start();
+            int srcEnd = matcher.end(1) - matcher.start();
+            String rewrittenTag = tag.substring(0, srcStart) + cdnUrl + tag.substring(srcEnd);
+            matcher.appendReplacement(rewritten, Matcher.quoteReplacement(rewrittenTag));
         }
-        return new BodyRewrite(rewritten);
+        matcher.appendTail(rewritten);
+        return new BodyRewrite(rewritten.toString());
     }
 
     private void discardIngestedAssets(List<Long> assetIds) {

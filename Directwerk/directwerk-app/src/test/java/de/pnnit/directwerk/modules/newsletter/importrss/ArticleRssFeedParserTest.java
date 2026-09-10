@@ -91,4 +91,48 @@ class ArticleRssFeedParserTest {
         );
         assertThat(feed.items().getFirst().imageUrl()).isEqualTo("https://cdn.example.com/cover.png");
     }
+
+    @Test
+    void guidLessItemsPreferPermalinkAndKeepDistinctIdentitiesForSharedTitles() {
+        String xml = """
+                <rss version="2.0">
+                  <channel>
+                    <title>Blog</title>
+                    <item>
+                      <title>Same Title</title>
+                      <link>/posts/one</link>
+                      <description><![CDATA[<p>Body one</p>]]></description>
+                    </item>
+                    <item>
+                      <title>Same Title</title>
+                      <link>https://example.com/posts/two</link>
+                      <description><![CDATA[<p>Body two</p>]]></description>
+                    </item>
+                    <item>
+                      <title>Same Title</title>
+                      <description><![CDATA[<p>Body three unique</p>]]></description>
+                      <pubDate>Mon, 01 Jan 2024 00:00:00 GMT</pubDate>
+                    </item>
+                    <item>
+                      <title>Same Title</title>
+                      <description><![CDATA[<p>Body four different</p>]]></description>
+                      <pubDate>Tue, 02 Jan 2024 00:00:00 GMT</pubDate>
+                    </item>
+                  </channel>
+                </rss>
+                """;
+        ParsedArticleRssFeed feed = parser.parse(
+                "https://example.com/feed.xml",
+                new ByteArrayInputStream(xml.getBytes(StandardCharsets.UTF_8))
+        );
+
+        assertThat(feed.items()).hasSize(4);
+        assertThat(feed.items().get(0).guid()).isEqualTo("https://example.com/posts/one");
+        assertThat(feed.items().get(1).guid()).isEqualTo("https://example.com/posts/two");
+        assertThat(feed.items().get(2).guid()).startsWith("sha256:");
+        assertThat(feed.items().get(3).guid()).startsWith("sha256:");
+        assertThat(feed.items().get(2).guid()).isNotEqualTo(feed.items().get(3).guid());
+        assertThat(feed.items().stream().map(ParsedArticleRssFeed.Item::guid).distinct())
+                .hasSize(4);
+    }
 }

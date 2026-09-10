@@ -20,9 +20,6 @@ import {
     importRssArticle,
     previewArticleRssFeed,
 } from '@/lib/api/articleImportApi'
-import {ingestRemoteAssetWithProgress} from '@/lib/media/remoteIngest'
-import {filenameFromImportUrl} from '@/lib/media/importFilename'
-import {deleteMedia} from '@/lib/api/mediaApi'
 import {isTenantAdminRole, suggestSlug} from '@/lib/api/studioHelpers'
 import {useOptionalMe} from '@/lib/auth/MeProvider'
 import {HTML_SLUG_PATTERN} from '@directwerk/api/constants'
@@ -222,30 +219,14 @@ export default function ArticleRssImportWizard(): React.JSX.Element {
         setStreamProgress(null)
         setBusy(true)
         const host = getClientTenantHost()
-        let heroAssetId: number | undefined
         try {
-            if (importHero && item.imageUrl != null) {
-                const hero = await ingestRemoteAssetWithProgress(
-                    host,
-                    {
-                        sourceUrl: item.imageUrl,
-                        assetType: 'IMAGE',
-                        visibility: 'PUBLIC',
-                        filename: filenameFromImportUrl(
-                            item.imageUrl,
-                            'hero.jpg',
-                            suggestSlug(articleTitle.trim() || item.title) || undefined,
-                        ),
-                    },
-                    (progress) => {
-                        setStreamProgress({label: 'Titelbild', progress})
-                    },
-                    {desk: 'articles'},
-                )
-                heroAssetId = hero.id
-            }
-
-            setStreamProgress({label: 'Beitrag wird angelegt…', progress: 100})
+            // Hero ingest stays server-side (same transaction as article create) so a
+            // failed / alreadyImported response never leaves client-owned orphan assets.
+            setStreamProgress(
+                importHero && item.imageUrl != null
+                    ? {label: 'Titelbild + Beitrag…', progress: null}
+                    : {label: 'Beitrag wird angelegt…', progress: 100},
+            )
             const result = await importRssArticle(host, {
                 feedUrl: preview.feedUrl,
                 guid: item.guid,
@@ -257,8 +238,8 @@ export default function ArticleRssImportWizard(): React.JSX.Element {
                 requiredLevelSortOrder:
                     accessPolicy === 'PAID' ? (requiredLevelSortOrder ?? undefined) : undefined,
                 categoryIds: Array.from(articleCategoryIds),
-                heroAssetId,
-                importHero: false,
+                imageUrl: importHero ? (item.imageUrl ?? undefined) : undefined,
+                importHero,
                 importInlineImages,
                 publishedAt: item.publishedAt ?? undefined,
             })
@@ -269,9 +250,6 @@ export default function ArticleRssImportWizard(): React.JSX.Element {
             }
             goToArticle(articleIndex + 1)
         } catch (error) {
-            if (heroAssetId !== undefined) {
-                await Promise.allSettled([deleteMedia(host, heroAssetId)])
-            }
             if (authRedirect(error)) {
                 return
             }

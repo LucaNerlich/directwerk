@@ -3,6 +3,7 @@ package de.pnnit.directwerk.modules.newsletter.repository;
 import de.pnnit.directwerk.modules.newsletter.entity.Article;
 import de.pnnit.directwerk.modules.newsletter.entity.ArticleStatus;
 import java.time.Instant;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.EntityGraph;
@@ -34,6 +35,20 @@ public interface ArticleRepository extends JpaRepository<Article, Long> {
     })
     Optional<Article> findByTenantIdAndImportIdentity(Long tenantId, String importIdentity);
 
+    /**
+     * Lightweight batch lookup for import preview — IDs only, no association graph.
+     */
+    @Query("""
+            select a.importIdentity as importIdentity, a.id as id
+            from Article a
+            where a.tenant.id = :tenantId
+              and a.importIdentity in :identities
+            """)
+    List<ImportIdentityId> findIdsByTenantIdAndImportIdentityIn(
+            @Param("tenantId") Long tenantId,
+            @Param("identities") Collection<String> identities
+    );
+
     boolean existsByTenantIdAndSlug(Long tenantId, String slug);
 
     boolean existsByTenantIdAndSlugAndIdNot(Long tenantId, String slug, Long id);
@@ -64,4 +79,10 @@ public interface ArticleRepository extends JpaRepository<Article, Long> {
             @Param("articleId") Long articleId,
             @Param("notifiedAt") Instant notifiedAt
     );
+
+    interface ImportIdentityId {
+        String getImportIdentity();
+
+        Long getId();
+    }
 }

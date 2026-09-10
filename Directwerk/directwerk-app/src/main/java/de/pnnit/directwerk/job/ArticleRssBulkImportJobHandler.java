@@ -67,24 +67,30 @@ public class ArticleRssBulkImportJobHandler implements JobHandler {
                 continue;
             }
             try {
-                articleImportService.importArticle(new ArticleImportService.ImportArticleCommand(
-                        preview.feedUrl(),
-                        article.guid(),
-                        article.suggestedSlug(),
-                        article.title(),
-                        article.body(),
-                        article.excerpt(),
-                        payload.accessPolicy(),
-                        payload.requiredLevelSortOrder(),
-                        payload.categoryIds(),
-                        payload.importHero() ? article.imageUrl() : null,
-                        null,
-                        payload.importHero(),
-                        payload.importInlineImages(),
-                        article.publishedAt()
-                ));
-                imported++;
-            } catch (Exception ex) {
+                ArticleImportService.ImportedArticle result = articleImportService.importArticle(
+                        new ArticleImportService.ImportArticleCommand(
+                                preview.feedUrl(),
+                                article.guid(),
+                                article.suggestedSlug(),
+                                article.title(),
+                                article.body(),
+                                article.excerpt(),
+                                payload.accessPolicy(),
+                                payload.requiredLevelSortOrder(),
+                                payload.categoryIds(),
+                                payload.importHero() ? article.imageUrl() : null,
+                                null,
+                                payload.importHero(),
+                                payload.importInlineImages(),
+                                article.publishedAt()
+                        )
+                );
+                if (result.alreadyImported()) {
+                    skipped++;
+                } else {
+                    imported++;
+                }
+            } catch (ArticleRssImportException ex) {
                 failed++;
                 log.warn("Bulk article RSS import failed for guid={} title={}",
                         article.guid(), article.title(), ex);

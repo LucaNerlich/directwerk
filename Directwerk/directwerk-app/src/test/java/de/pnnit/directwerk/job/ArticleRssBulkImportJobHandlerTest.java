@@ -1,8 +1,8 @@
 package de.pnnit.directwerk.job;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
@@ -13,6 +13,7 @@ import de.pnnit.directwerk.modules.digital.entity.AccessPolicy;
 import de.pnnit.directwerk.modules.email.EmailTemplate;
 import de.pnnit.directwerk.modules.email.TransactionalEmailService;
 import de.pnnit.directwerk.modules.newsletter.entity.Article;
+import de.pnnit.directwerk.modules.newsletter.exception.ArticleRssImportException;
 import de.pnnit.directwerk.modules.newsletter.service.ArticleImportService;
 import de.pnnit.directwerk.modules.queue.JobStatus;
 import de.pnnit.directwerk.modules.queue.QueueJob;
@@ -37,10 +38,16 @@ class ArticleRssBulkImportJobHandlerTest {
     @Test
     void importsNewArticlesSkipsImportedAndEmailsSummary() {
         when(articleImportService.preview("https://example.com/articles.xml")).thenReturn(preview());
-        when(articleImportService.importArticle(any())).thenAnswer(invocation -> new ArticleImportService.ImportedArticle(
-                mock(Article.class), false));
-        when(articleImportService.importArticle(argThat(cmd -> "guid-fails".equals(cmd.guid()))))
-                .thenThrow(new RuntimeException("boom"));
+        when(articleImportService.importArticle(any())).thenAnswer(invocation -> {
+            ArticleImportService.ImportArticleCommand cmd = invocation.getArgument(0);
+            if ("guid-fails".equals(cmd.guid())) {
+                throw new ArticleRssImportException(400, "RSS_FEED_INVALID", "bad item");
+            }
+            if ("guid-race".equals(cmd.guid())) {
+                return new ArticleImportService.ImportedArticle(mock(Article.class), true);
+            }
+            return new ArticleImportService.ImportedArticle(mock(Article.class), false);
+        });
 
         handler.handle(job(new ArticleRssBulkImportPayload(
                 "https://example.com/articles.xml",
@@ -55,10 +62,10 @@ class ArticleRssBulkImportJobHandlerTest {
 
         var commands = ArgumentCaptor.forClass(ArticleImportService.ImportArticleCommand.class);
         verify(articleImportService).preview("https://example.com/articles.xml");
-        verify(articleImportService, times(2)).importArticle(commands.capture());
+        verify(articleImportService, times(3)).importArticle(commands.capture());
         assertThat(commands.getAllValues())
                 .extracting(ArticleImportService.ImportArticleCommand::guid)
-                .containsExactly("guid-new", "guid-fails");
+                .containsExactly("guid-new", "guid-fails", "guid-race");
         assertThat(commands.getAllValues().get(0).categoryIds()).containsExactly(11L);
         assertThat(commands.getAllValues().get(0).importInlineImages()).isTrue();
 
@@ -73,8 +80,27 @@ class ArticleRssBulkImportJobHandlerTest {
         );
         assertThat(emailVars.getValue())
                 .containsEntry("importedCount", "1")
-                .containsEntry("skippedCount", "1")
+                .containsEntry("skippedCount", "2")
                 .containsEntry("failedCount", "1");
+    }
+
+    @Test
+    void unexpectedRuntimeExceptionPropagatesForJobRetry() {
+        when(articleImportService.preview("https://example.com/articles.xml")).thenReturn(preview());
+        when(articleImportService.importArticle(any()))
+                .thenThrow(new IllegalStateException("storage down"));
+
+        assertThatThrownBy(() -> handler.handle(job(new ArticleRssBulkImportPayload(
+                "https://example.com/articles.xml",
+                Set.of(),
+                AccessPolicy.FREE,
+                null,
+                true,
+                true,
+                "editor@example.com",
+                "Eddie"
+        )))).isInstanceOf(IllegalStateException.class)
+                .hasMessage("storage down");
     }
 
     @Test
@@ -94,7 +120,9 @@ class ArticleRssBulkImportJobHandlerTest {
                                 "guid-new", "New", "<p>y</p>", "teaser", Instant.parse("2026-01-02T00:00:00Z"),
                                 "https://cdn.example.com/a.jpg", "new", null),
                         new ArticleImportService.PreviewArticle(
-                                "guid-fails", "Fails", "<p>z</p>", null, null, null, "fails", null)
+                                "guid-fails", "Fails", "<p>z</p>", null, null, null, "fails", null),
+                        new ArticleImportService.PreviewArticle(
+                                "guid-race", "Race", "<p>r</p>", null, null, null, "race", null)
                 ),
                 false
         );

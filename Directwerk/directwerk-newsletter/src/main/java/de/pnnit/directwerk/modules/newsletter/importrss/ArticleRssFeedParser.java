@@ -78,7 +78,7 @@ public class ArticleRssFeedParser {
                     inChannel = true;
                 } else if (inChannel && !inItem && "item".equalsIgnoreCase(local)) {
                     inItem = true;
-                    item = new ItemBuilder();
+                    item = new ItemBuilder(feedUrl);
                 } else if (inChannel && !inItem && "image".equalsIgnoreCase(local) && !isItunes(reader)) {
                     inImage = true;
                 } else if (inItem && item != null) {
@@ -156,6 +156,8 @@ public class ArticleRssFeedParser {
             item.contentEncoded = firstNonBlank(item.contentEncoded, readElementText(reader));
         } else if ("guid".equalsIgnoreCase(local)) {
             item.guid = firstNonBlank(item.guid, readElementText(reader));
+        } else if ("link".equalsIgnoreCase(local) && !isItunes(reader)) {
+            item.link = firstNonBlank(item.link, readElementText(reader));
         } else if ("pubDate".equalsIgnoreCase(local)) {
             item.publishedAt = parseRfc822(readElementText(reader));
         } else if ("enclosure".equalsIgnoreCase(local)) {
@@ -321,12 +323,18 @@ public class ArticleRssFeedParser {
     }
 
     private static final class ItemBuilder {
+        private final String feedUrl;
         private String guid;
         private String title;
+        private String link;
         private String description;
         private String contentEncoded;
         private Instant publishedAt;
         private String imageUrl;
+
+        private ItemBuilder(String feedUrl) {
+            this.feedUrl = feedUrl;
+        }
 
         private ParsedArticleRssFeed.Item build() {
             if (title == null || title.isBlank()) {
@@ -345,7 +353,14 @@ public class ArticleRssFeedParser {
             if (resolvedImage == null && body != null) {
                 resolvedImage = firstImgSrc(body);
             }
-            String resolvedGuid = guid == null || guid.isBlank() ? resolvedTitle : guid;
+            String resolvedGuid = resolveImportGuid(
+                    guid,
+                    resolveHttpUrl(feedUrl, link),
+                    resolvedTitle,
+                    body,
+                    publishedAt,
+                    resolvedImage
+            );
             return new ParsedArticleRssFeed.Item(
                     boundedGuid(resolvedGuid),
                     resolvedTitle,
@@ -354,6 +369,49 @@ public class ArticleRssFeedParser {
                     publishedAt,
                     resolvedImage
             );
+        }
+    }
+
+    /**
+     * Prefer feed GUID, then item permalink; never fall back to title alone.
+     */
+    static String resolveImportGuid(
+            String guid,
+            String permalink,
+            String title,
+            String body,
+            Instant publishedAt,
+            String imageUrl
+    ) {
+        if (guid != null && !guid.isBlank()) {
+            return guid;
+        }
+        if (permalink != null && !permalink.isBlank()) {
+            return permalink;
+        }
+        return stableFallbackIdentity(title, body, publishedAt, imageUrl);
+    }
+
+    private static String stableFallbackIdentity(
+            String title,
+            String body,
+            Instant publishedAt,
+            String imageUrl
+    ) {
+        String material = String.join(
+                "\n",
+                title == null ? "" : title.trim(),
+                publishedAt == null ? "" : publishedAt.toString(),
+                body == null ? "" : body.trim(),
+                imageUrl == null ? "" : imageUrl.trim()
+        );
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            return "sha256:" + HexFormat.of().formatHex(
+                    digest.digest(material.getBytes(StandardCharsets.UTF_8))
+            );
+        } catch (NoSuchAlgorithmException ex) {
+            throw new IllegalStateException("SHA-256 is not available", ex);
         }
     }
 

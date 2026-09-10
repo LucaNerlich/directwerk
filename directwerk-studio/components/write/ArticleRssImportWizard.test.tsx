@@ -9,10 +9,8 @@ import type {ArticleRssImportPreview, Me} from '@directwerk/api/types'
 const previewArticleRssFeed = vi.fn()
 const importRssArticle = vi.fn()
 const bulkImportArticleRss = vi.fn()
-const ingestRemoteAssetWithProgress = vi.fn()
 const listCategories = vi.fn()
 const createCategory = vi.fn()
-const deleteMedia = vi.fn()
 
 vi.mock('next/navigation', () => ({useRouter: () => ({replace: vi.fn()})}))
 vi.mock('next/link', () => ({
@@ -28,16 +26,10 @@ vi.mock('@/lib/api/catalogApi', () => ({
     listCategories: (...args: unknown[]) => listCategories(...args),
     createCategory: (...args: unknown[]) => createCategory(...args),
 }))
-vi.mock('@/lib/media/remoteIngest', () => ({
-    ingestRemoteAssetWithProgress: (...args: unknown[]) => ingestRemoteAssetWithProgress(...args),
-}))
 vi.mock('@/lib/api/articleImportApi', () => ({
     previewArticleRssFeed: (...args: unknown[]) => previewArticleRssFeed(...args),
     importRssArticle: (...args: unknown[]) => importRssArticle(...args),
     bulkImportArticleRss: (...args: unknown[]) => bulkImportArticleRss(...args),
-}))
-vi.mock('@/lib/api/mediaApi', () => ({
-    deleteMedia: (...args: unknown[]) => deleteMedia(...args),
 }))
 vi.mock('@/lib/api/subscriptionApi', () => ({
     listPublicLevels: vi.fn().mockResolvedValue([
@@ -110,11 +102,6 @@ describe('ArticleRssImportWizard', () => {
             alreadyImported: 0,
             notifyEmail: 'admin@example.com',
         })
-        ingestRemoteAssetWithProgress.mockResolvedValue({
-            id: 9,
-            status: 'READY',
-            assetType: 'IMAGE',
-        })
     })
 
     afterEach(() => {
@@ -135,12 +122,12 @@ describe('ArticleRssImportWizard', () => {
         await user.click(screen.getByRole('button', {name: 'Diesen Beitrag importieren'}))
 
         await waitFor(() => {
-            expect(ingestRemoteAssetWithProgress).toHaveBeenCalled()
             expect(importRssArticle).toHaveBeenCalledWith(
                 'tenant.test',
                 expect.objectContaining({
                     guid: 'guid-1',
-                    heroAssetId: 9,
+                    imageUrl: 'https://cdn.example.com/a1.jpg',
+                    importHero: true,
                     importInlineImages: true,
                 }),
             )
