@@ -1,18 +1,20 @@
-### Newsletter lists (EMAIL_NOTIFY)
+### Directwerk — Newsletter lists (EMAIL_NOTIFY)
+### Prerequisites: 02-oauth2.http (tenantAAccessToken), 24-articles.http (articleId optional for attach).
 
-@baseUrl = http://localhost:8080
-@tenantHost = localhost:8080
-
-### List lists (admin)
+### @name listNewsletterLists
 GET {{baseUrl}}/api/v1/newsletter-lists
-Host: {{tenantHost}}
-Authorization: Bearer {{tenantAdminAccessToken}}
+Host: {{tenantAHost}}
+Authorization: Bearer {{tenantAAccessToken}}
+Accept: application/json
 
-### Create list
+###
+
+### @name createNewsletterList
 POST {{baseUrl}}/api/v1/newsletter-lists
-Host: {{tenantHost}}
-Authorization: Bearer {{tenantAdminAccessToken}}
+Host: {{tenantAHost}}
+Authorization: Bearer {{tenantAAccessToken}}
 Content-Type: application/json
+Accept: application/json
 
 {
   "slug": "weekly",
@@ -20,47 +22,65 @@ Content-Type: application/json
   "description": "Weekly digest"
 }
 
-### Public catalog (no auth)
+###
+
+### @name publicNewsletterCatalog
 GET {{baseUrl}}/api/v1/public/newsletter-lists
-Host: {{tenantHost}}
+Host: {{tenantAHost}}
+Accept: application/json
 
-### Public list by slug (no auth)
+###
+
+### @name publicNewsletterListBySlug
 GET {{baseUrl}}/api/v1/public/newsletter-lists/weekly
-Host: {{tenantHost}}
+Host: {{tenantAHost}}
+Accept: application/json
 
-### Public subscribe (no auth)
+###
+
+### @name publicNewsletterSubscribe
 POST {{baseUrl}}/api/v1/public/newsletter-lists/weekly/subscribe
-Host: {{tenantHost}}
+Host: {{tenantAHost}}
 Content-Type: application/json
+Accept: application/json
 
 {
   "email": "reader@example.com"
 }
 
-### Attach lists to article draft
+###
+
+### @name attachNewsletterListsToArticle
 PUT {{baseUrl}}/api/v1/articles/{{articleId}}/newsletter-lists
-Host: {{tenantHost}}
-Authorization: Bearer {{editorAccessToken}}
+Host: {{tenantAHost}}
+Authorization: Bearer {{tenantAAccessToken}}
 Content-Type: application/json
+Accept: application/json
 
 {
   "newsletterListIds": [1]
 }
 
-### Confirm (token from Mailpit)
+###
+
+### @name confirmNewsletterSubscription
 POST {{baseUrl}}/api/v1/public/newsletter/confirm
-Host: {{tenantHost}}
+Host: {{tenantAHost}}
 Content-Type: application/json
+Accept: application/json
 
 {
-  "token": "{{confirmToken}}"
+  "token": "replace-from-mailpit"
 }
 
-### Unsubscribe
+###
+
+### @name unsubscribeNewsletter
 POST {{baseUrl}}/api/v1/public/newsletter/unsubscribe
-Host: {{tenantHost}}
+Host: {{tenantAHost}}
 Content-Type: application/json
+Accept: application/json
 
 {
-  "token": "{{unsubscribeToken}}"
+  "token": "replace-from-mailpit"
 }

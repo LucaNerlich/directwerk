@@ -9,7 +9,8 @@ public final class QueueNames {
     public static final String CONTENT_NOTIFY = "content-notify";
     public static final String PODCAST_RSS_FEED_REFRESH = "podcast-rss-feed-refresh";
     public static final String ARTICLE_RSS_FEED_REFRESH = "article-rss-feed-refresh";
-    public static final String RSS_BULK_IMPORT = "rss-bulk-import";
+    public static final String PODCAST_RSS_BULK_IMPORT = "podcast-rss-bulk-import";
+    public static final String ARTICLE_RSS_BULK_IMPORT = "article-rss-bulk-import";
 
     private QueueNames() {
     }

@@ -74,7 +74,7 @@ token's 15-minute TTL expires, or when switching environments).
 | 08-Media | `MediaController` upload-url → confirm → preview-url → delete flow |
 | 09-Podcast-Content | Formats, Categories, Series, Episodes — full draft → publish/schedule/unpublish/archive workflow |
 | 10-Health-and-Docs | Actuator health/info, OpenAPI docs |
-| 11-Articles | `ArticleController` — Write desk draft → publish/schedule/unpublish/archive workflow |
+| 11-Articles | `ArticleController` — Write desk draft → publish/schedule/unpublish/archive workflow; `Import/` — `ArticleImportController` RSS preview/ingest/bulk |
 
 ## Environments
 

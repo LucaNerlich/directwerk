@@ -181,7 +181,7 @@ class RssBulkImportJobHandlerTest {
         Instant now = Instant.parse("2026-07-18T10:00:00Z");
         return new QueueJob(
                 UUID.randomUUID(),
-                QueueNames.RSS_BULK_IMPORT,
+                QueueNames.PODCAST_RSS_BULK_IMPORT,
                 objectMapper.valueToTree(payload),
                 0,
                 JobStatus.PROCESSING,

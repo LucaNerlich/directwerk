@@ -129,7 +129,7 @@ class PodcastImportBulkControllerTest {
         var payload = ArgumentCaptor.forClass(JsonNode.class);
         var metadata = ArgumentCaptor.forClass(JobEnqueueMetadata.class);
         verify(queueService).enqueue(
-                eq(QueueNames.RSS_BULK_IMPORT),
+                eq(QueueNames.PODCAST_RSS_BULK_IMPORT),
                 payload.capture(),
                 eq(0),
                 eq(null),
@@ -139,7 +139,7 @@ class PodcastImportBulkControllerTest {
         assertThat(payload.getValue().get("seriesId").asLong()).isEqualTo(3L);
         assertThat(payload.getValue().get("notifyEmail").asText()).isEqualTo("editor@example.test");
         assertThat(metadata.getValue().tenantId()).isEqualTo(10L);
-        assertThat(metadata.getValue().correlationId()).startsWith("rss-bulk-import-10-3-");
+        assertThat(metadata.getValue().correlationId()).startsWith("podcast-rss-bulk-import-10-3-");
     }
 
     @Test

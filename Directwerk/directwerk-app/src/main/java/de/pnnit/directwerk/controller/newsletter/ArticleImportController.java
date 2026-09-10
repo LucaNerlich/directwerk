@@ -1,11 +1,10 @@
-package de.pnnit.directwerk.controller.podcast;
+package de.pnnit.directwerk.controller.newsletter;
 
 import de.pnnit.directwerk.api.MediaAssetViewMapper;
-import de.pnnit.directwerk.api.PublicEpisodeViewMapper;
-import de.pnnit.directwerk.api.dto.EpisodeView;
 import de.pnnit.directwerk.api.dto.MediaAssetView;
 import de.pnnit.directwerk.api.response.Response;
-import de.pnnit.directwerk.job.RssBulkImportPayload;
+import de.pnnit.directwerk.controller.newsletter.ArticleController.ArticleView;
+import de.pnnit.directwerk.job.ArticleRssBulkImportPayload;
 import de.pnnit.directwerk.modules.core.RequiresModule;
 import de.pnnit.directwerk.modules.core.service.UserAccountService;
 import de.pnnit.directwerk.modules.digital.api.MediaAssetQueryApi;
@@ -14,9 +13,9 @@ import de.pnnit.directwerk.modules.digital.entity.AssetType;
 import de.pnnit.directwerk.modules.digital.entity.AssetVisibility;
 import de.pnnit.directwerk.modules.digital.entity.MediaAsset;
 import de.pnnit.directwerk.modules.digital.exception.MediaAssetNotFoundException;
-import de.pnnit.directwerk.modules.podcast.PodcastModule;
-import de.pnnit.directwerk.modules.podcast.exception.RssImportException;
-import de.pnnit.directwerk.modules.podcast.service.PodcastImportService;
+import de.pnnit.directwerk.modules.newsletter.ArticlesModule;
+import de.pnnit.directwerk.modules.newsletter.exception.ArticleRssImportException;
+import de.pnnit.directwerk.modules.newsletter.service.ArticleImportService;
 import de.pnnit.directwerk.modules.queue.JobEnqueueMetadata;
 import de.pnnit.directwerk.modules.queue.QueueNames;
 import de.pnnit.directwerk.modules.queue.QueueService;
@@ -49,33 +48,27 @@ import org.springframework.web.bind.annotation.RestController;
 import tools.jackson.databind.ObjectMapper;
 
 @RestController
-@RequiresModule(PodcastModule.KEY)
+@RequiresModule(ArticlesModule.KEY)
 @PreAuthorize("hasAnyRole('EDITOR', 'TENANT_ADMIN')")
-@RequestMapping("/api/v1/podcast/import")
-public class PodcastImportController {
+@RequestMapping("/api/v1/articles/import")
+public class ArticleImportController {
 
-    private final PodcastImportService podcastImportService;
-    private final PublicEpisodeViewMapper publicEpisodeViewMapper;
+    private final ArticleImportService articleImportService;
     private final MediaAssetViewMapper mediaAssetViewMapper;
     private final MediaAssetQueryApi mediaAssetQueryApi;
     private final QueueService queueService;
     private final ObjectMapper objectMapper;
     private final UserAccountService userAccountService;
 
-    /**
-     * Creates a controller for podcast preview, asset ingestion, and episode import operations.
-     */
-    public PodcastImportController(
-            PodcastImportService podcastImportService,
-            PublicEpisodeViewMapper publicEpisodeViewMapper,
+    public ArticleImportController(
+            ArticleImportService articleImportService,
             MediaAssetViewMapper mediaAssetViewMapper,
             MediaAssetQueryApi mediaAssetQueryApi,
             QueueService queueService,
             ObjectMapper objectMapper,
             UserAccountService userAccountService
     ) {
-        this.podcastImportService = podcastImportService;
-        this.publicEpisodeViewMapper = publicEpisodeViewMapper;
+        this.articleImportService = articleImportService;
         this.mediaAssetViewMapper = mediaAssetViewMapper;
         this.mediaAssetQueryApi = mediaAssetQueryApi;
         this.queueService = queueService;
@@ -83,34 +76,23 @@ public class PodcastImportController {
         this.userAccountService = userAccountService;
     }
 
-    /**
-     * Previews the podcast feed identified by the request.
-     *
-     * @param request the podcast feed preview request
-     * @return the podcast feed and episode preview
-     */
     @PostMapping("/preview")
     ResponseEntity<Response<PreviewView>> preview(@Valid @RequestBody PreviewRequest request) {
-        PodcastImportService.Preview preview = podcastImportService.preview(request.feedUrl());
+        ArticleImportService.Preview preview = articleImportService.preview(request.feedUrl());
         return ResponseEntity.ok(Response.ok(toPreviewView(preview)));
     }
 
-    /**
-     * Ingests a media asset from the supplied source details.
-     *
-     * @return the created media asset view
-     */
     @PostMapping("/assets")
     ResponseEntity<Response<MediaAssetView>> ingestAsset(@Valid @RequestBody IngestAssetRequest request) {
         boolean waitForCompletion = request.waitForCompletion() == null || request.waitForCompletion();
         MediaAsset asset = waitForCompletion
-                ? podcastImportService.ingestAsset(
+                ? articleImportService.ingestAsset(
                         request.sourceUrl(),
                         request.assetType(),
                         request.visibility() == null ? AssetVisibility.PRIVATE : request.visibility(),
                         request.filename()
                 )
-                : podcastImportService.startIngestAsset(
+                : articleImportService.startIngestAsset(
                         request.sourceUrl(),
                         request.assetType(),
                         request.visibility() == null ? AssetVisibility.PRIVATE : request.visibility(),
@@ -118,20 +100,16 @@ public class PodcastImportController {
                 );
         HttpStatus status = waitForCompletion ? HttpStatus.CREATED : HttpStatus.ACCEPTED;
         return ResponseEntity.status(status).body(
-                waitForCompletion ? Response.created(mediaAssetViewMapper.toView(asset)) : Response.ok(mediaAssetViewMapper.toView(asset))
+                waitForCompletion
+                        ? Response.created(mediaAssetViewMapper.toView(asset))
+                        : Response.ok(mediaAssetViewMapper.toView(asset))
         );
     }
 
-    /**
-     * Returns a pending or completed import asset for progress polling during RSS ingest.
-     */
     @GetMapping("/assets/{assetId}")
     ResponseEntity<Response<MediaAssetView>> getIngestAsset(@PathVariable @Min(1) Long assetId) {
         MediaAsset asset = mediaAssetQueryApi.findById(assetId)
                 .orElseThrow(() -> new MediaAssetNotFoundException(assetId));
-        // Defense in depth: the Hibernate tenantFilter normally scopes this lookup already,
-        // but an explicit check keeps cross-tenant reads fail-closed even if the filter is
-        // ever bypassed on this path.
         Long tenantId = TenantContext.requireTenantId();
         if (asset.getTenant() == null || !tenantId.equals(asset.getTenant().getId())) {
             throw new MediaAssetNotFoundException(assetId);
@@ -139,38 +117,31 @@ public class PodcastImportController {
         return ResponseEntity.ok(Response.ok(mediaAssetViewMapper.toView(asset)));
     }
 
-    /**
-     * Imports an episode and indicates whether it was already imported.
-     *
-     * @param request the episode import details
-     * @return the imported episode view with HTTP 201 when newly imported, or HTTP 200 when already imported
-     */
-    @PostMapping("/episodes")
-    ResponseEntity<Response<ImportedEpisodeView>> importEpisode(@Valid @RequestBody ImportEpisodeRequest request) {
-        PodcastImportService.ImportedEpisode imported = podcastImportService.importEpisode(
-                new PodcastImportService.ImportEpisodeCommand(
-                        request.seriesId(),
+    @PostMapping("/articles")
+    ResponseEntity<Response<ImportedArticleView>> importArticle(@Valid @RequestBody ImportArticleRequest request) {
+        boolean importHero = request.importHero() == null || request.importHero();
+        boolean importInline = request.importInlineImages() == null || request.importInlineImages();
+        ArticleImportService.ImportedArticle imported = articleImportService.importArticle(
+                new ArticleImportService.ImportArticleCommand(
                         request.feedUrl(),
                         request.guid(),
                         request.slug(),
                         request.title(),
-                        request.description(),
-                        request.episodeNumber(),
-                        request.durationSeconds(),
+                        request.body(),
+                        request.excerpt(),
                         request.accessPolicy(),
                         request.requiredLevelSortOrder(),
-                        request.formatIds(),
                         request.categoryIds(),
-                        request.audioUrl(),
                         request.imageUrl(),
-                        request.audioAssetId(),
-                        request.coverAssetId(),
+                        request.heroAssetId(),
+                        importHero,
+                        importInline,
                         request.publishedAt()
                 )
         );
         HttpStatus status = imported.alreadyImported() ? HttpStatus.OK : HttpStatus.CREATED;
-        ImportedEpisodeView view = new ImportedEpisodeView(
-                publicEpisodeViewMapper.toStudioView(imported.episode()),
+        ImportedArticleView view = new ImportedArticleView(
+                ArticleController.toView(imported.article()),
                 imported.alreadyImported()
         );
         return ResponseEntity.status(status).body(
@@ -178,16 +149,6 @@ public class PodcastImportController {
         );
     }
 
-    /**
-     * Queues a bulk import of every not-yet-imported episode of a feed with shared
-     * defaults. The feed is previewed synchronously (so unreachable feeds fail fast
-     * with the preview error), then a single background job imports the episodes
-     * and emails a summary to the requesting editor.
-     *
-     * @param request   the feed, target series, and import defaults
-     * @param principal the requesting editor (email recipient)
-     * @return the queued job id plus preview counts
-     */
     @PostMapping("/bulk")
     ResponseEntity<Response<BulkImportQueuedView>> importBulk(
             @Valid @RequestBody BulkImportRequest request,
@@ -201,45 +162,43 @@ public class PodcastImportController {
                     .body(Response.error(404, "USER_NOT_FOUND", "User not found"));
         }
 
-        PodcastImportService.Preview preview = podcastImportService.preview(request.feedUrl());
+        ArticleImportService.Preview preview = articleImportService.preview(request.feedUrl());
         if (preview.truncated()) {
-            throw new RssImportException(
+            throw new ArticleRssImportException(
                     400,
                     "RSS_FEED_INVALID",
                     "A truncated RSS feed preview cannot be used for bulk import"
             );
         }
-        long alreadyImported = preview.episodes().stream()
-                .filter(episode -> episode.alreadyImportedEpisodeId() != null)
+        long alreadyImported = preview.articles().stream()
+                .filter(article -> article.alreadyImportedArticleId() != null)
                 .count();
 
-        RssBulkImportPayload payload = new RssBulkImportPayload(
-                request.seriesId(),
+        ArticleRssBulkImportPayload payload = new ArticleRssBulkImportPayload(
                 preview.feedUrl(),
-                request.formatIds(),
+                request.categoryIds(),
                 request.accessPolicy(),
                 request.requiredLevelSortOrder(),
-                request.importAudio() == null || request.importAudio(),
-                request.importImage() == null || request.importImage(),
+                request.importHero() == null || request.importHero(),
+                request.importInlineImages() == null || request.importInlineImages(),
                 account.email(),
                 account.name()
         );
         var job = queueService.enqueue(
-                QueueNames.PODCAST_RSS_BULK_IMPORT,
+                QueueNames.ARTICLE_RSS_BULK_IMPORT,
                 objectMapper.valueToTree(payload),
                 0,
                 null,
                 null,
                 new JobEnqueueMetadata(
                         tenantId,
-                        "podcast-rss-bulk-import-" + tenantId + "-" + request.seriesId() + "-"
-                                + feedHash(preview.feedUrl()),
+                        "article-rss-bulk-import-" + tenantId + "-" + feedHash(preview.feedUrl()),
                         null
                 )
         );
         return ResponseEntity.status(HttpStatus.ACCEPTED).body(Response.ok(new BulkImportQueuedView(
                 job.id().toString(),
-                preview.episodes().size(),
+                preview.articles().size(),
                 (int) alreadyImported,
                 account.email()
         )));
@@ -255,38 +214,27 @@ public class PodcastImportController {
         }
     }
 
-    /**
-     * Converts a podcast import preview into its API response representation.
-     *
-     * @param preview the podcast import preview to convert
-     * @return the preview view containing channel and episode details
-     */
-    private static PreviewView toPreviewView(PodcastImportService.Preview preview) {
+    private static PreviewView toPreviewView(ArticleImportService.Preview preview) {
         return new PreviewView(
                 preview.feedUrl(),
                 new ChannelView(
                         preview.channel().title(),
                         preview.channel().description(),
                         preview.channel().language(),
-                        preview.channel().itunesCategory(),
                         preview.channel().imageUrl(),
                         preview.channel().link(),
                         preview.channel().suggestedSlug()
                 ),
-                preview.episodes().stream()
-                        .map(item -> new EpisodePreviewView(
+                preview.articles().stream()
+                        .map(item -> new ArticlePreviewView(
                                 item.guid(),
                                 item.title(),
-                                item.description(),
+                                item.body(),
+                                item.excerpt(),
                                 item.publishedAt() == null ? null : item.publishedAt().toString(),
-                                item.durationSeconds(),
-                                item.episodeNumber(),
-                                item.audioUrl(),
-                                item.audioMimeType(),
-                                item.audioSizeBytes(),
                                 item.imageUrl(),
                                 item.suggestedSlug(),
-                                item.alreadyImportedEpisodeId()
+                                item.alreadyImportedArticleId()
                         ))
                         .toList(),
                 preview.truncated()
@@ -298,18 +246,17 @@ public class PodcastImportController {
 
     public record BulkImportRequest(
             @NotBlank @Size(max = 2048) String feedUrl,
-            @NotNull @Min(1) Long seriesId,
-            Set<@Min(1) Long> formatIds,
+            Set<@Min(1) Long> categoryIds,
             AccessPolicy accessPolicy,
             @Min(0) Integer requiredLevelSortOrder,
-            Boolean importAudio,
-            Boolean importImage
+            Boolean importHero,
+            Boolean importInlineImages
     ) {
     }
 
     public record BulkImportQueuedView(
             String jobId,
-            int totalEpisodes,
+            int totalArticles,
             int alreadyImported,
             String notifyEmail
     ) {
@@ -324,24 +271,21 @@ public class PodcastImportController {
     ) {
     }
 
-    public record ImportEpisodeRequest(
-            @NotNull @Min(1) Long seriesId,
+    public record ImportArticleRequest(
             @NotBlank @Size(max = 2048) String feedUrl,
             @NotBlank @Size(max = 512) String guid,
             @Pattern(regexp = "^[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,62}[a-zA-Z0-9])?$")
             String slug,
             @NotBlank @Size(max = 255) String title,
-            String description,
-            @Min(1) Integer episodeNumber,
-            @Min(1) Integer durationSeconds,
+            String body,
+            String excerpt,
             AccessPolicy accessPolicy,
             @Min(0) Integer requiredLevelSortOrder,
-            Set<@Min(1) Long> formatIds,
             Set<@Min(1) Long> categoryIds,
-            @Size(max = 2048) String audioUrl,
             @Size(max = 2048) String imageUrl,
-            @Min(1) Long audioAssetId,
-            @Min(1) Long coverAssetId,
+            @Min(1) Long heroAssetId,
+            Boolean importHero,
+            Boolean importInlineImages,
             Instant publishedAt
     ) {
     }
@@ -349,7 +293,7 @@ public class PodcastImportController {
     public record PreviewView(
             String feedUrl,
             ChannelView channel,
-            List<EpisodePreviewView> episodes,
+            List<ArticlePreviewView> articles,
             boolean truncated
     ) {
     }
@@ -358,31 +302,26 @@ public class PodcastImportController {
             String title,
             String description,
             String language,
-            String itunesCategory,
             String imageUrl,
             String link,
             String suggestedSlug
     ) {
     }
 
-    public record EpisodePreviewView(
+    public record ArticlePreviewView(
             String guid,
             String title,
-            String description,
+            String body,
+            String excerpt,
             String publishedAt,
-            Integer durationSeconds,
-            Integer episodeNumber,
-            String audioUrl,
-            String audioMimeType,
-            Long audioSizeBytes,
             String imageUrl,
             String suggestedSlug,
-            Long alreadyImportedEpisodeId
+            Long alreadyImportedArticleId
     ) {
     }
 
-    public record ImportedEpisodeView(
-            EpisodeView episode,
+    public record ImportedArticleView(
+            ArticleView article,
             boolean alreadyImported
     ) {
     }

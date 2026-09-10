@@ -110,7 +110,7 @@ High-level navigation. Items hidden when the backing module is not in `enabledMo
 | Nav item | Primary role | Module gate | Purpose |
 |----------|--------------|-------------|---------|
 | **Studio** (`/`) | Both | — | Overview, desk chooser, drafts queue |
-| **Schreiben → Start / Beiträge / Bonusdateien** | Editor+ | `DIGITAL_CONTENT`, Write desk | Write desk authoring |
+| **Schreiben → Start / Beiträge / Import / Bonusdateien** | Editor+ | `DIGITAL_CONTENT`/`ARTICLES`, Write desk | Write desk authoring + article RSS import |
 | **Podcast → Start / Folgen / Import / Sendungen / Formate / Feeds** | Editor+ | `PODCAST`, Podcast desk | Podcast desk authoring + RSS import + setup |
 | **Verwaltung → Medien → Bibliothek** | Editor+ | `DIGITAL_CONTENT` or `PODCAST` | All tenant assets — upload, browse, archive |
 | **Verwaltung → Organisation → Kategorien** | Editor+ | `DIGITAL_CONTENT` | Category taxonomy (shared axis); `/manage/categories` |

@@ -16,7 +16,10 @@ import type {
     EpisodeDetail,
     EpisodeSummary,
     ImportedEpisodeResult,
+    ImportedArticleResult,
     RssImportPreview,
+    ArticleRssImportPreview,
+    ArticleBulkImportQueuedResult,
     MediaFolder,
     EffectiveRights,
     FormatSummary,
@@ -59,6 +62,7 @@ import type {
 import {
     isBoundedString,
     isNonNegativeSafeInteger,
+    isNullableSafeInteger,
     isNullableString,
     isPositiveSafeInteger,
     isRecord,
@@ -528,6 +532,126 @@ export function parseBulkImportQueuedEnvelope(
     value: unknown,
 ): ApiEnvelope<BulkImportQueuedResult> | null {
     return parseEnvelope(value, parseBulkImportQueued)
+}
+
+function parseArticleRssImportChannel(
+    value: unknown,
+): ArticleRssImportPreview['channel'] | null {
+    if (
+        !isRecord(value) ||
+        !isBoundedString(value.title, 255) ||
+        !isNullableString(value.description, 20_000) ||
+        !isNullableString(value.language, 16) ||
+        !isNullableString(value.imageUrl, 2048) ||
+        !isNullableString(value.link, 2048) ||
+        !isBoundedString(value.suggestedSlug, 64)
+    ) {
+        return null
+    }
+    return {
+        title: value.title,
+        description: value.description,
+        language: value.language,
+        imageUrl: value.imageUrl,
+        link: value.link,
+        suggestedSlug: value.suggestedSlug,
+    }
+}
+
+function parseArticleRssImportItemPreview(
+    value: unknown,
+): ArticleRssImportPreview['articles'][number] | null {
+    if (
+        !isRecord(value) ||
+        !isBoundedString(value.guid, 512) ||
+        !isBoundedString(value.title, 255) ||
+        !isNullableString(value.body, 512_000) ||
+        !isNullableString(value.excerpt, 20_000) ||
+        !isNullableString(value.publishedAt, 64) ||
+        !isNullableString(value.imageUrl, 2048) ||
+        !isBoundedString(value.suggestedSlug, 64) ||
+        !isNullableSafeInteger(value.alreadyImportedArticleId)
+    ) {
+        return null
+    }
+    return {
+        guid: value.guid,
+        title: value.title,
+        body: value.body,
+        excerpt: value.excerpt,
+        publishedAt: value.publishedAt,
+        imageUrl: value.imageUrl,
+        suggestedSlug: value.suggestedSlug,
+        alreadyImportedArticleId: value.alreadyImportedArticleId ?? null,
+    }
+}
+
+function parseArticleRssImportPreview(value: unknown): ArticleRssImportPreview | null {
+    if (!isRecord(value) || !isBoundedString(value.feedUrl, 2048)) {
+        return null
+    }
+    const channel = parseArticleRssImportChannel(value.channel)
+    const articles = parseBoundedArray(value.articles, 50_000, parseArticleRssImportItemPreview)
+    if (channel === null || articles === null || typeof value.truncated !== 'boolean') {
+        return null
+    }
+    return {
+        feedUrl: value.feedUrl,
+        channel,
+        articles,
+        truncated: value.truncated,
+    }
+}
+
+export function parseArticleRssImportPreviewEnvelope(
+    value: unknown,
+): ApiEnvelope<ArticleRssImportPreview> | null {
+    return parseEnvelope(value, parseArticleRssImportPreview)
+}
+
+function parseImportedArticleResult(value: unknown): ImportedArticleResult | null {
+    if (!isRecord(value) || typeof value.alreadyImported !== 'boolean') {
+        return null
+    }
+    const article = parseArticleDetail(value.article)
+    if (article === null) {
+        return null
+    }
+    return {article, alreadyImported: value.alreadyImported}
+}
+
+export function parseImportedArticleEnvelope(
+    value: unknown,
+): ApiEnvelope<ImportedArticleResult> | null {
+    return parseEnvelope(value, parseImportedArticleResult)
+}
+
+export function parseArticleBulkImportQueued(
+    value: unknown,
+): ArticleBulkImportQueuedResult | null {
+    if (
+        !isRecord(value) ||
+        !isBoundedString(value.jobId, 64) ||
+        !isNonNegativeSafeInteger(value.totalArticles) ||
+        !isNonNegativeSafeInteger(value.alreadyImported) ||
+        typeof value.notifyEmail !== 'string' ||
+        !isValidEmail(value.notifyEmail)
+    ) {
+        return null
+    }
+
+    return {
+        jobId: value.jobId,
+        totalArticles: value.totalArticles,
+        alreadyImported: value.alreadyImported,
+        notifyEmail: value.notifyEmail,
+    }
+}
+
+export function parseArticleBulkImportQueuedEnvelope(
+    value: unknown,
+): ApiEnvelope<ArticleBulkImportQueuedResult> | null {
+    return parseEnvelope(value, parseArticleBulkImportQueued)
 }
 
 export function parseBulkDeleteResult(value: unknown): BulkDeleteResult | null {

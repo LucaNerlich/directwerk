@@ -346,6 +346,72 @@ export interface BulkImportQueuedResult {
     notifyEmail: string
 }
 
+export interface ArticleRssImportChannel {
+    title: string
+    description: string | null
+    language: string | null
+    imageUrl: string | null
+    link: string | null
+    suggestedSlug: string
+}
+
+export interface ArticleRssImportItemPreview {
+    guid: string
+    title: string
+    body: string | null
+    excerpt: string | null
+    publishedAt: string | null
+    imageUrl: string | null
+    suggestedSlug: string
+    alreadyImportedArticleId: number | null
+}
+
+export interface ArticleRssImportPreview {
+    feedUrl: string
+    channel: ArticleRssImportChannel
+    articles: ArticleRssImportItemPreview[]
+    truncated: boolean
+}
+
+export interface ImportArticleInput {
+    feedUrl: string
+    guid: string
+    slug?: string
+    title: string
+    body?: string
+    excerpt?: string
+    accessPolicy?: AccessPolicy
+    requiredLevelSortOrder?: number
+    categoryIds?: number[]
+    imageUrl?: string
+    heroAssetId?: number
+    importHero?: boolean
+    importInlineImages?: boolean
+    /** Original RSS pubDate; preserved when the article is published. */
+    publishedAt?: string
+}
+
+export interface ImportedArticleResult {
+    article: ArticleDetail
+    alreadyImported: boolean
+}
+
+export interface ArticleBulkImportInput {
+    feedUrl: string
+    categoryIds?: number[]
+    accessPolicy?: AccessPolicy
+    requiredLevelSortOrder?: number
+    importHero?: boolean
+    importInlineImages?: boolean
+}
+
+export interface ArticleBulkImportQueuedResult {
+    jobId: string
+    totalArticles: number
+    alreadyImported: number
+    notifyEmail: string
+}
+
 /** Bulk publish/unpublish/delete selection. Mirrors the backend 1–100 id cap. */
 export interface BulkIdsInput {
     ids: number[]
