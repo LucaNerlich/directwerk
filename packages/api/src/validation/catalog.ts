@@ -62,6 +62,7 @@ import type {
 import {
     isBoundedString,
     isNonNegativeSafeInteger,
+    isNullableSafeInteger,
     isNullableString,
     isPositiveSafeInteger,
     isRecord,
