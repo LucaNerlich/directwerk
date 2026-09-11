@@ -36,6 +36,11 @@ const nextConfig: NextConfig = {
     experimental: {
         optimizePackageImports: [...extraOptimizePackageImports],
     },
+    async redirects() {
+        return [
+            {source: '/imprint', destination: 'https://lucanerlich.com/imprint', permanent: false},
+        ];
+    },
     async headers() {
         // NOTE: script-src uses 'unsafe-inline' (no nonce middleware here).
         // This page is statically prerendered, so per-request nonces cannot

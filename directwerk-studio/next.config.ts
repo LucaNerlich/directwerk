@@ -27,6 +27,7 @@ const nextConfig: NextConfig = {
                 destination: '/podcast/formats/:formatId',
                 permanent: true,
             },
+            {source: '/imprint', destination: 'https://lucanerlich.com/imprint', permanent: false},
         ]
     },
 }
