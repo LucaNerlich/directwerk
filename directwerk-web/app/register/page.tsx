@@ -13,7 +13,7 @@ import {Label} from '@directwerk/ui/components/label'
 
 import {login, register} from '@/lib/api/client'
 import {parseRegisterInput} from '@directwerk/api/validation/input'
-import {emailFieldError, hasFieldErrors, passwordFieldError} from '@/lib/forms/authFields'
+import {emailFieldError, hasFieldErrors, nameFieldError, passwordFieldError} from '@/lib/forms/authFields'
 import type {AuthFieldErrors} from '@/lib/forms/authFields'
 import {useFocusFirstInvalidField} from '@/lib/forms/useFocusFirstInvalidField'
 
@@ -33,14 +33,16 @@ function RegisterForm() {
     const searchParams = useSearchParams()
     const returnTo = safeReturnTo(searchParams.get('returnTo'))
     const [showPassword, setShowPassword] = useState(false)
+    const nameRef = useRef<HTMLInputElement>(null)
     const emailRef = useRef<HTMLInputElement>(null)
     const passwordRef = useRef<HTMLInputElement>(null)
     const [state, formAction, isPending] = useActionState(
         async (_previousState: RegisterState, formData: FormData) => {
-            const name = formData.get('name')
+            const name = String(formData.get('name') ?? '')
             const email = String(formData.get('email') ?? '')
             const password = String(formData.get('password') ?? '')
             const fieldErrors: AuthFieldErrors = {
+                name: nameFieldError(name),
                 email: emailFieldError(email),
                 password: passwordFieldError(password),
             }
@@ -80,6 +82,7 @@ function RegisterForm() {
         INITIAL_STATE,
     )
     useFocusFirstInvalidField(state.fieldErrors, {
+        name: nameRef,
         email: emailRef,
         password: passwordRef,
     })
@@ -107,7 +110,21 @@ function RegisterForm() {
             <Form action={formAction} className="space-y-4" noValidate>
                 <div className="space-y-2">
                     <Label htmlFor="name">Name <span className="text-muted-foreground">(optional)</span></Label>
-                    <Input id="name" name="name" type="text" autoComplete="name" maxLength={255} />
+                    <Input
+                        aria-describedby={state.fieldErrors.name !== undefined ? 'name-error' : undefined}
+                        aria-invalid={state.fieldErrors.name !== undefined || undefined}
+                        id="name"
+                        name="name"
+                        type="text"
+                        autoComplete="name"
+                        maxLength={255}
+                        ref={nameRef}
+                    />
+                    {state.fieldErrors.name !== undefined ? (
+                        <p className="text-xs text-destructive" id="name-error">
+                            {state.fieldErrors.name}
+                        </p>
+                    ) : null}
                 </div>
                 <div className="space-y-2">
                     <Label htmlFor="email">E-Mail</Label>

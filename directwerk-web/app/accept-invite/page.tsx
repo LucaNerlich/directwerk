@@ -13,7 +13,7 @@ import {Label} from '@directwerk/ui/components/label'
 
 import {acceptInvite} from '@/lib/api/client'
 import {parseAcceptInviteInput} from '@directwerk/api/validation/input'
-import {hasFieldErrors, passwordFieldError, tokenFieldError} from '@/lib/forms/authFields'
+import {hasFieldErrors, nameFieldError, passwordFieldError, tokenFieldError} from '@/lib/forms/authFields'
 import type {AuthFieldErrors} from '@/lib/forms/authFields'
 import {useFocusFirstInvalidField} from '@/lib/forms/useFocusFirstInvalidField'
 import {userFacingAuthError} from '@/lib/billing/userFacingBillingError'
@@ -37,14 +37,26 @@ function AcceptInviteForm() {
     const [showPassword, setShowPassword] = useState(false)
     const tokenRef = useRef<HTMLInputElement>(null)
     const passwordRef = useRef<HTMLInputElement>(null)
+    const nameRef = useRef<HTMLInputElement>(null)
 
     const [state, formAction, isPending] = useActionState(
         async (_previousState: AcceptInviteState, formData: FormData) => {
             const token = String(formData.get('token') ?? '')
             const password = String(formData.get('password') ?? '')
+            const name = String(formData.get('name') ?? '')
+            // A hidden link token cannot be corrected inline — surface a
+            // form-level error instead of an unreachable field error.
+            if (tokenFromQuery.length > 0 && token.trim().length === 0) {
+                return {
+                    ...INITIAL_STATE,
+                    formError:
+                        'Dieser Einladungslink ist ungültig oder abgelaufen. Bitte fordere eine neue Einladung an.',
+                }
+            }
             const fieldErrors: AuthFieldErrors = {
-                token: tokenFieldError(token),
+                token: tokenFromQuery.length > 0 ? undefined : tokenFieldError(token),
                 password: passwordFieldError(password),
+                name: nameFieldError(name),
             }
             if (hasFieldErrors(fieldErrors)) {
                 return {...INITIAL_STATE, fieldErrors}
@@ -53,7 +65,7 @@ function AcceptInviteForm() {
             const input = parseAcceptInviteInput({
                 token,
                 password,
-                name: formData.get('name') || undefined,
+                name: name || undefined,
             })
             if (input === null) {
                 return {
@@ -78,6 +90,7 @@ function AcceptInviteForm() {
     useFocusFirstInvalidField(state.fieldErrors, {
         token: tokenRef,
         password: passwordRef,
+        name: nameRef,
     })
 
     return (
@@ -108,7 +121,21 @@ function AcceptInviteForm() {
                 )}
                 <div className="space-y-2">
                     <Label htmlFor="name">Name <span className="text-muted-foreground">(optional)</span></Label>
-                    <Input id="name" name="name" type="text" autoComplete="name" maxLength={255} />
+                    <Input
+                        aria-describedby={state.fieldErrors.name !== undefined ? 'name-error' : undefined}
+                        aria-invalid={state.fieldErrors.name !== undefined || undefined}
+                        id="name"
+                        name="name"
+                        type="text"
+                        autoComplete="name"
+                        maxLength={255}
+                        ref={nameRef}
+                    />
+                    {state.fieldErrors.name !== undefined ? (
+                        <p className="text-xs text-destructive" id="name-error">
+                            {state.fieldErrors.name}
+                        </p>
+                    ) : null}
                 </div>
                 <div className="space-y-2">
                     <Label htmlFor="password">Passwort</Label>

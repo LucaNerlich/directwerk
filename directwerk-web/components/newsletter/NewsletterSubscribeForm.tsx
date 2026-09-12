@@ -1,6 +1,6 @@
 'use client'
 
-import {useState} from 'react'
+import {useRef, useState} from 'react'
 
 import {Alert, AlertDescription} from '@directwerk/ui/components/alert'
 import {Button} from '@directwerk/ui/components/button'
@@ -21,6 +21,7 @@ export default function NewsletterSubscribeForm({
     const [formError, setFormError] = useState<string | null>(null)
     const [done, setDone] = useState(false)
     const [busy, setBusy] = useState(false)
+    const emailRef = useRef<HTMLInputElement>(null)
 
     if (done) {
         return (
@@ -42,6 +43,7 @@ export default function NewsletterSubscribeForm({
                 const invalid = emailFieldError(email)
                 setFieldError(invalid)
                 if (invalid !== undefined) {
+                    emailRef.current?.focus()
                     return
                 }
                 setBusy(true)
@@ -51,11 +53,11 @@ export default function NewsletterSubscribeForm({
                     email: email.trim(),
                 })
                     .then(() => setDone(true))
-                    .catch((err: unknown) => {
+                    .catch(() => {
+                        // Never surface raw API/transport text to a public
+                        // visitor — keep the message generic.
                         setFormError(
-                            err instanceof Error
-                                ? err.message
-                                : 'Abonnieren fehlgeschlagen. Bitte versuche es später erneut.',
+                            'Abonnieren fehlgeschlagen. Bitte versuche es später erneut.',
                         )
                     })
                     .finally(() => setBusy(false))
@@ -70,6 +72,7 @@ export default function NewsletterSubscribeForm({
                     disabled={busy}
                     onChange={(event) => setEmail(event.target.value)}
                     placeholder="name@example.com…"
+                    ref={emailRef}
                     required
                     spellCheck={false}
                     type="email"

@@ -85,6 +85,16 @@ function PricingContent(): React.JSX.Element {
                 return
             }
 
+            // Products without a price are not sellable yet — the button is
+            // disabled, but the resumed `?buy=` flow must not slip past it.
+            const product = products.find((item) => item.slug === productSlug)
+            if (product !== undefined && product.priceCents === null) {
+                setCheckoutMessage(
+                    'Dieses Produkt ist noch nicht käuflich. Bitte versuche es später erneut.',
+                )
+                return
+            }
+
             setBusySlug(productSlug)
             try {
                 const checkoutUrl = await createCheckoutSession(tenantHost, productSlug)
@@ -111,7 +121,7 @@ function PricingContent(): React.JSX.Element {
                 setBusySlug(null)
             }
         },
-        [isAuthenticated, router, tenantHost],
+        [isAuthenticated, products, router, tenantHost],
     )
 
     // A product chosen before login is preserved through auth via

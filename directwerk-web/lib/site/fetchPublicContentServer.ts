@@ -28,16 +28,20 @@ const {
 export async function fetchPublicEpisodesServer(
     host: string,
 ): Promise<PublicEpisode[] | null> {
-    const response = await directwerkFetch({
-        path: '/api/v1/public/episodes',
-        tenantHost: host,
-        method: 'GET',
-    })
-    if (!response.ok) {
+    try {
+        const response = await directwerkFetch({
+            path: '/api/v1/public/episodes',
+            tenantHost: host,
+            method: 'GET',
+        })
+        if (!response.ok) {
+            return null
+        }
+        const parsed = parsePublicEpisodeListEnvelope(await response.json())
+        return parsed === null ? null : parsed.data
+    } catch {
         return null
     }
-    const parsed = parsePublicEpisodeListEnvelope(await response.json())
-    return parsed === null ? null : parsed.data
 }
 
 /**
@@ -47,16 +51,20 @@ export async function fetchPublicEpisodesServer(
 export async function fetchPublicArticlesServer(
     host: string,
 ): Promise<PublicArticle[] | null> {
-    const response = await directwerkFetch({
-        path: '/api/v1/public/articles',
-        tenantHost: host,
-        method: 'GET',
-    })
-    if (!response.ok) {
+    try {
+        const response = await directwerkFetch({
+            path: '/api/v1/public/articles',
+            tenantHost: host,
+            method: 'GET',
+        })
+        if (!response.ok) {
+            return null
+        }
+        const parsed = parsePublicArticleListEnvelope(await response.json())
+        return parsed === null ? null : parsed.data
+    } catch {
         return null
     }
-    const parsed = parsePublicArticleListEnvelope(await response.json())
-    return parsed === null ? null : parsed.data
 }
 
 /**
@@ -66,16 +74,20 @@ export async function fetchPublicArticlesServer(
 export async function fetchPublicProductsServer(
     host: string,
 ): Promise<PublicProduct[] | null> {
-    const response = await directwerkFetch({
-        path: '/api/v1/public/products',
-        tenantHost: host,
-        method: 'GET',
-    })
-    if (!response.ok) {
+    try {
+        const response = await directwerkFetch({
+            path: '/api/v1/public/products',
+            tenantHost: host,
+            method: 'GET',
+        })
+        if (!response.ok) {
+            return null
+        }
+        const parsed = parsePublicProductListEnvelope(await response.json())
+        return parsed === null ? null : parsed.data
+    } catch {
         return null
     }
-    const parsed = parsePublicProductListEnvelope(await response.json())
-    return parsed === null ? null : parsed.data
 }
 
 /**

@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import {useEffect, useState} from 'react'
+import {useEffect, useRef, useState} from 'react'
 
 import {buttonVariants} from '@directwerk/ui/components/button'
 import EmptyState from '@directwerk/ui/components/empty-state'
@@ -67,12 +67,20 @@ export default function HomeClient({
         (showArticles ? initialData.articles !== null : true) &&
         (showPricing ? initialData.products !== null : true)
     const [isLoading, setIsLoading] = useState(!initialComplete)
+    const wasAuthenticatedRef = useRef(isAuthenticated)
 
     useEffect(() => {
+        const wasAuthenticated = wasAuthenticatedRef.current
+        wasAuthenticatedRef.current = isAuthenticated
         // Nothing to do when the server already seeded an anonymous visitor's
-        // surfaces; re-fetch only to pick up entitled catalogs after login or
-        // when the server could not seed a surface.
+        // surfaces, but drop any entitled data fetched before a logout so the
+        // page does not keep showing paid badges to a signed-out visitor.
         if (!isAuthenticated && initialComplete) {
+            if (wasAuthenticated) {
+                setLatestEpisode(initialData.episodes?.[0] ?? null)
+                setLatestArticle(initialData.articles?.[0] ?? null)
+                setProducts(initialData.products?.slice(0, 3) ?? [])
+            }
             return
         }
         let active = true
@@ -145,7 +153,9 @@ export default function HomeClient({
     return (
         <div className="page-container">
             {isLoading ? (
-                <HeroSkeleton />
+                <div aria-busy="true" aria-label="Startseite wird geladen" role="status">
+                    <HeroSkeleton />
+                </div>
             ) : (
                 <section className="mx-auto flex max-w-6xl flex-col gap-6 py-8 sm:py-14">
                     <BrandLogo
@@ -235,7 +245,12 @@ export default function HomeClient({
             </section>
 
             {isLoading ? (
-                <div className="mx-auto mt-10 max-w-6xl">
+                <div
+                    aria-busy="true"
+                    aria-label="Inhalte werden geladen"
+                    className="mx-auto mt-10 max-w-6xl"
+                    role="status"
+                >
                     <CardGridSkeleton cards={2} columns={2} />
                 </div>
             ) : latestEpisode !== null || latestArticle !== null ? (
@@ -374,7 +389,7 @@ export default function HomeClient({
                 </div>
             ) : null}
 
-            {!isLoading && showPodcast && latestEpisode === null && latestArticle === null ? (
+            {!isLoading && (showPodcast || showArticles) && latestEpisode === null && latestArticle === null ? (
                 <div className="mx-auto mt-8 max-w-6xl">
                     <EmptyState
                         title="Noch keine veröffentlichten Inhalte"

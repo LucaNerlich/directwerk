@@ -3,6 +3,7 @@ import {describe, expect, it} from 'vitest'
 import {
     emailFieldError,
     hasFieldErrors,
+    nameFieldError,
     passwordFieldError,
     tokenFieldError,
 } from './authFields'
@@ -23,6 +24,12 @@ describe('authFields', () => {
     it('flags empty tokens only', () => {
         expect(tokenFieldError('   ')).toBeDefined()
         expect(tokenFieldError('abc')).toBeUndefined()
+    })
+
+    it('rejects whitespace-only optional names', () => {
+        expect(nameFieldError('')).toBeUndefined()
+        expect(nameFieldError('Luca')).toBeUndefined()
+        expect(nameFieldError('   ')).toBeDefined()
     })
 
     it('detects whether any field carries an error', () => {

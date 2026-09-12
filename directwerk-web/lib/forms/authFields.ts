@@ -13,6 +13,7 @@ export interface AuthFieldErrors {
     email?: string
     password?: string
     token?: string
+    name?: string
 }
 
 /** Inline message for an e-mail input, or `undefined` when it is valid. */
@@ -22,6 +23,17 @@ export function emailFieldError(email: string): string | undefined {
     }
     if (!isValidEmail(email)) {
         return 'Bitte gib eine gültige E-Mail-Adresse ein.'
+    }
+    return undefined
+}
+
+/**
+ * Inline message for the optional name input. Mirrors `parseRegisterInput`:
+ * an omitted name is fine, a whitespace-only value is not.
+ */
+export function nameFieldError(name: string): string | undefined {
+    if (name.length > 0 && name.trim().length === 0) {
+        return 'Bitte gib einen Namen ein oder lasse das Feld leer.'
     }
     return undefined
 }

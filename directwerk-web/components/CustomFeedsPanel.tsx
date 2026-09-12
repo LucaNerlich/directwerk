@@ -523,6 +523,7 @@ export default function CustomFeedsPanel<
 
             <ConfirmDialog
                 cancelLabel="Abbrechen"
+                closeLabel="Schließen"
                 confirmLabel={confirmation?.action === 'delete' ? 'Feed löschen' : 'Token erneuern'}
                 description={
                     confirmation?.action === 'delete'

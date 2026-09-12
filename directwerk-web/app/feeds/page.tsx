@@ -724,6 +724,7 @@ export default function FeedsPage() {
 
             <ConfirmDialog
                 cancelLabel="Abbrechen"
+                closeLabel="Schließen"
                 confirmLabel="Token erneuern"
                 description={
                     rotateKind === 'articles'

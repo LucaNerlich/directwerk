@@ -42,8 +42,17 @@ function ResetPasswordForm() {
         async (_previousState: ResetPasswordState, formData: FormData) => {
             const token = String(formData.get('token') ?? '')
             const newPassword = String(formData.get('newPassword') ?? '')
+            // A hidden link token cannot be corrected inline — surface a
+            // form-level error instead of an unreachable field error.
+            if (tokenFromQuery.length > 0 && token.trim().length === 0) {
+                return {
+                    ...INITIAL_STATE,
+                    formError:
+                        'Dieser Reset-Link ist ungültig oder abgelaufen. Bitte fordere einen neuen an.',
+                }
+            }
             const fieldErrors: AuthFieldErrors = {
-                token: tokenFieldError(token),
+                token: tokenFromQuery.length > 0 ? undefined : tokenFieldError(token),
                 password: passwordFieldError(newPassword),
             }
             if (hasFieldErrors(fieldErrors)) {
