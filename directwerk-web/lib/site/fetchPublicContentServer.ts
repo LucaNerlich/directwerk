@@ -5,14 +5,90 @@ import {createWebPublicParsers} from '@/lib/publicContent/parsers'
 import {
     parsePublicNewsletterListEnvelope,
     parsePublicNewsletterListListEnvelope,
+    parsePublicProductListEnvelope,
 } from '@directwerk/api/validation/public'
-import type {PublicArticle, PublicEpisode, PublicNewsletterList} from '@directwerk/api/types'
+import type {
+    PublicArticle,
+    PublicEpisode,
+    PublicNewsletterList,
+    PublicProduct,
+} from '@directwerk/api/types'
 
 const {
     parsePublicArticleEnvelope,
     parsePublicArticleListEnvelope,
     parsePublicEpisodeListEnvelope,
 } = createWebPublicParsers()
+
+/**
+ * Lists the public episode catalog for server-rendered pages. Returns `null`
+ * when the upstream call fails so the caller can fall back to a client fetch
+ * instead of rendering a false empty state.
+ */
+export async function fetchPublicEpisodesServer(
+    host: string,
+): Promise<PublicEpisode[] | null> {
+    try {
+        const response = await directwerkFetch({
+            path: '/api/v1/public/episodes',
+            tenantHost: host,
+            method: 'GET',
+        })
+        if (!response.ok) {
+            return null
+        }
+        const parsed = parsePublicEpisodeListEnvelope(await response.json())
+        return parsed === null ? null : parsed.data
+    } catch {
+        return null
+    }
+}
+
+/**
+ * Lists the public article catalog for server-rendered pages. Returns `null`
+ * on upstream failure (see {@link fetchPublicEpisodesServer}).
+ */
+export async function fetchPublicArticlesServer(
+    host: string,
+): Promise<PublicArticle[] | null> {
+    try {
+        const response = await directwerkFetch({
+            path: '/api/v1/public/articles',
+            tenantHost: host,
+            method: 'GET',
+        })
+        if (!response.ok) {
+            return null
+        }
+        const parsed = parsePublicArticleListEnvelope(await response.json())
+        return parsed === null ? null : parsed.data
+    } catch {
+        return null
+    }
+}
+
+/**
+ * Lists published subscription products for server-rendered pages. Returns
+ * `null` on upstream failure (see {@link fetchPublicEpisodesServer}).
+ */
+export async function fetchPublicProductsServer(
+    host: string,
+): Promise<PublicProduct[] | null> {
+    try {
+        const response = await directwerkFetch({
+            path: '/api/v1/public/products',
+            tenantHost: host,
+            method: 'GET',
+        })
+        if (!response.ok) {
+            return null
+        }
+        const parsed = parsePublicProductListEnvelope(await response.json())
+        return parsed === null ? null : parsed.data
+    } catch {
+        return null
+    }
+}
 
 /**
  * Fetches a single public article server-side. Returns `null` when the

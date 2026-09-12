@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import {usePathname, useRouter} from 'next/navigation'
-import type {ReactNode} from 'react'
+import {useState, type ReactNode} from 'react'
 
 import {Button, buttonVariants} from '@directwerk/ui/components/button'
 import SiteShell from '@directwerk/ui/components/layout/site-shell'
@@ -40,9 +40,11 @@ export default function SiteHeader({
     const pathname = usePathname()
     const router = useRouter()
     const {isAuthenticated} = useSubscriberAuth()
+    const [isLoggingOut, setIsLoggingOut] = useState(false)
     const brand = config.branding.siteTitle ?? config.tenant.name
 
     async function handleLogout(): Promise<void> {
+        setIsLoggingOut(true)
         try {
             await fetch('/api/auth/logout', {
                 method: 'POST',
@@ -105,8 +107,15 @@ export default function SiteHeader({
             >
                 Mein Konto
             </Link>
-            <Button type="button" variant="outline" onClick={handleLogout}>
-                Abmelden
+            <Button
+                type="button"
+                variant="outline"
+                disabled={isLoggingOut}
+                onClick={() => {
+                    void handleLogout()
+                }}
+            >
+                {isLoggingOut ? 'Abmelden…' : 'Abmelden'}
             </Button>
         </>
     ) : (

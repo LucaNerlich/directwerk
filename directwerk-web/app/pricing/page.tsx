@@ -85,6 +85,16 @@ function PricingContent(): React.JSX.Element {
                 return
             }
 
+            // Products without a price are not sellable yet — the button is
+            // disabled, but the resumed `?buy=` flow must not slip past it.
+            const product = products.find((item) => item.slug === productSlug)
+            if (product !== undefined && product.priceCents === null) {
+                setCheckoutMessage(
+                    'Dieses Produkt ist noch nicht käuflich. Bitte versuche es später erneut.',
+                )
+                return
+            }
+
             setBusySlug(productSlug)
             try {
                 const checkoutUrl = await createCheckoutSession(tenantHost, productSlug)
@@ -111,7 +121,7 @@ function PricingContent(): React.JSX.Element {
                 setBusySlug(null)
             }
         },
-        [isAuthenticated, router, tenantHost],
+        [isAuthenticated, products, router, tenantHost],
     )
 
     // A product chosen before login is preserved through auth via
@@ -136,6 +146,10 @@ function PricingContent(): React.JSX.Element {
             )
         }
     }, [handleCheckout, isAuthenticated, isLoading, pendingBuy, products, router])
+
+    const hasLevelProducts = products.some(
+        (product) => product.offeringType === 'LEVEL',
+    )
 
     return (
         <PageStack className="page-container">
@@ -189,7 +203,7 @@ function PricingContent(): React.JSX.Element {
                     <AlertDescription>{checkoutMessage}</AlertDescription>
                 </Alert>
             ) : null}
-            {!isLoading && levels.length > 0 ? (
+            {!isLoading && levels.length > 0 && !hasLevelProducts ? (
                 <section className="flex flex-col gap-4">
                     <SectionHeader
                         description="Höhere Stufen schalten mehr bezahlte Folgen frei (sortiert nach Rang)."
@@ -242,7 +256,7 @@ function PricingContent(): React.JSX.Element {
                                 <CardFooter>
                                     <Button
                                         className="w-full"
-                                        disabled={busySlug === product.slug}
+                                        disabled={busySlug === product.slug || product.priceCents === null}
                                         onClick={() => {
                                             void handleCheckout(product.slug)
                                         }}
@@ -250,9 +264,11 @@ function PricingContent(): React.JSX.Element {
                                     >
                                         {busySlug === product.slug
                                             ? '…'
-                                            : isAuthenticated
-                                              ? 'Zur Kasse'
-                                              : 'Anmelden & wählen'}
+                                            : product.priceCents === null
+                                              ? 'Bald verfügbar'
+                                              : isAuthenticated
+                                                ? 'Zur Kasse'
+                                                : 'Anmelden & wählen'}
                                     </Button>
                                 </CardFooter>
                             </Card>

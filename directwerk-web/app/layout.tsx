@@ -17,6 +17,9 @@ import './globals.css'
 
 const FALLBACK_TITLE = 'Publish'
 const FALLBACK_DESCRIPTION = 'Tenant public site'
+// Matches the light `--background` token in `@directwerk/ui/theme.css`;
+// `<meta name="theme-color">` should track the page background, not pure black.
+const FALLBACK_THEME_COLOR = '#fcfbf8'
 
 async function resolveTenantSeo(): Promise<{
     origin: string
@@ -104,7 +107,7 @@ export async function generateMetadata(): Promise<Metadata> {
 export async function generateViewport(): Promise<Viewport> {
     const seo = await resolveTenantSeo()
     return {
-        themeColor: seo.primaryColor ?? '#000000',
+        themeColor: seo.primaryColor ?? FALLBACK_THEME_COLOR,
     }
 }
 

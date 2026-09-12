@@ -127,16 +127,6 @@ export default function EpisodeDetailClient({
                         }
                         title={title}
                     />
-                    {episode.description !== null && episode.description.length > 0 ? (
-                        <div
-                            className="content-prose"
-                            // Defense-in-depth: the API sanitizes on write, but
-                            // stored HTML is re-sanitized here so a compromised
-                            // or bypassed record cannot XSS the public site.
-                            dangerouslySetInnerHTML={{__html: sanitizeContentHtml(episode.description)}}
-                        />
-                    ) : null}
-
                     <section className="flex flex-col gap-3 rounded-xl border bg-card p-5">
                         <SectionHeader title="Player" />
                         {episode.audioCdnUrl !== null ? (
@@ -177,6 +167,16 @@ export default function EpisodeDetailClient({
                             </p>
                         )}
                     </section>
+
+                    {episode.description !== null && episode.description.length > 0 ? (
+                        <div
+                            className="content-prose"
+                            // Defense-in-depth: the API sanitizes on write, but
+                            // stored HTML is re-sanitized here so a compromised
+                            // or bypassed record cannot XSS the public site.
+                            dangerouslySetInnerHTML={{__html: sanitizeContentHtml(episode.description)}}
+                        />
+                    ) : null}
                 </article>
             ) : null}
         </DetailShell>

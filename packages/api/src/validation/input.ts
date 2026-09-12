@@ -304,3 +304,24 @@ export function parseNewsletterTokenInput(value: unknown): NewsletterTokenInput 
     }
     return {token}
 }
+
+// ---------------------------------------------------------------------------
+// Field-level predicates
+//
+// The parsers above collapse every problem into `null`, which is fine for a
+// BFF boundary but useless for inline form validation. These predicates expose
+// the same rules per field so both frontends render matching messages.
+// ---------------------------------------------------------------------------
+
+export const PASSWORD_MIN_LENGTH = MIN_PASSWORD_LENGTH
+export const PASSWORD_MAX_LENGTH = MAX_PASSWORD_LENGTH
+
+/** True when `value` is a syntactically valid e-mail address (trimmed). */
+export function isValidEmail(value: unknown): boolean {
+    return parseEmail(value, true) !== null
+}
+
+/** True when `value` satisfies the shared password length policy. */
+export function isValidPassword(value: unknown): boolean {
+    return parsePassword(value) !== null
+}

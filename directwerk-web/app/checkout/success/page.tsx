@@ -124,7 +124,16 @@ function CheckoutSuccessContent(): React.JSX.Element {
                           : 'Wir warten auf die Bestätigung von Stripe — das dauert meist nur wenige Sekunden.'
                 }
             />
-            <div role="status" aria-live="polite" className="max-w-xl space-y-3 text-sm leading-6 text-muted-foreground">
+            <div role="status" aria-live="polite" aria-busy={phase === 'checking'} className="max-w-xl space-y-3 text-sm leading-6 text-muted-foreground">
+                {phase === 'checking' ? (
+                    <p className="flex items-center gap-2 font-medium text-foreground">
+                        <span
+                            aria-hidden="true"
+                            className="size-4 shrink-0 animate-spin rounded-full border-2 border-current border-t-transparent motion-reduce:animate-none"
+                        />
+                        Bestätigung wird geprüft…
+                    </p>
+                ) : null}
                 <p>
                     {phase === 'ready'
                         ? 'Du kannst jetzt bezahlte Folgen und Bonusdateien nutzen.'
