@@ -3,7 +3,7 @@
 import Form from 'next/form'
 import Link from 'next/link'
 import {useRouter, useSearchParams} from 'next/navigation'
-import {Suspense, useActionState, useState} from 'react'
+import {Suspense, useActionState, useRef, useState} from 'react'
 
 import {Alert, AlertDescription} from '@directwerk/ui/components/alert'
 import AuthCard from '@directwerk/ui/components/auth-card'
@@ -13,69 +13,116 @@ import {Label} from '@directwerk/ui/components/label'
 
 import {acceptInvite} from '@/lib/api/client'
 import {parseAcceptInviteInput} from '@directwerk/api/validation/input'
+import {hasFieldErrors, passwordFieldError, tokenFieldError} from '@/lib/forms/authFields'
+import type {AuthFieldErrors} from '@/lib/forms/authFields'
+import {useFocusFirstInvalidField} from '@/lib/forms/useFocusFirstInvalidField'
 import {userFacingAuthError} from '@/lib/billing/userFacingBillingError'
 
 interface AcceptInviteState {
-    error: string | null
+    formError: string | null
+    fieldErrors: AuthFieldErrors
     success: boolean
 }
 
-const INITIAL_STATE: AcceptInviteState = {error: null, success: false}
+const INITIAL_STATE: AcceptInviteState = {
+    formError: null,
+    fieldErrors: {},
+    success: false,
+}
 
 function AcceptInviteForm() {
     const router = useRouter()
     const searchParams = useSearchParams()
     const tokenFromQuery = searchParams.get('token') ?? ''
     const [showPassword, setShowPassword] = useState(false)
+    const tokenRef = useRef<HTMLInputElement>(null)
+    const passwordRef = useRef<HTMLInputElement>(null)
 
     const [state, formAction, isPending] = useActionState(
         async (_previousState: AcceptInviteState, formData: FormData) => {
+            const token = String(formData.get('token') ?? '')
+            const password = String(formData.get('password') ?? '')
+            const fieldErrors: AuthFieldErrors = {
+                token: tokenFieldError(token),
+                password: passwordFieldError(password),
+            }
+            if (hasFieldErrors(fieldErrors)) {
+                return {...INITIAL_STATE, fieldErrors}
+            }
+
             const input = parseAcceptInviteInput({
-                token: formData.get('token'),
-                password: formData.get('password'),
+                token,
+                password,
                 name: formData.get('name') || undefined,
             })
             if (input === null) {
                 return {
-                    error:
-                        'Bitte gib das Einladungs-Token, ein Passwort mit mindestens 12 Zeichen und optional einen Namen ein.',
-                    success: false,
+                    ...INITIAL_STATE,
+                    formError: 'Bitte überprüfe deine Eingaben.',
                 }
             }
 
             try {
                 await acceptInvite(input)
                 router.push('/login?invited=1')
-                return {error: null, success: true}
+                return {formError: null, fieldErrors: {}, success: true}
             } catch (error) {
                 return {
-                    error: userFacingAuthError(error, 'invite'),
-                    success: false,
+                    ...INITIAL_STATE,
+                    formError: userFacingAuthError(error, 'invite'),
                 }
             }
         },
         INITIAL_STATE,
     )
+    useFocusFirstInvalidField(state.fieldErrors, {
+        token: tokenRef,
+        password: passwordRef,
+    })
 
     return (
         <>
-            <Form action={formAction} className="space-y-4">
+            <Form action={formAction} className="space-y-4" noValidate>
                 {tokenFromQuery.length > 0 ? (
                     <input type="hidden" name="token" value={tokenFromQuery} />
                 ) : (
-                    <div className="space-y-2"><Label htmlFor="token">Einladungs-Token</Label><Input id="token" name="token" type="text" autoComplete="off" maxLength={512} required /></div>
+                    <div className="space-y-2">
+                        <Label htmlFor="token">Einladungs-Token</Label>
+                        <Input
+                            aria-describedby={state.fieldErrors.token !== undefined ? 'token-error' : undefined}
+                            aria-invalid={state.fieldErrors.token !== undefined || undefined}
+                            id="token"
+                            name="token"
+                            type="text"
+                            autoComplete="off"
+                            maxLength={512}
+                            ref={tokenRef}
+                            required
+                        />
+                        {state.fieldErrors.token !== undefined ? (
+                            <p className="text-xs text-destructive" id="token-error">
+                                {state.fieldErrors.token}
+                            </p>
+                        ) : null}
+                    </div>
                 )}
-                <div className="space-y-2"><Label htmlFor="name">Name <span className="text-muted-foreground">(optional)</span></Label><Input id="name" name="name" type="text" autoComplete="name" maxLength={255} /></div>
+                <div className="space-y-2">
+                    <Label htmlFor="name">Name <span className="text-muted-foreground">(optional)</span></Label>
+                    <Input id="name" name="name" type="text" autoComplete="name" maxLength={255} />
+                </div>
                 <div className="space-y-2">
                     <Label htmlFor="password">Passwort</Label>
                     <div className="relative">
                         <Input
+                            aria-describedby={state.fieldErrors.password !== undefined ? 'password-error' : undefined}
+                            aria-invalid={state.fieldErrors.password !== undefined || undefined}
                             id="password"
                             name="password"
                             type={showPassword ? 'text' : 'password'}
                             autoComplete="new-password"
                             minLength={12}
                             maxLength={128}
+                            ref={passwordRef}
                             required
                             className="pr-24"
                         />
@@ -91,7 +138,17 @@ function AcceptInviteForm() {
                         </Button>
                     </div>
                     <p className="text-xs text-muted-foreground">Mindestens 12 Zeichen.</p>
+                    {state.fieldErrors.password !== undefined ? (
+                        <p className="text-xs text-destructive" id="password-error">
+                            {state.fieldErrors.password}
+                        </p>
+                    ) : null}
                 </div>
+                {state.formError !== null ? (
+                    <Alert variant="destructive" role="alert">
+                        <AlertDescription>{state.formError}</AlertDescription>
+                    </Alert>
+                ) : null}
                 <Button className="w-full" type="submit" disabled={isPending || state.success}>
                     {isPending ? 'Wird angenommen…' : 'Einladung annehmen'}
                 </Button>
@@ -100,7 +157,6 @@ function AcceptInviteForm() {
                     bei einer Sperrung kurz und versuche es erneut.
                 </p>
             </Form>
-            {state.error !== null ? <Alert variant="destructive" role="alert"><AlertDescription>{state.error}</AlertDescription></Alert> : null}
             {state.success && (
                 <Alert role="status"><AlertDescription>Einladung angenommen. Weiterleitung…</AlertDescription></Alert>
             )}

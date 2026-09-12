@@ -7,6 +7,7 @@ import useSWR from 'swr'
 import {Alert, AlertDescription} from '@directwerk/ui/components/alert'
 import {Badge} from '@directwerk/ui/components/badge'
 import {Button} from '@directwerk/ui/components/button'
+import ConfirmDialog from '@directwerk/ui/components/confirm-dialog'
 import EmptyState from '@directwerk/ui/components/empty-state'
 import PageHeader from '@directwerk/ui/components/page-header'
 import PageStack from '@directwerk/ui/components/page-stack'
@@ -22,7 +23,6 @@ import HowToSubscribe from '@/components/HowToSubscribe'
 import {ListPanelSkeleton} from '@/components/ContentLoadingSkeleton'
 import SubscriberContextBanner from '@/components/SubscriberContextBanner'
 import {
-    getSiteConfig,
     listPublicSeries,
     rotateDefaultArticleFeedToken,
     rotateDefaultFeedToken,
@@ -32,7 +32,6 @@ import {
 import type {
     ArticleFeedView,
     PublicSeries,
-    PublicSiteConfig,
     SubscriberFeedView,
 } from '@directwerk/api/types'
 import {useSubscriberAuth} from '@/lib/auth/useSubscriberAuth'
@@ -40,6 +39,7 @@ import {useArticleFeeds} from '@/lib/auth/useArticleFeeds'
 import {useSubscriberFeeds} from '@/lib/auth/useSubscriberFeeds'
 import {formatPublishedAt} from '@directwerk/api/format/datetime'
 import {getWebClientTenantHost} from '@/lib/tenant/clientHost'
+import {useSiteConfig} from '@/lib/site/SiteConfigProvider'
 import {userFacingFeedsError} from '@/lib/billing/userFacingBillingError'
 import {
     webPublicArticleFeedUrl,
@@ -151,11 +151,9 @@ export default function FeedsPage() {
     const tenantHost = getWebClientTenantHost()
     const {isAuthenticated} = useSubscriberAuth()
 
-    const {data: siteConfig} = useSWR<PublicSiteConfig>(
-        ['site-config', tenantHost] as const,
-        async ([, host]: readonly [string, string]) =>
-            (await getSiteConfig(host)).data,
-    )
+    // Site config is already resolved by the root layout — reuse it instead of
+    // issuing a second `GET /public/site-config` on every feeds visit.
+    const siteConfig = useSiteConfig()
 
     const showPodcastFeeds =
         siteConfig?.enabledModules.includes('PODCAST_RSS') ?? false
@@ -192,6 +190,7 @@ export default function FeedsPage() {
 
     const [podcastTogglePending, setPodcastTogglePending] = useState(false)
     const [podcastRotatePending, setPodcastRotatePending] = useState(false)
+    const [rotateKind, setRotateKind] = useState<'podcast' | 'articles' | null>(null)
     const [podcastToggleError, setPodcastToggleError] = useState<string | null>(null)
     const [podcastRotateError, setPodcastRotateError] = useState<string | null>(null)
     const [podcastCustomError, setPodcastCustomError] = useState<string | null>(null)
@@ -236,14 +235,7 @@ export default function FeedsPage() {
         isAuthenticated &&
         (siteConfig?.enabledModules.includes('ARTICLE_FEED_BUILDER') ?? false)
 
-    async function handlePodcastRotate(): Promise<void> {
-        if (
-            !window.confirm(
-                'Token erneuern? Die alte URL wird sofort ungültig. Trage die neue URL danach in deiner Podcast-App ein.',
-            )
-        ) {
-            return
-        }
+    async function performPodcastRotate(): Promise<void> {
         setPodcastRotatePending(true)
         setPodcastRotateError(null)
         try {
@@ -273,14 +265,7 @@ export default function FeedsPage() {
         }
     }
 
-    async function handleArticleRotate(): Promise<void> {
-        if (
-            !window.confirm(
-                'Token erneuern? Die alte URL wird sofort ungültig. Trage die neue URL danach in deinem Feed-Reader ein.',
-            )
-        ) {
-            return
-        }
+    async function performArticleRotate(): Promise<void> {
         setArticleRotatePending(true)
         setArticleRotateError(null)
         try {
@@ -405,7 +390,7 @@ export default function FeedsPage() {
                                 <ListPanel>
                                     {renderDefaultFeedRow({
                                         feed: defaultPodcastPrivate,
-                                        onRotate: () => void handlePodcastRotate(),
+                                        onRotate: () => setRotateKind('podcast'),
                                         onToggle: () =>
                                             void handlePodcastToggleDefault(
                                                 !defaultPodcastPrivate.enabled,
@@ -590,7 +575,7 @@ export default function FeedsPage() {
                                 <ListPanel>
                                     {renderDefaultFeedRow({
                                         feed: defaultArticlePrivate,
-                                        onRotate: () => void handleArticleRotate(),
+                                        onRotate: () => setRotateKind('articles'),
                                         onToggle: () =>
                                             void handleArticleToggleDefault(
                                                 !defaultArticlePrivate.enabled,
@@ -736,6 +721,37 @@ export default function FeedsPage() {
                     </>
                 )
             ) : null}
+
+            <ConfirmDialog
+                cancelLabel="Abbrechen"
+                confirmLabel="Token erneuern"
+                description={
+                    rotateKind === 'articles'
+                        ? 'Die alte URL wird sofort ungültig. Trage die neue URL danach in deinem Feed-Reader ein.'
+                        : 'Die alte URL wird sofort ungültig. Trage die neue URL danach in deiner Podcast-App ein.'
+                }
+                destructive
+                onConfirm={() => {
+                    if (rotateKind === 'articles') {
+                        void performArticleRotate().finally(() => setRotateKind(null))
+                    } else if (rotateKind === 'podcast') {
+                        void performPodcastRotate().finally(() => setRotateKind(null))
+                    }
+                }}
+                onOpenChange={(open) => {
+                    if (!open) {
+                        setRotateKind(null)
+                    }
+                }}
+                open={rotateKind !== null}
+                pending={
+                    rotateKind === 'articles'
+                        ? articleRotatePending
+                        : podcastRotatePending
+                }
+                pendingLabel="Wird erneuert…"
+                title="Feed-URL erneuern?"
+            />
         </PageStack>
     )
 }

@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import {useEffect, useState} from 'react'
 
 import {Alert, AlertDescription} from '@directwerk/ui/components/alert'
 import {Button} from '@directwerk/ui/components/button'
@@ -24,6 +25,9 @@ import {getWebClientTenantHost} from '@/lib/tenant/clientHost'
 import {webPublicArticleFeedUrl} from '@/lib/feeds/webPublicFeedUrl'
 import {formatPublishedAt} from '@directwerk/api/format/datetime'
 
+/** Render long article catalogs in chunks instead of one giant DOM list. */
+const PAGE_SIZE = 20
+
 export default function ArticlesPage() {
     const tenantHost = getWebClientTenantHost()
     const {isAuthenticated} = useSubscriberAuth()
@@ -39,6 +43,11 @@ export default function ArticlesPage() {
     const defaultPrivateFeed = privateFeeds.find((feed) => feed.isDefault) ?? null
     const publicArticleFeedUrl =
         siteConfig === null ? null : webPublicArticleFeedUrl(siteConfig, tenantHost)
+    const [visibleCount, setVisibleCount] = useState(PAGE_SIZE)
+    useEffect(() => {
+        setVisibleCount(PAGE_SIZE)
+    }, [isAuthenticated, tenantHost])
+    const visibleArticles = articles.slice(0, visibleCount)
 
     return (
         <PageStack className="page-container">
@@ -82,7 +91,7 @@ export default function ArticlesPage() {
                         title="Veröffentlichte Beiträge"
                     />
                     <ListPanel>
-                        {articles.map((article) => {
+                        {visibleArticles.map((article) => {
                             const href = `/articles/${encodeURIComponent(article.slug)}`
                             const isLocked =
                                 article.accessPolicy === 'PAID' && article.body === null
@@ -135,6 +144,19 @@ export default function ArticlesPage() {
                             )
                         })}
                     </ListPanel>
+                    {visibleCount < articles.length ? (
+                        <div>
+                            <Button
+                                onClick={() =>
+                                    setVisibleCount((current) => current + PAGE_SIZE)
+                                }
+                                type="button"
+                                variant="outline"
+                            >
+                                Mehr anzeigen ({articles.length - visibleCount} weitere)
+                            </Button>
+                        </div>
+                    ) : null}
                 </section>
             ) : null}
 

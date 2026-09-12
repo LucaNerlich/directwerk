@@ -1,6 +1,6 @@
 'use client'
 
-import {useState} from 'react'
+import {useId, useState} from 'react'
 
 import {Button, buttonVariants} from '@directwerk/ui/components/button'
 import {cn} from '@directwerk/ui/lib/utils'
@@ -59,6 +59,8 @@ export default function FeedUrlDisplay({
         !isTokenUrl(url) && url.length <= COLLAPSE_THRESHOLD,
     )
     const safeHref = isSafeHref(url)
+    const urlId = useId()
+    const collapsible = url.length > COLLAPSE_THRESHOLD || isTokenUrl(url)
 
     return (
         <div className={cn('flex flex-col gap-3', className)}>
@@ -83,8 +85,9 @@ export default function FeedUrlDisplay({
                         Öffnen
                     </a>
                 ) : null}
-                {url.length > COLLAPSE_THRESHOLD || isTokenUrl(url) ? (
+                {collapsible ? (
                     <Button
+                        aria-controls={urlId}
                         aria-expanded={visible}
                         onClick={() => setVisible((current) => !current)}
                         size="sm"
@@ -96,8 +99,8 @@ export default function FeedUrlDisplay({
                 ) : null}
             </div>
             <p
-                aria-label={visible ? undefined : 'Private Feed-URL verborgen'}
                 className="break-all rounded-md bg-muted/50 px-3 py-2 font-mono text-xs leading-5 text-muted-foreground"
+                id={urlId}
             >
                 {visible ? url : maskedUrl(url)}
             </p>

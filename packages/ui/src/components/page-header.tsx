@@ -32,9 +32,9 @@ export default function PageHeader({
                     {title}
                 </h1>
                 {description !== undefined ? (
-                    <p className="mt-2 max-w-2xl text-pretty text-sm leading-6 text-muted-foreground sm:text-base">
+                    <div className="mt-2 max-w-2xl text-pretty text-sm leading-6 text-muted-foreground sm:text-base">
                         {description}
-                    </p>
+                    </div>
                 ) : null}
             </div>
             {actions !== undefined ? (

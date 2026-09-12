@@ -3,7 +3,7 @@
 import Form from 'next/form'
 import Link from 'next/link'
 import {useRouter, useSearchParams} from 'next/navigation'
-import {Suspense, useActionState, useState} from 'react'
+import {Suspense, useActionState, useRef, useState} from 'react'
 
 import {Alert, AlertDescription} from '@directwerk/ui/components/alert'
 import AuthCard from '@directwerk/ui/components/auth-card'
@@ -13,70 +13,108 @@ import {Label} from '@directwerk/ui/components/label'
 
 import {resetPassword} from '@/lib/api/client'
 import {parseResetPasswordInput} from '@directwerk/api/validation/input'
+import {hasFieldErrors, passwordFieldError, tokenFieldError} from '@/lib/forms/authFields'
+import type {AuthFieldErrors} from '@/lib/forms/authFields'
+import {useFocusFirstInvalidField} from '@/lib/forms/useFocusFirstInvalidField'
 import {userFacingAuthError} from '@/lib/billing/userFacingBillingError'
 
 interface ResetPasswordState {
-    error: string | null
+    formError: string | null
+    fieldErrors: AuthFieldErrors
     success: boolean
 }
 
-const INITIAL_STATE: ResetPasswordState = {error: null, success: false}
+const INITIAL_STATE: ResetPasswordState = {
+    formError: null,
+    fieldErrors: {},
+    success: false,
+}
 
 function ResetPasswordForm() {
     const router = useRouter()
     const searchParams = useSearchParams()
     const tokenFromQuery = searchParams.get('token') ?? ''
     const [showPassword, setShowPassword] = useState(false)
+    const tokenRef = useRef<HTMLInputElement>(null)
+    const passwordRef = useRef<HTMLInputElement>(null)
 
     const [state, formAction, isPending] = useActionState(
         async (_previousState: ResetPasswordState, formData: FormData) => {
-            const input = parseResetPasswordInput({
-                token: formData.get('token'),
-                newPassword: formData.get('newPassword'),
-            })
+            const token = String(formData.get('token') ?? '')
+            const newPassword = String(formData.get('newPassword') ?? '')
+            const fieldErrors: AuthFieldErrors = {
+                token: tokenFieldError(token),
+                password: passwordFieldError(newPassword),
+            }
+            if (hasFieldErrors(fieldErrors)) {
+                return {...INITIAL_STATE, fieldErrors}
+            }
+
+            const input = parseResetPasswordInput({token, newPassword})
             if (input === null) {
                 return {
-                    error:
-                        'Bitte gib das Reset-Token und ein neues Passwort mit mindestens 12 Zeichen ein.',
-                    success: false,
+                    ...INITIAL_STATE,
+                    formError: 'Bitte überprüfe deine Eingaben.',
                 }
             }
 
             try {
                 await resetPassword(input)
                 router.push('/login?reset=1')
-                return {error: null, success: true}
+                return {formError: null, fieldErrors: {}, success: true}
             } catch (error) {
                 return {
-                    error: userFacingAuthError(error, 'reset'),
-                    success: false,
+                    ...INITIAL_STATE,
+                    formError: userFacingAuthError(error, 'reset'),
                 }
             }
         },
         INITIAL_STATE,
     )
+    useFocusFirstInvalidField(state.fieldErrors, {
+        token: tokenRef,
+        password: passwordRef,
+    })
 
     return (
         <>
-            <Form action={formAction} className="space-y-4">
+            <Form action={formAction} className="space-y-4" noValidate>
                 {tokenFromQuery.length > 0 ? (
                     <input type="hidden" name="token" value={tokenFromQuery} />
                 ) : (
                     <div className="space-y-2">
                         <Label htmlFor="token">Reset-Token</Label>
-                        <Input id="token" name="token" type="text" autoComplete="off" maxLength={512} required />
+                        <Input
+                            aria-describedby={state.fieldErrors.token !== undefined ? 'token-error' : undefined}
+                            aria-invalid={state.fieldErrors.token !== undefined || undefined}
+                            id="token"
+                            name="token"
+                            type="text"
+                            autoComplete="off"
+                            maxLength={512}
+                            ref={tokenRef}
+                            required
+                        />
+                        {state.fieldErrors.token !== undefined ? (
+                            <p className="text-xs text-destructive" id="token-error">
+                                {state.fieldErrors.token}
+                            </p>
+                        ) : null}
                     </div>
                 )}
                 <div className="space-y-2">
                     <Label htmlFor="newPassword">Neues Passwort</Label>
                     <div className="relative">
                         <Input
+                            aria-describedby={state.fieldErrors.password !== undefined ? 'password-error' : undefined}
+                            aria-invalid={state.fieldErrors.password !== undefined || undefined}
                             id="newPassword"
                             name="newPassword"
                             type={showPassword ? 'text' : 'password'}
                             autoComplete="new-password"
                             minLength={12}
                             maxLength={128}
+                            ref={passwordRef}
                             required
                             className="pr-24"
                         />
@@ -92,7 +130,17 @@ function ResetPasswordForm() {
                         </Button>
                     </div>
                     <p className="text-xs text-muted-foreground">Mindestens 12 Zeichen.</p>
+                    {state.fieldErrors.password !== undefined ? (
+                        <p className="text-xs text-destructive" id="password-error">
+                            {state.fieldErrors.password}
+                        </p>
+                    ) : null}
                 </div>
+                {state.formError !== null ? (
+                    <Alert variant="destructive" role="alert">
+                        <AlertDescription>{state.formError}</AlertDescription>
+                    </Alert>
+                ) : null}
                 <Button className="w-full" type="submit" disabled={isPending || state.success}>
                     {isPending ? 'Wird gespeichert…' : 'Passwort festlegen'}
                 </Button>
@@ -101,7 +149,6 @@ function ResetPasswordForm() {
                     bei einer Sperrung kurz und versuche es erneut.
                 </p>
             </Form>
-            {state.error !== null ? <Alert variant="destructive" role="alert"><AlertDescription>{state.error}</AlertDescription></Alert> : null}
             {state.success && (
                 <Alert role="status"><AlertDescription>Passwort aktualisiert. Weiterleitung…</AlertDescription></Alert>
             )}

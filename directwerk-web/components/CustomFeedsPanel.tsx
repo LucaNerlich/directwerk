@@ -7,6 +7,7 @@ import {Badge} from '@directwerk/ui/components/badge'
 import {Button} from '@directwerk/ui/components/button'
 import {Card, CardContent, CardHeader, CardTitle} from '@directwerk/ui/components/card'
 import {Checkbox} from '@directwerk/ui/components/checkbox'
+import ConfirmDialog from '@directwerk/ui/components/confirm-dialog'
 import {Input} from '@directwerk/ui/components/input'
 import ListPanel, {ListPanelRow} from '@directwerk/ui/components/list-panel'
 import SectionHeader from '@directwerk/ui/components/section-header'
@@ -140,6 +141,10 @@ export default function CustomFeedsPanel<
     const [isSaving, setIsSaving] = useState(false)
     const [pendingFeedId, setPendingFeedId] = useState<number | null>(null)
     const [pendingAction, setPendingAction] = useState<RowAction | null>(null)
+    const [confirmation, setConfirmation] = useState<{
+        action: 'rotate' | 'delete'
+        feed: TFeed
+    } | null>(null)
 
     useEffect(() => {
         let active = true
@@ -288,10 +293,7 @@ export default function CustomFeedsPanel<
         }
     }
 
-    async function handleRotate(feed: TFeed): Promise<void> {
-        if (!window.confirm(config.rotateConfirmMessage)) {
-            return
-        }
+    async function performRotate(feed: TFeed): Promise<void> {
         setPendingFeedId(feed.id)
         setPendingAction('rotate')
         try {
@@ -308,10 +310,7 @@ export default function CustomFeedsPanel<
         }
     }
 
-    async function handleDelete(feed: TFeed): Promise<void> {
-        if (!window.confirm(`Feed „${feed.title}“ wirklich löschen?`)) {
-            return
-        }
+    async function performDelete(feed: TFeed): Promise<void> {
         setPendingFeedId(feed.id)
         setPendingAction('delete')
         try {
@@ -485,7 +484,7 @@ export default function CustomFeedsPanel<
                                 </Button>
                                 <Button
                                     disabled={isSaving || isRowMutationPending}
-                                    onClick={() => void handleRotate(feed)}
+                                    onClick={() => setConfirmation({action: 'rotate', feed})}
                                     size="sm"
                                     type="button"
                                     variant="outline"
@@ -507,7 +506,7 @@ export default function CustomFeedsPanel<
                                 ) : null}
                                 <Button
                                     disabled={isSaving || isRowMutationPending}
-                                    onClick={() => void handleDelete(feed)}
+                                    onClick={() => setConfirmation({action: 'delete', feed})}
                                     size="sm"
                                     type="button"
                                     variant="outline"
@@ -521,6 +520,47 @@ export default function CustomFeedsPanel<
                     ))}
                 </ListPanel>
             )}
+
+            <ConfirmDialog
+                cancelLabel="Abbrechen"
+                confirmLabel={confirmation?.action === 'delete' ? 'Feed löschen' : 'Token erneuern'}
+                description={
+                    confirmation?.action === 'delete'
+                        ? `Der Feed „${confirmation.feed.title}“ wird entfernt und seine URL sofort ungültig.`
+                        : config.rotateConfirmMessage
+                }
+                destructive={confirmation?.action === 'delete'}
+                onConfirm={() => {
+                    const pending = confirmation
+                    if (pending === null) {
+                        return
+                    }
+                    const run =
+                        pending.action === 'delete'
+                            ? performDelete(pending.feed)
+                            : performRotate(pending.feed)
+                    void run.finally(() => setConfirmation(null))
+                }}
+                onOpenChange={(open) => {
+                    if (!open) {
+                        setConfirmation(null)
+                    }
+                }}
+                open={confirmation !== null}
+                pending={
+                    confirmation !== null &&
+                    pendingFeedId === confirmation.feed.id &&
+                    pendingAction === confirmation.action
+                }
+                pendingLabel={
+                    confirmation?.action === 'delete' ? 'Wird gelöscht…' : 'Wird erneuert…'
+                }
+                title={
+                    confirmation?.action === 'delete'
+                        ? 'Feed löschen?'
+                        : 'Feed-URL erneuern?'
+                }
+            />
         </section>
     )
 }

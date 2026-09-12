@@ -137,6 +137,10 @@ function PricingContent(): React.JSX.Element {
         }
     }, [handleCheckout, isAuthenticated, isLoading, pendingBuy, products, router])
 
+    const hasLevelProducts = products.some(
+        (product) => product.offeringType === 'LEVEL',
+    )
+
     return (
         <PageStack className="page-container">
             <PageHeader
@@ -189,7 +193,7 @@ function PricingContent(): React.JSX.Element {
                     <AlertDescription>{checkoutMessage}</AlertDescription>
                 </Alert>
             ) : null}
-            {!isLoading && levels.length > 0 ? (
+            {!isLoading && levels.length > 0 && !hasLevelProducts ? (
                 <section className="flex flex-col gap-4">
                     <SectionHeader
                         description="Höhere Stufen schalten mehr bezahlte Folgen frei (sortiert nach Rang)."
@@ -242,7 +246,7 @@ function PricingContent(): React.JSX.Element {
                                 <CardFooter>
                                     <Button
                                         className="w-full"
-                                        disabled={busySlug === product.slug}
+                                        disabled={busySlug === product.slug || product.priceCents === null}
                                         onClick={() => {
                                             void handleCheckout(product.slug)
                                         }}
@@ -250,9 +254,11 @@ function PricingContent(): React.JSX.Element {
                                     >
                                         {busySlug === product.slug
                                             ? '…'
-                                            : isAuthenticated
-                                              ? 'Zur Kasse'
-                                              : 'Anmelden & wählen'}
+                                            : product.priceCents === null
+                                              ? 'Bald verfügbar'
+                                              : isAuthenticated
+                                                ? 'Zur Kasse'
+                                                : 'Anmelden & wählen'}
                                     </Button>
                                 </CardFooter>
                             </Card>

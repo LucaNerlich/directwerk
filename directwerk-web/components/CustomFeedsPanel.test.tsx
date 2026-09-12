@@ -7,6 +7,8 @@ import type {SubscriberFeedView} from '@directwerk/api/types'
 const listPublicFormatsMock = vi.fn()
 const previewCustomFeedMock = vi.fn()
 const setFeedEnabledMock = vi.fn()
+const rotateFeedTokenMock = vi.fn()
+const deleteCustomFeedMock = vi.fn()
 
 vi.mock('@/lib/api/client', () => ({
     listPublicFormats: (...args: unknown[]) => listPublicFormatsMock(...args),
@@ -14,8 +16,8 @@ vi.mock('@/lib/api/client', () => ({
     createCustomFeed: vi.fn(),
     updateCustomFeed: vi.fn(),
     setFeedEnabled: (...args: unknown[]) => setFeedEnabledMock(...args),
-    rotateFeedToken: vi.fn(),
-    deleteCustomFeed: vi.fn(),
+    rotateFeedToken: (...args: unknown[]) => rotateFeedTokenMock(...args),
+    deleteCustomFeed: (...args: unknown[]) => deleteCustomFeedMock(...args),
     listPublicArticleCategories: vi.fn(),
     previewCustomArticleFeed: vi.fn(),
     createCustomArticleFeed: vi.fn(),
@@ -314,5 +316,42 @@ describe('CustomFeedsPanel', () => {
             ).toBeInTheDocument(),
         )
         expect(screen.queryByText('Neuen Feed anlegen')).not.toBeInTheDocument()
+    })
+
+    it('asks for confirmation before deleting a feed', async () => {
+        listPublicFormatsMock.mockResolvedValue([])
+        deleteCustomFeedMock.mockResolvedValue(undefined)
+        const onFeedsChange = vi.fn()
+
+        render(
+            <CustomFeedsPanel
+                canBuild={false}
+                config={podcastCustomFeedsConfig}
+                feeds={[
+                    feed(),
+                    feed({id: 9, title: 'Nur Interviews', isDefault: false}),
+                ]}
+                onAuthRequired={() => undefined}
+                onError={() => undefined}
+                onFeedsChange={onFeedsChange}
+                tenantHost="alpha-a.localhost"
+            />,
+        )
+
+        await waitFor(() =>
+            expect(screen.getByText('Nur Interviews')).toBeInTheDocument(),
+        )
+
+        fireEvent.click(screen.getByRole('button', {name: 'Löschen'}))
+
+        // The row button only opens the confirmation — nothing is deleted yet.
+        expect(deleteCustomFeedMock).not.toHaveBeenCalled()
+        expect(screen.getByText('Feed löschen?')).toBeInTheDocument()
+
+        fireEvent.click(screen.getByRole('button', {name: 'Feed löschen'}))
+
+        await waitFor(() =>
+            expect(deleteCustomFeedMock).toHaveBeenCalledWith('alpha-a.localhost', 9),
+        )
     })
 })

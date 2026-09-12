@@ -24,6 +24,7 @@ import {
 } from '@directwerk/ui/components/table'
 
 import {useAccountDashboard} from '@/lib/account/useAccountDashboard'
+import {CardGridSkeleton} from '@/components/ContentLoadingSkeleton'
 import {forgotPassword} from '@/lib/api/client'
 import {parseForgotPasswordInput} from '@directwerk/api/validation/input'
 import {
@@ -67,6 +68,28 @@ function roleLabel(role: string): string {
         default:
             return role
     }
+}
+
+/**
+ * Human-readable role summary. `GUEST` is the implicit fallback role and is
+ * hidden whenever the account holds a real role, so invited users do not read
+ * as "Gast, Mitglied".
+ */
+const ROLE_ORDER: readonly string[] = [
+    'PLATFORM_ADMIN',
+    'TENANT_ADMIN',
+    'EDITOR',
+    'SUBSCRIBER',
+]
+
+function roleSummary(roles: readonly string[]): string {
+    const meaningful = roles.filter((role) => role !== 'GUEST')
+    if (meaningful.length === 0) {
+        return roleLabel('GUEST')
+    }
+    const ordered = ROLE_ORDER.filter((role) => meaningful.includes(role))
+    const rest = meaningful.filter((role) => !ROLE_ORDER.includes(role))
+    return [...ordered, ...rest].map(roleLabel).join(', ')
 }
 
 function renewalLabel(status: string, endsAt: string | null): string {
@@ -200,7 +223,11 @@ export default function AccountPage() {
                 title="Konto"
                 description="Profil, Zugang, private Feeds und Benachrichtigungen."
             />
-            {isLoading && <p className="text-sm text-muted-foreground">Wird geladen…</p>}
+            {isLoading && (
+                <div aria-busy="true" aria-label="Konto wird geladen" role="status">
+                    <CardGridSkeleton cards={3} columns={3} />
+                </div>
+            )}
             {error !== null && (
                 <Alert variant="destructive">
                     <AlertDescription>{error}</AlertDescription>
@@ -244,7 +271,7 @@ export default function AccountPage() {
                             <TableRow>
                                 <TableHead scope="row">Rolle</TableHead>
                                 <TableCell>
-                                    {me.roles.map(roleLabel).join(', ')}
+                                    {roleSummary(me.roles)}
                                 </TableCell>
                             </TableRow>
                         </TableBody>

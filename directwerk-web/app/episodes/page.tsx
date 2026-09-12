@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import {useEffect, useState} from 'react'
 
 import {Alert, AlertDescription} from '@directwerk/ui/components/alert'
 import {Button} from '@directwerk/ui/components/button'
@@ -27,6 +28,9 @@ import {getWebClientTenantHost} from '@/lib/tenant/clientHost'
 import {webPublicPodcastFeedUrl} from '@/lib/feeds/webPublicFeedUrl'
 import {formatPublishedAt} from '@directwerk/api/format/datetime'
 
+/** Long-running shows can have hundreds of episodes; render them in chunks. */
+const PAGE_SIZE = 20
+
 export default function EpisodesPage() {
     const tenantHost = getWebClientTenantHost()
     const {isAuthenticated} = useSubscriberAuth()
@@ -40,6 +44,11 @@ export default function EpisodesPage() {
     const defaultPrivateFeed = privateFeeds.find((feed) => feed.isDefault) ?? null
     const publicPodcastFeedUrl =
         siteConfig === null ? null : webPublicPodcastFeedUrl(siteConfig, tenantHost)
+    const [visibleCount, setVisibleCount] = useState(PAGE_SIZE)
+    useEffect(() => {
+        setVisibleCount(PAGE_SIZE)
+    }, [isAuthenticated, tenantHost])
+    const visibleEpisodes = episodes.slice(0, visibleCount)
 
     return (
         <PageStack className="page-container">
@@ -133,8 +142,9 @@ export default function EpisodesPage() {
                                 }
                             />
                         ) : (
+                            <>
                             <ListPanel>
-                                {episodes.map((episode) => {
+                                {visibleEpisodes.map((episode) => {
                                     const href = `/episodes/${encodeURIComponent(episode.slug)}`
                                     const isLocked =
                                         episode.accessPolicy === 'PAID' &&
@@ -191,6 +201,20 @@ export default function EpisodesPage() {
                                     )
                                 })}
                             </ListPanel>
+                            {visibleCount < episodes.length ? (
+                                <div>
+                                    <Button
+                                        onClick={() =>
+                                            setVisibleCount((current) => current + PAGE_SIZE)
+                                        }
+                                        type="button"
+                                        variant="outline"
+                                    >
+                                        Mehr anzeigen ({episodes.length - visibleCount} weitere)
+                                    </Button>
+                                </div>
+                            ) : null}
+                            </>
                         )}
                     </section>
 
