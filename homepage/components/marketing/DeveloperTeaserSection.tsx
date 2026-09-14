@@ -15,12 +15,12 @@ export default function DeveloperTeaserSection(): React.JSX.Element {
                         <div>
                             <SectionLabel>Für Entwickler</SectionLabel>
                             <h2 className="mt-4 text-balance text-3xl font-semibold tracking-tight">
-                                Die API ist das Produkt
+                                Für Entwickler: eine stabile API
                             </h2>
                             <p className="mt-4 max-w-xl text-muted-foreground">
-                                Agenturen und Integratoren bauen eigene Frontends gegen
-                                /api/v1/ — mit vorhersagbaren Fehlercodes, Host-basierter
-                                Mandantenauflösung und demselben Vertrag wie Studio und Web.
+                                Agenturen bauen eigene Oberflächen gegen /api/v1/ —
+                                mit klaren Fehlermeldungen, Domain-Erkennung pro Show
+                                und denselben Endpunkten wie Studio und Web.
                             </p>
                         </div>
                         <div className="flex flex-wrap gap-2 lg:justify-end">

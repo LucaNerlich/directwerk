@@ -18,8 +18,8 @@ const PRIVACY_FEATURES = [
         copy: 'Optionales Umami — selbst gehostet oder Plattform-Standard. Download-Events ohne IP-Speicherung, jederzeit abschaltbar.',
     },
     {
-        title: 'Strikte Mandantentrennung',
-        copy: 'Jeder Mandant sieht nur eigene Daten: Host-basierte Auflösung, Tenant-Filter auf jeder Query, isolierte Storage-Keys.',
+        title: 'Getrennte Kundendaten',
+        copy: 'Jede Show und jeder Kunde sieht nur die eigenen Daten — sauber getrennt, auch wenn mehrere Projekte auf derselben Plattform laufen.',
     },
     {
         title: 'Export & Löschung',
@@ -33,12 +33,12 @@ export default function PrivacySection(): React.JSX.Element {
             <div className="marketing-container">
                 <SectionLabel>Datenschutz & Souveränität</SectionLabel>
                 <h2 className="mt-4 max-w-2xl text-balance text-3xl font-semibold tracking-tight sm:text-4xl">
-                    Datenschutz ist das Feature — nicht das Kleingedruckte
+                    Datenschutz von Anfang an — nicht im Kleingedruckten
                 </h2>
                 <p className="mt-4 max-w-2xl text-muted-foreground">
-                    Während US-Plattformen deine Hörer vermessen, liefert Directwerk
-                    Infrastruktur, die von Anfang an auf europäisches Datenschutzrecht
-                    ausgelegt ist.
+                    Während US-Plattformen deine Hörer vermessen, ist Directwerk
+                    von Anfang an auf europäisches Datenschutzrecht ausgelegt —
+                    Hosting, Verträge und Technik inklusive.
                 </p>
                 <ul className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                     {PRIVACY_FEATURES.map((feature) => (

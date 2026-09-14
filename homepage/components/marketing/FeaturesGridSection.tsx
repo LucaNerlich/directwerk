@@ -2,36 +2,36 @@ import SectionLabel from '@/components/marketing/SectionLabel'
 
 const FEATURES = [
     {
-        title: 'Multi-Tenant & Whitelabel',
-        copy: 'Eigene Domain, Branding und isolierte Mandantendaten — eine Deployment-Instanz für viele Shows.',
+        title: 'Eigene Marke & Domain',
+        copy: 'Dein Logo, deine Farben, deine Domain — auch wenn mehrere Shows auf derselben Plattform laufen.',
     },
     {
         title: 'Podcast, Artikel & Newsletter',
-        copy: 'Serien, Episoden, Formate, Kategorien plus Write-Desk für Artikel, Newsletter und Bonusdateien.',
+        copy: 'Serien, Episoden, Formate und Kategorien — plus Editor für Artikel, Newsletter und Bonusdateien.',
     },
     {
         title: 'Öffentliche & private RSS',
-        copy: 'podcast.xml für freie Inhalte; tokenisierte Abonnenten-Feeds mit Entitlement-Filter.',
+        copy: 'podcast.xml für freie Inhalte; persönliche Abonnenten-Feeds, die nur bezahlte Episoden enthalten.',
     },
     {
         title: 'Feed-Builder pro Hörer',
         copy: 'Bis zu fünf private Feeds pro Abonnent — nach Formaten oder Kategorien gefiltert, jederzeit widerrufbar.',
     },
     {
-        title: 'LEVEL & PACKAGE',
-        copy: 'Stufen-Produkte und Paket-Regeln für Formate, Serien, Kategorien und Downloads.',
+        title: 'Abostufen & Pakete',
+        copy: 'Stufen und Pakete für Formate, Serien, Kategorien und Downloads — flexibel kombinierbar.',
     },
     {
         title: 'Stripe Connect',
-        copy: 'Checkout, Customer Portal und Webhooks — Billing vollständig über die API.',
+        copy: 'Checkout, Kundenportal und Zahlungsabwicklung — direkt in der Plattform integriert.',
     },
     {
         title: 'EU-Speicher & DSGVO',
-        copy: 'Europäisches Object Storage (Hetzner/Bunny), tenant-scoped Keys, AV-Vertrag inklusive.',
+        copy: 'Audio und Medien in europäischem Speicher (Hetzner/Bunny), AV-Vertrag inklusive.',
     },
     {
-        title: 'Modul-System',
-        copy: 'PODCAST, SUBSCRIPTION, PODCAST_RSS, FEED_BUILDER u. a. — pro Mandant aktivierbar.',
+        title: 'Funktionen nach Bedarf',
+        copy: 'Podcast, Abos, RSS, Feed-Builder und mehr — pro Show einzeln aktivierbar.',
     },
 ] as const
 

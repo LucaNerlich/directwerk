@@ -82,7 +82,7 @@ export default function FeedBuilderMock(): React.JSX.Element {
                 </button>
             </div>
             <p className="mt-4 text-xs leading-5 text-muted-foreground">
-                Bis zu 5 Feeds pro Abonnent · nur freigeschaltete Inhalte · Token jederzeit widerrufbar.
+                Bis zu 5 Feeds pro Abonnent · nur bezahlte Inhalte · Link jederzeit widerrufbar.
             </p>
         </div>
     )

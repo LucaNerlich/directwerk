@@ -11,7 +11,7 @@ const FAQS = [
     },
     {
         question: 'Brauche ich eine eigene Domain?',
-        answer: 'Deine Marke steht vorne: Eigene Domain, eigenes Branding, eigenes Logo. Directwerk läuft als Whitelabel im Hintergrund — Studio, Website und Feeds tragen deinen Namen.',
+        answer: 'Deine Marke steht vorne: eigene Domain, eigenes Branding, eigenes Logo. Directwerk läuft im Hintergrund — Studio, Website und Feeds tragen deinen Namen.',
     },
     {
         question: 'Was kostet das?',
@@ -19,7 +19,7 @@ const FAQS = [
     },
     {
         question: 'Ich bin Entwicklerin — kann ich ein eigenes Frontend bauen?',
-        answer: 'Unbedingt: Die REST-API unter /api/v1/ ist der Vertrag, unsere Apps sind nur Referenz-Frontends. Als Agentur baust du eigene UIs gegen dieselben Endpunkte — mit stabilen Fehlercodes und OpenAPI-Spezifikation.',
+        answer: 'Ja. Die REST-API unter /api/v1/ ist der offizielle Weg — Studio und Web sind Beispiel-Oberflächen. Als Agentur baust du eigene Apps gegen dieselben Endpunkte, dokumentiert in OpenAPI.',
     },
 ] as const
 

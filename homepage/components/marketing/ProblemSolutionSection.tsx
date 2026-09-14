@@ -4,17 +4,17 @@ const PAIRS = [
     {
         problem: 'Patreon, Steady oder ein geschlossenes CMS bestimmen Domain, Daten und Auslieferung.',
         solution:
-            'Directwerk liefert Infrastruktur auf deiner Marke: Studio für Creators, API für Integratoren, Web optional pro Mandant.',
+            'Directwerk läuft unter deiner Marke: Studio für Creators, Website für Hörer — und für Agenturen eine API zum Anbinden eigener Oberflächen.',
     },
     {
         problem: 'Podcast, Newsletter und Mitgliedschaften leben in getrennten Tools.',
         solution:
-            'Ein Backend mit Modulen für Podcast, RSS, Abonnements, Artikel und Feed-Builder — eine Entitlement-Schicht für alles.',
+            'Alles an einem Ort: Podcast, RSS, Abos, Artikel und Feed-Builder. Wer zahlt, sieht was — für alle Formate gleich.',
     },
     {
         problem: 'Agenturen brauchen Whitelabel, nicht noch ein monolithisches CMS.',
         solution:
-            'Multi-Tenant-Isolation, Host-basierte Mandantenauflösung und ein stabiler REST-Vertrag unter /api/v1/.',
+            'Jeder Kunde bekommt eigene Domain, eigenes Branding und getrennte Daten — auf einer Plattform, die mehrere Shows sicher nebeneinander betreibt.',
     },
 ] as const
 
@@ -24,7 +24,7 @@ export default function ProblemSolutionSection(): React.JSX.Element {
             <div className="marketing-container">
                 <SectionLabel>Warum Directwerk</SectionLabel>
                 <h2 className="mt-4 max-w-3xl text-balance text-3xl font-semibold tracking-tight sm:text-4xl">
-                    Infrastruktur statt Plattformmiete
+                    Eigene Plattform statt Miete bei anderen
                 </h2>
                 <div className="mt-10 grid gap-6 lg:grid-cols-3">
                     {PAIRS.map((item, index) => (
