@@ -47,7 +47,8 @@ Components and utilities reference tokens, not raw colors:
 - Text: `foreground`, `muted-foreground`, `primary-foreground`
 - Chrome: `border`, `input`, `ring`
 - Sidebar shell: `sidebar`, `sidebar-accent`, …
-- Radius: `--radius` → `rounded-lg`, etc.
+- Radius: `--radius` → `rounded-lg`, etc. Corners use `corner-shape: squircle`
+  sitewide (via `@directwerk/ui` base styles) where the browser supports it.
 
 Tenant branding overrides `--primary` and `--ring` at runtime via `BrandTheme`
 (web layout, studio shell). Fallback primary is defined in `:root`.

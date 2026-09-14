@@ -107,6 +107,8 @@
 @layer base {
     * {
         @apply border-border outline-ring/50;
+        /* Progressive enhancement: Chromium 139+; ignored elsewhere. */
+        corner-shape: squircle;
     }
 
     html {
