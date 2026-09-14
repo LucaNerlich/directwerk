@@ -10,7 +10,7 @@ import {cn} from '@directwerk/ui/lib/utils'
 import {DOCS_URL} from '@/lib/marketing/constants'
 
 const PLATFORM_LINKS = [
-    {href: '/#features', label: 'Plattform', description: 'Studio, Portal & Module'},
+    {href: '/#features', label: 'Plattform', description: 'Studio, Website & Abos'},
     {href: '/privacy', label: 'Datenschutz', description: 'EU-Hosting & DSGVO'},
     {href: '/#feeds', label: 'Feeds', description: 'Privat & pro Hörer'},
     {href: '/#products', label: 'Produkte', description: 'Studio, Web & API'},
@@ -67,7 +67,7 @@ function Brand(): React.JSX.Element {
                     Directwerk
                 </span>
                 <span className="mt-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                    EU Podcast Cloud
+                    Podcast aus Europa
                 </span>
             </span>
             <span className="glass-chip ml-1 hidden rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground sm:inline-block">

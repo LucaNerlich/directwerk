@@ -6,7 +6,7 @@ const STEPS = [
     {
         step: '01',
         title: 'Einrichten',
-        copy: 'Mandant anlegen, Domain verbinden, Branding und Module aktivieren.',
+        copy: 'Show anlegen, Domain verbinden, Branding festlegen und Funktionen aktivieren.',
     },
     {
         step: '02',
@@ -15,8 +15,8 @@ const STEPS = [
     },
     {
         step: '03',
-        title: 'Monetarisieren',
-        copy: 'LEVEL- und PACKAGE-Produkte definieren, Stripe verbinden, Abonnenten verwalten.',
+        title: 'Verdienen',
+        copy: 'Abostufen und Pakete anlegen, Stripe verbinden, Abonnenten verwalten.',
     },
     {
         step: '04',
@@ -29,9 +29,9 @@ export default function CreatorJourneySection(): React.JSX.Element {
     return (
         <section className="marketing-section">
             <div className="marketing-container">
-                <SectionLabel>Creator-Journey</SectionLabel>
+                <SectionLabel>So startest du</SectionLabel>
                 <h2 className="mt-4 max-w-2xl text-balance text-3xl font-semibold tracking-tight sm:text-4xl">
-                    Vom Setup bis zum privaten Feed
+                    Vom ersten Setup bis zum privaten Feed
                 </h2>
                 <ol className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                     {STEPS.map((item) => (

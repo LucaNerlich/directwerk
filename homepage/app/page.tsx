@@ -14,7 +14,7 @@ import ProductStackSection from '@/components/marketing/ProductStackSection'
 export const metadata: Metadata = {
     title: 'Directwerk — Europäische Podcast- & Publishing-Plattform',
     description:
-        'DSGVO-konforme Whitelabel-Plattform für Podcast, Artikel und Newsletter mit EU-Hosting: Creator-Studio, private Feeds, Feed-Builder pro Hörer und REST-API.',
+        'Podcast, Artikel und Newsletter unter deiner Marke — mit Studio, Website für Abonnenten, privaten Feeds pro Hörer und Hosting in Europa.',
 }
 
 export default function Home(): React.JSX.Element {

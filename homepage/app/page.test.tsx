@@ -32,13 +32,13 @@ describe('Home', () => {
         ).toHaveAttribute('href', '/developers')
         expect(screen.getAllByRole('link', {name: 'Dokumentation'}).length).toBeGreaterThan(0)
         expect(screen.getByRole('link', {name: 'Kontakt'})).toHaveAttribute('href', '#contact')
-        expect(screen.getByRole('heading', {name: /Eigene Publishing-Infrastruktur/})).toBeInTheDocument()
+        expect(screen.getByRole('heading', {name: /Deine eigene Plattform/})).toBeInTheDocument()
         expect(screen.getByRole('button', {name: 'Nachricht senden'})).toBeInTheDocument()
         expect(
-            screen.getByRole('heading', {name: /Datenschutz ist das Feature/}),
+            screen.getByRole('heading', {name: /Datenschutz von Anfang an/}),
         ).toBeInTheDocument()
         expect(
-            screen.getByRole('heading', {name: /Ein RSS-Feed pro Hörer/}),
+            screen.getByRole('heading', {name: /Jeder Hörer bekommt seinen eigenen Feed/}),
         ).toBeInTheDocument()
         expect(
             screen.getByRole('heading', {name: /Kurz beantwortet/}),

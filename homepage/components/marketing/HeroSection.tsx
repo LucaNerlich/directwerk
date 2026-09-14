@@ -61,9 +61,9 @@ function PlayerMock(): React.JSX.Element {
                     ))}
                 </div>
                 <div className="rounded-xl border border-foreground/10 bg-background/60 p-4 font-mono text-xs leading-5 text-muted-foreground">
-                    <p className="font-semibold text-foreground">Für Abonnenten — automatisch persönlich</p>
+                    <p className="font-semibold text-foreground">Nur für Abonnenten — ganz persönlich</p>
                     <p className="mt-1 break-all">/feeds/morgenlicht/u/persönlicher-token.xml</p>
-                    <p className="mt-1">Nur freigeschaltete Formate · jederzeit widerrufbar</p>
+                    <p className="mt-1">Nur bezahlte Inhalte · jederzeit widerrufbar</p>
                 </div>
             </div>
         </div>
@@ -86,10 +86,9 @@ export default function HeroSection(): React.JSX.Element {
                         Deine Daten.
                     </h1>
                     <p className="mt-8 max-w-xl text-pretty text-lg leading-8 text-muted-foreground">
-                        Directwerk ist die europäische Whitelabel-Plattform für Podcast,
-                        Artikel und Newsletter — mit Creator-Studio, Abonnenten-Portal,
-                        privaten Feeds pro Hörer und vollem Datenschutz statt
-                        US-Cloud-Zwang.
+                        Directwerk ist die Plattform für Podcast, Artikel und Newsletter
+                        unter deiner Marke — mit Studio für dein Team, Portal für
+                        Abonnenten, privaten Feeds pro Hörer und Hosting in Europa.
                     </p>
                     <div className="mt-8 flex flex-wrap gap-3">
                         <a
@@ -133,7 +132,7 @@ export default function HeroSection(): React.JSX.Element {
                 <PlayerMock />
             </div>
             <div className="marketing-container mt-4">
-                <SectionLabel>Publizieren ohne Plattformzwang</SectionLabel>
+                <SectionLabel>Dein Kanal, deine Regeln</SectionLabel>
             </div>
         </section>
     )
