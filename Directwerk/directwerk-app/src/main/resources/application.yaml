@@ -123,6 +123,9 @@ directwerk:
         # override for when the read credentials belong to a different host than the tenant's
         # configured Umami host. Never exposed to the browser.
         umami-api-base-url: ${DIRECTWERK_ANALYTICS_UMAMI_API_BASE_URL:}
+        # Additional tenant Umami hostnames trusted to receive the platform read credentials.
+        # The hosts from umami-host-url and umami-api-base-url are trusted automatically.
+        umami-api-allowed-hosts: ${DIRECTWERK_ANALYTICS_UMAMI_API_ALLOWED_HOSTS:}
         umami-username: ${DIRECTWERK_ANALYTICS_UMAMI_USERNAME:}
         umami-password: ${DIRECTWERK_ANALYTICS_UMAMI_PASSWORD:}
     storage:

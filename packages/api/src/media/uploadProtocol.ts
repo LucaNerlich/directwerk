@@ -51,12 +51,15 @@ export function parseBrowserUploadHeaders(headers: Headers): BrowserUploadHeader
     }
 
     const contentLength = headers.get('content-length')
-    if (contentLength === '0') {
+    if (contentLength === null || !/^\d+$/.test(contentLength)) {
+        return {ok: false, status: 411, error: 'A valid Content-Length is required.'}
+    }
+    if (/^0+$/.test(contentLength)) {
         return {ok: false, status: 400, error: 'File must not be empty.'}
     }
     const sizeBytes = parseSizeBytes(contentLength)
     if (sizeBytes === null) {
-        return {ok: false, status: 411, error: 'A valid Content-Length is required.'}
+        return {ok: false, status: 400, error: 'File size exceeds the supported limit.'}
     }
 
     const mimeType =

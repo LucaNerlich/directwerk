@@ -12,6 +12,7 @@ import de.pnnit.directwerk.modules.content.ContentPublishedEvent;
 import de.pnnit.directwerk.modules.content.ContentType;
 import de.pnnit.directwerk.modules.core.service.FeedTokenProtector;
 import de.pnnit.directwerk.modules.core.util.PublicContentUrlResolver;
+import de.pnnit.directwerk.modules.core.util.TokenHashUtil;
 import de.pnnit.directwerk.modules.email.EmailJobProducer;
 import de.pnnit.directwerk.modules.email.EmailTemplate;
 import de.pnnit.directwerk.modules.email.content.TenantContentBrandingResolver;
@@ -105,8 +106,10 @@ class NewsletterNotificationServiceTest {
         service.notifyArticlePublished(event());
 
         ArgumentCaptor<Map<String, String>> variablesCaptor = ArgumentCaptor.forClass(Map.class);
+        ArgumentCaptor<String> correlationCaptor = ArgumentCaptor.forClass(String.class);
         verify(emailJobProducer).enqueueContentNotification(
-                eq(TENANT_ID), eq("ada@example.com"), eq(EmailTemplate.CONTENT_ARTICLE_PUBLISHED), variablesCaptor.capture(), any()
+                eq(TENANT_ID), eq("ada@example.com"), eq(EmailTemplate.CONTENT_ARTICLE_PUBLISHED),
+                variablesCaptor.capture(), correlationCaptor.capture()
         );
         verify(emailJobProducer).enqueueContentNotification(
                 eq(TENANT_ID), eq("grace@example.com"), eq(EmailTemplate.CONTENT_ARTICLE_PUBLISHED), any(), any()
@@ -118,6 +121,8 @@ class NewsletterNotificationServiceTest {
         assertThat(variables.get("contentUrl")).isEqualTo("https://tenant.example/articles/hello-world");
         assertThat(variables.get("unsubscribeUrl"))
                 .isEqualTo("https://tenant.example/newsletter/unsubscribe?token=raw-enc-ada");
+        assertThat(correlationCaptor.getValue()).isEqualTo(
+                "content-notify-article-7-email-" + TokenHashUtil.sha256Hex("ada@example.com"));
     }
 
     @Test

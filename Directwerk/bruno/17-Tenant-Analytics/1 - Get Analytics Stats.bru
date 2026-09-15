@@ -19,7 +19,7 @@ docs {
 
 tests {
   test("returns stats or a configuration error", function() {
-    expect([200, 404, 502, 503]).to.include(res.getStatus());
+    expect([200, 404, 502, 503, 504]).to.include(res.getStatus());
     if (res.getStatus() === 200) {
       expect(res.body.data).to.have.property("range");
       expect(res.body.data).to.have.property("stats");

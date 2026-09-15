@@ -8,6 +8,7 @@ import jakarta.validation.constraints.Positive;
 import java.net.URI;
 import java.time.Duration;
 import java.util.List;
+import java.util.Locale;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.validation.annotation.Validated;
 
@@ -114,6 +115,7 @@ public record DirectwerkProperties(
             String umamiHostUrl,
             String userAgent,
             String umamiApiBaseUrl,
+            List<String> umamiApiAllowedHosts,
             String umamiUsername,
             String umamiPassword
     ) {
@@ -124,13 +126,32 @@ public record DirectwerkProperties(
                     ? "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36"
                     : userAgent.trim();
             umamiApiBaseUrl = umamiApiBaseUrl == null ? "" : umamiApiBaseUrl.trim();
+            umamiApiAllowedHosts = umamiApiAllowedHosts == null
+                    ? List.of()
+                    : umamiApiAllowedHosts.stream()
+                            .filter(host -> host != null && !host.isBlank())
+                            .map(host -> host.trim().toLowerCase(Locale.ROOT))
+                            .distinct()
+                            .toList();
             umamiUsername = umamiUsername == null ? "" : umamiUsername.trim();
             umamiPassword = umamiPassword == null ? "" : umamiPassword;
         }
 
+        /** Read-API configuration without an additional hostname allow-list. */
+        public Analytics(
+                boolean enabled,
+                String umamiHostUrl,
+                String userAgent,
+                String umamiApiBaseUrl,
+                String umamiUsername,
+                String umamiPassword
+        ) {
+            this(enabled, umamiHostUrl, userAgent, umamiApiBaseUrl, List.of(), umamiUsername, umamiPassword);
+        }
+
         /** Collector-only configuration (no read-API credentials). */
         public Analytics(boolean enabled, String umamiHostUrl, String userAgent) {
-            this(enabled, umamiHostUrl, userAgent, "", "", "");
+            this(enabled, umamiHostUrl, userAgent, "", List.of(), "", "");
         }
 
         /** True when the server can log in to the Umami read API. */

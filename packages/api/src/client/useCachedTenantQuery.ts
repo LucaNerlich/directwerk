@@ -1,6 +1,6 @@
 'use client'
 
-import {useCallback, useEffect, useRef} from 'react'
+import {useCallback, useRef} from 'react'
 
 import {useAuthedQuery} from './useAuthedQuery'
 import type {UseAuthedQueryOptions, UseAuthedQueryResult} from './useAuthedQuery'
@@ -77,16 +77,10 @@ export function useCachedTenantQuery<T>(
         [namespace, tenantHost],
     )
 
-    const query = useAuthedQuery(cachedFetcher, {fallbackError})
-
-    const isMounted = useRef(false)
-    useEffect(() => {
-        if (!isMounted.current) {
-            isMounted.current = true
-            return
-        }
-        query.reload()
-    }, [namespace, query.reload, tenantHost])
+    const query = useAuthedQuery(cachedFetcher, {
+        fallbackError,
+        queryKey: cacheKey(namespace, tenantHost),
+    })
 
     const reload = useCallback(() => {
         clearCachedTenantData(namespace, tenantHost)

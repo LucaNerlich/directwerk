@@ -6,17 +6,33 @@ import de.pnnit.directwerk.modules.core.entity.TenantBranding;
 import de.pnnit.directwerk.modules.core.service.TenantBrandingService;
 import de.pnnit.directwerk.modules.core.util.UmamiHostUrlValidator;
 import de.pnnit.directwerk.modules.core.util.UmamiWebsiteIdValidator;
+import java.io.IOException;
+import java.io.InterruptedIOException;
+import java.net.InetAddress;
 import java.net.URI;
 import java.net.URLEncoder;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
-import java.net.http.HttpTimeoutException;
+import java.net.UnknownHostException;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.HashSet;
+import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.hc.client5.http.DnsResolver;
+import org.apache.hc.client5.http.classic.methods.HttpGet;
+import org.apache.hc.client5.http.classic.methods.HttpPost;
+import org.apache.hc.client5.http.classic.methods.HttpUriRequestBase;
+import org.apache.hc.client5.http.config.ConnectionConfig;
+import org.apache.hc.client5.http.config.RequestConfig;
+import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
+import org.apache.hc.client5.http.impl.classic.HttpClients;
+import org.apache.hc.client5.http.impl.io.PoolingHttpClientConnectionManagerBuilder;
+import org.apache.hc.core5.http.ContentType;
+import org.apache.hc.core5.http.io.entity.EntityUtils;
+import org.apache.hc.core5.http.io.entity.StringEntity;
+import org.apache.hc.core5.util.Timeout;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import tools.jackson.databind.JsonNode;
@@ -41,7 +57,7 @@ public class AnalyticsQueryService {
     private final DirectwerkConfig directwerkConfig;
     private final TenantBrandingService tenantBrandingService;
     private final ObjectMapper objectMapper;
-    private final HttpClient httpClient;
+    private final RequestSender requestSender;
 
     private volatile CachedToken cachedToken;
 
@@ -53,10 +69,19 @@ public class AnalyticsQueryService {
         this.directwerkConfig = directwerkConfig;
         this.tenantBrandingService = tenantBrandingService;
         this.objectMapper = objectMapper;
-        this.httpClient = HttpClient.newBuilder()
-                .connectTimeout(UPSTREAM_TIMEOUT)
-                .followRedirects(HttpClient.Redirect.NEVER)
-                .build();
+        this.requestSender = new PinnedRequestSender();
+    }
+
+    AnalyticsQueryService(
+            DirectwerkConfig directwerkConfig,
+            TenantBrandingService tenantBrandingService,
+            ObjectMapper objectMapper,
+            RequestSender requestSender
+    ) {
+        this.directwerkConfig = directwerkConfig;
+        this.tenantBrandingService = tenantBrandingService;
+        this.objectMapper = objectMapper;
+        this.requestSender = requestSender;
     }
 
     public StatsView query(Long tenantId, AnalyticsRange range) {
@@ -74,14 +99,7 @@ public class AnalyticsQueryService {
         String apiBase = analytics.umamiApiBaseUrl().isBlank()
                 ? branding.getUmamiHostUrl()
                 : analytics.umamiApiBaseUrl();
-        if (!UmamiHostUrlValidator.isValid(apiBase)) {
-            throw new AnalyticsQueryException(
-                    "UMAMI_HOST_INVALID",
-                    HttpStatus.BAD_GATEWAY,
-                    "The configured Umami host is invalid."
-            );
-        }
-        String base = stripTrailingSlashes(apiBase);
+        String base = trustedBase(apiBase, analytics);
 
         long endAt = System.currentTimeMillis();
         long startAt = endAt - range.days() * 86_400_000L;
@@ -148,19 +166,17 @@ public class AnalyticsQueryService {
             );
         }
         CachedToken cached = this.cachedToken;
-        if (!forceRelogin && cached != null && Instant.now().isBefore(cached.expiresAt())) {
+        if (!forceRelogin
+                && cached != null
+                && cached.baseUrl().equals(base)
+                && Instant.now().isBefore(cached.expiresAt())) {
             return cached.token();
         }
-        String token = login(base, analytics);
-        if (token == null) {
+        if (forceRelogin) {
             this.cachedToken = null;
-            throw new AnalyticsQueryException(
-                    "UMAMI_UNAUTHORIZED",
-                    HttpStatus.BAD_GATEWAY,
-                    "Umami login failed."
-            );
         }
-        this.cachedToken = new CachedToken(token, Instant.now().plus(TOKEN_TTL));
+        String token = login(base, analytics);
+        this.cachedToken = new CachedToken(base, token, Instant.now().plus(TOKEN_TTL));
         return token;
     }
 
@@ -172,50 +188,42 @@ public class AnalyticsQueryService {
                     "password", analytics.umamiPassword()
             ));
         } catch (RuntimeException ex) {
-            return null;
+            throw invalidResponse();
         }
-        HttpRequest request = HttpRequest.newBuilder(URI.create(base + "/api/auth/login"))
-                .timeout(UPSTREAM_TIMEOUT)
-                .header("Content-Type", "application/json")
-                .header("Accept", "application/json")
-                .POST(HttpRequest.BodyPublishers.ofString(body))
-                .build();
-        try {
-            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-            if (response.statusCode() < 200 || response.statusCode() >= 300) {
-                return null;
-            }
-            JsonNode payload = objectMapper.readTree(response.body());
-            JsonNode token = payload.path("token");
-            return token.isString() && !token.asString().isBlank() ? token.asString() : null;
-        } catch (InterruptedException ex) {
-            Thread.currentThread().interrupt();
-            return null;
-        } catch (Exception ex) {
-            return null;
+        HttpResult response = send(URI.create(base + "/api/auth/login"), body, null);
+        if (isAuthFailure(response)) {
+            this.cachedToken = null;
+            throw new AnalyticsQueryException(
+                    "UMAMI_UNAUTHORIZED",
+                    HttpStatus.BAD_GATEWAY,
+                    "Umami rejected the configured credentials."
+            );
         }
+        if (!response.isSuccessful()) {
+            throw unavailable();
+        }
+        JsonNode payload = parseBody(response.body());
+        JsonNode token = payload.path("token");
+        if (!token.isString() || token.asString().isBlank()) {
+            throw invalidResponse();
+        }
+        return token.asString();
     }
 
     private HttpResult get(String url, String token) {
-        HttpRequest request = HttpRequest.newBuilder(URI.create(url))
-                .timeout(UPSTREAM_TIMEOUT)
-                .header("Accept", "application/json")
-                .header("Authorization", "Bearer " + token)
-                .GET()
-                .build();
+        return send(URI.create(url), null, token);
+    }
+
+    private HttpResult send(URI uri, String body, String token) {
         try {
-            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-            return new HttpResult(response.statusCode(), response.body());
-        } catch (HttpTimeoutException ex) {
+            return requestSender.send(uri, body, token);
+        } catch (InterruptedIOException ex) {
             throw new AnalyticsQueryException(
                     "UMAMI_TIMEOUT",
                     HttpStatus.GATEWAY_TIMEOUT,
                     "Umami request timed out."
             );
-        } catch (InterruptedException ex) {
-            Thread.currentThread().interrupt();
-            throw unavailable();
-        } catch (Exception ex) {
+        } catch (IOException | RuntimeException ex) {
             throw unavailable();
         }
     }
@@ -228,12 +236,64 @@ public class AnalyticsQueryService {
         try {
             return objectMapper.readTree(body);
         } catch (RuntimeException ex) {
-            throw new AnalyticsQueryException(
-                    "UMAMI_INVALID_RESPONSE",
-                    HttpStatus.BAD_GATEWAY,
-                    "Umami returned an invalid response."
-            );
+            throw invalidResponse();
         }
+    }
+
+    private static AnalyticsQueryException invalidResponse() {
+        return new AnalyticsQueryException(
+                "UMAMI_INVALID_RESPONSE",
+                HttpStatus.BAD_GATEWAY,
+                "Umami returned an invalid response."
+        );
+    }
+
+    private static String trustedBase(String apiBase, DirectwerkProperties.Analytics analytics) {
+        String normalized = UmamiHostUrlValidator.normalize(apiBase);
+        if (!UmamiHostUrlValidator.isValid(normalized)) {
+            throw invalidHost();
+        }
+        URI uri = URI.create(normalized);
+        if (!trustedOrigins(analytics).contains(origin(uri))
+                && !(effectivePort(uri) == 443 && analytics.umamiApiAllowedHosts().contains(
+                        uri.getHost().toLowerCase(Locale.ROOT)))) {
+            throw invalidHost();
+        }
+        try {
+            UmamiHostUrlValidator.resolvePublicAddresses(stripIpv6Brackets(uri.getHost()));
+        } catch (UnknownHostException | SecurityException ex) {
+            throw invalidHost();
+        }
+        return normalized;
+    }
+
+    private static Set<String> trustedOrigins(DirectwerkProperties.Analytics analytics) {
+        Set<String> origins = new HashSet<>();
+        addConfiguredOrigin(origins, analytics.umamiHostUrl());
+        addConfiguredOrigin(origins, analytics.umamiApiBaseUrl());
+        return origins;
+    }
+
+    private static void addConfiguredOrigin(Set<String> origins, String configuredUrl) {
+        if (UmamiHostUrlValidator.isValid(configuredUrl)) {
+            origins.add(origin(URI.create(UmamiHostUrlValidator.normalize(configuredUrl))));
+        }
+    }
+
+    private static String origin(URI uri) {
+        return "https://%s:%d".formatted(uri.getHost().toLowerCase(Locale.ROOT), effectivePort(uri));
+    }
+
+    private static int effectivePort(URI uri) {
+        return uri.getPort() == -1 ? 443 : uri.getPort();
+    }
+
+    private static AnalyticsQueryException invalidHost() {
+        return new AnalyticsQueryException(
+                "UMAMI_HOST_INVALID",
+                HttpStatus.BAD_GATEWAY,
+                "The configured Umami host is not an allowed public HTTPS destination."
+        );
     }
 
     private static boolean isStatsPayload(JsonNode stats) {
@@ -253,24 +313,88 @@ public class AnalyticsQueryService {
         return URLEncoder.encode(value, StandardCharsets.UTF_8);
     }
 
-    private static String stripTrailingSlashes(String value) {
-        String result = value;
-        while (result.endsWith("/")) {
-            result = result.substring(0, result.length() - 1);
+    private static String stripIpv6Brackets(String host) {
+        if (host.startsWith("[") && host.endsWith("]")) {
+            return host.substring(1, host.length() - 1);
         }
-        return result;
+        return host;
     }
 
     /** Umami summary + bucket series for one range. */
     public record StatsView(String range, long startAt, long endAt, JsonNode stats, JsonNode pageviews) {
     }
 
-    private record CachedToken(String token, Instant expiresAt) {
+    private record CachedToken(String baseUrl, String token, Instant expiresAt) {
     }
 
-    private record HttpResult(int status, String body) {
+    record HttpResult(int status, String body) {
         boolean isSuccessful() {
             return status >= 200 && status < 300;
+        }
+    }
+
+    @FunctionalInterface
+    interface RequestSender {
+        HttpResult send(URI uri, String body, String token) throws IOException;
+    }
+
+    /** Resolves once, rejects private destinations, and pins that result for the TLS connection. */
+    private static final class PinnedRequestSender implements RequestSender {
+
+        @Override
+        public HttpResult send(URI uri, String body, String token) throws IOException {
+            String expectedDnsHost = stripIpv6Brackets(uri.getHost());
+            InetAddress[] pinnedAddresses = UmamiHostUrlValidator.resolvePublicAddresses(expectedDnsHost);
+            DnsResolver pinnedResolver = new DnsResolver() {
+                @Override
+                public InetAddress[] resolve(String host) throws UnknownHostException {
+                    requireExpectedHost(host);
+                    return pinnedAddresses.clone();
+                }
+
+                @Override
+                public String resolveCanonicalHostname(String host) throws UnknownHostException {
+                    requireExpectedHost(host);
+                    return expectedDnsHost;
+                }
+
+                private void requireExpectedHost(String host) throws UnknownHostException {
+                    if (!expectedDnsHost.equalsIgnoreCase(stripIpv6Brackets(host))) {
+                        throw new UnknownHostException("Unexpected Umami host");
+                    }
+                }
+            };
+            var connectionManager = PoolingHttpClientConnectionManagerBuilder.create()
+                    .setDnsResolver(pinnedResolver)
+                    .setDefaultConnectionConfig(ConnectionConfig.custom()
+                            .setConnectTimeout(Timeout.ofMilliseconds(UPSTREAM_TIMEOUT.toMillis()))
+                            .build())
+                    .build();
+            try (CloseableHttpClient client = HttpClients.custom()
+                    .setConnectionManager(connectionManager)
+                    .disableAutomaticRetries()
+                    .disableRedirectHandling()
+                    .build()) {
+                HttpUriRequestBase request;
+                if (body == null) {
+                    request = new HttpGet(uri);
+                } else {
+                    HttpPost post = new HttpPost(uri);
+                    post.setEntity(new StringEntity(body, ContentType.APPLICATION_JSON));
+                    request = post;
+                }
+                request.setHeader("Accept", "application/json");
+                if (token != null) {
+                    request.setHeader("Authorization", "Bearer " + token);
+                }
+                request.setConfig(RequestConfig.custom()
+                        .setResponseTimeout(Timeout.ofMilliseconds(UPSTREAM_TIMEOUT.toMillis()))
+                        .build());
+                return client.execute(request, response -> new HttpResult(
+                        response.getCode(),
+                        response.getEntity() == null ? "" : EntityUtils.toString(response.getEntity())
+                ));
+            }
         }
     }
 }

@@ -13,7 +13,11 @@ import de.pnnit.directwerk.modules.newsletter.entity.NewsletterListStatus;
 import de.pnnit.directwerk.modules.newsletter.entity.NewsletterSubscription;
 import de.pnnit.directwerk.modules.newsletter.repository.ArticleRepository;
 import de.pnnit.directwerk.modules.newsletter.repository.NewsletterSubscriptionRepository;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
+import java.util.HexFormat;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -119,9 +123,16 @@ public class NewsletterNotificationService implements NewsletterNotificationApi 
     }
 
     private static String correlationId(Long articleId, String email) {
+        String emailDigest;
+        try {
+            byte[] normalizedEmail = email.toLowerCase(Locale.ROOT).getBytes(StandardCharsets.UTF_8);
+            emailDigest = HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(normalizedEmail));
+        } catch (NoSuchAlgorithmException ex) {
+            throw new IllegalStateException("SHA-256 is not available", ex);
+        }
         return "content-notify-article-%d-email-%s".formatted(
                 articleId,
-                Integer.toHexString(email.toLowerCase(Locale.ROOT).hashCode())
+                emailDigest
         );
     }
 

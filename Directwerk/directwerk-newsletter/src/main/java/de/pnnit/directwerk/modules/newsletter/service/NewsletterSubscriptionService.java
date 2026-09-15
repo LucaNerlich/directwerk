@@ -82,8 +82,17 @@ public class NewsletterSubscriptionService {
         NewsletterSubscription subscription = subscriptionRepository
                 .findByConfirmTokenHash(TokenHashUtil.sha256Hex(rawToken.trim()))
                 .orElseThrow(() -> new NewsletterSubscriptionNotFoundException("Invalid confirm token"));
-        if (subscription.getConfirmTokenExpiresAt() == null
-                || subscription.getConfirmTokenExpiresAt().isBefore(Instant.now())) {
+        Instant expiresAt = subscription.getConfirmTokenExpiresAt();
+        if (expiresAt == null) {
+            Instant issuedAt = subscription.getUpdatedAt() != null
+                    ? subscription.getUpdatedAt()
+                    : subscription.getCreatedAt();
+            if (issuedAt != null) {
+                expiresAt = issuedAt.plus(CONFIRM_TOKEN_TTL);
+                subscription.setConfirmTokenExpiresAt(expiresAt);
+            }
+        }
+        if (expiresAt == null || expiresAt.isBefore(Instant.now())) {
             throw new NewsletterSubscriptionNotFoundException("Confirm token expired");
         }
         subscription.setStatus(NewsletterSubscriptionStatus.ACTIVE);

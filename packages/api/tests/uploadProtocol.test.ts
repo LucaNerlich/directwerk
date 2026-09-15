@@ -94,6 +94,19 @@ describe('parseBrowserUploadHeaders', () => {
         ).toMatchObject({ok: false, status: 400, error: 'Invalid episodeId.'})
     })
 
+    it('distinguishes empty, malformed, and unsupported Content-Length values', () => {
+        const base = {'x-filename': encodeURIComponent('a.txt')}
+
+        expect(parseBrowserUploadHeaders(headers({...base, 'content-length': '00'})))
+            .toMatchObject({ok: false, status: 400, error: 'File must not be empty.'})
+        expect(parseBrowserUploadHeaders(headers({...base, 'content-length': '0'.repeat(20)})))
+            .toMatchObject({ok: false, status: 400, error: 'File must not be empty.'})
+        expect(parseBrowserUploadHeaders(headers({...base, 'content-length': '1e3'})))
+            .toMatchObject({ok: false, status: 411, error: 'A valid Content-Length is required.'})
+        expect(parseBrowserUploadHeaders(headers({...base, 'content-length': '9007199254740992'})))
+            .toMatchObject({ok: false, status: 400, error: 'File size exceeds the supported limit.'})
+    })
+
     it('carries valid optional ids through to the upload-url body', () => {
         const result = parseBrowserUploadHeaders(
             headers({

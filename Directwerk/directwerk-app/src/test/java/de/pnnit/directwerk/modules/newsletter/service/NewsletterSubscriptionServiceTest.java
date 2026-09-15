@@ -105,6 +105,35 @@ class NewsletterSubscriptionServiceTest {
     }
 
     @Test
+    void confirmBackfillsLegacyExpiryFromLastTokenIssueUpdate() {
+        NewsletterSubscription pending = new NewsletterSubscription();
+        pending.setStatus(NewsletterSubscriptionStatus.PENDING);
+        pending.setConfirmTokenHash(TokenHashUtil.sha256Hex("legacy-confirm"));
+        pending.setUpdatedAt(Instant.now().minus(Duration.ofDays(1)));
+        when(subscriptionRepository.findByConfirmTokenHash(TokenHashUtil.sha256Hex("legacy-confirm")))
+                .thenReturn(Optional.of(pending));
+
+        NewsletterSubscription confirmed = service.confirm("legacy-confirm");
+
+        assertThat(confirmed.getStatus()).isEqualTo(NewsletterSubscriptionStatus.ACTIVE);
+        assertThat(confirmed.getConfirmTokenHash()).isNull();
+    }
+
+    @Test
+    void confirmRejectsExpiredLegacyToken() {
+        NewsletterSubscription pending = new NewsletterSubscription();
+        pending.setStatus(NewsletterSubscriptionStatus.PENDING);
+        pending.setConfirmTokenHash(TokenHashUtil.sha256Hex("legacy-confirm"));
+        pending.setUpdatedAt(Instant.now().minus(Duration.ofDays(8)));
+        when(subscriptionRepository.findByConfirmTokenHash(TokenHashUtil.sha256Hex("legacy-confirm")))
+                .thenReturn(Optional.of(pending));
+
+        assertThatThrownBy(() -> service.confirm("legacy-confirm"))
+                .isInstanceOf(NewsletterSubscriptionNotFoundException.class);
+        assertThat(pending.getStatus()).isEqualTo(NewsletterSubscriptionStatus.PENDING);
+    }
+
+    @Test
     void unsubscribeRemovesAddressFromEveryListInTenant() {
         NewsletterSubscription primary = subscriptionOn("ada@example.com");
         NewsletterSubscription other = subscriptionOn("ada@example.com");

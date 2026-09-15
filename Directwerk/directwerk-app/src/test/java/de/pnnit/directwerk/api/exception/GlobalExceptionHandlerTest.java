@@ -2,6 +2,7 @@ package de.pnnit.directwerk.api.exception;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import de.pnnit.directwerk.analytics.AnalyticsQueryException;
 import de.pnnit.directwerk.modules.core.exception.ContentAccessDeniedException;
 import de.pnnit.directwerk.modules.core.service.CannotDeactivateLastAdminException;
 import de.pnnit.directwerk.modules.core.service.CannotDeactivateSelfException;
@@ -104,6 +105,19 @@ class GlobalExceptionHandlerTest {
         var response = handler.handleUnexpected(new NullPointerException("boom"));
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR);
         assertThat(response.getBody().errors().getFirst().code()).isEqualTo("INTERNAL_ERROR");
+    }
+
+    @Test
+    void analyticsErrorsNeverExposeInternalExceptionMessages() {
+        var response = handler.handleAnalyticsQuery(new AnalyticsQueryException(
+                "UMAMI_CREDENTIALS_MISSING",
+                HttpStatus.SERVICE_UNAVAILABLE,
+                "Set SECRET_INTERNAL_ENV and password=oops"
+        ));
+
+        assertThat(response.getBody().errors().getFirst().message())
+                .isEqualTo("The analytics service is not configured.")
+                .doesNotContain("SECRET_INTERNAL_ENV", "oops");
     }
 
     @Test
