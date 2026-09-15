@@ -372,6 +372,45 @@ Domain glossary and deepening modules for AI navigation. Terms here name **seams
 **Interface:** One body/query/limit table; each route declares its row (limits, empty-body tolerance, HEAD support).
 **Seam:** Tenant and platform handlers share trust assumptions (never trust `Content-Length`); per-app factories delegate.
 
+## Wave 9 deepened modules (architecture review 2026-09-15)
+
+### 69. Newsletter delivery (`NewsletterNotificationApi` + `NewsletterNotificationService`)
+
+**Interface:** `notifyArticlePublished(ContentPublishedEvent)` — recipient resolution, unsubscribe scope, unsubscribe URL and enqueue all behind one seam.
+**Seam:** `ContentNotifyJobHandler` delegates the article branch; the newsletter module owns delivery, not just an audience list.
+**Correctness:** unsubscribe removes the address from every list in the tenant; confirm tokens expire (`confirm_token_expires_at`, V72).
+
+### 70. Default feed provisioning (`DefaultFeedProvisioningService` + `DefaultFeedStore`)
+
+**Interface:** `provisionDefaultFeed`, `provisionMissingDefaultFeeds(feedModuleKey, store)`.
+**Seam:** podcast and article provisioning services are thin adapters supplying the module key + row store.
+
+### 71. Feed refresh producer (`FeedRefreshJobProducerSupport`)
+
+**Interface:** enqueue-after-commit + entitlement-change + stale-snapshot handling.
+**Seam:** podcast/article producers supply only queue name + payload factory.
+
+### 72. Bulk publication (`BulkPublication`)
+
+**Interface:** `distinctIds`, `apply(ids, op)` — one batch rule (request order, deduped).
+**Seam:** the four bulk service methods use it; Studio speaks one settled result shape.
+
+### 73. Analytics query (`AnalyticsQueryService` + `AnalyticsRange`)
+
+**Interface:** `query(tenantId, range)` → `StatsView`; `GET /api/v1/tenant/analytics/stats/{range}`.
+**Seam:** Umami login, token cache, host/website validation and range table live in the API; Studio reads via the tenant proxy.
+**Config:** `DIRECTWERK_ANALYTICS_UMAMI_{API_BASE_URL,USERNAME,PASSWORD}`.
+
+### 74. Media upload contract (`packages/api/src/media/uploadProtocol.ts` + `readiness.ts`)
+
+**Interface:** `parseBrowserUploadHeaders`, `buildUploadUrlBody`, `inferAssetType`; `isPubliclyRenderable`, `isReadyAsset`.
+**Seam:** browser client and studio BFF route share the header contract; admin shares inference; studio pickers share readiness.
+
+### 75. Web query seam adoption (`useAuthedQuery` + `enabled`/`mapError`/`setData`)
+
+**Interface:** shared fetch/loading/cancel/auth-redirect/error mapping.
+**Seam:** `useSubscriberFeeds` and `useArticleFeeds` are thin adapters.
+
 ## Migration order
 
 1. Transport policies (#3)  
