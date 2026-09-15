@@ -19,6 +19,8 @@
         "./validation/adminModules": "./src/validation/adminModules.ts",
         "./format": "./src/format/money.ts",
         "./media/browserUpload": "./src/media/browserUpload.ts",
+        "./media/uploadProtocol": "./src/media/uploadProtocol.ts",
+        "./media/readiness": "./src/media/readiness.ts",
         "./content/sanitizeContentHtml": "./src/content/sanitizeContentHtml.ts",
         "./proxy": "./src/proxy/index.ts",
         "./proxy/*": "./src/proxy/*.ts",

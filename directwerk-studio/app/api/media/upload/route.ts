@@ -1,5 +1,6 @@
 import {parseJsonText} from '@directwerk/api/validation/json'
 import {parseUploadUrlResponse} from '@directwerk/api/validation/catalog'
+import {buildUploadUrlBody, parseBrowserUploadHeaders} from '@directwerk/api/media/uploadProtocol'
 
 import {readBearerToken} from '@directwerk/api/proxy'
 import {jsonError, toClientResponse} from '@directwerk/api/proxy'
@@ -12,21 +13,6 @@ import {parseTenantHost} from '@directwerk/api/proxy'
 // absolute ceiling still bounds worst-case resource usage.
 const STORAGE_PUT_IDLE_TIMEOUT_MS = 60_000
 const STORAGE_PUT_ABSOLUTE_TIMEOUT_MS = 30 * 60_000
-const ASSET_TYPES = new Set(['AUDIO', 'IMAGE', 'VIDEO', 'DOCUMENT'])
-const ASSET_VISIBILITIES = new Set(['PUBLIC', 'PRIVATE'])
-
-function inferAssetType(mimeType: string): string {
-    if (mimeType.startsWith('image/')) {
-        return 'IMAGE'
-    }
-    if (mimeType.startsWith('audio/')) {
-        return 'AUDIO'
-    }
-    if (mimeType.startsWith('video/')) {
-        return 'VIDEO'
-    }
-    return 'DOCUMENT'
-}
 
 function isAllowedUploadUrl(value: string): boolean {
     try {
@@ -60,33 +46,6 @@ function isTimeoutError(error: unknown): boolean {
         error instanceof Error &&
         (error.name === 'TimeoutError' || error.name === 'AbortError')
     )
-}
-
-function parseFilename(value: string | null): string | null {
-    if (value === null || value.length === 0 || value.length > 1024) {
-        return null
-    }
-    try {
-        const decoded = decodeURIComponent(value)
-        // eslint-disable-next-line no-control-regex
-        if (decoded.length === 0 || decoded.length > 255 || /[\u0000-\u001f\u007f]/.test(decoded)) {
-            return null
-        }
-        return decoded
-    } catch {
-        return null
-    }
-}
-
-function parseSizeBytes(value: string | null): number | null {
-    if (value === null) {
-        return null
-    }
-    const parsed = Number(value)
-    if (!Number.isSafeInteger(parsed) || parsed <= 0) {
-        return null
-    }
-    return parsed
 }
 
 /**
@@ -136,67 +95,13 @@ export async function POST(request: Request): Promise<Response> {
         return jsonError('Expected a request body.', 400)
     }
 
-    const filename = parseFilename(request.headers.get('x-filename'))
-    if (filename === null) {
-        return jsonError('A valid filename is required.', 400)
+    // Shared with the browser client in @directwerk/api/media/uploadProtocol.
+    const parsedUpload = parseBrowserUploadHeaders(request.headers)
+    if (!parsedUpload.ok) {
+        return jsonError(parsedUpload.error, parsedUpload.status)
     }
-
-    const contentLengthHeader = request.headers.get('content-length')
-    if (contentLengthHeader === '0') {
-        return jsonError('File must not be empty.', 400)
-    }
-    const sizeBytes = parseSizeBytes(contentLengthHeader)
-    if (sizeBytes === null) {
-        return jsonError('A valid Content-Length is required.', 411)
-    }
-
-    const mimeType =
-        (request.headers.get('content-type') ?? '')
-            .split(';')[0]
-            .trim()
-            .toLowerCase() || 'application/octet-stream'
-
-    const assetTypeRaw = (request.headers.get('x-asset-type') ?? '').trim()
-    const assetType = assetTypeRaw || inferAssetType(mimeType)
-    if (!ASSET_TYPES.has(assetType)) {
-        return jsonError('Choose a valid asset type.', 400)
-    }
-
-    const visibilityRaw = String(request.headers.get('x-visibility') ?? 'PRIVATE').trim()
-    if (!ASSET_VISIBILITIES.has(visibilityRaw)) {
-        return jsonError('Choose a valid visibility.', 400)
-    }
-
-    const episodeIdRaw = (request.headers.get('x-episode-id') ?? '').trim()
-    let episodeId: number | undefined
-    if (episodeIdRaw.length > 0) {
-        const parsed = Number(episodeIdRaw)
-        if (!Number.isSafeInteger(parsed) || parsed < 1) {
-            return jsonError('Invalid episodeId.', 400)
-        }
-        episodeId = parsed
-    }
-
-    const folderIdRaw = (request.headers.get('x-folder-id') ?? '').trim()
-    let folderId: number | undefined
-    if (folderIdRaw.length > 0) {
-        const parsed = Number(folderIdRaw)
-        if (!Number.isSafeInteger(parsed) || parsed < 1) {
-            return jsonError('Invalid folderId.', 400)
-        }
-        folderId = parsed
-    }
-
-    const uploadUrlBody = {
-        filename,
-        mimeType,
-        sizeBytes,
-        assetType,
-        intendedVisibility: visibilityRaw,
-        scope: visibilityRaw === 'PUBLIC' ? 'TENANT_PUBLIC' : 'CONTENT',
-        ...(episodeId === undefined ? {} : {episodeId}),
-        ...(folderId === undefined ? {} : {folderId}),
-    }
+    const {mimeType, sizeBytes} = parsedUpload.value
+    const uploadUrlBody = buildUploadUrlBody(parsedUpload.value)
 
     try {
         const uploadUrlUpstream = await directwerkFetch({

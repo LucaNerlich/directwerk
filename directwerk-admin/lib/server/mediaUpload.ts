@@ -4,6 +4,7 @@ import {safeUpstreamResponse} from '@directwerk/api/server'
 import type {MediaAsset} from '@directwerk/api/types'
 import {ASSET_TYPES, ASSET_VISIBILITIES} from '@directwerk/api/types'
 import {parseMediaAssetEnvelope, parseUploadUrlResponse} from '@directwerk/api/validation/catalog'
+import {inferAssetType} from '@directwerk/api/media/uploadProtocol'
 import {isRecord} from '@directwerk/api/validation/primitives'
 
 import {createConfiguredPlatformApiRequest} from '@/lib/server/api'
@@ -215,9 +216,4 @@ export async function performTenantMediaUpload(
     }
 }
 
-function inferAssetType(mimeType: string): string {
-    if (mimeType.startsWith('image/')) return 'IMAGE'
-    if (mimeType.startsWith('audio/')) return 'AUDIO'
-    if (mimeType.startsWith('video/')) return 'VIDEO'
-    return 'DOCUMENT'
-}
+
