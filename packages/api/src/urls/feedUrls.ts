@@ -8,16 +8,7 @@
 
 import type {PublicSiteConfig} from '../types'
 import {isAllowedFeedUrl} from '../validation/primitives'
-
-const LOOPBACK_HOSTS = new Set(['localhost', '127.0.0.1', '[::1]'])
-
-function isLoopbackHostname(hostname: string): boolean {
-    const normalized = hostname.trim().toLowerCase()
-    if (LOOPBACK_HOSTS.has(normalized)) {
-        return true
-    }
-    return normalized.endsWith('.localhost')
-}
+import {isLoopbackHostname} from './urlPolicy'
 
 const HOSTNAME_PATTERN = /^[A-Za-z0-9](?:[A-Za-z0-9.-]*[A-Za-z0-9])?$/
 
@@ -57,7 +48,9 @@ export function publicFeedOrigin(hostname: string, apiPort = 8080): string {
         throw new Error('Invalid feed origin host')
     }
     const parsedHostname = parsed.hostname.toLowerCase()
-    const loopback = isLoopbackHostname(parsedHostname)
+    const loopback = isLoopbackHostname(parsedHostname, {
+        allowLocalhostSubdomains: true,
+    })
     if (!loopback && !HOSTNAME_PATTERN.test(parsedHostname)) {
         throw new Error('Invalid feed origin host')
     }

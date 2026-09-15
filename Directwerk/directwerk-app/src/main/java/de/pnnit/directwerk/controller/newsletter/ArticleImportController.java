@@ -4,6 +4,7 @@ import de.pnnit.directwerk.api.MediaAssetViewMapper;
 import de.pnnit.directwerk.api.dto.MediaAssetView;
 import de.pnnit.directwerk.api.response.Response;
 import de.pnnit.directwerk.controller.newsletter.ArticleController.ArticleView;
+import de.pnnit.directwerk.controller.support.ImportControllerSupport;
 import de.pnnit.directwerk.job.ArticleRssBulkImportPayload;
 import de.pnnit.directwerk.modules.core.RequiresModule;
 import de.pnnit.directwerk.modules.core.service.UserAccountService;
@@ -19,7 +20,6 @@ import de.pnnit.directwerk.modules.newsletter.service.ArticleImportService;
 import de.pnnit.directwerk.modules.queue.JobEnqueueMetadata;
 import de.pnnit.directwerk.modules.queue.QueueNames;
 import de.pnnit.directwerk.modules.queue.QueueService;
-import de.pnnit.directwerk.multitenancy.TenantContext;
 import de.pnnit.directwerk.security.DirectwerkUserPrincipal;
 import de.pnnit.directwerk.security.SecurityUtils;
 import jakarta.validation.Valid;
@@ -28,11 +28,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.time.Instant;
-import java.util.HexFormat;
 import java.util.List;
 import java.util.Set;
 import org.springframework.http.HttpStatus;
@@ -110,10 +106,7 @@ public class ArticleImportController {
     ResponseEntity<Response<MediaAssetView>> getIngestAsset(@PathVariable @Min(1) Long assetId) {
         MediaAsset asset = mediaAssetQueryApi.findById(assetId)
                 .orElseThrow(() -> new MediaAssetNotFoundException(assetId));
-        Long tenantId = TenantContext.requireTenantId();
-        if (asset.getTenant() == null || !tenantId.equals(asset.getTenant().getId())) {
-            throw new MediaAssetNotFoundException(assetId);
-        }
+        ImportControllerSupport.requireTenantOwned(asset, assetId);
         return ResponseEntity.ok(Response.ok(mediaAssetViewMapper.toView(asset)));
     }
 
@@ -192,7 +185,8 @@ public class ArticleImportController {
                 null,
                 new JobEnqueueMetadata(
                         tenantId,
-                        "article-rss-bulk-import-" + tenantId + "-" + feedHash(preview.feedUrl()),
+                        "article-rss-bulk-import-" + tenantId + "-"
+                                + ImportControllerSupport.feedHash(preview.feedUrl()),
                         null
                 )
         );
@@ -202,16 +196,6 @@ public class ArticleImportController {
                 (int) alreadyImported,
                 account.email()
         )));
-    }
-
-    private static String feedHash(String feedUrl) {
-        try {
-            byte[] digest = MessageDigest.getInstance("SHA-256")
-                    .digest(feedUrl.getBytes(StandardCharsets.UTF_8));
-            return HexFormat.of().formatHex(digest).substring(0, 16);
-        } catch (NoSuchAlgorithmException ex) {
-            throw new IllegalStateException("SHA-256 unavailable", ex);
-        }
     }
 
     private static PreviewView toPreviewView(ArticleImportService.Preview preview) {

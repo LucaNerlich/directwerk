@@ -1,7 +1,6 @@
 'use client'
 
-import {useRouter} from 'next/navigation'
-import {use, useEffect, useState} from 'react'
+import {use, useState} from 'react'
 
 import {Alert, AlertDescription, AlertTitle} from '@directwerk/ui/components/alert'
 import {Badge} from '@directwerk/ui/components/badge'
@@ -13,7 +12,7 @@ import PageStack from '@directwerk/ui/components/page-stack'
 import AdminBreadcrumbs from '@/components/AdminBreadcrumbs'
 import {AdminLoadingText, FormSkeleton} from '@/components/AdminLoading'
 import {getPlatformData, postPlatformData} from '@/lib/api/client'
-import {AUTH_REQUIRED} from '@directwerk/api/constants'
+import {usePlatformQuery} from '@/lib/api/usePlatformQuery'
 import type {QueueJob} from '@directwerk/api/types'
 
 interface JobPageProps {
@@ -45,57 +44,23 @@ const ADMIN_WORKER = 'platform-admin-ui'
 
 export default function JobPage({params}: JobPageProps) {
     const {id} = use(params)
-    const router = useRouter()
-    const [job, setJob] = useState<QueueJob | null>(null)
-    const [error, setError] = useState<string | null>(null)
-    const [isInitialLoad, setIsInitialLoad] = useState(true)
+    const isValidId = UUID_PATTERN.test(id)
     const [actionBusy, setActionBusy] = useState(false)
     const [actionMessage, setActionMessage] = useState<string | null>(null)
-    const [reloadKey, setReloadKey] = useState(0)
 
-    useEffect(() => {
-        if (!UUID_PATTERN.test(id)) {
-            setError('Invalid job identifier.')
-            setJob(null)
-            setIsInitialLoad(false)
-            return
-        }
+    const {
+        data: job,
+        error: queryError,
+        isLoading,
+        reload: reloadJob,
+        setData: setJob,
+    } = usePlatformQuery(() => getPlatformData<QueueJob>(`queue/jobs/${id}`), {
+        fallbackError: 'Could not load job details.',
+        enabled: isValidId,
+        queryKey: `job:${id}`,
+    })
 
-        setJob(null)
-        setError(null)
-        setIsInitialLoad(true)
-
-        let isCurrent = true
-
-        getPlatformData<QueueJob>(`queue/jobs/${id}`)
-            .then((result) => {
-                if (isCurrent) {
-                    setJob(result)
-                    setIsInitialLoad(false)
-                }
-            })
-            .catch((requestError: unknown) => {
-                if (!isCurrent) {
-                    return
-                }
-
-                if (
-                    requestError instanceof Error &&
-                    requestError.message === AUTH_REQUIRED
-                ) {
-                    router.replace('/login')
-                    return
-                }
-
-                setJob(null)
-                setError('Could not load job details.')
-                setIsInitialLoad(false)
-            })
-
-        return () => {
-            isCurrent = false
-        }
-    }, [id, router, reloadKey])
+    const error = isValidId ? queryError : 'Invalid job identifier.'
 
     async function handleComplete(): Promise<void> {
         if (job === null) {
@@ -170,20 +135,20 @@ export default function JobPage({params}: JobPageProps) {
                     <>
                         <Alert variant="destructive"><AlertDescription>{error}</AlertDescription></Alert>
                         <div>
-                            <Button onClick={() => setReloadKey((value) => value + 1)} type="button" variant="outline">
+                            <Button onClick={() => reloadJob()} type="button" variant="outline">
                                 Retry
                             </Button>
                         </div>
                     </>
                 ) : null}
-                {!error && isInitialLoad ? (
+                {!error && isLoading ? (
                     <>
                         <FormSkeleton />
                         <AdminLoadingText text="Loading job details…" />
                     </>
                 ) : null}
 
-                {job ? (
+                {!error && !isLoading && job ? (
                     <>
                         <PageHeader
                             actions={<Badge variant="outline">{job.status}</Badge>}

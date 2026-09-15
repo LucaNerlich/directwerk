@@ -1,8 +1,5 @@
 'use client'
 
-import {useRouter} from 'next/navigation'
-import {useCallback, useEffect, useState} from 'react'
-
 import {Alert, AlertDescription} from '@directwerk/ui/components/alert'
 import EmptyState from '@directwerk/ui/components/empty-state'
 import {EntityListSection} from '@directwerk/ui/components/entity-list-section'
@@ -15,39 +12,16 @@ import InvitePlatformAdminForm from '@/components/InvitePlatformAdminForm'
 import {AdminLoadingText, TableSkeleton} from '@/components/AdminLoading'
 import RevokeAdminButton from '@/components/RevokeAdminButton'
 import {getPlatformData} from '@/lib/api/client'
-import {AUTH_REQUIRED} from '@directwerk/api/constants'
+import {usePlatformQuery} from '@/lib/api/usePlatformQuery'
 import type {PlatformAdmin} from '@directwerk/api/types'
 import {Button} from '@directwerk/ui/components/button'
 
 export default function PlatformAdminsPage() {
-    const router = useRouter()
-    const [admins, setAdmins] = useState<PlatformAdmin[] | null>(null)
-    const [error, setError] = useState<string | null>(null)
+    const {data: admins, error, reload: loadAdmins} = usePlatformQuery(
+        () => getPlatformData<PlatformAdmin[]>('admins'),
+        {fallbackError: 'Could not load platform admins.'},
+    )
     const {viewMode, setViewMode} = useListViewMode()
-
-    const loadAdmins = useCallback(() => {
-        setError(null)
-
-        getPlatformData<PlatformAdmin[]>('admins')
-            .then((result) => {
-                setAdmins(result)
-            })
-            .catch((requestError: unknown) => {
-                if (
-                    requestError instanceof Error &&
-                    requestError.message === AUTH_REQUIRED
-                ) {
-                    router.replace('/login')
-                    return
-                }
-
-                setError('Could not load platform admins.')
-            })
-    }, [router])
-
-    useEffect(() => {
-        loadAdmins()
-    }, [loadAdmins])
 
     const adminItems: EntityListViewItem[] =
         admins?.map((admin) => {

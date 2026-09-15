@@ -1,8 +1,6 @@
 'use client'
 
 import Link from 'next/link'
-import {useRouter} from 'next/navigation'
-import {useCallback, useEffect, useState} from 'react'
 
 import {Alert, AlertDescription} from '@directwerk/ui/components/alert'
 import {Button} from '@directwerk/ui/components/button'
@@ -26,60 +24,39 @@ import {AdminLoadingText, StatCardsSkeleton, TableSkeleton} from '@/components/A
 import RecentAuditTable from '@/components/RecentAuditTable'
 import TenantListTable from '@/components/TenantListTable'
 import {getPlatformData, getPlatformJobList, getPlatformOverview} from '@/lib/api/client'
-import {AUTH_REQUIRED} from '@directwerk/api/constants'
+import {usePlatformQuery} from '@/lib/api/usePlatformQuery'
 import type {PlatformOverview, TenantList} from '@directwerk/api/types'
 
+interface OverviewData {
+    overview: PlatformOverview
+    tenants: TenantList['content']
+    adminCount: number
+    jobCount: number
+}
+
 export default function HomePage(): React.JSX.Element {
-    const router = useRouter()
-    const [overview, setOverview] = useState<PlatformOverview | null>(null)
-    const [tenants, setTenants] = useState<TenantList['content'] | null>(null)
-    const [adminCount, setAdminCount] = useState<number | null>(null)
-    const [jobCount, setJobCount] = useState<number | null>(null)
-    const [error, setError] = useState<string | null>(null)
-    const [reloadKey, setReloadKey] = useState(0)
+    const {data, error, reload: reloadTenants} = usePlatformQuery<OverviewData>(
+        async () => {
+            const [overviewResult, tenantResult, admins, jobs] = await Promise.all([
+                getPlatformOverview(8),
+                getPlatformData<TenantList>('tenants'),
+                getPlatformData<Array<{userId: number}>>('admins'),
+                getPlatformJobList({limit: 1, offset: 0}),
+            ])
+            return {
+                overview: overviewResult,
+                tenants: tenantResult.content ?? [],
+                adminCount: admins.length,
+                jobCount: jobs.total,
+            }
+        },
+        {fallbackError: 'Could not load platform overview.'},
+    )
 
-    const reloadTenants = useCallback(() => {
-        setReloadKey((value) => value + 1)
-    }, [])
-
-    useEffect(() => {
-        let active = true
-
-        Promise.all([
-            getPlatformOverview(8),
-            getPlatformData<TenantList>('tenants'),
-            getPlatformData<Array<{userId: number}>>('admins'),
-            getPlatformJobList({limit: 1, offset: 0}),
-        ])
-            .then(([overviewResult, tenantResult, admins, jobs]) => {
-                if (active) {
-                    setOverview(overviewResult)
-                    setTenants(tenantResult.content ?? [])
-                    setAdminCount(admins.length)
-                    setJobCount(jobs.total)
-                    setError(null)
-                }
-            })
-            .catch((requestError: unknown) => {
-                if (!active) {
-                    return
-                }
-
-                if (
-                    requestError instanceof Error &&
-                    requestError.message === AUTH_REQUIRED
-                ) {
-                    router.replace('/login')
-                    return
-                }
-
-                setError('Could not load platform overview.')
-            })
-
-        return () => {
-            active = false
-        }
-    }, [router, reloadKey])
+    const overview = data?.overview ?? null
+    const tenants = data?.tenants ?? null
+    const adminCount = data?.adminCount ?? null
+    const jobCount = data?.jobCount ?? null
 
     return (
         <PageStack>

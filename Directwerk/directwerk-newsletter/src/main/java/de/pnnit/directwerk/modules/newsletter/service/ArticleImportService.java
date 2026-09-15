@@ -1,16 +1,13 @@
 package de.pnnit.directwerk.modules.newsletter.service;
 
 import de.pnnit.directwerk.modules.core.RequiresModule;
-import de.pnnit.directwerk.modules.core.util.SlugNormalizer;
 import de.pnnit.directwerk.modules.digital.api.RemoteAssetIngestApi;
 import de.pnnit.directwerk.modules.digital.entity.AccessPolicy;
 import de.pnnit.directwerk.modules.digital.entity.AssetType;
 import de.pnnit.directwerk.modules.digital.entity.AssetVisibility;
 import de.pnnit.directwerk.modules.digital.entity.MediaAsset;
-import de.pnnit.directwerk.modules.digital.exception.UploadValidationException;
+import de.pnnit.directwerk.modules.digital.importing.FeedImportSupport;
 import de.pnnit.directwerk.modules.digital.net.RemoteContentClient;
-import de.pnnit.directwerk.modules.digital.net.RemoteUrlValidator;
-import de.pnnit.directwerk.modules.digital.service.MediaUploadRules;
 import de.pnnit.directwerk.modules.digital.service.PublicCdnUrlResolver;
 import de.pnnit.directwerk.modules.newsletter.ArticlesModule;
 import de.pnnit.directwerk.modules.newsletter.entity.Article;
@@ -20,24 +17,14 @@ import de.pnnit.directwerk.modules.newsletter.importrss.ImportSlugSuggester;
 import de.pnnit.directwerk.modules.newsletter.importrss.ParsedArticleRssFeed;
 import de.pnnit.directwerk.modules.newsletter.repository.ArticleRepository;
 import de.pnnit.directwerk.multitenancy.TenantContext;
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.net.URI;
-import java.net.URISyntaxException;
 import java.net.URL;
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HexFormat;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -54,8 +41,11 @@ import org.springframework.transaction.annotation.Transactional;
 @Slf4j
 public class ArticleImportService {
 
-    private static final int MAX_FEED_BYTES = 5 * 1024 * 1024;
     private static final Duration FEED_TIMEOUT = Duration.ofSeconds(30);
+    private static final FeedImportSupport.ImportErrorFactory RSS_IMPORT_ERRORS =
+            (status, code, message, cause) -> cause == null
+                    ? new ArticleRssImportException(status, code, message)
+                    : new ArticleRssImportException(status, code, message, cause);
     // ponytail: hard cap; raise if real feeds need more
     private static final int MAX_INLINE_IMAGES = 25;
     private static final Pattern IMG_SRC = Pattern.compile(
@@ -293,145 +283,53 @@ public class ArticleImportService {
     }
 
     private void discardIngestedAssets(List<Long> assetIds) {
-        for (int i = assetIds.size() - 1; i >= 0; i--) {
-            Long assetId = assetIds.get(i);
-            try {
-                remoteAssetIngestApi.discard(assetId);
-            } catch (RuntimeException cleanupFailure) {
-                log.warn("Failed to discard unreferenced article RSS import asset {}", assetId, cleanupFailure);
-            }
-        }
+        FeedImportSupport.discardIngestedAssets(
+                assetIds,
+                remoteAssetIngestApi::discard,
+                log,
+                "unreferenced article RSS import asset"
+        );
     }
 
     private ParsedArticleRssFeed fetchAndParse(String feedUrl) {
-        URI uri = RemoteUrlValidator.requirePublicHttpUrl(feedUrl);
-        try (RemoteContentClient.RemoteResponse remote = remoteContentClient.get(uri, FEED_TIMEOUT)) {
-            if (remote.statusCode() < 200 || remote.statusCode() >= 300) {
-                throw new ArticleRssImportException(
-                        400,
-                        "RSS_FEED_UNREACHABLE",
-                        "RSS feed returned HTTP " + remote.statusCode()
-                );
-            }
-            byte[] xml = readBounded(remote.body(), MAX_FEED_BYTES);
-            return articleRssFeedParser.parse(remote.finalUri().toString(), new ByteArrayInputStream(xml));
-        } catch (UploadValidationException ex) {
-            throw new ArticleRssImportException(400, ex.getCode(), ex.getMessage(), ex);
-        } catch (ArticleRssImportException ex) {
-            throw ex;
-        } catch (IOException | InterruptedException ex) {
-            if (ex instanceof InterruptedException) {
-                Thread.currentThread().interrupt();
-            }
-            throw new ArticleRssImportException(400, "RSS_FEED_UNREACHABLE", "RSS feed could not be downloaded", ex);
-        }
+        return FeedImportSupport.fetchAndParse(
+                remoteContentClient,
+                feedUrl,
+                FEED_TIMEOUT,
+                FeedImportSupport.MAX_FEED_BYTES,
+                RSS_IMPORT_ERRORS,
+                articleRssFeedParser::parse
+        );
     }
 
     private String uniqueSlug(Long tenantId, String requested, String title) {
-        String base;
-        if (requested == null || requested.isBlank()) {
-            base = ImportSlugSuggester.suggest(title);
-        } else {
-            try {
-                base = SlugNormalizer.normalize(requested);
-            } catch (IllegalArgumentException invalid) {
-                base = ImportSlugSuggester.suggest(requested);
-            }
-        }
-        for (int attempt = 1; attempt <= 50; attempt++) {
-            String candidate = ImportSlugSuggester.withSuffix(base, attempt);
-            if (!articleRepository.existsByTenantIdAndSlug(tenantId, candidate)) {
-                return candidate;
-            }
-        }
-        throw new ArticleRssImportException(409, "ARTICLE_SLUG_EXISTS", "Could not allocate a unique article slug");
+        return FeedImportSupport.uniqueSlug(
+                tenantId,
+                requested,
+                title,
+                "artikel",
+                articleRepository::existsByTenantIdAndSlug,
+                () -> new ArticleRssImportException(
+                        409,
+                        "ARTICLE_SLUG_EXISTS",
+                        "Could not allocate a unique article slug"
+                )
+        );
     }
 
     private static String importFilenameHint(String title, String url, String fallbackStem, String extension) {
-        int slash = url.lastIndexOf('/');
-        String last = slash >= 0 ? url.substring(slash + 1) : url;
-        int query = last.indexOf('?');
-        if (query >= 0) {
-            last = last.substring(0, query);
-        }
-        int dot = last.lastIndexOf('.');
-        boolean hasExtension = dot > 0 && dot < last.length() - 1;
-        String slug = ImportSlugSuggester.suggest(title);
-        if (!"artikel".equals(slug)) {
-            return slug + (hasExtension ? last.substring(dot) : "." + extension);
-        }
-        if (hasExtension && !MediaUploadRules.isGenericFilenameStem(last.substring(0, dot))) {
-            return last;
-        }
-        return fallbackStem + (hasExtension ? last.substring(dot) : "." + extension);
+        return FeedImportSupport.importFilenameHint(title, url, fallbackStem, extension, "artikel");
     }
 
-    private static byte[] readBounded(InputStream in, int maxBytes) throws IOException {
-        byte[] buffer = new byte[Math.min(16 * 1024, maxBytes)];
-        var out = new java.io.ByteArrayOutputStream();
-        int read;
-        while ((read = in.read(buffer)) >= 0) {
-            if (out.size() + read > maxBytes) {
-                throw new ArticleRssImportException(400, "RSS_FEED_INVALID", "RSS feed is larger than 5 MB");
-            }
-            out.write(buffer, 0, read);
-        }
-        if (out.size() == 0) {
-            throw new ArticleRssImportException(400, "RSS_FEED_INVALID", "RSS feed was empty");
-        }
-        return out.toByteArray();
-    }
-
+    /**
+     * Creates a stable identity for an article imported from an RSS feed.
+     *
+     * @param feedUrl the RSS feed URL
+     * @param guid    the article's feed GUID
+     * @return the SHA-256 hexadecimal digest of the canonical feed URL and trimmed GUID
+     */
     static String importIdentity(String feedUrl, String guid) {
-        if (feedUrl == null || feedUrl.isBlank() || guid == null || guid.isBlank()) {
-            throw new ArticleRssImportException(
-                    400,
-                    "RSS_FEED_INVALID",
-                    "feedUrl and guid are required for an article import"
-            );
-        }
-        try {
-            MessageDigest digest = MessageDigest.getInstance("SHA-256");
-            byte[] value = (canonicalFeedUrl(feedUrl) + "\n" + guid.trim()).getBytes(StandardCharsets.UTF_8);
-            return HexFormat.of().formatHex(digest.digest(value));
-        } catch (NoSuchAlgorithmException ex) {
-            throw new IllegalStateException("SHA-256 is not available", ex);
-        }
-    }
-
-    private static String canonicalFeedUrl(String feedUrl) {
-        try {
-            URI parsed = URI.create(feedUrl.trim());
-            String scheme = parsed.getScheme();
-            String host = parsed.getHost();
-            if (scheme == null || host == null || parsed.getUserInfo() != null) {
-                throw new IllegalArgumentException("feedUrl must be an absolute public URL");
-            }
-            String normalizedScheme = scheme.toLowerCase(Locale.ROOT);
-            if (!"http".equals(normalizedScheme) && !"https".equals(normalizedScheme)) {
-                throw new IllegalArgumentException("feedUrl must use http or https");
-            }
-            int port = parsed.getPort();
-            if (("http".equals(normalizedScheme) && port == 80)
-                    || ("https".equals(normalizedScheme) && port == 443)) {
-                port = -1;
-            }
-            String path = parsed.getRawPath();
-            if (path == null || path.isBlank()) {
-                path = "/";
-            }
-            return new URI(
-                    normalizedScheme,
-                    null,
-                    host.toLowerCase(Locale.ROOT),
-                    port,
-                    path,
-                    parsed.getRawQuery(),
-                    null
-            ).normalize().toASCIIString();
-        } catch (IllegalArgumentException | URISyntaxException ex) {
-            throw new ArticleRssImportException(400, "RSS_FEED_INVALID", "feedUrl is not valid", ex);
-        }
+        return FeedImportSupport.importIdentity(feedUrl, guid, "article", RSS_IMPORT_ERRORS);
     }
 
     private record BodyRewrite(String body) {

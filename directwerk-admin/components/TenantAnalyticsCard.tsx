@@ -1,41 +1,24 @@
 'use client'
 
-import {useEffect, useState} from 'react'
-
 import {Badge} from '@directwerk/ui/components/badge'
 import {Button} from '@directwerk/ui/components/button'
 import {Card, CardContent, CardDescription, CardHeader, CardTitle} from '@directwerk/ui/components/card'
 import {Skeleton} from '@directwerk/ui/components/skeleton'
 import {getPlatformData} from '@/lib/api/client'
+import {useTenantPlatformQuery} from '@/lib/api/usePlatformQuery'
 import type {PlatformBranding} from '@directwerk/api/types'
 
 export default function TenantAnalyticsCard({tenantId}: {tenantId: string}): React.JSX.Element {
-    const [branding, setBranding] = useState<PlatformBranding | null>(null)
-    const [error, setError] = useState<string | null>(null)
-    const [isLoading, setIsLoading] = useState(true)
-    const [reloadKey, setReloadKey] = useState(0)
-
-    useEffect(() => {
-        let active = true
-        setBranding(null)
-        setError(null)
-        setIsLoading(true)
-        getPlatformData<PlatformBranding>(`tenants/${tenantId}/branding`)
-            .then((result) => {
-                if (!active) return
-                setError(null)
-                setBranding(result)
-                setIsLoading(false)
-            })
-            .catch(() => {
-                if (!active) return
-                setError('Analytics config unavailable.')
-                setIsLoading(false)
-            })
-        return () => {
-            active = false
-        }
-    }, [tenantId, reloadKey])
+    const {
+        data: branding,
+        error,
+        isLoading,
+        reload,
+    } = useTenantPlatformQuery(
+        tenantId,
+        () => getPlatformData<PlatformBranding>(`tenants/${tenantId}/branding`),
+        {fallbackError: 'Analytics config unavailable.'},
+    )
 
     const trackingEnabled = branding?.umamiWebsiteId != null
 
@@ -55,7 +38,7 @@ export default function TenantAnalyticsCard({tenantId}: {tenantId: string}): Rea
                             {error}
                         </p>
                         <div className="mt-2">
-                            <Button onClick={() => setReloadKey((value) => value + 1)} type="button" variant="outline">
+                            <Button onClick={() => reload()} type="button" variant="outline">
                                 Retry
                             </Button>
                         </div>

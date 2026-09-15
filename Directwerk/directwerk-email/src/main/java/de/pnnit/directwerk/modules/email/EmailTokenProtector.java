@@ -1,33 +1,27 @@
 package de.pnnit.directwerk.modules.email;
 
-import de.pnnit.directwerk.config.DirectwerkConfig;
-import de.pnnit.directwerk.modules.core.util.EnvelopeCipher;
+import de.pnnit.directwerk.modules.core.util.EnvelopeTokenProtector;
 import org.springframework.stereotype.Component;
-import org.springframework.util.StringUtils;
 
+/**
+ * Thin adapter over {@link EnvelopeTokenProtector} for tokens carried in durable
+ * email queue jobs. The raw token is only reconstructed when the job is delivered,
+ * so the queue never stores it in cleartext.
+ */
 @Component
 public class EmailTokenProtector {
 
-    private final DirectwerkConfig directwerkConfig;
+    private final EnvelopeTokenProtector envelopeTokenProtector;
 
-    public EmailTokenProtector(DirectwerkConfig directwerkConfig) {
-        this.directwerkConfig = directwerkConfig;
+    public EmailTokenProtector(EnvelopeTokenProtector envelopeTokenProtector) {
+        this.envelopeTokenProtector = envelopeTokenProtector;
     }
 
     public String protectForQueue(String rawToken) {
-        return EnvelopeCipher.encrypt(rawToken, keyMaterial());
+        return envelopeTokenProtector.protect(rawToken);
     }
 
     public String revealFromQueue(String storedToken) {
-        return EnvelopeCipher.decrypt(storedToken, keyMaterial());
-    }
-
-    private String keyMaterial() {
-        String platformSecret = directwerkConfig.security().platformClientSecret();
-        String tenantSecret = directwerkConfig.security().tenantClientSecret();
-        if (!StringUtils.hasText(platformSecret) || !StringUtils.hasText(tenantSecret)) {
-            throw new IllegalStateException("OAuth client secrets must be configured for email queue token protection");
-        }
-        return platformSecret + "|" + tenantSecret;
+        return envelopeTokenProtector.reveal(storedToken);
     }
 }

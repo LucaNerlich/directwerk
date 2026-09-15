@@ -15,7 +15,7 @@ import SectionHeader from '@directwerk/ui/components/section-header'
 
 import Link from 'next/link'
 import {useRouter} from 'next/navigation'
-import {useCallback, useEffect, useState, type FormEvent} from 'react'
+import {useCallback, useEffect, useRef, useState} from 'react'
 
 import MediaLibraryPicker from '@/components/media/MediaLibraryPicker'
 import UploadProgress from '@/components/media/UploadProgress'
@@ -23,14 +23,96 @@ import PublicationStatusBadge from '@/components/publication/PublicationStatusBa
 import PublishedLinksPanel from '@/components/publication/PublishedLinksPanel'
 import {getMediaPreviewUrl} from '@/lib/api/mediaApi'
 import {createSeries, getSeries, updateSeries} from '@/lib/api/podcastApi'
-import type {SeriesDetail, SeriesStatus} from '@directwerk/api/types'
+import type {
+    CreateSeriesInput,
+    SeriesDetail,
+    SeriesStatus,
+    UpdateSeriesInput,
+} from '@directwerk/api/types'
 import {mediaLimitLabel} from '@/lib/media/limits'
 import {useCoverImageUpload} from '@/lib/media/useCoverImageUpload'
 import {getClientTenantHost} from '@directwerk/api/tenant'
 import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
+import {useResourceEditor} from '@/lib/hooks/useResourceEditor'
 
 interface SeriesEditorProps {
     seriesId?: number
+}
+
+interface SeriesFormValues {
+    title: string
+    slug: string
+    description: string
+    language: string
+    itunesCategory: string
+    itunesExplicit: boolean
+    status: SeriesStatus
+    coverAssetId: number | null
+    defaultRequiredLevelSortOrder: number | null
+    rssUrl: string | null
+    publishOnCreate: boolean
+}
+
+const INITIAL_VALUES: SeriesFormValues = {
+    title: '',
+    slug: '',
+    description: '',
+    language: 'de',
+    itunesCategory: '',
+    itunesExplicit: false,
+    status: 'DRAFT',
+    coverAssetId: null,
+    defaultRequiredLevelSortOrder: null,
+    rssUrl: null,
+    publishOnCreate: false,
+}
+
+function toSeriesValues(series: SeriesDetail): SeriesFormValues {
+    return {
+        title: series.title,
+        slug: series.slug,
+        description: series.description ?? '',
+        language: series.language ?? 'de',
+        itunesCategory: series.itunesCategory ?? '',
+        itunesExplicit: series.itunesExplicit,
+        status: series.status,
+        coverAssetId: series.coverAssetId,
+        defaultRequiredLevelSortOrder: series.defaultRequiredLevelSortOrder,
+        rssUrl: series.rssUrl,
+        publishOnCreate: false,
+    }
+}
+
+function seriesUpdatePayload(
+    values: SeriesFormValues,
+    status: SeriesStatus,
+): UpdateSeriesInput {
+    const resolvedSlug = values.slug.trim() || suggestSlug(values.title) || 'sendung'
+    return {
+        title: values.title.trim() || 'Ohne Titel',
+        slug: resolvedSlug,
+        description: values.description.trim() || undefined,
+        language: values.language.trim() || 'de',
+        itunesCategory: values.itunesCategory.trim() || undefined,
+        itunesExplicit: values.itunesExplicit,
+        coverAssetId: values.coverAssetId ?? undefined,
+        defaultRequiredLevelSortOrder: values.defaultRequiredLevelSortOrder ?? undefined,
+        status,
+    }
+}
+
+function seriesCreatePayload(values: SeriesFormValues): CreateSeriesInput {
+    const resolvedSlug = values.slug.trim() || suggestSlug(values.title) || 'sendung'
+    return {
+        title: values.title.trim() || 'Ohne Titel',
+        slug: resolvedSlug,
+        description: values.description.trim() || undefined,
+        language: values.language.trim() || 'de',
+        itunesCategory: values.itunesCategory.trim() || undefined,
+        itunesExplicit: values.itunesExplicit,
+        coverAssetId: values.coverAssetId ?? undefined,
+        defaultRequiredLevelSortOrder: values.defaultRequiredLevelSortOrder ?? undefined,
+    }
 }
 
 /**
@@ -41,89 +123,74 @@ interface SeriesEditorProps {
 export default function SeriesEditor({seriesId}: SeriesEditorProps): React.JSX.Element {
     const router = useRouter()
     const authRedirect = useAuthRequired()
-    const [createdId, setCreatedId] = useState<number | null>(null)
-    const effectiveSeriesId = seriesId ?? createdId ?? undefined
-    const isNew = effectiveSeriesId === undefined
-    const [title, setTitle] = useState('')
-    const [slug, setSlug] = useState('')
-    const [description, setDescription] = useState('')
-    const [language, setLanguage] = useState('de')
-    const [itunesCategory, setItunesCategory] = useState('')
-    const [itunesExplicit, setItunesExplicit] = useState(false)
-    const [status, setStatus] = useState<SeriesStatus>('DRAFT')
-    const [coverAssetId, setCoverAssetId] = useState<number | null>(null)
-    const [coverPreviewUrl, setCoverPreviewUrl] = useState<string | null>(null)
-    const [defaultRequiredLevelSortOrder, setDefaultRequiredLevelSortOrder] = useState<number | null>(null)
-    const [rssUrl, setRssUrl] = useState<string | null>(null)
-    const [publishOnCreate, setPublishOnCreate] = useState(false)
-    const [errorMessage, setErrorMessage] = useState<string | null>(null)
-    const [isLoading, setIsLoading] = useState(!isNew)
-    const [isSaving, setIsSaving] = useState(false)
-    const [loadError, setLoadError] = useState(false)
-    const [reloadToken, setReloadToken] = useState(0)
+    const authRedirectRef = useRef(authRedirect)
+    authRedirectRef.current = authRedirect
 
-    useEffect(() => {
-        if (seriesId === undefined) {
-            setIsLoading(false)
-            return
-        }
-        setIsLoading(true)
-        setLoadError(false)
-        setErrorMessage(null)
-
-        const resolvedSeriesId = seriesId
-        let active = true
-
-        async function load(): Promise<void> {
+    const {
+        values,
+        setField,
+        isNew,
+        isLoading,
+        loadError,
+        reload,
+        isSaving,
+        errorMessage,
+        reportError,
+        handleSubmit,
+        runAction,
+        applyEntity,
+        effectiveId,
+        setErrorMessage,
+    } = useResourceEditor<SeriesDetail, SeriesFormValues, CreateSeriesInput, UpdateSeriesInput>({
+        id: seriesId,
+        loadOne: getSeries,
+        create: createSeries,
+        update: updateSeries,
+        initialValues: INITIAL_VALUES,
+        toValues: toSeriesValues,
+        buildCreate: seriesCreatePayload,
+        buildUpdate: (current) => seriesUpdatePayload(current, current.status),
+        redirectPath: (created) => `/podcast/series/${created.id}`,
+        messages: {
+            notFound: 'Sendung wurde nicht gefunden.',
+            loadFailed: 'Sendung konnte nicht geladen werden.',
+            saveFailed: 'Aktion fehlgeschlagen.',
+            deactivateFailed: 'Deaktivierung fehlgeschlagen.',
+        },
+        afterCreate: async ({host, created, values: createdValues}) => {
+            if (!createdValues.publishOnCreate) {
+                return {ok: true}
+            }
             try {
-                const loaded = await getSeries(getClientTenantHost(), resolvedSeriesId)
-                if (!active) {
-                    return
-                }
-                setTitle(loaded.title)
-                setSlug(loaded.slug)
-                setDescription(loaded.description ?? '')
-                setLanguage(loaded.language ?? 'de')
-                setItunesCategory(loaded.itunesCategory ?? '')
-                setItunesExplicit(loaded.itunesExplicit)
-                setStatus(loaded.status)
-                setCoverAssetId(loaded.coverAssetId)
-                setDefaultRequiredLevelSortOrder(loaded.defaultRequiredLevelSortOrder)
-                setRssUrl(loaded.rssUrl)
+                await updateSeries(host, created.id, {
+                    ...seriesUpdatePayload(createdValues, 'PUBLISHED'),
+                    slug: created.slug,
+                })
+                return {ok: true}
             } catch (error) {
-                if (!active) {
-                    return
-                }
-                if (authRedirect(error)) return
-                setLoadError(true)
-                setErrorMessage(
-                    error instanceof Error
-                        ? error.message
-                        : 'Sendung konnte nicht geladen werden.',
-                )
-            } finally {
-                if (active) {
-                    setIsLoading(false)
+                return {
+                    ok: false,
+                    entity: created,
+                    message:
+                        error instanceof Error
+                            ? error.message
+                            : 'Veröffentlichung fehlgeschlagen.',
                 }
             }
-        }
+        },
+    })
 
-        load()
-
-        return () => {
-            active = false
-        }
-    }, [reloadToken, router, seriesId])
+    const [coverPreviewUrl, setCoverPreviewUrl] = useState<string | null>(null)
 
     useEffect(() => {
         let active = true
 
-        if (coverAssetId === null) {
+        if (values.coverAssetId === null) {
             setCoverPreviewUrl(null)
             return
         }
 
-        getMediaPreviewUrl(getClientTenantHost(), coverAssetId)
+        getMediaPreviewUrl(getClientTenantHost(), values.coverAssetId)
             .then((url) => {
                 if (active) {
                     setCoverPreviewUrl(url)
@@ -133,37 +200,36 @@ export default function SeriesEditor({seriesId}: SeriesEditorProps): React.JSX.E
                 if (!active) {
                     return
                 }
-                if (authRedirect(error)) return
+                if (authRedirectRef.current(error)) return
                 setCoverPreviewUrl(null)
             })
 
         return () => {
             active = false
         }
-    }, [coverAssetId, router])
-
-    const handleAuthError = useCallback(
-        (error: unknown) => {
-            if (authRedirect(error)) return
-            setErrorMessage(
-                error instanceof Error ? error.message : 'Aktion fehlgeschlagen.',
-            )
-        },
-        [router],
-    )
+    }, [values.coverAssetId])
 
     const handleAuthRequired = useCallback(() => {
         router.replace('/login')
     }, [router])
 
-    const coverUpload = useCoverImageUpload({
-        onUploaded: setCoverAssetId,
-        onError: (error) => {
-            if (authRedirect(error)) return
-            setErrorMessage(
-                error instanceof Error ? error.message : 'Cover-Upload fehlgeschlagen.',
-            )
+    const handleCoverUploaded = useCallback(
+        (assetId: number) => {
+            setField('coverAssetId', assetId)
         },
+        [setField],
+    )
+
+    const handleCoverError = useCallback(
+        (error: unknown) => {
+            reportError(error, 'Cover-Upload fehlgeschlagen.')
+        },
+        [reportError],
+    )
+
+    const coverUpload = useCoverImageUpload({
+        onUploaded: handleCoverUploaded,
+        onError: handleCoverError,
     })
 
     function handleCoverUpload(file: File | null): Promise<void> {
@@ -171,118 +237,21 @@ export default function SeriesEditor({seriesId}: SeriesEditorProps): React.JSX.E
         return coverUpload.upload(file)
     }
 
-    function seriesUpdatePayload(nextStatus: SeriesStatus) {
-        const resolvedSlug = slug.trim() || suggestSlug(title) || 'sendung'
-        return {
-            title: title.trim() || 'Ohne Titel',
-            slug: resolvedSlug,
-            description: description.trim() || undefined,
-            language: language.trim() || 'de',
-            itunesCategory: itunesCategory.trim() || undefined,
-            itunesExplicit,
-            coverAssetId: coverAssetId ?? undefined,
-            defaultRequiredLevelSortOrder: defaultRequiredLevelSortOrder ?? undefined,
-            status: nextStatus,
-        }
-    }
-
-    function applySeries(updated: SeriesDetail): void {
-        setTitle(updated.title)
-        setSlug(updated.slug)
-        setDescription(updated.description ?? '')
-        setLanguage(updated.language ?? 'de')
-        setItunesCategory(updated.itunesCategory ?? '')
-        setItunesExplicit(updated.itunesExplicit)
-        setStatus(updated.status)
-        setCoverAssetId(updated.coverAssetId)
-        setDefaultRequiredLevelSortOrder(updated.defaultRequiredLevelSortOrder)
-        setRssUrl(updated.rssUrl)
-    }
-
     async function handlePublishSeries(): Promise<void> {
-        if (effectiveSeriesId === undefined) {
+        if (effectiveId === undefined) {
             return
         }
-        const targetId = effectiveSeriesId
-        setIsSaving(true)
-        setErrorMessage(null)
-        try {
-            const updated = await updateSeries(
-                getClientTenantHost(),
-                targetId,
-                seriesUpdatePayload('PUBLISHED'),
-            )
-            applySeries(updated)
-        } catch (error) {
-            if (authRedirect(error)) return
-            setErrorMessage(
-                error instanceof Error ? error.message : 'Veröffentlichung fehlgeschlagen.',
-            )
-        } finally {
-            setIsSaving(false)
-        }
-    }
-
-    async function handleSubmit(event: FormEvent<HTMLFormElement>): Promise<void> {
-        event.preventDefault()
-        setIsSaving(true)
-        setErrorMessage(null)
-
-        const resolvedSlug = slug.trim() || suggestSlug(title) || 'sendung'
-        const host = getClientTenantHost()
-
-        try {
-            if (isNew) {
-                const created = await createSeries(host, {
-                    title: title.trim() || 'Ohne Titel',
-                    slug: resolvedSlug,
-                    description: description.trim() || undefined,
-                    language: language.trim() || 'de',
-                    itunesCategory: itunesCategory.trim() || undefined,
-                    itunesExplicit,
-                    coverAssetId: coverAssetId ?? undefined,
-                    defaultRequiredLevelSortOrder: defaultRequiredLevelSortOrder ?? undefined,
-                })
-                // Remember the created series so a failed follow-up publish
-                // retries as an update instead of creating a duplicate.
-                setCreatedId(created.id)
-                if (publishOnCreate) {
-                    try {
-                        await updateSeries(host, created.id, {
-                            ...seriesUpdatePayload('PUBLISHED'),
-                            slug: created.slug,
-                        })
-                    } catch (publishError) {
-                        applySeries(created)
-                        setErrorMessage(
-                            publishError instanceof Error
-                                ? publishError.message
-                                : 'Veröffentlichung fehlgeschlagen.',
-                        )
-                        return
-                    }
-                }
-                router.replace(`/podcast/series/${created.id}`)
-                return
-            }
-
-            if (effectiveSeriesId === undefined) {
-                return
-            }
-            const updated = await updateSeries(
-                host,
-                effectiveSeriesId,
-                seriesUpdatePayload(status),
-            )
-            applySeries(updated)
-        } catch (error) {
-            if (authRedirect(error)) return
-            setErrorMessage(
-                error instanceof Error ? error.message : 'Aktion fehlgeschlagen.',
-            )
-        } finally {
-            setIsSaving(false)
-        }
+        await runAction(
+            async () => {
+                const updated = await updateSeries(
+                    getClientTenantHost(),
+                    effectiveId,
+                    seriesUpdatePayload(values, 'PUBLISHED'),
+                )
+                applyEntity(updated)
+            },
+            {failedMessage: 'Veröffentlichung fehlgeschlagen.'},
+        )
     }
 
     if (isLoading) {
@@ -293,12 +262,10 @@ export default function SeriesEditor({seriesId}: SeriesEditorProps): React.JSX.E
         return (
             <PageStack className="gap-6">
                 <Alert variant="destructive">
-                    <AlertDescription>
-                        {errorMessage ?? 'Sendung konnte nicht geladen werden.'}
-                    </AlertDescription>
+                    <AlertDescription>{loadError}</AlertDescription>
                     <Button
                         className="mt-3"
-                        onClick={() => setReloadToken((value) => value + 1)}
+                        onClick={reload}
                         type="button"
                         variant="outline"
                     >
@@ -326,7 +293,7 @@ export default function SeriesEditor({seriesId}: SeriesEditorProps): React.JSX.E
             />
             {!isNew ? (
                 <div>
-                    <PublicationStatusBadge status={status} />
+                    <PublicationStatusBadge status={values.status} />
                 </div>
             ) : null}
 
@@ -348,12 +315,12 @@ export default function SeriesEditor({seriesId}: SeriesEditorProps): React.JSX.E
                     </label>
                     <Input
                         id="series-title"
-                        value={title}
+                        value={values.title}
                         onChange={(event) => {
                             const value = event.target.value
-                            setTitle(value)
-                            if (isNew && slug.trim().length === 0) {
-                                setSlug(suggestSlug(value))
+                            setField('title', value)
+                            if (isNew && values.slug.trim().length === 0) {
+                                setField('slug', suggestSlug(value))
                             }
                         }}
                         required
@@ -365,8 +332,8 @@ export default function SeriesEditor({seriesId}: SeriesEditorProps): React.JSX.E
                         </label>
                         <Input
                             id="series-slug"
-                            value={slug}
-                            onChange={(event) => setSlug(event.target.value)}
+                            value={values.slug}
+                            onChange={(event) => setField('slug', event.target.value)}
                             required
                             pattern={HTML_SLUG_PATTERN}
                             maxLength={63}
@@ -380,8 +347,8 @@ export default function SeriesEditor({seriesId}: SeriesEditorProps): React.JSX.E
                         <Textarea
                             id="series-description"
                             rows={6}
-                            value={description}
-                            onChange={(event) => setDescription(event.target.value)}
+                            value={values.description}
+                            onChange={(event) => setField('description', event.target.value)}
                         />
                         <span className="text-xs font-normal text-muted-foreground">
                             Kurzbeschreibung für Podcast-Apps und Verzeichnisse.
@@ -391,8 +358,8 @@ export default function SeriesEditor({seriesId}: SeriesEditorProps): React.JSX.E
                         <span>Sprache</span>
                         <Input
                             id="series-language"
-                            value={language}
-                            onChange={(event) => setLanguage(event.target.value)}
+                            value={values.language}
+                            onChange={(event) => setField('language', event.target.value)}
                             maxLength={8}
                             required
                         />
@@ -411,8 +378,8 @@ export default function SeriesEditor({seriesId}: SeriesEditorProps): React.JSX.E
                         <span>iTunes-Kategorie</span>
                         <Input
                             id="series-itunes-category"
-                            value={itunesCategory}
-                            onChange={(event) => setItunesCategory(event.target.value)}
+                            value={values.itunesCategory}
+                            onChange={(event) => setField('itunesCategory', event.target.value)}
                             maxLength={128}
                         />
                         <span className="font-normal text-muted-foreground">
@@ -423,8 +390,8 @@ export default function SeriesEditor({seriesId}: SeriesEditorProps): React.JSX.E
                         <span>Explicit-Inhalte</span>
                         <SelectControl
                             id="series-explicit"
-                            value={itunesExplicit ? 'true' : 'false'}
-                            onChange={(event) => setItunesExplicit(event.target.value === 'true')}
+                            value={values.itunesExplicit ? 'true' : 'false'}
+                            onChange={(event) => setField('itunesExplicit', event.target.value === 'true')}
                         >
                             <option value="false">Nein (clean)</option>
                             <option value="true">Ja (explicit)</option>
@@ -468,9 +435,9 @@ export default function SeriesEditor({seriesId}: SeriesEditorProps): React.JSX.E
                         label="Titelbild aus Mediathek"
                         onAuthRequired={handleAuthRequired}
                         onSelect={(asset) => {
-                            setCoverAssetId(asset.id)
+                            setField('coverAssetId', asset.id)
                         }}
-                        selectedId={coverAssetId}
+                        selectedId={values.coverAssetId}
                     />
                     {coverUpload.uploadProgress !== null ? (
                         <UploadProgress
@@ -488,8 +455,8 @@ export default function SeriesEditor({seriesId}: SeriesEditorProps): React.JSX.E
                     <label className="grid gap-2 text-sm font-medium">
                         <span>Mindest-Stufe für Folgen (Standard)</span>
                         <LevelSelect
-                            onChange={(value) => setDefaultRequiredLevelSortOrder(value)}
-                            value={defaultRequiredLevelSortOrder}
+                            onChange={(value) => setField('defaultRequiredLevelSortOrder', value)}
+                            value={values.defaultRequiredLevelSortOrder}
                         />
                         <span className="font-normal text-muted-foreground">
                             Standard-Mindest-Stufe für neue Folgen dieser Sendung. Zugriff hat,
@@ -504,13 +471,13 @@ export default function SeriesEditor({seriesId}: SeriesEditorProps): React.JSX.E
                         id="series-publish-heading"
                         title="Veröffentlichung"
                     />
-                    {rssUrl !== null ? (
+                    {values.rssUrl !== null ? (
                         <PublishedLinksPanel
                             title="RSS-Feed"
-                            links={[{label: 'Sendungs-Feed', url: rssUrl}]}
+                            links={[{label: 'Sendungs-Feed', url: values.rssUrl}]}
                             hint="Direkt nach dem Veröffentlichen kann der Feed noch 404 liefern, bis der Snapshot geschrieben ist."
                         />
-                    ) : status === 'DRAFT' ? (
+                    ) : values.status === 'DRAFT' ? (
                         <p className="text-sm text-muted-foreground">
                             Der öffentliche Feed erscheint, sobald die Sendung
                             veröffentlicht ist.
@@ -519,16 +486,16 @@ export default function SeriesEditor({seriesId}: SeriesEditorProps): React.JSX.E
                     {isNew ? (
                         <label className="flex cursor-pointer items-center gap-2 text-sm font-medium">
                             <Input
-                                checked={publishOnCreate}
+                                checked={values.publishOnCreate}
                                 className="size-4 shrink-0"
-                                onChange={(event) => setPublishOnCreate(event.target.checked)}
+                                onChange={(event) => setField('publishOnCreate', event.target.checked)}
                                 type="checkbox"
                             />
                             Sendung sofort veröffentlichen
                         </label>
                     ) : (
                         <>
-                            {status === 'DRAFT' ? (
+                            {values.status === 'DRAFT' ? (
                                 <div>
                                     <Button
                                         disabled={isSaving}
@@ -542,9 +509,9 @@ export default function SeriesEditor({seriesId}: SeriesEditorProps): React.JSX.E
                             <label className="grid gap-2 text-sm font-medium">
                                 <span>Status</span>
                                 <SelectControl
-                                    value={status}
+                                    value={values.status}
                                     onChange={(event) =>
-                                        setStatus(event.target.value as SeriesStatus)
+                                        setField('status', event.target.value as SeriesStatus)
                                     }
                                 >
                                     <option value="DRAFT">Entwurf</option>

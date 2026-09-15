@@ -1,8 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import {useRouter} from 'next/navigation'
-import {useCallback, useEffect, useState} from 'react'
+import {useEffect, useState} from 'react'
 
 import {Alert, AlertDescription} from '@directwerk/ui/components/alert'
 import {Badge} from '@directwerk/ui/components/badge'
@@ -25,7 +24,7 @@ import {
 
 import {AdminLoadingText, TableSkeleton} from '@/components/AdminLoading'
 import {getPlatformJobList} from '@/lib/api/client'
-import {AUTH_REQUIRED} from '@directwerk/api/constants'
+import {usePlatformQuery} from '@/lib/api/usePlatformQuery'
 import {
     JOB_STATUSES,
     KNOWN_JOB_QUEUES,
@@ -50,56 +49,32 @@ function formatTimestamp(value: string): string {
 }
 
 export default function JobsPage() {
-    const router = useRouter()
     const [query, setQuery] = useState<JobListQuery>(DEFAULT_QUERY)
-    const [page, setPage] = useState<JobListPage | null>(null)
-    const [error, setError] = useState<string | null>(null)
     const [filterError, setFilterError] = useState<string | null>(null)
     const [isInitialLoad, setIsInitialLoad] = useState(true)
-    const [reloadKey, setReloadKey] = useState(0)
+    // Keep the last successful page visible while a filter/pagination change
+    // refetches, mirroring the pre-seam behaviour (no skeleton after the first
+    // load; stale rows stay until the new page resolves).
+    const [page, setPage] = useState<JobListPage | null>(null)
 
-    const loadJobs = useCallback(
-        (nextQuery: JobListQuery) => {
-            setError(null)
-
-            let isCurrent = true
-
-            getPlatformJobList(nextQuery)
-                .then((result) => {
-                    if (isCurrent) {
-                        setPage(result)
-                        setIsInitialLoad(false)
-                    }
-                })
-                .catch((requestError: unknown) => {
-                    if (!isCurrent) {
-                        return
-                    }
-
-                    if (
-                        requestError instanceof Error &&
-                        requestError.message === AUTH_REQUIRED
-                    ) {
-                        router.replace('/login')
-                        return
-                    }
-
-                    setPage(null)
-                    setError('Could not load queue jobs.')
-                    setIsInitialLoad(false)
-                })
-
-            return () => {
-                isCurrent = false
-            }
-        },
-        [router]
-    )
+    const {
+        data,
+        error,
+        reload: loadJobs,
+    } = usePlatformQuery(() => getPlatformJobList(query), {
+        fallbackError: 'Could not load queue jobs.',
+        queryKey: JSON.stringify(query),
+    })
 
     useEffect(() => {
-        const cleanup = loadJobs(query)
-        return cleanup
-    }, [loadJobs, query, reloadKey])
+        if (data !== null) {
+            setPage(data)
+            setIsInitialLoad(false)
+        } else if (error !== null) {
+            setPage(null)
+            setIsInitialLoad(false)
+        }
+    }, [data, error])
 
     function applyFilters(formData: FormData): void {
         const validation = validateJobListQuery({
@@ -254,7 +229,7 @@ export default function JobsPage() {
                     <>
                         <Alert variant="destructive"><AlertDescription>{error}</AlertDescription></Alert>
                         <div>
-                            <Button onClick={() => setReloadKey((value) => value + 1)} type="button" variant="outline">
+                            <Button onClick={() => loadJobs()} type="button" variant="outline">
                                 Retry
                             </Button>
                         </div>

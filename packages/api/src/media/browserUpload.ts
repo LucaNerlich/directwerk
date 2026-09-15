@@ -1,22 +1,18 @@
 import {AUTH_REQUIRED} from '../constants'
 import type {AssetType, MediaAsset} from '../types'
 import {isRecord, parseMediaAssetEnvelope} from '../validation'
-import {MEDIA_UPLOAD_HEADERS} from './uploadProtocol'
+import {
+    isMediaUploadRetryResponse,
+    MEDIA_UPLOAD_HEADERS,
+    type MediaUploadRetryResponse,
+} from './uploadProtocol'
 
-export interface MediaUploadRetryResponse {
-    retryConfirm: true
-    assetId: number
-}
-
-export function isMediaUploadRetryResponse(
-    value: unknown,
-): value is MediaUploadRetryResponse {
-    return (
-        isRecord(value) &&
-        value.retryConfirm === true &&
-        typeof value.assetId === 'number'
-    )
-}
+// The `{assetId, retryConfirm:true}` recovery contract is defined once in
+// uploadProtocol and re-exported here for the browser upload client.
+export {
+    isMediaUploadRetryResponse,
+    type MediaUploadRetryResponse,
+} from './uploadProtocol'
 
 export function parseUploadedMediaAsset(body: unknown): MediaAsset {
     const asset = parseMediaAssetEnvelope(body)?.data

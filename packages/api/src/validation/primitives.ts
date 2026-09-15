@@ -1,4 +1,5 @@
 import type {ApiEnvelope} from '../types'
+import {isTrustedOrigin} from '../urls/urlPolicy'
 
 export function isRecord(value: unknown): value is Record<string, unknown> {
     return typeof value === 'object' && value !== null && !Array.isArray(value)
@@ -108,22 +109,8 @@ export function parseEnvelope<T>(
 
 /** True when a URL is safe to accept from the API (https, or http on loopback). */
 export function isAllowedFeedUrl(url: string): boolean {
-    try {
-        const parsed = new URL(url)
-        if (parsed.protocol === 'https:') {
-            return true
-        }
-        if (parsed.protocol === 'http:') {
-            const hostname = parsed.hostname.trim().toLowerCase()
-            const loopback =
-                hostname === 'localhost' ||
-                hostname === '127.0.0.1' ||
-                hostname === '[::1]' ||
-                hostname.endsWith('.localhost')
-            return loopback
-        }
-        return false
-    } catch {
-        return false
-    }
+    return isTrustedOrigin(url, {
+        allowLoopback: true,
+        allowLocalhostSubdomains: true,
+    })
 }

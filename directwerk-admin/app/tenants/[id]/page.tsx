@@ -1,8 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import {useRouter} from 'next/navigation'
-import {use, useCallback, useEffect, useState} from 'react'
+import {use, useState} from 'react'
 
 import {Alert, AlertDescription} from '@directwerk/ui/components/alert'
 import {Badge} from '@directwerk/ui/components/badge'
@@ -31,7 +30,9 @@ import TenantProductsPanel from '@/components/TenantProductsPanel'
 import TenantSessionPanel from '@/components/TenantSessionPanel'
 import TenantUserActions from '@/components/TenantUserActions'
 import {getMemberEffectiveRights, getPlatformData, postPlatformData} from '@/lib/api/client'
-import {AUTH_REQUIRED, REQUEST_FAILED} from '@directwerk/api/constants'
+import {useTenantPlatformQuery, usePlatformQuery} from '@/lib/api/usePlatformQuery'
+import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
+import {REQUEST_FAILED} from '@directwerk/api/constants'
 import type {EffectiveRights, TenantDetail, TenantDetailResponse, TenantUser, TenantUsers} from '@directwerk/api/types'
 
 interface TenantPageProps {
@@ -47,88 +48,80 @@ interface TenantPageData {
 
 export default function TenantPage({params}: TenantPageProps) {
     const {id} = use(params)
-    const router = useRouter()
-    const [data, setData] = useState<TenantPageData | null>(null)
-    const [error, setError] = useState<string | null>(null)
+    const isValidId = /^\d+$/.test(id)
+    const authRedirect = useAuthRequired()
     const [lifecycleError, setLifecycleError] = useState<string | null>(null)
     const [lifecycleStatus, setLifecycleStatus] = useState<string | null>(null)
-    const [isInitialLoad, setIsInitialLoad] = useState(true)
     const [lifecycleBusy, setLifecycleBusy] = useState(false)
     const [tenantSessionKey, setTenantSessionKey] = useState(0)
-    const [reloadKey, setReloadKey] = useState(0)
-    const [rightsByUser, setRightsByUser] = useState<Record<number, EffectiveRights | null>>({})
 
-    const loadTenantData = useCallback(() => {        if (!/^\d+$/.test(id)) {
-            setError('Invalid tenant identifier.')
-            setData(null)
-            setIsInitialLoad(false)
-            return () => undefined
-        }
+    const {
+        data,
+        error: queryError,
+        isLoading,
+        reload: loadTenantData,
+        setData,
+    } = useTenantPlatformQuery<TenantPageData>(
+        id,
+        async () => {
+            const [tenantResponse, users] = await Promise.all([
+                getPlatformData<TenantDetailResponse>(`tenants/${id}`),
+                getPlatformData<TenantUsers>(`tenants/${id}/users`),
+            ])
+            return {
+                tenant: tenantResponse.tenant,
+                episodeCount: tenantResponse.episodeCount,
+                subscriberCount: tenantResponse.subscriberCount,
+                users: users.content,
+            }
+        },
+        {
+            fallbackError: 'Could not load tenant details.',
+            enabled: isValidId,
+            queryKey: `tenant:${id}`,
+        },
+    )
 
-        setError(null)
+    const error = isValidId ? queryError : 'Invalid tenant identifier.'
 
-        let isCurrent = true
+    // Read-only RBAC overview (issue #148): resolve restriction summaries for
+    // editors; failures stay silent per row.
+    const editors =
+        data?.users.filter((user) => user.roles.includes('EDITOR')) ?? []
+    const editorIds = editors.map((user) => user.userId).join(',')
 
-        Promise.all([
-            getPlatformData<TenantDetailResponse>(`tenants/${id}`),
-            getPlatformData<TenantUsers>(`tenants/${id}/users`),
-        ])
-            .then(([tenantResponse, users]) => {
-                if (!isCurrent) {
-                    return
-                }
-
-                setData({
-                    tenant: tenantResponse.tenant,
-                    episodeCount: tenantResponse.episodeCount,
-                    subscriberCount: tenantResponse.subscriberCount,
-                    users: users.content,
-                })
-                setIsInitialLoad(false)
-
-                // Read-only RBAC overview (issue #148): resolve restriction
-                // summaries for editors; failures stay silent per row.
-                const editors = users.content.filter((user) => user.roles.includes('EDITOR'))
-                void Promise.all(
-                    editors.map(async (user) => {
+    const {data: rightsByUser} = usePlatformQuery(
+        async () => {
+            const entries = await Promise.all(
+                editors.map(
+                    async (
+                        user,
+                    ): Promise<[number, EffectiveRights | null]> => {
                         try {
-                            const rights = await getMemberEffectiveRights(id, user.userId)
-                            if (isCurrent) {
-                                setRightsByUser((current) => ({...current, [user.userId]: rights}))
-                            }
+                            return [
+                                user.userId,
+                                await getMemberEffectiveRights(
+                                    id,
+                                    user.userId,
+                                ),
+                            ]
                         } catch {
-                            if (isCurrent) {
-                                setRightsByUser((current) => ({...current, [user.userId]: null}))
-                            }
+                            return [user.userId, null]
                         }
-                    }),
-                )
-            })
-            .catch((requestError: unknown) => {
-                if (!isCurrent) {
-                    return
-                }
-
-                if (
-                    requestError instanceof Error &&
-                    requestError.message === AUTH_REQUIRED
-                ) {
-                    router.replace('/login')
-                    return
-                }
-
-                setError('Could not load tenant details.')
-                setIsInitialLoad(false)
-            })
-
-        return () => {
-            isCurrent = false
-        }
-    }, [id, router, reloadKey])
-
-    useEffect(() => {
-        return loadTenantData()
-    }, [loadTenantData])
+                    },
+                ),
+            )
+            return Object.fromEntries(entries) as Record<
+                number,
+                EffectiveRights | null
+            >
+        },
+        {
+            fallbackError: 'Rights unavailable.',
+            enabled: isValidId && editors.length > 0,
+            queryKey: `tenant-rights:${id}:${editorIds}`,
+        },
+    )
 
     async function runLifecycle(
         path: string,
@@ -150,11 +143,7 @@ export default function TenantPage({params}: TenantPageProps) {
             )
             setLifecycleStatus(successMessage)
         } catch (requestError: unknown) {
-            if (
-                requestError instanceof Error &&
-                requestError.message === AUTH_REQUIRED
-            ) {
-                router.replace('/login')
+            if (authRedirect(requestError)) {
                 return
             }
 
@@ -178,7 +167,7 @@ export default function TenantPage({params}: TenantPageProps) {
         if (!user.roles.includes('EDITOR')) {
             return 'Rights: full access'
         }
-        const rights = rightsByUser[user.userId]
+        const rights = rightsByUser?.[user.userId]
         if (rights === undefined) {
             return 'Rights: loading…'
         }
@@ -203,13 +192,13 @@ export default function TenantPage({params}: TenantPageProps) {
                     <>
                         <Alert variant="destructive"><AlertDescription>{error}</AlertDescription></Alert>
                         <div>
-                            <Button onClick={() => setReloadKey((value) => value + 1)} type="button" variant="outline">
+                            <Button onClick={() => loadTenantData()} type="button" variant="outline">
                                 Retry
                             </Button>
                         </div>
                     </>
                 ) : null}
-                {!error && isInitialLoad ? (
+                {!error && isLoading && data === null ? (
                     <>
                         <TableSkeleton rows={3} />
                         <FormSkeleton />
@@ -296,7 +285,7 @@ export default function TenantPage({params}: TenantPageProps) {
 
                         <TenantUploadLimitsForm
                             limits={data.tenant.uploadLimits}
-                            onSaved={() => setReloadKey((value) => value + 1)}
+                            onSaved={loadTenantData}
                             tenantId={id}
                         />
 

@@ -6,34 +6,21 @@ import de.pnnit.directwerk.modules.digital.entity.AccessPolicy;
 import de.pnnit.directwerk.modules.digital.entity.AssetType;
 import de.pnnit.directwerk.modules.digital.entity.AssetVisibility;
 import de.pnnit.directwerk.modules.digital.entity.MediaAsset;
-import de.pnnit.directwerk.modules.digital.exception.UploadValidationException;
+import de.pnnit.directwerk.modules.digital.importing.FeedImportSupport;
 import de.pnnit.directwerk.modules.digital.net.RemoteContentClient;
-import de.pnnit.directwerk.modules.digital.net.RemoteUrlValidator;
-import de.pnnit.directwerk.modules.digital.service.MediaUploadRules;
 import de.pnnit.directwerk.modules.podcast.PodcastModule;
 import de.pnnit.directwerk.modules.podcast.entity.Episode;
 import de.pnnit.directwerk.modules.podcast.exception.RssImportException;
-import de.pnnit.directwerk.modules.core.util.SlugNormalizer;
 import de.pnnit.directwerk.modules.podcast.importrss.ImportSlugSuggester;
 import de.pnnit.directwerk.modules.podcast.importrss.ParsedRssFeed;
 import de.pnnit.directwerk.modules.podcast.importrss.RssFeedParser;
 import de.pnnit.directwerk.modules.podcast.repository.EpisodeRepository;
 import de.pnnit.directwerk.multitenancy.TenantContext;
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
-import java.util.HexFormat;
 import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Locale;
 import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -46,8 +33,11 @@ import org.springframework.transaction.annotation.Transactional;
 @Slf4j
 public class PodcastImportService {
 
-    private static final int MAX_FEED_BYTES = 5 * 1024 * 1024;
     private static final Duration FEED_TIMEOUT = Duration.ofSeconds(30);
+    private static final FeedImportSupport.ImportErrorFactory RSS_IMPORT_ERRORS =
+            (status, code, message, cause) -> cause == null
+                    ? new RssImportException(status, code, message)
+                    : new RssImportException(status, code, message, cause);
 
     private final RemoteContentClient remoteContentClient;
     private final RemoteAssetIngestApi remoteAssetIngestApi;
@@ -261,14 +251,12 @@ public class PodcastImportService {
      * @param assetIds the identifiers of assets to discard
      */
     private void discardIngestedAssets(List<Long> assetIds) {
-        for (int i = assetIds.size() - 1; i >= 0; i--) {
-            Long assetId = assetIds.get(i);
-            try {
-                remoteAssetIngestApi.discard(assetId);
-            } catch (RuntimeException cleanupFailure) {
-                log.warn("Failed to discard unreferenced RSS import asset {}", assetId, cleanupFailure);
-            }
-        }
+        FeedImportSupport.discardIngestedAssets(
+                assetIds,
+                remoteAssetIngestApi::discard,
+                log,
+                "unreferenced RSS import asset"
+        );
     }
 
     /**
@@ -278,27 +266,14 @@ public class PodcastImportService {
      * @return the parsed RSS feed
      */
     private ParsedRssFeed fetchAndParse(String feedUrl) {
-        URI uri = RemoteUrlValidator.requirePublicHttpUrl(feedUrl);
-        try (RemoteContentClient.RemoteResponse remote = remoteContentClient.get(uri, FEED_TIMEOUT)) {
-            if (remote.statusCode() < 200 || remote.statusCode() >= 300) {
-                throw new RssImportException(
-                        400,
-                        "RSS_FEED_UNREACHABLE",
-                        "RSS feed returned HTTP " + remote.statusCode()
-                );
-            }
-            byte[] xml = readBounded(remote.body(), MAX_FEED_BYTES);
-            return rssFeedParser.parse(remote.finalUri().toString(), new ByteArrayInputStream(xml));
-        } catch (UploadValidationException ex) {
-            throw new RssImportException(400, ex.getCode(), ex.getMessage(), ex);
-        } catch (RssImportException ex) {
-            throw ex;
-        } catch (IOException | InterruptedException ex) {
-            if (ex instanceof InterruptedException) {
-                Thread.currentThread().interrupt();
-            }
-            throw new RssImportException(400, "RSS_FEED_UNREACHABLE", "RSS feed could not be downloaded", ex);
-        }
+        return FeedImportSupport.fetchAndParse(
+                remoteContentClient,
+                feedUrl,
+                FEED_TIMEOUT,
+                FeedImportSupport.MAX_FEED_BYTES,
+                RSS_IMPORT_ERRORS,
+                rssFeedParser::parse
+        );
     }
 
     /**
@@ -311,23 +286,14 @@ public class PodcastImportService {
      * @throws RssImportException if no unique slug is available after 50 attempts
      */
     private String uniqueSlug(Long tenantId, String requested, String title) {
-        String base;
-        if (requested == null || requested.isBlank()) {
-            base = ImportSlugSuggester.suggest(title);
-        } else {
-            try {
-                base = SlugNormalizer.normalize(requested);
-            } catch (IllegalArgumentException invalid) {
-                base = ImportSlugSuggester.suggest(requested);
-            }
-        }
-        for (int attempt = 1; attempt <= 50; attempt++) {
-            String candidate = ImportSlugSuggester.withSuffix(base, attempt);
-            if (!episodeRepository.existsByTenantIdAndSlug(tenantId, candidate)) {
-                return candidate;
-            }
-        }
-        throw new RssImportException(409, "EPISODE_SLUG_EXISTS", "Could not allocate a unique episode slug");
+        return FeedImportSupport.uniqueSlug(
+                tenantId,
+                requested,
+                title,
+                "folge",
+                episodeRepository::existsByTenantIdAndSlug,
+                () -> new RssImportException(409, "EPISODE_SLUG_EXISTS", "Could not allocate a unique episode slug")
+        );
     }
 
     /**
@@ -342,48 +308,7 @@ public class PodcastImportService {
      * @return the filename hint for the ingest command
      */
     private static String importFilenameHint(String title, String url, String fallbackStem, String extension) {
-        int slash = url.lastIndexOf('/');
-        String last = slash >= 0 ? url.substring(slash + 1) : url;
-        int query = last.indexOf('?');
-        if (query >= 0) {
-            last = last.substring(0, query);
-        }
-        int dot = last.lastIndexOf('.');
-        boolean hasExtension = dot > 0 && dot < last.length() - 1;
-        // The episode title is the readable identifier in media libraries, so it
-        // always wins; the URL only contributes its real extension, if any.
-        String slug = ImportSlugSuggester.suggest(title);
-        if (!"folge".equals(slug)) {
-            return slug + (hasExtension ? last.substring(dot) : "." + extension);
-        }
-        if (hasExtension && !MediaUploadRules.isGenericFilenameStem(last.substring(0, dot))) {
-            return last;
-        }
-        return fallbackStem + (hasExtension ? last.substring(dot) : "." + extension);
-    }
-
-    /**
-     * Reads input content while enforcing a maximum size and rejecting empty input.
-     *
-     * @param in       the input stream
-     * @param maxBytes the maximum number of bytes to read
-     * @return the content read from the stream
-     * @throws IOException if reading the stream fails
-     */
-    private static byte[] readBounded(InputStream in, int maxBytes) throws IOException {
-        byte[] buffer = new byte[Math.min(16 * 1024, maxBytes)];
-        var out = new java.io.ByteArrayOutputStream();
-        int read;
-        while ((read = in.read(buffer)) >= 0) {
-            if (out.size() + read > maxBytes) {
-                throw new RssImportException(400, "RSS_FEED_INVALID", "RSS feed is larger than 5 MB");
-            }
-            out.write(buffer, 0, read);
-        }
-        if (out.size() == 0) {
-            throw new RssImportException(400, "RSS_FEED_INVALID", "RSS feed was empty");
-        }
-        return out.toByteArray();
+        return FeedImportSupport.importFilenameHint(title, url, fallbackStem, extension, "folge");
     }
 
     /**
@@ -394,61 +319,7 @@ public class PodcastImportService {
      * @return the SHA-256 hexadecimal digest of the canonical feed URL and trimmed GUID
      */
     static String importIdentity(String feedUrl, String guid) {
-        if (feedUrl == null || feedUrl.isBlank() || guid == null || guid.isBlank()) {
-            throw new RssImportException(
-                    400,
-                    "RSS_FEED_INVALID",
-                    "feedUrl and guid are required for an episode import"
-            );
-        }
-        try {
-            MessageDigest digest = MessageDigest.getInstance("SHA-256");
-            byte[] value = (canonicalFeedUrl(feedUrl) + "\n" + guid.trim()).getBytes(StandardCharsets.UTF_8);
-            return HexFormat.of().formatHex(digest.digest(value));
-        } catch (NoSuchAlgorithmException ex) {
-            throw new IllegalStateException("SHA-256 is not available", ex);
-        }
-    }
-
-    /**
-     * Canonicalizes a public HTTP or HTTPS feed URL for import identity generation.
-     *
-     * @param feedUrl the feed URL to validate and normalize
-     * @return the canonical ASCII representation of the feed URL
-     */
-    private static String canonicalFeedUrl(String feedUrl) {
-        try {
-            URI parsed = URI.create(feedUrl.trim());
-            String scheme = parsed.getScheme();
-            String host = parsed.getHost();
-            if (scheme == null || host == null || parsed.getUserInfo() != null) {
-                throw new IllegalArgumentException("feedUrl must be an absolute public URL");
-            }
-            String normalizedScheme = scheme.toLowerCase(Locale.ROOT);
-            if (!"http".equals(normalizedScheme) && !"https".equals(normalizedScheme)) {
-                throw new IllegalArgumentException("feedUrl must use http or https");
-            }
-            int port = parsed.getPort();
-            if (("http".equals(normalizedScheme) && port == 80)
-                    || ("https".equals(normalizedScheme) && port == 443)) {
-                port = -1;
-            }
-            String path = parsed.getRawPath();
-            if (path == null || path.isBlank()) {
-                path = "/";
-            }
-            return new URI(
-                    normalizedScheme,
-                    null,
-                    host.toLowerCase(Locale.ROOT),
-                    port,
-                    path,
-                    parsed.getRawQuery(),
-                    null
-            ).normalize().toASCIIString();
-        } catch (IllegalArgumentException | URISyntaxException ex) {
-            throw new RssImportException(400, "RSS_FEED_INVALID", "feedUrl is not valid", ex);
-        }
+        return FeedImportSupport.importIdentity(feedUrl, guid, "episode", RSS_IMPORT_ERRORS);
     }
 
     public record Preview(

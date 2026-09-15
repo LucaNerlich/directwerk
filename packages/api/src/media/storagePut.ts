@@ -27,6 +27,9 @@ export interface StoragePutTimeouts {
  * the source is only read as fast as the storage socket drains. This keeps the
  * upload fully streaming (no full-body buffering) and couples the browser
  * upload to the actual object-storage throughput.
+ *
+ * The presigned target is signed without `Content-Length` (see the API's
+ * `UploadService`), so chunked streaming is the supported wire shape.
  */
 export async function putStreamToStorage(
     uploadUrl: string,

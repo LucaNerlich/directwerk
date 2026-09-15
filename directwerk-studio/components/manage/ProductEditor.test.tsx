@@ -14,6 +14,7 @@ vi.mock('@directwerk/api/auth/useAuthRequired', () => ({
 vi.mock('@directwerk/api/tenant', () => ({getClientTenantHost: () => 'tenant.test'}))
 vi.mock('@/lib/api/subscriptionApi', () => ({
     createProduct: vi.fn(),
+    updateProduct: vi.fn(),
     deactivateProduct: vi.fn(),
     listProducts: vi.fn().mockResolvedValue([]),
     syncProductStripe: vi.fn(),

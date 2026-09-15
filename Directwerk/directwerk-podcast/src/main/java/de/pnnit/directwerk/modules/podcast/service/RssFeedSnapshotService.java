@@ -2,50 +2,34 @@ package de.pnnit.directwerk.modules.podcast.service;
 
 import de.pnnit.directwerk.config.DirectwerkConfig;
 import de.pnnit.directwerk.modules.core.entity.Tenant;
+import de.pnnit.directwerk.modules.core.repository.TenantRepository;
 import de.pnnit.directwerk.modules.core.service.ModuleGateService;
 import de.pnnit.directwerk.modules.core.service.TenantPublicHostResolver;
-import de.pnnit.directwerk.modules.core.repository.TenantRepository;
-import de.pnnit.directwerk.modules.digital.storage.FeedSnapshotRef;
+import de.pnnit.directwerk.modules.digital.service.FeedSnapshotCoordinator;
 import de.pnnit.directwerk.modules.digital.storage.FeedSnapshotStateStore;
 import de.pnnit.directwerk.modules.digital.storage.GeneratedFeedSnapshotStore;
 import de.pnnit.directwerk.modules.digital.storage.GeneratedFeedSnapshotStore.FeedDelivery;
-import de.pnnit.directwerk.modules.podcast.FeedBuilderModule;
 import de.pnnit.directwerk.modules.podcast.PodcastRssModule;
 import de.pnnit.directwerk.modules.podcast.entity.PodcastSeries;
 import de.pnnit.directwerk.modules.podcast.exception.SeriesNotFoundException;
 import de.pnnit.directwerk.modules.podcast.feed.SubscriberFeed;
 import de.pnnit.directwerk.modules.podcast.feed.SubscriberFeedRepository;
 import de.pnnit.directwerk.modules.podcast.repository.PodcastSeriesRepository;
-import java.net.URI;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Optional;
-import java.util.function.Supplier;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 /**
- * Podcast-specific RSS snapshot orchestration: decides which objects exist for a tenant
- * (tenant feed, series feeds, subscriber feeds) and builds their XML. The underlying object
- * storage mechanics (upload/withdraw/deliver, presence tracking) live in the shared
- * {@link GeneratedFeedSnapshotStore}/{@link FeedSnapshotStateStore} (directwerk-digital),
- * reused as-is by the article-feed stack.
+ * Podcast-specific facade over the shared
+ * {@link FeedSnapshotCoordinator}. Supplies only the podcast enumeration (tenant feed, series
+ * feeds, subscriber feeds); the reconciliation loop and key grammar live in directwerk-digital.
  */
-@Slf4j
 @Service
 public class RssFeedSnapshotService {
 
-    private static final String RSS_CONTENT_TYPE = "application/rss+xml; charset=UTF-8";
-
-    private final RssFeedService rssFeedService;
     private final TenantRepository tenantRepository;
-    private final TenantPublicHostResolver tenantPublicHostResolver;
     private final ModuleGateService moduleGateService;
     private final PodcastSeriesRepository podcastSeriesRepository;
-    private final SubscriberFeedRepository subscriberFeedRepository;
-    private final FeedSnapshotStateStore snapshotStateStore;
-    private final GeneratedFeedSnapshotStore snapshotStore;
-    private final DirectwerkConfig directwerkConfig;
+    private final FeedSnapshotCoordinator coordinator;
 
     public RssFeedSnapshotService(
             RssFeedService rssFeedService,
@@ -58,26 +42,29 @@ public class RssFeedSnapshotService {
             GeneratedFeedSnapshotStore snapshotStore,
             DirectwerkConfig directwerkConfig
     ) {
-        this.rssFeedService = rssFeedService;
         this.tenantRepository = tenantRepository;
-        this.tenantPublicHostResolver = tenantPublicHostResolver;
         this.moduleGateService = moduleGateService;
         this.podcastSeriesRepository = podcastSeriesRepository;
-        this.subscriberFeedRepository = subscriberFeedRepository;
-        this.snapshotStateStore = snapshotStateStore;
-        this.snapshotStore = snapshotStore;
-        this.directwerkConfig = directwerkConfig;
+        this.coordinator = new FeedSnapshotCoordinator(
+                tenantRepository,
+                tenantPublicHostResolver,
+                moduleGateService,
+                snapshotStateStore,
+                snapshotStore,
+                directwerkConfig,
+                new PodcastSnapshotKind(rssFeedService, podcastSeriesRepository, subscriberFeedRepository)
+        );
     }
 
     public FeedDelivery publicTenantFeed(Tenant tenant) {
-        return snapshotStore.deliver(publicTenantRef(tenant));
+        return coordinator.deliverTenant(tenant);
     }
 
     public FeedDelivery publicSeriesFeed(
             Tenant tenant,
             PodcastSeries series
     ) {
-        return snapshotStore.deliver(publicSeriesRef(tenant, series.getId()));
+        return coordinator.deliverCollection(tenant, series.getId());
     }
 
     /**
@@ -86,7 +73,7 @@ public class RssFeedSnapshotService {
      * duplicating the module check.
      */
     public Optional<String> publicRssTenantSlug(Long tenantId) {
-        if (!rssModuleActive(tenantId)) {
+        if (!moduleGateService.isModuleActive(tenantId, PodcastRssModule.KEY)) {
             return Optional.empty();
         }
         return tenantRepository.findById(tenantId).map(Tenant::getSlug);
@@ -99,212 +86,18 @@ public class RssFeedSnapshotService {
     public FeedDelivery publicSeriesFeed(Tenant tenant, String seriesSlug) {
         PodcastSeries series = podcastSeriesRepository.findByTenantIdAndSlug(tenant.getId(), seriesSlug)
                 .orElseThrow(() -> new SeriesNotFoundException(seriesSlug));
-        return snapshotStore.deliver(publicSeriesRef(tenant, series.getId()));
+        return coordinator.deliverCollection(tenant, series.getId());
     }
 
     public FeedDelivery privateFeed(Tenant tenant, SubscriberFeed feed) {
-        return snapshotStore.deliver(privateFeedRef(tenant, feed.getId()));
+        return coordinator.deliverPrivate(tenant, feed.getId());
     }
 
-    /**
-     * Reconciles S3 snapshots with the tenant's current RSS module and feed state.
-     * When {@code PODCAST_RSS} is off, every snapshot is deleted and public/private
-     * pull-zone URLs are purged. Disabled subscriber feeds are removed the same way.
-     *
-     * <p>Individual snapshot failures are isolated: every other feed is still refreshed and
-     * the previous S3 object stays live; the job then fails so the queue retries the whole
-     * tenant (uploads are idempotent).</p>
-     */
     public void refreshTenant(Long tenantId) {
-        Tenant tenant = tenantRepository.findById(tenantId)
-                .orElseThrow(() -> new IllegalArgumentException("Unknown tenant id: " + tenantId));
-        withdrawStalePrefixes(tenant);
-        if (!rssModuleActive(tenantId)) {
-            if (!directwerkConfig.isStorageEnabled()) {
-                snapshotStateStore.clearWritten(tenantId);
-                return;
-            }
-            withdrawTenant(tenant);
-            snapshotStateStore.clearWritten(tenantId);
-            return;
-        }
-        Origin origin = canonicalOrigin(tenantId);
-        List<String> failures = new ArrayList<>();
-
-        refreshQuietly(failures, publicTenantRef(tenant), () -> rssFeedService.buildPublicFeed(
-                tenant, null, origin.scheme(), origin.host(), origin.port()
-        ));
-        // Rebuild draft/unpublished series too: an old public object must become empty,
-        // rather than continue serving episodes from a previous published snapshot.
-        podcastSeriesRepository.findByTenantIdOrderByTitleAscIdAsc(tenantId)
-                .forEach(series -> refreshQuietly(failures, publicSeriesRef(tenant, series.getId()), () -> rssFeedService.buildPublicFeed(
-                        tenant, series, origin.scheme(), origin.host(), origin.port()
-                )));
-        boolean feedBuilderActive = feedBuilderModuleActive(tenantId);
-        subscriberFeedRepository.findByTenantIdOrderByIdAsc(tenantId)
-                .forEach(feed -> {
-                    boolean customFeedBlocked = !feed.isDefaultFeed() && !feedBuilderActive;
-                    if (feed.isEnabled() && !customFeedBlocked) {
-                        refreshQuietly(failures, privateFeedRef(tenant, feed.getId()), () -> rssFeedService.buildPrivateFeed(
-                                tenant, feed, origin.scheme(), origin.host(), origin.port()
-                        ));
-                    } else {
-                        withdrawQuietly(failures, privateFeedRef(tenant, feed.getId()));
-                    }
-                });
-        if (!failures.isEmpty()) {
-            throw new IllegalStateException(
-                    "Podcast RSS snapshot refresh had failures for tenant " + tenantId + ": "
-                            + String.join("; ", failures)
-            );
-        }
+        coordinator.refreshTenant(tenantId);
     }
 
-    /**
-     * Removes a private feed snapshot immediately (disable/delete). Safe when storage is off:
-     * only the presence row is cleared so a later refresh cannot serve a stale object.
-     */
     public void withdrawPrivateFeed(Tenant tenant, Long feedId) {
-        if (tenant == null || feedId == null) {
-            return;
-        }
-        if (!directwerkConfig.isStorageEnabled()) {
-            snapshotStateStore.clearWritten(tenant.getId(), RssSnapshotKind.PRIVATE_FEED.name(), feedId);
-            return;
-        }
-        snapshotStore.withdraw(privateFeedRef(tenant, feedId));
-    }
-
-    private void withdrawStalePrefixes(Tenant tenant) {
-        for (String staleSlug : snapshotStateStore.stalePrefixes(tenant.getId())) {
-            if (!staleSlug.equals(tenant.getSlug())) {
-                if (directwerkConfig.isStorageEnabled()) {
-                    withdrawTenantAtSlug(tenant, staleSlug);
-                }
-            }
-            snapshotStateStore.clearStalePrefix(tenant.getId(), staleSlug);
-        }
-    }
-
-    private void withdrawTenant(Tenant tenant) {
-        withdrawTenantAtSlug(tenant, tenant.getSlug());
-    }
-
-    private void withdrawTenantAtSlug(Tenant tenant, String slug) {
-        snapshotStore.withdraw(publicTenantRef(tenant.getId(), slug));
-        podcastSeriesRepository.findByTenantIdOrderByTitleAscIdAsc(tenant.getId())
-                .forEach(series -> snapshotStore.withdraw(publicSeriesRef(tenant.getId(), slug, series.getId())));
-        subscriberFeedRepository.findByTenantIdOrderByIdAsc(tenant.getId())
-                .forEach(feed -> snapshotStore.withdraw(privateFeedRef(tenant.getId(), slug, feed.getId())));
-    }
-
-    private void refresh(FeedSnapshotRef ref, Supplier<String> xmlSupplier) {
-        snapshotStore.upload(ref, xmlSupplier.get(), RSS_CONTENT_TYPE);
-    }
-
-    private void refreshQuietly(List<String> failures, FeedSnapshotRef ref, Supplier<String> xmlSupplier) {
-        try {
-            refresh(ref, xmlSupplier);
-        } catch (RuntimeException ex) {
-            log.warn("Podcast RSS snapshot refresh failed for {}: {}", ref.objectKey(), ex.getMessage());
-            failures.add(ref.objectKey() + ": " + ex.getMessage());
-        }
-    }
-
-    private void withdrawQuietly(List<String> failures, FeedSnapshotRef ref) {
-        try {
-            snapshotStore.withdraw(ref);
-        } catch (RuntimeException ex) {
-            log.warn("Podcast RSS snapshot withdraw failed for {}: {}", ref.objectKey(), ex.getMessage());
-            failures.add(ref.objectKey() + ": " + ex.getMessage());
-        }
-    }
-
-    private boolean rssModuleActive(Long tenantId) {
-        return moduleActive(tenantId, PodcastRssModule.KEY);
-    }
-
-    private boolean feedBuilderModuleActive(Long tenantId) {
-        return moduleActive(tenantId, FeedBuilderModule.KEY);
-    }
-
-    private boolean moduleActive(Long tenantId, String moduleKey) {
-        return moduleGateService.isModuleActive(tenantId, moduleKey);
-    }
-
-    private Origin canonicalOrigin(Long tenantId) {
-        return tenantPublicHostResolver.findPrimaryVerifiedHost(tenantId)
-                .map(host -> new Origin("https", host, 443))
-                .orElseGet(this::fallbackOrigin);
-    }
-
-    /**
-     * Feeds for tenants without a verified domain still need absolute enclosure URLs. Fall back
-     * to the studio base URL origin (same policy as {@code PublicContentUrlResolver}) instead of
-     * failing the whole refresh job.
-     */
-    private Origin fallbackOrigin() {
-        String studioBase = directwerkConfig.email() != null && directwerkConfig.email().studioBaseUrl() != null
-                ? directwerkConfig.email().studioBaseUrl().trim()
-                : "";
-        if (studioBase.isBlank()) {
-            return new Origin("https", "localhost", 443);
-        }
-        try {
-            URI uri = URI.create(studioBase);
-            String scheme = uri.getScheme();
-            String host = uri.getHost();
-            if (scheme == null || host == null || host.isBlank()
-                    || (!scheme.equalsIgnoreCase("http") && !scheme.equalsIgnoreCase("https"))) {
-                return new Origin("https", "localhost", 443);
-            }
-            String normalizedScheme = scheme.equalsIgnoreCase("http") ? "http" : "https";
-            int defaultPort = normalizedScheme.equals("http") ? 80 : 443;
-            int port = uri.getPort() >= 0 ? uri.getPort() : defaultPort;
-            return new Origin(normalizedScheme, host, port);
-        } catch (IllegalArgumentException ex) {
-            return new Origin("https", "localhost", 443);
-        }
-    }
-
-    private FeedSnapshotRef publicTenantRef(Tenant tenant) {
-        return publicTenantRef(tenant.getId(), tenant.getSlug());
-    }
-
-    private FeedSnapshotRef publicTenantRef(Long tenantId, String slug) {
-        return ref(tenantId, slug, "public/rss/podcast.xml", false, RssSnapshotKind.TENANT, FeedSnapshotStateStore.TENANT_SUBJECT_ID);
-    }
-
-    private FeedSnapshotRef publicSeriesRef(Tenant tenant, Long seriesId) {
-        return publicSeriesRef(tenant.getId(), tenant.getSlug(), seriesId);
-    }
-
-    private FeedSnapshotRef publicSeriesRef(Long tenantId, String slug, Long seriesId) {
-        return ref(tenantId, slug, "public/rss/series-" + seriesId + ".xml", false, RssSnapshotKind.SERIES, seriesId);
-    }
-
-    private FeedSnapshotRef privateFeedRef(Tenant tenant, Long feedId) {
-        return privateFeedRef(tenant.getId(), tenant.getSlug(), feedId);
-    }
-
-    private FeedSnapshotRef privateFeedRef(Long tenantId, String slug, Long feedId) {
-        return ref(tenantId, slug, "private/rss/feed-" + feedId + ".xml", true, RssSnapshotKind.PRIVATE_FEED, feedId);
-    }
-
-    private FeedSnapshotRef ref(
-            Long tenantId,
-            String tenantSlug,
-            String objectSuffix,
-            boolean privateFeed,
-            RssSnapshotKind kind,
-            long subjectId
-    ) {
-        if (tenantId == null || tenantId < 1) {
-            throw new IllegalArgumentException("Tenant must have a persistent id");
-        }
-        return new FeedSnapshotRef(tenantId, tenantSlug, tenantSlug + "/" + objectSuffix, privateFeed, kind.name(), subjectId);
-    }
-
-    private record Origin(String scheme, String host, int port) {
+        coordinator.withdrawPrivateFeed(tenant, feedId);
     }
 }

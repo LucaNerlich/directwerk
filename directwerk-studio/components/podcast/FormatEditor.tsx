@@ -13,9 +13,8 @@ import SectionHeader from '@directwerk/ui/components/section-header'
 import LevelSelect from '@/components/studio/LevelSelect'
 
 import Link from 'next/link'
-import Form from 'next/form'
 import {useRouter} from 'next/navigation'
-import {useActionState, useCallback, useEffect, useState} from 'react'
+import {useCallback, useEffect, useState} from 'react'
 
 import MediaLibraryPicker from '@/components/media/MediaLibraryPicker'
 import UploadProgress from '@/components/media/UploadProgress'
@@ -24,28 +23,73 @@ import {mediaLimitLabel} from '@/lib/media/limits'
 import {useCoverImageUpload} from '@/lib/media/useCoverImageUpload'
 
 import {createFormat, deactivateFormat, listFormats, updateFormat} from '@/lib/api/catalogApi'
-import type {FormatSummary} from '@directwerk/api/types'
+import type {
+    CreateFormatInput,
+    FormatSummary,
+    UpdateFormatInput,
+} from '@directwerk/api/types'
 import {getClientTenantHost} from '@directwerk/api/tenant'
-import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
+import {useResourceEditor} from '@/lib/hooks/useResourceEditor'
 
 interface FormatEditorProps {
     formatId?: number
 }
 
-interface FormatFormState {
-    error: string | null
-    success: string | null
+interface FormatFormValues {
+    name: string
+    slug: string
+    description: string
+    requiredLevelSortOrder: number | null
+    sortOrder: string
+    coverAssetId: number | null
 }
 
-const INITIAL_STATE: FormatFormState = {error: null, success: null}
+const INITIAL_VALUES: FormatFormValues = {
+    name: '',
+    slug: '',
+    description: '',
+    requiredLevelSortOrder: null,
+    sortOrder: '',
+    coverAssetId: null,
+}
 
-function parseOptionalInt(value: FormDataEntryValue | null): number | undefined {
-    const text = String(value ?? '').trim()
+function toFormatValues(format: FormatSummary): FormatFormValues {
+    return {
+        name: format.name,
+        slug: format.slug,
+        description: format.description ?? '',
+        requiredLevelSortOrder: format.requiredLevelSortOrder,
+        sortOrder: String(format.sortOrder),
+        coverAssetId: format.coverAssetId,
+    }
+}
+
+function parseOptionalSortOrder(value: string): number | undefined {
+    const text = value.trim()
     if (text.length === 0) {
         return undefined
     }
     const parsed = Number.parseInt(text, 10)
     return Number.isSafeInteger(parsed) && parsed >= 0 ? parsed : undefined
+}
+
+interface FormatFields {
+    name: string
+    description?: string
+    requiredLevelSortOrder?: number
+    sortOrder?: number
+    coverAssetId?: number
+}
+
+function formatFields(values: FormatFormValues): FormatFields {
+    const description = values.description.trim()
+    return {
+        name: values.name.trim(),
+        description: description.length > 0 ? description : undefined,
+        requiredLevelSortOrder: values.requiredLevelSortOrder ?? undefined,
+        sortOrder: parseOptionalSortOrder(values.sortOrder),
+        coverAssetId: values.coverAssetId ?? undefined,
+    }
 }
 
 /**
@@ -55,71 +99,65 @@ function parseOptionalInt(value: FormDataEntryValue | null): number | undefined 
  */
 export default function FormatEditor({formatId}: FormatEditorProps): React.JSX.Element {
     const router = useRouter()
-    const authRedirect = useAuthRequired()
-    const isNew = formatId === undefined
-    const [format, setFormat] = useState<FormatSummary | null>(null)
-    const [requiredLevelSortOrder, setRequiredLevelSortOrder] = useState<number | null>(null)
-    const [loadError, setLoadError] = useState<string | null>(null)
-    const [isLoading, setIsLoading] = useState(!isNew)
-    const [isDeactivating, setIsDeactivating] = useState(false)
-    const [deactivateError, setDeactivateError] = useState<string | null>(null)
-    const [reloadToken, setReloadToken] = useState(0)
-    const [coverAssetId, setCoverAssetId] = useState<number | null>(null)
+
+    const {
+        entity: format,
+        values,
+        setField,
+        isNew,
+        isLoading,
+        loadError,
+        reload,
+        isSaving,
+        isDeactivating,
+        errorMessage,
+        statusMessage,
+        reportError,
+        handleSubmit,
+        handleDeactivate,
+    } = useResourceEditor<
+        FormatSummary,
+        FormatFormValues,
+        CreateFormatInput,
+        UpdateFormatInput
+    >({
+        id: formatId,
+        load: listFormats,
+        create: createFormat,
+        update: updateFormat,
+        deactivate: deactivateFormat,
+        initialValues: INITIAL_VALUES,
+        toValues: toFormatValues,
+        validate: (current) =>
+            current.name.trim().length === 0 ? 'Name ist erforderlich.' : null,
+        buildCreate: (current) => ({
+            slug: current.slug.trim() || suggestSlug(current.name) || 'format',
+            ...formatFields(current),
+        }),
+        buildUpdate: (current) => formatFields(current),
+        redirectPath: (created) => `/podcast/formats/${created.id}`,
+        createSuccessMessage: (created) => `Format "${created.name}" angelegt.`,
+        updateSuccessMessage: 'Format gespeichert.',
+        messages: {
+            notFound: 'Format wurde nicht gefunden.',
+            loadFailed: 'Format konnte nicht geladen werden.',
+            saveFailed: 'Aktion fehlgeschlagen.',
+            deactivateFailed: 'Deaktivierung fehlgeschlagen.',
+        },
+    })
+
     const [coverPreviewUrl, setCoverPreviewUrl] = useState<string | null>(null)
     const [coverUploadError, setCoverUploadError] = useState<string | null>(null)
 
     useEffect(() => {
-        if (formatId === undefined) {
-            setIsLoading(false)
-            return
-        }
-        setIsLoading(true)
-        setLoadError(null)
-
-        const resolvedId = formatId
         let active = true
 
-        listFormats(getClientTenantHost())
-            .then((formats) => {
-                if (!active) {
-                    return
-                }
-                const found = formats.find((item) => item.id === resolvedId)
-                if (!found) {
-                    setLoadError('Format wurde nicht gefunden.')
-                    setIsLoading(false)
-                    return
-                }
-                setFormat(found)
-                setRequiredLevelSortOrder(found.requiredLevelSortOrder)
-                setCoverAssetId(found.coverAssetId)
-                setIsLoading(false)
-            })
-            .catch((error: unknown) => {
-                if (!active) {
-                    return
-                }
-                if (authRedirect(error)) return
-                setLoadError(
-                    error instanceof Error ? error.message : 'Format konnte nicht geladen werden.',
-                )
-                setIsLoading(false)
-            })
-
-        return () => {
-            active = false
-        }
-    }, [formatId, reloadToken, router])
-
-    useEffect(() => {
-        let active = true
-
-        if (coverAssetId === null) {
+        if (values.coverAssetId === null) {
             setCoverPreviewUrl(null)
             return
         }
 
-        getMediaPreviewUrl(getClientTenantHost(), coverAssetId)
+        getMediaPreviewUrl(getClientTenantHost(), values.coverAssetId)
             .then((url) => {
                 if (active) {
                     setCoverPreviewUrl(url)
@@ -134,16 +172,25 @@ export default function FormatEditor({formatId}: FormatEditorProps): React.JSX.E
         return () => {
             active = false
         }
-    }, [coverAssetId])
+    }, [values.coverAssetId])
+
+    const handleCoverUploaded = useCallback(
+        (assetId: number) => {
+            setField('coverAssetId', assetId)
+        },
+        [setField],
+    )
+
+    const handleCoverError = useCallback(
+        (error: unknown) => {
+            reportError(error, 'Cover-Upload fehlgeschlagen.')
+        },
+        [reportError],
+    )
 
     const coverUpload = useCoverImageUpload({
-        onUploaded: setCoverAssetId,
-        onError: (error) => {
-            if (authRedirect(error)) return
-            setCoverUploadError(
-                error instanceof Error ? error.message : 'Cover-Upload fehlgeschlagen.',
-            )
-        },
+        onUploaded: handleCoverUploaded,
+        onError: handleCoverError,
     })
 
     const handleCoverUpload = useCallback(
@@ -153,77 +200,6 @@ export default function FormatEditor({formatId}: FormatEditorProps): React.JSX.E
         },
         [coverUpload],
     )
-
-    async function saveAction(
-        _previous: FormatFormState,
-        formData: FormData,
-    ): Promise<FormatFormState> {
-        const name = String(formData.get('name') ?? '').trim()
-        const slugInput = String(formData.get('slug') ?? '').trim()
-        const description = String(formData.get('description') ?? '').trim()
-        const requiredLevelSortOrder = parseOptionalInt(formData.get('requiredLevelSortOrder'))
-        const sortOrder = parseOptionalInt(formData.get('sortOrder'))
-
-        if (name.length === 0) {
-            return {error: 'Name ist erforderlich.', success: null}
-        }
-
-        const host = getClientTenantHost()
-
-        try {
-            if (isNew) {
-                const resolvedSlug = slugInput || suggestSlug(name) || 'format'
-                const created = await createFormat(host, {
-                    slug: resolvedSlug,
-                    name,
-                    description: description.length > 0 ? description : undefined,
-                    requiredLevelSortOrder,
-                    sortOrder,
-                    coverAssetId: coverAssetId ?? undefined,
-                })
-                router.replace(`/podcast/formats/${created.id}`)
-                return {error: null, success: `Format "${created.name}" angelegt.`}
-            }
-
-            const updated = await updateFormat(host, formatId, {
-                name,
-                description: description.length > 0 ? description : undefined,
-                requiredLevelSortOrder,
-                sortOrder,
-                coverAssetId: coverAssetId ?? undefined,
-            })
-            setFormat(updated)
-            setCoverAssetId(updated.coverAssetId)
-            return {error: null, success: 'Format gespeichert.'}
-        } catch (error) {
-            if (authRedirect(error)) return INITIAL_STATE
-            return {
-                error: error instanceof Error ? error.message : 'Aktion fehlgeschlagen.',
-                success: null,
-            }
-        }
-    }
-
-    const [state, formAction, pending] = useActionState(saveAction, INITIAL_STATE)
-
-    async function handleDeactivate(): Promise<void> {
-        if (formatId === undefined) {
-            return
-        }
-        setIsDeactivating(true)
-        setDeactivateError(null)
-        try {
-            const updated = await deactivateFormat(getClientTenantHost(), formatId)
-            setFormat(updated)
-        } catch (error) {
-            if (authRedirect(error)) return
-            setDeactivateError(
-                error instanceof Error ? error.message : 'Deaktivierung fehlgeschlagen.',
-            )
-        } finally {
-            setIsDeactivating(false)
-        }
-    }
 
     if (isLoading) {
         return <p>Laden…</p>
@@ -236,7 +212,7 @@ export default function FormatEditor({formatId}: FormatEditorProps): React.JSX.E
                     <AlertDescription>{loadError}</AlertDescription>
                     <Button
                         className="mt-3"
-                        onClick={() => setReloadToken((value) => value + 1)}
+                        onClick={reload}
                         type="button"
                         variant="outline"
                     >
@@ -263,21 +239,19 @@ export default function FormatEditor({formatId}: FormatEditorProps): React.JSX.E
                 title={isNew ? 'Neues Format' : 'Format bearbeiten'}
             />
 
-            {state.error ? (
+            {errorMessage ? (
                 <Alert variant="destructive">
-                    <AlertDescription>{state.error}</AlertDescription>
+                    <AlertDescription>{errorMessage}</AlertDescription>
                 </Alert>
             ) : null}
-            {deactivateError ? (
-                <Alert variant="destructive">
-                    <AlertDescription>{deactivateError}</AlertDescription>
-                </Alert>
-            ) : null}
-            {state.success ? (
-                <p className="text-sm text-muted-foreground" role="status">{state.success}</p>
+            {statusMessage ? (
+                <p className="text-sm text-muted-foreground" role="status">{statusMessage}</p>
             ) : null}
 
-            <Form action={formAction} className="grid w-full max-w-2xl gap-6">
+            <form
+                className="grid w-full max-w-2xl gap-6"
+                onSubmit={(event) => void handleSubmit(event)}
+            >
                 <section aria-labelledby="format-basics-heading" className="grid gap-4">
                     <SectionHeader
                         description="Name und URL-Kennung. Der Slug kann nach dem Anlegen nicht mehr geändert werden."
@@ -287,25 +261,25 @@ export default function FormatEditor({formatId}: FormatEditorProps): React.JSX.E
                     <div className="grid gap-2">
                         <label className="text-sm font-medium" htmlFor="format-name">Name</label>
                         <Input
-                            defaultValue={format?.name ?? ''}
                             id="format-name"
                             maxLength={255}
-                            name="name"
+                            onChange={(event) => setField('name', event.target.value)}
                             required
                             type="text"
+                            value={values.name}
                         />
                     </div>
                     <div className="grid gap-2">
                         <label className="text-sm font-medium" htmlFor="format-slug">Slug</label>
                         <Input
-                            defaultValue={format?.slug ?? ''}
                             disabled={!isNew}
                             id="format-slug"
                             maxLength={64}
-                            name="slug"
+                            onChange={(event) => setField('slug', event.target.value)}
                             pattern={HTML_SLUG_PATTERN}
                             required={isNew}
                             type="text"
+                            value={values.slug}
                         />
                         <p className="text-xs text-muted-foreground">
                             Kleinbuchstaben, Zahlen und Bindestriche.
@@ -315,10 +289,10 @@ export default function FormatEditor({formatId}: FormatEditorProps): React.JSX.E
                     <div className="grid gap-2">
                         <label className="text-sm font-medium" htmlFor="format-description">Beschreibung</label>
                         <Textarea
-                            defaultValue={format?.description ?? ''}
                             id="format-description"
-                            name="description"
+                            onChange={(event) => setField('description', event.target.value)}
                             rows={4}
+                            value={values.description}
                         />
                         <p className="text-xs text-muted-foreground">
                             Optional. Hilft dir, Formate auseinanderzuhalten.
@@ -337,7 +311,7 @@ export default function FormatEditor({formatId}: FormatEditorProps): React.JSX.E
                     <Input
                         accept="image/png,image/jpeg,image/webp"
                         aria-label="Titelbild hochladen"
-                        disabled={pending || coverUpload.isUploading}
+                        disabled={isSaving || coverUpload.isUploading}
                         onChange={(event) => {
                             const file = event.target.files?.[0] ?? null
                             void handleCoverUpload(file)
@@ -350,11 +324,11 @@ export default function FormatEditor({formatId}: FormatEditorProps): React.JSX.E
                     </span>
                     <MediaLibraryPicker
                         assetType="IMAGE"
-                        disabled={pending || coverUpload.isUploading}
+                        disabled={isSaving || coverUpload.isUploading}
                         label="Titelbild aus Mediathek"
                         onAuthRequired={() => router.replace('/login')}
-                        onSelect={(asset) => setCoverAssetId(asset.id)}
-                        selectedId={coverAssetId}
+                        onSelect={(asset) => setField('coverAssetId', asset.id)}
+                        selectedId={values.coverAssetId}
                     />
                     {coverUpload.uploadProgress !== null ? (
                         <UploadProgress file={coverUpload.uploadProgress.file} progress={coverUpload.uploadProgress.progress} />
@@ -375,13 +349,8 @@ export default function FormatEditor({formatId}: FormatEditorProps): React.JSX.E
                         <label className="text-sm font-medium" htmlFor="format-required-level">Mindest-Stufe</label>
                         <LevelSelect
                             id="format-required-level"
-                            onChange={setRequiredLevelSortOrder}
-                            value={requiredLevelSortOrder}
-                        />
-                        <input
-                            name="requiredLevelSortOrder"
-                            type="hidden"
-                            value={requiredLevelSortOrder ?? ''}
+                            onChange={(value) => setField('requiredLevelSortOrder', value)}
+                            value={values.requiredLevelSortOrder}
                         />
                         <span className="mt-1 block text-sm text-muted-foreground">
                             Niedrigste Stufe, die auf Folgen dieses Formats zugreifen darf.
@@ -391,11 +360,11 @@ export default function FormatEditor({formatId}: FormatEditorProps): React.JSX.E
                     <div className="grid gap-2">
                         <label className="text-sm font-medium" htmlFor="format-sort-order">Anzeigereihenfolge in der Formatauswahl</label>
                         <Input
-                            defaultValue={format?.sortOrder ?? ''}
                             id="format-sort-order"
                             min={0}
-                            name="sortOrder"
+                            onChange={(event) => setField('sortOrder', event.target.value)}
                             type="number"
+                            value={values.sortOrder}
                         />
                         <span className="mt-1 block text-sm text-muted-foreground">
                             Legt fest, an welcher Position dieses Format in der Format-Auswahl beim
@@ -404,8 +373,8 @@ export default function FormatEditor({formatId}: FormatEditorProps): React.JSX.E
                     </div>
                 </section>
                 <div className="flex flex-wrap gap-2">
-                    <Button disabled={pending || coverUpload.isUploading} type="submit">
-                        {pending ? 'Speichert…' : 'Speichern'}
+                    <Button disabled={isSaving || coverUpload.isUploading} type="submit">
+                        {isSaving ? 'Speichert…' : 'Speichern'}
                     </Button>
                     {!isNew && format?.active ? (
                         <Button
@@ -418,7 +387,7 @@ export default function FormatEditor({formatId}: FormatEditorProps): React.JSX.E
                         </Button>
                     ) : null}
                 </div>
-            </Form>
+            </form>
         </PageStack>
     )
 }

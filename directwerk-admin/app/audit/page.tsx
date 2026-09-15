@@ -1,8 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import {useRouter} from 'next/navigation'
-import {useCallback, useEffect, useRef, useState} from 'react'
+import {useState} from 'react'
 
 import {Alert, AlertDescription} from '@directwerk/ui/components/alert'
 import {Badge} from '@directwerk/ui/components/badge'
@@ -25,8 +24,8 @@ import {
 
 import {AdminLoadingText, TableSkeleton} from '@/components/AdminLoading'
 import {getPlatformAuditPage} from '@/lib/api/client'
-import {AUTH_REQUIRED} from '@directwerk/api/constants'
-import type {PlatformAuditPage, PlatformAuditQuery} from '@directwerk/api/types'
+import {usePlatformQuery} from '@/lib/api/usePlatformQuery'
+import type {PlatformAuditQuery} from '@directwerk/api/types'
 
 const DEFAULT_QUERY: PlatformAuditQuery = {
     page: 0,
@@ -38,59 +37,19 @@ function formatDetails(details: Record<string, unknown>): string {
 }
 
 export default function AuditPage(): React.JSX.Element {
-    const router = useRouter()
     const [query, setQuery] = useState<PlatformAuditQuery>(DEFAULT_QUERY)
-    const [page, setPage] = useState<PlatformAuditPage | null>(null)
     const [expandedId, setExpandedId] = useState<number | null>(null)
-    const [error, setError] = useState<string | null>(null)
     const [filterError, setFilterError] = useState<string | null>(null)
-    const [isLoading, setIsLoading] = useState(true)
-    const [reloadKey, setReloadKey] = useState(0)
-    const latestRequestId = useRef(0)
 
-    const loadAudit = useCallback(
-        (nextQuery: PlatformAuditQuery) => {
-            const requestId = ++latestRequestId.current
-            setError(null)
-            setIsLoading(true)
-
-            getPlatformAuditPage(nextQuery)
-                .then((result) => {
-                    if (requestId !== latestRequestId.current) {
-                        return
-                    }
-                    setPage(result)
-                    setIsLoading(false)
-                })
-                .catch((requestError: unknown) => {
-                    if (requestId !== latestRequestId.current) {
-                        return
-                    }
-                    if (
-                        requestError instanceof Error &&
-                        requestError.message === AUTH_REQUIRED
-                    ) {
-                        router.replace('/login')
-                        return
-                    }
-
-                    setPage(null)
-                    setError('Could not load audit log.')
-                    setIsLoading(false)
-                })
-
-            return () => {
-                if (requestId === latestRequestId.current) {
-                    latestRequestId.current += 1
-                }
-            }
-        },
-        [router],
-    )
-
-    useEffect(() => {
-        return loadAudit(query)
-    }, [loadAudit, query, reloadKey])
+    const {
+        data: page,
+        error,
+        isLoading,
+        reload,
+    } = usePlatformQuery(() => getPlatformAuditPage(query), {
+        fallbackError: 'Could not load audit log.',
+        queryKey: JSON.stringify(query),
+    })
 
     function applyFilters(formData: FormData): void {
         const tenantIdRaw = String(formData.get('tenantId') ?? '').trim()
@@ -225,7 +184,7 @@ export default function AuditPage(): React.JSX.Element {
                         <AlertDescription>{error}</AlertDescription>
                     </Alert>
                     <div>
-                        <Button onClick={() => setReloadKey((value) => value + 1)} type="button" variant="outline">
+                        <Button onClick={() => reload()} type="button" variant="outline">
                             Retry
                         </Button>
                     </div>
@@ -239,7 +198,7 @@ export default function AuditPage(): React.JSX.Element {
                 </>
             ) : null}
 
-            {!isLoading && page ? (
+            {!error && !isLoading && page ? (
                 <>
                     <p aria-live="polite" className="text-sm text-muted-foreground">
                         Showing {page.content.length} of {page.totalElements} events

@@ -1,13 +1,11 @@
 package de.pnnit.directwerk.modules.core.service;
 
-import de.pnnit.directwerk.config.DirectwerkConfig;
-import de.pnnit.directwerk.modules.core.util.EnvelopeCipher;
+import de.pnnit.directwerk.modules.core.util.EnvelopeTokenProtector;
 import org.springframework.stereotype.Component;
-import org.springframework.util.StringUtils;
 
 /**
- * Encrypts feed bearer tokens (podcast subscriber feeds, article feeds) at rest
- * with AES-256-GCM via {@link EnvelopeCipher}.
+ * Thin adapter over {@link EnvelopeTokenProtector} for feed bearer tokens
+ * (podcast subscriber feeds, article feeds).
  *
  * <p>Raw tokens must remain recoverable server-side: background snapshot jobs embed
  * them into enclosure URLs and API views return them to owners, so hashing (as used
@@ -21,31 +19,22 @@ import org.springframework.util.StringUtils;
 @Component
 public class FeedTokenProtector {
 
-    private final DirectwerkConfig directwerkConfig;
+    private final EnvelopeTokenProtector envelopeTokenProtector;
 
-    public FeedTokenProtector(DirectwerkConfig directwerkConfig) {
-        this.directwerkConfig = directwerkConfig;
+    public FeedTokenProtector(EnvelopeTokenProtector envelopeTokenProtector) {
+        this.envelopeTokenProtector = envelopeTokenProtector;
     }
 
     public String protect(String rawToken) {
-        return EnvelopeCipher.encrypt(rawToken, keyMaterial());
+        return envelopeTokenProtector.protect(rawToken);
     }
 
     /**
      * @param storedToken the persisted {@code feed_token} value
      * @return the cleartext bearer token; legacy unprefixed rows pass through
-     *         (see {@link EnvelopeCipher#decrypt}) so pre-migration rows keep working
+     *         (see the shared protector's reveal) so pre-migration rows keep working
      */
     public String reveal(String storedToken) {
-        return EnvelopeCipher.decrypt(storedToken, keyMaterial());
-    }
-
-    private String keyMaterial() {
-        String platformSecret = directwerkConfig.security().platformClientSecret();
-        String tenantSecret = directwerkConfig.security().tenantClientSecret();
-        if (!StringUtils.hasText(platformSecret) || !StringUtils.hasText(tenantSecret)) {
-            throw new IllegalStateException("OAuth client secrets must be configured for feed token protection");
-        }
-        return platformSecret + "|" + tenantSecret;
+        return envelopeTokenProtector.reveal(storedToken);
     }
 }

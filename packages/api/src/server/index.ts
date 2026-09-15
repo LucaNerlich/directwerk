@@ -5,15 +5,32 @@ export {
     type SiteConfigServerFetcher,
 } from './fetchSiteConfigServer'
 export {
+    createPlatformFetchUpstream,
+    createPlatformRefreshRoute,
+    createPlatformTokenRoute,
     createTenantLoginRoute,
     createTenantPassthroughAuthRoute,
     createTenantRefreshRoute,
     type PassthroughAuthRouteCodes,
+    type PlatformAuthGate,
+    type PlatformAuthGateResult,
+    type PlatformInputValidation,
+    type PlatformRefreshRouteConfig,
+    type PlatformRefreshRouteMessages,
+    type PlatformTokenRouteConfig,
+    type PlatformTokenRouteMessages,
+    type PlatformUpstreamRequest,
     type TenantAuthRouteConfig,
     type TenantLoginRouteConfig,
     type TenantOAuthFetchRequest,
     type TenantPassthroughAuthRouteConfig,
 } from './authRoutes'
+export {
+    readAuthJsonBody,
+    type AuthJsonBodyMessages,
+    type AuthJsonBodyOptions,
+    type AuthJsonBodyResult,
+} from './authBody'
 export {
     createServerTransport,
     type HttpMethod,

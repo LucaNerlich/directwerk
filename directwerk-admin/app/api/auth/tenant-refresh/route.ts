@@ -1,64 +1,44 @@
-import {safeUpstreamResponse} from '@directwerk/api/server'
-import {requestTenantRefresh} from '@/lib/server/api'
-import {parseTenantHost} from '@directwerk/api/proxy'
-import {TENANT_HOST_COOKIE, TENANT_REFRESH_COOKIE} from '@/lib/server/api'
-import {readRequestCookie, sealRefreshToken} from '@directwerk/api/auth/cookies'
+import {createPlatformRefreshRoute} from '@directwerk/api/server'
+import {jsonError, parseTenantHost} from '@directwerk/api/proxy'
+import {readRequestCookie} from '@directwerk/api/auth/cookies'
+import {
+    requestTenantRefresh,
+    TENANT_HOST_COOKIE,
+    TENANT_REFRESH_COOKIE,
+} from '@/lib/server/api'
 import {resolvePlatformAuthorization} from '@/lib/server/platform'
 
-export async function POST(request: Request): Promise<Response> {
-    // Tenant refresh requires a live platform admin session so a stolen
-    // tenant refresh token does not outlive platform logout/expiry.
-    const platform = await resolvePlatformAuthorization()
-    if (!platform.ok) {
-        return Response.json(
-            {error: 'A platform admin session is required.'},
-            {status: platform.status}
-        )
-    }
-
+/** Reads the validated `X-Tenant-Host`; `preflight` has already rejected null. */
+function requireTenantHost(request: Request): string {
     const tenantHost = parseTenantHost(request.headers.get('x-tenant-host'))
     if (tenantHost === null) {
-        return Response.json(
-            {error: 'A valid tenant host is required.'},
-            {status: 400}
-        )
+        throw new Error('A valid tenant host is required.')
     }
-
-    // Replay-scope binding: the refresh cookie was issued for the login host.
-    const boundHost = readRequestCookie(request, TENANT_HOST_COOKIE)
-    if (boundHost !== null && boundHost !== tenantHost) {
-        return Response.json(
-            {error: 'Tenant session does not match this host.'},
-            {status: 401}
-        )
-    }
-
-    const refreshToken = readRequestCookie(request, TENANT_REFRESH_COOKIE)
-    if (!refreshToken) {
-        return Response.json(
-            {error: 'A valid refresh token is required.'},
-            {status: 401}
-        )
-    }
-
-    try {
-        const upstream = await requestTenantRefresh(refreshToken, tenantHost)
-        const sealed = await sealRefreshToken(
-            await safeUpstreamResponse(upstream),
-            TENANT_REFRESH_COOKIE
-        )
-        const headers = new Headers(sealed.headers)
-        headers.set('Cache-Control', 'no-store')
-        headers.set('Pragma', 'no-cache')
-        return new Response(sealed.body, {
-            status: sealed.status,
-            statusText: sealed.statusText,
-            headers,
-        })
-    } catch {
-        return Response.json(
-            {error: 'Authentication service is unavailable.'},
-            {status: 502}
-        )
-    }
+    return tenantHost
 }
+
+export const POST = createPlatformRefreshRoute({
+    refreshCookie: TENANT_REFRESH_COOKIE,
+    // Tenant refresh requires a live platform admin session so a stolen
+    // tenant refresh token does not outlive platform logout/expiry.
+    gate: async () => {
+        const platform = await resolvePlatformAuthorization()
+        return platform.ok ? {ok: true} : {ok: false, status: platform.status}
+    },
+    preflight: (request) => {
+        const tenantHost = parseTenantHost(request.headers.get('x-tenant-host'))
+        if (tenantHost === null) {
+            return jsonError('A valid tenant host is required.', 400)
+        }
+
+        // Replay-scope binding: the refresh cookie was issued for the login host.
+        const boundHost = readRequestCookie(request, TENANT_HOST_COOKIE)
+        if (boundHost !== null && boundHost !== tenantHost) {
+            return jsonError('Tenant session does not match this host.', 401)
+        }
+
+        return null
+    },
+    upstream: (refreshToken, request) =>
+        requestTenantRefresh(refreshToken, requireTenantHost(request)),
+})

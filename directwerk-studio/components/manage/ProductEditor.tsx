@@ -16,204 +16,156 @@ import PageStack from '@directwerk/ui/components/page-stack'
 import {Skeleton} from '@directwerk/ui/components/skeleton'
 
 import Link from 'next/link'
-import {useRouter} from 'next/navigation'
-import {useCallback, useEffect, useState, type FormEvent} from 'react'
 
 import ProductRulesEditor from '@/components/manage/ProductRulesEditor'
 import {parsePriceEurosToCents} from '@/lib/manage/productPrice'
 import {createProduct, deactivateProduct, listProducts, syncProductStripe, updateProduct} from '@/lib/api/subscriptionApi'
-import type {BillingInterval, OfferingType, SubscriptionProduct} from '@directwerk/api/types'
+import type {
+    BillingInterval,
+    CreateProductInput,
+    OfferingType,
+    SubscriptionProduct,
+    UpdateProductInput,
+} from '@directwerk/api/types'
 import {formatMoney} from '@directwerk/api/format'
 import {getClientTenantHost} from '@directwerk/api/tenant'
-import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
+import {useResourceEditor} from '@/lib/hooks/useResourceEditor'
 
 interface ProductEditorProps {
     productId?: number
 }
 
+interface ProductFormValues {
+    title: string
+    slug: string
+    sortOrder: string
+    offeringType: OfferingType
+    description: string
+    priceEuros: string
+    currency: string
+    billingInterval: BillingInterval
+    active: boolean
+}
+
+const INITIAL_VALUES: ProductFormValues = {
+    title: '',
+    slug: '',
+    sortOrder: '0',
+    offeringType: 'LEVEL',
+    description: '',
+    priceEuros: '',
+    currency: 'EUR',
+    billingInterval: 'MONTH',
+    active: true,
+}
+
+function toProductValues(product: SubscriptionProduct): ProductFormValues {
+    return {
+        title: product.title,
+        slug: product.slug,
+        sortOrder: String(product.sortOrder),
+        offeringType: product.offeringType,
+        description: product.description ?? '',
+        priceEuros: product.priceCents !== null ? (product.priceCents / 100).toString() : '',
+        currency: product.currency,
+        billingInterval: product.billingInterval,
+        active: product.active,
+    }
+}
+
+function resolveSlug(values: ProductFormValues): string {
+    return values.slug.trim() || suggestSlug(values.title) || 'produkt'
+}
+
+function parseSortOrder(values: ProductFormValues): number {
+    const parsed = Number.parseInt(values.sortOrder, 10)
+    return Number.isSafeInteger(parsed) && parsed >= 0 ? parsed : 0
+}
+
+function parsePrice(values: ProductFormValues): number | undefined {
+    const parsed = parsePriceEurosToCents(values.priceEuros)
+    return parsed.valid ? parsed.priceCents : undefined
+}
+
+function validatePrice(values: ProductFormValues): string | null {
+    const parsed = parsePriceEurosToCents(values.priceEuros)
+    return parsed.valid ? null : parsed.message
+}
+
 export default function ProductEditor({
     productId,
 }: ProductEditorProps): React.JSX.Element {
-    const router = useRouter()
-    const authRedirect = useAuthRequired()
-    const isNew = productId === undefined
-    const [title, setTitle] = useState('')
-    const [slug, setSlug] = useState('')
-    const [sortOrder, setSortOrder] = useState('0')
-    const [offeringType, setOfferingType] = useState<OfferingType>('LEVEL')
-    const [description, setDescription] = useState('')
-    const [priceEuros, setPriceEuros] = useState('')
-    const [currency, setCurrency] = useState('EUR')
-    const [billingInterval, setBillingInterval] = useState<BillingInterval>('MONTH')
-    const [active, setActive] = useState(true)
-    const [product, setProduct] = useState<SubscriptionProduct | null>(null)
-    const [errorMessage, setErrorMessage] = useState<string | null>(null)
-    const [statusMessage, setStatusMessage] = useState<string | null>(null)
-    const [isLoading, setIsLoading] = useState(!isNew)
-    const [isSaving, setIsSaving] = useState(false)
-
-    useEffect(() => {
-        if (productId === undefined) {
-            setIsLoading(false)
-            return
-        }
-
-        const resolvedId = productId
-        let activeLoad = true
-
-        listProducts(getClientTenantHost())
-            .then((products) => {
-                if (!activeLoad) {
-                    return
-                }
-                const found = products.find((item) => item.id === resolvedId)
-                if (!found) {
-                    setErrorMessage('Produkt wurde nicht gefunden.')
-                    setIsLoading(false)
-                    return
-                }
-                setProduct(found)
-                setTitle(found.title)
-                setSlug(found.slug)
-                setSortOrder(String(found.sortOrder))
-                setOfferingType(found.offeringType)
-                setDescription(found.description ?? '')
-                setPriceEuros(
-                    found.priceCents !== null ? (found.priceCents / 100).toString() : '',
-                )
-                setCurrency(found.currency)
-                setBillingInterval(found.billingInterval)
-                setActive(found.active)
-                setIsLoading(false)
-            })
-            .catch((error: unknown) => {
-                if (!activeLoad) {
-                    return
-                }
-                if (authRedirect(error)) return
-                setErrorMessage(
-                    error instanceof Error
-                        ? error.message
-                        : 'Produkt konnte nicht geladen werden.',
-                )
-                setIsLoading(false)
-            })
-
-        return () => {
-            activeLoad = false
-        }
-    }, [productId, router])
-
-    const handleAuthError = useCallback(
-        (error: unknown) => {
-            if (authRedirect(error)) return
-            setErrorMessage(
-                error instanceof Error ? error.message : 'Aktion fehlgeschlagen.',
-            )
+    const {
+        entity: product,
+        values,
+        setField,
+        isNew,
+        isLoading,
+        isSaving,
+        isDeactivating,
+        errorMessage,
+        statusMessage,
+        handleSubmit,
+        handleDeactivate,
+        runAction,
+        applyEntity,
+        setStatusMessage,
+    } = useResourceEditor<
+        SubscriptionProduct,
+        ProductFormValues,
+        CreateProductInput,
+        UpdateProductInput
+    >({
+        id: productId,
+        load: listProducts,
+        create: createProduct,
+        update: updateProduct,
+        deactivate: deactivateProduct,
+        initialValues: INITIAL_VALUES,
+        toValues: toProductValues,
+        validate: validatePrice,
+        buildCreate: (current) => ({
+            title: current.title.trim() || 'Ohne Titel',
+            slug: resolveSlug(current),
+            sortOrder: parseSortOrder(current),
+            offeringType: current.offeringType,
+            description: current.description.trim() || undefined,
+            priceCents: parsePrice(current),
+            currency: current.currency.trim().toUpperCase() || 'EUR',
+            billingInterval: current.billingInterval,
+        }),
+        buildUpdate: (current) => ({
+            title: current.title.trim() || 'Ohne Titel',
+            sortOrder: parseSortOrder(current),
+            active: current.active,
+            description: current.description.trim(),
+            priceCents: parsePrice(current),
+            currency: current.currency.trim().toUpperCase() || 'EUR',
+            billingInterval: current.billingInterval,
+        }),
+        redirectPath: (created) => `/manage/products/${created.id}`,
+        updateSuccessMessage: 'Produkt gespeichert.',
+        deactivateSuccessMessage: 'Produkt deaktiviert.',
+        messages: {
+            notFound: 'Produkt wurde nicht gefunden.',
+            loadFailed: 'Produkt konnte nicht geladen werden.',
+            saveFailed: 'Aktion fehlgeschlagen.',
+            deactivateFailed: 'Deaktivierung fehlgeschlagen.',
         },
-        [router],
-    )
-
-    async function handleSubmit(event: FormEvent<HTMLFormElement>): Promise<void> {
-        event.preventDefault()
-        setIsSaving(true)
-        setErrorMessage(null)
-        setStatusMessage(null)
-
-        const host = getClientTenantHost()
-        const resolvedSlug = slug.trim() || suggestSlug(title) || 'produkt'
-        const parsedSort = Number.parseInt(sortOrder, 10)
-        const nextSortOrder = Number.isSafeInteger(parsedSort) && parsedSort >= 0
-            ? parsedSort
-            : 0
-        const parsedPrice = parsePriceEurosToCents(priceEuros)
-        if (!parsedPrice.valid) {
-            setErrorMessage(parsedPrice.message)
-            setIsSaving(false)
-            return
-        }
-        const priceCents = parsedPrice.priceCents
-
-        try {
-            if (isNew) {
-                const created = await createProduct(host, {
-                    title: title.trim() || 'Ohne Titel',
-                    slug: resolvedSlug,
-                    sortOrder: nextSortOrder,
-                    offeringType,
-                    description: description.trim() || undefined,
-                    priceCents,
-                    currency: currency.trim().toUpperCase() || 'EUR',
-                    billingInterval,
-                })
-                router.replace(`/manage/products/${created.id}`)
-                return
-            }
-
-            const updated = await updateProduct(host, productId, {
-                title: title.trim() || 'Ohne Titel',
-                sortOrder: nextSortOrder,
-                active,
-                description: description.trim(),
-                priceCents,
-                currency: currency.trim().toUpperCase() || 'EUR',
-                billingInterval,
-            })
-            setProduct(updated)
-            setStatusMessage('Produkt gespeichert.')
-        } catch (error) {
-            if (authRedirect(error)) return
-            setErrorMessage(
-                error instanceof Error ? error.message : 'Aktion fehlgeschlagen.',
-            )
-        } finally {
-            setIsSaving(false)
-        }
-    }
+    })
 
     async function handleSyncStripe(): Promise<void> {
         if (productId === undefined) {
             return
         }
-        setIsSaving(true)
-        setErrorMessage(null)
-        try {
-            const updated = await syncProductStripe(getClientTenantHost(), productId)
-            setProduct(updated)
-            setStatusMessage('Produkt mit Stripe synchronisiert.')
-        } catch (error) {
-            if (authRedirect(error)) return
-            setErrorMessage(
-                error instanceof Error ? error.message : 'Stripe-Synchronisation fehlgeschlagen.',
-            )
-        } finally {
-            setIsSaving(false)
-        }
-    }
-
-    async function handleDeactivate(): Promise<void> {
-        if (productId === undefined) {
-            return
-        }
-
-        setIsSaving(true)
-        setErrorMessage(null)
-        try {
-            const updated = await deactivateProduct(
-                getClientTenantHost(),
-                productId,
-            )
-            setProduct(updated)
-            setActive(false)
-            setStatusMessage('Produkt deaktiviert.')
-        } catch (error) {
-            if (authRedirect(error)) return
-            setErrorMessage(
-                error instanceof Error ? error.message : 'Deaktivierung fehlgeschlagen.',
-            )
-        } finally {
-            setIsSaving(false)
-        }
+        await runAction(
+            async () => {
+                const updated = await syncProductStripe(getClientTenantHost(), productId)
+                applyEntity(updated)
+                setStatusMessage('Produkt mit Stripe synchronisiert.')
+            },
+            {failedMessage: 'Stripe-Synchronisation fehlgeschlagen.'},
+        )
     }
 
     if (isLoading) {
@@ -267,11 +219,11 @@ export default function ProductEditor({
                         aria-describedby="product-title-help"
                         id="product-title"
                         maxLength={255}
-                        onChange={(event) => setTitle(event.target.value)}
+                        onChange={(event) => setField('title', event.target.value)}
                         placeholder="z. B. Supporter"
                         required
                         type="text"
-                        value={title}
+                        value={values.title}
                     />
                     <p className="text-xs text-muted-foreground" id="product-title-help">
                         Öffentlicher Name im Checkout und in E-Mails.
@@ -284,12 +236,12 @@ export default function ProductEditor({
                         disabled={!isNew}
                         id="product-slug"
                         maxLength={64}
-                        onChange={(event) => setSlug(event.target.value)}
+                        onChange={(event) => setField('slug', event.target.value)}
                         pattern={HTML_SLUG_PATTERN}
                         placeholder="z. B. supporter"
                         required={isNew}
                         type="text"
-                        value={slug}
+                        value={values.slug}
                     />
                     <p className="text-xs text-muted-foreground" id="product-slug-help">
                         Technische Kennung aus Kleinbuchstaben, Zahlen und Bindestrichen.
@@ -303,15 +255,15 @@ export default function ProductEditor({
                         disabled={!isNew}
                         id="product-offering"
                         onChange={(event) =>
-                            setOfferingType(event.target.value as OfferingType)
+                            setField('offeringType', event.target.value as OfferingType)
                         }
-                        value={offeringType}
+                        value={values.offeringType}
                     >
                         <option value="LEVEL">Stufe — Leiter, höhere Zahl schließt niedrigere ein</option>
                         <option value="PACKAGE">Paket — nur die Inhalte aus den Regeln</option>
                     </SelectControl>
                     <p className="text-xs text-muted-foreground" id="product-offering-help">
-                        {offeringType === 'PACKAGE'
+                        {values.offeringType === 'PACKAGE'
                             ? 'Nach dem Speichern Regeln setzen. Ohne Regeln schaltet ein Paket nichts frei.'
                             : 'Stufen vergleichen die Sortierzahl mit der Mindest-Stufe: Zugriff hat, wessen höchste Stufe ≥ Mindest-Stufe ist.'}
                     </p>
@@ -322,9 +274,9 @@ export default function ProductEditor({
                         aria-describedby="product-sort-help"
                         id="product-sort"
                         min={0}
-                        onChange={(event) => setSortOrder(event.target.value)}
+                        onChange={(event) => setField('sortOrder', event.target.value)}
                         type="number"
-                        value={sortOrder}
+                        value={values.sortOrder}
                     />
                     <p className="text-xs text-muted-foreground" id="product-sort-help">
                         Höhere Zahl = höhere Stufe (z. B. 10 Fan, 20 Supporter).
@@ -337,10 +289,10 @@ export default function ProductEditor({
                         aria-describedby="product-description-help"
                         id="product-description"
                         maxLength={2000}
-                        onChange={(event) => setDescription(event.target.value)}
+                        onChange={(event) => setField('description', event.target.value)}
                         placeholder="Optional — erscheint im Checkout"
                         type="text"
-                        value={description}
+                        value={values.description}
                     />
                     <p className="text-xs text-muted-foreground" id="product-description-help">
                         Optional. Kurz erklären, was enthalten ist.
@@ -360,10 +312,10 @@ export default function ProductEditor({
                         aria-describedby="product-price-help"
                         id="product-price"
                         inputMode="decimal"
-                        onChange={(event) => setPriceEuros(event.target.value)}
+                        onChange={(event) => setField('priceEuros', event.target.value)}
                         placeholder="z. B. 14,90"
                         type="text"
-                        value={priceEuros}
+                        value={values.priceEuros}
                     />
                     <p className="text-xs text-muted-foreground" id="product-price-help">
                         Betrag in der gewählten Währung, z. B. 14,90. Ohne Preis kein Stripe-Checkout.
@@ -373,11 +325,11 @@ export default function ProductEditor({
                     <Label htmlFor="product-currency">Währung</Label>
                     <SelectControl
                         id="product-currency"
-                        onChange={(event) => setCurrency(event.target.value)}
-                        value={currency}
+                        onChange={(event) => setField('currency', event.target.value)}
+                        value={values.currency}
                     >
-                        {['EUR', 'USD', 'GBP'].includes(currency) ? null : (
-                            <option value={currency}>{currency}</option>
+                        {['EUR', 'USD', 'GBP'].includes(values.currency) ? null : (
+                            <option value={values.currency}>{values.currency}</option>
                         )}
                         <option value="EUR">EUR — Euro</option>
                         <option value="USD">USD — US-Dollar</option>
@@ -390,15 +342,15 @@ export default function ProductEditor({
                         aria-describedby="product-interval-help"
                         id="product-interval"
                         onChange={(event) =>
-                            setBillingInterval(event.target.value as BillingInterval)
+                            setField('billingInterval', event.target.value as BillingInterval)
                         }
-                        value={billingInterval}
+                        value={values.billingInterval}
                     >
                         <option value="MONTH">Monatlich — Abo, Zugang nur solange aktiv</option>
                         <option value="YEAR">Jährlich — Abo, Zugang nur solange aktiv</option>
                         <option value="ONE_TIME">Einmalig — dauerhafter Zugang nach Zahlung</option>
                     </SelectControl>
-                    {billingInterval === 'ONE_TIME' ? (
+                    {values.billingInterval === 'ONE_TIME' ? (
                         <p className="text-xs text-muted-foreground" id="product-interval-help">
                             Einmalzahlung bleibt gültig, bis du sie unter Zahlungen beendest
                             oder die Zahlung in Stripe vollständig erstattet wird.
@@ -412,9 +364,9 @@ export default function ProductEditor({
                 {!isNew ? (
                     <Label className="flex items-center gap-2 font-normal">
                         <Checkbox
-                            checked={active}
+                            checked={values.active}
                             id="product-active"
-                            onCheckedChange={(checked) => setActive(checked === true)}
+                            onCheckedChange={(checked) => setField('active', checked === true)}
                         />
                         <span>Aktiv <span className="text-muted-foreground">(inaktive Produkte sind nicht kaufbar)</span></span>
                     </Label>
@@ -437,10 +389,10 @@ export default function ProductEditor({
                             </Button>
                         </>
                     ) : null}
-                    {!isNew && active ? (
+                    {!isNew && values.active ? (
                         <>
                             <Button
-                                disabled={isSaving}
+                                disabled={isSaving || isDeactivating}
                                 onClick={() => void handleDeactivate()}
                                 type="button"
                                 variant="outline"
