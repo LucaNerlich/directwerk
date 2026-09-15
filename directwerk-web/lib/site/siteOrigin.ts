@@ -1,3 +1,8 @@
+import {
+    httpsOriginFromHost,
+    normalizeHttpOrigin,
+} from '@directwerk/api/urls/urlPolicy'
+
 /**
  * Shared tenant-origin helpers for SEO routes (`layout`, `robots`, `sitemap`).
  *
@@ -6,27 +11,20 @@
  * request host is used over HTTPS. `https://localhost` is the last-resort
  * fallback so metadata generation never throws.
  */
-function originFromHost(raw: string): string {
-    const host = raw.includes('://') ? new URL(raw).host : raw
-    return `https://${host}`
-}
-
 export function resolveTenantOrigin(
     host: string | null,
     publicSiteUrl: string | null = null,
 ): string {
     if (publicSiteUrl !== null && publicSiteUrl.length > 0) {
-        try {
-            const parsed = new URL(publicSiteUrl)
-            if (parsed.protocol === 'http:' || parsed.protocol === 'https:') {
-                return parsed.origin
-            }
-        } catch {
-            // Fall through to the host-based origin below.
+        // Operator-configured: any HTTP(S) origin is accepted and preserved.
+        const origin = normalizeHttpOrigin(publicSiteUrl, {allowAnyHostHttp: true})
+        if (origin !== null) {
+            return origin
         }
+        // Fall through to the host-based origin below.
     }
     if (host !== null && host.length > 0) {
-        return originFromHost(host)
+        return httpsOriginFromHost(host)
     }
     return 'https://localhost'
 }

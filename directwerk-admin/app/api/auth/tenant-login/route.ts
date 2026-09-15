@@ -1,71 +1,41 @@
-import {safeUpstreamResponse} from '@directwerk/api/server'
-import {requestTenantToken} from '@/lib/server/api'
-import {readBoundedRequestBody} from '@directwerk/api/proxy'
-import {parseTenantHost} from '@directwerk/api/proxy'
-import {TENANT_HOST_COOKIE, TENANT_REFRESH_COOKIE} from '@/lib/server/api'
-import {sealRefreshToken} from '@directwerk/api/auth/cookies'
+import {createPlatformTokenRoute} from '@directwerk/api/server'
+import {jsonError, parseTenantHost} from '@directwerk/api/proxy'
+import {
+    requestTenantToken,
+    TENANT_HOST_COOKIE,
+    TENANT_REFRESH_COOKIE,
+} from '@/lib/server/api'
 import {resolvePlatformAuthorization} from '@/lib/server/platform'
 import {validateLoginInput} from '@/lib/validation'
 
-const MAX_LOGIN_BODY_SIZE = 16 * 1024
+/** Reads the validated `X-Tenant-Host`; `preflight` has already rejected null. */
+function requireTenantHost(request: Request): string {
+    const tenantHost = parseTenantHost(request.headers.get('x-tenant-host'))
+    if (tenantHost === null) {
+        throw new Error('A valid tenant host is required.')
+    }
+    return tenantHost
+}
 
-export async function POST(request: Request): Promise<Response> {
+export const POST = createPlatformTokenRoute({
+    refreshCookie: TENANT_REFRESH_COOKIE,
+    validate: validateLoginInput,
     // Brokering tenant logins requires an authenticated platform admin
     // session. Cookie presence alone is client-forgeable, so validate the
     // platform session server-side (refresh round-trip upstream).
-    const platform = await resolvePlatformAuthorization()
-    if (!platform.ok) {
-        return Response.json(
-            {error: 'A platform admin session is required.'},
-            {status: platform.status}
-        )
-    }
-    const tenantHost = parseTenantHost(request.headers.get('x-tenant-host'))
-    if (tenantHost === null) {
-        return Response.json(
-            {error: 'A valid tenant host is required.'},
-            {status: 400}
-        )
-    }
-
-    if (!request.headers.get('content-type')?.includes('application/json')) {
-        return Response.json(
-            {error: 'Content-Type must be application/json.'},
-            {status: 415}
-        )
-    }
-
-    const contentLength = request.headers.get('content-length')
-    if (contentLength && Number(contentLength) > MAX_LOGIN_BODY_SIZE) {
-        return Response.json({error: 'Request body is too large.'}, {status: 413})
-    }
-
-    try {
-        const bounded = await readBoundedRequestBody(request, MAX_LOGIN_BODY_SIZE)
-        if (!bounded.ok) {
-            return Response.json({error: bounded.error}, {status: bounded.status})
-        }
-
-        let input: unknown
-        try {
-            input = JSON.parse(bounded.text)
-        } catch {
-            return Response.json({error: 'Invalid JSON request.'}, {status: 400})
-        }
-
-        const validation = validateLoginInput(input)
-        if (!validation.success) {
-            return Response.json({error: validation.error}, {status: 400})
-        }
-
-        const upstream = await requestTenantToken(validation.data, tenantHost)
-        const sealed = await sealRefreshToken(
-            await safeUpstreamResponse(upstream),
-            TENANT_REFRESH_COOKIE
-        )
-        const headers = new Headers(sealed.headers)
-        headers.set('Cache-Control', 'no-store')
-        headers.set('Pragma', 'no-cache')
+    gate: async () => {
+        const platform = await resolvePlatformAuthorization()
+        return platform.ok ? {ok: true} : {ok: false, status: platform.status}
+    },
+    preflight: (request) =>
+        parseTenantHost(request.headers.get('x-tenant-host')) === null
+            ? jsonError('A valid tenant host is required.', 400)
+            : null,
+    upstream: (input, request) =>
+        requestTenantToken(input, requireTenantHost(request)),
+    finalize: (response, request) => {
+        const tenantHost = requireTenantHost(request)
+        const headers = new Headers(response.headers)
         // Bind the tenant refresh cookie to the login host so a stolen
         // refresh token cannot be replayed against another tenant host.
         // Note: this cookie is a replay-scope hint, not a security boundary
@@ -74,15 +44,10 @@ export async function POST(request: Request): Promise<Response> {
             'Set-Cookie',
             `${TENANT_HOST_COOKIE}=${encodeURIComponent(tenantHost)}; Path=/; HttpOnly; SameSite=Strict${process.env.NODE_ENV === 'production' ? '; Secure' : ''}`,
         )
-        return new Response(sealed.body, {
-            status: sealed.status,
-            statusText: sealed.statusText,
+        return new Response(response.body, {
+            status: response.status,
+            statusText: response.statusText,
             headers,
         })
-    } catch {
-        return Response.json(
-            {error: 'Authentication service is unavailable.'},
-            {status: 502}
-        )
-    }
-}
+    },
+})

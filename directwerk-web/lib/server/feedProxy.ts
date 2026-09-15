@@ -1,6 +1,7 @@
 import 'server-only'
 
 import {parseTenantHost} from '@directwerk/api/proxy'
+import {isSafeRedirectTarget, isTrustedOrigin} from '@directwerk/api/urls/urlPolicy'
 
 // Allow '.' so segments like `podcast.xml` or `my-show.xml` are valid.
 const SAFE_PATH_SEGMENT = /^[A-Za-z0-9_.-]+$/
@@ -14,13 +15,7 @@ function getApiOrigin(): URL | null {
 
     try {
         const apiUrl = new URL(configured)
-        const isLoopback =
-            apiUrl.hostname === 'localhost' ||
-            apiUrl.hostname === '127.0.0.1' ||
-            apiUrl.hostname === '[::1]'
-        const usesAllowedProtocol =
-            apiUrl.protocol === 'https:' || (apiUrl.protocol === 'http:' && isLoopback)
-        return usesAllowedProtocol ? apiUrl : null
+        return isTrustedOrigin(apiUrl, {allowLoopback: true}) ? apiUrl : null
     } catch {
         return null
     }
@@ -38,36 +33,6 @@ function buildFeedPath(tenantSlug: string, segments: string[]): string | null {
         return null
     }
     return `/feeds/${tenantSlug}/${segments.join('/')}`
-}
-
-/**
- * Only forward upstream redirect targets that are same-origin paths or
- * https (loopback http for local dev). Anything else is dropped so a
- * compromised upstream cannot turn the same-origin relay into an open
- * redirector.
- */
-function isSafeRedirectTarget(location: string): boolean {
-    if (location.startsWith('/') && !location.startsWith('//')) {
-        return true
-    }
-    try {
-        const parsed = new URL(location)
-        if (parsed.protocol === 'https:') {
-            return true
-        }
-        if (parsed.protocol === 'http:') {
-            const hostname = parsed.hostname.trim().toLowerCase()
-            return (
-                hostname === 'localhost' ||
-                hostname === '127.0.0.1' ||
-                hostname === '[::1]' ||
-                hostname.endsWith('.localhost')
-            )
-        }
-        return false
-    } catch {
-        return false
-    }
 }
 
 /**

@@ -1,15 +1,11 @@
 package de.pnnit.directwerk.job;
 
-import de.pnnit.directwerk.modules.email.EmailTemplate;
 import de.pnnit.directwerk.modules.email.TransactionalEmailService;
 import de.pnnit.directwerk.modules.podcast.exception.RssImportException;
 import de.pnnit.directwerk.modules.podcast.service.PodcastImportService;
 import de.pnnit.directwerk.modules.queue.JobHandler;
 import de.pnnit.directwerk.modules.queue.QueueJob;
 import de.pnnit.directwerk.modules.queue.QueueNames;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -28,7 +24,11 @@ import tools.jackson.databind.ObjectMapper;
 public class RssBulkImportJobHandler implements JobHandler {
 
     private static final Logger log = LoggerFactory.getLogger(RssBulkImportJobHandler.class);
-    private static final int MAX_FAILED_TITLES = 10;
+    private static final BulkImportRun.Labels LABELS = new BulkImportRun.Labels(
+            "Bulk RSS import failed for episode",
+            "All new episodes imported cleanly.",
+            "Bulk RSS import finished"
+    );
 
     private final ObjectMapper objectMapper;
     private final PodcastImportService podcastImportService;
@@ -66,66 +66,44 @@ public class RssBulkImportJobHandler implements JobHandler {
                     "A truncated RSS feed preview cannot be used for bulk import"
             );
         }
-        int imported = 0;
-        int skipped = 0;
-        int failed = 0;
-        List<String> failedTitles = new ArrayList<>();
-        for (PodcastImportService.PreviewEpisode episode : preview.episodes()) {
-            if (episode.alreadyImportedEpisodeId() != null) {
-                skipped++;
-                continue;
-            }
-            try {
-                podcastImportService.importEpisode(new PodcastImportService.ImportEpisodeCommand(
-                        payload.seriesId(),
-                        preview.feedUrl(),
-                        episode.guid(),
-                        episode.suggestedSlug(),
-                        episode.title(),
-                        episode.description(),
-                        episode.episodeNumber(),
-                        episode.durationSeconds(),
-                        payload.accessPolicy(),
-                        payload.requiredLevelSortOrder(),
-                        payload.formatIds(),
-                        null,
-                        payload.importAudio() ? episode.audioUrl() : null,
-                        payload.importImage() ? episode.imageUrl() : null,
-                        null,
-                        null,
-                        episode.publishedAt()
-                ));
-                imported++;
-            } catch (Exception ex) {
-                failed++;
-                log.warn("Bulk RSS import failed for episode guid={} title={}",
-                        episode.guid(), episode.title(), ex);
-                if (failedTitles.size() < MAX_FAILED_TITLES) {
-                    failedTitles.add(episode.title() == null ? episode.guid() : episode.title());
-                }
-            }
-        }
 
-        String recipient = payload.requestedBy() == null || payload.requestedBy().isBlank()
-                ? "there"
-                : payload.requestedBy();
-        transactionalEmailService.sendFromPayload(
-                job.id(),
-                job.tenantId(),
-                payload.notifyEmail(),
-                EmailTemplate.RSS_BULK_IMPORT_FINISHED,
-                Map.of(
-                        "recipientName", recipient,
-                        "feedUrl", preview.feedUrl(),
-                        "importedCount", String.valueOf(imported),
-                        "skippedCount", String.valueOf(skipped),
-                        "failedCount", String.valueOf(failed),
-                        "failedDetails", failedTitles.isEmpty()
-                                ? "All new episodes imported cleanly."
-                                : "Failed: " + String.join("; ", failedTitles)
-                )
+        BulkImportRun.run(
+                new BulkImportRun.RunContext(
+                        job,
+                        preview.feedUrl(),
+                        payload.notifyEmail(),
+                        payload.requestedBy(),
+                        LABELS,
+                        transactionalEmailService,
+                        log
+                ),
+                preview.episodes(),
+                episode -> episode.alreadyImportedEpisodeId() != null,
+                PodcastImportService.PreviewEpisode::guid,
+                PodcastImportService.PreviewEpisode::title,
+                RuntimeException.class,
+                episode -> {
+                    podcastImportService.importEpisode(new PodcastImportService.ImportEpisodeCommand(
+                            payload.seriesId(),
+                            preview.feedUrl(),
+                            episode.guid(),
+                            episode.suggestedSlug(),
+                            episode.title(),
+                            episode.description(),
+                            episode.episodeNumber(),
+                            episode.durationSeconds(),
+                            payload.accessPolicy(),
+                            payload.requiredLevelSortOrder(),
+                            payload.formatIds(),
+                            null,
+                            payload.importAudio() ? episode.audioUrl() : null,
+                            payload.importImage() ? episode.imageUrl() : null,
+                            null,
+                            null,
+                            episode.publishedAt()
+                    ));
+                    return BulkImportRun.Outcome.IMPORTED;
+                }
         );
-        log.info("Bulk RSS import finished tenant={} feed={} imported={} skipped={} failed={}",
-                job.tenantId(), preview.feedUrl(), imported, skipped, failed);
     }
 }

@@ -1,12 +1,14 @@
-import {parseJsonText} from '@directwerk/api/validation/json'
-import {parseUploadUrlResponse} from '@directwerk/api/validation/catalog'
 import {buildUploadUrlBody, parseBrowserUploadHeaders} from '@directwerk/api/media/uploadProtocol'
-
+import {
+    buildConfirmRetryBody,
+    performMediaUpload,
+    type MediaUploadTransport,
+} from '@directwerk/api/media/serverUpload'
 import {readBearerToken} from '@directwerk/api/proxy'
-import {jsonError, toClientResponse} from '@directwerk/api/proxy'
+import {jsonError, toClientResponse, parseTenantHost} from '@directwerk/api/proxy'
+import {parseJsonText} from '@directwerk/api/validation/json'
+
 import {directwerkFetch} from '@/lib/server/api'
-import {putStreamToStorage} from '@/lib/server/storagePut'
-import {parseTenantHost} from '@directwerk/api/proxy'
 
 // The idle timeout only trips when the storage socket stalls; steady progress
 // keeps resetting it, so large-but-legitimate uploads are not cut off. The
@@ -14,71 +16,10 @@ import {parseTenantHost} from '@directwerk/api/proxy'
 const STORAGE_PUT_IDLE_TIMEOUT_MS = 60_000
 const STORAGE_PUT_ABSOLUTE_TIMEOUT_MS = 30 * 60_000
 
-function isAllowedUploadUrl(value: string): boolean {
-    try {
-        const url = new URL(value)
-        const isLoopback =
-            url.hostname === 'localhost' ||
-            url.hostname === '127.0.0.1' ||
-            url.hostname === '[::1]'
-        return (
-            url.protocol === 'https:' ||
-            (url.protocol === 'http:' && isLoopback)
-        )
-    } catch {
-        return false
-    }
-}
-
-function readEnvelopeData(payload: unknown): unknown {
-    if (
-        typeof payload !== 'object' ||
-        payload === null ||
-        !Object.hasOwn(payload, 'data')
-    ) {
-        return null
-    }
-    return (payload as {data: unknown}).data
-}
-
-function isTimeoutError(error: unknown): boolean {
-    return (
-        error instanceof Error &&
-        (error.name === 'TimeoutError' || error.name === 'AbortError')
-    )
-}
-
-/**
- * Aborts the stream as soon as the actual byte count exceeds the declared
- * Content-Length, so a client cannot declare a small size and stream an
- * arbitrarily large body through to object storage.
- */
-function limitStreamToSize(
-    body: ReadableStream<Uint8Array>,
-    maxBytes: number,
-): ReadableStream<Uint8Array> {
-    let totalBytes = 0
-    return body.pipeThrough(
-        new TransformStream<Uint8Array, Uint8Array>({
-            transform(chunk, controller) {
-                totalBytes += chunk.byteLength
-                if (totalBytes > maxBytes) {
-                    const error = new Error(
-                        'Uploaded body exceeds the declared Content-Length.',
-                    )
-                    error.name = 'BodyTooLargeError'
-                    controller.error(error)
-                    return
-                }
-                controller.enqueue(chunk)
-            },
-        }),
-    )
-}
-
 /**
  * Browser sends raw file bytes (no multipart); BFF streams to presigned S3 URL.
- * Flow: upload-url → PUT body to S3 → confirm.
+ * Flow: upload-url → PUT body to S3 → confirm. The sequence lives in
+ * `@directwerk/api/media/serverUpload`, shared with the admin upload action.
  */
 export async function POST(request: Request): Promise<Response> {
     const tenantHost = parseTenantHost(request.headers.get('x-tenant-host'))
@@ -94,93 +35,71 @@ export async function POST(request: Request): Promise<Response> {
     if (!request.body) {
         return jsonError('Expected a request body.', 400)
     }
+    const requestBody = request.body
 
     // Shared with the browser client in @directwerk/api/media/uploadProtocol.
     const parsedUpload = parseBrowserUploadHeaders(request.headers)
     if (!parsedUpload.ok) {
         return jsonError(parsedUpload.error, parsedUpload.status)
     }
-    const {mimeType, sizeBytes} = parsedUpload.value
-    const uploadUrlBody = buildUploadUrlBody(parsedUpload.value)
 
-    try {
-        const uploadUrlUpstream = await directwerkFetch({
-            path: '/api/v1/media/upload-url',
-            tenantHost,
-            method: 'POST',
-            bearerToken,
-            body: JSON.stringify(uploadUrlBody),
-            contentType: 'application/json',
-        })
+    const transport: MediaUploadTransport = {
+        createUploadUrl: (body) =>
+            directwerkFetch({
+                path: '/api/v1/media/upload-url',
+                tenantHost,
+                method: 'POST',
+                bearerToken,
+                body: JSON.stringify(body),
+                contentType: 'application/json',
+            }),
+        confirmUpload: (assetId) =>
+            directwerkFetch({
+                path: `/api/v1/media/${assetId}/confirm`,
+                tenantHost,
+                method: 'POST',
+                bearerToken,
+            }),
+    }
 
-        if (!uploadUrlUpstream.ok) {
-            return toClientResponse(uploadUrlUpstream)
+    const result = await performMediaUpload({
+        body: requestBody,
+        sizeBytes: parsedUpload.value.sizeBytes,
+        mimeType: parsedUpload.value.mimeType,
+        uploadUrlBody: buildUploadUrlBody(parsedUpload.value),
+        transport,
+        // Studio's local object storage is reached over loopback HTTP.
+        allowLoopbackUploadTarget: true,
+        storageTimeouts: {
+            idleTimeoutMs: STORAGE_PUT_IDLE_TIMEOUT_MS,
+            absoluteTimeoutMs: STORAGE_PUT_ABSOLUTE_TIMEOUT_MS,
+        },
+    })
+
+    switch (result.status) {
+        case 'confirmed':
+        case 'upload-url-failed':
+            return toClientResponse(result.response)
+        case 'invalid-upload-url':
+        case 'storage-rejected':
+            return jsonError(result.message, 502)
+        case 'confirm-failed': {
+            const failure = await toClientResponse(result.response)
+            const failureJson = parseJsonText(await failure.text())
+            const failureBody =
+                typeof failureJson === 'object' && failureJson !== null
+                    ? (failureJson as Record<string, unknown>)
+                    : {error: 'Directwerk confirm failed.'}
+            return Response.json(buildConfirmRetryBody(failureBody, result.assetId), {
+                status: failure.status,
+                headers: {'Cache-Control': 'no-store'},
+            })
         }
-
-        const uploadUrlPayload: unknown = await uploadUrlUpstream.json()
-        const uploadData = parseUploadUrlResponse(readEnvelopeData(uploadUrlPayload))
-
-        if (uploadData === null || !isAllowedUploadUrl(uploadData.uploadUrl)) {
-            return jsonError('Invalid upload-url response from Directwerk.', 502)
-        }
-
-        const putHeaders = new Headers(uploadData.headers ?? {})
-        if (!putHeaders.has('Content-Type')) {
-            putHeaders.set('Content-Type', mimeType)
-        }
-        const headersObject: Record<string, string> = {}
-        putHeaders.forEach((value, key) => {
-            headersObject[key] = value
-        })
-
-        const putResult = await putStreamToStorage(
-            uploadData.uploadUrl,
-            headersObject,
-            limitStreamToSize(request.body, sizeBytes),
-            {
-                idleTimeoutMs: STORAGE_PUT_IDLE_TIMEOUT_MS,
-                absoluteTimeoutMs: STORAGE_PUT_ABSOLUTE_TIMEOUT_MS,
-            },
-        )
-
-        if (putResult.status < 200 || putResult.status >= 300) {
-            return jsonError(
-                `Object storage rejected the upload (HTTP ${putResult.status}).`,
-                502,
-            )
-        }
-
-        const confirmUpstream = await directwerkFetch({
-            path: `/api/v1/media/${uploadData.assetId}/confirm`,
-            tenantHost,
-            method: 'POST',
-            bearerToken,
-        })
-
-        if (!confirmUpstream.ok) {
-            const failure = await toClientResponse(confirmUpstream)
-            const failureText = await failure.text()
-            const failureJson = parseJsonText(failureText)
-            return Response.json(
-                {
-                    ...(typeof failureJson === 'object' && failureJson !== null
-                        ? failureJson
-                        : {error: 'Directwerk confirm failed.'}),
-                    assetId: uploadData.assetId,
-                    retryConfirm: true,
-                },
-                {status: failure.status, headers: {'Cache-Control': 'no-store'}},
-            )
-        }
-
-        return toClientResponse(confirmUpstream)
-    } catch (error: unknown) {
-        if (error instanceof Error && error.name === 'BodyTooLargeError') {
+        case 'body-too-large':
             return jsonError('Uploaded body exceeds the declared Content-Length.', 413)
-        }
-        if (isTimeoutError(error)) {
+        case 'timeout':
             return jsonError('Upstream request timed out.', 504)
-        }
-        return jsonError('Directwerk or object storage is unavailable.', 502)
+        case 'unavailable':
+            return jsonError('Directwerk or object storage is unavailable.', 502)
     }
 }

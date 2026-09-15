@@ -123,6 +123,25 @@ class EpisodeDownloadAnalyticsServiceTest {
     }
 
     @Test
+    void skipsWhenAccessPolicyIsMissing() {
+        EpisodeDownloadAnalyticsService service = service(true);
+        Episode episode = episode();
+        episode.setAccessPolicy(null);
+
+        service.trackEpisodeDownload(10L, episode, "stream", "alpha.example.test");
+
+        verify(umamiEventClient, never()).trackEvent(
+                org.mockito.ArgumentMatchers.any(),
+                org.mockito.ArgumentMatchers.any(),
+                org.mockito.ArgumentMatchers.any(),
+                org.mockito.ArgumentMatchers.any(),
+                org.mockito.ArgumentMatchers.any(),
+                org.mockito.ArgumentMatchers.any(),
+                org.mockito.ArgumentMatchers.any()
+        );
+    }
+
+    @Test
     void usesTenantUmamiHostWhenConfigured() {
         EpisodeDownloadAnalyticsService service = service(false);
         TenantBranding branding = new TenantBranding();

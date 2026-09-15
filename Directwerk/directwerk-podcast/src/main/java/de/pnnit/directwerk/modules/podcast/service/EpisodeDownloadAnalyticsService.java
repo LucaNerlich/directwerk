@@ -1,25 +1,25 @@
 package de.pnnit.directwerk.modules.podcast.service;
 
 import de.pnnit.directwerk.config.DirectwerkConfig;
-import de.pnnit.directwerk.modules.core.AnalyticsModule;
-import de.pnnit.directwerk.modules.core.analytics.UmamiAnalyticsResolver;
+import de.pnnit.directwerk.modules.core.analytics.TenantEventTracker;
 import de.pnnit.directwerk.modules.core.analytics.UmamiEventClient;
-import de.pnnit.directwerk.modules.core.entity.TenantBranding;
 import de.pnnit.directwerk.modules.core.service.ModuleGateService;
 import de.pnnit.directwerk.modules.core.service.TenantBrandingService;
-import de.pnnit.directwerk.modules.core.util.UmamiWebsiteIdValidator;
 import de.pnnit.directwerk.modules.podcast.entity.Episode;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+/**
+ * Podcast consumption analytics. Event-specific validation and dimension building stay here; the
+ * shared Umami emission pipeline lives in {@link TenantEventTracker}. Fail-open for episode
+ * playback.
+ */
 @Service
 @Slf4j
-@RequiredArgsConstructor
 public class EpisodeDownloadAnalyticsService {
 
     private static final String EVENT_NAME = "episode-download";
@@ -30,11 +30,33 @@ public class EpisodeDownloadAnalyticsService {
             "private-rss"
     );
 
-    private final DirectwerkConfig directwerkConfig;
-    private final ModuleGateService moduleGateService;
-    private final TenantBrandingService tenantBrandingService;
-    private final UmamiEventClient umamiEventClient;
+    private final TenantEventTracker tenantEventTracker;
     private final EpisodeEnclosureService episodeEnclosureService;
+
+    @Autowired
+    public EpisodeDownloadAnalyticsService(
+            TenantEventTracker tenantEventTracker,
+            EpisodeEnclosureService episodeEnclosureService
+    ) {
+        this.tenantEventTracker = tenantEventTracker;
+        this.episodeEnclosureService = episodeEnclosureService;
+    }
+
+    /**
+     * Retained for direct instantiation by same-package unit tests; production wiring injects the
+     * shared {@link TenantEventTracker} bean instead.
+     */
+    EpisodeDownloadAnalyticsService(
+            DirectwerkConfig directwerkConfig,
+            ModuleGateService moduleGateService,
+            TenantBrandingService tenantBrandingService,
+            UmamiEventClient umamiEventClient,
+            EpisodeEnclosureService episodeEnclosureService
+    ) {
+        this.tenantEventTracker = new TenantEventTracker(
+                directwerkConfig, moduleGateService, tenantBrandingService, umamiEventClient);
+        this.episodeEnclosureService = episodeEnclosureService;
+    }
 
     @Transactional(readOnly = true)
     public void trackEpisodeDownload(Long tenantId, Episode episode, String source, String hostname) {
@@ -63,60 +85,31 @@ public class EpisodeDownloadAnalyticsService {
             boolean isRangeRequest,
             String clientIp
     ) {
-        try {
-            if (tenantId == null
-                    || episode == null
-                    || episode.getSlug() == null
-                    || hostname == null
-                    || hostname.isBlank()
-                    || !ALLOWED_SOURCES.contains(source)) {
-                log.debug("Skipping episode-download event: incomplete request context (source={})", source);
-                return;
-            }
-            if (!moduleGateService.enabledModuleKeys(tenantId).contains(AnalyticsModule.KEY)) {
-                log.info(
-                        "Skipping episode-download event for tenant {} episode '{}': ANALYTICS module is not enabled",
-                        tenantId,
-                        episode.getSlug());
-                return;
-            }
-            TenantBranding branding = tenantBrandingService.getBranding(tenantId);
-            String websiteId = branding.getUmamiWebsiteId();
-            if (!UmamiWebsiteIdValidator.isValid(websiteId)) {
-                log.info(
-                        "Skipping episode-download event for tenant {} episode '{}': no valid Umami website ID configured",
-                        tenantId,
-                        episode.getSlug());
-                return;
-            }
-            String hostUrl = UmamiAnalyticsResolver.resolveEventHostUrl(branding, directwerkConfig);
-            if (hostUrl == null) {
-                log.info(
-                        "Skipping episode-download event for tenant {} episode '{}': no Umami host resolvable (tenant override unset, platform analytics disabled)",
-                        tenantId,
-                        episode.getSlug());
-                return;
-            }
-            String seriesSlug = episode.getSeries() != null ? episode.getSeries().getSlug() : null;
-            umamiEventClient.trackEvent(
-                    hostUrl,
-                    websiteId.trim(),
-                    hostname.trim().toLowerCase(Locale.ROOT),
-                    "/episodes/" + episode.getSlug(),
-                    EVENT_NAME,
-                    Map.of(
-                            "episodeSlug", episode.getSlug(),
-                            "seriesSlug", seriesSlug != null ? seriesSlug : "",
-                            "accessPolicy", episode.getAccessPolicy().name(),
-                            "source", source,
-                            "isRangeRequest", isRangeRequest ? "true" : "false",
-                            "clientUserAgent", truncate(clientUserAgent)
-                    ),
-                    clientIp
-            );
-        } catch (RuntimeException ex) {
-            // Analytics is intentionally fail-open for episode playback.
+        if (tenantId == null
+                || episode == null
+                || episode.getSlug() == null
+                || episode.getAccessPolicy() == null
+                || hostname == null
+                || hostname.isBlank()
+                || !ALLOWED_SOURCES.contains(source)) {
+            log.debug("Skipping episode-download event: incomplete request context (source={})", source);
+            return;
         }
+        String seriesSlug = episode.getSeries() != null ? episode.getSeries().getSlug() : null;
+        tenantEventTracker.track(
+                tenantId,
+                EVENT_NAME,
+                "/episodes/" + episode.getSlug(),
+                hostname,
+                Map.of(
+                        "episodeSlug", episode.getSlug(),
+                        "seriesSlug", seriesSlug != null ? seriesSlug : "",
+                        "accessPolicy", episode.getAccessPolicy().name(),
+                        "source", source,
+                        "isRangeRequest", isRangeRequest ? "true" : "false"),
+                clientUserAgent,
+                clientIp,
+                "episode '" + episode.getSlug() + "'");
     }
 
     public String publicRssEnclosureUrl(
@@ -148,13 +141,5 @@ public class EpisodeDownloadAnalyticsService {
                 feedToken,
                 episodeSlug
         );
-    }
-
-    private static String truncate(String value) {
-        if (value == null || value.isBlank()) {
-            return "";
-        }
-        String trimmed = value.trim();
-        return trimmed.length() > 256 ? trimmed.substring(0, 256) : trimmed;
     }
 }

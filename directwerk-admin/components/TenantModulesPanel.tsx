@@ -1,7 +1,6 @@
 'use client'
 
-import {useCallback, useEffect, useState} from 'react'
-import {useRouter} from 'next/navigation'
+import {useEffect, useState} from 'react'
 
 import {Alert, AlertDescription} from '@directwerk/ui/components/alert'
 import {Badge} from '@directwerk/ui/components/badge'
@@ -19,7 +18,9 @@ import {
     deactivateTenantModule,
     loadTenantModulesPanelData,
 } from '@/lib/api/platformModulesApi'
-import {AUTH_REQUIRED, REQUEST_FAILED} from '@directwerk/api/constants'
+import {usePlatformQuery} from '@/lib/api/usePlatformQuery'
+import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
+import {REQUEST_FAILED} from '@directwerk/api/constants'
 import type {
     ModuleDescriptor,
     ModulePresetKey,
@@ -31,6 +32,8 @@ import {MODULE_PRESETS} from '@directwerk/api/types'
 interface TenantModulesPanelProps {
     tenantId: string
 }
+
+const EMPTY_ENABLED: ReadonlySet<string> = new Set()
 
 /**
  * Converts a module preset key into title-style text.
@@ -49,56 +52,36 @@ function presetLabel(preset: ModulePresetKey): string {
  * @returns The tenant module management panel
  */
 export default function TenantModulesPanel({tenantId}: TenantModulesPanelProps) {
-    const router = useRouter()
-    const [catalog, setCatalog] = useState<ModuleDescriptor[]>([])
-    const [enabled, setEnabled] = useState<Set<string>>(new Set())
-    const [activations, setActivations] = useState<TenantModuleActivation[]>([])
-    const [error, setError] = useState<string | null>(null)
+    const authRedirect = useAuthRequired()
+    const [mutationError, setMutationError] = useState<string | null>(null)
     const [status, setStatus] = useState<string | null>(null)
-    const [isLoading, setIsLoading] = useState(true)
     const [busyKey, setBusyKey] = useState<string | null>(null)
 
-    const loadModules = useCallback(() => {
-        let isCurrent = true
-        setError(null)
-        setIsLoading(true)
+    const {
+        data,
+        error: queryError,
+        isLoading,
+        reload: loadModules,
+        setData,
+    } = usePlatformQuery(() => loadTenantModulesPanelData(tenantId), {
+        fallbackError: 'Could not load modules.',
+        queryKey: `tenant-modules:${tenantId}`,
+    })
 
-        loadTenantModulesPanelData(tenantId)
-            .then(({catalog: modules, enabledModules, activations: activationRows}) => {
-                if (!isCurrent) {
-                    return
-                }
+    const error = mutationError ?? queryError
+    const catalog: ModuleDescriptor[] = data?.catalog ?? []
+    const enabled: ReadonlySet<string> = data?.enabledModules ?? EMPTY_ENABLED
+    const activations: TenantModuleActivation[] = data?.activations ?? []
 
-                setCatalog(modules)
-                setEnabled(enabledModules)
-                setActivations(activationRows)
-                setIsLoading(false)
-            })
-            .catch((requestError: unknown) => {
-                if (!isCurrent) {
-                    return
-                }
-
-                if (
-                    requestError instanceof Error &&
-                    requestError.message === AUTH_REQUIRED
-                ) {
-                    router.replace('/login')
-                    return
-                }
-
-                setError('Could not load modules.')
-                setIsLoading(false)
-            })
-
-        return () => {
-            isCurrent = false
-        }
-    }, [tenantId, router])
-
+    // Switching tenants discards a stale mutation error from the previous one.
     useEffect(() => {
-        return loadModules()
-    }, [loadModules])
+        setMutationError(null)
+    }, [tenantId])
+
+    function retryLoadModules(): void {
+        setMutationError(null)
+        loadModules()
+    }
 
     async function runMutation(
         key: string,
@@ -106,20 +89,23 @@ export default function TenantModulesPanel({tenantId}: TenantModulesPanelProps) 
         successMessage: string,
     ): Promise<void> {
         setBusyKey(key)
-        setError(null)
+        setMutationError(null)
         setStatus(null)
 
         try {
             const result = await action()
-                setEnabled(new Set(result.enabledModules))
-                setActivations(result.activations ?? [])
-                setStatus(successMessage)
+            setData((current) =>
+                current
+                    ? {
+                          ...current,
+                          enabledModules: new Set(result.enabledModules),
+                          activations: result.activations ?? [],
+                      }
+                    : current,
+            )
+            setStatus(successMessage)
         } catch (requestError: unknown) {
-            if (
-                requestError instanceof Error &&
-                requestError.message === AUTH_REQUIRED
-            ) {
-                router.replace('/login')
+            if (authRedirect(requestError)) {
                 return
             }
 
@@ -127,13 +113,13 @@ export default function TenantModulesPanel({tenantId}: TenantModulesPanelProps) 
                 requestError instanceof Error &&
                 requestError.message === REQUEST_FAILED
             ) {
-                setError(
+                setMutationError(
                     'Module update failed. Check dependencies or try again.',
                 )
                 return
             }
 
-            setError('Module update is unavailable. Try again later.')
+            setMutationError('Module update is unavailable. Try again later.')
         } finally {
             setBusyKey(null)
         }
@@ -187,7 +173,7 @@ export default function TenantModulesPanel({tenantId}: TenantModulesPanelProps) 
                 <>
                     <Alert aria-live="polite" variant="destructive"><AlertDescription>{error}</AlertDescription></Alert>
                     <div>
-                        <Button onClick={() => loadModules()} type="button" variant="outline">
+                        <Button onClick={retryLoadModules} type="button" variant="outline">
                             Retry
                         </Button>
                     </div>

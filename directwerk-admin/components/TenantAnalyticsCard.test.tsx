@@ -4,6 +4,17 @@ import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest'
 import TenantAnalyticsCard from './TenantAnalyticsCard'
 import {getPlatformData} from '@/lib/api/client'
 
+const {mockRouter} = vi.hoisted(() => ({
+    // Stable router identity: the shared query hook derives its redirect
+    // callback from useRouter, so a fresh object per render would re-run the
+    // fetch effect on every render (production useRouter is stable).
+    mockRouter: {replace: vi.fn()},
+}))
+
+vi.mock('next/navigation', () => ({
+    useRouter: () => mockRouter,
+}))
+
 vi.mock('@/lib/api/client', () => ({
     getPlatformData: vi.fn(),
 }))

@@ -411,6 +411,65 @@ Domain glossary and deepening modules for AI navigation. Terms here name **seams
 **Interface:** shared fetch/loading/cancel/auth-redirect/error mapping.
 **Seam:** `useSubscriberFeeds` and `useArticleFeeds` are thin adapters.
 
+## Wave 10 deepened modules (architecture review 2026-09-15, second pass)
+
+### 76. Feed import support (`FeedImportSupport` in digital)
+
+**Interface:** bounded read, import identity + canonical feed URL, filename hint, slug allocation, reverse asset cleanup — parameterised by an `ImportErrorFactory`.
+**Seam:** podcast/article import services supply only their entity creation, preview projection and exception type; no shared exception introduced.
+**Correctness:** the SHA-256 feed identity and URL canonicalisation exist once.
+
+### 77. Bulk import run loop (`BulkImportRun` in app)
+
+**Interface:** `run(...)` — counter trio, `MAX_FAILED_TITLES`, summary email, log line, per-item failure isolation.
+**Seam:** the two RSS bulk job handlers pass their importer + labels.
+
+### 78. Import controller support (`ImportControllerSupport` in app)
+
+**Interface:** `feedHash(...)` + tenant-ownership asset guard shared by the podcast and article import controllers.
+
+### 79. Tenant event tracker (`TenantEventTracker` in core)
+
+**Interface:** `track(tenantId, eventName, path, hostname, data, userAgent, clientIp[, logSubject])`.
+**Seam:** module gate, branding, Umami website-id validation, host resolution, truncation and the fail-open policy live once; feed-fetch, episode-download and article-view services supply only their dimensions. Read path (#73) and write path now symmetric.
+
+### 80. Envelope token protector (`EnvelopeTokenProtector` in common)
+
+**Interface:** `protect` / `reveal` over `EnvelopeCipher` with one `keyMaterial()` derivation.
+**Seam:** `FeedTokenProtector` and `EmailTokenProtector` are thin adapters; key rotation touches one module.
+
+### 81. Feed snapshot coordinator (`FeedSnapshotCoordinator` + `FeedSnapshotKind`)
+
+**Interface:** one reconciled `refreshTenant` / withdraw loop and `ref(...)` key grammar.
+**Seam:** podcast (series enumeration) and article (tenant feed list) supply a `FeedSnapshotKind`; the per-kind fallback origin is preserved so observable URLs do not change. Object-truth (#65) now has one caller.
+
+### 82. URL trust policy (`packages/api/src/urls/urlPolicy.ts`)
+
+**Interface:** `isTrustedOrigin`, `normalizeHttpOrigin`, `isSafeRedirectTarget`, `isTrustedUploadUrl`, `isLoopbackHostname` with explicit loopback variants.
+**Seam:** feed proxies, BFF origin guards, platform URL normalisation, studio upload and admin upload all read one rule; previously six divergent copies.
+
+### 83. Admin authenticated query (`usePlatformQuery` / `useTenantPlatformQuery`)
+
+**Interface:** thin admin wrappers over `useAuthedQuery` (#75); `{data, error, isLoading, reload, setData}`.
+**Seam:** admin pages/panels no longer hand-roll the fetch race guard or the `AUTH_REQUIRED` redirect. Mutations and tenant-session surfaces intentionally stay out (different auth semantics).
+
+### 84. Admin platform auth routes (`createPlatformTokenRoute` / `createPlatformRefreshRoute`)
+
+**Interface:** platform and tenant token/refresh BFF factories plus `readAuthJsonBody`.
+**Seam:** the four admin auth routes are thin configurations; bounded-body, cookie sealing and error choreography are shared with studio/web.
+
+### 85. Studio resource editor (`useResourceEditor`)
+
+**Interface:** `load`/`loadOne`/`create`/`update`/`deactivate` + one form idiom returning `{isNew, isSaving, errorMessage, statusMessage, handleSubmit, handleDeactivate}`.
+**Seam:** product, category, format and series editors are thin configs; replaces the two-idiom duplication.
+
+### 86. Server media upload (`performMediaUpload` in `packages/api/src/media`)
+
+**Interface:** `performMediaUpload({body, sizeBytes, mimeType, uploadUrlBody, transport, allowLoopbackUploadTarget, storageTimeouts})` → normalized outcome; `readUploadEnvelope`, `buildConfirmRetryBody`.
+**Seam:** studio's BFF route and admin's server action share one upload-url → PUT → confirm sequence and one upload-target trust check (#82); the `{assetId, retryConfirm}` recovery contract is single-sourced.
+
+**Incidental fix:** `AnalyticsQueryService` (#73) had two constructors and no `@Autowired`, so the Spring context failed to start for 168 tests; the public constructor is now annotated.
+
 ## Migration order
 
 1. Transport policies (#3)  

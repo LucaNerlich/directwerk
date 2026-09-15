@@ -33,6 +33,7 @@ import org.apache.hc.core5.http.ContentType;
 import org.apache.hc.core5.http.io.entity.EntityUtils;
 import org.apache.hc.core5.http.io.entity.StringEntity;
 import org.apache.hc.core5.util.Timeout;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import tools.jackson.databind.JsonNode;
@@ -61,6 +62,7 @@ public class AnalyticsQueryService {
 
     private volatile CachedToken cachedToken;
 
+    @Autowired
     public AnalyticsQueryService(
             DirectwerkConfig directwerkConfig,
             TenantBrandingService tenantBrandingService,

@@ -67,6 +67,12 @@ export function useAuthedQuery<T>(
     const mapErrorRef = useRef(options.mapError)
     mapErrorRef.current = options.mapError
 
+    // The redirect handler must not restart the query when it changes identity.
+    // Tests (and some callers) return a fresh closure per render; depending on
+    // it directly would refetch every render.
+    const authRedirectRef = useRef(authRedirect)
+    authRedirectRef.current = authRedirect
+
     const setData = useCallback<React.Dispatch<React.SetStateAction<T | null>>>(
         (action) => {
             setState((current) => {
@@ -110,7 +116,7 @@ export function useAuthedQuery<T>(
                 if (!active) {
                     return
                 }
-                if (authRedirect(caught)) {
+                if (authRedirectRef.current(caught)) {
                     return
                 }
                 const mapper = mapErrorRef.current
@@ -129,7 +135,7 @@ export function useAuthedQuery<T>(
         return () => {
             active = false
         }
-    }, [authRedirect, enabled, fallbackError, queryKey, reloadToken])
+    }, [enabled, fallbackError, queryKey, reloadToken])
 
     const visibleState = state.identity === queryKey
         ? state

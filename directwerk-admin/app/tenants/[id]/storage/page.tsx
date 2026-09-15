@@ -1,8 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import {useRouter} from 'next/navigation'
-import {use, useCallback, useEffect, useState} from 'react'
+import {use, useEffect, useState} from 'react'
 
 import {Alert, AlertDescription} from '@directwerk/ui/components/alert'
 import {Badge} from '@directwerk/ui/components/badge'
@@ -21,7 +20,8 @@ import AdminBreadcrumbs from '@/components/AdminBreadcrumbs'
 import {AdminLoadingText, TableSkeleton} from '@/components/AdminLoading'
 import TenantStorageUploadForm from '@/components/TenantStorageUploadForm'
 import {deletePlatformData, getPlatformData} from '@/lib/api/client'
-import {AUTH_REQUIRED} from '@directwerk/api/constants'
+import {useTenantPlatformQuery} from '@/lib/api/usePlatformQuery'
+import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
 import {formatBytes} from '@directwerk/api/format/bytes'
 import {formatTimestamp} from '@directwerk/api/format/datetime'
 import {
@@ -39,6 +39,12 @@ interface TenantStoragePageProps {
 
 const DEFAULT_QUERY: TenantMediaQuery = {
     limit: 50,
+}
+
+interface StorageData {
+    tenant: Tenant
+    assets: MediaAsset[]
+    publicCdnBaseUrl: string | null
 }
 
 /**
@@ -104,24 +110,73 @@ function resolveCdnUrl(
 
 export default function TenantStoragePage({params}: TenantStoragePageProps) {
     const {id} = use(params)
-    const router = useRouter()
+    const isValidId = /^\d+$/.test(id)
+    const authRedirect = useAuthRequired()
     const [tenant, setTenant] = useState<Tenant | null>(null)
     const [assets, setAssets] = useState<MediaAsset[] | null>(null)
     const [publicCdnBaseUrl, setPublicCdnBaseUrl] = useState<string | null>(
         null
     )
     const [query, setQuery] = useState<TenantMediaQuery>(DEFAULT_QUERY)
-    const [error, setError] = useState<string | null>(null)
-    const [isInitialLoad, setIsInitialLoad] = useState(true)
+    const [actionError, setActionError] = useState<string | null>(null)
+    const [hasLoaded, setHasLoaded] = useState(false)
     const [deletingAssetId, setDeletingAssetId] = useState<number | null>(null)
 
     const {assetType, status, limit} = query
+
+    const {
+        data,
+        error: queryError,
+        reload: loadStorage,
+    } = useTenantPlatformQuery<StorageData>(
+        id,
+        async () => {
+            const [nextTenant, media] = await Promise.all([
+                getPlatformData<Tenant>(`tenants/${id}`),
+                getPlatformData<TenantMediaList>(buildMediaPath(id, query)),
+            ])
+            return {
+                tenant: nextTenant,
+                assets: media.content,
+                publicCdnBaseUrl:
+                    typeof media.publicCdnBaseUrl === 'string' &&
+                    media.publicCdnBaseUrl.length > 0
+                        ? media.publicCdnBaseUrl
+                        : null,
+            }
+        },
+        {
+            fallbackError: 'Could not load tenant storage.',
+            enabled: isValidId,
+            queryKey: `tenant-storage:${id}:${assetType ?? ''}:${status ?? ''}:${limit ?? ''}`,
+        },
+    )
+
+    useEffect(() => {
+        if (data !== null) {
+            setTenant(data.tenant)
+            setAssets(data.assets)
+            setPublicCdnBaseUrl(data.publicCdnBaseUrl)
+            setHasLoaded(true)
+            return
+        }
+        if (queryError !== null) {
+            setTenant(null)
+            setAssets(null)
+            setPublicCdnBaseUrl(null)
+            setHasLoaded(true)
+        }
+    }, [data, queryError])
+
+    const error = isValidId
+        ? actionError ?? queryError
+        : 'Invalid tenant identifier.'
 
     const hasActiveFilters =
         assetType !== undefined || status !== undefined || limit !== DEFAULT_QUERY.limit
 
     function resetFilters(): void {
-        setError(null)
+        setActionError(null)
         setQuery(DEFAULT_QUERY)
     }
 
@@ -130,70 +185,10 @@ export default function TenantStoragePage({params}: TenantStoragePageProps) {
         0,
     )
 
-    const loadStorage = useCallback(
-        (nextQuery: TenantMediaQuery) => {
-            if (!/^\d+$/.test(id)) {
-                setError('Invalid tenant identifier.')
-                setTenant(null)
-                setAssets(null)
-                setPublicCdnBaseUrl(null)
-                setIsInitialLoad(false)
-                return () => undefined
-            }
-
-            setError(null)
-
-            let isCurrent = true
-
-            Promise.all([
-                getPlatformData<Tenant>(`tenants/${id}`),
-                getPlatformData<TenantMediaList>(buildMediaPath(id, nextQuery)),
-            ])
-                .then(([nextTenant, media]) => {
-                    if (!isCurrent) {
-                        return
-                    }
-
-                    setTenant(nextTenant)
-                    setAssets(media.content)
-                    setPublicCdnBaseUrl(
-                        typeof media.publicCdnBaseUrl === 'string' &&
-                            media.publicCdnBaseUrl.length > 0
-                            ? media.publicCdnBaseUrl
-                            : null
-                    )
-                    setIsInitialLoad(false)
-                })
-                .catch((requestError: unknown) => {
-                    if (!isCurrent) {
-                        return
-                    }
-
-                    if (
-                        requestError instanceof Error &&
-                        requestError.message === AUTH_REQUIRED
-                    ) {
-                        router.replace('/login')
-                        return
-                    }
-
-                    setTenant(null)
-                    setAssets(null)
-                    setPublicCdnBaseUrl(null)
-                    setError('Could not load tenant storage.')
-                    setIsInitialLoad(false)
-                })
-
-            return () => {
-                isCurrent = false
-            }
-        },
-        [id, router]
-    )
-
-    useEffect(() => {
-        return loadStorage({assetType, status, limit})
-    }, [loadStorage, assetType, status, limit])
+    function retryLoadStorage(): void {
+        setActionError(null)
+        loadStorage()
+    }
 
     function applyFilters(formData: FormData): void {
         const assetTypeRaw = String(formData.get('assetType') ?? '').trim()
@@ -208,7 +203,7 @@ export default function TenantStoragePage({params}: TenantStoragePageProps) {
                     assetTypeRaw as (typeof ASSET_TYPES)[number]
                 )
             ) {
-                setError('Choose a valid asset type.')
+                setActionError('Choose a valid asset type.')
                 return
             }
             nextQuery.assetType = assetTypeRaw as (typeof ASSET_TYPES)[number]
@@ -220,7 +215,7 @@ export default function TenantStoragePage({params}: TenantStoragePageProps) {
                     statusRaw as (typeof ASSET_STATUSES)[number]
                 )
             ) {
-                setError('Choose a valid asset status.')
+                setActionError('Choose a valid asset status.')
                 return
             }
             nextQuery.status = statusRaw as (typeof ASSET_STATUSES)[number]
@@ -232,12 +227,12 @@ export default function TenantStoragePage({params}: TenantStoragePageProps) {
             parsedLimit < 1 ||
             parsedLimit > 100
         ) {
-            setError('Limit must be between 1 and 100.')
+            setActionError('Limit must be between 1 and 100.')
             return
         }
         nextQuery.limit = parsedLimit
 
-        setError(null)
+        setActionError(null)
         setQuery(nextQuery)
     }
 
@@ -259,7 +254,7 @@ export default function TenantStoragePage({params}: TenantStoragePageProps) {
         }
 
         setDeletingAssetId(asset.id)
-        setError(null)
+        setActionError(null)
 
         try {
             const queued = await deletePlatformData<MediaAsset>(
@@ -280,14 +275,10 @@ export default function TenantStoragePage({params}: TenantStoragePageProps) {
                     : current
             )
         } catch (requestError: unknown) {
-            if (
-                requestError instanceof Error &&
-                requestError.message === AUTH_REQUIRED
-            ) {
-                router.replace('/login')
+            if (authRedirect(requestError)) {
                 return
             }
-            setError('Could not queue media asset deletion.')
+            setActionError('Could not queue media asset deletion.')
         } finally {
             setDeletingAssetId(null)
         }
@@ -307,13 +298,13 @@ export default function TenantStoragePage({params}: TenantStoragePageProps) {
                     <>
                         <Alert variant="destructive"><AlertDescription>{error}</AlertDescription></Alert>
                         <div>
-                            <Button onClick={() => loadStorage({assetType, status, limit})} type="button" variant="outline">
+                            <Button onClick={retryLoadStorage} type="button" variant="outline">
                                 Retry
                             </Button>
                         </div>
                     </>
                 ) : null}
-                {!error && isInitialLoad ? (
+                {!error && !hasLoaded ? (
                     <>
                         <TableSkeleton rows={6} />
                         <AdminLoadingText text="Loading tenant storage…" />
@@ -378,7 +369,7 @@ export default function TenantStoragePage({params}: TenantStoragePageProps) {
                                         return [uploaded, ...without]
                                     })
                                 }
-                                loadStorage({assetType, status, limit})
+                                loadStorage()
                             }}
                             tenantId={id}
                         />

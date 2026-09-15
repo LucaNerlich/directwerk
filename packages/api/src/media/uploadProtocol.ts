@@ -1,5 +1,6 @@
 import {ASSET_TYPES, ASSET_VISIBILITIES} from '../types'
 import type {AssetType} from '../types'
+import {isRecord} from '../validation/primitives'
 
 /**
  * One contract for the browser → BFF media upload headers, shared by the
@@ -15,6 +16,35 @@ export const MEDIA_UPLOAD_HEADERS = {
 
 const ASSET_TYPE_VALUES = new Set<string>(ASSET_TYPES)
 const ASSET_VISIBILITY_VALUES = new Set<string>(ASSET_VISIBILITIES)
+
+/**
+ * Recovery contract shared by the server confirm step and the browser client:
+ * the upload reached object storage but the follow-up confirm failed, so the
+ * caller can retry confirm for this asset id without re-uploading the bytes.
+ */
+export interface MediaUploadRetryResponse {
+    retryConfirm: true
+    assetId: number
+}
+
+/** True for a body carrying the {@link MediaUploadRetryResponse} recovery fields. */
+export function isMediaUploadRetryResponse(
+    value: unknown,
+): value is MediaUploadRetryResponse {
+    return (
+        isRecord(value) &&
+        value.retryConfirm === true &&
+        typeof value.assetId === 'number'
+    )
+}
+
+/** Adds the confirm-retry recovery fields to a confirm-failure body. */
+export function buildConfirmRetryBody(
+    body: Record<string, unknown>,
+    assetId: number,
+): Record<string, unknown> {
+    return {...body, assetId, retryConfirm: true}
+}
 
 export function inferAssetType(mimeType: string): AssetType {
     if (mimeType.startsWith('image/')) {

@@ -3,6 +3,8 @@ import 'server-only'
 import {request as httpRequest} from 'node:http'
 import {request as httpsRequest} from 'node:https'
 
+import {isLoopbackHostname} from '../urls/urlPolicy'
+
 export type HttpMethod = 'GET' | 'HEAD' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'
 
 export interface ServerTransportRequest {
@@ -40,14 +42,6 @@ export interface ServerTransportConfig {
 
 const DEFAULT_MAX_RESPONSE_BYTES = 1_048_576
 const DEFAULT_TIMEOUT_MS = 10_000
-
-function isLoopbackHostname(hostname: string): boolean {
-    return (
-        hostname === 'localhost' ||
-        hostname === '127.0.0.1' ||
-        hostname === '[::1]'
-    )
-}
 
 export interface UpstreamTenantHeaders {
     host: string

@@ -4,6 +4,8 @@ import {parseTenantHost} from '../proxy/tenantHost'
 import {jsonError, toClientResponse} from '../proxy/upstreamResponse'
 import {parseJsonText} from '../validation/json'
 import {parseLoginInput, parseRefreshTokenInput, type LoginInputOptions, type RefreshTokenInputOptions} from '../validation/input'
+import {readAuthJsonBody} from './authBody'
+import {safeUpstreamResponse, type DirectwerkRequest} from './platform'
 import type {DirectwerkFetchRequest} from './upstream'
 
 export interface TenantOAuthFetchRequest {
@@ -231,6 +233,262 @@ export function createTenantPassthroughAuthRoute<TParsed>(
                 502,
                 config.codes?.upstream,
             )
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Platform auth routes (directwerk-admin BFF)
+// ---------------------------------------------------------------------------
+
+/** Structured result of validating a platform login body. */
+export type PlatformInputValidation<TInput> =
+    | {success: true; data: TInput}
+    | {success: false; error: string}
+
+/** Result of a platform-session / configuration gate. */
+export type PlatformAuthGateResult = {ok: true} | {ok: false; status: number}
+
+/**
+ * Pre-body gate executed before any body parsing (e.g. a server-side platform
+ * admin session check). Returning `{ok:false, status}` short-circuits with the
+ * configured gate message and that status.
+ */
+export type PlatformAuthGate = () =>
+    | PlatformAuthGateResult
+    | Promise<PlatformAuthGateResult>
+
+export interface PlatformTokenRouteMessages {
+    /** 415: request `Content-Type` is not JSON. */
+    contentType?: string
+    /** 400: the request has no body stream at all. */
+    missingBody?: string
+    /** 413: the body exceeds `jsonBodyLimit`. */
+    tooLarge?: string
+    /** 400: the body is not valid JSON. */
+    invalidJson?: string
+    /** 502: upstream request failed (including missing upstream config). */
+    upstream?: string
+    /** 401/502: the `gate` rejected the request. */
+    gate?: string
+}
+
+export interface PlatformRefreshRouteMessages {
+    /** 401: no refresh cookie was presented. */
+    tokenRequired?: string
+    /** 502: upstream request failed (including missing upstream config). */
+    upstream?: string
+    /** 401/502: the `gate` rejected the request. */
+    gate?: string
+}
+
+/**
+ * Performs the upstream token/refresh call for validated input. Receives the
+ * original `Request` so tenant routes can bind the upstream Host; may throw
+ * when upstream configuration is missing (mapped to 502 by the factory).
+ *
+ * Platform routes use `createPlatformFetchUpstream` (fetch + abort deadline);
+ * admin tenant routes use their node-http transport, which enforces its own
+ * timeout and tenant Host.
+ */
+export type PlatformUpstreamRequest<TInput> = (
+    input: TInput,
+    request: Request,
+) => Response | Promise<Response>
+
+export interface PlatformTokenRouteConfig<TInput> {
+    /** httpOnly cookie that receives the sealed refresh token. */
+    refreshCookie: string
+    /** Validates the parsed JSON login body. */
+    validate: (value: unknown) => PlatformInputValidation<TInput>
+    /** Performs the upstream token call. */
+    upstream: PlatformUpstreamRequest<TInput>
+    /** Optional pre-body gate, e.g. require a live platform admin session. */
+    gate?: PlatformAuthGate
+    /**
+     * Optional pre-body check returning a `Response` to short-circuit
+     * (e.g. require a valid `X-Tenant-Host`), or null/undefined to continue.
+     */
+    preflight?: (request: Request) => Response | null | undefined
+    /**
+     * Optional post-seal decorator, e.g. append the tenant replay-scope
+     * cookie. Runs before the no-store headers are applied.
+     */
+    finalize?: (response: Response, request: Request) => Response
+    /** Hard body-byte cap. Defaults to 16 384 (matches the tenant factories). */
+    jsonBodyLimit?: number
+    /** Overrides for the default response messages. */
+    messages?: PlatformTokenRouteMessages
+}
+
+export interface PlatformRefreshRouteConfig {
+    /** httpOnly cookie holding the sealed refresh token. */
+    refreshCookie: string
+    /** Performs the upstream refresh call. */
+    upstream: PlatformUpstreamRequest<string>
+    /** Optional pre-cookie gate, e.g. require a live platform admin session. */
+    gate?: PlatformAuthGate
+    /**
+     * Optional pre-cookie check returning a `Response` to short-circuit
+     * (e.g. tenant host + replay-scope binding checks).
+     */
+    preflight?: (request: Request) => Response | null | undefined
+    /** Overrides for the default response messages. */
+    messages?: PlatformRefreshRouteMessages
+}
+
+const DEFAULT_PLATFORM_TOKEN_MESSAGES = {
+    contentType: 'Content-Type must be application/json.',
+    tooLarge: 'Request body is too large.',
+    invalidJson: 'Invalid JSON request.',
+    upstream: 'Authentication service is unavailable.',
+    gate: 'A platform admin session is required.',
+}
+
+const DEFAULT_PLATFORM_REFRESH_MESSAGES = {
+    tokenRequired: 'A valid refresh token is required.',
+    upstream: 'Authentication service is unavailable.',
+    gate: 'A platform admin session is required.',
+}
+
+async function applyPlatformGate(
+    gate: PlatformAuthGate | undefined,
+    message: string,
+): Promise<Response | null> {
+    if (gate === undefined) {
+        return null
+    }
+
+    const result = await gate()
+    return result.ok ? null : jsonError(message, result.status)
+}
+
+/** Fetches with an `AbortController` deadline (no-store upstream request). */
+async function fetchWithTimeout(
+    request: DirectwerkRequest,
+    timeoutMs: number,
+): Promise<Response> {
+    const abortController = new AbortController()
+    const timeoutId = setTimeout(() => abortController.abort(), timeoutMs)
+    try {
+        return await fetch(request.url, {
+            ...request.init,
+            signal: abortController.signal,
+        })
+    } finally {
+        clearTimeout(timeoutId)
+    }
+}
+
+/**
+ * Adapts a `DirectwerkRequest` builder (e.g. `createPlatformTokenRequest`) to a
+ * `PlatformUpstreamRequest` with the platform BFF's 10 s abort deadline.
+ */
+export function createPlatformFetchUpstream<TInput>(
+    buildRequest: (input: TInput) => DirectwerkRequest,
+    timeoutMs = 10_000,
+): PlatformUpstreamRequest<TInput> {
+    return (input) => fetchWithTimeout(buildRequest(input), timeoutMs)
+}
+
+/**
+ * Builds a platform login BFF route (`/api/auth/login`,
+ * `/api/auth/tenant-login`): JSON body gate → validation → upstream token
+ * request → seal the refresh token into an httpOnly cookie → no-store.
+ *
+ * The `gate`/`preflight`/`finalize` hooks cover the tenant variant's platform
+ * session check, `X-Tenant-Host` requirement, and replay-scope cookie binding
+ * without weakening the shared 415/413/400/502 choreography.
+ */
+export function createPlatformTokenRoute<TInput>(
+    config: PlatformTokenRouteConfig<TInput>,
+): (request: Request) => Promise<Response> {
+    const jsonBodyLimit = config.jsonBodyLimit ?? 16_384
+    const messages = {...DEFAULT_PLATFORM_TOKEN_MESSAGES, ...config.messages}
+
+    return async function POST(request: Request): Promise<Response> {
+        const gated = await applyPlatformGate(config.gate, messages.gate)
+        if (gated !== null) {
+            return gated
+        }
+
+        const preflight = config.preflight?.(request)
+        if (preflight !== undefined && preflight !== null) {
+            return preflight
+        }
+
+        const body = await readAuthJsonBody(request, {
+            jsonBodyLimit,
+            messages: {
+                contentType: messages.contentType,
+                tooLarge: messages.tooLarge,
+                invalidJson: messages.invalidJson,
+                ...(messages.missingBody === undefined
+                    ? {}
+                    : {missingBody: messages.missingBody}),
+            },
+        })
+        if (!body.ok) {
+            return body.response
+        }
+
+        const validation = config.validate(body.value)
+        if (!validation.success) {
+            return jsonError(validation.error, 400)
+        }
+
+        try {
+            const upstream = await config.upstream(validation.data, request)
+            const sealed = await sealRefreshToken(
+                await safeUpstreamResponse(upstream),
+                config.refreshCookie,
+            )
+            const finalized =
+                config.finalize === undefined
+                    ? sealed
+                    : config.finalize(sealed, request)
+            return applyNoStoreHeaders(finalized)
+        } catch {
+            return jsonError(messages.upstream, 502)
+        }
+    }
+}
+
+/**
+ * Builds a platform refresh BFF route (`/api/auth/refresh`,
+ * `/api/auth/tenant-refresh`): optional gate/preflight → read the sealed
+ * refresh cookie → upstream refresh → re-seal → no-store.
+ */
+export function createPlatformRefreshRoute(
+    config: PlatformRefreshRouteConfig,
+): (request: Request) => Promise<Response> {
+    const messages = {...DEFAULT_PLATFORM_REFRESH_MESSAGES, ...config.messages}
+
+    return async function POST(request: Request): Promise<Response> {
+        const gated = await applyPlatformGate(config.gate, messages.gate)
+        if (gated !== null) {
+            return gated
+        }
+
+        const preflight = config.preflight?.(request)
+        if (preflight !== undefined && preflight !== null) {
+            return preflight
+        }
+
+        const refreshToken = readRequestCookie(request, config.refreshCookie)
+        if (refreshToken === null) {
+            return jsonError(messages.tokenRequired, 401)
+        }
+
+        try {
+            const upstream = await config.upstream(refreshToken, request)
+            const sealed = await sealRefreshToken(
+                await safeUpstreamResponse(upstream),
+                config.refreshCookie,
+            )
+            return applyNoStoreHeaders(sealed)
+        } catch {
+            return jsonError(messages.upstream, 502)
         }
     }
 }

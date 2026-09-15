@@ -2,6 +2,7 @@ import 'server-only'
 
 import {ASSET_STATUSES, ASSET_TYPES, JOB_STATUSES} from '../constants'
 import type {JobListQuery, QueueJob} from '../types'
+import {isTrustedOrigin} from '../urls/urlPolicy'
 
 export interface DirectwerkEnvironment {
     apiUrl: string
@@ -52,12 +53,10 @@ const ISO_INSTANT =
 /** Normalizes and SSRF-guards a configured API origin. */
 export function normalizeDirectwerkApiUrl(rawApiUrl: string): string {
     const apiUrl = new URL(rawApiUrl)
-    const isLocalHttp =
-        apiUrl.protocol === 'http:' &&
-        (apiUrl.hostname === 'localhost' || apiUrl.hostname === '127.0.0.1')
 
     if (
-        (apiUrl.protocol !== 'https:' && !isLocalHttp) ||
+        // This guard predates IPv6 loopback support, so `[::1]` is not accepted.
+        !isTrustedOrigin(apiUrl, {allowLoopback: true, allowIpv6Loopback: false}) ||
         apiUrl.username ||
         apiUrl.password ||
         apiUrl.search ||

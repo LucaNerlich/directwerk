@@ -3,8 +3,13 @@ import 'server-only'
 import {safeUpstreamResponse} from '@directwerk/api/server'
 import type {MediaAsset} from '@directwerk/api/types'
 import {ASSET_TYPES, ASSET_VISIBILITIES} from '@directwerk/api/types'
-import {parseMediaAssetEnvelope, parseUploadUrlResponse} from '@directwerk/api/validation/catalog'
+import {
+    buildConfirmRetryBody,
+    performMediaUpload,
+    type MediaUploadTransport,
+} from '@directwerk/api/media/serverUpload'
 import {inferAssetType} from '@directwerk/api/media/uploadProtocol'
+import {parseMediaAssetEnvelope} from '@directwerk/api/validation/catalog'
 import {isRecord} from '@directwerk/api/validation/primitives'
 
 import {createConfiguredPlatformApiRequest} from '@/lib/server/api'
@@ -26,26 +31,54 @@ export type MediaUploadOutcome =
           retryConfirm?: boolean
       }
 
+/** POSTs a platform media request with the admin upstream timeout applied. */
+async function platformMediaFetch(
+    segments: string[],
+    body: string,
+    authorization: string
+): Promise<Response> {
+    const request = createConfiguredPlatformApiRequest(
+        segments,
+        new Request('http://admin.local/api/internal', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body,
+        }),
+        authorization
+    )
+    return fetch(request.url, {
+        ...request.init,
+        signal: AbortSignal.timeout(UPSTREAM_TIMEOUT_MS),
+    })
+}
 
-function isHttpsUrl(value: string): boolean {
-    try {
-        return new URL(value).protocol === 'https:'
-    } catch {
-        return false
+/** Platform transport for the shared upload sequence. */
+function platformMediaTransport(
+    tenantId: string,
+    authorization: string
+): MediaUploadTransport {
+    return {
+        createUploadUrl: (body) =>
+            platformMediaFetch(
+                ['tenants', tenantId, 'media', 'upload-url'],
+                JSON.stringify(body),
+                authorization
+            ),
+        confirmUpload: (assetId) =>
+            platformMediaFetch(
+                ['tenants', tenantId, 'media', String(assetId), 'confirm'],
+                '{}',
+                authorization
+            ),
     }
 }
 
-function readEnvelopeData(payload: unknown): unknown {
-    if (
-        typeof payload !== 'object' ||
-        payload === null ||
-        !Object.hasOwn(payload, 'data')
-    ) {
-        return null
-    }
-    return (payload as {data: unknown}).data
-}
-
+/**
+ * Server-side test upload for a tenant's Storage: upload-url → PUT to S3 →
+ * confirm. The sequence is delegated to `@directwerk/api/media/serverUpload`;
+ * this module owns the multipart/auth adaptation and the admin result shape.
+ * The file bytes are streamed from the already-buffered multipart `File`.
+ */
 export async function performTenantMediaUpload(
     tenantId: string,
     formData: FormData
@@ -79,141 +112,92 @@ export async function performTenantMediaUpload(
         return {ok: false, status: 400, body: {error: 'Choose a valid asset type.'}}
     }
 
-    const uploadUrlBody = {
-        filename: fileEntry.name,
-        mimeType,
+    const result = await performMediaUpload({
+        body: fileEntry.stream(),
         sizeBytes: fileEntry.size,
-        assetType,
-        intendedVisibility: visibilityRaw,
-        scope: visibilityRaw === 'PUBLIC' ? 'TENANT_PUBLIC' : 'CONTENT',
-    }
+        mimeType,
+        uploadUrlBody: {
+            filename: fileEntry.name,
+            mimeType,
+            sizeBytes: fileEntry.size,
+            assetType,
+            intendedVisibility: visibilityRaw,
+            scope: visibilityRaw === 'PUBLIC' ? 'TENANT_PUBLIC' : 'CONTENT',
+        },
+        transport: platformMediaTransport(tenantId, auth.authorization),
+        // Platform uploads are presigned for HTTPS object storage only.
+        allowLoopbackUploadTarget: false,
+        storageTimeouts: {
+            idleTimeoutMs: STORAGE_PUT_TIMEOUT_MS,
+            absoluteTimeoutMs: STORAGE_PUT_TIMEOUT_MS,
+        },
+    })
 
-    try {
-        const uploadUrlRequest = createConfiguredPlatformApiRequest(
-            ['tenants', tenantId, 'media', 'upload-url'],
-            new Request('http://admin.local/api/internal', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify(uploadUrlBody),
-            }),
-            auth.authorization
-        )
-        const uploadUrlUpstream = await fetch(uploadUrlRequest.url, {
-            ...uploadUrlRequest.init,
-            signal: AbortSignal.timeout(UPSTREAM_TIMEOUT_MS),
-        })
-        if (!uploadUrlUpstream.ok) {
-            const failure = await safeUpstreamResponse(uploadUrlUpstream)
+    switch (result.status) {
+        case 'confirmed': {
+            const payload = await result.response.json().catch(() => null)
+            const asset = parseMediaAssetEnvelope(payload)?.data
+            if (asset === undefined) {
+                return {
+                    ok: false,
+                    status: 502,
+                    body: {error: 'Invalid confirm response from Directwerk.'},
+                }
+            }
+            return {ok: true, asset}
+        }
+        case 'upload-url-failed': {
+            const failure = await safeUpstreamResponse(result.response)
             const failurePayload = await failure.json().catch(() => null)
             return {
                 ok: false,
                 status: failure.status,
-                body:
-                    isRecord(failurePayload)
-                        ? failurePayload
-                        : {error: 'Directwerk request failed.'},
+                body: isRecord(failurePayload)
+                    ? failurePayload
+                    : {error: 'Directwerk request failed.'},
             }
         }
-
-        const uploadData = parseUploadUrlResponse(readEnvelopeData(await uploadUrlUpstream.json()))
-        if (uploadData === null || !isHttpsUrl(uploadData.uploadUrl)) {
-            return {
-                ok: false,
-                status: 502,
-                body: {error: 'Invalid upload-url response from Directwerk.'},
-            }
-        }
-
-        const putHeaders = new Headers(uploadData.headers ?? {})
-        if (!putHeaders.has('Content-Type')) {
-            putHeaders.set('Content-Type', mimeType)
-        }
-
-        const putResponse = await fetch(uploadData.uploadUrl, {
-            method: 'PUT',
-            headers: putHeaders,
-            body: Buffer.from(await fileEntry.arrayBuffer()),
-            cache: 'no-store',
-            redirect: 'manual',
-            signal: AbortSignal.timeout(STORAGE_PUT_TIMEOUT_MS),
-        })
-
-        if (!putResponse.ok) {
-            return {
-                ok: false,
-                status: 502,
-                body: {
-                    error: `Object storage rejected the upload (HTTP ${putResponse.status}).`,
-                },
-            }
-        }
-
-        const confirmRequest = createConfiguredPlatformApiRequest(
-            ['tenants', tenantId, 'media', String(uploadData.assetId), 'confirm'],
-            new Request('http://admin.local/api/internal', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: '{}',
-            }),
-            auth.authorization
-        )
-        const confirmUpstream = await fetch(confirmRequest.url, {
-            ...confirmRequest.init,
-            signal: AbortSignal.timeout(UPSTREAM_TIMEOUT_MS),
-        })
-
-        if (!confirmUpstream.ok) {
-            const failure = await safeUpstreamResponse(confirmUpstream)
-            const failurePayload = await failure.json().catch(() => ({
-                error: 'Directwerk request failed.',
-            }))
+        case 'invalid-upload-url':
+        case 'storage-rejected':
+            return {ok: false, status: 502, body: {error: result.message}}
+        case 'confirm-failed': {
+            const failure = await safeUpstreamResponse(result.response)
+            const failurePayload = await failure
+                .json()
+                .catch(() => ({error: 'Directwerk request failed.'}))
+            const body = isRecord(failurePayload)
+                ? buildConfirmRetryBody(failurePayload, result.assetId)
+                : buildConfirmRetryBody(
+                      {error: 'Directwerk request failed.'},
+                      result.assetId
+                  )
             return {
                 ok: false,
                 status: failure.status,
-                body:
-                    isRecord(failurePayload)
-                        ? {
-                              ...failurePayload,
-                              assetId: uploadData.assetId,
-                              retryConfirm: true,
-                          }
-                        : {
-                              error: 'Directwerk request failed.',
-                              assetId: uploadData.assetId,
-                              retryConfirm: true,
-                          },
-                assetId: uploadData.assetId,
+                body,
+                assetId: result.assetId,
                 retryConfirm: true,
             }
         }
-
-        const asset = parseMediaAssetEnvelope(await confirmUpstream.json())?.data
-        if (asset === undefined) {
+        case 'body-too-large':
+            // The File size cap above makes this unreachable; keep the shared
+            // classifier's fallback shape identical to the old catch-all.
             return {
                 ok: false,
                 status: 502,
-                body: {error: 'Invalid confirm response from Directwerk.'},
+                body: {error: 'Directwerk or object storage is unavailable.'},
             }
-        }
-
-        return {ok: true, asset}
-    } catch (error: unknown) {
-        if (
-            error instanceof Error &&
-            (error.name === 'TimeoutError' || error.name === 'AbortError')
-        ) {
+        case 'timeout':
             return {
                 ok: false,
                 status: 504,
                 body: {error: 'Upstream request timed out.', code: 'TIMEOUT'},
             }
-        }
-        return {
-            ok: false,
-            status: 502,
-            body: {error: 'Directwerk or object storage is unavailable.'},
-        }
+        case 'unavailable':
+            return {
+                ok: false,
+                status: 502,
+                body: {error: 'Directwerk or object storage is unavailable.'},
+            }
     }
 }
-
-

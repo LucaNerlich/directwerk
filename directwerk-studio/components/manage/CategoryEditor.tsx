@@ -13,33 +13,43 @@ import PageStack from '@directwerk/ui/components/page-stack'
 import {Skeleton} from '@directwerk/ui/components/skeleton'
 
 import Link from 'next/link'
-import Form from 'next/form'
-import {useRouter} from 'next/navigation'
-import {useActionState, useEffect, useState} from 'react'
 
-import {AUTH_REQUIRED, HTML_SLUG_PATTERN} from '@directwerk/api/constants'
-import {createCategory, deactivateCategory, listCategories, updateCategory} from '@/lib/api/catalogApi'
-import type {CategorySummary} from '@directwerk/api/types'
-import {getClientTenantHost} from '@directwerk/api/tenant'
-import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
+import {HTML_SLUG_PATTERN} from '@directwerk/api/constants'
+import {
+    createCategory,
+    deactivateCategory,
+    listCategories,
+    updateCategory,
+} from '@/lib/api/catalogApi'
+import type {
+    CategorySummary,
+    CreateCategoryInput,
+    UpdateCategoryInput,
+} from '@directwerk/api/types'
+import {useResourceEditor} from '@/lib/hooks/useResourceEditor'
 
 interface CategoryEditorProps {
     categoryId?: number
 }
 
-interface CategoryFormState {
-    error: string | null
-    success: string | null
+interface CategoryFormValues {
+    name: string
+    slug: string
+    parentId: string
 }
 
-interface DeactivateState {
-    error: string | null
+const INITIAL_VALUES: CategoryFormValues = {name: '', slug: '', parentId: ''}
+
+function toCategoryValues(category: CategorySummary): CategoryFormValues {
+    return {
+        name: category.name,
+        slug: category.slug,
+        parentId: category.parentId === null ? '' : String(category.parentId),
+    }
 }
 
-const INITIAL_STATE: CategoryFormState = {error: null, success: null}
-
-function parseOptionalId(value: FormDataEntryValue | null): number | undefined {
-    const text = String(value ?? '').trim()
+function parseOptionalId(value: string): number | undefined {
+    const text = value.trim()
     if (text.length === 0) {
         return undefined
     }
@@ -48,107 +58,55 @@ function parseOptionalId(value: FormDataEntryValue | null): number | undefined {
 }
 
 export default function CategoryEditor({categoryId}: CategoryEditorProps): React.JSX.Element {
-    const router = useRouter()
-    const authRedirect = useAuthRequired()
-    const isNew = categoryId === undefined
-    const [categories, setCategories] = useState<CategorySummary[]>([])
-    const [category, setCategory] = useState<CategorySummary | null>(null)
-    const [loadError, setLoadError] = useState<string | null>(null)
-    const [isLoading, setIsLoading] = useState(!isNew)
-    const [isDeactivating, setIsDeactivating] = useState(false)
-    const [deactivateError, setDeactivateError] = useState<string | null>(null)
-
-    useEffect(() => {
-        let active = true
-
-        listCategories(getClientTenantHost())
-            .then((allCategories) => {
-                if (!active) {
-                    return
-                }
-                setCategories(allCategories)
-                if (categoryId !== undefined) {
-                    const found = allCategories.find((item) => item.id === categoryId)
-                    if (!found) {
-                        setLoadError('Kategorie wurde nicht gefunden.')
-                    } else {
-                        setCategory(found)
-                    }
-                }
-                setIsLoading(false)
-            })
-            .catch((error: unknown) => {
-                if (!active) {
-                    return
-                }
-                if (authRedirect(error)) return
-                setLoadError(
-                    error instanceof Error
-                        ? error.message
-                        : 'Kategorie konnte nicht geladen werden.',
-                )
-                setIsLoading(false)
-            })
-
-        return () => {
-            active = false
-        }
-    }, [categoryId, router])
-
-    async function saveAction(
-        _previous: CategoryFormState,
-        formData: FormData,
-    ): Promise<CategoryFormState> {
-        const name = String(formData.get('name') ?? '').trim()
-        const slugInput = String(formData.get('slug') ?? '').trim()
-        const parentId = parseOptionalId(formData.get('parentId'))
-
-        if (name.length === 0) {
-            return {error: 'Name ist erforderlich.', success: null}
-        }
-
-        const host = getClientTenantHost()
-
-        try {
-            if (isNew) {
-                const resolvedSlug = slugInput || suggestSlug(name) || 'kategorie'
-                const created = await createCategory(host, {slug: resolvedSlug, name, parentId})
-                router.replace(`/manage/categories/${created.id}`)
-                return {error: null, success: `Kategorie "${created.name}" angelegt.`}
-            }
-
-            const updated = await updateCategory(host, categoryId, {name, parentId})
-            setCategory(updated)
-            return {error: null, success: 'Kategorie gespeichert.'}
-        } catch (error) {
-            if (authRedirect(error)) return INITIAL_STATE
-            return {
-                error: error instanceof Error ? error.message : 'Aktion fehlgeschlagen.',
-                success: null,
-            }
-        }
-    }
-
-    const [state, formAction, pending] = useActionState(saveAction, INITIAL_STATE)
-
-    async function handleDeactivate(): Promise<void> {
-        if (categoryId === undefined) {
-            return
-        }
-        setIsDeactivating(true)
-        setDeactivateError(null)
-        try {
-            const updated = await deactivateCategory(getClientTenantHost(), categoryId)
-            setCategory(updated)
-        } catch (error) {
-            if (authRedirect(error)) return
-            setDeactivateError(
-                error instanceof Error ? error.message : 'Deaktivierung fehlgeschlagen.',
-            )
-        } finally {
-            setIsDeactivating(false)
-        }
-    }
+    const {
+        entity: category,
+        entities: categories,
+        values,
+        setField,
+        isNew,
+        isLoading,
+        loadError,
+        isSaving,
+        isDeactivating,
+        errorMessage,
+        statusMessage,
+        handleSubmit,
+        handleDeactivate,
+    } = useResourceEditor<
+        CategorySummary,
+        CategoryFormValues,
+        CreateCategoryInput,
+        UpdateCategoryInput
+    >({
+        id: categoryId,
+        load: listCategories,
+        alwaysLoad: true,
+        create: createCategory,
+        update: updateCategory,
+        deactivate: deactivateCategory,
+        initialValues: INITIAL_VALUES,
+        toValues: toCategoryValues,
+        validate: (current) =>
+            current.name.trim().length === 0 ? 'Name ist erforderlich.' : null,
+        buildCreate: (current) => ({
+            slug: current.slug.trim() || suggestSlug(current.name) || 'kategorie',
+            name: current.name.trim(),
+            parentId: parseOptionalId(current.parentId),
+        }),
+        buildUpdate: (current) => ({
+            name: current.name.trim(),
+            parentId: parseOptionalId(current.parentId),
+        }),
+        redirectPath: (created) => `/manage/categories/${created.id}`,
+        createSuccessMessage: (created) => `Kategorie "${created.name}" angelegt.`,
+        updateSuccessMessage: 'Kategorie gespeichert.',
+        messages: {
+            notFound: 'Kategorie wurde nicht gefunden.',
+            loadFailed: 'Kategorie konnte nicht geladen werden.',
+            saveFailed: 'Aktion fehlgeschlagen.',
+            deactivateFailed: 'Deaktivierung fehlgeschlagen.',
+        },
+    })
 
     if (isLoading) {
         return (
@@ -196,19 +154,14 @@ export default function CategoryEditor({categoryId}: CategoryEditorProps): React
                 }
             />
 
-            {state.error ? (
+            {errorMessage ? (
                 <Alert variant="destructive">
-                    <AlertDescription>{state.error}</AlertDescription>
+                    <AlertDescription>{errorMessage}</AlertDescription>
                 </Alert>
             ) : null}
-            {state.success ? (
+            {statusMessage ? (
                 <Alert role="status">
-                    <AlertDescription>{state.success}</AlertDescription>
-                </Alert>
-            ) : null}
-            {deactivateError ? (
-                <Alert variant="destructive">
-                    <AlertDescription>{deactivateError}</AlertDescription>
+                    <AlertDescription>{statusMessage}</AlertDescription>
                 </Alert>
             ) : null}
 
@@ -218,18 +171,18 @@ export default function CategoryEditor({categoryId}: CategoryEditorProps): React
                     <CardDescription>Name, Kennung und optionale Oberkategorie.</CardDescription>
                 </CardHeader>
                 <CardContent>
-            <Form action={formAction} className="grid gap-5">
+            <form className="grid gap-5" onSubmit={(event) => void handleSubmit(event)}>
                 <div className="grid gap-2">
                     <Label htmlFor="category-name">Name</Label>
                     <Input
                         aria-describedby="category-name-help"
-                        defaultValue={category?.name ?? ''}
                         id="category-name"
                         maxLength={255}
-                        name="name"
+                        onChange={(event) => setField('name', event.target.value)}
                         placeholder="z. B. Interviews"
                         required
                         type="text"
+                        value={values.name}
                     />
                     <p className="text-xs text-muted-foreground" id="category-name-help">
                         Anzeigename in Listen und Filtern.
@@ -239,15 +192,15 @@ export default function CategoryEditor({categoryId}: CategoryEditorProps): React
                     <Label htmlFor="category-slug">Slug</Label>
                     <Input
                         aria-describedby="category-slug-help"
-                        defaultValue={category?.slug ?? ''}
                         disabled={!isNew}
                         id="category-slug"
                         maxLength={64}
-                        name="slug"
+                        onChange={(event) => setField('slug', event.target.value)}
                         pattern={HTML_SLUG_PATTERN}
                         placeholder="z. B. interviews"
                         required={isNew}
                         type="text"
+                        value={values.slug}
                     />
                     <p className="text-xs text-muted-foreground" id="category-slug-help">
                         Technische Kennung aus Kleinbuchstaben, Zahlen und Bindestrichen.
@@ -258,9 +211,9 @@ export default function CategoryEditor({categoryId}: CategoryEditorProps): React
                     <Label htmlFor="category-parent">Übergeordnete Kategorie</Label>
                     <SelectControl
                         aria-describedby="category-parent-help"
-                        defaultValue={category?.parentId ?? ''}
                         id="category-parent"
-                        name="parentId"
+                        onChange={(event) => setField('parentId', event.target.value)}
+                        value={values.parentId}
                     >
                         <option value="">— Keine (oberste Kategorie) —</option>
                         {parentOptions.map((item) => (
@@ -274,8 +227,8 @@ export default function CategoryEditor({categoryId}: CategoryEditorProps): React
                     </p>
                 </div>
                 <div className="flex flex-wrap gap-2">
-                    <Button disabled={pending} type="submit">
-                        {pending ? 'Speichert…' : 'Speichern'}
+                    <Button disabled={isSaving} type="submit">
+                        {isSaving ? 'Speichert…' : 'Speichern'}
                     </Button>
                     {!isNew && category?.active ? (
                         <>
@@ -290,7 +243,7 @@ export default function CategoryEditor({categoryId}: CategoryEditorProps): React
                         </>
                     ) : null}
                 </div>
-            </Form>
+            </form>
                 </CardContent>
             </Card>
         </PageStack>

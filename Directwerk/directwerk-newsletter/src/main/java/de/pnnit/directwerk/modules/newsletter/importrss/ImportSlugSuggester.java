@@ -1,59 +1,32 @@
 package de.pnnit.directwerk.modules.newsletter.importrss;
 
-import java.util.Locale;
-import java.util.regex.Pattern;
+import de.pnnit.directwerk.modules.digital.importing.FeedImportSupport;
 
 public final class ImportSlugSuggester {
 
-    private static final Pattern NON_SLUG = Pattern.compile("[^a-z0-9]+");
     private static final String FALLBACK = "artikel";
 
     private ImportSlugSuggester() {
     }
 
+    /**
+     * Creates a URL-friendly article slug from a title.
+     *
+     * @param title the title from which to create the slug
+     * @return the normalized slug, or {@code "artikel"} when the title is blank or cannot produce a valid slug
+     */
     public static String suggest(String title) {
-        if (title == null || title.isBlank()) {
-            return FALLBACK;
-        }
-        String folded = foldGerman(title.trim());
-        String slug = NON_SLUG.matcher(folded.toLowerCase(Locale.ROOT)).replaceAll("-");
-        slug = slug.replaceAll("^-+|-+$", "");
-        if (slug.length() > 63) {
-            slug = slug.substring(0, 63).replaceAll("-+$", "");
-        }
-        if (slug.isEmpty() || !Character.isLetterOrDigit(slug.charAt(0))) {
-            slug = FALLBACK;
-        }
-        if (slug.length() == 1) {
-            return slug;
-        }
-        if (!Character.isLetterOrDigit(slug.charAt(slug.length() - 1))) {
-            slug = slug.substring(0, slug.length() - 1);
-        }
-        return slug.isEmpty() ? FALLBACK : slug;
+        return FeedImportSupport.suggestSlug(title, FALLBACK);
     }
 
-    private static String foldGerman(String title) {
-        return title
-                .replace("ä", "ae")
-                .replace("ö", "oe")
-                .replace("ü", "ue")
-                .replace("Ä", "Ae")
-                .replace("Ö", "Oe")
-                .replace("Ü", "Ue")
-                .replace("ß", "ss");
-    }
-
+    /**
+     * Appends an attempt suffix to a slug while keeping the combined value within 64 characters.
+     *
+     * @param base    the slug to suffix
+     * @param attempt the attempt number used to form the suffix
+     * @return the unchanged base when the attempt is 1 or lower; otherwise, the suffixed slug
+     */
     public static String withSuffix(String base, int attempt) {
-        if (attempt <= 1) {
-            return base;
-        }
-        String suffix = "-" + attempt;
-        int maxBase = Math.max(1, 64 - suffix.length());
-        String trimmed = base.length() > maxBase ? base.substring(0, maxBase).replaceAll("-+$", "") : base;
-        if (trimmed.isEmpty()) {
-            trimmed = FALLBACK;
-        }
-        return trimmed + suffix;
+        return FeedImportSupport.withSuffix(base, attempt, FALLBACK);
     }
 }
