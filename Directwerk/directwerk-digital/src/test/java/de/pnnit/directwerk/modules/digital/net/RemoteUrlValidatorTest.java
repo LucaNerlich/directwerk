@@ -4,10 +4,31 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import de.pnnit.directwerk.modules.digital.exception.UploadValidationException;
+import java.net.InetAddress;
 import java.net.URI;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.Test;
 
 class RemoteUrlValidatorTest {
+
+    @Test
+    void resolvePublicAddressesFailsFastOnHangingDns() throws InterruptedException {
+        CountDownLatch resolverStarted = new CountDownLatch(1);
+        long start = System.nanoTime();
+
+        assertThatThrownBy(() -> RemoteUrlValidator.resolvePublicAddresses("blackhole.example", () -> {
+            resolverStarted.countDown();
+            Thread.sleep(60_000);
+            return new InetAddress[0];
+        }))
+                .isInstanceOf(UploadValidationException.class)
+                .extracting("code")
+                .isEqualTo("REMOTE_URL_FORBIDDEN");
+
+        assertThat(resolverStarted.await(1, TimeUnit.SECONDS)).isTrue();
+        assertThat(System.nanoTime() - start).isLessThan(TimeUnit.SECONDS.toNanos(10));
+    }
 
     @Test
     void acceptsPublicHttpsUrl() {

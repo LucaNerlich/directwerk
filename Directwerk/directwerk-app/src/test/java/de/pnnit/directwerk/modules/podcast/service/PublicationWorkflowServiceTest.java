@@ -430,6 +430,23 @@ class PublicationWorkflowServiceTest {
     }
 
     @Test
+    void publishScheduledEpisodeSkipsWhenPublishIsDeniedForCreator() {
+        Episode episode = draftEpisode();
+        episode.setStatus(EpisodeStatus.SCHEDULED);
+        episode.setCreatedBy(5L);
+
+        when(episodeService.requireEpisode(10L, 55L)).thenReturn(episode);
+        when(overrideRepository.findByTenantIdAndUserId(10L, 5L)).thenReturn(List.of(
+                override(ContentEntityType.EPISODE, ContentOperation.PUBLISH, RestrictionScope.DENY)));
+
+        publicationWorkflowService.publishScheduledEpisode(10L, 55L);
+
+        assertThat(episode.getStatus()).isEqualTo(EpisodeStatus.SCHEDULED);
+        verify(episodeMediaApi, never()).requireReadyAudio(any());
+        verify(episodeRepository, never()).save(any());
+    }
+
+    @Test
     void publishDeniedForStrangerWithOwnOnlyRestriction() {
         Episode episode = draftEpisode();
         episode.setCreatedBy(99L);

@@ -345,7 +345,8 @@ public class SecurityConfig {
                 "/oauth2/token",
                 "/api/v1/auth/*",
                 "/api/v1/public/contact",
-                "/api/v1/public/altcha/*"
+                "/api/v1/public/altcha/*",
+                "/api/v1/public/newsletter-lists/*/subscribe"
         );
         registration.setOrder(Ordered.HIGHEST_PRECEDENCE);
         return registration;

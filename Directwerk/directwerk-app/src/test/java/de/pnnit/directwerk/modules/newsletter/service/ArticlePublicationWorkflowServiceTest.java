@@ -259,6 +259,21 @@ class ArticlePublicationWorkflowServiceTest {
     }
 
     @Test
+    void publishScheduledArticleSkipsWhenPublishIsDeniedForCreator() {
+        Article article = draftArticle();
+        article.setStatus(ArticleStatus.SCHEDULED);
+        article.setCreatedBy(5L);
+        when(articleService.requireArticle(10L, 7L)).thenReturn(article);
+        when(overrideRepository.findByTenantIdAndUserId(10L, 5L)).thenReturn(List.of(
+                override(ContentEntityType.ARTICLE, ContentOperation.PUBLISH, RestrictionScope.DENY)));
+
+        articlePublicationWorkflowService.publishScheduledArticle(10L, 7L);
+
+        assertThat(article.getStatus()).isEqualTo(ArticleStatus.SCHEDULED);
+        verify(articleRepository, never()).save(any());
+    }
+
+    @Test
     void unarchiveRestoresDraftAndClearsPublishedAt() {
         Article article = draftArticle();
         article.setStatus(ArticleStatus.ARCHIVED);
