@@ -119,6 +119,15 @@ directwerk:
         # browser. The client UA stays in the event data (clientUserAgent); never forward podcatcher
         # UAs here. Blank or non-browser values fall back to the built-in Chrome UA in code.
         user-agent: ${DIRECTWERK_ANALYTICS_USER_AGENT:Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36}
+        # Read API (tenant analytics dashboard): server-to-server Umami login. Optional base
+        # override for when the read credentials belong to a different host than the tenant's
+        # configured Umami host. Never exposed to the browser.
+        umami-api-base-url: ${DIRECTWERK_ANALYTICS_UMAMI_API_BASE_URL:}
+        # Additional tenant Umami hostnames trusted to receive the platform read credentials.
+        # The hosts from umami-host-url and umami-api-base-url are trusted automatically.
+        umami-api-allowed-hosts: ${DIRECTWERK_ANALYTICS_UMAMI_API_ALLOWED_HOSTS:}
+        umami-username: ${DIRECTWERK_ANALYTICS_UMAMI_USERNAME:}
+        umami-password: ${DIRECTWERK_ANALYTICS_UMAMI_PASSWORD:}
     storage:
         enabled: ${DIRECTWERK_STORAGE_ENABLED:false}
         provider: ${DIRECTWERK_STORAGE_PROVIDER:hetzner}

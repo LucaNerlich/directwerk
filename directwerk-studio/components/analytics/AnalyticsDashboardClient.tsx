@@ -185,9 +185,9 @@ function UmamiLiveStats({
  *
  * Aggregates first-party data the studio can already fetch — content inventory
  * per desk plus subscriber/revenue stats when SUBSCRIPTION is on. Live Umami
- * reader stats come from the studio BFF (`/api/umami/stats`), which keeps the
- * Umami API key server-side and resolves tenant/website from the site-config
- * so the route cannot be pivoted into an open proxy.
+ * reader stats come from the API (`/api/v1/tenant/analytics/stats/{range}` via
+ * the tenant proxy), which keeps the Umami credentials server-side and resolves
+ * the tenant's website from its branding.
  */
 export default function AnalyticsDashboardClient({
     desks,

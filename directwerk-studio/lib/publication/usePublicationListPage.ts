@@ -8,7 +8,7 @@ import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
 import {
     usePublicationBulkActions,
     type PublicationBulkActionLabels,
-    type PublicationBulkRequestResult,
+    type PublicationBulkSettledResult,
 } from './usePublicationBulkActions'
 import {usePublicationListActions} from './usePublicationListActions'
 import {usePublicationListState} from './usePublicationListState'
@@ -40,8 +40,8 @@ export interface PublicationListPageConfig<T extends {
     cancelSchedule: (id: number) => Promise<T>
     unarchive: (id: number) => Promise<T>
     remove?: (id: number) => Promise<void>
-    publishMany: (ids: number[]) => Promise<PublicationBulkRequestResult<T>>
-    unpublishMany: (ids: number[]) => Promise<PublicationBulkRequestResult<T>>
+    publishMany: (ids: number[]) => Promise<PublicationBulkSettledResult<T>>
+    unpublishMany: (ids: number[]) => Promise<PublicationBulkSettledResult<T>>
     removeMany?: (ids: number[]) => Promise<number[]>
     labels: PublicationListPageLabels
     loadingMessage?: string

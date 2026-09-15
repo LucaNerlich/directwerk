@@ -40,6 +40,7 @@ import type {
 } from '@directwerk/api/types'
 import {createPublicationBulkLabels} from '@/lib/publication/publicationBulkLabels'
 import {usePublicationListPage} from '@/lib/publication/usePublicationListPage'
+import {settledBulkResult} from '@/lib/publication/usePublicationBulkActions'
 import {getClientTenantHost} from '@directwerk/api/tenant'
 import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
 
@@ -138,8 +139,8 @@ export default function EpisodeListClient() {
         cancelSchedule: (id) => cancelScheduleEpisode(getClientTenantHost(), id),
         unarchive: (id) => unarchiveEpisode(getClientTenantHost(), id),
         remove: (id) => deleteEpisode(getClientTenantHost(), id),
-        publishMany: (ids) => bulkPublishEpisodes(getClientTenantHost(), {ids}),
-        unpublishMany: (ids) => bulkUnpublishEpisodes(getClientTenantHost(), ids),
+        publishMany: (ids) => settledBulkResult(bulkPublishEpisodes(getClientTenantHost(), {ids})),
+        unpublishMany: (ids) => settledBulkResult(bulkUnpublishEpisodes(getClientTenantHost(), ids)),
         removeMany: (ids) => bulkDeleteEpisodes(getClientTenantHost(), ids),
         isBulkPublishEligible,
         isBulkUnpublishEligible,

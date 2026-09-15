@@ -4,6 +4,7 @@ import de.pnnit.directwerk.modules.core.exception.ConflictException;
 import de.pnnit.directwerk.modules.core.exception.ConflictCodes;
 import de.pnnit.directwerk.modules.core.RequiresModule;
 import de.pnnit.directwerk.modules.core.authorization.ContentOperation;
+import de.pnnit.directwerk.modules.core.content.BulkPublication;
 import de.pnnit.directwerk.modules.core.repository.TenantRepository;
 import de.pnnit.directwerk.modules.core.service.MembershipPermissionService;
 import de.pnnit.directwerk.modules.core.util.FieldConstraints;
@@ -354,7 +355,7 @@ public class EpisodeService {
     public List<Long> bulkDelete(Long tenantId, List<Long> episodeIds) {
         List<Long> deleted = new ArrayList<>();
         boolean anyVisible = false;
-        for (Long episodeId : new LinkedHashSet<>(episodeIds)) {
+        for (Long episodeId : BulkPublication.distinctIds(episodeIds)) {
             Episode episode = requireEpisode(tenantId, episodeId);
             if (episode.getTenant() == null || !tenantId.equals(episode.getTenant().getId())) {
                 throw new EpisodeNotFoundException(episodeId);

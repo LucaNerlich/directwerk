@@ -34,7 +34,10 @@ export default function NewsletterListDetailClient(): React.JSX.Element {
     )
     const subsQuery = useAuthedQuery(
         () => listNewsletterSubscriptions(getClientTenantHost(), listId),
-        {fallbackError: 'Abonnenten konnten nicht geladen werden.'},
+        {
+            fallbackError: 'Abonnenten konnten nicht geladen werden.',
+            queryKey: `newsletter-subscriptions:${listId}`,
+        },
     )
     const list = listsQuery.data?.find((item) => item.id === listId) ?? null
     const [name, setName] = useState<string | null>(null)

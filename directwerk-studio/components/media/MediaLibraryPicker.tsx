@@ -5,6 +5,7 @@ import SelectControl from '@/components/studio/SelectControl'
 import {useEffect, useId, useState} from 'react'
 
 import {AUTH_REQUIRED} from '@directwerk/api/constants'
+import {isReadyAsset} from '@directwerk/api/media/readiness'
 import {listMedia} from '@/lib/api/mediaApi'
 import type {AssetType, MediaAsset} from '@directwerk/api/types'
 import {getClientTenantHost} from '@directwerk/api/tenant'
@@ -45,7 +46,7 @@ export default function MediaLibraryPicker({
                     setAssets(
                         loaded.filter(
                             (item) =>
-                                item.assetType === assetType && item.status === 'READY',
+                                item.assetType === assetType && isReadyAsset(item),
                         ),
                     )
                 }

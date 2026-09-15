@@ -29,6 +29,7 @@ import {
 import type {ArticleDetail, CategorySummary} from '@directwerk/api/types'
 import {createPublicationBulkLabels} from '@/lib/publication/publicationBulkLabels'
 import {usePublicationListPage} from '@/lib/publication/usePublicationListPage'
+import {settledBulkResult} from '@/lib/publication/usePublicationBulkActions'
 import {getClientTenantHost} from '@directwerk/api/tenant'
 import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
 
@@ -66,8 +67,8 @@ export default function ArticleListClient() {
         cancelSchedule: (id) => cancelScheduleArticle(getClientTenantHost(), id),
         unarchive: (id) => unarchiveArticle(getClientTenantHost(), id),
         remove: (id) => deleteArticle(getClientTenantHost(), id),
-        publishMany: (ids) => bulkPublishArticles(getClientTenantHost(), {ids}),
-        unpublishMany: (ids) => bulkUnpublishArticles(getClientTenantHost(), ids),
+        publishMany: (ids) => settledBulkResult(bulkPublishArticles(getClientTenantHost(), {ids})),
+        unpublishMany: (ids) => settledBulkResult(bulkUnpublishArticles(getClientTenantHost(), ids)),
         removeMany: (ids) => bulkDeleteArticles(getClientTenantHost(), ids),
         labels: {
             loadError: 'Beiträge konnten nicht geladen werden.',

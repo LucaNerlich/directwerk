@@ -4,6 +4,22 @@
  */
 
 export interface paths {
+    "/api/v1/tenant/users/{userId}/restrictions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["listRestrictions"];
+        put: operations["replaceRestrictions"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/tenant/subscriber-feeds/{feedId}/enabled": {
         parameters: {
             query?: never;
@@ -111,6 +127,70 @@ export interface paths {
         put: operations["updateSeries"];
         post?: never;
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/platform/tenants/{tenantId}/upload-limits": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["updateUploadLimits"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/newsletter-lists/{listId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["updateList"];
+        post?: never;
+        delete: operations["archiveList"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/media/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["get"];
+        put: operations["renameAsset"];
+        post?: never;
+        delete: operations["delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/media/folders/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["renameFolder"];
+        post?: never;
+        delete: operations["deleteFolder"];
         options?: never;
         head?: never;
         patch?: never;
@@ -332,6 +412,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/articles/{articleId}/newsletter-lists": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["replaceNewsletterLists"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/articles/{articleId}/categories": {
         parameters: {
             query?: never;
@@ -524,6 +620,54 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/public/newsletter/unsubscribe": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["unsubscribe"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/public/newsletter/confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["confirm"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/public/newsletter-lists/{slug}/subscribe": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["subscribe"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/public/contact": {
         parameters: {
             query?: never;
@@ -566,6 +710,22 @@ export interface paths {
         get?: never;
         put?: never;
         post: operations["importEpisode"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/podcast/import/bulk": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["importBulk"];
         delete?: never;
         options?: never;
         head?: never;
@@ -860,6 +1020,38 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/newsletter-lists": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["listLists"];
+        put?: never;
+        post: operations["createList"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/media/{id}/move": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["moveAsset"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/media/{id}/confirm": {
         parameters: {
             query?: never;
@@ -869,7 +1061,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["confirm"];
+        post: operations["confirm_1"];
         delete?: never;
         options?: never;
         head?: never;
@@ -886,6 +1078,38 @@ export interface paths {
         get?: never;
         put?: never;
         post: operations["createUploadUrl_1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/media/folders": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["listFolders"];
+        put?: never;
+        post: operations["createFolder"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/media/folders/{id}/move": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["moveFolder"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1164,6 +1388,66 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/episodes/bulk/unpublish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Unpublish multiple episodes
+         * @description Unpublishes every id in a single transaction with a single RSS refresh. Atomic: the first failure rolls back all changes. Duplicate ids are unpublished once. Accepts 1-100 ids.
+         */
+        post: operations["bulkUnpublish"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/episodes/bulk/publish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Publish multiple episodes
+         * @description Publishes every id in a single transaction with a single RSS refresh. Atomic: the first failure rolls back all changes. Duplicate ids are published once. Accepts 1-100 ids.
+         */
+        post: operations["bulkPublish"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/episodes/bulk/delete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Delete multiple episodes
+         * @description Deletes every id in a single transaction with at most one RSS refresh (only when a visible episode was deleted). Atomic: the first failure rolls back all deletes. Duplicate ids are deleted once. Accepts 1-100 ids.
+         */
+        post: operations["bulkDelete"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/categories": {
         parameters: {
             query?: never;
@@ -1388,6 +1672,130 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/articles/import/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["preview_1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/articles/import/bulk": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["importBulk_1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/articles/import/assets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["ingestAsset_1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/articles/import/articles": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["importArticle"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/articles/bulk/unpublish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Unpublish multiple articles
+         * @description Unpublishes every id in a single transaction with a single RSS refresh. Atomic: the first failure rolls back all changes. Duplicate ids are unpublished once. Accepts 1-100 ids.
+         */
+        post: operations["bulkUnpublish_1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/articles/bulk/publish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Publish multiple articles
+         * @description Publishes every id in a single transaction with a single RSS refresh. Atomic: the first failure rolls back all changes. Duplicate ids are published once. Accepts 1-100 ids.
+         */
+        post: operations["bulkPublish_1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/articles/bulk/delete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Delete multiple articles
+         * @description Deletes every id in a single transaction with at most one RSS refresh (only when a visible article was deleted). Atomic: the first failure rolls back all deletes. Duplicate ids are deleted once. Accepts 1-100 ids.
+         */
+        post: operations["bulkDelete_1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/platform/tenants/{tenantId}": {
         parameters: {
             query?: never;
@@ -1596,6 +2004,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/tenant/users/{userId}/effective-rights": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["effectiveRights"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/tenant/subscribers": {
         parameters: {
             query?: never;
@@ -1684,6 +2108,22 @@ export interface paths {
             cookie?: never;
         };
         get: operations["listFeeds_3"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tenant/analytics/stats/{range}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["stats"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1812,6 +2252,38 @@ export interface paths {
             cookie?: never;
         };
         get: operations["listActiveProducts"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/public/newsletter-lists": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["listLists_1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/public/newsletter-lists/{slug}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getList"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2028,6 +2500,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/platform/tenants/{tenantId}/users/{userId}/effective-rights": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["effectiveRights_1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/platform/tenants/{tenantId}/modules": {
         parameters: {
             query?: never;
@@ -2083,7 +2571,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["get"];
+        get: operations["get_1"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2156,6 +2644,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/newsletter-lists/{listId}/subscriptions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["listSubscriptions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/media": {
         parameters: {
             query?: never;
@@ -2172,22 +2676,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/media/{id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["get_1"];
-        put?: never;
-        post?: never;
-        delete: operations["delete"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/v1/media/{id}/preview-url": {
         parameters: {
             query?: never;
@@ -2196,6 +2684,22 @@ export interface paths {
             cookie?: never;
         };
         get: operations["previewUrl"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/media/limits": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["uploadLimits"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2300,6 +2804,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/me/effective-rights": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["myEffectiveRights"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/me/downloads": {
         parameters: {
             query?: never;
@@ -2396,6 +2916,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/articles/import/assets/{assetId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getIngestAsset_1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/tenant/subscriptions/{subscriptionId}": {
         parameters: {
             query?: never;
@@ -2460,17 +2996,62 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/newsletter-lists/{listId}/subscriptions/{subscriptionId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: operations["removeSubscription"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
-        FeedEnabledRequest: {
-            enabled: boolean;
+        Input: {
+            /** @enum {string} */
+            entityType: "EPISODE" | "ARTICLE" | "SERIES" | "MEDIA_ASSET" | "MEDIA_FOLDER";
+            /** @enum {string} */
+            operation: "CREATE" | "READ" | "UPDATE" | "DELETE" | "PUBLISH" | "SCHEDULE" | "UNPUBLISH" | "ARCHIVE" | "UNARCHIVE" | "MOVE";
+            /** @enum {string} */
+            scope: "DENY" | "OTHERS_ONLY";
+        };
+        ReplaceRestrictionsRequest: {
+            restrictions: components["schemas"]["Input"][];
         };
         ErrorDetail: {
             code?: string;
             message?: string;
             field?: string;
+        };
+        PermissionRestrictionView: {
+            /** @enum {string} */
+            entityType?: "EPISODE" | "ARTICLE" | "SERIES" | "MEDIA_ASSET" | "MEDIA_FOLDER";
+            /** @enum {string} */
+            operation?: "CREATE" | "READ" | "UPDATE" | "DELETE" | "PUBLISH" | "SCHEDULE" | "UNPUBLISH" | "ARCHIVE" | "UNARCHIVE" | "MOVE";
+            /** @enum {string} */
+            scope?: "DENY" | "OTHERS_ONLY";
+        };
+        ResponseListPermissionRestrictionView: {
+            /** Format: int32 */
+            statusCode?: number;
+            statusMessage?: string;
+            data?: components["schemas"]["PermissionRestrictionView"][];
+            errors?: components["schemas"]["ErrorDetail"][];
+            metadata?: {
+                [key: string]: unknown;
+            };
+        };
+        FeedEnabledRequest: {
+            enabled: boolean;
         };
         FormatView: {
             /** Format: int64 */
@@ -2698,10 +3279,142 @@ export interface components {
             defaultRequiredLevelSortOrder?: number;
             status?: string;
             rssUrl?: string;
+            /** Format: int64 */
+            createdBy?: number;
             /** Format: date-time */
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string;
+        };
+        UpdateUploadLimitsRequest: {
+            /** Format: int64 */
+            maxAudioBytes?: number;
+            /** Format: int64 */
+            maxImageBytes?: number;
+            /** Format: int64 */
+            maxVideoBytes?: number;
+            /** Format: int64 */
+            maxDocumentBytes?: number;
+        };
+        ResponseTenantUploadLimits: {
+            /** Format: int32 */
+            statusCode?: number;
+            statusMessage?: string;
+            data?: components["schemas"]["TenantUploadLimits"];
+            errors?: components["schemas"]["ErrorDetail"][];
+            metadata?: {
+                [key: string]: unknown;
+            };
+        };
+        TenantUploadLimits: {
+            /** Format: int64 */
+            maxAudioBytes?: number;
+            /** Format: int64 */
+            maxImageBytes?: number;
+            /** Format: int64 */
+            maxVideoBytes?: number;
+            /** Format: int64 */
+            maxDocumentBytes?: number;
+        };
+        UpdateNewsletterListRequest: {
+            slug?: string;
+            name?: string;
+            description?: string;
+            /** @enum {string} */
+            status?: "ACTIVE" | "ARCHIVED";
+        };
+        NewsletterListView: {
+            /** Format: int64 */
+            id?: number;
+            slug?: string;
+            name?: string;
+            description?: string;
+            status?: string;
+            /** Format: int64 */
+            activeCount?: number;
+            /** Format: int64 */
+            pendingCount?: number;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string;
+        };
+        ResponseNewsletterListView: {
+            /** Format: int32 */
+            statusCode?: number;
+            statusMessage?: string;
+            data?: components["schemas"]["NewsletterListView"];
+            errors?: components["schemas"]["ErrorDetail"][];
+            metadata?: {
+                [key: string]: unknown;
+            };
+        };
+        RenameMediaAssetRequest: {
+            filename: string;
+        };
+        MediaAssetView: {
+            /** Format: int64 */
+            id?: number;
+            s3Key?: string;
+            visibility?: string;
+            scope?: string;
+            assetType?: string;
+            status?: string;
+            mimeType?: string;
+            /** Format: int64 */
+            sizeBytes?: number;
+            /** Format: int64 */
+            bytesTransferred?: number;
+            originalFilename?: string;
+            /** Format: int64 */
+            episodeId?: number;
+            /** Format: int64 */
+            ownerUserId?: number;
+            /** Format: int64 */
+            folderId?: number;
+            /** Format: int64 */
+            createdBy?: number;
+            cdnUrl?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string;
+        };
+        ResponseMediaAssetView: {
+            /** Format: int32 */
+            statusCode?: number;
+            statusMessage?: string;
+            data?: components["schemas"]["MediaAssetView"];
+            errors?: components["schemas"]["ErrorDetail"][];
+            metadata?: {
+                [key: string]: unknown;
+            };
+        };
+        RenameMediaFolderRequest: {
+            name: string;
+        };
+        MediaFolderView: {
+            /** Format: int64 */
+            id?: number;
+            name?: string;
+            /** Format: int64 */
+            parentId?: number;
+            /** Format: int64 */
+            createdBy?: number;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string;
+        };
+        ResponseMediaFolderView: {
+            /** Format: int32 */
+            statusCode?: number;
+            statusMessage?: string;
+            data?: components["schemas"]["MediaFolderView"];
+            errors?: components["schemas"]["ErrorDetail"][];
+            metadata?: {
+                [key: string]: unknown;
+            };
         };
         UpdateCustomFeedRequest: {
             title?: string;
@@ -2816,6 +3529,7 @@ export interface components {
             audioAssetId?: number;
             /** Format: int64 */
             coverAssetId?: number;
+            coverImageUrl?: string;
             /** Format: int32 */
             durationSeconds?: number;
             accessPolicy?: string;
@@ -2829,6 +3543,8 @@ export interface components {
             scheduledAt?: string;
             formats?: components["schemas"]["FormatView"][];
             categories?: components["schemas"]["CategoryView"][];
+            /** Format: int64 */
+            createdBy?: number;
             /** Format: date-time */
             createdAt?: string;
             /** Format: date-time */
@@ -2903,10 +3619,19 @@ export interface components {
             /** Format: date-time */
             scheduledAt?: string;
             categories?: components["schemas"]["CategoryView"][];
+            newsletterLists?: components["schemas"]["NewsletterListTag"][];
+            /** Format: int64 */
+            createdBy?: number;
             /** Format: date-time */
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string;
+        };
+        NewsletterListTag: {
+            /** Format: int64 */
+            id?: number;
+            slug?: string;
+            name?: string;
         };
         ResponseArticleView: {
             /** Format: int32 */
@@ -2917,6 +3642,9 @@ export interface components {
             metadata?: {
                 [key: string]: unknown;
             };
+        };
+        ReplaceNewsletterListsRequest: {
+            newsletterListIds?: number[];
         };
         ResponseVoid: {
             /** Format: int32 */
@@ -3061,6 +3789,12 @@ export interface components {
             /** Format: int32 */
             defaultRequiredLevelSortOrder?: number;
         };
+        TokenRequest: {
+            token: string;
+        };
+        SubscribeRequest: {
+            email: string;
+        };
         ContactRequest: {
             name: string;
             email: string;
@@ -3167,6 +3901,36 @@ export interface components {
                 [key: string]: unknown;
             };
         };
+        BulkImportRequest: {
+            feedUrl: string;
+            /** Format: int64 */
+            seriesId: number;
+            formatIds?: number[];
+            /** @enum {string} */
+            accessPolicy?: "FREE" | "PAID";
+            /** Format: int32 */
+            requiredLevelSortOrder?: number;
+            importAudio?: boolean;
+            importImage?: boolean;
+        };
+        BulkImportQueuedView: {
+            jobId?: string;
+            /** Format: int32 */
+            totalEpisodes?: number;
+            /** Format: int32 */
+            alreadyImported?: number;
+            notifyEmail?: string;
+        };
+        ResponseBulkImportQueuedView: {
+            /** Format: int32 */
+            statusCode?: number;
+            statusMessage?: string;
+            data?: components["schemas"]["BulkImportQueuedView"];
+            errors?: components["schemas"]["ErrorDetail"][];
+            metadata?: {
+                [key: string]: unknown;
+            };
+        };
         IngestAssetRequest: {
             sourceUrl: string;
             /** @enum {string} */
@@ -3175,40 +3939,6 @@ export interface components {
             visibility?: "PUBLIC" | "PRIVATE";
             filename?: string;
             waitForCompletion?: boolean;
-        };
-        MediaAssetView: {
-            /** Format: int64 */
-            id?: number;
-            s3Key?: string;
-            visibility?: string;
-            scope?: string;
-            assetType?: string;
-            status?: string;
-            mimeType?: string;
-            /** Format: int64 */
-            sizeBytes?: number;
-            /** Format: int64 */
-            bytesTransferred?: number;
-            originalFilename?: string;
-            /** Format: int64 */
-            episodeId?: number;
-            /** Format: int64 */
-            ownerUserId?: number;
-            cdnUrl?: string;
-            /** Format: date-time */
-            createdAt?: string;
-            /** Format: date-time */
-            updatedAt?: string;
-        };
-        ResponseMediaAssetView: {
-            /** Format: int32 */
-            statusCode?: number;
-            statusMessage?: string;
-            data?: components["schemas"]["MediaAssetView"];
-            errors?: components["schemas"]["ErrorDetail"][];
-            metadata?: {
-                [key: string]: unknown;
-            };
         };
         CreateTenantRequest: {
             name: string;
@@ -3266,6 +3996,7 @@ export interface components {
             createdAt?: string;
             primaryDomain?: string;
             domains?: components["schemas"]["TenantDomainView"][];
+            uploadLimits?: components["schemas"]["TenantUploadLimits"];
         };
         TenantDomainView: {
             host?: string;
@@ -3308,6 +4039,8 @@ export interface components {
             episodeId?: number;
             /** Format: int64 */
             ownerUserId?: number;
+            /** Format: int64 */
+            folderId?: number;
         };
         ResponseUploadUrlResponse: {
             /** Format: int32 */
@@ -3348,20 +4081,19 @@ export interface components {
             empty?: boolean;
             null?: boolean;
             float?: boolean;
-            container?: boolean;
+            integralNumber?: boolean;
+            floatingPointNumber?: boolean;
+            pojo?: boolean;
+            int?: boolean;
+            long?: boolean;
+            object?: boolean;
+            string?: boolean;
             number?: boolean;
             /** @enum {string} */
             nodeType?: "ARRAY" | "BINARY" | "BOOLEAN" | "MISSING" | "NULL" | "NUMBER" | "OBJECT" | "POJO" | "STRING";
-            string?: boolean;
-            integralNumber?: boolean;
             missingNode?: boolean;
             valueNode?: boolean;
-            object?: boolean;
-            pojo?: boolean;
-            floatingPointNumber?: boolean;
             short?: boolean;
-            int?: boolean;
-            long?: boolean;
             double?: boolean;
             bigDecimal?: boolean;
             bigInteger?: boolean;
@@ -3369,6 +4101,7 @@ export interface components {
             textual?: boolean;
             boolean?: boolean;
             binary?: boolean;
+            container?: boolean;
             embeddedValue?: boolean;
         };
         QueueJob: {
@@ -3458,6 +4191,24 @@ export interface components {
                 [key: string]: unknown;
             };
         };
+        CreateNewsletterListRequest: {
+            slug: string;
+            name: string;
+            description?: string;
+        };
+        MoveMediaAssetRequest: {
+            /** Format: int64 */
+            folderId?: number;
+        };
+        CreateMediaFolderRequest: {
+            name: string;
+            /** Format: int64 */
+            parentId?: number;
+        };
+        MoveMediaFolderRequest: {
+            /** Format: int64 */
+            parentId?: number;
+        };
         CreateCustomFeedRequest: {
             title?: string;
             formatIds?: number[];
@@ -3528,6 +4279,38 @@ export interface components {
         AttachAudioRequest: {
             /** Format: int64 */
             audioAssetId: number;
+        };
+        BulkIdsRequest: {
+            ids: number[];
+        };
+        ResponseListEpisodeView: {
+            /** Format: int32 */
+            statusCode?: number;
+            statusMessage?: string;
+            data?: components["schemas"]["EpisodeView"][];
+            errors?: components["schemas"]["ErrorDetail"][];
+            metadata?: {
+                [key: string]: unknown;
+            };
+        };
+        BulkPublishRequest: {
+            ids: number[];
+            notifySubscribers?: boolean;
+            /** Format: date-time */
+            publishedAt?: string;
+        };
+        BulkDeleteView: {
+            deletedIds?: number[];
+        };
+        ResponseBulkDeleteView: {
+            /** Format: int32 */
+            statusCode?: number;
+            statusMessage?: string;
+            data?: components["schemas"]["BulkDeleteView"];
+            errors?: components["schemas"]["ErrorDetail"][];
+            metadata?: {
+                [key: string]: unknown;
+            };
         };
         CreateCategoryRequest: {
             slug: string;
@@ -3656,6 +4439,50 @@ export interface components {
             scheduledAt: string;
             notifySubscribers?: boolean;
         };
+        ImportArticleRequest: {
+            feedUrl: string;
+            guid: string;
+            slug?: string;
+            title: string;
+            body?: string;
+            excerpt?: string;
+            /** @enum {string} */
+            accessPolicy?: "FREE" | "PAID";
+            /** Format: int32 */
+            requiredLevelSortOrder?: number;
+            categoryIds?: number[];
+            imageUrl?: string;
+            /** Format: int64 */
+            heroAssetId?: number;
+            importHero?: boolean;
+            importInlineImages?: boolean;
+            /** Format: date-time */
+            publishedAt?: string;
+        };
+        ImportedArticleView: {
+            article?: components["schemas"]["ArticleView"];
+            alreadyImported?: boolean;
+        };
+        ResponseImportedArticleView: {
+            /** Format: int32 */
+            statusCode?: number;
+            statusMessage?: string;
+            data?: components["schemas"]["ImportedArticleView"];
+            errors?: components["schemas"]["ErrorDetail"][];
+            metadata?: {
+                [key: string]: unknown;
+            };
+        };
+        ResponseListArticleView: {
+            /** Format: int32 */
+            statusCode?: number;
+            statusMessage?: string;
+            data?: components["schemas"]["ArticleView"][];
+            errors?: components["schemas"]["ErrorDetail"][];
+            metadata?: {
+                [key: string]: unknown;
+            };
+        };
         UpdateTenantRequest: {
             name?: string;
             slug?: string;
@@ -3685,6 +4512,27 @@ export interface components {
             statusCode?: number;
             statusMessage?: string;
             data?: components["schemas"]["TenantUserView"][];
+            errors?: components["schemas"]["ErrorDetail"][];
+            metadata?: {
+                [key: string]: unknown;
+            };
+        };
+        EffectiveRightsView: {
+            /** Format: int64 */
+            userId?: number;
+            roles?: string[];
+            restrictions?: components["schemas"]["PermissionRestrictionView"][];
+            effective?: {
+                [key: string]: {
+                    [key: string]: "FULL" | "OWN_ONLY" | "DENIED";
+                };
+            };
+        };
+        ResponseEffectiveRightsView: {
+            /** Format: int32 */
+            statusCode?: number;
+            statusMessage?: string;
+            data?: components["schemas"]["EffectiveRightsView"];
             errors?: components["schemas"]["ErrorDetail"][];
             metadata?: {
                 [key: string]: unknown;
@@ -3861,6 +4709,25 @@ export interface components {
                 [key: string]: unknown;
             };
         };
+        ResponseStatsView: {
+            /** Format: int32 */
+            statusCode?: number;
+            statusMessage?: string;
+            data?: components["schemas"]["StatsView"];
+            errors?: components["schemas"]["ErrorDetail"][];
+            metadata?: {
+                [key: string]: unknown;
+            };
+        };
+        StatsView: {
+            range?: string;
+            /** Format: int64 */
+            startAt?: number;
+            /** Format: int64 */
+            endAt?: number;
+            stats?: components["schemas"]["JsonNode"];
+            pageviews?: components["schemas"]["JsonNode"];
+        };
         ResponseListSeriesView: {
             /** Format: int32 */
             statusCode?: number;
@@ -3958,6 +4825,31 @@ export interface components {
             statusCode?: number;
             statusMessage?: string;
             data?: components["schemas"]["PublicSeriesView"][];
+            errors?: components["schemas"]["ErrorDetail"][];
+            metadata?: {
+                [key: string]: unknown;
+            };
+        };
+        PublicNewsletterListView: {
+            slug?: string;
+            name?: string;
+            description?: string;
+        };
+        ResponseListPublicNewsletterListView: {
+            /** Format: int32 */
+            statusCode?: number;
+            statusMessage?: string;
+            data?: components["schemas"]["PublicNewsletterListView"][];
+            errors?: components["schemas"]["ErrorDetail"][];
+            metadata?: {
+                [key: string]: unknown;
+            };
+        };
+        ResponsePublicNewsletterListView: {
+            /** Format: int32 */
+            statusCode?: number;
+            statusMessage?: string;
+            data?: components["schemas"]["PublicNewsletterListView"];
             errors?: components["schemas"]["ErrorDetail"][];
             metadata?: {
                 [key: string]: unknown;
@@ -4263,6 +5155,38 @@ export interface components {
                 [key: string]: unknown;
             };
         };
+        ResponseListNewsletterListView: {
+            /** Format: int32 */
+            statusCode?: number;
+            statusMessage?: string;
+            data?: components["schemas"]["NewsletterListView"][];
+            errors?: components["schemas"]["ErrorDetail"][];
+            metadata?: {
+                [key: string]: unknown;
+            };
+        };
+        NewsletterSubscriptionView: {
+            /** Format: int64 */
+            id?: number;
+            email?: string;
+            status?: string;
+            /** Format: date-time */
+            confirmedAt?: string;
+            /** Format: date-time */
+            unsubscribedAt?: string;
+            /** Format: date-time */
+            createdAt?: string;
+        };
+        ResponseListNewsletterSubscriptionView: {
+            /** Format: int32 */
+            statusCode?: number;
+            statusMessage?: string;
+            data?: components["schemas"]["NewsletterSubscriptionView"][];
+            errors?: components["schemas"]["ErrorDetail"][];
+            metadata?: {
+                [key: string]: unknown;
+            };
+        };
         ResponseListMediaAssetView: {
             /** Format: int32 */
             statusCode?: number;
@@ -4286,7 +5210,39 @@ export interface components {
                 [key: string]: unknown;
             };
         };
+        EffectiveUploadLimits: {
+            /** Format: int64 */
+            maxAudioBytes?: number;
+            /** Format: int64 */
+            maxImageBytes?: number;
+            /** Format: int64 */
+            maxVideoBytes?: number;
+            /** Format: int64 */
+            maxDocumentBytes?: number;
+        };
+        ResponseEffectiveUploadLimits: {
+            /** Format: int32 */
+            statusCode?: number;
+            statusMessage?: string;
+            data?: components["schemas"]["EffectiveUploadLimits"];
+            errors?: components["schemas"]["ErrorDetail"][];
+            metadata?: {
+                [key: string]: unknown;
+            };
+        };
+        ResponseListMediaFolderView: {
+            /** Format: int32 */
+            statusCode?: number;
+            statusMessage?: string;
+            data?: components["schemas"]["MediaFolderView"][];
+            errors?: components["schemas"]["ErrorDetail"][];
+            metadata?: {
+                [key: string]: unknown;
+            };
+        };
         MeResponse: {
+            /** Format: int64 */
+            userId?: number;
             email?: string;
             name?: string;
             roles?: string[];
@@ -4472,31 +5428,11 @@ export interface components {
                 [key: string]: unknown;
             };
         };
-        ResponseListEpisodeView: {
-            /** Format: int32 */
-            statusCode?: number;
-            statusMessage?: string;
-            data?: components["schemas"]["EpisodeView"][];
-            errors?: components["schemas"]["ErrorDetail"][];
-            metadata?: {
-                [key: string]: unknown;
-            };
-        };
         ResponseListCategoryView: {
             /** Format: int32 */
             statusCode?: number;
             statusMessage?: string;
             data?: components["schemas"]["CategoryView"][];
-            errors?: components["schemas"]["ErrorDetail"][];
-            metadata?: {
-                [key: string]: unknown;
-            };
-        };
-        ResponseListArticleView: {
-            /** Format: int32 */
-            statusCode?: number;
-            statusMessage?: string;
-            data?: components["schemas"]["ArticleView"][];
             errors?: components["schemas"]["ErrorDetail"][];
             metadata?: {
                 [key: string]: unknown;
@@ -4521,6 +5457,54 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    listRestrictions: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                userId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ResponseListPermissionRestrictionView"];
+                };
+            };
+        };
+    };
+    replaceRestrictions: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                userId: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReplaceRestrictionsRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ResponseListPermissionRestrictionView"];
+                };
+            };
+        };
+    };
     setEnabled: {
         parameters: {
             query?: never;
@@ -4805,6 +5789,200 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["ResponseSeriesView"];
+                };
+            };
+        };
+    };
+    updateUploadLimits: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tenantId: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateUploadLimitsRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ResponseTenantUploadLimits"];
+                };
+            };
+        };
+    };
+    updateList: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                listId: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateNewsletterListRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ResponseNewsletterListView"];
+                };
+            };
+        };
+    };
+    archiveList: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                listId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ResponseNewsletterListView"];
+                };
+            };
+        };
+    };
+    get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ResponseMediaAssetView"];
+                };
+            };
+        };
+    };
+    renameAsset: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RenameMediaAssetRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ResponseMediaAssetView"];
+                };
+            };
+        };
+    };
+    delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ResponseMediaAssetView"];
+                };
+            };
+        };
+    };
+    renameFolder: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RenameMediaFolderRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ResponseMediaFolderView"];
+                };
+            };
+        };
+    };
+    deleteFolder: {
+        parameters: {
+            query?: {
+                mode?: string;
+            };
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ResponseMediaFolderView"];
                 };
             };
         };
@@ -5329,6 +6507,32 @@ export interface operations {
             };
         };
     };
+    replaceNewsletterLists: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                articleId: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReplaceNewsletterListsRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ResponseArticleView"];
+                };
+            };
+        };
+    };
     replaceCategories_1: {
         parameters: {
             query?: never;
@@ -5673,6 +6877,80 @@ export interface operations {
             };
         };
     };
+    unsubscribe: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TokenRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ResponseVoid"];
+                };
+            };
+        };
+    };
+    confirm: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TokenRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ResponseVoid"];
+                };
+            };
+        };
+    };
+    subscribe: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SubscribeRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ResponseVoid"];
+                };
+            };
+        };
+    };
     submit: {
         parameters: {
             query?: never;
@@ -5741,6 +7019,30 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["ResponseImportedEpisodeView"];
+                };
+            };
+        };
+    };
+    importBulk: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BulkImportRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ResponseBulkImportQueuedView"];
                 };
             };
         };
@@ -6222,7 +7524,79 @@ export interface operations {
             };
         };
     };
-    confirm: {
+    listLists: {
+        parameters: {
+            query?: {
+                activeOnly?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ResponseListNewsletterListView"];
+                };
+            };
+        };
+    };
+    createList: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateNewsletterListRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ResponseNewsletterListView"];
+                };
+            };
+        };
+    };
+    moveAsset: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MoveMediaAssetRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ResponseMediaAssetView"];
+                };
+            };
+        };
+    };
+    confirm_1: {
         parameters: {
             query?: never;
             header?: never;
@@ -6264,6 +7638,76 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["ResponseUploadUrlResponse"];
+                };
+            };
+        };
+    };
+    listFolders: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ResponseListMediaFolderView"];
+                };
+            };
+        };
+    };
+    createFolder: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateMediaFolderRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ResponseMediaFolderView"];
+                };
+            };
+        };
+    };
+    moveFolder: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MoveMediaFolderRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ResponseMediaFolderView"];
                 };
             };
         };
@@ -6742,6 +8186,150 @@ export interface operations {
             };
         };
     };
+    bulkUnpublish: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BulkIdsRequest"];
+            };
+        };
+        responses: {
+            /** @description All episodes unpublished */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ResponseListEpisodeView"];
+                };
+            };
+            /** @description Empty id list (VALIDATION_ERROR) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ResponseListEpisodeView"];
+                };
+            };
+            /** @description Unknown id, or id belongs to another tenant (EPISODE_NOT_FOUND) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ResponseListEpisodeView"];
+                };
+            };
+            /** @description An episode is not published (PUBLICATION_INVALID_TRANSITION) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ResponseListEpisodeView"];
+                };
+            };
+        };
+    };
+    bulkPublish: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BulkPublishRequest"];
+            };
+        };
+        responses: {
+            /** @description All episodes published */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ResponseListEpisodeView"];
+                };
+            };
+            /** @description Empty id list, or an episode failed validation (EPISODE_VALIDATION_FAILED) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ResponseListEpisodeView"];
+                };
+            };
+            /** @description Unknown id, or id belongs to another tenant (EPISODE_NOT_FOUND) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ResponseListEpisodeView"];
+                };
+            };
+            /** @description An episode is not publishable (PUBLICATION_INVALID_TRANSITION) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ResponseListEpisodeView"];
+                };
+            };
+        };
+    };
+    bulkDelete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BulkIdsRequest"];
+            };
+        };
+        responses: {
+            /** @description All episodes deleted */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ResponseBulkDeleteView"];
+                };
+            };
+            /** @description Empty id list (VALIDATION_ERROR) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ResponseBulkDeleteView"];
+                };
+            };
+            /** @description Unknown id, or id belongs to another tenant (EPISODE_NOT_FOUND) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ResponseBulkDeleteView"];
+                };
+            };
+        };
+    };
     listCategories: {
         parameters: {
             query?: never;
@@ -7114,6 +8702,246 @@ export interface operations {
             };
         };
     };
+    preview_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PreviewRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ResponsePreviewView"];
+                };
+            };
+        };
+    };
+    importBulk_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BulkImportRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ResponseBulkImportQueuedView"];
+                };
+            };
+        };
+    };
+    ingestAsset_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["IngestAssetRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ResponseMediaAssetView"];
+                };
+            };
+        };
+    };
+    importArticle: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ImportArticleRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ResponseImportedArticleView"];
+                };
+            };
+        };
+    };
+    bulkUnpublish_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BulkIdsRequest"];
+            };
+        };
+        responses: {
+            /** @description All articles unpublished */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ResponseListArticleView"];
+                };
+            };
+            /** @description Empty id list (VALIDATION_ERROR) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ResponseListArticleView"];
+                };
+            };
+            /** @description Unknown id, or id belongs to another tenant (ARTICLE_NOT_FOUND) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ResponseListArticleView"];
+                };
+            };
+            /** @description An article is not published (PUBLICATION_INVALID_TRANSITION) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ResponseListArticleView"];
+                };
+            };
+        };
+    };
+    bulkPublish_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BulkPublishRequest"];
+            };
+        };
+        responses: {
+            /** @description All articles published */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ResponseListArticleView"];
+                };
+            };
+            /** @description Empty id list, or an article failed validation (ARTICLE_VALIDATION_FAILED) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ResponseListArticleView"];
+                };
+            };
+            /** @description Unknown id, or id belongs to another tenant (ARTICLE_NOT_FOUND) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ResponseListArticleView"];
+                };
+            };
+            /** @description An article is not publishable (PUBLICATION_INVALID_TRANSITION) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ResponseListArticleView"];
+                };
+            };
+        };
+    };
+    bulkDelete_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BulkIdsRequest"];
+            };
+        };
+        responses: {
+            /** @description All articles deleted */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ResponseBulkDeleteView"];
+                };
+            };
+            /** @description Empty id list (VALIDATION_ERROR) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ResponseBulkDeleteView"];
+                };
+            };
+            /** @description Unknown id, or id belongs to another tenant (ARTICLE_NOT_FOUND) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ResponseBulkDeleteView"];
+                };
+            };
+        };
+    };
     getTenant: {
         parameters: {
             query?: never;
@@ -7452,6 +9280,28 @@ export interface operations {
             };
         };
     };
+    effectiveRights: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                userId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ResponseEffectiveRightsView"];
+                };
+            };
+        };
+    };
     listSubscribers: {
         parameters: {
             query?: never;
@@ -7570,6 +9420,28 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["ResponseListArticleFeedAdminView"];
+                };
+            };
+        };
+    };
+    stats: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                range: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ResponseStatsView"];
                 };
             };
         };
@@ -7730,6 +9602,48 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["ResponseListProductView"];
+                };
+            };
+        };
+    };
+    listLists_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ResponseListPublicNewsletterListView"];
+                };
+            };
+        };
+    };
+    getList: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ResponsePublicNewsletterListView"];
                 };
             };
         };
@@ -8002,6 +9916,29 @@ export interface operations {
             };
         };
     };
+    effectiveRights_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tenantId: number;
+                userId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ResponseEffectiveRightsView"];
+                };
+            };
+        };
+    };
     getTenantModules: {
         parameters: {
             query?: never;
@@ -8072,7 +10009,7 @@ export interface operations {
             };
         };
     };
-    get: {
+    get_1: {
         parameters: {
             query?: never;
             header?: never;
@@ -8183,11 +10120,36 @@ export interface operations {
             };
         };
     };
+    listSubscriptions: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                listId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ResponseListNewsletterSubscriptionView"];
+                };
+            };
+        };
+    };
     list_1: {
         parameters: {
             query?: {
                 assetType?: "AUDIO" | "IMAGE" | "VIDEO" | "DOCUMENT";
                 status?: "PENDING" | "READY" | "PENDING_DELETE" | "ARCHIVED";
+                folderId?: number;
+                recursive?: boolean;
+                unassignedOnly?: boolean;
                 limit?: number;
             };
             header?: never;
@@ -8203,50 +10165,6 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["ResponseListMediaAssetView"];
-                };
-            };
-        };
-    };
-    get_1: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["ResponseMediaAssetView"];
-                };
-            };
-        };
-    };
-    delete: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["ResponseMediaAssetView"];
                 };
             };
         };
@@ -8271,6 +10189,26 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["ResponsePreviewUrlResponse"];
+                };
+            };
+        };
+    };
+    uploadLimits: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ResponseEffectiveUploadLimits"];
                 };
             };
         };
@@ -8396,6 +10334,26 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    myEffectiveRights: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ResponseEffectiveRightsView"];
+                };
             };
         };
     };
@@ -8525,6 +10483,28 @@ export interface operations {
             };
         };
     };
+    getIngestAsset_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                assetId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ResponseMediaAssetView"];
+                };
+            };
+        };
+    };
     revokeSubscription: {
         parameters: {
             query?: never;
@@ -8612,6 +10592,27 @@ export interface operations {
                 content: {
                     "*/*": components["schemas"]["ResponsePlatformAdminView"];
                 };
+            };
+        };
+    };
+    removeSubscription: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                listId: number;
+                subscriptionId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };

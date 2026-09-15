@@ -1,92 +1,45 @@
 package de.pnnit.directwerk.modules.newsletter.service;
 
 import de.pnnit.directwerk.modules.core.FeatureModuleKeys;
-import de.pnnit.directwerk.modules.core.entity.MembershipStatus;
-import de.pnnit.directwerk.modules.core.repository.TenantMembershipRepository;
-import de.pnnit.directwerk.modules.core.repository.TenantModuleActivationRepository;
-import de.pnnit.directwerk.modules.core.service.ModuleGateService;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import de.pnnit.directwerk.modules.core.feed.DefaultFeedProvisioningService;
+import de.pnnit.directwerk.modules.core.feed.DefaultFeedStore;
 import lombok.RequiredArgsConstructor;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 /**
- * Ensures every eligible tenant member has a default private {@code ArticleFeed}.
- * Mirrors {@code SubscriberFeedProvisioningService} (directwerk-podcast) for article feeds.
+ * Article adapter over {@link DefaultFeedProvisioningService}: supplies the
+ * {@code ARTICLE_RSS} module key and the {@link ArticleFeedService} row store.
  */
 @Service
 @RequiredArgsConstructor
-public class ArticleFeedProvisioningService {
-
-    private static final Logger log = LoggerFactory.getLogger(ArticleFeedProvisioningService.class);
+public class ArticleFeedProvisioningService implements DefaultFeedStore {
 
     private final ArticleFeedService articleFeedService;
-    private final TenantMembershipRepository tenantMembershipRepository;
-    private final TenantModuleActivationRepository tenantModuleActivationRepository;
-    private final ModuleGateService moduleGateService;
+    private final DefaultFeedProvisioningService defaultFeedProvisioningService;
 
-    @Transactional
     public void provisionDefaultFeed(Long tenantId, Long userId) {
-        if (!isPrivateFeedModuleEnabled(tenantId)) {
-            return;
-        }
-        articleFeedService.ensureDefaultFeed(tenantId, userId);
+        defaultFeedProvisioningService.provisionDefaultFeed(FeatureModuleKeys.ARTICLE_RSS, tenantId, userId, this);
     }
 
-    /**
-     * Backfill path for memberships that pre-date feed provisioning or missed an event.
-     *
-     * @return number of default feeds created
-     */
-    @Transactional
     public int provisionMissingDefaultFeeds() {
-        int created = 0;
-        for (Long tenantId : tenantIdsEligibleForPrivateFeeds()) {
-            created += provisionMissingDefaultFeeds(tenantId);
-        }
-        if (created > 0) {
-            log.info("Provisioned {} missing default private article feeds", created);
-        }
-        return created;
+        return defaultFeedProvisioningService.provisionMissingDefaultFeeds(FeatureModuleKeys.ARTICLE_RSS, this);
     }
 
-    @Transactional
     public int provisionMissingDefaultFeeds(Long tenantId) {
-        if (!isPrivateFeedModuleEnabled(tenantId)) {
-            return 0;
-        }
-        int created = 0;
-        for (Long userId : tenantMembershipRepository.findActiveUserIdsByTenantId(
+        return defaultFeedProvisioningService.provisionMissingDefaultFeeds(
+                FeatureModuleKeys.ARTICLE_RSS,
                 tenantId,
-                MembershipStatus.ACTIVE
-        )) {
-            boolean alreadyExists = articleFeedService.hasDefaultFeed(tenantId, userId);
-            if (!alreadyExists) {
-                articleFeedService.ensureDefaultFeed(tenantId, userId);
-                created++;
-            }
-        }
-        return created;
+                this
+        );
     }
 
-    private boolean isPrivateFeedModuleEnabled(Long tenantId) {
-        return moduleGateService.isModuleActive(tenantId, FeatureModuleKeys.ARTICLE_RSS)
-                && moduleGateService.isModuleActive(tenantId, FeatureModuleKeys.SUBSCRIPTION);
+    @Override
+    public boolean hasDefaultFeed(Long tenantId, Long userId) {
+        return articleFeedService.hasDefaultFeed(tenantId, userId);
     }
 
-    private Set<Long> tenantIdsEligibleForPrivateFeeds() {
-        List<Long> rssTenants = tenantModuleActivationRepository.findTenantIdsWithActiveModule(
-                FeatureModuleKeys.ARTICLE_RSS
-        );
-        List<Long> subscriptionTenants = tenantModuleActivationRepository.findTenantIdsWithActiveModule(
-                FeatureModuleKeys.SUBSCRIPTION
-        );
-        Set<Long> eligible = new HashSet<>(rssTenants);
-        eligible.retainAll(subscriptionTenants);
-        return eligible;
+    @Override
+    public void ensureDefaultFeed(Long tenantId, Long userId) {
+        articleFeedService.ensureDefaultFeed(tenantId, userId);
     }
 }

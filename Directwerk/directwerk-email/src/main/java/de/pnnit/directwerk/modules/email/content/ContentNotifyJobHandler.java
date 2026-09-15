@@ -1,11 +1,11 @@
 package de.pnnit.directwerk.modules.email.content;
 
+import de.pnnit.directwerk.modules.content.ContentPublishedEvent;
 import de.pnnit.directwerk.modules.content.ContentType;
-import de.pnnit.directwerk.modules.content.NewsletterNotifyAudienceApi;
+import de.pnnit.directwerk.modules.content.NewsletterNotificationApi;
 import de.pnnit.directwerk.modules.core.entity.MembershipStatus;
 import de.pnnit.directwerk.modules.core.entity.TenantMembership;
 import de.pnnit.directwerk.modules.core.repository.TenantMembershipRepository;
-import de.pnnit.directwerk.modules.core.util.PublicContentUrlResolver;
 import de.pnnit.directwerk.modules.email.EmailJobProducer;
 import de.pnnit.directwerk.modules.email.EmailTemplate;
 import de.pnnit.directwerk.modules.queue.JobHandler;
@@ -13,7 +13,6 @@ import de.pnnit.directwerk.modules.queue.QueueJob;
 import de.pnnit.directwerk.modules.queue.QueueNames;
 import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.context.annotation.Lazy;
@@ -27,27 +26,24 @@ public class ContentNotifyJobHandler implements JobHandler {
     private final ObjectMapper objectMapper;
     private final TenantMembershipRepository tenantMembershipRepository;
     private final ContentPublicUrlBuilder contentPublicUrlBuilder;
-    private final PublicContentUrlResolver publicContentUrlResolver;
     private final TenantContentBrandingResolver tenantContentBrandingResolver;
     private final EmailJobProducer emailJobProducer;
-    private final ObjectProvider<NewsletterNotifyAudienceApi> newsletterNotifyAudienceApi;
+    private final ObjectProvider<NewsletterNotificationApi> newsletterNotificationApi;
 
     public ContentNotifyJobHandler(
             ObjectMapper objectMapper,
             TenantMembershipRepository tenantMembershipRepository,
             ContentPublicUrlBuilder contentPublicUrlBuilder,
-            PublicContentUrlResolver publicContentUrlResolver,
             TenantContentBrandingResolver tenantContentBrandingResolver,
             @Lazy EmailJobProducer emailJobProducer,
-            ObjectProvider<NewsletterNotifyAudienceApi> newsletterNotifyAudienceApi
+            ObjectProvider<NewsletterNotificationApi> newsletterNotificationApi
     ) {
         this.objectMapper = objectMapper;
         this.tenantMembershipRepository = tenantMembershipRepository;
         this.contentPublicUrlBuilder = contentPublicUrlBuilder;
-        this.publicContentUrlResolver = publicContentUrlResolver;
         this.tenantContentBrandingResolver = tenantContentBrandingResolver;
         this.emailJobProducer = emailJobProducer;
-        this.newsletterNotifyAudienceApi = newsletterNotifyAudienceApi;
+        this.newsletterNotificationApi = newsletterNotificationApi;
     }
 
     @Override
@@ -63,56 +59,33 @@ public class ContentNotifyJobHandler implements JobHandler {
         }
 
         ContentType contentType = ContentType.valueOf(payload.contentType());
-        Long tenantId = job.tenantId();
-        TenantContentBrandingResolver.BrandingContext branding = tenantContentBrandingResolver.resolve(tenantId);
-        String contentUrl = contentPublicUrlBuilder.buildPublicContentUrl(tenantId, contentType, payload.slug());
-
         if (contentType == ContentType.ARTICLE) {
-            notifyArticleLists(tenantId, payload, branding, contentUrl);
+            notifyArticleLists(job.tenantId(), payload);
             return;
         }
 
-        notifyEpisodeMembers(tenantId, payload, branding, contentUrl);
+        notifyEpisodeMembers(job.tenantId(), payload);
     }
 
-    private void notifyArticleLists(
-            Long tenantId,
-            ContentNotifyJobPayload payload,
-            TenantContentBrandingResolver.BrandingContext branding,
-            String contentUrl
-    ) {
-        NewsletterNotifyAudienceApi audienceApi = newsletterNotifyAudienceApi.getIfAvailable();
-        if (audienceApi == null) {
+    private void notifyArticleLists(Long tenantId, ContentNotifyJobPayload payload) {
+        NewsletterNotificationApi api = newsletterNotificationApi.getIfAvailable();
+        if (api == null) {
             return;
         }
-        List<NewsletterNotifyAudienceApi.Recipient> recipients =
-                audienceApi.findActiveRecipientsForArticle(tenantId, payload.contentId());
-        for (NewsletterNotifyAudienceApi.Recipient recipient : recipients) {
-            String unsubscribeUrl = publicContentUrlResolver.newsletterUnsubscribeUrl(
-                    tenantId,
-                    recipient.rawUnsubscribeToken()
-            );
-            Map<String, String> variables = articleVariables(payload, branding, contentUrl, unsubscribeUrl);
-            String correlationId = "content-notify-article-%d-email-%s".formatted(
-                    payload.contentId(),
-                    Integer.toHexString(recipient.email().toLowerCase(Locale.ROOT).hashCode())
-            );
-            emailJobProducer.enqueueContentNotification(
-                    tenantId,
-                    recipient.email(),
-                    EmailTemplate.CONTENT_ARTICLE_PUBLISHED,
-                    variables,
-                    correlationId
-            );
-        }
+        api.notifyArticlePublished(new ContentPublishedEvent(
+                tenantId,
+                ContentType.ARTICLE,
+                payload.contentId(),
+                payload.title(),
+                payload.excerpt(),
+                payload.slug(),
+                payload.accessPolicy()
+        ));
     }
 
-    private void notifyEpisodeMembers(
-            Long tenantId,
-            ContentNotifyJobPayload payload,
-            TenantContentBrandingResolver.BrandingContext branding,
-            String contentUrl
-    ) {
+    private void notifyEpisodeMembers(Long tenantId, ContentNotifyJobPayload payload) {
+        TenantContentBrandingResolver.BrandingContext branding = tenantContentBrandingResolver.resolve(tenantId);
+        String contentUrl = contentPublicUrlBuilder.buildPublicContentUrl(tenantId, ContentType.EPISODE, payload.slug());
         String preferencesUrl = contentPublicUrlBuilder.buildNotificationPreferencesUrl(tenantId);
         List<TenantMembership> recipients = tenantMembershipRepository.findNotificationOptedInMembers(
                 tenantId,
@@ -132,24 +105,6 @@ public class ContentNotifyJobHandler implements JobHandler {
                     correlationId
             );
         }
-    }
-
-    private static Map<String, String> articleVariables(
-            ContentNotifyJobPayload payload,
-            TenantContentBrandingResolver.BrandingContext branding,
-            String contentUrl,
-            String unsubscribeUrl
-    ) {
-        Map<String, String> variables = new LinkedHashMap<>();
-        variables.put("recipientName", "there");
-        variables.put("tenantName", branding.tenantName());
-        variables.put("siteTitle", branding.siteTitle());
-        variables.put("title", payload.title());
-        variables.put("excerpt", payload.excerpt() == null ? "" : payload.excerpt());
-        variables.put("contentUrl", contentUrl);
-        variables.put("unsubscribeUrl", unsubscribeUrl);
-        variables.put("primaryColor", branding.primaryColor());
-        return variables;
     }
 
     private static Map<String, String> episodeVariables(

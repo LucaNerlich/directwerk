@@ -1,6 +1,7 @@
 import {AUTH_REQUIRED} from '../constants'
 import type {AssetType, MediaAsset} from '../types'
 import {isRecord, parseMediaAssetEnvelope} from '../validation'
+import {MEDIA_UPLOAD_HEADERS} from './uploadProtocol'
 
 export interface MediaUploadRetryResponse {
     retryConfirm: true
@@ -87,20 +88,23 @@ export async function uploadMediaFileBrowser(
         xhr.open('POST', uploadPath)
         xhr.setRequestHeader('Authorization', `Bearer ${accessToken}`)
         xhr.setRequestHeader('X-Tenant-Host', config.tenantHost)
-        xhr.setRequestHeader('X-Filename', encodeURIComponent(config.file.name))
+        xhr.setRequestHeader(
+            MEDIA_UPLOAD_HEADERS.filename,
+            encodeURIComponent(config.file.name),
+        )
         xhr.setRequestHeader(
             'Content-Type',
             config.file.type || 'application/octet-stream',
         )
-        xhr.setRequestHeader('X-Visibility', config.visibility ?? 'PRIVATE')
+        xhr.setRequestHeader(MEDIA_UPLOAD_HEADERS.visibility, config.visibility ?? 'PRIVATE')
         if (assetType !== undefined) {
-            xhr.setRequestHeader('X-Asset-Type', assetType)
+            xhr.setRequestHeader(MEDIA_UPLOAD_HEADERS.assetType, assetType)
         }
         if (config.episodeId !== undefined) {
-            xhr.setRequestHeader('X-Episode-Id', String(config.episodeId))
+            xhr.setRequestHeader(MEDIA_UPLOAD_HEADERS.episodeId, String(config.episodeId))
         }
         if (config.folderId !== undefined) {
-            xhr.setRequestHeader('X-Folder-Id', String(config.folderId))
+            xhr.setRequestHeader(MEDIA_UPLOAD_HEADERS.folderId, String(config.folderId))
         }
 
         const onProgress = config.onProgress

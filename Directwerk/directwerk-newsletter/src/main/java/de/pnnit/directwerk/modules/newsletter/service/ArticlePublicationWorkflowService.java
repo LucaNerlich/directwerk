@@ -3,6 +3,7 @@ package de.pnnit.directwerk.modules.newsletter.service;
 import de.pnnit.directwerk.config.DirectwerkConfig;
 import de.pnnit.directwerk.modules.content.ContentPublishedEvent;
 import de.pnnit.directwerk.modules.content.PublicationLifecycleSupport;
+import de.pnnit.directwerk.modules.core.content.BulkPublication;
 import de.pnnit.directwerk.modules.core.notification.PublicationNotificationSupport;
 import de.pnnit.directwerk.modules.content.PublicationTexts;
 import de.pnnit.directwerk.modules.content.ScheduledPublishing;
@@ -210,12 +211,11 @@ public class ArticlePublicationWorkflowService {
             boolean notifySubscribers,
             Instant publishedAt
     ) {
-        List<Article> published = new ArrayList<>();
-        for (Long articleId : dedupe(articleIds)) {
+        List<Article> published = BulkPublication.apply(articleIds, articleId -> {
             Article article = articleService.requireArticle(tenantId, articleId);
             permissionService.requireArticleAccess(ContentOperation.PUBLISH, article.getCreatedBy());
-            published.add(publishInternal(tenantId, article, notifySubscribers, publishedAt, false));
-        }
+            return publishInternal(tenantId, article, notifySubscribers, publishedAt, false);
+        });
         articleRssFeedRefreshScheduler.requestRefreshAfterCommit(tenantId);
         return published;
     }
@@ -227,8 +227,7 @@ public class ArticlePublicationWorkflowService {
     @Transactional
     @RequiresModule(ArticlesModule.KEY)
     public List<Article> bulkUnpublish(Long tenantId, List<Long> articleIds) {
-        List<Article> unpublished = new ArrayList<>();
-        for (Long articleId : dedupe(articleIds)) {
+        List<Article> unpublished = BulkPublication.apply(articleIds, articleId -> {
             Article article = articleService.requireArticle(tenantId, articleId);
             permissionService.requireArticleAccess(ContentOperation.UNPUBLISH, article.getCreatedBy());
             PublicationLifecycleSupport.unpublish(
@@ -241,14 +240,10 @@ public class ArticlePublicationWorkflowService {
                     },
                     null
             );
-            unpublished.add(articleRepository.save(article));
-        }
+            return articleRepository.save(article);
+        });
         articleRssFeedRefreshScheduler.requestRefreshAfterCommit(tenantId);
         return unpublished;
-    }
-
-    private static List<Long> dedupe(List<Long> ids) {
-        return new ArrayList<>(new LinkedHashSet<>(ids));
     }
 
     private Article publishInternal(

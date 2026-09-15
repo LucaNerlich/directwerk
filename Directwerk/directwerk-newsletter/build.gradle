@@ -1,5 +1,6 @@
 dependencies {
     api project(':directwerk-digital')
     implementation project(':directwerk-subscription')
+    implementation project(':directwerk-email')
     implementation 'org.springframework.boot:spring-boot-starter-quartz'
 }

@@ -19,6 +19,7 @@ import EmptyState from '@directwerk/ui/components/empty-state'
 import Link from 'next/link'
 
 import {AUTH_REQUIRED} from '@directwerk/api/constants'
+import {isPubliclyRenderable} from '@directwerk/api/media/readiness'
 import {listMedia, listMediaFolders} from '@/lib/api/mediaApi'
 import type {MediaAsset, MediaFolder} from '@directwerk/api/types'
 import {getClientTenantHost} from '@directwerk/api/tenant'
@@ -35,10 +36,7 @@ export type EmbeddableAssetFilter = 'ALL' | 'IMAGE' | 'AUDIO' | 'VIDEO' | 'DOCUM
  * (1h) preview URLs and would break publicly — they are listed as unavailable.
  */
 export function isInlineEmbeddable(asset: MediaAsset): boolean {
-    if (asset.status !== 'READY' || asset.visibility !== 'PUBLIC') {
-        return false
-    }
-    if (asset.cdnUrl == null) {
+    if (!isPubliclyRenderable(asset)) {
         return false
     }
     if (asset.assetType === 'IMAGE') {

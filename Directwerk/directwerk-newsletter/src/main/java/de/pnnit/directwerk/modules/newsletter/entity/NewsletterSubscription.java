@@ -49,6 +49,9 @@ public class NewsletterSubscription extends BaseEntity implements TenantOwned {
     @Column(name = "confirm_token_hash", length = 64)
     private String confirmTokenHash;
 
+    @Column(name = "confirm_token_expires_at")
+    private Instant confirmTokenExpiresAt;
+
     @Column(name = "unsubscribe_token_hash", nullable = false, length = 64)
     private String unsubscribeTokenHash;
 

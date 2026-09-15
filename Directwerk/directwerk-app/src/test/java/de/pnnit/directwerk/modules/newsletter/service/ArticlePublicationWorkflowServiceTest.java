@@ -33,6 +33,8 @@ import de.pnnit.directwerk.modules.core.service.ScheduledPublicationExecutor;
 import de.pnnit.directwerk.modules.digital.entity.AccessPolicy;
 import de.pnnit.directwerk.modules.newsletter.entity.Article;
 import de.pnnit.directwerk.modules.newsletter.entity.ArticleStatus;
+import de.pnnit.directwerk.modules.newsletter.entity.NewsletterList;
+import de.pnnit.directwerk.modules.newsletter.entity.NewsletterListStatus;
 import de.pnnit.directwerk.modules.newsletter.exception.ArticleNotFoundException;
 import de.pnnit.directwerk.modules.newsletter.exception.ArticleValidationException;
 import de.pnnit.directwerk.modules.newsletter.job.ArticleRssFeedRefreshJobProducer;
@@ -179,6 +181,7 @@ class ArticlePublicationWorkflowServiceTest {
     @Test
     void publishWithNotifySubscribersEnqueuesNotificationOnFirstPublish() {
         Article article = draftArticle();
+        article.getNewsletterLists().add(newsletterList(1L));
         when(articleService.requireArticle(10L, 7L)).thenReturn(article);
         // notificationGate mock is stubbed lenient() in setUp; email/EMAIL_NOTIFY gates live there now.
         when(articleRepository.claimEmailNotification(eq(10L), eq(7L), any())).thenReturn(1);
@@ -199,6 +202,7 @@ class ArticlePublicationWorkflowServiceTest {
     @Test
     void publishWithNotifySubscribersSkipsWhenAlreadyNotified() {
         Article article = draftArticle();
+        article.getNewsletterLists().add(newsletterList(1L));
         article.setEmailNotifiedAt(Instant.parse("2026-01-01T00:00:00Z"));
         when(articleService.requireArticle(10L, 7L)).thenReturn(article);
         // notificationGate mock is stubbed lenient() in setUp; email/EMAIL_NOTIFY gates live there now.
@@ -276,6 +280,13 @@ class ArticlePublicationWorkflowServiceTest {
 
         assertThatThrownBy(() -> articlePublicationWorkflowService.unarchive(10L, 7L))
                 .isInstanceOf(InvalidPublicationTransitionException.class);
+    }
+
+    private static NewsletterList newsletterList(Long id) {
+        NewsletterList list = new NewsletterList();
+        list.setId(id);
+        list.setStatus(NewsletterListStatus.ACTIVE);
+        return list;
     }
 
     private static Article draftArticle() {

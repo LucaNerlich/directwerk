@@ -1,5 +1,6 @@
 package de.pnnit.directwerk.api.exception;
 
+import de.pnnit.directwerk.analytics.AnalyticsQueryException;
 import de.pnnit.directwerk.api.response.ErrorDetail;
 import de.pnnit.directwerk.api.response.Response;
 import de.pnnit.directwerk.modules.core.exception.ConflictException;
@@ -109,6 +110,27 @@ public class GlobalExceptionHandler {
     private static ResponseEntity<Response<Void>> badRequest(String code, Exception ex) {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                 .body(Response.error(400, code, ex.getMessage()));
+    }
+
+    @ExceptionHandler(AnalyticsQueryException.class)
+    ResponseEntity<Response<Void>> handleAnalyticsQuery(AnalyticsQueryException ex) {
+        log.warn("Analytics query failed with code {}", ex.getCode(), ex);
+        return ResponseEntity.status(ex.getStatus())
+                .body(Response.error(ex.getStatus().value(), ex.getCode(), analyticsMessage(ex.getCode())));
+    }
+
+    private static String analyticsMessage(String code) {
+        return switch (code) {
+            case "ANALYTICS_NOT_CONFIGURED" -> "Analytics is not configured for this tenant.";
+            case "UMAMI_HOST_INVALID" -> "The analytics service destination is not allowed.";
+            case "UMAMI_CREDENTIALS_MISSING" -> "The analytics service is not configured.";
+            case "UMAMI_TIMEOUT" -> "The analytics service timed out.";
+            case "UMAMI_UNAUTHORIZED" -> "The analytics service rejected the request.";
+            case "UMAMI_WEBSITE_NOT_FOUND" -> "The analytics site was not found.";
+            case "UMAMI_INVALID_RESPONSE" -> "The analytics service returned an invalid response.";
+            case "UMAMI_UNAVAILABLE" -> "The analytics service is unavailable.";
+            default -> "Analytics could not be loaded.";
+        };
     }
 
     /**
