@@ -57,8 +57,8 @@ describe('usePublicationListPage', () => {
                     unpublish: mutate,
                     cancelSchedule: mutate,
                     unarchive: mutate,
-                    publishMany: (ids) => Promise.resolve(ids.map(() => episode)),
-                    unpublishMany: (ids) => Promise.resolve(ids.map(() => episode)),
+                    publishMany: (ids) => Promise.resolve({updated: ids.map(() => episode), failures: []}),
+                    unpublishMany: (ids) => Promise.resolve({updated: ids.map(() => episode), failures: []}),
                     isBulkPublishEligible: (item) =>
                         item.seriesId === 10 && seriesStatus === 'PUBLISHED',
                     labels,
@@ -118,8 +118,8 @@ describe('usePublicationListPage', () => {
                 unpublish: mutate,
                 cancelSchedule: mutate,
                 unarchive: mutate,
-                publishMany: (ids) => Promise.resolve(ids.map(() => item)),
-                unpublishMany: (ids) => Promise.resolve(ids.map(() => item)),
+                publishMany: (ids) => Promise.resolve({updated: ids.map(() => item), failures: []}),
+                unpublishMany: (ids) => Promise.resolve({updated: ids.map(() => item), failures: []}),
                 labels,
             }),
         )

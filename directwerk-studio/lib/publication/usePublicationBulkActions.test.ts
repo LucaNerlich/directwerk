@@ -43,10 +43,13 @@ describe('usePublicationBulkActions', () => {
     })
 
     it('bulk publishes drafts with a single request', async () => {
-        const publishMany = vi.fn().mockResolvedValue([
-            {id: 1, title: 'Draft One', status: 'PUBLISHED'},
-            {id: 3, title: 'Draft Two', status: 'PUBLISHED'},
-        ])
+        const publishMany = vi.fn().mockResolvedValue({
+            updated: [
+                {id: 1, title: 'Draft One', status: 'PUBLISHED'},
+                {id: 3, title: 'Draft Two', status: 'PUBLISHED'},
+            ],
+            failures: [],
+        })
         const setItems = vi.fn()
         const clearSelection = vi.fn()
 
@@ -76,9 +79,10 @@ describe('usePublicationBulkActions', () => {
     })
 
     it('bulk unpublishes published items with a single request', async () => {
-        const unpublishMany = vi.fn().mockResolvedValue([
-            {id: 2, title: 'Published', status: 'DRAFT'},
-        ])
+        const unpublishMany = vi.fn().mockResolvedValue({
+            updated: [{id: 2, title: 'Published', status: 'DRAFT'}],
+            failures: [],
+        })
         const setItems = vi.fn()
         const clearSelection = vi.fn()
 

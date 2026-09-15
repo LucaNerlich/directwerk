@@ -4,6 +4,7 @@ import de.pnnit.directwerk.modules.core.exception.ConflictException;
 import de.pnnit.directwerk.modules.core.exception.ConflictCodes;
 import de.pnnit.directwerk.modules.core.RequiresModule;
 import de.pnnit.directwerk.modules.core.authorization.ContentOperation;
+import de.pnnit.directwerk.modules.core.content.BulkPublication;
 import de.pnnit.directwerk.modules.core.repository.TenantRepository;
 import de.pnnit.directwerk.modules.core.service.MembershipPermissionService;
 import de.pnnit.directwerk.modules.newsletter.ArticlesModule;
@@ -273,7 +274,7 @@ public class ArticleService {
     public List<Long> bulkDelete(Long tenantId, List<Long> articleIds) {
         List<Long> deleted = new ArrayList<>();
         boolean anyVisible = false;
-        for (Long articleId : new LinkedHashSet<>(articleIds)) {
+        for (Long articleId : BulkPublication.distinctIds(articleIds)) {
             Article article = requireArticle(tenantId, articleId);
             if (article.getTenant() == null || !tenantId.equals(article.getTenant().getId())) {
                 throw new ArticleNotFoundException(articleId);

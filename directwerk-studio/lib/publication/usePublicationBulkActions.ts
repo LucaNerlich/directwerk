@@ -22,7 +22,17 @@ export interface PublicationBulkSettledResult<T> {
     failures: Array<{id: number; reason: unknown}>
 }
 
-export type PublicationBulkRequestResult<T> = T[] | PublicationBulkSettledResult<T>
+/**
+ * Wraps an atomic bulk endpoint (which returns every updated row or throws) in the
+ * one settled shape the hook speaks. Endpoints that can partially fail already
+ * return this shape.
+ */
+export async function settledBulkResult<T>(
+    request: Promise<T[]>,
+): Promise<PublicationBulkSettledResult<T>> {
+    const updated = await request
+    return {updated, failures: []}
+}
 
 export async function runSequentialPublicationBulkAction<T>(
     ids: number[],
@@ -60,8 +70,8 @@ export function usePublicationBulkActions<T extends {
 }: {
     items: T[]
     selectedIds: Set<number>
-    publishMany: (ids: number[]) => Promise<PublicationBulkRequestResult<T>>
-    unpublishMany: (ids: number[]) => Promise<PublicationBulkRequestResult<T>>
+    publishMany: (ids: number[]) => Promise<PublicationBulkSettledResult<T>>
+    unpublishMany: (ids: number[]) => Promise<PublicationBulkSettledResult<T>>
     removeMany?: (ids: number[]) => Promise<number[]>
     setItems: React.Dispatch<React.SetStateAction<T[]>>
     clearSelection: () => void
@@ -138,7 +148,7 @@ export function usePublicationBulkActions<T extends {
     const runBulkRequest = useCallback(
         async (
             ids: number[],
-            request: (ids: number[]) => Promise<PublicationBulkRequestResult<T>>,
+            request: (ids: number[]) => Promise<PublicationBulkSettledResult<T>>,
             successMessage: (count: number) => string,
             partialMessage: (successCount: number, failureCount: number) => string,
             errorMessageText: string,
@@ -148,9 +158,7 @@ export function usePublicationBulkActions<T extends {
             setStatusMessage(null)
 
             try {
-                const result = await request(ids)
-                const updated = Array.isArray(result) ? result : result.updated
-                const failures = Array.isArray(result) ? [] : result.failures
+                const {updated, failures} = await request(ids)
                 const updates = new Map(updated.map((item) => [item.id, item] as const))
                 if (updates.size > 0) {
                     setItems((current) =>

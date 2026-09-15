@@ -1,6 +1,7 @@
 package de.pnnit.directwerk.modules.podcast.service;
 
 import de.pnnit.directwerk.modules.content.PublicationLifecycleSupport;
+import de.pnnit.directwerk.modules.core.content.BulkPublication;
 import de.pnnit.directwerk.modules.core.notification.PublicationNotificationSupport;
 import de.pnnit.directwerk.modules.content.PublicationTexts;
 import de.pnnit.directwerk.modules.content.ScheduledPublishing.DueItem;
@@ -212,12 +213,11 @@ public class PublicationWorkflowService {
             boolean notifySubscribers,
             Instant publishedAt
     ) {
-        List<Episode> published = new ArrayList<>();
-        for (Long episodeId : dedupe(episodeIds)) {
+        List<Episode> published = BulkPublication.apply(episodeIds, episodeId -> {
             Episode episode = episodeService.requireEpisode(tenantId, episodeId);
             permissionService.requireEpisodeAccess(ContentOperation.PUBLISH, episode.getCreatedBy());
-            published.add(publishInternal(tenantId, episode, notifySubscribers, publishedAt, false));
-        }
+            return publishInternal(tenantId, episode, notifySubscribers, publishedAt, false);
+        });
         rssFeedRefreshScheduler.requestRefreshAfterCommit(tenantId);
         return published;
     }
@@ -229,8 +229,7 @@ public class PublicationWorkflowService {
     @Transactional
     @RequiresModule(PodcastModule.KEY)
     public List<Episode> bulkUnpublish(Long tenantId, List<Long> episodeIds) {
-        List<Episode> unpublished = new ArrayList<>();
-        for (Long episodeId : dedupe(episodeIds)) {
+        List<Episode> unpublished = BulkPublication.apply(episodeIds, episodeId -> {
             Episode episode = episodeService.requireEpisode(tenantId, episodeId);
             permissionService.requireEpisodeAccess(ContentOperation.UNPUBLISH, episode.getCreatedBy());
             PublicationLifecycleSupport.unpublish(
@@ -244,14 +243,10 @@ public class PublicationWorkflowService {
                     },
                     null
             );
-            unpublished.add(episodeRepository.save(episode));
-        }
+            return episodeRepository.save(episode);
+        });
         rssFeedRefreshScheduler.requestRefreshAfterCommit(tenantId);
         return unpublished;
-    }
-
-    private static List<Long> dedupe(List<Long> ids) {
-        return new ArrayList<>(new LinkedHashSet<>(ids));
     }
 
     private Episode publishInternal(
