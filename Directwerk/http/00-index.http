@@ -47,6 +47,7 @@
 ### | 32-tenant-article-feeds.http | TenantArticleFeedController (list/enable/disable) |
 ### | 33-newsletter-lists.http | Newsletter list CRUD + public subscribe |
 ### | 34-article-import.http | ArticleImportController (RSS preview + stream ingest + bulk) |
+### | 35-tenant-analytics.http | TenantAnalyticsController (Umami read API stats) |
 ###
 ### Controllers live under de.pnnit.directwerk.controller.*
 
