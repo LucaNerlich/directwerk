@@ -79,6 +79,23 @@ public class MembershipPermissionService {
     }
 
     /**
+     * Job-context-safe DENY check for background paths (e.g. the Quartz-driven
+     * scheduled-publish executors) that have no live {@link DirectwerkUserPrincipal} to
+     * pass through {@link #requireContentAccess}, which otherwise no-ops on a null
+     * principal. Looks up the content creator's own override rows directly.
+     */
+    @Transactional(readOnly = true)
+    public boolean isDeniedForOwner(Long tenantId, Long ownerUserId, ContentEntityType entity, ContentOperation operation) {
+        if (tenantId == null || ownerUserId == null) {
+            return false;
+        }
+        return overrideRepository.findByTenantIdAndUserId(tenantId, ownerUserId).stream()
+                .anyMatch(override -> override.getEntityType() == entity
+                        && override.getOperation() == operation
+                        && override.getScope() == RestrictionScope.DENY);
+    }
+
+    /**
      * Returns a checker bound to one entity type. Services store it once
      * instead of repeating the ambient-principal plumbing per operation.
      */

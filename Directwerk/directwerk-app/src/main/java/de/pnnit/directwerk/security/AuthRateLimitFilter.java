@@ -77,6 +77,11 @@ public class AuthRateLimitFilter extends OncePerRequestFilter {
         if ("/api/v1/public/contact".equals(path)) {
             return new RateLimitRule("contact", contactLimitPerMinute);
         }
+        if (path.startsWith("/api/v1/public/newsletter-lists/") && path.endsWith("/subscribe")) {
+            // Unauthenticated, no PoW — reuses the contact-form limit rather than adding a
+            // new config knob for what is the same class of public-form abuse surface.
+            return new RateLimitRule("newsletter-subscribe", contactLimitPerMinute);
+        }
         return null;
     }
 

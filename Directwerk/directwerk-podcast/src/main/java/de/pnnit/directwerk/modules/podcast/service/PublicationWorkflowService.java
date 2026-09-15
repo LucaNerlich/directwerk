@@ -8,6 +8,7 @@ import de.pnnit.directwerk.modules.content.ScheduledPublishing.DueItem;
 import de.pnnit.directwerk.modules.content.ContentPublishedNotifier;
 import de.pnnit.directwerk.modules.content.ContentType;
 import de.pnnit.directwerk.modules.core.RequiresModule;
+import de.pnnit.directwerk.modules.core.authorization.ContentEntityType;
 import de.pnnit.directwerk.modules.core.authorization.ContentOperation;
 import de.pnnit.directwerk.modules.core.notification.SubscriberNotificationGate;
 import de.pnnit.directwerk.modules.core.service.MembershipPermissionService;
@@ -195,6 +196,13 @@ public class PublicationWorkflowService {
                 tenantId,
                 episode.getStatus()
         )) {
+            return;
+        }
+        if (permissionService.isDeniedForOwner(
+                tenantId, episode.getCreatedBy(), ContentEntityType.EPISODE, ContentOperation.PUBLISH)) {
+            log.warn(
+                    "Skipping scheduled publish for episode {} (tenant {}): PUBLISH is restricted for creator {}",
+                    episodeId, tenantId, episode.getCreatedBy());
             return;
         }
         publishInternal(tenantId, episode, episode.isNotifySubscribersOnPublish(), null, true);

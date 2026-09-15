@@ -143,7 +143,7 @@ public class AssetAccessService implements AssetAccessApi {
         List<MediaAsset> privateStandalone = new ArrayList<>();
         for (MediaAsset input : assets) {
             MediaAsset managed = input.getId() == null ? null : managedById.get(input.getId());
-            if (managed == null) {
+            if (managed == null || isTombstoned(managed)) {
                 continue;
             }
             MediaAssetTenantCheck.assertTenantMatch(managed);
@@ -188,8 +188,19 @@ public class AssetAccessService implements AssetAccessApi {
         if (asset == null || asset.getId() == null) {
             throw new MediaAssetNotFoundException(asset != null ? asset.getId() : null);
         }
-        return mediaAssetRepository.findById(asset.getId())
+        MediaAsset managed = mediaAssetRepository.findById(asset.getId())
                 .orElseThrow(() -> new MediaAssetNotFoundException(asset.getId()));
+        if (isTombstoned(managed)) {
+            // Deletion is meant to be immediate and irreversible (MediaAssetLifecycleApi's own
+            // "already-archived -> 404" contract); don't keep serving a tombstoned asset to
+            // already-entitled readers during the async S3-purge window.
+            throw new MediaAssetNotFoundException(asset.getId());
+        }
+        return managed;
+    }
+
+    private static boolean isTombstoned(MediaAsset asset) {
+        return asset.getStatus() == AssetStatus.PENDING_DELETE || asset.getStatus() == AssetStatus.ARCHIVED;
     }
 
     /**
@@ -227,6 +238,11 @@ public class AssetAccessService implements AssetAccessApi {
             case CONTENT -> {
                 if (publisherPreview && RoleConstants.isEditorOrTenantAdmin(principal)) {
                     moduleGateService.requireModule(DigitalContentModule.KEY);
+                    if (asset.getEpisodeId() != null) {
+                        // authorizeContentAsset requires this for the ordinary download path;
+                        // the preview bypass must not skip it for the same episode-linked asset.
+                        moduleGateService.requireModule(FeatureModuleKeys.PODCAST);
+                    }
                     return;
                 }
                 authorizeContentAsset(asset, principal);

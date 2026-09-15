@@ -116,6 +116,29 @@ class AuthRateLimitFilterTest {
     }
 
     @Test
+    void rateLimitsPublicNewsletterSubscribeSubmissions() throws Exception {
+        AuthRateLimitFilter filter = new AuthRateLimitFilter(100, 100, 100, 1, List.of());
+        FilterChain chain = mock(FilterChain.class);
+
+        MockHttpServletResponse first = new MockHttpServletResponse();
+        filter.doFilter(newsletterSubscribeRequest("203.0.113.1"), first, chain);
+
+        MockHttpServletResponse second = new MockHttpServletResponse();
+        filter.doFilter(newsletterSubscribeRequest("203.0.113.1"), second, chain);
+
+        assertThat(first.getStatus()).isEqualTo(200);
+        assertThat(second.getStatus()).isEqualTo(429);
+    }
+
+    private HttpServletRequest newsletterSubscribeRequest(String remoteAddr) {
+        HttpServletRequest request = mock(HttpServletRequest.class);
+        when(request.getMethod()).thenReturn("POST");
+        when(request.getRequestURI()).thenReturn("/api/v1/public/newsletter-lists/weekly-digest/subscribe");
+        when(request.getRemoteAddr()).thenReturn(remoteAddr);
+        return request;
+    }
+
+    @Test
     void rateLimitsPublicAltchaChallengeRequests() throws Exception {
         AuthRateLimitFilter filter = new AuthRateLimitFilter(100, 100, 100, 1, List.of());
         FilterChain chain = mock(FilterChain.class);

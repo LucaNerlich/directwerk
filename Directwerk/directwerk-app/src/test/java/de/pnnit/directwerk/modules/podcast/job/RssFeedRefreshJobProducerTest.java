@@ -9,6 +9,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import de.pnnit.directwerk.config.DirectwerkConfig;
+import de.pnnit.directwerk.modules.content.TenantEntitlementsChangedEvent;
 import de.pnnit.directwerk.modules.content.TenantRssSnapshotStaleEvent;
 import de.pnnit.directwerk.modules.digital.storage.FeedSnapshotStateStore;
 import de.pnnit.directwerk.modules.queue.JobEnqueueMetadata;
@@ -80,6 +81,33 @@ class RssFeedRefreshJobProducerTest {
                 any(JobEnqueueMetadata.class)
         );
         verify(stateStore, never()).clearWritten(10L);
+    }
+
+    @Test
+    void entitlementsChangedClearsPresenceBeforeEnqueue() {
+        QueueService queueService = mock(QueueService.class);
+        ObjectProvider<QueueService> queueProvider = TestObjectProviders.returning(queueService);
+        DirectwerkConfig config = mock(DirectwerkConfig.class);
+        FeedSnapshotStateStore stateStore = mock(FeedSnapshotStateStore.class);
+        when(config.isQueueEnabled()).thenReturn(true);
+        RssFeedRefreshJobProducer producer = new RssFeedRefreshJobProducer(
+                queueProvider,
+                new ObjectMapper(),
+                config,
+                stateStore
+        );
+
+        producer.onEntitlementsChanged(new TenantEntitlementsChangedEvent(10L));
+
+        verify(stateStore).clearWritten(10L);
+        verify(queueService).enqueue(
+                eq(QueueNames.PODCAST_RSS_FEED_REFRESH),
+                any(JsonNode.class),
+                eq(0),
+                eq(null),
+                eq(null),
+                any(JobEnqueueMetadata.class)
+        );
     }
 
     @Test

@@ -223,6 +223,11 @@ public class UploadService implements UploadApi {
 
         if (asset.getSizeBytes() != null && head.contentLength() != null
                 && !asset.getSizeBytes().equals(head.contentLength())) {
+            // The presigned PUT has no signed byte-count bound, so an oversized upload is
+            // only caught here. Delete it immediately rather than leaving it for the
+            // 24h staging sweep, which would otherwise let this be repeated to sustain a
+            // rolling oversized-storage footprint.
+            deleteObjectQuietly(storage.bucket(), asset.getS3Key());
             throw new UploadValidationException(
                     "UPLOAD_VALIDATION_FAILED",
                     "Uploaded size does not match declared sizeBytes"
@@ -230,6 +235,7 @@ public class UploadService implements UploadApi {
         }
         if (asset.getMimeType() != null && head.contentType() != null
                 && !asset.getMimeType().equalsIgnoreCase(head.contentType().split(";")[0].trim())) {
+            deleteObjectQuietly(storage.bucket(), asset.getS3Key());
             throw new UploadValidationException(
                     "UPLOAD_VALIDATION_FAILED",
                     "Uploaded Content-Type does not match declared mimeType"

@@ -113,7 +113,7 @@ class BillingRedirectUrlValidatorTest {
     @Test
     void defaultPublicUrlUsesPrimaryDomain() {
         TenantDomain primary = tenantDomain("podcast.example.com", true);
-        when(tenantDomainRepository.findByTenantId(TENANT_ID)).thenReturn(List.of(primary));
+        when(tenantDomainRepository.findVerifiedByTenantIdOrderByPrimaryDescIdAsc(TENANT_ID)).thenReturn(List.of(primary));
 
         assertThat(validator.defaultPublicUrl(TENANT_ID, "/billing/success"))
                 .isEqualTo("https://podcast.example.com/billing/success");

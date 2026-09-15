@@ -8,7 +8,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
 @Component
-@Profile("prod")
+@Profile({"prod", "stage"})
 public class ProdStoragePropertiesValidator {
 
     private final DirectwerkConfig directwerkConfig;

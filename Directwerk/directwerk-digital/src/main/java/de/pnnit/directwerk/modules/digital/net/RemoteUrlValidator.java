@@ -4,14 +4,44 @@ import de.pnnit.directwerk.modules.digital.exception.UploadValidationException;
 import java.net.InetAddress;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.net.UnknownHostException;
 import java.util.Locale;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
+import java.util.concurrent.RejectedExecutionException;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 /**
  * Rejects URLs that would let a tenant-admin ingest request reach private or
  * link-local infrastructure (SSRF). Public HTTP(S) hosts only.
  */
 public final class RemoteUrlValidator {
+
+    /**
+     * {@code InetAddress.getAllByName} has no timeout-capable overload and can block for
+     * the OS resolver's full retry budget (often 10-30s) against an unresponsive
+     * nameserver. Bounding it here keeps a single slow/hostile host from holding open the
+     * caller's pooled DB transaction indefinitely.
+     */
+    private static final long RESOLVE_DEADLINE_MILLIS = 5_000;
+    static final int RESOLVER_MAX_CONCURRENCY = 4;
+    static final int RESOLVER_QUEUE_CAPACITY = 16;
+    private static final ExecutorService RESOLVER_EXECUTOR = new ThreadPoolExecutor(
+            RESOLVER_MAX_CONCURRENCY,
+            RESOLVER_MAX_CONCURRENCY,
+            0L,
+            TimeUnit.MILLISECONDS,
+            new ArrayBlockingQueue<>(RESOLVER_QUEUE_CAPACITY),
+            runnable -> {
+                Thread thread = new Thread(runnable, "remote-url-dns-resolve");
+                thread.setDaemon(true);
+                return thread;
+            },
+            new ThreadPoolExecutor.AbortPolicy()
+    );
 
     private RemoteUrlValidator() {
     }
@@ -110,11 +140,42 @@ public final class RemoteUrlValidator {
      * @throws UploadValidationException if the host cannot be resolved or resolves to a blocked address
      */
     static InetAddress[] resolvePublicAddresses(String host) {
+        return resolvePublicAddresses(host, () -> InetAddress.getAllByName(host));
+    }
+
+    /** Package-visible so tests can inject a slow/hanging resolver without real network delay. */
+    static InetAddress[] resolvePublicAddresses(String host, java.util.concurrent.Callable<InetAddress[]> resolver) {
+        return resolvePublicAddresses(host, resolver, RESOLVE_DEADLINE_MILLIS);
+    }
+
+    /** Package-visible so concurrency tests can use a short deadline. */
+    static InetAddress[] resolvePublicAddresses(
+            String host,
+            java.util.concurrent.Callable<InetAddress[]> resolver,
+            long deadlineMillis
+    ) {
         InetAddress[] addresses;
+        Future<InetAddress[]> pending;
         try {
-            addresses = InetAddress.getAllByName(host);
-        } catch (UnknownHostException ex) {
-            throw new UploadValidationException("REMOTE_URL_FORBIDDEN", "sourceUrl host could not be resolved", ex);
+            pending = RESOLVER_EXECUTOR.submit(resolver);
+        } catch (RejectedExecutionException ex) {
+            throw new UploadValidationException(
+                    "REMOTE_URL_FORBIDDEN",
+                    "sourceUrl host resolution capacity is exhausted",
+                    ex
+            );
+        }
+        try {
+            addresses = pending.get(deadlineMillis, TimeUnit.MILLISECONDS);
+        } catch (TimeoutException ex) {
+            pending.cancel(true);
+            throw new UploadValidationException("REMOTE_URL_FORBIDDEN", "sourceUrl host could not be resolved in time", ex);
+        } catch (InterruptedException ex) {
+            Thread.currentThread().interrupt();
+            pending.cancel(true);
+            throw new UploadValidationException("REMOTE_URL_FORBIDDEN", "sourceUrl host resolution was interrupted", ex);
+        } catch (ExecutionException ex) {
+            throw new UploadValidationException("REMOTE_URL_FORBIDDEN", "sourceUrl host could not be resolved", ex.getCause());
         }
         if (addresses.length == 0) {
             throw new UploadValidationException("REMOTE_URL_FORBIDDEN", "sourceUrl host could not be resolved");

@@ -15,6 +15,14 @@ final class ProdPropertyValidation {
         }
     }
 
+    static void requireMinLength(String value, String propertyName, int minLength) {
+        requireConfigured(value, propertyName);
+        if (value.trim().length() < minLength) {
+            throw new IllegalStateException(
+                    "Production " + propertyName + " must be at least " + minLength + " characters");
+        }
+    }
+
     static void requireHttpsUrl(String value, String propertyName) {
         requireConfigured(value, propertyName);
         URI uri;

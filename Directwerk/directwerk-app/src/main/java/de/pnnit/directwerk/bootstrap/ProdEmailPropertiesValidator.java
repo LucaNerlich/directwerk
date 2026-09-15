@@ -8,7 +8,7 @@ import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 
 @Component
-@Profile("prod")
+@Profile({"prod", "stage"})
 public class ProdEmailPropertiesValidator {
 
     private static final Pattern EMAIL_PATTERN = Pattern.compile(

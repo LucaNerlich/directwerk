@@ -4,6 +4,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -12,9 +14,13 @@ import static org.mockito.Mockito.when;
 
 import de.pnnit.directwerk.config.DirectwerkConfig;
 import de.pnnit.directwerk.config.DirectwerkProperties;
+import de.pnnit.directwerk.modules.core.FeatureModuleKeys;
 import de.pnnit.directwerk.modules.core.entity.Tenant;
+import de.pnnit.directwerk.modules.digital.DigitalContentModule;
 import de.pnnit.directwerk.modules.core.service.ModuleGateService;
+import de.pnnit.directwerk.modules.core.service.ModuleNotEnabledException;
 import de.pnnit.directwerk.modules.content.api.EntitlementApi;
+import de.pnnit.directwerk.modules.digital.exception.MediaAssetNotFoundException;
 import de.pnnit.directwerk.modules.digital.entity.AssetScope;
 import de.pnnit.directwerk.modules.digital.entity.AssetStatus;
 import de.pnnit.directwerk.modules.digital.entity.AssetType;
@@ -169,6 +175,29 @@ class AssetAccessServiceTest {
         URL url = service.resolvePreviewUrl(asset, editor(9L, 10L), true);
 
         assertThat(url.toString()).isEqualTo("https://s3.example/preview");
+    }
+
+    @Test
+    void resolvePreviewUrlChecksPodcastModuleForEpisodeLinkedAsset() {
+        MediaAsset asset = givenLoaded(
+                privateContentAsset(10L, "alpha-show-a", "alpha-show-a/private/audio/x.mp3", 55L)
+        );
+        doNothing().when(moduleGateService).requireModule(DigitalContentModule.KEY);
+        doThrow(new ModuleNotEnabledException(FeatureModuleKeys.PODCAST))
+                .when(moduleGateService).requireModule(FeatureModuleKeys.PODCAST);
+
+        assertThatThrownBy(() -> service.resolvePreviewUrl(asset, editor(9L, 10L), true))
+                .isInstanceOf(ModuleNotEnabledException.class);
+    }
+
+    @Test
+    void resolveDownloadUrlRejectsPendingDeleteAsset() {
+        MediaAsset asset = privateContentAsset(10L, "alpha-show-a", "alpha-show-a/private/audio/x.mp3", null);
+        asset.setStatus(AssetStatus.PENDING_DELETE);
+        givenLoaded(asset);
+
+        assertThatThrownBy(() -> service.resolveDownloadUrl(asset, subscriber(42L, 10L)))
+                .isInstanceOf(MediaAssetNotFoundException.class);
     }
 
     @Test

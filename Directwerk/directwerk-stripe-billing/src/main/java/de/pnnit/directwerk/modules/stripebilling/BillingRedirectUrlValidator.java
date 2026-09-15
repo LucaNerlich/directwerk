@@ -64,12 +64,13 @@ public class BillingRedirectUrlValidator {
     }
 
     public String defaultPublicUrl(Long tenantId, String path) {
-        return tenantDomainRepository.findByTenantId(tenantId).stream()
-                .filter(TenantDomain::isPrimary)
+        // Verified-only: an unverified self-service domain must never become a Stripe
+        // redirect target, even as a fallback (see TenantDomain's own "verified=true
+        // domains bind request traffic" invariant).
+        return tenantDomainRepository.findVerifiedByTenantIdOrderByPrimaryDescIdAsc(tenantId).stream()
                 .findFirst()
-                .or(() -> tenantDomainRepository.findByTenantId(tenantId).stream().findFirst())
                 .map(domain -> publicOrigin(domain.getHost()) + path)
-                .orElseThrow(() -> new IllegalArgumentException("Tenant has no domain for billing redirects"));
+                .orElseThrow(() -> new IllegalArgumentException("Tenant has no verified domain for billing redirects"));
     }
 
     public String defaultStudioUrl(String path) {
@@ -81,7 +82,12 @@ public class BillingRedirectUrlValidator {
     }
 
     private boolean isTenantHost(Long tenantId, String host) {
-        return tenantDomainRepository.findByTenantIdAndHostIgnoreCase(tenantId, host).isPresent();
+        // Verified-only: an unverified, self-registered domain must not be trusted as a
+        // Stripe redirect target (see TenantDomain's own "verified=true domains bind
+        // request traffic" invariant).
+        return tenantDomainRepository.findByTenantIdAndHostIgnoreCase(tenantId, host)
+                .filter(TenantDomain::isVerified)
+                .isPresent();
     }
 
     private boolean isStudioHost(String host) {
