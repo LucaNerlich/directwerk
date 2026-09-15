@@ -1,0 +1,26 @@
+### Directwerk — Tenant analytics (Umami read API)
+### Prerequisites: 02-oauth2.http (tenantAAccessToken), 10-tenant-admin.http (branding with umamiWebsiteId).
+### The API logs in to Umami server-to-server; set DIRECTWERK_ANALYTICS_UMAMI_USERNAME /
+### DIRECTWERK_ANALYTICS_UMAMI_PASSWORD (and optional ..._UMAMI_API_BASE_URL) on the API.
+
+### @name getAnalyticsStats7d
+GET {{baseUrl}}/api/v1/tenant/analytics/stats/7d
+Host: {{tenantAHost}}
+Authorization: Bearer {{tenantAAccessToken}}
+Accept: application/json
+
+###
+
+### @name getAnalyticsStats12m
+GET {{baseUrl}}/api/v1/tenant/analytics/stats/12m
+Host: {{tenantAHost}}
+Authorization: Bearer {{tenantAAccessToken}}
+Accept: application/json
+
+###
+
+### @name getAnalyticsStatsUnknownRange
+GET {{baseUrl}}/api/v1/tenant/analytics/stats/13d
+Host: {{tenantAHost}}
+Authorization: Bearer {{tenantAAccessToken}}
+Accept: application/json

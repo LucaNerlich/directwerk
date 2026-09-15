@@ -1,0 +1,29 @@
+meta {
+  name: 1 - Get Analytics Stats
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/api/v1/tenant/analytics/stats/7d
+  body: none
+  auth: inherit
+}
+
+docs {
+  Requires EDITOR or TENANT_ADMIN -- 01-Auth-and-Tokens/3 (Tenant A Admin Login).
+  The API logs in to Umami server-to-server; credentials live only in
+  DIRECTWERK_ANALYTICS_UMAMI_USERNAME / DIRECTWERK_ANALYTICS_UMAMI_PASSWORD.
+  A tenant without umamiWebsiteId answers 404 ANALYTICS_NOT_CONFIGURED.
+}
+
+tests {
+  test("returns stats or a configuration error", function() {
+    expect([200, 404, 502, 503]).to.include(res.getStatus());
+    if (res.getStatus() === 200) {
+      expect(res.body.data).to.have.property("range");
+      expect(res.body.data).to.have.property("stats");
+      expect(res.body.data).to.have.property("pageviews");
+    }
+  });
+}

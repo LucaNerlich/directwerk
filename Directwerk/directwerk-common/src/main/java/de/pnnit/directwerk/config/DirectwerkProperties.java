@@ -112,7 +112,10 @@ public record DirectwerkProperties(
     public record Analytics(
             boolean enabled,
             String umamiHostUrl,
-            String userAgent
+            String userAgent,
+            String umamiApiBaseUrl,
+            String umamiUsername,
+            String umamiPassword
     ) {
         public Analytics {
             umamiHostUrl = umamiHostUrl == null ? "" : umamiHostUrl.trim();
@@ -120,6 +123,19 @@ public record DirectwerkProperties(
             userAgent = userAgent == null || userAgent.isBlank()
                     ? "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36"
                     : userAgent.trim();
+            umamiApiBaseUrl = umamiApiBaseUrl == null ? "" : umamiApiBaseUrl.trim();
+            umamiUsername = umamiUsername == null ? "" : umamiUsername.trim();
+            umamiPassword = umamiPassword == null ? "" : umamiPassword;
+        }
+
+        /** Collector-only configuration (no read-API credentials). */
+        public Analytics(boolean enabled, String umamiHostUrl, String userAgent) {
+            this(enabled, umamiHostUrl, userAgent, "", "", "");
+        }
+
+        /** True when the server can log in to the Umami read API. */
+        public boolean hasUmamiApiCredentials() {
+            return !umamiUsername.isBlank() && !umamiPassword.isBlank();
         }
 
         @AssertTrue(message = "umami-host-url must be an absolute HTTPS URL with a host")

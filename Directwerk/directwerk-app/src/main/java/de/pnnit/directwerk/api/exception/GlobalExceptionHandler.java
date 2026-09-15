@@ -1,5 +1,6 @@
 package de.pnnit.directwerk.api.exception;
 
+import de.pnnit.directwerk.analytics.AnalyticsQueryException;
 import de.pnnit.directwerk.api.response.ErrorDetail;
 import de.pnnit.directwerk.api.response.Response;
 import de.pnnit.directwerk.modules.core.exception.ConflictException;
@@ -109,6 +110,12 @@ public class GlobalExceptionHandler {
     private static ResponseEntity<Response<Void>> badRequest(String code, Exception ex) {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                 .body(Response.error(400, code, ex.getMessage()));
+    }
+
+    @ExceptionHandler(AnalyticsQueryException.class)
+    ResponseEntity<Response<Void>> handleAnalyticsQuery(AnalyticsQueryException ex) {
+        return ResponseEntity.status(ex.getStatus())
+                .body(Response.error(ex.getStatus().value(), ex.getCode(), ex.getMessage()));
     }
 
     /**

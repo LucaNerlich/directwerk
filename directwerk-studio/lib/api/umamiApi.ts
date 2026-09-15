@@ -1,6 +1,6 @@
 'use client'
 
-import {authenticatedRequest} from './studioApiCore'
+import {studioGet} from './studioApiCore'
 
 export type UmamiRange = '7d' | '30d' | '12m'
 
@@ -145,13 +145,15 @@ export async function getUmamiStats(
     tenantHost: string,
     range: UmamiRange,
 ): Promise<UmamiStats> {
-    const payload = await authenticatedRequest(
-        `/api/umami/stats?range=${range}`,
+    // Analytics reads go through the tenant proxy to the API, like every other
+    // domain call — the API owns the Umami login, host/website validation and range table.
+    return studioGet(
+        `/api/proxy/tenant/analytics/stats/${range}`,
         tenantHost,
+        (value) => {
+            const parsed = parseUmamiStats(value)
+            return parsed === null ? null : {data: parsed}
+        },
+        invalidStatsMessage,
     )
-    const stats = parseUmamiStats(payload)
-    if (stats === null) {
-        throw new Error(invalidStatsMessage)
-    }
-    return stats
 }
