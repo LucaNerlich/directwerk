@@ -9,18 +9,23 @@ export interface UseAuthedQueryResult<T> {
     error: string | null
     isLoading: boolean
     reload: () => void
+    setData: React.Dispatch<React.SetStateAction<T | null>>
 }
 
 export interface UseAuthedQueryOptions {
     fallbackError?: string
+    /** When false, skip the fetch and reset to the empty state (e.g. signed out). */
+    enabled?: boolean
+    /** Maps a thrown error to a user-facing message; returning null uses fallbackError. */
+    mapError?: (error: unknown) => string | null
 }
 
 /**
  * Fetches authenticated data and exposes its loading, error, and reload state.
  *
  * @param fetcher - Asynchronous operation that retrieves the data
- * @param options - Optional configuration, including the fallback error message
- * @returns The fetched data, current error message, loading state, and reload function
+ * @param options - Optional configuration: fallback error, conditional fetch, error mapping
+ * @returns The fetched data, current error message, loading state, reload function, and setter
  */
 export function useAuthedQuery<T>(
     fetcher: () => Promise<T>,
@@ -28,6 +33,7 @@ export function useAuthedQuery<T>(
 ): UseAuthedQueryResult<T> {
     const authRedirect = useAuthRequired()
     const fallbackError = options.fallbackError ?? 'Laden fehlgeschlagen.'
+    const enabled = options.enabled ?? true
 
     const [data, setData] = useState<T | null>(null)
     const [error, setError] = useState<string | null>(null)
@@ -43,7 +49,17 @@ export function useAuthedQuery<T>(
     const fetcherRef = useRef(fetcher)
     fetcherRef.current = fetcher
 
+    const mapErrorRef = useRef(options.mapError)
+    mapErrorRef.current = options.mapError
+
     useEffect(() => {
+        if (!enabled) {
+            setData(null)
+            setError(null)
+            setIsLoading(false)
+            return
+        }
+
         let active = true
         setIsLoading(true)
         setError(null)
@@ -62,9 +78,8 @@ export function useAuthedQuery<T>(
                 if (authRedirect(caught)) {
                     return
                 }
-                setError(
-                    caught instanceof Error ? caught.message : fallbackError,
-                )
+                const mapped = mapErrorRef.current?.(caught) ?? null
+                setError(mapped ?? (caught instanceof Error ? caught.message : fallbackError))
             })
             .finally(() => {
                 if (active) {
@@ -75,7 +90,7 @@ export function useAuthedQuery<T>(
         return () => {
             active = false
         }
-    }, [authRedirect, fallbackError, reloadToken])
+    }, [authRedirect, enabled, fallbackError, reloadToken])
 
-    return {data, error, isLoading, reload}
+    return {data, error, isLoading, reload, setData}
 }
