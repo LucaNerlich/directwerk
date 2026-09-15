@@ -5,10 +5,12 @@ import java.net.InetAddress;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Locale;
+import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.RejectedExecutionException;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
@@ -25,11 +27,21 @@ public final class RemoteUrlValidator {
      * caller's pooled DB transaction indefinitely.
      */
     private static final long RESOLVE_DEADLINE_MILLIS = 5_000;
-    private static final ExecutorService RESOLVER_EXECUTOR = Executors.newCachedThreadPool(runnable -> {
-        Thread thread = new Thread(runnable, "remote-url-dns-resolve");
-        thread.setDaemon(true);
-        return thread;
-    });
+    static final int RESOLVER_MAX_CONCURRENCY = 4;
+    static final int RESOLVER_QUEUE_CAPACITY = 16;
+    private static final ExecutorService RESOLVER_EXECUTOR = new ThreadPoolExecutor(
+            RESOLVER_MAX_CONCURRENCY,
+            RESOLVER_MAX_CONCURRENCY,
+            0L,
+            TimeUnit.MILLISECONDS,
+            new ArrayBlockingQueue<>(RESOLVER_QUEUE_CAPACITY),
+            runnable -> {
+                Thread thread = new Thread(runnable, "remote-url-dns-resolve");
+                thread.setDaemon(true);
+                return thread;
+            },
+            new ThreadPoolExecutor.AbortPolicy()
+    );
 
     private RemoteUrlValidator() {
     }
@@ -133,10 +145,28 @@ public final class RemoteUrlValidator {
 
     /** Package-visible so tests can inject a slow/hanging resolver without real network delay. */
     static InetAddress[] resolvePublicAddresses(String host, java.util.concurrent.Callable<InetAddress[]> resolver) {
+        return resolvePublicAddresses(host, resolver, RESOLVE_DEADLINE_MILLIS);
+    }
+
+    /** Package-visible so concurrency tests can use a short deadline. */
+    static InetAddress[] resolvePublicAddresses(
+            String host,
+            java.util.concurrent.Callable<InetAddress[]> resolver,
+            long deadlineMillis
+    ) {
         InetAddress[] addresses;
-        Future<InetAddress[]> pending = RESOLVER_EXECUTOR.submit(resolver);
+        Future<InetAddress[]> pending;
         try {
-            addresses = pending.get(RESOLVE_DEADLINE_MILLIS, TimeUnit.MILLISECONDS);
+            pending = RESOLVER_EXECUTOR.submit(resolver);
+        } catch (RejectedExecutionException ex) {
+            throw new UploadValidationException(
+                    "REMOTE_URL_FORBIDDEN",
+                    "sourceUrl host resolution capacity is exhausted",
+                    ex
+            );
+        }
+        try {
+            addresses = pending.get(deadlineMillis, TimeUnit.MILLISECONDS);
         } catch (TimeoutException ex) {
             pending.cancel(true);
             throw new UploadValidationException("REMOTE_URL_FORBIDDEN", "sourceUrl host could not be resolved in time", ex);

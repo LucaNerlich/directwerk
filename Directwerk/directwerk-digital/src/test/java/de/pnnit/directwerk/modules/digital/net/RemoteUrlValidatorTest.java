@@ -31,6 +31,63 @@ class RemoteUrlValidatorTest {
     }
 
     @Test
+    void rejectsResolutionWhenTimedOutResolversIgnoreInterruption() throws InterruptedException {
+        CountDownLatch resolversStarted = new CountDownLatch(RemoteUrlValidator.RESOLVER_MAX_CONCURRENCY);
+        CountDownLatch releaseResolvers = new CountDownLatch(1);
+        CountDownLatch resolversFinished = new CountDownLatch(RemoteUrlValidator.RESOLVER_MAX_CONCURRENCY);
+
+        try {
+            for (int i = 0; i < RemoteUrlValidator.RESOLVER_MAX_CONCURRENCY; i++) {
+                assertThatThrownBy(() -> RemoteUrlValidator.resolvePublicAddresses(
+                        "blackhole.example",
+                        () -> {
+                            resolversStarted.countDown();
+                            try {
+                                boolean released = false;
+                                while (!released) {
+                                    try {
+                                        releaseResolvers.await();
+                                        released = true;
+                                    } catch (InterruptedException ignored) {
+                                        // Simulate a native resolver that does not respond to interruption.
+                                    }
+                                }
+                            } finally {
+                                resolversFinished.countDown();
+                            }
+                            return new InetAddress[]{InetAddress.getByName("1.1.1.1")};
+                        },
+                        100
+                ))
+                        .isInstanceOf(UploadValidationException.class)
+                        .hasMessageContaining("in time");
+            }
+            assertThat(resolversStarted.await(1, TimeUnit.SECONDS)).isTrue();
+
+            for (int i = 0; i < RemoteUrlValidator.RESOLVER_QUEUE_CAPACITY; i++) {
+                assertThatThrownBy(() -> RemoteUrlValidator.resolvePublicAddresses(
+                        "queued.example",
+                        () -> new InetAddress[]{InetAddress.getByName("1.1.1.1")},
+                        10
+                ))
+                        .isInstanceOf(UploadValidationException.class)
+                        .hasMessageContaining("in time");
+            }
+
+            assertThatThrownBy(() -> RemoteUrlValidator.resolvePublicAddresses(
+                    "rejected.example",
+                    () -> new InetAddress[]{InetAddress.getByName("1.1.1.1")},
+                    100
+            ))
+                    .isInstanceOf(UploadValidationException.class)
+                    .hasMessageContaining("capacity is exhausted");
+        } finally {
+            releaseResolvers.countDown();
+            assertThat(resolversFinished.await(1, TimeUnit.SECONDS)).isTrue();
+        }
+    }
+
+    @Test
     void acceptsPublicHttpsUrl() {
         URI uri = RemoteUrlValidator.requirePublicHttpUrl("https://1.1.1.1/podcast.xml");
         assertThat(uri.getHost()).isEqualTo("1.1.1.1");
