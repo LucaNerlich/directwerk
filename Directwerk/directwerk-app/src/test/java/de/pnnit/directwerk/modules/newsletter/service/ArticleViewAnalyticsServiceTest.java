@@ -95,6 +95,17 @@ class ArticleViewAnalyticsServiceTest {
     }
 
     @Test
+    void skipsWhenAccessPolicyIsMissing() {
+        ArticleViewAnalyticsService service = service(true);
+        Article article = article();
+        article.setAccessPolicy(null);
+
+        service.trackArticleView(10L, article, "public-view", "alpha.example.test");
+
+        verifyNeverTracked();
+    }
+
+    @Test
     void usesTenantUmamiHostWhenConfigured() {
         ArticleViewAnalyticsService service = service(false);
         TenantBranding branding = new TenantBranding();

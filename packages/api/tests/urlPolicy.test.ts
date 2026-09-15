@@ -89,6 +89,7 @@ describe('isSafeRedirectTarget', () => {
     it('allows same-origin absolute paths', () => {
         expect(isSafeRedirectTarget('/feeds/alpha/podcast.xml')).toBe(true)
         expect(isSafeRedirectTarget('//evil.test/x')).toBe(false)
+        expect(isSafeRedirectTarget('/\\evil.test/x')).toBe(false)
     })
 
     it('allows HTTPS and loopback HTTP including *.localhost', () => {

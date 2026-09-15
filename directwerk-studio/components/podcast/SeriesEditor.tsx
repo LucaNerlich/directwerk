@@ -15,7 +15,7 @@ import SectionHeader from '@directwerk/ui/components/section-header'
 
 import Link from 'next/link'
 import {useRouter} from 'next/navigation'
-import {useCallback, useEffect, useRef, useState} from 'react'
+import {useCallback, useEffect, useLayoutEffect, useRef, useState} from 'react'
 
 import MediaLibraryPicker from '@/components/media/MediaLibraryPicker'
 import UploadProgress from '@/components/media/UploadProgress'
@@ -124,7 +124,9 @@ export default function SeriesEditor({seriesId}: SeriesEditorProps): React.JSX.E
     const router = useRouter()
     const authRedirect = useAuthRequired()
     const authRedirectRef = useRef(authRedirect)
-    authRedirectRef.current = authRedirect
+    useLayoutEffect(() => {
+        authRedirectRef.current = authRedirect
+    }, [authRedirect])
 
     const {
         values,

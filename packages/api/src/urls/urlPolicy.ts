@@ -12,6 +12,7 @@
 
 const LOOPBACK_HOSTNAMES = new Set(['localhost', '127.0.0.1'])
 const IPV6_LOOPBACK_HOSTNAME = '[::1]'
+const RELATIVE_REDIRECT_BASE = new URL('https://directwerk.invalid')
 
 /** Loopback variant controls. */
 export interface LoopbackOptions {
@@ -112,7 +113,12 @@ export function normalizeHttpOrigin(
  */
 export function isSafeRedirectTarget(location: string): boolean {
     if (location.startsWith('/') && !location.startsWith('//')) {
-        return true
+        try {
+            return new URL(location, RELATIVE_REDIRECT_BASE).origin ===
+                RELATIVE_REDIRECT_BASE.origin
+        } catch {
+            return false
+        }
     }
     return isTrustedOrigin(location, {
         allowLoopback: true,

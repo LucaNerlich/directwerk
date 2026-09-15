@@ -124,14 +124,18 @@ describe('JobsPage', () => {
         })
     })
 
-    it('retries loading jobs after a failure', async () => {
+    it('shows the loading skeleton while retrying after a failure', async () => {
         getPlatformJobListMock.mockRejectedValueOnce(new Error('unavailable'))
+        getPlatformJobListMock.mockImplementationOnce(
+            () => new Promise(() => {}),
+        )
         render(<JobsPage />)
 
         expect(await screen.findByText('Could not load queue jobs.')).toBeInTheDocument()
 
         fireEvent.click(screen.getByRole('button', {name: 'Retry'}))
 
+        expect(await screen.findByText('Loading queue jobs…')).toBeInTheDocument()
         await waitFor(() => {
             expect(getPlatformJobListMock).toHaveBeenCalledTimes(2)
         })

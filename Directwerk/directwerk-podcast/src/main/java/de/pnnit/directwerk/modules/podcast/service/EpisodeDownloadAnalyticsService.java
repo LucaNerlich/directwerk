@@ -88,6 +88,7 @@ public class EpisodeDownloadAnalyticsService {
         if (tenantId == null
                 || episode == null
                 || episode.getSlug() == null
+                || episode.getAccessPolicy() == null
                 || hostname == null
                 || hostname.isBlank()
                 || !ALLOWED_SOURCES.contains(source)) {

@@ -82,6 +82,7 @@ public class ArticleViewAnalyticsService {
         if (tenantId == null
                 || article == null
                 || article.getSlug() == null
+                || article.getAccessPolicy() == null
                 || hostname == null
                 || hostname.isBlank()
                 || !ALLOWED_SOURCES.contains(source)) {

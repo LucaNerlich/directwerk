@@ -135,7 +135,8 @@ export async function performTenantMediaUpload(
 
     switch (result.status) {
         case 'confirmed': {
-            const asset = parseMediaAssetEnvelope(await result.response.json())?.data
+            const payload = await result.response.json().catch(() => null)
+            const asset = parseMediaAssetEnvelope(payload)?.data
             if (asset === undefined) {
                 return {
                     ok: false,

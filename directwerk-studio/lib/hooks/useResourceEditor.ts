@@ -3,6 +3,7 @@
 import {
     useCallback,
     useEffect,
+    useLayoutEffect,
     useRef,
     useState,
     type Dispatch,
@@ -131,9 +132,11 @@ export function useResourceEditor<
     // Keep the latest config/callbacks in refs so the load effect only depends
     // on the id, and so mocked router/auth objects can't retrigger it.
     const configRef = useRef(config)
-    configRef.current = config
     const authRedirectRef = useRef(authRedirect)
-    authRedirectRef.current = authRedirect
+    useLayoutEffect(() => {
+        configRef.current = config
+        authRedirectRef.current = authRedirect
+    }, [authRedirect, config])
 
     const [entity, setEntity] = useState<Entity | null>(null)
     const [entities, setEntities] = useState<Entity[]>([])

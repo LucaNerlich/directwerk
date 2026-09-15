@@ -51,7 +51,6 @@ function formatTimestamp(value: string): string {
 export default function JobsPage() {
     const [query, setQuery] = useState<JobListQuery>(DEFAULT_QUERY)
     const [filterError, setFilterError] = useState<string | null>(null)
-    const [isInitialLoad, setIsInitialLoad] = useState(true)
     // Keep the last successful page visible while a filter/pagination change
     // refetches, mirroring the pre-seam behaviour (no skeleton after the first
     // load; stale rows stay until the new page resolves).
@@ -60,6 +59,7 @@ export default function JobsPage() {
     const {
         data,
         error,
+        isLoading,
         reload: loadJobs,
     } = usePlatformQuery(() => getPlatformJobList(query), {
         fallbackError: 'Could not load queue jobs.',
@@ -69,10 +69,8 @@ export default function JobsPage() {
     useEffect(() => {
         if (data !== null) {
             setPage(data)
-            setIsInitialLoad(false)
         } else if (error !== null) {
             setPage(null)
-            setIsInitialLoad(false)
         }
     }, [data, error])
 
@@ -235,7 +233,7 @@ export default function JobsPage() {
                         </div>
                     </>
                 ) : null}
-                {!error && isInitialLoad ? (
+                {!error && isLoading && page === null ? (
                     <>
                         <TableSkeleton rows={6} />
                         <AdminLoadingText text="Loading queue jobs…" />
