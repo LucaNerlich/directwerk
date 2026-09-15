@@ -8,13 +8,13 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import de.pnnit.directwerk.modules.content.ContentPublishedEvent;
 import de.pnnit.directwerk.modules.content.ContentType;
-import de.pnnit.directwerk.modules.content.NewsletterNotifyAudienceApi;
+import de.pnnit.directwerk.modules.content.NewsletterNotificationApi;
 import de.pnnit.directwerk.modules.core.entity.MembershipStatus;
 import de.pnnit.directwerk.modules.core.entity.TenantMembership;
 import de.pnnit.directwerk.modules.core.entity.User;
 import de.pnnit.directwerk.modules.core.repository.TenantMembershipRepository;
-import de.pnnit.directwerk.modules.core.util.PublicContentUrlResolver;
 import de.pnnit.directwerk.modules.email.EmailJobProducer;
 import de.pnnit.directwerk.modules.email.EmailTemplate;
 import de.pnnit.directwerk.modules.queue.JobStatus;
@@ -45,19 +45,16 @@ class ContentNotifyJobHandlerTest {
     private ContentPublicUrlBuilder contentPublicUrlBuilder;
 
     @Mock
-    private PublicContentUrlResolver publicContentUrlResolver;
-
-    @Mock
     private TenantContentBrandingResolver tenantContentBrandingResolver;
 
     @Mock
     private EmailJobProducer emailJobProducer;
 
     @Mock
-    private ObjectProvider<NewsletterNotifyAudienceApi> newsletterNotifyAudienceApi;
+    private ObjectProvider<NewsletterNotificationApi> newsletterNotificationApi;
 
     @Mock
-    private NewsletterNotifyAudienceApi audienceApi;
+    private NewsletterNotificationApi newsletterNotification;
 
     private final ObjectMapper objectMapper = new ObjectMapper();
     private ContentNotifyJobHandler handler;
@@ -68,10 +65,9 @@ class ContentNotifyJobHandlerTest {
                 objectMapper,
                 tenantMembershipRepository,
                 contentPublicUrlBuilder,
-                publicContentUrlResolver,
                 tenantContentBrandingResolver,
                 emailJobProducer,
-                newsletterNotifyAudienceApi
+                newsletterNotificationApi
         );
     }
 
@@ -81,21 +77,8 @@ class ContentNotifyJobHandlerTest {
     }
 
     @Test
-    void notifiesArticleListRecipientsWithUnsubscribeUrl() {
-        when(contentPublicUrlBuilder.buildPublicContentUrl(TENANT_ID, ContentType.ARTICLE, "hello-world"))
-                .thenReturn("https://tenant.example/articles/hello-world");
-        when(tenantContentBrandingResolver.resolve(TENANT_ID))
-                .thenReturn(new TenantContentBrandingResolver.BrandingContext("Acme", "Acme Magazine", "#123456"));
-        when(newsletterNotifyAudienceApi.getIfAvailable()).thenReturn(audienceApi);
-        when(audienceApi.findActiveRecipientsForArticle(TENANT_ID, 7L))
-                .thenReturn(List.of(
-                        new NewsletterNotifyAudienceApi.Recipient("ada@example.com", "unsub-ada"),
-                        new NewsletterNotifyAudienceApi.Recipient("grace@example.com", "unsub-grace")
-                ));
-        when(publicContentUrlResolver.newsletterUnsubscribeUrl(TENANT_ID, "unsub-ada"))
-                .thenReturn("https://tenant.example/newsletter/unsubscribe?token=unsub-ada");
-        when(publicContentUrlResolver.newsletterUnsubscribeUrl(TENANT_ID, "unsub-grace"))
-                .thenReturn("https://tenant.example/newsletter/unsubscribe?token=unsub-grace");
+    void delegatesArticleNotificationToNewsletterModule() {
+        when(newsletterNotificationApi.getIfAvailable()).thenReturn(newsletterNotification);
 
         handler.handle(job(ContentNotifyJobPayload.from(
                 ContentType.ARTICLE,
@@ -106,29 +89,16 @@ class ContentNotifyJobHandlerTest {
                 "FREE"
         )));
 
-        ArgumentCaptor<Map<String, String>> adaVariablesCaptor = ArgumentCaptor.forClass(Map.class);
-        verify(emailJobProducer).enqueueContentNotification(
-                eq(TENANT_ID),
-                eq("ada@example.com"),
-                eq(EmailTemplate.CONTENT_ARTICLE_PUBLISHED),
-                adaVariablesCaptor.capture(),
-                any()
-        );
-        ArgumentCaptor<Map<String, String>> graceVariablesCaptor = ArgumentCaptor.forClass(Map.class);
-        verify(emailJobProducer).enqueueContentNotification(
-                eq(TENANT_ID),
-                eq("grace@example.com"),
-                eq(EmailTemplate.CONTENT_ARTICLE_PUBLISHED),
-                graceVariablesCaptor.capture(),
-                any()
-        );
-
-        Map<String, String> adaVariables = adaVariablesCaptor.getValue();
-        assertThat(adaVariables.get("title")).isEqualTo("Hello world");
-        assertThat(adaVariables.get("unsubscribeUrl"))
-                .isEqualTo("https://tenant.example/newsletter/unsubscribe?token=unsub-ada");
-        assertThat(graceVariablesCaptor.getValue().get("unsubscribeUrl"))
-                .isEqualTo("https://tenant.example/newsletter/unsubscribe?token=unsub-grace");
+        verify(newsletterNotification).notifyArticlePublished(new ContentPublishedEvent(
+                TENANT_ID,
+                ContentType.ARTICLE,
+                7L,
+                "Hello world",
+                "An excerpt",
+                "hello-world",
+                "FREE"
+        ));
+        verify(emailJobProducer, never()).enqueueContentNotification(any(), any(), any(), any(), any());
     }
 
     @Test
@@ -153,12 +123,8 @@ class ContentNotifyJobHandlerTest {
     }
 
     @Test
-    void skipsArticleEnqueueWhenNoListRecipients() {
-        when(contentPublicUrlBuilder.buildPublicContentUrl(any(), any(), any())).thenReturn("https://tenant.example/x");
-        when(tenantContentBrandingResolver.resolve(TENANT_ID))
-                .thenReturn(new TenantContentBrandingResolver.BrandingContext("Acme", "Acme", "#000000"));
-        when(newsletterNotifyAudienceApi.getIfAvailable()).thenReturn(audienceApi);
-        when(audienceApi.findActiveRecipientsForArticle(TENANT_ID, 7L)).thenReturn(List.of());
+    void skipsArticleNotificationWhenNewsletterModuleAbsent() {
+        when(newsletterNotificationApi.getIfAvailable()).thenReturn(null);
 
         handler.handle(job(ContentNotifyJobPayload.from(ContentType.ARTICLE, 7L, "Hello", null, "hello", "FREE")));
 

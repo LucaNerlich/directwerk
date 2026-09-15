@@ -82,9 +82,14 @@ public class NewsletterSubscriptionService {
         NewsletterSubscription subscription = subscriptionRepository
                 .findByConfirmTokenHash(TokenHashUtil.sha256Hex(rawToken.trim()))
                 .orElseThrow(() -> new NewsletterSubscriptionNotFoundException("Invalid confirm token"));
+        if (subscription.getConfirmTokenExpiresAt() == null
+                || subscription.getConfirmTokenExpiresAt().isBefore(Instant.now())) {
+            throw new NewsletterSubscriptionNotFoundException("Confirm token expired");
+        }
         subscription.setStatus(NewsletterSubscriptionStatus.ACTIVE);
         subscription.setConfirmedAt(Instant.now());
         subscription.setConfirmTokenHash(null);
+        subscription.setConfirmTokenExpiresAt(null);
         subscription.setUnsubscribedAt(null);
         return subscriptionRepository.save(subscription);
     }
@@ -97,10 +102,22 @@ public class NewsletterSubscriptionService {
         NewsletterSubscription subscription = subscriptionRepository
                 .findByUnsubscribeTokenHash(TokenHashUtil.sha256Hex(rawToken.trim()))
                 .orElseThrow(() -> new NewsletterSubscriptionNotFoundException("Invalid unsubscribe token"));
-        subscription.setStatus(NewsletterSubscriptionStatus.UNSUBSCRIBED);
-        subscription.setUnsubscribedAt(Instant.now());
-        subscription.setConfirmTokenHash(null);
-        return subscriptionRepository.save(subscription);
+        // The unsubscribe link in a sent article email means "stop emailing me",
+        // not "remove me from the one list whose token we happened to send".
+        // A recipient can be ACTIVE on several lists; unsubscribe from all of them.
+        List<NewsletterSubscription> affected = subscriptionRepository.findByTenantIdAndEmail(
+                subscription.getTenant().getId(),
+                subscription.getEmail()
+        );
+        Instant now = Instant.now();
+        for (NewsletterSubscription row : affected) {
+            row.setStatus(NewsletterSubscriptionStatus.UNSUBSCRIBED);
+            row.setUnsubscribedAt(now);
+            row.setConfirmTokenHash(null);
+            row.setConfirmTokenExpiresAt(null);
+        }
+        subscriptionRepository.saveAll(affected);
+        return subscription;
     }
 
     @Transactional
@@ -111,6 +128,7 @@ public class NewsletterSubscriptionService {
         subscription.setStatus(NewsletterSubscriptionStatus.UNSUBSCRIBED);
         subscription.setUnsubscribedAt(Instant.now());
         subscription.setConfirmTokenHash(null);
+        subscription.setConfirmTokenExpiresAt(null);
         subscriptionRepository.save(subscription);
     }
 
@@ -120,6 +138,7 @@ public class NewsletterSubscriptionService {
             raw = TokenHashUtil.generateUrlSafeToken(32);
         } while (subscriptionRepository.existsByConfirmTokenHash(TokenHashUtil.sha256Hex(raw)));
         subscription.setConfirmTokenHash(TokenHashUtil.sha256Hex(raw));
+        subscription.setConfirmTokenExpiresAt(Instant.now().plus(CONFIRM_TOKEN_TTL));
         return raw;
     }
 
