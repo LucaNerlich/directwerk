@@ -15,14 +15,12 @@ import AccessPolicyBadge from '@/components/AccessPolicyBadge'
 import CatalogRow, {LockedCatalogAction} from '@/components/CatalogRow'
 import ContentMetaLine from '@/components/ContentMetaLine'
 import {ListPanelSkeleton} from '@/components/ContentLoadingSkeleton'
-import FeedUrlDisplay from '@/components/FeedUrlDisplay'
-import PublicFeedFooter, {PublicFeedStrip} from '@/components/PublicFeedFooter'
+import {PublicFeedStrip} from '@/components/PublicFeedFooter'
 import SubscriberContextBanner from '@/components/SubscriberContextBanner'
 import {usePublicCatalog} from '@/lib/catalog/usePublicCatalog'
 import {findUnlockProduct, unlockHref} from '@/lib/catalog/unlock'
 import {usePublicProducts} from '@/lib/catalog/usePublicProducts'
 import {useSubscriberAuth} from '@/lib/auth/useSubscriberAuth'
-import {useSubscriberFeeds} from '@/lib/auth/useSubscriberFeeds'
 import {formatDuration} from '@/lib/format/content'
 import {getWebClientTenantHost} from '@/lib/tenant/clientHost'
 import {webPublicPodcastFeedUrl} from '@/lib/feeds/webPublicFeedUrl'
@@ -40,8 +38,6 @@ export default function EpisodesPage() {
     })
     const products = usePublicProducts(tenantHost)
     const unlockTarget = unlockHref(findUnlockProduct(products))
-    const {feeds: privateFeeds} = useSubscriberFeeds(isAuthenticated)
-    const defaultPrivateFeed = privateFeeds.find((feed) => feed.isDefault) ?? null
     const publicPodcastFeedUrl =
         siteConfig === null ? null : webPublicPodcastFeedUrl(siteConfig, tenantHost)
     const [visibleCount, setVisibleCount] = useState(PAGE_SIZE)
@@ -77,45 +73,43 @@ export default function EpisodesPage() {
                     {series.length > 0 ? (
                         <section className="flex flex-col gap-4">
                             <SectionHeader
-                                description="Sendungen und ihre öffentlichen RSS-Feeds."
+                                description={
+                                    <>
+                                        Übersicht der Sendungen.{' '}
+                                        <Link
+                                            className="underline-offset-4 hover:underline"
+                                            href="/feeds"
+                                        >
+                                            Feeds verwalten
+                                        </Link>
+                                    </>
+                                }
                                 title="Sendungen"
                             />
                             <ListPanel>
-                                {series.map((item) => {
-                                    const feedUrl = item.rssUrl
-                                    return (
-                                        <ListPanelRow key={item.id}>
-                                            <div className="min-w-0 flex-1 space-y-2">
-                                                <p className="font-medium">{item.title}</p>
-                                                <ContentMetaLine
-                                                    items={[
-                                                        item.language !== null
-                                                            ? item.language
-                                                            : null,
-                                                        item.itunesCategory !== null
-                                                            ? item.itunesCategory
-                                                            : null,
-                                                    ]}
-                                                />
-                                                {item.description !== null &&
-                                                item.description.length > 0 ? (
-                                                    <p className="line-clamp-2 text-sm text-muted-foreground">
-                                                        {item.description}
-                                                    </p>
-                                                ) : null}
-                                                {feedUrl !== null ? (
-                                                    <div className="min-w-0">
-                                                        <FeedUrlDisplay url={feedUrl} />
-                                                    </div>
-                                                ) : (
-                                                    <p className="text-sm text-muted-foreground">
-                                                        Kein öffentlicher Feed für diese Sendung.
-                                                    </p>
-                                                )}
-                                            </div>
-                                        </ListPanelRow>
-                                    )
-                                })}
+                                {series.map((item) => (
+                                    <ListPanelRow key={item.id}>
+                                        <div className="min-w-0 flex-1 space-y-2">
+                                            <p className="font-medium">{item.title}</p>
+                                            <ContentMetaLine
+                                                items={[
+                                                    item.language !== null
+                                                        ? item.language
+                                                        : null,
+                                                    item.itunesCategory !== null
+                                                        ? item.itunesCategory
+                                                        : null,
+                                                ]}
+                                            />
+                                            {item.description !== null &&
+                                            item.description.length > 0 ? (
+                                                <p className="line-clamp-2 text-sm text-muted-foreground">
+                                                    {item.description}
+                                                </p>
+                                            ) : null}
+                                        </div>
+                                    </ListPanelRow>
+                                ))}
                             </ListPanel>
                         </section>
                     ) : null}
@@ -217,17 +211,6 @@ export default function EpisodesPage() {
                             </>
                         )}
                     </section>
-
-                    <PublicFeedFooter
-                        kind="podcast"
-                        publicFeedUrl={publicPodcastFeedUrl}
-                        privateFeedUrl={
-                            defaultPrivateFeed !== null && defaultPrivateFeed.enabled
-                                ? defaultPrivateFeed.url
-                                : null
-                        }
-                        isAuthenticated={isAuthenticated}
-                    />
                 </>
             ) : null}
         </PageStack>

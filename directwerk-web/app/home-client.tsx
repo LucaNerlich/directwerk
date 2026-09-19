@@ -7,12 +7,10 @@ import {buttonVariants} from '@directwerk/ui/components/button'
 import EmptyState from '@directwerk/ui/components/empty-state'
 import FeatureCard from '@directwerk/ui/components/feature-card'
 import SectionHeader from '@directwerk/ui/components/section-header'
-import StatCard from '@directwerk/ui/components/stat-card'
 
 import AccessPolicyBadge from '@/components/AccessPolicyBadge'
 import BrandLogo from '@/components/BrandLogo'
 import {CardGridSkeleton, HeroSkeleton} from '@/components/ContentLoadingSkeleton'
-import HowToSubscribe from '@/components/HowToSubscribe'
 import SubscriberContextBanner from '@/components/SubscriberContextBanner'
 import {
     listPublicArticles,
@@ -23,7 +21,6 @@ import type {PublicArticle, PublicEpisode, PublicProduct} from '@directwerk/api/
 import {formatPublishedAt} from '@directwerk/api/format/datetime'
 import {formatMoney} from '@directwerk/api/format'
 import {formatDuration} from '@/lib/format/content'
-import {webPublicFeedUrls} from '@/lib/feeds/webPublicFeedUrl'
 import {useSiteConfig} from '@/lib/site/SiteConfigProvider'
 import {getWebClientTenantHost} from '@/lib/tenant/clientHost'
 import {useSubscriberAuth} from '@/lib/auth/useSubscriberAuth'
@@ -48,10 +45,9 @@ export default function HomeClient({
         config.enabledModules.includes('DIGITAL_CONTENT') || showPodcast
     const showPricing = config.enabledModules.includes('SUBSCRIPTION')
     const tenantHost = getWebClientTenantHost()
-    const {podcast: podcastFeedUrl, articles: articleFeedUrl} = webPublicFeedUrls(
-        config,
-        tenantHost,
-    )
+    const showFeeds =
+        config.enabledModules.includes('PODCAST_RSS') ||
+        config.enabledModules.includes('ARTICLE_RSS')
     const [latestEpisode, setLatestEpisode] = useState<PublicEpisode | null>(
         initialData.episodes?.[0] ?? null,
     )
@@ -143,10 +139,7 @@ export default function HomeClient({
         showPodcast ? {href: '/episodes', label: 'Alle Folgen'} : null,
         showArticles ? {href: '/articles', label: 'Alle Beiträge'} : null,
         showPricing ? {href: '/pricing', label: 'Mitgliedschaft'} : null,
-        config.enabledModules.includes('PODCAST_RSS') ||
-        config.enabledModules.includes('ARTICLE_RSS')
-            ? {href: '/feeds', label: 'RSS-Feeds'}
-            : null,
+        showFeeds ? {href: '/feeds', label: 'RSS-Feeds'} : null,
         {href: isAuthenticated ? '/account' : '/login', label: isAuthenticated ? 'Mein Konto' : 'Anmelden'},
     ].filter((item): item is {href: string; label: string} => item !== null)
 
@@ -217,32 +210,6 @@ export default function HomeClient({
             <div className="mx-auto mt-2 max-w-6xl">
                 <SubscriberContextBanner />
             </div>
-
-            <section className="mx-auto mt-6 grid max-w-6xl gap-4 sm:grid-cols-3">
-                <StatCard
-                    hint={
-                        showPodcast
-                            ? 'Höre freie Folgen im Browser oder abonniere den öffentlichen Feed.'
-                            : 'Lies freie Beiträge ohne Anmeldung.'
-                    }
-                    label="Schritt 1"
-                    value="Entdecken"
-                />
-                <StatCard
-                    hint="Ein Konto merkt sich deinen Zugang — auf dieser Domain, ohne fremde Plattform."
-                    label="Schritt 2"
-                    value="Anmelden"
-                />
-                <StatCard
-                    hint={
-                        showPricing
-                            ? 'Mitgliedschaften schalten bezahlte Folgen, Beiträge und Bonusdateien frei.'
-                            : 'Nach der Anmeldung siehst du alles, was für dich freigeschaltet ist.'
-                    }
-                    label="Schritt 3"
-                    value="Zugang"
-                />
-            </section>
 
             {isLoading ? (
                 <div
@@ -371,22 +338,20 @@ export default function HomeClient({
                 </section>
             ) : null}
 
-            {podcastFeedUrl !== null || articleFeedUrl !== null ? (
-                <div className="mx-auto mt-10 max-w-6xl">
-                    <HowToSubscribe
-                        podcast={
-                            podcastFeedUrl !== null
-                                ? {publicFeedUrl: podcastFeedUrl}
-                                : undefined
-                        }
-                        articles={
-                            articleFeedUrl !== null
-                                ? {publicFeedUrl: articleFeedUrl}
-                                : undefined
-                        }
-                        isAuthenticated={isAuthenticated}
-                    />
-                </div>
+            {showFeeds ? (
+                <p className="mx-auto mt-10 max-w-6xl text-sm text-muted-foreground">
+                    {showPodcast && showArticles
+                        ? 'In der Podcast-App oder im Feed-Reader abonnieren — '
+                        : showPodcast
+                          ? 'In der Podcast-App abonnieren — '
+                          : 'Im Feed-Reader abonnieren — '}
+                    <Link
+                        className="font-medium text-foreground underline-offset-4 hover:underline"
+                        href="/feeds"
+                    >
+                        Feeds öffnen
+                    </Link>
+                </p>
             ) : null}
 
             {!isLoading && (showPodcast || showArticles) && latestEpisode === null && latestArticle === null ? (

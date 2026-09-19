@@ -1,58 +1,23 @@
-import Link from 'next/link'
-
-import FeedUrlDisplay from '@/components/FeedUrlDisplay'
-
-export interface SubscribeFeedPair {
-    publicFeedUrl: string | null
-    privateFeedUrl?: string | null
-}
-
 /**
- * Determines whether a private feed URL is available for an authenticated user.
- *
- * @param pair - The feed pair containing the optional private URL
- * @param isAuthenticated - Whether the user is authenticated
- * @returns The private feed URL when available, or `null` otherwise
+ * Steps-only subscribe instructions for podcast and/or article feeds.
+ * Feed URLs live in the management sections on `/feeds` — this card does not
+ * re-embed them.
  */
-function visiblePrivateFeedUrl(
-    pair: SubscribeFeedPair,
-    isAuthenticated: boolean,
-): string | null {
-    if (isAuthenticated && pair.privateFeedUrl != null && pair.privateFeedUrl.length > 0) {
-        return pair.privateFeedUrl
-    }
-    return null
-}
-
 interface HowToSubscribeProps {
-    /** Render the podcast block, the articles block, or both. */
-    podcast?: SubscribeFeedPair | null
-    articles?: SubscribeFeedPair | null
-    isAuthenticated: boolean
+    /** Show podcast-app setup steps. */
+    podcast?: boolean
+    /** Show feed-reader setup steps. */
+    articles?: boolean
 }
 
-/**
- * Renders podcast-app instructions and the available public or private feed URLs.
- *
- * @param pair - The public and optional private podcast feed URLs
- * @param isAuthenticated - Whether the current user is authenticated
- * @returns The podcast subscription instructions
- */
-function PodcastBlock({
-    pair,
-    isAuthenticated,
-}: {
-    pair: SubscribeFeedPair
-    isAuthenticated: boolean
-}): React.JSX.Element {
-    const privateFeedUrl = visiblePrivateFeedUrl(pair, isAuthenticated)
+function PodcastBlock(): React.JSX.Element {
     return (
         <div className="space-y-4">
             <div className="space-y-1">
                 <h2 className="text-lg font-semibold">So hörst du in der Podcast-App</h2>
                 <p className="text-sm text-muted-foreground">
-                    Kopiere die Feed-URL und füge sie in Apple Podcasts, Overcast, Pocket
-                    Casts oder einer anderen App hinzu.
+                    Kopiere die Feed-URL unten und füge sie in Apple Podcasts, Overcast,
+                    Pocket Casts oder einer anderen App hinzu.
                 </p>
             </div>
             <ol className="list-decimal space-y-2 pl-5 text-sm leading-6 text-muted-foreground">
@@ -67,65 +32,17 @@ function PodcastBlock({
                     Anmeldung.
                 </li>
             </ol>
-            {pair.publicFeedUrl !== null ? (
-                <FeedUrlDisplay
-                    description="Öffentlicher Standard-Feed für alle: Enthält nur freie Folgen."
-                    title="Öffentlicher Standard-Feed"
-                    url={pair.publicFeedUrl}
-                />
-            ) : null}
-            {privateFeedUrl !== null ? (
-                <FeedUrlDisplay
-                    description="Dein automatisch angelegter Standard-Feed: Enthält Folgen, die deine Mitgliedschaft freischaltet."
-                    title="Dein privater Standard-Feed"
-                    url={privateFeedUrl}
-                />
-            ) : null}
-            {!isAuthenticated ? (
-                <p className="text-sm text-muted-foreground">
-                    <Link className="font-medium text-foreground underline-offset-4 hover:underline" href="/login">
-                        Anmelden
-                    </Link>
-                    , um den privaten Feed für bezahlte Folgen zu sehen.{' '}
-                    <Link className="font-medium text-foreground underline-offset-4 hover:underline" href="/feeds">
-                        Alle Feeds verwalten
-                    </Link>
-                </p>
-            ) : (
-                <p className="text-sm text-muted-foreground">
-                    <Link className="font-medium text-foreground underline-offset-4 hover:underline" href="/feeds">
-                        Feeds verwalten
-                    </Link>
-                    {' · '}
-                    <Link className="font-medium text-foreground underline-offset-4 hover:underline" href="/account">
-                        Konto
-                    </Link>
-                </p>
-            )}
         </div>
     )
 }
 
-/**
- * Renders instructions and available public and private article feeds for feed readers.
- *
- * @param pair - The public and optional private article feed URLs
- * @returns The article feed subscription instructions
- */
-function ArticlesBlock({
-    pair,
-    isAuthenticated,
-}: {
-    pair: SubscribeFeedPair
-    isAuthenticated: boolean
-}): React.JSX.Element {
-    const privateFeedUrl = visiblePrivateFeedUrl(pair, isAuthenticated)
+function ArticlesBlock(): React.JSX.Element {
     return (
         <div className="space-y-4">
             <div className="space-y-1">
                 <h2 className="text-lg font-semibold">So liest du im Feed-Reader</h2>
                 <p className="text-sm text-muted-foreground">
-                    Kopiere die Feed-URL und füge sie in deinem bevorzugten
+                    Kopiere die Feed-URL unten und füge sie in deinem bevorzugten
                     Feed-Reader hinzu.
                 </p>
             </div>
@@ -137,57 +54,26 @@ function ArticlesBlock({
                     Bezahlte Beiträge erreichst du über deinen privaten Feed.
                 </li>
             </ol>
-            {pair.publicFeedUrl !== null ? (
-                <FeedUrlDisplay
-                    description="Öffentlicher Standard-Feed für alle: Enthält nur freie Beiträge."
-                    title="Öffentlicher Standard-Feed (Beiträge)"
-                    url={pair.publicFeedUrl}
-                />
-            ) : null}
-            {privateFeedUrl !== null ? (
-                <FeedUrlDisplay
-                    description="Dein automatisch angelegter Standard-Feed: Enthält Beiträge, die deine Mitgliedschaft freischaltet."
-                    title="Dein privater Standard-Feed (Beiträge)"
-                    url={privateFeedUrl}
-                />
-            ) : null}
-            <p className="text-sm text-muted-foreground">
-                <Link
-                    className="font-medium text-foreground underline-offset-4 hover:underline"
-                    href="/feeds"
-                >
-                    Feeds verwalten
-                </Link>
-            </p>
         </div>
     )
 }
 
 /**
  * Unified subscribe instructions for podcast and article feeds. Renders the
- * podcast block, the articles block, or both in one card.
+ * podcast block, the articles block, or both in one card — without URLs.
  */
 export default function HowToSubscribe({
-    podcast,
-    articles,
-    isAuthenticated,
+    podcast = false,
+    articles = false,
 }: HowToSubscribeProps): React.JSX.Element | null {
-    const showPodcast = podcast !== undefined && podcast !== null
-    const showArticles = articles !== undefined && articles !== null
-    if (!showPodcast && !showArticles) {
+    if (!podcast && !articles) {
         return null
     }
     return (
         <section className="space-y-6 rounded-xl border bg-card p-5 shadow-sm">
-            {showPodcast ? (
-                <PodcastBlock pair={podcast} isAuthenticated={isAuthenticated} />
-            ) : null}
-            {showPodcast && showArticles ? (
-                <div aria-hidden="true" className="border-t" />
-            ) : null}
-            {showArticles ? (
-                <ArticlesBlock pair={articles} isAuthenticated={isAuthenticated} />
-            ) : null}
+            {podcast ? <PodcastBlock /> : null}
+            {podcast && articles ? <div aria-hidden="true" className="border-t" /> : null}
+            {articles ? <ArticlesBlock /> : null}
         </section>
     )
 }

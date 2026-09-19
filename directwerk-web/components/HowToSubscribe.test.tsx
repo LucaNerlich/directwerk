@@ -7,49 +7,31 @@ afterEach(cleanup)
 
 describe('HowToSubscribe', () => {
     it('renders podcast-only instructions', () => {
-        render(
-            <HowToSubscribe
-                podcast={{publicFeedUrl: 'https://tenant.example/feed.xml'}}
-                isAuthenticated={false}
-            />,
-        )
+        render(<HowToSubscribe podcast />)
 
         expect(
             screen.getByRole('heading', {name: 'So hörst du in der Podcast-App'}),
         ).toBeInTheDocument()
-        expect(screen.getByText('Öffentlicher Standard-Feed')).toBeInTheDocument()
         expect(
             screen.queryByRole('heading', {name: 'So liest du im Feed-Reader'}),
         ).not.toBeInTheDocument()
+        expect(screen.queryByText(/Öffentlicher Standard-Feed/)).not.toBeInTheDocument()
     })
 
-    it('renders article instructions where previously missing', () => {
-        render(
-            <HowToSubscribe
-                articles={{publicFeedUrl: 'https://tenant.example/articles.xml'}}
-                isAuthenticated={false}
-            />,
-        )
+    it('renders article instructions without URLs', () => {
+        render(<HowToSubscribe articles />)
 
         expect(
             screen.getByRole('heading', {name: 'So liest du im Feed-Reader'}),
-        ).toBeInTheDocument()
-        expect(
-            screen.getByText('Öffentlicher Standard-Feed (Beiträge)'),
         ).toBeInTheDocument()
         expect(
             screen.queryByRole('heading', {name: 'So hörst du in der Podcast-App'}),
         ).not.toBeInTheDocument()
+        expect(screen.queryByRole('button', {name: /Kopieren/i})).not.toBeInTheDocument()
     })
 
     it('renders both blocks together', () => {
-        render(
-            <HowToSubscribe
-                podcast={{publicFeedUrl: 'https://tenant.example/feed.xml'}}
-                articles={{publicFeedUrl: 'https://tenant.example/articles.xml'}}
-                isAuthenticated
-            />,
-        )
+        render(<HowToSubscribe podcast articles />)
 
         expect(
             screen.getByRole('heading', {name: 'So hörst du in der Podcast-App'}),
@@ -59,86 +41,8 @@ describe('HowToSubscribe', () => {
         ).toBeInTheDocument()
     })
 
-    it('renders nothing without any feed pair', () => {
-        const {container} = render(<HowToSubscribe isAuthenticated={false} />)
+    it('renders nothing without any feed kind', () => {
+        const {container} = render(<HowToSubscribe />)
         expect(container).toBeEmptyDOMElement()
-    })
-
-    it('renders the podcast block from a podcast feed pair', () => {
-        render(
-            <HowToSubscribe
-                podcast={{publicFeedUrl: 'https://tenant.example/feed.xml'}}
-                isAuthenticated
-            />,
-        )
-        expect(
-            screen.getByRole('heading', {name: 'So hörst du in der Podcast-App'}),
-        ).toBeInTheDocument()
-    })
-
-    it('renders the articles block from an articles feed pair', () => {
-        render(
-            <HowToSubscribe
-                articles={{publicFeedUrl: 'https://tenant.example/articles.xml'}}
-                isAuthenticated={false}
-            />,
-        )
-        expect(
-            screen.getByRole('heading', {name: 'So liest du im Feed-Reader'}),
-        ).toBeInTheDocument()
-    })
-
-    it('hides private feed token URLs from guests for both kinds', () => {
-        const {container} = render(
-            <HowToSubscribe
-                podcast={{
-                    publicFeedUrl: 'https://tenant.example/feed.xml',
-                    privateFeedUrl: 'https://tenant.example/feed/u/podcast-token.xml',
-                }}
-                articles={{
-                    publicFeedUrl: 'https://tenant.example/articles.xml',
-                    privateFeedUrl:
-                        'https://tenant.example/articles/u/article-token.xml',
-                }}
-                isAuthenticated={false}
-            />,
-        )
-
-        expect(container.innerHTML).not.toContain('podcast-token.xml')
-        expect(container.innerHTML).not.toContain('article-token.xml')
-    })
-
-    it('shows private article feed URLs when authenticated', () => {
-        render(
-            <HowToSubscribe
-                articles={{
-                    publicFeedUrl: 'https://tenant.example/articles.xml',
-                    privateFeedUrl:
-                        'https://tenant.example/articles/u/article-token.xml',
-                }}
-                isAuthenticated
-            />,
-        )
-
-        expect(
-            screen.getByText('Dein privater Standard-Feed (Beiträge)'),
-        ).toBeInTheDocument()
-    })
-
-    it('labels the private podcast feed as the personal standard feed', () => {
-        render(
-            <HowToSubscribe
-                podcast={{
-                    publicFeedUrl: 'https://tenant.example/feed.xml',
-                    privateFeedUrl:
-                        'https://tenant.example/feed/u/podcast-token.xml',
-                }}
-                isAuthenticated
-            />,
-        )
-
-        expect(
-            screen.getByText('Dein privater Standard-Feed'),
-        ).toBeInTheDocument()
     })
 })
