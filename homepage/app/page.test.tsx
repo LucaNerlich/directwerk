@@ -30,13 +30,10 @@ describe('Home', () => {
         expect(
             screen.getByRole('link', {name: 'API-Auszug ansehen'}),
         ).toHaveAttribute('href', '/developers')
-        expect(screen.getAllByRole('link', {name: 'Dokumentation'}).length).toBeGreaterThan(0)
-        expect(screen.getByRole('link', {name: 'Kontakt'})).toHaveAttribute('href', '#contact')
-        expect(screen.getByRole('heading', {name: /Deine eigene Plattform/})).toBeInTheDocument()
-        expect(screen.getByRole('button', {name: 'Nachricht senden'})).toBeInTheDocument()
         expect(
-            screen.getByRole('heading', {name: /Datenschutz von Anfang an/}),
+            screen.getByRole('link', {name: 'Vollständige Docs'}),
         ).toBeInTheDocument()
+        expect(screen.getByRole('button', {name: 'Nachricht senden'})).toBeInTheDocument()
         expect(
             screen.getByRole('heading', {name: /Jeder Hörer bekommt seinen eigenen Feed/}),
         ).toBeInTheDocument()
@@ -44,8 +41,17 @@ describe('Home', () => {
             screen.getByRole('heading', {name: /Kurz beantwortet/}),
         ).toBeInTheDocument()
         expect(
-            screen.getByRole('link', {name: 'Private Feeds ansehen'}),
+            screen.getByRole('link', {name: 'Private Feeds'}),
         ).toHaveAttribute('href', '#feeds')
+        expect(
+            screen.queryByRole('heading', {name: /Datenschutz von Anfang an/}),
+        ).not.toBeInTheDocument()
+        expect(
+            screen.queryByRole('heading', {name: /Was heute schon drin ist/}),
+        ).not.toBeInTheDocument()
+        expect(
+            screen.queryByRole('heading', {name: /Vom ersten Setup bis zum privaten Feed/}),
+        ).not.toBeInTheDocument()
     })
 
     it('lets visitors try the feed builder demo', () => {
