@@ -1,29 +1,16 @@
 import Link from 'next/link'
 
-import SectionHeader from '@directwerk/ui/components/section-header'
-
 import CopyUrlButton from '@/components/CopyUrlButton'
-import FeedUrlDisplay from '@/components/FeedUrlDisplay'
 
 export type PublicFeedKind = 'podcast' | 'articles'
 
 const SHARED_COPY = {
     publicTitle: 'Öffentlicher Feed',
-    privateTitle: 'Dein privater Feed',
-    manageLabel: 'Alle Feeds verwalten',
-}
-
-const FEED_NOUN: Record<PublicFeedKind, string> = {
-    podcast: 'Folgen',
-    articles: 'Beiträgen',
+    manageLabel: 'Alle Feeds',
 }
 
 /**
- * Displays a public feed URL with a copy action and a link to feed management.
- *
- * @param kind - The feed type used to select podcast- or article-specific labeling
- * @param publicFeedUrl - The public feed URL to display and copy
- * @returns The public feed subscription section
+ * Compact catalog subscribe bar: public feed URL, copy action, and link to /feeds.
  */
 export function PublicFeedStrip({
     kind,
@@ -50,63 +37,6 @@ export function PublicFeedStrip({
             <CopyUrlButton context={label} url={publicFeedUrl} />
             <Link
                 className="font-medium underline-offset-4 hover:underline"
-                href="/feeds"
-            >
-                Alle Feeds
-            </Link>
-        </section>
-    )
-}
-
-/**
- * Shared bottom "Feeds" section for the episode and article catalog pages:
- * public feed URL, private feed URL (or login hint) and management link.
- */
-export default function PublicFeedFooter({
-    kind,
-    publicFeedUrl,
-    privateFeedUrl,
-    isAuthenticated,
-}: {
-    kind: PublicFeedKind
-    publicFeedUrl: string | null
-    privateFeedUrl?: string | null
-    isAuthenticated: boolean
-}): React.JSX.Element | null {
-    if (publicFeedUrl === null) {
-        return null
-    }
-    const description =
-        kind === 'podcast'
-            ? 'Alle freien Folgen in einer Podcast-App abonnieren.'
-            : 'Alle freien Beiträge in einem Feed-Reader abonnieren.'
-    const privateDescription =
-        kind === 'podcast'
-            ? 'Enthält Folgen, die deine Mitgliedschaft freischaltet.'
-            : 'Enthält Beiträge, die deine Mitgliedschaft freischaltet.'
-    return (
-        <section className="flex flex-col gap-4">
-            <SectionHeader description={description} title="Feeds" />
-            <FeedUrlDisplay title={SHARED_COPY.publicTitle} url={publicFeedUrl} />
-            {isAuthenticated ? (
-                privateFeedUrl != null && privateFeedUrl.length > 0 ? (
-                    <FeedUrlDisplay
-                        description={privateDescription}
-                        title={SHARED_COPY.privateTitle}
-                        url={privateFeedUrl}
-                    />
-                ) : null
-            ) : (
-                <p className="text-sm text-muted-foreground">
-                    <Link className="underline" href="/login">
-                        Anmelden
-                    </Link>
-                    , um deinen privaten Feed mit freigeschalteten {FEED_NOUN[kind]}{' '}
-                    zu sehen.
-                </p>
-            )}
-            <Link
-                className="text-sm font-medium underline-offset-4 hover:underline"
                 href="/feeds"
             >
                 {SHARED_COPY.manageLabel}

@@ -18,7 +18,7 @@ Open [http://localhost:3005](http://localhost:3005) (port **3005** avoids confli
 
 | Path | Purpose |
 |------|---------|
-| `/` | Platform landing — features, product stack, creator journey, contact form |
+| `/` | Platform landing — why Directwerk, feeds, product stack, FAQ, contact |
 | `/developers` | API excerpt for integrators — links to full VitePress docs |
 
 ## Optional env

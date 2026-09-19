@@ -8,7 +8,6 @@ import {useActionState} from 'react'
 import {Alert, AlertDescription} from '@directwerk/ui/components/alert'
 import {Badge} from '@directwerk/ui/components/badge'
 import {Button} from '@directwerk/ui/components/button'
-import FeatureCard from '@directwerk/ui/components/feature-card'
 import PageHeader from '@directwerk/ui/components/page-header'
 import PageStack from '@directwerk/ui/components/page-stack'
 import ResponsiveTable from '@directwerk/ui/components/responsive-table'
@@ -221,7 +220,7 @@ export default function AccountPage() {
         <PageStack className="page-container">
             <PageHeader
                 title="Konto"
-                description="Profil, Zugang, private Feeds und Benachrichtigungen."
+                description="Profil, Zugang und Benachrichtigungen."
             />
             {isLoading && (
                 <div aria-busy="true" aria-label="Konto wird geladen" role="status">
@@ -277,40 +276,6 @@ export default function AccountPage() {
                         </TableBody>
                     </Table>
                     </ResponsiveTable>
-                    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                        <FeatureCard
-                            description="Freie und freigeschaltete Folgen."
-                            title="Podcast"
-                        >
-                            <Link className="text-sm font-medium underline-offset-4 hover:underline" href="/episodes">
-                                Folgen ansehen
-                            </Link>
-                        </FeatureCard>
-                        <FeatureCard
-                            description="Öffentliche und private RSS-Feeds."
-                            title="Feeds"
-                        >
-                            <Link className="text-sm font-medium underline-offset-4 hover:underline" href="/feeds">
-                                Feeds verwalten
-                            </Link>
-                        </FeatureCard>
-                        <FeatureCard
-                            description="Mitgliedschaft erweitern oder wechseln."
-                            title="Preise"
-                        >
-                            <Link className="text-sm font-medium underline-offset-4 hover:underline" href="/pricing">
-                                Tarife ansehen
-                            </Link>
-                        </FeatureCard>
-                        <FeatureCard
-                            description="Dateien aus deinem Abo."
-                            title="Bonusdateien"
-                        >
-                            <Link className="text-sm font-medium underline-offset-4 hover:underline" href="/downloads">
-                                Downloads öffnen
-                            </Link>
-                        </FeatureCard>
-                    </div>
                 </section>
             )}
 
@@ -477,18 +442,6 @@ export default function AccountPage() {
                         ) : null}
                     </div>
                 ) : null}
-            </section>
-
-            <section className="flex flex-col gap-3 rounded-xl border bg-card p-5">
-                <SectionHeader
-                    description="Deine persönlichen Feed-URLs für Podcast-Apps und Feed-Reader — inklusive Anleitung zum Einrichten."
-                    title="Private Feeds"
-                />
-                <div>
-                    <Button nativeButton={false} render={<Link href="/feeds" />}>
-                        Feeds verwalten
-                    </Button>
-                </div>
             </section>
 
             {emailNotifyAvailable && emailNotificationsEnabled !== null && (

@@ -679,16 +679,10 @@ export default function FeedsPage() {
 
             <SubscriberContextBanner showWhenAuthenticated={false} />
 
-            {showPodcastFeeds ? (
+            {showPodcastFeeds || showArticleFeeds ? (
                 <HowToSubscribe
-                    isAuthenticated={isAuthenticated}
-                    podcast={{
-                        publicFeedUrl: podcastFeedUrl,
-                        privateFeedUrl:
-                            defaultPodcastPrivate?.enabled === true
-                                ? defaultPodcastPrivate.url
-                                : null,
-                    }}
+                    podcast={showPodcastFeeds}
+                    articles={showArticleFeeds}
                 />
             ) : null}
 

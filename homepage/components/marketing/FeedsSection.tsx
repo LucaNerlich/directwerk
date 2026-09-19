@@ -22,8 +22,9 @@ export default function FeedsSection(): React.JSX.Element {
                 </h2>
                 <p className="mt-4 max-w-2xl text-muted-foreground">
                     Öffentliche Feeds bringen neue Hörer, private Feeds halten
-                    Abonnenten. Im Feed-Builder wählen Hörer ihre Lieblingsformate —
-                    bezahlte Inhalte erscheinen nur, wenn das Abo passt.
+                    Abonnenten — dieselbe Logik für Podcast und Artikel. Im
+                    Feed-Builder wählen Hörer ihre Lieblingsformate; bezahlte
+                    Inhalte erscheinen nur, wenn das Abo passt.
                 </p>
                 <div className="mt-10 grid items-start gap-4 lg:grid-cols-2">
                     <div className="grid gap-4">
@@ -35,13 +36,6 @@ export default function FeedsSection(): React.JSX.Element {
                                 </p>
                             </article>
                         ))}
-                        <article className="glass-panel rounded-2xl p-6">
-                            <h3 className="font-semibold">Artikel & Newsletter inklusive</h3>
-                            <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                                Dieselbe Feed-Logik fürs Lesen: öffentliche und private
-                                Artikel-Feeds, Kategorien statt Formate — ein Abo für Hören und Lesen.
-                            </p>
-                        </article>
                     </div>
                     <FeedBuilderMock />
                 </div>

@@ -9,30 +9,18 @@ import {
     getMe,
     getNotificationPreferences,
     getSiteConfig,
-    listMyArticleFeeds,
-    listMyFeeds,
     listMySubscriptions,
     updateNotificationPreferences,
 } from '@/lib/api/client'
 import {AUTH_REQUIRED} from '@directwerk/api/constants'
-import type {
-    Access,
-    ArticleFeedView,
-    Me,
-    SubscriberFeedView,
-    SubscriptionSummary,
-} from '@directwerk/api/types'
+import type {Access, Me, SubscriptionSummary} from '@directwerk/api/types'
 import {getWebClientTenantHost} from '@/lib/tenant/clientHost'
 import {userFacingBillingError} from '@/lib/billing/userFacingBillingError'
 
 export interface AccountDashboardState {
     me: Me | null
     access: Access | null
-    feeds: SubscriberFeedView[]
-    articleFeeds: ArticleFeedView[]
     subscriptions: SubscriptionSummary[]
-    publicRssUrl: string | null
-    publicArticleRssUrl: string | null
     emailNotificationsEnabled: boolean | null
     emailNotifyAvailable: boolean
     error: string | null
@@ -46,15 +34,16 @@ export interface AccountDashboardState {
     handlePortal: () => Promise<void>
 }
 
+/**
+ * Loads the signed-in account's profile, access, notification preferences, and
+ * module-gated subscriptions. Authentication failures redirect to login; the
+ * returned handlers persist notification changes and open the billing portal.
+ */
 export function useAccountDashboard(): AccountDashboardState {
     const router = useRouter()
     const [me, setMe] = useState<Me | null>(null)
     const [access, setAccess] = useState<Access | null>(null)
-    const [feeds, setFeeds] = useState<SubscriberFeedView[]>([])
-    const [articleFeeds, setArticleFeeds] = useState<ArticleFeedView[]>([])
     const [subscriptions, setSubscriptions] = useState<SubscriptionSummary[]>([])
-    const [publicRssUrl, setPublicRssUrl] = useState<string | null>(null)
-    const [publicArticleRssUrl, setPublicArticleRssUrl] = useState<string | null>(null)
     const [emailNotificationsEnabled, setEmailNotificationsEnabled] = useState<
         boolean | null
     >(null)
@@ -86,78 +75,22 @@ export function useAccountDashboard(): AccountDashboardState {
                     siteConfig.data.enabledModules.includes('SUBSCRIPTION')
                         ? await listMySubscriptions(tenantHost)
                         : []
-                const podcastFeedsPromise: Promise<SubscriberFeedView[]> =
-                    siteConfig.data.enabledModules.includes('PODCAST_RSS')
-                        ? listMyFeeds(tenantHost)
-                        : Promise.resolve([])
-                const articleFeedsPromise: Promise<ArticleFeedView[]> =
-                    siteConfig.data.enabledModules.includes('ARTICLE_RSS')
-                        ? listMyArticleFeeds(tenantHost)
-                        : Promise.resolve([])
-                const [podcastFeedsResult, articleFeedsResult] =
-                    await Promise.allSettled([
-                        podcastFeedsPromise,
-                        articleFeedsPromise,
-                    ])
-                const authFailure = [podcastFeedsResult, articleFeedsResult].find(
-                    (result): result is PromiseRejectedResult =>
-                        result.status === 'rejected' &&
-                        result.reason instanceof Error &&
-                        result.reason.message === AUTH_REQUIRED,
-                )
-                if (authFailure !== undefined) {
-                    throw authFailure.reason
-                }
-
-                const feedError =
-                    podcastFeedsResult.status === 'rejected' ||
-                    articleFeedsResult.status === 'rejected'
-                        ? 'Einige private Feeds konnten nicht geladen werden.'
-                        : null
-
-                const feedList =
-                    podcastFeedsResult.status === 'fulfilled'
-                        ? podcastFeedsResult.value
-                        : []
-                const articleFeedList =
-                    articleFeedsResult.status === 'fulfilled'
-                        ? articleFeedsResult.value
-                        : []
 
                 return {
                     meResponse,
                     accessResponse,
                     prefs,
                     subscriptionList,
-                    siteConfig,
-                    feedList,
-                    articleFeedList,
-                    feedError,
                 }
             })
-            .then(({
-                meResponse,
-                accessResponse,
-                prefs,
-                subscriptionList,
-                siteConfig,
-                feedList,
-                articleFeedList,
-                feedError,
-            }) => {
+            .then(({meResponse, accessResponse, prefs, subscriptionList}) => {
                 if (isCurrent) {
                     setMe(meResponse.data)
                     setAccess(accessResponse.data)
                     setEmailNotificationsEnabled(prefs.emailNotificationsEnabled)
                     setEmailNotifyAvailable(prefs.emailNotifyAvailable)
-                    setFeeds(feedList)
-                    setArticleFeeds(articleFeedList)
                     setSubscriptions(subscriptionList)
-                    setPublicRssUrl(siteConfig.data.publicRssUrl ?? null)
-                    setPublicArticleRssUrl(
-                        siteConfig.data.publicArticleRssUrl ?? null,
-                    )
-                    setError(feedError)
+                    setError(null)
                 }
             })
             .catch((requestError: unknown) => {
@@ -247,11 +180,7 @@ export function useAccountDashboard(): AccountDashboardState {
     return {
         me,
         access,
-        feeds,
-        articleFeeds,
         subscriptions,
-        publicRssUrl,
-        publicArticleRssUrl,
         emailNotificationsEnabled,
         emailNotifyAvailable,
         error,

@@ -14,12 +14,11 @@ import SectionHeader from '@directwerk/ui/components/section-header'
 import AccessPolicyBadge from '@/components/AccessPolicyBadge'
 import CatalogRow, {LockedCatalogAction} from '@/components/CatalogRow'
 import {ListPanelSkeleton} from '@/components/ContentLoadingSkeleton'
-import PublicFeedFooter, {PublicFeedStrip} from '@/components/PublicFeedFooter'
+import {PublicFeedStrip} from '@/components/PublicFeedFooter'
 import SubscriberContextBanner from '@/components/SubscriberContextBanner'
 import {usePublicArticles} from '@/lib/catalog/usePublicArticles'
 import {findUnlockProduct, unlockHref} from '@/lib/catalog/unlock'
 import {usePublicProducts} from '@/lib/catalog/usePublicProducts'
-import {useArticleFeeds} from '@/lib/auth/useArticleFeeds'
 import {useSubscriberAuth} from '@/lib/auth/useSubscriberAuth'
 import {getWebClientTenantHost} from '@/lib/tenant/clientHost'
 import {webPublicArticleFeedUrl} from '@/lib/feeds/webPublicFeedUrl'
@@ -37,10 +36,6 @@ export default function ArticlesPage() {
     })
     const products = usePublicProducts(tenantHost)
     const unlockTarget = unlockHref(findUnlockProduct(products))
-    const {feeds: privateFeeds} = useArticleFeeds(
-        isAuthenticated && (siteConfig?.enabledModules.includes('ARTICLE_RSS') ?? false),
-    )
-    const defaultPrivateFeed = privateFeeds.find((feed) => feed.isDefault) ?? null
     const publicArticleFeedUrl =
         siteConfig === null ? null : webPublicArticleFeedUrl(siteConfig, tenantHost)
     const [visibleCount, setVisibleCount] = useState(PAGE_SIZE)
@@ -158,19 +153,6 @@ export default function ArticlesPage() {
                         </div>
                     ) : null}
                 </section>
-            ) : null}
-
-            {!isLoading && errorMessage === null ? (
-                <PublicFeedFooter
-                    kind="articles"
-                    publicFeedUrl={publicArticleFeedUrl}
-                    privateFeedUrl={
-                        defaultPrivateFeed !== null && defaultPrivateFeed.enabled
-                            ? defaultPrivateFeed.url
-                            : null
-                    }
-                    isAuthenticated={isAuthenticated}
-                />
             ) : null}
         </PageStack>
     )
