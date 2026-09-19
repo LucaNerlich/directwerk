@@ -18,4 +18,7 @@ public interface EntitlementApi {
 
     /** Distinct PACKAGE-scoped digital asset ids the user may download. */
     List<Long> listEntitledDigitalAssetIds(Long tenantId, Long userId);
+
+    /** True when the user holds an active LEVEL product at or above {@code minimumSortOrder}. */
+    boolean hasLevelAtLeast(Long tenantId, Long userId, int minimumSortOrder);
 }

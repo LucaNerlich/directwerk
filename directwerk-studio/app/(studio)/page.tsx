@@ -6,6 +6,7 @@ import FeatureCard from '@directwerk/ui/components/feature-card'
 import PageHeader from '@directwerk/ui/components/page-header'
 import PageStack from '@directwerk/ui/components/page-stack'
 
+import OverviewOpsWidgets from '@/components/studio/OverviewOpsWidgets'
 import OverviewQueue from '@/components/studio/OverviewQueue'
 import {requireStudioSiteConfig} from '@/lib/site/requireSiteConfig'
 
@@ -86,6 +87,7 @@ export default async function OverviewPage() {
                     ) : null}
                 </section>
             )}
+            <OverviewOpsWidgets />
             <OverviewQueue desks={config.studioDesks} />
         </PageStack>
     )

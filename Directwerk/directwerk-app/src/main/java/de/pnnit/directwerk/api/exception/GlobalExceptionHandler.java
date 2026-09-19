@@ -28,6 +28,7 @@ import de.pnnit.directwerk.modules.newsletter.exception.NewsletterSubscriptionNo
 import de.pnnit.directwerk.modules.newsletter.exception.ArticleValidationException;
 import de.pnnit.directwerk.modules.newsletter.feed.ArticleFeedNotFoundException;
 import de.pnnit.directwerk.modules.digital.exception.CategoryNotFoundException;
+import de.pnnit.directwerk.modules.digital.exception.DigitalPublicationNotFoundException;
 import de.pnnit.directwerk.modules.podcast.exception.EpisodeNotFoundException;
 import de.pnnit.directwerk.modules.podcast.exception.EpisodeValidationException;
 import de.pnnit.directwerk.modules.podcast.exception.FormatNotFoundException;
@@ -327,6 +328,11 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(CategoryNotFoundException.class)
     ResponseEntity<Response<Void>> handleCategoryNotFound(CategoryNotFoundException ex) {
         return notFound("CATEGORY_NOT_FOUND", ex);
+    }
+
+    @ExceptionHandler(DigitalPublicationNotFoundException.class)
+    ResponseEntity<Response<Void>> handleDigitalPublicationNotFound(DigitalPublicationNotFoundException ex) {
+        return notFound("DIGITAL_PUBLICATION_NOT_FOUND", ex);
     }
 
     @ExceptionHandler(NewsletterListNotFoundException.class)

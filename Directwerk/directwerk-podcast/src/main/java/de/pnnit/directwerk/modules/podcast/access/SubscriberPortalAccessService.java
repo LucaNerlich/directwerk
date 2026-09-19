@@ -1,22 +1,28 @@
 package de.pnnit.directwerk.modules.podcast.access;
 
+import de.pnnit.directwerk.modules.content.api.EntitlementApi;
 import de.pnnit.directwerk.modules.core.service.ModuleGateService;
 import de.pnnit.directwerk.modules.digital.BonusContentModule;
 import de.pnnit.directwerk.modules.digital.api.AssetAccessApi;
 import de.pnnit.directwerk.modules.digital.api.MediaAssetQueryApi;
+import de.pnnit.directwerk.modules.digital.entity.AccessPolicy;
 import de.pnnit.directwerk.modules.digital.entity.AssetStatus;
+import de.pnnit.directwerk.modules.digital.entity.DigitalPublication;
 import de.pnnit.directwerk.modules.digital.entity.MediaAsset;
+import de.pnnit.directwerk.modules.digital.service.DigitalPublicationService;
 import de.pnnit.directwerk.modules.podcast.PodcastModule;
 import de.pnnit.directwerk.modules.podcast.access.PublishedPlayableEpisodeGuard.PlaybackSurface;
 import de.pnnit.directwerk.modules.podcast.entity.Episode;
 import de.pnnit.directwerk.modules.podcast.service.SubscriberEpisodeService;
 import de.pnnit.directwerk.modules.subscription.SubscriptionModule;
-import de.pnnit.directwerk.modules.content.api.EntitlementApi;
 import de.pnnit.directwerk.multitenancy.TenantContext;
 import de.pnnit.directwerk.security.DirectwerkUserPrincipal;
 import de.pnnit.directwerk.security.RoleConstants;
 import java.net.URL;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -38,11 +44,15 @@ public class SubscriberPortalAccessService {
     private final EntitlementApi entitlementApi;
     private final SubscriberPlaybackService subscriberPlaybackService;
     private final PublishedPlayableEpisodeGuard publishedPlayableEpisodeGuard;
+    private final DigitalPublicationService digitalPublicationService;
 
     public record EpisodeStream(Episode episode, URL url) {
     }
 
-    public record AssetDownload(MediaAsset asset, URL url) {
+    public record AssetDownload(MediaAsset asset, URL url, String title) {
+        public AssetDownload(MediaAsset asset, URL url) {
+            this(asset, url, null);
+        }
     }
 
     @Transactional(readOnly = true)
@@ -66,15 +76,65 @@ public class SubscriberPortalAccessService {
         moduleGateService.requireModule(BonusContentModule.KEY);
         moduleGateService.requireModule(SubscriptionModule.MODULE_KEY);
 
-        List<Long> entitledIds = entitlementApi.listEntitledDigitalAssetIds(user.tenantId(), user.userId());
-        List<MediaAsset> readyAssets = entitledIds.stream()
-                .flatMap(assetId -> mediaAssetQueryApi.findById(assetId).stream())
-                .filter(asset -> asset.getStatus() == AssetStatus.READY)
-                .limit(MAX_DOWNLOADS)
+        Long tenantId = user.tenantId();
+        Map<Long, String> titlesByAssetId = new LinkedHashMap<>();
+        List<MediaAsset> candidates = new ArrayList<>();
+
+        for (DigitalPublication publication : digitalPublicationService.listPublished(tenantId)) {
+            MediaAsset asset = publication.getAsset();
+            if (asset == null || asset.getStatus() != AssetStatus.READY) {
+                continue;
+            }
+            if (!canAccessPublication(user, publication)) {
+                continue;
+            }
+            if (!titlesByAssetId.containsKey(asset.getId())) {
+                titlesByAssetId.put(asset.getId(), publication.getTitle());
+                candidates.add(asset);
+            }
+        }
+
+        List<Long> entitledIds = entitlementApi.listEntitledDigitalAssetIds(tenantId, user.userId());
+        for (Long assetId : entitledIds) {
+            if (titlesByAssetId.containsKey(assetId)) {
+                continue;
+            }
+            mediaAssetQueryApi.findById(assetId)
+                    .filter(asset -> asset.getStatus() == AssetStatus.READY)
+                    .ifPresent(asset -> {
+                        titlesByAssetId.put(asset.getId(), null);
+                        candidates.add(asset);
+                    });
+        }
+
+        List<MediaAsset> limited = candidates.stream().limit(MAX_DOWNLOADS).toList();
+        return assetAccessApi.resolveDownloadUrls(limited, user).stream()
+                .map(resolved -> new AssetDownload(
+                        resolved.asset(),
+                        resolved.url(),
+                        titlesByAssetId.get(resolved.asset().getId())
+                ))
                 .toList();
-        return assetAccessApi.resolveDownloadUrls(readyAssets, user).stream()
-                .map(resolved -> new AssetDownload(resolved.asset(), resolved.url()))
-                .toList();
+    }
+
+    private boolean canAccessPublication(DirectwerkUserPrincipal user, DigitalPublication publication) {
+        if (RoleConstants.isEditorOrTenantAdmin(user)) {
+            return true;
+        }
+        if (publication.getAccessPolicy() == AccessPolicy.FREE) {
+            return true;
+        }
+        int required = publication.getRequiredLevelSortOrder() == null
+                ? 0
+                : publication.getRequiredLevelSortOrder();
+        if (entitlementApi.hasLevelAtLeast(user.tenantId(), user.userId(), required)) {
+            return true;
+        }
+        return entitlementApi.hasDigitalAssetAccess(
+                user.tenantId(),
+                user.userId(),
+                publication.getAsset().getId()
+        );
     }
 
     @Transactional(readOnly = true)

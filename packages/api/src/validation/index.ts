@@ -70,6 +70,15 @@ export {
     parseStripeStatusEnvelope,
     parseStripeOnboardEnvelope,
     parseBillingDashboardEnvelope,
+    parseDigitalPublication,
+    parseDigitalPublicationEnvelope,
+    parseDigitalPublicationListEnvelope,
+    parseMediaStorageSummary,
+    parseMediaStorageSummaryEnvelope,
+    parseEspConnection,
+    parseEspConnectionEnvelope,
+    parseIntegrationsStatus,
+    parseIntegrationsStatusEnvelope,
 } from './catalog'
 export {
     createPublicContentParsers,

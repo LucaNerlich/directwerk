@@ -533,6 +533,92 @@ export interface MediaUploadLimits {
     maxDocumentBytes: number
 }
 
+/** Aggregate storage usage from GET /api/v1/media/storage-summary. */
+export interface MediaStorageBucket {
+    assetType: AssetType | string
+    status: AssetStatus | string
+    assetCount: number
+    totalBytes: number
+}
+
+export interface MediaStorageSummary {
+    totalAssets: number
+    totalBytes: number
+    buckets: MediaStorageBucket[]
+}
+
+// ---------------------------------------------------------------------------
+// Digital publications (bonus files / BONUS_CONTENT)
+// ---------------------------------------------------------------------------
+
+/** Workflow status for digital publications (no schedule). */
+export type DigitalPublicationStatus = 'DRAFT' | 'PUBLISHED' | 'ARCHIVED'
+
+export interface DigitalPublication {
+    id: number
+    slug: string
+    title: string
+    description: string | null
+    assetId: number
+    originalFilename: string | null
+    mimeType: string | null
+    sizeBytes: number | null
+    accessPolicy: AccessPolicy
+    requiredLevelSortOrder: number | null
+    status: DigitalPublicationStatus
+    publishedAt: string | null
+    createdBy: number | null
+    createdAt: string
+    updatedAt: string
+}
+
+export interface CreateDigitalPublicationInput {
+    slug: string
+    title: string
+    description?: string
+    assetId: number
+    accessPolicy?: AccessPolicy
+    requiredLevelSortOrder?: number
+}
+
+export interface UpdateDigitalPublicationInput {
+    slug?: string
+    title?: string
+    description?: string
+    assetId?: number
+    accessPolicy?: AccessPolicy
+    requiredLevelSortOrder?: number
+}
+
+// ---------------------------------------------------------------------------
+// Tenant integrations (studio hub)
+// ---------------------------------------------------------------------------
+
+export type EspProvider = 'MAILGUN'
+
+export type EspConnectionStatus = 'CONNECTED' | 'DISABLED'
+
+export type EspRegion = 'EU' | 'US'
+
+export interface EspConnection {
+    provider: EspProvider | string
+    domain: string
+    fromEmail: string
+    fromName: string | null
+    region: EspRegion | string
+    status: EspConnectionStatus | string
+    connectedAt: string | null
+    apiKeyConfigured: boolean
+}
+
+export interface ConnectMailgunInput {
+    domain: string
+    fromEmail: string
+    fromName?: string
+    region?: EspRegion | string
+    apiKey: string
+}
+
 // ---------------------------------------------------------------------------
 // RBAC (issue #148)
 // ---------------------------------------------------------------------------
@@ -838,6 +924,24 @@ export interface StripeStatus {
     chargesEnabled: boolean
     payoutsEnabled: boolean
     detailsSubmitted: boolean
+}
+
+export interface EmailNotifyIntegrationStatus {
+    moduleEnabled: boolean
+    platformSenderReady: boolean
+    platformProvider: string | null
+    customTemplateCount: number
+    mailgun: EspConnection | null
+}
+
+export interface AnalyticsIntegrationStatus {
+    moduleEnabled: boolean
+}
+
+export interface IntegrationsStatus {
+    emailNotify: EmailNotifyIntegrationStatus
+    analytics: AnalyticsIntegrationStatus
+    stripe: StripeStatus
 }
 
 export interface BillingStats {

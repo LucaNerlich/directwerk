@@ -21,4 +21,5 @@ public final class ConflictCodes {
     public static final String USER_ALREADY_MEMBER = "USER_ALREADY_MEMBER";
     public static final String INVALID_MEMBERSHIP_STATE = "INVALID_MEMBERSHIP_STATE";
     public static final String MEDIA_FOLDER_NAME_EXISTS = "MEDIA_FOLDER_NAME_EXISTS";
+    public static final String DIGITAL_PUBLICATION_SLUG_EXISTS = "DIGITAL_PUBLICATION_SLUG_EXISTS";
 }

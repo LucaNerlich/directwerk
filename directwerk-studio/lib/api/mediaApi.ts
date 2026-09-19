@@ -1,8 +1,8 @@
 'use client'
 
-import {parseMediaAssetEnvelope, parseMediaFolderEnvelope, parseMediaFolderListEnvelope, parseMediaListEnvelope, parseMediaUploadLimitsEnvelope, parsePreviewUrlEnvelope} from '@directwerk/api/validation/catalog'
+import {parseMediaAssetEnvelope, parseMediaFolderEnvelope, parseMediaFolderListEnvelope, parseMediaListEnvelope, parseMediaStorageSummaryEnvelope, parseMediaUploadLimitsEnvelope, parsePreviewUrlEnvelope} from '@directwerk/api/validation/catalog'
 
-import type {MediaAsset, MediaFolder, MediaUploadLimits, TenantMediaQuery} from '@directwerk/api/types'
+import type {MediaAsset, MediaFolder, MediaStorageSummary, MediaUploadLimits, TenantMediaQuery} from '@directwerk/api/types'
 import {authenticatedRequest, studioGet, studioMutate} from './studioApiCore'
 import {jsonInit} from './studioTransport'
 
@@ -126,6 +126,17 @@ export async function getMediaUploadLimits(tenantHost: string): Promise<MediaUpl
         tenantHost,
         parseMediaUploadLimitsEnvelope,
         'Der Server hat ungültige Upload-Limits gesendet.',
+    )
+}
+
+export async function getStorageSummary(
+    tenantHost: string,
+): Promise<MediaStorageSummary> {
+    return studioGet(
+        '/api/proxy/media/storage-summary',
+        tenantHost,
+        parseMediaStorageSummaryEnvelope,
+        'Der Server hat eine ungültige Speicher-Zusammenfassung gesendet.',
     )
 }
 

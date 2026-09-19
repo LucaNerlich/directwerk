@@ -42,4 +42,9 @@ public class EntitlementApiAdapter implements EntitlementApi {
     public List<Long> listEntitledDigitalAssetIds(Long tenantId, Long userId) {
         return entitlementService.listEntitledDigitalAssetIds(tenantId, userId);
     }
+
+    @Override
+    public boolean hasLevelAtLeast(Long tenantId, Long userId, int minimumSortOrder) {
+        return entitlementService.hasLevelAtLeast(tenantId, userId, minimumSortOrder);
+    }
 }

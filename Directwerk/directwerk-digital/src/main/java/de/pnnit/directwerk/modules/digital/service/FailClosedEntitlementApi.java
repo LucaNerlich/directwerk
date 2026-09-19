@@ -33,4 +33,9 @@ public class FailClosedEntitlementApi implements EntitlementApi {
     public List<Long> listEntitledDigitalAssetIds(Long tenantId, Long userId) {
         return List.of();
     }
+
+    @Override
+    public boolean hasLevelAtLeast(Long tenantId, Long userId, int minimumSortOrder) {
+        return false;
+    }
 }

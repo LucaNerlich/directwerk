@@ -1,0 +1,21 @@
+meta {
+  name: 3 - Disconnect ESP
+  type: http
+  seq: 3
+}
+
+delete {
+  url: {{baseUrl}}/api/v1/tenant/integrations/esp
+  body: none
+  auth: inherit
+}
+
+tests {
+  test("disconnects or reports not found", function() {
+    expect([204, 404].includes(res.getStatus())).to.equal(true);
+  });
+}
+
+docs {
+  Removes the tenant Mailgun ESP connection so platform SMTP is used again.
+}

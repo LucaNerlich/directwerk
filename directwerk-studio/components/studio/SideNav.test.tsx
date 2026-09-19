@@ -259,6 +259,10 @@ describe('SideNav', () => {
             'href',
             '/settings/domains',
         )
+        expect(screen.getByRole('link', {name: 'Integrationen'})).toHaveAttribute(
+            'href',
+            '/settings/integrations',
+        )
         expect(screen.getByRole('link', {name: 'Stripe'})).toHaveAttribute(
             'href',
             '/settings/stripe',
@@ -276,6 +280,10 @@ describe('SideNav', () => {
             </MeProvider>,
         )
         expect(screen.getByRole('link', {name: 'Branding'})).toBeInTheDocument()
+        expect(screen.getByRole('link', {name: 'Integrationen'})).toHaveAttribute(
+            'href',
+            '/settings/integrations',
+        )
         expect(screen.queryByRole('link', {name: 'Stripe'})).not.toBeInTheDocument()
     })
 
@@ -341,8 +349,11 @@ describe('SideNav', () => {
                 '/manage/categories',
             )
 
+            expect(screen.getByRole('link', {name: 'Import'})).toHaveAttribute(
+                'href',
+                '/write/import',
+            )
             expect(screen.queryByRole('link', {name: 'Folgen'})).not.toBeInTheDocument()
-            expect(screen.queryByRole('link', {name: 'Import'})).not.toBeInTheDocument()
             expect(screen.queryByRole('link', {name: 'Sendungen'})).not.toBeInTheDocument()
             expect(screen.queryByRole('link', {name: 'Formate'})).not.toBeInTheDocument()
             expect(screen.queryByRole('link', {name: 'Feeds'})).not.toBeInTheDocument()

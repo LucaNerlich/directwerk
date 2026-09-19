@@ -46,4 +46,24 @@ public interface MediaAssetQueryApi {
      * (per-tenant overrides where set, platform defaults otherwise).
      */
     EffectiveUploadLimits effectiveUploadLimits(Long tenantId);
+
+    /**
+     * Aggregate storage usage for the tenant overview (counts + bytes by type/status).
+     */
+    MediaStorageSummary storageSummary(Long tenantId);
+
+    record MediaStorageSummary(
+            long totalAssets,
+            long totalBytes,
+            List<MediaStorageBucket> buckets
+    ) {
+    }
+
+    record MediaStorageBucket(
+            AssetType assetType,
+            AssetStatus status,
+            long assetCount,
+            long totalBytes
+    ) {
+    }
 }

@@ -12,15 +12,21 @@ import type {
     CategoryTag,
     ContentEmailTemplate,
     ContentEmailTemplateType,
+    DigitalPublication,
+    DigitalPublicationStatus,
     DomainVerificationChallenge,
     EpisodeDetail,
     EpisodeSummary,
+    EspConnection,
     ImportedEpisodeResult,
     ImportedArticleResult,
     RssImportPreview,
     ArticleRssImportPreview,
     ArticleBulkImportQueuedResult,
+    IntegrationsStatus,
     MediaFolder,
+    MediaStorageBucket,
+    MediaStorageSummary,
     EffectiveRights,
     FormatSummary,
     FormatTag,
@@ -59,6 +65,7 @@ import type {
     TenantUser,
     UploadUrlResponse,
 } from '../types'
+import {ASSET_STATUSES, ASSET_TYPES} from '../constants'
 import {
     isBoundedString,
     isNonNegativeSafeInteger,
@@ -2013,4 +2020,290 @@ export function parseStripeStatusEnvelope(
     value: unknown,
 ): ApiEnvelope<StripeStatus> | null {
     return parseEnvelope(value, parseStripeStatus)
+}
+
+// ---------------------------------------------------------------------------
+// Digital publications
+// ---------------------------------------------------------------------------
+
+function isDigitalPublicationStatus(
+    value: unknown,
+): value is DigitalPublicationStatus {
+    return value === 'DRAFT' || value === 'PUBLISHED' || value === 'ARCHIVED'
+}
+
+export function parseDigitalPublication(value: unknown): DigitalPublication | null {
+    if (
+        !isRecord(value) ||
+        !isPositiveSafeInteger(value.id) ||
+        !isBoundedString(value.slug, 64) ||
+        !isBoundedString(value.title, 255) ||
+        !isPositiveSafeInteger(value.assetId) ||
+        !parseAccessPolicy(value.accessPolicy) ||
+        !isDigitalPublicationStatus(value.status) ||
+        !isBoundedString(value.createdAt, 64) ||
+        !isBoundedString(value.updatedAt, 64)
+    ) {
+        return null
+    }
+
+    const requiredLevelSortOrder =
+        value.requiredLevelSortOrder === null ||
+        value.requiredLevelSortOrder === undefined
+            ? null
+            : isSafeInteger(value.requiredLevelSortOrder) &&
+                value.requiredLevelSortOrder >= 0
+              ? value.requiredLevelSortOrder
+              : null
+    if (
+        value.requiredLevelSortOrder !== null &&
+        value.requiredLevelSortOrder !== undefined &&
+        requiredLevelSortOrder === null
+    ) {
+        return null
+    }
+
+    const sizeBytes =
+        value.sizeBytes === null || value.sizeBytes === undefined
+            ? null
+            : isNonNegativeSafeInteger(value.sizeBytes)
+              ? value.sizeBytes
+              : null
+    if (
+        value.sizeBytes !== null &&
+        value.sizeBytes !== undefined &&
+        sizeBytes === null
+    ) {
+        return null
+    }
+
+    return {
+        id: value.id,
+        slug: value.slug,
+        title: value.title,
+        description: isNullableString(value.description, 10_000)
+            ? value.description
+            : null,
+        assetId: value.assetId,
+        originalFilename: isNullableString(value.originalFilename, 512)
+            ? value.originalFilename
+            : null,
+        mimeType: isNullableString(value.mimeType, 255) ? value.mimeType : null,
+        sizeBytes,
+        accessPolicy: value.accessPolicy,
+        requiredLevelSortOrder,
+        status: value.status,
+        publishedAt: isNullableString(value.publishedAt, 64)
+            ? value.publishedAt
+            : null,
+        createdBy: parseNullableUserId(value.createdBy),
+        createdAt: value.createdAt,
+        updatedAt: value.updatedAt,
+    }
+}
+
+export function parseDigitalPublicationEnvelope(
+    value: unknown,
+): ApiEnvelope<DigitalPublication> | null {
+    return parseEnvelope(value, parseDigitalPublication)
+}
+
+export function parseDigitalPublicationListEnvelope(
+    value: unknown,
+): ApiEnvelope<DigitalPublication[]> | null {
+    return parseEnvelope(value, (data) =>
+        parseBoundedArray(data, 500, parseDigitalPublication),
+    )
+}
+
+// ---------------------------------------------------------------------------
+// Media storage summary
+// ---------------------------------------------------------------------------
+
+function isKnownAssetType(value: unknown): boolean {
+    return typeof value === 'string' && (ASSET_TYPES as readonly string[]).includes(value)
+}
+
+function isKnownAssetStatus(value: unknown): boolean {
+    return (
+        typeof value === 'string' &&
+        (ASSET_STATUSES as readonly string[]).includes(value)
+    )
+}
+
+function parseMediaStorageBucket(value: unknown): MediaStorageBucket | null {
+    if (
+        !isRecord(value) ||
+        !isBoundedString(value.assetType, 64) ||
+        !isBoundedString(value.status, 64) ||
+        !isNonNegativeSafeInteger(value.assetCount) ||
+        !isNonNegativeSafeInteger(value.totalBytes)
+    ) {
+        return null
+    }
+
+    return {
+        assetType: isKnownAssetType(value.assetType)
+            ? value.assetType
+            : value.assetType,
+        status: isKnownAssetStatus(value.status) ? value.status : value.status,
+        assetCount: value.assetCount,
+        totalBytes: value.totalBytes,
+    }
+}
+
+export function parseMediaStorageSummary(
+    value: unknown,
+): MediaStorageSummary | null {
+    if (
+        !isRecord(value) ||
+        !isNonNegativeSafeInteger(value.totalAssets) ||
+        !isNonNegativeSafeInteger(value.totalBytes)
+    ) {
+        return null
+    }
+
+    const buckets = parseBoundedArray(value.buckets, 100, parseMediaStorageBucket)
+    if (buckets === null) {
+        return null
+    }
+
+    return {
+        totalAssets: value.totalAssets,
+        totalBytes: value.totalBytes,
+        buckets,
+    }
+}
+
+export function parseMediaStorageSummaryEnvelope(
+    value: unknown,
+): ApiEnvelope<MediaStorageSummary> | null {
+    return parseEnvelope(value, parseMediaStorageSummary)
+}
+
+// ---------------------------------------------------------------------------
+// Tenant integrations
+// ---------------------------------------------------------------------------
+
+export function parseEspConnection(value: unknown): EspConnection | null {
+    if (
+        !isRecord(value) ||
+        !isBoundedString(value.provider, 64) ||
+        !isBoundedString(value.domain, 255) ||
+        !isBoundedString(value.fromEmail, 320) ||
+        !isBoundedString(value.region, 8) ||
+        !isBoundedString(value.status, 64) ||
+        typeof value.apiKeyConfigured !== 'boolean'
+    ) {
+        return null
+    }
+
+    return {
+        provider: value.provider,
+        domain: value.domain,
+        fromEmail: value.fromEmail,
+        fromName: isNullableString(value.fromName, 255) ? value.fromName : null,
+        region: value.region,
+        status: value.status,
+        connectedAt: isNullableString(value.connectedAt, 64)
+            ? value.connectedAt
+            : null,
+        apiKeyConfigured: value.apiKeyConfigured,
+    }
+}
+
+export function parseEspConnectionEnvelope(
+    value: unknown,
+): ApiEnvelope<EspConnection | null> | null {
+    if (!isRecord(value) || !isValidHttpStatus(value.statusCode)) {
+        return null
+    }
+
+    if (value.data === null) {
+        return {
+            statusCode: value.statusCode,
+            statusMessage: isBoundedString(value.statusMessage)
+                ? value.statusMessage
+                : '',
+            data: null,
+            errors: [],
+            metadata: {},
+        }
+    }
+
+    const connection = parseEspConnection(value.data)
+    if (connection === null) {
+        return null
+    }
+
+    return {
+        statusCode: value.statusCode,
+        statusMessage: isBoundedString(value.statusMessage)
+            ? value.statusMessage
+            : '',
+        data: connection,
+        errors: [],
+        metadata: {},
+    }
+}
+
+function parseEmailNotifyIntegrationStatus(
+    value: unknown,
+): IntegrationsStatus['emailNotify'] | null {
+    if (
+        !isRecord(value) ||
+        typeof value.moduleEnabled !== 'boolean' ||
+        typeof value.platformSenderReady !== 'boolean' ||
+        !isNonNegativeSafeInteger(value.customTemplateCount)
+    ) {
+        return null
+    }
+
+    let mailgun: EspConnection | null = null
+    if (value.mailgun !== null && value.mailgun !== undefined) {
+        mailgun = parseEspConnection(value.mailgun)
+        if (mailgun === null) {
+            return null
+        }
+    }
+
+    return {
+        moduleEnabled: value.moduleEnabled,
+        platformSenderReady: value.platformSenderReady,
+        platformProvider: isNullableString(value.platformProvider, 64)
+            ? value.platformProvider
+            : null,
+        customTemplateCount: value.customTemplateCount,
+        mailgun,
+    }
+}
+
+function parseAnalyticsIntegrationStatus(
+    value: unknown,
+): IntegrationsStatus['analytics'] | null {
+    if (!isRecord(value) || typeof value.moduleEnabled !== 'boolean') {
+        return null
+    }
+    return {moduleEnabled: value.moduleEnabled}
+}
+
+export function parseIntegrationsStatus(value: unknown): IntegrationsStatus | null {
+    if (!isRecord(value)) {
+        return null
+    }
+
+    const emailNotify = parseEmailNotifyIntegrationStatus(value.emailNotify)
+    const analytics = parseAnalyticsIntegrationStatus(value.analytics)
+    const stripe = parseStripeStatus(value.stripe)
+    if (emailNotify === null || analytics === null || stripe === null) {
+        return null
+    }
+
+    return {emailNotify, analytics, stripe}
+}
+
+export function parseIntegrationsStatusEnvelope(
+    value: unknown,
+): ApiEnvelope<IntegrationsStatus> | null {
+    return parseEnvelope(value, parseIntegrationsStatus)
 }
