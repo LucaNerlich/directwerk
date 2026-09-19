@@ -5,8 +5,8 @@ import de.pnnit.directwerk.config.DirectwerkConfig;
 import de.pnnit.directwerk.modules.core.AnalyticsModule;
 import de.pnnit.directwerk.modules.core.service.ModuleGateService;
 import de.pnnit.directwerk.modules.email.EmailNotifyModule;
+import de.pnnit.directwerk.modules.email.content.TenantContentEmailTemplateService;
 import de.pnnit.directwerk.modules.email.esp.TenantEspConnectionService;
-import de.pnnit.directwerk.modules.email.repository.TenantContentEmailTemplateRepository;
 import de.pnnit.directwerk.modules.stripebilling.StripeBillingModule;
 import de.pnnit.directwerk.modules.stripebilling.StripeConnectService;
 import de.pnnit.directwerk.multitenancy.TenantContext;
@@ -15,7 +15,6 @@ import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
-import java.time.Instant;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -36,20 +35,20 @@ public class TenantIntegrationsController {
     private final ModuleGateService moduleGateService;
     private final DirectwerkConfig directwerkConfig;
     private final TenantEspConnectionService tenantEspConnectionService;
-    private final TenantContentEmailTemplateRepository tenantContentEmailTemplateRepository;
+    private final TenantContentEmailTemplateService tenantContentEmailTemplateService;
     private final StripeConnectService stripeConnectService;
 
     public TenantIntegrationsController(
             ModuleGateService moduleGateService,
             DirectwerkConfig directwerkConfig,
             TenantEspConnectionService tenantEspConnectionService,
-            TenantContentEmailTemplateRepository tenantContentEmailTemplateRepository,
+            TenantContentEmailTemplateService tenantContentEmailTemplateService,
             StripeConnectService stripeConnectService
     ) {
         this.moduleGateService = moduleGateService;
         this.directwerkConfig = directwerkConfig;
         this.tenantEspConnectionService = tenantEspConnectionService;
-        this.tenantContentEmailTemplateRepository = tenantContentEmailTemplateRepository;
+        this.tenantContentEmailTemplateService = tenantContentEmailTemplateService;
         this.stripeConnectService = stripeConnectService;
     }
 
@@ -59,7 +58,7 @@ public class TenantIntegrationsController {
         boolean emailNotify = moduleGateService.isModuleActive(tenantId, EmailNotifyModule.KEY);
         boolean analytics = moduleGateService.isModuleActive(tenantId, AnalyticsModule.KEY);
         boolean stripeModule = moduleGateService.isModuleActive(tenantId, StripeBillingModule.KEY);
-        long templateCount = tenantContentEmailTemplateRepository.countByTenant_Id(tenantId);
+        long templateCount = tenantContentEmailTemplateService.countForTenant(tenantId);
         var esp = tenantEspConnectionService.find(tenantId)
                 .map(TenantEspConnectionService::toView)
                 .orElse(null);
