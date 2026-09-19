@@ -60,7 +60,8 @@ function ArticlesBlock(): React.JSX.Element {
 
 /**
  * Unified subscribe instructions for podcast and article feeds. Renders the
- * podcast block, the articles block, or both in one card — without URLs.
+ * podcast block, the articles block, or both in one card — without URLs. Returns
+ * `null` when neither feed kind is enabled.
  */
 export default function HowToSubscribe({
     podcast = false,

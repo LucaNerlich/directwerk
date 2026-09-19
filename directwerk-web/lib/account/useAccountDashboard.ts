@@ -34,6 +34,11 @@ export interface AccountDashboardState {
     handlePortal: () => Promise<void>
 }
 
+/**
+ * Loads the signed-in account's profile, access, notification preferences, and
+ * module-gated subscriptions. Authentication failures redirect to login; the
+ * returned handlers persist notification changes and open the billing portal.
+ */
 export function useAccountDashboard(): AccountDashboardState {
     const router = useRouter()
     const [me, setMe] = useState<Me | null>(null)

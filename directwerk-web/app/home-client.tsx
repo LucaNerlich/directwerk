@@ -32,6 +32,10 @@ export interface HomeInitialData {
     products: PublicProduct[] | null
 }
 
+/**
+ * Renders the tenant home from server-seeded catalogs and refreshes enabled
+ * content after authentication changes.
+ */
 export default function HomeClient({
     initialData,
 }: {
