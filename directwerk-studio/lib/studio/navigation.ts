@@ -14,6 +14,7 @@ export function buildWriteDeskItems(config: SiteConfig): NavigationItem[] {
     const items: NavigationItem[] = [
         {href: '/write', label: 'Start'},
         {href: '/write/articles', label: 'Beiträge'},
+        {href: '/write/import', label: 'Import'},
     ]
     if (hasModule(config, 'EMAIL_NOTIFY')) {
         items.push({href: '/write/lists', label: 'Listen'})
@@ -103,6 +104,7 @@ export function buildVerwaltungSections(
         const settingsItems: NavigationItem[] = [
             {href: '/settings/branding', label: 'Branding'},
             {href: '/settings/domains', label: 'Domains'},
+            {href: '/settings/integrations', label: 'Integrationen'},
         ]
         if (showEmailNotify) {
             settingsItems.push({href: '/settings/email', label: 'E-Mail-Vorlagen'})

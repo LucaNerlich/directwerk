@@ -48,6 +48,7 @@
 ### | 33-newsletter-lists.http | Newsletter list CRUD + public subscribe |
 ### | 34-article-import.http | ArticleImportController (RSS preview + stream ingest + bulk) |
 ### | 35-tenant-analytics.http | TenantAnalyticsController (Umami read API stats) |
+### | 36-digital-publications-and-integrations.http | DigitalPublicationController, MediaController storage summary, TenantIntegrationsController |
 ###
 ### Controllers live under de.pnnit.directwerk.controller.*
 

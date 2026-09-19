@@ -35,3 +35,10 @@ export const MediaLibraryClient = dynamic(
         loading: () => <DeferredLoading label="Mediathek" />,
     },
 )
+
+export const DigitalPublicationEditor = dynamic(
+    () => import('@/components/media/DigitalPublicationEditor'),
+    {
+        loading: () => <DeferredLoading label="Bonusdatei" />,
+    },
+)

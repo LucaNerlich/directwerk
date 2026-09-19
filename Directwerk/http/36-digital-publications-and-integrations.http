@@ -1,0 +1,161 @@
+### Directwerk — Digital publications and tenant integrations
+### Prerequisites: 02-oauth2.http (tenantAAccessToken), BONUS_CONTENT active for tenant A,
+###                and at least one READY DOCUMENT asset for the digital publication flow.
+
+### @name getMediaStorageSummary
+GET {{baseUrl}}/api/v1/media/storage-summary
+Authorization: Bearer {{tenantAAccessToken}}
+Host: {{tenantAHost}}
+Accept: application/json
+
+###
+
+### @name getIntegrationsStatus
+GET {{baseUrl}}/api/v1/tenant/integrations/status
+Authorization: Bearer {{tenantAAccessToken}}
+Host: {{tenantAHost}}
+Accept: application/json
+
+###
+
+### @name connectMailgunEsp
+PUT {{baseUrl}}/api/v1/tenant/integrations/esp/mailgun
+Authorization: Bearer {{tenantAAccessToken}}
+Host: {{tenantAHost}}
+Content-Type: application/json
+Accept: application/json
+
+{
+  "domain": "mg.example.com",
+  "fromEmail": "hello@example.com",
+  "fromName": "Beispiel Podcast",
+  "region": "EU",
+  "apiKey": "key-replace-me"
+}
+
+###
+
+### @name disconnectEsp
+DELETE {{baseUrl}}/api/v1/tenant/integrations/esp
+Authorization: Bearer {{tenantAAccessToken}}
+Host: {{tenantAHost}}
+Accept: application/json
+
+###
+
+### @name listDigitalPublications
+GET {{baseUrl}}/api/v1/digital-publications
+Authorization: Bearer {{tenantAAccessToken}}
+Host: {{tenantAHost}}
+Accept: application/json
+
+###
+
+### @name resolveReadyDocumentAsset
+GET {{baseUrl}}/api/v1/media?assetType=DOCUMENT&status=READY&limit=1
+Authorization: Bearer {{tenantAAccessToken}}
+Host: {{tenantAHost}}
+Accept: application/json
+
+> {%
+    client.test("Resolve a READY document asset", function() {
+        client.assert(response.status === 200, "Expected 200");
+        client.assert(response.body.data.length > 0, "Upload and confirm a DOCUMENT asset first");
+        if (response.body.data.length > 0) {
+            client.global.set("documentAssetId", response.body.data[0].id);
+        }
+    });
+%}
+
+###
+
+### @name createDigitalPublicationDraft
+< {%
+    client.global.set("digitalPublicationSlug", "bonus-guide-" + Date.now().toString(36));
+%}
+POST {{baseUrl}}/api/v1/digital-publications
+Authorization: Bearer {{tenantAAccessToken}}
+Host: {{tenantAHost}}
+Content-Type: application/json
+Accept: application/json
+
+{
+  "slug": "{{digitalPublicationSlug}}",
+  "title": "Bonus-Guide",
+  "description": "PDF für Supporter",
+  "assetId": {{documentAssetId}},
+  "accessPolicy": "PAID",
+  "requiredLevelSortOrder": 1
+}
+
+> {%
+    client.test("Create digital publication draft", function() {
+        client.assert(response.status === 201, "Expected 201");
+        if (response.status === 201) {
+            client.global.set("digitalPublicationId", response.body.data.id);
+        }
+    });
+%}
+
+###
+
+### @name getDigitalPublication
+GET {{baseUrl}}/api/v1/digital-publications/{{digitalPublicationId}}
+Authorization: Bearer {{tenantAAccessToken}}
+Host: {{tenantAHost}}
+Accept: application/json
+
+###
+
+### @name updateDigitalPublicationDraft
+PUT {{baseUrl}}/api/v1/digital-publications/{{digitalPublicationId}}
+Authorization: Bearer {{tenantAAccessToken}}
+Host: {{tenantAHost}}
+Content-Type: application/json
+Accept: application/json
+
+{
+  "title": "Bonus-Guide (aktualisiert)",
+  "description": "Aktualisierte Beschreibung",
+  "accessPolicy": "PAID",
+  "requiredLevelSortOrder": 1
+}
+
+###
+
+### @name publishDigitalPublication
+POST {{baseUrl}}/api/v1/digital-publications/{{digitalPublicationId}}/publish
+Authorization: Bearer {{tenantAAccessToken}}
+Host: {{tenantAHost}}
+Accept: application/json
+
+###
+
+### @name unpublishDigitalPublication
+POST {{baseUrl}}/api/v1/digital-publications/{{digitalPublicationId}}/unpublish
+Authorization: Bearer {{tenantAAccessToken}}
+Host: {{tenantAHost}}
+Accept: application/json
+
+###
+
+### @name archiveDigitalPublication
+POST {{baseUrl}}/api/v1/digital-publications/{{digitalPublicationId}}/archive
+Authorization: Bearer {{tenantAAccessToken}}
+Host: {{tenantAHost}}
+Accept: application/json
+
+###
+
+### @name unarchiveDigitalPublication
+POST {{baseUrl}}/api/v1/digital-publications/{{digitalPublicationId}}/unarchive
+Authorization: Bearer {{tenantAAccessToken}}
+Host: {{tenantAHost}}
+Accept: application/json
+
+###
+
+### @name deleteDigitalPublication
+DELETE {{baseUrl}}/api/v1/digital-publications/{{digitalPublicationId}}
+Authorization: Bearer {{tenantAAccessToken}}
+Host: {{tenantAHost}}

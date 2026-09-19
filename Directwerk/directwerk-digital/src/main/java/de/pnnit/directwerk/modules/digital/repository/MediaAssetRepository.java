@@ -159,4 +159,13 @@ public interface MediaAssetRepository extends JpaRepository<MediaAsset, Long> {
             AssetType assetType,
             Collection<AssetStatus> statuses
     );
+
+    @Query("""
+            select m.assetType, m.status, count(m), coalesce(sum(m.sizeBytes), 0)
+            from MediaAsset m
+            where m.tenant.id = :tenantId
+              and m.status <> de.pnnit.directwerk.modules.digital.entity.AssetStatus.PENDING_DELETE
+            group by m.assetType, m.status
+            """)
+    List<Object[]> summarizeStorage(@Param("tenantId") Long tenantId);
 }

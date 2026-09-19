@@ -3,6 +3,7 @@ package de.pnnit.directwerk.modules.email;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -14,6 +15,7 @@ import de.pnnit.directwerk.modules.email.sender.EmailDeliveryException;
 import de.pnnit.directwerk.modules.email.sender.EmailSender;
 import de.pnnit.directwerk.modules.email.sender.OutboundEmail;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -36,6 +38,12 @@ class TransactionalEmailServiceTest {
     @Mock
     private EmailDeliveryGuard emailDeliveryGuard;
 
+    @Mock
+    private de.pnnit.directwerk.modules.email.esp.TenantEspConnectionService tenantEspConnectionService;
+
+    @Mock
+    private de.pnnit.directwerk.modules.email.esp.MailgunHttpEmailSender mailgunHttpEmailSender;
+
     private EmailTemplateRenderer templateRenderer;
     private TransactionalEmailService transactionalEmailService;
 
@@ -46,7 +54,9 @@ class TransactionalEmailServiceTest {
                 directwerkConfig,
                 emailSender,
                 templateRenderer,
-                emailDeliveryGuard
+                emailDeliveryGuard,
+                tenantEspConnectionService,
+                mailgunHttpEmailSender
         );
     }
 
