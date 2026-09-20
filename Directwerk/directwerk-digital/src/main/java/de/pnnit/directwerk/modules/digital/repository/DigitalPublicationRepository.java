@@ -2,6 +2,7 @@ package de.pnnit.directwerk.modules.digital.repository;
 
 import de.pnnit.directwerk.modules.digital.entity.DigitalPublication;
 import de.pnnit.directwerk.modules.digital.entity.DigitalPublicationStatus;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.EntityGraph;
@@ -31,5 +32,12 @@ public interface DigitalPublicationRepository extends JpaRepository<DigitalPubli
     List<DigitalPublication> findByTenantIdAndStatus(
             @Param("tenantId") Long tenantId,
             @Param("status") DigitalPublicationStatus status
+    );
+
+    @EntityGraph(attributePaths = {"asset"})
+    List<DigitalPublication> findByTenantIdAndStatusAndAssetIdIn(
+            Long tenantId,
+            DigitalPublicationStatus status,
+            Collection<Long> assetIds
     );
 }

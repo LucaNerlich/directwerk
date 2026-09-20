@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -11,6 +12,8 @@ import static org.mockito.Mockito.when;
 
 import de.pnnit.directwerk.config.DirectwerkConfig;
 import de.pnnit.directwerk.config.DirectwerkProperties;
+import de.pnnit.directwerk.modules.email.entity.EspProvider;
+import de.pnnit.directwerk.modules.email.esp.TenantEspConnectionService;
 import de.pnnit.directwerk.modules.email.sender.EmailDeliveryException;
 import de.pnnit.directwerk.modules.email.sender.EmailSender;
 import de.pnnit.directwerk.modules.email.sender.OutboundEmail;
@@ -179,6 +182,71 @@ class TransactionalEmailServiceTest {
         )).isInstanceOf(IllegalStateException.class).hasMessageContaining("render failed");
 
         verify(emailDeliveryGuard).releaseClaim(JOB_ID);
+    }
+
+    @Test
+    void sendFromPayloadUsesTenantMailgunCredentialsAndProvider() {
+        when(directwerkConfig.isEmailEnabled()).thenReturn(true);
+        when(emailDeliveryGuard.tryClaimDelivery(JOB_ID)).thenReturn(true);
+        TenantEspConnectionService.ResolvedEspCredentials credentials =
+                new TenantEspConnectionService.ResolvedEspCredentials(
+                        EspProvider.MAILGUN,
+                        "tenant.example.com",
+                        "noreply@tenant.example.com",
+                        "Tenant Sender",
+                        "EU",
+                        "api-key"
+                );
+        when(tenantEspConnectionService.resolveActiveMailgun(5L)).thenReturn(Optional.of(credentials));
+
+        transactionalEmailService.sendFromPayload(
+                JOB_ID,
+                5L,
+                "user@example.com",
+                EmailTemplate.PASSWORD_RESET,
+                Map.of("resetUrl", "http://localhost/reset", "expiresIn", "1 hour")
+        );
+
+        ArgumentCaptor<OutboundEmail> messageCaptor = ArgumentCaptor.forClass(OutboundEmail.class);
+        verify(mailgunHttpEmailSender).send(eq(credentials), messageCaptor.capture());
+        OutboundEmail sent = messageCaptor.getValue();
+        assertThat(sent.to()).isEqualTo("user@example.com");
+        assertThat(sent.fromAddress()).isEqualTo("noreply@tenant.example.com");
+        assertThat(sent.fromName()).isEqualTo("Tenant Sender");
+        assertThat(sent.subject()).isEqualTo("Reset your password");
+        verify(emailSender, never()).send(any());
+        verify(emailSender, never()).isReady();
+    }
+
+    @Test
+    void sendFromPayloadReleasesClaimWhenTenantMailgunFails() {
+        when(directwerkConfig.isEmailEnabled()).thenReturn(true);
+        when(directwerkConfig.email()).thenReturn(sampleEmailConfig());
+        when(emailDeliveryGuard.tryClaimDelivery(JOB_ID)).thenReturn(true);
+        TenantEspConnectionService.ResolvedEspCredentials credentials =
+                new TenantEspConnectionService.ResolvedEspCredentials(
+                        EspProvider.MAILGUN,
+                        "tenant.example.com",
+                        "noreply@tenant.example.com",
+                        null,
+                        "EU",
+                        "api-key"
+                );
+        when(tenantEspConnectionService.resolveActiveMailgun(5L)).thenReturn(Optional.of(credentials));
+        doThrow(new EmailDeliveryException("Mailgun send failed", null))
+                .when(mailgunHttpEmailSender)
+                .send(eq(credentials), any());
+
+        assertThatThrownBy(() -> transactionalEmailService.sendFromPayload(
+                JOB_ID,
+                5L,
+                "user@example.com",
+                EmailTemplate.PASSWORD_RESET,
+                Map.of("resetUrl", "http://localhost/reset", "expiresIn", "1 hour")
+        )).isInstanceOf(EmailDeliveryException.class).hasMessageContaining("Mailgun send failed");
+
+        verify(emailDeliveryGuard).releaseClaim(JOB_ID);
+        verify(emailSender, never()).send(any());
     }
 
     private static DirectwerkProperties.Email sampleEmailConfig() {

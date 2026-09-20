@@ -833,6 +833,26 @@ describe('digital publications / storage / integrations parsers', () => {
                 },
             ],
         })
+        expect(
+            parseMediaStorageSummaryEnvelope({
+                statusCode: 200,
+                statusMessage: 'OK',
+                data: {
+                    totalAssets: 1,
+                    totalBytes: 1000,
+                    buckets: [
+                        {
+                            assetType: 'DOCUMENT',
+                            status: 'SOMEDAY',
+                            assetCount: 1,
+                            totalBytes: 1000,
+                        },
+                    ],
+                },
+                errors: [],
+                metadata: {},
+            }),
+        ).toBeNull()
     })
 
     it('parses integrations status and nullable ESP envelopes', () => {

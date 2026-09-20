@@ -1,10 +1,15 @@
 import type {TenantSubscriber} from '@directwerk/api/types'
 
+// Cells starting with =, +, - or @ would be interpreted as spreadsheet formulas by Excel,
+// so neutralize them with a leading apostrophe before the regular escaping below.
+const FORMULA_START = /^[=+@-]/
+
 function csvEscape(value: string): string {
-    if (/[",\n\r]/.test(value)) {
-        return `"${value.replaceAll('"', '""')}"`
+    const neutralized = FORMULA_START.test(value) ? `'${value}` : value
+    if (/[",\n\r]/.test(neutralized)) {
+        return `"${neutralized.replaceAll('"', '""')}"`
     }
-    return value
+    return neutralized
 }
 
 /**

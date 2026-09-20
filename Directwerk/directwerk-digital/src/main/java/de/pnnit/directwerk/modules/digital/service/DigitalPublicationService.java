@@ -140,6 +140,12 @@ public class DigitalPublicationService {
     public DigitalPublication publish(Long tenantId, Long publicationId) {
         DigitalPublication publication = require(tenantId, publicationId);
         permissionService.requireMediaAssetAccess(ContentOperation.PUBLISH, publication.getCreatedBy());
+        if (publication.getStatus() == DigitalPublicationStatus.PUBLISHED) {
+            throw new IllegalArgumentException("Bonus file is already published");
+        }
+        if (publication.getStatus() == DigitalPublicationStatus.ARCHIVED) {
+            throw new IllegalArgumentException("Unarchive before publishing a bonus file");
+        }
         requireReadyDocument(tenantId, publication.getAsset().getId());
         if (publication.getAccessPolicy() == AccessPolicy.PAID
                 && publication.getRequiredLevelSortOrder() == null) {
@@ -155,6 +161,9 @@ public class DigitalPublicationService {
     public DigitalPublication unpublish(Long tenantId, Long publicationId) {
         DigitalPublication publication = require(tenantId, publicationId);
         permissionService.requireMediaAssetAccess(ContentOperation.UNPUBLISH, publication.getCreatedBy());
+        if (publication.getStatus() != DigitalPublicationStatus.PUBLISHED) {
+            throw new IllegalArgumentException("Only published bonus files can be unpublished");
+        }
         publication.setStatus(DigitalPublicationStatus.DRAFT);
         publication.setPublishedAt(null);
         return digitalPublicationRepository.save(publication);

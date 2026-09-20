@@ -12,6 +12,7 @@ import de.pnnit.directwerk.modules.subscription.entity.SubscriptionStatus;
 import de.pnnit.directwerk.modules.subscription.repository.ProductAccessRuleRepository;
 import de.pnnit.directwerk.modules.subscription.repository.SubscriptionRepository;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -365,6 +366,57 @@ class EntitlementServiceTest {
         assertThat(entitlementService.hasDigitalAssetAccess(10L, 20L, 501L)).isFalse();
         assertThat(entitlementService.filterAccessibleDigitalAssetIds(10L, 20L, List.of(501L))).isEmpty();
         org.mockito.Mockito.verifyNoInteractions(productAccessRuleRepository);
+    }
+
+    // --- publication subjects -------------------------------------------------------------
+
+    @Test
+    void filterAccessiblePublicationAssetsGrantsFreeWithoutSubscriptions() {
+        EntitlementService.DigitalPublicationAccessSubject subject =
+                new EntitlementService.DigitalPublicationAccessSubject(501L, true, 0);
+
+        Set<Long> accessible = entitlementService.filterAccessiblePublicationAssets(
+                10L, 20L, Map.of(501L, subject));
+
+        assertThat(accessible).containsExactly(501L);
+        org.mockito.Mockito.verifyNoInteractions(subscriptionRepository, productAccessRuleRepository);
+    }
+
+    @Test
+    void filterAccessiblePublicationAssetsUsesLevelSortOrder() {
+        SubscriptionProduct supporter = product(1L, "supporter", 1);
+        when(subscriptionRepository.findActiveWithProducts(10L, 20L, SubscriptionStatus.ACTIVE))
+                .thenReturn(List.of(activeSubscription(supporter)));
+
+        EntitlementService.DigitalPublicationAccessSubject withinLevel =
+                new EntitlementService.DigitalPublicationAccessSubject(501L, false, 1);
+        EntitlementService.DigitalPublicationAccessSubject aboveLevel =
+                new EntitlementService.DigitalPublicationAccessSubject(502L, false, 2);
+
+        Set<Long> accessible = entitlementService.filterAccessiblePublicationAssets(
+                10L, 20L, Map.of(501L, withinLevel, 502L, aboveLevel));
+
+        assertThat(accessible).containsExactly(501L);
+    }
+
+    @Test
+    void filterAccessiblePublicationAssetsHonorsPackageDigitalAssetRule() {
+        SubscriptionProduct bundle = product(9L, "bonus-pack", 0);
+        bundle.setOfferingType(OfferingType.PACKAGE);
+        Subscription active = activeSubscription(bundle);
+        ProductAccessRule digitalRule = rule(bundle, ProductAccessScopeType.DIGITAL_ASSET, 501L);
+        when(subscriptionRepository.findActiveWithProducts(10L, 20L, SubscriptionStatus.ACTIVE))
+                .thenReturn(List.of(active));
+        when(productAccessRuleRepository.findByTenantIdAndProductIdInOrderByProductIdAscIdAsc(10L, List.of(9L)))
+                .thenReturn(List.of(digitalRule));
+
+        EntitlementService.DigitalPublicationAccessSubject subject =
+                new EntitlementService.DigitalPublicationAccessSubject(501L, false, 5);
+
+        Set<Long> accessible = entitlementService.filterAccessiblePublicationAssets(
+                10L, 20L, Map.of(501L, subject));
+
+        assertThat(accessible).containsExactly(501L);
     }
 
     @Test

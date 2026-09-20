@@ -5,7 +5,6 @@ import de.pnnit.directwerk.modules.core.service.ModuleGateService;
 import de.pnnit.directwerk.modules.digital.BonusContentModule;
 import de.pnnit.directwerk.modules.digital.api.AssetAccessApi;
 import de.pnnit.directwerk.modules.digital.api.MediaAssetQueryApi;
-import de.pnnit.directwerk.modules.digital.entity.AccessPolicy;
 import de.pnnit.directwerk.modules.digital.entity.AssetStatus;
 import de.pnnit.directwerk.modules.digital.entity.DigitalPublication;
 import de.pnnit.directwerk.modules.digital.entity.MediaAsset;
@@ -71,6 +70,13 @@ public class SubscriberPortalAccessService {
         );
     }
 
+    /**
+     * Published bonus publications (per-publication FREE/LEVEL policy) plus PACKAGE-entitled
+     * standalone assets, unified through the fail-closed gate in
+     * {@link AssetAccessApi#resolveDownloadUrls}: the publication policy and the asset gate
+     * are the SAME evaluation, so a policy grant always produces a URL and a policy denial
+     * never does.
+     */
     @Transactional(readOnly = true)
     public List<AssetDownload> listDownloads(DirectwerkUserPrincipal user) {
         moduleGateService.requireModule(BonusContentModule.KEY);
@@ -83,9 +89,6 @@ public class SubscriberPortalAccessService {
         for (DigitalPublication publication : digitalPublicationService.listPublished(tenantId)) {
             MediaAsset asset = publication.getAsset();
             if (asset == null || asset.getStatus() != AssetStatus.READY) {
-                continue;
-            }
-            if (!canAccessPublication(user, publication)) {
                 continue;
             }
             if (!titlesByAssetId.containsKey(asset.getId())) {
@@ -107,34 +110,14 @@ public class SubscriberPortalAccessService {
                     });
         }
 
-        List<MediaAsset> limited = candidates.stream().limit(MAX_DOWNLOADS).toList();
-        return assetAccessApi.resolveDownloadUrls(limited, user).stream()
+        return assetAccessApi.resolveDownloadUrls(candidates, user).stream()
+                .limit(MAX_DOWNLOADS)
                 .map(resolved -> new AssetDownload(
                         resolved.asset(),
                         resolved.url(),
                         titlesByAssetId.get(resolved.asset().getId())
                 ))
                 .toList();
-    }
-
-    private boolean canAccessPublication(DirectwerkUserPrincipal user, DigitalPublication publication) {
-        if (RoleConstants.isEditorOrTenantAdmin(user)) {
-            return true;
-        }
-        if (publication.getAccessPolicy() == AccessPolicy.FREE) {
-            return true;
-        }
-        int required = publication.getRequiredLevelSortOrder() == null
-                ? 0
-                : publication.getRequiredLevelSortOrder();
-        if (entitlementApi.hasLevelAtLeast(user.tenantId(), user.userId(), required)) {
-            return true;
-        }
-        return entitlementApi.hasDigitalAssetAccess(
-                user.tenantId(),
-                user.userId(),
-                publication.getAsset().getId()
-        );
     }
 
     @Transactional(readOnly = true)

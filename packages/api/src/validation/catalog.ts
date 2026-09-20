@@ -23,6 +23,8 @@ import type {
     RssImportPreview,
     ArticleRssImportPreview,
     ArticleBulkImportQueuedResult,
+    AssetStatus,
+    AssetType,
     IntegrationsStatus,
     MediaFolder,
     MediaStorageBucket,
@@ -2120,11 +2122,11 @@ export function parseDigitalPublicationListEnvelope(
 // Media storage summary
 // ---------------------------------------------------------------------------
 
-function isKnownAssetType(value: unknown): boolean {
+function isKnownAssetType(value: unknown): value is AssetType {
     return typeof value === 'string' && (ASSET_TYPES as readonly string[]).includes(value)
 }
 
-function isKnownAssetStatus(value: unknown): boolean {
+function isKnownAssetStatus(value: unknown): value is AssetStatus {
     return (
         typeof value === 'string' &&
         (ASSET_STATUSES as readonly string[]).includes(value)
@@ -2134,8 +2136,8 @@ function isKnownAssetStatus(value: unknown): boolean {
 function parseMediaStorageBucket(value: unknown): MediaStorageBucket | null {
     if (
         !isRecord(value) ||
-        !isBoundedString(value.assetType, 64) ||
-        !isBoundedString(value.status, 64) ||
+        !isKnownAssetType(value.assetType) ||
+        !isKnownAssetStatus(value.status) ||
         !isNonNegativeSafeInteger(value.assetCount) ||
         !isNonNegativeSafeInteger(value.totalBytes)
     ) {
@@ -2143,10 +2145,8 @@ function parseMediaStorageBucket(value: unknown): MediaStorageBucket | null {
     }
 
     return {
-        assetType: isKnownAssetType(value.assetType)
-            ? value.assetType
-            : value.assetType,
-        status: isKnownAssetStatus(value.status) ? value.status : value.status,
+        assetType: value.assetType,
+        status: value.status,
         assetCount: value.assetCount,
         totalBytes: value.totalBytes,
     }
