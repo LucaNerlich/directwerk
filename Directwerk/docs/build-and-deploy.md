@@ -123,7 +123,8 @@ Useful URLs after startup:
 
 | URL | Purpose |
 |-----|---------|
-| [http://localhost:8080/actuator/health](http://localhost:8080/actuator/health) | Health |
+| [http://localhost:8080/actuator/health](http://localhost:8080/actuator/health) | Full health (includes mail/db/s3) |
+| [http://localhost:8080/actuator/health/liveness](http://localhost:8080/actuator/health/liveness) | Probe health (process only — use for Coolify/Docker) |
 | [http://localhost:8080/swagger-ui.html](http://localhost:8080/swagger-ui.html) | OpenAPI UI (local / docker / stage) |
 | [http://127.0.0.1:8025](http://127.0.0.1:8025) | Mailpit inbox |
 
@@ -238,7 +239,7 @@ docker build -t directwerk:local .
 The Dockerfile:
 
 1. **Build stage** — `./gradlew :directwerk-app:bootJar -x test` on JDK 21 Alpine (copies all Gradle modules)
-2. **Runtime stage** — JRE 21 Alpine, non-root user `directwerk`, port `8080`, health check `/actuator/health` (90s start period)
+2. **Runtime stage** — JRE 21 Alpine, non-root user `directwerk`, port `8080`, health check `/actuator/health/liveness` (90s start period; excludes SMTP so Mailpit/Mailgun blips do not flip the container unhealthy)
 
 Registry example:
 
@@ -454,7 +455,7 @@ This monorepo deploys other services via [Coolify](https://coolify.io) on Hetzne
 4. Configure the environment variables above as Coolify secrets.
 5. Attach managed **PostgreSQL 18+**; point `SPRING_DATASOURCE_*` at it.
 6. Expose port **8080**; terminate TLS at the reverse proxy; set `DIRECTWERK_FORWARD_HEADERS_STRATEGY=framework` when the proxy overwrites `Host` / Forwarded headers.
-7. Health check path: `/actuator/health` (allow ~90s on cold start with migrations).
+7. Health check path: `/actuator/health/liveness` (allow ~90s on cold start with migrations). Do **not** point Coolify at `/actuator/health` — that aggregate includes mail and will fail when SMTP (e.g. remote Mailpit on `:1025`) times out.
 8. Scale horizontally as needed — Quartz is clustered (`isClustered: true`); set a distinct `DIRECTWERK_QUEUE_WORKER_ID` per instance if you want predictable worker names in the admin UI.
    - **Known limitation**: `AltchaService`'s solved-challenge replay cache and `FixedWindowRateLimiter` (backing `AuthRateLimitFilter`/`BillingRateLimitFilter`) are per-instance, in-memory Caffeine caches with no shared backing store. Under N replicas behind a load balancer, ALTCHA proof-of-work replay prevention and every per-minute rate limit each degrade by a factor of N (e.g. one solved challenge can be replayed once per replica; a "10/minute" limit becomes ~10×N/minute in aggregate). This does not grant unauthorized access; it only weakens anti-abuse effectiveness. If this matters for your deployment's replica count, back both caches with a shared store (e.g. Postgres, mirroring the Quartz JDBC job store) before relying on them under multi-instance load.
 

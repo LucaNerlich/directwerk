@@ -198,6 +198,7 @@ public class SecurityConfig {
                 "/api/v1/public/**",
                 "/feeds/**",
                 "/actuator/health",
+                "/actuator/health/**",
                 "/actuator/info",
                 "/swagger-ui/**",
                 "/swagger-ui.html",

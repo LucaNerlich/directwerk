@@ -64,6 +64,19 @@ management:
         web:
             exposure:
                 include: health,info
+    endpoint:
+        health:
+            # Docker/Coolify probes must not depend on SMTP (Mailpit/Mailgun flakiness
+            # otherwise marks a running API unhealthy). Full /actuator/health still
+            # includes mail + s3 for humans; liveness stays process-only.
+            probes:
+                enabled: true
+    health:
+        group:
+            liveness:
+                include: ping
+            readiness:
+                include: db
 
 directwerk:
     security:
