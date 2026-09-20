@@ -6,12 +6,14 @@ import {useEffect, useState} from 'react'
 import {Alert, AlertDescription} from '@directwerk/ui/components/alert'
 import {Button} from '@directwerk/ui/components/button'
 import EmptyState from '@directwerk/ui/components/empty-state'
+import FeatureCard from '@directwerk/ui/components/feature-card'
 import ListPanel from '@directwerk/ui/components/list-panel'
 import PageHeader from '@directwerk/ui/components/page-header'
 import PageStack from '@directwerk/ui/components/page-stack'
 import SectionHeader from '@directwerk/ui/components/section-header'
 
 import AccessPolicyBadge from '@/components/AccessPolicyBadge'
+import CatalogMediaThumb from '@/components/CatalogMediaThumb'
 import CatalogRow, {LockedCatalogAction} from '@/components/CatalogRow'
 import {ListPanelSkeleton} from '@/components/ContentLoadingSkeleton'
 import {PublicFeedStrip} from '@/components/PublicFeedFooter'
@@ -42,7 +44,9 @@ export default function ArticlesPage() {
     useEffect(() => {
         setVisibleCount(PAGE_SIZE)
     }, [isAuthenticated, tenantHost])
-    const visibleArticles = articles.slice(0, visibleCount)
+    const featured = articles[0] ?? null
+    const listArticles = articles.slice(1, visibleCount)
+    const remainingAfterVisible = Math.max(0, articles.length - visibleCount)
 
     return (
         <PageStack className="page-container">
@@ -85,61 +89,132 @@ export default function ArticlesPage() {
                         description={`${articles.length} ${articles.length === 1 ? 'Beitrag' : 'Beiträge'} sichtbar.`}
                         title="Veröffentlichte Beiträge"
                     />
-                    <ListPanel>
-                        {visibleArticles.map((article) => {
-                            const href = `/articles/${encodeURIComponent(article.slug)}`
-                            const isLocked =
-                                article.accessPolicy === 'PAID' && article.body === null
-                            return (
-                                <CatalogRow
-                                    key={article.id}
-                                    href={href}
-                                    title={article.title}
-                                    badge={
+                    {featured !== null ? (
+                        <FeatureCard
+                            eyebrow="Neueste"
+                            title={
+                                <Link
+                                    className="hover:underline"
+                                    href={`/articles/${encodeURIComponent(featured.slug)}`}
+                                >
+                                    {featured.title}
+                                </Link>
+                            }
+                            description={
+                                <>
+                                    <span className="inline-flex flex-wrap items-center gap-2">
                                         <AccessPolicyBadge
-                                            policy={article.accessPolicy}
+                                            policy={featured.accessPolicy}
                                             isEntitled={
-                                                article.accessPolicy === 'PAID'
-                                                    ? !isLocked
+                                                featured.accessPolicy === 'PAID'
+                                                    ? featured.body !== null
                                                     : undefined
                                             }
                                         />
-                                    }
-                                    metaItems={[
-                                        article.categories.length > 0
-                                            ? article.categories
+                                        {featured.categories.length > 0
+                                            ? featured.categories
                                                   .map((category) => category.name)
                                                   .join(', ')
-                                            : null,
-                                        formatPublishedAt(article.publishedAt),
-                                    ]}
-                                    excerpt={article.excerpt}
-                                    action={
-                                        article.body !== null ? (
-                                            <Button
-                                                nativeButton={false}
-                                                render={<Link href={href} />}
-                                                size="sm"
-                                                variant="outline"
-                                            >
-                                                Lesen
-                                            </Button>
-                                        ) : isLocked ? (
-                                            <LockedCatalogAction
-                                                isAuthenticated={isAuthenticated}
-                                                unlockHref={unlockTarget}
-                                            />
-                                        ) : (
-                                            <span className="max-w-32 text-right text-xs text-muted-foreground">
-                                                Kein Text
-                                            </span>
-                                        )
-                                    }
+                                            : null}
+                                        {formatPublishedAt(featured.publishedAt)}
+                                    </span>
+                                    {featured.excerpt !== null &&
+                                    featured.excerpt.length > 0 ? (
+                                        <span className="mt-2 line-clamp-3 block">
+                                            {featured.excerpt}
+                                        </span>
+                                    ) : null}
+                                </>
+                            }
+                        >
+                            <div className="flex flex-col gap-4 sm:flex-row sm:items-end">
+                                <CatalogMediaThumb
+                                    alt={featured.title}
+                                    priority
+                                    size="lg"
+                                    src={featured.heroImageUrl}
                                 />
-                            )
-                        })}
-                    </ListPanel>
-                    {visibleCount < articles.length ? (
+                                <div className="flex flex-wrap gap-2">
+                                    {featured.body !== null ? (
+                                        <Button
+                                            nativeButton={false}
+                                            render={
+                                                <Link
+                                                    href={`/articles/${encodeURIComponent(featured.slug)}`}
+                                                />
+                                            }
+                                        >
+                                            Lesen
+                                        </Button>
+                                    ) : featured.accessPolicy === 'PAID' ? (
+                                        <LockedCatalogAction
+                                            isAuthenticated={isAuthenticated}
+                                            unlockHref={unlockTarget}
+                                        />
+                                    ) : null}
+                                </div>
+                            </div>
+                        </FeatureCard>
+                    ) : null}
+                    {listArticles.length > 0 ? (
+                        <ListPanel>
+                            {listArticles.map((article) => {
+                                const href = `/articles/${encodeURIComponent(article.slug)}`
+                                const isLocked =
+                                    article.accessPolicy === 'PAID' && article.body === null
+                                return (
+                                    <CatalogRow
+                                        key={article.id}
+                                        href={href}
+                                        title={article.title}
+                                        imageUrl={article.heroImageUrl}
+                                        imageAlt={article.title}
+                                        badge={
+                                            <AccessPolicyBadge
+                                                policy={article.accessPolicy}
+                                                isEntitled={
+                                                    article.accessPolicy === 'PAID'
+                                                        ? !isLocked
+                                                        : undefined
+                                                }
+                                            />
+                                        }
+                                        metaItems={[
+                                            article.categories.length > 0
+                                                ? article.categories
+                                                      .map((category) => category.name)
+                                                      .join(', ')
+                                                : null,
+                                            formatPublishedAt(article.publishedAt),
+                                        ]}
+                                        excerpt={article.excerpt}
+                                        action={
+                                            article.body !== null ? (
+                                                <Button
+                                                    nativeButton={false}
+                                                    render={<Link href={href} />}
+                                                    size="sm"
+                                                    variant="outline"
+                                                >
+                                                    Lesen
+                                                </Button>
+                                            ) : isLocked ? (
+                                                <LockedCatalogAction
+                                                    isAuthenticated={isAuthenticated}
+                                                    unlockHref={unlockTarget}
+                                                />
+                                            ) : (
+                                                <span className="max-w-32 text-right text-xs text-muted-foreground">
+                                                    Kein Text
+                                                </span>
+                                            )
+                                        }
+                                    />
+                                )
+                            })}
+                        </ListPanel>
+                    ) : null}
+                    {remainingAfterVisible > 0 ? (
                         <div>
                             <Button
                                 onClick={() =>
@@ -148,7 +223,7 @@ export default function ArticlesPage() {
                                 type="button"
                                 variant="outline"
                             >
-                                Mehr anzeigen ({articles.length - visibleCount} weitere)
+                                Mehr anzeigen ({remainingAfterVisible} weitere)
                             </Button>
                         </div>
                     ) : null}

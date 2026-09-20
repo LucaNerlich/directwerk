@@ -7,6 +7,7 @@ import PageHeader from '@directwerk/ui/components/page-header'
 import SectionHeader from '@directwerk/ui/components/section-header'
 
 import AccessPolicyBadge from '@/components/AccessPolicyBadge'
+import CatalogMediaThumb from '@/components/CatalogMediaThumb'
 import ContentMetaLine from '@/components/ContentMetaLine'
 import DetailShell, {DetailLockedPanel} from '@/components/DetailShell'
 import {listMyEpisodes, listPublicEpisodes} from '@/lib/api/client'
@@ -105,28 +106,44 @@ export default function EpisodeDetailClient({
         >
             {episode !== null ? (
                 <article className="max-w-3xl space-y-6">
-                    <PageHeader
-                        actions={
-                            <AccessPolicyBadge
-                                policy={episode.accessPolicy}
-                                isEntitled={
-                                    episode.accessPolicy === 'PAID'
-                                        ? !isLocked
-                                        : undefined
+                    <div className="flex flex-col gap-6 sm:flex-row sm:items-start">
+                        <CatalogMediaThumb
+                            alt={episode.title}
+                            priority
+                            size="lg"
+                            src={episode.coverImageUrl}
+                        />
+                        <div className="min-w-0 flex-1">
+                            <PageHeader
+                                className="border-b-0 pb-0"
+                                actions={
+                                    <AccessPolicyBadge
+                                        policy={episode.accessPolicy}
+                                        isEntitled={
+                                            episode.accessPolicy === 'PAID'
+                                                ? !isLocked
+                                                : undefined
+                                        }
+                                    />
                                 }
+                                description={
+                                    <ContentMetaLine
+                                        items={[
+                                            episode.seriesSlug,
+                                            episode.formats.length > 0
+                                                ? episode.formats
+                                                      .map((format) => format.name)
+                                                      .join(', ')
+                                                : null,
+                                            formatPublishedAt(episode.publishedAt),
+                                            formatDuration(episode.durationSeconds),
+                                        ]}
+                                    />
+                                }
+                                title={title}
                             />
-                        }
-                        description={
-                            <ContentMetaLine
-                                items={[
-                                    episode.seriesSlug,
-                                    formatPublishedAt(episode.publishedAt),
-                                    formatDuration(episode.durationSeconds),
-                                ]}
-                            />
-                        }
-                        title={title}
-                    />
+                        </div>
+                    </div>
                     <section className="flex flex-col gap-3 rounded-xl border bg-card p-5">
                         <SectionHeader title="Player" />
                         {episode.audioCdnUrl !== null ? (

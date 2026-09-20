@@ -975,6 +975,8 @@ export interface PublicArticle {
     excerpt: string | null
     seoDescription: string | null
     heroAssetId: number | null
+    /** Public CDN hero image; null when private or unset. */
+    heroImageUrl: string | null
     accessPolicy: AccessPolicy
     requiredLevelSortOrder: number | null
     publishedAt: string | null
@@ -1005,6 +1007,10 @@ export interface PublicEpisode {
     requiredLevelSortOrder: number | null
     publishedAt: string | null
     audioCdnUrl: string | null
+    /** Public CDN cover (episode → format → series); null when private or unset. */
+    coverImageUrl: string | null
+    formats: PublicFormat[]
+    categories: PublicCategory[]
 }
 
 // ---------------------------------------------------------------------------

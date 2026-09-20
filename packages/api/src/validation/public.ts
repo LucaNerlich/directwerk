@@ -273,6 +273,11 @@ export function createPublicContentParsers(policy: PublicContentPolicy) {
                 value.heroAssetId === undefined ||
                 isPositiveSafeInteger(value.heroAssetId)
             ) ||
+            !(
+                value.heroImageUrl === null ||
+                value.heroImageUrl === undefined ||
+                isNullableString(value.heroImageUrl, 2048)
+            ) ||
             accessPolicy === null ||
             !isNullableNonNegativeSafeInteger(value.requiredLevelSortOrder) ||
             !isNullableString(value.publishedAt, 64) ||
@@ -291,6 +296,12 @@ export function createPublicContentParsers(policy: PublicContentPolicy) {
             return null
         }
 
+        const heroImageUrl =
+            typeof value.heroImageUrl === 'string' &&
+            isAllowedFeedUrl(value.heroImageUrl)
+                ? value.heroImageUrl
+                : null
+
         return {
             id: value.id,
             slug: value.slug,
@@ -302,6 +313,7 @@ export function createPublicContentParsers(policy: PublicContentPolicy) {
                 value.heroAssetId === undefined || value.heroAssetId === null
                     ? null
                     : value.heroAssetId,
+            heroImageUrl,
             accessPolicy,
             requiredLevelSortOrder: value.requiredLevelSortOrder,
             publishedAt: value.publishedAt,
@@ -378,7 +390,12 @@ export function createPublicContentParsers(policy: PublicContentPolicy) {
             accessPolicy === null ||
             !isNullableNonNegativeSafeInteger(value.requiredLevelSortOrder) ||
             !isNullableString(value.publishedAt, 64) ||
-            !isNullableString(value.audioCdnUrl, 4096)
+            !isNullableString(value.audioCdnUrl, 4096) ||
+            !(
+                value.coverImageUrl === null ||
+                value.coverImageUrl === undefined ||
+                isNullableString(value.coverImageUrl, 2048)
+            )
         ) {
             return null
         }
@@ -390,6 +407,26 @@ export function createPublicContentParsers(policy: PublicContentPolicy) {
             value.audioCdnUrl !== null && isAllowedFeedUrl(value.audioCdnUrl)
                 ? value.audioCdnUrl
                 : null
+        const coverImageUrl =
+            typeof value.coverImageUrl === 'string' &&
+            isAllowedFeedUrl(value.coverImageUrl)
+                ? value.coverImageUrl
+                : null
+
+        const rawFormats = Array.isArray(value.formats) ? value.formats : []
+        const rawCategories = Array.isArray(value.categories) ? value.categories : []
+        if (rawFormats.length > 100 || rawCategories.length > 100) {
+            return null
+        }
+        const formats = parseBoundedArray(rawFormats, 100, parseEmbeddedPublicFormat)
+        const categories = parseBoundedArray(
+            rawCategories,
+            100,
+            parsePublicCategoryInternal,
+        )
+        if (formats === null || categories === null) {
+            return null
+        }
 
         return {
             id: value.id,
@@ -413,6 +450,9 @@ export function createPublicContentParsers(policy: PublicContentPolicy) {
             requiredLevelSortOrder: value.requiredLevelSortOrder,
             publishedAt: value.publishedAt,
             audioCdnUrl,
+            coverImageUrl,
+            formats,
+            categories,
         }
     }
 
@@ -485,6 +525,28 @@ function parsePublicFormat(value: unknown): PublicFormat | null {
     return {
         ...base,
         description: value.description,
+    }
+}
+
+/** Embedded episode formats: public has description, me/portal may omit it. */
+function parseEmbeddedPublicFormat(value: unknown): PublicFormat | null {
+    const base = parseFeedFormat(value)
+    if (base === null || !isRecord(value)) {
+        return null
+    }
+    if (
+        value.description !== undefined &&
+        value.description !== null &&
+        !isNullableString(value.description, 4000)
+    ) {
+        return null
+    }
+    return {
+        ...base,
+        description:
+            value.description === undefined || value.description === null
+                ? null
+                : value.description,
     }
 }
 

@@ -4915,6 +4915,7 @@ export interface components {
             audioCdnUrl?: string;
             formats?: components["schemas"]["PublicFormatView"][];
             categories?: components["schemas"]["PublicCategoryView"][];
+            coverImageUrl?: string;
         };
         ResponseListPublicEpisodeView: {
             /** Format: int32 */
@@ -4952,6 +4953,7 @@ export interface components {
             /** Format: date-time */
             publishedAt?: string;
             categories?: components["schemas"]["PublicCategoryView"][];
+            heroImageUrl?: string;
         };
         ResponseListPublicArticleView: {
             /** Format: int32 */
@@ -5315,6 +5317,7 @@ export interface components {
             audioCdnUrl?: string;
             formats?: components["schemas"]["FormatView"][];
             categories?: components["schemas"]["CategoryView"][];
+            coverImageUrl?: string;
         };
         ResponseListMeEpisodeView: {
             /** Format: int32 */
@@ -5362,6 +5365,7 @@ export interface components {
             /** Format: date-time */
             publishedAt?: string;
             categories?: components["schemas"]["PublicCategoryView"][];
+            heroImageUrl?: string;
         };
         ResponseListMeArticleView: {
             /** Format: int32 */

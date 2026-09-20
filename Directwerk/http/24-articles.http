@@ -213,6 +213,7 @@ Accept: application/json
     client.test("List public articles", function() {
         client.assert(response.status === 200, "Expected 200");
         client.assert(Array.isArray(response.body.data), "Expected public articles array");
+        // Optional heroImageUrl: public CDN hero when attached.
     });
 %}
 

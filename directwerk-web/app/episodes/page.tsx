@@ -6,12 +6,14 @@ import {useEffect, useState} from 'react'
 import {Alert, AlertDescription} from '@directwerk/ui/components/alert'
 import {Button} from '@directwerk/ui/components/button'
 import EmptyState from '@directwerk/ui/components/empty-state'
+import FeatureCard from '@directwerk/ui/components/feature-card'
 import ListPanel, {ListPanelRow} from '@directwerk/ui/components/list-panel'
 import PageHeader from '@directwerk/ui/components/page-header'
 import PageStack from '@directwerk/ui/components/page-stack'
 import SectionHeader from '@directwerk/ui/components/section-header'
 
 import AccessPolicyBadge from '@/components/AccessPolicyBadge'
+import CatalogMediaThumb from '@/components/CatalogMediaThumb'
 import CatalogRow, {LockedCatalogAction} from '@/components/CatalogRow'
 import ContentMetaLine from '@/components/ContentMetaLine'
 import {ListPanelSkeleton} from '@/components/ContentLoadingSkeleton'
@@ -44,11 +46,14 @@ export default function EpisodesPage() {
     useEffect(() => {
         setVisibleCount(PAGE_SIZE)
     }, [isAuthenticated, tenantHost])
-    const visibleEpisodes = episodes.slice(0, visibleCount)
+    const featured = episodes[0] ?? null
+    const listEpisodes = episodes.slice(1, visibleCount)
+    const remainingAfterVisible = Math.max(0, episodes.length - visibleCount)
 
     return (
         <PageStack className="page-container">
             <PageHeader
+                eyebrow="Podcast"
                 title="Folgen"
                 description={
                     isAuthenticated
@@ -137,77 +142,145 @@ export default function EpisodesPage() {
                             />
                         ) : (
                             <>
-                            <ListPanel>
-                                {visibleEpisodes.map((episode) => {
-                                    const href = `/episodes/${encodeURIComponent(episode.slug)}`
-                                    const isLocked =
-                                        episode.accessPolicy === 'PAID' &&
-                                        episode.audioCdnUrl === null
-                                    return (
-                                        <CatalogRow
-                                            key={episode.id}
-                                            href={href}
-                                            title={
-                                                <>
-                                                    {episode.episodeNumber !== null
-                                                        ? `#${episode.episodeNumber} `
-                                                        : ''}
-                                                    {episode.title}
-                                                </>
-                                            }
-                                            badge={
+                                {featured !== null ? (
+                                    <FeatureCard
+                                        eyebrow="Neueste"
+                                        title={
+                                            <Link
+                                                className="hover:underline"
+                                                href={`/episodes/${encodeURIComponent(featured.slug)}`}
+                                            >
+                                                {featured.episodeNumber !== null
+                                                    ? `#${featured.episodeNumber} `
+                                                    : ''}
+                                                {featured.title}
+                                            </Link>
+                                        }
+                                        description={
+                                            <span className="inline-flex flex-wrap items-center gap-2">
                                                 <AccessPolicyBadge
-                                                    policy={episode.accessPolicy}
+                                                    policy={featured.accessPolicy}
                                                     isEntitled={
-                                                        episode.accessPolicy === 'PAID'
-                                                            ? !isLocked
+                                                        featured.accessPolicy === 'PAID'
+                                                            ? featured.audioCdnUrl !== null
                                                             : undefined
                                                     }
                                                 />
-                                            }
-                                            metaItems={[
-                                                episode.seriesSlug,
-                                                formatPublishedAt(episode.publishedAt),
-                                                formatDuration(episode.durationSeconds),
-                                            ]}
-                                            action={
-                                                episode.audioCdnUrl !== null ? (
+                                                {featured.seriesSlug}
+                                                {formatPublishedAt(featured.publishedAt)}
+                                                {formatDuration(featured.durationSeconds)}
+                                            </span>
+                                        }
+                                    >
+                                        <div className="flex flex-col gap-4 sm:flex-row sm:items-end">
+                                            <CatalogMediaThumb
+                                                alt={featured.title}
+                                                priority
+                                                size="lg"
+                                                src={featured.coverImageUrl}
+                                            />
+                                            <div className="flex flex-wrap gap-2">
+                                                {featured.audioCdnUrl !== null ? (
                                                     <Button
                                                         nativeButton={false}
-                                                        render={<Link href={href} />}
-                                                        size="sm"
-                                                        variant="outline"
+                                                        render={
+                                                            <Link
+                                                                href={`/episodes/${encodeURIComponent(featured.slug)}`}
+                                                            />
+                                                        }
                                                     >
                                                         Anhören
                                                     </Button>
-                                                ) : isLocked ? (
+                                                ) : featured.accessPolicy === 'PAID' ? (
                                                     <LockedCatalogAction
                                                         isAuthenticated={isAuthenticated}
                                                         unlockHref={unlockTarget}
                                                     />
-                                                ) : (
-                                                    <span className="max-w-32 text-right text-xs text-muted-foreground">
-                                                        Kein Audio
-                                                    </span>
-                                                )
+                                                ) : null}
+                                            </div>
+                                        </div>
+                                    </FeatureCard>
+                                ) : null}
+                                {listEpisodes.length > 0 ? (
+                                    <ListPanel>
+                                        {listEpisodes.map((episode) => {
+                                            const href = `/episodes/${encodeURIComponent(episode.slug)}`
+                                            const isLocked =
+                                                episode.accessPolicy === 'PAID' &&
+                                                episode.audioCdnUrl === null
+                                            return (
+                                                <CatalogRow
+                                                    key={episode.id}
+                                                    href={href}
+                                                    title={
+                                                        <>
+                                                            {episode.episodeNumber !== null
+                                                                ? `#${episode.episodeNumber} `
+                                                                : ''}
+                                                            {episode.title}
+                                                        </>
+                                                    }
+                                                    imageUrl={episode.coverImageUrl}
+                                                    imageAlt={episode.title}
+                                                    badge={
+                                                        <AccessPolicyBadge
+                                                            policy={episode.accessPolicy}
+                                                            isEntitled={
+                                                                episode.accessPolicy === 'PAID'
+                                                                    ? !isLocked
+                                                                    : undefined
+                                                            }
+                                                        />
+                                                    }
+                                                    metaItems={[
+                                                        episode.seriesSlug,
+                                                        episode.formats.length > 0
+                                                            ? episode.formats
+                                                                  .map((format) => format.name)
+                                                                  .join(', ')
+                                                            : null,
+                                                        formatPublishedAt(episode.publishedAt),
+                                                        formatDuration(episode.durationSeconds),
+                                                    ]}
+                                                    action={
+                                                        episode.audioCdnUrl !== null ? (
+                                                            <Button
+                                                                nativeButton={false}
+                                                                render={<Link href={href} />}
+                                                                size="sm"
+                                                                variant="outline"
+                                                            >
+                                                                Anhören
+                                                            </Button>
+                                                        ) : isLocked ? (
+                                                            <LockedCatalogAction
+                                                                isAuthenticated={isAuthenticated}
+                                                                unlockHref={unlockTarget}
+                                                            />
+                                                        ) : (
+                                                            <span className="max-w-32 text-right text-xs text-muted-foreground">
+                                                                Kein Audio
+                                                            </span>
+                                                        )
+                                                    }
+                                                />
+                                            )
+                                        })}
+                                    </ListPanel>
+                                ) : null}
+                                {remainingAfterVisible > 0 ? (
+                                    <div>
+                                        <Button
+                                            onClick={() =>
+                                                setVisibleCount((current) => current + PAGE_SIZE)
                                             }
-                                        />
-                                    )
-                                })}
-                            </ListPanel>
-                            {visibleCount < episodes.length ? (
-                                <div>
-                                    <Button
-                                        onClick={() =>
-                                            setVisibleCount((current) => current + PAGE_SIZE)
-                                        }
-                                        type="button"
-                                        variant="outline"
-                                    >
-                                        Mehr anzeigen ({episodes.length - visibleCount} weitere)
-                                    </Button>
-                                </div>
-                            ) : null}
+                                            type="button"
+                                            variant="outline"
+                                        >
+                                            Mehr anzeigen ({remainingAfterVisible} weitere)
+                                        </Button>
+                                    </div>
+                                ) : null}
                             </>
                         )}
                     </section>

@@ -40,6 +40,29 @@ class PublicEpisodeViewMapperTest {
     private PublicEpisodeViewMapper mapper;
 
     @Test
+    void publicViewExposesPublicCoverUrl() throws Exception {
+        MediaAsset cover = coverAsset(12L);
+        Episode episode = episode(cover, Set.of());
+        when(episode.getAccessPolicy()).thenReturn(AccessPolicy.FREE);
+        when(episodeMediaApi.publicCdnUrl(cover))
+                .thenReturn(Optional.of(URI.create("https://cdn.test/covers/ep.jpg").toURL()));
+
+        assertThat(mapper.toPublicView(episode).coverImageUrl())
+                .isEqualTo("https://cdn.test/covers/ep.jpg");
+    }
+
+    @Test
+    void portalViewExposesPublicCoverUrl() throws Exception {
+        MediaAsset cover = coverAsset(12L);
+        Episode episode = episode(cover, Set.of());
+        when(episodeMediaApi.publicCdnUrl(cover))
+                .thenReturn(Optional.of(URI.create("https://cdn.test/covers/ep.jpg").toURL()));
+
+        assertThat(mapper.toPortalView(episode, null).coverImageUrl())
+                .isEqualTo("https://cdn.test/covers/ep.jpg");
+    }
+
+    @Test
     void studioViewExposesPublicEpisodeCoverUrl() throws Exception {
         MediaAsset cover = coverAsset(12L);
         Episode episode = episode(cover, Set.of());

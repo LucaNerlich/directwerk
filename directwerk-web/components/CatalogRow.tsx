@@ -4,6 +4,7 @@ import type {ReactNode} from 'react'
 import {buttonVariants} from '@directwerk/ui/components/button'
 import {ListPanelRow} from '@directwerk/ui/components/list-panel'
 
+import CatalogMediaThumb from '@/components/CatalogMediaThumb'
 import ContentMetaLine from '@/components/ContentMetaLine'
 
 /**
@@ -33,8 +34,8 @@ export function LockedCatalogAction({
 }
 
 /**
- * One row pattern for episodes and articles: title link with badge, meta line
- * (`Gruppe · Datum · Dauer`), optional excerpt, right-side CTA. Used inside a
+ * One row pattern for episodes and articles: optional thumb, title link with
+ * badge, meta line, optional excerpt, right-side CTA. Used inside a
  * `ListPanel` on both catalog list pages.
  */
 export default function CatalogRow({
@@ -43,6 +44,8 @@ export default function CatalogRow({
     badge,
     metaItems = [],
     excerpt,
+    imageUrl,
+    imageAlt,
     action,
 }: {
     href: string
@@ -50,23 +53,28 @@ export default function CatalogRow({
     badge?: ReactNode
     metaItems?: Array<ReactNode | null | undefined | false>
     excerpt?: string | null
+    imageUrl?: string | null
+    imageAlt?: string
     action: ReactNode
 }): React.JSX.Element {
     return (
         <ListPanelRow>
-            <div className="min-w-0 flex-1">
-                <div className="flex flex-wrap items-center gap-2">
-                    <Link className="font-medium hover:underline" href={href}>
-                        {title}
-                    </Link>
-                    {badge}
+            <div className="flex min-w-0 flex-1 items-start gap-3">
+                <CatalogMediaThumb alt={imageAlt ?? ''} src={imageUrl} />
+                <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                        <Link className="font-medium hover:underline" href={href}>
+                            {title}
+                        </Link>
+                        {badge}
+                    </div>
+                    <ContentMetaLine items={metaItems} />
+                    {excerpt !== undefined && excerpt !== null && excerpt.length > 0 ? (
+                        <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">
+                            {excerpt}
+                        </p>
+                    ) : null}
                 </div>
-                <ContentMetaLine items={metaItems} />
-                {excerpt !== undefined && excerpt !== null && excerpt.length > 0 ? (
-                    <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">
-                        {excerpt}
-                    </p>
-                ) : null}
             </div>
             <div className="flex shrink-0 items-center gap-2">{action}</div>
         </ListPanelRow>

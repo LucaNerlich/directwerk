@@ -63,6 +63,7 @@ export function buildPodcastEpisodeJsonLd(input: {
         description: plainText(input.episode.description, 500),
         datePublished: input.episode.publishedAt ?? undefined,
         duration: durationIso8601(input.episode.durationSeconds),
+        image: input.episode.coverImageUrl ?? undefined,
         partOfSeries: {
             '@type': 'PodcastSeries',
             name: input.episode.seriesSlug,
@@ -87,5 +88,6 @@ export function buildArticleJsonLd(input: {
             input.article.excerpt ??
             plainText(input.article.body, 500),
         datePublished: input.article.publishedAt ?? undefined,
+        image: input.article.heroImageUrl ?? undefined,
     }
 }

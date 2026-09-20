@@ -47,6 +47,10 @@ export async function generateMetadata({
                 description,
                 type: 'article',
                 publishedTime: episode.publishedAt ?? undefined,
+                images:
+                    episode.coverImageUrl !== null
+                        ? [{url: episode.coverImageUrl}]
+                        : undefined,
             },
         }
     } catch {

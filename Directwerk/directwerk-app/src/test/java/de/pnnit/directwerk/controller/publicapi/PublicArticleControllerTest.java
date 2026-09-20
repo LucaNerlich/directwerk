@@ -59,6 +59,7 @@ class PublicArticleControllerTest {
                 article.getExcerpt(),
                 article.getSeoDescription(),
                 null,
+                null,
                 article.getAccessPolicy().name(),
                 article.getRequiredLevelSortOrder(),
                 article.getPublishedAt(),

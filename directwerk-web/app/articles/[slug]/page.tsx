@@ -45,6 +45,10 @@ export async function generateMetadata({
                 description,
                 type: 'article',
                 publishedTime: article.publishedAt ?? undefined,
+                images:
+                    article.heroImageUrl !== null
+                        ? [{url: article.heroImageUrl}]
+                        : undefined,
             },
         }
     } catch {
