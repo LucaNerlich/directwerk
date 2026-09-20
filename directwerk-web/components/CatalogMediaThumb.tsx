@@ -30,7 +30,7 @@ export default function CatalogMediaThumb({
                     : 'size-14 shrink-0 rounded-lg object-cover'
             }
             height={pixels}
-            priority={priority}
+            preload={priority}
             sizes={size === 'lg' ? '(max-width: 640px) 80vw, 320px' : '56px'}
             src={src}
             width={pixels}
