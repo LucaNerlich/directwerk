@@ -13,6 +13,7 @@ function articleWithTitle(title: string): PublicArticle {
         excerpt: null,
         seoDescription: null,
         heroAssetId: null,
+        heroImageUrl: null,
         accessPolicy: 'FREE',
         requiredLevelSortOrder: null,
         publishedAt: null,

@@ -6,6 +6,7 @@ import {useSyncExternalStore} from 'react'
 import PageHeader from '@directwerk/ui/components/page-header'
 
 import AccessPolicyBadge from '@/components/AccessPolicyBadge'
+import CatalogMediaThumb from '@/components/CatalogMediaThumb'
 import ContentMetaLine from '@/components/ContentMetaLine'
 import DetailShell, {DetailLockedPanel} from '@/components/DetailShell'
 import {sanitizeContentHtml} from '@/lib/sanitizeContentHtml'
@@ -93,6 +94,12 @@ export default function ArticleDetailClient({
         >
             {article !== null ? (
                 <article className="max-w-3xl space-y-8">
+                    <CatalogMediaThumb
+                        alt={article.title}
+                        priority
+                        size="lg"
+                        src={article.heroImageUrl}
+                    />
                     <PageHeader
                         title={article.title}
                         description={

@@ -11,6 +11,7 @@ public record PublicArticleView(
         String excerpt,
         String seoDescription,
         Long heroAssetId,
+        String heroImageUrl,
         String accessPolicy,
         Integer requiredLevelSortOrder,
         Instant publishedAt,

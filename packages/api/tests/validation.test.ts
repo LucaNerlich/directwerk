@@ -396,6 +396,7 @@ describe('createPublicContentParsers', () => {
                     excerpt: null,
                     seoDescription: null,
                     heroAssetId: null,
+                    heroImageUrl: null,
                     accessPolicy: 'FREE',
                     requiredLevelSortOrder: null,
                     publishedAt: null,
@@ -427,6 +428,65 @@ describe('createPublicContentParsers', () => {
             ],
         })
         expect(parsed?.data[0]?.audioCdnUrl).toBeNull()
+    })
+
+    it('keeps safe cover and hero image URLs', () => {
+        const articles = parsers.parsePublicArticleListEnvelope({
+            statusCode: 200,
+            data: [
+                {
+                    id: 1,
+                    slug: 'hello',
+                    title: 'Hello',
+                    body: null,
+                    excerpt: null,
+                    seoDescription: null,
+                    heroAssetId: 9,
+                    heroImageUrl: 'https://cdn.example.com/hero.jpg',
+                    accessPolicy: 'FREE',
+                    requiredLevelSortOrder: null,
+                    publishedAt: null,
+                    categories: [],
+                },
+            ],
+        })
+        expect(articles?.data[0]?.heroImageUrl).toBe(
+            'https://cdn.example.com/hero.jpg',
+        )
+
+        const episodes = parsers.parsePublicEpisodeListEnvelope({
+            statusCode: 200,
+            data: [
+                {
+                    id: 2,
+                    seriesId: 1,
+                    seriesSlug: 's',
+                    slug: 'e',
+                    title: 'E',
+                    description: null,
+                    durationSeconds: null,
+                    accessPolicy: 'FREE',
+                    requiredLevelSortOrder: null,
+                    publishedAt: null,
+                    audioCdnUrl: null,
+                    coverImageUrl: 'https://cdn.example.com/cover.jpg',
+                    formats: [
+                        {
+                            id: 1,
+                            slug: 'main',
+                            name: 'Main',
+                            requiredLevelSortOrder: null,
+                            sortOrder: 0,
+                        },
+                    ],
+                    categories: [],
+                },
+            ],
+        })
+        expect(episodes?.data[0]?.coverImageUrl).toBe(
+            'https://cdn.example.com/cover.jpg',
+        )
+        expect(episodes?.data[0]?.formats[0]?.name).toBe('Main')
     })
 
     it('coerces unsafe series feed URLs to null without failing the series', () => {
@@ -481,6 +541,7 @@ describe('createPublicContentParsers', () => {
                         excerpt: null,
                         seoDescription: null,
                         heroAssetId: null,
+                        heroImageUrl: null,
                         accessPolicy: 'FREE',
                         requiredLevelSortOrder: null,
                         publishedAt: null,

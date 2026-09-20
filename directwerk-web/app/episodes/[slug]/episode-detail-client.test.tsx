@@ -25,6 +25,9 @@ function buildEpisode(description: string): PublicEpisode {
         requiredLevelSortOrder: null,
         publishedAt: null,
         audioCdnUrl: null,
+        coverImageUrl: null,
+        formats: [],
+        categories: [],
     }
 }
 

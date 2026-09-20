@@ -49,6 +49,7 @@ public class PublicEpisodeViewMapper {
                 episode.getRequiredLevelSortOrder(),
                 episode.getPublishedAt(),
                 audioCdnUrl,
+                resolvePublicCoverImageUrl(episode),
                 episode.getFormats().stream()
                         .sorted(Comparator.comparingInt(Format::getSortOrder).thenComparing(Format::getId))
                         .map(PublicEpisodeViewMapper::toPublicFormatView)
@@ -74,6 +75,7 @@ public class PublicEpisodeViewMapper {
                 episode.getRequiredLevelSortOrder(),
                 episode.getPublishedAt(),
                 audioUrl != null ? audioUrl.toString() : null,
+                resolvePublicCoverImageUrl(episode),
                 episode.getFormats().stream()
                         .sorted(FormatView.DISPLAY_ORDER)
                         .map(FormatView::of)
@@ -89,10 +91,6 @@ public class PublicEpisodeViewMapper {
         // Same artwork rule as RSS enclosures (episode → format → series) and the same
         // public-only URL policy as list thumbnails: private covers stay null, editors
         // keep resolving those per asset through the media preview endpoint.
-        String coverImageUrl = episodeCoverResolver.resolveCoverAsset(episode)
-                .flatMap(episodeMediaApi::publicCdnUrl)
-                .map(URL::toString)
-                .orElse(null);
         return new EpisodeView(
                 episode.getId(),
                 episode.getSeries().getId(),
@@ -103,7 +101,7 @@ public class PublicEpisodeViewMapper {
                 episode.getDescription(),
                 episode.getAudioAsset() != null ? episode.getAudioAsset().getId() : null,
                 episode.getCoverAsset() != null ? episode.getCoverAsset().getId() : null,
-                coverImageUrl,
+                resolvePublicCoverImageUrl(episode),
                 episode.getDurationSeconds(),
                 episode.getAccessPolicy().name(),
                 episode.getRequiredLevelSortOrder(),
@@ -123,6 +121,13 @@ public class PublicEpisodeViewMapper {
                 episode.getCreatedAt(),
                 episode.getUpdatedAt()
         );
+    }
+
+    private String resolvePublicCoverImageUrl(Episode episode) {
+        return episodeCoverResolver.resolveCoverAsset(episode)
+                .flatMap(episodeMediaApi::publicCdnUrl)
+                .map(URL::toString)
+                .orElse(null);
     }
 
     private static PublicFormatView toPublicFormatView(Format format) {

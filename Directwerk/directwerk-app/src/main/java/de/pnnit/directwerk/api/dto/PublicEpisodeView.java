@@ -16,6 +16,7 @@ public record PublicEpisodeView(
         Integer requiredLevelSortOrder,
         Instant publishedAt,
         String audioCdnUrl,
+        String coverImageUrl,
         List<PublicFormatView> formats,
         List<PublicCategoryView> categories
 ) {
