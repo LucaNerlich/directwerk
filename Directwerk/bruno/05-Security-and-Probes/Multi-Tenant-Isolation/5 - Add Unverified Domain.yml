@@ -1,0 +1,49 @@
+info:
+  name: 5 - Add Unverified Domain
+  type: http
+  seq: 5
+
+http:
+  method: POST
+  url: "{{baseUrl}}/api/v1/tenant/domains"
+  headers:
+    - name: Host
+      value: "{{tenantAHost}}"
+    - name: Content-Type
+      value: application/json
+  body:
+    type: json
+    data: |-
+      {
+        "host": "unverified-{{isolationTimestamp}}.alpha-show-a.local",
+        "isPrimary": false
+      }
+  auth:
+    type: bearer
+    token: "{{tenantAAccessToken}}"
+
+runtime:
+  scripts:
+    - type: before-request
+      code: bru.setVar("isolationTimestamp", Date.now());
+    - type: tests
+      code: |-
+        test("returns expected status", function() {
+          expect(res.getStatus() === 201).to.equal(true);
+        });
+  actions:
+    - type: set-variable
+      phase: after-response
+      selector:
+        expression: res.body.data && res.body.data.host
+        method: jsonq
+      variable:
+        name: isolationUnverifiedHost
+        scope: runtime
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true

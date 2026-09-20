@@ -1,0 +1,37 @@
+info:
+  name: 6b - Publish Article (Notify Subscribers)
+  type: http
+  seq: 61
+
+http:
+  method: POST
+  url: "{{baseUrl}}/api/v1/articles/{{articleId}}/publish"
+  headers:
+    - name: Content-Type
+      value: application/json
+  body:
+    type: json
+    data: |-
+      {
+        "notifySubscribers": true
+      }
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("returns expected status", function() {
+          expect(res.getStatus() === 200 || res.getStatus() === 403).to.equal(true);
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true
+
+docs: |-
+  Requires EMAIL_NOTIFY module. Run 02-Me/8 (subscriber opt-in) and 06-Platform-Admin/Modules/7 first.
+  Sends only on first publish (email_notified_at guard).

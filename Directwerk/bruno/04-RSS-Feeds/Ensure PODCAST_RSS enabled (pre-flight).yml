@@ -1,0 +1,32 @@
+info:
+  name: Ensure PODCAST_RSS enabled (pre-flight)
+  type: http
+  seq: 6
+
+http:
+  method: POST
+  url: "{{baseUrl}}/api/v1/platform/tenants/{{tenantAId}}/modules/PODCAST_RSS/activate"
+  auth:
+    type: bearer
+    token: "{{platformAccessToken}}"
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("PODCAST_RSS enabled before gate checks", function() {
+          expect(res.getStatus()).to.equal(200);
+          expect(res.body.data.enabledModules.includes("PODCAST_RSS")).to.equal(true);
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true
+
+docs: |-
+  Guarantees tenant A starts the gate-check chain with PODCAST_RSS on.
+  Each *(PODCAST_RSS off)* request then deactivates in pre-request and restores in post-response,
+  so a failed assertion cannot leave the module off for later folders.

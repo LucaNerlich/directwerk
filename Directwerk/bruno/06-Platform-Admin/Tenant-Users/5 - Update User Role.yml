@@ -1,0 +1,38 @@
+info:
+  name: 5 - Update User Role
+  type: http
+  seq: 5
+
+http:
+  method: PATCH
+  url: "{{baseUrl}}/api/v1/platform/tenants/{{tenantAId}}/users/{{editorUserId}}"
+  headers:
+    - name: Content-Type
+      value: application/json
+  body:
+    type: json
+    data: |-
+      {
+        "role": "TENANT_ADMIN"
+      }
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("returns expected status", function() {
+          expect(res.getStatus() === 200 || res.getStatus() === 400 || res.getStatus() === 404 || res.getStatus() === 409).to.equal(true);
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true
+
+docs: |-
+  Replaces editor@alpha-show.local's roles with a single TENANT_ADMIN role. 400 VALIDATION_ERROR for
+  an unknown role name or PLATFORM_ADMIN. 409 CANNOT_DEACTIVATE_LAST_ADMIN if demoting the tenant's
+  only active admin away from TENANT_ADMIN (doesn't apply here since the seeded editor isn't an admin).

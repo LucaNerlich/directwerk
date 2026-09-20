@@ -1,0 +1,31 @@
+info:
+  name: 3 - Media Storage Summary
+  type: http
+  seq: 20
+
+http:
+  method: GET
+  url: "{{baseUrl}}/api/v1/media/storage-summary"
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("returns expected status", function() {
+          expect(res.getStatus() === 200).to.equal(true);
+        });
+        test("exposes totals and buckets", function() {
+          expect(res.body.data).to.have.property("totalAssets");
+          expect(res.body.data).to.have.property("totalBytes");
+          expect(res.body.data.buckets).to.be.an("array");
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true
+
+docs: Aggregate media storage usage for the studio overview widgets.

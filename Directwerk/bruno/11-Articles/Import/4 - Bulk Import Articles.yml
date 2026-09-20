@@ -1,0 +1,38 @@
+info:
+  name: 4 - Bulk Import Articles
+  type: http
+  seq: 4
+
+http:
+  method: POST
+  url: "{{baseUrl}}/api/v1/articles/import/bulk"
+  headers:
+    - name: Content-Type
+      value: application/json
+  body:
+    type: json
+    data: |-
+      {
+        "feedUrl": "https://example.com/articles.xml",
+        "accessPolicy": "FREE",
+        "importHero": true,
+        "importInlineImages": true
+      }
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("returns expected status", function() {
+          expect([202, 400, 403]).to.include(res.getStatus());
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true
+
+docs: Queues article-rss-bulk-import for every not-yet-imported item. Emails a summary when finished.

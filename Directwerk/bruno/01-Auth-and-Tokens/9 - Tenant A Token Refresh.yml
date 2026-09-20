@@ -1,0 +1,43 @@
+info:
+  name: 9 - Tenant A Token Refresh
+  type: http
+  seq: 9
+
+http:
+  method: POST
+  url: "{{baseUrl}}/oauth2/token"
+  headers:
+    - name: Content-Type
+      value: application/x-www-form-urlencoded
+    - name: Host
+      value: "{{tenantAHost}}"
+  body:
+    type: form-urlencoded
+    data:
+      - name: grant_type
+        value: refresh_token
+      - name: refresh_token
+        value: "{{tenantARefreshToken}}"
+      - name: client_id
+        value: "{{oauthClientId}}"
+  auth:
+    type: basic
+    username: "{{oauthClientId}}"
+    password: "{{oauthClientSecret}}"
+
+runtime:
+  scripts:
+    - type: after-response
+      code: bru.setVar("tenantAAccessToken", res.body.access_token);
+    - type: tests
+      code: |-
+        test("returns expected status", function() {
+          expect(res.getStatus() === 200).to.equal(true);
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true

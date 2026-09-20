@@ -1,0 +1,6 @@
+info:
+  name: Tenants
+  type: folder
+  seq: 1
+
+request: {}

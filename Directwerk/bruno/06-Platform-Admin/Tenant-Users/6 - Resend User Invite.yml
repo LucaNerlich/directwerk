@@ -1,0 +1,30 @@
+info:
+  name: 6 - Resend User Invite
+  type: http
+  seq: 6
+
+http:
+  method: POST
+  url: "{{baseUrl}}/api/v1/platform/tenants/{{tenantAId}}/users/{{editorUserId}}/resend-invite"
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: after-response
+      code: bru.setVar("inviteToken", res.body.data && res.body.data.inviteToken);
+    - type: tests
+      code: |-
+        test("returns expected status", function() {
+          expect(res.getStatus() === 201 || res.getStatus() === 409).to.equal(true);
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true
+
+docs: |-
+  Only succeeds for memberships in INVITED status. The seeded editor is ACTIVE, so expect 409
+  INVALID_MEMBERSHIP_STATE unless you point editorUserId at a pending invite first.

@@ -1,0 +1,15 @@
+info:
+  name: 03-Public
+  type: folder
+  seq: 3
+
+request:
+  headers:
+    - name: Host
+      value: "{{tenantAHost}}"
+
+docs:
+  content: |-
+    No auth anywhere in this folder -- tenant is resolved purely from the Host header.
+    Includes public podcast endpoints and public article list/detail (PublicArticleController).
+  type: text/markdown

@@ -1,0 +1,18 @@
+info:
+  name: 16-Newsletter-Lists
+  type: folder
+  seq: 16
+
+request:
+  headers:
+    - name: Host
+      value: "{{tenantAHost}}"
+  auth:
+    type: bearer
+    token: "{{tenantAdminAccessToken}}"
+
+docs:
+  content: |-
+    Newsletter lists (EMAIL_NOTIFY) — list (GET), create (POST), public subscribe,
+    and article list replacement. Run 01-Auth-and-Tokens (tenant admin) first.
+  type: text/markdown

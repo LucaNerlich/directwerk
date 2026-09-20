@@ -1,0 +1,30 @@
+info:
+  name: 2 - List Media
+  type: http
+  seq: 2
+
+http:
+  method: GET
+  url: "{{baseUrl}}/api/v1/media"
+  params:
+    - name: limit
+      value: "20"
+      type: query
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("returns expected status", function() {
+          expect(res.getStatus() === 200 || res.getStatus() === 503).to.equal(true);
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true
+
+docs: Default list excludes tombstoned assets (ARCHIVED, PENDING_DELETE). Pass ?status=ARCHIVED to inspect deleted rows. Filter by folder with ?folderId=1, include descendants with ?folderId=1&recursive=true, or list root-level assets with ?unassignedOnly=true.

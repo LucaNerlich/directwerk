@@ -1,0 +1,25 @@
+info:
+  name: 3 - OpenAPI Docs
+  type: http
+  seq: 3
+
+http:
+  method: GET
+  url: "{{baseUrl}}/v3/api-docs"
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("returns expected status", function() {
+          expect(res.getStatus() === 200).to.equal(true);
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true
+
+docs: Disabled in the prod profile.

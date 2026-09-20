@@ -1,0 +1,45 @@
+info:
+  name: 7 - Create Media Folder
+  type: http
+  seq: 7
+
+http:
+  method: POST
+  url: "{{baseUrl}}/api/v1/media/folders"
+  headers:
+    - name: Content-Type
+      value: application/json
+  body:
+    type: json
+    data: |-
+      {
+        "name": "Interviews",
+        "parentId": null
+      }
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("returns expected status", function() {
+          expect(res.getStatus() === 201 || res.getStatus() === 503).to.equal(true);
+        });
+  actions:
+    - type: set-variable
+      phase: after-response
+      selector:
+        expression: res.body.data && res.body.data.id
+        method: jsonq
+      variable:
+        name: mediaFolderId
+        scope: runtime
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true
+
+docs: Folder names are unique per parent (case-sensitive). Omit parentId (or null) for a root-level folder. Max nesting depth is 8.

@@ -1,0 +1,39 @@
+info:
+  name: 4 - Update Series
+  type: http
+  seq: 4
+
+http:
+  method: PUT
+  url: "{{baseUrl}}/api/v1/series/{{podcastSeriesId}}"
+  headers:
+    - name: Content-Type
+      value: application/json
+  body:
+    type: json
+    data: |-
+      {
+        "slug": "{{podcastSeriesSlug}}",
+        "title": "Harness Podcast Updated",
+        "description": "<p>Updated show notes.</p>",
+        "language": "de",
+        "itunesCategory": "News",
+        "itunesExplicit": false,
+        "status": "DRAFT"
+      }
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("returns expected status", function() {
+          expect(res.getStatus() === 200 || res.getStatus() === 409).to.equal(true);
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true

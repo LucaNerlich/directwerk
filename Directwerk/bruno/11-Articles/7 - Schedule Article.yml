@@ -1,0 +1,38 @@
+info:
+  name: 7 - Schedule Article
+  type: http
+  seq: 7
+
+http:
+  method: POST
+  url: "{{baseUrl}}/api/v1/articles/{{articleId}}/schedule"
+  headers:
+    - name: Content-Type
+      value: application/json
+  body:
+    type: json
+    data: |-
+      {
+        "scheduledAt": "{{scheduledAt}}",
+        "notifySubscribers": false
+      }
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: before-request
+      code: bru.setVar("scheduledAt", new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString());
+    - type: tests
+      code: |-
+        test("returns expected status", function() {
+          expect(res.getStatus()).to.equal(200);
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true
+
+docs: Article must be DRAFT. Run on a fresh draft or after Unpublish.

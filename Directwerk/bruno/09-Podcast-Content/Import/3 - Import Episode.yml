@@ -1,0 +1,46 @@
+info:
+  name: 3 - Import Episode
+  type: http
+  seq: 3
+
+http:
+  method: POST
+  url: "{{baseUrl}}/api/v1/podcast/import/episodes"
+  headers:
+    - name: Content-Type
+      value: application/json
+  body:
+    type: json
+    data: |-
+      {
+        "seriesId": {{podcastSeriesId}},
+        "feedUrl": "https://example.com/podcast.xml",
+        "guid": "import-guid-{{podcastEpisodeSlug}}",
+        "slug": "{{podcastEpisodeSlug}}-import",
+        "title": "Imported Harness Episode",
+        "description": "<p>Imported from RSS.</p>",
+        "accessPolicy": "FREE",
+        "publishedAt": "2026-07-20T12:00:00Z",
+        "audioUrl": "https://example.com/episode.mp3"
+      }
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("returns expected status", function() {
+          expect([201, 200, 400, 403, 404, 503]).to.include(res.getStatus());
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true
+
+docs: |-
+  Streams the episode audio (and optional cover) to S3, then creates a draft episode.
+  Pass publishedAt from the RSS pubDate so published episodes keep their original order.
+  Re-importing the same guid returns 200 with alreadyImported=true.

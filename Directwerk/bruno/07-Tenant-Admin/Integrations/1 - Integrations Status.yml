@@ -1,0 +1,35 @@
+info:
+  name: 1 - Integrations Status
+  type: http
+  seq: 1
+
+http:
+  method: GET
+  url: "{{baseUrl}}/api/v1/tenant/integrations/status"
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("returns expected status", function() {
+          expect(res.getStatus() === 200).to.equal(true);
+        });
+        test("exposes emailNotify analytics and stripe snapshots", function() {
+          expect(res.body.data).to.have.property("emailNotify");
+          expect(res.body.data).to.have.property("analytics");
+          expect(res.body.data).to.have.property("stripe");
+          expect(res.body.data.emailNotify).to.have.property("moduleEnabled");
+          expect(res.body.data.emailNotify).to.have.property("platformSenderReady");
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true
+
+docs: |-
+  Tenant-admin integrations hub snapshot: EMAIL_NOTIFY readiness, optional Mailgun
+  connection (without API key), analytics module flag, and Stripe Connect status.

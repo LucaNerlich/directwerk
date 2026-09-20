@@ -1,0 +1,53 @@
+info:
+  name: 1 - Enqueue Job
+  type: http
+  seq: 1
+
+http:
+  method: POST
+  url: "{{baseUrl}}/api/v1/platform/queue/jobs"
+  headers:
+    - name: Content-Type
+      value: application/json
+  body:
+    type: json
+    data: |-
+      {
+        "queue": "email",
+        "payload": {
+          "note": "created by the Bruno harness"
+        },
+        "priority": 5,
+        "tenantId": {{tenantAId}},
+        "correlationId": "bruno-harness",
+        "metadata": {
+          "source": "bruno"
+        }
+      }
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("returns expected status", function() {
+          expect(res.getStatus() === 201).to.equal(true);
+        });
+  actions:
+    - type: set-variable
+      phase: after-response
+      selector:
+        expression: res.body.data && res.body.data.id
+        method: jsonq
+      variable:
+        name: queueJobId
+        scope: runtime
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true
+
+docs: Operational/manual escape hatch -- prefer typed producers in normal app flow. Not covered by http/*.http; built directly from PlatformQueueController.

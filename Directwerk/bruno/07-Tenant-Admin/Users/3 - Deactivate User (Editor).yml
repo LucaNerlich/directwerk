@@ -1,0 +1,33 @@
+info:
+  name: 3 - Deactivate User (Editor)
+  type: http
+  seq: 3
+
+http:
+  method: POST
+  url: "{{baseUrl}}/api/v1/tenant/users/{{editorUserId}}/deactivate"
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("returns expected status", function() {
+          expect(res.getStatus() === 200 || res.getStatus() === 404 || res.getStatus() === 409).to.equal(true);
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true
+
+docs: |-
+  Deactivates editor@alpha-show.local's own membership in your tenant -- they lose access
+  immediately (checked on every /api/v1/tenant/**, /api/v1/me*, /api/v1/probes/**,
+  /api/v1/security/** request, even with an already-issued, unexpired JWT). 404
+  TENANT_MEMBERSHIP_NOT_FOUND if run before request 2 above captures editorUserId.
+  409 CANNOT_DEACTIVATE_SELF if editorUserId happens to equal your own user id; 409
+  CANNOT_DEACTIVATE_LAST_ADMIN if you swap editorUserId for the id of the tenant's last
+  active TENANT_ADMIN -- try that against tenantAAdminEmail's own id to see the guard fire.

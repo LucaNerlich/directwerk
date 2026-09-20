@@ -1,0 +1,37 @@
+info:
+  name: 2 - List Tenant Users
+  type: http
+  seq: 2
+
+http:
+  method: GET
+  url: "{{baseUrl}}/api/v1/tenant/users"
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("returns expected status", function() {
+          expect(res.getStatus() === 200).to.equal(true);
+        });
+  actions:
+    - type: set-variable
+      phase: after-response
+      selector:
+        expression: (res.body.data.find(u => u.email === bru.getEnvVar("editorEmail")) || {}).userId
+        method: jsonq
+      variable:
+        name: editorUserId
+        scope: runtime
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true
+
+docs: |-
+  Captures editorUserId (a safe, non-admin target) for the Deactivate/Reactivate User requests below.
+  Each user includes userId, email, name, roles[], and status (ACTIVE | INVITED | DISABLED).

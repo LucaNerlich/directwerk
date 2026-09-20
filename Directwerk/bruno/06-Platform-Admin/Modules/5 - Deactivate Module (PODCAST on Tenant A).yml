@@ -1,0 +1,26 @@
+info:
+  name: 5 - Deactivate Module (PODCAST on Tenant A)
+  type: http
+  seq: 5
+
+http:
+  method: DELETE
+  url: "{{baseUrl}}/api/v1/platform/tenants/{{tenantAId}}/modules/PODCAST"
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("returns expected status", function() {
+          expect(res.getStatus() === 200).to.equal(true);
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true
+
+docs: Deliberately toggled back on by request 6 -- this pair only demonstrates the activate/deactivate contract, it isn't meant to leave PODCAST off for later folders.

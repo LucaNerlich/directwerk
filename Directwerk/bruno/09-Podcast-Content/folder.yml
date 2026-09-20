@@ -1,0 +1,18 @@
+info:
+  name: 09-Podcast-Content
+  type: folder
+  seq: 9
+
+request:
+  headers:
+    - name: Host
+      value: "{{tenantAHost}}"
+  auth:
+    type: bearer
+    token: "{{tenantAAccessToken}}"
+
+docs:
+  content: |-
+    Formats require PODCAST + TENANT_ADMIN. Categories require DIGITAL_CONTENT + TENANT_ADMIN (shared with Write desk).
+    Series/Episodes accept EDITOR or TENANT_ADMIN and require PODCAST active (06-Platform-Admin/Modules).
+  type: text/markdown

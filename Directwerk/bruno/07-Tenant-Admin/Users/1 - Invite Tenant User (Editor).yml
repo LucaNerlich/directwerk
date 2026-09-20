@@ -1,0 +1,37 @@
+info:
+  name: 1 - Invite Tenant User (Editor)
+  type: http
+  seq: 1
+
+http:
+  method: POST
+  url: "{{baseUrl}}/api/v1/tenant/users/invite"
+  headers:
+    - name: Content-Type
+      value: application/json
+  body:
+    type: json
+    data: |-
+      {
+        "email": "new-editor@alpha-show.local",
+        "name": "New Editor",
+        "role": "EDITOR"
+      }
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: after-response
+      code: bru.setVar("inviteToken", res.body.data && res.body.data.inviteToken);
+    - type: tests
+      code: |-
+        test("returns expected status", function() {
+          expect(res.getStatus() === 201 || res.getStatus() === 409).to.equal(true);
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true

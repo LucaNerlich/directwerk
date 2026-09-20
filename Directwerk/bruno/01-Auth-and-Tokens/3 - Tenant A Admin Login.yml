@@ -1,0 +1,49 @@
+info:
+  name: 3 - Tenant A Admin Login
+  type: http
+  seq: 3
+
+http:
+  method: POST
+  url: "{{baseUrl}}/oauth2/token"
+  headers:
+    - name: Content-Type
+      value: application/x-www-form-urlencoded
+    - name: Host
+      value: "{{tenantAHost}}"
+  body:
+    type: form-urlencoded
+    data:
+      - name: grant_type
+        value: password
+      - name: username
+        value: "{{tenantAAdminEmail}}"
+      - name: password
+        value: "{{seedPassword}}"
+      - name: client_id
+        value: "{{oauthClientId}}"
+  auth:
+    type: basic
+    username: "{{oauthClientId}}"
+    password: "{{oauthClientSecret}}"
+
+runtime:
+  scripts:
+    - type: after-response
+      code: |-
+        bru.setVar("tenantAAccessToken", res.body.access_token);
+        bru.setVar("tenantARefreshToken", res.body.refresh_token);
+    - type: tests
+      code: |-
+        test("returns expected status", function() {
+          expect(res.getStatus() === 200).to.equal(true);
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true
+
+docs: Host header binds tenant_id=alpha-show-a into the JWT. Populates tenantAAccessToken, used by 07-Tenant-Admin, 08-Media, 09-Podcast-Content.

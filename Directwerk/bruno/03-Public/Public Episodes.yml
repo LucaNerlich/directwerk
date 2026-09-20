@@ -1,0 +1,32 @@
+info:
+  name: Public Episodes
+  type: http
+  seq: 10
+
+http:
+  method: GET
+  url: "{{baseUrl}}/api/v1/public/episodes"
+  params:
+    - name: seriesId
+      value: "{{podcastSeriesId}}"
+      type: query
+      disabled: true
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("returns expected status", function() {
+          expect(res.getStatus() === 200).to.equal(true);
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true
+
+docs: |-
+  seriesId query param is optional; enable it to filter to one series.
+  Each episode may include `coverImageUrl` (public CDN; episode → format → series artwork).

@@ -1,0 +1,24 @@
+info:
+  name: 2 - Create Newsletter List
+  type: http
+  seq: 2
+
+http:
+  method: POST
+  url: "{{baseUrl}}/api/v1/newsletter-lists"
+  body:
+    type: json
+    data: |-
+      {
+        "slug": "weekly",
+        "name": "Weekly",
+        "description": "Weekly digest"
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true

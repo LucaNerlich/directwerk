@@ -1,0 +1,38 @@
+info:
+  name: 3 - Update Format
+  type: http
+  seq: 3
+
+http:
+  method: PUT
+  url: "{{baseUrl}}/api/v1/formats/{{podcastFormatId}}"
+  headers:
+    - name: Content-Type
+      value: application/json
+  body:
+    type: json
+    data: |-
+      {
+        "slug": "{{podcastFormatSlug}}",
+        "name": "Harness Format Updated",
+        "sortOrder": 10,
+        "active": true
+      }
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("returns expected status", function() {
+          expect(res.getStatus() === 200).to.equal(true);
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true
+
+docs: Optional `coverAssetId` (READY PUBLIC IMAGE) sets default RSS artwork for episodes of this format.

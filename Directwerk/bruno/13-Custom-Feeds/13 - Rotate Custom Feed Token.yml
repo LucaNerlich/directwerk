@@ -1,0 +1,43 @@
+info:
+  name: 13 - Rotate Custom Feed Token
+  type: http
+  seq: 13
+
+http:
+  method: POST
+  url: "{{baseUrl}}/api/v1/me/feeds/{{customFeedId}}/rotate-token"
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: before-request
+      code: |-
+        const oldUrl = bru.getVar("customFeedUrl");
+        bru.setVar("oldCustomFeedUrl", oldUrl);
+    - type: after-response
+      code: |-
+        if (res.getStatus() === 200) {
+          bru.setVar("customFeedUrl", res.body.data.url);
+        }
+    - type: tests
+      code: |-
+        test("rotates the custom feed token", async function() {
+          expect(res.getStatus()).to.equal(200);
+          expect(res.body.data.url).to.include("/feeds/");
+          expect(res.body.data.url).to.match(/\.xml$/);
+
+          const oldUrl = bru.getVar("oldCustomFeedUrl");
+          if (oldUrl) {
+            const oldResponse = await fetch(oldUrl);
+            expect(oldResponse.status).to.equal(404);
+          }
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true
+
+docs: Invalidates the previous capability URL. Allowed without FEED_BUILDER.

@@ -1,0 +1,49 @@
+info:
+  name: 1 - Create Upload URL
+  type: http
+  seq: 1
+
+http:
+  method: POST
+  url: "{{baseUrl}}/api/v1/media/upload-url"
+  headers:
+    - name: Content-Type
+      value: application/json
+  body:
+    type: json
+    data: |-
+      {
+        "filename": "harness-cover.jpg",
+        "mimeType": "image/jpeg",
+        "sizeBytes": 1024,
+        "assetType": "IMAGE",
+        "intendedVisibility": "PUBLIC",
+        "scope": "TENANT_PUBLIC"
+      }
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("returns expected status", function() {
+          expect(res.getStatus() === 201 || res.getStatus() === 503).to.equal(true);
+        });
+  actions:
+    - type: set-variable
+      phase: after-response
+      selector:
+        expression: res.body.data && res.body.data.assetId
+        method: jsonq
+      variable:
+        name: mediaAssetId
+        scope: runtime
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true
+
+docs: "Final key after confirm: {tenant}/{public|private}/{type}/{uuid}_{sanitizedFilename}.{ext}"

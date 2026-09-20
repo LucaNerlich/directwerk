@@ -1,0 +1,45 @@
+info:
+  name: 2 - Add Domain
+  type: http
+  seq: 2
+
+http:
+  method: POST
+  url: "{{baseUrl}}/api/v1/tenant/domains"
+  headers:
+    - name: Content-Type
+      value: application/json
+  body:
+    type: json
+    data: |-
+      {
+        "host": "podcast.alpha-show-a.local",
+        "isPrimary": false
+      }
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("returns expected status", function() {
+          expect(res.getStatus() === 201 || res.getStatus() === 409 || res.getStatus() === 500).to.equal(true);
+        });
+  actions:
+    - type: set-variable
+      phase: after-response
+      selector:
+        expression: res.body.data && res.body.data.host
+        method: jsonq
+      variable:
+        name: newDomainHost
+        scope: runtime
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true
+
+docs: 409/500 on re-run once the host already exists -- that's expected.

@@ -1,0 +1,12 @@
+info:
+  name: Content-Email-Templates
+  type: folder
+  seq: 6
+
+request: {}
+
+docs:
+  content: |-
+    Per-tenant HTML overrides for CONTENT_EPISODE_PUBLISHED and CONTENT_ARTICLE_PUBLISHED emails.
+    Requires EMAIL_NOTIFY module active for the tenant.
+  type: text/markdown

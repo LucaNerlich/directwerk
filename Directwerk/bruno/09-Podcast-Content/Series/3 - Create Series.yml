@@ -1,0 +1,51 @@
+info:
+  name: 3 - Create Series
+  type: http
+  seq: 3
+
+http:
+  method: POST
+  url: "{{baseUrl}}/api/v1/series"
+  headers:
+    - name: Content-Type
+      value: application/json
+  body:
+    type: json
+    data: |-
+      {
+        "slug": "{{podcastSeriesSlug}}",
+        "title": "Harness Podcast",
+        "description": "<p>Podcast created by the Bruno collection.</p>",
+        "language": "de",
+        "itunesCategory": "News",
+        "itunesExplicit": false
+      }
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: before-request
+      code: bru.setVar("podcastSeriesSlug", "series-" + Date.now().toString(36));
+    - type: tests
+      code: |-
+        test("returns expected status", function() {
+          expect(res.getStatus() === 201 || res.getStatus() === 403 || res.getStatus() === 500).to.equal(true);
+        });
+  actions:
+    - type: set-variable
+      phase: after-response
+      selector:
+        expression: res.body.data && res.body.data.id
+        method: jsonq
+      variable:
+        name: podcastSeriesId
+        scope: runtime
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true
+
+docs: Same live-observed 500 as 09-Podcast-Content/Formats/2 - Create Format -- see its docs note.

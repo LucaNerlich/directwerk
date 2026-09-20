@@ -1,0 +1,28 @@
+info:
+  name: 9 - Unpublish Article
+  type: http
+  seq: 9
+
+http:
+  method: POST
+  url: "{{baseUrl}}/api/v1/articles/{{articleId}}/unpublish"
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("returns expected status", function() {
+          expect(res.getStatus() === 200 || res.getStatus() === 400 || res.getStatus() === 404).to.equal(true);
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true
+
+docs: |-
+  Requires a PUBLISHED article — run 6 - Publish Article first.
+  400 INVALID_PUBLICATION_TRANSITION if status is not PUBLISHED.

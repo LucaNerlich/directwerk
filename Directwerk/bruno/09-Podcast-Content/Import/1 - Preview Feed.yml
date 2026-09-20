@@ -1,0 +1,37 @@
+info:
+  name: 1 - Preview Feed
+  type: http
+  seq: 1
+
+http:
+  method: POST
+  url: "{{baseUrl}}/api/v1/podcast/import/preview"
+  headers:
+    - name: Content-Type
+      value: application/json
+  body:
+    type: json
+    data: |-
+      {
+        "feedUrl": "https://example.com/podcast.xml"
+      }
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("returns expected status", function() {
+          expect([200, 400, 403]).to.include(res.getStatus());
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true
+
+docs: |-
+  Parses a public RSS feed and returns channel + episode metadata. Does not download audio or images.
+  A live public URL is required for 200; example.com is expected to fail parse/download with RSS_FEED_*.

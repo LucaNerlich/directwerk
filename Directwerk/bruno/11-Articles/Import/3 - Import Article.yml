@@ -1,0 +1,43 @@
+info:
+  name: 3 - Import Article
+  type: http
+  seq: 3
+
+http:
+  method: POST
+  url: "{{baseUrl}}/api/v1/articles/import/articles"
+  headers:
+    - name: Content-Type
+      value: application/json
+  body:
+    type: json
+    data: |-
+      {
+        "feedUrl": "https://example.com/articles.xml",
+        "guid": "example-guid-1",
+        "slug": "imported-article",
+        "title": "Imported article",
+        "body": "<p>Hello</p>",
+        "excerpt": "Hello",
+        "accessPolicy": "FREE",
+        "importHero": false,
+        "importInlineImages": false
+      }
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("returns expected status", function() {
+          expect([200, 201, 400, 403]).to.include(res.getStatus());
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true
+
+docs: Imports one feed item as a DRAFT article. Idempotent on feedUrl+guid import identity.

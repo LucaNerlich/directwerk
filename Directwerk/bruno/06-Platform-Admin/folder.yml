@@ -1,0 +1,13 @@
+info:
+  name: 06-Platform-Admin
+  type: folder
+  seq: 6
+
+request:
+  auth:
+    type: bearer
+    token: "{{platformAccessToken}}"
+
+docs:
+  content: No Host header anywhere in this folder -- platform admin is tenant-free (TenantContext cleared).
+  type: text/markdown

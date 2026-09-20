@@ -1,0 +1,28 @@
+info:
+  name: 7 - Get Notification Preferences
+  type: http
+  seq: 7
+
+http:
+  method: GET
+  url: "{{baseUrl}}/api/v1/me/notification-preferences"
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("returns expected status", function() {
+          expect(res.getStatus() === 200).to.equal(true);
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true
+
+docs: |-
+  Returns the stored preference plus whether EMAIL_NOTIFY is currently available for this tenant.
+  Opt-in via PATCH is rejected with 403 FEATURE_NOT_ENABLED when emailNotifyAvailable is false.

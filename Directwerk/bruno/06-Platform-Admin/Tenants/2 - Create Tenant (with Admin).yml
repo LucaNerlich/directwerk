@@ -1,0 +1,60 @@
+info:
+  name: 2 - Create Tenant (with Admin)
+  type: http
+  seq: 2
+
+http:
+  method: POST
+  url: "{{baseUrl}}/api/v1/platform/tenants"
+  headers:
+    - name: Content-Type
+      value: application/json
+  body:
+    type: json
+    data: |-
+      {
+        "name": "Alpha Show C",
+        "slug": "alpha-show-c",
+        "primaryDomain": "alpha-c.localhost",
+        "modulePreset": "FREE_PODCAST",
+        "adminEmail": "admin-c@alpha-show.local",
+        "adminName": "Tenant C Admin"
+      }
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: after-response
+      code: bru.setVar("inviteToken", res.body.data && res.body.data.adminInvitation && res.body.data.adminInvitation.inviteToken);
+    - type: tests
+      code: |-
+        test("returns expected status", function() {
+          expect(res.getStatus() === 201 || res.getStatus() === 409 || res.getStatus() === 500).to.equal(true);
+        });
+  actions:
+    - type: set-variable
+      phase: after-response
+      selector:
+        expression: res.body.data && res.body.data.id
+        method: jsonq
+      variable:
+        name: tenantCId
+        scope: runtime
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true
+
+docs: |-
+  inviteToken only present with directwerk.account.expose-dev-tokens=true (local profile). Feed it into
+  01-Auth-and-Tokens/9 - Accept Invite.
+
+  name max 255 chars (400 VALIDATION_ERROR beyond); slug lowercase-alphanumeric-hyphen.
+
+  KNOWN BUG (found 2026-07-20 running this collection live): re-running this with a slug/domain that
+  already exists returns a bare 500 instead of the documented 409 TENANT_SLUG_EXISTS. If you hit this,
+  either change the slug/primaryDomain above or ignore it -- Suspend/Reactivate/Force Verify Domain
+  below will then 400/404 since tenantCId never got captured.

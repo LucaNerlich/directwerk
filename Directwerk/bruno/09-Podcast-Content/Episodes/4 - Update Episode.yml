@@ -1,0 +1,37 @@
+info:
+  name: 4 - Update Episode
+  type: http
+  seq: 4
+
+http:
+  method: PUT
+  url: "{{baseUrl}}/api/v1/episodes/{{podcastEpisodeId}}"
+  headers:
+    - name: Content-Type
+      value: application/json
+  body:
+    type: json
+    data: |-
+      {
+        "title": "Harness Episode Updated",
+        "description": "<p>Updated show notes.</p>",
+        "accessPolicy": "FREE"
+      }
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("returns expected status", function() {
+          expect(res.getStatus() === 200 || res.getStatus() === 400).to.equal(true);
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true
+
+docs: Optional `coverAssetId` on create/update (READY PUBLIC IMAGE) sets per-episode RSS artwork. Set `clearCoverAsset` to `true` on update to remove it.

@@ -1,0 +1,38 @@
+info:
+  name: 2 - Invite Platform Admin
+  type: http
+  seq: 2
+
+http:
+  method: POST
+  url: "{{baseUrl}}/api/v1/platform/admins/invite"
+  headers:
+    - name: Content-Type
+      value: application/json
+  body:
+    type: json
+    data: |-
+      {
+        "email": "second-admin@directwerk.local",
+        "name": "Second Platform Admin"
+      }
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: after-response
+      code: |-
+        bru.setVar("inviteToken", res.body.data && res.body.data.inviteToken);
+        bru.setVar("secondAdminUserId", res.body.data && res.body.data.userId);
+    - type: tests
+      code: |-
+        test("returns expected status", function() {
+          expect(res.getStatus() === 201).to.equal(true);
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true

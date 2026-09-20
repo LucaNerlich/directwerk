@@ -1,0 +1,10 @@
+info:
+  name: Multi-Tenant-Isolation
+  type: folder
+  seq: 10
+
+request: {}
+
+docs:
+  content: Asserts Host <-> SecurityContext tenant mismatch, platform denial, and unverified-domain routing. Client tenant headers (X-Tenant-Id) are intentionally ignored/unsupported.
+  type: text/markdown

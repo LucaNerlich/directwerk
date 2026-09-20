@@ -1,0 +1,28 @@
+info:
+  name: 11 - Private Custom Article Feed Disabled
+  type: http
+  seq: 11
+
+http:
+  method: GET
+  url: "{{customArticleFeedUrl}}"
+  headers:
+    - name: Accept
+      value: application/rss+xml
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("disabled custom feed is 404", function() {
+          expect(res.getStatus()).to.equal(404);
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true
+
+docs: Disabled custom feeds must not serve XML (no-store 404).

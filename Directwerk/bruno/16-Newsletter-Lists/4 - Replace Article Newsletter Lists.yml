@@ -1,0 +1,22 @@
+info:
+  name: 4 - Replace Article Newsletter Lists
+  type: http
+  seq: 6
+
+http:
+  method: PUT
+  url: "{{baseUrl}}/api/v1/articles/{{articleId}}/newsletter-lists"
+  body:
+    type: json
+    data: |-
+      {
+        "newsletterListIds": [{{newsletterListId}}]
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true

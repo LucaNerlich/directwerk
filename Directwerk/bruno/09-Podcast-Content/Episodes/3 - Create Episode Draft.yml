@@ -1,0 +1,50 @@
+info:
+  name: 3 - Create Episode Draft
+  type: http
+  seq: 1
+
+http:
+  method: POST
+  url: "{{baseUrl}}/api/v1/episodes"
+  headers:
+    - name: Content-Type
+      value: application/json
+  body:
+    type: json
+    data: |-
+      {
+        "seriesId": {{podcastSeriesId}},
+        "episodeNumber": 1,
+        "slug": "{{podcastEpisodeSlug}}",
+        "title": "Harness Episode",
+        "description": "<p>Show notes with <strong>allowed HTML</strong>.</p>",
+        "accessPolicy": "FREE",
+        "formatIds": [{{podcastFormatId}}]
+      }
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: before-request
+      code: bru.setVar("podcastEpisodeSlug", "episode-" + Date.now().toString(36));
+    - type: tests
+      code: |-
+        test("returns expected status", function() {
+          expect(res.getStatus() === 201 || res.getStatus() === 400 || res.getStatus() === 403).to.equal(true);
+        });
+  actions:
+    - type: set-variable
+      phase: after-response
+      selector:
+        expression: res.body.data && res.body.data.id
+        method: jsonq
+      variable:
+        name: podcastEpisodeId
+        scope: runtime
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true

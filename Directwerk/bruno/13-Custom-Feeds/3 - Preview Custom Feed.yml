@@ -1,0 +1,28 @@
+info:
+  name: 3 - Preview Custom Feed
+  type: http
+  seq: 3
+
+http:
+  method: GET
+  url: "{{baseUrl}}/api/v1/me/feeds/preview?formatIds={{podcastFormatId}}"
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("returns preview or module/format error", function() {
+          expect(res.getStatus()).to.equal(200);
+          expect(res.body.data.episodeCount).to.be.a("number");
+          expect(res.body.data.sampleTitles).to.be.an("array");
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true
+
+docs: GET /api/v1/me/feeds/preview?formatIds= — episode count after entitlement + format match.

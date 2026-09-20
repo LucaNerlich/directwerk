@@ -1,0 +1,34 @@
+info:
+  name: Private Enclosure (from captured feed URL)
+  type: http
+  seq: 5
+
+http:
+  method: GET
+  url: "{{privateEnclosureUrl}}"
+  headers:
+    - name: Accept
+      value: "*/*"
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("returns expected status", function() {
+          const status = res.getStatus();
+          expect(status === 302 || status === 403 || status === 404).to.equal(true);
+          if (status === 403) {
+            expect(res.body.errors[0].code).to.equal("FEATURE_NOT_ENABLED");
+          }
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true
+
+docs: |-
+  Derived from subscriberFeedUrl by replacing .xml with /e/{podcastEpisodeSlug}.mp3.
+  Requires PODCAST + PODCAST_RSS + SUBSCRIPTION.

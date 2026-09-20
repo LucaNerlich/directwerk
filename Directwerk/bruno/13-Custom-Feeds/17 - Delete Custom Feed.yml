@@ -1,0 +1,28 @@
+info:
+  name: 17 - Delete Custom Feed
+  type: http
+  seq: 17
+
+http:
+  method: DELETE
+  url: "{{baseUrl}}/api/v1/me/feeds/{{customFeedId}}"
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("deletes the custom feed", function() {
+          expect(res.getStatus()).to.equal(200);
+          expect(res.body.data.id).to.equal(Number(bru.getVar("customFeedId")));
+          expect(res.body.data.isDefault).to.equal(false);
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true
+
+docs: Withdraws the S3 snapshot then drops the row. Allowed without FEED_BUILDER.

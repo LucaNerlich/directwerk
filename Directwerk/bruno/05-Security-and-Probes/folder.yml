@@ -1,0 +1,13 @@
+info:
+  name: 05-Security-and-Probes
+  type: folder
+  seq: 5
+
+request:
+  headers:
+    - name: Host
+      value: "{{tenantAHost}}"
+
+docs:
+  content: No folder-level auth -- each request sets its own auth:bearer to demonstrate role differentiation.
+  type: text/markdown

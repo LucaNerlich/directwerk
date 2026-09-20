@@ -1,0 +1,31 @@
+info:
+  name: Ensure PODCAST_RSS enabled (cleanup)
+  type: http
+  seq: 12
+
+http:
+  method: POST
+  url: "{{baseUrl}}/api/v1/platform/tenants/{{tenantAId}}/modules/PODCAST_RSS/activate"
+  auth:
+    type: bearer
+    token: "{{platformAccessToken}}"
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("PODCAST_RSS enabled after gate checks", function() {
+          expect(res.getStatus()).to.equal(200);
+          expect(res.body.data.enabledModules.includes("PODCAST_RSS")).to.equal(true);
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true
+
+docs: |-
+  Belt-and-suspenders cleanup. Each off-request already restores in post-response;
+  this final activate still runs if the folder is executed to completion.

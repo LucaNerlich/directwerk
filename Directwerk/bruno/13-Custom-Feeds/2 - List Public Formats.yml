@@ -1,0 +1,31 @@
+info:
+  name: 2 - List Public Formats
+  type: http
+  seq: 2
+
+http:
+  method: GET
+  url: "{{baseUrl}}/api/v1/public/formats"
+
+runtime:
+  scripts:
+    - type: after-response
+      code: |-
+        if (res.getStatus() === 200 && Array.isArray(res.body.data) && res.body.data.length > 0 && !bru.getVar("podcastFormatId")) {
+          bru.setVar("podcastFormatId", res.body.data[0].id);
+        }
+    - type: tests
+      code: |-
+        test("returns formats", function() {
+          expect(res.getStatus()).to.equal(200);
+          expect(Array.isArray(res.body.data)).to.equal(true);
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true
+
+docs: Captures podcastFormatId when 09-Podcast-Content has not run yet.

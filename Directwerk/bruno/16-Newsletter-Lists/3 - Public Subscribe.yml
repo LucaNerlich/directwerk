@@ -1,0 +1,24 @@
+info:
+  name: 3c - Public Subscribe
+  type: http
+  seq: 5
+
+http:
+  method: POST
+  url: "{{baseUrl}}/api/v1/public/newsletter-lists/weekly/subscribe"
+  headers:
+    - name: Host
+      value: "{{tenantAHost}}"
+  body:
+    type: json
+    data: |-
+      {
+        "email": "reader@example.com"
+      }
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true

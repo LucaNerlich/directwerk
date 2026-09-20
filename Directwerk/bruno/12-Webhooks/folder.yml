@@ -1,0 +1,10 @@
+info:
+  name: 12-Webhooks
+  type: folder
+  seq: 12
+
+request: {}
+
+docs:
+  content: Inbound Stripe Connect webhooks — no JWT. Signature verification via Stripe-Signature.
+  type: text/markdown

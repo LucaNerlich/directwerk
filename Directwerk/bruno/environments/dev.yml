@@ -1,0 +1,33 @@
+variables:
+  - name: baseUrl
+    value: https://api-dev.example.com
+  - name: tenantAHost
+    value: tenant-a-dev.example.com
+  - name: tenantBHost
+    value: tenant-b-dev.example.com
+  - name: tenantASlug
+    value: tenant-a-dev
+  - name: tenantBSlug
+    value: tenant-b-dev
+  - name: platformClientId
+    value: directwerk-platform-admin
+  - name: oauthClientId
+    value: directwerk-tenant-frontend
+  - name: platformAdminEmail
+    value: platform-admin@example.com
+  - name: tenantAAdminEmail
+    value: admin-a@example.com
+  - name: tenantBAdminEmail
+    value: admin-b@example.com
+  - name: editorEmail
+    value: editor@example.com
+  - name: subscriberEmail
+    value: subscriber@example.com
+  - secret: true
+    name: platformClientSecret
+  - secret: true
+    name: oauthClientSecret
+  - secret: true
+    name: platformAdminPassword
+  - secret: true
+    name: seedPassword

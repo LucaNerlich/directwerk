@@ -1,0 +1,10 @@
+info:
+  name: 10-Health-and-Docs
+  type: folder
+  seq: 10
+
+request: {}
+
+docs:
+  content: No auth, no tenant Host needed anywhere in this folder.
+  type: text/markdown

@@ -1,0 +1,28 @@
+info:
+  name: Site Config (Tenant A)
+  type: http
+  seq: 1
+
+http:
+  method: GET
+  url: "{{baseUrl}}/api/v1/public/site-config"
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("returns expected status", function() {
+          expect(res.getStatus() === 200).to.equal(true);
+          if (res.body.data.analytics !== null && res.body.data.analytics !== undefined) {
+            expect(res.body.data.analytics).to.have.property("umamiWebsiteId");
+            expect(res.body.data.analytics).to.have.property("umamiHostUrl");
+            expect(res.body.data.analytics).to.have.property("umamiScriptUrl");
+          }
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true

@@ -1,0 +1,37 @@
+info:
+  name: 2 - Revoke Subscription
+  type: http
+  seq: 2
+
+http:
+  method: DELETE
+  url: "{{baseUrl}}/api/v1/tenant/subscriptions/{{subscriberSubscriptionId}}"
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("returns expected status", function() {
+          expect([200, 404, 502]).to.include(res.getStatus());
+          if (res.getStatus() === 200) {
+            expect(res.body.data.status).to.equal("CANCELED");
+          }
+          if (res.getStatus() === 502) {
+            expect(res.body.errors[0].code).to.equal("STRIPE_REQUEST_FAILED");
+          }
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true
+
+docs: |-
+  DELETE /api/v1/tenant/subscriptions/{id} — TenantSubscriptionController.
+  Marks the row CANCELED. For source=STRIPE with an external id, also cancels the
+  Stripe subscription when platform keys and a Connect account exist.
+  If Stripe cancel fails: 502 STRIPE_REQUEST_FAILED and the local row stays unchanged.
+  Local revoke still applies when the platform key is missing.

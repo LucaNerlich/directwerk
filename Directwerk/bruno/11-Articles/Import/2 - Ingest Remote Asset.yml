@@ -1,0 +1,35 @@
+info:
+  name: 2 - Ingest Remote Asset
+  type: http
+  seq: 2
+
+http:
+  method: POST
+  url: "{{baseUrl}}/api/v1/articles/import/assets"
+  headers:
+    - name: Content-Type
+      value: application/json
+  body:
+    type: json
+    data: |-
+      {
+        "sourceUrl": "http://127.0.0.1/secret.jpg",
+        "assetType": "IMAGE",
+        "visibility": "PUBLIC"
+      }
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("rejects private hosts", function() {
+          expect([400, 403, 503]).to.include(res.getStatus());
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true

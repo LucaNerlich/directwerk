@@ -1,0 +1,48 @@
+info:
+  name: 1 - List Tenants
+  type: http
+  seq: 1
+
+http:
+  method: GET
+  url: "{{baseUrl}}/api/v1/platform/tenants"
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("returns expected status", function() {
+          expect(res.getStatus() === 200).to.equal(true);
+        });
+
+        test("includes list metadata fields", function() {
+          const tenant = res.body.data.content.find(t => t.slug === "alpha-show-a");
+          expect(tenant).to.be.an("object");
+          expect(tenant.createdAt).to.be.a("string");
+          expect(tenant.primaryDomain).to.be.a("string");
+        });
+  actions:
+    - type: set-variable
+      phase: after-response
+      selector:
+        expression: (res.body.data.content.find(t => t.slug === "alpha-show-a") || {}).id
+        method: jsonq
+      variable:
+        name: tenantAId
+        scope: runtime
+    - type: set-variable
+      phase: after-response
+      selector:
+        expression: (res.body.data.content.find(t => t.slug === "alpha-show-b") || {}).id
+        method: jsonq
+      variable:
+        name: tenantBId
+        scope: runtime
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true

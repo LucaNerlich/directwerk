@@ -1,0 +1,34 @@
+info:
+  name: 1 - Stripe Status
+  type: http
+  seq: 1
+
+http:
+  method: GET
+  url: "{{baseUrl}}/api/v1/tenant/stripe/status"
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("returns Connect status fields", function() {
+          expect(res.getStatus() === 200).to.equal(true);
+          expect(["NOT_CONNECTED", "PENDING", "RESTRICTED", "CONNECTED"]).to.include(res.body.data.status);
+          expect(res.body.data).to.have.property("moduleEnabled");
+          expect(res.body.data).to.have.property("message");
+          expect(res.body.data).to.have.property("chargesEnabled");
+          expect(res.body.data).to.have.property("payoutsEnabled");
+          expect(res.body.data).to.have.property("detailsSubmitted");
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true
+
+docs: |-
+  GET /api/v1/tenant/stripe/status — TenantStripeController.
+  Real Connect snapshot. Without a stored account this stays NOT_CONNECTED.

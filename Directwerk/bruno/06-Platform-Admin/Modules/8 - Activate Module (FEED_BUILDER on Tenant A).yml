@@ -1,0 +1,26 @@
+info:
+  name: 8 - Activate Module (FEED_BUILDER on Tenant A)
+  type: http
+  seq: 8
+
+http:
+  method: POST
+  url: "{{baseUrl}}/api/v1/platform/tenants/{{tenantAId}}/modules/FEED_BUILDER/activate"
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("returns expected status", function() {
+          expect(res.getStatus() === 200 || res.getStatus() === 409).to.equal(true);
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true
+
+docs: Requires PODCAST_RSS and SUBSCRIPTION active on tenant A. Unlocks POST/PUT /api/v1/me/feeds custom feeds.

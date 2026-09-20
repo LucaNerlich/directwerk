@@ -1,0 +1,36 @@
+info:
+  name: 10 - Accept Invite
+  type: http
+  seq: 10
+
+http:
+  method: POST
+  url: "{{baseUrl}}/api/v1/auth/accept-invite"
+  headers:
+    - name: Content-Type
+      value: application/json
+  body:
+    type: json
+    data: |-
+      {
+        "token": "{{inviteToken}}",
+        "password": "{{seedPassword}}",
+        "name": "Invited User"
+      }
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("returns expected status", function() {
+          expect(res.getStatus() === 200 || res.getStatus() === 400).to.equal(true);
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true
+
+docs: Set inviteToken first from a platform/tenant invite response's devToken (local-only expose-dev-tokens), e.g. 06-Platform-Admin/Tenants/Create Tenant, 08-Platform-Admin/Admins/Invite Platform Admin, or 07-Tenant-Admin/Users/Invite Tenant User.

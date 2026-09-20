@@ -1,0 +1,13 @@
+info:
+  name: Stripe
+  type: folder
+  seq: 20
+
+request:
+  auth: inherit
+
+docs:
+  content: |-
+    TenantStripeController + TenantBillingDashboardController.
+    Status and dashboard work without platform keys; onboard needs STRIPE_SECRET_KEY.
+  type: text/markdown

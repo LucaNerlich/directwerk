@@ -1,0 +1,32 @@
+info:
+  name: 1 - List Tenant Media
+  type: http
+  seq: 1
+
+http:
+  method: GET
+  url: "{{baseUrl}}/api/v1/platform/tenants/{{tenantAId}}/media"
+  params:
+    - name: limit
+      value: "50"
+      type: query
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("returns expected status", function() {
+          expect(res.getStatus() === 200).to.equal(true);
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true
+
+docs: |-
+  limit is 1..100 (validated via @Min/@Max + @Validated): out-of-range values
+  return 400 VALIDATION_ERROR in the standard envelope.

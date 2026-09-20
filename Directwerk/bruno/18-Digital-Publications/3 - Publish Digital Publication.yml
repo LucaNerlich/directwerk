@@ -1,0 +1,26 @@
+info:
+  name: 3 - Publish Digital Publication
+  type: http
+  seq: 3
+
+http:
+  method: POST
+  url: "{{baseUrl}}/api/v1/digital-publications/{{digitalPublicationId}}/publish"
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("publishes or rejects with domain error", function() {
+          expect([200, 400, 404].includes(res.getStatus())).to.equal(true);
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true
+
+docs: Transitions a DRAFT DigitalPublication to PUBLISHED for subscriber downloads.

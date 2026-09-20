@@ -1,0 +1,25 @@
+info:
+  name: 14 - Delete Default Feed Forbidden
+  type: http
+  seq: 14
+
+http:
+  method: DELETE
+  url: "{{baseUrl}}/api/v1/me/feeds/{{defaultFeedId}}"
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("default feed cannot be deleted", function() {
+          expect(res.getStatus()).to.equal(409);
+          expect(res.body.errors[0].code).to.equal("DEFAULT_FEED_NOT_DELETABLE");
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true

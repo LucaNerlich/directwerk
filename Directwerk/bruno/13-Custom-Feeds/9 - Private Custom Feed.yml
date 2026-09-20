@@ -1,0 +1,44 @@
+info:
+  name: 9 - Private Custom Feed
+  type: http
+  seq: 9
+
+http:
+  method: GET
+  url: "{{customFeedUrl}}"
+  headers:
+    - name: Accept
+      value: application/rss+xml
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("serves custom private RSS", async function() {
+          let status = res.getStatus();
+          let attempt = 0;
+          const maxAttempts = 5;
+
+          while (attempt < maxAttempts && status !== 200 && status !== 302) {
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            const retryResponse = await fetch(bru.getVar("customFeedUrl"));
+            status = retryResponse.status;
+            attempt++;
+          }
+
+          expect([200, 302]).to.include(status);
+          if (status === 200) {
+            expect(res.body).to.include("<rss");
+          }
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true
+
+docs: |-
+  Uses the absolute URL captured by Create Custom Feed. Channel title is the feed title.
+  Empty XML is valid. Requires PODCAST_RSS + FEED_BUILDER.

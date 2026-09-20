@@ -1,0 +1,28 @@
+info:
+  name: Get Tenant Branding
+  type: http
+  seq: 8
+
+http:
+  method: GET
+  url: "{{baseUrl}}/api/v1/platform/tenants/{{tenantAId}}/branding"
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("returns expected status", function() {
+          expect(res.getStatus()).to.equal(200);
+          expect(res.body.data.umamiWebsiteId !== undefined).to.equal(true);
+          expect(res.body.data.umamiHostUrl !== undefined).to.equal(true);
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true
+
+docs: Read-only branding incl. Umami website ID + host for platform ops debugging.

@@ -1,0 +1,32 @@
+info:
+  name: Security Platform Probe
+  type: http
+  seq: 2
+
+http:
+  method: GET
+  url: "{{baseUrl}}/api/v1/security/platform"
+  headers:
+    - name: Host
+      value: "{{tenantAHost}}"
+      disabled: true
+  auth:
+    type: bearer
+    token: "{{platformAccessToken}}"
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("returns expected status", function() {
+          expect(res.getStatus() === 200).to.equal(true);
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true
+
+docs: No Host needed -- /api/v1/security/platform clears tenant context like /api/v1/platform/**.

@@ -1,0 +1,44 @@
+info:
+  name: 15 - Bulk Delete Articles
+  type: http
+  seq: 15
+
+http:
+  method: POST
+  url: "{{baseUrl}}/api/v1/articles/bulk/delete"
+  headers:
+    - name: Content-Type
+      value: application/json
+  body:
+    type: json
+    data: |-
+      {
+        "ids": [{{articleId}}]
+      }
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("returns expected status", function() {
+          expect(res.getStatus() === 200 || res.getStatus() === 400 || res.getStatus() === 404).to.equal(true);
+        });
+        test("echoes deleted ids on success", function() {
+          if (res.getStatus() === 200) {
+            expect(res.body.data.deletedIds.length).to.be.above(0);
+          }
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true
+
+docs: |-
+  Atomic bulk delete: all ids in one transaction with at most one RSS refresh
+  (only when a visible article was deleted). Duplicates are deleted once.
+  404 ARTICLE_NOT_FOUND for unknown ids and cross-tenant ids.
+  Destructive — run last or re-create the draft afterwards (3 - Create Article Draft).

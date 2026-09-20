@@ -1,0 +1,36 @@
+info:
+  name: 1 - Get Platform Overview
+  type: http
+  seq: 1
+
+http:
+  method: GET
+  url: "{{baseUrl}}/api/v1/platform/overview"
+  params:
+    - name: recentAuditLimit
+      value: "5"
+      type: query
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("returns expected status", function() {
+          expect(res.getStatus() === 200).to.equal(true);
+        });
+
+        test("includes tenant counts and module adoption", function() {
+          expect(res.body.data.tenantCounts).to.be.an("object");
+          expect(res.body.data.tenantCounts.active).to.be.a("number");
+          expect(res.body.data.tenantCounts.suspended).to.be.a("number");
+          expect(res.body.data.moduleAdoption).to.be.an("array");
+          expect(res.body.data.recentAudit).to.be.an("array");
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true

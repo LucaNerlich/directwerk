@@ -1,0 +1,9 @@
+info:
+  name: 04-RSS-Feeds
+  type: folder
+  seq: 4
+
+request:
+  headers:
+    - name: Host
+      value: "{{tenantAHost}}"

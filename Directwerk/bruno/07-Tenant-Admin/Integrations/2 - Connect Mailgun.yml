@@ -1,0 +1,36 @@
+info:
+  name: 2 - Connect Mailgun
+  type: http
+  seq: 2
+
+http:
+  method: PUT
+  url: "{{baseUrl}}/api/v1/tenant/integrations/esp/mailgun"
+  body:
+    type: json
+    data: |-
+      {
+        "domain": "mg.example.com",
+        "fromEmail": "hello@example.com",
+        "fromName": "Beispiel Podcast",
+        "region": "EU",
+        "apiKey": "key-replace-me"
+      }
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("accepts or rejects with validation", function() {
+          expect([200, 400, 401, 403].includes(res.getStatus())).to.equal(true);
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true
+
+docs: Stores encrypted Mailgun credentials for tenant content/transactional email.

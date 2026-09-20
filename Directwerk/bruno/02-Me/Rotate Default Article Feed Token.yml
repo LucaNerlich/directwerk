@@ -1,0 +1,28 @@
+info:
+  name: Rotate Default Article Feed Token
+  type: http
+  seq: 14
+
+http:
+  method: POST
+  url: "{{baseUrl}}/api/v1/me/article-feeds/default/rotate-token"
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: after-response
+      code: if (res.getStatus() === 200) { bru.setVar("articleFeedUrl", res.body.data.url); }
+    - type: tests
+      code: |-
+        test("returns expected status", function() {
+          expect(res.getStatus() === 200 || res.getStatus() === 403).to.equal(true);
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true
+
+docs: Invalidates the previous article feed URL/token.

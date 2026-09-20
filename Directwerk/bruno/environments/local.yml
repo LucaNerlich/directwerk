@@ -1,0 +1,35 @@
+variables:
+  - name: baseUrl
+    value: http://localhost:8080
+  - name: tenantAHost
+    value: alpha-a.localhost
+  - name: tenantBHost
+    value: alpha-b.localhost
+  - name: tenantASlug
+    value: alpha-show-a
+  - name: tenantBSlug
+    value: alpha-show-b
+  - name: platformClientId
+    value: directwerk-platform-admin
+  - name: oauthClientId
+    value: directwerk-tenant-frontend
+  - name: platformAdminEmail
+    value: platform-admin@directwerk.local
+  - name: tenantAAdminEmail
+    value: admin-a@alpha-show.local
+  - name: tenantBAdminEmail
+    value: admin-b@alpha-show.local
+  - name: editorEmail
+    value: editor@alpha-show.local
+  - name: subscriberEmail
+    value: subscriber@alpha-show.local
+  - name: mailpitUrl
+    value: http://127.0.0.1:8025
+  - secret: true
+    name: platformClientSecret
+  - secret: true
+    name: oauthClientSecret
+  - secret: true
+    name: platformAdminPassword
+  - secret: true
+    name: seedPassword

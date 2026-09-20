@@ -1,0 +1,46 @@
+info:
+  name: 15 - Bulk Publish Episodes
+  type: http
+  seq: 15
+
+http:
+  method: POST
+  url: "{{baseUrl}}/api/v1/episodes/bulk/publish"
+  headers:
+    - name: Content-Type
+      value: application/json
+  body:
+    type: json
+    data: |-
+      {
+        "ids": [{{podcastEpisodeId}}],
+        "notifySubscribers": false
+      }
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("returns expected status", function() {
+          expect(res.getStatus() === 200 || res.getStatus() === 400 || res.getStatus() === 404 || res.getStatus() === 409).to.equal(true);
+        });
+        test("returns one view per id on success", function() {
+          if (res.getStatus() === 200) {
+            expect(res.body.data.length).to.equal(1);
+          }
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true
+
+docs: |-
+  Atomic bulk publish: all ids in one transaction with a single RSS refresh.
+  Accepts 1-100 ids; duplicates are published once.
+  400 EPISODE_VALIDATION_FAILED until a READY audio asset is attached.
+  409 PUBLICATION_INVALID_TRANSITION when an episode is not publishable.
+  Run 15 before 16 (publish → unpublish).

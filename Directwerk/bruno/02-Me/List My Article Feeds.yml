@@ -1,0 +1,36 @@
+info:
+  name: List My Article Feeds
+  type: http
+  seq: 13
+
+http:
+  method: GET
+  url: "{{baseUrl}}/api/v1/me/article-feeds"
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: after-response
+      code: |-
+        if (res.getStatus() === 200 && Array.isArray(res.body.data) && res.body.data.length > 0) {
+          const defaultFeed = res.body.data.find((feed) => feed.isDefault);
+          if (!defaultFeed) {
+            throw new Error("No default article feed found in response");
+          }
+          bru.setVar("articleFeedUrl", defaultFeed.url);
+          bru.setVar("defaultArticleFeedId", defaultFeed.id);
+        }
+    - type: tests
+      code: |-
+        test("returns expected status", function() {
+          expect(res.getStatus() === 200 || res.getStatus() === 403).to.equal(true);
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true
+
+docs: Auto-creates the subscriber's default private article feed. The feed url embeds a capability secret token, so it's captured via setVar rather than a plain var.

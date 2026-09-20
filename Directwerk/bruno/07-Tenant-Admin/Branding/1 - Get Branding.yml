@@ -1,0 +1,30 @@
+info:
+  name: 1 - Get Branding
+  type: http
+  seq: 1
+
+http:
+  method: GET
+  url: "{{baseUrl}}/api/v1/tenant/branding"
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("returns expected status", function() {
+          expect(res.getStatus() === 200).to.equal(true);
+          expect(res.body.data).to.have.property("siteTitle");
+          expect(res.body.data).to.have.property("primaryColor");
+          expect(res.body.data).to.have.property("secondaryColor");
+          expect(res.body.data).to.have.property("logoUrl");
+          expect(res.body.data).to.have.property("umamiWebsiteId");
+          expect(res.body.data).to.have.property("umamiHostUrl");
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true

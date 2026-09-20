@@ -1,0 +1,42 @@
+info:
+  name: 1 - List Tenant A Users (Platform View)
+  type: http
+  seq: 1
+
+http:
+  method: GET
+  url: "{{baseUrl}}/api/v1/platform/tenants/{{tenantAId}}/users"
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("returns expected status", function() {
+          expect(res.getStatus() === 200).to.equal(true);
+        });
+
+        test("includes membership timestamps", function() {
+          const user = res.body.data.content.find(u => u.email === bru.getEnvVar("editorEmail"));
+          expect(user).to.be.an("object");
+          expect(user).to.have.property("invitedAt");
+          expect(user).to.have.property("lastLoginAt");
+        });
+  actions:
+    - type: set-variable
+      phase: after-response
+      selector:
+        expression: (res.body.data.content.find(u => u.email === bru.getEnvVar("editorEmail")) || {}).userId
+        method: jsonq
+      variable:
+        name: editorUserId
+        scope: runtime
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true
+
+docs: Captures editorUserId (a safe, non-admin target) for the Deactivate/Reactivate User requests below.

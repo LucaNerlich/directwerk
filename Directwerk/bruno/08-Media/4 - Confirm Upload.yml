@@ -1,0 +1,31 @@
+info:
+  name: 4 - Confirm Upload
+  type: http
+  seq: 4
+
+http:
+  method: POST
+  url: "{{baseUrl}}/api/v1/media/{{mediaAssetId}}/confirm"
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("returns expected status", function() {
+          expect(res.getStatus() === 200 || res.getStatus() === 400 || res.getStatus() === 503).to.equal(true);
+        });
+
+        test("final key keeps uuid plus sanitized filename", function() {
+          if (res.getStatus() !== 200) {
+            return;
+          }
+          expect(res.body.data.s3Key).to.match(/images\/[0-9a-f-]{36}_harness-cover\.jpg$/);
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true

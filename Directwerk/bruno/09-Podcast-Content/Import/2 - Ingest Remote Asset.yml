@@ -1,0 +1,39 @@
+info:
+  name: 2 - Ingest Remote Asset
+  type: http
+  seq: 2
+
+http:
+  method: POST
+  url: "{{baseUrl}}/api/v1/podcast/import/assets"
+  headers:
+    - name: Content-Type
+      value: application/json
+  body:
+    type: json
+    data: |-
+      {
+        "sourceUrl": "https://example.com/cover.jpg",
+        "assetType": "IMAGE",
+        "visibility": "PUBLIC"
+      }
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("returns expected status", function() {
+          expect([201, 400, 403, 503]).to.include(res.getStatus());
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true
+
+docs: |-
+  Streams a remote image or audio file into tenant S3. Set `"waitForCompletion": false` to start a background ingest and poll GET /api/v1/media/{id} for progress.
+  Rejects private hosts (REMOTE_URL_FORBIDDEN).

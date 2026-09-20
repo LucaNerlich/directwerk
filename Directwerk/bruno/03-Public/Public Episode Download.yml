@@ -1,0 +1,28 @@
+info:
+  name: Public Episode Download
+  type: http
+  seq: 11
+
+http:
+  method: GET
+  url: "{{baseUrl}}/api/v1/public/episodes/{{podcastEpisodeSlug}}/download"
+  headers:
+    - name: Accept
+      value: "*/*"
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("returns expected status", function() {
+          expect(res.getStatus() === 302 || res.getStatus() === 403 || res.getStatus() === 404).to.equal(true);
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true
+
+docs: Only works for FREE, published, READY episodes.

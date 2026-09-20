@@ -1,0 +1,31 @@
+info:
+  name: 8 - Verify Domain With Token
+  type: http
+  seq: 8
+
+http:
+  method: POST
+  url: "{{baseUrl}}/api/v1/tenant/domains/{{isolationUnverifiedHost}}/verify"
+  headers:
+    - name: Host
+      value: "{{tenantAHost}}"
+  auth:
+    type: bearer
+    token: "{{tenantAAccessToken}}"
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("status", function() {
+          expect(res.getStatus() === 200 || res.getStatus() === 400).to.equal(true);
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true
+
+docs: DNS TXT required; use platform force-verify locally without DNS.

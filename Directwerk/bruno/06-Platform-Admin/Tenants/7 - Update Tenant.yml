@@ -1,0 +1,37 @@
+info:
+  name: 7 - Update Tenant
+  type: http
+  seq: 7
+
+http:
+  method: PATCH
+  url: "{{baseUrl}}/api/v1/platform/tenants/{{tenantCId}}"
+  headers:
+    - name: Content-Type
+      value: application/json
+  body:
+    type: json
+    data: |-
+      {
+        "name": "Alpha Show C Renamed"
+      }
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("returns expected status", function() {
+          expect(res.getStatus() === 200 || res.getStatus() === 404 || res.getStatus() === 409).to.equal(true);
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true
+
+docs: |-
+  Renames tenant C (captured as tenantCId by 2 - Create Tenant). Both name and slug are optional --
+  omitting slug leaves it unchanged. 409 TENANT_SLUG_EXISTS if slug collides with another tenant.

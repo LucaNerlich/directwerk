@@ -1,0 +1,31 @@
+info:
+  name: 2 - Get Episode
+  type: http
+  seq: 2
+
+http:
+  method: GET
+  url: "{{baseUrl}}/api/v1/episodes/{{podcastEpisodeId}}"
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("returns expected status", function() {
+          expect(res.getStatus() === 200 || res.getStatus() === 404).to.equal(true);
+        });
+
+        test("episode view exposes coverImageUrl", function() {
+          const data = res.body && res.body.data;
+          if (res.getStatus() === 200 && data !== undefined && data !== null) {
+            expect('coverImageUrl' in data).to.equal(true);
+          }
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true

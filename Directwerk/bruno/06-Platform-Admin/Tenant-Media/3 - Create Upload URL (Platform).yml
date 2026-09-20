@@ -1,0 +1,51 @@
+info:
+  name: 3 - Create Upload URL (Platform)
+  type: http
+  seq: 3
+
+http:
+  method: POST
+  url: "{{baseUrl}}/api/v1/platform/tenants/{{tenantAId}}/media/upload-url"
+  headers:
+    - name: Content-Type
+      value: application/json
+  body:
+    type: json
+    data: |-
+      {
+        "filename": "platform-harness-cover.jpg",
+        "mimeType": "image/jpeg",
+        "sizeBytes": 1024,
+        "assetType": "IMAGE",
+        "intendedVisibility": "PUBLIC",
+        "scope": "TENANT_PUBLIC"
+      }
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("returns expected status", function() {
+          expect(res.getStatus() === 201 || res.getStatus() === 503).to.equal(true);
+        });
+  actions:
+    - type: set-variable
+      phase: after-response
+      selector:
+        expression: res.body.data && res.body.data.assetId
+        method: jsonq
+      variable:
+        name: platformMediaAssetId
+        scope: runtime
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true
+
+docs: |-
+  503 when directwerk.storage.enabled=false. Requires an actual PUT to uploadUrl before confirm will succeed.
+  Final key after confirm: {tenant}/{public|private}/{type}/{uuid}_{sanitizedFilename}.{ext}

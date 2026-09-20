@@ -1,0 +1,47 @@
+info:
+  name: 4 - Tenant A Editor Login
+  type: http
+  seq: 4
+
+http:
+  method: POST
+  url: "{{baseUrl}}/oauth2/token"
+  headers:
+    - name: Content-Type
+      value: application/x-www-form-urlencoded
+    - name: Host
+      value: "{{tenantAHost}}"
+  body:
+    type: form-urlencoded
+    data:
+      - name: grant_type
+        value: password
+      - name: username
+        value: "{{editorEmail}}"
+      - name: password
+        value: "{{seedPassword}}"
+      - name: client_id
+        value: "{{oauthClientId}}"
+  auth:
+    type: basic
+    username: "{{oauthClientId}}"
+    password: "{{oauthClientSecret}}"
+
+runtime:
+  scripts:
+    - type: after-response
+      code: bru.setVar("editorAccessToken", res.body.access_token);
+    - type: tests
+      code: |-
+        test("returns expected status", function() {
+          expect(res.getStatus() === 200).to.equal(true);
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true
+
+docs: EDITOR role only (no TENANT_ADMIN). Use to verify EDITOR-permitted vs TENANT_ADMIN-only routes (e.g. formats/categories reject this token).
