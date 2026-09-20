@@ -20,7 +20,7 @@ class ProdSecurityPropertiesValidatorTest {
     private DirectwerkConfig directwerkConfig;
 
     private static DirectwerkProperties.Security security(
-            String platformClientSecret, String tenantClientSecret, List<String> trustedProxies) {
+            String platformClientSecret, String tenantClientSecret) {
         return new DirectwerkProperties.Security(
                 "https://api.example.com",
                 "directwerk-api",
@@ -35,16 +35,16 @@ class ProdSecurityPropertiesValidatorTest {
                 null,
                 null,
                 null,
-                trustedProxies
+                List.of()
         );
     }
 
     @Test
     void rejectsMissingProductionSecrets() {
-        when(directwerkConfig.security()).thenReturn(security("", STRONG_SECRET, null));
+        when(directwerkConfig.security()).thenReturn(security("", STRONG_SECRET));
         when(directwerkConfig.isExposeDevTokens()).thenReturn(false);
 
-        ProdSecurityPropertiesValidator validator = new ProdSecurityPropertiesValidator(directwerkConfig, "none");
+        ProdSecurityPropertiesValidator validator = new ProdSecurityPropertiesValidator(directwerkConfig);
 
         assertThatThrownBy(validator::validateProductionSecurity)
                 .isInstanceOf(IllegalStateException.class)
@@ -53,10 +53,10 @@ class ProdSecurityPropertiesValidatorTest {
 
     @Test
     void rejectsExposeDevTokensInProduction() {
-        when(directwerkConfig.security()).thenReturn(security(STRONG_SECRET, STRONG_SECRET, null));
+        when(directwerkConfig.security()).thenReturn(security(STRONG_SECRET, STRONG_SECRET));
         when(directwerkConfig.isExposeDevTokens()).thenReturn(true);
 
-        ProdSecurityPropertiesValidator validator = new ProdSecurityPropertiesValidator(directwerkConfig, "none");
+        ProdSecurityPropertiesValidator validator = new ProdSecurityPropertiesValidator(directwerkConfig);
 
         assertThatThrownBy(validator::validateProductionSecurity)
                 .isInstanceOf(IllegalStateException.class)
@@ -65,10 +65,10 @@ class ProdSecurityPropertiesValidatorTest {
 
     @Test
     void rejectsWeakPlatformClientSecret() {
-        when(directwerkConfig.security()).thenReturn(security("too-short", STRONG_SECRET, null));
+        when(directwerkConfig.security()).thenReturn(security("too-short", STRONG_SECRET));
         when(directwerkConfig.isExposeDevTokens()).thenReturn(false);
 
-        ProdSecurityPropertiesValidator validator = new ProdSecurityPropertiesValidator(directwerkConfig, "none");
+        ProdSecurityPropertiesValidator validator = new ProdSecurityPropertiesValidator(directwerkConfig);
 
         assertThatThrownBy(validator::validateProductionSecurity)
                 .isInstanceOf(IllegalStateException.class)
@@ -77,24 +77,11 @@ class ProdSecurityPropertiesValidatorTest {
     }
 
     @Test
-    void rejectsEmptyTrustedProxiesBehindReverseProxy() {
-        when(directwerkConfig.security()).thenReturn(security(STRONG_SECRET, STRONG_SECRET, List.of()));
+    void allowsEmptyTrustedProxiesWithFrameworkForwardHeaders() {
+        when(directwerkConfig.security()).thenReturn(security(STRONG_SECRET, STRONG_SECRET));
         when(directwerkConfig.isExposeDevTokens()).thenReturn(false);
 
-        ProdSecurityPropertiesValidator validator =
-                new ProdSecurityPropertiesValidator(directwerkConfig, "framework");
-
-        assertThatThrownBy(validator::validateProductionSecurity)
-                .isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("TRUSTED_PROXIES");
-    }
-
-    @Test
-    void allowsEmptyTrustedProxiesWithoutReverseProxy() {
-        when(directwerkConfig.security()).thenReturn(security(STRONG_SECRET, STRONG_SECRET, List.of()));
-        when(directwerkConfig.isExposeDevTokens()).thenReturn(false);
-
-        ProdSecurityPropertiesValidator validator = new ProdSecurityPropertiesValidator(directwerkConfig, "none");
+        ProdSecurityPropertiesValidator validator = new ProdSecurityPropertiesValidator(directwerkConfig);
 
         validator.validateProductionSecurity();
     }

@@ -3,7 +3,6 @@ package de.pnnit.directwerk.bootstrap;
 import de.pnnit.directwerk.config.DirectwerkConfig;
 import de.pnnit.directwerk.config.DirectwerkProperties;
 import jakarta.annotation.PostConstruct;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 
@@ -18,13 +17,9 @@ public class ProdSecurityPropertiesValidator {
     private static final int MIN_SECRET_LENGTH = 32;
 
     private final DirectwerkConfig directwerkConfig;
-    private final String forwardHeadersStrategy;
 
-    public ProdSecurityPropertiesValidator(
-            DirectwerkConfig directwerkConfig,
-            @Value("${server.forward-headers-strategy:none}") String forwardHeadersStrategy) {
+    public ProdSecurityPropertiesValidator(DirectwerkConfig directwerkConfig) {
         this.directwerkConfig = directwerkConfig;
-        this.forwardHeadersStrategy = forwardHeadersStrategy;
     }
 
     @PostConstruct
@@ -43,15 +38,7 @@ public class ProdSecurityPropertiesValidator {
                 security.tenantClientSecret(), "DIRECTWERK_TENANT_CLIENT_SECRET", MIN_SECRET_LENGTH);
         ProdPropertyValidation.requireConfigured(security.jwtPrivateKey(), "DIRECTWERK_JWT_PRIVATE_KEY");
         ProdPropertyValidation.requireConfigured(security.jwtPublicKey(), "DIRECTWERK_JWT_PUBLIC_KEY");
-        // Only required when a reverse proxy is actually in front of the app (the
-        // documented Coolify/Traefik topology) — the other valid prod topology
-        // (forward-headers-strategy=none) has no reverse proxy, so an empty list there
-        // is correct by design, not a misconfiguration.
-        if ("framework".equalsIgnoreCase(forwardHeadersStrategy) && security.trustedProxies().isEmpty()) {
-            throw new IllegalStateException(
-                    "Production DIRECTWERK_SECURITY_TRUSTED_PROXIES must be configured when "
-                            + "server.forward-headers-strategy=framework, otherwise auth/billing rate "
-                            + "limiting collapses every client behind the reverse proxy into one shared bucket");
-        }
+        // trusted-proxies stay optional: Coolify/Traefik IPs are unstable across redeploys.
+        // Rate limiting falls back to RemoteAddr when the list is empty (see ClientIpExtractor).
     }
 }
