@@ -1,7 +1,6 @@
 'use client'
 
 import Link from 'next/link'
-import {useRouter} from 'next/navigation'
 import {useEffect, useState} from 'react'
 
 import {Alert, AlertDescription} from '@directwerk/ui/components/alert'
@@ -16,8 +15,9 @@ import SectionHeader from '@directwerk/ui/components/section-header'
 import {Skeleton} from '@directwerk/ui/components/skeleton'
 import {useListViewMode} from '@directwerk/ui/hooks/use-list-view-mode'
 
-import {listMedia} from '@/lib/api/mediaApi'
-import type {MediaAsset} from '@directwerk/api/types'
+import PublicationStatusBadge from '@/components/publication/PublicationStatusBadge'
+import {listDigitalPublications} from '@/lib/api/digitalPublicationsApi'
+import type {DigitalPublication} from '@directwerk/api/types'
 import {getClientTenantHost} from '@directwerk/api/tenant'
 import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
 
@@ -35,9 +35,8 @@ function formatBytes(sizeBytes: number | null): string {
 }
 
 export default function BonusLibraryClient(): React.JSX.Element {
-    const router = useRouter()
     const authRedirect = useAuthRequired()
-    const [assets, setAssets] = useState<MediaAsset[]>([])
+    const [publications, setPublications] = useState<DigitalPublication[]>([])
     const [errorMessage, setErrorMessage] = useState<string | null>(null)
     const [isLoading, setIsLoading] = useState(true)
     const [reloadToken, setReloadToken] = useState(0)
@@ -47,17 +46,12 @@ export default function BonusLibraryClient(): React.JSX.Element {
         let active = true
         setIsLoading(true)
         setErrorMessage(null)
-        listMedia(getClientTenantHost())
+        listDigitalPublications(getClientTenantHost())
             .then((result) => {
                 if (!active) {
                     return
                 }
-                setAssets(
-                    result.filter(
-                        (item) =>
-                            item.assetType === 'DOCUMENT' && item.status === 'READY',
-                    ),
-                )
+                setPublications(result)
                 setIsLoading(false)
             })
             .catch((error: unknown) => {
@@ -75,7 +69,7 @@ export default function BonusLibraryClient(): React.JSX.Element {
         return () => {
             active = false
         }
-    }, [reloadToken, router])
+    }, [reloadToken, authRedirect])
 
     if (isLoading) {
         return (
@@ -83,7 +77,7 @@ export default function BonusLibraryClient(): React.JSX.Element {
                 <PageHeader
                     eyebrow="Medien"
                     title="Bonusdateien"
-                    description="Dokumente aus der Mediathek. Hänge sie über DIGITAL_ASSET an ein Paket — Abonnenten sehen sie unter Bonusdateien."
+                    description="Veröffentlichbare Dokumente für Abonnenten — mit Titel, Zugang und Workflow."
                 />
                 <p className="text-sm text-muted-foreground" role="status">Wird geladen…</p>
                 <div className="grid gap-4" aria-hidden="true">
@@ -94,18 +88,29 @@ export default function BonusLibraryClient(): React.JSX.Element {
         )
     }
 
-    const assetItems: EntityListViewItem[] = assets.map((asset) => ({
-        id: asset.id,
-        title: asset.originalFilename ?? `Datei #${asset.id}`,
-        description: `${asset.mimeType ?? 'Dokument'} · ${formatBytes(asset.sizeBytes)}`,
-        trailing: <Badge variant="secondary">Bereit</Badge>,
+    const items: EntityListViewItem[] = publications.map((publication) => ({
+        id: publication.id,
+        title: publication.title,
+        href: `/bonus/${publication.id}`,
+        description: `${publication.accessPolicy === 'PAID' ? 'Bezahlt' : 'Frei'} · ${publication.originalFilename ?? `Asset #${publication.assetId}`} · ${formatBytes(publication.sizeBytes)}`,
+        trailing: (
+            <PublicationStatusBadge
+                status={
+                    publication.status === 'DRAFT'
+                        ? 'DRAFT'
+                        : publication.status === 'PUBLISHED'
+                          ? 'PUBLISHED'
+                          : 'ARCHIVED'
+                }
+            />
+        ),
         actions: (
             <Button
                 nativeButton={false}
-                render={<Link href="/manage/products" />}
+                render={<Link href={`/bonus/${publication.id}`} />}
                 variant="outline"
             >
-                An Paket hängen
+                Bearbeiten
             </Button>
         ),
     }))
@@ -115,14 +120,14 @@ export default function BonusLibraryClient(): React.JSX.Element {
             <PageHeader
                 eyebrow="Medien"
                 title="Bonusdateien"
-                description="Dokumente aus der Mediathek. Hänge sie über DIGITAL_ASSET an ein Paket — Abonnenten sehen sie unter Bonusdateien."
+                description="Lege Dokumente als Bonus-Inhalte an, setze frei oder bezahlt und veröffentliche sie für Abonnenten."
                 actions={
-                    <Button nativeButton={false} render={<Link href="/media" />} size="lg">
-                        Zur Mediathek
+                    <Button nativeButton={false} render={<Link href="/bonus/new" />} size="lg">
+                        Neue Bonusdatei
                     </Button>
                 }
             />
-            {errorMessage !== null && (
+            {errorMessage !== null ? (
                 <Alert variant="destructive">
                     <AlertDescription>{errorMessage}</AlertDescription>
                     <Button
@@ -134,41 +139,52 @@ export default function BonusLibraryClient(): React.JSX.Element {
                         Erneut versuchen
                     </Button>
                 </Alert>
-            )}
-            {assets.length === 0 ? (
+            ) : null}
+            {publications.length === 0 && errorMessage === null ? (
                 <EmptyState
                     title="Noch keine Bonusdateien"
-                    description="Lade ein PDF in der Mediathek hoch. Danach verknüpfst du es in den Produktregeln."
+                    description="Lade zuerst ein PDF in der Mediathek hoch, dann erstellst du hier den Bonus-Inhalt mit Titel und Zugang."
                     action={
                         <div className="flex flex-wrap justify-center gap-2">
-                            <Button nativeButton={false} render={<Link href="/media" />}>
-                                Datei hochladen
+                            <Button nativeButton={false} render={<Link href="/bonus/new" />}>
+                                Bonusdatei anlegen
                             </Button>
                             <Button
                                 nativeButton={false}
-                                render={<Link href="/manage/products" />}
+                                render={<Link href="/media" />}
                                 variant="outline"
                             >
-                                Zu den Produkten
+                                Zur Mediathek
                             </Button>
                         </div>
                     }
                 />
-            ) : (
+            ) : null}
+            {publications.length > 0 ? (
                 <section aria-labelledby="bonus-files-heading" className="flex flex-col gap-4">
                     <SectionHeader
                         id="bonus-files-heading"
-                        title={`Verfügbare Dateien (${assets.length})`}
-                        description="Nur bereite Dokumente. Wähle ein Paket, um eine Datei per Zugriffsregel freizuschalten."
+                        title={`Bonusdateien (${publications.length})`}
+                        description="Entwürfe, veröffentlichte und archivierte Bonus-Inhalte."
                     />
-                <EntityListSection
-                    items={assetItems}
-                    onViewModeChange={setViewMode}
-                    showSelection={false}
-                    viewMode={viewMode}
-                />
+                    <EntityListSection
+                        items={items}
+                        onViewModeChange={setViewMode}
+                        showSelection={false}
+                        viewMode={viewMode}
+                    />
+                    <p className="text-sm text-muted-foreground">
+                        Bezahlt-Inhalte brauchen ein LEVEL oder eine{' '}
+                        <Link className="underline" href="/manage/products">
+                            DIGITAL_ASSET-Regel
+                        </Link>{' '}
+                        am Paket.
+                    </p>
+                    <Badge variant="outline" className="w-fit">
+                        Modul BONUS_CONTENT
+                    </Badge>
                 </section>
-            )}
+            ) : null}
         </PageStack>
     )
 }

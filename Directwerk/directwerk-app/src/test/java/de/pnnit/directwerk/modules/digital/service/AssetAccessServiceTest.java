@@ -20,6 +20,10 @@ import de.pnnit.directwerk.modules.digital.DigitalContentModule;
 import de.pnnit.directwerk.modules.core.service.ModuleGateService;
 import de.pnnit.directwerk.modules.core.service.ModuleNotEnabledException;
 import de.pnnit.directwerk.modules.content.api.EntitlementApi;
+import de.pnnit.directwerk.modules.digital.api.AssetAccessApi;
+import de.pnnit.directwerk.modules.digital.entity.AccessPolicy;
+import de.pnnit.directwerk.modules.digital.entity.DigitalPublication;
+import de.pnnit.directwerk.modules.digital.entity.DigitalPublicationStatus;
 import de.pnnit.directwerk.modules.digital.exception.MediaAssetNotFoundException;
 import de.pnnit.directwerk.modules.digital.entity.AssetScope;
 import de.pnnit.directwerk.modules.digital.entity.AssetStatus;
@@ -28,6 +32,7 @@ import de.pnnit.directwerk.modules.digital.entity.AssetVisibility;
 import de.pnnit.directwerk.modules.digital.entity.MediaAsset;
 import de.pnnit.directwerk.modules.digital.exception.EntitlementDeniedException;
 import de.pnnit.directwerk.modules.digital.exception.StorageNotConfiguredException;
+import de.pnnit.directwerk.modules.digital.repository.DigitalPublicationRepository;
 import de.pnnit.directwerk.modules.digital.repository.MediaAssetRepository;
 import de.pnnit.directwerk.modules.digital.storage.S3PublicUrlBuilder;
 import de.pnnit.directwerk.multitenancy.TenantContext;
@@ -38,11 +43,14 @@ import java.net.URI;
 import java.net.URL;
 import java.time.Duration;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.beans.factory.ObjectProvider;
@@ -67,6 +75,9 @@ class AssetAccessServiceTest {
     private MediaAssetRepository mediaAssetRepository;
 
     @Mock
+    private DigitalPublicationRepository digitalPublicationRepository;
+
+    @Mock
     private PublicCdnUrlResolver publicCdnUrlResolver;
 
     private AssetAccessService service;
@@ -79,7 +90,8 @@ class AssetAccessServiceTest {
                 publicCdnUrlResolver,
                 privateObjectUrlSigner,
                 directwerkConfig,
-                mediaAssetRepository
+                mediaAssetRepository,
+                digitalPublicationRepository
         );
         TenantContext.setTenantId(10L);
     }
@@ -221,6 +233,90 @@ class AssetAccessServiceTest {
                 .isInstanceOf(EntitlementDeniedException.class);
     }
 
+    // --- batch downloads ------------------------------------------------------------------
+
+    @Test
+    void resolveDownloadUrlsGrantsFreePublicationAssetWithoutPackageRule() throws Exception {
+        MediaAsset asset = standalonePrivateAsset(7L, "alpha-show-a", "alpha-show-a/private/bonus/free.pdf");
+        when(mediaAssetRepository.findAllWithTenantByIdIn(List.of(7L))).thenReturn(List.of(asset));
+        when(digitalPublicationRepository.findByTenantIdAndStatusAndAssetIdIn(
+                10L, DigitalPublicationStatus.PUBLISHED, List.of(7L)))
+                .thenReturn(List.of(publication(asset, AccessPolicy.FREE, null)));
+        when(directwerkConfig.storage()).thenReturn(storageProps());
+        when(privateObjectUrlSigner.signPrivateObject(any(String.class), any(Duration.class)))
+                .thenReturn(URI.create("https://s3.example/signed-free").toURL());
+        when(entitlementApi.filterAccessiblePublicationAssets(eq(10L), eq(42L), any()))
+                .thenReturn(Set.of(7L));
+
+        List<AssetAccessApi.ResolvedDownload> resolved =
+                service.resolveDownloadUrls(List.of(asset), subscriber(42L, 10L));
+
+        assertThat(resolved).hasSize(1);
+        assertThat(resolved.getFirst().asset().getId()).isEqualTo(7L);
+        verify(privateObjectUrlSigner).signPrivateObject(eq("alpha-show-a/private/bonus/free.pdf"), any(Duration.class));
+    }
+
+    @Test
+    void resolveDownloadUrlsDerivesPaidLevelPolicyFromPublication() throws Exception {
+        MediaAsset asset = standalonePrivateAsset(7L, "alpha-show-a", "alpha-show-a/private/bonus/paid.pdf");
+        when(mediaAssetRepository.findAllWithTenantByIdIn(List.of(7L))).thenReturn(List.of(asset));
+        when(digitalPublicationRepository.findByTenantIdAndStatusAndAssetIdIn(
+                10L, DigitalPublicationStatus.PUBLISHED, List.of(7L)))
+                .thenReturn(List.of(publication(asset, AccessPolicy.PAID, 2)));
+        when(directwerkConfig.storage()).thenReturn(storageProps());
+        when(privateObjectUrlSigner.signPrivateObject(any(String.class), any(Duration.class)))
+                .thenReturn(URI.create("https://s3.example/signed-paid").toURL());
+        when(entitlementApi.filterAccessiblePublicationAssets(eq(10L), eq(42L), any()))
+                .thenReturn(Set.of(7L));
+
+        List<AssetAccessApi.ResolvedDownload> resolved =
+                service.resolveDownloadUrls(List.of(asset), subscriber(42L, 10L));
+
+        @SuppressWarnings("unchecked")
+        ArgumentCaptor<Map<Long, EntitlementApi.PublicationAccessPolicy>> policiesCaptor =
+                ArgumentCaptor.forClass(Map.class);
+        verify(entitlementApi).filterAccessiblePublicationAssets(eq(10L), eq(42L), policiesCaptor.capture());
+        assertThat(policiesCaptor.getValue())
+                .containsEntry(7L, new EntitlementApi.PublicationAccessPolicy(false, 2));
+        assertThat(resolved).hasSize(1);
+        assertThat(resolved.getFirst().asset().getId()).isEqualTo(7L);
+    }
+
+    @Test
+    void resolveDownloadUrlsFailsClosedWhenPublicationPolicyDenies() throws Exception {
+        MediaAsset asset = standalonePrivateAsset(7L, "alpha-show-a", "alpha-show-a/private/bonus/paid.pdf");
+        when(mediaAssetRepository.findAllWithTenantByIdIn(List.of(7L))).thenReturn(List.of(asset));
+        when(digitalPublicationRepository.findByTenantIdAndStatusAndAssetIdIn(
+                10L, DigitalPublicationStatus.PUBLISHED, List.of(7L)))
+                .thenReturn(List.of(publication(asset, AccessPolicy.PAID, 2)));
+
+        List<AssetAccessApi.ResolvedDownload> resolved =
+                service.resolveDownloadUrls(List.of(asset), subscriber(42L, 10L));
+
+        assertThat(resolved).isEmpty();
+        verify(privateObjectUrlSigner, never()).signPrivateObject(any(String.class), any(Duration.class));
+    }
+
+    @Test
+    void resolveDownloadUrlsUnionsPackageRuleWithPublicationGate() throws Exception {
+        MediaAsset asset = standalonePrivateAsset(7L, "alpha-show-a", "alpha-show-a/private/bonus/pack.pdf");
+        when(mediaAssetRepository.findAllWithTenantByIdIn(List.of(7L))).thenReturn(List.of(asset));
+        // Not referenced by any published publication — PACKAGE DIGITAL_ASSET rule grants alone.
+        when(digitalPublicationRepository.findByTenantIdAndStatusAndAssetIdIn(
+                10L, DigitalPublicationStatus.PUBLISHED, List.of(7L)))
+                .thenReturn(List.of());
+        when(directwerkConfig.storage()).thenReturn(storageProps());
+        when(privateObjectUrlSigner.signPrivateObject(any(String.class), any(Duration.class)))
+                .thenReturn(URI.create("https://s3.example/signed-pack").toURL());
+        when(entitlementApi.filterAccessibleDigitalAssets(10L, 42L, List.of(7L))).thenReturn(Set.of(7L));
+
+        List<AssetAccessApi.ResolvedDownload> resolved =
+                service.resolveDownloadUrls(List.of(asset), subscriber(42L, 10L));
+
+        assertThat(resolved).hasSize(1);
+        assertThat(resolved.getFirst().asset().getId()).isEqualTo(7L);
+    }
+
     private MediaAsset givenLoaded(MediaAsset asset) {
         lenient().when(mediaAssetRepository.findById(asset.getId())).thenReturn(Optional.of(asset));
         return asset;
@@ -289,6 +385,25 @@ class AssetAccessServiceTest {
         asset.setStatus(AssetStatus.READY);
         asset.setEpisodeId(episodeId);
         return asset;
+    }
+
+    private static MediaAsset standalonePrivateAsset(Long id, String slug, String s3Key) {
+        MediaAsset asset = privateContentAsset(10L, slug, s3Key, null);
+        asset.setId(id);
+        asset.setAssetType(AssetType.DOCUMENT);
+        return asset;
+    }
+
+    private static DigitalPublication publication(
+            MediaAsset asset,
+            AccessPolicy accessPolicy,
+            Integer requiredLevelSortOrder
+    ) {
+        DigitalPublication publication = new DigitalPublication();
+        publication.setAsset(asset);
+        publication.setAccessPolicy(accessPolicy);
+        publication.setRequiredLevelSortOrder(requiredLevelSortOrder);
+        return publication;
     }
 
     private static DirectwerkUserPrincipal subscriber(Long userId, Long tenantId) {

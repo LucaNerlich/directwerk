@@ -27,6 +27,11 @@ public class TenantContentEmailTemplateService {
         return findTemplate(tenantId, contentType).map(TenantContentEmailTemplateService::toView);
     }
 
+    @Transactional(readOnly = true)
+    public long countForTenant(Long tenantId) {
+        return tenantContentEmailTemplateRepository.countByTenant_Id(tenantId);
+    }
+
     @Transactional
     public TemplateView upsertTemplate(
             Long tenantId,

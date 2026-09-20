@@ -122,6 +122,12 @@ public class MediaController {
                 mediaAssetQueryApi.effectiveUploadLimits(TenantContext.requireTenantId())));
     }
 
+    @GetMapping("/storage-summary")
+    ResponseEntity<Response<MediaAssetQueryApi.MediaStorageSummary>> storageSummary() {
+        return ResponseEntity.ok(Response.ok(
+                mediaAssetQueryApi.storageSummary(TenantContext.requireTenantId())));
+    }
+
     @GetMapping("/{id}")
     ResponseEntity<Response<MediaAssetView>> get(@PathVariable("id") Long id) {
         MediaAsset asset = mediaAssetQueryApi.findById(id)

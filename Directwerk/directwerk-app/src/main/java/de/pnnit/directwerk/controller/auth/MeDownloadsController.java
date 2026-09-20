@@ -34,11 +34,14 @@ public class MeDownloadsController {
         List<DownloadView> downloads = subscriberContentAccessService.listDownloads(user).stream()
                 .map(download -> {
                     var asset = download.asset();
+                    String title = download.title() != null && !download.title().isBlank()
+                            ? download.title()
+                            : (asset.getOriginalFilename() != null
+                                    ? asset.getOriginalFilename()
+                                    : ("Datei #" + asset.getId()));
                     return new DownloadView(
                             asset.getId(),
-                            asset.getOriginalFilename() != null
-                                    ? asset.getOriginalFilename()
-                                    : ("Datei #" + asset.getId()),
+                            title,
                             asset.getAssetType().name(),
                             asset.getMimeType(),
                             asset.getSizeBytes(),

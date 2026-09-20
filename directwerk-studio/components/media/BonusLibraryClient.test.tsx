@@ -2,47 +2,75 @@ import {fireEvent, render, screen, waitFor} from '@testing-library/react'
 import {describe, expect, it, vi} from 'vitest'
 
 import BonusLibraryClient from '@/components/media/BonusLibraryClient'
-import {listMedia} from '@/lib/api/mediaApi'
+import {listDigitalPublications} from '@/lib/api/digitalPublicationsApi'
 
-// Stable across renders, like the real Next.js useRouter().
 const mockRouter = {replace: vi.fn()}
 vi.mock('next/navigation', () => ({useRouter: () => mockRouter}))
+vi.mock('next/link', () => ({
+    default: ({children, href}: {children: React.ReactNode; href: string}) => (
+        <a href={href}>{children}</a>
+    ),
+}))
 vi.mock('@directwerk/api/tenant', () => ({getClientTenantHost: () => 'tenant.test'}))
-vi.mock('@/lib/api/mediaApi', () => ({
-    listMedia: vi.fn().mockResolvedValue([
+vi.mock('@/lib/api/digitalPublicationsApi', () => ({
+    listDigitalPublications: vi.fn().mockResolvedValue([
         {
             id: 3,
-            status: 'READY',
-            assetType: 'DOCUMENT',
-            mimeType: 'application/pdf',
+            slug: 'bonus-guide',
+            title: 'Bonus-Guide',
+            description: null,
+            assetId: 9,
             originalFilename: 'bonus.pdf',
+            mimeType: 'application/pdf',
             sizeBytes: 2048,
+            accessPolicy: 'FREE',
+            requiredLevelSortOrder: null,
+            status: 'PUBLISHED',
+            publishedAt: '2026-01-01T00:00:00Z',
+            createdBy: 1,
+            createdAt: '2026-01-01T00:00:00Z',
+            updatedAt: '2026-01-01T00:00:00Z',
         },
         {
             id: 4,
-            status: 'READY',
-            assetType: 'AUDIO',
-            mimeType: 'audio/mpeg',
-            originalFilename: 'folge.mp3',
+            slug: 'draft-file',
+            title: 'Entwurf PDF',
+            description: null,
+            assetId: 10,
+            originalFilename: 'draft.pdf',
+            mimeType: 'application/pdf',
             sizeBytes: 1024,
+            accessPolicy: 'PAID',
+            requiredLevelSortOrder: 1,
+            status: 'DRAFT',
+            publishedAt: null,
+            createdBy: 1,
+            createdAt: '2026-01-01T00:00:00Z',
+            updatedAt: '2026-01-01T00:00:00Z',
         },
     ]),
 }))
 
 describe('BonusLibraryClient', () => {
-    it('lists ready documents and points to products', async () => {
+    it('lists digital publications with status and edit links', async () => {
         render(<BonusLibraryClient />)
-        await waitFor(() => expect(screen.getByText('bonus.pdf')).toBeInTheDocument())
-        expect(screen.queryByText('folge.mp3')).not.toBeInTheDocument()
-        expect(screen.getByRole('button', {name: /An Paket hängen/})).toHaveAttribute(
+        await waitFor(() => expect(screen.getByText('Bonus-Guide')).toBeInTheDocument())
+        expect(screen.getByText('Entwurf PDF')).toBeInTheDocument()
+        expect(screen.getByText('Veröffentlicht')).toBeInTheDocument()
+        expect(screen.getByText('Entwurf')).toBeInTheDocument()
+        expect(screen.getAllByRole('link', {name: 'Bearbeiten'})[0]).toHaveAttribute(
             'href',
-            '/manage/products',
+            '/bonus/3',
+        )
+        expect(screen.getByRole('link', {name: 'Neue Bonusdatei'})).toHaveAttribute(
+            'href',
+            '/bonus/new',
         )
     })
 
-    it('retries loading the library after a load error', async () => {
-        vi.mocked(listMedia).mockClear()
-        vi.mocked(listMedia)
+    it('retries loading after a load error', async () => {
+        vi.mocked(listDigitalPublications).mockClear()
+        vi.mocked(listDigitalPublications)
             .mockRejectedValueOnce(new Error('Netzwerkfehler'))
             .mockResolvedValueOnce([])
 
@@ -56,6 +84,6 @@ describe('BonusLibraryClient', () => {
         await waitFor(() =>
             expect(screen.getByText('Noch keine Bonusdateien')).toBeInTheDocument(),
         )
-        expect(vi.mocked(listMedia)).toHaveBeenCalledTimes(2)
+        expect(vi.mocked(listDigitalPublications)).toHaveBeenCalledTimes(2)
     })
 })

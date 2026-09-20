@@ -4,12 +4,17 @@ import {
     createPublicContentParsers,
     parseBulkImportQueuedEnvelope,
     parseBulkDeleteEnvelope,
+    parseDigitalPublicationEnvelope,
+    parseDigitalPublicationListEnvelope,
     parseEffectiveRightsEnvelope,
+    parseEspConnectionEnvelope,
     parseImportedEpisodeEnvelope,
+    parseIntegrationsStatusEnvelope,
     parseMeEnvelope,
     parseMediaAsset,
     parseMediaFolder,
     parseMediaFolderListEnvelope,
+    parseMediaStorageSummaryEnvelope,
     parseMediaUploadLimitsEnvelope,
     parsePermissionRestriction,
     parsePermissionRestrictionListEnvelope,
@@ -753,5 +758,157 @@ describe('isQueueJob', () => {
                 metadata: {},
             }),
         ).toBeNull()
+    })
+})
+
+describe('digital publications / storage / integrations parsers', () => {
+    const publication = {
+        id: 7,
+        slug: 'bonus-guide',
+        title: 'Bonus Guide',
+        description: 'PDF für Abonnenten',
+        assetId: 11,
+        originalFilename: 'guide.pdf',
+        mimeType: 'application/pdf',
+        sizeBytes: 4096,
+        accessPolicy: 'PAID',
+        requiredLevelSortOrder: 2,
+        status: 'DRAFT',
+        publishedAt: null,
+        createdBy: 3,
+        createdAt: '2026-01-01T00:00:00Z',
+        updatedAt: '2026-01-02T00:00:00Z',
+    }
+
+    it('parses digital publication envelopes', () => {
+        expect(
+            parseDigitalPublicationListEnvelope({
+                statusCode: 200,
+                statusMessage: 'OK',
+                data: [publication],
+                errors: [],
+                metadata: {},
+            })?.data,
+        ).toEqual([publication])
+        expect(
+            parseDigitalPublicationEnvelope({
+                statusCode: 200,
+                statusMessage: 'OK',
+                data: {...publication, status: 'SCHEDULED'},
+                errors: [],
+                metadata: {},
+            }),
+        ).toBeNull()
+    })
+
+    it('parses media storage summary', () => {
+        expect(
+            parseMediaStorageSummaryEnvelope({
+                statusCode: 200,
+                statusMessage: 'OK',
+                data: {
+                    totalAssets: 3,
+                    totalBytes: 12_000,
+                    buckets: [
+                        {
+                            assetType: 'DOCUMENT',
+                            status: 'READY',
+                            assetCount: 2,
+                            totalBytes: 8000,
+                        },
+                    ],
+                },
+                errors: [],
+                metadata: {},
+            })?.data,
+        ).toEqual({
+            totalAssets: 3,
+            totalBytes: 12_000,
+            buckets: [
+                {
+                    assetType: 'DOCUMENT',
+                    status: 'READY',
+                    assetCount: 2,
+                    totalBytes: 8000,
+                },
+            ],
+        })
+        expect(
+            parseMediaStorageSummaryEnvelope({
+                statusCode: 200,
+                statusMessage: 'OK',
+                data: {
+                    totalAssets: 1,
+                    totalBytes: 1000,
+                    buckets: [
+                        {
+                            assetType: 'DOCUMENT',
+                            status: 'SOMEDAY',
+                            assetCount: 1,
+                            totalBytes: 1000,
+                        },
+                    ],
+                },
+                errors: [],
+                metadata: {},
+            }),
+        ).toBeNull()
+    })
+
+    it('parses integrations status and nullable ESP envelopes', () => {
+        const mailgun = {
+            provider: 'MAILGUN',
+            domain: 'mg.example.com',
+            fromEmail: 'noreply@example.com',
+            fromName: 'Example',
+            region: 'EU',
+            status: 'CONNECTED',
+            connectedAt: '2026-01-01T00:00:00Z',
+            apiKeyConfigured: true,
+        }
+        expect(
+            parseEspConnectionEnvelope({
+                statusCode: 200,
+                statusMessage: 'OK',
+                data: null,
+                errors: [],
+                metadata: {},
+            })?.data,
+        ).toBeNull()
+        expect(
+            parseEspConnectionEnvelope({
+                statusCode: 200,
+                statusMessage: 'OK',
+                data: mailgun,
+                errors: [],
+                metadata: {},
+            })?.data,
+        ).toEqual(mailgun)
+        expect(
+            parseIntegrationsStatusEnvelope({
+                statusCode: 200,
+                statusMessage: 'OK',
+                data: {
+                    emailNotify: {
+                        moduleEnabled: true,
+                        platformSenderReady: true,
+                        platformProvider: 'smtp',
+                        customTemplateCount: 2,
+                        mailgun,
+                    },
+                    analytics: {moduleEnabled: false},
+                    stripe: {
+                        status: 'NOT_CONNECTED',
+                        moduleEnabled: true,
+                        message: 'Noch nicht verbunden',
+                        chargesEnabled: false,
+                        payoutsEnabled: false,
+                        detailsSubmitted: false,
+                    },
+                },
+                errors: [],
+                metadata: {},
+            })?.data?.emailNotify.mailgun?.domain,
+        ).toBe('mg.example.com')
     })
 })

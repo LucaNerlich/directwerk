@@ -120,6 +120,18 @@ public class EntitlementService {
     }
 
     /**
+     * Batch form for publication-backed standalone assets: one subscription fetch + one rule
+     * fetch covers every candidate policy.
+     */
+    public Set<Long> filterAccessiblePublicationAssets(
+            Long tenantId,
+            Long userId,
+            Map<Long, DigitalPublicationAccessSubject> subjects
+    ) {
+        return filterAccessible(tenantId, userId, subjects);
+    }
+
+    /**
      * The unified evaluation Seam of this Module: one decision procedure for every content kind.
      * Single checks are batch-of-one through the same fetch path, so single/batch parity holds
      * by construction — LEVEL evaluation, PACKAGE rule fetch, and FREE short-circuit happen
@@ -185,7 +197,9 @@ public class EntitlementService {
         return switch (subject) {
             case EpisodeAccessSubject episode -> grantsEpisode(rule, episode);
             case ArticleAccessSubject article -> grantsArticle(rule, article);
-            case DigitalAssetSubject asset -> grantsDigitalAsset(rule, asset);
+            case DigitalAssetSubject asset -> grantsDigitalAsset(rule, asset.mediaAssetId());
+            case DigitalPublicationAccessSubject publication ->
+                    grantsDigitalAsset(rule, publication.mediaAssetId());
         };
     }
 
@@ -225,10 +239,10 @@ public class EntitlementService {
         };
     }
 
-    private boolean grantsDigitalAsset(ProductAccessRule rule, DigitalAssetSubject subject) {
+    private boolean grantsDigitalAsset(ProductAccessRule rule, Long mediaAssetId) {
         return rule.getScopeType() == ProductAccessScopeType.DIGITAL_ASSET
-                && subject.mediaAssetId() != null
-                && subject.mediaAssetId().equals(rule.getScopeId());
+                && mediaAssetId != null
+                && mediaAssetId.equals(rule.getScopeId());
     }
 
     private List<Subscription> activeSubscriptions(Long tenantId, Long userId) {
@@ -251,7 +265,8 @@ public class EntitlementService {
      * questions; kind-specific scope matching stays in the {@code grants*} methods above.
      */
     public sealed interface ContentSubject
-            permits EpisodeAccessSubject, ArticleAccessSubject, DigitalAssetSubject {
+            permits EpisodeAccessSubject, ArticleAccessSubject, DigitalAssetSubject,
+                    DigitalPublicationAccessSubject {
         boolean free();
 
         int requiredLevelSortOrder();
@@ -306,6 +321,14 @@ public class EntitlementService {
         public boolean levelApplies() {
             return false;
         }
+    }
+
+    /** Publication-backed standalone asset: the publication's FREE/LEVEL policy drives access. */
+    public record DigitalPublicationAccessSubject(
+            Long mediaAssetId,
+            boolean free,
+            int requiredLevelSortOrder
+    ) implements ContentSubject {
     }
 
     public record LevelEntitlement(Long id, String slug, String title, int sortOrder) {

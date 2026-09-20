@@ -12,9 +12,12 @@ import de.pnnit.directwerk.modules.digital.entity.AccessPolicy;
 import de.pnnit.directwerk.modules.digital.entity.AssetScope;
 import de.pnnit.directwerk.modules.digital.entity.AssetStatus;
 import de.pnnit.directwerk.modules.digital.entity.AssetVisibility;
+import de.pnnit.directwerk.modules.digital.entity.DigitalPublication;
+import de.pnnit.directwerk.modules.digital.entity.DigitalPublicationStatus;
 import de.pnnit.directwerk.modules.digital.entity.MediaAsset;
 import de.pnnit.directwerk.modules.digital.exception.EntitlementDeniedException;
 import de.pnnit.directwerk.modules.digital.exception.MediaAssetNotFoundException;
+import de.pnnit.directwerk.modules.digital.repository.DigitalPublicationRepository;
 import de.pnnit.directwerk.modules.digital.repository.MediaAssetRepository;
 import de.pnnit.directwerk.modules.digital.storage.PrivateObjectUrlSigner;
 import de.pnnit.directwerk.security.DirectwerkUserPrincipal;
@@ -23,6 +26,8 @@ import java.net.URL;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -49,6 +54,7 @@ public class AssetAccessService implements AssetAccessApi {
     private final PrivateObjectUrlSigner privateObjectUrlSigner;
     private final DirectwerkConfig directwerkConfig;
     private final MediaAssetRepository mediaAssetRepository;
+    private final DigitalPublicationRepository digitalPublicationRepository;
 
     @Override
     @Transactional(readOnly = true)
@@ -120,8 +126,8 @@ public class AssetAccessService implements AssetAccessApi {
 
     /**
      * Batch downloads: public assets resolve directly; standalone private CONTENT assets share
-     * ONE batched entitlement evaluation; anything else (USER/SYSTEM scope, episode-linked)
-     * falls back to the single-asset policy. Denied assets are skipped, never leaked.
+     * ONE batched entitlement evaluation, unioned with the publication-policy gate for assets
+     * referenced by published bonus publications. Denied assets are skipped, never leaked.
      */
     @Override
     @Transactional(readOnly = true)
@@ -164,11 +170,15 @@ public class AssetAccessService implements AssetAccessApi {
 
         if (!privateStandalone.isEmpty()) {
             moduleGateService.requireModule(DigitalContentModule.KEY);
-            Set<Long> allowed = entitlementApi.filterAccessibleDigitalAssets(
-                    privateStandalone.get(0).getTenant().getId(),
-                    principal.userId(),
-                    privateStandalone.stream().map(MediaAsset::getId).toList()
-            );
+            Long tenantId = privateStandalone.getFirst().getTenant().getId();
+            List<Long> assetIds = privateStandalone.stream().map(MediaAsset::getId).toList();
+            Set<Long> allowed = new HashSet<>(entitlementApi.filterAccessibleDigitalAssets(
+                    tenantId, principal.userId(), assetIds));
+            // Published bonus publications carry their own FREE/LEVEL access policy: it grants
+            // the asset without a PACKAGE DIGITAL_ASSET rule (union — either grant is enough,
+            // everything else stays denied).
+            allowed.addAll(entitlementApi.filterAccessiblePublicationAssets(
+                    tenantId, principal.userId(), publicationAccessPolicies(tenantId, assetIds)));
             for (MediaAsset asset : privateStandalone) {
                 if (allowed.contains(asset.getId())) {
                     resolved.add(new AssetAccessApi.ResolvedDownload(
@@ -177,6 +187,39 @@ public class AssetAccessService implements AssetAccessApi {
             }
         }
         return resolved;
+    }
+
+    /**
+     * Published bonus publications grant their own asset: FREE to every subscriber, PAID at the
+     * configured LEVEL sort order. Multiple publications may reference one asset — the most
+     * permissive policy wins (union).
+     */
+    private Map<Long, EntitlementApi.PublicationAccessPolicy> publicationAccessPolicies(Long tenantId, List<Long> assetIds) {
+        Map<Long, EntitlementApi.PublicationAccessPolicy> policiesByAssetId = new HashMap<>();
+        for (DigitalPublication publication : digitalPublicationRepository
+                .findByTenantIdAndStatusAndAssetIdIn(tenantId, DigitalPublicationStatus.PUBLISHED, assetIds)) {
+            EntitlementApi.PublicationAccessPolicy policy = new EntitlementApi.PublicationAccessPolicy(
+                    publication.getAccessPolicy() == AccessPolicy.FREE,
+                    publication.getRequiredLevelSortOrder() == null
+                            ? 0
+                            : publication.getRequiredLevelSortOrder()
+            );
+            policiesByAssetId.merge(publication.getAsset().getId(), policy, AssetAccessService::mostPermissive);
+        }
+        return policiesByAssetId;
+    }
+
+    private static EntitlementApi.PublicationAccessPolicy mostPermissive(
+            EntitlementApi.PublicationAccessPolicy left,
+            EntitlementApi.PublicationAccessPolicy right
+    ) {
+        if (left.free()) {
+            return left;
+        }
+        if (right.free()) {
+            return right;
+        }
+        return left.requiredLevelSortOrder() <= right.requiredLevelSortOrder() ? left : right;
     }
 
     private URL resolvePublicCdnUrl(MediaAsset asset) {

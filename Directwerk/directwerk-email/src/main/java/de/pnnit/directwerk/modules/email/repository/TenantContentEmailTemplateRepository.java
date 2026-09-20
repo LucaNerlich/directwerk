@@ -8,4 +8,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 public interface TenantContentEmailTemplateRepository extends JpaRepository<TenantContentEmailTemplate, Long> {
 
     Optional<TenantContentEmailTemplate> findByTenantIdAndContentType(Long tenantId, ContentType contentType);
+
+    long countByTenant_Id(Long tenantId);
 }

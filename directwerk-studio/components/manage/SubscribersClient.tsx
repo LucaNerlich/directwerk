@@ -20,6 +20,10 @@ import {useListViewMode} from '@directwerk/ui/hooks/use-list-view-mode'
 import {revokeSubscription} from '@/lib/api/subscriptionApi'
 import {listSubscribers} from '@/lib/api/tenantSettingsApi'
 import {
+    buildSubscriberCsv,
+    downloadSubscriberCsv,
+} from '@/lib/manage/subscriberCsv'
+import {
     subscriptionSourceLabel,
     subscriptionStatusLabel,
 } from '@/lib/subscription/displayLabels'
@@ -206,6 +210,22 @@ export default function SubscribersClient(): React.JSX.Element {
                 eyebrow="Abos"
                 title="Abonnenten"
                 description="Wer Zugang zu deinen bezahlten Inhalten hat — über Kauf oder Freischaltung. Gekaufte und manuell vergebene Zugänge stehen nebeneinander."
+                actions={
+                    totalSubscribers > 0 ? (
+                        <Button
+                            onClick={() => {
+                                const csv = buildSubscriberCsv(loadedSubscribers ?? [])
+                                const stamp = new Date().toISOString().slice(0, 10)
+                                downloadSubscriberCsv(csv, `abonnenten-${stamp}.csv`)
+                                setStatusMessage('CSV-Export heruntergeladen.')
+                            }}
+                            type="button"
+                            variant="outline"
+                        >
+                            CSV exportieren
+                        </Button>
+                    ) : undefined
+                }
             />
 
             {errorMessage !== null ? (

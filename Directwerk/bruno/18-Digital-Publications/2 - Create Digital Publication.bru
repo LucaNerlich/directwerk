@@ -1,0 +1,32 @@
+meta {
+  name: 2 - Create Digital Publication
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/api/v1/digital-publications
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "slug": "bonus-guide",
+    "title": "Bonus-Guide",
+    "description": "PDF für Supporter",
+    "assetId": {{documentAssetId}},
+    "accessPolicy": "PAID",
+    "requiredLevelSortOrder": 1
+  }
+}
+
+tests {
+  test("creates or validates", function() {
+    expect([201, 400, 404, 409].includes(res.getStatus())).to.equal(true);
+  });
+}
+
+docs {
+  Creates a DRAFT DigitalPublication linked to a READY DOCUMENT media asset.
+}

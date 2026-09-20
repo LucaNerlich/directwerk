@@ -3,7 +3,9 @@ package de.pnnit.directwerk.modules.podcast.api;
 import de.pnnit.directwerk.modules.content.api.EntitlementApi;
 import de.pnnit.directwerk.modules.subscription.service.EntitlementService;
 import java.util.Collection;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Primary;
@@ -39,7 +41,29 @@ public class EntitlementApiAdapter implements EntitlementApi {
     }
 
     @Override
+    public Set<Long> filterAccessiblePublicationAssets(
+            Long tenantId,
+            Long userId,
+            Map<Long, PublicationAccessPolicy> policiesByAssetId
+    ) {
+        Map<Long, EntitlementService.DigitalPublicationAccessSubject> subjects = new LinkedHashMap<>();
+        policiesByAssetId.forEach((assetId, policy) -> subjects.put(
+                assetId,
+                new EntitlementService.DigitalPublicationAccessSubject(
+                        assetId,
+                        policy.free(),
+                        policy.requiredLevelSortOrder()
+                )));
+        return entitlementService.filterAccessiblePublicationAssets(tenantId, userId, subjects);
+    }
+
+    @Override
     public List<Long> listEntitledDigitalAssetIds(Long tenantId, Long userId) {
         return entitlementService.listEntitledDigitalAssetIds(tenantId, userId);
+    }
+
+    @Override
+    public boolean hasLevelAtLeast(Long tenantId, Long userId, int minimumSortOrder) {
+        return entitlementService.hasLevelAtLeast(tenantId, userId, minimumSortOrder);
     }
 }
