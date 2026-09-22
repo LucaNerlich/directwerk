@@ -3185,6 +3185,7 @@ export interface components {
             primaryColor?: string;
             secondaryColor?: string;
             logoUrl?: string;
+            faviconUrl?: string;
             umamiWebsiteId?: string;
             umamiHostUrl?: string;
         };
@@ -3193,6 +3194,7 @@ export interface components {
             primaryColor?: string;
             secondaryColor?: string;
             logoUrl?: string;
+            faviconUrl?: string;
             umamiWebsiteId?: string;
             umamiHostUrl?: string;
         };
@@ -4780,6 +4782,7 @@ export interface components {
             primaryColor?: string;
             secondaryColor?: string;
             logoUrl?: string;
+            faviconUrl?: string;
         };
         ResponseSiteConfigResponse: {
             /** Format: int32 */

@@ -49,7 +49,8 @@ public class PublicSiteConfigController {
                         branding.siteTitle(),
                         branding.primaryColor(),
                         branding.secondaryColor(),
-                        branding.logoUrl()
+                        branding.logoUrl(),
+                        branding.faviconUrl()
                 ),
                 config.publicSiteUrl(),
                 config.publicRssUrl(),
@@ -82,7 +83,13 @@ public class PublicSiteConfigController {
     public record TenantResponse(String slug, String name) {
     }
 
-    public record BrandingResponse(String siteTitle, String primaryColor, String secondaryColor, String logoUrl) {
+    public record BrandingResponse(
+            String siteTitle,
+            String primaryColor,
+            String secondaryColor,
+            String logoUrl,
+            String faviconUrl
+    ) {
     }
 
     public record AnalyticsResponse(String umamiWebsiteId, String umamiHostUrl, String umamiScriptUrl) {

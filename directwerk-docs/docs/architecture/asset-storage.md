@@ -235,7 +235,7 @@ and **cannot be deactivated**. Optional modules gate vertical flows on top of th
 | Entitlement-gated private stream/download | `DIGITAL_CONTENT` + **`SUBSCRIPTION`** |
 | Private RSS enclosures | `DIGITAL_CONTENT` + `PODCAST` + `PODCAST_RSS` (+ `SUBSCRIPTION`) |
 | Custom subscriber feeds | + `FEED_BUILDER` |
-| Branding `logoUrl` (external URL) | `WHITELABEL` (URL only — not S3 upload in MVP) |
+| Branding `logoUrl` / `faviconUrl` (external URL) | `WHITELABEL` (URL only — not S3 upload in MVP) |
 
 ### Gating principles
 
@@ -264,7 +264,7 @@ entitlement presign logic for paid `CONTENT` assets — the endpoint returns `40
 | Private RSS enclosure presign | `DIGITAL_CONTENT` + `PODCAST` + `PODCAST_RSS` + `SUBSCRIPTION` | 403 |
 | Public free episode CDN URL | `DIGITAL_CONTENT` + `PODCAST` (+ `PODCAST_RSS` for feed) | Public site may hide podcast section |
 | `USER`-scoped personal assets | `DIGITAL_CONTENT` | 403 |
-| Branding `logoUrl` (external URL) | `WHITELABEL` | Falls back to default branding |
+| Branding `logoUrl` / `faviconUrl` (external URL) | `WHITELABEL` | Falls back to default branding |
 
 ### Where checks live
 

@@ -81,13 +81,14 @@ public class PublicSiteConfigService {
      */
     private static BrandingView brandingView(TenantBranding branding) {
         if (branding == null) {
-            return new BrandingView(null, null, null, null);
+            return new BrandingView(null, null, null, null, null);
         }
         return new BrandingView(
                 branding.getSiteTitle(),
                 branding.getPrimaryColor(),
                 branding.getSecondaryColor(),
-                branding.getLogoUrl()
+                branding.getLogoUrl(),
+                branding.getFaviconUrl()
         );
     }
 
@@ -174,7 +175,13 @@ public class PublicSiteConfigService {
     public record TenantView(String slug, String name) {
     }
 
-    public record BrandingView(String siteTitle, String primaryColor, String secondaryColor, String logoUrl) {
+    public record BrandingView(
+            String siteTitle,
+            String primaryColor,
+            String secondaryColor,
+            String logoUrl,
+            String faviconUrl
+    ) {
     }
 
     public record AnalyticsView(String umamiWebsiteId, String umamiHostUrl, String umamiScriptUrl) {

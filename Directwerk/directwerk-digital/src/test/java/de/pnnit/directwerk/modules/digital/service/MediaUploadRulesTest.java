@@ -88,6 +88,8 @@ class MediaUploadRulesTest {
         assertThat(MediaUploadRules.extensionForMime("audio/wav")).isEqualTo("wav");
         assertThat(MediaUploadRules.extensionForMime("image/jpeg")).isEqualTo("jpg");
         assertThat(MediaUploadRules.extensionForMime("image/png")).isEqualTo("png");
+        assertThat(MediaUploadRules.extensionForMime("image/x-icon")).isEqualTo("ico");
+        assertThat(MediaUploadRules.extensionForMime("image/vnd.microsoft.icon")).isEqualTo("ico");
         assertThat(MediaUploadRules.extensionForMime("video/mp4")).isEqualTo("mp4");
         assertThat(MediaUploadRules.extensionForMime("video/webm")).isEqualTo("webm");
         assertThat(MediaUploadRules.extensionForMime("application/pdf")).isEqualTo("pdf");
@@ -126,8 +128,17 @@ class MediaUploadRulesTest {
                 .isEqualTo("audio/mpeg");
         assertThat(MediaUploadRules.inferMimeFromFilename(AssetType.IMAGE, "cover.JPG"))
                 .isEqualTo("image/jpeg");
+        assertThat(MediaUploadRules.inferMimeFromFilename(AssetType.IMAGE, "favicon.ico"))
+                .isEqualTo("image/x-icon");
         assertThat(MediaUploadRules.normalizeMime("audio/mp3; charset=binary"))
                 .isEqualTo("audio/mpeg");
+    }
+
+    @Test
+    void acceptsIcoImageMime() {
+        // Favicons are commonly uploaded as .ico; the vendor alias normalizes to x-icon.
+        MediaUploadRules.validateMimeAndSize(AssetType.IMAGE, "image/x-icon", 1024);
+        MediaUploadRules.validateMimeAndSize(AssetType.IMAGE, "image/vnd.microsoft.icon", 1024);
     }
 
     @Test

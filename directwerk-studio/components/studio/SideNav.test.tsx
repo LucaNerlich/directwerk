@@ -33,7 +33,7 @@ function config(overrides: Partial<SiteConfig> = {}): SiteConfig {
     return {
         tenant: {slug: 'tenant', name: 'Tenant'},
         enabledModules: ['PODCAST'],
-        branding: {siteTitle: null, primaryColor: null, secondaryColor: null, logoUrl: null},
+        branding: {siteTitle: null, primaryColor: null, secondaryColor: null, logoUrl: null, faviconUrl: null},
         publicSiteUrl: 'http://localhost:3000',
         publicRssUrl: 'http://localhost:8080/feeds/tenant/podcast.xml',
         publicArticleRssUrl: null,

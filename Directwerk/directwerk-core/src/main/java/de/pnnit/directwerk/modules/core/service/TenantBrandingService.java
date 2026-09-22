@@ -40,6 +40,7 @@ public class TenantBrandingService {
             String primaryColor,
             String secondaryColor,
             String logoUrl,
+            String faviconUrl,
             String umamiWebsiteId,
             String umamiHostUrl
     ) {
@@ -60,7 +61,10 @@ public class TenantBrandingService {
             branding.setSecondaryColor(normalizeHexColor(secondaryColor, "Secondary color"));
         }
         if (logoUrl != null) {
-            branding.setLogoUrl(normalizeLogoUrl(logoUrl));
+            branding.setLogoUrl(normalizeBrandAssetUrl(logoUrl, "Logo URL"));
+        }
+        if (faviconUrl != null) {
+            branding.setFaviconUrl(normalizeBrandAssetUrl(faviconUrl, "Favicon URL"));
         }
         if (umamiWebsiteId != null) {
             branding.setUmamiWebsiteId(normalizeUmamiWebsiteId(umamiWebsiteId));
@@ -98,27 +102,28 @@ public class TenantBrandingService {
     }
 
     /**
-     * Brand logos render as {@code <img src>} on every visitor-facing page, so only
-     * absolute http/https URLs are accepted: {@code javascript:} / {@code data:} and
-     * other schemes would turn a tenant-admin setting into stored XSS for the tenant's
-     * visitors. Blank clears back to null (same convention as {@code siteTitle}).
+     * Brand logos and favicons render as {@code <img src>}/{@code <link rel="icon">} on
+     * every visitor-facing page, so only absolute http/https URLs are accepted:
+     * {@code javascript:} / {@code data:} and other schemes would turn a tenant-admin
+     * setting into stored XSS for the tenant's visitors. Blank clears back to null (same
+     * convention as {@code siteTitle}).
      */
-    private static String normalizeLogoUrl(String logoUrl) {
-        String trimmed = logoUrl.trim();
+    private static String normalizeBrandAssetUrl(String rawUrl, String fieldName) {
+        String trimmed = rawUrl.trim();
         if (trimmed.isEmpty()) {
             return null;
         }
         if (trimmed.length() > 512) {
-            throw new IllegalArgumentException("Logo URL must be at most 512 characters");
+            throw new IllegalArgumentException(fieldName + " must be at most 512 characters");
         }
         String scheme;
         try {
             scheme = new java.net.URI(trimmed).getScheme();
         } catch (IllegalArgumentException | java.net.URISyntaxException ex) {
-            throw new IllegalArgumentException("Logo URL must be an absolute http(s) URL");
+            throw new IllegalArgumentException(fieldName + " must be an absolute http(s) URL");
         }
         if (scheme == null || (!"http".equalsIgnoreCase(scheme) && !"https".equalsIgnoreCase(scheme))) {
-            throw new IllegalArgumentException("Logo URL must be an absolute http(s) URL");
+            throw new IllegalArgumentException(fieldName + " must be an absolute http(s) URL");
         }
         return trimmed;
     }

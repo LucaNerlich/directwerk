@@ -1378,6 +1378,7 @@ interface BrandingShape {
     primaryColor: string | null
     secondaryColor: string | null
     logoUrl: string | null
+    faviconUrl: string | null
 }
 
 function parseBranding(data: Record<string, unknown>): BrandingShape | null {
@@ -1386,7 +1387,8 @@ function parseBranding(data: Record<string, unknown>): BrandingShape | null {
         !isNullableString(data.branding.siteTitle) ||
         !isNullableString(data.branding.primaryColor) ||
         !isNullableString(data.branding.secondaryColor) ||
-        !isNullableString(data.branding.logoUrl)
+        !isNullableString(data.branding.logoUrl) ||
+        !isNullableString(data.branding.faviconUrl)
     ) {
         return null
     }
@@ -1396,6 +1398,7 @@ function parseBranding(data: Record<string, unknown>): BrandingShape | null {
         primaryColor: data.branding.primaryColor,
         secondaryColor: data.branding.secondaryColor,
         logoUrl: data.branding.logoUrl,
+        faviconUrl: data.branding.faviconUrl,
     }
 }
 
@@ -1472,6 +1475,7 @@ function parseTenantBranding(value: unknown): TenantBranding | null {
         !isNullableString(value.primaryColor, 16) ||
         !isNullableString(value.secondaryColor, 16) ||
         !isNullableString(value.logoUrl, 2048) ||
+        !isNullableString(value.faviconUrl, 2048) ||
         !isNullableString(value.umamiWebsiteId, 64) ||
         !isNullableString(value.umamiHostUrl, 512)
     ) {
@@ -1483,6 +1487,7 @@ function parseTenantBranding(value: unknown): TenantBranding | null {
         primaryColor: value.primaryColor,
         secondaryColor: value.secondaryColor,
         logoUrl: value.logoUrl,
+        faviconUrl: value.faviconUrl,
         umamiWebsiteId: value.umamiWebsiteId,
         umamiHostUrl: value.umamiHostUrl,
     }

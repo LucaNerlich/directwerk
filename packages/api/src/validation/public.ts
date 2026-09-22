@@ -78,7 +78,8 @@ export function parsePublicSiteConfigEnvelope(
             !isNullableString(data.branding.siteTitle) ||
             !isNullableString(data.branding.primaryColor) ||
             !isNullableString(data.branding.secondaryColor) ||
-            !isNullableString(data.branding.logoUrl)
+            !isNullableString(data.branding.logoUrl) ||
+            !isNullableString(data.branding.faviconUrl)
         ) {
             return null
         }
@@ -88,6 +89,7 @@ export function parsePublicSiteConfigEnvelope(
             primaryColor: string | null
             secondaryColor: string | null
             logoUrl: string | null
+            faviconUrl: string | null
         }
 
         return {

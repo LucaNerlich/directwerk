@@ -23,6 +23,7 @@ const baseConfig: PublicSiteConfig = {
         primaryColor: null,
         secondaryColor: null,
         logoUrl: null,
+        faviconUrl: null,
     },
     publicSiteUrl: 'https://alpha.example.test',
     publicRssUrl: null,

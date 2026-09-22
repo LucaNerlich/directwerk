@@ -83,6 +83,7 @@ public class TenantAdminController {
                 request.primaryColor(),
                 request.secondaryColor(),
                 request.logoUrl(),
+                request.faviconUrl(),
                 request.umamiWebsiteId(),
                 request.umamiHostUrl()
         );
@@ -263,6 +264,7 @@ public class TenantAdminController {
                 branding.getPrimaryColor(),
                 branding.getSecondaryColor(),
                 branding.getLogoUrl(),
+                branding.getFaviconUrl(),
                 branding.getUmamiWebsiteId(),
                 branding.getUmamiHostUrl()
         );
@@ -273,6 +275,7 @@ public class TenantAdminController {
             @Pattern(regexp = "^\\s*$|^#[0-9A-Fa-f]{6}$") String primaryColor,
             @Pattern(regexp = "^\\s*$|^#[0-9A-Fa-f]{6}$") String secondaryColor,
             String logoUrl,
+            String faviconUrl,
             @Pattern(regexp = "^\\s*$|^[a-zA-Z0-9-]{8,64}$") String umamiWebsiteId,
             @Pattern(regexp = "^\\s*$|^https://[^/\\s?#@]+/?$") String umamiHostUrl
     ) {
@@ -283,6 +286,7 @@ public class TenantAdminController {
             String primaryColor,
             String secondaryColor,
             String logoUrl,
+            String faviconUrl,
             String umamiWebsiteId,
             String umamiHostUrl
     ) {

@@ -44,6 +44,7 @@ vi.mock('@/lib/api/tenantSettingsApi', () => ({
 vi.mock('@/lib/site/SiteConfigProvider', () => ({
     useSiteConfig: () => siteConfig,
 }))
+vi.mock('@/lib/media/upload', () => ({uploadMediaFile: vi.fn()}))
 vi.mock('@/components/media/MediaLibraryPicker', () => ({
     default: ({
         label,
@@ -69,6 +70,7 @@ const branding = {
     primaryColor: '#112233',
     secondaryColor: null,
     logoUrl: null,
+    faviconUrl: null,
     umamiWebsiteId: null,
     umamiHostUrl: null,
 }
@@ -165,6 +167,7 @@ describe('BrandingEditor color picker', () => {
                 primaryColor: '#445566',
                 secondaryColor: null,
                 logoUrl: null,
+                faviconUrl: null,
                 umamiWebsiteId: null,
                 umamiHostUrl: null,
             }),
@@ -239,6 +242,7 @@ describe('BrandingEditor color picker', () => {
                 primaryColor: '#112233',
                 secondaryColor: null,
                 logoUrl: readyLogo.cdnUrl,
+                faviconUrl: null,
                 umamiWebsiteId: null,
                 umamiHostUrl: null,
             }),
@@ -260,6 +264,37 @@ describe('BrandingEditor color picker', () => {
                 primaryColor: '#112233',
                 secondaryColor: null,
                 logoUrl: 'https://cdn.example.test/external-logo.png',
+                faviconUrl: null,
+                umamiWebsiteId: null,
+                umamiHostUrl: null,
+            }),
+        )
+    })
+
+    it('fills the favicon URL from a media library image and submits it', async () => {
+        render(<BrandingEditor />)
+        const faviconField = await screen.findByLabelText('Oder Favicon-URL')
+        expect(faviconField).toHaveValue('')
+
+        fireEvent.click(
+            screen.getByRole('button', {name: 'Favicon aus Mediathek'}),
+        )
+
+        expect(faviconField).toHaveValue(readyLogo.cdnUrl)
+        expect(screen.getByAltText('Favicon-Vorschau')).toHaveAttribute(
+            'src',
+            readyLogo.cdnUrl!,
+        )
+
+        fireEvent.submit(faviconField.closest('form') as HTMLFormElement)
+
+        await waitFor(() =>
+            expect(updateBranding).toHaveBeenCalledWith('tenant.test', {
+                siteTitle: 'Meine Sendung',
+                primaryColor: '#112233',
+                secondaryColor: null,
+                logoUrl: null,
+                faviconUrl: readyLogo.cdnUrl,
                 umamiWebsiteId: null,
                 umamiHostUrl: null,
             }),

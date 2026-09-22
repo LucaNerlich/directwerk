@@ -713,6 +713,7 @@ export interface PublicSiteConfig {
         primaryColor: string | null
         secondaryColor: string | null
         logoUrl: string | null
+        faviconUrl: string | null
     }
     publicRssUrl: string | null
     publicArticleRssUrl: string | null
@@ -1126,6 +1127,7 @@ export interface TenantBranding {
     primaryColor: string | null
     secondaryColor: string | null
     logoUrl: string | null
+    faviconUrl: string | null
     umamiWebsiteId: string | null
     umamiHostUrl: string | null
 }
@@ -1135,6 +1137,7 @@ export interface UpdateTenantBrandingInput {
     primaryColor?: string | null
     secondaryColor?: string | null
     logoUrl?: string | null
+    faviconUrl?: string | null
     umamiWebsiteId?: string | null
     umamiHostUrl?: string | null
 }
