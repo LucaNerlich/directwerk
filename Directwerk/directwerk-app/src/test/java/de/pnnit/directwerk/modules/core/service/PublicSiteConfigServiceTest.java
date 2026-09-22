@@ -129,6 +129,43 @@ class PublicSiteConfigServiceTest {
                 .isEqualTo("https://8.8.8.8/script.js");
     }
 
+    @Test
+    void brandingCarriesFaviconUrl() {
+        Tenant tenant = tenant(1L, "alpha", "Alpha Podcast");
+        TenantBranding branding = new TenantBranding();
+        branding.setLogoUrl("https://cdn.example.test/logo.png");
+        branding.setFaviconUrl("https://cdn.example.test/favicon.ico");
+        when(tenantResolver.resolveHost("alpha.example.test")).thenReturn(Optional.of(tenant));
+        when(tenantBrandingRepository.findByTenantId(1L)).thenReturn(Optional.of(branding));
+        when(moduleGateService.enabledModuleKeys(1L)).thenReturn(Set.of("DIGITAL_CONTENT", "WHITELABEL"));
+
+        PublicSiteConfigService.SiteConfigView config =
+                service().loadSiteConfig("https", "alpha.example.test", 443);
+
+        assertThat(config.branding().faviconUrl()).isEqualTo("https://cdn.example.test/favicon.ico");
+        assertThat(config.branding().logoUrl()).isEqualTo("https://cdn.example.test/logo.png");
+    }
+
+    @Test
+    void brandingFallsBackToDefaultsWhenWhitelabelModuleDisabled() {
+        Tenant tenant = tenant(1L, "alpha", "Alpha Podcast");
+        TenantBranding branding = new TenantBranding();
+        branding.setSiteTitle("Stored title");
+        branding.setPrimaryColor("#112233");
+        branding.setSecondaryColor("#445566");
+        branding.setLogoUrl("https://cdn.example.test/logo.png");
+        branding.setFaviconUrl("https://cdn.example.test/favicon.ico");
+        when(tenantResolver.resolveHost("alpha.example.test")).thenReturn(Optional.of(tenant));
+        when(tenantBrandingRepository.findByTenantId(1L)).thenReturn(Optional.of(branding));
+        when(moduleGateService.enabledModuleKeys(1L)).thenReturn(Set.of("DIGITAL_CONTENT"));
+
+        PublicSiteConfigService.SiteConfigView config =
+                service().loadSiteConfig("https", "alpha.example.test", 443);
+
+        assertThat(config.branding()).isEqualTo(
+                new PublicSiteConfigService.BrandingView(null, null, null, null, null));
+    }
+
     private PublicSiteConfigService service() {
         return new PublicSiteConfigService(
                 directwerkConfig,

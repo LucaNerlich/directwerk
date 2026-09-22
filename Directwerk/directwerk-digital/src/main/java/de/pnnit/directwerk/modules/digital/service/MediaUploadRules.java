@@ -30,7 +30,7 @@ public final class MediaUploadRules {
 
     private static final Map<AssetType, Set<String>> ALLOWED_MIME = Map.of(
             AssetType.AUDIO, Set.of("audio/mpeg", "audio/mp4", "audio/x-m4a", "audio/wav", "audio/ogg", "audio/webm"),
-            AssetType.IMAGE, Set.of("image/jpeg", "image/png", "image/webp", "image/gif"),
+            AssetType.IMAGE, Set.of("image/jpeg", "image/png", "image/webp", "image/gif", "image/x-icon"),
             AssetType.VIDEO, Set.of("video/mp4", "video/webm"),
             AssetType.DOCUMENT, Set.of("application/pdf")
     );
@@ -143,6 +143,7 @@ public final class MediaUploadRules {
         return switch (normalized) {
             case "audio/mp3" -> "audio/mpeg";
             case "image/jpg" -> "image/jpeg";
+            case "image/vnd.microsoft.icon" -> "image/x-icon";
             default -> normalized;
         };
     }
@@ -171,6 +172,7 @@ public final class MediaUploadRules {
                 case "png" -> "image/png";
                 case "webp" -> "image/webp";
                 case "gif" -> "image/gif";
+                case "ico" -> "image/x-icon";
                 default -> null;
             };
             case VIDEO -> switch (ext) {
@@ -309,6 +311,7 @@ public final class MediaUploadRules {
             case "image/png" -> "png";
             case "image/webp" -> "webp";
             case "image/gif" -> "gif";
+            case "image/x-icon", "image/vnd.microsoft.icon" -> "ico";
             case "video/mp4" -> "mp4";
             case "video/webm" -> "webm";
             case "application/pdf" -> "pdf";

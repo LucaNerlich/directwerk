@@ -272,6 +272,7 @@ describe('site-config envelopes', () => {
                 primaryColor: '#000000',
                 secondaryColor: null,
                 logoUrl: null,
+                faviconUrl: null,
             },
             publicSiteUrl: null,
             publicRssUrl: null,
@@ -283,6 +284,22 @@ describe('site-config envelopes', () => {
         expect(parsed?.data.enabledModules).toEqual(['PODCAST'])
         expect(parsed?.data.emailNotifyAvailable).toBe(false)
         expect(parsed?.data.analytics).toBeNull()
+    })
+
+    it('public shape carries the tenant favicon', () => {
+        const parsed = parsePublicSiteConfigEnvelope({
+            ...base,
+            data: {
+                ...base.data,
+                branding: {
+                    ...base.data.branding,
+                    faviconUrl: 'https://cdn.example.test/favicon.ico',
+                },
+            },
+        })
+        expect(parsed?.data.branding.faviconUrl).toBe(
+            'https://cdn.example.test/favicon.ico',
+        )
     })
 
     it('public shape exposes emailNotifyAvailable when enabled', () => {

@@ -41,6 +41,9 @@ public class TenantBranding implements TenantOwned {
     @Column(name = "logo_url", length = 512)
     private String logoUrl;
 
+    @Column(name = "favicon_url", length = 512)
+    private String faviconUrl;
+
     @Column(name = "primary_color", length = 7)
     private String primaryColor;
 

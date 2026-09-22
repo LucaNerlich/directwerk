@@ -12,11 +12,13 @@ import {Skeleton} from '@directwerk/ui/components/skeleton'
 
 import Form from 'next/form'
 import {useRouter} from 'next/navigation'
-import {useActionState, useCallback, useEffect, useState} from 'react'
+import {useActionState, useCallback, useEffect, useRef, useState} from 'react'
 
 import MediaLibraryPicker from '@/components/media/MediaLibraryPicker'
+import UploadProgress from '@/components/media/UploadProgress'
 import {getBranding, updateBranding} from '@/lib/api/tenantSettingsApi'
 import {hasModule} from '@/lib/api/client'
+import {uploadMediaFile} from '@/lib/media/upload'
 import {useSiteConfig} from '@/lib/site/SiteConfigProvider'
 import type {TenantBranding} from '@directwerk/api/types'
 import {getClientTenantHost} from '@directwerk/api/tenant'
@@ -67,12 +69,24 @@ export default function BrandingEditor(): React.JSX.Element {
     const [secondaryColorDraft, setSecondaryColorDraft] = useState('')
     const [logoUrlDraft, setLogoUrlDraft] = useState('')
     const [logoPickError, setLogoPickError] = useState<string | null>(null)
+    const [faviconUrlDraft, setFaviconUrlDraft] = useState('')
+    const [faviconPickError, setFaviconPickError] = useState<string | null>(null)
+    const [isFaviconUploading, setIsFaviconUploading] = useState(false)
+    const [faviconUpload, setFaviconUpload] = useState<{file: File; progress: number} | null>(null)
     const [loadError, setLoadError] = useState<string | null>(null)
     const [isLoading, setIsLoading] = useState(true)
+    const mountedRef = useRef(true)
 
     const handleAuthRequired = useCallback(() => {
         router.replace('/login')
     }, [router])
+
+    useEffect(() => {
+        mountedRef.current = true
+        return () => {
+            mountedRef.current = false
+        }
+    }, [])
 
     useEffect(() => {
         let active = true
@@ -86,6 +100,7 @@ export default function BrandingEditor(): React.JSX.Element {
                 setPrimaryColorDraft(result.primaryColor ?? '')
                 setSecondaryColorDraft(result.secondaryColor ?? '')
                 setLogoUrlDraft(result.logoUrl ?? '')
+                setFaviconUrlDraft(result.faviconUrl ?? '')
                 setIsLoading(false)
             })
             .catch((error: unknown) => {
@@ -106,6 +121,50 @@ export default function BrandingEditor(): React.JSX.Element {
         }
     }, [authRedirect, router])
 
+    async function handleFaviconUpload(file: File | null): Promise<void> {
+        if (file === null) {
+            return
+        }
+        setFaviconPickError(null)
+        setIsFaviconUploading(true)
+        setFaviconUpload({file, progress: 0})
+        try {
+            const asset = await uploadMediaFile(getClientTenantHost(), file, {
+                assetType: 'IMAGE',
+                visibility: 'PUBLIC',
+                onProgress: (percent) => {
+                    if (mountedRef.current) {
+                        setFaviconUpload({file, progress: percent})
+                    }
+                },
+            })
+            if (!mountedRef.current) {
+                return
+            }
+            const src = safeImageSrc(asset.cdnUrl)
+            if (src === null) {
+                setFaviconPickError(
+                    'Das hochgeladene Bild hat keine öffentliche HTTPS-URL. Wähle ein anderes oder gib eine URL ein.',
+                )
+                return
+            }
+            setFaviconUrlDraft(src)
+        } catch (error: unknown) {
+            if (!mountedRef.current) {
+                return
+            }
+            if (authRedirect(error)) return
+            setFaviconPickError(
+                error instanceof Error ? error.message : 'Favicon-Upload fehlgeschlagen.',
+            )
+        } finally {
+            if (mountedRef.current) {
+                setIsFaviconUploading(false)
+                setFaviconUpload(null)
+            }
+        }
+    }
+
     async function saveAction(
         _previous: BrandingFormState,
         formData: FormData,
@@ -114,6 +173,7 @@ export default function BrandingEditor(): React.JSX.Element {
         const primaryColor = normalizeColor(formData.get('primaryColor'))
         const secondaryColor = normalizeColor(formData.get('secondaryColor'))
         const logoUrl = logoUrlDraft.trim()
+        const faviconUrl = faviconUrlDraft.trim()
         const umamiWebsiteId = String(formData.get('umamiWebsiteId') ?? '').trim()
         const umamiHostUrl = String(formData.get('umamiHostUrl') ?? '').trim()
 
@@ -151,6 +211,12 @@ export default function BrandingEditor(): React.JSX.Element {
                 success: null,
             }
         }
+        if (faviconUrl.length > 0 && safeImageSrc(faviconUrl) === null) {
+            return {
+                error: 'Favicon-URL muss eine absolute https://-URL sein.',
+                success: null,
+            }
+        }
 
         try {
             const updated = await updateBranding(getClientTenantHost(), {
@@ -158,6 +224,7 @@ export default function BrandingEditor(): React.JSX.Element {
                 primaryColor: primaryColor ?? null,
                 secondaryColor: secondaryColor ?? null,
                 logoUrl: logoUrl.length > 0 ? logoUrl : null,
+                faviconUrl: faviconUrl.length > 0 ? faviconUrl : null,
                 umamiWebsiteId: umamiWebsiteId.length > 0 ? umamiWebsiteId : null,
                 umamiHostUrl: umamiHostUrl.length > 0 ? umamiHostUrl : null,
             })
@@ -165,7 +232,9 @@ export default function BrandingEditor(): React.JSX.Element {
             setPrimaryColorDraft(updated.primaryColor ?? '')
             setSecondaryColorDraft(updated.secondaryColor ?? '')
             setLogoUrlDraft(updated.logoUrl ?? '')
+            setFaviconUrlDraft(updated.faviconUrl ?? '')
             setLogoPickError(null)
+            setFaviconPickError(null)
             if (!updated.umamiWebsiteId) {
                 return {error: null, success: 'Branding gespeichert. Analytics-Tracking ist deaktiviert (keine Website-ID).'}
             }
@@ -194,6 +263,7 @@ export default function BrandingEditor(): React.JSX.Element {
     const previewSecondary =
         secondaryColorDraft.trim().length > 0 ? secondaryColorDraft : (branding?.secondaryColor ?? null)
     const logoPreviewSrc = safeImageSrc(logoUrlDraft)
+    const faviconPreviewSrc = safeImageSrc(faviconUrlDraft)
 
     if (isLoading) {
         return (
@@ -201,7 +271,7 @@ export default function BrandingEditor(): React.JSX.Element {
                 <PageHeader
                     eyebrow="Einstellungen"
                     title="Branding"
-                    description="Titel, Farben, Logo und Analytics für deine öffentliche Website."
+                    description="Titel, Farben, Logo, Favicon und Analytics für deine öffentliche Website."
                 />
                 <p className="text-sm text-muted-foreground" role="status">Wird geladen…</p>
                 <Skeleton className="h-96 w-full max-w-xl" />
@@ -215,7 +285,7 @@ export default function BrandingEditor(): React.JSX.Element {
                 <PageHeader
                     eyebrow="Einstellungen"
                     title="Branding"
-                    description="Titel, Farben, Logo und Analytics für deine öffentliche Website."
+                    description="Titel, Farben, Logo, Favicon und Analytics für deine öffentliche Website."
                 />
                 <Alert variant="destructive">
                     <AlertDescription>{loadError}</AlertDescription>
@@ -229,7 +299,7 @@ export default function BrandingEditor(): React.JSX.Element {
             <PageHeader
                 eyebrow="Einstellungen"
                 title="Branding"
-                description="Titel, Farben, Logo und Analytics für deine öffentliche Website. Farben im Format #RRGGBB."
+                description="Titel, Farben, Logo, Favicon und Analytics für deine öffentliche Website. Farben im Format #RRGGBB."
             />
 
             <Form action={formAction} className="grid w-full max-w-xl gap-6">
@@ -372,6 +442,95 @@ export default function BrandingEditor(): React.JSX.Element {
                         ) : null}
                     </div>
                 </div>
+                <div className="grid gap-3">
+                    <div className="grid gap-2">
+                        <p className="text-sm font-medium">Favicon</p>
+                        {faviconPreviewSrc !== null ? (
+                            <img
+                                alt="Favicon-Vorschau"
+                                className="size-8 rounded-sm object-contain"
+                                src={faviconPreviewSrc}
+                            />
+                        ) : null}
+                        <Input
+                            accept="image/png,image/jpeg,image/webp,image/gif,image/x-icon,.ico"
+                            aria-label="Favicon hochladen"
+                            disabled={pending || isFaviconUploading}
+                            onChange={(event) => {
+                                const file = event.target.files?.[0] ?? null
+                                void handleFaviconUpload(file)
+                                event.target.value = ''
+                            }}
+                            type="file"
+                        />
+                        <span className="text-xs font-normal text-muted-foreground">
+                            Quadratisch, z. B. 32 × 32 px als PNG oder ICO.
+                        </span>
+                        <MediaLibraryPicker
+                            assetType="IMAGE"
+                            disabled={pending || isFaviconUploading}
+                            label="Favicon aus Mediathek"
+                            onAuthRequired={handleAuthRequired}
+                            onSelect={(asset) => {
+                                const src = safeImageSrc(asset.cdnUrl)
+                                if (src === null) {
+                                    setFaviconPickError(
+                                        'Dieses Bild hat keine öffentliche HTTPS-URL. Wähle ein anderes oder gib eine URL ein.',
+                                    )
+                                    return
+                                }
+                                setFaviconPickError(null)
+                                setFaviconUrlDraft(src)
+                            }}
+                            selectedId={null}
+                        />
+                        {faviconUpload !== null ? (
+                            <UploadProgress
+                                file={faviconUpload.file}
+                                progress={faviconUpload.progress}
+                            />
+                        ) : null}
+                        {faviconPickError !== null ? (
+                            <p className="text-sm text-destructive" role="alert">
+                                {faviconPickError}
+                            </p>
+                        ) : null}
+                    </div>
+                    <div className="grid gap-2">
+                        <Label htmlFor="faviconUrl">Oder Favicon-URL</Label>
+                        <Input
+                            aria-describedby="faviconUrl-help"
+                            disabled={pending || isFaviconUploading}
+                            id="faviconUrl"
+                            maxLength={2048}
+                            name="faviconUrl"
+                            onChange={(event) => {
+                                setFaviconPickError(null)
+                                setFaviconUrlDraft(event.target.value)
+                            }}
+                            placeholder="https://…"
+                            type="url"
+                            value={faviconUrlDraft}
+                        />
+                        <p className="text-xs text-muted-foreground" id="faviconUrl-help">
+                            Wird als Browser-Tab-Symbol deiner öffentlichen Website verwendet. Leer lassen für Logo bzw. Standard.
+                        </p>
+                        {faviconUrlDraft.length > 0 ? (
+                            <Button
+                                disabled={pending || isFaviconUploading}
+                                onClick={() => {
+                                    setFaviconPickError(null)
+                                    setFaviconUrlDraft('')
+                                }}
+                                size="sm"
+                                type="button"
+                                variant="outline"
+                            >
+                                Favicon entfernen
+                            </Button>
+                        ) : null}
+                    </div>
+                </div>
                     </CardContent>
                 </Card>
                 <Card>
@@ -453,7 +612,7 @@ export default function BrandingEditor(): React.JSX.Element {
                     </p>
                 </div>
                 <div>
-                <Button disabled={pending} type="submit">
+                <Button disabled={pending || isFaviconUploading} type="submit">
                     {pending ? 'Speichern…' : 'Speichern'}
                 </Button>
                 </div>

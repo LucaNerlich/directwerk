@@ -641,7 +641,7 @@ Subscribers see entitled files via `GET /api/v1/me/downloads`.
 | Field | API |
 |-------|-----|
 | Site name, tagline | `GET/PUT /api/v1/tenant/branding` |
-| Logo, favicon | Media library asset ids |
+| Logo, favicon | Absolute public URLs (upload to the media library, pick, or paste) |
 | Primary/secondary colors | JSON on branding resource |
 | Social links | JSON |
 

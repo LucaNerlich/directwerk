@@ -49,7 +49,7 @@ class PublicSiteConfigControllerTest {
         return new SiteConfigView(
                 new TenantView("alpha", "Alpha Podcast"),
                 List.of("DIGITAL_CONTENT", "PODCAST", "PODCAST_RSS"),
-                new PublicSiteConfigService.BrandingView(null, null, null, null),
+                new PublicSiteConfigService.BrandingView(null, null, null, null, null),
                 publicSiteUrl,
                 publicRssUrl,
                 null,

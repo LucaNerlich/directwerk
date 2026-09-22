@@ -27,6 +27,7 @@ async function resolveTenantSeo(): Promise<{
     description: string
     primaryColor: string | null
     logoUrl: string | null
+    faviconUrl: string | null
     podcastFeedUrl: string | null
     articleFeedUrl: string | null
     config: PublicSiteConfig | null
@@ -44,6 +45,7 @@ async function resolveTenantSeo(): Promise<{
             description: `${config.tenant.name} — Inhalte und Abonnements`,
             primaryColor: config.branding.primaryColor,
             logoUrl: config.branding.logoUrl,
+            faviconUrl: config.branding.faviconUrl,
             podcastFeedUrl: config.publicRssUrl,
             articleFeedUrl: config.publicArticleRssUrl,
             config,
@@ -55,6 +57,7 @@ async function resolveTenantSeo(): Promise<{
             description: FALLBACK_DESCRIPTION,
             primaryColor: null,
             logoUrl: null,
+            faviconUrl: null,
             podcastFeedUrl: null,
             articleFeedUrl: null,
             config: null,
@@ -99,7 +102,9 @@ export async function generateMetadata(): Promise<Metadata> {
             description: seo.description,
         },
         icons: {
-            icon: seo.logoUrl ?? '/favicon.ico',
+            // Tenant favicon wins; the logo is a sensible fallback, then the
+            // platform default so the tab is never unbranded.
+            icon: seo.faviconUrl ?? seo.logoUrl ?? '/favicon.ico',
         },
     }
 }
@@ -138,6 +143,7 @@ export default async function RootLayout({
                 primaryColor: null,
                 secondaryColor: null,
                 logoUrl: null,
+                faviconUrl: null,
             },
             publicSiteUrl: null,
             publicRssUrl: null,

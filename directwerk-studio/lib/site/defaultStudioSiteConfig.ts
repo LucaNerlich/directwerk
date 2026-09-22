@@ -9,6 +9,7 @@ export const DEFAULT_STUDIO_SITE_CONFIG: SiteConfig = {
         primaryColor: '#1a1a2e',
         secondaryColor: '#e94560',
         logoUrl: null,
+        faviconUrl: null,
     },
     publicRssUrl: null,
     publicArticleRssUrl: null,

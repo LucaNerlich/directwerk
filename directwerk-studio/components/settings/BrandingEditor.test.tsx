@@ -15,7 +15,7 @@ const getBranding = vi.fn()
 const updateBranding = vi.fn()
 const siteConfig = {enabledModules: ['DIGITAL_CONTENT', 'PODCAST']}
 
-const {readyLogo} = vi.hoisted(() => {
+const {readyLogo, uploadMediaFile} = vi.hoisted(() => {
     const logo: MediaAsset = {
         id: 42,
         s3Key: 't/public/images/logo.png',
@@ -34,7 +34,7 @@ const {readyLogo} = vi.hoisted(() => {
         createdAt: '2026-01-01T00:00:00Z',
         updatedAt: '2026-01-01T00:00:00Z',
     }
-    return {readyLogo: logo}
+    return {readyLogo: logo, uploadMediaFile: vi.fn()}
 })
 
 vi.mock('@/lib/api/tenantSettingsApi', () => ({
@@ -44,6 +44,7 @@ vi.mock('@/lib/api/tenantSettingsApi', () => ({
 vi.mock('@/lib/site/SiteConfigProvider', () => ({
     useSiteConfig: () => siteConfig,
 }))
+vi.mock('@/lib/media/upload', () => ({uploadMediaFile}))
 vi.mock('@/components/media/MediaLibraryPicker', () => ({
     default: ({
         label,
@@ -69,6 +70,7 @@ const branding = {
     primaryColor: '#112233',
     secondaryColor: null,
     logoUrl: null,
+    faviconUrl: null,
     umamiWebsiteId: null,
     umamiHostUrl: null,
 }
@@ -165,6 +167,7 @@ describe('BrandingEditor color picker', () => {
                 primaryColor: '#445566',
                 secondaryColor: null,
                 logoUrl: null,
+                faviconUrl: null,
                 umamiWebsiteId: null,
                 umamiHostUrl: null,
             }),
@@ -239,6 +242,7 @@ describe('BrandingEditor color picker', () => {
                 primaryColor: '#112233',
                 secondaryColor: null,
                 logoUrl: readyLogo.cdnUrl,
+                faviconUrl: null,
                 umamiWebsiteId: null,
                 umamiHostUrl: null,
             }),
@@ -260,9 +264,66 @@ describe('BrandingEditor color picker', () => {
                 primaryColor: '#112233',
                 secondaryColor: null,
                 logoUrl: 'https://cdn.example.test/external-logo.png',
+                faviconUrl: null,
                 umamiWebsiteId: null,
                 umamiHostUrl: null,
             }),
         )
+    })
+
+    it('fills the favicon URL from a media library image and submits it', async () => {
+        render(<BrandingEditor />)
+        const faviconField = await screen.findByLabelText('Oder Favicon-URL')
+        expect(faviconField).toHaveValue('')
+
+        fireEvent.click(
+            screen.getByRole('button', {name: 'Favicon aus Mediathek'}),
+        )
+
+        expect(faviconField).toHaveValue(readyLogo.cdnUrl)
+        expect(screen.getByAltText('Favicon-Vorschau')).toHaveAttribute(
+            'src',
+            readyLogo.cdnUrl!,
+        )
+
+        fireEvent.submit(faviconField.closest('form') as HTMLFormElement)
+
+        await waitFor(() =>
+            expect(updateBranding).toHaveBeenCalledWith('tenant.test', {
+                siteTitle: 'Meine Sendung',
+                primaryColor: '#112233',
+                secondaryColor: null,
+                logoUrl: null,
+                faviconUrl: readyLogo.cdnUrl,
+                umamiWebsiteId: null,
+                umamiHostUrl: null,
+            }),
+        )
+    })
+
+    it('locks favicon edits and saving while a favicon upload is in progress', async () => {
+        getBranding.mockResolvedValue({
+            ...branding,
+            faviconUrl: 'https://cdn.example.test/favicon.ico',
+        })
+        let finishUpload: (asset: MediaAsset) => void = () => undefined
+        uploadMediaFile.mockReturnValueOnce(
+            new Promise<MediaAsset>((resolve) => {
+                finishUpload = resolve
+            }),
+        )
+        render(<BrandingEditor />)
+
+        const faviconField = await screen.findByLabelText('Oder Favicon-URL')
+        fireEvent.change(screen.getByLabelText('Favicon hochladen'), {
+            target: {files: [new File(['icon'], 'favicon.png', {type: 'image/png'})]},
+        })
+
+        await waitFor(() => expect(faviconField).toBeDisabled())
+        expect(screen.getByRole('button', {name: 'Favicon entfernen'})).toBeDisabled()
+        expect(screen.getByRole('button', {name: 'Speichern'})).toBeDisabled()
+
+        finishUpload(readyLogo)
+        await waitFor(() => expect(faviconField).toBeEnabled())
     })
 })

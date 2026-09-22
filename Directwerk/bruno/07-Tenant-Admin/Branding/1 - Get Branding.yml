@@ -18,6 +18,7 @@ runtime:
           expect(res.body.data).to.have.property("primaryColor");
           expect(res.body.data).to.have.property("secondaryColor");
           expect(res.body.data).to.have.property("logoUrl");
+          expect(res.body.data).to.have.property("faviconUrl");
           expect(res.body.data).to.have.property("umamiWebsiteId");
           expect(res.body.data).to.have.property("umamiHostUrl");
         });

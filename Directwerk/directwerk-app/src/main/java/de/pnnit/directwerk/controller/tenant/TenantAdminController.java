@@ -6,6 +6,7 @@ import de.pnnit.directwerk.api.dto.InvitationResponseMapper;
 import de.pnnit.directwerk.api.dto.PermissionRestrictionView;
 import de.pnnit.directwerk.api.dto.ReplaceRestrictionsRequest;
 import de.pnnit.directwerk.api.response.Response;
+import de.pnnit.directwerk.modules.core.RequiresModule;
 import de.pnnit.directwerk.modules.core.entity.TenantBranding;
 import de.pnnit.directwerk.modules.core.entity.TenantDomain;
 import de.pnnit.directwerk.modules.core.service.MembershipPermissionService;
@@ -76,6 +77,7 @@ public class TenantAdminController {
     }
 
     @PutMapping("/branding")
+    @RequiresModule("WHITELABEL")
     ResponseEntity<Response<BrandingView>> updateBranding(@Valid @RequestBody BrandingUpdateRequest request) {
         TenantBranding branding = tenantBrandingService.updateBranding(
                 TenantContext.requireTenantId(),
@@ -83,6 +85,7 @@ public class TenantAdminController {
                 request.primaryColor(),
                 request.secondaryColor(),
                 request.logoUrl(),
+                request.faviconUrl(),
                 request.umamiWebsiteId(),
                 request.umamiHostUrl()
         );
@@ -263,6 +266,7 @@ public class TenantAdminController {
                 branding.getPrimaryColor(),
                 branding.getSecondaryColor(),
                 branding.getLogoUrl(),
+                branding.getFaviconUrl(),
                 branding.getUmamiWebsiteId(),
                 branding.getUmamiHostUrl()
         );
@@ -273,6 +277,7 @@ public class TenantAdminController {
             @Pattern(regexp = "^\\s*$|^#[0-9A-Fa-f]{6}$") String primaryColor,
             @Pattern(regexp = "^\\s*$|^#[0-9A-Fa-f]{6}$") String secondaryColor,
             String logoUrl,
+            String faviconUrl,
             @Pattern(regexp = "^\\s*$|^[a-zA-Z0-9-]{8,64}$") String umamiWebsiteId,
             @Pattern(regexp = "^\\s*$|^https://[^/\\s?#@]+/?$") String umamiHostUrl
     ) {
@@ -283,6 +288,7 @@ public class TenantAdminController {
             String primaryColor,
             String secondaryColor,
             String logoUrl,
+            String faviconUrl,
             String umamiWebsiteId,
             String umamiHostUrl
     ) {
