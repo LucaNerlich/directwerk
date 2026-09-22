@@ -3,7 +3,7 @@ package de.pnnit.directwerk.controller.auth;
 import de.pnnit.directwerk.api.PublicArticleViewMapper;
 import de.pnnit.directwerk.api.dto.MeArticleView;
 import de.pnnit.directwerk.api.response.Response;
-import de.pnnit.directwerk.controller.RequestClientIpExtractor;
+import de.pnnit.directwerk.controller.AnalyticsClientIpResolver;
 import de.pnnit.directwerk.modules.core.RequiresModule;
 import de.pnnit.directwerk.modules.digital.DigitalContentModule;
 import de.pnnit.directwerk.modules.newsletter.access.SubscriberPortalArticleAccessService;
@@ -31,15 +31,18 @@ public class MeArticleController {
     private final SubscriberPortalArticleAccessService subscriberPortalArticleAccessService;
     private final PublicArticleViewMapper publicArticleViewMapper;
     private final ArticleViewAnalyticsService articleViewAnalyticsService;
+    private final AnalyticsClientIpResolver analyticsClientIpResolver;
 
     public MeArticleController(
             SubscriberPortalArticleAccessService subscriberPortalArticleAccessService,
             PublicArticleViewMapper publicArticleViewMapper,
-            ArticleViewAnalyticsService articleViewAnalyticsService
+            ArticleViewAnalyticsService articleViewAnalyticsService,
+            AnalyticsClientIpResolver analyticsClientIpResolver
     ) {
         this.subscriberPortalArticleAccessService = subscriberPortalArticleAccessService;
         this.publicArticleViewMapper = publicArticleViewMapper;
         this.articleViewAnalyticsService = articleViewAnalyticsService;
+        this.analyticsClientIpResolver = analyticsClientIpResolver;
     }
 
     @GetMapping
@@ -74,7 +77,7 @@ public class MeArticleController {
                 "private-view",
                 request.getServerName(),
                 request.getHeader("User-Agent"),
-                RequestClientIpExtractor.extract(request));
+                analyticsClientIpResolver.resolve(request));
         return ResponseEntity.ok(Response.ok(publicArticleViewMapper.toPortalView(article)));
     }
 }

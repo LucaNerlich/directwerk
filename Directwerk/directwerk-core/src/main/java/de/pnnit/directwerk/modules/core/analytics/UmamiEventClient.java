@@ -161,7 +161,7 @@ public class UmamiEventClient {
                     )
             ));
             String userAgent = resolveCollectorUserAgent();
-            UmamiDelivery delivery = eventSender.send(sendUri, body, userAgent, clientIp);
+            UmamiDelivery delivery = eventSender.send(sendUri, body, userAgent, sanitizeClientIp(clientIp));
             int statusCode = delivery.statusCode();
             if (statusCode < 200 || statusCode >= 300) {
                 log.warn("Umami event returned HTTP {} for event {}", statusCode, eventName);
@@ -248,6 +248,23 @@ public class UmamiEventClient {
 
     private static boolean isBlank(String value) {
         return value == null || value.isBlank();
+    }
+
+    /**
+     * Reduces a resolved client IP to a single safe header token: CR/LF are replaced with spaces
+     * and only the first comma- or whitespace-separated entry is kept. Guards the outbound
+     * {@code X-Forwarded-For} against header injection even though callers already gate forwarding
+     * headers on a trusted proxy.
+     */
+    static String sanitizeClientIp(String clientIp) {
+        if (isBlank(clientIp)) {
+            return null;
+        }
+        String cleaned = clientIp.replace('\r', ' ').replace('\n', ' ').trim();
+        if (cleaned.isEmpty()) {
+            return null;
+        }
+        return cleaned.split("[,\\s]+")[0];
     }
 
     @FunctionalInterface

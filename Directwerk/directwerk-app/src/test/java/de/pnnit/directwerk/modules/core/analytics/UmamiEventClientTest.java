@@ -164,6 +164,16 @@ class UmamiEventClientTest {
     }
 
     @Test
+    void sanitizeClientIpKeepsSingleTokenAndStripsControlCharacters() {
+        assertThat(UmamiEventClient.sanitizeClientIp("203.0.113.7")).isEqualTo("203.0.113.7");
+        assertThat(UmamiEventClient.sanitizeClientIp("203.0.113.7, 10.0.0.1")).isEqualTo("203.0.113.7");
+        assertThat(UmamiEventClient.sanitizeClientIp("203.0.113.7\r\nX-Injected: evil"))
+                .isEqualTo("203.0.113.7");
+        assertThat(UmamiEventClient.sanitizeClientIp("   ")).isNull();
+        assertThat(UmamiEventClient.sanitizeClientIp(null)).isNull();
+    }
+
+    @Test
     void doesNotSendWhenAnalyticsDisabled() throws Exception {
         CapturingHttpClient httpClient = new CapturingHttpClient(200, null);
         UmamiEventClient client = new UmamiEventClient(

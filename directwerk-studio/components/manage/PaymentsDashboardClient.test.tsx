@@ -117,4 +117,18 @@ describe('PaymentsDashboardClient', () => {
         expect(screen.getByText(/Supporter · Gekündigt · Stripe/)).toBeInTheDocument()
         expect(screen.queryByRole('button', {name: 'Zugang beenden'})).not.toBeInTheDocument()
     })
+
+    it('resets the revoke confirmation after a failed revoke', async () => {
+        vi.mocked(revokeSubscription).mockRejectedValue(new Error('Widerruf fehlgeschlagen.'))
+
+        render(<PaymentsDashboardClient />)
+        await waitFor(() => expect(screen.getByText('member@example.com')).toBeInTheDocument())
+        fireEvent.click(screen.getByRole('button', {name: 'Zugang beenden'}))
+        fireEvent.click(await screen.findByRole('button', {name: 'Wirklich beenden'}))
+
+        expect(await screen.findByText('Widerruf fehlgeschlagen.')).toBeInTheDocument()
+        expect(screen.getByRole('button', {name: 'Zugang beenden'})).toBeInTheDocument()
+        expect(screen.queryByRole('button', {name: 'Wirklich beenden'})).not.toBeInTheDocument()
+        expect(revokeSubscription).toHaveBeenCalledTimes(1)
+    })
 })

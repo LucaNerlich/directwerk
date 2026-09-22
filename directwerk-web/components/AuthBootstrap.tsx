@@ -3,6 +3,8 @@
 import {usePathname, useRouter} from 'next/navigation'
 import {useEffect, useState} from 'react'
 
+import {Alert, AlertDescription} from '@directwerk/ui/components/alert'
+import {Button} from '@directwerk/ui/components/button'
 import {AUTH_REQUIRED} from '@directwerk/api/constants'
 import {ensureAuthenticated} from '@/lib/auth/session'
 import {getAccessToken} from '@/lib/auth/tokenStore'
@@ -22,6 +24,7 @@ const PUBLIC_PATHS = new Set([
     '/newsletter',
     '/imprint',
     '/privacy',
+    '/checkout/cancel',
 ])
 
 const PROTECTED_PATHS = new Set(['/account', '/downloads'])
@@ -52,6 +55,8 @@ export default function AuthBootstrap({
     const [readyPathname, setReadyPathname] = useState<string | null>(() =>
         isPublicPath(pathname) ? pathname : null
     )
+    const [transientError, setTransientError] = useState(false)
+    const [attempt, setAttempt] = useState(0)
 
     useEffect(() => {
         let active = true
@@ -75,6 +80,7 @@ export default function AuthBootstrap({
             try {
                 await ensureAuthenticated()
                 if (active) {
+                    setTransientError(false)
                     setReadyPathname(pathname)
                 }
             } catch (error: unknown) {
@@ -86,8 +92,9 @@ export default function AuthBootstrap({
                     router.replace('/login')
                     return
                 }
-                setReadyPathname(null)
-                router.replace('/login')
+                // Transient failures (e.g. `AUTH_TRANSIENT` upstream outages)
+                // must not evict a valid session — surface a retry instead.
+                setTransientError(true)
             }
         }
 
@@ -96,7 +103,30 @@ export default function AuthBootstrap({
         return () => {
             active = false
         }
-    }, [pathname, router])
+    }, [pathname, router, attempt])
+
+    if (transientError && isProtectedPath(pathname)) {
+        return (
+            <div className="page-container space-y-3 py-8">
+                <Alert variant="destructive">
+                    <AlertDescription>
+                        Die Anmeldung ist derzeit nicht möglich. Bitte erneut
+                        versuchen.
+                    </AlertDescription>
+                </Alert>
+                <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => {
+                        setTransientError(false)
+                        setAttempt((value) => value + 1)
+                    }}
+                >
+                    Erneut versuchen
+                </Button>
+            </div>
+        )
+    }
 
     if (readyPathname !== pathname && isProtectedPath(pathname)) {
         return <p>Wird geladen…</p>

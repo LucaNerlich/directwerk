@@ -121,6 +121,30 @@ class GlobalExceptionHandlerTest {
     }
 
     @Test
+    void illegalStateNeverEchoesInternalMisconfigurationMessage() {
+        var response = handler.handleIllegalState(
+                new IllegalStateException("Failed to load email template: classpath:secret/internal.html"));
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.SERVICE_UNAVAILABLE);
+        assertThat(response.getBody().errors().getFirst().code()).isEqualTo("SERVICE_MISCONFIGURED");
+        assertThat(response.getBody().errors().getFirst().message())
+                .isEqualTo("The service is temporarily unavailable")
+                .doesNotContain("secret/internal.html");
+    }
+
+    @Test
+    void illegalArgumentNeverEchoesInternalExceptionMessage() {
+        var response = handler.handleIllegalArgument(
+                new IllegalArgumentException("no QUEUED job found: queue=secret correlation=internal-123"));
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(response.getBody().errors().getFirst().code()).isEqualTo("VALIDATION_ERROR");
+        assertThat(response.getBody().errors().getFirst().message())
+                .isEqualTo("Request validation failed")
+                .doesNotContain("secret", "internal-123");
+    }
+
+    @Test
     void dataIntegrityViolationNeverEchoesRawSqlMessage() {
         var cause = new RuntimeException(
                 "ERROR: duplicate key value violates unique constraint \"episodes_tenant_id_slug_key\" "

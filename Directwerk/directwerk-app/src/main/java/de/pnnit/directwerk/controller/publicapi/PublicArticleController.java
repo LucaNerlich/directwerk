@@ -4,7 +4,7 @@ import de.pnnit.directwerk.api.PublicArticleViewMapper;
 import de.pnnit.directwerk.api.dto.PublicArticleView;
 import de.pnnit.directwerk.api.dto.PublicCategoryView;
 import de.pnnit.directwerk.api.response.Response;
-import de.pnnit.directwerk.controller.RequestClientIpExtractor;
+import de.pnnit.directwerk.controller.AnalyticsClientIpResolver;
 import de.pnnit.directwerk.modules.core.RequiresModule;
 import de.pnnit.directwerk.modules.digital.DigitalContentModule;
 import de.pnnit.directwerk.modules.digital.service.CategoryService;
@@ -29,17 +29,20 @@ public class PublicArticleController {
     private final PublicArticleViewMapper publicArticleViewMapper;
     private final CategoryService categoryService;
     private final ArticleViewAnalyticsService articleViewAnalyticsService;
+    private final AnalyticsClientIpResolver analyticsClientIpResolver;
 
     public PublicArticleController(
             PublicArticleQueryService publicArticleQueryService,
             PublicArticleViewMapper publicArticleViewMapper,
             CategoryService categoryService,
-            ArticleViewAnalyticsService articleViewAnalyticsService
+            ArticleViewAnalyticsService articleViewAnalyticsService,
+            AnalyticsClientIpResolver analyticsClientIpResolver
     ) {
         this.publicArticleQueryService = publicArticleQueryService;
         this.publicArticleViewMapper = publicArticleViewMapper;
         this.categoryService = categoryService;
         this.articleViewAnalyticsService = articleViewAnalyticsService;
+        this.analyticsClientIpResolver = analyticsClientIpResolver;
     }
 
     /**
@@ -85,7 +88,7 @@ public class PublicArticleController {
                 "public-view",
                 request.getServerName(),
                 request.getHeader("User-Agent"),
-                RequestClientIpExtractor.extract(request));
+                analyticsClientIpResolver.resolve(request));
         return ResponseEntity.ok(Response.ok(publicArticleViewMapper.toPublicView(article)));
     }
 }

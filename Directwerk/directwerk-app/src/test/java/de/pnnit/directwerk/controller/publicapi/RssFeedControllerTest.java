@@ -2,9 +2,11 @@ package de.pnnit.directwerk.controller.publicapi;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import de.pnnit.directwerk.controller.AnalyticsClientIpResolver;
 import de.pnnit.directwerk.modules.core.entity.Tenant;
 import de.pnnit.directwerk.modules.podcast.feed.SubscriberFeed;
 import de.pnnit.directwerk.modules.podcast.feed.SubscriberFeedNotFoundException;
@@ -17,6 +19,7 @@ import de.pnnit.directwerk.multitenancy.TenantResolver;
 import jakarta.servlet.http.HttpServletRequest;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.List;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -147,13 +150,49 @@ class RssFeedControllerTest {
                 .isInstanceOf(TenantNotFoundException.class);
     }
 
+    @Test
+    void ignoresForwardingHeadersFromUntrustedPeer() {
+        Tenant tenant = tenant(10L, "alpha");
+        when(tenantResolver.requireHostTenantBySlug("alpha")).thenReturn(tenant);
+        when(rssFeedSnapshotService.publicTenantFeed(tenant))
+                .thenReturn(de.pnnit.directwerk.modules.digital.storage.GeneratedFeedSnapshotStore.FeedDelivery.notReady());
+        when(request.getRemoteAddr()).thenReturn("198.51.100.4");
+        lenient().when(request.getHeader("X-Forwarded-For")).thenReturn("203.0.113.7");
+        lenient().when(request.getHeader("X-Real-IP")).thenReturn("203.0.113.8");
+
+        controller(List.of("10.0.0.1")).publicPodcastFeed("alpha", request);
+
+        verify(feedFetchAnalyticsService).trackFeedFetch(
+                10L, "podcast", "public", null, null, "198.51.100.4");
+    }
+
+    @Test
+    void usesForwardingHeadersWhenPeerIsTrustedProxy() {
+        Tenant tenant = tenant(10L, "alpha");
+        when(tenantResolver.requireHostTenantBySlug("alpha")).thenReturn(tenant);
+        when(rssFeedSnapshotService.publicTenantFeed(tenant))
+                .thenReturn(de.pnnit.directwerk.modules.digital.storage.GeneratedFeedSnapshotStore.FeedDelivery.notReady());
+        when(request.getRemoteAddr()).thenReturn("10.0.0.1");
+        lenient().when(request.getHeader("X-Real-IP")).thenReturn("203.0.113.8");
+
+        controller(List.of(" 10.0.0.1 ")).publicPodcastFeed("alpha", request);
+
+        verify(feedFetchAnalyticsService).trackFeedFetch(
+                10L, "podcast", "public", null, null, "203.0.113.8");
+    }
+
     private RssFeedController controller() {
+        return controller(List.of());
+    }
+
+    private RssFeedController controller(List<String> trustedProxies) {
         return new RssFeedController(
                 tenantResolver,
                 subscriberFeedService,
                 rssFeedSnapshotService,
                 rssFeedDeliveryFacade,
-                feedFetchAnalyticsService
+                feedFetchAnalyticsService,
+                new AnalyticsClientIpResolver(trustedProxies)
         );
     }
 

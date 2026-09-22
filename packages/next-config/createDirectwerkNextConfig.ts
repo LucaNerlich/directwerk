@@ -32,16 +32,26 @@ export function createDirectwerkContentSecurityPolicy(
     ].join('; ')
 }
 
+export interface DirectwerkNextConfigOptions {
+    /**
+     * `X-Frame-Options` value. Defaults to `SAMEORIGIN`; apps that must never
+     * be framed (the admin console) pass `DENY`. This is the single source of
+     * the app's frame policy — do not also set X-Frame-Options in the app's
+     * own proxy, or responses can carry conflicting values.
+     */
+    frameOptions?: string
+}
+
 /**
  * Baseline response headers applied to every page/API route. These are
  * deliberately CSP-free: apps that need CSP add it at their own response
  * boundary, using a per-request proxy nonce or app-specific headers.
  */
-function directwerkSecurityHeaders(): {key: string; value: string}[] {
+function directwerkSecurityHeaders(frameOptions: string): {key: string; value: string}[] {
     return [
         {key: 'X-Content-Type-Options', value: 'nosniff'},
         {key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin'},
-        {key: 'X-Frame-Options', value: 'SAMEORIGIN'},
+        {key: 'X-Frame-Options', value: frameOptions},
         {
             key: 'Permissions-Policy',
             value: 'camera=(), microphone=(), geolocation=(), payment=()',
@@ -52,7 +62,10 @@ function directwerkSecurityHeaders(): {key: string; value: string}[] {
 /**
  * Shared Next.js defaults for Directwerk apps (no `next` import — apps spread into NextConfig).
  */
-export function createDirectwerkNextConfig() {
+export function createDirectwerkNextConfig(
+    options: DirectwerkNextConfigOptions = {},
+) {
+    const frameOptions = options.frameOptions ?? 'SAMEORIGIN'
     return {
         reactCompiler: true,
         transpilePackages: [...directwerkTranspilePackages],
@@ -64,7 +77,7 @@ export function createDirectwerkNextConfig() {
             return [
                 {
                     source: '/:path*',
-                    headers: directwerkSecurityHeaders(),
+                    headers: directwerkSecurityHeaders(frameOptions),
                 },
             ]
         },

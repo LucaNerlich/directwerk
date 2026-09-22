@@ -90,16 +90,17 @@ export function proxy(request: NextRequest) {
         },
     })
     response.headers.set('Content-Security-Policy', cspHeader)
-    // Baseline hardening alongside the nonce CSP (frame-ancestors 'none' is
-    // already in the CSP; X-Frame-Options stays as defense-in-depth for older
-    // user agents. HSTS is a no-op over plain-HTTP local dev and enforced
-    // behind the HTTPS reverse proxy in stage/prod).
+    // Baseline hardening alongside the nonce CSP. `frame-ancestors 'none'`
+    // above is the frame policy for modern user agents; X-Frame-Options (DENY
+    // for the admin console) is emitted once by the shared next.config headers,
+    // not here, so responses never carry conflicting values. HSTS is a no-op
+    // over plain-HTTP local dev and enforced behind the HTTPS reverse proxy in
+    // stage/prod.
     response.headers.set(
         'Strict-Transport-Security',
         'max-age=31536000; includeSubDomains',
     )
     response.headers.set('X-Content-Type-Options', 'nosniff')
-    response.headers.set('X-Frame-Options', 'DENY')
     response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin')
     response.headers.set(
         'Permissions-Policy',

@@ -6,6 +6,7 @@ import static org.mockito.Mockito.when;
 
 import de.pnnit.directwerk.api.PublicArticleViewMapper;
 import de.pnnit.directwerk.api.dto.PublicArticleView;
+import de.pnnit.directwerk.controller.AnalyticsClientIpResolver;
 import de.pnnit.directwerk.modules.core.entity.Tenant;
 import de.pnnit.directwerk.modules.digital.entity.AccessPolicy;
 import de.pnnit.directwerk.modules.digital.service.CategoryService;
@@ -81,7 +82,8 @@ class PublicArticleControllerTest {
                 publicArticleQueryService,
                 publicArticleViewMapper,
                 categoryService,
-                articleViewAnalyticsService
+                articleViewAnalyticsService,
+                new AnalyticsClientIpResolver(List.of())
         );
     }
 

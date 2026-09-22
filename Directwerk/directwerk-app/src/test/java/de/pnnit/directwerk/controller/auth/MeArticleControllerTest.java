@@ -6,6 +6,7 @@ import static org.mockito.Mockito.when;
 
 import de.pnnit.directwerk.api.PublicArticleViewMapper;
 import de.pnnit.directwerk.api.dto.MeArticleView;
+import de.pnnit.directwerk.controller.AnalyticsClientIpResolver;
 import de.pnnit.directwerk.modules.core.entity.Tenant;
 import de.pnnit.directwerk.modules.digital.entity.AccessPolicy;
 import de.pnnit.directwerk.modules.newsletter.access.SubscriberPortalArticleAccessService;
@@ -48,7 +49,8 @@ class MeArticleControllerTest {
         MeArticleController controller = new MeArticleController(
                 subscriberPortalArticleAccessService,
                 publicArticleViewMapper,
-                articleViewAnalyticsService
+                articleViewAnalyticsService,
+                new AnalyticsClientIpResolver(List.of())
         );
         DirectwerkUserPrincipal principal = subscriber();
         Article article = paidArticle();
@@ -82,7 +84,8 @@ class MeArticleControllerTest {
         MeArticleController controller = new MeArticleController(
                 subscriberPortalArticleAccessService,
                 publicArticleViewMapper,
-                articleViewAnalyticsService
+                articleViewAnalyticsService,
+                new AnalyticsClientIpResolver(List.of())
         );
         DirectwerkUserPrincipal principal = subscriber();
         Article article = paidArticle();

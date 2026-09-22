@@ -1,6 +1,8 @@
 import {NextRequest} from 'next/server'
 import {describe, expect, it} from 'vitest'
 
+import nextConfig from './next.config'
+
 import {config, proxy} from './proxy'
 
 function requestFor(pathname: string, cookie?: string): NextRequest {
@@ -40,5 +42,18 @@ describe('proxy', () => {
                 },
             ],
         })
+    })
+
+    it('defines the DENY frame policy exactly once, in next.config', async () => {
+        const headerGroups = (await nextConfig.headers?.()) ?? []
+        const frameValues = headerGroups.flatMap((group) =>
+            group.headers
+                .filter((header) => header.key === 'X-Frame-Options')
+                .map((header) => header.value),
+        )
+        expect(frameValues).toEqual(['DENY'])
+        // proxy.ts must not emit its own X-Frame-Options, or responses could
+        // carry conflicting frame policies.
+        expect(proxy(requestFor('/imprint')).headers.get('X-Frame-Options')).toBeNull()
     })
 })

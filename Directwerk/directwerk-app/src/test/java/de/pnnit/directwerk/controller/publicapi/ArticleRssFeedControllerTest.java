@@ -6,8 +6,7 @@ import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import de.pnnit.directwerk.config.DirectwerkConfig;
-import de.pnnit.directwerk.config.DirectwerkProperties;
+import de.pnnit.directwerk.controller.AnalyticsClientIpResolver;
 import de.pnnit.directwerk.modules.core.entity.Tenant;
 import de.pnnit.directwerk.modules.digital.storage.GeneratedFeedSnapshotStore.FeedDelivery;
 import de.pnnit.directwerk.modules.newsletter.feed.ArticleFeed;
@@ -200,16 +199,8 @@ class ArticleRssFeedControllerTest {
                 articleRssFeedSnapshotService,
                 articleViewDeliveryFacade,
                 feedFetchAnalyticsService,
-                directwerkConfig(trustedProxies)
+                new AnalyticsClientIpResolver(trustedProxies)
         );
-    }
-
-    private static DirectwerkConfig directwerkConfig(List<String> trustedProxies) {
-        var security = new DirectwerkProperties.Security(
-                null, null, null, null, null, null, null, null, null,
-                null, null, null, null, trustedProxies);
-        return new DirectwerkConfig(new DirectwerkProperties(
-                security, null, null, null, null, null, null, null, null));
     }
 
     private static Tenant tenant(Long id, String slug) {

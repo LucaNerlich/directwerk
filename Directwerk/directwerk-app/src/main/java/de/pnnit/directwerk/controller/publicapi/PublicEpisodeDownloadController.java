@@ -1,7 +1,7 @@
 package de.pnnit.directwerk.controller.publicapi;
 
+import de.pnnit.directwerk.controller.AnalyticsClientIpResolver;
 import de.pnnit.directwerk.modules.core.RequiresModule;
-import de.pnnit.directwerk.modules.core.util.ClientIpExtractor;
 import de.pnnit.directwerk.modules.podcast.PodcastModule;
 import de.pnnit.directwerk.modules.podcast.service.RssFeedDeliveryFacade;
 import de.pnnit.directwerk.multitenancy.TenantContext;
@@ -20,9 +20,14 @@ import org.springframework.web.bind.annotation.RestController;
 public class PublicEpisodeDownloadController {
 
     private final RssFeedDeliveryFacade rssFeedDeliveryFacade;
+    private final AnalyticsClientIpResolver analyticsClientIpResolver;
 
-    public PublicEpisodeDownloadController(RssFeedDeliveryFacade rssFeedDeliveryFacade) {
+    public PublicEpisodeDownloadController(
+            RssFeedDeliveryFacade rssFeedDeliveryFacade,
+            AnalyticsClientIpResolver analyticsClientIpResolver
+    ) {
         this.rssFeedDeliveryFacade = rssFeedDeliveryFacade;
+        this.analyticsClientIpResolver = analyticsClientIpResolver;
     }
 
     @GetMapping("/{slug}/download")
@@ -36,10 +41,7 @@ public class PublicEpisodeDownloadController {
                 request.getServerName(),
                 request.getHeader("User-Agent"),
                 request.getHeader("Range") != null,
-                ClientIpExtractor.extract(
-                        request.getHeader("X-Forwarded-For"),
-                        request.getHeader("X-Real-IP"),
-                        request.getRemoteAddr())
+                analyticsClientIpResolver.resolve(request)
         ).response();
     }
 }

@@ -182,6 +182,7 @@ export default function PaymentsDashboardClient(): React.JSX.Element {
             )
         } finally {
             setIsBusy(false)
+            setPendingRevokeId(null)
         }
     }
 
