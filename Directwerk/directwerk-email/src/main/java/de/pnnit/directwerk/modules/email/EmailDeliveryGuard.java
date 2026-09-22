@@ -3,6 +3,7 @@ package de.pnnit.directwerk.modules.email;
 import de.pnnit.directwerk.modules.email.repository.EmailDeliveryRepository;
 import java.time.Clock;
 import java.time.Duration;
+import java.util.Optional;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -28,27 +29,44 @@ public class EmailDeliveryGuard {
     }
 
     /**
-     * Claims durable delivery ownership for a queue job. Returns false when the job was already
+     * Claims durable delivery ownership for a queue job. Returns empty when the job was already
      * delivered, or when another worker holds a fresh provisional claim. A provisional claim
-     * older than the lease is taken over and returns true.
+     * older than the lease is taken over and returns the new ownership token.
      */
     @Transactional
-    public boolean tryClaimDelivery(UUID jobId) {
+    public Optional<DeliveryClaim> tryClaimDelivery(UUID jobId) {
         var now = clock.instant();
-        if (emailDeliveryRepository.insertIfAbsent(jobId, now) > 0) {
-            return true;
+        UUID claimToken = UUID.randomUUID();
+        if (emailDeliveryRepository.insertIfAbsent(jobId, now, claimToken) > 0) {
+            return Optional.of(new DeliveryClaim(jobId, claimToken));
         }
-        return emailDeliveryRepository.takeOverStaleClaim(jobId, now, now.minus(CLAIM_LEASE)) > 0;
+        if (emailDeliveryRepository.takeOverStaleClaim(
+                jobId, now, now.minus(CLAIM_LEASE), claimToken) > 0) {
+            return Optional.of(new DeliveryClaim(jobId, claimToken));
+        }
+        return Optional.empty();
     }
 
-    /** Marks a provisional claim as sent; after this the row permanently suppresses re-delivery. */
+    /**
+     * Holds the owned claim row lock across outbound submission and finalization. A takeover
+     * therefore cannot start a replacement sender while the stale owner is still submitting.
+     */
     @Transactional
-    public void finalizeClaim(UUID jobId) {
-        emailDeliveryRepository.finalizeClaim(jobId, clock.instant());
+    public boolean finalizeClaim(DeliveryClaim claim, Runnable outboundSubmission) {
+        if (emailDeliveryRepository.findOwnedClaimForUpdate(
+                claim.jobId(), claim.claimToken()).isEmpty()) {
+            return false;
+        }
+        outboundSubmission.run();
+        return emailDeliveryRepository.finalizeClaim(
+                claim.jobId(), claim.claimToken(), clock.instant()) > 0;
     }
 
     @Transactional
-    public void releaseClaim(UUID jobId) {
-        emailDeliveryRepository.deleteClaim(jobId);
+    public void releaseClaim(DeliveryClaim claim) {
+        emailDeliveryRepository.deleteClaim(claim.jobId(), claim.claimToken());
+    }
+
+    public record DeliveryClaim(UUID jobId, UUID claimToken) {
     }
 }

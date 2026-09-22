@@ -276,7 +276,6 @@ public class StripeSdkOperations implements StripeOperations {
                     event.getId(), event.getType(), event.getApiVersion(), Stripe.API_VERSION);
             try {
                 stripeObject = deserializer.deserializeUnsafe();
-                dataObjectDeserialized = stripeObject != null;
             } catch (EventDataObjectDeserializationException | RuntimeException ex) {
                 log.warn(
                         "Stripe event id={} type={} data object could not be deserialized; "

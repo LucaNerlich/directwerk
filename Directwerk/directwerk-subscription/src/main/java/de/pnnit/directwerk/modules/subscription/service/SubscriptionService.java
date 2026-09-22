@@ -67,7 +67,7 @@ public class SubscriptionService {
         }
 
         Subscription existing = subscriptionRepository
-                .findByTenantIdAndUserIdAndProductId(tenantId, user.getId(), productId)
+                .findByTenantIdAndUserIdAndProductIdForUpdate(tenantId, user.getId(), productId)
                 .orElse(null);
         if (existing != null && existing.getSource() == SubscriptionSource.STRIPE) {
             if (existing.getStatus() == SubscriptionStatus.ACTIVE) {

@@ -1,7 +1,9 @@
 'use client'
 
 import {useRouter} from 'next/navigation'
+import {useState} from 'react'
 
+import {Alert, AlertDescription} from '@directwerk/ui/components/alert'
 import {Button} from '@directwerk/ui/components/button'
 import {clearAllCachedTenantData} from '@directwerk/api/client/useCachedTenantQuery'
 
@@ -11,6 +13,7 @@ import {clearTokens} from '@/lib/auth/tokenStore'
 export default function LogoutButton() {
     const router = useRouter()
     const me = useOptionalMe()
+    const [logoutError, setLogoutError] = useState<string | null>(null)
 
     return (
         <div className="flex min-w-0 flex-col gap-2">
@@ -19,16 +22,30 @@ export default function LogoutButton() {
                     Angemeldet als {me.email}
                 </p>
             ) : null}
+            {logoutError !== null ? (
+                <Alert variant="destructive">
+                    <AlertDescription>{logoutError}</AlertDescription>
+                </Alert>
+            ) : null}
             <Button
                 type="button"
                 className="w-full justify-start"
                 variant="outline"
                 onClick={() => {
                     void (async () => {
+                        setLogoutError(null)
                         try {
-                            await fetch('/api/auth/logout', {method: 'POST', cache: 'no-store'})
+                            const response = await fetch('/api/auth/logout', {
+                                method: 'POST',
+                                cache: 'no-store',
+                            })
+                            if (!response.ok) {
+                                setLogoutError('Abmeldung fehlgeschlagen. Bitte versuche es erneut.')
+                                return
+                            }
                         } catch {
-                            // Best effort — still clear local tokens below.
+                            setLogoutError('Abmeldung fehlgeschlagen. Bitte versuche es erneut.')
+                            return
                         }
                         clearTokens()
                         clearAllCachedTenantData()

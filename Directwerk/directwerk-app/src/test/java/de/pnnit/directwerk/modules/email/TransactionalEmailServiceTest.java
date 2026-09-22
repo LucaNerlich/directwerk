@@ -6,6 +6,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -31,6 +32,11 @@ import org.mockito.junit.jupiter.MockitoExtension;
 class TransactionalEmailServiceTest {
 
     private static final UUID JOB_ID = UUID.fromString("00000000-0000-0000-0000-000000000001");
+    private static final EmailDeliveryGuard.DeliveryClaim CLAIM =
+            new EmailDeliveryGuard.DeliveryClaim(
+                    JOB_ID,
+                    UUID.fromString("00000000-0000-0000-0000-000000000002")
+            );
 
     @Mock
     private DirectwerkConfig directwerkConfig;
@@ -52,6 +58,11 @@ class TransactionalEmailServiceTest {
 
     @BeforeEach
     void setUp() {
+        lenient().when(emailDeliveryGuard.finalizeClaim(eq(CLAIM), any(Runnable.class)))
+                .thenAnswer(invocation -> {
+                    invocation.<Runnable>getArgument(1).run();
+                    return true;
+                });
         templateRenderer = new EmailTemplateRenderer(new ClasspathEmailTemplateSource());
         transactionalEmailService = new TransactionalEmailService(
                 directwerkConfig,
@@ -99,7 +110,7 @@ class TransactionalEmailServiceTest {
     void sendFromPayloadSkipsDuplicateDelivery() {
         when(directwerkConfig.isEmailEnabled()).thenReturn(true);
         when(emailSender.isReady()).thenReturn(true);
-        when(emailDeliveryGuard.tryClaimDelivery(JOB_ID)).thenReturn(false);
+        when(emailDeliveryGuard.tryClaimDelivery(JOB_ID)).thenReturn(Optional.empty());
 
         transactionalEmailService.sendFromPayload(
                 JOB_ID,
@@ -116,7 +127,7 @@ class TransactionalEmailServiceTest {
     void sendFromPayloadDelegatesRenderedMessageToSender() {
         when(directwerkConfig.isEmailEnabled()).thenReturn(true);
         when(emailSender.isReady()).thenReturn(true);
-        when(emailDeliveryGuard.tryClaimDelivery(JOB_ID)).thenReturn(true);
+        when(emailDeliveryGuard.tryClaimDelivery(JOB_ID)).thenReturn(Optional.of(CLAIM));
         when(directwerkConfig.email()).thenReturn(sampleEmailConfig());
         when(emailSender.providerId()).thenReturn("smtp");
 
@@ -140,14 +151,18 @@ class TransactionalEmailServiceTest {
         assertThat(sent.htmlBody()).contains("http://localhost:3004/reset-password?token=reset-token");
         assertThat(sent.template()).isEqualTo("PASSWORD_RESET");
         assertThat(sent.jobId()).isEqualTo(JOB_ID.toString());
-        verify(emailDeliveryGuard).finalizeClaim(JOB_ID);
+        assertThat(sent.headers()).containsEntry(
+                "Message-ID",
+                "<00000000-0000-0000-0000-000000000001@directwerk.local>"
+        );
+        verify(emailDeliveryGuard).finalizeClaim(eq(CLAIM), any(Runnable.class));
     }
 
     @Test
     void sendFromPayloadReleasesClaimWhenDeliveryFails() {
         when(directwerkConfig.isEmailEnabled()).thenReturn(true);
         when(emailSender.isReady()).thenReturn(true);
-        when(emailDeliveryGuard.tryClaimDelivery(JOB_ID)).thenReturn(true);
+        when(emailDeliveryGuard.tryClaimDelivery(JOB_ID)).thenReturn(Optional.of(CLAIM));
         when(directwerkConfig.email()).thenReturn(sampleEmailConfig());
         doThrow(new EmailDeliveryException("Email delivery failed", null))
                 .when(emailSender)
@@ -161,14 +176,14 @@ class TransactionalEmailServiceTest {
                 Map.of("resetUrl", "http://localhost/reset", "expiresIn", "1 hour")
         )).isInstanceOf(EmailDeliveryException.class).hasMessageContaining("Email delivery failed");
 
-        verify(emailDeliveryGuard).releaseClaim(JOB_ID);
+        verify(emailDeliveryGuard).releaseClaim(CLAIM);
     }
 
     @Test
     void sendFromPayloadReleasesClaimOnAnyRuntimeException() {
         when(directwerkConfig.isEmailEnabled()).thenReturn(true);
         when(emailSender.isReady()).thenReturn(true);
-        when(emailDeliveryGuard.tryClaimDelivery(JOB_ID)).thenReturn(true);
+        when(emailDeliveryGuard.tryClaimDelivery(JOB_ID)).thenReturn(Optional.of(CLAIM));
         when(directwerkConfig.email()).thenReturn(sampleEmailConfig());
         doThrow(new IllegalStateException("render failed"))
                 .when(emailSender)
@@ -182,13 +197,13 @@ class TransactionalEmailServiceTest {
                 Map.of("resetUrl", "http://localhost/reset", "expiresIn", "1 hour")
         )).isInstanceOf(IllegalStateException.class).hasMessageContaining("render failed");
 
-        verify(emailDeliveryGuard).releaseClaim(JOB_ID);
+        verify(emailDeliveryGuard).releaseClaim(CLAIM);
     }
 
     @Test
     void sendFromPayloadUsesTenantMailgunCredentialsAndProvider() {
         when(directwerkConfig.isEmailEnabled()).thenReturn(true);
-        when(emailDeliveryGuard.tryClaimDelivery(JOB_ID)).thenReturn(true);
+        when(emailDeliveryGuard.tryClaimDelivery(JOB_ID)).thenReturn(Optional.of(CLAIM));
         TenantEspConnectionService.ResolvedEspCredentials credentials =
                 new TenantEspConnectionService.ResolvedEspCredentials(
                         EspProvider.MAILGUN,
@@ -223,7 +238,7 @@ class TransactionalEmailServiceTest {
     void sendFromPayloadReleasesClaimWhenTenantMailgunFails() {
         when(directwerkConfig.isEmailEnabled()).thenReturn(true);
         when(directwerkConfig.email()).thenReturn(sampleEmailConfig());
-        when(emailDeliveryGuard.tryClaimDelivery(JOB_ID)).thenReturn(true);
+        when(emailDeliveryGuard.tryClaimDelivery(JOB_ID)).thenReturn(Optional.of(CLAIM));
         TenantEspConnectionService.ResolvedEspCredentials credentials =
                 new TenantEspConnectionService.ResolvedEspCredentials(
                         EspProvider.MAILGUN,
@@ -246,7 +261,7 @@ class TransactionalEmailServiceTest {
                 Map.of("resetUrl", "http://localhost/reset", "expiresIn", "1 hour")
         )).isInstanceOf(EmailDeliveryException.class).hasMessageContaining("Mailgun send failed");
 
-        verify(emailDeliveryGuard).releaseClaim(JOB_ID);
+        verify(emailDeliveryGuard).releaseClaim(CLAIM);
         verify(emailSender, never()).send(any());
     }
 

@@ -3,6 +3,7 @@ package de.pnnit.directwerk.modules.digital.api;
 import de.pnnit.directwerk.modules.digital.entity.AssetType;
 import de.pnnit.directwerk.modules.digital.entity.AssetVisibility;
 import de.pnnit.directwerk.modules.digital.entity.MediaAsset;
+import java.util.UUID;
 
 /**
  * Server-side ingest: stream a remote HTTP body into tenant object storage without buffering it.
@@ -19,7 +20,15 @@ public interface RemoteAssetIngestApi {
      */
     IngestResult startIngestFromUrl(IngestCommand command);
 
-    void discard(Long assetId);
+    void discard(CleanupClaim cleanupClaim);
+
+    record CleanupClaim(Long assetId, UUID token) {
+        public CleanupClaim {
+            if (assetId == null || token == null) {
+                throw new IllegalArgumentException("Cleanup claim requires an asset id and token");
+            }
+        }
+    }
 
     /**
      * Outcome of an ingest request.
@@ -28,8 +37,17 @@ public interface RemoteAssetIngestApi {
      * @param reused {@code true} when an existing asset for the same source URL was returned;
      *               callers must not register reused assets for failure cleanup, since deleting
      *               them would break already-published content that references them
+     * @param cleanupClaim ownership proof for cleanup of a new ingest; {@code null} when reused
      */
-    record IngestResult(MediaAsset asset, boolean reused) {
+    record IngestResult(MediaAsset asset, boolean reused, CleanupClaim cleanupClaim) {
+        public IngestResult {
+            if (reused && cleanupClaim != null) {
+                throw new IllegalArgumentException("Reused assets must not expose cleanup ownership");
+            }
+            if (!reused && cleanupClaim == null) {
+                throw new IllegalArgumentException("New ingests require cleanup ownership");
+            }
+        }
     }
 
     record IngestCommand(

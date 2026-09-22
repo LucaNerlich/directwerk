@@ -416,11 +416,12 @@ class RemoteAssetIngestServiceTest {
         asset.setId(42L);
         asset.setTenant(tenant);
         asset.setS3Key("alpha/private/audio/asset-42_episode.mp3");
+        asset.setIngestCleanupToken(java.util.UUID.randomUUID());
         when(directwerkConfig.isStorageEnabled()).thenReturn(true);
         when(directwerkConfig.storage()).thenReturn(storage());
-        when(mediaAssetRepository.findById(42L)).thenReturn(java.util.Optional.of(asset));
+        when(mediaAssetRepository.findByIdForUpdate(42L)).thenReturn(java.util.Optional.of(asset));
 
-        service.discard(42L);
+        service.discard(new RemoteAssetIngestApi.CleanupClaim(42L, asset.getIngestCleanupToken()));
 
         verify(mediaAssetRepository).delete(asset);
         verify(s3Client).deleteObject(any(software.amazon.awssdk.services.s3.model.DeleteObjectRequest.class));
@@ -435,12 +436,39 @@ class RemoteAssetIngestServiceTest {
         asset.setId(42L);
         asset.setTenant(tenant);
         asset.setStatus(AssetStatus.PENDING_DELETE);
+        asset.setIngestCleanupToken(java.util.UUID.randomUUID());
         when(directwerkConfig.isStorageEnabled()).thenReturn(true);
         when(directwerkConfig.storage()).thenReturn(storage());
-        when(mediaAssetRepository.findById(42L)).thenReturn(java.util.Optional.of(asset));
+        when(mediaAssetRepository.findByIdForUpdate(42L)).thenReturn(java.util.Optional.of(asset));
 
-        assertThatThrownBy(() -> service.discard(42L))
+        assertThatThrownBy(() -> service.discard(
+                new RemoteAssetIngestApi.CleanupClaim(42L, asset.getIngestCleanupToken())))
                 .isInstanceOf(UploadValidationException.class);
+
+        verify(mediaAssetRepository, never()).delete(any(MediaAsset.class));
+        verify(s3Client, never()).deleteObject(
+                any(software.amazon.awssdk.services.s3.model.DeleteObjectRequest.class));
+    }
+
+    @Test
+    void discardRechecksCleanupClaimAndAttachmentsUnderAssetLock() {
+        Tenant tenant = new Tenant();
+        tenant.setId(10L);
+        tenant.setSlug("alpha");
+        MediaAsset asset = new MediaAsset();
+        asset.setId(42L);
+        asset.setTenant(tenant);
+        asset.setS3Key("alpha/private/audio/asset-42_episode.mp3");
+        asset.setIngestCleanupToken(java.util.UUID.randomUUID());
+        when(directwerkConfig.isStorageEnabled()).thenReturn(true);
+        when(directwerkConfig.storage()).thenReturn(storage());
+        when(mediaAssetRepository.findByIdForUpdate(42L)).thenReturn(Optional.of(asset));
+        when(mediaAssetRepository.hasAttachedReferences(42L)).thenReturn(true);
+
+        assertThatThrownBy(() -> service.discard(
+                new RemoteAssetIngestApi.CleanupClaim(42L, asset.getIngestCleanupToken())))
+                .isInstanceOf(UploadValidationException.class)
+                .hasMessageContaining("Attached");
 
         verify(mediaAssetRepository, never()).delete(any(MediaAsset.class));
         verify(s3Client, never()).deleteObject(
@@ -595,7 +623,6 @@ class RemoteAssetIngestServiceTest {
                         new ByteArrayInputStream(body)
                 )
         );
-        when(mediaAssetRepository.saveAndFlush(any(MediaAsset.class))).thenAnswer(inv -> inv.getArgument(0));
         doAnswer(invocation -> null).when(s3Client)
                 .putObject(any(PutObjectRequest.class), any(RequestBody.class));
 
@@ -606,6 +633,7 @@ class RemoteAssetIngestServiceTest {
         );
 
         assertThat(deleted.getStatus()).isEqualTo(AssetStatus.PENDING_DELETE);
+        verify(mediaAssetRepository, never()).saveAndFlush(pending);
         verify(s3Client).deleteObject(any(software.amazon.awssdk.services.s3.model.DeleteObjectRequest.class));
     }
 

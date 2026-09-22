@@ -303,23 +303,24 @@ public final class FeedImportSupport {
      * Discards ingested assets in reverse order, continuing cleanup when an asset
      * cannot be discarded.
      *
-     * @param assetIds the identifiers of assets to discard
+     * @param cleanupClaims ownership proofs for assets to discard
      * @param discard  performs the discard for one asset
      * @param log      the caller's logger, so warnings keep their original category
      * @param subject  the noun used in the warning (for example {@code unreferenced RSS import asset})
      */
-    public static void discardIngestedAssets(
-            List<Long> assetIds,
-            Consumer<Long> discard,
+    public static <T> void discardIngestedAssets(
+            List<T> cleanupClaims,
+            Consumer<T> discard,
             Logger log,
             String subject
     ) {
-        for (int i = assetIds.size() - 1; i >= 0; i--) {
-            Long assetId = assetIds.get(i);
+        for (int i = cleanupClaims.size() - 1; i >= 0; i--) {
+            T cleanupClaim = cleanupClaims.get(i);
             try {
-                discard.accept(assetId);
+                discard.accept(cleanupClaim);
             } catch (RuntimeException cleanupFailure) {
-                log.warn("Failed to discard {} {}", subject, assetId, cleanupFailure);
+                // Cleanup claims contain bearer-style tokens and must never be logged.
+                log.warn("Failed to discard {}", subject, cleanupFailure);
             }
         }
     }

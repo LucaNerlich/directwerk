@@ -62,7 +62,7 @@ public class StripeSubscriptionSyncService {
         }
         if (subscription == null) {
             Subscription byUserAndProduct = subscriptionRepository
-                    .findByTenantIdAndUserIdAndProductId(tenantId, userId, productId)
+                    .findByTenantIdAndUserIdAndProductIdForUpdate(tenantId, userId, productId)
                     .orElse(null);
             if (byUserAndProduct != null
                     && byUserAndProduct.getSource() == SubscriptionSource.MANUAL
@@ -136,6 +136,9 @@ public class StripeSubscriptionSyncService {
     ) {
         subscriptionRepository.findByTenantIdAndExternalSubscriptionIdForUpdate(tenantId, externalSubscriptionId)
                 .ifPresent(subscription -> {
+                    if (subscription.getSource() == SubscriptionSource.MANUAL) {
+                        return;
+                    }
                     subscription.setStatus(status);
                     if (endsAt != null) {
                         subscription.setEndsAt(endsAt);

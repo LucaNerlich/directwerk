@@ -155,13 +155,13 @@ public class ArticleImportService {
             return new ImportedArticle(existing.get(), true);
         }
 
-        List<Long> ingestedAssetIds = new ArrayList<>();
+        List<RemoteAssetIngestApi.CleanupClaim> cleanupClaims = new ArrayList<>();
         AccessPolicy accessPolicy = command.accessPolicy() == null ? AccessPolicy.FREE : command.accessPolicy();
         Long heroAssetId = command.heroAssetId();
         String body = command.body() == null ? "" : command.body();
         try {
             if (command.importInlineImages()) {
-                BodyRewrite rewritten = rewriteInlineImages(body, command.title(), ingestedAssetIds);
+                BodyRewrite rewritten = rewriteInlineImages(body, command.title(), cleanupClaims);
                 body = rewritten.body();
             }
             if (heroAssetId == null && command.importHero()
@@ -174,7 +174,7 @@ public class ArticleImportService {
                 );
                 heroAssetId = hero.asset().getId();
                 if (!hero.reused()) {
-                    ingestedAssetIds.add(heroAssetId);
+                    cleanupClaims.add(hero.cleanupClaim());
                 }
             }
 
@@ -196,7 +196,7 @@ public class ArticleImportService {
         } catch (DataIntegrityViolationException ex) {
             var importedByOther = articleRepository.findByTenantIdAndImportIdentity(tenantId, identity);
             if (importedByOther.isPresent()) {
-                discardIngestedAssets(ingestedAssetIds);
+                discardIngestedAssets(cleanupClaims);
                 return new ImportedArticle(importedByOther.get(), true);
             }
             String retrySlug = uniqueSlug(tenantId, command.slug(), command.title());
@@ -216,7 +216,7 @@ public class ArticleImportService {
                 );
                 return new ImportedArticle(article, false);
             } catch (DataIntegrityViolationException retryFailure) {
-                discardIngestedAssets(ingestedAssetIds);
+                discardIngestedAssets(cleanupClaims);
                 return articleRepository.findByTenantIdAndImportIdentity(tenantId, identity)
                         .map(article -> new ImportedArticle(article, true))
                         .orElseThrow(() -> new ArticleRssImportException(
@@ -227,12 +227,16 @@ public class ArticleImportService {
                         ));
             }
         } catch (RuntimeException ex) {
-            discardIngestedAssets(ingestedAssetIds);
+            discardIngestedAssets(cleanupClaims);
             throw ex;
         }
     }
 
-    private BodyRewrite rewriteInlineImages(String body, String title, List<Long> ingestedAssetIds) {
+    private BodyRewrite rewriteInlineImages(
+            String body,
+            String title,
+            List<RemoteAssetIngestApi.CleanupClaim> cleanupClaims
+    ) {
         if (body == null || body.isBlank()) {
             return new BodyRewrite(body == null ? "" : body);
         }
@@ -247,7 +251,7 @@ public class ArticleImportService {
             if (!source.startsWith("http://") && !source.startsWith("https://")) {
                 continue;
             }
-            Long assetId = null;
+            RemoteAssetIngestApi.CleanupClaim cleanupClaim = null;
             boolean reused = false;
             Optional<URL> cdn = Optional.empty();
             RuntimeException resolveFailure = null;
@@ -258,10 +262,10 @@ public class ArticleImportService {
                         AssetVisibility.PUBLIC,
                         importFilenameHint(title, source, "inline", "jpg")
                 );
-                assetId = ingest.asset().getId();
                 reused = ingest.reused();
                 if (!reused) {
-                    ingestedAssetIds.add(assetId);
+                    cleanupClaim = ingest.cleanupClaim();
+                    cleanupClaims.add(cleanupClaim);
                 }
                 try {
                     cdn = publicCdnUrlResolver.resolve(ingest.asset());
@@ -276,8 +280,8 @@ public class ArticleImportService {
                 if (!reused) {
                     // Discard failure must propagate so outer cleanup can retry. A reused asset
                     // is never discarded: it may back already-published content.
-                    remoteAssetIngestApi.discard(assetId);
-                    ingestedAssetIds.remove(assetId);
+                    remoteAssetIngestApi.discard(cleanupClaim);
+                    cleanupClaims.remove(cleanupClaim);
                 }
                 if (resolveFailure != null) {
                     log.warn("Skipping inline image after CDN resolve failure for {}", source, resolveFailure);
@@ -305,9 +309,9 @@ public class ArticleImportService {
         return new BodyRewrite(rewritten.toString());
     }
 
-    private void discardIngestedAssets(List<Long> assetIds) {
+    private void discardIngestedAssets(List<RemoteAssetIngestApi.CleanupClaim> cleanupClaims) {
         FeedImportSupport.discardIngestedAssets(
-                assetIds,
+                cleanupClaims,
                 remoteAssetIngestApi::discard,
                 log,
                 "unreferenced article RSS import asset"

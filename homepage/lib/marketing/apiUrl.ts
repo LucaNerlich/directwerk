@@ -11,8 +11,8 @@ const DEVELOPMENT_API_URL = 'http://localhost:8080'
  */
 export function resolveApiBaseUrl(): string {
     const configured = process.env.NEXT_PUBLIC_API_URL
-    if (configured !== undefined) {
-        return configured.replace(/\/$/, '')
+    if (configured !== undefined && configured.trim() !== '') {
+        return configured.trim().replace(/\/$/, '')
     }
     if (process.env.NODE_ENV === 'production') {
         throw new Error(

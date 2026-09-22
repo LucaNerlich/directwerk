@@ -9,6 +9,7 @@ import java.util.Map;
  * Signature verification happens at HTTP ingress; the worker applies idempotent side effects.
  */
 public record StripeWebhookJobPayload(
+        Integer payloadVersion,
         String eventId,
         String type,
         String connectedAccountId,
@@ -24,11 +25,14 @@ public record StripeWebhookJobPayload(
         String paymentIntentId,
         boolean fullyRefunded,
         String paymentStatus,
-        boolean dataObjectDeserialized
+        Boolean dataObjectDeserialized
 ) {
+
+    public static final int CURRENT_VERSION = 2;
 
     public static StripeWebhookJobPayload from(StripeOperations.StripeWebhookPayload event) {
         return new StripeWebhookJobPayload(
+                CURRENT_VERSION,
                 event.eventId(),
                 event.type(),
                 event.connectedAccountId(),
@@ -49,9 +53,19 @@ public record StripeWebhookJobPayload(
     }
 
     public StripeOperations.StripeWebhookPayload toStripeWebhookPayload() {
+        boolean legacy = payloadVersion == null || payloadVersion < CURRENT_VERSION;
         Instant periodEnd = currentPeriodEnd == null || currentPeriodEnd.isBlank()
                 ? null
                 : Instant.parse(currentPeriodEnd);
+        String effectivePaymentStatus = legacy
+                && ("checkout.session.completed".equals(type)
+                || "checkout.session.async_payment_succeeded".equals(type))
+                && (paymentStatus == null || paymentStatus.isBlank())
+                ? "paid"
+                : paymentStatus;
+        boolean effectiveDataObjectDeserialized = legacy && "account.updated".equals(type)
+                ? true
+                : Boolean.TRUE.equals(dataObjectDeserialized);
         return new StripeOperations.StripeWebhookPayload(
                 eventId,
                 type,
@@ -67,8 +81,8 @@ public record StripeWebhookJobPayload(
                 metadata == null ? Map.of() : metadata,
                 paymentIntentId,
                 fullyRefunded,
-                paymentStatus,
-                dataObjectDeserialized
+                effectivePaymentStatus,
+                effectiveDataObjectDeserialized
         );
     }
 }

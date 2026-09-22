@@ -65,6 +65,9 @@ public class RssFeedSnapshotService {
             Tenant tenant,
             PodcastSeries series
     ) {
+        if (series.getStatus() != SeriesStatus.PUBLISHED) {
+            throw new SeriesNotFoundException(series.getId());
+        }
         return coordinator.deliverCollection(tenant, series.getId());
     }
 

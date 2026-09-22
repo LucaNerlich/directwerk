@@ -87,7 +87,7 @@ class PodcastImportServiceTest {
 
         MediaAsset audio = new MediaAsset();
         audio.setId(11L);
-        when(remoteAssetIngestApi.ingestFromUrl(any())).thenReturn(new RemoteAssetIngestApi.IngestResult(audio, false));
+        when(remoteAssetIngestApi.ingestFromUrl(any())).thenReturn(ingestResult(audio, false));
         Episode created = new Episode();
         created.setId(22L);
         when(episodeService.createImportedDraft(
@@ -148,7 +148,7 @@ class PodcastImportServiceTest {
         when(episodeRepository.existsByTenantIdAndSlug(10L, "episode-9")).thenReturn(false);
         MediaAsset audio = new MediaAsset();
         audio.setId(11L);
-        when(remoteAssetIngestApi.ingestFromUrl(any())).thenReturn(new RemoteAssetIngestApi.IngestResult(audio, false));
+        when(remoteAssetIngestApi.ingestFromUrl(any())).thenReturn(ingestResult(audio, false));
         Episode created = new Episode();
         created.setId(22L);
         when(episodeService.createImportedDraft(
@@ -192,7 +192,7 @@ class PodcastImportServiceTest {
         when(episodeRepository.existsByTenantIdAndSlug(10L, "requested-episode")).thenReturn(false);
         MediaAsset audio = new MediaAsset();
         audio.setId(11L);
-        when(remoteAssetIngestApi.ingestFromUrl(any())).thenReturn(new RemoteAssetIngestApi.IngestResult(audio, false));
+        when(remoteAssetIngestApi.ingestFromUrl(any())).thenReturn(ingestResult(audio, false));
         Episode created = new Episode();
         created.setId(22L);
         when(episodeService.createImportedDraft(
@@ -236,7 +236,7 @@ class PodcastImportServiceTest {
         when(episodeRepository.existsByTenantIdAndSlug(10L, "episode-1")).thenReturn(false);
         MediaAsset audio = new MediaAsset();
         audio.setId(11L);
-        when(remoteAssetIngestApi.ingestFromUrl(any())).thenReturn(new RemoteAssetIngestApi.IngestResult(audio, false));
+        when(remoteAssetIngestApi.ingestFromUrl(any())).thenReturn(ingestResult(audio, false));
         when(episodeService.createImportedDraft(
                 any(), any(), any(), any(), any(), any(), any(), any(), any(),
                 any(), any(), any(), any(), any(), any()
@@ -262,7 +262,7 @@ class PodcastImportServiceTest {
                 null
         ))).isInstanceOf(IllegalArgumentException.class);
 
-        verify(remoteAssetIngestApi).discard(11L);
+        verify(remoteAssetIngestApi).discard(org.mockito.ArgumentMatchers.argThat(claim -> claim.assetId().equals(11L)));
     }
 
     @Test
@@ -276,7 +276,7 @@ class PodcastImportServiceTest {
         MediaAsset audio = new MediaAsset();
         audio.setId(11L);
         when(remoteAssetIngestApi.ingestFromUrl(any()))
-                .thenReturn(new RemoteAssetIngestApi.IngestResult(audio, true));
+                .thenReturn(ingestResult(audio, true));
         when(episodeService.createImportedDraft(
                 any(), any(), any(), any(), any(), any(), any(), any(), any(),
                 any(), any(), any(), any(), any(), any()
@@ -357,5 +357,13 @@ class PodcastImportServiceTest {
 
         assertThat(result.alreadyImported()).isFalse();
         assertThat(result.episode().getId()).isEqualTo(23L);
+    }
+
+    private static RemoteAssetIngestApi.IngestResult ingestResult(MediaAsset asset, boolean reused) {
+        return new RemoteAssetIngestApi.IngestResult(
+                asset,
+                reused,
+                reused ? null : new RemoteAssetIngestApi.CleanupClaim(asset.getId(), java.util.UUID.randomUUID())
+        );
     }
 }

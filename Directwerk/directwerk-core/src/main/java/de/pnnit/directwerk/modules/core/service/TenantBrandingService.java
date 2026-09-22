@@ -9,6 +9,7 @@ import de.pnnit.directwerk.modules.core.util.UmamiWebsiteIdValidator;
 import java.util.regex.Pattern;
 import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -74,7 +75,17 @@ public class TenantBrandingService {
         if (umamiHostUrl != null) {
             branding.setUmamiHostUrl(normalizeUmamiHostUrl(umamiHostUrl));
         }
-        TenantBranding saved = tenantBrandingRepository.save(branding);
+        TenantBranding saved;
+        try {
+            // Flush while this service can still translate the database uniqueness fence into
+            // the same validation error as the advisory pre-check above.
+            saved = tenantBrandingRepository.saveAndFlush(branding);
+        } catch (DataIntegrityViolationException ex) {
+            if (isUmamiWebsiteIdConflict(ex)) {
+                throw websiteIdAlreadyClaimed(ex);
+            }
+            throw ex;
+        }
         cacheEviction.evictTenantPublicCachesAfterCommit(tenantId);
         return saved;
     }
@@ -93,6 +104,25 @@ public class TenantBrandingService {
                 && tenantBrandingRepository.countOtherTenantsWithWebsiteId(websiteId, tenantId) > 0) {
             throw new IllegalArgumentException("Umami website id is already configured for another tenant");
         }
+    }
+
+    private static boolean isUmamiWebsiteIdConflict(DataIntegrityViolationException ex) {
+        Throwable cause = ex;
+        while (cause != null) {
+            String message = cause.getMessage();
+            if (message != null && message.contains("uq_tenant_branding_umami_website_id")) {
+                return true;
+            }
+            cause = cause.getCause();
+        }
+        return false;
+    }
+
+    private static IllegalArgumentException websiteIdAlreadyClaimed(Throwable cause) {
+        return new IllegalArgumentException(
+                "Umami website id is already configured for another tenant",
+                cause
+        );
     }
 
     /** Read-path guard: {@code true} when another tenant's branding claims this website id. */

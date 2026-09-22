@@ -12,7 +12,9 @@ import de.pnnit.directwerk.modules.digital.storage.FeedSnapshotStateStore;
 import de.pnnit.directwerk.modules.digital.storage.GeneratedFeedSnapshotStore;
 import de.pnnit.directwerk.modules.digital.storage.GeneratedFeedSnapshotStore.FeedDelivery;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.function.Supplier;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -84,9 +86,16 @@ public class FeedSnapshotCoordinator {
                 tenantRef(tenant.getId(), tenant.getSlug()),
                 () -> tenantFeed.xml().apply(origin)
         );
-        // Rebuild draft/unpublished collections too: an old public object must become empty,
-        // rather than continue serving content from a previous published snapshot.
-        kind.collectionFeeds(tenant).forEach(feed -> refreshQuietly(
+        List<PublicFeed> collectionFeeds = kind.collectionFeeds(tenant);
+        Set<Long> desiredCollectionIds = new HashSet<>();
+        collectionFeeds.forEach(feed -> desiredCollectionIds.add(feed.subjectId()));
+        snapshotStateStore.writtenSubjectIds(tenantId, kind.layout().collectionKind()).stream()
+                .filter(subjectId -> !desiredCollectionIds.contains(subjectId))
+                .forEach(subjectId -> withdrawQuietly(
+                        failures,
+                        collectionRef(tenant.getId(), tenant.getSlug(), subjectId)
+                ));
+        collectionFeeds.forEach(feed -> refreshQuietly(
                 failures,
                 collectionRef(tenant.getId(), tenant.getSlug(), feed.subjectId()),
                 () -> feed.xml().apply(origin)
@@ -144,8 +153,11 @@ public class FeedSnapshotCoordinator {
 
     private void withdrawTenantAtSlug(Tenant tenant, String slug) {
         snapshotStore.withdraw(tenantRef(tenant.getId(), slug));
-        kind.collectionFeeds(tenant)
-                .forEach(feed -> snapshotStore.withdraw(collectionRef(tenant.getId(), slug, feed.subjectId())));
+        Set<Long> collectionIds = new HashSet<>(snapshotStateStore.writtenSubjectIds(
+                tenant.getId(), kind.layout().collectionKind()));
+        kind.collectionFeeds(tenant).forEach(feed -> collectionIds.add(feed.subjectId()));
+        collectionIds.forEach(subjectId ->
+                snapshotStore.withdraw(collectionRef(tenant.getId(), slug, subjectId)));
         kind.privateFeeds(tenant)
                 .forEach(feed -> snapshotStore.withdraw(privateRef(tenant.getId(), slug, feed.subjectId())));
     }

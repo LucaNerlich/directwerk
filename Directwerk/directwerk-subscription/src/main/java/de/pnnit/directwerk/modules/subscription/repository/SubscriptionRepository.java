@@ -22,6 +22,19 @@ public interface SubscriptionRepository extends JpaRepository<Subscription, Long
 
     Optional<Subscription> findByTenantIdAndUserIdAndProductId(Long tenantId, Long userId, Long productId);
 
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("""
+            SELECT s FROM Subscription s
+            WHERE s.tenant.id = :tenantId
+              AND s.user.id = :userId
+              AND s.product.id = :productId
+            """)
+    Optional<Subscription> findByTenantIdAndUserIdAndProductIdForUpdate(
+            @Param("tenantId") Long tenantId,
+            @Param("userId") Long userId,
+            @Param("productId") Long productId
+    );
+
     Optional<Subscription> findByTenantIdAndExternalSubscriptionId(Long tenantId, String externalSubscriptionId);
 
     /**

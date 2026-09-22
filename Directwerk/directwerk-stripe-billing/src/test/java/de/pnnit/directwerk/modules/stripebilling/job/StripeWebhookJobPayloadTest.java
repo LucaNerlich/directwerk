@@ -8,6 +8,7 @@ import de.pnnit.directwerk.modules.stripebilling.StripeOperations;
 import java.time.Instant;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
+import tools.jackson.databind.ObjectMapper;
 
 class StripeWebhookJobPayloadTest {
 
@@ -64,6 +65,42 @@ class StripeWebhookJobPayloadTest {
 
         StripeOperations.StripeWebhookPayload restored =
                 StripeWebhookJobPayload.from(event).toStripeWebhookPayload();
+
+        assertTrue(restored.dataObjectDeserialized());
+        assertTrue(restored.chargesEnabled());
+    }
+
+    @Test
+    void legacyCheckoutPayloadWithoutPaymentStatusKeepsPriorPaidBehavior() {
+        StripeWebhookJobPayload legacy = new ObjectMapper().convertValue(Map.of(
+                "eventId", "evt_legacy_checkout",
+                "type", "checkout.session.completed",
+                "chargesEnabled", false,
+                "payoutsEnabled", false,
+                "detailsSubmitted", false,
+                "fullyRefunded", false,
+                "metadata", Map.of("tenant_id", "7")
+        ), StripeWebhookJobPayload.class);
+
+        StripeOperations.StripeWebhookPayload restored = legacy.toStripeWebhookPayload();
+
+        assertEquals("paid", restored.paymentStatus());
+    }
+
+    @Test
+    void legacyAccountPayloadDoesNotLoseCapabilityChanges() {
+        StripeWebhookJobPayload legacy = new ObjectMapper().convertValue(Map.of(
+                "eventId", "evt_legacy_account",
+                "type", "account.updated",
+                "connectedAccountId", "acct_1",
+                "chargesEnabled", true,
+                "payoutsEnabled", true,
+                "detailsSubmitted", true,
+                "fullyRefunded", false,
+                "metadata", Map.of()
+        ), StripeWebhookJobPayload.class);
+
+        StripeOperations.StripeWebhookPayload restored = legacy.toStripeWebhookPayload();
 
         assertTrue(restored.dataObjectDeserialized());
         assertTrue(restored.chargesEnabled());

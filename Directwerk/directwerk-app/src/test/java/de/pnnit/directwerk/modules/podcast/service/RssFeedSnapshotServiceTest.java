@@ -322,6 +322,29 @@ class RssFeedSnapshotServiceTest {
     }
 
     @Test
+    void refreshWithdrawsPreviouslyWrittenSeriesThatIsNoLongerPublished() {
+        Fixture fixture = fixture();
+        enableRss(fixture);
+        stubCanonicalDomain(fixture);
+        when(fixture.podcastSeriesRepository.findByTenantIdAndStatusOrderByTitleAscIdAsc(
+                10L, de.pnnit.directwerk.modules.podcast.entity.SeriesStatus.PUBLISHED
+        )).thenReturn(List.of());
+        when(fixture.stateStore.writtenSubjectIds(10L, RssSnapshotKind.SERIES.name()))
+                .thenReturn(List.of(20L));
+        when(fixture.subscriberFeedRepository.findByTenantIdOrderByIdAsc(10L)).thenReturn(List.of());
+        when(fixture.rssFeedService.buildPublicFeed(
+                fixture.tenant, null, "https", "alpha.example.test", 443
+        )).thenReturn("<rss>tenant</rss>");
+
+        fixture.service.refreshTenant(10L);
+
+        ArgumentCaptor<DeleteObjectRequest> deleted = ArgumentCaptor.forClass(DeleteObjectRequest.class);
+        verify(fixture.s3Client).deleteObject(deleted.capture());
+        assertThat(deleted.getValue().key()).isEqualTo("alpha/public/rss/series-20.xml");
+        verify(fixture.stateStore).clearWritten(10L, RssSnapshotKind.SERIES.name(), 20L);
+    }
+
+    @Test
     void publicSeriesFeedRejectsNonPublishedSeries() {
         Fixture fixture = fixture();
         PodcastSeries draft = new PodcastSeries();
@@ -334,6 +357,20 @@ class RssFeedSnapshotServiceTest {
         org.assertj.core.api.Assertions.assertThatThrownBy(
                 () -> fixture.service.publicSeriesFeed(fixture.tenant, "draft-series")
         ).isInstanceOf(de.pnnit.directwerk.modules.podcast.exception.SeriesNotFoundException.class);
+    }
+
+    @Test
+    void publicSeriesFeedByEntityRejectsNonPublishedSeries() {
+        Fixture fixture = fixture();
+        PodcastSeries draft = new PodcastSeries();
+        draft.setId(20L);
+        draft.setTenant(fixture.tenant);
+        draft.setStatus(de.pnnit.directwerk.modules.podcast.entity.SeriesStatus.DRAFT);
+
+        org.assertj.core.api.Assertions.assertThatThrownBy(
+                () -> fixture.service.publicSeriesFeed(fixture.tenant, draft)
+        ).isInstanceOf(de.pnnit.directwerk.modules.podcast.exception.SeriesNotFoundException.class)
+                .hasMessageContaining("20");
     }
 
     private Fixture fixture() {

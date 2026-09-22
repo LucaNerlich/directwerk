@@ -32,6 +32,9 @@ public class EmailDelivery {
     @Column(name = "sent_at")
     private Instant sentAt;
 
+    @Column(name = "claim_token", nullable = false)
+    private UUID claimToken;
+
     public EmailDelivery(UUID jobId) {
         this.jobId = jobId;
     }

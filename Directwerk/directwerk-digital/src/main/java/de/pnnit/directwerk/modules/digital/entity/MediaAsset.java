@@ -20,6 +20,7 @@ import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 import lombok.Getter;
 import lombok.Setter;
+import java.util.UUID;
 import org.hibernate.annotations.Filter;
 
 @Entity
@@ -95,6 +96,10 @@ public class MediaAsset extends BaseEntity implements TenantOwned {
 
     @Column(name = "import_source_url", length = 2048)
     private String importSourceUrl;
+
+    /** Unforgeable ownership proof used only by the import failure-cleanup path. */
+    @Column(name = "ingest_cleanup_token")
+    private UUID ingestCleanupToken;
 
     @PrePersist
     @PreUpdate

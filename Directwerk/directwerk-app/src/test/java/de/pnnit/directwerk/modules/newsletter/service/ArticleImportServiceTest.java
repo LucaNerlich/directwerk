@@ -169,7 +169,7 @@ class ArticleImportServiceTest {
 
         MediaAsset asset = new MediaAsset();
         asset.setId(77L);
-        when(remoteAssetIngestApi.ingestFromUrl(any())).thenReturn(new RemoteAssetIngestApi.IngestResult(asset, false));
+        when(remoteAssetIngestApi.ingestFromUrl(any())).thenReturn(ingestResult(asset, false));
         when(publicCdnUrlResolver.resolve(asset)).thenReturn(Optional.of(URI.create("https://cdn.example.com/a.jpg").toURL()));
 
         Article created = new Article();
@@ -216,7 +216,7 @@ class ArticleImportServiceTest {
 
         MediaAsset asset = new MediaAsset();
         asset.setId(88L);
-        when(remoteAssetIngestApi.ingestFromUrl(any())).thenReturn(new RemoteAssetIngestApi.IngestResult(asset, false));
+        when(remoteAssetIngestApi.ingestFromUrl(any())).thenReturn(ingestResult(asset, false));
         when(publicCdnUrlResolver.resolve(asset)).thenReturn(Optional.empty());
 
         Article created = new Article();
@@ -243,7 +243,7 @@ class ArticleImportServiceTest {
                 null
         ));
 
-        verify(remoteAssetIngestApi).discard(88L);
+        verify(remoteAssetIngestApi).discard(org.mockito.ArgumentMatchers.argThat(claim -> claim.assetId().equals(88L)));
         ArgumentCaptor<String> bodyCaptor = ArgumentCaptor.forClass(String.class);
         verify(articleService).createImportedDraft(
                 eq(10L), any(), any(), bodyCaptor.capture(), any(), any(), any(), any(), any(), any(), any()
@@ -260,7 +260,7 @@ class ArticleImportServiceTest {
         MediaAsset asset = new MediaAsset();
         asset.setId(77L);
         when(remoteAssetIngestApi.ingestFromUrl(any()))
-                .thenReturn(new RemoteAssetIngestApi.IngestResult(asset, true));
+                .thenReturn(ingestResult(asset, true));
         when(publicCdnUrlResolver.resolve(asset)).thenReturn(Optional.empty());
 
         Article created = new Article();
@@ -298,9 +298,10 @@ class ArticleImportServiceTest {
 
         MediaAsset asset = new MediaAsset();
         asset.setId(99L);
-        when(remoteAssetIngestApi.ingestFromUrl(any())).thenReturn(new RemoteAssetIngestApi.IngestResult(asset, false));
+        when(remoteAssetIngestApi.ingestFromUrl(any())).thenReturn(ingestResult(asset, false));
         when(publicCdnUrlResolver.resolve(asset)).thenReturn(Optional.empty());
-        doThrow(new IllegalStateException("discard down")).when(remoteAssetIngestApi).discard(99L);
+        doThrow(new IllegalStateException("discard down")).when(remoteAssetIngestApi)
+                .discard(org.mockito.ArgumentMatchers.argThat(claim -> claim.assetId().equals(99L)));
 
         assertThatThrownBy(() -> service.importArticle(new ArticleImportService.ImportArticleCommand(
                 feedUrl,
@@ -319,5 +320,13 @@ class ArticleImportServiceTest {
                 null
         ))).isInstanceOf(IllegalStateException.class)
                 .hasMessage("discard down");
+    }
+
+    private static RemoteAssetIngestApi.IngestResult ingestResult(MediaAsset asset, boolean reused) {
+        return new RemoteAssetIngestApi.IngestResult(
+                asset,
+                reused,
+                reused ? null : new RemoteAssetIngestApi.CleanupClaim(asset.getId(), java.util.UUID.randomUUID())
+        );
     }
 }

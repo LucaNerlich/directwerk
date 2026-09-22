@@ -35,6 +35,22 @@ public interface MediaAssetRepository extends JpaRepository<MediaAsset, Long> {
     @Query("select m from MediaAsset m where m.id = :id")
     Optional<MediaAsset> findByIdForUpdate(@Param("id") Long id);
 
+    /** Checks every schema-level attachment while the caller holds the asset row lock. */
+    @Query(
+            value = """
+                    SELECT EXISTS (
+                        SELECT 1 FROM media_assets m WHERE m.id = :id AND m.episode_id IS NOT NULL
+                        UNION ALL SELECT 1 FROM podcast_series s WHERE s.cover_asset_id = :id
+                        UNION ALL SELECT 1 FROM formats f WHERE f.cover_asset_id = :id
+                        UNION ALL SELECT 1 FROM episodes e WHERE e.audio_asset_id = :id OR e.cover_asset_id = :id
+                        UNION ALL SELECT 1 FROM articles a WHERE a.hero_asset_id = :id
+                        UNION ALL SELECT 1 FROM digital_publications d WHERE d.asset_id = :id
+                    )
+                    """,
+            nativeQuery = true
+    )
+    boolean hasAttachedReferences(@Param("id") Long id);
+
     @EntityGraph(attributePaths = "tenant")
     @Query("""
             select m from MediaAsset m

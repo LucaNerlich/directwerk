@@ -59,7 +59,7 @@ class StripeSubscriptionSyncServiceTest {
         Subscription manual = subscription(SubscriptionSource.MANUAL, SubscriptionStatus.ACTIVE);
         when(subscriptionRepository.findByTenantIdAndExternalSubscriptionIdForUpdate(TENANT_ID, "sub_late"))
                 .thenReturn(Optional.empty());
-        when(subscriptionRepository.findByTenantIdAndUserIdAndProductId(TENANT_ID, USER_ID, PRODUCT_ID))
+        when(subscriptionRepository.findByTenantIdAndUserIdAndProductIdForUpdate(TENANT_ID, USER_ID, PRODUCT_ID))
                 .thenReturn(Optional.of(manual));
         when(subscriptionRepository.save(manual)).thenReturn(manual);
 
@@ -94,7 +94,7 @@ class StripeSubscriptionSyncServiceTest {
         Subscription revoked = subscription(SubscriptionSource.MANUAL, SubscriptionStatus.CANCELED);
         when(subscriptionRepository.findByTenantIdAndExternalSubscriptionIdForUpdate(TENANT_ID, "sub_new"))
                 .thenReturn(Optional.empty());
-        when(subscriptionRepository.findByTenantIdAndUserIdAndProductId(TENANT_ID, USER_ID, PRODUCT_ID))
+        when(subscriptionRepository.findByTenantIdAndUserIdAndProductIdForUpdate(TENANT_ID, USER_ID, PRODUCT_ID))
                 .thenReturn(Optional.of(revoked));
         when(subscriptionRepository.save(revoked)).thenReturn(revoked);
 
@@ -141,6 +141,26 @@ class StripeSubscriptionSyncServiceTest {
 
         assertThat(overdue.getStatus()).isEqualTo(SubscriptionStatus.ACTIVE);
         assertThat(overdue.getEndsAt()).isEqualTo(existingEnd);
+    }
+
+    @Test
+    void externalIdSyncDoesNotChangeManualEntitlement() {
+        Subscription manual = subscription(SubscriptionSource.MANUAL, SubscriptionStatus.ACTIVE);
+        Instant existingEnd = Instant.parse("2027-01-01T00:00:00Z");
+        manual.setEndsAt(existingEnd);
+        when(subscriptionRepository.findByTenantIdAndExternalSubscriptionIdForUpdate(TENANT_ID, "sub_late"))
+                .thenReturn(Optional.of(manual));
+
+        service.syncStripeSubscriptionByExternalId(
+                TENANT_ID,
+                "sub_late",
+                SubscriptionStatus.CANCELED,
+                Instant.parse("2026-10-01T00:00:00Z")
+        );
+
+        assertThat(manual.getStatus()).isEqualTo(SubscriptionStatus.ACTIVE);
+        assertThat(manual.getEndsAt()).isEqualTo(existingEnd);
+        verify(subscriptionRepository, never()).save(manual);
     }
 
     private static User user() {
