@@ -18,6 +18,7 @@ import type {AuthFieldErrors} from '@/lib/forms/authFields'
 import {useFocusFirstInvalidField} from '@/lib/forms/useFocusFirstInvalidField'
 
 import {setTokens} from '@/lib/auth/tokenStore'
+import {invalidatePendingRefresh} from '@/lib/auth/session'
 import {safeReturnTo} from '@/lib/auth/safeReturnTo'
 import {userFacingAuthError} from '@/lib/billing/userFacingBillingError'
 import {getWebClientTenantHost} from '@/lib/tenant/clientHost'
@@ -62,6 +63,9 @@ function LoginForm() {
 
             try {
                 const tokens = await login(getWebClientTenantHost(), input)
+                // Drop any refresh started under the previous identity before
+                // storing the new session's tokens.
+                invalidatePendingRefresh()
                 setTokens(tokens)
                 window.location.assign(returnTo)
                 return INITIAL_STATE

@@ -23,6 +23,7 @@ import {parseLoginInput} from '@directwerk/api/validation/input'
 import type {StudioWorkspace} from '@directwerk/api/types'
 
 import {setTokens} from '@/lib/auth/tokenStore'
+import {invalidatePendingRefresh} from '@/lib/auth/session'
 import {getClientTenantHost} from '@directwerk/api/tenant'
 
 interface LoginState {
@@ -64,6 +65,7 @@ async function completeLogin(
     }
 
     const tokens = await login(workspace.host, input)
+    invalidatePendingRefresh()
     clearAllCachedTenantData()
     setTokens(tokens)
 }

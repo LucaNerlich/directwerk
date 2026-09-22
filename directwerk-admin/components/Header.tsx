@@ -8,7 +8,8 @@ import {Button} from '@directwerk/ui/components/button'
 import AdminShell from '@directwerk/ui/components/layout/admin-shell'
 
 import AdminSideNav from '@/components/AdminSideNav'
-import {clearTokens, getAccessToken, subscribeToTokenStore} from '@/lib/auth/tokenStore'
+import {getAccessToken, subscribeToTokenStore} from '@/lib/auth/tokenStore'
+import {clearSessionTokens} from '@/lib/auth/session'
 import {clearTenantTokens} from '@/lib/auth/tenantTokenStore'
 
 export default function Header({children}: {children: ReactNode}) {
@@ -41,7 +42,7 @@ export default function Header({children}: {children: ReactNode}) {
                 setLogoutError(true)
                 return
             }
-            clearTokens()
+            clearSessionTokens()
             clearTenantTokens()
             router.replace('/login')
         } catch {

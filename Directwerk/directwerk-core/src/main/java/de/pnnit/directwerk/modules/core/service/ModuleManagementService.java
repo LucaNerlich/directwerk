@@ -13,7 +13,8 @@ import de.pnnit.directwerk.modules.core.repository.FeatureModuleRepository;
 import de.pnnit.directwerk.modules.core.repository.TenantModuleActivationRepository;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
-import java.util.Comparator;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -177,24 +178,63 @@ public class ModuleManagementService {
         }
 
         List<FeatureModule> modules = featureModuleRepository.findByPlatformActiveTrueOrderByModuleKeyAsc();
-        List<String> orderedKeys = modules.stream()
+        Set<String> candidateKeys = modules.stream()
                 .map(FeatureModule::getModuleKey)
-                .filter(key -> preset.moduleKeys().contains(key))
-                .sorted(Comparator.comparingInt(key -> dependencyWeight(key, modules)))
-                .toList();
+                .filter(preset.moduleKeys()::contains)
+                .collect(Collectors.toCollection(LinkedHashSet::new));
 
-        for (String moduleKey : orderedKeys) {
+        for (String moduleKey : topologicalOrder(modules, candidateKeys)) {
             activateModule(tenantId, moduleKey);
         }
         return getTenantModules(tenantId);
     }
 
-    private int dependencyWeight(String moduleKey, List<FeatureModule> modules) {
-        return modules.stream()
-                .filter(module -> module.getModuleKey().equals(moduleKey))
-                .findFirst()
-                .map(module -> module.getDependsOn().size())
-                .orElse(0);
+    /**
+     * Orders preset modules so each module is activated after every module it depends on.
+     * A sort by dependency count is not enough: modules can share a depth (e.g. {@code
+     * STRIPE_BILLING} and {@code SUBSCRIPTION} each depend on exactly one module) and the
+     * alphabetical tie-break would otherwise activate the dependent first and fail
+     * {@link #validateDependencies(Long, FeatureModule)}.
+     */
+    private List<String> topologicalOrder(List<FeatureModule> modules, Set<String> candidateKeys) {
+        Map<String, FeatureModule> byKey = new LinkedHashMap<>();
+        for (FeatureModule module : modules) {
+            byKey.put(module.getModuleKey(), module);
+        }
+        List<String> ordered = new ArrayList<>();
+        Set<String> visiting = new HashSet<>();
+        Set<String> visited = new HashSet<>();
+        for (String moduleKey : candidateKeys) {
+            visitForOrder(moduleKey, byKey, candidateKeys, visiting, visited, ordered);
+        }
+        return ordered;
+    }
+
+    private void visitForOrder(
+            String moduleKey,
+            Map<String, FeatureModule> byKey,
+            Set<String> candidateKeys,
+            Set<String> visiting,
+            Set<String> visited,
+            List<String> ordered
+    ) {
+        if (visited.contains(moduleKey)) {
+            return;
+        }
+        if (!visiting.add(moduleKey)) {
+            throw new IllegalStateException("Cyclic module dependency involving " + moduleKey);
+        }
+        FeatureModule module = byKey.get(moduleKey);
+        if (module != null) {
+            for (String dependency : module.getDependsOn()) {
+                if (candidateKeys.contains(dependency)) {
+                    visitForOrder(dependency, byKey, candidateKeys, visiting, visited, ordered);
+                }
+            }
+        }
+        visiting.remove(moduleKey);
+        visited.add(moduleKey);
+        ordered.add(moduleKey);
     }
 
     private void validateDependencies(Long tenantId, FeatureModule module) {

@@ -16,6 +16,10 @@ const session = createAuthSession({
 
 export const getValidAccessToken = session.getValidAccessToken
 export const refreshAccessToken = session.refreshAccessToken
+/** Clears tokens and invalidates any refresh that is currently in flight. */
+export const clearSessionTokens = session.clearTokens
+/** Must be called before storing tokens for a new identity (login). */
+export const invalidatePendingRefresh = session.invalidatePendingRefresh
 
 export async function ensureAuthenticated(): Promise<string> {
     return getValidAccessToken()

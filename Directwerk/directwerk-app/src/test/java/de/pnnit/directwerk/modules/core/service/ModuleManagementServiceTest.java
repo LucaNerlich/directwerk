@@ -392,6 +392,63 @@ class ModuleManagementServiceTest {
         verify(tenantModuleActivationRepository, org.mockito.Mockito.times(5)).save(any());
     }
 
+    @Test
+    void applyPresetActivatesDependenciesBeforeDependents() {
+        Tenant tenant = new Tenant();
+        tenant.setId(1L);
+        when(tenantRepository.requireById(1L)).thenReturn(tenant);
+
+        FeatureModule digitalContent = module("DIGITAL_CONTENT", List.of());
+        FeatureModule podcast = module("PODCAST", List.of("DIGITAL_CONTENT"));
+        FeatureModule podcastRss = module("PODCAST_RSS", List.of("PODCAST"));
+        FeatureModule subscription = module("SUBSCRIPTION", List.of("DIGITAL_CONTENT"));
+        FeatureModule feedBuilder = module("FEED_BUILDER", List.of("PODCAST_RSS", "SUBSCRIPTION"));
+        FeatureModule stripeBilling = module("STRIPE_BILLING", List.of("SUBSCRIPTION"));
+        FeatureModule whitelabel = module("WHITELABEL", List.of());
+        FeatureModule bonusContent = module("BONUS_CONTENT", List.of("DIGITAL_CONTENT"));
+        FeatureModule articles = module("ARTICLES", List.of("DIGITAL_CONTENT"));
+        FeatureModule articleRss = module("ARTICLE_RSS", List.of("ARTICLES"));
+        FeatureModule articleFeedBuilder = module("ARTICLE_FEED_BUILDER", List.of("ARTICLE_RSS", "SUBSCRIPTION"));
+
+        // Deliberately alphabetical, as findByPlatformActiveTrueOrderByModuleKeyAsc returns them:
+        // STRIPE_BILLING sorts before SUBSCRIPTION and both have depth 1, which is what defeated
+        // the previous dependency-count sort and made every PRO/ENTERPRISE preset fail.
+        List<FeatureModule> catalog = List.of(
+                articleFeedBuilder, articleRss, articles, bonusContent, digitalContent,
+                feedBuilder, podcast, podcastRss, stripeBilling, subscription, whitelabel);
+
+        when(featureModuleRepository.findAll()).thenReturn(catalog);
+        when(featureModuleRepository.findByPlatformActiveTrueOrderByModuleKeyAsc()).thenReturn(catalog);
+        when(featureModuleRepository.findByModuleKey(anyString()))
+                .thenAnswer(invocation -> catalog.stream()
+                        .filter(module -> module.getModuleKey().equals(invocation.getArgument(0)))
+                        .findFirst());
+
+        java.util.Map<String, Boolean> activated = new java.util.HashMap<>();
+        when(tenantModuleActivationRepository.findByTenantIdAndModuleKey(eq(1L), anyString()))
+                .thenAnswer(invocation -> {
+                    String moduleKey = invocation.getArgument(1);
+                    TenantModuleActivation activation = new TenantModuleActivation();
+                    activation.setId(activated.containsKey(moduleKey) ? 1L : null);
+                    activation.setModuleKey(moduleKey);
+                    activation.setActive(activated.getOrDefault(moduleKey, false));
+                    return Optional.of(activation);
+                });
+        when(tenantModuleActivationRepository.save(any(TenantModuleActivation.class)))
+                .thenAnswer(invocation -> {
+                    TenantModuleActivation activation = invocation.getArgument(0);
+                    activated.put(activation.getModuleKey(), true);
+                    return activation;
+                });
+        when(tenantModuleActivationRepository.findByTenantIdOrderByModuleKeyAsc(1L)).thenReturn(List.of());
+
+        service.applyPreset(1L, "PRO");
+
+        assertThat(activated).containsOnlyKeys(
+                "DIGITAL_CONTENT", "PODCAST", "PODCAST_RSS", "WHITELABEL", "SUBSCRIPTION", "BONUS_CONTENT",
+                "FEED_BUILDER", "ARTICLES", "ARTICLE_RSS", "ARTICLE_FEED_BUILDER", "STRIPE_BILLING");
+    }
+
     private static FeatureModule coreModule(String moduleKey) {
         FeatureModule module = module(moduleKey, List.of());
         module.setCore(true);

@@ -9,7 +9,7 @@ import SiteShell from '@directwerk/ui/components/layout/site-shell'
 
 import BrandLogo from '@/components/BrandLogo'
 import SiteFooter from '@/components/SiteFooter'
-import {clearTokens} from '@/lib/auth/tokenStore'
+import {clearSessionTokens} from '@/lib/auth/session'
 import {useSubscriberAuth} from '@/lib/auth/useSubscriberAuth'
 import {getWebClientTenantHost} from '@/lib/tenant/clientHost'
 import {useSiteConfig} from '@/lib/site/SiteConfigProvider'
@@ -57,7 +57,7 @@ export default function SiteHeader({
         } catch {
             // Ignore — clear local session regardless.
         }
-        clearTokens()
+        clearSessionTokens()
         router.replace('/login')
     }
 

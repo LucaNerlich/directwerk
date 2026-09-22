@@ -22,6 +22,8 @@ export const refreshAccessToken = session.refreshAccessToken
  * after login resolves and overwrites the fresh session.
  */
 export const invalidatePendingRefresh = session.invalidatePendingRefresh
+/** Clears tokens and invalidates any refresh that is currently in flight. */
+export const clearSessionTokens = session.clearTokens
 
 export async function ensureAuthenticated(): Promise<string> {
     return getValidAccessToken()

@@ -78,7 +78,9 @@ describe('createAuthSession', () => {
 
         store.setTokens({access_token: 'old'})
         const pending = session.refreshAccessToken()
+        // A new identity logs in while the previous refresh is still in flight.
         session.invalidatePendingRefresh()
+        store.setTokens({access_token: 'new'})
 
         gate.resolve(
             new Response(
@@ -87,8 +89,39 @@ describe('createAuthSession', () => {
             ),
         )
 
-        await expect(pending).rejects.toThrow(AUTH_REQUIRED)
-        // The stale refresh must not overwrite the fresh session state.
+        await expect(pending).rejects.toThrow(AUTH_TRANSIENT)
+        // The stale refresh must not overwrite (or clear) the fresh session state.
+        expect(store.getAccessToken()).toBe('new')
+
+        fetchMock.mockRestore()
+    })
+
+    it('does not clear the store when a cleared session had an in-flight refresh', async () => {
+        const store = memoryStore()
+        const gate = deferred<Response>()
+
+        const session = createAuthSession({
+            store,
+            refreshPath: '/api/auth/refresh',
+            parseTokens: parseTokenResponse,
+        })
+
+        const fetchMock = vi
+            .spyOn(globalThis, 'fetch')
+            .mockImplementation(() => gate.promise as Promise<Response>)
+
+        store.setTokens({access_token: 'old'})
+        const pending = session.refreshAccessToken()
+        session.clearTokens()
+
+        gate.resolve(
+            new Response(
+                JSON.stringify({access_token: 'stale-write', token_type: 'Bearer'}),
+                {status: 200},
+            ),
+        )
+
+        await expect(pending).rejects.toThrow(AUTH_TRANSIENT)
         expect(store.getAccessToken()).toBe(null)
 
         fetchMock.mockRestore()
