@@ -26,6 +26,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class PublicSiteConfigService {
 
     private static final String EMAIL_NOTIFY_MODULE_KEY = "EMAIL_NOTIFY";
+    private static final String WHITELABEL_MODULE_KEY = "WHITELABEL";
 
     private final DirectwerkConfig directwerkConfig;
     private final TenantResolver tenantResolver;
@@ -62,7 +63,7 @@ public class PublicSiteConfigService {
         return new SiteConfigView(
                 new TenantView(tenant.getSlug(), tenant.getName()),
                 enabledModules,
-                brandingView(branding),
+                brandingView(branding, enabledModules),
                 origin,
                 publicRssUrl(origin, tenant, enabledModules),
                 publicArticleRssUrl(origin, tenant, enabledModules),
@@ -77,10 +78,11 @@ public class PublicSiteConfigService {
      * Creates a branding view from the tenant branding data.
      *
      * @param branding the tenant branding data, or {@code null} when branding is unavailable
+     * @param enabledModules the modules enabled for the tenant
      * @return a branding view containing the branding values, or an empty view when branding is unavailable
      */
-    private static BrandingView brandingView(TenantBranding branding) {
-        if (branding == null) {
+    private static BrandingView brandingView(TenantBranding branding, List<String> enabledModules) {
+        if (branding == null || !enabledModules.contains(WHITELABEL_MODULE_KEY)) {
             return new BrandingView(null, null, null, null, null);
         }
         return new BrandingView(

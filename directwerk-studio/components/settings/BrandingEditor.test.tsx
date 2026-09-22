@@ -15,7 +15,7 @@ const getBranding = vi.fn()
 const updateBranding = vi.fn()
 const siteConfig = {enabledModules: ['DIGITAL_CONTENT', 'PODCAST']}
 
-const {readyLogo} = vi.hoisted(() => {
+const {readyLogo, uploadMediaFile} = vi.hoisted(() => {
     const logo: MediaAsset = {
         id: 42,
         s3Key: 't/public/images/logo.png',
@@ -34,7 +34,7 @@ const {readyLogo} = vi.hoisted(() => {
         createdAt: '2026-01-01T00:00:00Z',
         updatedAt: '2026-01-01T00:00:00Z',
     }
-    return {readyLogo: logo}
+    return {readyLogo: logo, uploadMediaFile: vi.fn()}
 })
 
 vi.mock('@/lib/api/tenantSettingsApi', () => ({
@@ -44,7 +44,7 @@ vi.mock('@/lib/api/tenantSettingsApi', () => ({
 vi.mock('@/lib/site/SiteConfigProvider', () => ({
     useSiteConfig: () => siteConfig,
 }))
-vi.mock('@/lib/media/upload', () => ({uploadMediaFile: vi.fn()}))
+vi.mock('@/lib/media/upload', () => ({uploadMediaFile}))
 vi.mock('@/components/media/MediaLibraryPicker', () => ({
     default: ({
         label,
@@ -299,5 +299,31 @@ describe('BrandingEditor color picker', () => {
                 umamiHostUrl: null,
             }),
         )
+    })
+
+    it('locks favicon edits and saving while a favicon upload is in progress', async () => {
+        getBranding.mockResolvedValue({
+            ...branding,
+            faviconUrl: 'https://cdn.example.test/favicon.ico',
+        })
+        let finishUpload: (asset: MediaAsset) => void = () => undefined
+        uploadMediaFile.mockReturnValueOnce(
+            new Promise<MediaAsset>((resolve) => {
+                finishUpload = resolve
+            }),
+        )
+        render(<BrandingEditor />)
+
+        const faviconField = await screen.findByLabelText('Oder Favicon-URL')
+        fireEvent.change(screen.getByLabelText('Favicon hochladen'), {
+            target: {files: [new File(['icon'], 'favicon.png', {type: 'image/png'})]},
+        })
+
+        await waitFor(() => expect(faviconField).toBeDisabled())
+        expect(screen.getByRole('button', {name: 'Favicon entfernen'})).toBeDisabled()
+        expect(screen.getByRole('button', {name: 'Speichern'})).toBeDisabled()
+
+        finishUpload(readyLogo)
+        await waitFor(() => expect(faviconField).toBeEnabled())
     })
 })

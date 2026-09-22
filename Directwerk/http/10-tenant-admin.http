@@ -20,6 +20,7 @@ Accept: application/json
 ###
 
 ### @name updateBranding
+# Requires the WHITELABEL module; otherwise returns 403 FEATURE_NOT_ENABLED.
 PUT {{baseUrl}}/api/v1/tenant/branding
 Host: {{tenantAHost}}
 Authorization: Bearer {{tenantAAccessToken}}

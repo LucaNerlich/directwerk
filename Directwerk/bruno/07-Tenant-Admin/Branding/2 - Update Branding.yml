@@ -45,6 +45,7 @@ settings:
   forwardAuthorizationHeader: true
 
 docs: |-
+  Requires the WHITELABEL module; otherwise returns 403 FEATURE_NOT_ENABLED.
   Colors are strict 6-digit hex (#rrggbb, validated both by @Pattern and
   TenantBrandingService.normalizeHexColor): missing # / 3-digit / named colors /
   CSS payloads return 400 VALIDATION_ERROR. Blank ("") clears a color to null;

@@ -500,6 +500,7 @@ export default function BrandingEditor(): React.JSX.Element {
                         <Label htmlFor="faviconUrl">Oder Favicon-URL</Label>
                         <Input
                             aria-describedby="faviconUrl-help"
+                            disabled={pending || isFaviconUploading}
                             id="faviconUrl"
                             maxLength={2048}
                             name="faviconUrl"
@@ -516,7 +517,7 @@ export default function BrandingEditor(): React.JSX.Element {
                         </p>
                         {faviconUrlDraft.length > 0 ? (
                             <Button
-                                disabled={pending}
+                                disabled={pending || isFaviconUploading}
                                 onClick={() => {
                                     setFaviconPickError(null)
                                     setFaviconUrlDraft('')
@@ -611,7 +612,7 @@ export default function BrandingEditor(): React.JSX.Element {
                     </p>
                 </div>
                 <div>
-                <Button disabled={pending} type="submit">
+                <Button disabled={pending || isFaviconUploading} type="submit">
                     {pending ? 'Speichern…' : 'Speichern'}
                 </Button>
                 </div>
