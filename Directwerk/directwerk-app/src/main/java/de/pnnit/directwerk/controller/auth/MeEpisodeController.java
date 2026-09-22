@@ -3,7 +3,7 @@ package de.pnnit.directwerk.controller.auth;
 import de.pnnit.directwerk.api.PublicEpisodeViewMapper;
 import de.pnnit.directwerk.api.dto.MeEpisodeView;
 import de.pnnit.directwerk.api.response.Response;
-import de.pnnit.directwerk.controller.RequestClientIpExtractor;
+import de.pnnit.directwerk.controller.AnalyticsClientIpResolver;
 import de.pnnit.directwerk.modules.core.RequiresModule;
 import de.pnnit.directwerk.modules.podcast.PodcastModule;
 import de.pnnit.directwerk.modules.podcast.access.SubscriberPortalAccessService;
@@ -28,15 +28,18 @@ public class MeEpisodeController {
     private final SubscriberPortalAccessService subscriberContentAccessService;
     private final PortalStreamDeliveryFacade portalStreamDeliveryFacade;
     private final PublicEpisodeViewMapper publicEpisodeViewMapper;
+    private final AnalyticsClientIpResolver analyticsClientIpResolver;
 
     public MeEpisodeController(
             SubscriberPortalAccessService subscriberContentAccessService,
             PortalStreamDeliveryFacade portalStreamDeliveryFacade,
-            PublicEpisodeViewMapper publicEpisodeViewMapper
+            PublicEpisodeViewMapper publicEpisodeViewMapper,
+            AnalyticsClientIpResolver analyticsClientIpResolver
     ) {
         this.subscriberContentAccessService = subscriberContentAccessService;
         this.portalStreamDeliveryFacade = portalStreamDeliveryFacade;
         this.publicEpisodeViewMapper = publicEpisodeViewMapper;
+        this.analyticsClientIpResolver = analyticsClientIpResolver;
     }
 
     @GetMapping
@@ -76,7 +79,7 @@ public class MeEpisodeController {
                 slug,
                 request.getServerName(),
                 request.getHeader("User-Agent"),
-                RequestClientIpExtractor.extract(request));
+                analyticsClientIpResolver.resolve(request));
         return tracked.response();
     }
 }

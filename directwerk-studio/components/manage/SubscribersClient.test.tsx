@@ -1,8 +1,9 @@
-import {cleanup, render, screen, waitFor} from '@testing-library/react'
+import {cleanup, fireEvent, render, screen, waitFor} from '@testing-library/react'
 import {afterEach, describe, expect, it, vi} from 'vitest'
 
 import SubscribersClient from '@/components/manage/SubscribersClient'
 import {clearCachedTenantData} from '@directwerk/api/client/useCachedTenantQuery'
+import {revokeSubscription} from '@/lib/api/subscriptionApi'
 import {listSubscribers} from '@/lib/api/tenantSettingsApi'
 
 vi.mock('next/navigation', () => ({useRouter: () => ({replace: vi.fn()})}))
@@ -22,6 +23,7 @@ afterEach(() => {
     cleanup()
     clearCachedTenantData('tenant-subscribers', 'tenant.test')
     vi.mocked(listSubscribers).mockReset()
+    vi.mocked(revokeSubscription).mockReset()
 })
 
 describe('SubscribersClient', () => {
@@ -72,5 +74,42 @@ describe('SubscribersClient', () => {
         expect(screen.getByText('Supporter')).toBeInTheDocument()
         expect(screen.getByText(/Aktiv · Stripe · bis 2026-09-01 · sub_abc/)).toBeInTheDocument()
         expect(screen.getByRole('button', {name: 'Zugang beenden'})).toBeInTheDocument()
+    })
+
+    it('resets the revoke confirmation after a failed revoke', async () => {
+        vi.mocked(listSubscribers).mockResolvedValue([
+            {
+                userId: 4,
+                email: 'member@example.com',
+                name: 'Member',
+                status: 'ACTIVE',
+                subscriptions: [
+                    {
+                        id: 9,
+                        productId: 2,
+                        productSlug: 'supporter',
+                        productTitle: 'Supporter',
+                        status: 'ACTIVE',
+                        source: 'STRIPE',
+                        startedAt: '2026-08-01T00:00:00Z',
+                        endsAt: '2026-09-01T00:00:00Z',
+                        externalSubscriptionId: 'sub_abc',
+                    },
+                ],
+            },
+        ])
+        vi.mocked(revokeSubscription).mockRejectedValue(new Error('Widerruf fehlgeschlagen.'))
+
+        render(<SubscribersClient />)
+        await waitFor(() =>
+            expect(screen.getByText('member@example.com')).toBeInTheDocument(),
+        )
+        fireEvent.click(screen.getByRole('button', {name: 'Zugang beenden'}))
+        fireEvent.click(await screen.findByRole('button', {name: 'Wirklich beenden'}))
+
+        expect(await screen.findByText('Widerruf fehlgeschlagen.')).toBeInTheDocument()
+        expect(screen.getByRole('button', {name: 'Zugang beenden'})).toBeInTheDocument()
+        expect(screen.queryByRole('button', {name: 'Wirklich beenden'})).not.toBeInTheDocument()
+        expect(revokeSubscription).toHaveBeenCalledTimes(1)
     })
 })

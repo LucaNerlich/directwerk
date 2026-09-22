@@ -113,6 +113,7 @@ export default function SubscribersClient(): React.JSX.Element {
             )
         } finally {
             setIsBusy(false)
+            setPendingRevokeId(null)
         }
     }
 

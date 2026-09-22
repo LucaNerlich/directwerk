@@ -3,6 +3,7 @@
 import {HTML_SLUG_PATTERN} from '@directwerk/api/constants'
 import {Alert, AlertDescription} from '@directwerk/ui/components/alert'
 import {Button} from '@directwerk/ui/components/button'
+import EmptyState from '@directwerk/ui/components/empty-state'
 import {Input} from '@directwerk/ui/components/input'
 import {Label} from '@directwerk/ui/components/label'
 import PageHeader from '@directwerk/ui/components/page-header'
@@ -28,7 +29,10 @@ import {
     unpublishDigitalPublication,
     updateDigitalPublication,
 } from '@/lib/api/digitalPublicationsApi'
+import {hasModule} from '@/lib/api/client'
 import {suggestSlug} from '@/lib/api/studioHelpers'
+import {useDeskAccess} from '@/lib/rbac/useDeskAccess'
+import {useSiteConfig} from '@/lib/site/SiteConfigProvider'
 import type {
     AccessPolicy,
     CreateDigitalPublicationInput,
@@ -47,6 +51,8 @@ export default function DigitalPublicationEditor({
 }: DigitalPublicationEditorProps): React.JSX.Element {
     const router = useRouter()
     const authRedirect = useAuthRequired()
+    const config = useSiteConfig()
+    const hasBonusContent = hasModule(config, 'BONUS_CONTENT')
     const isNew = publicationId === undefined
     const [publication, setPublication] = useState<DigitalPublication | null>(null)
     const [title, setTitle] = useState('')
@@ -59,9 +65,17 @@ export default function DigitalPublicationEditor({
     const [isSaving, setIsSaving] = useState(false)
     const [errorMessage, setErrorMessage] = useState<string | null>(null)
     const [statusMessage, setStatusMessage] = useState<string | null>(null)
+    // RBAC desk adaptation (issue #148): bonus files reference the media
+    // library, so editing adapts to the MEDIA_ASSET rights. Hook call stays
+    // above all early returns; new rows count as own.
+    const desk = useDeskAccess({
+        entity: 'MEDIA_ASSET',
+        ownerUserId: publicationId === undefined ? undefined : (publication?.createdBy ?? null),
+        kind: 'Bonusdatei',
+    })
 
     useEffect(() => {
-        if (isNew || publicationId === undefined) {
+        if (!hasBonusContent || isNew || publicationId === undefined) {
             return
         }
         let active = true
@@ -95,9 +109,11 @@ export default function DigitalPublicationEditor({
         return () => {
             active = false
         }
-    }, [authRedirect, isNew, publicationId])
+    }, [authRedirect, hasBonusContent, isNew, publicationId])
 
-    const readOnly = publication?.status === 'PUBLISHED'
+    const canModify = isNew ? desk.canCreate : desk.canEdit
+    const modifyBlockedReason = isNew ? desk.createBlockedReason : desk.editBlockedReason
+    const readOnly = publication?.status === 'PUBLISHED' || !canModify
 
     async function runAction(action: () => Promise<DigitalPublication>, success: string): Promise<void> {
         setIsSaving(true)
@@ -168,6 +184,29 @@ export default function DigitalPublicationEditor({
         )
     }
 
+    if (!hasBonusContent) {
+        return (
+            <PageStack>
+                <PageHeader
+                    eyebrow="Medien"
+                    title="Bonusdatei"
+                    description="Dokument aus der Mediathek mit Titel, Zugang und Veröffentlichung."
+                />
+                <div role="status">
+                    <EmptyState
+                        title="Bonusdateien nicht verfügbar"
+                        description={
+                            <>
+                                Das Modul <code>BONUS_CONTENT</code> ist für diesen Tenant
+                                nicht aktiv. Bonusdateien sind daher nicht verfügbar.
+                            </>
+                        }
+                    />
+                </div>
+            </PageStack>
+        )
+    }
+
     if (isLoading) {
         return (
             <PageStack>
@@ -205,6 +244,11 @@ export default function DigitalPublicationEditor({
             {statusMessage !== null ? (
                 <Alert role="status">
                     <AlertDescription>{statusMessage}</AlertDescription>
+                </Alert>
+            ) : null}
+            {!canModify && modifyBlockedReason !== null ? (
+                <Alert>
+                    <AlertDescription>{modifyBlockedReason}</AlertDescription>
                 </Alert>
             ) : null}
 
@@ -284,7 +328,7 @@ export default function DigitalPublicationEditor({
                 </Button>
                 {!isNew && publication?.status === 'DRAFT' ? (
                     <Button
-                        disabled={isSaving}
+                        disabled={isSaving || readOnly || !desk.canPublish}
                         onClick={() =>
                             void runAction(
                                 () => publishDigitalPublication(getClientTenantHost(), publication.id),
@@ -300,7 +344,7 @@ export default function DigitalPublicationEditor({
                 {!isNew && publication?.status === 'PUBLISHED' ? (
                     <>
                         <Button
-                            disabled={isSaving}
+                            disabled={isSaving || !desk.canEdit}
                             onClick={() =>
                                 void runAction(
                                     () => unpublishDigitalPublication(getClientTenantHost(), publication.id),
@@ -313,7 +357,7 @@ export default function DigitalPublicationEditor({
                             Zurückziehen
                         </Button>
                         <Button
-                            disabled={isSaving}
+                            disabled={isSaving || !desk.canEdit}
                             onClick={() =>
                                 void runAction(
                                     () => archiveDigitalPublication(getClientTenantHost(), publication.id),
@@ -329,7 +373,7 @@ export default function DigitalPublicationEditor({
                 ) : null}
                 {!isNew && publication?.status === 'ARCHIVED' ? (
                     <Button
-                        disabled={isSaving}
+                        disabled={isSaving || !desk.canEdit}
                         onClick={() =>
                             void runAction(
                                 () => unarchiveDigitalPublication(getClientTenantHost(), publication.id),
@@ -342,7 +386,10 @@ export default function DigitalPublicationEditor({
                         Wiederherstellen
                     </Button>
                 ) : null}
-                {!isNew && publication !== null && publication.status !== 'PUBLISHED' ? (
+                {!isNew &&
+                publication !== null &&
+                publication.status !== 'PUBLISHED' &&
+                desk.canDelete ? (
                     <Button
                         disabled={isSaving}
                         onClick={() => {

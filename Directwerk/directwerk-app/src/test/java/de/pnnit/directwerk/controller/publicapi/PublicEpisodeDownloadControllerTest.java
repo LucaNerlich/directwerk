@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.when;
 
+import de.pnnit.directwerk.controller.AnalyticsClientIpResolver;
 import de.pnnit.directwerk.modules.core.entity.Tenant;
 import de.pnnit.directwerk.modules.digital.entity.AccessPolicy;
 import de.pnnit.directwerk.modules.digital.entity.AssetScope;
@@ -19,6 +20,7 @@ import de.pnnit.directwerk.modules.podcast.service.RssFeedDeliveryFacade;
 import de.pnnit.directwerk.multitenancy.TenantContext;
 import jakarta.servlet.http.HttpServletRequest;
 import java.net.URI;
+import java.util.List;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -91,7 +93,9 @@ class PublicEpisodeDownloadControllerTest {
     }
 
     private PublicEpisodeDownloadController controller() {
-        return new PublicEpisodeDownloadController(rssFeedDeliveryFacade);
+        return new PublicEpisodeDownloadController(
+                rssFeedDeliveryFacade,
+                new AnalyticsClientIpResolver(List.of()));
     }
 
     private static Episode freeEpisode() {

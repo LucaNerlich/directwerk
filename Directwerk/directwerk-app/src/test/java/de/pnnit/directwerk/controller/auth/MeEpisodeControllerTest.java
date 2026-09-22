@@ -5,6 +5,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import de.pnnit.directwerk.api.PublicEpisodeViewMapper;
+import de.pnnit.directwerk.controller.AnalyticsClientIpResolver;
 import de.pnnit.directwerk.modules.podcast.access.SubscriberPortalAccessService;
 import de.pnnit.directwerk.modules.core.entity.Tenant;
 import de.pnnit.directwerk.modules.digital.entity.AssetScope;
@@ -57,7 +58,8 @@ class MeEpisodeControllerTest {
         MeEpisodeController controller = new MeEpisodeController(
                 subscriberContentAccessService,
                 portalStreamDeliveryFacade,
-                publicEpisodeViewMapper
+                publicEpisodeViewMapper,
+                new AnalyticsClientIpResolver(List.of())
         );
         DirectwerkUserPrincipal principal = subscriber();
         Episode episode = freeEpisode();

@@ -1,6 +1,6 @@
 package de.pnnit.directwerk.controller.publicapi;
 
-import de.pnnit.directwerk.controller.RequestClientIpExtractor;
+import de.pnnit.directwerk.controller.AnalyticsClientIpResolver;
 import de.pnnit.directwerk.modules.core.RequiresModule;
 import de.pnnit.directwerk.modules.core.analytics.FeedFetchAnalyticsService;
 import de.pnnit.directwerk.modules.core.entity.Tenant;
@@ -30,19 +30,22 @@ public class RssFeedController {
     private final RssFeedSnapshotService rssFeedSnapshotService;
     private final RssFeedDeliveryFacade rssFeedDeliveryFacade;
     private final FeedFetchAnalyticsService feedFetchAnalyticsService;
+    private final AnalyticsClientIpResolver analyticsClientIpResolver;
 
     public RssFeedController(
             TenantResolver tenantResolver,
             SubscriberFeedService subscriberFeedService,
             RssFeedSnapshotService rssFeedSnapshotService,
             RssFeedDeliveryFacade rssFeedDeliveryFacade,
-            FeedFetchAnalyticsService feedFetchAnalyticsService
+            FeedFetchAnalyticsService feedFetchAnalyticsService,
+            AnalyticsClientIpResolver analyticsClientIpResolver
     ) {
         this.tenantResolver = tenantResolver;
         this.subscriberFeedService = subscriberFeedService;
         this.rssFeedSnapshotService = rssFeedSnapshotService;
         this.rssFeedDeliveryFacade = rssFeedDeliveryFacade;
         this.feedFetchAnalyticsService = feedFetchAnalyticsService;
+        this.analyticsClientIpResolver = analyticsClientIpResolver;
     }
 
     /**
@@ -64,7 +67,7 @@ public class RssFeedController {
                 "public",
                 request.getServerName(),
                 request.getHeader("User-Agent"),
-                RequestClientIpExtractor.extract(request));
+                analyticsClientIpResolver.resolve(request));
         var delivery = rssFeedSnapshotService.publicTenantFeed(tenant);
         return FeedRedirects.rssRedirect(delivery.redirectUrl(), delivery.ready());
     }
@@ -91,7 +94,7 @@ public class RssFeedController {
                 "public",
                 request.getServerName(),
                 request.getHeader("User-Agent"),
-                RequestClientIpExtractor.extract(request));
+                analyticsClientIpResolver.resolve(request));
         var delivery = rssFeedSnapshotService.publicSeriesFeed(tenant, seriesSlug);
         return FeedRedirects.rssRedirect(delivery.redirectUrl(), delivery.ready());
     }
@@ -118,7 +121,7 @@ public class RssFeedController {
                 "private",
                 request.getServerName(),
                 request.getHeader("User-Agent"),
-                RequestClientIpExtractor.extract(request));
+                analyticsClientIpResolver.resolve(request));
         var delivery = rssFeedSnapshotService.privateFeed(tenant, feed);
         return FeedRedirects.rssRedirect(delivery.redirectUrl(), delivery.ready());
     }
@@ -145,7 +148,7 @@ public class RssFeedController {
                 request.getServerName(),
                 request.getHeader("User-Agent"),
                 request.getHeader("Range") != null,
-                RequestClientIpExtractor.extract(request)
+                analyticsClientIpResolver.resolve(request)
         ).response();
     }
 
@@ -173,7 +176,7 @@ public class RssFeedController {
                 request.getServerName(),
                 request.getHeader("User-Agent"),
                 request.getHeader("Range") != null,
-                RequestClientIpExtractor.extract(request)
+                analyticsClientIpResolver.resolve(request)
         ).response();
     }
 }

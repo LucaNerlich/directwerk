@@ -35,6 +35,11 @@ export async function loginAction(
     }
 
     try {
+        // No BFF-side throttling on purpose: the upstream `/oauth2/token`
+        // endpoint is throttled by the API's `AuthRateLimitFilter` per source
+        // IP and per username (default 10/min), which bounds brute-force
+        // attempts no matter which Next.js instance serves this action. See
+        // `app/api/auth/login/route.ts` for the same rationale.
         const upstreamRequest = createConfiguredPlatformTokenRequest(
             validation.data
         )

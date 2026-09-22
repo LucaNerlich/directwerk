@@ -134,6 +134,8 @@ export function restrictionsFromAccess(
 }
 
 export interface DeskAccess {
+    canCreate: boolean
+    createBlockedReason: string | null
     canEdit: boolean
     editBlockedReason: string | null
     canPublish: boolean
@@ -200,11 +202,14 @@ export function deskAccess({
         }
     }
 
+    const creation = check('CREATE', 'Anlegen', 'anlegen')
     const edit = check('UPDATE', 'Bearbeiten', 'bearbeiten')
     const publish = check('PUBLISH', 'Veröffentlichen', 'veröffentlichen')
     const deletion = check('DELETE', 'Löschen', 'löschen')
 
     return {
+        canCreate: creation.allowed,
+        createBlockedReason: creation.reason,
         canEdit: edit.allowed,
         editBlockedReason: edit.reason,
         canPublish: publish.allowed,

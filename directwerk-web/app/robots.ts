@@ -1,20 +1,19 @@
 import type {MetadataRoute} from 'next'
-import {headers} from 'next/headers'
 
-import {parseTenantHost} from '@directwerk/api/proxy'
-
+import {getTenantHost} from '@/lib/site/getTenantHost'
 import {resolveTenantOrigin} from '@/lib/site/siteOrigin'
 
 export default async function robots(): Promise<MetadataRoute.Robots> {
-    const headerStore = await headers()
-    const rawHost =
-        headerStore.get('x-forwarded-host') ?? headerStore.get('host')
-    // Never trust the forwarded host verbatim — a spoofed value would poison
-    // the sitemap origin (SEO/cache poisoning). Validate first.
-    const firstHost = rawHost?.split(',')[0]?.trim() ?? null
-    const validatedHost = parseTenantHost(firstHost)
-    const origin =
-        validatedHost !== null ? resolveTenantOrigin(validatedHost) : null
+    // Same tenant resolution as every other route: direct `host` first,
+    // validated. Never trust a forwarded host verbatim — a spoofed value would
+    // poison the sitemap origin (SEO/cache poisoning).
+    let host: string | null
+    try {
+        host = await getTenantHost()
+    } catch {
+        host = null
+    }
+    const origin = host !== null ? resolveTenantOrigin(host) : null
 
     return {
         rules: {

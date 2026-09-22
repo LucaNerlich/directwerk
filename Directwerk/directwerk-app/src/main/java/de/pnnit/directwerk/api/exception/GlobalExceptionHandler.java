@@ -417,21 +417,29 @@ public class GlobalExceptionHandler {
                 .body(Response.error(403, "ACCESS_DENIED", "Forbidden"));
     }
 
+    /**
+     * Unexpected {@link IllegalArgumentException}s are not necessarily client validation errors —
+     * their message may embed internal identifiers. The detail is logged server-side and only a
+     * static message is returned; bean-validation failures carry their own structured errors in
+     * {@link #handleValidation(MethodArgumentNotValidException)}.
+     */
     @ExceptionHandler(IllegalArgumentException.class)
     ResponseEntity<Response<Void>> handleIllegalArgument(IllegalArgumentException ex) {
+        log.warn("Illegal argument rejected", ex);
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .body(Response.error(400, "VALIDATION_ERROR", ex.getMessage()));
+                .body(Response.error(400, "VALIDATION_ERROR", "Request validation failed"));
     }
 
     /**
      * Maps misconfiguration failures (e.g. email queue token protection) to a structured
-     * 503 instead of the generic catch-all 500.
+     * 503 instead of the generic catch-all 500. The exception detail is logged server-side and
+     * never echoed to clients.
      */
     @ExceptionHandler(IllegalStateException.class)
     ResponseEntity<Response<Void>> handleIllegalState(IllegalStateException ex) {
         log.error("Service misconfiguration", ex);
         return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
-                .body(Response.error(503, "SERVICE_MISCONFIGURED", ex.getMessage()));
+                .body(Response.error(503, "SERVICE_MISCONFIGURED", "The service is temporarily unavailable"));
     }
 
     /**

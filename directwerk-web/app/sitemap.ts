@@ -1,7 +1,4 @@
 import type {MetadataRoute} from 'next'
-import {headers} from 'next/headers'
-
-import {parseTenantHost} from '@directwerk/api/proxy'
 
 import {
     fetchPublicArticleSlugsServer,
@@ -22,17 +19,19 @@ function toLastModified(
 }
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-    const headerStore = await headers()
-    const rawHost =
-        headerStore.get('x-forwarded-host') ?? headerStore.get('host')
-    // Same validation as robots.ts — never build canonical URLs from a raw
-    // forwarded host.
-    const firstHost = rawHost?.split(',')[0]?.trim() ?? null
-    const validatedHost = parseTenantHost(firstHost)
-    if (validatedHost === null) {
+    // Resolve the tenant host the same way every other route does (direct
+    // `host` first, validated) so sitemap origins cannot disagree with the
+    // tenant whose content is listed due to a spoofed `x-forwarded-host`.
+    let host: string | null
+    try {
+        host = await getTenantHost()
+    } catch {
+        host = null
+    }
+    if (host === null) {
         return []
     }
-    const origin = resolveTenantOrigin(validatedHost)
+    const origin = resolveTenantOrigin(host)
 
     // Static routes carry no per-request timestamp: `lastModified` must be
     // stable so crawlers do not see every page as changed on each fetch.
@@ -50,10 +49,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     let episodeEntries: MetadataRoute.Sitemap = []
     let feedEntries: MetadataRoute.Sitemap = []
     try {
-        const host = await getTenantHost()
-        if (host === null) {
-            throw new Error('Tenant host unresolved')
-        }
         const [articles, episodes] = await Promise.all([
             fetchPublicArticleSlugsServer(host),
             fetchPublicEpisodeSlugsServer(host),
