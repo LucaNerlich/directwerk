@@ -1,7 +1,6 @@
 package de.pnnit.directwerk.controller;
 
 import de.pnnit.directwerk.config.DirectwerkConfig;
-import de.pnnit.directwerk.modules.core.util.ClientIpExtractor;
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.List;
 import java.util.Set;
@@ -45,10 +44,6 @@ public class AnalyticsClientIpResolver {
      * @return the client IP, or {@code null} when it cannot be attributed
      */
     public String resolve(HttpServletRequest request) {
-        String remoteAddr = request.getRemoteAddr();
-        if (remoteAddr == null || !trustedProxies.contains(remoteAddr)) {
-            return ClientIpExtractor.extract(null, null, remoteAddr);
-        }
-        return RequestClientIpExtractor.extract(request);
+        return RequestClientIpExtractor.extract(request, trustedProxies);
     }
 }

@@ -111,7 +111,9 @@ export default function DigitalPublicationEditor({
         }
     }, [authRedirect, hasBonusContent, isNew, publicationId])
 
-    const readOnly = publication?.status === 'PUBLISHED' || !desk.canEdit
+    const canModify = isNew ? desk.canCreate : desk.canEdit
+    const modifyBlockedReason = isNew ? desk.createBlockedReason : desk.editBlockedReason
+    const readOnly = publication?.status === 'PUBLISHED' || !canModify
 
     async function runAction(action: () => Promise<DigitalPublication>, success: string): Promise<void> {
         setIsSaving(true)
@@ -244,9 +246,9 @@ export default function DigitalPublicationEditor({
                     <AlertDescription>{statusMessage}</AlertDescription>
                 </Alert>
             ) : null}
-            {!desk.canEdit && desk.editBlockedReason !== null ? (
+            {!canModify && modifyBlockedReason !== null ? (
                 <Alert>
-                    <AlertDescription>{desk.editBlockedReason}</AlertDescription>
+                    <AlertDescription>{modifyBlockedReason}</AlertDescription>
                 </Alert>
             ) : null}
 

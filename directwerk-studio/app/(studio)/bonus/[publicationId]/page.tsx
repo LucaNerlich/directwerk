@@ -8,7 +8,7 @@ export default async function BonusPublicationPage({
     params,
 }: BonusPublicationPageProps): Promise<React.JSX.Element> {
     const {publicationId} = await params
-    if (!/^\d+$/.test(publicationId)) {
+    if (!/^[1-9]\d*$/.test(publicationId)) {
         return <p>Ungültige Bonusdatei.</p>
     }
     const id = Number(publicationId)

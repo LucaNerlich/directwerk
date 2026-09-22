@@ -34,6 +34,17 @@ class AnalyticsClientIpResolverTest {
     }
 
     @Test
+    void usesAddressAfterTrustedProxyBoundaryInsteadOfSpoofedLeftmostValue() {
+        HttpServletRequest request = mock(HttpServletRequest.class);
+        when(request.getRemoteAddr()).thenReturn("10.0.0.1");
+        when(request.getHeader("X-Forwarded-For"))
+                .thenReturn("198.51.100.99, 203.0.113.7, 10.0.0.2");
+
+        assertThat(new AnalyticsClientIpResolver(List.of("10.0.0.1", "10.0.0.2")).resolve(request))
+                .isEqualTo("203.0.113.7");
+    }
+
+    @Test
     void returnsNullWhenPeerIsUnknownAndNoRemoteAddress() {
         HttpServletRequest request = mock(HttpServletRequest.class);
 

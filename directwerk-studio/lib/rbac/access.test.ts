@@ -66,6 +66,7 @@ describe('rbac access helpers', () => {
             myUserId: 5,
             kind: 'Folge',
         })
+        expect(access.canCreate).toBe(true)
         expect(access.canEdit).toBe(true)
         expect(access.canPublish).toBe(true)
         expect(access.canDelete).toBe(true)
@@ -74,13 +75,20 @@ describe('rbac access helpers', () => {
     it('blocks denied and foreign own-only operations with reasons', () => {
         const access = deskAccess({
             effective: {
-                EPISODE: {UPDATE: 'OWN_ONLY', PUBLISH: 'DENIED', DELETE: 'FULL'},
+                EPISODE: {
+                    CREATE: 'DENIED',
+                    UPDATE: 'OWN_ONLY',
+                    PUBLISH: 'DENIED',
+                    DELETE: 'FULL',
+                },
             },
             entity: 'EPISODE',
             ownerUserId: 99,
             myUserId: 5,
             kind: 'Folge',
         })
+        expect(access.canCreate).toBe(false)
+        expect(access.createBlockedReason).toContain('eingeschränkt')
         expect(access.canEdit).toBe(false)
         expect(access.editBlockedReason).toContain('eigene Folgen')
         expect(access.canPublish).toBe(false)
