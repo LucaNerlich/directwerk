@@ -3,15 +3,15 @@ import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest'
 
 import LogoutButton from '@/components/studio/LogoutButton'
 
-const {push, clearTokens, clearAllCachedTenantData} = vi.hoisted(() => ({
+const {push, clearSessionTokens, clearAllCachedTenantData} = vi.hoisted(() => ({
     push: vi.fn(),
-    clearTokens: vi.fn(),
+    clearSessionTokens: vi.fn(),
     clearAllCachedTenantData: vi.fn(),
 }))
 
 vi.mock('next/navigation', () => ({useRouter: () => ({push})}))
 vi.mock('@/lib/auth/MeProvider', () => ({useOptionalMe: () => null}))
-vi.mock('@/lib/auth/tokenStore', () => ({clearTokens}))
+vi.mock('@/lib/auth/session', () => ({clearSessionTokens}))
 vi.mock('@directwerk/api/client/useCachedTenantQuery', () => ({clearAllCachedTenantData}))
 
 describe('LogoutButton', () => {
@@ -32,7 +32,7 @@ describe('LogoutButton', () => {
         fireEvent.click(screen.getByRole('button', {name: 'Abmelden'}))
 
         await waitFor(() => expect(push).toHaveBeenCalledWith('/login'))
-        expect(clearTokens).toHaveBeenCalledOnce()
+        expect(clearSessionTokens).toHaveBeenCalledOnce()
         expect(clearAllCachedTenantData).toHaveBeenCalledOnce()
     })
 
@@ -46,7 +46,7 @@ describe('LogoutButton', () => {
         fireEvent.click(screen.getByRole('button', {name: 'Abmelden'}))
 
         expect(await screen.findByRole('alert')).toHaveTextContent('Abmeldung fehlgeschlagen')
-        expect(clearTokens).not.toHaveBeenCalled()
+        expect(clearSessionTokens).not.toHaveBeenCalled()
         expect(clearAllCachedTenantData).not.toHaveBeenCalled()
         expect(push).not.toHaveBeenCalled()
     })

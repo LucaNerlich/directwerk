@@ -8,7 +8,7 @@ import {Button} from '@directwerk/ui/components/button'
 import {clearAllCachedTenantData} from '@directwerk/api/client/useCachedTenantQuery'
 
 import {useOptionalMe} from '@/lib/auth/MeProvider'
-import {clearTokens} from '@/lib/auth/tokenStore'
+import {clearSessionTokens} from '@/lib/auth/session'
 
 export default function LogoutButton() {
     const router = useRouter()
@@ -47,7 +47,7 @@ export default function LogoutButton() {
                             setLogoutError('Abmeldung fehlgeschlagen. Bitte versuche es erneut.')
                             return
                         }
-                        clearTokens()
+                        clearSessionTokens()
                         clearAllCachedTenantData()
                         router.push('/login')
                     })()

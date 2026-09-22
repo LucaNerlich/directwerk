@@ -33,7 +33,7 @@ import {
 import {userFacingGeneralError} from '@/lib/billing/userFacingBillingError'
 import {formatPublishedAt} from '@directwerk/api/format/datetime'
 
-import {clearTokens} from '@/lib/auth/tokenStore'
+import {clearSessionTokens} from '@/lib/auth/session'
 import {getWebClientTenantHost} from '@/lib/tenant/clientHost'
 
 interface LogoutState {
@@ -155,7 +155,7 @@ export default function AccountPage() {
             } catch {
                 // Ignore — clear local session regardless.
             }
-            clearTokens()
+            clearSessionTokens()
             router.replace('/login')
             return {complete: true}
         },

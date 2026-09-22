@@ -3,8 +3,7 @@
 import type {AssetType} from '@directwerk/api/types'
 import {uploadMediaFileBrowser} from '@directwerk/api/media/browserUpload'
 import {confirmUpload} from '@/lib/api/mediaApi'
-import {getValidAccessToken} from '@/lib/auth/session'
-import {clearTokens} from '@/lib/auth/tokenStore'
+import {getValidAccessToken, clearSessionTokens} from '@/lib/auth/session'
 import {
     exceedsMediaLimitFor,
     mediaLimitLabelFor,
@@ -43,7 +42,7 @@ export async function uploadMediaFile(
         folderId: options?.folderId,
         onProgress: options?.onProgress,
         getAccessToken: getValidAccessToken,
-        onAuthRequired: clearTokens,
+        onAuthRequired: clearSessionTokens,
         confirmUpload,
         exceedsLimit: (assetType, size) => exceedsMediaLimitFor(limits, assetType, size),
         limitLabel: (assetType) => mediaLimitLabelFor(limits, assetType),

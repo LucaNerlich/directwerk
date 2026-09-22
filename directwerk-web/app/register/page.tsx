@@ -18,6 +18,7 @@ import type {AuthFieldErrors} from '@/lib/forms/authFields'
 import {useFocusFirstInvalidField} from '@/lib/forms/useFocusFirstInvalidField'
 
 import {setTokens} from '@/lib/auth/tokenStore'
+import {invalidatePendingRefresh} from '@/lib/auth/session'
 import {safeReturnTo} from '@/lib/auth/safeReturnTo'
 import {userFacingAuthError} from '@/lib/billing/userFacingBillingError'
 import {getWebClientTenantHost} from '@/lib/tenant/clientHost'
@@ -69,6 +70,7 @@ function RegisterForm() {
                     email: input.email,
                     password: input.password,
                 })
+                invalidatePendingRefresh()
                 setTokens(tokens)
                 window.location.assign(returnTo)
                 return INITIAL_STATE

@@ -6,6 +6,7 @@ import {bulkDeleteArticles, bulkPublishArticles, bulkUnpublishArticles} from '@/
 vi.mock('@/lib/auth/session', () => ({
     getValidAccessToken: () => Promise.resolve('test-token'),
     refreshAccessToken: () => Promise.resolve('test-token'),
+    clearSessionTokens: () => {},
 }))
 
 vi.mock('@directwerk/api/tenant', () => ({

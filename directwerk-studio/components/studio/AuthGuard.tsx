@@ -10,10 +10,10 @@ import {Skeleton} from '@directwerk/ui/components/skeleton'
 import {isEditorRole} from '@/lib/api/studioHelpers'
 import {fetchMe} from '@/lib/api/authApi'
 import {MeProvider} from '@/lib/auth/MeProvider'
-import {ensureAuthenticated} from '@/lib/auth/session'
+import {ensureAuthenticated, clearSessionTokens} from '@/lib/auth/session'
 import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
 import {clearAllCachedTenantData} from '@directwerk/api/client/useCachedTenantQuery'
-import {clearTokens, getAccessToken} from '@/lib/auth/tokenStore'
+import {getAccessToken} from '@/lib/auth/tokenStore'
 import {getClientTenantHost} from '@directwerk/api/tenant'
 import type {Me} from '@directwerk/api/types'
 
@@ -61,7 +61,7 @@ export default function AuthGuard({children}: Readonly<{children: React.ReactNod
                 }
 
                 if (!isEditorRole(account.roles)) {
-                    clearTokens()
+                    clearSessionTokens()
                     clearAllCachedTenantData()
                     router.replace('/login?reason=role')
                     return
@@ -77,7 +77,7 @@ export default function AuthGuard({children}: Readonly<{children: React.ReactNod
                 // upstream errors during a deploy must keep the valid refresh
                 // cookie intact and offer a retry instead.
                 if (authRedirect(error)) {
-                    clearTokens()
+                    clearSessionTokens()
                     clearAllCachedTenantData()
                     return
                 }

@@ -5,7 +5,6 @@ import {AUTH_REQUIRED} from '@directwerk/api/constants'
 import {parseTokenResponse} from '@directwerk/api/validation/token'
 
 import {
-    clearTenantTokens,
     getTenantAccessToken,
     getTenantSessionHost,
     isTenantAccessTokenExpired,
@@ -27,10 +26,15 @@ function invalidatePendingTenantRefresh(): void {
     session.invalidatePendingRefresh()
 }
 
+/** Clears tenant tokens and invalidates any refresh currently in flight. */
+export function clearTenantSessionTokens(): void {
+    session.clearTokens()
+}
+
 export async function refreshTenantAccessToken(): Promise<string> {
     const tenantHost = getTenantSessionHost()
     if (!tenantHost) {
-        clearTenantTokens()
+        clearTenantSessionTokens()
         throw new Error(AUTH_REQUIRED)
     }
     return session.refreshAccessToken()

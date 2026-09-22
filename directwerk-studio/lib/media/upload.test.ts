@@ -5,9 +5,7 @@ import {uploadMediaFile} from '@/lib/media/upload'
 vi.mock('@/lib/auth/session', () => ({
     getValidAccessToken: vi.fn().mockResolvedValue('token'),
     refreshAccessToken: vi.fn().mockResolvedValue('token'),
-}))
-vi.mock('@/lib/auth/tokenStore', () => ({
-    clearTokens: vi.fn(),
+    clearSessionTokens: vi.fn(),
 }))
 vi.mock('@/lib/media/limits', () => {
     const limits = {

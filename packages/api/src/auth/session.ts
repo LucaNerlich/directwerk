@@ -37,10 +37,11 @@ interface StoredTokensHolder {
  * Guarantees:
  * - concurrent callers share one in-flight refresh (dedup)
  * - a generation guard discards refresh results for sessions that were
- *   cleared or re-logged-in while the refresh was in flight
- *   (`invalidatePendingRefresh` must be called whenever a new identity logs
- *   in — otherwise an in-flight refresh for the previous identity passes its
- *   generation check after login resolves and overwrites the fresh session)
+ *   cleared or re-logged-in while the refresh was in flight, without touching
+ *   the store (`invalidatePendingRefresh` must be called whenever a new
+ *   identity logs in — otherwise an in-flight refresh for the previous
+ *   identity passes its generation check after login resolves and overwrites
+ *   the fresh session)
  * - the refresh request aborts after `timeoutMs`; timeouts are transient and
  *   never destroy the session
  * - only definitive auth failures (400/401 or unusable success payloads)
@@ -108,15 +109,18 @@ export function createAuthSession(config: AuthSessionConfig) {
                 throw new Error(AUTH_TRANSIENT)
             }
 
-            // Only store tokens if session hasn't been invalidated
+            // Only store tokens if the session has not moved on (logout or a new
+            // login) while the refresh was in flight.
             if (sessionGeneration === currentSessionGeneration) {
                 config.store.setTokens(tokens)
                 return tokens.access_token
             }
 
-            // Session was cleared during refresh, discard response
-            clearTokens()
-            throw new Error(AUTH_REQUIRED)
+            // The session was replaced while this refresh was in flight. Discard
+            // the response WITHOUT touching the store: calling clearTokens() here
+            // would wipe the tokens of the session that replaced this one. Surface
+            // it as transient so callers preserve the current session.
+            throw new Error(AUTH_TRANSIENT)
         } catch (error) {
             clearTimeout(timeoutId)
             if (error instanceof Error && error.name === 'AbortError') {

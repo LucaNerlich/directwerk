@@ -16,12 +16,11 @@ import {parseEffectiveRightsEnvelope} from '@directwerk/api/validation'
 import {isQueueJob} from '@directwerk/api/validation/admin'
 import {isRecord} from '@directwerk/api/validation/primitives'
 
-import {clearTokens} from '../auth/tokenStore'
-import {getValidAccessToken, refreshAccessToken} from '../auth/session'
+import {clearSessionTokens, getValidAccessToken, refreshAccessToken} from '../auth/session'
 
 const authedFetch = createAuthedRequest({
     session: {getValidAccessToken, refreshAccessToken},
-    clearTokens,
+    clearTokens: clearSessionTokens,
     ...platformAdminPolicy,
 })
 
