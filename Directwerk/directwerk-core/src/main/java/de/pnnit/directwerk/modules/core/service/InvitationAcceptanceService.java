@@ -46,6 +46,7 @@ public class InvitationAcceptanceService {
                 )
                 .filter(candidate -> candidate.getUsedAt() == null)
                 .filter(candidate -> candidate.getExpiresAt().isAfter(clock.instant()))
+                .filter(candidate -> candidate.getType() != InvitationType.EMAIL_VERIFICATION)
                 .orElseThrow(() -> new IllegalArgumentException(INVALID_TOKEN_MESSAGE));
 
         User user = token.getUser();

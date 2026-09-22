@@ -71,7 +71,7 @@ class SubscriptionServiceTest {
         SubscriptionProduct product = product();
         when(subscriptionProductService.requireProduct(TENANT_ID, PRODUCT_ID)).thenReturn(product);
         Subscription stripe = subscription(SubscriptionSource.STRIPE, SubscriptionStatus.ACTIVE);
-        when(subscriptionRepository.findByTenantIdAndUserIdAndProductId(TENANT_ID, USER_ID, PRODUCT_ID))
+        when(subscriptionRepository.findByTenantIdAndUserIdAndProductIdForUpdate(TENANT_ID, USER_ID, PRODUCT_ID))
                 .thenReturn(Optional.of(stripe));
 
         assertThatThrownBy(() -> service.grantManualSubscription(TENANT_ID, "user@example.com", PRODUCT_ID))
@@ -90,7 +90,7 @@ class SubscriptionServiceTest {
         Subscription stripe = subscription(SubscriptionSource.STRIPE, SubscriptionStatus.CANCELED);
         stripe.setExternalSubscriptionId("sub_123");
         stripe.setExternalPaymentId("in_456");
-        when(subscriptionRepository.findByTenantIdAndUserIdAndProductId(TENANT_ID, USER_ID, PRODUCT_ID))
+        when(subscriptionRepository.findByTenantIdAndUserIdAndProductIdForUpdate(TENANT_ID, USER_ID, PRODUCT_ID))
                 .thenReturn(Optional.of(stripe));
         when(subscriptionRepository.save(stripe)).thenReturn(stripe);
 
@@ -100,6 +100,24 @@ class SubscriptionServiceTest {
         assertThat(granted.getStatus()).isEqualTo(SubscriptionStatus.ACTIVE);
         assertThat(granted.getExternalSubscriptionId()).isNull();
         assertThat(granted.getExternalPaymentId()).isNull();
+    }
+
+    @Test
+    void grantManualSubscriptionRejectsNonActiveStripeRowWithExternalIds() {
+        mockUserAndMembership();
+        SubscriptionProduct product = product();
+        when(subscriptionProductService.requireProduct(TENANT_ID, PRODUCT_ID)).thenReturn(product);
+        Subscription stripe = subscription(SubscriptionSource.STRIPE, SubscriptionStatus.PAST_DUE);
+        stripe.setExternalSubscriptionId("sub_123");
+        when(subscriptionRepository.findByTenantIdAndUserIdAndProductIdForUpdate(TENANT_ID, USER_ID, PRODUCT_ID))
+                .thenReturn(Optional.of(stripe));
+
+        assertThatThrownBy(() -> service.grantManualSubscription(TENANT_ID, "user@example.com", PRODUCT_ID))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("cancel it before granting manual access");
+
+        verify(subscriptionRepository, never()).save(any());
+        verify(eventPublisher, never()).publishEvent(any());
     }
 
     @Test

@@ -54,6 +54,7 @@ public class OAuth2RegisteredClientFactory {
                 .tokenSettings(TokenSettings.builder()
                         .accessTokenTimeToLive(Duration.ofMinutes(15))
                         .refreshTokenTimeToLive(Duration.ofDays(7))
+                        .reuseRefreshTokens(false)
                         .build())
                 .clientSettings(ClientSettings.builder().requireAuthorizationConsent(false).build())
                 .clientName(clientName)

@@ -4,12 +4,13 @@ import {fileURLToPath} from 'node:url'
 import type { NextConfig } from 'next'
 
 import {extraOptimizePackageImports} from '../packages/next-config/optimizePackageImports'
+import {resolveApiBaseUrl} from './lib/marketing/apiUrl'
 
 const monorepoRoot = path.join(path.dirname(fileURLToPath(import.meta.url)), '..')
 
-// Contact form + ALTCHA talk to the API origin (localhost in dev).
-const apiOrigin =
-    (process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8080').replace(/\/$/, '')
+// Contact form + ALTCHA talk to the API origin (localhost in dev). Production
+// builds must set NEXT_PUBLIC_API_URL or the build fails (see apiUrl.ts).
+const apiOrigin = resolveApiBaseUrl()
 const apiWsOrigin = apiOrigin.startsWith('http://')
     ? apiOrigin.replace('http://', 'ws://')
     : apiOrigin.replace('https://', 'wss://')

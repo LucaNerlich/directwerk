@@ -71,7 +71,10 @@ public class UserAccountService {
                 throw new ConflictException(ConflictCodes.USER_EXISTS, "User already registered on this tenant");
             }
             if (existingMembership.filter(membership -> membership.getStatus() != MembershipStatus.INVITED).isPresent()) {
-                throw new IllegalStateException("User membership cannot be activated");
+                throw new ConflictException(
+                        ConflictCodes.INVALID_MEMBERSHIP_STATE,
+                        "User membership is disabled"
+                );
             }
 
             verifyAccountOwnership(user, password);

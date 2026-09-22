@@ -49,6 +49,20 @@ class AnalyticsQueryServiceTest {
     }
 
     @Test
+    void rejectsWebsiteIdClaimedByAnotherTenant() {
+        TenantBranding branding = new TenantBranding();
+        branding.setUmamiWebsiteId("abcdefgh");
+        branding.setUmamiHostUrl("https://8.8.8.8");
+        when(tenantBrandingService.getBranding(10L)).thenReturn(branding);
+        when(tenantBrandingService.isWebsiteIdClaimedByAnotherTenant(10L, "abcdefgh")).thenReturn(true);
+
+        assertThatThrownBy(() -> service().query(10L, AnalyticsRange.SEVEN_DAYS))
+                .isInstanceOf(AnalyticsQueryException.class)
+                .extracting(ex -> ((AnalyticsQueryException) ex).getCode())
+                .isEqualTo("ANALYTICS_NOT_CONFIGURED");
+    }
+
+    @Test
     void rejectsInvalidUmamiHost() {
         TenantBranding branding = new TenantBranding();
         branding.setUmamiWebsiteId("abcdefgh");

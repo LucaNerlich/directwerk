@@ -9,6 +9,7 @@ import java.util.Map;
  * Signature verification happens at HTTP ingress; the worker applies idempotent side effects.
  */
 public record StripeWebhookJobPayload(
+        Integer payloadVersion,
         String eventId,
         String type,
         String connectedAccountId,
@@ -22,11 +23,16 @@ public record StripeWebhookJobPayload(
         boolean detailsSubmitted,
         Map<String, String> metadata,
         String paymentIntentId,
-        boolean fullyRefunded
+        boolean fullyRefunded,
+        String paymentStatus,
+        Boolean dataObjectDeserialized
 ) {
+
+    public static final int CURRENT_VERSION = 2;
 
     public static StripeWebhookJobPayload from(StripeOperations.StripeWebhookPayload event) {
         return new StripeWebhookJobPayload(
+                CURRENT_VERSION,
                 event.eventId(),
                 event.type(),
                 event.connectedAccountId(),
@@ -40,14 +46,26 @@ public record StripeWebhookJobPayload(
                 event.detailsSubmitted(),
                 event.metadata(),
                 event.paymentIntentId(),
-                event.fullyRefunded()
+                event.fullyRefunded(),
+                event.paymentStatus(),
+                event.dataObjectDeserialized()
         );
     }
 
     public StripeOperations.StripeWebhookPayload toStripeWebhookPayload() {
+        boolean legacy = payloadVersion == null || payloadVersion < CURRENT_VERSION;
         Instant periodEnd = currentPeriodEnd == null || currentPeriodEnd.isBlank()
                 ? null
                 : Instant.parse(currentPeriodEnd);
+        String effectivePaymentStatus = legacy
+                && ("checkout.session.completed".equals(type)
+                || "checkout.session.async_payment_succeeded".equals(type))
+                && (paymentStatus == null || paymentStatus.isBlank())
+                ? "paid"
+                : paymentStatus;
+        boolean effectiveDataObjectDeserialized = legacy && "account.updated".equals(type)
+                ? true
+                : Boolean.TRUE.equals(dataObjectDeserialized);
         return new StripeOperations.StripeWebhookPayload(
                 eventId,
                 type,
@@ -62,7 +80,9 @@ public record StripeWebhookJobPayload(
                 detailsSubmitted,
                 metadata == null ? Map.of() : metadata,
                 paymentIntentId,
-                fullyRefunded
+                fullyRefunded,
+                effectivePaymentStatus,
+                effectiveDataObjectDeserialized
         );
     }
 }

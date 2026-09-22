@@ -96,7 +96,9 @@ class StripeWebhookJobProducerTest {
                 true,
                 Map.of("tenant_id", "7", "user_id", "3", "product_id", "11"),
                 "pi_1",
-                false
+                false,
+                "paid",
+                true
         );
     }
 }

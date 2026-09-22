@@ -1,5 +1,6 @@
 package de.pnnit.directwerk.modules.email.content;
 
+import de.pnnit.directwerk.config.DirectwerkConfig;
 import de.pnnit.directwerk.modules.content.ContentPublishedEvent;
 import de.pnnit.directwerk.modules.content.ContentType;
 import de.pnnit.directwerk.modules.content.NewsletterNotificationApi;
@@ -8,6 +9,7 @@ import de.pnnit.directwerk.modules.core.entity.TenantMembership;
 import de.pnnit.directwerk.modules.core.repository.TenantMembershipRepository;
 import de.pnnit.directwerk.modules.email.EmailJobProducer;
 import de.pnnit.directwerk.modules.email.EmailTemplate;
+import de.pnnit.directwerk.modules.email.repository.ContentNotificationMarkerRepository;
 import de.pnnit.directwerk.modules.queue.JobHandler;
 import de.pnnit.directwerk.modules.queue.QueueJob;
 import de.pnnit.directwerk.modules.queue.QueueNames;
@@ -17,6 +19,7 @@ import java.util.Map;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 import tools.jackson.databind.ObjectMapper;
 
@@ -29,6 +32,8 @@ public class ContentNotifyJobHandler implements JobHandler {
     private final TenantContentBrandingResolver tenantContentBrandingResolver;
     private final EmailJobProducer emailJobProducer;
     private final ObjectProvider<NewsletterNotificationApi> newsletterNotificationApi;
+    private final ContentNotificationMarkerRepository contentNotificationMarkerRepository;
+    private final DirectwerkConfig directwerkConfig;
 
     public ContentNotifyJobHandler(
             ObjectMapper objectMapper,
@@ -36,7 +41,9 @@ public class ContentNotifyJobHandler implements JobHandler {
             ContentPublicUrlBuilder contentPublicUrlBuilder,
             TenantContentBrandingResolver tenantContentBrandingResolver,
             @Lazy EmailJobProducer emailJobProducer,
-            ObjectProvider<NewsletterNotificationApi> newsletterNotificationApi
+            ObjectProvider<NewsletterNotificationApi> newsletterNotificationApi,
+            ContentNotificationMarkerRepository contentNotificationMarkerRepository,
+            DirectwerkConfig directwerkConfig
     ) {
         this.objectMapper = objectMapper;
         this.tenantMembershipRepository = tenantMembershipRepository;
@@ -44,6 +51,8 @@ public class ContentNotifyJobHandler implements JobHandler {
         this.tenantContentBrandingResolver = tenantContentBrandingResolver;
         this.emailJobProducer = emailJobProducer;
         this.newsletterNotificationApi = newsletterNotificationApi;
+        this.contentNotificationMarkerRepository = contentNotificationMarkerRepository;
+        this.directwerkConfig = directwerkConfig;
     }
 
     @Override
@@ -52,6 +61,7 @@ public class ContentNotifyJobHandler implements JobHandler {
     }
 
     @Override
+    @Transactional
     public void handle(QueueJob job) {
         ContentNotifyJobPayload payload = objectMapper.convertValue(job.payload(), ContentNotifyJobPayload.class);
         if (payload == null || !StringUtils.hasText(payload.contentType()) || payload.contentId() == null) {
@@ -64,7 +74,7 @@ public class ContentNotifyJobHandler implements JobHandler {
             return;
         }
 
-        notifyEpisodeMembers(job.tenantId(), payload);
+        notifyEpisodeMembers(job.tenantId(), payload, contentType);
     }
 
     private void notifyArticleLists(Long tenantId, ContentNotifyJobPayload payload) {
@@ -83,7 +93,10 @@ public class ContentNotifyJobHandler implements JobHandler {
         ));
     }
 
-    private void notifyEpisodeMembers(Long tenantId, ContentNotifyJobPayload payload) {
+    private void notifyEpisodeMembers(Long tenantId, ContentNotifyJobPayload payload, ContentType contentType) {
+        if (!directwerkConfig.isEmailEnabled()) {
+            return;
+        }
         TenantContentBrandingResolver.BrandingContext branding = tenantContentBrandingResolver.resolve(tenantId);
         String contentUrl = contentPublicUrlBuilder.buildPublicContentUrl(tenantId, ContentType.EPISODE, payload.slug());
         String preferencesUrl = contentPublicUrlBuilder.buildNotificationPreferencesUrl(tenantId);
@@ -92,10 +105,17 @@ public class ContentNotifyJobHandler implements JobHandler {
                 MembershipStatus.ACTIVE
         );
         for (TenantMembership membership : recipients) {
+            Long userId = membership.getUser().getId();
+            // Claimed once per (content, recipient): a retry of this job skips subscribers who
+            // were already notified instead of enqueueing a fresh email job for them.
+            if (!contentNotificationMarkerRepository.claim(
+                    tenantId, contentType.name(), payload.contentId(), userId)) {
+                continue;
+            }
             Map<String, String> variables = episodeVariables(payload, branding, contentUrl, preferencesUrl, membership);
             String correlationId = "content-notify-episode-%d-user-%d".formatted(
                     payload.contentId(),
-                    membership.getUser().getId()
+                    userId
             );
             emailJobProducer.enqueueContentNotification(
                     tenantId,

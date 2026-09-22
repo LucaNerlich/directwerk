@@ -110,7 +110,7 @@ public class PodcastImportService {
                 assetType,
                 visibility,
                 filenameHint
-        ));
+        )).asset();
     }
 
     /**
@@ -124,6 +124,20 @@ public class PodcastImportService {
             String filenameHint
     ) {
         return remoteAssetIngestApi.startIngestFromUrl(new RemoteAssetIngestApi.IngestCommand(
+                sourceUrl,
+                assetType,
+                visibility,
+                filenameHint
+        )).asset();
+    }
+
+    private RemoteAssetIngestApi.IngestResult ingestAssetTracked(
+            String sourceUrl,
+            AssetType assetType,
+            AssetVisibility visibility,
+            String filenameHint
+    ) {
+        return remoteAssetIngestApi.ingestFromUrl(new RemoteAssetIngestApi.IngestCommand(
                 sourceUrl,
                 assetType,
                 visibility,
@@ -150,30 +164,34 @@ public class PodcastImportService {
             return new ImportedEpisode(existing.get(), true);
         }
 
-        List<Long> ingestedAssetIds = new ArrayList<>(2);
+        List<RemoteAssetIngestApi.CleanupClaim> cleanupClaims = new ArrayList<>(2);
         AccessPolicy accessPolicy = command.accessPolicy() == null ? AccessPolicy.FREE : command.accessPolicy();
         Long audioAssetId = command.audioAssetId();
         Long coverAssetId = command.coverAssetId();
         try {
             if (audioAssetId == null && command.audioUrl() != null && !command.audioUrl().isBlank()) {
-                MediaAsset audio = ingestAsset(
+                RemoteAssetIngestApi.IngestResult audio = ingestAssetTracked(
                         command.audioUrl(),
                         AssetType.AUDIO,
                         AssetVisibility.PRIVATE,
                         importFilenameHint(command.title(), command.audioUrl(), "episode", "mp3")
                 );
-                audioAssetId = audio.getId();
-                ingestedAssetIds.add(audioAssetId);
+                audioAssetId = audio.asset().getId();
+                if (!audio.reused()) {
+                    cleanupClaims.add(audio.cleanupClaim());
+                }
             }
             if (coverAssetId == null && command.imageUrl() != null && !command.imageUrl().isBlank()) {
-                MediaAsset cover = ingestAsset(
+                RemoteAssetIngestApi.IngestResult cover = ingestAssetTracked(
                         command.imageUrl(),
                         AssetType.IMAGE,
                         AssetVisibility.PUBLIC,
                         importFilenameHint(command.title(), command.imageUrl(), "cover", "jpg")
                 );
-                coverAssetId = cover.getId();
-                ingestedAssetIds.add(coverAssetId);
+                coverAssetId = cover.asset().getId();
+                if (!cover.reused()) {
+                    cleanupClaims.add(cover.cleanupClaim());
+                }
             }
 
             String slug = uniqueSlug(tenantId, command.slug(), command.title());
@@ -201,7 +219,7 @@ public class PodcastImportService {
             var importedByOtherRequest =
                     episodeRepository.findByTenantIdAndImportIdentity(tenantId, importIdentity);
             if (importedByOtherRequest.isPresent()) {
-                discardIngestedAssets(ingestedAssetIds);
+                discardIngestedAssets(cleanupClaims);
                 return new ImportedEpisode(importedByOtherRequest.get(), true);
             }
 
@@ -229,7 +247,7 @@ public class PodcastImportService {
                 );
                 return new ImportedEpisode(episode, false);
             } catch (DataIntegrityViolationException retryFailure) {
-                discardIngestedAssets(ingestedAssetIds);
+                discardIngestedAssets(cleanupClaims);
                 return episodeRepository.findByTenantIdAndImportIdentity(tenantId, importIdentity)
                         .map(episode -> new ImportedEpisode(episode, true))
                         .orElseThrow(() -> new RssImportException(
@@ -240,7 +258,7 @@ public class PodcastImportService {
                         ));
             }
         } catch (RuntimeException ex) {
-            discardIngestedAssets(ingestedAssetIds);
+            discardIngestedAssets(cleanupClaims);
             throw ex;
         }
     }
@@ -248,11 +266,11 @@ public class PodcastImportService {
     /**
      * Discards ingested assets in reverse order, continuing cleanup when an asset cannot be discarded.
      *
-     * @param assetIds the identifiers of assets to discard
+     * @param cleanupClaims ownership proofs for assets to discard
      */
-    private void discardIngestedAssets(List<Long> assetIds) {
+    private void discardIngestedAssets(List<RemoteAssetIngestApi.CleanupClaim> cleanupClaims) {
         FeedImportSupport.discardIngestedAssets(
-                assetIds,
+                cleanupClaims,
                 remoteAssetIngestApi::discard,
                 log,
                 "unreferenced RSS import asset"

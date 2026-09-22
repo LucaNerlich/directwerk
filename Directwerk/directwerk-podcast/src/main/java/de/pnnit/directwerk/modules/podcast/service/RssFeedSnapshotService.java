@@ -11,6 +11,7 @@ import de.pnnit.directwerk.modules.digital.storage.GeneratedFeedSnapshotStore;
 import de.pnnit.directwerk.modules.digital.storage.GeneratedFeedSnapshotStore.FeedDelivery;
 import de.pnnit.directwerk.modules.podcast.PodcastRssModule;
 import de.pnnit.directwerk.modules.podcast.entity.PodcastSeries;
+import de.pnnit.directwerk.modules.podcast.entity.SeriesStatus;
 import de.pnnit.directwerk.modules.podcast.exception.SeriesNotFoundException;
 import de.pnnit.directwerk.modules.podcast.feed.SubscriberFeed;
 import de.pnnit.directwerk.modules.podcast.feed.SubscriberFeedRepository;
@@ -64,6 +65,9 @@ public class RssFeedSnapshotService {
             Tenant tenant,
             PodcastSeries series
     ) {
+        if (series.getStatus() != SeriesStatus.PUBLISHED) {
+            throw new SeriesNotFoundException(series.getId());
+        }
         return coordinator.deliverCollection(tenant, series.getId());
     }
 
@@ -85,6 +89,7 @@ public class RssFeedSnapshotService {
      */
     public FeedDelivery publicSeriesFeed(Tenant tenant, String seriesSlug) {
         PodcastSeries series = podcastSeriesRepository.findByTenantIdAndSlug(tenant.getId(), seriesSlug)
+                .filter(candidate -> candidate.getStatus() == SeriesStatus.PUBLISHED)
                 .orElseThrow(() -> new SeriesNotFoundException(seriesSlug));
         return coordinator.deliverCollection(tenant, series.getId());
     }

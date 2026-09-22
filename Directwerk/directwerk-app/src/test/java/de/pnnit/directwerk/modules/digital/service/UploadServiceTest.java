@@ -269,6 +269,38 @@ class UploadServiceTest {
     }
 
     @Test
+    void createUploadUrlDerivesObjectExtensionFromMimeNotCallerFilename() throws Exception {
+        when(directwerkConfig.isStorageEnabled()).thenReturn(true);
+        when(directwerkConfig.storage()).thenReturn(storageProps());
+        when(tenantRepository.requireById(10L)).thenReturn(tenant);
+        when(mediaAssetRepository.saveAndFlush(any(MediaAsset.class))).thenAnswer(invocation -> {
+            MediaAsset asset = invocation.getArgument(0);
+            asset.setId(1001L);
+            return asset;
+        });
+        when(presignedPut.url()).thenReturn(URI.create("https://s3.example/put").toURL());
+        when(s3Presigner.presignPutObject(any(PutObjectPresignRequest.class))).thenReturn(presignedPut);
+
+        // Regression: an active caller extension must not survive despite an image/* Content-Type.
+        UploadApi.UploadUrlResult result = uploadService.createUploadUrl(new UploadApi.CreateUploadUrlCommand(
+                "evil.html",
+                "image/png",
+                1024,
+                AssetType.IMAGE,
+                AssetVisibility.PUBLIC,
+                AssetScope.TENANT_PUBLIC,
+                null,
+                null,
+                null
+        ));
+
+        assertThat(result.stagingKey()).matches("alpha-show-a/staging/.+/evil\\.png");
+        ArgumentCaptor<MediaAsset> assetCaptor = ArgumentCaptor.forClass(MediaAsset.class);
+        verify(mediaAssetRepository).saveAndFlush(assetCaptor.capture());
+        assertThat(assetCaptor.getValue().getOriginalFilename()).isEqualTo("evil.png");
+    }
+
+    @Test
     void confirmUploadPromotesStagingObject() {
         when(directwerkConfig.isStorageEnabled()).thenReturn(true);
         when(directwerkConfig.storage()).thenReturn(storageProps());

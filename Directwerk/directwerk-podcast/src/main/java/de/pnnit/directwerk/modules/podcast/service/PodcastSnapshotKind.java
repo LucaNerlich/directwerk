@@ -9,6 +9,7 @@ import de.pnnit.directwerk.modules.digital.service.FeedSnapshotOrigin;
 import de.pnnit.directwerk.modules.digital.storage.FeedSnapshotStateStore;
 import de.pnnit.directwerk.modules.podcast.FeedBuilderModule;
 import de.pnnit.directwerk.modules.podcast.PodcastRssModule;
+import de.pnnit.directwerk.modules.podcast.entity.SeriesStatus;
 import de.pnnit.directwerk.modules.podcast.feed.SubscriberFeedRepository;
 import de.pnnit.directwerk.modules.podcast.repository.PodcastSeriesRepository;
 import java.net.URI;
@@ -65,7 +66,11 @@ class PodcastSnapshotKind implements FeedSnapshotKind {
 
     @Override
     public List<PublicFeed> collectionFeeds(Tenant tenant) {
-        return podcastSeriesRepository.findByTenantIdOrderByTitleAscIdAsc(tenant.getId()).stream()
+        // Only published series get a public snapshot: draft/archived series metadata
+        // (title, description, cover art) must never be exposed on the public feed URL.
+        return podcastSeriesRepository
+                .findByTenantIdAndStatusOrderByTitleAscIdAsc(tenant.getId(), SeriesStatus.PUBLISHED)
+                .stream()
                 .map(series -> new PublicFeed(
                         series.getId(),
                         origin -> rssFeedService.buildPublicFeed(

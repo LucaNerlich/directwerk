@@ -16,6 +16,7 @@ import de.pnnit.directwerk.modules.subscription.entity.SubscriptionSource;
 import de.pnnit.directwerk.modules.subscription.entity.SubscriptionStatus;
 import de.pnnit.directwerk.modules.subscription.repository.SubscriptionRepository;
 import de.pnnit.directwerk.modules.subscription.service.SubscriptionProductService;
+import java.time.Instant;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -56,9 +57,11 @@ class StripeSubscriptionSyncServiceTest {
         SubscriptionProduct product = product();
         when(subscriptionProductService.requireProduct(TENANT_ID, PRODUCT_ID)).thenReturn(product);
         Subscription manual = subscription(SubscriptionSource.MANUAL, SubscriptionStatus.ACTIVE);
-        when(subscriptionRepository.findByTenantIdAndExternalSubscriptionId(TENANT_ID, "sub_late")).thenReturn(Optional.empty());
-        when(subscriptionRepository.findByTenantIdAndUserIdAndProductId(TENANT_ID, USER_ID, PRODUCT_ID))
+        when(subscriptionRepository.findByTenantIdAndExternalSubscriptionIdForUpdate(TENANT_ID, "sub_late"))
+                .thenReturn(Optional.empty());
+        when(subscriptionRepository.findByTenantIdAndUserIdAndProductIdForUpdate(TENANT_ID, USER_ID, PRODUCT_ID))
                 .thenReturn(Optional.of(manual));
+        when(subscriptionRepository.save(manual)).thenReturn(manual);
 
         Subscription result = service.upsertStripeSubscription(
                 TENANT_ID,
@@ -71,10 +74,14 @@ class StripeSubscriptionSyncServiceTest {
                 null
         );
 
+        // The manual grant is preserved, but the Stripe relationship is recorded so later
+        // webhooks can find the row.
         assertThat(result).isSameAs(manual);
         assertThat(result.getSource()).isEqualTo(SubscriptionSource.MANUAL);
         assertThat(result.getStatus()).isEqualTo(SubscriptionStatus.ACTIVE);
-        verify(subscriptionRepository, never()).save(any());
+        assertThat(result.getExternalSubscriptionId()).isEqualTo("sub_late");
+        assertThat(result.getStripeCustomerId()).isEqualTo("cus_1");
+        verify(subscriptionRepository).save(manual);
         verify(eventPublisher, never()).publishEvent(any(TenantEntitlementsChangedEvent.class));
     }
 
@@ -85,8 +92,9 @@ class StripeSubscriptionSyncServiceTest {
         SubscriptionProduct product = product();
         when(subscriptionProductService.requireProduct(TENANT_ID, PRODUCT_ID)).thenReturn(product);
         Subscription revoked = subscription(SubscriptionSource.MANUAL, SubscriptionStatus.CANCELED);
-        when(subscriptionRepository.findByTenantIdAndExternalSubscriptionId(TENANT_ID, "sub_new")).thenReturn(Optional.empty());
-        when(subscriptionRepository.findByTenantIdAndUserIdAndProductId(TENANT_ID, USER_ID, PRODUCT_ID))
+        when(subscriptionRepository.findByTenantIdAndExternalSubscriptionIdForUpdate(TENANT_ID, "sub_new"))
+                .thenReturn(Optional.empty());
+        when(subscriptionRepository.findByTenantIdAndUserIdAndProductIdForUpdate(TENANT_ID, USER_ID, PRODUCT_ID))
                 .thenReturn(Optional.of(revoked));
         when(subscriptionRepository.save(revoked)).thenReturn(revoked);
 
@@ -104,6 +112,55 @@ class StripeSubscriptionSyncServiceTest {
         assertThat(result.getSource()).isEqualTo(SubscriptionSource.STRIPE);
         assertThat(result.getStatus()).isEqualTo(SubscriptionStatus.ACTIVE);
         assertThat(result.getExternalSubscriptionId()).isEqualTo("sub_new");
+    }
+
+    @Test
+    void markInvoicePaidReactivatesAndRefreshesPeriodEnd() {
+        Subscription overdue = subscription(SubscriptionSource.STRIPE, SubscriptionStatus.PAST_DUE);
+        when(subscriptionRepository.findByTenantIdAndExternalSubscriptionIdForUpdate(TENANT_ID, "sub_9"))
+                .thenReturn(Optional.of(overdue));
+        when(subscriptionRepository.save(overdue)).thenReturn(overdue);
+        Instant endsAt = Instant.parse("2026-10-01T00:00:00Z");
+
+        service.markInvoicePaid(TENANT_ID, "sub_9", endsAt);
+
+        assertThat(overdue.getStatus()).isEqualTo(SubscriptionStatus.ACTIVE);
+        assertThat(overdue.getEndsAt()).isEqualTo(endsAt);
+    }
+
+    @Test
+    void markInvoicePaidKeepsPeriodEndWhenInvoiceHasNone() {
+        Subscription overdue = subscription(SubscriptionSource.STRIPE, SubscriptionStatus.INCOMPLETE);
+        Instant existingEnd = Instant.parse("2026-09-01T00:00:00Z");
+        overdue.setEndsAt(existingEnd);
+        when(subscriptionRepository.findByTenantIdAndExternalSubscriptionIdForUpdate(TENANT_ID, "sub_9"))
+                .thenReturn(Optional.of(overdue));
+        when(subscriptionRepository.save(overdue)).thenReturn(overdue);
+
+        service.markInvoicePaid(TENANT_ID, "sub_9", null);
+
+        assertThat(overdue.getStatus()).isEqualTo(SubscriptionStatus.ACTIVE);
+        assertThat(overdue.getEndsAt()).isEqualTo(existingEnd);
+    }
+
+    @Test
+    void externalIdSyncDoesNotChangeManualEntitlement() {
+        Subscription manual = subscription(SubscriptionSource.MANUAL, SubscriptionStatus.ACTIVE);
+        Instant existingEnd = Instant.parse("2027-01-01T00:00:00Z");
+        manual.setEndsAt(existingEnd);
+        when(subscriptionRepository.findByTenantIdAndExternalSubscriptionIdForUpdate(TENANT_ID, "sub_late"))
+                .thenReturn(Optional.of(manual));
+
+        service.syncStripeSubscriptionByExternalId(
+                TENANT_ID,
+                "sub_late",
+                SubscriptionStatus.CANCELED,
+                Instant.parse("2026-10-01T00:00:00Z")
+        );
+
+        assertThat(manual.getStatus()).isEqualTo(SubscriptionStatus.ACTIVE);
+        assertThat(manual.getEndsAt()).isEqualTo(existingEnd);
+        verify(subscriptionRepository, never()).save(manual);
     }
 
     private static User user() {

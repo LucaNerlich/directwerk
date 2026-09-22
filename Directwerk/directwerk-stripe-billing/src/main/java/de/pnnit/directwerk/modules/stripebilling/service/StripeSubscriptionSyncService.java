@@ -57,17 +57,24 @@ public class StripeSubscriptionSyncService {
         Subscription subscription = null;
         if (externalSubscriptionId != null && !externalSubscriptionId.isBlank()) {
             subscription = subscriptionRepository
-                    .findByTenantIdAndExternalSubscriptionId(tenantId, externalSubscriptionId)
+                    .findByTenantIdAndExternalSubscriptionIdForUpdate(tenantId, externalSubscriptionId)
                     .orElse(null);
         }
         if (subscription == null) {
             Subscription byUserAndProduct = subscriptionRepository
-                    .findByTenantIdAndUserIdAndProductId(tenantId, userId, productId)
+                    .findByTenantIdAndUserIdAndProductIdForUpdate(tenantId, userId, productId)
                     .orElse(null);
             if (byUserAndProduct != null
                     && byUserAndProduct.getSource() == SubscriptionSource.MANUAL
                     && byUserAndProduct.getStatus() == SubscriptionStatus.ACTIVE) {
-                return byUserAndProduct;
+                // Keep the manual grant, but record the Stripe relationship so later renewal /
+                // cancellation / refund webhooks can find this row instead of no-opping.
+                return recordExternalBillingOnManualGrant(
+                        byUserAndProduct,
+                        externalSubscriptionId,
+                        stripeCustomerId,
+                        externalPaymentId
+                );
             }
             subscription = byUserAndProduct != null
                     ? byUserAndProduct
@@ -127,8 +134,11 @@ public class StripeSubscriptionSyncService {
             SubscriptionStatus status,
             Instant endsAt
     ) {
-        subscriptionRepository.findByTenantIdAndExternalSubscriptionId(tenantId, externalSubscriptionId)
+        subscriptionRepository.findByTenantIdAndExternalSubscriptionIdForUpdate(tenantId, externalSubscriptionId)
                 .ifPresent(subscription -> {
+                    if (subscription.getSource() == SubscriptionSource.MANUAL) {
+                        return;
+                    }
                     subscription.setStatus(status);
                     if (endsAt != null) {
                         subscription.setEndsAt(endsAt);
@@ -139,11 +149,11 @@ public class StripeSubscriptionSyncService {
     }
 
     @Transactional
-    public void markInvoicePaid(Long tenantId, String externalSubscriptionId) {
+    public void markInvoicePaid(Long tenantId, String externalSubscriptionId, Instant endsAt) {
         if (externalSubscriptionId == null || externalSubscriptionId.isBlank()) {
             return;
         }
-        subscriptionRepository.findByTenantIdAndExternalSubscriptionId(tenantId, externalSubscriptionId)
+        subscriptionRepository.findByTenantIdAndExternalSubscriptionIdForUpdate(tenantId, externalSubscriptionId)
                 .ifPresent(subscription -> {
                     if (subscription.getSource() != SubscriptionSource.STRIPE) {
                         return;
@@ -153,9 +163,37 @@ public class StripeSubscriptionSyncService {
                         return;
                     }
                     subscription.setStatus(SubscriptionStatus.ACTIVE);
+                    if (endsAt != null) {
+                        subscription.setEndsAt(endsAt);
+                    }
                     subscriptionRepository.save(subscription);
                     eventPublisher.publishEvent(new TenantEntitlementsChangedEvent(tenantId));
                 });
+    }
+
+    private Subscription recordExternalBillingOnManualGrant(
+            Subscription manual,
+            String externalSubscriptionId,
+            String stripeCustomerId,
+            String externalPaymentId
+    ) {
+        boolean changed = false;
+        if (externalSubscriptionId != null && !externalSubscriptionId.isBlank()
+                && !externalSubscriptionId.equals(manual.getExternalSubscriptionId())) {
+            manual.setExternalSubscriptionId(externalSubscriptionId);
+            changed = true;
+        }
+        if (stripeCustomerId != null && !stripeCustomerId.isBlank()
+                && !stripeCustomerId.equals(manual.getStripeCustomerId())) {
+            manual.setStripeCustomerId(stripeCustomerId);
+            changed = true;
+        }
+        if (externalPaymentId != null && !externalPaymentId.isBlank()
+                && !externalPaymentId.equals(manual.getExternalPaymentId())) {
+            manual.setExternalPaymentId(externalPaymentId);
+            changed = true;
+        }
+        return changed ? subscriptionRepository.save(manual) : manual;
     }
 
     private Subscription newSubscription(Long tenantId, User user, SubscriptionProduct product) {

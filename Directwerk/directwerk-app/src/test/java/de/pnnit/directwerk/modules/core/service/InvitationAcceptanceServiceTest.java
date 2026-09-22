@@ -144,6 +144,21 @@ class InvitationAcceptanceServiceTest {
     }
 
     @Test
+    void acceptRejectsEmailVerificationToken() {
+        InvitationToken token = token(
+                pendingUser(), null, InvitationType.EMAIL_VERIFICATION, NOW.plusSeconds(60), null);
+        when(invitationTokenRepository.findByTokenHash(InvitationTokenService.hashToken("verify-token")))
+                .thenReturn(Optional.of(token));
+
+        assertThatThrownBy(() -> service.accept("verify-token", "secure-password", "Name"))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Invalid, expired, or already used invitation token");
+
+        verify(userRepository, never()).save(any());
+        verify(invitationTokenRepository, never()).save(any());
+    }
+
+    @Test
     void acceptJoinOnlyRejectsNonActiveUser() {
         User user = pendingUser();
         TenantMembership membership = new TenantMembership();

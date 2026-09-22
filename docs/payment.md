@@ -208,7 +208,8 @@ Rules:
 
 | Event family | Effect |
 |--------------|--------|
-| `checkout.session.completed` (subscription) | Upsert ACTIVE sub; set external ids; ensure default private feed |
+| `checkout.session.completed` (subscription) | Upsert ACTIVE sub only when `payment_status` is paid/no_payment_required; otherwise INCOMPLETE until settled; set external ids; ensure default private feed |
+| `checkout.session.async_payment_succeeded` | Same as above once a delayed payment settles |
 | `customer.subscription.updated` | Sync status / period end / product price changes |
 | `customer.subscription.deleted` | CANCELED (policy: immediate vs end-of-period already reflected by Stripe) |
 | `invoice.paid` | Renew period end; ensure ACTIVE |

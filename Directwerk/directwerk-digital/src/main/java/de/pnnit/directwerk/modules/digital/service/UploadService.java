@@ -106,11 +106,12 @@ public class UploadService implements UploadApi {
                 command.sizeBytes(),
                 MediaUploadRules.limitOverride(tenant, command.assetType()));
         String filename = MediaUploadRules.sanitizeFilename(command.filename());
-        if ("bin".equals(MediaUploadRules.fileExtension(filename))) {
-            String ext = MediaUploadRules.extensionForMime(command.mimeType());
-            if (ext != null) {
-                filename = MediaUploadRules.sanitizeFilenameStem(filename) + "." + ext;
-            }
+        // Derive the stored object extension from the validated, normalized MIME type — never
+        // from the caller-supplied filename, which could otherwise smuggle an active extension
+        // (e.g. .html/.svg) onto the public CDN origin despite an image/* Content-Type.
+        String extension = MediaUploadRules.extensionForMime(command.mimeType());
+        if (extension != null) {
+            filename = MediaUploadRules.sanitizeFilenameStem(filename) + "." + extension;
         }
 
         AssetVisibility intended = command.intendedVisibility() == null

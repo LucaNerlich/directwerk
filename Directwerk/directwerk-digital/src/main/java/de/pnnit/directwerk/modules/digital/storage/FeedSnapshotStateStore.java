@@ -70,6 +70,20 @@ public class FeedSnapshotStateStore {
         );
     }
 
+    public List<Long> writtenSubjectIds(Long tenantId, String kind) {
+        requireTenantId(tenantId);
+        return jdbcTemplate.query(
+                """
+                SELECT subject_id FROM rss_snapshot_presence
+                WHERE tenant_id = ? AND kind = ?
+                ORDER BY subject_id
+                """,
+                (rs, rowNum) -> rs.getLong("subject_id"),
+                tenantId,
+                kind
+        );
+    }
+
     public void recordStalePrefix(Long tenantId, String slug) {
         requireTenantId(tenantId);
         jdbcTemplate.update(

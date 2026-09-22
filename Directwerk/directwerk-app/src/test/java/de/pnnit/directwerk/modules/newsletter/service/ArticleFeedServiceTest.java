@@ -32,6 +32,8 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.SimpleTransactionStatus;
 
 @ExtendWith(MockitoExtension.class)
 @org.mockito.junit.jupiter.MockitoSettings(strictness = org.mockito.quality.Strictness.LENIENT)
@@ -39,6 +41,8 @@ class ArticleFeedServiceTest {
 
     @BeforeEach
     void stubTokenGeneration() {
+        org.mockito.Mockito.lenient().when(transactionManager.getTransaction(any()))
+                .thenAnswer(invocation -> new SimpleTransactionStatus());
         org.mockito.Mockito.lenient().doReturn("tok-default")
                 .when(feedTokenGenerator).generate();
         org.mockito.Mockito.lenient().doAnswer(invocation -> "enc:" + invocation.getArgument(0))
@@ -76,6 +80,9 @@ class ArticleFeedServiceTest {
 
     @Mock
     private de.pnnit.directwerk.modules.core.service.ModuleGateService moduleGateService;
+
+    @Mock
+    private PlatformTransactionManager transactionManager;
 
     @InjectMocks
     private ArticleFeedService articleFeedService;
@@ -153,7 +160,7 @@ class ArticleFeedServiceTest {
                 .thenReturn(Optional.of(winner));
         when(tenantRepository.getReferenceById(10L)).thenReturn(winner.getTenant());
         when(userRepository.getReferenceById(99L)).thenReturn(winner.getUser());
-        when(articleFeedRepository.save(any(ArticleFeed.class))).thenThrow(
+        when(articleFeedRepository.saveAndFlush(any(ArticleFeed.class))).thenThrow(
                 new DataIntegrityViolationException(
                         "duplicate default feed",
                         new ConstraintViolationException(
@@ -168,6 +175,7 @@ class ArticleFeedServiceTest {
 
         assertThat(result).isSameAs(winner);
         verify(articleRssFeedRefreshScheduler, never()).requestRefreshAfterCommit(any());
+        verify(transactionManager, org.mockito.Mockito.times(2)).getTransaction(any());
     }
 
     @Test

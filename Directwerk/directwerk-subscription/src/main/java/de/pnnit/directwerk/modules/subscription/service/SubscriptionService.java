@@ -67,12 +67,21 @@ public class SubscriptionService {
         }
 
         Subscription existing = subscriptionRepository
-                .findByTenantIdAndUserIdAndProductId(tenantId, user.getId(), productId)
+                .findByTenantIdAndUserIdAndProductIdForUpdate(tenantId, user.getId(), productId)
                 .orElse(null);
-        if (existing != null && existing.getSource() == SubscriptionSource.STRIPE
-                && existing.getStatus() == SubscriptionStatus.ACTIVE) {
-            throw new IllegalArgumentException(
-                    "User already has an active Stripe subscription for this product; revoke it before granting manual access");
+        if (existing != null && existing.getSource() == SubscriptionSource.STRIPE) {
+            if (existing.getStatus() == SubscriptionStatus.ACTIVE) {
+                throw new IllegalArgumentException(
+                        "User already has an active Stripe subscription for this product; revoke it before granting manual access");
+            }
+            if (hasStripeIdentifiers(existing)
+                    && existing.getStatus() != SubscriptionStatus.CANCELED) {
+                // A PAST_DUE/INCOMPLETE Stripe subscription may still be live; converting the
+                // row to MANUAL and clearing its ids would orphan it, so its renewal /
+                // cancellation webhooks could no longer match the row. Refuse instead.
+                throw new IllegalArgumentException(
+                        "User has a Stripe billing relationship for this product; cancel it before granting manual access");
+            }
         }
         if (existing != null) {
             existing.setExternalSubscriptionId(null);
@@ -115,6 +124,15 @@ public class SubscriptionService {
         eventPublisher.publishEvent(new TenantEntitlementsChangedEvent(tenantId));
         return subscriptionRepository.findDetailedByIdAndTenantId(subscriptionId, tenantId)
                 .orElse(subscription);
+    }
+
+    private static boolean hasStripeIdentifiers(Subscription subscription) {
+        return hasText(subscription.getExternalSubscriptionId())
+                || hasText(subscription.getExternalPaymentId());
+    }
+
+    private static boolean hasText(String value) {
+        return value != null && !value.isBlank();
     }
 
     private String normalizeEmail(String email) {

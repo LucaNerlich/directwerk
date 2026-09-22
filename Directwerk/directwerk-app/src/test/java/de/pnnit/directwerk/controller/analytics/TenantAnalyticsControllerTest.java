@@ -1,6 +1,7 @@
 package de.pnnit.directwerk.controller.analytics;
 
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -8,7 +9,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import de.pnnit.directwerk.analytics.AnalyticsQueryService;
 import de.pnnit.directwerk.analytics.AnalyticsRange;
+import de.pnnit.directwerk.modules.core.AnalyticsModule;
+import de.pnnit.directwerk.modules.core.service.ModuleGateService;
 import de.pnnit.directwerk.multitenancy.TenantContext;
+import java.util.List;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -31,6 +35,9 @@ class TenantAnalyticsControllerTest {
 
     @MockitoBean
     private AnalyticsQueryService analyticsQueryService;
+
+    @MockitoBean
+    private ModuleGateService moduleGateService;
 
     @BeforeEach
     void setUpTenantContext() {
@@ -60,6 +67,8 @@ class TenantAnalyticsControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.range").value("7d"))
                 .andExpect(jsonPath("$.data.stats.pageviews").value(5));
+
+        verify(moduleGateService).requireModules(List.of(AnalyticsModule.KEY));
     }
 
     @Test

@@ -63,16 +63,20 @@ public class TransactionalEmailService {
             throw new EmailDeliveryException(
                     "Email sender is not ready (provider=" + emailSender.providerId() + "); template=" + template.name());
         }
-        if (!emailDeliveryGuard.tryClaimDelivery(jobId)) {
+        Optional<EmailDeliveryGuard.DeliveryClaim> claimed = emailDeliveryGuard.tryClaimDelivery(jobId);
+        if (claimed.isEmpty()) {
             log.info("Skipping duplicate email delivery for job={} template={}", jobId, template.name());
             return;
         }
         Map<String, String> renderVariables = new HashMap<>(variables == null ? Map.of() : variables);
-        Map<String, String> headers = Map.of();
+        Map<String, String> headers = new HashMap<>();
+        // Stable message identity lets SMTP relays and HTTP ESPs deduplicate a retry that
+        // overlaps a stale sender after ownership has been taken over.
+        headers.put("Message-ID", "<" + jobId + "@directwerk.local>");
         if (template == EmailTemplate.CONTACT_FORM) {
             String replyTo = renderVariables.get("email");
             if (org.springframework.util.StringUtils.hasText(replyTo)) {
-                headers = Map.of("Reply-To", replyTo.trim());
+                headers.put("Reply-To", replyTo.trim());
             }
         }
         try {
@@ -91,15 +95,22 @@ public class TransactionalEmailService {
                     template.name(),
                     headers
             );
-            if (mailgun.isPresent()) {
-                mailgunHttpEmailSender.send(mailgun.get(), outbound);
-                log.info("Sent email template={} job={} provider=mailgun-tenant", template.name(), jobId);
-            } else {
-                emailSender.send(outbound);
-                log.info("Sent email template={} job={} provider={}", template.name(), jobId, emailSender.providerId());
+            boolean sent = emailDeliveryGuard.finalizeClaim(claimed.get(), () -> {
+                if (mailgun.isPresent()) {
+                    mailgunHttpEmailSender.send(mailgun.get(), outbound);
+                    log.info("Sent email template={} job={} provider=mailgun-tenant", template.name(), jobId);
+                } else {
+                    emailSender.send(outbound);
+                    log.info("Sent email template={} job={} provider={}",
+                            template.name(), jobId, emailSender.providerId());
+                }
+            });
+            if (!sent) {
+                log.info("Skipping email delivery after claim ownership changed for job={} template={}",
+                        jobId, template.name());
             }
         } catch (RuntimeException ex) {
-            emailDeliveryGuard.releaseClaim(jobId);
+            emailDeliveryGuard.releaseClaim(claimed.get());
             throw ex;
         }
     }

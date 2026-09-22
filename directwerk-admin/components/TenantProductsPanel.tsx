@@ -28,6 +28,7 @@ import type {
     ProductAccessRule,
     SubscriptionGrant,
     SubscriptionProduct,
+    TenantDetail,
 } from '@directwerk/api/types'
 import {
     clearTenantTokens,
@@ -38,17 +39,30 @@ import {
 
 interface TenantProductsPanelProps {
     sessionKey: number
+    /** Tenant currently being viewed; used to detect a mismatched session. */
+    tenant: TenantDetail
+}
+
+/**
+ * Normalizes a tenant host for comparison (case-insensitive, no port).
+ */
+function normalizeHost(host: string): string {
+    return host.trim().toLowerCase().split(':')[0] ?? ''
 }
 
 /**
  * Manages tenant subscription products, access rules, and manual subscription grants.
  *
  * @param sessionKey - Identifier for the current tenant session.
+ * @param tenant - The tenant whose page is being viewed. Mutations are only
+ *   enabled when the active tenant session host belongs to this tenant.
  */
 export default function TenantProductsPanel({
     sessionKey,
+    tenant,
 }: TenantProductsPanelProps) {
     const [hasSession, setHasSession] = useState(false)
+    const [sessionHost, setSessionHost] = useState<string | null>(null)
     const [products, setProducts] = useState<SubscriptionProduct[]>([])
     const [selectedProductId, setSelectedProductId] = useState<number | null>(
         null
@@ -115,6 +129,7 @@ export default function TenantProductsPanel({
             latestRequestId.current += 1
             productsSession.current = null
             setHasSession(false)
+            setSessionHost(null)
             setProducts([])
             setGrants([])
             setRules([])
@@ -131,6 +146,7 @@ export default function TenantProductsPanel({
         latestRequestId.current = requestId
 
         setHasSession(true)
+        setSessionHost(host)
         setIsLoading(true)
         setError(null)
         // Drop previous-tenant data synchronously so it never flashes while
@@ -193,12 +209,14 @@ export default function TenantProductsPanel({
         loadProducts()
     }, [loadProducts, sessionKey])
 
-    // Clear the panel when another surface ends the tenant session, so the
-    // products table never lingers after the credentials are gone.
+    // Keep the "which tenant are we acting on" indicator in sync when another
+    // surface changes or ends the tenant session.
     useEffect(
         () =>
             subscribeToTenantTokenStore(() => {
-                if (getTenantSessionHostSafe() === null) {
+                const host = getTenantSessionHostSafe()
+                setSessionHost(host)
+                if (host === null) {
                     latestRequestId.current += 1
                     productsSession.current = null
                     setHasSession(false)
@@ -418,6 +436,17 @@ export default function TenantProductsPanel({
         }
     }
 
+    const viewedTenantHosts = new Set(
+        [tenant.primaryDomain, ...tenant.domains.map((domain) => domain.host)]
+            .filter(
+                (host): host is string =>
+                    typeof host === 'string' && host.length > 0
+            )
+            .map(normalizeHost)
+    )
+    const sessionBelongsToTenant =
+        sessionHost !== null && viewedTenantHosts.has(normalizeHost(sessionHost))
+
     if (!hasSession) {
         return (
             <Card aria-labelledby="tenant-products-heading" role="region">
@@ -430,6 +459,43 @@ export default function TenantProductsPanel({
                     </CardDescription>
                 </CardHeader>
                 <CardContent><EmptyState description="Sign in to a tenant session above to manage products." title="Tenant session required" /></CardContent>
+            </Card>
+        )
+    }
+
+    // The platform keeps one global tenant session, so viewing tenant B while
+    // a tenant-A session is active would otherwise create/deactivate products
+    // and grants on A. Block the whole panel until the session host belongs to
+    // the tenant being viewed.
+    if (!sessionBelongsToTenant) {
+        return (
+            <Card aria-labelledby="tenant-products-heading" role="region">
+                <CardHeader>
+                    <CardTitle id="tenant-products-heading">Products & grants</CardTitle>
+                    <CardDescription>
+                        {tenant.name} (tenant {tenant.id})
+                    </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                    <Alert variant="destructive">
+                        <AlertDescription>
+                            Active tenant session is{' '}
+                            <strong>{sessionHost}</strong>, which does not belong
+                            to <strong>{tenant.name}</strong>. Products and
+                            grants would be changed on the session&apos;s tenant
+                            instead of the one you are viewing. Sign in above
+                            with a host for this tenant before managing
+                            products.
+                        </AlertDescription>
+                    </Alert>
+                    {viewedTenantHosts.size > 0 ? (
+                        <p className="text-sm text-muted-foreground">
+                            Host{viewedTenantHosts.size === 1 ? '' : 's'} for
+                            this tenant:{' '}
+                            {[...viewedTenantHosts].join(', ')}
+                        </p>
+                    ) : null}
+                </CardContent>
             </Card>
         )
     }

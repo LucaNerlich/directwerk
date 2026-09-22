@@ -4,7 +4,11 @@ import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest'
 
 import TenantProductsPanel from '@/components/TenantProductsPanel'
 import {tenantTokenStore} from '@/lib/auth/tenantTokenStore'
-import type {ProductAccessRule, SubscriptionProduct} from '@directwerk/api/types'
+import type {
+    ProductAccessRule,
+    SubscriptionProduct,
+    TenantDetail,
+} from '@directwerk/api/types'
 
 const listTenantProducts = vi.fn()
 const getTenantData = vi.fn()
@@ -30,6 +34,19 @@ function packageProduct(overrides: Partial<SubscriptionProduct> = {}): Subscript
         active: true,
         ...overrides,
     } as SubscriptionProduct
+}
+
+function viewedTenant(overrides: Partial<TenantDetail> = {}): TenantDetail {
+    return {
+        id: 7,
+        slug: 'alpha-a',
+        name: 'Alpha A',
+        status: 'ACTIVE',
+        createdAt: '2026-01-01T00:00:00.000Z',
+        primaryDomain: 'alpha-a.localhost',
+        domains: [{host: 'alpha-a.localhost', primary: true, verified: true}],
+        ...overrides,
+    }
 }
 
 function deferred<T>(): {promise: Promise<T>; resolve: (value: T) => void} {
@@ -68,7 +85,7 @@ describe('TenantProductsPanel', () => {
         tenantTokenStore.clearTokens()
         listTenantProducts.mockClear()
 
-        render(<TenantProductsPanel sessionKey={0} />)
+        render(<TenantProductsPanel sessionKey={0} tenant={viewedTenant()} />)
 
         expect(
             screen.getByText('Tenant session required')
@@ -78,7 +95,7 @@ describe('TenantProductsPanel', () => {
 
     it('rejects saving scoped rules without a valid scope ID', async () => {
         const user = userEvent.setup()
-        render(<TenantProductsPanel sessionKey={0} />)
+        render(<TenantProductsPanel sessionKey={0} tenant={viewedTenant()} />)
 
         await user.click(await screen.findByRole('button', {name: 'Edit rules'}))
         expect(await screen.findByText('No rules yet.')).toBeInTheDocument()
@@ -110,7 +127,7 @@ describe('TenantProductsPanel', () => {
         listTenantProducts.mockResolvedValue([
             packageProduct({id: 2, title: 'Legacy', slug: 'legacy', active: false}),
         ])
-        render(<TenantProductsPanel sessionKey={0} />)
+        render(<TenantProductsPanel sessionKey={0} tenant={viewedTenant()} />)
 
         await waitFor(() =>
             expect(screen.getByText('Legacy')).toBeInTheDocument()
@@ -126,7 +143,7 @@ describe('TenantProductsPanel', () => {
     it('retries loading products after a failure', async () => {
         listTenantProducts.mockRejectedValueOnce(new Error('unavailable'))
         const user = userEvent.setup()
-        render(<TenantProductsPanel sessionKey={0} />)
+        render(<TenantProductsPanel sessionKey={0} tenant={viewedTenant()} />)
 
         expect(
             await screen.findByText('Could not load products (is SUBSCRIPTION enabled?).')
@@ -153,7 +170,7 @@ describe('TenantProductsPanel', () => {
             }
             return packageProduct({id: 2, slug: 'plus', title: 'Plus'})
         })
-        render(<TenantProductsPanel sessionKey={0} />)
+        render(<TenantProductsPanel sessionKey={0} tenant={viewedTenant()} />)
 
         await screen.findByRole('button', {name: 'Grant'})
         await user.type(screen.getByLabelText('Email'), 'reader@example.com')
@@ -172,19 +189,43 @@ describe('TenantProductsPanel', () => {
         const user = userEvent.setup()
         const pendingRules = deferred<ProductAccessRule[]>()
         getTenantData.mockReturnValueOnce(pendingRules.promise)
-        const {rerender} = render(<TenantProductsPanel sessionKey={0} />)
+        const twoHostTenant = viewedTenant({
+            domains: [
+                {host: 'alpha-a.localhost', primary: true, verified: true},
+                {host: 'tenant-b.localhost', primary: false, verified: true},
+            ],
+        })
+        const {rerender} = render(
+            <TenantProductsPanel sessionKey={0} tenant={twoHostTenant} />
+        )
 
         await user.click(await screen.findByRole('button', {name: 'Edit rules'}))
         tenantTokenStore.setTokens(
             {access_token: 'tenant-b-access', expires_in: 900},
             'tenant-b.localhost',
         )
-        rerender(<TenantProductsPanel sessionKey={1} />)
+        rerender(<TenantProductsPanel sessionKey={1} tenant={twoHostTenant} />)
         pendingRules.resolve([
             {id: 77, scopeType: 'ALL_PODCASTS', scopeId: null, effect: 'ALLOW'},
         ] as ProductAccessRule[])
 
         await waitFor(() => expect(listTenantProducts).toHaveBeenCalledTimes(2))
         expect(screen.queryByText('ALL_PODCASTS')).not.toBeInTheDocument()
+    })
+
+    it('blocks the panel when the active session belongs to another tenant', async () => {
+        const viewed = viewedTenant({
+            name: 'Beta B',
+            primaryDomain: 'beta-b.localhost',
+            domains: [{host: 'beta-b.localhost', primary: true, verified: true}],
+        })
+
+        render(<TenantProductsPanel sessionKey={0} tenant={viewed} />)
+
+        expect(
+            await screen.findByText(/does not belong to/)
+        ).toBeInTheDocument()
+        expect(screen.queryByRole('button', {name: 'Create'})).not.toBeInTheDocument()
+        expect(screen.queryByRole('button', {name: 'Grant'})).not.toBeInTheDocument()
     })
 })

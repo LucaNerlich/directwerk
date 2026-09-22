@@ -18,6 +18,7 @@ import {
     selectTenantHost,
 } from '@/lib/api/authApi'
 import WorkspaceChooser from '@/components/studio/WorkspaceChooser'
+import {clearAllCachedTenantData} from '@directwerk/api/client/useCachedTenantQuery'
 import {parseLoginInput} from '@directwerk/api/validation/input'
 import type {StudioWorkspace} from '@directwerk/api/types'
 
@@ -63,6 +64,7 @@ async function completeLogin(
     }
 
     const tokens = await login(workspace.host, input)
+    clearAllCachedTenantData()
     setTokens(tokens)
 }
 

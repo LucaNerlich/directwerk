@@ -17,6 +17,7 @@ import de.pnnit.directwerk.modules.core.entity.TenantStatus;
 import de.pnnit.directwerk.modules.core.repository.TenantBrandingRepository;
 import de.pnnit.directwerk.modules.core.repository.TenantDomainRepository;
 import de.pnnit.directwerk.modules.core.repository.TenantRepository;
+import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -106,6 +107,45 @@ class TenantManagementServiceTest {
 
         verify(tenantDomainRepository).save(any(TenantDomain.class));
         verify(cacheEviction).evictHostAfterCommit("studio.example.com");
+    }
+
+    @Test
+    void createTenantActivatesCoreModulesWithoutPreset() {
+        stubTenantCreation();
+        when(moduleManagementService.listAllModules()).thenReturn(List.of(
+                new ModuleManagementService.ModuleView("DIGITAL_CONTENT", "Digital Content", null, List.of(), true),
+                new ModuleManagementService.ModuleView("PODCAST", "Podcast", null, List.of("DIGITAL_CONTENT"), false)
+        ));
+
+        service.createTenant("New Tenant", "new-tenant", null, null);
+
+        verify(moduleManagementService).activateModule(42L, "DIGITAL_CONTENT");
+        verify(moduleManagementService, never()).activateModule(42L, "PODCAST");
+        verify(moduleManagementService, never()).applyPreset(any(), any());
+    }
+
+    @Test
+    void createTenantActivatesCoreModulesWhenPresetIsSupplied() {
+        stubTenantCreation();
+        when(moduleManagementService.listAllModules()).thenReturn(List.of(
+                new ModuleManagementService.ModuleView("DIGITAL_CONTENT", "Digital Content", null, List.of(), true)
+        ));
+
+        service.createTenant("New Tenant", "new-tenant", null, "FREE_PODCAST");
+
+        verify(moduleManagementService).activateModule(42L, "DIGITAL_CONTENT");
+        verify(moduleManagementService).applyPreset(42L, "FREE_PODCAST");
+    }
+
+    private void stubTenantCreation() {
+        when(tenantRepository.findBySlug("new-tenant")).thenReturn(Optional.empty());
+        when(tenantRepository.save(any(Tenant.class))).thenAnswer(invocation -> {
+            Tenant tenant = invocation.getArgument(0);
+            tenant.setId(42L);
+            return tenant;
+        });
+        when(tenantBrandingRepository.save(any(TenantBranding.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
     }
 
     @Test

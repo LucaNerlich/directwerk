@@ -76,6 +76,8 @@ class RemoteAssetIngestServiceTest {
 
     private RemoteAssetIngestService service;
     private TransactionStatus transactionStatus;
+    private final java.util.concurrent.atomic.AtomicReference<MediaAsset> persistedAsset =
+            new java.util.concurrent.atomic.AtomicReference<>();
 
     @BeforeEach
     void setUp() {
@@ -118,13 +120,7 @@ class RemoteAssetIngestServiceTest {
                         new ByteArrayInputStream(body)
                 )
         );
-        when(mediaAssetRepository.saveAndFlush(any(MediaAsset.class))).thenAnswer(invocation -> {
-            MediaAsset asset = invocation.getArgument(0);
-            if (asset.getId() == null) {
-                asset.setId(42L);
-            }
-            return asset;
-        });
+        stubSavedAsset();
         doAnswer(invocation -> {
             RequestBody requestBody = invocation.getArgument(1);
             try (InputStream uploaded = requestBody.contentStreamProvider().newStream()) {
@@ -138,7 +134,7 @@ class RemoteAssetIngestServiceTest {
                 AssetType.AUDIO,
                 AssetVisibility.PRIVATE,
                 null
-        ));
+        )).asset();
 
         assertThat(ingested.getStatus()).isEqualTo(AssetStatus.READY);
         assertThat(ingested.getS3Key()).startsWith("alpha/private/audio/asset-42_");
@@ -170,13 +166,7 @@ class RemoteAssetIngestServiceTest {
                         new ByteArrayInputStream(body)
                 )
         );
-        when(mediaAssetRepository.saveAndFlush(any(MediaAsset.class))).thenAnswer(invocation -> {
-            MediaAsset asset = invocation.getArgument(0);
-            if (asset.getId() == null) {
-                asset.setId(42L);
-            }
-            return asset;
-        });
+        stubSavedAsset();
         doAnswer(invocation -> null).when(s3Client)
                 .putObject(any(PutObjectRequest.class), any(RequestBody.class));
 
@@ -185,7 +175,7 @@ class RemoteAssetIngestServiceTest {
                 AssetType.AUDIO,
                 AssetVisibility.PRIVATE,
                 "download"
-        ));
+        )).asset();
 
         assertThat(ingested.getOriginalFilename()).isEqualTo("download.mp3");
         assertThat(ingested.getMimeType()).isEqualTo("audio/mpeg");
@@ -200,20 +190,14 @@ class RemoteAssetIngestServiceTest {
         when(tenantRepository.requireById(10L)).thenReturn(tenant);
         when(directwerkConfig.isStorageEnabled()).thenReturn(true);
         when(directwerkConfig.storage()).thenReturn(storage());
-        when(mediaAssetRepository.saveAndFlush(any(MediaAsset.class))).thenAnswer(invocation -> {
-            MediaAsset asset = invocation.getArgument(0);
-            if (asset.getId() == null) {
-                asset.setId(42L);
-            }
-            return asset;
-        });
+        stubSavedAsset();
 
         MediaAsset pending = service.startIngestFromUrl(new RemoteAssetIngestApi.IngestCommand(
                 "https://1.1.1.1/download",
                 AssetType.AUDIO,
                 AssetVisibility.PRIVATE,
                 "download"
-        ));
+        )).asset();
 
         assertThat(pending.getOriginalFilename()).isEqualTo("download.mp3");
         assertThat(pending.getS3Key()).matches("alpha/private/audio/asset-\\d+_download\\.mp3$");
@@ -239,13 +223,7 @@ class RemoteAssetIngestServiceTest {
                         new ByteArrayInputStream(body)
                 )
         );
-        when(mediaAssetRepository.saveAndFlush(any(MediaAsset.class))).thenAnswer(invocation -> {
-            MediaAsset asset = invocation.getArgument(0);
-            if (asset.getId() == null) {
-                asset.setId(42L);
-            }
-            return asset;
-        });
+        stubSavedAsset();
         when(s3Client.createMultipartUpload(any(CreateMultipartUploadRequest.class))).thenReturn(
                 CreateMultipartUploadResponse.builder().uploadId("upload-1").build()
         );
@@ -262,7 +240,7 @@ class RemoteAssetIngestServiceTest {
                 AssetType.AUDIO,
                 AssetVisibility.PRIVATE,
                 "episode.mp3"
-        ));
+        )).asset();
 
         assertThat(ingested.getStatus()).isEqualTo(AssetStatus.READY);
         assertThat(ingested.getSizeBytes()).isEqualTo(body.length);
@@ -282,20 +260,14 @@ class RemoteAssetIngestServiceTest {
         when(tenantRepository.requireById(10L)).thenReturn(tenant);
         when(directwerkConfig.isStorageEnabled()).thenReturn(true);
         when(directwerkConfig.storage()).thenReturn(storage());
-        when(mediaAssetRepository.saveAndFlush(any(MediaAsset.class))).thenAnswer(invocation -> {
-            MediaAsset asset = invocation.getArgument(0);
-            if (asset.getId() == null) {
-                asset.setId(42L);
-            }
-            return asset;
-        });
+        stubSavedAsset();
 
         MediaAsset pending = service.startIngestFromUrl(new RemoteAssetIngestApi.IngestCommand(
                 "https://1.1.1.1/ep.mp3",
                 AssetType.AUDIO,
                 AssetVisibility.PRIVATE,
                 "episode.mp3"
-        ));
+        )).asset();
 
         assertThat(pending.getId()).isEqualTo(42L);
         assertThat(pending.getStatus()).isEqualTo(AssetStatus.PENDING);
@@ -332,7 +304,7 @@ class RemoteAssetIngestServiceTest {
                 AssetType.IMAGE,
                 AssetVisibility.PUBLIC,
                 "cover.jpg"
-        ));
+        )).asset();
 
         assertThat(reused.getId()).isEqualTo(99L);
         verifyNoInteractions(remoteContentClient, tenantRepository);
@@ -362,7 +334,7 @@ class RemoteAssetIngestServiceTest {
                 AssetType.IMAGE,
                 AssetVisibility.PUBLIC,
                 "cover.jpg"
-        ));
+        )).asset();
 
         assertThat(reused.getId()).isEqualTo(99L);
         verifyNoInteractions(remoteAssetIngestJobProducer, remoteContentClient, tenantRepository);
@@ -444,14 +416,63 @@ class RemoteAssetIngestServiceTest {
         asset.setId(42L);
         asset.setTenant(tenant);
         asset.setS3Key("alpha/private/audio/asset-42_episode.mp3");
+        asset.setIngestCleanupToken(java.util.UUID.randomUUID());
         when(directwerkConfig.isStorageEnabled()).thenReturn(true);
         when(directwerkConfig.storage()).thenReturn(storage());
-        when(mediaAssetRepository.findById(42L)).thenReturn(java.util.Optional.of(asset));
+        when(mediaAssetRepository.findByIdForUpdate(42L)).thenReturn(java.util.Optional.of(asset));
 
-        service.discard(42L);
+        service.discard(new RemoteAssetIngestApi.CleanupClaim(42L, asset.getIngestCleanupToken()));
 
         verify(mediaAssetRepository).delete(asset);
         verify(s3Client).deleteObject(any(software.amazon.awssdk.services.s3.model.DeleteObjectRequest.class));
+    }
+
+    @Test
+    void discardRefusesAssetAlreadyPendingDelete() {
+        Tenant tenant = new Tenant();
+        tenant.setId(10L);
+        tenant.setSlug("alpha");
+        MediaAsset asset = new MediaAsset();
+        asset.setId(42L);
+        asset.setTenant(tenant);
+        asset.setStatus(AssetStatus.PENDING_DELETE);
+        asset.setIngestCleanupToken(java.util.UUID.randomUUID());
+        when(directwerkConfig.isStorageEnabled()).thenReturn(true);
+        when(directwerkConfig.storage()).thenReturn(storage());
+        when(mediaAssetRepository.findByIdForUpdate(42L)).thenReturn(java.util.Optional.of(asset));
+
+        assertThatThrownBy(() -> service.discard(
+                new RemoteAssetIngestApi.CleanupClaim(42L, asset.getIngestCleanupToken())))
+                .isInstanceOf(UploadValidationException.class);
+
+        verify(mediaAssetRepository, never()).delete(any(MediaAsset.class));
+        verify(s3Client, never()).deleteObject(
+                any(software.amazon.awssdk.services.s3.model.DeleteObjectRequest.class));
+    }
+
+    @Test
+    void discardRechecksCleanupClaimAndAttachmentsUnderAssetLock() {
+        Tenant tenant = new Tenant();
+        tenant.setId(10L);
+        tenant.setSlug("alpha");
+        MediaAsset asset = new MediaAsset();
+        asset.setId(42L);
+        asset.setTenant(tenant);
+        asset.setS3Key("alpha/private/audio/asset-42_episode.mp3");
+        asset.setIngestCleanupToken(java.util.UUID.randomUUID());
+        when(directwerkConfig.isStorageEnabled()).thenReturn(true);
+        when(directwerkConfig.storage()).thenReturn(storage());
+        when(mediaAssetRepository.findByIdForUpdate(42L)).thenReturn(Optional.of(asset));
+        when(mediaAssetRepository.hasAttachedReferences(42L)).thenReturn(true);
+
+        assertThatThrownBy(() -> service.discard(
+                new RemoteAssetIngestApi.CleanupClaim(42L, asset.getIngestCleanupToken())))
+                .isInstanceOf(UploadValidationException.class)
+                .hasMessageContaining("Attached");
+
+        verify(mediaAssetRepository, never()).delete(any(MediaAsset.class));
+        verify(s3Client, never()).deleteObject(
+                any(software.amazon.awssdk.services.s3.model.DeleteObjectRequest.class));
     }
 
     @Test
@@ -536,6 +557,118 @@ class RemoteAssetIngestServiceTest {
 
         verifyNoInteractions(remoteContentClient, s3Client);
         verify(mediaAssetRepository, never()).saveAndFlush(any(MediaAsset.class));
+    }
+
+    @Test
+    void derivesStoredExtensionFromResolvedMimeNotFilenameHint() throws Exception {
+        Tenant tenant = new Tenant();
+        tenant.setId(10L);
+        tenant.setSlug("alpha");
+        when(tenantRepository.requireById(10L)).thenReturn(tenant);
+        when(directwerkConfig.isStorageEnabled()).thenReturn(true);
+        when(directwerkConfig.storage()).thenReturn(storage());
+
+        byte[] body = "png-bytes".getBytes(StandardCharsets.UTF_8);
+        when(remoteContentClient.get(any(URI.class), any(Duration.class))).thenReturn(
+                new RemoteContentClient.RemoteResponse(
+                        URI.create("https://1.1.1.1/pic"),
+                        200,
+                        "image/png",
+                        (long) body.length,
+                        new ByteArrayInputStream(body)
+                )
+        );
+        stubSavedAsset();
+        doAnswer(invocation -> null).when(s3Client)
+                .putObject(any(PutObjectRequest.class), any(RequestBody.class));
+
+        MediaAsset ingested = service.ingestFromUrl(new RemoteAssetIngestApi.IngestCommand(
+                "https://1.1.1.1/pic",
+                AssetType.IMAGE,
+                AssetVisibility.PUBLIC,
+                "evil.html"
+        )).asset();
+
+        assertThat(ingested.getMimeType()).isEqualTo("image/png");
+        assertThat(ingested.getOriginalFilename()).isEqualTo("evil.png");
+        assertThat(ingested.getS3Key()).matches("alpha/public/images/asset-\\d+_evil\\.png");
+    }
+
+    @Test
+    void queuedIngestSkipsReadyTransitionWhenAssetDeletedMidFlight() throws Exception {
+        Tenant tenant = new Tenant();
+        tenant.setId(10L);
+        tenant.setSlug("alpha");
+        MediaAsset pending = new MediaAsset();
+        pending.setId(42L);
+        pending.setTenant(tenant);
+        pending.setAssetType(AssetType.AUDIO);
+        pending.setVisibility(AssetVisibility.PRIVATE);
+        pending.setStatus(AssetStatus.PENDING);
+        MediaAsset deleted = new MediaAsset();
+        deleted.setId(42L);
+        deleted.setTenant(tenant);
+        deleted.setStatus(AssetStatus.PENDING_DELETE);
+        when(mediaAssetRepository.findById(42L)).thenReturn(Optional.of(pending));
+        when(mediaAssetRepository.findByIdForUpdate(42L)).thenReturn(Optional.of(deleted));
+        when(directwerkConfig.isStorageEnabled()).thenReturn(true);
+        when(directwerkConfig.storage()).thenReturn(storage());
+        byte[] body = "id3-fake-mp3".getBytes(StandardCharsets.UTF_8);
+        when(remoteContentClient.get(any(URI.class), any(Duration.class))).thenReturn(
+                new RemoteContentClient.RemoteResponse(
+                        URI.create("https://1.1.1.1/ep.mp3"),
+                        200,
+                        "audio/mpeg",
+                        (long) body.length,
+                        new ByteArrayInputStream(body)
+                )
+        );
+        doAnswer(invocation -> null).when(s3Client)
+                .putObject(any(PutObjectRequest.class), any(RequestBody.class));
+
+        service.processQueuedIngest(
+                new de.pnnit.directwerk.modules.digital.job.RemoteAssetIngestJobPayload(
+                        42L, "https://1.1.1.1/ep.mp3", "episode.mp3"),
+                jobFor(42L)
+        );
+
+        assertThat(deleted.getStatus()).isEqualTo(AssetStatus.PENDING_DELETE);
+        verify(mediaAssetRepository, never()).saveAndFlush(pending);
+        verify(s3Client).deleteObject(any(software.amazon.awssdk.services.s3.model.DeleteObjectRequest.class));
+    }
+
+    private static de.pnnit.directwerk.modules.queue.QueueJob jobFor(Long assetId) {
+        return new de.pnnit.directwerk.modules.queue.QueueJob(
+                java.util.UUID.randomUUID(),
+                de.pnnit.directwerk.modules.digital.job.MediaJobQueueNames.REMOTE_ASSET_INGEST,
+                null,
+                0,
+                de.pnnit.directwerk.modules.queue.JobStatus.PROCESSING,
+                java.time.Instant.now(),
+                1,
+                5,
+                "worker-1",
+                java.time.Instant.now().plusSeconds(900),
+                null,
+                10L,
+                "remote-asset-ingest-" + assetId,
+                null,
+                java.time.Instant.now(),
+                java.time.Instant.now()
+        );
+    }
+
+    private void stubSavedAsset() {
+        lenient().when(mediaAssetRepository.saveAndFlush(any(MediaAsset.class))).thenAnswer(invocation -> {
+            MediaAsset asset = invocation.getArgument(0);
+            if (asset.getId() == null) {
+                asset.setId(42L);
+            }
+            persistedAsset.set(asset);
+            return asset;
+        });
+        lenient().when(mediaAssetRepository.findByIdForUpdate(any())).thenAnswer(
+                invocation -> Optional.ofNullable(persistedAsset.get()));
     }
 
     private static DirectwerkProperties.Storage storage() {

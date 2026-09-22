@@ -8,6 +8,7 @@ import {Alert, AlertDescription} from '@directwerk/ui/components/alert'
 import {Button} from '@directwerk/ui/components/button'
 import {Input} from '@directwerk/ui/components/input'
 import {Label} from '@directwerk/ui/components/label'
+import {isSafeRedirectTarget} from '@directwerk/api/urls/urlPolicy'
 
 import {invalidatePendingRefresh} from '@/lib/auth/session'
 import {storeTokens} from '@/lib/auth/tokenStore'
@@ -20,10 +21,16 @@ const INITIAL_STATE: LoginActionState = {error: null, tokens: null}
  * Post-login destination requested via `?next=`. Only same-origin absolute
  * paths are honored — anything else falls back to `/` so a crafted link can
  * never turn the admin login into an open redirect.
+ *
+ * `isSafeRedirectTarget` resolves the value against a fixed origin and rejects
+ * anything that escapes it, so parser-normalised bypasses such as
+ * `/\evil.test` or `/%09/evil.test` (backslash/tab are treated as `/`) cannot
+ * sneak past the `startsWith('/')` check. The explicit leading-slash test
+ * keeps absolute HTTPS URLs from being accepted as post-login deep links.
  */
 export function resolvePostLoginPath(search: string): string {
     const next = new URLSearchParams(search).get('next')
-    if (next !== null && next.startsWith('/') && !next.startsWith('//')) {
+    if (next !== null && next.startsWith('/') && isSafeRedirectTarget(next)) {
         return next
     }
     return '/'

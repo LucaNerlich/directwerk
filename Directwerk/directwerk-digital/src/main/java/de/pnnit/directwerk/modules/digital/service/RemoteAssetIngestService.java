@@ -41,6 +41,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
@@ -82,28 +83,36 @@ public class RemoteAssetIngestService implements RemoteAssetIngestApi {
      * Imports a remote HTTP(S) asset into the active tenant's storage.
      *
      * @param command the source URL and asset metadata for the import
-     * @return the persisted media asset after successful upload
+     * @return the persisted media asset (or the reused existing one) after successful upload
      */
     @Override
-    public MediaAsset ingestFromUrl(IngestCommand command) {
+    public IngestResult ingestFromUrl(IngestCommand command) {
         Optional<MediaAsset> reusable = findReusableImport(command);
         if (reusable.isPresent()) {
-            return reusable.get();
+            return new IngestResult(reusable.get(), true, null);
         }
-        return completePreparedIngest(prepareIngest(command), null);
+        MediaAsset ingested = completePreparedIngest(prepareIngest(command), null);
+        if (ingested == null) {
+            throw new UploadValidationException(
+                    "REMOTE_ASSET_FAILED",
+                    "Remote asset was deleted during ingest"
+            );
+        }
+        return new IngestResult(ingested, false, cleanupClaim(ingested));
     }
 
     /**
      * Creates a pending asset and enqueues a durable background ingest job.
      *
      * @param command the source URL and asset metadata for the import
-     * @return the pending media asset whose progress can be polled via {@code GET /api/v1/podcast/import/assets/{id}}
+     * @return the pending media asset (or the reused existing one) whose progress can be polled via
+     *         {@code GET /api/v1/podcast/import/assets/{id}}
      */
     @Override
-    public MediaAsset startIngestFromUrl(IngestCommand command) {
+    public IngestResult startIngestFromUrl(IngestCommand command) {
         Optional<MediaAsset> reusable = findReusableImport(command);
         if (reusable.isPresent()) {
-            return reusable.get();
+            return new IngestResult(reusable.get(), true, null);
         }
         remoteAssetIngestJobProducer.validateQueueAvailability();
         PreparedIngest prepared = transactionTemplate().execute(status -> {
@@ -119,7 +128,7 @@ public class RemoteAssetIngestService implements RemoteAssetIngestApi {
         if (prepared == null) {
             throw new UploadValidationException("REMOTE_ASSET_FAILED", "Could not prepare remote asset ingest");
         }
-        return prepared.asset();
+        return new IngestResult(prepared.asset(), false, cleanupClaim(prepared.asset()));
     }
 
     /**
@@ -238,6 +247,7 @@ public class RemoteAssetIngestService implements RemoteAssetIngestApi {
         asset.setStatus(AssetStatus.PENDING);
         asset.setOriginalFilename(filename);
         asset.setImportSourceUrl(canonicalSource);
+        asset.setIngestCleanupToken(UUID.randomUUID());
         asset.setS3Key(TenantAssetKeys.stagingKey(tenant.getSlug(), UUID.randomUUID() + "/" + filename));
         mediaAssetRepository.saveAndFlush(asset);
 
@@ -295,15 +305,17 @@ public class RemoteAssetIngestService implements RemoteAssetIngestApi {
             }
 
             MediaAsset asset = prepared.asset();
-            if (!filename.equals(asset.getOriginalFilename())) {
-                asset.setOriginalFilename(filename);
-                asset.setS3Key(buildFinalKey(asset.getTenant().getSlug(), asset));
-            }
-            asset.setMimeType(mimeType);
-            asset.setSizeBytes(remote.contentLength());
-            asset.setOriginalFilename(filename);
-            asset.setBytesTransferred(0L);
-            mediaAssetRepository.saveAndFlush(asset);
+            // Derive the final object extension from the resolved MIME type (never the
+            // caller-supplied filename) so a remote response cannot land active content
+            // under e.g. .html/.svg on the public CDN origin.
+            String uploadKey = buildFinalKey(
+                    asset.getTenant().getSlug(),
+                    asset.getVisibility(),
+                    asset.getAssetType(),
+                    asset.getId(),
+                    filename,
+                    mimeType
+            );
 
             try {
                 ProgressTrackingInputStream limited = new ProgressTrackingInputStream(
@@ -313,7 +325,7 @@ public class RemoteAssetIngestService implements RemoteAssetIngestApi {
                 );
                 long written = streamToS3(
                         prepared.storage().bucket(),
-                        asset.getS3Key(),
+                        uploadKey,
                         mimeType,
                         remote.contentLength(),
                         limited
@@ -321,12 +333,17 @@ public class RemoteAssetIngestService implements RemoteAssetIngestApi {
                 if (progressReporter != null) {
                     progressReporter.accept(written);
                 }
-                asset.setSizeBytes(written);
-                asset.setBytesTransferred(written);
-                asset.setStatus(AssetStatus.READY);
-                return mediaAssetRepository.saveAndFlush(asset);
+                MediaAsset ready = markReadyIfStillPending(asset, uploadKey, filename, mimeType, written);
+                if (ready == null) {
+                    // The asset was deleted (or otherwise transitioned) while the stream was
+                    // in flight. Remove the bytes we just wrote so an explicit delete is not
+                    // resurrected as an orphaned public/private object.
+                    deleteObjectQuietly(prepared.storage().bucket(), uploadKey);
+                    return null;
+                }
+                return ready;
             } catch (RuntimeException | IOException ex) {
-                deleteObjectQuietly(prepared.storage().bucket(), asset.getS3Key());
+                deleteObjectQuietly(prepared.storage().bucket(), uploadKey);
                 if (progressReporter == null) {
                     mediaAssetRepository.delete(asset);
                 }
@@ -343,6 +360,42 @@ public class RemoteAssetIngestService implements RemoteAssetIngestApi {
             }
             throw new UploadValidationException("REMOTE_ASSET_FAILED", "Could not stream remote asset", ex);
         }
+    }
+
+    /**
+     * Re-reads the asset under a pessimistic write lock in a fresh transaction and flips it to
+     * {@link AssetStatus#READY} only if it is still {@link AssetStatus#PENDING}. Returns
+     * {@code null} when the asset was deleted or otherwise transitioned while the stream ran, so
+     * the caller can clean up the bytes it just wrote instead of resurrecting a deleted asset.
+     */
+    private MediaAsset markReadyIfStillPending(
+            MediaAsset asset,
+            String uploadKey,
+            String filename,
+            String mimeType,
+            long written
+    ) {
+        if (asset.getId() == null) {
+            return null;
+        }
+        return transactionTemplate().execute(status -> {
+            MediaAsset locked = mediaAssetRepository.findByIdForUpdate(asset.getId()).orElse(null);
+            if (locked == null || locked.getStatus() != AssetStatus.PENDING) {
+                log.info(
+                        "Skipping READY transition for asset {} (status={})",
+                        asset.getId(),
+                        locked == null ? "missing" : locked.getStatus()
+                );
+                return null;
+            }
+            locked.setS3Key(uploadKey);
+            locked.setOriginalFilename(filename);
+            locked.setMimeType(mimeType);
+            locked.setSizeBytes(written);
+            locked.setBytesTransferred(written);
+            locked.setStatus(AssetStatus.READY);
+            return mediaAssetRepository.saveAndFlush(locked);
+        });
     }
 
     void reportIngestProgress(Long assetId, Long tenantId, long bytesTransferred) {
@@ -392,16 +445,17 @@ public class RemoteAssetIngestService implements RemoteAssetIngestApi {
     /**
      * Discards an unattached remote asset belonging to the active tenant.
      *
-     * @param assetId the identifier of the remote asset to discard
+     * @param cleanupClaim ownership proof for the exact ingest attempt to discard
      */
     @Override
-    public void discard(Long assetId) {
-        if (assetId == null) {
+    @Transactional
+    public void discard(CleanupClaim cleanupClaim) {
+        if (cleanupClaim == null) {
             return;
         }
         DirectwerkProperties.Storage storage = StorageConfigs.requireEnabled(directwerkConfig);
         Long tenantId = TenantContext.requireTenantId();
-        MediaAsset asset = mediaAssetRepository.findById(assetId).orElse(null);
+        MediaAsset asset = mediaAssetRepository.findByIdForUpdate(cleanupClaim.assetId()).orElse(null);
         if (asset == null) {
             return;
         }
@@ -409,6 +463,15 @@ public class RemoteAssetIngestService implements RemoteAssetIngestApi {
             throw new UploadValidationException("REMOTE_ASSET_FAILED", "Remote asset does not belong to tenant");
         }
         if (asset.getEpisodeId() != null) {
+            throw new UploadValidationException("REMOTE_ASSET_FAILED", "Attached remote asset cannot be discarded");
+        }
+        if (asset.getStatus() == AssetStatus.PENDING_DELETE || asset.getStatus() == AssetStatus.ARCHIVED) {
+            throw new UploadValidationException("REMOTE_ASSET_FAILED", "Remote asset is already being deleted");
+        }
+        if (!cleanupClaim.token().equals(asset.getIngestCleanupToken())) {
+            throw new UploadValidationException("REMOTE_ASSET_FAILED", "Remote asset cleanup claim is invalid");
+        }
+        if (mediaAssetRepository.hasAttachedReferences(asset.getId())) {
             throw new UploadValidationException("REMOTE_ASSET_FAILED", "Attached remote asset cannot be discarded");
         }
 
@@ -581,18 +644,15 @@ public class RemoteAssetIngestService implements RemoteAssetIngestApi {
     }
 
     /**
-     * Replaces the generic {@code bin} extension with the canonical extension for the resolved
-     * MIME type so imported assets without a usable filename (e.g. {@code .../download}) end up
-     * with a descriptive, correctly-typed name.
+     * Replaces the filename extension with the canonical extension for the resolved MIME type so
+     * imported assets always carry a correctly-typed name, regardless of what the remote URL or
+     * caller-supplied hint claimed.
      *
      * @param filename the current sanitized filename
      * @param mimeType the MIME type resolved from the remote response
-     * @return the corrected filename, unchanged when it already carries a usable extension
+     * @return the corrected filename, unchanged when the MIME type is unknown
      */
     private static String withExtensionForMime(String filename, String mimeType) {
-        if (!"bin".equals(MediaUploadRules.fileExtension(filename))) {
-            return filename;
-        }
         String ext = MediaUploadRules.extensionForMime(mimeType);
         if (ext == null) {
             return filename;
@@ -601,16 +661,43 @@ public class RemoteAssetIngestService implements RemoteAssetIngestApi {
     }
 
     private static String buildFinalKey(String tenantSlug, MediaAsset asset) {
-        String visibilityFolder = asset.getVisibility() == AssetVisibility.PUBLIC ? "public" : "private";
-        String typeFolder = MediaUploadRules.typeFolder(asset.getAssetType());
-        String filename = asset.getOriginalFilename() != null ? asset.getOriginalFilename() : "file.bin";
-        String ext = MediaUploadRules.fileExtension(filename);
+        return buildFinalKey(
+                tenantSlug,
+                asset.getVisibility(),
+                asset.getAssetType(),
+                asset.getId(),
+                asset.getOriginalFilename(),
+                asset.getMimeType()
+        );
+    }
+
+    private static String buildFinalKey(
+            String tenantSlug,
+            AssetVisibility visibility,
+            AssetType assetType,
+            Long assetId,
+            String originalFilename,
+            String mimeType
+    ) {
+        String visibilityFolder = visibility == AssetVisibility.PUBLIC ? "public" : "private";
+        String typeFolder = MediaUploadRules.typeFolder(assetType);
+        String filename = originalFilename != null ? originalFilename : "file.bin";
+        // The stored extension comes from the resolved MIME type; the filename is only a
+        // fallback. This keeps a remote response from dictating an active extension.
+        String ext = mimeType != null ? MediaUploadRules.extensionForMime(mimeType) : null;
+        if (ext == null) {
+            ext = MediaUploadRules.fileExtension(filename);
+        }
         String stem = MediaUploadRules.sanitizeFilenameStem(filename);
-        String objectName = "asset-" + asset.getId() + "_" + stem + "." + ext;
+        String objectName = "asset-" + assetId + "_" + stem + "." + ext;
         String relative = typeFolder + "/" + objectName;
         return visibilityFolder.equals("public")
                 ? TenantAssetKeys.publicKey(tenantSlug, relative)
                 : TenantAssetKeys.privateKey(tenantSlug, relative);
+    }
+
+    private static CleanupClaim cleanupClaim(MediaAsset asset) {
+        return new CleanupClaim(asset.getId(), asset.getIngestCleanupToken());
     }
 
     private void deleteObjectQuietly(String bucket, String key) {

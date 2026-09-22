@@ -15,6 +15,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.dao.DataIntegrityViolationException;
 
 import static org.mockito.Mockito.lenient;
 
@@ -40,7 +41,7 @@ class TenantBrandingServiceTest {
         TenantBranding branding = new TenantBranding();
         branding.setTenant(tenant);
         lenient().when(tenantBrandingRepository.findByTenantId(10L)).thenReturn(Optional.of(branding));
-        lenient().when(tenantBrandingRepository.save(any(TenantBranding.class)))
+        lenient().when(tenantBrandingRepository.saveAndFlush(any(TenantBranding.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
     }
 
@@ -218,5 +219,40 @@ class TenantBrandingServiceTest {
 
         assertThat(saved.getPrimaryColor()).isEqualTo("#112233");
         assertThat(saved.getSecondaryColor()).isEqualTo("#445566");
+    }
+
+    @Test
+    void rejectsUmamiWebsiteIdClaimedByAnotherTenant() {
+        // The read path uses platform-wide Umami credentials, so a tenant must not be able to
+        // adopt a website id another tenant already owns (cross-tenant stats exposure).
+        when(tenantBrandingRepository.countOtherTenantsWithWebsiteId("abcdefgh", 10L)).thenReturn(1L);
+
+        assertThatThrownBy(() -> service.updateBranding(
+                10L, null, null, null, null, null, "abcdefgh", null))
+                .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
+    void acceptsUnclaimedUmamiWebsiteId() {
+        when(tenantBrandingRepository.countOtherTenantsWithWebsiteId("abcdefgh", 10L)).thenReturn(0L);
+
+        TenantBranding saved = service.updateBranding(
+                10L, null, null, null, null, null, "abcdefgh", null);
+
+        assertThat(saved.getUmamiWebsiteId()).isEqualTo("abcdefgh");
+    }
+
+    @Test
+    void translatesConcurrentUmamiWebsiteIdClaimConflict() {
+        when(tenantBrandingRepository.countOtherTenantsWithWebsiteId("abcdefgh", 10L)).thenReturn(0L);
+        when(tenantBrandingRepository.saveAndFlush(any(TenantBranding.class)))
+                .thenThrow(new DataIntegrityViolationException(
+                        "duplicate key violates unique constraint uq_tenant_branding_umami_website_id"
+                ));
+
+        assertThatThrownBy(() -> service.updateBranding(
+                10L, null, null, null, null, null, "abcdefgh", null))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Umami website id is already configured for another tenant");
     }
 }

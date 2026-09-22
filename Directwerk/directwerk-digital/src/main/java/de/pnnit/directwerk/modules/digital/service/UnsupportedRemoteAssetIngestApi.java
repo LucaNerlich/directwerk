@@ -1,7 +1,6 @@
 package de.pnnit.directwerk.modules.digital.service;
 
 import de.pnnit.directwerk.modules.digital.api.RemoteAssetIngestApi;
-import de.pnnit.directwerk.modules.digital.entity.MediaAsset;
 import de.pnnit.directwerk.modules.digital.exception.StorageNotConfiguredException;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
@@ -14,21 +13,21 @@ import org.springframework.stereotype.Service;
 public class UnsupportedRemoteAssetIngestApi implements RemoteAssetIngestApi {
 
     @Override
-    public MediaAsset ingestFromUrl(IngestCommand command) {
+    public IngestResult ingestFromUrl(IngestCommand command) {
         throw new StorageNotConfiguredException(
                 "Object storage is disabled — set directwerk.storage.enabled=true"
         );
     }
 
     @Override
-    public MediaAsset startIngestFromUrl(IngestCommand command) {
+    public IngestResult startIngestFromUrl(IngestCommand command) {
         throw new StorageNotConfiguredException(
                 "Object storage is disabled — set directwerk.storage.enabled=true"
         );
     }
 
     @Override
-    public void discard(Long assetId) {
+    public void discard(CleanupClaim cleanupClaim) {
         throw new StorageNotConfiguredException(
                 "Object storage is disabled — set directwerk.storage.enabled=true"
         );
