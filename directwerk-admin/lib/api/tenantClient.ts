@@ -6,10 +6,10 @@ import {platformTenantAdminPolicy} from '@directwerk/api/client/policies'
 import {API_CONTRACT_ERROR, AUTH_REQUIRED} from '@directwerk/api/constants'
 import type {ApiEnvelope} from '@directwerk/api/types'
 import {
-    clearTenantTokens,
     getTenantSessionHost,
 } from '@/lib/auth/tenantTokenStore'
 import {
+    clearTenantSessionTokens,
     getValidTenantAccessToken,
     refreshTenantAccessToken,
 } from '@/lib/auth/tenantSession'
@@ -19,7 +19,7 @@ const tenantFetch = createAuthedRequest({
         getValidAccessToken: getValidTenantAccessToken,
         refreshAccessToken: refreshTenantAccessToken,
     },
-    clearTokens: clearTenantTokens,
+    clearTokens: clearTenantSessionTokens,
     baseHeaders: (): Record<string, string> => {
         const host = getTenantSessionHost()
         if (host === null) return {}
