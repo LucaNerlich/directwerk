@@ -140,6 +140,7 @@ class TransactionalEmailServiceTest {
         assertThat(sent.htmlBody()).contains("http://localhost:3004/reset-password?token=reset-token");
         assertThat(sent.template()).isEqualTo("PASSWORD_RESET");
         assertThat(sent.jobId()).isEqualTo(JOB_ID.toString());
+        verify(emailDeliveryGuard).finalizeClaim(JOB_ID);
     }
 
     @Test

@@ -85,6 +85,14 @@ public class StripeWebhookService {
     private void applyEvent(StripeOperations.StripeWebhookPayload event) {
         if ("account.updated".equals(event.type())) {
             if (event.connectedAccountId() != null) {
+                if (!event.dataObjectDeserialized()) {
+                    // Without a deserialized Account the capability flags are all false; writing
+                    // them would downgrade a live account. Treat as no change instead.
+                    log.warn(
+                            "Ignoring account.updated event {} with an un-deserializable data object",
+                            event.eventId());
+                    return;
+                }
                 stripeConnectService.applyAccountUpdate(
                         event.connectedAccountId(),
                         event.chargesEnabled(),
@@ -109,7 +117,8 @@ public class StripeWebhookService {
         }
 
         switch (event.type()) {
-            case "checkout.session.completed" -> applyCheckoutCompleted(tenantId, event);
+            case "checkout.session.completed", "checkout.session.async_payment_succeeded" ->
+                    applyCheckoutCompleted(tenantId, event);
             case "customer.subscription.updated" -> applySubscriptionSync(tenantId, event);
             case "invoice.paid" -> applyInvoicePaid(tenantId, event);
             case "customer.subscription.deleted" -> applySubscriptionCanceled(tenantId, event);
@@ -139,14 +148,22 @@ public class StripeWebhookService {
             log.warn("Ignoring checkout.session.completed for unknown product");
             return;
         }
-        // A completed checkout means payment succeeded; the session does not carry a
-        // subscription status, so default to ACTIVE rather than mapping a null status.
-        SubscriptionStatus status =
-                event.stripeSubscriptionStatus() == null || event.stripeSubscriptionStatus().isBlank()
-                        ? SubscriptionStatus.ACTIVE
-                        : mapStripeStatus(event.stripeSubscriptionStatus());
-        if (event.subscriptionId() == null || event.subscriptionId().isBlank()) {
-            status = SubscriptionStatus.ACTIVE;
+        // Only grant ACTIVE once the session is actually settled. Delayed payment methods
+        // (SEPA/debit) and incomplete subscriptions emit checkout.session.completed with
+        // payment_status=unpaid and settle later via async_payment_succeeded / invoice.paid;
+        // those stay INCOMPLETE until reconciled.
+        SubscriptionStatus status;
+        if (!isCheckoutPaid(event.paymentStatus())) {
+            status = SubscriptionStatus.INCOMPLETE;
+        } else {
+            // The session does not carry a subscription status, so default to ACTIVE rather
+            // than mapping a null status.
+            status = event.stripeSubscriptionStatus() == null || event.stripeSubscriptionStatus().isBlank()
+                    ? SubscriptionStatus.ACTIVE
+                    : mapStripeStatus(event.stripeSubscriptionStatus());
+            if (event.subscriptionId() == null || event.subscriptionId().isBlank()) {
+                status = SubscriptionStatus.ACTIVE;
+            }
         }
         stripeSubscriptionSyncService.upsertStripeSubscription(
                 tenantId,
@@ -239,9 +256,14 @@ public class StripeWebhookService {
         if (event.subscriptionId() == null || event.subscriptionId().isBlank()) {
             return;
         }
-        // An invoice.paid event confirms a payment; it must not force ACTIVE or wipe the stored
-        // period end. Only subscriptions that were overdue/incomplete are moved back to ACTIVE.
-        stripeSubscriptionSyncService.markInvoicePaid(tenantId, event.subscriptionId());
+        // An invoice.paid event confirms a payment and renews the period: overdue/incomplete
+        // subscriptions move back to ACTIVE with the refreshed period end. Subscriptions that
+        // are already active are untouched.
+        stripeSubscriptionSyncService.markInvoicePaid(
+                tenantId,
+                event.subscriptionId(),
+                event.currentPeriodEnd()
+        );
     }
 
     private void applyChargeRefunded(Long tenantId, StripeOperations.StripeWebhookPayload event) {
@@ -272,8 +294,10 @@ public class StripeWebhookService {
     }
 
     private boolean hasLocalCanceledRow(Long tenantId, String externalSubscriptionId) {
+        // Lock the row for the rest of this transaction so a concurrent `deleted` cannot commit
+        // between this check and the subsequent upsert (check-then-act race across workers).
         return subscriptionRepository
-                .findByTenantIdAndExternalSubscriptionId(tenantId, externalSubscriptionId)
+                .findByTenantIdAndExternalSubscriptionIdForUpdate(tenantId, externalSubscriptionId)
                 .map(subscription -> subscription.getStatus() == SubscriptionStatus.CANCELED)
                 .orElse(false);
     }
@@ -283,9 +307,10 @@ public class StripeWebhookService {
             String liveStatus = stripeOperations.retrieveSubscriptionStatus(
                     event.connectedAccountId(),
                     event.subscriptionId());
+            // `past_due` is not a reactivation state: the subscription is not currently in good
+            // standing and must not re-grant entitlements.
             return "active".equals(liveStatus)
-                    || "trialing".equals(liveStatus)
-                    || "past_due".equals(liveStatus);
+                    || "trialing".equals(liveStatus);
         } catch (RuntimeException ex) {
             log.warn(
                     "Live subscription lookup failed for canceled local row (subscription={}) — refusing reactivation",
@@ -323,6 +348,11 @@ public class StripeWebhookService {
             // Fail closed: unknown statuses never grant entitlements.
             default -> SubscriptionStatus.PAST_DUE;
         };
+    }
+
+    private static boolean isCheckoutPaid(String paymentStatus) {
+        // `no_payment_required` covers zero-amount sessions and trials, which are settled.
+        return "paid".equals(paymentStatus) || "no_payment_required".equals(paymentStatus);
     }
 
     private static Long parseLong(String value) {

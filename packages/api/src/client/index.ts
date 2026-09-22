@@ -10,6 +10,7 @@ export {
     useCachedTenantQuery,
     fetchCachedTenantData,
     clearCachedTenantData,
+    clearAllCachedTenantData,
     type UseCachedTenantQueryOptions,
 } from './useCachedTenantQuery'
 export {createBrowserTransport, type BrowserTransport, type CreateBrowserTransportConfig} from './createBrowserTransport'

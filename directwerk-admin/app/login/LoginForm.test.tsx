@@ -50,6 +50,16 @@ describe('resolvePostLoginPath', () => {
         expect(resolvePostLoginPath('?next=//evil.test/x')).toBe('/')
         expect(resolvePostLoginPath('?next=javascript:alert(1)')).toBe('/')
     })
+
+    it('rejects backslash and control-character origin bypasses', () => {
+        // URL parsing treats `\` and encoded control characters as `/`, so
+        // these would otherwise be classified as same-origin by a naive check.
+        expect(resolvePostLoginPath('?next=/\\evil.test')).toBe('/')
+        expect(resolvePostLoginPath('?next=/%5Cevil.test')).toBe('/')
+        expect(resolvePostLoginPath('?next=%2F%5Cevil.test')).toBe('/')
+        expect(resolvePostLoginPath('?next=/%09/evil.test')).toBe('/')
+        expect(resolvePostLoginPath('?next=/\\/evil.test')).toBe('/')
+    })
 })
 
 describe('LoginForm', () => {

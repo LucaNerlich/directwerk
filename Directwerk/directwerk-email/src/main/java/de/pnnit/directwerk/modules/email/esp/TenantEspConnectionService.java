@@ -20,6 +20,7 @@ import org.springframework.util.StringUtils;
 public class TenantEspConnectionService {
 
     private static final Pattern EMAIL = Pattern.compile("^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$");
+    private static final int MAX_FROM_NAME_LENGTH = 200;
 
     private final TenantEspConnectionRepository tenantEspConnectionRepository;
     private final TenantRepository tenantRepository;
@@ -55,6 +56,7 @@ public class TenantEspConnectionService {
             String apiKey
     ) {
         String normalizedDomain = requireText(domain, "domain").toLowerCase(Locale.ROOT);
+        requireMailgunDomain(normalizedDomain);
         String normalizedFrom = requireText(fromEmail, "fromEmail").toLowerCase(Locale.ROOT);
         if (!EMAIL.matcher(normalizedFrom).matches()) {
             throw new IllegalArgumentException("fromEmail must be a valid email address");
@@ -68,7 +70,7 @@ public class TenantEspConnectionService {
         connection.setProvider(EspProvider.MAILGUN);
         connection.setDomain(normalizedDomain);
         connection.setFromEmail(normalizedFrom);
-        connection.setFromName(StringUtils.hasText(fromName) ? fromName.trim() : null);
+        connection.setFromName(normalizeFromName(fromName));
         connection.setRegion(normalizedRegion);
         connection.setApiKeyCiphertext(envelopeTokenProtector.protect(normalizedKey));
         connection.setStatus(EspConnectionStatus.CONNECTED);
@@ -122,6 +124,33 @@ public class TenantEspConnectionService {
             throw new IllegalArgumentException(field + " is required");
         }
         return value.trim();
+    }
+
+    /**
+     * The domain is concatenated unencoded into the Mailgun API path and used as the sending
+     * domain, so it must not contain whitespace or URL/path metacharacters.
+     */
+    private static void requireMailgunDomain(String domain) {
+        if (domain.chars().anyMatch(Character::isWhitespace)
+                || domain.indexOf('/') >= 0
+                || domain.indexOf('?') >= 0
+                || domain.indexOf('#') >= 0) {
+            throw new IllegalArgumentException("domain contains invalid characters");
+        }
+    }
+
+    /** Display names render into the reconstructed {@code From} header: cap length and reject CR/LF. */
+    private static String normalizeFromName(String fromName) {
+        if (!StringUtils.hasText(fromName)) {
+            return null;
+        }
+        String trimmed = fromName.trim();
+        if (trimmed.length() > MAX_FROM_NAME_LENGTH
+                || trimmed.indexOf('\r') >= 0
+                || trimmed.indexOf('\n') >= 0) {
+            throw new IllegalArgumentException("fromName is invalid");
+        }
+        return trimmed;
     }
 
     private static String normalizeRegion(String region) {

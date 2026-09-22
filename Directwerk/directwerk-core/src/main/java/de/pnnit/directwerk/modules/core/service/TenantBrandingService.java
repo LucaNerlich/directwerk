@@ -67,7 +67,9 @@ public class TenantBrandingService {
             branding.setFaviconUrl(normalizeBrandAssetUrl(faviconUrl, "Favicon URL"));
         }
         if (umamiWebsiteId != null) {
-            branding.setUmamiWebsiteId(normalizeUmamiWebsiteId(umamiWebsiteId));
+            String normalizedWebsiteId = normalizeUmamiWebsiteId(umamiWebsiteId);
+            requireWebsiteIdNotClaimedByAnotherTenant(tenantId, normalizedWebsiteId);
+            branding.setUmamiWebsiteId(normalizedWebsiteId);
         }
         if (umamiHostUrl != null) {
             branding.setUmamiHostUrl(normalizeUmamiHostUrl(umamiHostUrl));
@@ -79,6 +81,25 @@ public class TenantBrandingService {
 
     private static String normalizeUmamiWebsiteId(String umamiWebsiteId) {
         return UmamiWebsiteIdValidator.normalize(umamiWebsiteId);
+    }
+
+    /**
+     * A tenant may only configure a Umami website id no other tenant already owns. The read
+     * path uses platform-wide Umami credentials, so trusting a tenant-supplied id would let a
+     * tenant admin read another tenant's stats by pasting their (publicly exposed) website id.
+     */
+    private void requireWebsiteIdNotClaimedByAnotherTenant(Long tenantId, String websiteId) {
+        if (websiteId != null
+                && tenantBrandingRepository.countOtherTenantsWithWebsiteId(websiteId, tenantId) > 0) {
+            throw new IllegalArgumentException("Umami website id is already configured for another tenant");
+        }
+    }
+
+    /** Read-path guard: {@code true} when another tenant's branding claims this website id. */
+    @Transactional(readOnly = true)
+    public boolean isWebsiteIdClaimedByAnotherTenant(Long tenantId, String websiteId) {
+        return websiteId != null
+                && tenantBrandingRepository.countOtherTenantsWithWebsiteId(websiteId, tenantId) > 0;
     }
 
     /**

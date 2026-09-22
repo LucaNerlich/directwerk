@@ -12,6 +12,7 @@ import {fetchMe} from '@/lib/api/authApi'
 import {MeProvider} from '@/lib/auth/MeProvider'
 import {ensureAuthenticated} from '@/lib/auth/session'
 import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
+import {clearAllCachedTenantData} from '@directwerk/api/client/useCachedTenantQuery'
 import {clearTokens, getAccessToken} from '@/lib/auth/tokenStore'
 import {getClientTenantHost} from '@directwerk/api/tenant'
 import type {Me} from '@directwerk/api/types'
@@ -61,6 +62,7 @@ export default function AuthGuard({children}: Readonly<{children: React.ReactNod
 
                 if (!isEditorRole(account.roles)) {
                     clearTokens()
+                    clearAllCachedTenantData()
                     router.replace('/login?reason=role')
                     return
                 }
@@ -76,6 +78,7 @@ export default function AuthGuard({children}: Readonly<{children: React.ReactNod
                 // cookie intact and offer a retry instead.
                 if (authRedirect(error)) {
                     clearTokens()
+                    clearAllCachedTenantData()
                     return
                 }
 

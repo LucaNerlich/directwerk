@@ -97,6 +97,15 @@ public class AnalyticsQueryService {
                     "Umami is not configured for this tenant."
             );
         }
+        // The read path logs in with platform-wide Umami credentials, so a website id another
+        // tenant owns must never be queried on this tenant's behalf.
+        if (tenantBrandingService.isWebsiteIdClaimedByAnotherTenant(tenantId, websiteId)) {
+            throw new AnalyticsQueryException(
+                    "ANALYTICS_NOT_CONFIGURED",
+                    HttpStatus.NOT_FOUND,
+                    "Umami is not configured for this tenant."
+            );
+        }
 
         String apiBase = analytics.umamiApiBaseUrl().isBlank()
                 ? branding.getUmamiHostUrl()

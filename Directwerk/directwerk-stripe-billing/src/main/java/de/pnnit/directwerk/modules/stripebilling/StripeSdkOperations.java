@@ -1,5 +1,7 @@
 package de.pnnit.directwerk.modules.stripebilling;
 
+import com.stripe.Stripe;
+import com.stripe.exception.EventDataObjectDeserializationException;
 import com.stripe.exception.SignatureVerificationException;
 import com.stripe.exception.StripeException;
 import com.stripe.model.Account;
@@ -29,10 +31,14 @@ import de.pnnit.directwerk.modules.stripebilling.exception.StripeSignatureExcept
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 @Component
 public class StripeSdkOperations implements StripeOperations {
+
+    private static final Logger log = LoggerFactory.getLogger(StripeSdkOperations.class);
 
     private final StripeProperties properties;
 
@@ -256,11 +262,36 @@ public class StripeSdkOperations implements StripeOperations {
         } catch (SignatureVerificationException ex) {
             throw new StripeSignatureException("Stripe webhook signature is invalid", ex);
         }
-        StripeObject stripeObject = event.getDataObjectDeserializer().getObject().orElse(null);
-        return extractPayload(event, stripeObject);
+        var deserializer = event.getDataObjectDeserializer();
+        StripeObject stripeObject = deserializer.getObject().orElse(null);
+        boolean dataObjectDeserialized = stripeObject != null;
+        if (stripeObject == null) {
+            // getObject() is empty when the event's Stripe API version differs from the SDK's.
+            // Fall back to a forced deserialization so the event is still applied instead of
+            // silently yielding an all-default payload (which, for account.updated, would write
+            // false capabilities and disable a live account).
+            log.warn(
+                    "Stripe event id={} type={} could not be safely deserialized (event API version {} "
+                            + "vs stripe-java {}); attempting unsafe deserialization",
+                    event.getId(), event.getType(), event.getApiVersion(), Stripe.API_VERSION);
+            try {
+                stripeObject = deserializer.deserializeUnsafe();
+                dataObjectDeserialized = stripeObject != null;
+            } catch (EventDataObjectDeserializationException | RuntimeException ex) {
+                log.warn(
+                        "Stripe event id={} type={} data object could not be deserialized; "
+                                + "treating the event as no change",
+                        event.getId(), event.getType(), ex);
+            }
+        }
+        return extractPayload(event, stripeObject, dataObjectDeserialized);
     }
 
-    private StripeWebhookPayload extractPayload(Event event, StripeObject stripeObject) {
+    private StripeWebhookPayload extractPayload(
+            Event event,
+            StripeObject stripeObject,
+            boolean dataObjectDeserialized
+    ) {
         String accountId = event.getAccount();
         String customerId = null;
         String subscriptionId = null;
@@ -268,6 +299,7 @@ public class StripeSdkOperations implements StripeOperations {
         String paymentIntentId = null;
         Instant periodEnd = null;
         String stripeStatus = null;
+        String paymentStatus = null;
         boolean chargesEnabled = false;
         boolean payoutsEnabled = false;
         boolean detailsSubmitted = false;
@@ -278,6 +310,7 @@ public class StripeSdkOperations implements StripeOperations {
             customerId = session.getCustomer();
             subscriptionId = session.getSubscription();
             paymentIntentId = session.getPaymentIntent();
+            paymentStatus = session.getPaymentStatus();
             if (session.getMetadata() != null) {
                 metadata.putAll(session.getMetadata());
             }
@@ -310,6 +343,9 @@ public class StripeSdkOperations implements StripeOperations {
         } else if (stripeObject instanceof Invoice invoice) {
             customerId = invoice.getCustomer();
             subscriptionId = invoice.getSubscription();
+            if (invoice.getPeriodEnd() != null) {
+                periodEnd = Instant.ofEpochSecond(invoice.getPeriodEnd());
+            }
             if (invoice.getMetadata() != null) {
                 metadata.putAll(invoice.getMetadata());
             }
@@ -334,7 +370,9 @@ public class StripeSdkOperations implements StripeOperations {
                 detailsSubmitted,
                 Map.copyOf(metadata),
                 paymentIntentId,
-                fullyRefunded
+                fullyRefunded,
+                paymentStatus,
+                dataObjectDeserialized
         );
     }
 

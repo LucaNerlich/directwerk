@@ -18,11 +18,6 @@ const nextConfig: NextConfig = {
             process.env.MEDIA_IMAGE_REMOTE_HOSTS
         ),
     },
-     async redirects() {
-        return [
-            {source: '/imprint', destination: 'https://lucanerlich.com/imprint', permanent: false},
-        ];
-    },
 }
 
 export default nextConfig

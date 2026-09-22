@@ -26,10 +26,14 @@ import java.util.Collection;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.function.Supplier;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 
 @Service
 @RequiredArgsConstructor
@@ -45,6 +49,7 @@ public class ArticleFeedService {
     private final ModuleGateService moduleGateService;
     private final ArticleRssFeedSnapshotService articleRssFeedSnapshotService;
     private final ArticleRssFeedRefreshJobProducer articleRssFeedRefreshScheduler;
+    private final PlatformTransactionManager transactionManager;
 
     /**
      * Retrieves the article feed associated with a token.
@@ -346,31 +351,39 @@ public class ArticleFeedService {
     }
 
     private ArticleFeed createDefaultFeed(Long tenantId, Long userId) {
-        Tenant tenant = tenantRepository.getReferenceById(tenantId);
-
-        ArticleFeed feed = new ArticleFeed();
-        feed.setTenant(tenant);
-        feed.setUser(userRepository.getReferenceById(userId));
-        feed.setTitle(tenant.getName() + " Private Article Feed");
-        feed.setDefaultFeed(true);
-        FeedProvisioningSupport.IssuedToken issued = FeedProvisioningSupport.issueUniqueToken(
-                feedTokenGenerator::generate,
-                articleFeedRepository::existsByFeedTokenHash,
-                feedTokenProtector::protect);
-        feed.setFeedToken(issued.protectedToken());
-        feed.setFeedTokenHash(issued.tokenHash());
         try {
-            ArticleFeed saved = articleFeedRepository.save(feed);
-            articleRssFeedRefreshScheduler.requestRefreshAfterCommit(tenantId);
-            return saved;
+            return inNewTransaction(() -> {
+                Tenant tenant = tenantRepository.getReferenceById(tenantId);
+                ArticleFeed feed = new ArticleFeed();
+                feed.setTenant(tenant);
+                feed.setUser(userRepository.getReferenceById(userId));
+                feed.setTitle(tenant.getName() + " Private Article Feed");
+                feed.setDefaultFeed(true);
+                FeedProvisioningSupport.IssuedToken issued = FeedProvisioningSupport.issueUniqueToken(
+                        feedTokenGenerator::generate,
+                        articleFeedRepository::existsByFeedTokenHash,
+                        feedTokenProtector::protect);
+                feed.setFeedToken(issued.protectedToken());
+                feed.setFeedTokenHash(issued.tokenHash());
+                ArticleFeed saved = articleFeedRepository.saveAndFlush(feed);
+                articleRssFeedRefreshScheduler.requestRefreshAfterCommit(tenantId);
+                return saved;
+            });
         } catch (DataIntegrityViolationException ex) {
             if (FeedProvisioningSupport.isUniqueConstraintViolation(ex, "uq_article_feeds_default")) {
                 // Concurrent first-time ensureDefaultFeed calls can both attempt the insert;
-                // the loser just reads back the row the winner committed.
-                return articleFeedRepository.findByTenantIdAndUserIdAndDefaultFeedTrue(tenantId, userId)
-                        .orElseThrow(() -> ex);
+                // the loser reads back the winner in a clean transaction.
+                return inNewTransaction(() -> articleFeedRepository
+                        .findByTenantIdAndUserIdAndDefaultFeedTrue(tenantId, userId)
+                        .orElseThrow(() -> ex));
             }
             throw ex;
         }
+    }
+
+    private <T> T inNewTransaction(Supplier<T> operation) {
+        TransactionTemplate transaction = new TransactionTemplate(transactionManager);
+        transaction.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
+        return transaction.execute(status -> operation.get());
     }
 }

@@ -22,7 +22,9 @@ public record StripeWebhookJobPayload(
         boolean detailsSubmitted,
         Map<String, String> metadata,
         String paymentIntentId,
-        boolean fullyRefunded
+        boolean fullyRefunded,
+        String paymentStatus,
+        boolean dataObjectDeserialized
 ) {
 
     public static StripeWebhookJobPayload from(StripeOperations.StripeWebhookPayload event) {
@@ -40,7 +42,9 @@ public record StripeWebhookJobPayload(
                 event.detailsSubmitted(),
                 event.metadata(),
                 event.paymentIntentId(),
-                event.fullyRefunded()
+                event.fullyRefunded(),
+                event.paymentStatus(),
+                event.dataObjectDeserialized()
         );
     }
 
@@ -62,7 +66,9 @@ public record StripeWebhookJobPayload(
                 detailsSubmitted,
                 metadata == null ? Map.of() : metadata,
                 paymentIntentId,
-                fullyRefunded
+                fullyRefunded,
+                paymentStatus,
+                dataObjectDeserialized
         );
     }
 }

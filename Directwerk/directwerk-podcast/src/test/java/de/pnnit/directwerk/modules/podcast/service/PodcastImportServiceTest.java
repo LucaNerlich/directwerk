@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -86,7 +87,7 @@ class PodcastImportServiceTest {
 
         MediaAsset audio = new MediaAsset();
         audio.setId(11L);
-        when(remoteAssetIngestApi.ingestFromUrl(any())).thenReturn(audio);
+        when(remoteAssetIngestApi.ingestFromUrl(any())).thenReturn(new RemoteAssetIngestApi.IngestResult(audio, false));
         Episode created = new Episode();
         created.setId(22L);
         when(episodeService.createImportedDraft(
@@ -147,7 +148,7 @@ class PodcastImportServiceTest {
         when(episodeRepository.existsByTenantIdAndSlug(10L, "episode-9")).thenReturn(false);
         MediaAsset audio = new MediaAsset();
         audio.setId(11L);
-        when(remoteAssetIngestApi.ingestFromUrl(any())).thenReturn(audio);
+        when(remoteAssetIngestApi.ingestFromUrl(any())).thenReturn(new RemoteAssetIngestApi.IngestResult(audio, false));
         Episode created = new Episode();
         created.setId(22L);
         when(episodeService.createImportedDraft(
@@ -191,7 +192,7 @@ class PodcastImportServiceTest {
         when(episodeRepository.existsByTenantIdAndSlug(10L, "requested-episode")).thenReturn(false);
         MediaAsset audio = new MediaAsset();
         audio.setId(11L);
-        when(remoteAssetIngestApi.ingestFromUrl(any())).thenReturn(audio);
+        when(remoteAssetIngestApi.ingestFromUrl(any())).thenReturn(new RemoteAssetIngestApi.IngestResult(audio, false));
         Episode created = new Episode();
         created.setId(22L);
         when(episodeService.createImportedDraft(
@@ -235,7 +236,7 @@ class PodcastImportServiceTest {
         when(episodeRepository.existsByTenantIdAndSlug(10L, "episode-1")).thenReturn(false);
         MediaAsset audio = new MediaAsset();
         audio.setId(11L);
-        when(remoteAssetIngestApi.ingestFromUrl(any())).thenReturn(audio);
+        when(remoteAssetIngestApi.ingestFromUrl(any())).thenReturn(new RemoteAssetIngestApi.IngestResult(audio, false));
         when(episodeService.createImportedDraft(
                 any(), any(), any(), any(), any(), any(), any(), any(), any(),
                 any(), any(), any(), any(), any(), any()
@@ -262,6 +263,46 @@ class PodcastImportServiceTest {
         ))).isInstanceOf(IllegalArgumentException.class);
 
         verify(remoteAssetIngestApi).discard(11L);
+    }
+
+    @Test
+    void doesNotDiscardReusedAudioWhenEpisodeCreationFails() {
+        String feedUrl = "https://example.com/feed.xml";
+        String guid = "episode-reused";
+        String identity = PodcastImportService.importIdentity(feedUrl, guid);
+        when(episodeRepository.findByTenantIdAndImportIdentity(10L, identity))
+                .thenReturn(Optional.empty());
+        when(episodeRepository.existsByTenantIdAndSlug(10L, "episode-reused")).thenReturn(false);
+        MediaAsset audio = new MediaAsset();
+        audio.setId(11L);
+        when(remoteAssetIngestApi.ingestFromUrl(any()))
+                .thenReturn(new RemoteAssetIngestApi.IngestResult(audio, true));
+        when(episodeService.createImportedDraft(
+                any(), any(), any(), any(), any(), any(), any(), any(), any(),
+                any(), any(), any(), any(), any(), any()
+        )).thenThrow(new IllegalArgumentException("invalid episode"));
+
+        assertThatThrownBy(() -> service.importEpisode(new PodcastImportService.ImportEpisodeCommand(
+                7L,
+                feedUrl,
+                guid,
+                "episode-reused",
+                "Episode Reused",
+                "Shownotes",
+                1,
+                60,
+                AccessPolicy.FREE,
+                null,
+                Set.of(),
+                Set.of(),
+                "https://cdn.example.com/episode-reused.mp3",
+                null,
+                null,
+                null,
+                null
+        ))).isInstanceOf(IllegalArgumentException.class);
+
+        verify(remoteAssetIngestApi, never()).discard(any());
     }
 
     @Test

@@ -137,6 +137,7 @@ public class TenantManagementService {
         branding.setSiteTitle(tenant.getName());
         tenantBrandingRepository.save(branding);
 
+        activateCoreModules(tenant.getId());
         if (StringUtils.hasText(modulePreset)) {
             moduleManagementService.applyPreset(tenant.getId(), modulePreset);
         }
@@ -269,6 +270,12 @@ public class TenantManagementService {
                 )
         );
         return limits;
+    }
+
+    private void activateCoreModules(Long tenantId) {
+        moduleManagementService.listAllModules().stream()
+                .filter(ModuleManagementService.ModuleView::core)
+                .forEach(module -> moduleManagementService.activateModule(tenantId, module.moduleKey()));
     }
 
     private TenantDetailView toView(Tenant tenant) {

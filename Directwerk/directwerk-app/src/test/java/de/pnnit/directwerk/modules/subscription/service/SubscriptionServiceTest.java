@@ -103,6 +103,24 @@ class SubscriptionServiceTest {
     }
 
     @Test
+    void grantManualSubscriptionRejectsNonActiveStripeRowWithExternalIds() {
+        mockUserAndMembership();
+        SubscriptionProduct product = product();
+        when(subscriptionProductService.requireProduct(TENANT_ID, PRODUCT_ID)).thenReturn(product);
+        Subscription stripe = subscription(SubscriptionSource.STRIPE, SubscriptionStatus.PAST_DUE);
+        stripe.setExternalSubscriptionId("sub_123");
+        when(subscriptionRepository.findByTenantIdAndUserIdAndProductId(TENANT_ID, USER_ID, PRODUCT_ID))
+                .thenReturn(Optional.of(stripe));
+
+        assertThatThrownBy(() -> service.grantManualSubscription(TENANT_ID, "user@example.com", PRODUCT_ID))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("cancel it before granting manual access");
+
+        verify(subscriptionRepository, never()).save(any());
+        verify(eventPublisher, never()).publishEvent(any());
+    }
+
+    @Test
     void revokeSubscriptionDoesNotApplyLocalCancelWhenExternalBillingFails() {
         Subscription stripe = subscription(SubscriptionSource.STRIPE, SubscriptionStatus.ACTIVE);
         stripe.setId(99L);

@@ -14,6 +14,7 @@ import de.pnnit.directwerk.modules.core.entity.Tenant;
 import de.pnnit.directwerk.modules.core.entity.TenantMembership;
 import de.pnnit.directwerk.modules.core.entity.TenantStatus;
 import de.pnnit.directwerk.modules.core.entity.User;
+import de.pnnit.directwerk.modules.core.exception.ConflictException;
 import de.pnnit.directwerk.modules.core.repository.TenantMembershipRepository;
 import de.pnnit.directwerk.modules.core.repository.TenantRepository;
 import de.pnnit.directwerk.modules.core.repository.UserRepository;
@@ -68,6 +69,30 @@ class UserAccountServiceTest {
                 "Member",
                 suspendedTenant.getId()
         )).isInstanceOf(TenantSuspendedException.class);
+
+        verify(userRepository, never()).save(any());
+        verify(tenantMembershipRepository, never()).save(any());
+    }
+
+    @Test
+    void registerRejectsDisabledMembershipAsConflict() {
+        Tenant tenant = tenant(1L);
+        User disabledUser = user(10L, "blocked@example.com", "hash");
+        TenantMembership disabledMembership =
+                membership(100L, disabledUser, tenant, MembershipStatus.DISABLED, Role.SUBSCRIBER);
+
+        when(tenantRepository.findById(1L)).thenReturn(Optional.of(tenant));
+        when(userRepository.findByEmailIgnoreCase("blocked@example.com")).thenReturn(Optional.of(disabledUser));
+        when(tenantMembershipRepository.findByUserIdAndTenantId(10L, 1L))
+                .thenReturn(Optional.of(disabledMembership));
+
+        assertThatThrownBy(() -> userAccountService.register(
+                "blocked@example.com",
+                "valid-password",
+                "Blocked",
+                tenant.getId()
+        )).isInstanceOf(ConflictException.class)
+                .hasMessageContaining("disabled");
 
         verify(userRepository, never()).save(any());
         verify(tenantMembershipRepository, never()).save(any());

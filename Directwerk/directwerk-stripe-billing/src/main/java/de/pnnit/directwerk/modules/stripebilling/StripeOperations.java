@@ -89,7 +89,9 @@ public interface StripeOperations {
             boolean detailsSubmitted,
             Map<String, String> metadata,
             String paymentIntentId,
-            boolean fullyRefunded
+            boolean fullyRefunded,
+            String paymentStatus,
+            boolean dataObjectDeserialized
     ) {
     }
 }

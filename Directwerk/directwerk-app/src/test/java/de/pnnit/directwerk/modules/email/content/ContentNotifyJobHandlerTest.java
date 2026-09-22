@@ -8,6 +8,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import de.pnnit.directwerk.config.DirectwerkConfig;
 import de.pnnit.directwerk.modules.content.ContentPublishedEvent;
 import de.pnnit.directwerk.modules.content.ContentType;
 import de.pnnit.directwerk.modules.content.NewsletterNotificationApi;
@@ -17,6 +18,7 @@ import de.pnnit.directwerk.modules.core.entity.User;
 import de.pnnit.directwerk.modules.core.repository.TenantMembershipRepository;
 import de.pnnit.directwerk.modules.email.EmailJobProducer;
 import de.pnnit.directwerk.modules.email.EmailTemplate;
+import de.pnnit.directwerk.modules.email.repository.ContentNotificationMarkerRepository;
 import de.pnnit.directwerk.modules.queue.JobStatus;
 import de.pnnit.directwerk.modules.queue.QueueJob;
 import de.pnnit.directwerk.modules.queue.QueueNames;
@@ -56,6 +58,12 @@ class ContentNotifyJobHandlerTest {
     @Mock
     private NewsletterNotificationApi newsletterNotification;
 
+    @Mock
+    private ContentNotificationMarkerRepository contentNotificationMarkerRepository;
+
+    @Mock
+    private DirectwerkConfig directwerkConfig;
+
     private final ObjectMapper objectMapper = new ObjectMapper();
     private ContentNotifyJobHandler handler;
 
@@ -67,7 +75,9 @@ class ContentNotifyJobHandlerTest {
                 contentPublicUrlBuilder,
                 tenantContentBrandingResolver,
                 emailJobProducer,
-                newsletterNotificationApi
+                newsletterNotificationApi,
+                contentNotificationMarkerRepository,
+                directwerkConfig
         );
     }
 
@@ -103,12 +113,15 @@ class ContentNotifyJobHandlerTest {
 
     @Test
     void notifiesEpisodeMembersWithPreferencesUrl() {
+        when(directwerkConfig.isEmailEnabled()).thenReturn(true);
         when(contentPublicUrlBuilder.buildPublicContentUrl(any(), any(), any())).thenReturn("https://tenant.example/x");
         when(contentPublicUrlBuilder.buildNotificationPreferencesUrl(any())).thenReturn("https://tenant.example/prefs");
         when(tenantContentBrandingResolver.resolve(TENANT_ID))
                 .thenReturn(new TenantContentBrandingResolver.BrandingContext("Acme", "Acme", "#000000"));
         when(tenantMembershipRepository.findNotificationOptedInMembers(TENANT_ID, MembershipStatus.ACTIVE))
                 .thenReturn(List.of(membership(2L, "grace@example.com", null)));
+        when(contentNotificationMarkerRepository.claim(TENANT_ID, ContentType.EPISODE.name(), 3L, 2L))
+                .thenReturn(true);
 
         handler.handle(job(ContentNotifyJobPayload.from(
                 ContentType.EPISODE, 3L, "New episode", null, "ep-3", "FREE"
@@ -120,6 +133,38 @@ class ContentNotifyJobHandlerTest {
         );
         assertThat(variablesCaptor.getValue().get("recipientName")).isEqualTo("there");
         assertThat(variablesCaptor.getValue().get("preferencesUrl")).isEqualTo("https://tenant.example/prefs");
+    }
+
+    @Test
+    void skipsRecipientsAlreadyNotifiedOnRetry() {
+        when(directwerkConfig.isEmailEnabled()).thenReturn(true);
+        when(contentPublicUrlBuilder.buildPublicContentUrl(any(), any(), any())).thenReturn("https://tenant.example/x");
+        when(contentPublicUrlBuilder.buildNotificationPreferencesUrl(any())).thenReturn("https://tenant.example/prefs");
+        when(tenantContentBrandingResolver.resolve(TENANT_ID))
+                .thenReturn(new TenantContentBrandingResolver.BrandingContext("Acme", "Acme", "#000000"));
+        when(tenantMembershipRepository.findNotificationOptedInMembers(TENANT_ID, MembershipStatus.ACTIVE))
+                .thenReturn(List.of(membership(2L, "grace@example.com", null)));
+        // Marker already claimed by the previous attempt.
+        when(contentNotificationMarkerRepository.claim(TENANT_ID, ContentType.EPISODE.name(), 3L, 2L))
+                .thenReturn(false);
+
+        handler.handle(job(ContentNotifyJobPayload.from(
+                ContentType.EPISODE, 3L, "New episode", null, "ep-3", "FREE"
+        )));
+
+        verify(emailJobProducer, never()).enqueueContentNotification(any(), any(), any(), any(), any());
+    }
+
+    @Test
+    void skipsEpisodeNotificationWhenEmailDeliveryDisabled() {
+        when(directwerkConfig.isEmailEnabled()).thenReturn(false);
+
+        handler.handle(job(ContentNotifyJobPayload.from(
+                ContentType.EPISODE, 3L, "New episode", null, "ep-3", "FREE"
+        )));
+
+        verify(emailJobProducer, never()).enqueueContentNotification(any(), any(), any(), any(), any());
+        verify(contentNotificationMarkerRepository, never()).claim(any(), any(), any(), any());
     }
 
     @Test

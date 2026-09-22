@@ -219,4 +219,25 @@ class TenantBrandingServiceTest {
         assertThat(saved.getPrimaryColor()).isEqualTo("#112233");
         assertThat(saved.getSecondaryColor()).isEqualTo("#445566");
     }
+
+    @Test
+    void rejectsUmamiWebsiteIdClaimedByAnotherTenant() {
+        // The read path uses platform-wide Umami credentials, so a tenant must not be able to
+        // adopt a website id another tenant already owns (cross-tenant stats exposure).
+        when(tenantBrandingRepository.countOtherTenantsWithWebsiteId("abcdefgh", 10L)).thenReturn(1L);
+
+        assertThatThrownBy(() -> service.updateBranding(
+                10L, null, null, null, null, null, "abcdefgh", null))
+                .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
+    void acceptsUnclaimedUmamiWebsiteId() {
+        when(tenantBrandingRepository.countOtherTenantsWithWebsiteId("abcdefgh", 10L)).thenReturn(0L);
+
+        TenantBranding saved = service.updateBranding(
+                10L, null, null, null, null, null, "abcdefgh", null);
+
+        assertThat(saved.getUmamiWebsiteId()).isEqualTo("abcdefgh");
+    }
 }

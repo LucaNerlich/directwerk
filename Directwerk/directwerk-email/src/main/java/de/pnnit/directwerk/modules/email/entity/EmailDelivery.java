@@ -24,6 +24,14 @@ public class EmailDelivery {
     @Column(name = "delivered_at", nullable = false)
     private Instant deliveredAt = Instant.now();
 
+    /**
+     * When the send actually succeeded. {@code null} marks a provisional claim (the row was
+     * taken but the transport call may not have completed); a stale provisional claim is
+     * re-deliverable, while a finalized row is a permanent at-most-once guard.
+     */
+    @Column(name = "sent_at")
+    private Instant sentAt;
+
     public EmailDelivery(UUID jobId) {
         this.jobId = jobId;
     }

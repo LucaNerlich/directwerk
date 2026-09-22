@@ -29,7 +29,10 @@ settings:
   forwardAuthorizationHeader: true
 
 docs: |-
-  Requires EDITOR or TENANT_ADMIN -- 01-Auth-and-Tokens/3 (Tenant A Admin Login).
+  Requires TENANT_ADMIN -- 01-Auth-and-Tokens/3 (Tenant A Admin Login).
+  Requires the ANALYTICS feature module (otherwise FEATURE_NOT_ENABLED).
   The API logs in to Umami server-to-server; credentials live only in
   DIRECTWERK_ANALYTICS_UMAMI_USERNAME / DIRECTWERK_ANALYTICS_UMAMI_PASSWORD.
   A tenant without umamiWebsiteId answers 404 ANALYTICS_NOT_CONFIGURED.
+  A umamiWebsiteId already configured for another tenant is rejected with
+  404 ANALYTICS_NOT_CONFIGURED (never queried with the platform credentials).

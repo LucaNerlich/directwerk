@@ -61,11 +61,11 @@ class AuthorizationArchitectureTest {
             .because("podcast publishing endpoints must require EDITOR or TENANT_ADMIN via method security");
 
     @ArchTest
-    static final ArchRule analyticsControllersRequireEditorRole = classes()
+    static final ArchRule analyticsControllersRequireTenantAdminRole = classes()
             .that().resideInAPackage("..controller.analytics..")
             .and().areAnnotatedWith(RestController.class)
-            .should(bePreAuthorizedForExact("hasAnyRole('EDITOR', 'TENANT_ADMIN')"))
-            .because("tenant analytics endpoints must require EDITOR or TENANT_ADMIN via method security");
+            .should(bePreAuthorizedForExact("hasRole('TENANT_ADMIN')"))
+            .because("tenant analytics endpoints are tenant-admin only, matching the /api/v1/tenant/** matcher");
 
     @ArchTest
     static final ArchRule authenticatedControllersRequireAuthentication = classes()

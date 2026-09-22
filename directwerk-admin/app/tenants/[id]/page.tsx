@@ -357,7 +357,7 @@ export default function TenantPage({params}: TenantPageProps) {
 
                         <DomainForceVerifyForm onVerified={loadTenantData} tenantId={id} />
 
-                        <TenantProductsPanel sessionKey={tenantSessionKey} />
+                        <TenantProductsPanel sessionKey={tenantSessionKey} tenant={data.tenant} />
 
                         <SectionHeader
                             description={`${data.users.length} member${data.users.length === 1 ? '' : 's'}. Deactivating removes access immediately.`}

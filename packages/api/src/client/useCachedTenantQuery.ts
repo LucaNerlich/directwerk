@@ -51,6 +51,16 @@ export function clearCachedTenantData(namespace: string, tenantHost?: string): v
     cache.delete(cacheKey(namespace, tenantHost))
 }
 
+/**
+ * Drops every cached tenant namespace.
+ *
+ * Must be called on logout and successful login so a later account on the same
+ * browser cannot read the previous account's cached (potentially personal) data.
+ */
+export function clearAllCachedTenantData(): void {
+    tenantCaches.clear()
+}
+
 export interface UseCachedTenantQueryOptions extends UseAuthedQueryOptions {
     namespace: string
     tenantHost: string

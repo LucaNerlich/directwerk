@@ -2,10 +2,12 @@ package de.pnnit.directwerk.modules.subscription.repository;
 
 import de.pnnit.directwerk.modules.subscription.entity.Subscription;
 import de.pnnit.directwerk.modules.subscription.entity.SubscriptionStatus;
+import jakarta.persistence.LockModeType;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -21,6 +23,22 @@ public interface SubscriptionRepository extends JpaRepository<Subscription, Long
     Optional<Subscription> findByTenantIdAndUserIdAndProductId(Long tenantId, Long userId, Long productId);
 
     Optional<Subscription> findByTenantIdAndExternalSubscriptionId(Long tenantId, String externalSubscriptionId);
+
+    /**
+     * Pessimistic variant used by Stripe webhook handling: the row lock is held for the rest of
+     * the surrounding transaction so a concurrent {@code customer.subscription.deleted} cannot
+     * commit between the canceled-row check and the write that would resurrect it.
+     */
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("""
+            SELECT s FROM Subscription s
+            WHERE s.tenant.id = :tenantId
+              AND s.externalSubscriptionId = :externalSubscriptionId
+            """)
+    Optional<Subscription> findByTenantIdAndExternalSubscriptionIdForUpdate(
+            @Param("tenantId") Long tenantId,
+            @Param("externalSubscriptionId") String externalSubscriptionId
+    );
 
     Optional<Subscription> findByTenantIdAndExternalPaymentId(Long tenantId, String externalPaymentId);
 

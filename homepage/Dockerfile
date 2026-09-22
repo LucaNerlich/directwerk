@@ -25,6 +25,9 @@ RUN --mount=type=cache,target=/root/.local/share/pnpm/store \
     pnpm install --frozen-lockfile --filter homepage...
 
 ENV NEXT_TELEMETRY_DISABLED=1
+# `NEXT_PUBLIC_*` is inlined at build time; the homepage build fails without it.
+ARG NEXT_PUBLIC_API_URL
+ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
 RUN mkdir -p homepage/public \
     && pnpm --filter homepage build \
     && pnpm deploy --filter=homepage --prod --legacy /deploy \

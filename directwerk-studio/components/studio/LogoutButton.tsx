@@ -3,6 +3,7 @@
 import {useRouter} from 'next/navigation'
 
 import {Button} from '@directwerk/ui/components/button'
+import {clearAllCachedTenantData} from '@directwerk/api/client/useCachedTenantQuery'
 
 import {useOptionalMe} from '@/lib/auth/MeProvider'
 import {clearTokens} from '@/lib/auth/tokenStore'
@@ -30,6 +31,7 @@ export default function LogoutButton() {
                             // Best effort — still clear local tokens below.
                         }
                         clearTokens()
+                        clearAllCachedTenantData()
                         router.push('/login')
                     })()
                 }}

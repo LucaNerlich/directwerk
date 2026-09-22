@@ -265,15 +265,18 @@ class RssFeedSnapshotServiceTest {
         Fixture fixture = fixture();
         enableRss(fixture);
         stubCanonicalDomain(fixture);
-        PodcastSeries draftSeries = new PodcastSeries();
-        draftSeries.setId(20L);
-        draftSeries.setTenant(fixture.tenant);
-        when(fixture.podcastSeriesRepository.findByTenantIdOrderByTitleAscIdAsc(10L)).thenReturn(List.of(draftSeries));
+        PodcastSeries publishedSeries = new PodcastSeries();
+        publishedSeries.setId(20L);
+        publishedSeries.setTenant(fixture.tenant);
+        publishedSeries.setStatus(de.pnnit.directwerk.modules.podcast.entity.SeriesStatus.PUBLISHED);
+        when(fixture.podcastSeriesRepository.findByTenantIdAndStatusOrderByTitleAscIdAsc(
+                10L, de.pnnit.directwerk.modules.podcast.entity.SeriesStatus.PUBLISHED
+        )).thenReturn(List.of(publishedSeries));
         when(fixture.rssFeedService.buildPublicFeed(
                 fixture.tenant, null, "https", "alpha.example.test", 443
         )).thenReturn("<rss>tenant</rss>");
         when(fixture.rssFeedService.buildPublicFeed(
-                fixture.tenant, draftSeries, "https", "alpha.example.test", 443
+                fixture.tenant, publishedSeries, "https", "alpha.example.test", 443
         )).thenThrow(new IllegalStateException("series feed boom"));
         SubscriberFeed enabled = new SubscriberFeed();
         enabled.setId(42L);
@@ -295,6 +298,42 @@ class RssFeedSnapshotServiceTest {
                 .containsExactlyInAnyOrder("alpha/public/rss/podcast.xml", "alpha/private/rss/feed-42.xml");
         verify(fixture.stateStore).markWritten(10L, RssSnapshotKind.PRIVATE_FEED.name(), 42L);
         verify(fixture.stateStore, never()).markWritten(10L, RssSnapshotKind.SERIES.name(), 20L);
+    }
+
+    @Test
+    void refreshSkipsSnapshotForNonPublishedSeries() {
+        Fixture fixture = fixture();
+        enableRss(fixture);
+        stubCanonicalDomain(fixture);
+        when(fixture.podcastSeriesRepository.findByTenantIdAndStatusOrderByTitleAscIdAsc(
+                10L, de.pnnit.directwerk.modules.podcast.entity.SeriesStatus.PUBLISHED
+        )).thenReturn(List.of());
+        when(fixture.subscriberFeedRepository.findByTenantIdOrderByIdAsc(10L)).thenReturn(List.of());
+        when(fixture.rssFeedService.buildPublicFeed(
+                fixture.tenant, null, "https", "alpha.example.test", 443
+        )).thenReturn("<rss>tenant</rss>");
+
+        fixture.service.refreshTenant(10L);
+
+        verify(fixture.rssFeedService, never()).buildPublicFeed(
+                eq(fixture.tenant), any(PodcastSeries.class), any(), any(), any(Integer.class)
+        );
+        verify(fixture.podcastSeriesRepository, never()).findByTenantIdOrderByTitleAscIdAsc(any());
+    }
+
+    @Test
+    void publicSeriesFeedRejectsNonPublishedSeries() {
+        Fixture fixture = fixture();
+        PodcastSeries draft = new PodcastSeries();
+        draft.setId(20L);
+        draft.setTenant(fixture.tenant);
+        draft.setStatus(de.pnnit.directwerk.modules.podcast.entity.SeriesStatus.DRAFT);
+        when(fixture.podcastSeriesRepository.findByTenantIdAndSlug(10L, "draft-series"))
+                .thenReturn(Optional.of(draft));
+
+        org.assertj.core.api.Assertions.assertThatThrownBy(
+                () -> fixture.service.publicSeriesFeed(fixture.tenant, "draft-series")
+        ).isInstanceOf(de.pnnit.directwerk.modules.podcast.exception.SeriesNotFoundException.class);
     }
 
     private Fixture fixture() {

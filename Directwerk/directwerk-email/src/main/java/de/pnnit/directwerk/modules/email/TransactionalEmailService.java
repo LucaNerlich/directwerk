@@ -102,5 +102,8 @@ public class TransactionalEmailService {
             emailDeliveryGuard.releaseClaim(jobId);
             throw ex;
         }
+        // Only after a successful send does the claim become permanent; a crash before this
+        // leaves a stale provisional claim that the next attempt can take over.
+        emailDeliveryGuard.finalizeClaim(jobId);
     }
 }

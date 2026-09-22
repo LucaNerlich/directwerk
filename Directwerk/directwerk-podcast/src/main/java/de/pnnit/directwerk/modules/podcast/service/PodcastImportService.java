@@ -110,7 +110,7 @@ public class PodcastImportService {
                 assetType,
                 visibility,
                 filenameHint
-        ));
+        )).asset();
     }
 
     /**
@@ -124,6 +124,20 @@ public class PodcastImportService {
             String filenameHint
     ) {
         return remoteAssetIngestApi.startIngestFromUrl(new RemoteAssetIngestApi.IngestCommand(
+                sourceUrl,
+                assetType,
+                visibility,
+                filenameHint
+        )).asset();
+    }
+
+    private RemoteAssetIngestApi.IngestResult ingestAssetTracked(
+            String sourceUrl,
+            AssetType assetType,
+            AssetVisibility visibility,
+            String filenameHint
+    ) {
+        return remoteAssetIngestApi.ingestFromUrl(new RemoteAssetIngestApi.IngestCommand(
                 sourceUrl,
                 assetType,
                 visibility,
@@ -156,24 +170,28 @@ public class PodcastImportService {
         Long coverAssetId = command.coverAssetId();
         try {
             if (audioAssetId == null && command.audioUrl() != null && !command.audioUrl().isBlank()) {
-                MediaAsset audio = ingestAsset(
+                RemoteAssetIngestApi.IngestResult audio = ingestAssetTracked(
                         command.audioUrl(),
                         AssetType.AUDIO,
                         AssetVisibility.PRIVATE,
                         importFilenameHint(command.title(), command.audioUrl(), "episode", "mp3")
                 );
-                audioAssetId = audio.getId();
-                ingestedAssetIds.add(audioAssetId);
+                audioAssetId = audio.asset().getId();
+                if (!audio.reused()) {
+                    ingestedAssetIds.add(audioAssetId);
+                }
             }
             if (coverAssetId == null && command.imageUrl() != null && !command.imageUrl().isBlank()) {
-                MediaAsset cover = ingestAsset(
+                RemoteAssetIngestApi.IngestResult cover = ingestAssetTracked(
                         command.imageUrl(),
                         AssetType.IMAGE,
                         AssetVisibility.PUBLIC,
                         importFilenameHint(command.title(), command.imageUrl(), "cover", "jpg")
                 );
-                coverAssetId = cover.getId();
-                ingestedAssetIds.add(coverAssetId);
+                coverAssetId = cover.asset().getId();
+                if (!cover.reused()) {
+                    ingestedAssetIds.add(coverAssetId);
+                }
             }
 
             String slug = uniqueSlug(tenantId, command.slug(), command.title());

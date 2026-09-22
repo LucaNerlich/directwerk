@@ -1,6 +1,8 @@
 package de.pnnit.directwerk.modules.email;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -43,6 +45,21 @@ class EmailDeliveryGuardTest {
         when(emailDeliveryRepository.insertIfAbsent(JOB_ID, NOW)).thenReturn(0);
 
         assertThat(guard.tryClaimDelivery(JOB_ID)).isFalse();
+    }
+
+    @Test
+    void tryClaimDeliveryTakesOverStaleProvisionalClaim() {
+        when(emailDeliveryRepository.insertIfAbsent(JOB_ID, NOW)).thenReturn(0);
+        when(emailDeliveryRepository.takeOverStaleClaim(eq(JOB_ID), eq(NOW), any())).thenReturn(1);
+
+        assertThat(guard.tryClaimDelivery(JOB_ID)).isTrue();
+    }
+
+    @Test
+    void finalizeClaimRecordsSentTimestamp() {
+        guard.finalizeClaim(JOB_ID);
+
+        verify(emailDeliveryRepository).finalizeClaim(JOB_ID, NOW);
     }
 
     @Test

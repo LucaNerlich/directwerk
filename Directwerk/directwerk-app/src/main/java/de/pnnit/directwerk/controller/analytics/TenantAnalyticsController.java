@@ -4,6 +4,8 @@ import de.pnnit.directwerk.analytics.AnalyticsQueryException;
 import de.pnnit.directwerk.analytics.AnalyticsQueryService;
 import de.pnnit.directwerk.analytics.AnalyticsRange;
 import de.pnnit.directwerk.api.response.Response;
+import de.pnnit.directwerk.modules.core.AnalyticsModule;
+import de.pnnit.directwerk.modules.core.RequiresModule;
 import de.pnnit.directwerk.multitenancy.TenantContext;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -16,7 +18,8 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @Validated
-@PreAuthorize("hasAnyRole('EDITOR', 'TENANT_ADMIN')")
+@RequiresModule(AnalyticsModule.KEY)
+@PreAuthorize("hasRole('TENANT_ADMIN')")
 @RequestMapping("/api/v1/tenant/analytics")
 public class TenantAnalyticsController {
 
