@@ -54,7 +54,7 @@ export default function HeroSection(): React.JSX.Element {
             <div className="marketing-container grid items-center gap-12 lg:grid-cols-[1.1fr_0.9fr] lg:py-8">
                 <div>
                     <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                        Deine eigene Plattform · Hosting in Europa
+                        Studio, Website & Abos · Hosting in Europa
                     </p>
                     <h1 className="mt-6 max-w-4xl text-balance text-5xl font-semibold leading-[0.96] tracking-[-0.055em] sm:text-6xl lg:text-7xl">
                         Deine Inhalte.
@@ -66,7 +66,7 @@ export default function HeroSection(): React.JSX.Element {
                     <p className="mt-8 max-w-xl text-pretty text-lg leading-8 text-muted-foreground">
                         Directwerk ist deine Podcast- und Content-Plattform: Studio zum
                         Veröffentlichen, Website für Abonnenten, bezahlte Inhalte und
-                        Hosting in Europa — unter deiner Marke, nicht unter einer fremden.
+                        Hosting in Europa — klar aufgebaut, ohne Technikstress.
                     </p>
                     <div className="mt-8 flex flex-wrap gap-3">
                         <a
@@ -88,7 +88,7 @@ export default function HeroSection(): React.JSX.Element {
                 <PlayerMock />
             </div>
             <div className="marketing-container mt-4">
-                <SectionLabel>Dein Kanal, deine Regeln</SectionLabel>
+                <SectionLabel>Einfach starten</SectionLabel>
             </div>
         </section>
     )

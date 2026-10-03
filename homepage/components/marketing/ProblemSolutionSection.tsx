@@ -2,19 +2,19 @@ import SectionLabel from '@/components/marketing/SectionLabel'
 
 const PAIRS = [
     {
-        problem: 'Bei Patreon, Steady & Co. gehören Domain, Marke und Hörerdaten oft der Plattform — nicht dir.',
+        problem: 'Podcast, Website und bezahlte Inhalte selbst aufzusetzen kostet Zeit und Nerven.',
         solution:
-            'Directwerk läuft unter deinem Namen: Studio zum Arbeiten, Website für Hörer, eigene Domain. Deine Show, deine Regeln.',
+            'Studio zum Veröffentlichen, fertige Website für Hörer, Abos und Branding — schon da. Du startest mit deiner Show, nicht mit Setup.',
     },
     {
-        problem: 'Podcast, Newsletter und Mitgliedschaften stecken in getrennten Tools.',
+        problem: 'Podcast, Newsletter und Mitgliedschaften stecken oft in getrennten Tools.',
         solution:
-            'Alles an einem Ort: Folgen veröffentlichen, Abos verkaufen, Artikel teilen. Wer zahlt, hört und liest das Passende — ohne Tool-Chaos.',
+            'Alles an einem Ort: Folgen hochladen, Abos verkaufen, Artikel teilen. Wer zahlt, sieht das Passende — ohne Tool-Hopping.',
     },
     {
-        problem: 'Mehrere Shows oder Kunden brauchen jeweils eigene Marke und getrennte Daten.',
+        problem: 'Private Feeds und Zugänge für Abonnenten sind schwer zu erklären und zu pflegen.',
         solution:
-            'Jede Show bekommt eigene Domain, eigenes Branding und eigene Hörer — sauber getrennt, auf einer gemeinsamen Plattform.',
+            'Jeder Abonnent bekommt einen eigenen Feed-Link. Bezahlte Inhalte erscheinen automatisch nur mit gültigem Zugang — du steuerst das im Studio.',
     },
 ] as const
 
@@ -24,7 +24,7 @@ export default function ProblemSolutionSection(): React.JSX.Element {
             <div className="marketing-container">
                 <SectionLabel>Warum Directwerk</SectionLabel>
                 <h2 className="mt-4 max-w-3xl text-balance text-3xl font-semibold tracking-tight sm:text-4xl">
-                    Für Creators, die unabhängig bleiben wollen
+                    Gebaut für Creators — ohne Technikstress
                 </h2>
                 <div className="mt-10 grid gap-6 lg:grid-cols-3">
                     {PAIRS.map((item, index) => (

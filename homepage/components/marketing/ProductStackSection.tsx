@@ -31,11 +31,12 @@ export default function ProductStackSection(): React.JSX.Element {
             <div className="marketing-container">
                 <SectionLabel>Was du bekommst</SectionLabel>
                 <h2 className="mt-4 max-w-2xl text-balance text-3xl font-semibold tracking-tight sm:text-4xl">
-                    Studio, Website, Abos — unter deiner Marke
+                    Studio, Website, Abos — fertig zum Starten
                 </h2>
                 <p className="mt-4 max-w-2xl text-muted-foreground">
                     Du veröffentlichst im Studio, deine Hörer nutzen deine Website.
-                    Alles läuft unter deinem Namen — gehostet in Europa.
+                    Branding, Abos und Hosting in Europa sind Teil des Pakets —
+                    ohne Extra-Setup.
                 </p>
                 <div className="mt-10 grid gap-4 sm:grid-cols-2">
                     {PRODUCTS.map((product) => (
