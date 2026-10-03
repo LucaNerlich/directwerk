@@ -8,6 +8,9 @@ import {Button} from '@directwerk/ui/components/button'
 import {AUTH_REQUIRED} from '@directwerk/api/constants'
 import {ensureAuthenticated} from '@/lib/auth/session'
 import {getAccessToken} from '@/lib/auth/tokenStore'
+import {defaultLocale} from '@/lib/i18n/config'
+import {useDictionary, useLocale} from '@/lib/i18n/LocaleProvider'
+import {localeFromPathname, localizedPath, stripLocalePrefix} from '@/lib/i18n/paths'
 
 const PUBLIC_PATHS = new Set([
     '/',
@@ -30,19 +33,20 @@ const PUBLIC_PATHS = new Set([
 const PROTECTED_PATHS = new Set(['/account', '/downloads'])
 
 function isPublicPath(pathname: string): boolean {
-    if (PUBLIC_PATHS.has(pathname)) {
+    const bare = stripLocalePrefix(pathname)
+    if (PUBLIC_PATHS.has(bare)) {
         return true
     }
     return (
-        pathname.startsWith('/articles/') ||
-        pathname.startsWith('/episodes/') ||
-        pathname.startsWith('/feeds/') ||
-        pathname.startsWith('/newsletter/')
+        bare.startsWith('/articles/') ||
+        bare.startsWith('/episodes/') ||
+        bare.startsWith('/feeds/') ||
+        bare.startsWith('/newsletter/')
     )
 }
 
 function isProtectedPath(pathname: string): boolean {
-    return PROTECTED_PATHS.has(pathname)
+    return PROTECTED_PATHS.has(stripLocalePrefix(pathname))
 }
 
 export default function AuthBootstrap({
@@ -52,8 +56,11 @@ export default function AuthBootstrap({
 }>) {
     const pathname = usePathname()
     const router = useRouter()
+    const lang = useLocale()
+    const dictionary = useDictionary()
+    const pathLang = localeFromPathname(pathname) ?? lang ?? defaultLocale
     const [readyPathname, setReadyPathname] = useState<string | null>(() =>
-        isPublicPath(pathname) ? pathname : null
+        isPublicPath(pathname) ? pathname : null,
     )
     const [transientError, setTransientError] = useState(false)
     const [attempt, setAttempt] = useState(0)
@@ -72,7 +79,7 @@ export default function AuthBootstrap({
             if (getAccessToken() === null) {
                 if (active) {
                     setReadyPathname(null)
-                    router.replace('/login')
+                    router.replace(localizedPath(pathLang, '/login'))
                 }
                 return
             }
@@ -89,7 +96,7 @@ export default function AuthBootstrap({
                 }
                 if (error instanceof Error && error.message === AUTH_REQUIRED) {
                     setReadyPathname(null)
-                    router.replace('/login')
+                    router.replace(localizedPath(pathLang, '/login'))
                     return
                 }
                 // Transient failures (e.g. `AUTH_TRANSIENT` upstream outages)
@@ -103,15 +110,14 @@ export default function AuthBootstrap({
         return () => {
             active = false
         }
-    }, [pathname, router, attempt])
+    }, [pathname, router, attempt, pathLang])
 
     if (transientError && isProtectedPath(pathname)) {
         return (
             <div className="page-container space-y-3 py-8">
                 <Alert variant="destructive">
                     <AlertDescription>
-                        Die Anmeldung ist derzeit nicht möglich. Bitte erneut
-                        versuchen.
+                        {dictionary.common.authTransient}
                     </AlertDescription>
                 </Alert>
                 <Button
@@ -122,14 +128,14 @@ export default function AuthBootstrap({
                         setAttempt((value) => value + 1)
                     }}
                 >
-                    Erneut versuchen
+                    {dictionary.common.retry}
                 </Button>
             </div>
         )
     }
 
     if (readyPathname !== pathname && isProtectedPath(pathname)) {
-        return <p>Wird geladen…</p>
+        return <p>{dictionary.common.loading}</p>
     }
 
     return children

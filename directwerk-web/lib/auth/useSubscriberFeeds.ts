@@ -6,6 +6,7 @@ import type {SubscriberFeedView} from '@directwerk/api/types'
 import {listMyFeeds} from '@/lib/api/client'
 import {getWebClientTenantHost} from '@/lib/tenant/clientHost'
 import {userFacingFeedsError} from '@/lib/billing/userFacingBillingError'
+import {useDictionary} from '@/lib/i18n/LocaleProvider'
 
 export interface SubscriberFeedsState {
     feeds: SubscriberFeedView[]
@@ -16,10 +17,11 @@ export interface SubscriberFeedsState {
 }
 
 export function useSubscriberFeeds(isAuthenticated: boolean): SubscriberFeedsState {
+    const {errors} = useDictionary()
     const query = useAuthedQuery(() => listMyFeeds(getWebClientTenantHost()), {
         enabled: isAuthenticated,
-        fallbackError: 'Feeds konnten nicht geladen werden.',
-        mapError: userFacingFeedsError,
+        fallbackError: errors.billingFeeds,
+        mapError: (error) => userFacingFeedsError(error, errors),
     })
 
     return {

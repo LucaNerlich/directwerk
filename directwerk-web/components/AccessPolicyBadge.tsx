@@ -1,7 +1,10 @@
+'use client'
+
 import {Badge} from '@directwerk/ui/components/badge'
 import type {AccessPolicy} from '@directwerk/api/types'
 
 import {entitlementLabel, entitlementState} from '@/lib/format/content'
+import {useDictionary} from '@/lib/i18n/LocaleProvider'
 
 /**
  * Entitlement-aware access badge shared by episodes, articles and the home
@@ -20,13 +23,14 @@ export default function AccessPolicyBadge({
     isEntitled?: boolean
     className?: string
 }): React.JSX.Element {
+    const {format} = useDictionary()
     const state = entitlementState(policy, isEntitled)
     return (
         <Badge
             className={className}
             variant={state === 'included' ? 'default' : state === 'locked' ? 'secondary' : 'outline'}
         >
-            {entitlementLabel(policy, isEntitled)}
+            {entitlementLabel(policy, isEntitled, format)}
         </Badge>
     )
 }

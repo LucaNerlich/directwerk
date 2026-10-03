@@ -8,6 +8,7 @@ import {Input} from '@directwerk/ui/components/input'
 
 import {subscribeToNewsletter} from '@/lib/api/newsletterApi'
 import {emailFieldError} from '@/lib/forms/authFields'
+import {useDictionary} from '@/lib/i18n/LocaleProvider'
 
 interface NewsletterSubscribeFormProps {
     listSlug: string
@@ -16,6 +17,7 @@ interface NewsletterSubscribeFormProps {
 export default function NewsletterSubscribeForm({
     listSlug,
 }: NewsletterSubscribeFormProps): React.JSX.Element {
+    const {auth, common, newsletter} = useDictionary()
     const [email, setEmail] = useState('')
     const [fieldError, setFieldError] = useState<string | undefined>(undefined)
     const [formError, setFormError] = useState<string | null>(null)
@@ -27,8 +29,7 @@ export default function NewsletterSubscribeForm({
         return (
             <Alert>
                 <AlertDescription>
-                    Wenn die Adresse neu ist, schicken wir eine Bestätigungsmail. Bitte Posteingang
-                    prüfen.
+                    {newsletter.subscribeSuccess}
                 </AlertDescription>
             </Alert>
         )
@@ -40,7 +41,7 @@ export default function NewsletterSubscribeForm({
             noValidate
             onSubmit={(event) => {
                 event.preventDefault()
-                const invalid = emailFieldError(email)
+                const invalid = emailFieldError(email, auth)
                 setFieldError(invalid)
                 if (invalid !== undefined) {
                     emailRef.current?.focus()
@@ -56,15 +57,13 @@ export default function NewsletterSubscribeForm({
                     .catch(() => {
                         // Never surface raw API/transport text to a public
                         // visitor — keep the message generic.
-                        setFormError(
-                            'Abonnieren fehlgeschlagen. Bitte versuche es später erneut.',
-                        )
+                        setFormError(newsletter.subscribeFailed)
                     })
                     .finally(() => setBusy(false))
             }}
         >
             <label className="grid gap-1 text-sm font-medium">
-                E-Mail
+                {common.email}
                 <Input
                     aria-describedby={fieldError !== undefined ? 'newsletter-email-error' : undefined}
                     aria-invalid={fieldError !== undefined || undefined}
@@ -90,7 +89,7 @@ export default function NewsletterSubscribeForm({
                 </Alert>
             ) : null}
             <Button disabled={busy} type="submit">
-                Abonnieren
+                {newsletter.subscribe}
             </Button>
         </form>
     )

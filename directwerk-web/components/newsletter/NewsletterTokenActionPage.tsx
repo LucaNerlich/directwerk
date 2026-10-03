@@ -7,6 +7,7 @@ import {Alert, AlertDescription} from '@directwerk/ui/components/alert'
 import PageHeader from '@directwerk/ui/components/page-header'
 import PageStack from '@directwerk/ui/components/page-stack'
 
+import {useDictionary} from '@/lib/i18n/LocaleProvider'
 import {
     confirmNewsletterSubscription,
     unsubscribeFromNewsletter,
@@ -14,37 +15,40 @@ import {
 
 type TokenActionStatus = 'loading' | 'ok' | 'error'
 
-const COPY = {
-    confirm: {
-        title: 'Newsletter bestätigen',
-        loadingMessage: 'Bestätigen…',
-        okMessage: 'Abo bestätigt. Du bekommst künftig Mails zu dieser Liste.',
-        errorMessage: 'Bestätigung fehlgeschlagen oder Link ungültig.',
-        run: (token: string) => confirmNewsletterSubscription({token}),
-    },
-    unsubscribe: {
-        title: 'Newsletter abbestellen',
-        loadingMessage: 'Abbestellen…',
-        okMessage: 'Du wurdest abgemeldet. Keine weiteren Newsletter-Mails.',
-        errorMessage: 'Abbestellen fehlgeschlagen oder Link ungültig.',
-        run: (token: string) => unsubscribeFromNewsletter({token}),
-    },
+const RUNNERS = {
+    confirm: (token: string) => confirmNewsletterSubscription({token}),
+    unsubscribe: (token: string) => unsubscribeFromNewsletter({token}),
 } as const
 
 export function NewsletterTokenActionPage({
     action,
 }: {
-    action: keyof typeof COPY
+    action: keyof typeof RUNNERS
 }): React.JSX.Element {
+    const {newsletter} = useDictionary()
     return (
-        <Suspense fallback={<p className="p-6 text-sm">Laden…</p>}>
+        <Suspense fallback={<p className="p-6 text-sm">{newsletter.loadingFallback}</p>}>
             <Inner action={action} />
         </Suspense>
     )
 }
 
-function Inner({action}: {action: keyof typeof COPY}): React.JSX.Element {
-    const copy = COPY[action]
+function Inner({action}: {action: keyof typeof RUNNERS}): React.JSX.Element {
+    const {newsletter} = useDictionary()
+    const copy =
+        action === 'confirm'
+            ? {
+                  title: newsletter.confirmTitle,
+                  loadingMessage: newsletter.confirmLoading,
+                  okMessage: newsletter.confirmOk,
+                  errorMessage: newsletter.confirmError,
+              }
+            : {
+                  title: newsletter.unsubscribeTitle,
+                  loadingMessage: newsletter.unsubscribeLoading,
+                  okMessage: newsletter.unsubscribeOk,
+                  errorMessage: newsletter.unsubscribeError,
+              }
     const params = useSearchParams()
     const token = params.get('token')
     const [status, setStatus] = useState<TokenActionStatus>('loading')
@@ -54,8 +58,7 @@ function Inner({action}: {action: keyof typeof COPY}): React.JSX.Element {
             setStatus('error')
             return
         }
-        void COPY[action]
-            .run(token)
+        void RUNNERS[action](token)
             .then(() => setStatus('ok'))
             .catch(() => setStatus('error'))
     }, [action, token])

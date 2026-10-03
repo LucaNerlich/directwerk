@@ -11,6 +11,8 @@ import type {PublicNewsletterList} from '@directwerk/api/types'
 
 import NewsletterSubscribeForm from '@/components/newsletter/NewsletterSubscribeForm'
 import {listPublicNewsletterLists} from '@/lib/api/publicApi'
+import {useDictionary, useLocale} from '@/lib/i18n/LocaleProvider'
+import {localizedPath} from '@/lib/i18n/paths'
 import {useSiteConfig} from '@/lib/site/SiteConfigProvider'
 
 interface NewsletterIndexClientProps {
@@ -20,6 +22,8 @@ interface NewsletterIndexClientProps {
 export default function NewsletterIndexClient({
     initialLists,
 }: NewsletterIndexClientProps): React.JSX.Element {
+    const lang = useLocale()
+    const {newsletter} = useDictionary()
     const config = useSiteConfig()
     const emailNotify = config.emailNotifyAvailable === true
     const [lists, setLists] = useState<PublicNewsletterList[] | null>(initialLists)
@@ -38,18 +42,18 @@ export default function NewsletterIndexClient({
             })
             .catch((err: unknown) => {
                 if (!cancelled) {
-                    setError(err instanceof Error ? err.message : 'Listen konnten nicht geladen werden.')
+                    setError(err instanceof Error ? err.message : newsletter.listsLoadFailed)
                 }
             })
         return () => {
             cancelled = true
         }
-    }, [emailNotify, initialLists])
+    }, [emailNotify, initialLists, newsletter.listsLoadFailed])
 
     if (!emailNotify) {
         return (
             <PageStack className="page-container">
-                <PageHeader title="Newsletter" description="Newsletter sind für diesen Tenant nicht aktiv." />
+                <PageHeader title={newsletter.title} description={newsletter.inactive} />
             </PageStack>
         )
     }
@@ -58,8 +62,8 @@ export default function NewsletterIndexClient({
         return (
             <PageStack className="page-container">
                 <PageHeader
-                    title="Newsletter abonnieren"
-                    description="Keine Anmeldung nötig. Du bekommst eine Bestätigungsmail."
+                    title={newsletter.subscribeTitle}
+                    description={newsletter.confirmHint}
                 />
                 <Skeleton className="h-24 max-w-md w-full" />
             </PageStack>
@@ -69,7 +73,7 @@ export default function NewsletterIndexClient({
     if (error !== null) {
         return (
             <PageStack className="page-container">
-                <PageHeader title="Newsletter" description={error} />
+                <PageHeader title={newsletter.title} description={error} />
             </PageStack>
         )
     }
@@ -80,12 +84,12 @@ export default function NewsletterIndexClient({
         return (
             <PageStack className="page-container">
                 <PageHeader
-                    title="Newsletter"
-                    description="Zurzeit gibt es keine offenen Newsletter-Listen."
+                    title={newsletter.title}
+                    description={newsletter.noOpenListsDescription}
                 />
                 <EmptyState
-                    title="Keine Listen"
-                    description="Sobald der Creator eine Liste anlegt, kannst du sie hier abonnieren."
+                    title={newsletter.noListsTitle}
+                    description={newsletter.noListsEmptyDescription}
                 />
             </PageStack>
         )
@@ -97,10 +101,7 @@ export default function NewsletterIndexClient({
             <PageStack className="page-container">
                 <PageHeader
                     title={list.name}
-                    description={
-                        list.description?.trim() ||
-                        'Keine Anmeldung nötig. Du bekommst eine Bestätigungsmail.'
-                    }
+                    description={list.description?.trim() || newsletter.confirmHint}
                 />
                 <NewsletterSubscribeForm listSlug={list.slug} />
             </PageStack>
@@ -110,21 +111,21 @@ export default function NewsletterIndexClient({
     return (
         <PageStack className="page-container">
             <PageHeader
-                title="Newsletter abonnieren"
-                description="Wähle eine Liste. Keine Anmeldung nötig — du bekommst eine Bestätigungsmail."
+                title={newsletter.subscribeTitle}
+                description={newsletter.indexDescription}
             />
             <ul className="grid max-w-xl gap-3">
                 {rows.map((list) => (
                     <li key={list.slug}>
                         <Link
                             className="block rounded-lg border px-4 py-3 transition-colors hover:bg-muted/40"
-                            href={`/newsletter/${encodeURIComponent(list.slug)}`}
+                            href={localizedPath(lang, `/newsletter/${encodeURIComponent(list.slug)}`)}
                         >
                             <p className="font-medium text-foreground">{list.name}</p>
                             {list.description?.trim() ? (
                                 <p className="mt-1 text-sm text-muted-foreground">{list.description}</p>
                             ) : (
-                                <p className="mt-1 text-sm text-muted-foreground">Abonnieren</p>
+                                <p className="mt-1 text-sm text-muted-foreground">{newsletter.subscribe}</p>
                             )}
                         </Link>
                     </li>

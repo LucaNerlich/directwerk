@@ -21,8 +21,8 @@ export interface PublicArticlesState {
 export interface PublicArticlesOptions {
     tenantHost: string
     isAuthenticated: boolean
-    authRequiredMessage?: string
-    loadErrorMessage?: string
+    authRequiredMessage: string
+    loadErrorMessage: string
 }
 
 /**
@@ -32,8 +32,8 @@ export interface PublicArticlesOptions {
 export function usePublicArticles({
     tenantHost,
     isAuthenticated,
-    authRequiredMessage = 'Sitzung abgelaufen — bitte erneut anmelden, um freigeschaltete Beiträge zu lesen.',
-    loadErrorMessage = 'Beiträge konnten nicht geladen werden.',
+    authRequiredMessage,
+    loadErrorMessage,
 }: PublicArticlesOptions): PublicArticlesState {
     const [siteConfig, setSiteConfig] = useState<PublicSiteConfig | null>(null)
     const [articles, setArticles] = useState<PublicArticle[]>([])

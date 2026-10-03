@@ -1,5 +1,8 @@
 import type {PublicProduct} from '@directwerk/api/types'
 
+import type {Locale} from '@/lib/i18n/config'
+import {localizedPath} from '@/lib/i18n/paths'
+
 /**
  * Picks the membership product a locked row / detail gate should link to.
  * Only a `requiredLevelSortOrder` rank travels with catalog items (no product
@@ -20,9 +23,12 @@ export function findUnlockProduct(
 }
 
 /**
- * Unlock target for paid content: `/pricing#<slug>` when a product is known,
+ * Unlock target for paid content: `/<lang>/pricing#<slug>` when a product is known,
  * plain `/pricing` otherwise.
  */
-export function unlockHref(product: PublicProduct | null): string {
-    return product === null ? '/pricing' : `/pricing#${product.slug}`
+export function unlockHref(product: PublicProduct | null, lang: Locale): string {
+    return localizedPath(
+        lang,
+        product === null ? '/pricing' : `/pricing#${product.slug}`,
+    )
 }

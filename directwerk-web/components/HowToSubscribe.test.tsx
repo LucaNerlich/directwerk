@@ -2,12 +2,13 @@ import {cleanup, render, screen} from '@testing-library/react'
 import {afterEach, describe, expect, it} from 'vitest'
 
 import HowToSubscribe from '@/components/HowToSubscribe'
+import {TestLocale} from '@/lib/i18n/testWrapper'
 
 afterEach(cleanup)
 
 describe('HowToSubscribe', () => {
     it('renders podcast-only instructions', () => {
-        render(<HowToSubscribe podcast />)
+        render(<TestLocale><HowToSubscribe podcast /></TestLocale>)
 
         expect(
             screen.getByRole('heading', {name: 'So hörst du in der Podcast-App'}),
@@ -19,7 +20,7 @@ describe('HowToSubscribe', () => {
     })
 
     it('renders article instructions without URLs', () => {
-        render(<HowToSubscribe articles />)
+        render(<TestLocale><HowToSubscribe articles /></TestLocale>)
 
         expect(
             screen.getByRole('heading', {name: 'So liest du im Feed-Reader'}),
@@ -31,7 +32,7 @@ describe('HowToSubscribe', () => {
     })
 
     it('renders both blocks together', () => {
-        render(<HowToSubscribe podcast articles />)
+        render(<TestLocale><HowToSubscribe podcast articles /></TestLocale>)
 
         expect(
             screen.getByRole('heading', {name: 'So hörst du in der Podcast-App'}),
@@ -42,7 +43,7 @@ describe('HowToSubscribe', () => {
     })
 
     it('renders nothing without any feed kind', () => {
-        const {container} = render(<HowToSubscribe />)
+        const {container} = render(<TestLocale><HowToSubscribe /></TestLocale>)
         expect(container).toBeEmptyDOMElement()
     })
 })

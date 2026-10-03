@@ -1,5 +1,7 @@
 import {describe, expect, it} from 'vitest'
 
+import {testDictionary} from '@/lib/i18n/testDictionary'
+
 import {
     emailFieldError,
     hasFieldErrors,
@@ -10,26 +12,26 @@ import {
 
 describe('authFields', () => {
     it('flags empty and malformed e-mails', () => {
-        expect(emailFieldError('')).toBeDefined()
-        expect(emailFieldError('nope')).toBeDefined()
-        expect(emailFieldError('reader@example.com')).toBeUndefined()
+        expect(emailFieldError('', testDictionary.auth)).toBeDefined()
+        expect(emailFieldError('nope', testDictionary.auth)).toBeDefined()
+        expect(emailFieldError('reader@example.com', testDictionary.auth)).toBeUndefined()
     })
 
     it('flags passwords below the shared policy', () => {
-        expect(passwordFieldError('')).toBeDefined()
-        expect(passwordFieldError('short')).toBeDefined()
-        expect(passwordFieldError('a'.repeat(12))).toBeUndefined()
+        expect(passwordFieldError('', testDictionary.auth)).toBeDefined()
+        expect(passwordFieldError('short', testDictionary.auth)).toBeDefined()
+        expect(passwordFieldError('a'.repeat(12), testDictionary.auth)).toBeUndefined()
     })
 
     it('flags empty tokens only', () => {
-        expect(tokenFieldError('   ')).toBeDefined()
-        expect(tokenFieldError('abc')).toBeUndefined()
+        expect(tokenFieldError('   ', testDictionary.auth)).toBeDefined()
+        expect(tokenFieldError('abc', testDictionary.auth)).toBeUndefined()
     })
 
     it('rejects whitespace-only optional names', () => {
-        expect(nameFieldError('')).toBeUndefined()
-        expect(nameFieldError('Luca')).toBeUndefined()
-        expect(nameFieldError('   ')).toBeDefined()
+        expect(nameFieldError('', testDictionary.auth)).toBeUndefined()
+        expect(nameFieldError('Luca', testDictionary.auth)).toBeUndefined()
+        expect(nameFieldError('   ', testDictionary.auth)).toBeDefined()
     })
 
     it('detects whether any field carries an error', () => {

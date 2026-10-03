@@ -2,13 +2,14 @@ import {cleanup, fireEvent, render, screen} from '@testing-library/react'
 import {afterEach, describe, expect, it, vi} from 'vitest'
 
 import DetailShell from '@/components/DetailShell'
+import {TestLocale} from '@/lib/i18n/testWrapper'
 
 afterEach(cleanup)
 
 describe('DetailShell', () => {
     it('shows a skeleton while loading', () => {
         render(
-            <DetailShell
+            <TestLocale><DetailShell
                 backHref="/episodes"
                 backLabel="← Alle Folgen"
                 isLoading
@@ -17,7 +18,7 @@ describe('DetailShell', () => {
                 onRetry={() => {}}
                 notFound={null}
                 unlockHref="/pricing"
-            />,
+            />,</TestLocale>
         )
 
         expect(screen.getByLabelText('Inhalt wird geladen')).toBeInTheDocument()
@@ -26,7 +27,7 @@ describe('DetailShell', () => {
     it('shows a paid-gate EmptyState with Anmelden/Mitgliedschaft/retry actions', () => {
         const onRetry = vi.fn()
         render(
-            <DetailShell
+            <TestLocale><DetailShell
                 backHref="/articles"
                 backLabel="← Beiträge"
                 isLoading={false}
@@ -38,7 +39,7 @@ describe('DetailShell', () => {
                     description: 'Anmelden für bezahlte Inhalte.',
                 }}
                 unlockHref="/pricing#basis"
-            />,
+            /></TestLocale>,
         )
 
         expect(
@@ -46,7 +47,7 @@ describe('DetailShell', () => {
         ).toBeInTheDocument()
         expect(screen.getByRole('link', {name: 'Anmelden'})).toHaveAttribute(
             'href',
-            '/login',
+            '/de/login',
         )
         expect(
             screen.getByRole('link', {name: 'Mitgliedschaft ansehen'}),
@@ -57,7 +58,7 @@ describe('DetailShell', () => {
 
     it('omits the login action for authenticated subscribers', () => {
         render(
-            <DetailShell
+            <TestLocale><DetailShell
                 backHref="/episodes"
                 backLabel="← Alle Folgen"
                 isLoading={false}
@@ -66,7 +67,7 @@ describe('DetailShell', () => {
                 onRetry={() => {}}
                 notFound={{title: 'Folge nicht verfügbar', description: 'Gesperrt.'}}
                 unlockHref="/pricing"
-            />,
+            />,</TestLocale>
         )
 
         expect(screen.queryByRole('link', {name: 'Anmelden'})).not.toBeInTheDocument()
@@ -78,7 +79,7 @@ describe('DetailShell', () => {
     it('shows transport errors as an alert with retry', () => {
         const onRetry = vi.fn()
         render(
-            <DetailShell
+            <TestLocale><DetailShell
                 backHref="/episodes"
                 backLabel="← Alle Folgen"
                 isLoading={false}
@@ -87,7 +88,7 @@ describe('DetailShell', () => {
                 onRetry={onRetry}
                 notFound={null}
                 unlockHref="/pricing"
-            />,
+            /></TestLocale>,
         )
 
         expect(

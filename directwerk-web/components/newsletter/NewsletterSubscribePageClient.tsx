@@ -11,6 +11,8 @@ import type {PublicNewsletterList} from '@directwerk/api/types'
 
 import NewsletterSubscribeForm from '@/components/newsletter/NewsletterSubscribeForm'
 import {getPublicNewsletterList} from '@/lib/api/publicApi'
+import {useDictionary, useLocale} from '@/lib/i18n/LocaleProvider'
+import {localizedPath} from '@/lib/i18n/paths'
 import {useSiteConfig} from '@/lib/site/SiteConfigProvider'
 
 interface NewsletterSubscribePageClientProps {
@@ -28,6 +30,8 @@ export default function NewsletterSubscribePageClient({
     list: initialList,
     slug,
 }: NewsletterSubscribePageClientProps): React.JSX.Element {
+    const lang = useLocale()
+    const {newsletter} = useDictionary()
     const config = useSiteConfig()
     const emailNotify = config.emailNotifyAvailable === true
     const [state, setState] = useState<LoadState>(() => {
@@ -64,7 +68,7 @@ export default function NewsletterSubscribePageClient({
     if (!emailNotify) {
         return (
             <PageStack className="page-container">
-                <PageHeader title="Newsletter" description="Newsletter sind für diesen Tenant nicht aktiv." />
+                <PageHeader title={newsletter.title} description={newsletter.inactive} />
             </PageStack>
         )
     }
@@ -72,7 +76,7 @@ export default function NewsletterSubscribePageClient({
     if (state.kind === 'loading') {
         return (
             <PageStack className="page-container">
-                <PageHeader title="Newsletter" description="Liste wird geladen…" />
+                <PageHeader title={newsletter.title} description={newsletter.listLoading} />
                 <Skeleton className="h-24 max-w-md w-full" />
             </PageStack>
         )
@@ -82,11 +86,11 @@ export default function NewsletterSubscribePageClient({
         return (
             <PageStack className="page-container">
                 <PageHeader
-                    title="Newsletter nicht gefunden"
-                    description="Diese Liste existiert nicht oder ist nicht mehr aktiv."
+                    title={newsletter.listNotFoundTitle}
+                    description={newsletter.listNotFoundDescription}
                     actions={
-                        <Button nativeButton={false} render={<Link href="/newsletter" />} variant="outline">
-                            Alle Listen
+                        <Button nativeButton={false} render={<Link href={localizedPath(lang, '/newsletter')} />} variant="outline">
+                            {newsletter.allLists}
                         </Button>
                     }
                 />
@@ -94,12 +98,11 @@ export default function NewsletterSubscribePageClient({
         )
     }
 
-    const title = state.kind === 'ready' ? state.list.name : 'Newsletter abonnieren'
+    const title = state.kind === 'ready' ? state.list.name : newsletter.subscribeTitle
     const description =
         state.kind === 'ready'
-            ? state.list.description?.trim() ||
-              'Keine Anmeldung nötig. Du bekommst eine Bestätigungsmail.'
-            : 'Keine Anmeldung nötig. Du bekommst eine Bestätigungsmail.'
+            ? state.list.description?.trim() || newsletter.confirmHint
+            : newsletter.confirmHint
 
     return (
         <PageStack className="page-container">
@@ -107,8 +110,8 @@ export default function NewsletterSubscribePageClient({
                 title={title}
                 description={description}
                 actions={
-                    <Button nativeButton={false} render={<Link href="/newsletter" />} variant="outline">
-                        Alle Listen
+                    <Button nativeButton={false} render={<Link href={localizedPath(lang, '/newsletter')} />} variant="outline">
+                        {newsletter.allLists}
                     </Button>
                 }
             />

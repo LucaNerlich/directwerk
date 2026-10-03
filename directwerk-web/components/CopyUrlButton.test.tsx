@@ -2,6 +2,7 @@ import {cleanup, fireEvent, render, screen, waitFor} from '@testing-library/reac
 import {afterEach, describe, expect, it, vi} from 'vitest'
 
 import CopyUrlButton from './CopyUrlButton'
+import {TestLocale} from '@/lib/i18n/testWrapper'
 
 afterEach(() => {
     cleanup()
@@ -14,7 +15,7 @@ describe('CopyUrlButton', () => {
             throw new Error('selection failed')
         })
 
-        render(<CopyUrlButton url="https://tenant.example/feed.xml" />)
+        render(<TestLocale><CopyUrlButton url="https://tenant.example/feed.xml" /></TestLocale>)
         fireEvent.click(screen.getByRole('button', {name: 'Kopieren'}))
 
         await waitFor(() =>

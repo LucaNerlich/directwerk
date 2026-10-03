@@ -1,9 +1,21 @@
 import {cleanup, renderHook, waitFor} from '@testing-library/react'
 import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest'
 
+import type {ReactNode} from 'react'
+
 import {useAccountDashboard} from '@/lib/account/useAccountDashboard'
+import {LocaleProvider} from '@/lib/i18n/LocaleProvider'
+import {testDictionary} from '@/lib/i18n/testDictionary'
 
 const router = {replace: vi.fn()}
+
+function wrapper({children}: {children: ReactNode}): React.JSX.Element {
+    return (
+        <LocaleProvider lang="de" dictionary={testDictionary}>
+            {children}
+        </LocaleProvider>
+    )
+}
 const getAccess = vi.fn()
 const getMe = vi.fn()
 const getNotificationPreferences = vi.fn()
@@ -63,7 +75,7 @@ describe('useAccountDashboard', () => {
             },
         })
 
-        const {result} = renderHook(() => useAccountDashboard())
+        const {result} = renderHook(() => useAccountDashboard(), {wrapper})
 
         await waitFor(() => expect(result.current.isLoading).toBe(false))
 
@@ -80,7 +92,7 @@ describe('useAccountDashboard', () => {
             },
         })
 
-        const {result} = renderHook(() => useAccountDashboard())
+        const {result} = renderHook(() => useAccountDashboard(), {wrapper})
 
         await waitFor(() => expect(result.current.isLoading).toBe(false))
 

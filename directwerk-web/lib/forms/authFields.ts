@@ -5,6 +5,9 @@ import {
     PASSWORD_MIN_LENGTH,
 } from '@directwerk/api/validation/input'
 
+import type {Dictionary} from '@/lib/i18n/dictionary'
+import {interpolate} from '@/lib/i18n/interpolate'
+
 /**
  * Inline field errors for the auth forms. Keys match input names so the focus
  * helper can resolve the first invalid field generically.
@@ -16,13 +19,18 @@ export interface AuthFieldErrors {
     name?: string
 }
 
+type AuthMessages = Dictionary['auth']
+
 /** Inline message for an e-mail input, or `undefined` when it is valid. */
-export function emailFieldError(email: string): string | undefined {
+export function emailFieldError(
+    email: string,
+    auth: AuthMessages,
+): string | undefined {
     if (email.trim().length === 0) {
-        return 'Bitte gib deine E-Mail-Adresse ein.'
+        return auth.emailRequired
     }
     if (!isValidEmail(email)) {
-        return 'Bitte gib eine gültige E-Mail-Adresse ein.'
+        return auth.emailInvalid
     }
     return undefined
 }
@@ -31,28 +39,40 @@ export function emailFieldError(email: string): string | undefined {
  * Inline message for the optional name input. Mirrors `parseRegisterInput`:
  * an omitted name is fine, a whitespace-only value is not.
  */
-export function nameFieldError(name: string): string | undefined {
+export function nameFieldError(
+    name: string,
+    auth: AuthMessages,
+): string | undefined {
     if (name.length > 0 && name.trim().length === 0) {
-        return 'Bitte gib einen Namen ein oder lasse das Feld leer.'
+        return auth.nameInvalid
     }
     return undefined
 }
 
 /** Inline message for a password input, or `undefined` when it is valid. */
-export function passwordFieldError(password: string): string | undefined {
+export function passwordFieldError(
+    password: string,
+    auth: AuthMessages,
+): string | undefined {
     if (password.length === 0) {
-        return 'Bitte gib ein Passwort ein.'
+        return auth.passwordRequired
     }
     if (!isValidPassword(password)) {
-        return `Das Passwort muss zwischen ${PASSWORD_MIN_LENGTH} und ${PASSWORD_MAX_LENGTH} Zeichen lang sein.`
+        return interpolate(auth.passwordLength, {
+            min: PASSWORD_MIN_LENGTH,
+            max: PASSWORD_MAX_LENGTH,
+        })
     }
     return undefined
 }
 
 /** Inline message for an invite/reset token input, or `undefined` when valid. */
-export function tokenFieldError(token: string): string | undefined {
+export function tokenFieldError(
+    token: string,
+    auth: AuthMessages,
+): string | undefined {
     if (token.trim().length === 0) {
-        return 'Bitte gib das Token ein.'
+        return auth.tokenRequired
     }
     return undefined
 }

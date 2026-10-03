@@ -1,3 +1,5 @@
+'use client'
+
 import Link from 'next/link'
 import type {ReactNode} from 'react'
 
@@ -6,6 +8,8 @@ import {ListPanelRow} from '@directwerk/ui/components/list-panel'
 
 import CatalogMediaThumb from '@/components/CatalogMediaThumb'
 import ContentMetaLine from '@/components/ContentMetaLine'
+import {useDictionary, useLocale} from '@/lib/i18n/LocaleProvider'
+import {localizedPath} from '@/lib/i18n/paths'
 
 /**
  * Locked-state CTA shared by episode and article rows: guests are sent to
@@ -19,16 +23,18 @@ export function LockedCatalogAction({
     isAuthenticated: boolean
     unlockHref: string
 }): React.JSX.Element {
+    const lang = useLocale()
+    const {common, nav} = useDictionary()
     if (!isAuthenticated) {
         return (
-            <Link className={buttonVariants({size: 'sm'})} href="/login">
-                Anmelden
+            <Link className={buttonVariants({size: 'sm'})} href={localizedPath(lang, '/login')}>
+                {nav.login}
             </Link>
         )
     }
     return (
         <Link className={buttonVariants({size: 'sm'})} href={unlockHref}>
-            Freischalten
+            {common.unlock}
         </Link>
     )
 }

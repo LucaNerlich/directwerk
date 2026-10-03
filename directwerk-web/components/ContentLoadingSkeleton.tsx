@@ -1,4 +1,8 @@
+'use client'
+
 import {Skeleton} from '@directwerk/ui/components/skeleton'
+
+import {useDictionary} from '@/lib/i18n/LocaleProvider'
 
 /**
  * Renders a loading placeholder for a bordered list panel.
@@ -74,8 +78,9 @@ export function HeroSkeleton(): React.JSX.Element {
 }
 
 export function DetailSkeleton(): React.JSX.Element {
+    const {common} = useDictionary()
     return (
-        <div className="max-w-3xl space-y-6" aria-label="Inhalt wird geladen">
+        <div className="max-w-3xl space-y-6" aria-label={common.loadingContent}>
             <div className="space-y-3">
                 <Skeleton className="h-5 w-24" />
                 <Skeleton className="h-9 w-3/4" />

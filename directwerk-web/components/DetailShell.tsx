@@ -10,6 +10,8 @@ import PageStack from '@directwerk/ui/components/page-stack'
 import SectionHeader from '@directwerk/ui/components/section-header'
 
 import {DetailSkeleton} from '@/components/ContentLoadingSkeleton'
+import {useDictionary, useLocale} from '@/lib/i18n/LocaleProvider'
+import {localizedPath} from '@/lib/i18n/paths'
 
 export interface DetailNotFound {
     title: string
@@ -32,6 +34,8 @@ export function DetailLockedPanel({
     isAuthenticated: boolean
     unlockHref: string
 }): React.JSX.Element {
+    const lang = useLocale()
+    const {common, nav} = useDictionary()
     return (
         <section className="flex flex-col gap-3 rounded-xl border bg-card p-5">
             <SectionHeader title={title} />
@@ -40,8 +44,8 @@ export function DetailLockedPanel({
             ) : null}
             <div className="flex flex-wrap gap-2">
                 {!isAuthenticated ? (
-                    <Button nativeButton={false} render={<Link href="/login" />}>
-                        Anmelden
+                    <Button nativeButton={false} render={<Link href={localizedPath(lang, '/login')} />}>
+                        {nav.login}
                     </Button>
                 ) : null}
                 <Button
@@ -49,7 +53,7 @@ export function DetailLockedPanel({
                     render={<Link href={unlockHref} />}
                     variant={isAuthenticated ? 'default' : 'outline'}
                 >
-                    Mitgliedschaft ansehen
+                    {common.viewMembership}
                 </Button>
             </div>
         </section>
@@ -82,6 +86,8 @@ export default function DetailShell({
     unlockHref: string
     children?: ReactNode
 }): React.JSX.Element {
+    const lang = useLocale()
+    const {common, nav} = useDictionary()
     return (
         <PageStack className="page-container">
             <Link
@@ -98,7 +104,7 @@ export default function DetailShell({
                     </Alert>
                     <div>
                         <Button onClick={onRetry} type="button" variant="outline">
-                            Erneut versuchen
+                            {common.retry}
                         </Button>
                     </div>
                 </div>
@@ -110,8 +116,8 @@ export default function DetailShell({
                     action={
                         <div className="flex flex-wrap items-center justify-center gap-2">
                             {!isAuthenticated ? (
-                                <Link className={buttonVariants()} href="/login">
-                                    Anmelden
+                                <Link className={buttonVariants()} href={localizedPath(lang, '/login')}>
+                                    {nav.login}
                                 </Link>
                             ) : null}
                             <Link
@@ -120,10 +126,10 @@ export default function DetailShell({
                                 })}
                                 href={unlockHref}
                             >
-                                Mitgliedschaft ansehen
+                                {common.viewMembership}
                             </Link>
                             <Button onClick={onRetry} type="button" variant="ghost">
-                                Erneut versuchen
+                                {common.retry}
                             </Button>
                         </div>
                     }

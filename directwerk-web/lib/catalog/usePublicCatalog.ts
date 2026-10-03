@@ -23,15 +23,15 @@ export interface PublicCatalogState {
 export interface PublicCatalogOptions {
     tenantHost: string
     isAuthenticated: boolean
-    authRequiredMessage?: string
-    loadErrorMessage?: string
+    authRequiredMessage: string
+    loadErrorMessage: string
 }
 
 export function usePublicCatalog({
     tenantHost,
     isAuthenticated,
-    authRequiredMessage = 'Sitzung abgelaufen — bitte erneut anmelden, um freigeschaltete Folgen zu hören.',
-    loadErrorMessage = 'Podcast-Inhalte konnten nicht geladen werden.',
+    authRequiredMessage,
+    loadErrorMessage,
 }: PublicCatalogOptions): PublicCatalogState {
     const [siteConfig, setSiteConfig] = useState<PublicSiteConfig | null>(null)
     const [series, setSeries] = useState<PublicSeries[]>([])

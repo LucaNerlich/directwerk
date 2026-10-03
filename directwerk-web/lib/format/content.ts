@@ -1,5 +1,7 @@
 import type {AccessPolicy} from '@directwerk/api/types'
 
+import type {Dictionary} from '@/lib/i18n/dictionary'
+
 /**
  * Entitlement-aware badge state. `isEntitled` reflects whether the viewer can
  * actually consume the item right now (e.g. playable audio / readable body),
@@ -19,19 +21,20 @@ export function entitlementState(
 
 /**
  * User-facing entitlement label shown on badges wherever the viewer cares
- * about access: "Frei" / "Enthalten" / "Mitgliedschaft nötig".
+ * about access.
  */
 export function entitlementLabel(
     policy: AccessPolicy,
-    isEntitled = false,
-): 'Frei' | 'Enthalten' | 'Mitgliedschaft nötig' {
+    isEntitled: boolean,
+    format: Dictionary['format'],
+): string {
     switch (entitlementState(policy, isEntitled)) {
         case 'free':
-            return 'Frei'
+            return format.entitlementFree
         case 'included':
-            return 'Enthalten'
+            return format.entitlementIncluded
         case 'locked':
-            return 'Mitgliedschaft nötig'
+            return format.entitlementLocked
     }
 }
 
@@ -49,49 +52,58 @@ export function formatDuration(seconds: number | null): string | null {
     return `${minutes}:${String(remainingSeconds).padStart(2, '0')}`
 }
 
-/** Converts an asset type to its German display label; returns `assetType` when unrecognized. */
-export function assetTypeLabel(assetType: string): string {
+/** Converts an asset type to its localized display label; returns `assetType` when unrecognized. */
+export function assetTypeLabel(
+    assetType: string,
+    format: Dictionary['format'],
+): string {
     switch (assetType.toUpperCase()) {
         case 'PDF':
-            return 'PDF'
+            return format.assetPdf
         case 'IMAGE':
-            return 'Bild'
+            return format.assetImage
         case 'AUDIO':
-            return 'Audio'
+            return format.assetAudio
         case 'VIDEO':
-            return 'Video'
+            return format.assetVideo
         case 'DOCUMENT':
-            return 'Dokument'
+            return format.assetDocument
         default:
             return assetType
     }
 }
 
-export function subscriptionStatusLabel(status: string): string {
+export function subscriptionStatusLabel(
+    status: string,
+    format: Dictionary['format'],
+): string {
     switch (status) {
         case 'ACTIVE':
-            return 'Aktiv'
+            return format.subscriptionActive
         case 'PAST_DUE':
-            return 'Zahlungsrückstand'
+            return format.subscriptionPastDue
         case 'CANCELED':
-            return 'Beendet'
+            return format.subscriptionCanceled
         case 'INCOMPLETE':
-            return 'Unvollständig'
+            return format.subscriptionIncomplete
         default:
             return status
     }
 }
 
-export function billingSourceLabel(source: string): string {
+export function billingSourceLabel(
+    source: string,
+    format: Dictionary['format'],
+): string {
     switch (source) {
         case 'STRIPE':
-            return 'Stripe'
+            return format.billingStripe
         case 'PATREON':
-            return 'Patreon'
+            return format.billingPatreon
         case 'STEADY':
-            return 'Steady'
+            return format.billingSteady
         case 'MANUAL':
-            return 'Freischaltung'
+            return format.billingManual
         default:
             return source
     }

@@ -3,13 +3,14 @@ import {afterEach, describe, expect, it} from 'vitest'
 
 import AccessPolicyBadge from '@/components/AccessPolicyBadge'
 import CatalogRow, {LockedCatalogAction} from '@/components/CatalogRow'
+import {TestLocale} from '@/lib/i18n/testWrapper'
 
 afterEach(cleanup)
 
 describe('CatalogRow', () => {
     it('unifies badge placement, meta order and CTA', () => {
         const {container} = render(
-            <ul>
+            <TestLocale><ul>
                 <CatalogRow
                     href="/articles/mein-beitrag"
                     title="Mein Beitrag"
@@ -18,7 +19,7 @@ describe('CatalogRow', () => {
                     excerpt="Kurzer Teaser."
                     action={<LockedCatalogAction isAuthenticated unlockHref="/pricing#basis" />}
                 />
-            </ul>
+            </ul></TestLocale>
         )
 
         expect(
@@ -34,7 +35,7 @@ describe('CatalogRow', () => {
 
     it('sends guests to login for locked rows', () => {
         render(
-            <ul>
+            <TestLocale><ul>
                 <CatalogRow
                     href="/episodes/folge-1"
                     title="Folge 1"
@@ -44,17 +45,17 @@ describe('CatalogRow', () => {
                         <LockedCatalogAction isAuthenticated={false} unlockHref="/pricing" />
                     }
                 />
-            </ul>
+            </ul></TestLocale>
         )
 
         expect(screen.getByRole('link', {name: 'Anmelden'})).toHaveAttribute(
             'href',
-            '/login',
+            '/de/login',
         )
     })
 
     it('marks entitled paid items as enthalten', () => {
-        render(<AccessPolicyBadge policy="PAID" isEntitled />)
+        render(<TestLocale><AccessPolicyBadge policy="PAID" isEntitled /></TestLocale>)
         expect(screen.getByText('Enthalten')).toBeInTheDocument()
     })
 })
