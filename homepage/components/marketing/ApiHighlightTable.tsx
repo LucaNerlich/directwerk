@@ -9,8 +9,10 @@ const METHOD_STYLES: Record<ApiHighlight['method'], string> = {
 
 export default function ApiHighlightTable({
     highlights,
+    labels,
 }: {
     highlights: readonly ApiHighlight[]
+    labels: {method: string; path: string; description: string}
 }): React.JSX.Element {
     return (
         <div className="overflow-x-auto rounded-xl border">
@@ -18,13 +20,13 @@ export default function ApiHighlightTable({
                 <thead className="border-b bg-muted/40 text-xs uppercase tracking-wide text-muted-foreground">
                     <tr>
                         <th className="px-4 py-3 font-semibold" scope="col">
-                            Methode
+                            {labels.method}
                         </th>
                         <th className="px-4 py-3 font-semibold" scope="col">
-                            Pfad
+                            {labels.path}
                         </th>
                         <th className="hidden px-4 py-3 font-semibold sm:table-cell" scope="col">
-                            Beschreibung
+                            {labels.description}
                         </th>
                     </tr>
                 </thead>

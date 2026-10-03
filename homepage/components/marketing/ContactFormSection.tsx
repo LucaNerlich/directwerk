@@ -8,17 +8,11 @@ import {Label} from '@directwerk/ui/components/label'
 import {Textarea} from '@directwerk/ui/components/textarea'
 
 import AltchaWidget from '@/components/marketing/AltchaWidget'
+import {useLocale} from '@/components/i18n/LocaleProvider'
+import {hrefFor} from '@/lib/i18n/pathname'
 import {API_URL} from '@/lib/marketing/constants'
 
 type FormStatus = 'idle' | 'submitting' | 'success' | 'error'
-
-const CONTACT_ERROR_MESSAGES: Record<string, string> = {
-    CAPTCHA_INVALID: 'Die Sicherheitsprüfung ist abgelaufen. Bitte erneut versuchen.',
-    CONTACT_FORM_DISABLED: 'Das Kontaktformular ist derzeit nicht verfügbar.',
-    RATE_LIMIT_EXCEEDED: 'Zu viele Anfragen. Bitte später erneut versuchen.',
-}
-const DEFAULT_CONTACT_ERROR_MESSAGE =
-    'Nachricht konnte nicht gesendet werden. Bitte später erneut versuchen.'
 
 type AltchaElement = HTMLElement & {
     reset?: () => void
@@ -26,10 +20,10 @@ type AltchaElement = HTMLElement & {
 
 /**
  * Renders the contact form section for submitting inquiries.
- *
- * @returns The contact form section element.
  */
 export default function ContactFormSection(): React.JSX.Element {
+    const {lang, dictionary} = useLocale()
+    const copy = dictionary.contact
     const [status, setStatus] = useState<FormStatus>('idle')
     const [errorMessage, setErrorMessage] = useState<string | null>(null)
     const [captchaVerified, setCaptchaVerified] = useState(false)
@@ -46,7 +40,7 @@ export default function ContactFormSection(): React.JSX.Element {
 
         if (typeof altchaPayload !== 'string' || altchaPayload.length === 0) {
             setStatus('error')
-            setErrorMessage('Bitte bestätige die Sicherheitsprüfung.')
+            setErrorMessage(copy.captchaRequired)
             return
         }
 
@@ -70,11 +64,11 @@ export default function ContactFormSection(): React.JSX.Element {
                     errors?: Array<{code?: string; message?: string}>
                 } | null
                 const code = body?.errors?.[0]?.code
-                throw new Error(
-                    code && Object.prototype.hasOwnProperty.call(CONTACT_ERROR_MESSAGES, code)
-                        ? CONTACT_ERROR_MESSAGES[code]
-                        : DEFAULT_CONTACT_ERROR_MESSAGE,
-                )
+                const known =
+                    code && Object.prototype.hasOwnProperty.call(copy.errors, code)
+                        ? copy.errors[code as keyof typeof copy.errors]
+                        : undefined
+                throw new Error(known ?? copy.errors.default)
             }
 
             form.reset()
@@ -84,9 +78,7 @@ export default function ContactFormSection(): React.JSX.Element {
         } catch (error) {
             setStatus('error')
             setErrorMessage(
-                error instanceof Error
-                    ? error.message
-                    : DEFAULT_CONTACT_ERROR_MESSAGE,
+                error instanceof Error ? error.message : copy.errors.default,
             )
         }
     }
@@ -96,21 +88,17 @@ export default function ContactFormSection(): React.JSX.Element {
             <div className="marketing-container">
                 <div className="rounded-2xl border bg-primary px-8 py-12 text-primary-foreground sm:px-12">
                     <p className="text-xs font-semibold uppercase tracking-[0.24em] text-primary-foreground/70">
-                        Bereit für den nächsten Schritt?
+                        {copy.eyebrow}
                     </p>
                     <h2 className="mt-4 max-w-xl text-balance text-3xl font-semibold tracking-tight">
-                        Early Access — wir helfen beim Start
+                        {copy.title}
                     </h2>
-                    <p className="mt-4 max-w-lg text-primary-foreground/80">
-                        Wir sprechen mit Podcastern und Creators über Early Access,
-                        Studio & Website und den Umzug bestehender Shows — ohne
-                        Technikstress.
-                    </p>
+                    <p className="mt-4 max-w-lg text-primary-foreground/80">{copy.body}</p>
 
                     <form className="mt-8 grid max-w-xl gap-4" onSubmit={handleSubmit}>
                         <div className="grid gap-2">
                             <Label className="text-primary-foreground" htmlFor="contact-name">
-                                Name
+                                {copy.name}
                             </Label>
                             <Input
                                 autoComplete="name"
@@ -123,7 +111,7 @@ export default function ContactFormSection(): React.JSX.Element {
                         </div>
                         <div className="grid gap-2">
                             <Label className="text-primary-foreground" htmlFor="contact-email">
-                                E-Mail
+                                {copy.email}
                             </Label>
                             <Input
                                 autoComplete="email"
@@ -137,7 +125,7 @@ export default function ContactFormSection(): React.JSX.Element {
                         </div>
                         <div className="grid gap-2">
                             <Label className="text-primary-foreground" htmlFor="contact-message">
-                                Nachricht
+                                {copy.message}
                             </Label>
                             <Textarea
                                 className="min-h-32 border-primary-foreground/20 bg-primary-foreground text-primary"
@@ -157,7 +145,7 @@ export default function ContactFormSection(): React.JSX.Element {
 
                         {status === 'success' ? (
                             <p className="text-sm text-primary-foreground" role="status">
-                                Danke — deine Nachricht ist unterwegs. Wir melden uns per E-Mail.
+                                {copy.success}
                             </p>
                         ) : null}
 
@@ -174,7 +162,7 @@ export default function ContactFormSection(): React.JSX.Element {
                                 size="lg"
                                 type="submit"
                             >
-                                {status === 'submitting' ? 'Wird gesendet…' : 'Nachricht senden'}
+                                {status === 'submitting' ? copy.submitting : copy.submit}
                             </Button>
                             <a
                                 className={buttonVariants({
@@ -183,9 +171,9 @@ export default function ContactFormSection(): React.JSX.Element {
                                     className:
                                         'border-primary-foreground/30 bg-transparent text-primary-foreground hover:bg-primary-foreground/10',
                                 })}
-                                href="/developers"
+                                href={hrefFor(lang, '/developers')}
                             >
-                                API-Auszug
+                                {copy.apiExcerpt}
                             </a>
                         </div>
                     </form>

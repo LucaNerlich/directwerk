@@ -7,7 +7,13 @@ import {Button} from '@directwerk/ui/components/button'
 import CodeBlock from '@/components/marketing/CodeBlock'
 import {OAUTH_TOKEN_CURL} from '@/lib/api-docs/snippets'
 
-export default function OptionalOAuthSnippet(): React.JSX.Element {
+export default function OptionalOAuthSnippet({
+    showLabel,
+    hideLabel,
+}: {
+    showLabel: string
+    hideLabel: string
+}): React.JSX.Element {
     const [open, setOpen] = useState(false)
 
     return (
@@ -17,7 +23,7 @@ export default function OptionalOAuthSnippet(): React.JSX.Element {
                 onClick={() => setOpen((value) => !value)}
                 variant="outline"
             >
-                {open ? 'OAuth-Beispiel ausblenden' : 'OAuth-Token-Beispiel anzeigen'}
+                {open ? hideLabel : showLabel}
             </Button>
             {open ? (
                 <CodeBlock code={OAUTH_TOKEN_CURL} label="POST /oauth2/token" />
