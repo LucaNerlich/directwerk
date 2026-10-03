@@ -1,6 +1,7 @@
 import {buttonVariants} from '@directwerk/ui/components/button'
 
 import SectionLabel from '@/components/marketing/SectionLabel'
+import {LIVE_EXAMPLE_URL} from '@/lib/marketing/constants'
 
 const WAVEFORM = [38, 62, 45, 78, 55, 90, 64, 42, 70, 52, 84, 60, 74, 48, 66, 80, 58, 72, 44, 68, 56, 76, 50, 62]
 
@@ -75,9 +76,11 @@ export default function HeroSection(): React.JSX.Element {
                         </a>
                         <a
                             className={buttonVariants({variant: 'outline', size: 'lg'})}
-                            href="#feeds"
+                            href={LIVE_EXAMPLE_URL}
+                            rel="noopener noreferrer"
+                            target="_blank"
                         >
-                            Private Feeds
+                            Live-Beispiel
                         </a>
                     </div>
                 </div>

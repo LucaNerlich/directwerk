@@ -17,6 +17,7 @@ vi.mock('@/components/marketing/AltchaWidget', () => ({
 }))
 
 import Home from '@/app/page'
+import {LIVE_EXAMPLE_URL} from '@/lib/marketing/constants'
 
 afterEach(() => cleanup())
 
@@ -41,8 +42,22 @@ describe('Home', () => {
             screen.getByRole('heading', {name: /Kurz beantwortet/}),
         ).toBeInTheDocument()
         expect(
-            screen.getByRole('link', {name: 'Private Feeds'}),
-        ).toHaveAttribute('href', '#feeds')
+            screen.getByRole('link', {name: 'Live-Beispiel'}),
+        ).toHaveAttribute('href', LIVE_EXAMPLE_URL)
+        expect(
+            screen.getByRole('link', {name: 'Live-Beispiel'}),
+        ).toHaveAttribute('target', '_blank')
+        expect(
+            screen.getByRole('heading', {
+                name: /Liedermacherleben — eine echte Show auf Directwerk/,
+            }),
+        ).toBeInTheDocument()
+        expect(
+            screen.getByRole('link', {name: 'Liedermacherleben öffnen'}),
+        ).toHaveAttribute('href', LIVE_EXAMPLE_URL)
+        expect(
+            screen.getByRole('link', {name: 'Liedermacherleben öffnen'}),
+        ).toHaveAttribute('target', '_blank')
         expect(
             screen.queryByRole('heading', {name: /Datenschutz von Anfang an/}),
         ).not.toBeInTheDocument()
