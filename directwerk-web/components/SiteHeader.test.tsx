@@ -3,10 +3,12 @@ import {afterEach, describe, expect, it, vi} from 'vitest'
 
 import {SiteConfigProvider} from '@/lib/site/SiteConfigProvider'
 
+import {TestLocale} from '@/lib/i18n/testWrapper'
+
 import SiteHeader from './SiteHeader'
 
 vi.mock('next/navigation', () => ({
-    usePathname: () => '/articles',
+    usePathname: () => '/de/articles',
     useRouter: () => ({replace: vi.fn()}),
 }))
 
@@ -17,7 +19,7 @@ afterEach(() => {
 describe('SiteHeader', () => {
     it('renders the shared accessible shell and module-gated navigation', () => {
         render(
-            <SiteConfigProvider
+            <TestLocale><SiteConfigProvider
                 config={{
                     tenant: {slug: 'journal', name: 'Journal'},
                     enabledModules: ['DIGITAL_CONTENT'],
@@ -38,7 +40,7 @@ describe('SiteHeader', () => {
                 <SiteHeader>
                     <p>Page content</p>
                 </SiteHeader>
-            </SiteConfigProvider>,
+            </SiteConfigProvider></TestLocale>,
         )
 
         expect(screen.getByText('Zum Inhalt springen')).toHaveAttribute(

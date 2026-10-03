@@ -6,6 +6,7 @@ import type {ArticleFeedView} from '@directwerk/api/types'
 import {listMyArticleFeeds} from '@/lib/api/client'
 import {getWebClientTenantHost} from '@/lib/tenant/clientHost'
 import {userFacingFeedsError} from '@/lib/billing/userFacingBillingError'
+import {useDictionary} from '@/lib/i18n/LocaleProvider'
 
 export interface ArticleFeedsState {
     feeds: ArticleFeedView[]
@@ -16,10 +17,11 @@ export interface ArticleFeedsState {
 }
 
 export function useArticleFeeds(isAuthenticated: boolean): ArticleFeedsState {
+    const {errors} = useDictionary()
     const query = useAuthedQuery(() => listMyArticleFeeds(getWebClientTenantHost()), {
         enabled: isAuthenticated,
-        fallbackError: 'Feeds konnten nicht geladen werden.',
-        mapError: userFacingFeedsError,
+        fallbackError: errors.billingFeeds,
+        mapError: (error) => userFacingFeedsError(error, errors),
     })
 
     return {

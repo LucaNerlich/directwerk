@@ -3,6 +3,8 @@
 import {Button} from '@directwerk/ui/components/button'
 import {useCopyToClipboard} from '@directwerk/ui/hooks/use-copy-to-clipboard'
 
+import {useDictionary} from '@/lib/i18n/LocaleProvider'
+
 export default function CopyUrlButton({
     url,
     className,
@@ -15,6 +17,7 @@ export default function CopyUrlButton({
     context?: string
 }): React.JSX.Element {
     const {state, copy} = useCopyToClipboard()
+    const {common} = useDictionary()
 
     return (
         <span className="inline-flex flex-col gap-1">
@@ -22,7 +25,7 @@ export default function CopyUrlButton({
                 aria-label={
                     context === undefined
                         ? undefined
-                        : `${state === 'copied' ? 'Kopiert' : 'Kopieren'} — ${context}`
+                        : `${state === 'copied' ? common.copied : common.copy} — ${context}`
                 }
                 className={className}
                 onClick={() => {
@@ -32,15 +35,14 @@ export default function CopyUrlButton({
                 type="button"
                 variant="outline"
             >
-                {state === 'copied' ? 'Kopiert!' : 'Kopieren'}
+                {state === 'copied' ? common.copiedExclaim : common.copy}
             </Button>
             <span aria-live="polite" role="status" className="sr-only">
-                {state === 'copied' ? 'URL in die Zwischenablage kopiert.' : null}
+                {state === 'copied' ? common.copySuccessSr : null}
             </span>
             {state === 'failed' ? (
                 <span className="max-w-55 text-xs leading-5 text-muted-foreground" role="status">
-                    Kopieren fehlgeschlagen — URL unten markieren und manuell
-                    kopieren (Strg/Cmd + C).
+                    {common.copyFailed}
                 </span>
             ) : null}
         </span>

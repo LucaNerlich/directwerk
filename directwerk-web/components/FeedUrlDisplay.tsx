@@ -7,6 +7,9 @@ import {cn} from '@directwerk/ui/lib/utils'
 import {isAllowedFeedUrl} from '@directwerk/api/validation/primitives'
 
 import CopyUrlButton from '@/components/CopyUrlButton'
+import {useDictionary} from '@/lib/i18n/LocaleProvider'
+import {interpolate} from '@/lib/i18n/interpolate'
+import type {Dictionary} from '@/lib/i18n/dictionary'
 
 const COLLAPSE_THRESHOLD = 80
 
@@ -26,12 +29,12 @@ function isSafeHref(url: string): boolean {
     return isAllowedFeedUrl(url)
 }
 
-function maskedUrl(url: string): string {
+function maskedUrl(url: string, common: Dictionary['common']): string {
     try {
         const parsed = new URL(url)
-        return `${parsed.protocol}//${parsed.host}/… (verborgen — kopieren zum Verwenden)`
+        return `${parsed.protocol}//${parsed.host}${common.maskedUrlSuffix}`
     } catch {
-        return 'URL verborgen — kopieren zum Verwenden.'
+        return common.urlHidden
     }
 }
 
@@ -55,6 +58,7 @@ export default function FeedUrlDisplay({
     description?: string
     className?: string
 }): React.JSX.Element {
+    const {common} = useDictionary()
     const [visible, setVisible] = useState(
         !isTokenUrl(url) && url.length <= COLLAPSE_THRESHOLD,
     )
@@ -75,14 +79,14 @@ export default function FeedUrlDisplay({
                 {safeHref ? (
                     <a
                         aria-label={
-                            title === undefined ? undefined : `Öffnen — ${title}`
+                            title === undefined ? undefined : interpolate(common.openWithTitle, {title})
                         }
                         className={buttonVariants({size: 'sm', variant: 'outline'})}
                         href={url}
                         rel="noreferrer"
                         target="_blank"
                     >
-                        Öffnen
+                        {common.open}
                     </a>
                 ) : null}
                 {collapsible ? (
@@ -94,7 +98,7 @@ export default function FeedUrlDisplay({
                         type="button"
                         variant="ghost"
                     >
-                        {visible ? 'Verbergen' : 'Anzeigen'}
+                        {visible ? common.hidePassword : common.showPassword}
                     </Button>
                 ) : null}
             </div>
@@ -102,7 +106,7 @@ export default function FeedUrlDisplay({
                 className="break-all rounded-md bg-muted/50 px-3 py-2 font-mono text-xs leading-5 text-muted-foreground"
                 id={urlId}
             >
-                {visible ? url : maskedUrl(url)}
+                {visible ? url : maskedUrl(url, common)}
             </p>
         </div>
     )

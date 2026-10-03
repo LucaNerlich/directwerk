@@ -1,20 +1,23 @@
 import {AUTH_REQUIRED} from '@directwerk/api/constants'
 import {apiErrorCode} from '@directwerk/api/envelope'
 
+import type {Dictionary} from '@/lib/i18n/dictionary'
+
 const FEATURE_NOT_ENABLED = 'FEATURE_NOT_ENABLED'
 
-const FEATURE_DISABLED_COPY: Record<UserFacingErrorContext, string> = {
-    checkout:
-        'Abos sind bei diesem Anbieter deaktiviert. Wende dich für Zugang an die Redaktion.',
-    portal:
-        'Abos sind bei diesem Anbieter deaktiviert. Wende dich für Zugang an die Redaktion.',
-    feeds: 'Private Feeds sind bei diesem Anbieter deaktiviert.',
-    downloads: 'Bonusdateien sind bei diesem Anbieter deaktiviert.',
-    account:
-        'Mitgliedschaften sind bei diesem Anbieter deaktiviert. Profil, Zugang und Feeds bleiben verfügbar.',
-    preferences:
-        'Einstellungen konnten nicht gespeichert werden. Bitte versuche es später erneut.',
-    general: 'Diese Funktion ist bei diesem Anbieter deaktiviert.',
+type ErrorCopy = Dictionary['errors']
+
+const FEATURE_DISABLED_KEYS: Record<
+    UserFacingErrorContext,
+    keyof ErrorCopy
+> = {
+    checkout: 'billingCheckoutDisabled',
+    portal: 'billingPortalDisabled',
+    feeds: 'billingFeedsDisabled',
+    downloads: 'billingDownloadsDisabled',
+    account: 'billingAccountDisabled',
+    preferences: 'billingPreferences',
+    general: 'billingFeatureDisabled',
 }
 
 const STRIPE_UNAVAILABLE_CODES = new Set([
@@ -40,17 +43,14 @@ export type UserFacingErrorContext =
     | 'preferences'
     | 'general'
 
-const FALLBACK_COPY: Record<UserFacingErrorContext, string> = {
-    checkout:
-        'Checkout ist noch nicht verfügbar. Bitte versuche es später erneut.',
-    portal: 'Kundenportal konnte nicht geöffnet werden. Bitte versuche es später erneut.',
-    feeds: 'Feeds konnten nicht geladen werden. Bitte versuche es später erneut.',
-    downloads:
-        'Bonusdateien konnten nicht geladen werden. Bitte versuche es später erneut.',
-    account: 'Konto konnte nicht geladen werden. Bitte versuche es später erneut.',
-    preferences:
-        'Einstellungen konnten nicht gespeichert werden. Bitte versuche es später erneut.',
-    general: 'Etwas ist schiefgelaufen. Bitte versuche es später erneut.',
+const FALLBACK_KEYS: Record<UserFacingErrorContext, keyof ErrorCopy> = {
+    checkout: 'billingCheckout',
+    portal: 'billingPortal',
+    feeds: 'billingFeeds',
+    downloads: 'billingDownloads',
+    account: 'billingAccount',
+    preferences: 'billingPreferences',
+    general: 'billingGeneral',
 }
 
 function isApprovedStripeUnavailableMessage(message: string): boolean {
@@ -58,7 +58,7 @@ function isApprovedStripeUnavailableMessage(message: string): boolean {
 }
 
 /**
- * Maps API billing errors to subscriber-friendly German copy.
+ * Maps API billing errors to subscriber-friendly localized copy.
  *
  * Raw backend/transport messages never reach the UI. Only explicitly approved
  * Stripe codes/messages select fixed copy; everything else fails closed to the
@@ -67,14 +67,15 @@ function isApprovedStripeUnavailableMessage(message: string): boolean {
 export function userFacingBillingError(
     error: unknown,
     context: UserFacingErrorContext,
+    errors: ErrorCopy,
 ): string {
-    const fallback = FALLBACK_COPY[context] ?? FALLBACK_COPY.general
+    const fallback = errors[FALLBACK_KEYS[context]] ?? errors.billingGeneral
     if (!(error instanceof Error)) {
         if (context === 'checkout') {
-            return 'Online-Zahlung ist noch nicht aktiv. Du kannst das Produkt merken und später zurückkommen — oder die Redaktion schaltet dich im Studio frei.'
+            return errors.billingStripeCheckoutInactive
         }
         if (context === 'portal') {
-            return 'Stripe ist auf diesem Server noch nicht eingerichtet.'
+            return errors.billingStripePortalNotConfigured
         }
         return fallback
     }
@@ -84,17 +85,17 @@ export function userFacingBillingError(
         return fallback
     }
     if (apiErrorCode(error) === FEATURE_NOT_ENABLED) {
-        return FEATURE_DISABLED_COPY[context] ?? FALLBACK_COPY.general
+        return errors[FEATURE_DISABLED_KEYS[context]] ?? errors.billingFeatureDisabled
     }
     if (
         STRIPE_UNAVAILABLE_CODES.has(message) ||
         isApprovedStripeUnavailableMessage(message)
     ) {
         if (context === 'checkout') {
-            return 'Online-Zahlung ist noch nicht aktiv. Du kannst das Produkt merken und später zurückkommen — oder die Redaktion schaltet dich im Studio frei.'
+            return errors.billingStripeCheckoutInactive
         }
         if (context === 'portal') {
-            return 'Stripe ist auf diesem Server noch nicht eingerichtet.'
+            return errors.billingStripePortalNotConfigured
         }
         return fallback
     }
@@ -102,23 +103,29 @@ export function userFacingBillingError(
     return fallback
 }
 
-/** Feed actions (rotate/toggle/preview/save) share one German fallback style. */
-export function userFacingFeedsError(error: unknown): string {
-    return userFacingBillingError(error, 'feeds')
+/** Feed actions (rotate/toggle/preview/save) share one fallback style. */
+export function userFacingFeedsError(error: unknown, errors: ErrorCopy): string {
+    return userFacingBillingError(error, 'feeds', errors)
 }
 
 /** Bonus-file list + download errors. */
-export function userFacingDownloadsError(error: unknown): string {
-    return userFacingBillingError(error, 'downloads')
+export function userFacingDownloadsError(
+    error: unknown,
+    errors: ErrorCopy,
+): string {
+    return userFacingBillingError(error, 'downloads', errors)
 }
 
 /** Account/profile/access errors. */
-export function userFacingAccountError(error: unknown): string {
-    return userFacingBillingError(error, 'account')
+export function userFacingAccountError(
+    error: unknown,
+    errors: ErrorCopy,
+): string {
+    return userFacingBillingError(error, 'account', errors)
 }
 
 /**
- * Generic German mapping with a caller-provided fallback.
+ * Generic mapping with a caller-provided fallback.
  * Backend messages never reach the UI.
  */
 export function userFacingGeneralError(error: unknown, fallback: string): string {
@@ -139,14 +146,12 @@ export type UserFacingAuthContext =
     | 'reset'
     | 'invite'
 
-const AUTH_FALLBACK_COPY: Record<UserFacingAuthContext, string> = {
-    login: 'Anmeldung fehlgeschlagen. Bitte prüfe deine Eingaben und versuche es erneut.',
-    register:
-        'Registrierung fehlgeschlagen. Bitte prüfe deine Eingaben und versuche es erneut.',
-    forgot:
-        'Der Reset-Link konnte nicht angefordert werden. Bitte versuche es später erneut.',
-    reset: 'Das Passwort konnte nicht zurückgesetzt werden. Bitte versuche es erneut.',
-    invite: 'Die Einladung konnte nicht angenommen werden. Bitte versuche es erneut.',
+const AUTH_FALLBACK_KEYS: Record<UserFacingAuthContext, keyof ErrorCopy> = {
+    login: 'authLogin',
+    register: 'authRegister',
+    forgot: 'authForgot',
+    reset: 'authReset',
+    invite: 'authInvite',
 }
 
 const INVALID_GRANT_PATTERNS: RegExp[] = [
@@ -182,17 +187,14 @@ function matchesAuthPattern(message: string, patterns: RegExp[]): boolean {
 }
 
 /**
- * Maps auth-form API errors to subscriber-friendly German copy.
- *
- * Known backend failures (wrong credentials, rate limits, expired links, and
- * taken emails) become fixed German strings; all unrecognized messages fail
- * closed to the per-context fallback.
+ * Maps auth-form API errors to subscriber-friendly localized copy.
  */
 export function userFacingAuthError(
     error: unknown,
     context: UserFacingAuthContext,
+    errors: ErrorCopy,
 ): string {
-    const fallback = AUTH_FALLBACK_COPY[context]
+    const fallback = errors[AUTH_FALLBACK_KEYS[context]]
     if (!(error instanceof Error)) {
         return fallback
     }
@@ -200,24 +202,20 @@ export function userFacingAuthError(
     const message = error.message.trim()
     if (message.length === 0 || message === AUTH_REQUIRED) {
         return context === 'login' || context === 'register'
-            ? 'Sitzung abgelaufen — bitte erneut versuchen.'
+            ? errors.authSessionExpired
             : fallback
     }
 
     if (matchesAuthPattern(message, INVALID_GRANT_PATTERNS)) {
-        return context === 'login'
-            ? 'E-Mail oder Passwort falsch. Prüfe deine Eingaben oder fordere einen Reset-Link an.'
-            : fallback
+        return context === 'login' ? errors.authInvalidCredentials : fallback
     }
 
     if (matchesAuthPattern(message, RATE_LIMIT_PATTERNS)) {
-        return 'Zu viele Versuche. Bitte warte einen Moment und versuche es erneut.'
+        return errors.authRateLimit
     }
 
     if (matchesAuthPattern(message, EMAIL_TAKEN_PATTERNS)) {
-        return context === 'register'
-            ? 'Diese E-Mail ist bereits registriert. Melde dich an oder fordere einen Reset-Link an.'
-            : fallback
+        return context === 'register' ? errors.authEmailTaken : fallback
     }
 
     if (
@@ -225,7 +223,7 @@ export function userFacingAuthError(
         (matchesAuthPattern(message, EXPIRED_LINK_PATTERNS) ||
             matchesAuthPattern(message, INVALID_TOKEN_PATTERNS))
     ) {
-        return 'Der Link ist abgelaufen oder ungültig. Bitte fordere einen neuen Link an.'
+        return errors.authLinkExpired
     }
 
     return fallback

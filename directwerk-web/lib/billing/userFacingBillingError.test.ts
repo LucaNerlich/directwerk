@@ -1,5 +1,7 @@
 import {describe, expect, it} from 'vitest'
 
+import {testDictionary} from '@/lib/i18n/testDictionary'
+
 import {
     userFacingAccountError,
     userFacingBillingError,
@@ -11,19 +13,19 @@ import {
 describe('userFacingBillingError', () => {
     it('maps Stripe-not-configured codes for checkout', () => {
         expect(
-            userFacingBillingError(new Error('STRIPE_NOT_IMPLEMENTED'), 'checkout'),
+            userFacingBillingError(new Error('STRIPE_NOT_IMPLEMENTED'), 'checkout', testDictionary.errors),
         ).toContain('Online-Zahlung ist noch nicht aktiv')
     })
 
     it('maps Stripe-not-configured codes for portal', () => {
         expect(
-            userFacingBillingError(new Error('STRIPE_NOT_CONNECTED'), 'portal'),
+            userFacingBillingError(new Error('STRIPE_NOT_CONNECTED'), 'portal', testDictionary.errors),
         ).toContain('Stripe ist auf diesem Server')
     })
 
     it('does not expose unapproved payment messages', () => {
         expect(
-            userFacingBillingError(new Error('Karte abgelehnt'), 'checkout'),
+            userFacingBillingError(new Error('Karte abgelehnt'), 'checkout', testDictionary.errors),
         ).toContain('Checkout ist noch nicht verfügbar')
     })
 
@@ -32,25 +34,26 @@ describe('userFacingBillingError', () => {
             userFacingBillingError(
                 new Error('The server returned an invalid feed list.'),
                 'feeds',
+                testDictionary.errors,
             ),
         ).toBe('Feeds konnten nicht geladen werden. Bitte versuche es später erneut.')
     })
 
     it('maps backend codes to the per-context fallback', () => {
-        expect(userFacingFeedsError(new Error('FEED_LIMIT_REACHED'))).toBe(
+        expect(userFacingFeedsError(new Error('FEED_LIMIT_REACHED'), testDictionary.errors)).toBe(
             'Feeds konnten nicht geladen werden. Bitte versuche es später erneut.',
         )
-        expect(userFacingDownloadsError(new Error('Failed to fetch'))).toBe(
+        expect(userFacingDownloadsError(new Error('Failed to fetch'), testDictionary.errors)).toBe(
             'Bonusdateien konnten nicht geladen werden. Bitte versuche es später erneut.',
         )
-        expect(userFacingAccountError(new Error('HTTP 500'))).toBe(
+        expect(userFacingAccountError(new Error('HTTP 500'), testDictionary.errors)).toBe(
             'Konto konnte nicht geladen werden. Bitte versuche es später erneut.',
         )
     })
 
     it('does not expose arbitrary localized backend messages', () => {
         expect(
-            userFacingFeedsError(new Error('Bitte erneut anmelden.')),
+            userFacingFeedsError(new Error('Bitte erneut anmelden.'), testDictionary.errors),
         ).toBe('Feeds konnten nicht geladen werden. Bitte versuche es später erneut.')
     })
 
@@ -59,12 +62,13 @@ describe('userFacingBillingError', () => {
             userFacingBillingError(
                 new Error('database connection refused for billing-db.internal'),
                 'checkout',
+                testDictionary.errors,
             ),
         ).toContain('Checkout ist noch nicht verfügbar')
     })
 
     it('maps non-errors to the context fallback', () => {
-        expect(userFacingBillingError('kaputt', 'downloads')).toBe(
+        expect(userFacingBillingError('kaputt', 'downloads', testDictionary.errors)).toBe(
             'Bonusdateien konnten nicht geladen werden. Bitte versuche es später erneut.',
         )
     })
@@ -77,16 +81,16 @@ describe('userFacingBillingError', () => {
             })
         const backendMessage = 'Module SUBSCRIPTION is not active for this tenant'
 
-        expect(userFacingAccountError(coded(backendMessage))).toBe(
+        expect(userFacingAccountError(coded(backendMessage), testDictionary.errors)).toBe(
             'Mitgliedschaften sind bei diesem Anbieter deaktiviert. Profil, Zugang und Feeds bleiben verfügbar.',
         )
-        expect(userFacingFeedsError(coded(backendMessage))).toBe(
+        expect(userFacingFeedsError(coded(backendMessage), testDictionary.errors)).toBe(
             'Private Feeds sind bei diesem Anbieter deaktiviert.',
         )
-        expect(userFacingDownloadsError(coded(backendMessage))).toBe(
+        expect(userFacingDownloadsError(coded(backendMessage), testDictionary.errors)).toBe(
             'Bonusdateien sind bei diesem Anbieter deaktiviert.',
         )
-        expect(userFacingBillingError(coded(backendMessage), 'checkout')).toBe(
+        expect(userFacingBillingError(coded(backendMessage), 'checkout', testDictionary.errors)).toBe(
             'Abos sind bei diesem Anbieter deaktiviert. Wende dich für Zugang an die Redaktion.',
         )
     })
@@ -97,7 +101,7 @@ describe('userFacingBillingError', () => {
             {code: 'FEATURE_NOT_ENABLED', status: 403},
         )
 
-        expect(userFacingAccountError(error)).not.toContain('Module SUBSCRIPTION')
+        expect(userFacingAccountError(error, testDictionary.errors)).not.toContain('Module SUBSCRIPTION')
     })
 })
 

@@ -6,7 +6,10 @@ import {
     entitlementState,
     formatDuration,
 } from '@/lib/format/content'
+import {testDictionary} from '@/lib/i18n/testDictionary'
 import {formatBytes} from '@directwerk/api/format/bytes'
+
+const format = testDictionary.format
 
 describe('content format helpers', () => {
     it('derives entitlement states from policy and access', () => {
@@ -17,10 +20,9 @@ describe('content format helpers', () => {
     })
 
     it('labels entitlements instead of bare policy names', () => {
-        expect(entitlementLabel('FREE')).toBe('Frei')
-        expect(entitlementLabel('PAID', true)).toBe('Enthalten')
-        expect(entitlementLabel('PAID', false)).toBe('Mitgliedschaft nötig')
-        expect(entitlementLabel('PAID')).toBe('Mitgliedschaft nötig')
+        expect(entitlementLabel('FREE', false, format)).toBe('Frei')
+        expect(entitlementLabel('PAID', true, format)).toBe('Enthalten')
+        expect(entitlementLabel('PAID', false, format)).toBe('Mitgliedschaft nötig')
     })
 
     it('formats durations', () => {
@@ -36,7 +38,7 @@ describe('content format helpers', () => {
     })
 
     it('labels asset types', () => {
-        expect(assetTypeLabel('PDF')).toBe('PDF')
-        expect(assetTypeLabel('image')).toBe('Bild')
+        expect(assetTypeLabel('PDF', format)).toBe('PDF')
+        expect(assetTypeLabel('image', format)).toBe('Bild')
     })
 })

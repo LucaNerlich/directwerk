@@ -1,3 +1,7 @@
+'use client'
+
+import {useDictionary} from '@/lib/i18n/LocaleProvider'
+
 /**
  * Steps-only subscribe instructions for podcast and/or article feeds.
  * Feed URLs live in the management sections on `/feeds` — this card does not
@@ -11,25 +15,20 @@ interface HowToSubscribeProps {
 }
 
 function PodcastBlock(): React.JSX.Element {
+    const {feeds} = useDictionary()
     return (
         <div className="space-y-4">
             <div className="space-y-1">
-                <h2 className="text-lg font-semibold">So hörst du in der Podcast-App</h2>
-                <p className="text-sm text-muted-foreground">
-                    Kopiere die Feed-URL unten und füge sie in Apple Podcasts, Overcast,
-                    Pocket Casts oder einer anderen App hinzu.
-                </p>
+                <h2 className="text-lg font-semibold">{feeds.howToPodcastTitle}</h2>
+                <p className="text-sm text-muted-foreground">{feeds.howToPodcastIntro}</p>
             </div>
             <ol className="list-decimal space-y-2 pl-5 text-sm leading-6 text-muted-foreground">
-                <li>Kopiere die Feed-URL (öffentlich oder privat).</li>
+                <li>{feeds.howToPodcastStep1}</li>
+                <li>{feeds.howToPodcastStep2}</li>
                 <li>
-                    Wähle in der Podcast-App „Feed per URL hinzufügen“ oder
-                    „Abonnement per URL“.
-                </li>
-                <li>
-                    Öffentliche Feeds enthalten nur <strong>freie</strong> Folgen.
-                    Bezahlte Folgen erreichst du über deinen privaten Feed nach der
-                    Anmeldung.
+                    {feeds.howToPodcastStep3Before}
+                    <strong>{feeds.howToPodcastStep3Strong}</strong>
+                    {feeds.howToPodcastStep3After}
                 </li>
             </ol>
         </div>
@@ -37,21 +36,20 @@ function PodcastBlock(): React.JSX.Element {
 }
 
 function ArticlesBlock(): React.JSX.Element {
+    const {feeds} = useDictionary()
     return (
         <div className="space-y-4">
             <div className="space-y-1">
-                <h2 className="text-lg font-semibold">So liest du im Feed-Reader</h2>
-                <p className="text-sm text-muted-foreground">
-                    Kopiere die Feed-URL unten und füge sie in deinem bevorzugten
-                    Feed-Reader hinzu.
-                </p>
+                <h2 className="text-lg font-semibold">{feeds.howToArticlesTitle}</h2>
+                <p className="text-sm text-muted-foreground">{feeds.howToArticlesIntro}</p>
             </div>
             <ol className="list-decimal space-y-2 pl-5 text-sm leading-6 text-muted-foreground">
-                <li>Kopiere die Feed-URL (öffentlich oder privat).</li>
-                <li>Wähle im Feed-Reader „Feed per URL hinzufügen“.</li>
+                <li>{feeds.howToArticlesStep1}</li>
+                <li>{feeds.howToArticlesStep2}</li>
                 <li>
-                    Öffentliche Feeds enthalten nur <strong>freie</strong> Beiträge.
-                    Bezahlte Beiträge erreichst du über deinen privaten Feed.
+                    {feeds.howToArticlesStep3Before}
+                    <strong>{feeds.howToArticlesStep3Strong}</strong>
+                    {feeds.howToArticlesStep3After}
                 </li>
             </ol>
         </div>

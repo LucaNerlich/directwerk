@@ -16,6 +16,8 @@ import {AUTH_REQUIRED} from '@directwerk/api/constants'
 import type {Access, Me, SubscriptionSummary} from '@directwerk/api/types'
 import {getWebClientTenantHost} from '@/lib/tenant/clientHost'
 import {userFacingBillingError} from '@/lib/billing/userFacingBillingError'
+import {useDictionary, useLocale} from '@/lib/i18n/LocaleProvider'
+import {localizedPath} from '@/lib/i18n/paths'
 
 export interface AccountDashboardState {
     me: Me | null
@@ -41,6 +43,9 @@ export interface AccountDashboardState {
  */
 export function useAccountDashboard(): AccountDashboardState {
     const router = useRouter()
+    const lang = useLocale()
+    const dictionary = useDictionary()
+    const {errors} = dictionary
     const [me, setMe] = useState<Me | null>(null)
     const [access, setAccess] = useState<Access | null>(null)
     const [subscriptions, setSubscriptions] = useState<SubscriptionSummary[]>([])
@@ -102,11 +107,11 @@ export function useAccountDashboard(): AccountDashboardState {
                     requestError instanceof Error &&
                     requestError.message === AUTH_REQUIRED
                 ) {
-                    router.replace('/login')
+                    router.replace(localizedPath(lang, '/login'))
                     return
                 }
 
-                setError(userFacingBillingError(requestError, 'account'))
+                setError(userFacingBillingError(requestError, 'account', errors))
             })
             .finally(() => {
                 if (isCurrent) {
@@ -117,7 +122,7 @@ export function useAccountDashboard(): AccountDashboardState {
         return () => {
             isCurrent = false
         }
-    }, [router])
+    }, [errors, lang, router])
 
     const handleToggleNotifications = useCallback(async (nextValue: boolean) => {
         if (!emailNotifyAvailable && nextValue) {
@@ -132,34 +137,34 @@ export function useAccountDashboard(): AccountDashboardState {
                 nextValue,
             )
             setEmailNotificationsEnabled(result.emailNotificationsEnabled)
-            setPrefsMessage('Benachrichtigungen gespeichert.')
+            setPrefsMessage(dictionary.account.notificationsSaved)
             setPrefsMessageKind('success')
         } catch (requestError: unknown) {
             if (
                 requestError instanceof Error &&
                 requestError.message === AUTH_REQUIRED
             ) {
-                router.replace('/login')
+                router.replace(localizedPath(lang, '/login'))
                 return
             }
-            setPrefsMessage(userFacingBillingError(requestError, 'preferences'))
+            setPrefsMessage(userFacingBillingError(requestError, 'preferences', errors))
             setPrefsMessageKind('error')
         } finally {
             setPrefsBusy(false)
         }
-    }, [emailNotifyAvailable, router])
+    }, [dictionary.account.notificationsSaved, emailNotifyAvailable, errors, lang, router])
 
     const handlePortal = useCallback(async () => {
         setPortalBusy(true)
         setPortalMessage(null)
         try {
-            const returnUrl = `${window.location.origin}/account`
+            const returnUrl = `${window.location.origin}${localizedPath(lang, '/account')}`
             const portalUrl = await createPortalSession(
                 getWebClientTenantHost(),
                 returnUrl,
             )
             if (portalUrl === null) {
-                setPortalMessage('Kundenportal ist gerade nicht verfügbar.')
+                setPortalMessage(errors.portalUnavailable)
                 return
             }
             window.location.assign(portalUrl)
@@ -168,14 +173,14 @@ export function useAccountDashboard(): AccountDashboardState {
                 requestError instanceof Error &&
                 requestError.message === AUTH_REQUIRED
             ) {
-                router.replace('/login')
+                router.replace(localizedPath(lang, '/login'))
                 return
             }
-            setPortalMessage(userFacingBillingError(requestError, 'portal'))
+            setPortalMessage(userFacingBillingError(requestError, 'portal', errors))
         } finally {
             setPortalBusy(false)
         }
-    }, [router])
+    }, [errors, lang, router])
 
     return {
         me,

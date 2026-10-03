@@ -3,6 +3,7 @@ import {afterEach, describe, expect, it, vi} from 'vitest'
 
 import CustomFeedsPanel, {podcastCustomFeedsConfig} from '@/components/CustomFeedsPanel'
 import type {SubscriberFeedView} from '@directwerk/api/types'
+import {TestLocale} from '@/lib/i18n/testWrapper'
 
 const listPublicFormatsMock = vi.fn()
 const previewCustomFeedMock = vi.fn()
@@ -62,7 +63,7 @@ describe('CustomFeedsPanel', () => {
         previewCustomFeedMock.mockResolvedValue({episodeCount: 0, sampleTitles: []})
 
         render(
-            <CustomFeedsPanel
+            <TestLocale><CustomFeedsPanel
                 canBuild
                 config={podcastCustomFeedsConfig}
                 feeds={[feed()]}
@@ -70,7 +71,7 @@ describe('CustomFeedsPanel', () => {
                 onError={() => undefined}
                 onFeedsChange={() => undefined}
                 tenantHost="alpha-a.localhost"
-            />,
+            />,</TestLocale>
         )
 
         await waitFor(() =>
@@ -97,7 +98,7 @@ describe('CustomFeedsPanel', () => {
         previewCustomFeedMock.mockResolvedValue({episodeCount: 0, sampleTitles: []})
 
         render(
-            <CustomFeedsPanel
+            <TestLocale><CustomFeedsPanel
                 canBuild
                 config={podcastCustomFeedsConfig}
                 feeds={[
@@ -122,7 +123,7 @@ describe('CustomFeedsPanel', () => {
                 onError={() => undefined}
                 onFeedsChange={() => undefined}
                 tenantHost="alpha-a.localhost"
-            />,
+            />,</TestLocale>
         )
 
         await waitFor(() =>
@@ -136,7 +137,7 @@ describe('CustomFeedsPanel', () => {
         listPublicFormatsMock.mockResolvedValue([])
 
         render(
-            <CustomFeedsPanel
+            <TestLocale><CustomFeedsPanel
                 canBuild={false}
                 config={podcastCustomFeedsConfig}
                 feeds={[
@@ -161,7 +162,7 @@ describe('CustomFeedsPanel', () => {
                 onError={() => undefined}
                 onFeedsChange={() => undefined}
                 tenantHost="alpha-a.localhost"
-            />,
+            />,</TestLocale>
         )
 
         await waitFor(() =>
@@ -187,7 +188,7 @@ describe('CustomFeedsPanel', () => {
         setFeedEnabledMock.mockReturnValue(new Promise(() => undefined))
 
         render(
-            <CustomFeedsPanel
+            <TestLocale><CustomFeedsPanel
                 canBuild
                 config={podcastCustomFeedsConfig}
                 feeds={[
@@ -212,7 +213,7 @@ describe('CustomFeedsPanel', () => {
                 onError={() => undefined}
                 onFeedsChange={() => undefined}
                 tenantHost="alpha-a.localhost"
-            />,
+            />,</TestLocale>
         )
 
         await waitFor(() =>
@@ -261,7 +262,7 @@ describe('CustomFeedsPanel', () => {
         ]
 
         render(
-            <CustomFeedsPanel
+            <TestLocale><CustomFeedsPanel
                 canBuild
                 config={podcastCustomFeedsConfig}
                 feeds={feeds}
@@ -269,7 +270,7 @@ describe('CustomFeedsPanel', () => {
                 onError={() => undefined}
                 onFeedsChange={() => undefined}
                 tenantHost="alpha-a.localhost"
-            />,
+            />,</TestLocale>
         )
 
         await waitFor(() =>
@@ -299,7 +300,7 @@ describe('CustomFeedsPanel', () => {
         ]
 
         render(
-            <CustomFeedsPanel
+            <TestLocale><CustomFeedsPanel
                 canBuild
                 config={podcastCustomFeedsConfig}
                 feeds={feeds}
@@ -307,7 +308,7 @@ describe('CustomFeedsPanel', () => {
                 onError={() => undefined}
                 onFeedsChange={() => undefined}
                 tenantHost="alpha-a.localhost"
-            />,
+            />,</TestLocale>
         )
 
         await waitFor(() =>
@@ -324,7 +325,7 @@ describe('CustomFeedsPanel', () => {
         const onFeedsChange = vi.fn()
 
         render(
-            <CustomFeedsPanel
+            <TestLocale><CustomFeedsPanel
                 canBuild={false}
                 config={podcastCustomFeedsConfig}
                 feeds={[
@@ -335,7 +336,7 @@ describe('CustomFeedsPanel', () => {
                 onError={() => undefined}
                 onFeedsChange={onFeedsChange}
                 tenantHost="alpha-a.localhost"
-            />,
+            />,</TestLocale>
         )
 
         await waitFor(() =>

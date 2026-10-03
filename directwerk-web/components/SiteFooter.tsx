@@ -3,11 +3,16 @@
 import Link from 'next/link'
 
 import {useSubscriberAuth} from '@/lib/auth/useSubscriberAuth'
+import {useDictionary, useLocale} from '@/lib/i18n/LocaleProvider'
+import {localizedPath} from '@/lib/i18n/paths'
 import {useSiteConfig} from '@/lib/site/SiteConfigProvider'
 
 export default function SiteFooter(): React.JSX.Element {
     const config = useSiteConfig()
     const {isAuthenticated} = useSubscriberAuth()
+    const lang = useLocale()
+    const dictionary = useDictionary()
+    const href = (path: string) => localizedPath(lang, path)
     const name = config.branding.siteTitle ?? config.tenant.name
     const showPodcast = config.enabledModules.includes('PODCAST')
     const showArticles =
@@ -26,28 +31,61 @@ export default function SiteFooter(): React.JSX.Element {
                         <p className="font-medium text-foreground">{name}</p>
                         <p>
                             {isAuthenticated
-                                ? 'Angemeldet — verwalte Zugang, Feeds und Benachrichtigungen im Konto.'
-                                : 'Freie Inhalte ohne Anmeldung. Registriere dich für bezahlte Folgen und Bonusdateien.'}
+                                ? dictionary.footer.authenticatedHint
+                                : dictionary.footer.guestHint}
                         </p>
                     </div>
-                    <nav aria-label="Fußzeile" className="flex flex-wrap gap-x-4 gap-y-2">
-                        {showPodcast ? <Link className="inline-flex min-h-[44px] items-center" href="/episodes">Podcast</Link> : null}
-                        {showArticles ? <Link className="inline-flex min-h-[44px] items-center" href="/articles">Beiträge</Link> : null}
+                    <nav
+                        aria-label={dictionary.nav.footerNav}
+                        className="flex flex-wrap gap-x-4 gap-y-2"
+                    >
+                        {showPodcast ? (
+                            <Link className="inline-flex min-h-[44px] items-center" href={href('/episodes')}>
+                                {dictionary.nav.podcast}
+                            </Link>
+                        ) : null}
+                        {showArticles ? (
+                            <Link className="inline-flex min-h-[44px] items-center" href={href('/articles')}>
+                                {dictionary.nav.articles}
+                            </Link>
+                        ) : null}
                         {config.emailNotifyAvailable ? (
-                            <Link className="inline-flex min-h-[44px] items-center" href="/newsletter">Newsletter</Link>
+                            <Link className="inline-flex min-h-[44px] items-center" href={href('/newsletter')}>
+                                {dictionary.nav.newsletter}
+                            </Link>
                         ) : null}
-                        {showPricing ? <Link className="inline-flex min-h-[44px] items-center" href="/pricing">Preise</Link> : null}
-                        {showFeeds ? <Link className="inline-flex min-h-[44px] items-center" href="/feeds">Feeds</Link> : null}
+                        {showPricing ? (
+                            <Link className="inline-flex min-h-[44px] items-center" href={href('/pricing')}>
+                                {dictionary.nav.pricing}
+                            </Link>
+                        ) : null}
+                        {showFeeds ? (
+                            <Link className="inline-flex min-h-[44px] items-center" href={href('/feeds')}>
+                                {dictionary.nav.feeds}
+                            </Link>
+                        ) : null}
                         {showDownloads && isAuthenticated ? (
-                            <Link className="inline-flex min-h-[44px] items-center" href="/downloads">Bonusdateien</Link>
+                            <Link className="inline-flex min-h-[44px] items-center" href={href('/downloads')}>
+                                {dictionary.nav.downloads}
+                            </Link>
                         ) : null}
-                        <Link className="inline-flex min-h-[44px] items-center" href="/account">{isAuthenticated ? 'Mein Konto' : 'Konto'}</Link>
-                        <Link className="inline-flex min-h-[44px] items-center" href="/imprint">Impressum</Link>
-                        <Link className="inline-flex min-h-[44px] items-center" href="/privacy">Datenschutz</Link>
+                        <Link className="inline-flex min-h-[44px] items-center" href={href('/account')}>
+                            {isAuthenticated ? dictionary.nav.myAccount : dictionary.nav.account}
+                        </Link>
+                        <Link className="inline-flex min-h-[44px] items-center" href={href('/imprint')}>
+                            {dictionary.nav.imprint}
+                        </Link>
+                        <Link className="inline-flex min-h-[44px] items-center" href={href('/privacy')}>
+                            {dictionary.nav.privacy}
+                        </Link>
                         {!isAuthenticated ? (
                             <>
-                                <Link className="inline-flex min-h-[44px] items-center" href="/login">Anmelden</Link>
-                                <Link className="inline-flex min-h-[44px] items-center" href="/register">Registrieren</Link>
+                                <Link className="inline-flex min-h-[44px] items-center" href={href('/login')}>
+                                    {dictionary.nav.login}
+                                </Link>
+                                <Link className="inline-flex min-h-[44px] items-center" href={href('/register')}>
+                                    {dictionary.nav.register}
+                                </Link>
                             </>
                         ) : null}
                     </nav>

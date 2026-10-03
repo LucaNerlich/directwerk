@@ -1,5 +1,8 @@
 import type {PublicArticle, PublicEpisode} from '@directwerk/api/types'
 
+import type {Locale} from '@/lib/i18n/config'
+import {localizedPath} from '@/lib/i18n/paths'
+
 const JSON_LD_ESCAPE: Record<string, string> = {
     '<': '\\u003c',
     '>': '\\u003e',
@@ -35,26 +38,33 @@ function durationIso8601(totalSeconds: number | null): string | undefined {
     return `PT${Math.floor(totalSeconds)}S`
 }
 
-/** `WebSite` entity rendered once from the root layout (covers home + all pages). */
+/** `WebSite` entity rendered once from the lang layout (covers home + all pages). */
 export function buildWebsiteJsonLd(input: {
     name: string
     origin: string
+    lang?: Locale
 }): Record<string, unknown> {
+    const lang = input.lang ?? 'de'
     return {
         '@context': 'https://schema.org',
         '@type': 'WebSite',
         name: input.name,
-        url: `${input.origin}/`,
-        inLanguage: 'de',
+        url: `${input.origin}${localizedPath(lang, '/')}`,
+        inLanguage: lang,
     }
+}
+
+function pagePath(path: string, lang: Locale | undefined): string {
+    return lang === undefined ? path : localizedPath(lang, path)
 }
 
 /** `PodcastEpisode` entity for episode detail pages. */
 export function buildPodcastEpisodeJsonLd(input: {
     episode: PublicEpisode
     origin: string
+    lang?: Locale
 }): Record<string, unknown> {
-    const url = `${input.origin}/episodes/${encodeURIComponent(input.episode.slug)}`
+    const url = `${input.origin}${pagePath(`/episodes/${encodeURIComponent(input.episode.slug)}`, input.lang)}`
     return {
         '@context': 'https://schema.org',
         '@type': 'PodcastEpisode',
@@ -67,7 +77,7 @@ export function buildPodcastEpisodeJsonLd(input: {
         partOfSeries: {
             '@type': 'PodcastSeries',
             name: input.episode.seriesSlug,
-            url: `${input.origin}/episodes`,
+            url: `${input.origin}${pagePath('/episodes', input.lang)}`,
         },
     }
 }
@@ -76,8 +86,9 @@ export function buildPodcastEpisodeJsonLd(input: {
 export function buildArticleJsonLd(input: {
     article: PublicArticle
     origin: string
+    lang?: Locale
 }): Record<string, unknown> {
-    const url = `${input.origin}/articles/${encodeURIComponent(input.article.slug)}`
+    const url = `${input.origin}${pagePath(`/articles/${encodeURIComponent(input.article.slug)}`, input.lang)}`
     return {
         '@context': 'https://schema.org',
         '@type': 'Article',

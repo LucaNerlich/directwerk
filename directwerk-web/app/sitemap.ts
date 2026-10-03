@@ -1,5 +1,6 @@
 import type {MetadataRoute} from 'next'
 
+import {locales} from '@/lib/i18n/config'
 import {
     fetchPublicArticleSlugsServer,
     fetchPublicEpisodeSlugsServer,
@@ -19,9 +20,6 @@ function toLastModified(
 }
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-    // Resolve the tenant host the same way every other route does (direct
-    // `host` first, validated) so sitemap origins cannot disagree with the
-    // tenant whose content is listed due to a spoofed `x-forwarded-host`.
     let host: string | null
     try {
         host = await getTenantHost()
@@ -33,17 +31,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     }
     const origin = resolveTenantOrigin(host)
 
-    // Static routes carry no per-request timestamp: `lastModified` must be
-    // stable so crawlers do not see every page as changed on each fetch.
-    const staticRoutes: MetadataRoute.Sitemap = [
-        '',
-        '/articles',
-        '/episodes',
-        '/feeds',
-        '/pricing',
-    ].map((path) => ({
-        url: `${origin}${path}`,
-    }))
+    const staticPaths = ['', '/articles', '/episodes', '/feeds', '/pricing']
+    const staticRoutes: MetadataRoute.Sitemap = locales.flatMap((lang) =>
+        staticPaths.map((path) => ({
+            url: `${origin}/${lang}${path}`,
+        })),
+    )
 
     let articleEntries: MetadataRoute.Sitemap = []
     let episodeEntries: MetadataRoute.Sitemap = []
@@ -53,16 +46,19 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
             fetchPublicArticleSlugsServer(host),
             fetchPublicEpisodeSlugsServer(host),
         ])
-        articleEntries = articles.map((article) => ({
-            url: `${origin}/articles/${encodeURIComponent(article.slug)}`,
-            lastModified: toLastModified(article.publishedAt),
-        }))
-        episodeEntries = episodes.map((episode) => ({
-            url: `${origin}/episodes/${encodeURIComponent(episode.slug)}`,
-            lastModified: toLastModified(episode.publishedAt),
-        }))
+        articleEntries = locales.flatMap((lang) =>
+            articles.map((article) => ({
+                url: `${origin}/${lang}/articles/${encodeURIComponent(article.slug)}`,
+                lastModified: toLastModified(article.publishedAt),
+            })),
+        )
+        episodeEntries = locales.flatMap((lang) =>
+            episodes.map((episode) => ({
+                url: `${origin}/${lang}/episodes/${encodeURIComponent(episode.slug)}`,
+                lastModified: toLastModified(episode.publishedAt),
+            })),
+        )
 
-        // Public feed discovery: cheap same-fetch additions from site-config.
         try {
             const config = await fetchSiteConfigServer(host)
             const feedUrls = [config.publicRssUrl, config.publicArticleRssUrl]

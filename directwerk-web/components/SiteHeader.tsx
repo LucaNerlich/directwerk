@@ -8,9 +8,12 @@ import {Button, buttonVariants} from '@directwerk/ui/components/button'
 import SiteShell from '@directwerk/ui/components/layout/site-shell'
 
 import BrandLogo from '@/components/BrandLogo'
+import LanguageSwitcher from '@/components/LanguageSwitcher'
 import SiteFooter from '@/components/SiteFooter'
 import {clearSessionTokens} from '@/lib/auth/session'
 import {useSubscriberAuth} from '@/lib/auth/useSubscriberAuth'
+import {useDictionary, useLocale} from '@/lib/i18n/LocaleProvider'
+import {localizedPath, stripLocalePrefix} from '@/lib/i18n/paths'
 import {getWebClientTenantHost} from '@/lib/tenant/clientHost'
 import {useSiteConfig} from '@/lib/site/SiteConfigProvider'
 
@@ -22,15 +25,6 @@ interface NavItem {
     requiresAuth?: boolean
 }
 
-const NAV_ITEMS: readonly NavItem[] = [
-    {href: '/episodes', label: 'Podcast', module: 'PODCAST'},
-    {href: '/articles', label: 'Beiträge', module: 'DIGITAL_CONTENT'},
-    {href: '/pricing', label: 'Preise', module: 'SUBSCRIPTION'},
-    {href: '/feeds', label: 'Feeds', modules: ['PODCAST_RSS', 'ARTICLE_RSS']},
-    {href: '/downloads', label: 'Bonusdateien', module: 'BONUS_CONTENT', requiresAuth: true},
-    {href: '/account', label: 'Konto'},
-]
-
 export default function SiteHeader({
     children,
 }: {
@@ -38,10 +32,32 @@ export default function SiteHeader({
 }): React.JSX.Element {
     const config = useSiteConfig()
     const pathname = usePathname()
+    const barePath = stripLocalePrefix(pathname)
     const router = useRouter()
+    const lang = useLocale()
+    const dictionary = useDictionary()
     const {isAuthenticated} = useSubscriberAuth()
     const [isLoggingOut, setIsLoggingOut] = useState(false)
     const brand = config.branding.siteTitle ?? config.tenant.name
+    const href = (path: string) => localizedPath(lang, path)
+
+    const navItems: readonly NavItem[] = [
+        {href: '/episodes', label: dictionary.nav.podcast, module: 'PODCAST'},
+        {href: '/articles', label: dictionary.nav.articles, module: 'DIGITAL_CONTENT'},
+        {href: '/pricing', label: dictionary.nav.pricing, module: 'SUBSCRIPTION'},
+        {
+            href: '/feeds',
+            label: dictionary.nav.feeds,
+            modules: ['PODCAST_RSS', 'ARTICLE_RSS'],
+        },
+        {
+            href: '/downloads',
+            label: dictionary.nav.downloads,
+            module: 'BONUS_CONTENT',
+            requiresAuth: true,
+        },
+        {href: '/account', label: dictionary.nav.account},
+    ]
 
     async function handleLogout(): Promise<void> {
         setIsLoggingOut(true)
@@ -58,10 +74,10 @@ export default function SiteHeader({
             // Ignore — clear local session regardless.
         }
         clearSessionTokens()
-        router.replace('/login')
+        router.replace(href('/login'))
     }
 
-    const items = NAV_ITEMS.filter((item) => {
+    const items = navItems.filter((item) => {
         if (item.requiresAuth === true && !isAuthenticated) {
             return false
         }
@@ -81,14 +97,15 @@ export default function SiteHeader({
     })
 
     const navigation = items.map((item) => {
-        const isActive =
-            pathname === item.href || pathname.startsWith(`${item.href}/`)
+        const isActive = barePath === item.href || barePath.startsWith(`${item.href}/`)
         const label =
-            item.href === '/account' && isAuthenticated ? 'Mein Konto' : item.label
+            item.href === '/account' && isAuthenticated
+                ? dictionary.nav.myAccount
+                : item.label
         return (
             <Link
                 key={item.href}
-                href={item.href}
+                href={href(item.href)}
                 className={buttonVariants({
                     variant: isActive ? 'secondary' : 'ghost',
                     className: 'min-h-[44px] justify-start',
@@ -99,47 +116,52 @@ export default function SiteHeader({
             </Link>
         )
     })
-    const actions = isAuthenticated ? (
+    const actions = (
         <>
-            <Link
-                className={buttonVariants({variant: 'ghost', size: 'sm'})}
-                href="/account"
-            >
-                Mein Konto
-            </Link>
-            <Button
-                type="button"
-                variant="outline"
-                disabled={isLoggingOut}
-                onClick={() => {
-                    void handleLogout()
-                }}
-            >
-                {isLoggingOut ? 'Abmelden…' : 'Abmelden'}
-            </Button>
-        </>
-    ) : (
-        <>
-            <Link
-                className={buttonVariants({variant: 'ghost', size: 'sm'})}
-                href="/register"
-            >
-                Registrieren
-            </Link>
-            <Link
-                href="/login"
-                className={buttonVariants({variant: 'outline'})}
-                aria-current={pathname === '/login' ? 'page' : undefined}
-            >
-                Anmelden
-            </Link>
+            <LanguageSwitcher />
+            {isAuthenticated ? (
+                <>
+                    <Link
+                        className={buttonVariants({variant: 'ghost', size: 'sm'})}
+                        href={href('/account')}
+                    >
+                        {dictionary.nav.myAccount}
+                    </Link>
+                    <Button
+                        type="button"
+                        variant="outline"
+                        disabled={isLoggingOut}
+                        onClick={() => {
+                            void handleLogout()
+                        }}
+                    >
+                        {isLoggingOut ? dictionary.nav.logoutPending : dictionary.nav.logout}
+                    </Button>
+                </>
+            ) : (
+                <>
+                    <Link
+                        className={buttonVariants({variant: 'ghost', size: 'sm'})}
+                        href={href('/register')}
+                    >
+                        {dictionary.nav.register}
+                    </Link>
+                    <Link
+                        href={href('/login')}
+                        className={buttonVariants({variant: 'outline'})}
+                        aria-current={barePath === '/login' ? 'page' : undefined}
+                    >
+                        {dictionary.nav.login}
+                    </Link>
+                </>
+            )}
         </>
     )
 
     return (
         <SiteShell
             brand={
-                <Link className="flex min-w-0 items-center gap-2 min-h-[44px]" href="/">
+                <Link className="flex min-w-0 items-center gap-2 min-h-[44px]" href={href('/')}>
                     <BrandLogo
                         className="h-8 w-auto"
                         logoUrl={config.branding.logoUrl}

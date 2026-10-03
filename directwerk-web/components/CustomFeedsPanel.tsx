@@ -38,8 +38,11 @@ import type {
     PublicFormat,
     SubscriberFeedView,
 } from '@directwerk/api/types'
-import {formatPublishedAt} from '@directwerk/api/format/datetime'
 import {userFacingFeedsError} from '@/lib/billing/userFacingBillingError'
+import {formatPublishedAt} from '@/lib/format/dateTime'
+import type {Dictionary} from '@/lib/i18n/dictionary'
+import {interpolate} from '@/lib/i18n/interpolate'
+import {useDictionary, useLocale} from '@/lib/i18n/LocaleProvider'
 
 interface CustomFeedBase {
     id: number
@@ -60,15 +63,15 @@ export interface CustomFeedsPanelConfig<
     TOption extends CustomFeedOption,
     TPreview,
 > {
-    headerTitle: string
-    headerDescription: string
-    optionsLegend: string
-    noOptionsMessage: string
-    noOptionsSelectedLabel: string
-    urlDisabledHint: string
-    rotateConfirmMessage: string
-    renderOptionLabel: (option: TOption) => React.ReactNode
-    renderPreview: (preview: TPreview) => React.ReactNode
+    headerTitle: (dictionary: Dictionary) => string
+    headerDescription: (dictionary: Dictionary) => string
+    optionsLegend: (dictionary: Dictionary) => string
+    noOptionsMessage: (dictionary: Dictionary) => string
+    noOptionsSelectedLabel: (dictionary: Dictionary) => string
+    urlDisabledHint: (dictionary: Dictionary) => string
+    rotateConfirmMessage: (dictionary: Dictionary) => string
+    renderOptionLabel: (option: TOption, dictionary: Dictionary) => React.ReactNode
+    renderPreview: (preview: TPreview, dictionary: Dictionary) => React.ReactNode
     getFeedOptionIds: (feed: TFeed) => number[]
     getFeedOptionSummaries: (feed: TFeed) => CustomFeedOption[]
     fetchOptions: (tenantHost: string) => Promise<TOption[]>
@@ -130,6 +133,9 @@ export default function CustomFeedsPanel<
     onError,
     onAuthRequired,
 }: CustomFeedsPanelProps<TFeed, TOption, TPreview>): React.JSX.Element {
+    const lang = useLocale()
+    const dictionary = useDictionary()
+    const {common, errors, feeds: copy, format} = dictionary
     const customFeeds = feeds.filter((feed) => !feed.isDefault)
     const [options, setOptions] = useState<TOption[]>([])
     const [optionsError, setOptionsError] = useState<string | null>(null)
@@ -161,7 +167,7 @@ export default function CustomFeedsPanel<
                     return
                 }
                 setOptions([])
-                setOptionsError(userFacingFeedsError(error))
+                setOptionsError(userFacingFeedsError(error, errors))
             })
         return () => {
             active = false
@@ -193,7 +199,7 @@ export default function CustomFeedsPanel<
                         return
                     }
                     setPreview(null)
-                    setPreviewError(userFacingFeedsError(error))
+                    setPreviewError(userFacingFeedsError(error, errors))
                 })
         }, 250)
         return () => {
@@ -247,7 +253,7 @@ export default function CustomFeedsPanel<
         const summaries = config.getFeedOptionSummaries(feed)
         return summaries.length > 0
             ? summaries.map((item) => item.name).join(', ')
-            : config.noOptionsSelectedLabel
+            : config.noOptionsSelectedLabel(dictionary)
     }
 
     async function handleSave(): Promise<void> {
@@ -270,7 +276,7 @@ export default function CustomFeedsPanel<
             if (handleAuth(error)) {
                 return
             }
-            onError(userFacingFeedsError(error))
+            onError(userFacingFeedsError(error, errors))
         } finally {
             setIsSaving(false)
         }
@@ -286,7 +292,7 @@ export default function CustomFeedsPanel<
             if (handleAuth(error)) {
                 return
             }
-            onError(userFacingFeedsError(error))
+            onError(userFacingFeedsError(error, errors))
         } finally {
             setPendingFeedId(null)
             setPendingAction(null)
@@ -303,7 +309,7 @@ export default function CustomFeedsPanel<
             if (handleAuth(error)) {
                 return
             }
-            onError(userFacingFeedsError(error))
+            onError(userFacingFeedsError(error, errors))
         } finally {
             setPendingFeedId(null)
             setPendingAction(null)
@@ -323,7 +329,7 @@ export default function CustomFeedsPanel<
             if (handleAuth(error)) {
                 return
             }
-            onError(userFacingFeedsError(error))
+            onError(userFacingFeedsError(error, errors))
         } finally {
             setPendingFeedId(null)
             setPendingAction(null)
@@ -344,9 +350,9 @@ export default function CustomFeedsPanel<
     return (
         <section className="flex flex-col gap-4">
             <SectionHeader
-                action={<Badge variant="outline">Eigene · privat</Badge>}
-                description={config.headerDescription}
-                title={config.headerTitle}
+                action={<Badge variant="outline">{common.ownPrivate}</Badge>}
+                description={config.headerDescription(dictionary)}
+                title={config.headerTitle(dictionary)}
             />
             {optionsError !== null ? (
                 <Alert variant="destructive">
@@ -354,26 +360,23 @@ export default function CustomFeedsPanel<
                 </Alert>
             ) : null}
             {canBuild && options.length === 0 && optionsError === null ? (
-                <p className="text-sm text-muted-foreground">{config.noOptionsMessage}</p>
+                <p className="text-sm text-muted-foreground">{config.noOptionsMessage(dictionary)}</p>
             ) : null}
             {canBuild && atFeedLimit && editingId === null ? (
                 <p className="text-sm text-muted-foreground">
-                    Du kannst höchstens {MAX_CUSTOM_FEEDS} eigene Feeds anlegen.
+                    {interpolate(copy.feedLimit, {max: MAX_CUSTOM_FEEDS})}
                 </p>
             ) : null}
             {showEditHiddenHint ? (
                 <p className="text-sm text-muted-foreground">
-                    Neue Feeds anlegen und bearbeiten ist für dieses Angebot
-                    deaktiviert. Deine bestehenden Feeds bleiben nutzbar — du
-                    kannst sie weiterhin aktivieren, das Token erneuern oder
-                    löschen.
+                    {copy.editHiddenHint}
                 </p>
             ) : null}
             {showCreateForm ? (
                 <Card>
                     <CardHeader>
                         <CardTitle>
-                            {editingId === null ? 'Neuen Feed anlegen' : 'Feed bearbeiten'}
+                            {editingId === null ? copy.createFeedTitle : copy.editFeedTitle}
                         </CardTitle>
                     </CardHeader>
                     <CardContent>
@@ -385,7 +388,7 @@ export default function CustomFeedsPanel<
                             }}
                         >
                             <label className="grid gap-2 text-sm font-medium">
-                                <span>Name</span>
+                                <span>{common.name}</span>
                                 <Input
                                     maxLength={80}
                                     onChange={(event) => setTitle(event.target.value)}
@@ -394,7 +397,7 @@ export default function CustomFeedsPanel<
                             </label>
                             <fieldset className="flex flex-col gap-2 border-0 p-0">
                                 <legend className="mb-1 text-sm font-medium">
-                                    {config.optionsLegend}
+                                    {config.optionsLegend(dictionary)}
                                 </legend>
                                 {options.map((option) => (
                                     <label
@@ -405,31 +408,31 @@ export default function CustomFeedsPanel<
                                             checked={selectedIds.includes(option.id)}
                                             onCheckedChange={() => toggleOption(option.id)}
                                         />
-                                        <span>{config.renderOptionLabel(option)}</span>
+                                        <span>{config.renderOptionLabel(option, dictionary)}</span>
                                     </label>
                                 ))}
                             </fieldset>
                             {previewError !== null ? (
                                 <p className="text-sm text-muted-foreground" role="status">
-                                    {previewError} Speichern ist trotzdem möglich.
+                                    {previewError} {copy.previewSaveAnyway}
                                 </p>
                             ) : null}
                             {preview !== null ? (
                                 <p className="text-sm text-muted-foreground" role="status">
-                                    {config.renderPreview(preview)}
+                                    {config.renderPreview(preview, dictionary)}
                                 </p>
                             ) : null}
                             <div className="flex flex-wrap gap-2">
                                 <Button disabled={!canSave} type="submit">
                                     {isSaving
-                                        ? 'Wird gespeichert…'
+                                        ? common.saving
                                         : editingId === null
-                                          ? 'Feed speichern'
-                                          : 'Änderungen speichern'}
+                                          ? copy.saveFeed
+                                          : copy.saveChanges}
                                 </Button>
                                 {editingId !== null ? (
                                     <Button onClick={resetForm} type="button" variant="outline">
-                                        Abbrechen
+                                        {common.cancel}
                                     </Button>
                                 ) : null}
                             </div>
@@ -439,9 +442,7 @@ export default function CustomFeedsPanel<
             ) : null}
             {customFeeds.length === 0 ? (
                 <p className="text-sm text-muted-foreground">
-                    Noch keine eigenen Feeds. Dein Standard-Feed oben
-                    funktioniert auch ohne eigene Feeds — lege hier nur an, was
-                    du filtern willst.
+                    {copy.noCustomFeeds}
                 </p>
             ) : (
                 <ListPanel>
@@ -450,20 +451,22 @@ export default function CustomFeedsPanel<
                             <div className="min-w-0 flex-1 space-y-3">
                                 <div className="flex flex-wrap items-center gap-2">
                                     <p className="font-medium">{feed.title}</p>
-                                    <Badge variant="outline">Eigener Feed</Badge>
+                                    <Badge variant="outline">{copy.ownFeedBadge}</Badge>
                                     <Badge variant={feed.enabled ? 'secondary' : 'outline'}>
-                                        {feed.enabled ? 'Aktiv' : 'Deaktiviert'}
+                                        {feed.enabled ? common.active : common.disabled}
                                     </Badge>
                                 </div>
                                 <p className="text-sm text-muted-foreground">
-                                    {feedOptionNames(feed)} · aktualisiert{' '}
-                                    {formatPublishedAt(feed.updatedAt)}
+                                    {feedOptionNames(feed)} ·{' '}
+                                    {interpolate(common.updatedAt, {
+                                        date: formatPublishedAt(feed.updatedAt, lang, format),
+                                    })}
                                 </p>
                                 <div className={feed.enabled ? undefined : 'opacity-70'}>
                                     <FeedUrlDisplay url={feed.url} />
                                     {!feed.enabled ? (
                                         <p className="mt-2 text-sm text-muted-foreground">
-                                            {config.urlDisabledHint}
+                                            {config.urlDisabledHint(dictionary)}
                                         </p>
                                     ) : null}
                                 </div>
@@ -477,10 +480,10 @@ export default function CustomFeedsPanel<
                                     variant="outline"
                                 >
                                     {isRowBusy(feed.id, 'toggle')
-                                        ? 'Wird umgeschaltet…'
+                                        ? common.toggling
                                         : feed.enabled
-                                          ? 'Deaktivieren'
-                                          : 'Aktivieren'}
+                                          ? common.deactivate
+                                          : common.activate}
                                 </Button>
                                 <Button
                                     disabled={isSaving || isRowMutationPending}
@@ -490,8 +493,8 @@ export default function CustomFeedsPanel<
                                     variant="outline"
                                 >
                                     {isRowBusy(feed.id, 'rotate')
-                                        ? 'Wird erneuert…'
-                                        : 'Token erneuern'}
+                                        ? common.renewing
+                                        : common.rotateToken}
                                 </Button>
                                 {canBuild && options.length > 0 ? (
                                     <Button
@@ -501,7 +504,7 @@ export default function CustomFeedsPanel<
                                         type="button"
                                         variant="outline"
                                     >
-                                        Bearbeiten
+                                        {common.edit}
                                     </Button>
                                 ) : null}
                                 <Button
@@ -512,8 +515,8 @@ export default function CustomFeedsPanel<
                                     variant="outline"
                                 >
                                     {isRowBusy(feed.id, 'delete')
-                                        ? 'Wird gelöscht…'
-                                        : 'Löschen'}
+                                        ? common.deleting
+                                        : common.delete}
                                 </Button>
                             </div>
                         </ListPanelRow>
@@ -522,13 +525,17 @@ export default function CustomFeedsPanel<
             )}
 
             <ConfirmDialog
-                cancelLabel="Abbrechen"
-                closeLabel="Schließen"
-                confirmLabel={confirmation?.action === 'delete' ? 'Feed löschen' : 'Token erneuern'}
+                cancelLabel={common.cancel}
+                closeLabel={common.close}
+                confirmLabel={
+                    confirmation?.action === 'delete'
+                        ? copy.deleteFeedConfirm
+                        : common.rotateToken
+                }
                 description={
                     confirmation?.action === 'delete'
-                        ? `Der Feed „${confirmation.feed.title}“ wird entfernt und seine URL sofort ungültig.`
-                        : config.rotateConfirmMessage
+                        ? interpolate(copy.deleteFeedDesc, {title: confirmation.feed.title})
+                        : config.rotateConfirmMessage(dictionary)
                 }
                 destructive={confirmation?.action === 'delete'}
                 onConfirm={() => {
@@ -554,12 +561,12 @@ export default function CustomFeedsPanel<
                     pendingAction === confirmation.action
                 }
                 pendingLabel={
-                    confirmation?.action === 'delete' ? 'Wird gelöscht…' : 'Wird erneuert…'
+                    confirmation?.action === 'delete' ? common.deleting : common.renewing
                 }
                 title={
                     confirmation?.action === 'delete'
-                        ? 'Feed löschen?'
-                        : 'Feed-URL erneuern?'
+                        ? copy.deleteFeedTitle
+                        : copy.rotateFeedTitle
                 }
             />
         </section>
@@ -571,29 +578,33 @@ export const podcastCustomFeedsConfig: CustomFeedsPanelConfig<
     PublicFormat,
     FeedPreview
 > = {
-    headerTitle: 'Eigene Feeds (Formate)',
-    headerDescription:
-        'Deine eigenen, filterbaren Feeds: Baue private RSS-Feeds nur mit den Formaten, die du hören willst. Im Unterschied zum Standard-Feed oben, der automatisch alles enthält, bestimmst du hier die Filter und kannst Feeds löschen. Es erscheinen nur Folgen, die du freigeschaltet hast.',
-    optionsLegend: 'Formate',
-    noOptionsMessage: 'Der Verlag hat noch keine Formate angelegt.',
-    noOptionsSelectedLabel: 'Keine Formate',
-    urlDisabledHint:
-        'Deaktiviert — die URL ist sichtbar, aber Podcast-Apps können sie erst nach dem Aktivieren wieder abrufen.',
-    rotateConfirmMessage:
-        'Token erneuern? Die alte URL wird sofort ungültig. Trage die neue URL danach in deiner Podcast-App ein.',
-    renderOptionLabel: (format) => (
+    headerTitle: ({feeds}) => feeds.customPodcastHeaderTitle,
+    headerDescription: ({feeds}) => feeds.customPodcastHeaderDesc,
+    optionsLegend: ({feeds}) => feeds.formatsLegend,
+    noOptionsMessage: ({feeds}) => feeds.noFormats,
+    noOptionsSelectedLabel: ({feeds}) => feeds.noFormatsSelected,
+    urlDisabledHint: ({feeds}) => feeds.urlDisabledPodcast,
+    rotateConfirmMessage: ({feeds}) => feeds.rotateCustomConfirm,
+    renderOptionLabel: (format, {format: copy}) => (
         <>
             {format.name}
             {format.requiredLevelSortOrder !== null
-                ? ` (ab Stufe ${format.requiredLevelSortOrder})`
+                ? interpolate(copy.fromLevel, {order: format.requiredLevelSortOrder})
                 : null}
         </>
     ),
-    renderPreview: (preview) => (
+    renderPreview: (preview, {catalog, feeds}) => (
         <>
-            Dieser Feed enthält aktuell {preview.episodeCount}{' '}
-            {preview.episodeCount === 1 ? 'Folge' : 'Folgen'}
-            {preview.sampleTitles.length > 0 ? `: ${preview.sampleTitles.join(', ')}` : '.'}
+            {interpolate(feeds.previewCountPodcast, {
+                count: preview.episodeCount,
+                noun:
+                    preview.episodeCount === 1
+                        ? catalog.nounEpisode
+                        : catalog.nounEpisodes,
+            })}
+            {preview.sampleTitles.length > 0
+                ? `${feeds.previewSamplePrefix}${preview.sampleTitles.join(', ')}`
+                : feeds.previewSampleSuffix}
         </>
     ),
     getFeedOptionIds: (feed) => feed.formatIds,
@@ -612,22 +623,26 @@ export const articleCustomFeedsConfig: CustomFeedsPanelConfig<
     PublicCategory,
     ArticleFeedPreview
 > = {
-    headerTitle: 'Eigene Feeds (Kategorien)',
-    headerDescription:
-        'Deine eigenen, filterbaren Feeds: Baue private RSS-Feeds nur mit den Kategorien, die dich interessieren. Im Unterschied zum Standard-Feed oben, der automatisch alles enthält, bestimmst du hier die Filter und kannst Feeds löschen. Es erscheinen nur Beiträge, die du freigeschaltet hast.',
-    optionsLegend: 'Kategorien',
-    noOptionsMessage: 'Der Verlag hat noch keine Kategorien angelegt.',
-    noOptionsSelectedLabel: 'Keine Kategorien',
-    urlDisabledHint:
-        'Deaktiviert — die URL ist sichtbar, aber Feed-Reader können sie erst nach dem Aktivieren wieder abrufen.',
-    rotateConfirmMessage:
-        'Token erneuern? Die alte URL wird sofort ungültig. Trage die neue URL danach in deinem Feed-Reader ein.',
+    headerTitle: ({feeds}) => feeds.customArticlesHeaderTitle,
+    headerDescription: ({feeds}) => feeds.customArticlesHeaderDesc,
+    optionsLegend: ({feeds}) => feeds.categoriesLegend,
+    noOptionsMessage: ({feeds}) => feeds.noCategories,
+    noOptionsSelectedLabel: ({feeds}) => feeds.noCategoriesSelected,
+    urlDisabledHint: ({feeds}) => feeds.urlDisabledArticles,
+    rotateConfirmMessage: ({feeds}) => feeds.rotateCustomConfirmArticles,
     renderOptionLabel: (category) => <>{category.name}</>,
-    renderPreview: (preview) => (
+    renderPreview: (preview, {catalog, feeds}) => (
         <>
-            Dieser Feed enthält aktuell {preview.articleCount}{' '}
-            {preview.articleCount === 1 ? 'Beitrag' : 'Beiträge'}
-            {preview.sampleTitles.length > 0 ? `: ${preview.sampleTitles.join(', ')}` : '.'}
+            {interpolate(feeds.previewCountArticles, {
+                count: preview.articleCount,
+                noun:
+                    preview.articleCount === 1
+                        ? catalog.nounArticle
+                        : catalog.nounArticles,
+            })}
+            {preview.sampleTitles.length > 0
+                ? `${feeds.previewSamplePrefix}${preview.sampleTitles.join(', ')}`
+                : feeds.previewSampleSuffix}
         </>
     ),
     getFeedOptionIds: (feed) => feed.categoryIds,
