@@ -1,4 +1,5 @@
-import {cleanup, render, screen, waitFor} from '@testing-library/react'
+import {cleanup, screen, waitFor} from '@testing-library/react'
+import {renderWithLocale} from '@/lib/i18n/testUtils'
 import userEvent from '@testing-library/user-event'
 import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest'
 
@@ -81,7 +82,7 @@ const adminMe: Me = {
 }
 
 function renderWizard(): void {
-    render(
+    renderWithLocale(
         <MeProvider me={adminMe}>
             <ArticleRssImportWizard />
         </MeProvider>,

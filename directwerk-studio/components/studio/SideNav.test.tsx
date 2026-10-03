@@ -91,7 +91,7 @@ describe('SideNav', () => {
         )
         expect(screen.getByRole('link', {name: 'Bonusdateien'})).toHaveAttribute(
             'href',
-            '/bonus',
+            '/de/bonus',
         )
     })
 
@@ -106,7 +106,7 @@ describe('SideNav', () => {
         )
         expect(screen.getByRole('link', {name: 'Bonusdateien'})).toHaveAttribute(
             'href',
-            '/bonus',
+            '/de/bonus',
         )
     })
 
@@ -132,7 +132,7 @@ describe('SideNav', () => {
         )
         expect(screen.getByRole('link', {name: 'Kategorien'})).toHaveAttribute(
             'href',
-            '/manage/categories',
+            '/de/manage/categories',
         )
     })
 
@@ -140,19 +140,19 @@ describe('SideNav', () => {
         renderNavigation(<SideNav config={config()} />)
         expect(screen.getByRole('link', {name: 'Folgen'})).toHaveAttribute(
             'href',
-            '/podcast/episodes',
+            '/de/podcast/episodes',
         )
         expect(screen.getByRole('link', {name: 'Import'})).toHaveAttribute(
             'href',
-            '/podcast/import',
+            '/de/podcast/import',
         )
         expect(screen.getByRole('link', {name: 'Start'})).toHaveAttribute(
             'href',
-            '/podcast',
+            '/de/podcast',
         )
         expect(screen.getByRole('link', {name: 'Sendungen'})).toHaveAttribute(
             'href',
-            '/podcast/series',
+            '/de/podcast/series',
         )
     })
 
@@ -160,7 +160,7 @@ describe('SideNav', () => {
         renderNavigation(<SideNav config={config()} />)
         expect(screen.getByRole('link', {name: 'Feeds'})).toHaveAttribute(
             'href',
-            '/podcast/feeds',
+            '/de/podcast/feeds',
         )
     })
 
@@ -186,19 +186,19 @@ describe('SideNav', () => {
         )
         expect(screen.getByRole('link', {name: 'Zahlungen'})).toHaveAttribute(
             'href',
-            '/manage',
+            '/de/manage',
         )
         expect(screen.getByRole('link', {name: 'Produkte'})).toHaveAttribute(
             'href',
-            '/manage/products',
+            '/de/manage/products',
         )
         expect(screen.getByRole('link', {name: 'Abonnenten'})).toHaveAttribute(
             'href',
-            '/manage/subscribers',
+            '/de/manage/subscribers',
         )
         expect(screen.getByRole('link', {name: 'Freischaltungen'})).toHaveAttribute(
             'href',
-            '/manage/grants',
+            '/de/manage/grants',
         )
     })
 
@@ -229,7 +229,7 @@ describe('SideNav', () => {
         renderNavigation(<SideNav config={config()} />)
         expect(screen.getByRole('link', {name: 'Statistiken'})).toHaveAttribute(
             'href',
-            '/analytics',
+            '/de/analytics',
         )
     })
 
@@ -254,23 +254,23 @@ describe('SideNav', () => {
         )
         expect(screen.getByRole('link', {name: 'Branding'})).toHaveAttribute(
             'href',
-            '/settings/branding',
+            '/de/settings/branding',
         )
         expect(screen.getByRole('link', {name: 'Domains'})).toHaveAttribute(
             'href',
-            '/settings/domains',
+            '/de/settings/domains',
         )
         expect(screen.getByRole('link', {name: 'Integrationen'})).toHaveAttribute(
             'href',
-            '/settings/integrations',
+            '/de/settings/integrations',
         )
         expect(screen.getByRole('link', {name: 'Stripe'})).toHaveAttribute(
             'href',
-            '/settings/stripe',
+            '/de/settings/stripe',
         )
         expect(screen.getByRole('link', {name: 'Mitglieder'})).toHaveAttribute(
             'href',
-            '/team',
+            '/de/team',
         )
     })
 
@@ -283,7 +283,7 @@ describe('SideNav', () => {
         expect(screen.getByRole('link', {name: 'Branding'})).toBeInTheDocument()
         expect(screen.getByRole('link', {name: 'Integrationen'})).toHaveAttribute(
             'href',
-            '/settings/integrations',
+            '/de/settings/integrations',
         )
         expect(screen.queryByRole('link', {name: 'Stripe'})).not.toBeInTheDocument()
     })
@@ -300,11 +300,11 @@ describe('SideNav', () => {
         )
         expect(screen.getByRole('link', {name: 'Bibliothek'})).toHaveAttribute(
             'href',
-            '/media',
+            '/de/media',
         )
         expect(screen.getByRole('link', {name: 'E-Mail-Vorlagen'})).toHaveAttribute(
             'href',
-            '/settings/email',
+            '/de/settings/email',
         )
     })
 
@@ -335,24 +335,24 @@ describe('SideNav', () => {
             expect(screen.getByRole('link', {name: 'Start'})).toHaveAttribute('href', '/de/write')
             expect(screen.getByRole('link', {name: 'Beiträge'})).toHaveAttribute(
                 'href',
-                '/write/articles',
+                '/de/write/articles',
             )
             expect(screen.getByRole('link', {name: 'Bonusdateien'})).toHaveAttribute(
                 'href',
-                '/bonus',
+                '/de/bonus',
             )
             expect(screen.getByRole('link', {name: 'Bibliothek'})).toHaveAttribute(
                 'href',
-                '/media',
+                '/de/media',
             )
             expect(screen.getByRole('link', {name: 'Kategorien'})).toHaveAttribute(
                 'href',
-                '/manage/categories',
+                '/de/manage/categories',
             )
 
             expect(screen.getByRole('link', {name: 'Import'})).toHaveAttribute(
                 'href',
-                '/write/import',
+                '/de/write/import',
             )
             expect(screen.queryByRole('link', {name: 'Folgen'})).not.toBeInTheDocument()
             expect(screen.queryByRole('link', {name: 'Sendungen'})).not.toBeInTheDocument()
@@ -367,37 +367,37 @@ describe('SideNav', () => {
             expect(screen.getByRole('link', {name: 'Studio'})).toHaveAttribute('href', '/de')
             expect(screen.getByRole('link', {name: 'Start'})).toHaveAttribute(
                 'href',
-                '/podcast',
+                '/de/podcast',
             )
             expect(screen.getByRole('link', {name: 'Folgen'})).toHaveAttribute(
                 'href',
-                '/podcast/episodes',
+                '/de/podcast/episodes',
             )
             expect(screen.getByRole('link', {name: 'Import'})).toHaveAttribute(
                 'href',
-                '/podcast/import',
+                '/de/podcast/import',
             )
             expect(screen.getByRole('link', {name: 'Sendungen'})).toHaveAttribute(
                 'href',
-                '/podcast/series',
+                '/de/podcast/series',
             )
             expect(screen.getByRole('link', {name: 'Formate'})).toHaveAttribute(
                 'href',
-                '/podcast/formats',
+                '/de/podcast/formats',
             )
             expect(screen.getByRole('link', {name: 'Feeds'})).toHaveAttribute(
                 'href',
-                '/podcast/feeds',
+                '/de/podcast/feeds',
             )
             expect(screen.getByRole('link', {name: 'Bibliothek'})).toHaveAttribute(
                 'href',
-                '/media',
+                '/de/media',
             )
             // Bonusdateien lives in the desk-independent Medien section, so it stays visible
             // even while the Podcast desk is active — it is not gated by which desk is open.
             expect(screen.getByRole('link', {name: 'Bonusdateien'})).toHaveAttribute(
                 'href',
-                '/bonus',
+                '/de/bonus',
             )
 
             expect(screen.queryByRole('link', {name: 'Beiträge'})).not.toBeInTheDocument()
@@ -411,7 +411,7 @@ describe('SideNav', () => {
             expect(screen.getByRole('link', {name: 'Start'})).toHaveAttribute('href', '/de/write')
             expect(screen.getByRole('link', {name: 'Beiträge'})).toHaveAttribute(
                 'href',
-                '/write/articles',
+                '/de/write/articles',
             )
             expect(screen.queryByRole('link', {name: 'Folgen'})).not.toBeInTheDocument()
         })
@@ -424,19 +424,19 @@ describe('SideNav', () => {
             expect(screen.getByRole('link', {name: 'Start'})).toHaveAttribute('href', '/de/write')
             expect(screen.getByRole('link', {name: 'Beiträge'})).toHaveAttribute(
                 'href',
-                '/write/articles',
+                '/de/write/articles',
             )
             expect(screen.getByRole('link', {name: 'Bonusdateien'})).toHaveAttribute(
                 'href',
-                '/bonus',
+                '/de/bonus',
             )
             expect(screen.getByRole('link', {name: 'Bibliothek'})).toHaveAttribute(
                 'href',
-                '/media',
+                '/de/media',
             )
             expect(screen.getByRole('link', {name: 'Kategorien'})).toHaveAttribute(
                 'href',
-                '/manage/categories',
+                '/de/manage/categories',
             )
             expect(screen.getByText('Verwaltung')).toBeInTheDocument()
 
@@ -460,11 +460,11 @@ describe('SideNav', () => {
             expect(screen.getByRole('link', {name: 'Start'})).toHaveAttribute('href', '/de/write')
             expect(screen.getByRole('link', {name: 'Beiträge'})).toHaveAttribute(
                 'href',
-                '/write/articles',
+                '/de/write/articles',
             )
             expect(screen.getByRole('link', {name: 'Bonusdateien'})).toHaveAttribute(
                 'href',
-                '/bonus',
+                '/de/bonus',
             )
             expect(screen.queryByRole('link', {name: 'Folgen'})).not.toBeInTheDocument()
         })

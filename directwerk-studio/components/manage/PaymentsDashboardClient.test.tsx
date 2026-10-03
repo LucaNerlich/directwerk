@@ -1,9 +1,16 @@
-import {fireEvent, render, screen, waitFor} from '@testing-library/react'
+import {fireEvent, screen, waitFor} from '@testing-library/react'
+import {renderWithLocale} from '@/lib/i18n/testUtils'
 import {beforeEach, describe, expect, it, vi} from 'vitest'
 
 import PaymentsDashboardClient from '@/components/manage/PaymentsDashboardClient'
 import {getBillingDashboard, revokeSubscription} from '@/lib/api/subscriptionApi'
 import type {BillingDashboard, BillingMembership} from '@directwerk/api/types'
+
+vi.mock('next/link', () => ({
+    default: ({children, href, ...props}: {children?: React.ReactNode; href: string; [key: string]: unknown}) => (
+        <a href={href} {...props}>{children}</a>
+    ),
+}))
 
 vi.mock('next/navigation', () => ({useRouter: () => ({replace: vi.fn()})}))
 vi.mock('@directwerk/api/tenant', () => ({getClientTenantHost: () => 'tenant.test'}))
@@ -65,14 +72,13 @@ describe('PaymentsDashboardClient', () => {
     })
 
     it('renders payment stats and memberships', async () => {
-        render(<PaymentsDashboardClient />)
+        renderWithLocale(<PaymentsDashboardClient />)
         await waitFor(() => expect(screen.getByText('member@example.com')).toBeInTheDocument())
         expect(screen.getByText('Zahlungen & Mitgliedschaften')).toBeInTheDocument()
         expect(screen.getByText('Verbunden')).toBeInTheDocument()
         expect(screen.getAllByText('Zahlungsrückstand').length).toBeGreaterThan(0)
         expect(screen.getByRole('button', {name: 'Stripe'})).toHaveAttribute(
-            'href',
-            '/settings/stripe',
+            'href', '/de/settings/stripe',
         )
         expect(screen.getByRole('button', {name: 'Zugang beenden'})).toBeInTheDocument()
     })
@@ -100,7 +106,7 @@ describe('PaymentsDashboardClient', () => {
             }
         })
 
-        render(<PaymentsDashboardClient />)
+        renderWithLocale(<PaymentsDashboardClient />)
         await waitFor(() => expect(screen.getByText('member@example.com')).toBeInTheDocument())
         fireEvent.click(screen.getByRole('button', {name: 'Zugang beenden'}))
         expect(
@@ -121,7 +127,7 @@ describe('PaymentsDashboardClient', () => {
     it('resets the revoke confirmation after a failed revoke', async () => {
         vi.mocked(revokeSubscription).mockRejectedValue(new Error('Widerruf fehlgeschlagen.'))
 
-        render(<PaymentsDashboardClient />)
+        renderWithLocale(<PaymentsDashboardClient />)
         await waitFor(() => expect(screen.getByText('member@example.com')).toBeInTheDocument())
         fireEvent.click(screen.getByRole('button', {name: 'Zugang beenden'}))
         fireEvent.click(await screen.findByRole('button', {name: 'Wirklich beenden'}))

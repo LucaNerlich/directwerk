@@ -1,10 +1,17 @@
-import {cleanup, fireEvent, render, screen, waitFor} from '@testing-library/react'
+import {cleanup, fireEvent, screen, waitFor} from '@testing-library/react'
+import {renderWithLocale} from '@/lib/i18n/testUtils'
 import {afterEach, describe, expect, it, vi} from 'vitest'
 
 import SubscribersClient from '@/components/manage/SubscribersClient'
 import {clearCachedTenantData} from '@directwerk/api/client/useCachedTenantQuery'
 import {revokeSubscription} from '@/lib/api/subscriptionApi'
 import {listSubscribers} from '@/lib/api/tenantSettingsApi'
+
+vi.mock('next/link', () => ({
+    default: ({children, href, ...props}: {children?: React.ReactNode; href: string; [key: string]: unknown}) => (
+        <a href={href} {...props}>{children}</a>
+    ),
+}))
 
 vi.mock('next/navigation', () => ({useRouter: () => ({replace: vi.fn()})}))
 const authRedirect = vi.fn(() => false)
@@ -29,18 +36,18 @@ afterEach(() => {
 describe('SubscribersClient', () => {
     it('shows an empty state pointing to products and grants', async () => {
         vi.mocked(listSubscribers).mockResolvedValue([])
-        render(<SubscribersClient />)
+        renderWithLocale(<SubscribersClient />)
 
         await waitFor(() =>
             expect(screen.getByText('Noch keine Abonnenten')).toBeInTheDocument(),
         )
         expect(screen.getByRole('button', {name: /Zu den Produkten/})).toHaveAttribute(
             'href',
-            '/manage/products',
+            '/de/manage/products',
         )
         expect(screen.getByRole('button', {name: /Freischaltung vergeben/})).toHaveAttribute(
             'href',
-            '/manage/grants',
+            '/de/manage/grants',
         )
     })
 
@@ -66,7 +73,7 @@ describe('SubscribersClient', () => {
                 ],
             },
         ])
-        render(<SubscribersClient />)
+        renderWithLocale(<SubscribersClient />)
 
         await waitFor(() =>
             expect(screen.getByText('member@example.com')).toBeInTheDocument(),
@@ -100,7 +107,7 @@ describe('SubscribersClient', () => {
         ])
         vi.mocked(revokeSubscription).mockRejectedValue(new Error('Widerruf fehlgeschlagen.'))
 
-        render(<SubscribersClient />)
+        renderWithLocale(<SubscribersClient />)
         await waitFor(() =>
             expect(screen.getByText('member@example.com')).toBeInTheDocument(),
         )

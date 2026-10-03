@@ -1,10 +1,17 @@
-import {render, screen, waitFor} from '@testing-library/react'
+import {screen, waitFor} from '@testing-library/react'
+import {renderWithLocale} from '@/lib/i18n/testUtils'
 import userEvent from '@testing-library/user-event'
 import {describe, expect, it, vi} from 'vitest'
 
 import CategoryEditor from '@/components/manage/CategoryEditor'
 
 const replace = vi.fn()
+vi.mock('next/link', () => ({
+    default: ({children, href, ...props}: {children?: React.ReactNode; href: string; [key: string]: unknown}) => (
+        <a href={href} {...props}>{children}</a>
+    ),
+}))
+
 vi.mock('next/navigation', () => ({useRouter: () => ({replace})}))
 vi.mock('@directwerk/api/tenant', () => ({getClientTenantHost: () => 'tenant.test'}))
 
@@ -25,7 +32,7 @@ vi.mock('@/lib/api/catalogApi', () => ({
 describe('CategoryEditor', () => {
     it('creates a new category and redirects to its detail page', async () => {
         const user = userEvent.setup()
-        render(<CategoryEditor />)
+        renderWithLocale(<CategoryEditor />)
 
         await user.type(screen.getByLabelText('Name'), 'News')
         await user.type(screen.getByLabelText('Slug'), 'news')
@@ -38,6 +45,6 @@ describe('CategoryEditor', () => {
                 parentId: undefined,
             }),
         )
-        await waitFor(() => expect(replace).toHaveBeenCalledWith('/manage/categories/1'))
+        await waitFor(() => expect(replace).toHaveBeenCalledWith('/de/manage/categories/1'))
     })
 })

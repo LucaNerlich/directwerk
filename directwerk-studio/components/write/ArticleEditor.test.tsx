@@ -1,4 +1,5 @@
-import {render, screen, waitFor} from '@testing-library/react'
+import {screen, waitFor} from '@testing-library/react'
+import {renderWithLocale} from '@/lib/i18n/testUtils'
 import userEvent from '@testing-library/user-event'
 import {afterEach, describe, expect, it, vi} from 'vitest'
 
@@ -8,6 +9,12 @@ import {useOptionalMe} from '@/lib/auth/MeProvider'
 import type {EffectiveRights} from '@directwerk/api/types'
 
 const mockRouter = {replace: vi.fn()}
+vi.mock('next/link', () => ({
+    default: ({children, href, ...props}: {children?: React.ReactNode; href: string; [key: string]: unknown}) => (
+        <a href={href} {...props}>{children}</a>
+    ),
+}))
+
 vi.mock('next/navigation', () => ({useRouter: () => mockRouter}))
 vi.mock('@directwerk/api/tenant', () => ({getClientTenantHost: () => 'tenant.test'}))
 vi.mock('@/lib/site/SiteConfigProvider', () => ({
@@ -85,7 +92,7 @@ describe('ArticleEditor tagging', () => {
             body: null, excerpt: null, seoDescription: null, heroAssetId: 12,
             requiredLevelSortOrder: null, scheduledAt: null, categories: [], newsletterLists: [],
         })
-        render(<ArticleEditor articleId={1} />)
+        renderWithLocale(<ArticleEditor articleId={1} />)
 
         await user.click(await screen.findByRole('button', {name: 'Titelbild entfernen'}))
         await user.click(screen.getByRole('button', {name: 'Speichern'}))
@@ -101,7 +108,7 @@ describe('ArticleEditor tagging', () => {
 
     it('persists selected categories on save', async () => {
         const user = userEvent.setup()
-        render(<ArticleEditor articleId={1} />)
+        renderWithLocale(<ArticleEditor articleId={1} />)
 
         await waitFor(() => expect(screen.getByLabelText('News')).toBeInTheDocument())
         await user.click(screen.getByLabelText('News'))
@@ -113,7 +120,7 @@ describe('ArticleEditor tagging', () => {
     })
 
     it('disables Mindest-Stufe for free articles', async () => {
-        render(<ArticleEditor articleId={1} />)
+        renderWithLocale(<ArticleEditor articleId={1} />)
 
         await waitFor(() => expect(screen.getByRole('combobox')).toBeDisabled())
         expect(
@@ -127,7 +134,7 @@ describe('ArticleEditor tagging', () => {
             body: null, excerpt: null, seoDescription: null, heroAssetId: null,
             requiredLevelSortOrder: null, scheduledAt: null, categories: [], newsletterLists: [],
         })
-        render(<ArticleEditor articleId={1} />)
+        renderWithLocale(<ArticleEditor articleId={1} />)
 
         expect(
             await screen.findByRole('option', {name: 'Öffentlich / Keine Mindeststufe'}),
@@ -166,7 +173,7 @@ describe('ArticleEditor RBAC', () => {
             body: null, excerpt: null, seoDescription: null, heroAssetId: null,
             requiredLevelSortOrder: null, scheduledAt: null, categories: [], newsletterLists: [], createdBy: 99,
         })
-        render(<ArticleEditor articleId={1} />)
+        renderWithLocale(<ArticleEditor articleId={1} />)
 
         await waitFor(() => expect(screen.getByPlaceholderText('Titel eingeben…')).toBeDisabled())
         expect(

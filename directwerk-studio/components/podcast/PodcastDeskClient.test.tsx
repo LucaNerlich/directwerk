@@ -49,8 +49,7 @@ describe('PodcastDeskClient', () => {
         renderWithLocale(<PodcastDeskClient />)
         await waitFor(() =>
             expect(screen.getByRole('button', {name: 'RSS importieren'})).toHaveAttribute(
-                'href',
-                '/podcast/import',
+                'href', '/de/podcast/import',
             ),
         )
     })

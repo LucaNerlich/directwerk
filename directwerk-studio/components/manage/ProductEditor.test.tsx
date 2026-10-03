@@ -1,4 +1,5 @@
-import {fireEvent, render, screen, waitFor} from '@testing-library/react'
+import {fireEvent, screen, waitFor} from '@testing-library/react'
+import {renderWithLocale} from '@/lib/i18n/testUtils'
 import {describe, expect, it, vi} from 'vitest'
 
 import ProductEditor from '@/components/manage/ProductEditor'
@@ -7,6 +8,12 @@ import type {SubscriptionProduct} from '@directwerk/api/types'
 
 // Stable across renders, like the real Next.js useRouter().
 const mockRouter = {replace: vi.fn()}
+vi.mock('next/link', () => ({
+    default: ({children, href, ...props}: {children?: React.ReactNode; href: string; [key: string]: unknown}) => (
+        <a href={href} {...props}>{children}</a>
+    ),
+}))
+
 vi.mock('next/navigation', () => ({useRouter: () => mockRouter}))
 vi.mock('@directwerk/api/auth/useAuthRequired', () => ({
     useAuthRequired: () => () => false,
@@ -23,7 +30,7 @@ vi.mock('@/lib/api/subscriptionApi', () => ({
 
 describe('ProductEditor price validation', () => {
     it('rejects an invalid price with a German error instead of silently dropping it', async () => {
-        render(<ProductEditor />)
+        renderWithLocale(<ProductEditor />)
 
         // NB: fireEvent instead of user.type — user-event keystrokes don't
         // reach the Base-UI input primitive's state (see BrandingEditor tests).
@@ -45,7 +52,7 @@ describe('ProductEditor price validation', () => {
 
     it('converts a German price to cents when creating the product', async () => {
         vi.mocked(createProduct).mockResolvedValue({id: 3} as SubscriptionProduct)
-        render(<ProductEditor />)
+        renderWithLocale(<ProductEditor />)
 
         fireEvent.change(screen.getByLabelText('Titel'), {
             target: {value: 'Supporter'},
@@ -61,6 +68,6 @@ describe('ProductEditor price validation', () => {
                 expect.objectContaining({priceCents: 1490, title: 'Supporter'}),
             ),
         )
-        expect(mockRouter.replace).toHaveBeenCalledWith('/manage/products/3')
+        expect(mockRouter.replace).toHaveBeenCalledWith('/de/manage/products/3')
     })
 })

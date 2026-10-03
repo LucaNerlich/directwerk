@@ -1,4 +1,5 @@
-import {render, screen, within} from '@testing-library/react'
+import {screen, within} from '@testing-library/react'
+import {renderWithLocale} from '@/lib/i18n/testUtils'
 import userEvent from '@testing-library/user-event'
 import {describe, expect, it, vi} from 'vitest'
 
@@ -17,7 +18,7 @@ vi.mock('@/components/studio/LevelSelect', () => ({
 }))
 
 function renderLayout(body = '<p>Text</p>') {
-    return render(
+    return renderWithLocale(
         <PublicationEditorLayout
             accessPolicy="FREE"
             body={body}

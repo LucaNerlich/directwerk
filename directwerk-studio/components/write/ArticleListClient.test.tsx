@@ -1,4 +1,5 @@
-import {cleanup, render, screen, waitFor} from '@testing-library/react'
+import {cleanup, screen, waitFor} from '@testing-library/react'
+import {renderWithLocale} from '@/lib/i18n/testUtils'
 import userEvent from '@testing-library/user-event'
 import {afterEach, describe, expect, it, vi} from 'vitest'
 
@@ -19,6 +20,12 @@ import {
 import type {ArticleDetail} from '@directwerk/api/types'
 
 const mockReplace = vi.fn()
+
+vi.mock('next/link', () => ({
+    default: ({children, href, ...props}: {children?: React.ReactNode; href: string; [key: string]: unknown}) => (
+        <a href={href} {...props}>{children}</a>
+    ),
+}))
 
 vi.mock('next/navigation', () => ({
     useRouter: () => ({
@@ -135,7 +142,7 @@ describe('ArticleListClient', () => {
     it('renders loaded articles and fetches only once on mount', async () => {
         vi.mocked(listArticles).mockResolvedValue(mockArticles)
 
-        render(<ArticleListClient />)
+        renderWithLocale(<ArticleListClient />)
 
         await waitFor(() => {
             expect(screen.getByText('Draft Post')).toBeInTheDocument()
@@ -168,7 +175,7 @@ describe('ArticleListClient', () => {
             publishedAt: null,
         })
 
-        render(<ArticleListClient />)
+        renderWithLocale(<ArticleListClient />)
 
         await waitFor(() => {
             expect(screen.getByText('Published Post')).toBeInTheDocument()
@@ -197,7 +204,7 @@ describe('ArticleListClient', () => {
             publishedAt: '2026-08-30T12:00:00Z',
         })
 
-        render(<ArticleListClient />)
+        renderWithLocale(<ArticleListClient />)
 
         await waitFor(() => {
             expect(screen.getByText('Draft Post')).toBeInTheDocument()
@@ -225,7 +232,7 @@ describe('ArticleListClient', () => {
             scheduledAt: null,
         })
 
-        render(<ArticleListClient />)
+        renderWithLocale(<ArticleListClient />)
 
         await waitFor(() => {
             expect(screen.getByText('Scheduled Post')).toBeInTheDocument()
@@ -253,7 +260,7 @@ describe('ArticleListClient', () => {
             status: 'DRAFT',
         })
 
-        render(<ArticleListClient />)
+        renderWithLocale(<ArticleListClient />)
 
         await waitFor(() => {
             expect(screen.getByText('Archived Post')).toBeInTheDocument()
@@ -284,7 +291,7 @@ describe('ArticleListClient', () => {
             },
         ])
 
-        render(<ArticleListClient />)
+        renderWithLocale(<ArticleListClient />)
 
         await waitFor(() => {
             expect(screen.getByText('Draft Post')).toBeInTheDocument()
@@ -319,7 +326,7 @@ describe('ArticleListClient', () => {
             },
         ])
 
-        render(<ArticleListClient />)
+        renderWithLocale(<ArticleListClient />)
 
         await waitFor(() => {
             expect(screen.getByText('Published Post')).toBeInTheDocument()
@@ -350,7 +357,7 @@ describe('ArticleListClient', () => {
         vi.mocked(listArticles).mockResolvedValue(mockArticles)
         vi.mocked(bulkDeleteArticles).mockResolvedValue([1])
 
-        render(<ArticleListClient />)
+        renderWithLocale(<ArticleListClient />)
 
         await waitFor(() => {
             expect(screen.getByText('Draft Post')).toBeInTheDocument()
@@ -384,7 +391,7 @@ describe('ArticleListClient', () => {
         const user = userEvent.setup()
         vi.mocked(listArticles).mockResolvedValue(mockArticles)
 
-        render(<ArticleListClient />)
+        renderWithLocale(<ArticleListClient />)
 
         await waitFor(() => {
             expect(screen.getByText('Draft Post')).toBeInTheDocument()
@@ -399,7 +406,7 @@ describe('ArticleListClient', () => {
     it('renders empty state when there are no articles', async () => {
         vi.mocked(listArticles).mockResolvedValue([])
 
-        render(<ArticleListClient />)
+        renderWithLocale(<ArticleListClient />)
 
         await waitFor(() => {
             expect(screen.getByText('Noch keine Beiträge')).toBeInTheDocument()
@@ -414,7 +421,7 @@ describe('ArticleListClient', () => {
         vi.mocked(listArticles).mockResolvedValue(mockArticles)
         vi.mocked(unpublishArticle).mockRejectedValue(new Error('Server error'))
 
-        render(<ArticleListClient />)
+        renderWithLocale(<ArticleListClient />)
 
         await waitFor(() => {
             expect(screen.getByRole('button', {name: 'Zurückziehen'})).toBeInTheDocument()
@@ -444,7 +451,7 @@ describe('ArticleListClient', () => {
             },
         )
 
-        render(<ArticleListClient />)
+        renderWithLocale(<ArticleListClient />)
 
         await waitFor(() => {
             expect(screen.getByText('Draft Post')).toBeInTheDocument()
@@ -487,7 +494,7 @@ describe('ArticleListClient', () => {
             {id: 21, slug: 'news', name: 'News', parentId: null, active: true},
         ])
 
-        render(<ArticleListClient />)
+        renderWithLocale(<ArticleListClient />)
 
         await waitFor(() => {
             expect(screen.getByText('Draft Post')).toBeInTheDocument()
@@ -517,7 +524,7 @@ describe('ArticleListClient', () => {
         vi.mocked(listArticles).mockResolvedValue(mockArticles)
         vi.mocked(deleteArticle).mockResolvedValue(undefined)
 
-        render(<ArticleListClient />)
+        renderWithLocale(<ArticleListClient />)
 
         await waitFor(() => {
             expect(screen.getByText('Draft Post')).toBeInTheDocument()
@@ -548,7 +555,7 @@ describe('ArticleListClient', () => {
         vi.mocked(listArticles).mockResolvedValue(mockArticles)
         vi.mocked(deleteArticle).mockResolvedValue(undefined)
 
-        render(<ArticleListClient />)
+        renderWithLocale(<ArticleListClient />)
 
         await waitFor(() => {
             expect(screen.getByText('Published Post')).toBeInTheDocument()
@@ -581,7 +588,7 @@ describe('ArticleListClient', () => {
             new Error('Beitrag konnte nicht gelöscht werden.'),
         )
 
-        render(<ArticleListClient />)
+        renderWithLocale(<ArticleListClient />)
 
         await waitFor(() => {
             expect(screen.getByText('Draft Post')).toBeInTheDocument()

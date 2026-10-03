@@ -1,9 +1,16 @@
-import {render, screen, waitFor} from '@testing-library/react'
+import {screen, waitFor} from '@testing-library/react'
+import {renderWithLocale} from '@/lib/i18n/testUtils'
 import {beforeEach, describe, expect, it, vi} from 'vitest'
 
 import ProductListClient from '@/components/manage/ProductListClient'
 import {clearCachedTenantData} from '@directwerk/api/client/useCachedTenantQuery'
 import {listProducts} from '@/lib/api/subscriptionApi'
+
+vi.mock('next/link', () => ({
+    default: ({children, href, ...props}: {children?: React.ReactNode; href: string; [key: string]: unknown}) => (
+        <a href={href} {...props}>{children}</a>
+    ),
+}))
 
 vi.mock('next/navigation', () => ({useRouter: () => ({replace: vi.fn()})}))
 vi.mock('@directwerk/api/auth/useAuthRequired', () => ({
@@ -52,23 +59,21 @@ describe('ProductListClient', () => {
     })
 
     it('renders loaded products', async () => {
-        render(<ProductListClient />)
+        renderWithLocale(<ProductListClient />)
         await waitFor(() => expect(screen.getByText('Supporter')).toBeInTheDocument())
         expect(screen.getByRole('button', {name: /Neues Produkt/})).toHaveAttribute(
-            'href',
-            '/manage/products/new',
+            'href', '/de/manage/products/new',
         )
     })
 
     it('shows an empty state with a create action', async () => {
         vi.mocked(listProducts).mockResolvedValue([])
-        render(<ProductListClient />)
+        renderWithLocale(<ProductListClient />)
         await waitFor(() =>
             expect(screen.getByText('Noch keine Produkte')).toBeInTheDocument(),
         )
         expect(screen.getByRole('button', {name: /Erstes Produkt anlegen/})).toHaveAttribute(
-            'href',
-            '/manage/products/new',
+            'href', '/de/manage/products/new',
         )
     })
 })

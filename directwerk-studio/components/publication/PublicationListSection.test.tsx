@@ -1,4 +1,5 @@
-import {render, screen} from '@testing-library/react'
+import {screen} from '@testing-library/react'
+import {renderWithLocale} from '@/lib/i18n/testUtils'
 import {describe, expect, it, vi} from 'vitest'
 
 import PublicationListSection from './PublicationListSection'
@@ -20,7 +21,7 @@ const baseItem: Omit<CoverTestItem, 'id' | 'coverImageUrl'> = {
 }
 
 function renderSection(viewMode: 'grid' | 'list', items: CoverTestItem[]) {
-    return render(
+    return renderWithLocale(
         <PublicationListSection
             allSelected={false}
             busyItemId={null}
@@ -69,3 +70,9 @@ describe('PublicationListSection covers', () => {
         expect(screen.queryByRole('img')).not.toBeInTheDocument()
     })
 })
+
+vi.mock('next/link', () => ({
+    default: ({children, href, ...props}: {children?: React.ReactNode; href: string; [key: string]: unknown}) => (
+        <a href={href} {...props}>{children}</a>
+    ),
+}))

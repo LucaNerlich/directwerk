@@ -134,10 +134,10 @@ describe('DeskSwitcher', () => {
         const {rerender} = renderWithLocale(<DeskSwitcher config={config({studioDesks: ['WRITE']})} />)
         expect(screen.queryByRole('navigation', {name: 'Desks'})).not.toBeInTheDocument()
 
-        rerenderWithLocale(<DeskSwitcher config={config()} />)
+        rerender(<DeskSwitcher config={config()} />)
         expect(screen.getByRole('link', {name: 'Schreiben'})).toBeInTheDocument()
 
-        rerenderWithLocale(<DeskSwitcher config={config({studioDesks: ['PODCAST']})} />)
+        rerender(<DeskSwitcher config={config({studioDesks: ['PODCAST']})} />)
         expect(screen.queryByRole('navigation', {name: 'Desks'})).not.toBeInTheDocument()
     })
 })

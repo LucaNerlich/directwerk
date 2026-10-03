@@ -1,4 +1,5 @@
-import {cleanup, render, screen, waitFor} from '@testing-library/react'
+import {cleanup, screen, waitFor} from '@testing-library/react'
+import {renderWithLocale} from '@/lib/i18n/testUtils'
 import userEvent from '@testing-library/user-event'
 import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest'
 
@@ -124,7 +125,7 @@ function editorMe(): Me {
 }
 
 function renderWizard(me: Me = adminMe()): void {
-    render(
+    renderWithLocale(
         <MeProvider me={me}>
             <RssImportWizard />
         </MeProvider>,
@@ -265,8 +266,7 @@ describe('RssImportWizard', () => {
             screen.getByText(/1 Folgen importiert, 0 bereits vorhanden, 1 übersprungen/),
         ).toBeInTheDocument()
         expect(screen.getByRole('link', {name: 'Zur Folgenliste'})).toHaveAttribute(
-            'href',
-            '/podcast/episodes',
+            'href', '/de/podcast/episodes',
         )
     })
 
