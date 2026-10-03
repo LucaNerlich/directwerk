@@ -16,7 +16,7 @@ import {Input} from '@directwerk/ui/components/input'
 import {Skeleton} from '@directwerk/ui/components/skeleton'
 import EmptyState from '@directwerk/ui/components/empty-state'
 
-import Link from 'next/link'
+import LocaleLink from '@/components/i18n/LocaleLink'
 
 import {AUTH_REQUIRED} from '@directwerk/api/constants'
 import {isPubliclyRenderable} from '@directwerk/api/media/readiness'
@@ -264,7 +264,7 @@ export default function MediaInlinePickerDialog({
                                     : 'Für diesen Filter gibt es keine Treffer.'
                             }
                             action={
-                                <Button nativeButton={false} render={<Link href="/media" />} variant="outline">
+                                <Button nativeButton={false} render={<LocaleLink href="/media" />} variant="outline">
                                     Zur Mediathek
                                 </Button>
                             }

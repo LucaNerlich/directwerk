@@ -13,8 +13,10 @@ import PageHeader from '@directwerk/ui/components/page-header'
 import PageStack from '@directwerk/ui/components/page-stack'
 import SectionHeader from '@directwerk/ui/components/section-header'
 
-import Link from 'next/link'
+import LocaleLink from '@/components/i18n/LocaleLink'
 import {useRouter} from 'next/navigation'
+
+import {useLocalizedPath} from '@/components/i18n/useLocalizedPath'
 import {useCallback, useEffect, useLayoutEffect, useRef, useState} from 'react'
 
 import MediaLibraryPicker from '@/components/media/MediaLibraryPicker'
@@ -122,6 +124,7 @@ function seriesCreatePayload(values: SeriesFormValues): CreateSeriesInput {
  */
 export default function SeriesEditor({seriesId}: SeriesEditorProps): React.JSX.Element {
     const router = useRouter()
+    const localize = useLocalizedPath()
     const authRedirect = useAuthRequired()
     const authRedirectRef = useRef(authRedirect)
     useLayoutEffect(() => {
@@ -212,8 +215,8 @@ export default function SeriesEditor({seriesId}: SeriesEditorProps): React.JSX.E
     }, [values.coverAssetId])
 
     const handleAuthRequired = useCallback(() => {
-        router.replace('/login')
-    }, [router])
+        router.replace(localize('/login'))
+    }, [localize, router])
 
     const handleCoverUploaded = useCallback(
         (assetId: number) => {
@@ -275,7 +278,7 @@ export default function SeriesEditor({seriesId}: SeriesEditorProps): React.JSX.E
                     </Button>
                 </Alert>
                 <p className="text-sm text-muted-foreground">
-                    <Link href="/podcast/series">Zurück zur Übersicht</Link>
+                    <LocaleLink href="/podcast/series">Zurück zur Übersicht</LocaleLink>
                 </p>
             </PageStack>
         )
@@ -285,7 +288,7 @@ export default function SeriesEditor({seriesId}: SeriesEditorProps): React.JSX.E
         <PageStack className="gap-6">
             <PageHeader
                 actions={
-                    <Button nativeButton={false} render={<Link href="/podcast/series" />} variant="outline">
+                    <Button nativeButton={false} render={<LocaleLink href="/podcast/series" />} variant="outline">
                         Zur Übersicht
                     </Button>
                 }

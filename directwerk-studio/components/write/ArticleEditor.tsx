@@ -7,6 +7,8 @@ import SectionHeader from '@directwerk/ui/components/section-header'
 import {suggestSlug} from '@/lib/api/studioHelpers'
 
 import {useRouter} from 'next/navigation'
+
+import {useLocalizedPath} from '@/components/i18n/useLocalizedPath'
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react'
 
 import MediaLibraryPicker from '@/components/media/MediaLibraryPicker'
@@ -51,6 +53,7 @@ import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
  */
 export default function ArticleEditor({articleId}: {articleId?: number}) {
     const router = useRouter()
+    const localize = useLocalizedPath()
     const authRedirect = useAuthRequired()
     const routerRef = useRef(router)
     routerRef.current = router
@@ -643,7 +646,7 @@ export default function ArticleEditor({articleId}: {articleId?: number}) {
                         deleteErrorMessage="Beitrag konnte nicht gelöscht werden."
                         item={article}
                         onDelete={(id) => deleteArticle(getClientTenantHost(), id)}
-                        onDeleted={() => router.replace('/write/articles')}
+                        onDeleted={() => router.replace(localize('/write/articles'))}
                     />
                 </div>
             ) : null}

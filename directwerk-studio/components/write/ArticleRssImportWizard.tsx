@@ -1,6 +1,6 @@
 'use client'
 
-import Link from 'next/link'
+import LocaleLink from '@/components/i18n/LocaleLink'
 import {useEffect, useRef, useState} from 'react'
 
 import {Button} from '@directwerk/ui/components/button'
@@ -527,9 +527,9 @@ export default function ArticleRssImportWizard(): React.JSX.Element {
                     {currentArticle.alreadyImportedArticleId !== null ? (
                         <p className="rounded-xl border bg-muted/40 px-4 py-3 text-sm">
                             Dieser Beitrag wurde bereits importiert.{' '}
-                            <Link href={`/write/articles/${currentArticle.alreadyImportedArticleId}`}>
+                            <LocaleLink href={`/write/articles/${currentArticle.alreadyImportedArticleId}`}>
                                 Öffnen
-                            </Link>
+                            </LocaleLink>
                         </p>
                     ) : null}
                     <label className="grid gap-1.5">
@@ -674,7 +674,7 @@ export default function ArticleRssImportWizard(): React.JSX.Element {
                         />
                     )}
                     <div className="flex flex-wrap gap-2">
-                        <Button nativeButton={false} render={<Link href="/write/articles" />}>
+                        <Button nativeButton={false} render={<LocaleLink href="/write/articles" />}>
                             Zur Beitragsliste
                         </Button>
                         <Button onClick={resetWizard} type="button" variant="outline">

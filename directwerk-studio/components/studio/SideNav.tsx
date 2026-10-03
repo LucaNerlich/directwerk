@@ -1,8 +1,5 @@
 'use client'
 
-import Link from 'next/link'
-import {usePathname} from 'next/navigation'
-
 import {
     SidebarGroup,
     SidebarGroupContent,
@@ -12,6 +9,8 @@ import {
     SidebarSeparator,
 } from '@directwerk/ui/components/sidebar'
 
+import LocaleLink from '@/components/i18n/LocaleLink'
+import {useDictionary} from '@/components/i18n/LocaleProvider'
 import {useActiveDesk} from '@/lib/studio/useActiveDesk'
 import {
     buildPodcastDeskItems,
@@ -19,8 +18,10 @@ import {
     buildWriteDeskItems,
     type NavigationItem,
 } from '@/lib/studio/navigation'
+import {stripLangPrefix} from '@/lib/i18n/paths'
 import type {SiteConfig} from '@directwerk/api/types'
 import {useOptionalMe} from '@/lib/auth/MeProvider'
+import {usePathname} from 'next/navigation'
 
 function linkClassName(active: boolean): string {
     return [
@@ -36,10 +37,11 @@ function linkClassName(active: boolean): string {
 }
 
 function isActivePath(pathname: string, href: string): boolean {
+    const path = stripLangPrefix(pathname)
     if (href === '/' || href === '/write' || href === '/podcast' || href === '/manage') {
-        return pathname === href
+        return path === href
     }
-    return pathname === href || pathname.startsWith(`${href}/`)
+    return path === href || path.startsWith(`${href}/`)
 }
 
 function NavigationGroup({
@@ -60,13 +62,13 @@ function NavigationGroup({
                         const active = isActivePath(pathname, item.href)
                         return (
                             <SidebarMenuItem key={item.href}>
-                                <Link
+                                <LocaleLink
                                     aria-current={active ? 'page' : undefined}
                                     className={linkClassName(active)}
                                     href={item.href}
                                 >
                                     <span>{item.label}</span>
-                                </Link>
+                                </LocaleLink>
                             </SidebarMenuItem>
                         )
                     })}
@@ -79,29 +81,30 @@ function NavigationGroup({
 export default function SideNav({config}: {config: SiteConfig}) {
     const pathname = usePathname()
     const me = useOptionalMe()
+    const dict = useDictionary()
     const activeDesk = useActiveDesk(config)
-    const verwaltungSections = buildVerwaltungSections(config, me)
+    const verwaltungSections = buildVerwaltungSections(config, me, dict)
 
     const showDeskZone = activeDesk === 'WRITE' || activeDesk === 'PODCAST'
     const showVerwaltung = verwaltungSections.length > 0
 
     return (
-        <nav aria-label="Hauptnavigation">
+        <nav aria-label={dict.nav.ariaMain}>
             <NavigationGroup
-                items={[{href: '/', label: 'Studio'}]}
+                items={[{href: '/', label: dict.nav.studio}]}
                 pathname={pathname}
             />
             {activeDesk === 'WRITE' ? (
                 <NavigationGroup
-                    label="Schreiben"
-                    items={buildWriteDeskItems(config)}
+                    label={dict.nav.write.label}
+                    items={buildWriteDeskItems(config, dict)}
                     pathname={pathname}
                 />
             ) : null}
             {activeDesk === 'PODCAST' ? (
                 <NavigationGroup
-                    label="Podcast"
-                    items={buildPodcastDeskItems(config)}
+                    label={dict.nav.podcast.label}
+                    items={buildPodcastDeskItems(config, dict)}
                     pathname={pathname}
                 />
             ) : null}
@@ -110,7 +113,7 @@ export default function SideNav({config}: {config: SiteConfig}) {
             ) : null}
             {showVerwaltung ? (
                 <SidebarGroup>
-                    <SidebarGroupLabel>Verwaltung</SidebarGroupLabel>
+                    <SidebarGroupLabel>{dict.nav.verwaltung.label}</SidebarGroupLabel>
                     <SidebarGroupContent className="flex flex-col gap-4">
                         {verwaltungSections.map((section) => (
                             <div key={section.label ?? section.items[0]?.href}>
@@ -124,13 +127,13 @@ export default function SideNav({config}: {config: SiteConfig}) {
                                         const active = isActivePath(pathname, item.href)
                                         return (
                                             <SidebarMenuItem key={item.href}>
-                                                <Link
+                                                <LocaleLink
                                                     aria-current={active ? 'page' : undefined}
                                                     className={linkClassName(active)}
                                                     href={item.href}
                                                 >
                                                     <span>{item.label}</span>
-                                                </Link>
+                                                </LocaleLink>
                                             </SidebarMenuItem>
                                         )
                                     })}

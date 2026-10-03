@@ -11,8 +11,10 @@ import PageStack from '@directwerk/ui/components/page-stack'
 import SectionHeader from '@directwerk/ui/components/section-header'
 import {Skeleton} from '@directwerk/ui/components/skeleton'
 import {Textarea} from '@directwerk/ui/components/textarea'
-import Link from 'next/link'
+import LocaleLink from '@/components/i18n/LocaleLink'
 import {useRouter} from 'next/navigation'
+
+import {useLocalizedPath} from '@/components/i18n/useLocalizedPath'
 import {useEffect, useState} from 'react'
 
 import MediaLibraryPicker from '@/components/media/MediaLibraryPicker'
@@ -50,6 +52,7 @@ export default function DigitalPublicationEditor({
     publicationId,
 }: DigitalPublicationEditorProps): React.JSX.Element {
     const router = useRouter()
+    const localize = useLocalizedPath()
     const authRedirect = useAuthRequired()
     const config = useSiteConfig()
     const hasBonusContent = hasModule(config, 'BONUS_CONTENT')
@@ -156,7 +159,7 @@ export default function DigitalPublicationEditor({
             setErrorMessage(null)
             try {
                 const created = await createDigitalPublication(getClientTenantHost(), createInput)
-                router.replace(`/bonus/${created.id}`)
+                router.replace(localize(`/bonus/${created.id}`))
             } catch (error: unknown) {
                 if (authRedirect(error)) return
                 setErrorMessage(
@@ -397,7 +400,7 @@ export default function DigitalPublicationEditor({
                                 setIsSaving(true)
                                 try {
                                     await deleteDigitalPublication(getClientTenantHost(), publication.id)
-                                    router.replace('/bonus')
+                                    router.replace(localize('/bonus'))
                                 } catch (error: unknown) {
                                     if (authRedirect(error)) return
                                     setErrorMessage(
@@ -415,7 +418,7 @@ export default function DigitalPublicationEditor({
                         Löschen
                     </Button>
                 ) : null}
-                <Button nativeButton={false} render={<Link href="/bonus" />} type="button" variant="ghost">
+                <Button nativeButton={false} render={<LocaleLink href="/bonus" />} type="button" variant="ghost">
                     Zurück zur Liste
                 </Button>
             </div>

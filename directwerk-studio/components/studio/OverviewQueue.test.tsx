@@ -1,9 +1,16 @@
-import {cleanup, render, screen, waitFor} from '@testing-library/react'
+import {cleanup, screen, waitFor} from '@testing-library/react'
 import {afterEach, describe, expect, it, vi} from 'vitest'
 
 import OverviewQueue from '@/components/studio/OverviewQueue'
+import {renderWithLocale} from '@/lib/i18n/testUtils'
 
 const mockRouter = {replace: vi.fn()}
+vi.mock('next/link', () => ({
+    default: ({children, href, ...props}: {children?: React.ReactNode; href: string; [key: string]: unknown}) => (
+        <a href={href} {...props}>{children}</a>
+    ),
+}))
+
 vi.mock('next/navigation', () => ({useRouter: () => mockRouter}))
 vi.mock('@directwerk/api/tenant', () => ({getClientTenantHost: () => 'tenant.test'}))
 
@@ -30,17 +37,17 @@ describe('OverviewQueue', () => {
         listEpisodesMock.mockResolvedValue([])
         listSeriesMock.mockResolvedValue([])
 
-        render(<OverviewQueue desks={['WRITE', 'PODCAST']} />)
+        renderWithLocale(<OverviewQueue desks={['WRITE', 'PODCAST']} />)
 
         await waitFor(() =>
             expect(screen.getByRole('link', {name: 'Erste Sendung anlegen'})).toHaveAttribute(
                 'href',
-                '/podcast/series/new',
+                '/de/podcast/series/new',
             ),
         )
         expect(screen.getByRole('link', {name: 'Ersten Beitrag schreiben'})).toHaveAttribute(
             'href',
-            '/write/articles/new',
+            '/de/write/articles/new',
         )
         expect(screen.queryByRole('link', {name: 'Erste Folge anlegen'})).not.toBeInTheDocument()
     })
@@ -61,17 +68,17 @@ describe('OverviewQueue', () => {
             {id: 3, slug: 'show', title: 'Entwurfs-Sendung', status: 'DRAFT', rssUrl: null},
         ])
 
-        render(<OverviewQueue desks={['PODCAST']} />)
+        renderWithLocale(<OverviewQueue desks={['PODCAST']} />)
 
         await waitFor(() =>
             expect(screen.getByRole('link', {name: /Entwurfs-Sendung/})).toHaveAttribute(
                 'href',
-                '/podcast/series/3',
+                '/de/podcast/series/3',
             ),
         )
         expect(screen.getByRole('link', {name: /Unveröffentlichte Folge/})).toHaveAttribute(
             'href',
-            '/podcast/episodes/9',
+            '/de/podcast/episodes/9',
         )
         expect(screen.getAllByRole('button', {name: 'Raster'})).toHaveLength(1)
     })
@@ -89,12 +96,12 @@ describe('OverviewQueue', () => {
             },
         ])
 
-        render(<OverviewQueue desks={['PODCAST']} />)
+        renderWithLocale(<OverviewQueue desks={['PODCAST']} />)
 
         await waitFor(() =>
             expect(screen.getByRole('link', {name: 'Erste Folge anlegen'})).toHaveAttribute(
                 'href',
-                '/podcast/episodes/new',
+                '/de/podcast/episodes/new',
             ),
         )
     })

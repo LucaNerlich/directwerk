@@ -1,6 +1,6 @@
 'use client'
 
-import Link from 'next/link'
+import LocaleLink from '@/components/i18n/LocaleLink'
 
 import {Input} from '@directwerk/ui/components/input'
 
@@ -35,9 +35,9 @@ export default function NewsletterListPicker({
             {lists.length === 0 ? (
                 <p className="text-xs text-muted-foreground">
                     Keine Listen angelegt.{' '}
-                    <Link className="underline underline-offset-2" href="/write/lists">
+                    <LocaleLink className="underline underline-offset-2" href="/write/lists">
                         Liste anlegen
-                    </Link>
+                    </LocaleLink>
                 </p>
             ) : (
                 <>

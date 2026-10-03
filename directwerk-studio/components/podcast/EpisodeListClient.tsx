@@ -1,6 +1,6 @@
 'use client'
 
-import Link from 'next/link'
+import LocaleLink from '@/components/i18n/LocaleLink'
 import {useCallback, useEffect, useMemo, useState} from 'react'
 
 import {Button} from '@directwerk/ui/components/button'
@@ -286,10 +286,10 @@ export default function EpisodeListClient() {
                 actions={
                     canCreate ? (
                         <div className="flex flex-wrap gap-2">
-                            <Button nativeButton={false} render={<Link href="/podcast/import" />} size="lg" variant="outline">
+                            <Button nativeButton={false} render={<LocaleLink href="/podcast/import" />} size="lg" variant="outline">
                                 RSS importieren
                             </Button>
-                            <Button nativeButton={false} render={<Link href="/podcast/episodes/new" />} size="lg">
+                            <Button nativeButton={false} render={<LocaleLink href="/podcast/episodes/new" />} size="lg">
                                 Neue Folge
                             </Button>
                         </div>
@@ -321,7 +321,7 @@ export default function EpisodeListClient() {
                     title="Zuerst eine Sendung anlegen"
                     description="Eine Folge gehört zu einer Sendung. Richte die Sendung einmal ein — danach kannst du regelmäßig Folgen veröffentlichen."
                     action={
-                        <Button nativeButton={false} render={<Link href="/podcast/series/new" />}>
+                        <Button nativeButton={false} render={<LocaleLink href="/podcast/series/new" />}>
                             Sendung anlegen
                         </Button>
                     }
@@ -331,7 +331,7 @@ export default function EpisodeListClient() {
             {hasSeries && formats.length === 0 ? (
                 <div className="rounded-xl border border-dashed bg-muted/30 px-4 py-3 text-sm text-muted-foreground">
                     Noch keine Formate.{' '}
-                    <Link href="/podcast/formats/new">Formate anlegen</Link>
+                    <LocaleLink href="/podcast/formats/new">Formate anlegen</LocaleLink>
                     {' '}
                     (empfohlen), damit du Folgen als Hauptfolge, Bonus usw. kennzeichnen kannst.
                 </div>
@@ -342,7 +342,7 @@ export default function EpisodeListClient() {
                     title="Noch keine Folgen"
                     description="Lade Audio hoch, schreibe Shownotes und veröffentliche deine erste Folge."
                     action={
-                        <Button nativeButton={false} render={<Link href="/podcast/episodes/new" />}>
+                        <Button nativeButton={false} render={<LocaleLink href="/podcast/episodes/new" />}>
                             Erste Folge anlegen
                         </Button>
                     }

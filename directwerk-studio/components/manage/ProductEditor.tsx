@@ -15,7 +15,7 @@ import PageHeader from '@directwerk/ui/components/page-header'
 import PageStack from '@directwerk/ui/components/page-stack'
 import {Skeleton} from '@directwerk/ui/components/skeleton'
 
-import Link from 'next/link'
+import LocaleLink from '@/components/i18n/LocaleLink'
 
 import ProductRulesEditor from '@/components/manage/ProductRulesEditor'
 import {parsePriceEurosToCents} from '@/lib/manage/productPrice'
@@ -189,7 +189,7 @@ export default function ProductEditor({
                 title={isNew ? 'Neues Produkt' : 'Produkt bearbeiten'}
                 description="Typ bestimmt, was das Produkt freischaltet. Abrechnungsintervall bestimmt, wie bezahlt wird."
                 actions={
-                    <Button nativeButton={false} render={<Link href="/manage/products" />} variant="outline">
+                    <Button nativeButton={false} render={<LocaleLink href="/manage/products" />} variant="outline">
                         Zurück zur Liste
                     </Button>
                 }

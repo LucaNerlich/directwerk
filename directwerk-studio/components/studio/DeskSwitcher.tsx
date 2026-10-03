@@ -1,8 +1,9 @@
 'use client'
 
-import Link from 'next/link'
 import {usePathname} from 'next/navigation'
 
+import LocaleLink from '@/components/i18n/LocaleLink'
+import {useDictionary} from '@/components/i18n/LocaleProvider'
 import {deskHome, hasDesk} from '@/lib/api/client'
 import {setLastActiveDesk} from '@/lib/studio/activeDeskStorage'
 import {useActiveDesk} from '@/lib/studio/useActiveDesk'
@@ -31,6 +32,8 @@ function handleDeskSelect(desk: StudioDesk): void {
 
 export default function DeskSwitcher({config}: {config: SiteConfig}): React.JSX.Element | null {
     const activeDesk = useActiveDesk(config)
+    const dict = useDictionary()
+    usePathname() // keep desk highlighting reactive to navigations
 
     if (!hasDesk(config, 'WRITE') || !hasDesk(config, 'PODCAST')) {
         return null
@@ -38,25 +41,25 @@ export default function DeskSwitcher({config}: {config: SiteConfig}): React.JSX.
 
     return (
         <nav
-            aria-label="Desks"
+            aria-label={dict.shell.desksAria}
             className="grid grid-cols-2 gap-1 rounded-lg bg-muted p-1 text-xs font-medium"
         >
-            <Link
+            <LocaleLink
                 aria-current={activeDesk === 'WRITE' ? 'page' : undefined}
                 className={tabClassName(activeDesk === 'WRITE')}
                 href={deskHome('WRITE')}
                 onClick={() => handleDeskSelect('WRITE')}
             >
-                Schreiben
-            </Link>
-            <Link
+                {dict.desks.write}
+            </LocaleLink>
+            <LocaleLink
                 aria-current={activeDesk === 'PODCAST' ? 'page' : undefined}
                 className={tabClassName(activeDesk === 'PODCAST')}
                 href={deskHome('PODCAST')}
                 onClick={() => handleDeskSelect('PODCAST')}
             >
-                Podcast
-            </Link>
+                {dict.desks.podcast}
+            </LocaleLink>
         </nav>
     )
 }

@@ -1,6 +1,6 @@
 'use client'
 
-import Link from 'next/link'
+import LocaleLink from '@/components/i18n/LocaleLink'
 import {useEffect, useRef, useState} from 'react'
 
 import {Button} from '@directwerk/ui/components/button'
@@ -837,9 +837,9 @@ export default function RssImportWizard(): React.JSX.Element {
                     {currentEpisode.alreadyImportedEpisodeId !== null ? (
                         <p className="rounded-xl border bg-muted/40 px-4 py-3 text-sm">
                             Diese Folge wurde bereits importiert.{' '}
-                            <Link href={`/podcast/episodes/${currentEpisode.alreadyImportedEpisodeId}`}>
+                            <LocaleLink href={`/podcast/episodes/${currentEpisode.alreadyImportedEpisodeId}`}>
                                 Öffnen
-                            </Link>
+                            </LocaleLink>
                         </p>
                     ) : null}
                     {currentEpisode.imageUrl !== null ? (
@@ -996,7 +996,7 @@ export default function RssImportWizard(): React.JSX.Element {
                         />
                     )}
                     <div className="flex flex-wrap gap-2">
-                        <Button nativeButton={false} render={<Link href="/podcast/episodes" />}>
+                        <Button nativeButton={false} render={<LocaleLink href="/podcast/episodes" />}>
                             Zur Folgenliste
                         </Button>
                         <Button onClick={resetWizard} type="button" variant="outline">

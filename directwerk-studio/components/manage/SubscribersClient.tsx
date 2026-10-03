@@ -1,6 +1,6 @@
 'use client'
 
-import Link from 'next/link'
+import LocaleLink from '@/components/i18n/LocaleLink'
 import {useMemo, useState} from 'react'
 
 import {Alert, AlertDescription} from '@directwerk/ui/components/alert'
@@ -251,12 +251,12 @@ export default function SubscribersClient(): React.JSX.Element {
                     description="Lege zuerst ein Produkt an und vergebe eine Freischaltung — oder warte auf den ersten Kauf."
                     action={
                         <div className="flex flex-wrap justify-center gap-2">
-                            <Button nativeButton={false} render={<Link href="/manage/products" />}>
+                            <Button nativeButton={false} render={<LocaleLink href="/manage/products" />}>
                                 Zu den Produkten
                             </Button>
                             <Button
                                 nativeButton={false}
-                                render={<Link href="/manage/grants" />}
+                                render={<LocaleLink href="/manage/grants" />}
                                 variant="outline"
                             >
                                 Freischaltung vergeben

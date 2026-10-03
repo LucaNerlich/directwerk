@@ -1,8 +1,9 @@
-import {cleanup, fireEvent, render, screen} from '@testing-library/react'
+import {cleanup, fireEvent, screen} from '@testing-library/react'
 import type {ComponentProps, ReactNode} from 'react'
 import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest'
 
 import DeskSwitcher from '@/components/studio/DeskSwitcher'
+import {renderWithLocale} from '@/lib/i18n/testUtils'
 import type {SiteConfig} from '@directwerk/api/types'
 
 let currentPathname = '/'
@@ -63,18 +64,18 @@ function config(overrides: Partial<SiteConfig> = {}): SiteConfig {
 
 describe('DeskSwitcher', () => {
     it('renders Write and Podcast links for hybrid tenants', () => {
-        render(<DeskSwitcher config={config()} />)
+        renderWithLocale(<DeskSwitcher config={config()} />)
 
         const writeLink = screen.getByRole('link', {name: 'Schreiben'})
         const podcastLink = screen.getByRole('link', {name: 'Podcast'})
 
-        expect(writeLink).toHaveAttribute('href', '/write')
-        expect(podcastLink).toHaveAttribute('href', '/podcast')
+        expect(writeLink).toHaveAttribute('href', '/de/write')
+        expect(podcastLink).toHaveAttribute('href', '/de/podcast')
     })
 
     it('marks Write desk active when pathname is under /write/*', () => {
         currentPathname = '/write/articles'
-        render(<DeskSwitcher config={config()} />)
+        renderWithLocale(<DeskSwitcher config={config()} />)
 
         expect(screen.getByRole('link', {name: 'Schreiben'})).toHaveAttribute(
             'aria-current',
@@ -85,7 +86,7 @@ describe('DeskSwitcher', () => {
 
     it('marks Podcast desk active when pathname is under /podcast/*', () => {
         currentPathname = '/podcast/episodes'
-        render(<DeskSwitcher config={config()} />)
+        renderWithLocale(<DeskSwitcher config={config()} />)
 
         expect(screen.getByRole('link', {name: 'Podcast'})).toHaveAttribute(
             'aria-current',
@@ -97,7 +98,7 @@ describe('DeskSwitcher', () => {
     it('restores last active desk on shared routes when remembered', () => {
         window.sessionStorage.setItem('directwerk-studio:last-desk', 'PODCAST')
         currentPathname = '/media'
-        render(<DeskSwitcher config={config()} />)
+        renderWithLocale(<DeskSwitcher config={config()} />)
 
         expect(screen.getByRole('link', {name: 'Podcast'})).toHaveAttribute(
             'aria-current',
@@ -108,35 +109,35 @@ describe('DeskSwitcher', () => {
 
     it('persists desk choice on click', () => {
         currentPathname = '/media'
-        render(<DeskSwitcher config={config()} />)
+        renderWithLocale(<DeskSwitcher config={config()} />)
 
         fireEvent.click(screen.getByRole('link', {name: 'Podcast'}))
         expect(window.sessionStorage.getItem('directwerk-studio:last-desk')).toBe('PODCAST')
     })
 
     it('does not render for single-desk WRITE tenants', () => {
-        const {container} = render(<DeskSwitcher config={config({studioDesks: ['WRITE']})} />)
+        const {container} = renderWithLocale(<DeskSwitcher config={config({studioDesks: ['WRITE']})} />)
         expect(container).toBeEmptyDOMElement()
     })
 
     it('does not render for single-desk PODCAST tenants', () => {
-        const {container} = render(<DeskSwitcher config={config({studioDesks: ['PODCAST']})} />)
+        const {container} = renderWithLocale(<DeskSwitcher config={config({studioDesks: ['PODCAST']})} />)
         expect(container).toBeEmptyDOMElement()
     })
 
     it('does not render when studioDesks is empty', () => {
-        const {container} = render(<DeskSwitcher config={config({studioDesks: []})} />)
+        const {container} = renderWithLocale(<DeskSwitcher config={config({studioDesks: []})} />)
         expect(container).toBeEmptyDOMElement()
     })
 
     it('survives desk-count changes without a hooks-order crash', () => {
-        const {rerender} = render(<DeskSwitcher config={config({studioDesks: ['WRITE']})} />)
+        const {rerender} = renderWithLocale(<DeskSwitcher config={config({studioDesks: ['WRITE']})} />)
         expect(screen.queryByRole('navigation', {name: 'Desks'})).not.toBeInTheDocument()
 
-        rerender(<DeskSwitcher config={config()} />)
+        rerenderWithLocale(<DeskSwitcher config={config()} />)
         expect(screen.getByRole('link', {name: 'Schreiben'})).toBeInTheDocument()
 
-        rerender(<DeskSwitcher config={config({studioDesks: ['PODCAST']})} />)
+        rerenderWithLocale(<DeskSwitcher config={config({studioDesks: ['PODCAST']})} />)
         expect(screen.queryByRole('navigation', {name: 'Desks'})).not.toBeInTheDocument()
     })
 })

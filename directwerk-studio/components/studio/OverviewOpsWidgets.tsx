@@ -1,6 +1,5 @@
 'use client'
 
-import Link from 'next/link'
 import {useEffect, useState} from 'react'
 
 import {Alert, AlertDescription} from '@directwerk/ui/components/alert'
@@ -10,30 +9,42 @@ import SectionHeader from '@directwerk/ui/components/section-header'
 import {Skeleton} from '@directwerk/ui/components/skeleton'
 import StatCard from '@directwerk/ui/components/stat-card'
 
+import LocaleLink from '@/components/i18n/LocaleLink'
+import {useDictionary} from '@/components/i18n/LocaleProvider'
 import {getIntegrationsStatus} from '@/lib/api/integrationsApi'
 import {getStorageSummary} from '@/lib/api/mediaApi'
+import {t} from '@/lib/i18n/dictionary'
 import {apiErrorStatus} from '@directwerk/api/envelope'
 import {formatBytes} from '@directwerk/api/format/bytes'
 import type {IntegrationsStatus, MediaStorageSummary} from '@directwerk/api/types'
 import {getClientTenantHost} from '@directwerk/api/tenant'
 import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
 
-function stripeLabel(status: string): string {
+function stripeLabel(
+    status: string,
+    home: {
+        statusNotConnected: string
+        statusRestricted: string
+        statusSetupOpen: string
+    },
+): string {
     switch (status) {
         case 'CONNECTED':
             return 'Verbunden'
         case 'RESTRICTED':
-            return 'Eingeschränkt'
+            return home.statusRestricted
         case 'PENDING':
-            return 'Einrichtung offen'
+            return home.statusSetupOpen
         case 'NOT_CONNECTED':
-            return 'Nicht verbunden'
+            return home.statusNotConnected
         default:
             return status
     }
 }
 
 export default function OverviewOpsWidgets(): React.JSX.Element {
+    const dict = useDictionary()
+    const home = dict.shell.home
     const authRedirect = useAuthRequired()
     const [storage, setStorage] = useState<MediaStorageSummary | null>(null)
     const [integrations, setIntegrations] = useState<IntegrationsStatus | null>(null)
@@ -68,7 +79,7 @@ export default function OverviewOpsWidgets(): React.JSX.Element {
                 errors.push(
                     storageResult.reason instanceof Error
                         ? storageResult.reason.message
-                        : 'Speicher konnte nicht geladen werden.',
+                        : home.storageLoadFailed,
                 )
             }
 
@@ -83,7 +94,7 @@ export default function OverviewOpsWidgets(): React.JSX.Element {
                 errors.push(
                     integrationsResult.reason instanceof Error
                         ? integrationsResult.reason.message
-                        : 'Integrationen konnten nicht geladen werden.',
+                        : dict.settings.integrationenKonntenGeladen,
                 )
             }
 
@@ -96,7 +107,12 @@ export default function OverviewOpsWidgets(): React.JSX.Element {
         return () => {
             active = false
         }
-    }, [authRedirect, reloadToken])
+    }, [
+        authRedirect,
+        dict.settings.integrationenKonntenGeladen,
+        home.storageLoadFailed,
+        reloadToken,
+    ])
 
     const mailgun = integrations?.emailNotify.mailgun ?? null
     const mailgunConnected = mailgun?.status === 'CONNECTED'
@@ -104,7 +120,7 @@ export default function OverviewOpsWidgets(): React.JSX.Element {
     return (
         <section aria-labelledby="overview-ops-heading" className="flex flex-col gap-4">
             <SectionHeader
-                description="Speicher und Anbindungen auf einen Blick."
+                description={home.opsDescription}
                 id="overview-ops-heading"
                 title="Betrieb"
             />
@@ -117,7 +133,7 @@ export default function OverviewOpsWidgets(): React.JSX.Element {
                         type="button"
                         variant="outline"
                     >
-                        Erneut versuchen
+                        {dict.common.retry}
                     </Button>
                 </Alert>
             ) : null}
@@ -132,11 +148,15 @@ export default function OverviewOpsWidgets(): React.JSX.Element {
                 <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                     <StatCard
                         footer={
-                            storage === null ? null : `${storage.totalAssets} Dateien`
+                            storage === null
+                                ? null
+                                : t(home.filesCount, {
+                                      'storage.totalAssets': storage.totalAssets,
+                                  })
                         }
                         hint={
                             storage === null
-                                ? 'Keine Daten'
+                                ? home.noData
                                 : `${storage.buckets.length} Gruppen nach Typ/Status`
                         }
                         label="Medienspeicher"
@@ -150,13 +170,16 @@ export default function OverviewOpsWidgets(): React.JSX.Element {
                         footer={
                             integrations === null
                                 ? null
-                                : `${integrations.emailNotify.customTemplateCount} Vorlagen`
+                                : t(home.templatesCount, {
+                                      'integrations.emailNotify.customTemplateCount':
+                                          integrations.emailNotify.customTemplateCount,
+                                  })
                         }
                         hint={
                             integrationsForbidden
-                                ? 'Nur für Mandanten-Admins'
+                                ? home.tenantAdminsOnly
                                 : integrations?.emailNotify.moduleEnabled === true
-                                  ? 'Modul aktiv'
+                                  ? home.moduleActive
                                   : 'Modul aus'
                         }
                         label="E-Mail-Benachrichtigung"
@@ -173,18 +196,21 @@ export default function OverviewOpsWidgets(): React.JSX.Element {
                             integrationsForbidden ? null : (
                                 <Button
                                     nativeButton={false}
-                                    render={<Link href="/settings/integrations" />}
+                                    render={<LocaleLink href="/settings/integrations" />}
                                     size="sm"
                                     variant="outline"
                                 >
-                                    Integrationen
+                                    {dict.nav.verwaltung.integrations}
                                 </Button>
                             )
                         }
                         hint={
                             mailgun === null
-                                ? 'Noch nicht verbunden'
-                                : `${mailgun.domain} · ${mailgun.region}`
+                                ? home.notConnectedYet
+                                : t(home.mailgunDomainRegion, {
+                                      'mailgun.domain': mailgun.domain,
+                                      'mailgun.region': mailgun.region,
+                                  })
                         }
                         label="Mailgun"
                         value={
@@ -192,7 +218,7 @@ export default function OverviewOpsWidgets(): React.JSX.Element {
                                 ? '—'
                                 : mailgunConnected
                                   ? 'Verbunden'
-                                  : 'Nicht verbunden'
+                                  : home.statusNotConnected
                         }
                     />
                     <StatCard
@@ -200,8 +226,8 @@ export default function OverviewOpsWidgets(): React.JSX.Element {
                             integrationsForbidden || integrations === null ? null : (
                                 <Badge variant="secondary">
                                     {integrations.stripe.chargesEnabled
-                                        ? 'Zahlungen an'
-                                        : 'Zahlungen aus'}
+                                        ? home.paymentsOn
+                                        : home.paymentsOff}
                                 </Badge>
                             )
                         }
@@ -210,11 +236,11 @@ export default function OverviewOpsWidgets(): React.JSX.Element {
                                 ? 'Modul aus'
                                 : (integrations?.stripe.message ?? undefined)
                         }
-                        label="Stripe"
+                        label={dict.nav.verwaltung.stripe}
                         value={
                             integrationsForbidden || integrations === null
                                 ? '—'
-                                : stripeLabel(integrations.stripe.status)
+                                : stripeLabel(integrations.stripe.status, home)
                         }
                     />
                 </div>

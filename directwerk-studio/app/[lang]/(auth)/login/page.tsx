@@ -1,7 +1,8 @@
 'use client'
 
 import Form from 'next/form'
-import Link from 'next/link'
+import LocaleLink from '@/components/i18n/LocaleLink'
+import {useLocalizedPath} from '@/components/i18n/useLocalizedPath'
 import {useSearchParams} from 'next/navigation'
 import {Suspense, useActionState, useState} from 'react'
 
@@ -70,12 +71,9 @@ async function completeLogin(
     setTokens(tokens)
 }
 
-function enterStudio(): void {
-    window.location.assign('/')
-}
-
 function LoginForm() {
     const searchParams = useSearchParams()
+    const localize = useLocalizedPath()
     const roleDenied = searchParams.get('reason') === 'role'
     const workspaceMissing = searchParams.get('reason') === 'workspace'
     const [workspaces, setWorkspaces] = useState<StudioWorkspace[] | null>(null)
@@ -102,7 +100,7 @@ function LoginForm() {
                 const discovered = await discoverStudioWorkspaces(input)
                 if (discovered.length === 1) {
                     await completeLogin(discovered[0]!, input)
-                    enterStudio()
+                    window.location.assign(localize('/'))
                     return INITIAL_STATE
                 }
                 if (discovered.length === 0) {
@@ -130,7 +128,7 @@ function LoginForm() {
         setOpeningWorkspaceHost(workspace.host)
         try {
             await completeLogin(workspace, pendingInput)
-            enterStudio()
+            window.location.assign(localize('/'))
         } catch (error) {
             setWorkspaceError(mapAuthError(error))
         } finally {
@@ -169,17 +167,17 @@ function LoginForm() {
             footer={
                 <span>
                     Einladung erhalten?{' '}
-                    <Link className="underline" href="/accept-invite">
+                    <LocaleLink className="underline" href="/accept-invite">
                         Einladung annehmen
-                    </Link>
+                    </LocaleLink>
                     {' · '}
-                    <Link className="underline" href="/imprint">
+                    <LocaleLink className="underline" href="/imprint">
                         Impressum
-                    </Link>
+                    </LocaleLink>
                     {' · '}
-                    <Link className="underline" href="/privacy">
+                    <LocaleLink className="underline" href="/privacy">
                         Datenschutz
-                    </Link>
+                    </LocaleLink>
                 </span>
             }
             title="Studio anmelden"

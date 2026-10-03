@@ -52,6 +52,20 @@ describe('site helpers', () => {
         expect(resolveActiveDesk('/settings/branding', sampleConfig)).toBeNull()
     })
 
+    it('resolves active desk from locale-prefixed pathnames', () => {
+        expect(resolveActiveDesk('/de/write', sampleConfig)).toBe('WRITE')
+        expect(resolveActiveDesk('/en/write/articles', sampleConfig)).toBe('WRITE')
+        expect(resolveActiveDesk('/de/podcast', sampleConfig)).toBe('PODCAST')
+        expect(resolveActiveDesk('/en/podcast/episodes', sampleConfig)).toBe('PODCAST')
+        expect(resolveActiveDesk('/de/podcast/import', sampleConfig)).toBe('PODCAST')
+        expect(resolveActiveDesk('/en/podcast/series', sampleConfig)).toBe('PODCAST')
+        expect(resolveActiveDesk('/de', sampleConfig)).toBeNull()
+        expect(resolveActiveDesk('/en/', sampleConfig)).toBeNull()
+        expect(resolveActiveDesk('/de/media', sampleConfig)).toBeNull()
+        expect(resolveActiveDesk('/en/bonus', sampleConfig)).toBeNull()
+        expect(resolveActiveDesk('/de/settings/branding', sampleConfig)).toBeNull()
+    })
+
     it('falls back to single desk for single-desk tenants on shared routes', () => {
         const podcastOnly: SiteConfig = {
             ...sampleConfig,
@@ -69,6 +83,13 @@ describe('site helpers', () => {
         expect(resolveActiveDesk('/media', writeOnly)).toBe('WRITE')
         expect(resolveActiveDesk('/', writeOnly)).toBe('WRITE')
         expect(resolveActiveDesk('/podcast', writeOnly)).toBeNull()
+
+        expect(resolveActiveDesk('/de/media', podcastOnly)).toBe('PODCAST')
+        expect(resolveActiveDesk('/en', podcastOnly)).toBe('PODCAST')
+        expect(resolveActiveDesk('/de/write/articles', podcastOnly)).toBeNull()
+        expect(resolveActiveDesk('/en/media', writeOnly)).toBe('WRITE')
+        expect(resolveActiveDesk('/de', writeOnly)).toBe('WRITE')
+        expect(resolveActiveDesk('/en/podcast', writeOnly)).toBeNull()
     })
 
     it('returns null when studioDesks is empty', () => {

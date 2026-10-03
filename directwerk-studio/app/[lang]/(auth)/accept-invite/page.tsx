@@ -1,7 +1,8 @@
 'use client'
 
 import Form from 'next/form'
-import Link from 'next/link'
+import LocaleLink from '@/components/i18n/LocaleLink'
+import {useLocalizedPath} from '@/components/i18n/useLocalizedPath'
 import {useSearchParams} from 'next/navigation'
 import {Suspense, useActionState} from 'react'
 
@@ -24,6 +25,7 @@ const INITIAL_STATE: AcceptInviteState = {error: null, success: false}
 
 function AcceptInviteForm() {
     const searchParams = useSearchParams()
+    const localize = useLocalizedPath()
     const tokenFromQuery = searchParams.get('token') ?? ''
 
     const [state, formAction, isPending] = useActionState(
@@ -43,7 +45,7 @@ function AcceptInviteForm() {
 
             try {
                 await acceptInvite(input)
-                window.location.assign('/login')
+                window.location.assign(localize('/login'))
                 return {error: null, success: true}
             } catch (error) {
                 return {
@@ -128,9 +130,9 @@ export default function AcceptInvitePage() {
         <AuthCard
             description="Lege dein Passwort fest, um dem Workspace beizutreten."
             footer={
-                <Link className="underline" href="/login">
+                <LocaleLink className="underline" href="/login">
                     Zur Anmeldung
-                </Link>
+                </LocaleLink>
             }
             title="Einladung annehmen"
         >

@@ -1,8 +1,9 @@
-import {cleanup, render, screen} from '@testing-library/react'
+import {cleanup, screen} from '@testing-library/react'
 import type {ReactNode} from 'react'
 import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest'
 
 import SideNav from '@/components/studio/SideNav'
+import {renderWithLocale} from '@/lib/i18n/testUtils'
 import type {Me, SiteConfig} from '@directwerk/api/types'
 import {MeProvider} from '@/lib/auth/MeProvider'
 
@@ -26,7 +27,7 @@ beforeEach(() => {
 afterEach(cleanup)
 
 function renderNavigation(children: ReactNode): void {
-    render(children)
+    renderWithLocale(<>{children}</>)
 }
 
 function config(overrides: Partial<SiteConfig> = {}): SiteConfig {
@@ -70,7 +71,7 @@ describe('SideNav', () => {
         renderNavigation(<SideNav config={config()} />)
         expect(screen.getByRole('link', {name: 'Formate'})).toHaveAttribute(
             'href',
-            '/podcast/formats',
+            '/de/podcast/formats',
         )
         expect(screen.getByRole('navigation').textContent).toMatch(/Podcast/)
         expect(screen.getByRole('navigation').textContent).not.toMatch(
@@ -330,8 +331,8 @@ describe('SideNav', () => {
             currentPathname = '/write/articles'
             renderNavigation(<SideNav config={hybridConfig} />)
 
-            expect(screen.getByRole('link', {name: 'Studio'})).toHaveAttribute('href', '/')
-            expect(screen.getByRole('link', {name: 'Start'})).toHaveAttribute('href', '/write')
+            expect(screen.getByRole('link', {name: 'Studio'})).toHaveAttribute('href', '/de')
+            expect(screen.getByRole('link', {name: 'Start'})).toHaveAttribute('href', '/de/write')
             expect(screen.getByRole('link', {name: 'Beiträge'})).toHaveAttribute(
                 'href',
                 '/write/articles',
@@ -363,7 +364,7 @@ describe('SideNav', () => {
             currentPathname = '/podcast/episodes'
             renderNavigation(<SideNav config={hybridConfig} />)
 
-            expect(screen.getByRole('link', {name: 'Studio'})).toHaveAttribute('href', '/')
+            expect(screen.getByRole('link', {name: 'Studio'})).toHaveAttribute('href', '/de')
             expect(screen.getByRole('link', {name: 'Start'})).toHaveAttribute(
                 'href',
                 '/podcast',
@@ -407,7 +408,7 @@ describe('SideNav', () => {
             currentPathname = '/media'
             renderNavigation(<SideNav config={hybridConfig} />)
 
-            expect(screen.getByRole('link', {name: 'Start'})).toHaveAttribute('href', '/write')
+            expect(screen.getByRole('link', {name: 'Start'})).toHaveAttribute('href', '/de/write')
             expect(screen.getByRole('link', {name: 'Beiträge'})).toHaveAttribute(
                 'href',
                 '/write/articles',
@@ -419,8 +420,8 @@ describe('SideNav', () => {
             currentPathname = '/'
             renderNavigation(<SideNav config={hybridConfig} />)
 
-            expect(screen.getByRole('link', {name: 'Studio'})).toHaveAttribute('href', '/')
-            expect(screen.getByRole('link', {name: 'Start'})).toHaveAttribute('href', '/write')
+            expect(screen.getByRole('link', {name: 'Studio'})).toHaveAttribute('href', '/de')
+            expect(screen.getByRole('link', {name: 'Start'})).toHaveAttribute('href', '/de/write')
             expect(screen.getByRole('link', {name: 'Beiträge'})).toHaveAttribute(
                 'href',
                 '/write/articles',
@@ -456,7 +457,7 @@ describe('SideNav', () => {
                 />,
             )
 
-            expect(screen.getByRole('link', {name: 'Start'})).toHaveAttribute('href', '/write')
+            expect(screen.getByRole('link', {name: 'Start'})).toHaveAttribute('href', '/de/write')
             expect(screen.getByRole('link', {name: 'Beiträge'})).toHaveAttribute(
                 'href',
                 '/write/articles',

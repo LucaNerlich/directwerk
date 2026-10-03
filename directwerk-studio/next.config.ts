@@ -13,8 +13,18 @@ const nextConfig: NextConfig = {
                 permanent: true,
             },
             {
+                source: '/:lang(de|en)/select-tenant',
+                destination: '/:lang/login',
+                permanent: true,
+            },
+            {
                 source: '/manage/formats',
                 destination: '/podcast/formats',
+                permanent: true,
+            },
+            {
+                source: '/:lang(de|en)/manage/formats',
+                destination: '/:lang/podcast/formats',
                 permanent: true,
             },
             {
@@ -23,11 +33,26 @@ const nextConfig: NextConfig = {
                 permanent: true,
             },
             {
+                source: '/:lang(de|en)/manage/formats/new',
+                destination: '/:lang/podcast/formats/new',
+                permanent: true,
+            },
+            {
                 source: '/manage/formats/:formatId',
                 destination: '/podcast/formats/:formatId',
                 permanent: true,
             },
+            {
+                source: '/:lang(de|en)/manage/formats/:formatId',
+                destination: '/:lang/podcast/formats/:formatId',
+                permanent: true,
+            },
             {source: '/imprint', destination: 'https://lucanerlich.com/imprint', permanent: false},
+            {
+                source: '/:lang(de|en)/imprint',
+                destination: 'https://lucanerlich.com/imprint',
+                permanent: false,
+            },
         ]
     },
 }

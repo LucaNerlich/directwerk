@@ -1,6 +1,6 @@
 'use client'
 
-import Link from 'next/link'
+import LocaleLink from '@/components/i18n/LocaleLink'
 import {useRouter} from 'next/navigation'
 import {useEffect, useState} from 'react'
 
@@ -140,15 +140,15 @@ export default function PodcastDeskClient(): React.JSX.Element {
                 actions={
                     setupComplete ? (
                         <div className="flex flex-wrap gap-2">
-                            <Button nativeButton={false} render={<Link href="/podcast/import" />} size="lg" variant="outline">
+                            <Button nativeButton={false} render={<LocaleLink href="/podcast/import" />} size="lg" variant="outline">
                                 RSS importieren
                             </Button>
-                            <Button nativeButton={false} render={<Link href="/podcast/episodes/new" />} size="lg">
+                            <Button nativeButton={false} render={<LocaleLink href="/podcast/episodes/new" />} size="lg">
                                 Neue Folge
                             </Button>
                         </div>
                     ) : (
-                        <Button nativeButton={false} render={<Link href={nextStep.href} />} size="lg">
+                        <Button nativeButton={false} render={<LocaleLink href={nextStep.href} />} size="lg">
                             {nextStep.actionLabel}
                         </Button>
                     )
@@ -186,7 +186,7 @@ export default function PodcastDeskClient(): React.JSX.Element {
                             </div>
                             <Button
                                 nativeButton={false}
-                                render={<Link href={step.href} />}
+                                render={<LocaleLink href={step.href} />}
                                 size="sm"
                                 variant={
                                     step.primary && setupComplete
@@ -208,7 +208,7 @@ export default function PodcastDeskClient(): React.JSX.Element {
                     title="Noch keine Sendung"
                     description="Lege zuerst eine Sendung an. Danach kannst du Formate definieren und die erste Folge erstellen."
                     action={
-                        <Button nativeButton={false} render={<Link href="/podcast/series/new" />}>
+                        <Button nativeButton={false} render={<LocaleLink href="/podcast/series/new" />}>
                             Erste Sendung anlegen
                         </Button>
                     }
@@ -220,14 +220,14 @@ export default function PodcastDeskClient(): React.JSX.Element {
                     <SectionHeader title="Offene Entwürfe" />
                     <EntityListSection
                         items={draftEpisodeItems}
-                        linkComponent={Link}
+                        linkComponent={LocaleLink}
                         onViewModeChange={setViewMode}
                         showSelection={false}
                         viewMode={viewMode}
                     />
                     {draftEpisodes.length > 5 ? (
                         <p className="text-sm text-muted-foreground">
-                            <Link href="/podcast/episodes">Alle Folgen anzeigen</Link>
+                            <LocaleLink href="/podcast/episodes">Alle Folgen anzeigen</LocaleLink>
                         </p>
                     ) : null}
                 </section>
@@ -236,22 +236,22 @@ export default function PodcastDeskClient(): React.JSX.Element {
             {setupComplete && publishedSeries.length === 0 ? (
                 <p className="text-sm text-muted-foreground">
                     Deine Sendung ist noch ein Entwurf.{' '}
-                    <Link href={`/podcast/series/${series[0].id}`}>
+                    <LocaleLink href={`/podcast/series/${series[0].id}`}>
                         Sendung veröffentlichen
-                    </Link>
+                    </LocaleLink>
                     , damit der öffentliche Feed erscheint.
                 </p>
             ) : null}
 
             {setupComplete ? (
                 <p className="text-sm text-muted-foreground">
-                    <Link href="/podcast/episodes">Zur Folgenliste</Link>
+                    <LocaleLink href="/podcast/episodes">Zur Folgenliste</LocaleLink>
                     {' · '}
-                    <Link href="/podcast/import">RSS importieren</Link>
+                    <LocaleLink href="/podcast/import">RSS importieren</LocaleLink>
                     {' · '}
-                    <Link href="/podcast/series">Sendungen</Link>
+                    <LocaleLink href="/podcast/series">Sendungen</LocaleLink>
                     {' · '}
-                    <Link href="/podcast/formats">Formate</Link>
+                    <LocaleLink href="/podcast/formats">Formate</LocaleLink>
                 </p>
             ) : null}
         </PageStack>

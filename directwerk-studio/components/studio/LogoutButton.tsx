@@ -7,19 +7,24 @@ import {Alert, AlertDescription} from '@directwerk/ui/components/alert'
 import {Button} from '@directwerk/ui/components/button'
 import {clearAllCachedTenantData} from '@directwerk/api/client/useCachedTenantQuery'
 
+import {useDictionary} from '@/components/i18n/LocaleProvider'
+import {useLocalizedPath} from '@/components/i18n/useLocalizedPath'
+import {t} from '@/lib/i18n/dictionary'
 import {useOptionalMe} from '@/lib/auth/MeProvider'
 import {clearSessionTokens} from '@/lib/auth/session'
 
 export default function LogoutButton() {
     const router = useRouter()
     const me = useOptionalMe()
+    const dict = useDictionary()
+    const localize = useLocalizedPath()
     const [logoutError, setLogoutError] = useState<string | null>(null)
 
     return (
         <div className="flex min-w-0 flex-col gap-2">
             {me !== null ? (
                 <p className="truncate px-1 text-xs text-muted-foreground" title={me.email}>
-                    Angemeldet als {me.email}
+                    {t(dict.shell.signedInAs, {email: me.email})}
                 </p>
             ) : null}
             {logoutError !== null ? (
@@ -40,20 +45,20 @@ export default function LogoutButton() {
                                 cache: 'no-store',
                             })
                             if (!response.ok) {
-                                setLogoutError('Abmeldung fehlgeschlagen. Bitte versuche es erneut.')
+                                setLogoutError(dict.shell.logoutFailed)
                                 return
                             }
                         } catch {
-                            setLogoutError('Abmeldung fehlgeschlagen. Bitte versuche es erneut.')
+                            setLogoutError(dict.shell.logoutFailed)
                             return
                         }
                         clearSessionTokens()
                         clearAllCachedTenantData()
-                        router.push('/login')
+                        router.push(localize('/login'))
                     })()
                 }}
             >
-                Abmelden
+                {dict.shell.logout}
             </Button>
         </div>
     )

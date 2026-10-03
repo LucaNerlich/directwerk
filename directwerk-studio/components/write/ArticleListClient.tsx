@@ -1,6 +1,6 @@
 'use client'
 
-import Link from 'next/link'
+import LocaleLink from '@/components/i18n/LocaleLink'
 import {useCallback, useEffect, useMemo, useState} from 'react'
 
 import {Button} from '@directwerk/ui/components/button'
@@ -213,10 +213,10 @@ export default function ArticleListClient() {
                 description="Artikel und Newsletter-Texte — mit Freigabe, Planung und Kategorien."
                 actions={
                     <div className="flex flex-wrap gap-2">
-                        <Button nativeButton={false} render={<Link href="/write/import" />} size="lg" variant="outline">
+                        <Button nativeButton={false} render={<LocaleLink href="/write/import" />} size="lg" variant="outline">
                             RSS importieren
                         </Button>
-                        <Button nativeButton={false} render={<Link href="/write/articles/new" />} size="lg">
+                        <Button nativeButton={false} render={<LocaleLink href="/write/articles/new" />} size="lg">
                             Neuer Beitrag
                         </Button>
                     </div>
@@ -245,7 +245,7 @@ export default function ArticleListClient() {
                     title="Noch keine Beiträge"
                     description="Schreibe den ersten Entwurf. Veröffentlichen kannst du später."
                     action={
-                        <Button nativeButton={false} render={<Link href="/write/articles/new" />}>
+                        <Button nativeButton={false} render={<LocaleLink href="/write/articles/new" />}>
                             Ersten Beitrag schreiben
                         </Button>
                     }

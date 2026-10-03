@@ -1,6 +1,5 @@
 'use client'
 
-import Link from 'next/link'
 import {useRouter} from 'next/navigation'
 import {useEffect, useState} from 'react'
 
@@ -17,6 +16,8 @@ import {Skeleton} from '@directwerk/ui/components/skeleton'
 import StatCard from '@directwerk/ui/components/stat-card'
 import {useListViewMode} from '@directwerk/ui/hooks/use-list-view-mode'
 
+import LocaleLink from '@/components/i18n/LocaleLink'
+import {useDictionary} from '@/components/i18n/LocaleProvider'
 import PublicationStatusBadge from '@/components/publication/PublicationStatusBadge'
 import {listEpisodes, listSeries} from '@/lib/api/podcastApi'
 import {listArticles} from '@/lib/api/writeApi'
@@ -48,10 +49,10 @@ function draftItems(
     }))
 }
 
-function QueueSkeleton(): React.JSX.Element {
+function QueueSkeleton({loadingLabel}: {loadingLabel: string}): React.JSX.Element {
     return (
         <div aria-busy="true" aria-live="polite" className="flex flex-col gap-4" role="status">
-            <span className="sr-only">Aktuelle Entwürfe werden geladen…</span>
+            <span className="sr-only">{loadingLabel}</span>
             <div className="grid gap-4 sm:grid-cols-3" aria-hidden="true">
                 <Skeleton className="h-24" />
                 <Skeleton className="h-24" />
@@ -65,6 +66,8 @@ function QueueSkeleton(): React.JSX.Element {
 
 export default function OverviewQueue({desks}: OverviewQueueProps): React.JSX.Element {
     const router = useRouter()
+    const dict = useDictionary()
+    const home = dict.shell.home
     const authRedirect = useAuthRequired()
     const showWrite = desks.includes('WRITE')
     const showPodcast = desks.includes('PODCAST')
@@ -107,7 +110,7 @@ export default function OverviewQueue({desks}: OverviewQueueProps): React.JSX.El
                 setErrorMessage(
                     error instanceof Error
                         ? error.message
-                        : 'Übersicht konnte nicht geladen werden.',
+                        : home.overviewLoadFailed,
                 )
             } finally {
                 if (active) {
@@ -121,7 +124,7 @@ export default function OverviewQueue({desks}: OverviewQueueProps): React.JSX.El
         return () => {
             active = false
         }
-    }, [authRedirect, attempt, router, showPodcast, showWrite])
+    }, [authRedirect, attempt, home.overviewLoadFailed, router, showPodcast, showWrite])
 
     if (!showWrite && !showPodcast) {
         return <></>
@@ -129,12 +132,12 @@ export default function OverviewQueue({desks}: OverviewQueueProps): React.JSX.El
 
     if (isLoading) {
         return (
-            <section aria-label="Als Nächstes" className="flex flex-col gap-6">
+            <section aria-label={home.upNext} className="flex flex-col gap-6">
                 <SectionHeader
-                    description="Entwürfe und geplante Inhalte, die als Nächstes dran sind."
-                    title="Als Nächstes"
+                    description={home.upNextDescription}
+                    title={home.upNext}
                 />
-                <QueueSkeleton />
+                <QueueSkeleton loadingLabel={home.draftsLoading} />
             </section>
         )
     }
@@ -152,10 +155,10 @@ export default function OverviewQueue({desks}: OverviewQueueProps): React.JSX.El
         showSeriesGuidance || showEpisodeGuidance || showArticleGuidance
 
     return (
-        <section aria-label="Als Nächstes" className="flex flex-col gap-6">
+        <section aria-label={home.upNext} className="flex flex-col gap-6">
             <SectionHeader
-                description="Entwürfe und geplante Inhalte, die als Nächstes dran sind."
-                title="Als Nächstes"
+                description={home.upNextDescription}
+                title={home.upNext}
             />
             {errorMessage !== null ? (
                 <Alert variant="destructive">
@@ -168,7 +171,7 @@ export default function OverviewQueue({desks}: OverviewQueueProps): React.JSX.El
                         type="button"
                         variant="outline"
                     >
-                        Erneut laden
+                        {dict.common.retry}
                     </Button>
                 </Alert>
             ) : null}
@@ -177,34 +180,34 @@ export default function OverviewQueue({desks}: OverviewQueueProps): React.JSX.El
                 <div className="grid gap-4 sm:grid-cols-3">
                     {showWrite ? (
                         <StatCard
-                            label="Beitrags-Entwürfe"
+                            label={home.articleDrafts}
                             value={awaitingArticles.length}
                             hint={
                                 awaitingArticles.length === 0
-                                    ? 'Keine offenen Beiträge'
-                                    : 'Entwürfe und geplante Beiträge'
+                                    ? home.noOpenArticles
+                                    : home.draftScheduledArticles
                             }
                         />
                     ) : null}
                     {showPodcast ? (
                         <StatCard
-                            label="Folgen-Entwürfe"
+                            label={home.episodeDrafts}
                             value={awaitingEpisodes.length}
                             hint={
                                 awaitingEpisodes.length === 0
-                                    ? 'Keine offenen Folgen'
-                                    : 'Entwürfe und geplante Folgen'
+                                    ? home.noOpenEpisodes
+                                    : home.draftScheduledEpisodes
                             }
                         />
                     ) : null}
                     {showPodcast ? (
                         <StatCard
-                            label="Sendungen im Entwurf"
+                            label={home.showsInDraft}
                             value={draftSeries.length}
                             hint={
                                 draftSeries.length === 0
-                                    ? 'Alle Sendungen veröffentlicht'
-                                    : 'Noch zu veröffentlichen'
+                                    ? home.allShowsPublished
+                                    : home.stillToPublish
                             }
                         />
                     ) : null}
@@ -221,36 +224,36 @@ export default function OverviewQueue({desks}: OverviewQueueProps): React.JSX.El
 
             {showPodcast && series.length === 0 ? (
                 <EmptyState
-                    title="Noch keine Sendung"
-                    description="Lege zuerst eine Sendung an — danach kannst du die erste Folge erstellen."
+                    title={dict.podcast.emptyShowsTitle}
+                    description={home.createShowFirst}
                     action={
-                        <Link className="underline" href="/podcast/series/new">
+                        <LocaleLink className="underline" href="/podcast/series/new">
                             Erste Sendung anlegen
-                        </Link>
+                        </LocaleLink>
                     }
                 />
             ) : null}
 
             {showPodcast && series.length > 0 && episodes.length === 0 ? (
                 <EmptyState
-                    title="Noch keine Folge"
-                    description="Deine Sendung steht. Jetzt fehlt nur noch die erste Folge."
+                    title={home.noEpisodeYet}
+                    description={home.showReadyNeedEpisode}
                     action={
-                        <Link className="underline" href="/podcast/episodes/new">
+                        <LocaleLink className="underline" href="/podcast/episodes/new">
                             Erste Folge anlegen
-                        </Link>
+                        </LocaleLink>
                     }
                 />
             ) : null}
 
             {showWrite && articles.length === 0 ? (
                 <EmptyState
-                    title="Noch kein Beitrag"
-                    description="Schreibe deinen ersten Beitrag — er landet automatisch hier als Entwurf."
+                    title={dict.write.noArticleYet}
+                    description={home.writeFirstArticle}
                     action={
-                        <Link className="underline" href="/write/articles/new">
+                        <LocaleLink className="underline" href="/write/articles/new">
                             Ersten Beitrag schreiben
-                        </Link>
+                        </LocaleLink>
                     }
                 />
             ) : null}
@@ -258,17 +261,17 @@ export default function OverviewQueue({desks}: OverviewQueueProps): React.JSX.El
             {!hasQueuedItems && !showFirstRunGuidance && errorMessage === null ? (
                 <EmptyState
                     title="Alles erledigt"
-                    description="Keine Entwürfe oder geplanten Inhalte. Lege etwas Neues an, wenn du bereit bist."
+                    description={home.noDraftsEmpty}
                 />
             ) : null}
 
             {draftSeries.length > 0 ? (
                 <div className="flex flex-col gap-3">
-                    <SectionHeader as="h3" title="Sendungen zum Veröffentlichen" />
+                    <SectionHeader as="h3" title={home.showsToPublish} />
                     <EntityListView
-                        ariaLabel="Sendungen zum Veröffentlichen"
+                        ariaLabel={home.showsToPublish}
                         items={draftItems(draftSeries, '/podcast/series')}
-                        linkComponent={Link}
+                        linkComponent={LocaleLink}
                         viewMode={viewMode}
                     />
                 </div>
@@ -276,11 +279,11 @@ export default function OverviewQueue({desks}: OverviewQueueProps): React.JSX.El
 
             {awaitingEpisodes.length > 0 ? (
                 <div className="flex flex-col gap-3">
-                    <SectionHeader as="h3" title="Folgen-Entwürfe" />
+                    <SectionHeader as="h3" title={home.episodeDrafts} />
                     <EntityListView
-                        ariaLabel="Folgen-Entwürfe"
+                        ariaLabel={home.episodeDrafts}
                         items={draftItems(awaitingEpisodes, '/podcast/episodes')}
-                        linkComponent={Link}
+                        linkComponent={LocaleLink}
                         viewMode={viewMode}
                     />
                 </div>
@@ -288,11 +291,11 @@ export default function OverviewQueue({desks}: OverviewQueueProps): React.JSX.El
 
             {awaitingArticles.length > 0 ? (
                 <div className="flex flex-col gap-3">
-                    <SectionHeader as="h3" title="Beitrags-Entwürfe" />
+                    <SectionHeader as="h3" title={home.articleDrafts} />
                     <EntityListView
-                        ariaLabel="Beitrags-Entwürfe"
+                        ariaLabel={home.articleDrafts}
                         items={draftItems(awaitingArticles, '/write/articles')}
-                        linkComponent={Link}
+                        linkComponent={LocaleLink}
                         viewMode={viewMode}
                     />
                 </div>

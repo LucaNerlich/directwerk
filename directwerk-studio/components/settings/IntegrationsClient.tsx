@@ -1,6 +1,6 @@
 'use client'
 
-import Link from 'next/link'
+import LocaleLink from '@/components/i18n/LocaleLink'
 import {useEffect, useState} from 'react'
 
 import {Alert, AlertDescription} from '@directwerk/ui/components/alert'
@@ -159,13 +159,13 @@ export default function IntegrationsClient(): React.JSX.Element {
                     <CardContent className="flex flex-col gap-3 text-sm">
                         <p>
                             Eigene Vorlagen: {email?.customTemplateCount ?? 0}.{' '}
-                            <Link className="underline" href="/settings/email">
+                            <LocaleLink className="underline" href="/settings/email">
                                 E-Mail-Vorlagen
-                            </Link>
+                            </LocaleLink>
                             {' · '}
-                            <Link className="underline" href="/write/lists">
+                            <LocaleLink className="underline" href="/write/lists">
                                 Listen
-                            </Link>
+                            </LocaleLink>
                         </p>
                         {mailgun !== null ? (
                             <p>
@@ -186,13 +186,13 @@ export default function IntegrationsClient(): React.JSX.Element {
                         </CardDescription>
                     </CardHeader>
                     <CardContent className="text-sm">
-                        <Link className="underline" href="/analytics">
+                        <LocaleLink className="underline" href="/analytics">
                             Zu den Statistiken
-                        </Link>
+                        </LocaleLink>
                         {' · '}
-                        <Link className="underline" href="/settings/branding">
+                        <LocaleLink className="underline" href="/settings/branding">
                             Umami im Branding
-                        </Link>
+                        </LocaleLink>
                     </CardContent>
                 </Card>
                 <Card>
@@ -203,9 +203,9 @@ export default function IntegrationsClient(): React.JSX.Element {
                         </CardDescription>
                     </CardHeader>
                     <CardContent className="text-sm">
-                        <Link className="underline" href="/settings/stripe">
+                        <LocaleLink className="underline" href="/settings/stripe">
                             Stripe-Einstellungen
-                        </Link>
+                        </LocaleLink>
                     </CardContent>
                 </Card>
             </section>

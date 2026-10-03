@@ -2,6 +2,8 @@
 
 import Form from 'next/form'
 import {useRouter} from 'next/navigation'
+
+import {useLocalizedPath} from '@/components/i18n/useLocalizedPath'
 import {useActionState, useCallback, useEffect, useState} from 'react'
 
 import {Alert, AlertDescription} from '@directwerk/ui/components/alert'
@@ -90,6 +92,7 @@ function roleDescription(role: string): string {
 
 export default function TeamClient(): React.JSX.Element {
     const router = useRouter()
+    const localize = useLocalizedPath()
     const authRedirect = useAuthRequired()
     const me = useMe()
     const [users, setUsers] = useState<TenantUser[]>([])
@@ -347,7 +350,7 @@ export default function TeamClient(): React.JSX.Element {
                             {selected !== null ? (
                                 <MemberRightsEditor
                                     key={selected.userId}
-                                    onAuthRequired={() => router.replace('/login')}
+                                    onAuthRequired={() => router.replace(localize('/login'))}
                                     user={selected}
                                 />
                             ) : null}

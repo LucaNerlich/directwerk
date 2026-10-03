@@ -1,6 +1,6 @@
 'use client'
 
-import Link from 'next/link'
+import LocaleLink from '@/components/i18n/LocaleLink'
 import {useParams} from 'next/navigation'
 import {useMemo, useState} from 'react'
 
@@ -73,7 +73,7 @@ export default function NewsletterListDetailClient(): React.JSX.Element {
                 title={list?.name ?? 'Newsletter-Liste'}
                 description={list ? `Slug: ${list.slug}` : undefined}
                 actions={
-                    <Button nativeButton={false} render={<Link href="/write/lists" />} variant="outline">
+                    <Button nativeButton={false} render={<LocaleLink href="/write/lists" />} variant="outline">
                         Zurück
                     </Button>
                 }

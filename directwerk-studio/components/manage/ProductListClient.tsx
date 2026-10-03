@@ -1,6 +1,6 @@
 'use client'
 
-import Link from 'next/link'
+import LocaleLink from '@/components/i18n/LocaleLink'
 
 import {Alert, AlertDescription} from '@directwerk/ui/components/alert'
 import {Badge} from '@directwerk/ui/components/badge'
@@ -86,7 +86,7 @@ function ProductGroups({
                     <EntityListView
                         ariaLabel="Mitgliedschaftsstufen"
                         items={levelItems}
-                        linkComponent={Link}
+                        linkComponent={LocaleLink}
                         viewMode={viewMode}
                     />
                 </section>
@@ -102,7 +102,7 @@ function ProductGroups({
                     <EntityListView
                         ariaLabel="Pakete"
                         items={packageItems}
-                        linkComponent={Link}
+                        linkComponent={LocaleLink}
                         viewMode={viewMode}
                     />
                 </section>
@@ -130,7 +130,7 @@ export default function ProductListClient(): React.JSX.Element {
                 title="Produkte"
                 description="Stufen und Pakete, die Hörerinnen und Hörer kaufen oder die du freischaltest. Der Preis zeigt immer Betrag, Währung und Abrechnungsintervall."
                 actions={
-                    <Button nativeButton={false} render={<Link href="/manage/products/new" />} size="lg">
+                    <Button nativeButton={false} render={<LocaleLink href="/manage/products/new" />} size="lg">
                         Neues Produkt
                     </Button>
                 }
@@ -158,7 +158,7 @@ export default function ProductListClient(): React.JSX.Element {
                     title="Noch keine Produkte"
                     description="Lege zuerst ein Abo-Produkt an. Danach kannst du Freischaltungen vergeben und Abonnenten sehen."
                     action={
-                        <Button nativeButton={false} render={<Link href="/manage/products/new" />}>
+                        <Button nativeButton={false} render={<LocaleLink href="/manage/products/new" />}>
                             Erstes Produkt anlegen
                         </Button>
                     }

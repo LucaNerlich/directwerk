@@ -1,6 +1,6 @@
 'use client'
 
-import Link from 'next/link'
+import LocaleLink from '@/components/i18n/LocaleLink'
 
 import {Alert, AlertDescription} from '@directwerk/ui/components/alert'
 import {Button} from '@directwerk/ui/components/button'
@@ -44,7 +44,7 @@ export default function CategoryListClient(): React.JSX.Element {
                 title="Kategorien"
                 description="Optionale Themen-Tags für Folgen und Beiträge — getrennt von Podcast-Formaten. Unterkategorien hängen an genau einer Oberkategorie."
                 actions={
-                    <Button nativeButton={false} render={<Link href="/manage/categories/new" />} size="lg">
+                    <Button nativeButton={false} render={<LocaleLink href="/manage/categories/new" />} size="lg">
                         Neue Kategorie
                     </Button>
                 }
@@ -72,7 +72,7 @@ export default function CategoryListClient(): React.JSX.Element {
                     title="Noch keine Kategorien"
                     description="Kategorien sind optional. Mit ihnen sortierst du Beiträge und Folgen nach Themen."
                     action={
-                        <Button nativeButton={false} render={<Link href="/manage/categories/new" />}>
+                        <Button nativeButton={false} render={<LocaleLink href="/manage/categories/new" />}>
                             Erste Kategorie anlegen
                         </Button>
                     }
@@ -81,7 +81,7 @@ export default function CategoryListClient(): React.JSX.Element {
             {categories && categories.length > 0 ? (
                 <EntityListSection
                     items={listItems}
-                    linkComponent={Link}
+                    linkComponent={LocaleLink}
                     onViewModeChange={setViewMode}
                     viewMode={viewMode}
                 />

@@ -12,8 +12,10 @@ import SectionHeader from '@directwerk/ui/components/section-header'
 
 import LevelSelect from '@/components/studio/LevelSelect'
 
-import Link from 'next/link'
+import LocaleLink from '@/components/i18n/LocaleLink'
 import {useRouter} from 'next/navigation'
+
+import {useLocalizedPath} from '@/components/i18n/useLocalizedPath'
 import {useCallback, useEffect, useState} from 'react'
 
 import MediaLibraryPicker from '@/components/media/MediaLibraryPicker'
@@ -99,6 +101,7 @@ function formatFields(values: FormatFormValues): FormatFields {
  */
 export default function FormatEditor({formatId}: FormatEditorProps): React.JSX.Element {
     const router = useRouter()
+    const localize = useLocalizedPath()
 
     const {
         entity: format,
@@ -220,7 +223,7 @@ export default function FormatEditor({formatId}: FormatEditorProps): React.JSX.E
                     </Button>
                 </Alert>
                 <p className="text-sm text-muted-foreground">
-                    <Link href="/podcast/formats">Zurück zur Liste</Link>
+                    <LocaleLink href="/podcast/formats">Zurück zur Liste</LocaleLink>
                 </p>
             </PageStack>
         )
@@ -230,7 +233,7 @@ export default function FormatEditor({formatId}: FormatEditorProps): React.JSX.E
         <PageStack className="gap-6">
             <PageHeader
                 actions={
-                    <Button nativeButton={false} render={<Link href="/podcast/formats" />} variant="outline">
+                    <Button nativeButton={false} render={<LocaleLink href="/podcast/formats" />} variant="outline">
                         Zurück zur Liste
                     </Button>
                 }
@@ -326,7 +329,7 @@ export default function FormatEditor({formatId}: FormatEditorProps): React.JSX.E
                         assetType="IMAGE"
                         disabled={isSaving || coverUpload.isUploading}
                         label="Titelbild aus Mediathek"
-                        onAuthRequired={() => router.replace('/login')}
+                        onAuthRequired={() => router.replace(localize('/login'))}
                         onSelect={(asset) => setField('coverAssetId', asset.id)}
                         selectedId={values.coverAssetId}
                     />

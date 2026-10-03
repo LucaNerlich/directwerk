@@ -1,6 +1,6 @@
 'use client'
 
-import Link from 'next/link'
+import LocaleLink from '@/components/i18n/LocaleLink'
 
 import {Button} from '@directwerk/ui/components/button'
 import {Alert, AlertDescription} from '@directwerk/ui/components/alert'
@@ -104,7 +104,7 @@ export default function SeriesPageClient(): React.JSX.Element {
                 title="Sendungen"
                 description="Die Sendung ist dein Podcast-Kanal (Cover, Beschreibung, RSS). Einmal einrichten — der wöchentliche Flow läuft über Folgen."
                 actions={
-                    <Button nativeButton={false} render={<Link href="/podcast/series/new" />} size="lg">
+                    <Button nativeButton={false} render={<LocaleLink href="/podcast/series/new" />} size="lg">
                         Neue Sendung
                     </Button>
                 }
@@ -134,7 +134,7 @@ export default function SeriesPageClient(): React.JSX.Element {
                     title="Noch keine Sendung"
                     description="Lege deine erste Sendung an, danach Formate und die erste Folge."
                     action={
-                        <Button nativeButton={false} render={<Link href="/podcast/series/new" />}>
+                        <Button nativeButton={false} render={<LocaleLink href="/podcast/series/new" />}>
                             Erste Sendung anlegen
                         </Button>
                     }
@@ -166,10 +166,10 @@ export default function SeriesPageClient(): React.JSX.Element {
             {series.length > 0 ? (
                 <p className="text-sm text-muted-foreground">
                     Nächster Schritt:{' '}
-                    <Link href="/podcast/formats">Formate festlegen</Link>
+                    <LocaleLink href="/podcast/formats">Formate festlegen</LocaleLink>
                     {' '}
                     oder{' '}
-                    <Link href="/podcast/episodes/new">Folge erstellen</Link>.
+                    <LocaleLink href="/podcast/episodes/new">Folge erstellen</LocaleLink>.
                 </p>
             ) : null}
         </PageStack>

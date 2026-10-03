@@ -10,8 +10,10 @@ import EmptyState from '@directwerk/ui/components/empty-state'
 import PageStack from '@directwerk/ui/components/page-stack'
 import SectionHeader from '@directwerk/ui/components/section-header'
 
-import Link from 'next/link'
+import LocaleLink from '@/components/i18n/LocaleLink'
 import {useRouter} from 'next/navigation'
+
+import {useLocalizedPath} from '@/components/i18n/useLocalizedPath'
 import {useCallback, useEffect, useEffectEvent, useRef, useState} from 'react'
 
 import MediaLibraryPicker from '@/components/media/MediaLibraryPicker'
@@ -49,6 +51,7 @@ import {safeImageSrc} from '@/lib/url/safeUrl'
  */
 export default function EpisodeEditor({episodeId}: {episodeId?: number}): React.JSX.Element {
     const router = useRouter()
+    const localize = useLocalizedPath()
     const authRedirect = useAuthRequired()
     const config = useSiteConfig()
     const showNotify = config.emailNotifyAvailable === true
@@ -110,7 +113,7 @@ export default function EpisodeEditor({episodeId}: {episodeId?: number}): React.
     const hasDigitalContent = hasModule(config, 'DIGITAL_CONTENT')
 
     const redirectToLogin = useEffectEvent(() => {
-        router.replace('/login')
+        router.replace(localize('/login'))
     })
 
     const episodeFields = useCallback(() => {
@@ -160,7 +163,7 @@ export default function EpisodeEditor({episodeId}: {episodeId?: number}): React.
                 seriesId,
             })
             setEpisode(created)
-            router.replace(`/podcast/episodes/${created.id}`)
+            router.replace(localize(`/podcast/episodes/${created.id}`))
             return created
         }
 
@@ -377,7 +380,7 @@ export default function EpisodeEditor({episodeId}: {episodeId?: number}): React.
     }, [episodeId, authRedirect, setErrorMessage])
 
     const handleAuthRequired = useCallback(() => {
-        router.replace('/login')
+        router.replace(localize('/login'))
     }, [router])
 
     const handleAudioUpload = useCallback(
@@ -494,10 +497,10 @@ export default function EpisodeEditor({episodeId}: {episodeId?: number}): React.
                 title="Zuerst eine Sendung anlegen"
                 action={
                     <div className="flex flex-wrap justify-center gap-2">
-                        <Button nativeButton={false} render={<Link href="/podcast/series/new" />}>
+                        <Button nativeButton={false} render={<LocaleLink href="/podcast/series/new" />}>
                             Zuerst eine Sendung anlegen
                         </Button>
-                        <Button nativeButton={false} render={<Link href="/podcast" />} variant="outline">
+                        <Button nativeButton={false} render={<LocaleLink href="/podcast" />} variant="outline">
                             Zur Podcast-Übersicht
                         </Button>
                     </div>
@@ -553,9 +556,9 @@ export default function EpisodeEditor({episodeId}: {episodeId?: number}): React.
                     {selectedSeries?.status === 'DRAFT' ? (
                         <p className="text-xs text-muted-foreground">
                             Diese Sendung ist noch ein Entwurf.{' '}
-                            <Link href={`/podcast/series/${selectedSeries.id}`}>
+                            <LocaleLink href={`/podcast/series/${selectedSeries.id}`}>
                                 Sendung veröffentlichen
-                            </Link>
+                            </LocaleLink>
                             , damit der Feed erscheint.
                         </p>
                     ) : null}
@@ -564,9 +567,9 @@ export default function EpisodeEditor({episodeId}: {episodeId?: number}): React.
             {episodeId !== undefined && selectedSeries?.status === 'DRAFT' ? (
                 <p className="text-xs text-muted-foreground">
                     Die Sendung ist noch nicht veröffentlicht.{' '}
-                    <Link href={`/podcast/series/${selectedSeries.id}`}>
+                    <LocaleLink href={`/podcast/series/${selectedSeries.id}`}>
                         Sendung veröffentlichen
-                    </Link>
+                    </LocaleLink>
                     , damit der öffentliche Feed die Folge aufnehmen kann.
                 </p>
             ) : null}
@@ -903,7 +906,7 @@ export default function EpisodeEditor({episodeId}: {episodeId?: number}): React.
                     deleteErrorMessage="Folge konnte nicht gelöscht werden."
                     item={episode}
                     onDelete={(id) => deleteEpisode(getClientTenantHost(), id)}
-                    onDeleted={() => router.replace('/podcast/episodes')}
+                    onDeleted={() => router.replace(localize('/podcast/episodes'))}
                 />
             ) : null}
         </PageStack>
