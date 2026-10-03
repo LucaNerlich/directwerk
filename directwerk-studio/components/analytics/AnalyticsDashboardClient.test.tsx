@@ -1,7 +1,8 @@
-import {cleanup, render, screen, waitFor} from '@testing-library/react'
+import {cleanup, screen, waitFor} from '@testing-library/react'
 import {afterEach, describe, expect, it, vi} from 'vitest'
 
 import AnalyticsDashboardClient from '@/components/analytics/AnalyticsDashboardClient'
+import {renderWithLocale} from '@/lib/i18n/testUtils'
 
 vi.mock('next/navigation', () => ({useRouter: () => ({replace: vi.fn()})}))
 vi.mock('@directwerk/api/tenant', () => ({getClientTenantHost: () => 'tenant.test'}))
@@ -98,7 +99,7 @@ describe('AnalyticsDashboardClient', () => {
         ])
         getBillingDashboardMock.mockResolvedValue(billingDashboard())
 
-        render(
+        renderWithLocale(
             <AnalyticsDashboardClient
                 analytics={null}
                 analyticsModuleEnabled={false}
@@ -140,7 +141,7 @@ describe('AnalyticsDashboardClient', () => {
             sessions: [{t: '2026-08-01T00:00:00Z', y: 2}],
         })
 
-        render(
+        renderWithLocale(
             <AnalyticsDashboardClient
                 analytics={{
                     umamiWebsiteId: 'website-1',
@@ -170,7 +171,7 @@ describe('AnalyticsDashboardClient', () => {
         listEpisodesMock.mockResolvedValue([])
         listSeriesMock.mockResolvedValue([])
 
-        render(
+        renderWithLocale(
             <AnalyticsDashboardClient
                 analytics={{
                     umamiWebsiteId: 'website-1',
@@ -197,7 +198,7 @@ describe('AnalyticsDashboardClient', () => {
         listSeriesMock.mockResolvedValue([])
         getUmamiStatsMock.mockRejectedValue(Object.assign(new Error('nope'), {status: 503}))
 
-        render(
+        renderWithLocale(
             <AnalyticsDashboardClient
                 analytics={{
                     umamiWebsiteId: 'website-1',
@@ -221,7 +222,7 @@ describe('AnalyticsDashboardClient', () => {
         listSeriesMock.mockResolvedValue([])
         getBillingDashboardMock.mockRejectedValue(new Error('Forbidden'))
 
-        render(
+        renderWithLocale(
             <AnalyticsDashboardClient
                 analytics={null}
                 analyticsModuleEnabled={false}
