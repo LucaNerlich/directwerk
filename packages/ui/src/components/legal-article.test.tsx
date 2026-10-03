@@ -15,6 +15,6 @@ describe('LegalArticle', () => {
         expect(
             screen.getByRole('heading', {level: 2, name: 'Diensteanbieter'}),
         ).toBeInTheDocument()
-        expect(screen.getByText(/Stand: 2026-09-06/)).toBeInTheDocument()
+        expect(screen.getByText(new RegExp(`Stand:\\s*${IMPRINT.updated}`))).toBeInTheDocument()
     })
 })

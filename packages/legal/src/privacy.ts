@@ -1,4 +1,4 @@
-import {OPERATOR} from './operator'
+import {formatOperatorControllerLine} from './operator'
 import type {LegalPage} from './legal'
 
 /**
@@ -6,17 +6,20 @@ import type {LegalPage} from './legal'
  * Describes the platform as it actually runs: EU hosting, token sessions in
  * the browser, optional Umami analytics, Stripe billing. Operator details
  * come from {@link OPERATOR} — edit them there, not here.
+ *
+ * Controller line updated with real operator name/email from the imprint port;
+ * no broader privacy rewrite in that change.
  */
 export const PRIVACY: LegalPage = {
     title: 'Datenschutzerklärung',
     intro:
         'Wir nehmen den Schutz deiner Daten ernst. Nachfolgend erfährst du, welche Daten wir verarbeiten, wofür wir sie brauchen und welche Rechte du hast.',
-    updated: '2026-09-06',
+    updated: '2026-10-03',
     sections: [
         {
             heading: '1. Verantwortlicher',
             paragraphs: [
-                `Verantwortlicher im Sinne der DSGVO ist ${OPERATOR.name}, ${OPERATOR.street}, ${OPERATOR.city}, ${OPERATOR.country}, E-Mail: ${OPERATOR.email}.`,
+                `Verantwortlicher im Sinne der DSGVO ist ${formatOperatorControllerLine()}.`,
             ],
         },
         {
