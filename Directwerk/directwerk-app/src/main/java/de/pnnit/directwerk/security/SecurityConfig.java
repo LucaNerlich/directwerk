@@ -114,6 +114,7 @@ public class SecurityConfig {
             TenantContextFilter tenantContextFilter,
             BffTenantRoutingHostFilter bffTenantRoutingHostFilter,
             TenantMembershipGuardFilter tenantMembershipGuardFilter,
+            PlatformAdminGuardFilter platformAdminGuardFilter,
             DirectwerkJwtAuthenticationConverter jwtAuthenticationConverter,
             BillingRateLimitFilter billingRateLimitFilter,
             ApiAuthenticationEntryPoint apiAuthenticationEntryPoint,
@@ -166,7 +167,8 @@ public class SecurityConfig {
                 .addFilterAfter(tenantContextFilter, org.springframework.security.oauth2.server.resource.web.authentication.BearerTokenAuthenticationFilter.class)
                 .addFilterBefore(bffTenantRoutingHostFilter, TenantContextFilter.class)
                 .addFilterAfter(billingRateLimitFilter, TenantContextFilter.class)
-                .addFilterAfter(tenantMembershipGuardFilter, BillingRateLimitFilter.class);
+                .addFilterAfter(tenantMembershipGuardFilter, BillingRateLimitFilter.class)
+                .addFilterAfter(platformAdminGuardFilter, TenantMembershipGuardFilter.class);
 
         return http.build();
     }
@@ -390,6 +392,21 @@ public class SecurityConfig {
             FilterExceptionResolver filterExceptionResolver
     ) {
         return new TenantMembershipGuardFilter(currentTenantMembershipService, filterExceptionResolver);
+    }
+
+    /**
+     * Creates a filter that re-validates platform-admin grant against the DB.
+     *
+     * @param currentPlatformAdminService resolves and validates platform-admin from SecurityContext
+     * @param filterExceptionResolver resolves access-denied exceptions into the standard JSON error envelope
+     * @return the configured platform-admin guard filter
+     */
+    @Bean
+    PlatformAdminGuardFilter platformAdminGuardFilter(
+            CurrentPlatformAdminService currentPlatformAdminService,
+            FilterExceptionResolver filterExceptionResolver
+    ) {
+        return new PlatformAdminGuardFilter(currentPlatformAdminService, filterExceptionResolver);
     }
 
     /**

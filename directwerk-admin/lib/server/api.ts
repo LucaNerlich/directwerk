@@ -149,3 +149,61 @@ export async function requestTenantApi(
         contentType: body === undefined ? undefined : 'application/json',
     })
 }
+
+/**
+ * Best-effort RFC 7009 revoke for a platform-client refresh token.
+ * Callers treat failures as non-fatal — local cookie clear still proceeds.
+ */
+export async function revokePlatformRefreshToken(refreshToken: string): Promise<Response> {
+    const environment = getPlatformEnvironment()
+    const apiUrl = normalizeDirectwerkApiUrl(environment.apiUrl)
+    const body = new URLSearchParams({
+        token: refreshToken,
+        token_type_hint: 'refresh_token',
+    }).toString()
+    const basicCredentials = Buffer.from(
+        `${environment.clientId}:${environment.clientSecret}`,
+        'utf8',
+    ).toString('base64')
+
+    return fetch(`${apiUrl}/oauth2/revoke`, {
+        method: 'POST',
+        headers: {
+            Accept: 'application/json',
+            Authorization: `Basic ${basicCredentials}`,
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body,
+        cache: 'no-store',
+        redirect: 'manual',
+    })
+}
+
+/**
+ * Best-effort RFC 7009 revoke for a tenant-client refresh token (admin
+ * impersonation session). Requires the host the cookie was issued for.
+ */
+export async function revokeTenantRefreshToken(
+    refreshToken: string,
+    tenantHost: string,
+): Promise<Response> {
+    const environment = getTenantEnvironment()
+    const apiUrl = normalizeDirectwerkApiUrl(environment.apiUrl)
+    const body = new URLSearchParams({
+        token: refreshToken,
+        token_type_hint: 'refresh_token',
+    }).toString()
+    const basicCredentials = Buffer.from(
+        `${environment.clientId}:${environment.clientSecret}`,
+        'utf8',
+    ).toString('base64')
+
+    return transport({
+        targetUrl: new URL('/oauth2/revoke', apiUrl),
+        tenantHost,
+        method: 'POST',
+        authorization: `Basic ${basicCredentials}`,
+        body,
+        contentType: 'application/x-www-form-urlencoded',
+    })
+}
