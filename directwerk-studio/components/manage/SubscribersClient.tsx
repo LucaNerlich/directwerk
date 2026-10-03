@@ -1,6 +1,8 @@
 'use client'
 
 import LocaleLink from '@/components/i18n/LocaleLink'
+import {useDictionary} from '@/components/i18n/LocaleProvider'
+import {t} from '@/lib/i18n/dictionary'
 import {useMemo, useState} from 'react'
 
 import {Alert, AlertDescription} from '@directwerk/ui/components/alert'
@@ -45,6 +47,8 @@ function periodLabel(item: TenantSubscriberSubscription): string {
 }
 
 export default function SubscribersClient(): React.JSX.Element {
+    const dict = useDictionary()
+    const m = dict.manage
     const authRedirect = useAuthRequired()
     const tenantHost = getClientTenantHost()
     const {
@@ -57,7 +61,7 @@ export default function SubscribersClient(): React.JSX.Element {
         {
             namespace: 'tenant-subscribers',
             tenantHost,
-            fallbackError: 'Abonnenten konnten nicht geladen werden.',
+            fallbackError: dict.write.subscribersLoadFailed,
         },
     )
     const [actionError, setActionError] = useState<string | null>(null)
@@ -121,11 +125,11 @@ export default function SubscribersClient(): React.JSX.Element {
         return (
             <PageStack>
                 <PageHeader
-                    eyebrow="Abos"
-                    title="Abonnenten"
-                    description="Wer Zugang zu deinen bezahlten Inhalten hat — über Kauf oder Freischaltung."
+                    eyebrow={m.subscriptionsEyebrow}
+                    title={m.subscribersTitle}
+                    description={m.werZugangDeinenBezahltenInhaltenKauf}
                 />
-                <p className="text-sm text-muted-foreground" role="status">Wird geladen…</p>
+                <p className="text-sm text-muted-foreground" role="status">{dict.common.loading}</p>
                 <div className="grid gap-3" aria-hidden="true">
                     <Skeleton className="h-24 w-full" />
                     <Skeleton className="h-24 w-full" />
@@ -208,9 +212,9 @@ export default function SubscribersClient(): React.JSX.Element {
     return (
         <PageStack>
             <PageHeader
-                eyebrow="Abos"
-                title="Abonnenten"
-                description="Wer Zugang zu deinen bezahlten Inhalten hat — über Kauf oder Freischaltung. Gekaufte und manuell vergebene Zugänge stehen nebeneinander."
+                eyebrow={m.subscriptionsEyebrow}
+                title={m.subscribersTitle}
+                description={m.zugangBezahltenInhaltenKaufFreischaltungGekaufte}
                 actions={
                     totalSubscribers > 0 ? (
                         <Button
@@ -218,12 +222,12 @@ export default function SubscribersClient(): React.JSX.Element {
                                 const csv = buildSubscriberCsv(loadedSubscribers ?? [])
                                 const stamp = new Date().toISOString().slice(0, 10)
                                 downloadSubscriberCsv(csv, `abonnenten-${stamp}.csv`)
-                                setStatusMessage('CSV-Export heruntergeladen.')
+                                setStatusMessage(m.csvExportHeruntergeladen)
                             }}
                             type="button"
                             variant="outline"
                         >
-                            CSV exportieren
+                            {m.csvExport}
                         </Button>
                     ) : undefined
                 }
@@ -234,7 +238,7 @@ export default function SubscribersClient(): React.JSX.Element {
                     <AlertDescription>
                         {errorMessage}{' '}
                         <Button onClick={reload} size="sm" type="button" variant="outline">
-                            Wiederholen
+                            {dict.common.retryShort}
                         </Button>
                     </AlertDescription>
                 </Alert>
@@ -247,19 +251,19 @@ export default function SubscribersClient(): React.JSX.Element {
 
             {errorMessage === null && totalSubscribers === 0 ? (
                 <EmptyState
-                    title="Noch keine Abonnenten"
-                    description="Lege zuerst ein Produkt an und vergebe eine Freischaltung — oder warte auf den ersten Kauf."
+                    title={m.keineAbonnenten}
+                    description={m.legeZuerstProduktVergebeFreischaltungWarte}
                     action={
                         <div className="flex flex-wrap justify-center gap-2">
                             <Button nativeButton={false} render={<LocaleLink href="/manage/products" />}>
-                                Zu den Produkten
+                                {m.toProducts}
                             </Button>
                             <Button
                                 nativeButton={false}
                                 render={<LocaleLink href="/manage/grants" />}
                                 variant="outline"
                             >
-                                Freischaltung vergeben
+                                {m.grantAccessCta}
                             </Button>
                         </div>
                     }
@@ -270,26 +274,26 @@ export default function SubscribersClient(): React.JSX.Element {
                 <section aria-labelledby="subscribers-heading" className="flex flex-col gap-4">
                     <SectionHeader
                         id="subscribers-heading"
-                        title={`Abonnenten (${totalSubscribers})`}
-                        description="Pro Person stehen alle Produkte mit Status, Quelle und Laufzeit."
+                        title={t(m.abonnenten, {totalSubscribers})}
+                        description={m.proPersonStehenAlleProdukteStatus}
                     />
                     <div className="grid w-full max-w-xl gap-2">
-                        <Label htmlFor="subscriber-search">Suchen</Label>
+                        <Label htmlFor="subscriber-search">{m.searchLabel}</Label>
                         <Input
                             id="subscriber-search"
                             onChange={(event) => setQuery(event.target.value)}
-                            placeholder="E-Mail, Name oder Produkt"
+                            placeholder={m.emailNameOrProduct}
                             type="search"
                             value={query}
                         />
                     </div>
                     {subscribers.length === 0 ? (
                         <EmptyState
-                            title="Keine Abonnenten für diese Suche"
-                            description="Passe den Suchbegriff an, um weitere Einträge zu sehen."
+                            title={m.keineAbonnentenSuche}
+                            description={m.passeSuchbegriffWeitereEintraegeSehen}
                             action={
                                 <Button onClick={() => setQuery('')} type="button" variant="outline">
-                                    Suche zurücksetzen
+                                    {dict.podcast.resetSearch}
                                 </Button>
                             }
                         />

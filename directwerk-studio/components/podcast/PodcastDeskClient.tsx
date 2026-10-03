@@ -1,6 +1,7 @@
 'use client'
 
 import LocaleLink from '@/components/i18n/LocaleLink'
+import {useDictionary} from '@/components/i18n/LocaleProvider'
 import {useRouter} from 'next/navigation'
 import {useEffect, useState} from 'react'
 
@@ -25,6 +26,8 @@ import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
 
 export default function PodcastDeskClient(): React.JSX.Element {
     const router = useRouter()
+    const dict = useDictionary()
+    const p = dict.podcast
     const authRedirect = useAuthRequired()
     const [series, setSeries] = useState<SeriesSummary[]>([])
     const [formats, setFormats] = useState<FormatSummary[]>([])
@@ -58,7 +61,7 @@ export default function PodcastDeskClient(): React.JSX.Element {
                 setErrorMessage(
                     error instanceof Error
                         ? error.message
-                        : 'Podcast-Übersicht konnte nicht geladen werden.',
+                        : p.overviewLoadFailed,
                 )
             } finally {
                 if (active) {
@@ -72,12 +75,12 @@ export default function PodcastDeskClient(): React.JSX.Element {
         return () => {
             active = false
         }
-    }, [router])
+    }, [authRedirect, p.overviewLoadFailed, router])
 
     if (isLoading) {
         return (
             <p className="text-sm text-muted-foreground" role="status">
-                Podcast-Übersicht wird geladen…
+                {p.overviewLoading}
             </p>
         )
     }
@@ -93,30 +96,27 @@ export default function PodcastDeskClient(): React.JSX.Element {
     const steps: SetupStep[] = [
         {
             id: 'series',
-            title: '1. Sendung anlegen',
-            description:
-                'Die Sendung ist dein Podcast-Kanal: Titel, Cover und RSS-Metadaten. Einmal einrichten, selten ändern.',
+            title: p.setupStep1Show,
+            description: p.showIsChannel,
             done: hasSeries,
             href: hasSeries ? '/podcast/series' : '/podcast/series/new',
-            actionLabel: hasSeries ? 'Sendungen ansehen' : 'Sendung anlegen',
+            actionLabel: hasSeries ? p.viewShows : p.createShow,
         },
         {
             id: 'formats',
-            title: '2. Formate festlegen',
-            description:
-                'Formate gruppieren Folgen (z. B. Hauptfolge, Bonus, Interview) für Website und Feeds.',
+            title: p.setupStep2Formats,
+            description: p.formatsGroupEpisodes,
             done: hasFormats,
             href: hasFormats ? '/podcast/formats' : '/podcast/formats/new',
-            actionLabel: hasFormats ? 'Formate ansehen' : 'Formate anlegen',
+            actionLabel: hasFormats ? p.viewFormats : p.createFormats,
         },
         {
             id: 'episode',
-            title: '3. Folge erstellen',
-            description:
-                'Audio hochladen, Shownotes schreiben, Format wählen und veröffentlichen.',
+            title: p.setupStep3Episode,
+            description: p.step3EpisodeDescription,
             done: hasEpisodes,
             href: '/podcast/episodes/new',
-            actionLabel: 'Neue Folge',
+            actionLabel: p.newEpisode,
             primary: true,
         },
     ]
@@ -134,17 +134,17 @@ export default function PodcastDeskClient(): React.JSX.Element {
     return (
         <PageStack>
             <PageHeader
-                eyebrow="Podcast"
-                title="Inhalte erstellen"
-                description="Folge für Folge veröffentlichen. Sendung und Formate sind Einrichtung — der wöchentliche Weg führt über die Folgen."
+                eyebrow={dict.desks.podcast}
+                title={dict.desks.createContent}
+                description={p.publishEpisodeByEpisode}
                 actions={
                     setupComplete ? (
                         <div className="flex flex-wrap gap-2">
                             <Button nativeButton={false} render={<LocaleLink href="/podcast/import" />} size="lg" variant="outline">
-                                RSS importieren
+                                {p.importRss}
                             </Button>
                             <Button nativeButton={false} render={<LocaleLink href="/podcast/episodes/new" />} size="lg">
-                                Neue Folge
+                                {p.newEpisode}
                             </Button>
                         </div>
                     ) : (
@@ -163,9 +163,9 @@ export default function PodcastDeskClient(): React.JSX.Element {
 
             <section aria-labelledby="podcast-flow-heading" className="flex flex-col gap-4">
                 <SectionHeader
-                    description="Erst die Basis, dann regelmäßig Folgen veröffentlichen."
+                    description={p.basicsThenPublish}
                     id="podcast-flow-heading"
-                    title="So entsteht eine Folge"
+                    title={p.howEpisodeWorks}
                 />
                 <ol className="grid gap-3">
                     {steps.map((step) => (
@@ -177,7 +177,7 @@ export default function PodcastDeskClient(): React.JSX.Element {
                                 <div className="flex flex-wrap items-center gap-2">
                                     <p className="font-medium">{step.title}</p>
                                     <Badge variant={step.done ? 'secondary' : 'outline'}>
-                                        {step.done ? 'Erledigt' : 'Offen'}
+                                        {step.done ? dict.common.done : dict.common.openStep}
                                     </Badge>
                                 </div>
                                 <p className="mt-1 text-sm text-muted-foreground">
@@ -205,11 +205,11 @@ export default function PodcastDeskClient(): React.JSX.Element {
 
             {!setupComplete ? (
                 <EmptyState
-                    title="Noch keine Sendung"
-                    description="Lege zuerst eine Sendung an. Danach kannst du Formate definieren und die erste Folge erstellen."
+                    title={p.emptyShowsTitle}
+                    description={p.createShowThenFormats}
                     action={
                         <Button nativeButton={false} render={<LocaleLink href="/podcast/series/new" />}>
-                            Erste Sendung anlegen
+                            {p.createFirstShow}
                         </Button>
                     }
                 />
@@ -217,7 +217,7 @@ export default function PodcastDeskClient(): React.JSX.Element {
 
             {setupComplete && draftEpisodes.length > 0 ? (
                 <section className="flex flex-col gap-3">
-                    <SectionHeader title="Offene Entwürfe" />
+                    <SectionHeader title={p.openDrafts} />
                     <EntityListSection
                         items={draftEpisodeItems}
                         linkComponent={LocaleLink}
@@ -227,7 +227,7 @@ export default function PodcastDeskClient(): React.JSX.Element {
                     />
                     {draftEpisodes.length > 5 ? (
                         <p className="text-sm text-muted-foreground">
-                            <LocaleLink href="/podcast/episodes">Alle Folgen anzeigen</LocaleLink>
+                            <LocaleLink href="/podcast/episodes">{p.showAllEpisodes}</LocaleLink>
                         </p>
                     ) : null}
                 </section>
@@ -235,23 +235,23 @@ export default function PodcastDeskClient(): React.JSX.Element {
 
             {setupComplete && publishedSeries.length === 0 ? (
                 <p className="text-sm text-muted-foreground">
-                    Deine Sendung ist noch ein Entwurf.{' '}
+                    {p.draftShowBeforeLink}{' '}
                     <LocaleLink href={`/podcast/series/${series[0].id}`}>
-                        Sendung veröffentlichen
+                        {p.sendungVeroeffentlichen}
                     </LocaleLink>
-                    , damit der öffentliche Feed erscheint.
+                    {p.draftShowAfterLink}
                 </p>
             ) : null}
 
             {setupComplete ? (
                 <p className="text-sm text-muted-foreground">
-                    <LocaleLink href="/podcast/episodes">Zur Folgenliste</LocaleLink>
+                    <LocaleLink href="/podcast/episodes">{p.toEpisodeList}</LocaleLink>
                     {' · '}
-                    <LocaleLink href="/podcast/import">RSS importieren</LocaleLink>
+                    <LocaleLink href="/podcast/import">{p.importRss}</LocaleLink>
                     {' · '}
-                    <LocaleLink href="/podcast/series">Sendungen</LocaleLink>
+                    <LocaleLink href="/podcast/series">{dict.nav.podcast.series}</LocaleLink>
                     {' · '}
-                    <LocaleLink href="/podcast/formats">Formate</LocaleLink>
+                    <LocaleLink href="/podcast/formats">{dict.nav.podcast.formats}</LocaleLink>
                 </p>
             ) : null}
         </PageStack>

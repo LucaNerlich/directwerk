@@ -1,6 +1,8 @@
 'use client'
 
 import LocaleLink from '@/components/i18n/LocaleLink'
+import {useDictionary} from '@/components/i18n/LocaleProvider'
+import {t} from '@/lib/i18n/dictionary'
 
 import {Alert, AlertDescription} from '@directwerk/ui/components/alert'
 import {Badge} from '@directwerk/ui/components/badge'
@@ -33,20 +35,26 @@ function ProductGroups({
     viewMode: ViewMode
     onViewModeChange: (mode: ViewMode) => void
 }): React.JSX.Element {
+    const dict = useDictionary()
+    const m = dict.manage
     const levels = products
-        .filter((p) => p.offeringType === 'LEVEL')
+        .filter((product) => product.offeringType === 'LEVEL')
         .sort((a, b) => a.sortOrder - b.sortOrder)
     const packages = products
-        .filter((p) => p.offeringType === 'PACKAGE')
+        .filter((product) => product.offeringType === 'PACKAGE')
         .sort((a, b) => a.title.localeCompare(b.title))
 
     const levelItems: EntityListViewItem[] = levels.map((product, index) => ({
         id: product.id,
         title: product.title,
-        description: `Stufe ${product.sortOrder} · ${product.slug} · ${formatMoney(product.priceCents, product.currency, product.billingInterval)}`,
+        description: t(m.productMetaLine, {
+            sortOrder: product.sortOrder,
+            slug: product.slug,
+            price: formatMoney(product.priceCents, product.currency, product.billingInterval),
+        }),
         trailing: (
             <Badge variant={product.active ? 'default' : 'outline'}>
-                {product.active ? 'Aktiv' : 'Inaktiv'}
+                {product.active ? dict.common.active : dict.common.inactive}
             </Badge>
         ),
         href: `/manage/products/${product.id}`,
@@ -60,10 +68,13 @@ function ProductGroups({
     const packageItems: EntityListViewItem[] = packages.map((product) => ({
         id: product.id,
         title: product.title,
-        description: `${product.slug} · ${formatMoney(product.priceCents, product.currency, product.billingInterval)}`,
+        description: t(m.packageMetaLine, {
+            slug: product.slug,
+            price: formatMoney(product.priceCents, product.currency, product.billingInterval),
+        }),
         trailing: (
             <Badge variant={product.active ? 'default' : 'outline'}>
-                {product.active ? 'Aktiv' : 'Inaktiv'}
+                {product.active ? dict.common.active : dict.common.inactive}
             </Badge>
         ),
         href: `/manage/products/${product.id}`,
@@ -80,11 +91,11 @@ function ProductGroups({
                 <section aria-labelledby="product-levels-heading" className="flex flex-col gap-3">
                     <SectionHeader
                         id="product-levels-heading"
-                        title={`Stufen-Leiter (${levels.length})`}
-                        description="Höhere Stufe schließt alle niedrigeren ein — sortiert nach Sortierzahl."
+                        title={t(m.stufenLeiter, {'levels.length': levels.length})}
+                        description={m.hoehereStufeSchliesstAlleNiedrigerenSortier}
                     />
                     <EntityListView
-                        ariaLabel="Mitgliedschaftsstufen"
+                        ariaLabel={m.membershipLevelsAria}
                         items={levelItems}
                         linkComponent={LocaleLink}
                         viewMode={viewMode}
@@ -96,11 +107,11 @@ function ProductGroups({
                 <section aria-labelledby="product-packages-heading" className="flex flex-col gap-3">
                     <SectionHeader
                         id="product-packages-heading"
-                        title={`Pakete (${packages.length})`}
-                        description="Schalten nur die Inhalte aus ihren Zugriffsregeln frei."
+                        title={t(m.pakete, {'packages.length': packages.length})}
+                        description={m.schaltenInhalteIhrenZugriffsregelnFrei}
                     />
                     <EntityListView
-                        ariaLabel="Pakete"
+                        ariaLabel={m.packagesAria}
                         items={packageItems}
                         linkComponent={LocaleLink}
                         viewMode={viewMode}
@@ -112,6 +123,8 @@ function ProductGroups({
 }
 
 export default function ProductListClient(): React.JSX.Element {
+    const dict = useDictionary()
+    const m = dict.manage
     const tenantHost = getClientTenantHost()
     const {viewMode, setViewMode} = useListViewMode()
     const {data: products, error: errorMessage, isLoading, reload} = useCachedTenantQuery(
@@ -119,19 +132,19 @@ export default function ProductListClient(): React.JSX.Element {
         {
             namespace: 'tenant-products',
             tenantHost,
-            fallbackError: 'Produkte konnten nicht geladen werden.',
+            fallbackError: m.produkteKonntenGeladen,
         },
     )
 
     return (
         <PageStack>
             <PageHeader
-                eyebrow="Abos"
-                title="Produkte"
-                description="Stufen und Pakete, die Hörerinnen und Hörer kaufen oder die du freischaltest. Der Preis zeigt immer Betrag, Währung und Abrechnungsintervall."
+                eyebrow={dict.nav.verwaltung.subscriptions}
+                title={m.productsTitle}
+                description={m.stufenPaketeHoererinnenHoererKaufenFreischa}
                 actions={
                     <Button nativeButton={false} render={<LocaleLink href="/manage/products/new" />} size="lg">
-                        Neues Produkt
+                        {m.neuesProdukt}
                     </Button>
                 }
             />
@@ -141,25 +154,25 @@ export default function ProductListClient(): React.JSX.Element {
                     <AlertDescription>
                         {errorMessage}{' '}
                         <Button onClick={reload} size="sm" type="button" variant="outline">
-                            Wiederholen
+                            {dict.common.retryShort}
                         </Button>
                     </AlertDescription>
                 </Alert>
             ) : null}
             {isLoading && !errorMessage ? (
                 <div className="flex flex-col gap-3" aria-busy="true">
-                    <p className="text-sm text-muted-foreground" role="status">Laden…</p>
+                    <p className="text-sm text-muted-foreground" role="status">{dict.common.loadingShort}</p>
                     <Skeleton className="h-20 w-full" />
                     <Skeleton className="h-20 w-full" />
                 </div>
             ) : null}
             {products && products.length === 0 ? (
                 <EmptyState
-                    title="Noch keine Produkte"
-                    description="Lege zuerst ein Abo-Produkt an. Danach kannst du Freischaltungen vergeben und Abonnenten sehen."
+                    title={m.keineProdukte}
+                    description={m.legeZuerstAboProduktDanachKannst}
                     action={
                         <Button nativeButton={false} render={<LocaleLink href="/manage/products/new" />}>
-                            Erstes Produkt anlegen
+                            {m.createFirstProduct}
                         </Button>
                     }
                 />

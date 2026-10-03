@@ -1,6 +1,7 @@
 'use client'
 
 import LocaleLink from '@/components/i18n/LocaleLink'
+import {useDictionary} from '@/components/i18n/LocaleProvider'
 
 import {Alert, AlertDescription} from '@directwerk/ui/components/alert'
 import {Button} from '@directwerk/ui/components/button'
@@ -17,11 +18,13 @@ import {getClientTenantHost} from '@directwerk/api/tenant'
 import {useAuthedQuery} from '@directwerk/api/client/useAuthedQuery'
 
 export default function CategoryListClient(): React.JSX.Element {
+    const dict = useDictionary()
+    const m = dict.manage
     const {viewMode, setViewMode} = useListViewMode()
     const {data: categories, error: errorMessage, isLoading, reload} = useAuthedQuery<
         CategorySummary[]
     >(() => listCategories(getClientTenantHost()), {
-        fallbackError: 'Kategorien konnten nicht geladen werden.',
+        fallbackError: m.kategorienKonntenGeladen,
     })
 
     const listItems =
@@ -34,18 +37,18 @@ export default function CategoryListClient(): React.JSX.Element {
                     {category.slug}
                 </code>
             ),
-            trailing: category.active ? 'Aktiv' : 'Inaktiv',
+            trailing: category.active ? dict.common.active : dict.common.inactive,
         })) ?? []
 
     return (
         <PageStack>
             <PageHeader
-                eyebrow="Organisation"
-                title="Kategorien"
-                description="Optionale Themen-Tags für Folgen und Beiträge — getrennt von Podcast-Formaten. Unterkategorien hängen an genau einer Oberkategorie."
+                eyebrow={dict.nav.verwaltung.organisation}
+                title={m.categoriesTitle}
+                description={m.optionaleThemenTagsFolgenBeitraegeGetrennt}
                 actions={
                     <Button nativeButton={false} render={<LocaleLink href="/manage/categories/new" />} size="lg">
-                        Neue Kategorie
+                        {m.neueKategorie}
                     </Button>
                 }
             />
@@ -55,25 +58,25 @@ export default function CategoryListClient(): React.JSX.Element {
                     <AlertDescription>
                         {errorMessage}{' '}
                         <Button onClick={reload} size="sm" type="button" variant="outline">
-                            Wiederholen
+                            {dict.common.retryShort}
                         </Button>
                     </AlertDescription>
                 </Alert>
             ) : null}
             {isLoading && !errorMessage ? (
                 <div className="grid gap-3" aria-busy="true">
-                    <p className="text-sm text-muted-foreground" role="status">Laden…</p>
+                    <p className="text-sm text-muted-foreground" role="status">{dict.common.loadingShort}</p>
                     <Skeleton className="h-16 w-full" />
                     <Skeleton className="h-16 w-full" />
                 </div>
             ) : null}
             {categories && categories.length === 0 ? (
                 <EmptyState
-                    title="Noch keine Kategorien"
-                    description="Kategorien sind optional. Mit ihnen sortierst du Beiträge und Folgen nach Themen."
+                    title={m.keineKategorien}
+                    description={m.kategorienOptionalIhnenSortierstBeitraege}
                     action={
                         <Button nativeButton={false} render={<LocaleLink href="/manage/categories/new" />}>
-                            Erste Kategorie anlegen
+                            {m.createFirstCategory}
                         </Button>
                     }
                 />

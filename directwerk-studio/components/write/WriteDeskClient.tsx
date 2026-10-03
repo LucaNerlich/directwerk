@@ -1,6 +1,7 @@
 'use client'
 
 import LocaleLink from '@/components/i18n/LocaleLink'
+import {useDictionary} from '@/components/i18n/LocaleProvider'
 import {useRouter} from 'next/navigation'
 import {useEffect, useState} from 'react'
 
@@ -25,6 +26,8 @@ import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
 
 export default function WriteDeskClient(): React.JSX.Element {
     const router = useRouter()
+    const dict = useDictionary()
+    const w = dict.write
     const authRedirect = useAuthRequired()
     const [articles, setArticles] = useState<ArticleSummary[]>([])
     const [categories, setCategories] = useState<CategorySummary[]>([])
@@ -55,7 +58,7 @@ export default function WriteDeskClient(): React.JSX.Element {
                 setErrorMessage(
                     error instanceof Error
                         ? error.message
-                        : 'Schreib-Übersicht konnte nicht geladen werden.',
+                        : w.overviewLoadFailed,
                 )
             } finally {
                 if (active) {
@@ -69,12 +72,12 @@ export default function WriteDeskClient(): React.JSX.Element {
         return () => {
             active = false
         }
-    }, [router])
+    }, [authRedirect, router, w.overviewLoadFailed])
 
     if (isLoading) {
         return (
             <p className="text-sm text-muted-foreground" role="status">
-                Schreib-Übersicht wird geladen…
+                {w.overviewLoading}
             </p>
         )
     }
@@ -88,31 +91,28 @@ export default function WriteDeskClient(): React.JSX.Element {
     const steps: SetupStep[] = [
         {
             id: 'categories',
-            title: '1. Kategorien festlegen (optional)',
-            description:
-                'Kategorien helfen bei der Struktur auf der Website — z. B. Politik, Meta, Updates.',
+            title: w.setupStep1Categories,
+            description: w.categoriesHelpStructure,
             done: hasCategories,
             href: hasCategories ? '/manage/categories' : '/manage/categories/new',
-            actionLabel: hasCategories ? 'Kategorien ansehen' : 'Kategorie anlegen',
+            actionLabel: hasCategories ? w.viewCategories : w.createCategory,
         },
         {
             id: 'article',
-            title: '2. Beitrag schreiben',
-            description:
-                'Titel, Text und optional Titelbild — Freigabe und Newsletter-Versand beim Veröffentlichen.',
+            title: w.setupStep2Write,
+            description: w.step2WriteDescription,
             done: hasArticles,
             href: '/write/articles/new',
-            actionLabel: 'Neuer Beitrag',
+            actionLabel: dict.shell.home.newArticle,
             primary: true,
         },
         {
             id: 'publish',
-            title: '3. Veröffentlichen',
-            description:
-                'Beitrag erscheint auf deiner Website; bezahlte Inhalte sind für Abonnenten freigeschaltet.',
+            title: w.setupStep3Publish,
+            description: w.step3PublishDescription,
             done: articles.some((item) => item.status === 'PUBLISHED'),
             href: '/write/articles',
-            actionLabel: 'Beiträge ansehen',
+            actionLabel: w.viewArticles,
         },
     ]
 
@@ -128,16 +128,16 @@ export default function WriteDeskClient(): React.JSX.Element {
     return (
         <PageStack>
             <PageHeader
-                eyebrow="Schreiben"
-                title="Inhalte erstellen"
-                description="Beitrag für Beitrag veröffentlichen. Kategorien sind optional — der wöchentliche Weg führt über die Beiträge."
+                eyebrow={dict.desks.write}
+                title={dict.desks.createContent}
+                description={w.publishArticleByArticle}
                 actions={
                     <div className="flex flex-wrap gap-2">
                         <Button nativeButton={false} render={<LocaleLink href="/write/import" />} size="lg" variant="outline">
-                            RSS importieren
+                            {w.importRss}
                         </Button>
                         <Button nativeButton={false} render={<LocaleLink href="/write/articles/new" />} size="lg">
-                            Neuer Beitrag
+                            {dict.shell.home.newArticle}
                         </Button>
                     </div>
                 }
@@ -151,9 +151,9 @@ export default function WriteDeskClient(): React.JSX.Element {
 
             <section aria-labelledby="write-flow-heading" className="flex flex-col gap-4">
                 <SectionHeader
-                    description="Optional Kategorien, dann regelmäßig schreiben und veröffentlichen."
+                    description={w.optionalCategoriesThenWrite}
                     id="write-flow-heading"
-                    title="So entsteht ein Beitrag"
+                    title={w.howArticleWorks}
                 />
                 <ol className="grid gap-3">
                     {steps.map((step) => (
@@ -165,7 +165,7 @@ export default function WriteDeskClient(): React.JSX.Element {
                                 <div className="flex flex-wrap items-center gap-2">
                                     <p className="font-medium">{step.title}</p>
                                     <Badge variant={step.done ? 'secondary' : 'outline'}>
-                                        {step.done ? 'Erledigt' : 'Offen'}
+                                        {step.done ? dict.common.done : dict.common.openStep}
                                     </Badge>
                                 </div>
                                 <p className="mt-1 text-sm text-muted-foreground">
@@ -187,8 +187,8 @@ export default function WriteDeskClient(): React.JSX.Element {
 
             {!hasArticles ? (
                 <EmptyState
-                    title="Noch kein Beitrag"
-                    description="Schreibe den ersten Entwurf. Veröffentlichen kannst du später."
+                    title={w.noArticleYet}
+                    description={w.writeFirstDraftLater}
                     action={
                         <Button nativeButton={false} render={<LocaleLink href={nextStep.href} />}>
                             {nextStep.actionLabel}
@@ -199,7 +199,7 @@ export default function WriteDeskClient(): React.JSX.Element {
 
             {draftArticles.length > 0 ? (
                 <section className="flex flex-col gap-3">
-                    <SectionHeader title="Offene Entwürfe" />
+                    <SectionHeader title={w.openDrafts} />
                     <EntityListSection
                         items={draftArticleItems}
                         linkComponent={LocaleLink}
@@ -209,18 +209,18 @@ export default function WriteDeskClient(): React.JSX.Element {
                     />
                     {draftArticles.length > 5 ? (
                         <p className="text-sm text-muted-foreground">
-                            <LocaleLink href="/write/articles">Alle Beiträge anzeigen</LocaleLink>
+                            <LocaleLink href="/write/articles">{w.showAllArticles}</LocaleLink>
                         </p>
                     ) : null}
                 </section>
             ) : null}
 
             <p className="text-sm text-muted-foreground">
-                <LocaleLink href="/write/articles">Zur Beitragsliste</LocaleLink>
+                <LocaleLink href="/write/articles">{w.toArticleList}</LocaleLink>
                 {' · '}
-                <LocaleLink href="/manage/categories">Kategorien</LocaleLink>
+                <LocaleLink href="/manage/categories">{dict.nav.verwaltung.categories}</LocaleLink>
                 {' · '}
-                <LocaleLink href="/bonus">Bonusdateien</LocaleLink>
+                <LocaleLink href="/bonus">{dict.nav.verwaltung.bonus}</LocaleLink>
             </p>
         </PageStack>
     )

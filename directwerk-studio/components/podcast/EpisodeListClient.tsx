@@ -1,6 +1,8 @@
 'use client'
 
 import LocaleLink from '@/components/i18n/LocaleLink'
+import {useDictionary} from '@/components/i18n/LocaleProvider'
+import {t} from '@/lib/i18n/dictionary'
 import {useCallback, useEffect, useMemo, useState} from 'react'
 
 import {Button} from '@directwerk/ui/components/button'
@@ -45,6 +47,8 @@ import {getClientTenantHost} from '@directwerk/api/tenant'
 import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
 
 export default function EpisodeListClient() {
+    const dict = useDictionary()
+    const p = dict.podcast
     const authRedirect = useAuthRequired()
     const [series, setSeries] = useState<SeriesSummary[]>([])
     const [formats, setFormats] = useState<FormatSummary[]>([])
@@ -75,12 +79,12 @@ export default function EpisodeListClient() {
                 return
             }
             setPrereqError(
-                error instanceof Error ? error.message : 'Folgen konnten nicht geladen werden.',
+                error instanceof Error ? error.message : p.episodesLoadFailed,
             )
         } finally {
             setPrereqLoading(false)
         }
-    }, [authRedirect])
+    }, [authRedirect, p.episodesLoadFailed])
 
     useEffect(() => {
         void loadPrerequisites()
@@ -94,8 +98,8 @@ export default function EpisodeListClient() {
         (episode: EpisodeDetail): string | null =>
             seriesStatusById.get(episode.seriesId) === 'PUBLISHED'
                 ? null
-                : 'Die Sendung muss zuerst veröffentlicht werden.',
-        [seriesStatusById],
+                : p.seriesMustPublishFirst,
+        [p.seriesMustPublishFirst, seriesStatusById],
     )
     const isBulkPublishEligible = useCallback(
         (episode: EpisodeDetail): boolean =>
@@ -145,21 +149,18 @@ export default function EpisodeListClient() {
         isBulkPublishEligible,
         isBulkUnpublishEligible,
         labels: {
-            loadError: 'Folgen konnten nicht geladen werden.',
-            publishSuccess: (title) => `Folge „${title}“ wurde veröffentlicht.`,
-            unpublishSuccess: (title) =>
-                `Folge „${title}“ wurde zurückgezogen (Entwurf).`,
-            cancelScheduleSuccess: (title) =>
-                `Planung für „${title}“ wurde aufgehoben (Entwurf).`,
-            unarchiveSuccess: (title) =>
-                `Folge „${title}“ wurde wiederhergestellt (Entwurf).`,
-            publishError: 'Folge konnte nicht veröffentlicht werden.',
-            unpublishError: 'Folge konnte nicht zurückgezogen werden.',
-            cancelScheduleError: 'Planung konnte nicht aufgehoben werden.',
-            unarchiveError: 'Folge konnte nicht wiederhergestellt werden.',
-            deleteSuccess: (title) => `Folge „${title}“ wurde gelöscht.`,
-            deleteError: 'Folge konnte nicht gelöscht werden.',
-            bulk: createPublicationBulkLabels('Folge', 'Folgen'),
+            loadError: p.episodesLoadFailed,
+            publishSuccess: (title) => t(p.folgeVeroeffentlicht, {title}),
+            unpublishSuccess: (title) => t(p.folgeZurueckgezogenEntwurf, {title}),
+            cancelScheduleSuccess: (title) => t(dict.write.scheduleCancelledToast, {title}),
+            unarchiveSuccess: (title) => t(p.folgeWiederhergestelltEntwurf, {title}),
+            publishError: p.folgeKonnteVeroeffentlicht,
+            unpublishError: p.folgeKonnteZurueckgezogen,
+            cancelScheduleError: dict.write.scheduleCancelFailed,
+            unarchiveError: p.folgeKonnteWiederhergestellt,
+            deleteSuccess: (title) => t(p.folgeGeloescht, {title}),
+            deleteError: p.folgeKonnteGeloescht,
+            bulk: createPublicationBulkLabels(p.episodeSingular, p.episodePlural),
         },
     })
 
@@ -246,15 +247,18 @@ export default function EpisodeListClient() {
                 apply,
                 (count) =>
                     count === 1
-                        ? '1 Folge aktualisiert.'
-                        : `${count} Folgen aktualisiert.`,
+                        ? p['1FolgeAktualisiert']
+                        : t(p.folgenAktualisiert, {count}),
                 (successCount, failureCount) =>
-                    `${successCount} von ${successCount + failureCount} Folgen aktualisiert.`,
-                'Folgen konnten nicht aktualisiert werden.',
+                    t(p.folgenAktualisiert2, {
+                        successCount,
+                        total: successCount + failureCount,
+                    }),
+                p.folgenKonntenAktualisiert,
             )
             setIsBulkEditOpen(false)
         },
-        [episodes, runBulkEdit, selectedIds],
+        [episodes, p, runBulkEdit, selectedIds],
     )
 
     const isLoading = prereqLoading || episodesLoading
@@ -269,7 +273,7 @@ export default function EpisodeListClient() {
     if (isLoading) {
         return (
             <p className="text-sm text-muted-foreground" role="status">
-                Folgen werden geladen…
+                {p.episodesLoading}
             </p>
         )
     }
@@ -280,17 +284,17 @@ export default function EpisodeListClient() {
     return (
         <PageStack className="gap-6">
             <PageHeader
-                eyebrow="Podcast · Erstellen"
-                title="Folgen"
-                description="Hier entsteht dein laufender Output: Audio, Shownotes, Format, Veröffentlichen."
+                eyebrow={p.createTitle}
+                title={p.episodesTitle}
+                description={p.createDescription}
                 actions={
                     canCreate ? (
                         <div className="flex flex-wrap gap-2">
                             <Button nativeButton={false} render={<LocaleLink href="/podcast/import" />} size="lg" variant="outline">
-                                RSS importieren
+                                {p.importRss}
                             </Button>
                             <Button nativeButton={false} render={<LocaleLink href="/podcast/episodes/new" />} size="lg">
-                                Neue Folge
+                                {p.newEpisode}
                             </Button>
                         </div>
                     ) : null
@@ -306,7 +310,7 @@ export default function EpisodeListClient() {
                         type="button"
                         variant="outline"
                     >
-                        Erneut versuchen
+                        {dict.common.retry}
                     </Button>
                 </Alert>
             )}
@@ -318,11 +322,11 @@ export default function EpisodeListClient() {
 
             {!hasSeries ? (
                 <EmptyState
-                    title="Zuerst eine Sendung anlegen"
-                    description="Eine Folge gehört zu einer Sendung. Richte die Sendung einmal ein — danach kannst du regelmäßig Folgen veröffentlichen."
+                    title={p.createShowFirstCard}
+                    description={p.episodeBelongsToShow}
                     action={
                         <Button nativeButton={false} render={<LocaleLink href="/podcast/series/new" />}>
-                            Sendung anlegen
+                            {p.createShow}
                         </Button>
                     }
                 />
@@ -330,20 +334,20 @@ export default function EpisodeListClient() {
 
             {hasSeries && formats.length === 0 ? (
                 <div className="rounded-xl border border-dashed bg-muted/30 px-4 py-3 text-sm text-muted-foreground">
-                    Noch keine Formate.{' '}
-                    <LocaleLink href="/podcast/formats/new">Formate anlegen</LocaleLink>
+                    {p.noFormatsYetInline}{' '}
+                    <LocaleLink href="/podcast/formats/new">{p.createFormats}</LocaleLink>
                     {' '}
-                    (empfohlen), damit du Folgen als Hauptfolge, Bonus usw. kennzeichnen kannst.
+                    {p.formatsRecommendedHint}
                 </div>
             ) : null}
 
             {hasSeries && episodes.length === 0 ? (
                 <EmptyState
-                    title="Noch keine Folgen"
-                    description="Lade Audio hoch, schreibe Shownotes und veröffentliche deine erste Folge."
+                    title={p.emptyEpisodesTitle}
+                    description={p.emptyEpisodesDescription}
                     action={
                         <Button nativeButton={false} render={<LocaleLink href="/podcast/episodes/new" />}>
-                            Erste Folge anlegen
+                            {p.createFirstEpisode}
                         </Button>
                     }
                 />
@@ -354,7 +358,7 @@ export default function EpisodeListClient() {
                     <PublicationListSection
                         allSelected={allSelected}
                         busyItemId={busyEpisodeId}
-                        contentLabelPlural="Folgen"
+                        contentLabelPlural={p.episodePlural}
                         editorBasePath="/podcast/episodes"
                         isBulkBusy={isBulkBusy}
                         items={listItems}
@@ -377,7 +381,7 @@ export default function EpisodeListClient() {
                         viewMode={viewMode}
                     />
                     <DeletePublicationDialog
-                        contentLabel="Folge"
+                        contentLabel={p.episodeSingular}
                         item={deleteTarget}
                         onConfirm={() => void handleDeleteConfirm()}
                         onOpenChange={(open) => {
@@ -389,8 +393,8 @@ export default function EpisodeListClient() {
                         pending={deletePending}
                     />
                     <BulkDeletePublicationDialog
-                        contentLabel="Folge"
-                        contentLabelPlural="Folgen"
+                        contentLabel={p.episodeSingular}
+                        contentLabelPlural={p.episodePlural}
                         items={bulkDeleteItems}
                         onConfirm={() => void handleBulkDeleteConfirm()}
                         onOpenChange={(open) => {
@@ -404,7 +408,7 @@ export default function EpisodeListClient() {
                     <BulkEditDialog
                         busy={isBulkBusy}
                         categories={categories}
-                        contentLabel="Folge"
+                        contentLabel={p.episodeSingular}
                         draftCount={draftCount}
                         formats={formats}
                         onApply={(operation) => void handleBulkEditApply(operation)}

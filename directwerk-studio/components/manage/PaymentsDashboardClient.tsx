@@ -1,6 +1,8 @@
 'use client'
 
 import LocaleLink from '@/components/i18n/LocaleLink'
+import {useDictionary} from '@/components/i18n/LocaleProvider'
+import {t} from '@/lib/i18n/dictionary'
 import {useRouter} from 'next/navigation'
 import {useEffect, useMemo, useState} from 'react'
 
@@ -31,16 +33,24 @@ import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
 
 const REVOCABLE_STATUSES = new Set(['ACTIVE', 'PAST_DUE', 'INCOMPLETE'])
 
-function stripeStatusLabel(status: string): string {
+function stripeStatusLabel(
+    status: string,
+    labels: {
+        connected: string
+        restricted: string
+        pending: string
+        notConnected: string
+    },
+): string {
     switch (status) {
         case 'CONNECTED':
-            return 'Verbunden'
+            return labels.connected
         case 'RESTRICTED':
-            return 'Eingeschränkt'
+            return labels.restricted
         case 'PENDING':
-            return 'Einrichtung offen'
+            return labels.pending
         case 'NOT_CONNECTED':
-            return 'Nicht verbunden'
+            return labels.notConnected
         default:
             return status
     }
@@ -70,8 +80,17 @@ function canRevoke(row: BillingMembership): boolean {
 }
 
 export default function PaymentsDashboardClient(): React.JSX.Element {
+    const dict = useDictionary()
+    const m = dict.manage
+    const home = dict.shell.home
     const router = useRouter()
     const authRedirect = useAuthRequired()
+    const stripeLabels = {
+        connected: m.stripeConnected,
+        restricted: home.statusRestricted,
+        pending: home.statusSetupOpen,
+        notConnected: home.statusNotConnected,
+    }
     const [dashboard, setDashboard] = useState<BillingDashboard | null>(null)
     const [errorMessage, setErrorMessage] = useState<string | null>(null)
     const [statusMessage, setStatusMessage] = useState<string | null>(null)
@@ -98,13 +117,13 @@ export default function PaymentsDashboardClient(): React.JSX.Element {
                 setErrorMessage(
                     error instanceof Error
                         ? error.message
-                        : 'Zahlungsübersicht konnte nicht geladen werden.',
+                        : m.zahlungsuebersichtKonnteGeladen,
                 )
             })
         return () => {
             active = false
         }
-    }, [router])
+    }, [authRedirect, m.zahlungsuebersichtKonnteGeladen, router])
 
     const visibleMemberships = useMemo(() => {
         if (dashboard === null) {
@@ -194,9 +213,9 @@ export default function PaymentsDashboardClient(): React.JSX.Element {
                         Stripe
                     </Button>
                 }
-                description="Übersicht über aktive Mitglieder, Zahlungsrückstände und geschätzte Einnahmen. Hier kannst du Zugänge beenden."
-                eyebrow="Abos"
-                title="Zahlungen & Mitgliedschaften"
+                description={m.uebersichtAktiveMitgliederZahlungsrueckstaend}
+                eyebrow={m.subscriptionsEyebrow}
+                title={m.zahlungenMitgliedschaften}
             />
 
             {errorMessage !== null ? (
@@ -204,7 +223,7 @@ export default function PaymentsDashboardClient(): React.JSX.Element {
                     <AlertDescription>
                         {errorMessage}{' '}
                         <Button onClick={() => void handleRetry()} size="sm" type="button" variant="outline">
-                            Wiederholen
+                            {dict.common.retryShort}
                         </Button>
                     </AlertDescription>
                 </Alert>
@@ -216,7 +235,7 @@ export default function PaymentsDashboardClient(): React.JSX.Element {
             ) : null}
             {dashboard === null && errorMessage === null ? (
                 <div className="flex flex-col gap-4" aria-busy="true">
-                    <p className="text-sm text-muted-foreground" role="status">Laden…</p>
+                    <p className="text-sm text-muted-foreground" role="status">{dict.common.loadingShort}</p>
                     <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3" aria-hidden="true">
                         {[0, 1, 2].map((index) => (
                             <Skeleton className="h-28 w-full" key={index} />
@@ -233,7 +252,7 @@ export default function PaymentsDashboardClient(): React.JSX.Element {
                                 <span className="flex flex-wrap items-center gap-2">
                                     Stripe
                                     <Badge variant={stripeStatusVariant(dashboard.stripe.status)}>
-                                        {stripeStatusLabel(dashboard.stripe.status)}
+                                        {stripeStatusLabel(dashboard.stripe.status, stripeLabels)}
                                     </Badge>
                                 </span>
                             </CardTitle>
@@ -251,7 +270,7 @@ export default function PaymentsDashboardClient(): React.JSX.Element {
                         {dashboard.stripe.status !== 'CONNECTED' ? (
                             <p>
                                 <Button nativeButton={false} render={<LocaleLink href="/settings/stripe" />}>
-                                    Stripe verbinden
+                                    {dict.settings.stripeVerbinden}
                                 </Button>
                             </p>
                         ) : null}
@@ -261,8 +280,8 @@ export default function PaymentsDashboardClient(): React.JSX.Element {
                     <section aria-labelledby="billing-stats-heading" className="flex flex-col gap-4">
                         <SectionHeader
                             id="billing-stats-heading"
-                            title="Kennzahlen"
-                            description="Aktive Zugänge, Zahlungsrückstände und geschätzter Monatswert aus allen aktiven Preisen."
+                            title={m.kennzahlen}
+                            description={m.aktiveZugaengeZahlungsrueckstaendeGeschaetzte}
                         />
                     <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                         <li>
@@ -315,23 +334,23 @@ export default function PaymentsDashboardClient(): React.JSX.Element {
 
                     <div className="flex flex-wrap gap-2">
                         <Button nativeButton={false} render={<LocaleLink href="/manage/products" />} variant="outline">
-                            Produkte
+                            {m.productsTitle}
                         </Button>
                         <Button nativeButton={false} render={<LocaleLink href="/manage/grants" />} variant="outline">
-                            Freischaltungen
+                            {m.grantsTitle}
                         </Button>
                         <Button nativeButton={false} render={<LocaleLink href="/manage/subscribers" />} variant="outline">
-                            Abonnenten
+                            {m.subscribersTitle}
                         </Button>
                     </div>
 
                     {dashboard.memberships.length === 0 ? (
                         <EmptyState
-                            title="Noch keine Mitgliedschaften"
-                            description="Lege ein Produkt mit Preis an, verbinde Stripe oder vergebe eine Freischaltung."
+                            title={m.keineMitgliedschaften}
+                            description={m.legeProduktPreisVerbindeStripeVergebe}
                             action={
                                 <Button nativeButton={false} render={<LocaleLink href="/manage/products/new" />}>
-                                    Produkt anlegen
+                                    {m.createProduct}
                                 </Button>
                             }
                         />
@@ -339,52 +358,54 @@ export default function PaymentsDashboardClient(): React.JSX.Element {
                         <section aria-labelledby="memberships-heading" className="flex flex-col gap-4">
                             <SectionHeader
                                 id="memberships-heading"
-                                title={`Mitgliedschaften (${dashboard.memberships.length})`}
-                                description="Suche nach E-Mail oder Produkt. Der Widerruf eines Stripe-Abos kündigt es auch bei Stripe."
+                                title={t(m.mitgliedschaften, {
+                                    'dashboard.memberships.length': dashboard.memberships.length,
+                                })}
+                                description={m.sucheEMailProduktWiderrufEines}
                                 action={
                                     hasActiveFilters ? (
                                         <Button onClick={resetFilters} size="sm" type="button" variant="ghost">
-                                            Filter zurücksetzen
+                                            {m.resetFilters}
                                         </Button>
                                     ) : undefined
                                 }
                             />
                             <div className="grid gap-3 md:grid-cols-3">
                                 <label className="grid gap-2 text-sm font-medium" htmlFor="membership-search">
-                                    Suchen
+                                    {m.searchLabel}
                                     <Input
                                         id="membership-search"
                                         onChange={(event) => setQuery(event.target.value)}
-                                        placeholder="E-Mail oder Produkt"
+                                        placeholder={m.emailOrProduct}
                                         type="search"
                                         value={query}
                                     />
                                 </label>
                                 <label className="grid gap-2 text-sm font-medium" htmlFor="membership-status">
-                                    Status
+                                    {m.statusLabel}
                                     <SelectControl
                                         id="membership-status"
                                         onChange={(event) => setStatusFilter(event.target.value)}
                                         value={statusFilter}
                                     >
-                                        <option value="all">Alle</option>
-                                        <option value="ACTIVE">Aktiv</option>
+                                        <option value="all">{dict.common.all}</option>
+                                        <option value="ACTIVE">{dict.common.active}</option>
                                         <option value="PAST_DUE">Zahlungsrückstand</option>
                                         <option value="INCOMPLETE">Unvollständig</option>
-                                        <option value="CANCELED">Gekündigt</option>
+                                        <option value="CANCELED">{m.gekuendigt}</option>
                                         <option value="EXPIRED">Abgelaufen</option>
                                     </SelectControl>
                                 </label>
                                 <label className="grid gap-2 text-sm font-medium" htmlFor="membership-source">
-                                    Quelle
+                                    {m.sourceLabel}
                                     <SelectControl
                                         id="membership-source"
                                         onChange={(event) => setSourceFilter(event.target.value)}
                                         value={sourceFilter}
                                     >
-                                        <option value="all">Alle</option>
+                                        <option value="all">{dict.common.all}</option>
                                         <option value="STRIPE">Stripe</option>
-                                        <option value="MANUAL">Freischaltung</option>
+                                        <option value="MANUAL">{m.grantsTitle}</option>
                                     </SelectControl>
                                 </label>
                             </div>
@@ -396,11 +417,11 @@ export default function PaymentsDashboardClient(): React.JSX.Element {
                             </p>
                             {visibleMemberships.length === 0 ? (
                                 <EmptyState
-                                    title="Keine Mitgliedschaften für diesen Filter"
-                                    description="Passe Suche, Status oder Quelle an, um weitere Einträge zu sehen."
+                                    title={m.keineMitgliedschaftenDiesenFilter}
+                                    description={m.passeSucheStatusQuelleWeitereEintraege}
                                     action={
                                         <Button onClick={resetFilters} type="button" variant="outline">
-                                            Filter zurücksetzen
+                                            {m.resetFilters}
                                         </Button>
                                     }
                                 />
