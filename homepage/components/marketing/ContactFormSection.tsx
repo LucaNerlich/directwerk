@@ -99,11 +99,12 @@ export default function ContactFormSection(): React.JSX.Element {
                         Bereit für den nächsten Schritt?
                     </p>
                     <h2 className="mt-4 max-w-xl text-balance text-3xl font-semibold tracking-tight">
-                        Deine eigene Plattform — nicht nur noch ein Tool
+                        Early Access — wir helfen beim Start
                     </h2>
                     <p className="mt-4 max-w-lg text-primary-foreground/80">
-                        Wir sprechen mit Creators, Agenturen und Entwicklern über Early
-                        Access, den Umzug von Patreon/Steady und eigene Oberflächen.
+                        Wir sprechen mit Podcastern und Creators über Early Access,
+                        Studio & Website und den Umzug bestehender Shows — ohne
+                        Technikstress.
                     </p>
 
                     <form className="mt-8 grid max-w-xl gap-4" onSubmit={handleSubmit}>

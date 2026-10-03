@@ -22,7 +22,7 @@ export const metadata: Metadata = {
         template: '%s · Directwerk',
     },
     description:
-        'Podcast- und Publishing-Plattform aus Europa — mit Studio, Website für Hörer und API für Agenturen.',
+        'Deine Podcast- und Content-Plattform aus Europa — mit Studio, Website für Hörer und Abos unter deiner Marke.',
 }
 
 export default function RootLayout({

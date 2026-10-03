@@ -10,9 +10,9 @@ import ProblemSolutionSection from '@/components/marketing/ProblemSolutionSectio
 import ProductStackSection from '@/components/marketing/ProductStackSection'
 
 export const metadata: Metadata = {
-    title: 'Directwerk — Europäische Podcast- & Publishing-Plattform',
+    title: 'Directwerk — Deine Podcast- & Content-Plattform',
     description:
-        'Podcast, Artikel und Newsletter unter deiner Marke — mit Studio, Website für Abonnenten, privaten Feeds pro Hörer und Hosting in Europa.',
+        'Podcast- und Content-Plattform mit Studio, Website für Hörer, Abos und Hosting in Europa — klar aufgebaut, ohne Technikstress.',
 }
 
 export default function Home(): React.JSX.Element {
