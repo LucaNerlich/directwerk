@@ -1,6 +1,6 @@
 'use client'
 
-import Link from 'next/link'
+import LocaleLink from '@/components/i18n/LocaleLink'
 import {useCallback, useEffect, useState} from 'react'
 
 import {Alert, AlertDescription} from '@directwerk/ui/components/alert'
@@ -175,12 +175,12 @@ export default function FeedManagementClient(): React.JSX.Element {
         description: <code>{item.slug}</code>,
         trailing: <PublicationStatusBadge status={item.status} />,
         actions: (
-            <Link
+            <LocaleLink
                 className="text-sm font-medium text-primary underline-offset-4 hover:underline"
                 href={`/podcast/series/${item.id}`}
             >
                 Sendung veröffentlichen
-            </Link>
+            </LocaleLink>
         ),
     }))
 
@@ -248,7 +248,7 @@ export default function FeedManagementClient(): React.JSX.Element {
             {!hasAnyFeed && errorMessage === null ? (
                 <EmptyState
                     action={
-                        <Button nativeButton={false} render={<Link href="/podcast/series/new" />}>
+                        <Button nativeButton={false} render={<LocaleLink href="/podcast/series/new" />}>
                             Sendung anlegen
                         </Button>
                     }

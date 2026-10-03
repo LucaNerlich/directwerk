@@ -12,7 +12,7 @@ import PageHeader from '@directwerk/ui/components/page-header'
 import PageStack from '@directwerk/ui/components/page-stack'
 import {Skeleton} from '@directwerk/ui/components/skeleton'
 
-import Link from 'next/link'
+import LocaleLink from '@/components/i18n/LocaleLink'
 
 import {HTML_SLUG_PATTERN} from '@directwerk/api/constants'
 import {
@@ -128,9 +128,9 @@ export default function CategoryEditor({categoryId}: CategoryEditorProps): React
                 <Alert variant="destructive">
                     <AlertDescription>
                         {loadError}{' '}
-                        <Link className="underline underline-offset-4" href="/manage/categories">
+                        <LocaleLink className="underline underline-offset-4" href="/manage/categories">
                             Zurück zur Liste
-                        </Link>
+                        </LocaleLink>
                     </AlertDescription>
                 </Alert>
             </PageStack>
@@ -148,7 +148,7 @@ export default function CategoryEditor({categoryId}: CategoryEditorProps): React
                 title={isNew ? 'Neue Kategorie' : 'Kategorie bearbeiten'}
                 description="Themen-Tags für Folgen und Beiträge — getrennt von Podcast-Formaten."
                 actions={
-                    <Button nativeButton={false} render={<Link href="/manage/categories" />} variant="outline">
+                    <Button nativeButton={false} render={<LocaleLink href="/manage/categories" />} variant="outline">
                         Zurück zur Liste
                     </Button>
                 }

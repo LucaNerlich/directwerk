@@ -1,8 +1,12 @@
+'use client'
+
 import type {ReactNode} from 'react'
 
 import BrandTheme from '@directwerk/ui/components/brand-theme'
 import AppShell from '@directwerk/ui/components/layout/app-shell'
 
+import LanguageSwitcher from '@/components/i18n/LanguageSwitcher'
+import {useDictionary} from '@/components/i18n/LocaleProvider'
 import DeskSwitcher from '@/components/studio/DeskSwitcher'
 import LogoutButton from '@/components/studio/LogoutButton'
 import SideNav from '@/components/studio/SideNav'
@@ -16,6 +20,8 @@ export default function StudioShell({
     config: SiteConfig
     children: ReactNode
 }) {
+    const dict = useDictionary()
+
     return (
         <SiteConfigProvider config={config}>
             <BrandTheme
@@ -31,16 +37,17 @@ export default function StudioShell({
                                     {config.tenant.name}
                                 </p>
                                 <p className="text-xs text-muted-foreground">
-                                    Directwerk Studio
+                                    {dict.meta.productName}
                                 </p>
                             </div>
                             <DeskSwitcher config={config} />
+                            <LanguageSwitcher />
                         </div>
                     }
                     navigation={<SideNav config={config} />}
                     footer={<LogoutButton />}
-                    navigationTriggerLabel="Hauptnavigation öffnen"
-                    skipLinkLabel="Zum Inhalt springen"
+                    navigationTriggerLabel={dict.shell.openNav}
+                    skipLinkLabel={dict.shell.skipToContent}
                 >
                     {children}
                 </AppShell>

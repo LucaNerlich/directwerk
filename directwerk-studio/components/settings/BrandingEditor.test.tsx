@@ -1,10 +1,17 @@
-import {fireEvent, render, screen, waitFor} from '@testing-library/react'
+import {fireEvent, screen, waitFor} from '@testing-library/react'
+import {renderWithLocale} from '@/lib/i18n/testUtils'
 import {beforeEach, describe, expect, it, vi} from 'vitest'
 
 import BrandingEditor from '@/components/settings/BrandingEditor'
 import type {MediaAsset} from '@directwerk/api/types'
 
 const mockRouter = {replace: vi.fn()}
+vi.mock('next/link', () => ({
+    default: ({children, href, ...props}: {children?: React.ReactNode; href: string; [key: string]: unknown}) => (
+        <a href={href} {...props}>{children}</a>
+    ),
+}))
+
 vi.mock('next/navigation', () => ({useRouter: () => mockRouter}))
 vi.mock('@directwerk/api/auth/useAuthRequired', () => ({
     useAuthRequired: () => () => false,
@@ -89,7 +96,7 @@ describe('BrandingEditor color picker', () => {
     })
 
     it('pairs each hex field with a native color picker showing the same color', async () => {
-        render(<BrandingEditor />)
+        renderWithLocale(<BrandingEditor />)
 
         const primaryField = await screen.findByLabelText('Primärfarbe')
         expect(primaryField).toHaveValue('#112233')
@@ -107,7 +114,7 @@ describe('BrandingEditor color picker', () => {
     })
 
     it('writes a picked color into the hex field', async () => {
-        render(<BrandingEditor />)
+        renderWithLocale(<BrandingEditor />)
         await screen.findByLabelText('Primärfarbe')
 
         fireEvent.change(screen.getByLabelText('Sekundärfarbe Farbwähler'), {
@@ -118,7 +125,7 @@ describe('BrandingEditor color picker', () => {
     })
 
     it('reflects a typed hex value in the color picker', async () => {
-        render(<BrandingEditor />)
+        renderWithLocale(<BrandingEditor />)
         const primaryField = await screen.findByLabelText('Primärfarbe')
 
         // NB: fireEvent instead of user.type — user-event's clear/type
@@ -131,7 +138,7 @@ describe('BrandingEditor color picker', () => {
     })
 
     it('rejects an invalid hex value with a German error and saves nothing', async () => {
-        render(<BrandingEditor />)
+        renderWithLocale(<BrandingEditor />)
         const primaryField = await screen.findByLabelText('Primärfarbe')
 
         fireEvent.change(primaryField, {target: {value: 'rot'}})
@@ -150,7 +157,7 @@ describe('BrandingEditor color picker', () => {
     })
 
     it('submits the picked color as valid 6-digit hex', async () => {
-        render(<BrandingEditor />)
+        renderWithLocale(<BrandingEditor />)
         await screen.findByLabelText('Primärfarbe')
 
         fireEvent.change(screen.getByLabelText('Primärfarbe Farbwähler'), {
@@ -180,7 +187,7 @@ describe('BrandingEditor color picker', () => {
     })
 
     it('previews saved primary and draft secondary colors live', async () => {
-        render(<BrandingEditor />)
+        renderWithLocale(<BrandingEditor />)
         await screen.findByLabelText('Primärfarbe')
 
         const previewButton = screen.getByRole('button', {name: 'Sekundär'})
@@ -197,7 +204,7 @@ describe('BrandingEditor color picker', () => {
 
     it('warns when a website ID is set but the ANALYTICS module is off', async () => {
         getBranding.mockResolvedValue({...branding, umamiWebsiteId: 'abc12345'})
-        render(<BrandingEditor />)
+        renderWithLocale(<BrandingEditor />)
         await screen.findByLabelText('Umami Website-ID')
 
         expect(screen.getByRole('alert')).toHaveTextContent(
@@ -206,7 +213,7 @@ describe('BrandingEditor color picker', () => {
     })
 
     it('stays quiet without a website ID even when the module is off', async () => {
-        render(<BrandingEditor />)
+        renderWithLocale(<BrandingEditor />)
         await screen.findByLabelText('Umami Website-ID')
 
         expect(screen.queryByRole('alert')).not.toBeInTheDocument()
@@ -215,14 +222,14 @@ describe('BrandingEditor color picker', () => {
     it('stays quiet with a website ID when the ANALYTICS module is active', async () => {
         siteConfig.enabledModules = ['DIGITAL_CONTENT', 'PODCAST', 'ANALYTICS']
         getBranding.mockResolvedValue({...branding, umamiWebsiteId: 'abc12345'})
-        render(<BrandingEditor />)
+        renderWithLocale(<BrandingEditor />)
         await screen.findByLabelText('Umami Website-ID')
 
         expect(screen.queryByRole('alert')).not.toBeInTheDocument()
     })
 
     it('fills the logo URL from a media library image and submits it', async () => {
-        render(<BrandingEditor />)
+        renderWithLocale(<BrandingEditor />)
         const logoField = await screen.findByLabelText('Oder Logo-URL')
         expect(logoField).toHaveValue('')
 
@@ -250,7 +257,7 @@ describe('BrandingEditor color picker', () => {
     })
 
     it('still accepts a manually typed logo URL', async () => {
-        render(<BrandingEditor />)
+        renderWithLocale(<BrandingEditor />)
         const logoField = await screen.findByLabelText('Oder Logo-URL')
 
         fireEvent.change(logoField, {
@@ -272,7 +279,7 @@ describe('BrandingEditor color picker', () => {
     })
 
     it('fills the favicon URL from a media library image and submits it', async () => {
-        render(<BrandingEditor />)
+        renderWithLocale(<BrandingEditor />)
         const faviconField = await screen.findByLabelText('Oder Favicon-URL')
         expect(faviconField).toHaveValue('')
 
@@ -312,7 +319,7 @@ describe('BrandingEditor color picker', () => {
                 finishUpload = resolve
             }),
         )
-        render(<BrandingEditor />)
+        renderWithLocale(<BrandingEditor />)
 
         const faviconField = await screen.findByLabelText('Oder Favicon-URL')
         fireEvent.change(screen.getByLabelText('Favicon hochladen'), {

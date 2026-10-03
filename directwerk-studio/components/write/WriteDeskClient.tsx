@@ -1,6 +1,6 @@
 'use client'
 
-import Link from 'next/link'
+import LocaleLink from '@/components/i18n/LocaleLink'
 import {useRouter} from 'next/navigation'
 import {useEffect, useState} from 'react'
 
@@ -133,10 +133,10 @@ export default function WriteDeskClient(): React.JSX.Element {
                 description="Beitrag für Beitrag veröffentlichen. Kategorien sind optional — der wöchentliche Weg führt über die Beiträge."
                 actions={
                     <div className="flex flex-wrap gap-2">
-                        <Button nativeButton={false} render={<Link href="/write/import" />} size="lg" variant="outline">
+                        <Button nativeButton={false} render={<LocaleLink href="/write/import" />} size="lg" variant="outline">
                             RSS importieren
                         </Button>
-                        <Button nativeButton={false} render={<Link href="/write/articles/new" />} size="lg">
+                        <Button nativeButton={false} render={<LocaleLink href="/write/articles/new" />} size="lg">
                             Neuer Beitrag
                         </Button>
                     </div>
@@ -174,7 +174,7 @@ export default function WriteDeskClient(): React.JSX.Element {
                             </div>
                             <Button
                                 nativeButton={false}
-                                render={<Link href={step.href} />}
+                                render={<LocaleLink href={step.href} />}
                                 size="sm"
                                 variant={step.primary ? 'default' : step.done ? 'outline' : 'secondary'}
                             >
@@ -190,7 +190,7 @@ export default function WriteDeskClient(): React.JSX.Element {
                     title="Noch kein Beitrag"
                     description="Schreibe den ersten Entwurf. Veröffentlichen kannst du später."
                     action={
-                        <Button nativeButton={false} render={<Link href={nextStep.href} />}>
+                        <Button nativeButton={false} render={<LocaleLink href={nextStep.href} />}>
                             {nextStep.actionLabel}
                         </Button>
                     }
@@ -202,25 +202,25 @@ export default function WriteDeskClient(): React.JSX.Element {
                     <SectionHeader title="Offene Entwürfe" />
                     <EntityListSection
                         items={draftArticleItems}
-                        linkComponent={Link}
+                        linkComponent={LocaleLink}
                         onViewModeChange={setViewMode}
                         showSelection={false}
                         viewMode={viewMode}
                     />
                     {draftArticles.length > 5 ? (
                         <p className="text-sm text-muted-foreground">
-                            <Link href="/write/articles">Alle Beiträge anzeigen</Link>
+                            <LocaleLink href="/write/articles">Alle Beiträge anzeigen</LocaleLink>
                         </p>
                     ) : null}
                 </section>
             ) : null}
 
             <p className="text-sm text-muted-foreground">
-                <Link href="/write/articles">Zur Beitragsliste</Link>
+                <LocaleLink href="/write/articles">Zur Beitragsliste</LocaleLink>
                 {' · '}
-                <Link href="/manage/categories">Kategorien</Link>
+                <LocaleLink href="/manage/categories">Kategorien</LocaleLink>
                 {' · '}
-                <Link href="/bonus">Bonusdateien</Link>
+                <LocaleLink href="/bonus">Bonusdateien</LocaleLink>
             </p>
         </PageStack>
     )

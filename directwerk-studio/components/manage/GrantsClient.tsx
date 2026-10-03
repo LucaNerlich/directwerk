@@ -17,7 +17,7 @@ import SectionHeader from '@directwerk/ui/components/section-header'
 import {Skeleton} from '@directwerk/ui/components/skeleton'
 import {useListViewMode} from '@directwerk/ui/hooks/use-list-view-mode'
 
-import Link from 'next/link'
+import LocaleLink from '@/components/i18n/LocaleLink'
 import {useEffect, useId, useState, type FormEvent} from 'react'
 import {useRouter} from 'next/navigation'
 
@@ -227,7 +227,7 @@ export default function GrantsClient(): React.JSX.Element {
                 title="Freischaltungen"
                 description="Zugang manuell vergeben oder widerrufen — z. B. für Gäste, Team oder Gewinnspiele. Freischaltungen erscheinen auch unter Abonnenten."
                 actions={
-                    <Button nativeButton={false} render={<Link href="/manage" />} variant="outline">
+                    <Button nativeButton={false} render={<LocaleLink href="/manage" />} variant="outline">
                         Zu Zahlungen
                     </Button>
                 }
@@ -238,7 +238,7 @@ export default function GrantsClient(): React.JSX.Element {
                     title="Zuerst ein Produkt anlegen"
                     description="Ohne aktives Abo-Produkt kannst du niemanden freischalten."
                     action={
-                        <Button nativeButton={false} render={<Link href="/manage/products/new" />}>
+                        <Button nativeButton={false} render={<LocaleLink href="/manage/products/new" />}>
                             Produkt anlegen
                         </Button>
                     }

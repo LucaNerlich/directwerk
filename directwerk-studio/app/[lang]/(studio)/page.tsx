@@ -8,79 +8,84 @@ import PageStack from '@directwerk/ui/components/page-stack'
 
 import OverviewOpsWidgets from '@/components/studio/OverviewOpsWidgets'
 import OverviewQueue from '@/components/studio/OverviewQueue'
+import {assertLocale, getDictionary, localizedPath, t} from '@/lib/i18n'
 import {requireStudioSiteConfig} from '@/lib/site/requireSiteConfig'
 
-export default async function OverviewPage() {
-    const {config} = await requireStudioSiteConfig()
+export default async function OverviewPage({
+    params,
+}: {
+    params: Promise<{lang: string}>
+}) {
+    const {lang: langParam} = await params
+    const lang = assertLocale(langParam)
+    const dict = await getDictionary(lang)
+    const {config} = await requireStudioSiteConfig(lang)
     const desks = new Set(config.studioDesks)
     const hasDesks = desks.has('WRITE') || desks.has('PODCAST')
+    const home = dict.shell.home
 
     return (
         <PageStack>
-            <nav aria-label="Brotkrumen">
+            <nav aria-label={home.breadcrumbs}>
                 <ol className="flex items-center gap-1.5 text-sm text-muted-foreground">
                     <li aria-current="page" className="font-medium text-foreground">
-                        Übersicht
+                        {home.overview}
                     </li>
                 </ol>
             </nav>
             <PageHeader
-                eyebrow="Directwerk Studio"
-                title="Was möchtest du veröffentlichen?"
-                description={
-                    <>
-                        Willkommen im Studio für <strong>{config.tenant.name}</strong>.
-                        Starte mit dem nächsten Inhalt — Einrichtung und Abos liegen
-                        getrennt davon.
-                    </>
-                }
+                eyebrow={dict.meta.productName}
+                title={home.headline}
+                description={t(home.welcome, {tenantName: config.tenant.name})}
             />
             {!hasDesks ? (
-                <EmptyState
-                    title="Noch kein Desk freigeschaltet"
-                    description="Für diesen Mandanten ist weder Schreiben noch Podcast aktiviert. Bitte wende dich an dein Team, um einen Bereich freischalten zu lassen."
-                />
+                <EmptyState title={home.noDeskTitle} description={home.noDeskDescription} />
             ) : (
-                <section
-                    aria-label="Desks"
-                    className="grid gap-4 sm:grid-cols-2"
-                >
+                <section aria-label={dict.shell.desksAria} className="grid gap-4 sm:grid-cols-2">
                     {desks.has('WRITE') ? (
                         <FeatureCard
-                            eyebrow="Write Desk"
-                            description="Beitrag schreiben, einplanen und veröffentlichen. Ideal für den schnellen Einstieg."
-                            title="Schreiben"
+                            eyebrow={home.writeDeskEyebrow}
+                            description={home.writeDescription}
+                            title={home.writeDesk}
                         >
                             <div className="flex flex-wrap gap-2">
-                                <Button nativeButton={false} render={<Link href="/write/articles/new" />}>
-                                    Neuer Beitrag
+                                <Button
+                                    nativeButton={false}
+                                    render={<Link href={localizedPath(lang, '/write/articles/new')} />}
+                                >
+                                    {home.newArticle}
                                 </Button>
                                 <Button
                                     nativeButton={false}
-                                    render={<Link href="/write" />}
+                                    render={<Link href={localizedPath(lang, '/write')} />}
                                     variant="outline"
                                 >
-                                    Schreib-Übersicht
+                                    {home.writeOverview}
                                 </Button>
                             </div>
                         </FeatureCard>
                     ) : null}
                     {desks.has('PODCAST') ? (
                         <FeatureCard
-                            eyebrow="Podcast Desk"
-                            description="Folge erstellen — oder zuerst Sendung und Formate als Einrichtung abschließen."
-                            title="Podcast"
+                            eyebrow={home.podcastDesk}
+                            description={home.podcastDescription}
+                            title={dict.desks.podcast}
                         >
                             <div className="flex flex-wrap gap-2">
-                                <Button nativeButton={false} render={<Link href="/podcast/episodes/new" />}>
-                                    Neue Folge
+                                <Button
+                                    nativeButton={false}
+                                    render={
+                                        <Link href={localizedPath(lang, '/podcast/episodes/new')} />
+                                    }
+                                >
+                                    {home.newEpisode}
                                 </Button>
                                 <Button
                                     nativeButton={false}
-                                    render={<Link href="/podcast" />}
+                                    render={<Link href={localizedPath(lang, '/podcast')} />}
                                     variant="outline"
                                 >
-                                    Podcast-Übersicht
+                                    {home.podcastOverview}
                                 </Button>
                             </div>
                         </FeatureCard>

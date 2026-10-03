@@ -1,4 +1,5 @@
-import {fireEvent, render, screen, waitFor, within} from '@testing-library/react'
+import {fireEvent, screen, waitFor, within} from '@testing-library/react'
+import {renderWithLocale} from '@/lib/i18n/testUtils'
 import {describe, expect, it, vi} from 'vitest'
 
 import TeamClient from '@/components/team/TeamClient'
@@ -13,6 +14,12 @@ import type {TenantUser} from '@directwerk/api/types'
 // The load effect depends on the router object: it must be stable across
 // renders or the effect re-runs forever and loading never finishes.
 const mockRouter = {replace: vi.fn()}
+vi.mock('next/link', () => ({
+    default: ({children, href, ...props}: {children?: React.ReactNode; href: string; [key: string]: unknown}) => (
+        <a href={href} {...props}>{children}</a>
+    ),
+}))
+
 vi.mock('next/navigation', () => ({useRouter: () => mockRouter}))
 vi.mock('@directwerk/api/tenant', () => ({getClientTenantHost: () => 'tenant.test'}))
 vi.mock('@/lib/api/tenantSettingsApi', () => ({
@@ -45,7 +52,7 @@ const editor: TenantUser = {
 }
 
 function renderTeam() {
-    render(
+    renderWithLocale(
         <MeProvider
             me={{userId: 1, email: 'admin@example.com', name: 'Admin', roles: ['TENANT_ADMIN'], tenantId: 1}}
         >

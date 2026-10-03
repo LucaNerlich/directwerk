@@ -1,9 +1,16 @@
-import {render, screen, waitFor} from '@testing-library/react'
+import {screen, waitFor} from '@testing-library/react'
 import {describe, expect, it, vi} from 'vitest'
 
 import PodcastDeskClient from '@/components/podcast/PodcastDeskClient'
+import {renderWithLocale} from '@/lib/i18n/testUtils'
 import {listEpisodes, listSeries} from '@/lib/api/podcastApi'
 import {listFormats} from '@/lib/api/catalogApi'
+
+vi.mock('next/link', () => ({
+    default: ({children, href, ...props}: {children?: React.ReactNode; href: string; [key: string]: unknown}) => (
+        <a href={href} {...props}>{children}</a>
+    ),
+}))
 
 vi.mock('next/navigation', () => ({useRouter: () => ({replace: vi.fn()})}))
 vi.mock('@directwerk/api/tenant', () => ({getClientTenantHost: () => 'tenant.test'}))
@@ -17,12 +24,12 @@ vi.mock('@/lib/api/catalogApi', () => ({
 
 describe('PodcastDeskClient', () => {
     it('guides first-run setup toward creating a series', async () => {
-        render(<PodcastDeskClient />)
+        renderWithLocale(<PodcastDeskClient />)
         await waitFor(() =>
             expect(screen.getByRole('heading', {name: 'Inhalte erstellen'})).toBeInTheDocument(),
         )
         const seriesLinks = screen.getAllByRole('button', {name: 'Sendung anlegen'})
-        expect(seriesLinks[0]).toHaveAttribute('href', '/podcast/series/new')
+        expect(seriesLinks[0]).toHaveAttribute('href', '/de/podcast/series/new')
         expect(screen.getByText('So entsteht eine Folge')).toBeInTheDocument()
     })
 
@@ -39,11 +46,10 @@ describe('PodcastDeskClient', () => {
         vi.mocked(listFormats).mockResolvedValueOnce([])
         vi.mocked(listEpisodes).mockResolvedValueOnce([])
 
-        render(<PodcastDeskClient />)
+        renderWithLocale(<PodcastDeskClient />)
         await waitFor(() =>
             expect(screen.getByRole('button', {name: 'RSS importieren'})).toHaveAttribute(
-                'href',
-                '/podcast/import',
+                'href', '/de/podcast/import',
             ),
         )
     })

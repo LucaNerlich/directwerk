@@ -1,6 +1,6 @@
 'use client'
 
-import Link from 'next/link'
+import LocaleLink from '@/components/i18n/LocaleLink'
 import {useState} from 'react'
 
 import {Alert, AlertDescription} from '@directwerk/ui/components/alert'
@@ -138,7 +138,7 @@ export default function NewsletterListClient(): React.JSX.Element {
             {lists && lists.length > 0 ? (
                 <EntityListSection
                     items={listItems}
-                    linkComponent={Link}
+                    linkComponent={LocaleLink}
                     onViewModeChange={setViewMode}
                     viewMode={viewMode}
                 />

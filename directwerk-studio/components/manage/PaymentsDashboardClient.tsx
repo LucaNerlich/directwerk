@@ -1,6 +1,6 @@
 'use client'
 
-import Link from 'next/link'
+import LocaleLink from '@/components/i18n/LocaleLink'
 import {useRouter} from 'next/navigation'
 import {useEffect, useMemo, useState} from 'react'
 
@@ -190,7 +190,7 @@ export default function PaymentsDashboardClient(): React.JSX.Element {
         <PageStack>
             <PageHeader
                 actions={
-                    <Button nativeButton={false} render={<Link href="/settings/stripe" />} size="lg">
+                    <Button nativeButton={false} render={<LocaleLink href="/settings/stripe" />} size="lg">
                         Stripe
                     </Button>
                 }
@@ -250,7 +250,7 @@ export default function PaymentsDashboardClient(): React.JSX.Element {
                         </p>
                         {dashboard.stripe.status !== 'CONNECTED' ? (
                             <p>
-                                <Button nativeButton={false} render={<Link href="/settings/stripe" />}>
+                                <Button nativeButton={false} render={<LocaleLink href="/settings/stripe" />}>
                                     Stripe verbinden
                                 </Button>
                             </p>
@@ -314,13 +314,13 @@ export default function PaymentsDashboardClient(): React.JSX.Element {
                     </section>
 
                     <div className="flex flex-wrap gap-2">
-                        <Button nativeButton={false} render={<Link href="/manage/products" />} variant="outline">
+                        <Button nativeButton={false} render={<LocaleLink href="/manage/products" />} variant="outline">
                             Produkte
                         </Button>
-                        <Button nativeButton={false} render={<Link href="/manage/grants" />} variant="outline">
+                        <Button nativeButton={false} render={<LocaleLink href="/manage/grants" />} variant="outline">
                             Freischaltungen
                         </Button>
-                        <Button nativeButton={false} render={<Link href="/manage/subscribers" />} variant="outline">
+                        <Button nativeButton={false} render={<LocaleLink href="/manage/subscribers" />} variant="outline">
                             Abonnenten
                         </Button>
                     </div>
@@ -330,7 +330,7 @@ export default function PaymentsDashboardClient(): React.JSX.Element {
                             title="Noch keine Mitgliedschaften"
                             description="Lege ein Produkt mit Preis an, verbinde Stripe oder vergebe eine Freischaltung."
                             action={
-                                <Button nativeButton={false} render={<Link href="/manage/products/new" />}>
+                                <Button nativeButton={false} render={<LocaleLink href="/manage/products/new" />}>
                                     Produkt anlegen
                                 </Button>
                             }

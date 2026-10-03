@@ -13,6 +13,8 @@ import {Skeleton} from '@directwerk/ui/components/skeleton'
 import {useCallback, useEffect, useState} from 'react'
 import {useRouter} from 'next/navigation'
 
+import {useLocalizedPath} from '@/components/i18n/useLocalizedPath'
+
 import {getStripeStatus, startStripeOnboard} from '@/lib/api/subscriptionApi'
 import type {StripeStatus} from '@directwerk/api/types'
 import {getClientTenantHost} from '@directwerk/api/tenant'
@@ -40,6 +42,7 @@ function booleanLabel(value: boolean, positive = 'Ja', negative = 'Nein'): strin
 
 export default function StripeSettingsClient(): React.JSX.Element {
     const router = useRouter()
+    const localize = useLocalizedPath()
     const authRedirect = useAuthRequired()
     const [status, setStatus] = useState<StripeStatus | null>(null)
     const [errorMessage, setErrorMessage] = useState<string | null>(null)
@@ -77,8 +80,8 @@ export default function StripeSettingsClient(): React.JSX.Element {
             const origin = window.location.origin
             const url = await startStripeOnboard(
                 getClientTenantHost(),
-                `${origin}/settings/stripe?onboard=return`,
-                `${origin}/settings/stripe?onboard=refresh`,
+                `${origin}${localize('/settings/stripe?onboard=return')}`,
+                `${origin}${localize('/settings/stripe?onboard=refresh')}`,
             )
             if (safeLinkHref(url) === null) {
                 throw new Error('Stripe-Onboarding ist noch nicht verfügbar.')

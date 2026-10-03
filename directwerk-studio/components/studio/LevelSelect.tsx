@@ -5,6 +5,9 @@ import type {LevelSummary} from '@directwerk/api/types'
 import {useCachedTenantQuery} from '@directwerk/api/client/useCachedTenantQuery'
 import {getClientTenantHost} from '@directwerk/api/tenant'
 
+import {useDictionary} from '@/components/i18n/LocaleProvider'
+import {t} from '@/lib/i18n/dictionary'
+
 const PUBLIC_VALUE = ''
 
 interface LevelSelectProps {
@@ -21,13 +24,15 @@ export default function LevelSelect({
     id,
     disabled,
 }: LevelSelectProps): React.JSX.Element {
+    const dict = useDictionary()
+    const levelsDict = dict.common.levels
     const tenantHost = getClientTenantHost()
     const {data: levels, error, isLoading} = useCachedTenantQuery<LevelSummary[]>(
         (host) => listPublicLevels(host),
         {
             namespace: 'public-levels',
             tenantHost,
-            fallbackError: 'Stufen konnten nicht geladen werden.',
+            fallbackError: levelsDict.stufenKonntenGeladen,
         },
     )
 
@@ -38,6 +43,7 @@ export default function LevelSelect({
         state === 'ready' &&
         value !== null &&
         !resolvedLevels.some((level) => level.sortOrder === value)
+    const selectedLevelLabel = t(levelsDict.stufeSelectedvalue, {selectedValue})
 
     return (
         <span className="grid gap-1.5">
@@ -52,20 +58,20 @@ export default function LevelSelect({
             value={selectedValue}
         >
             {state === 'loading' ? (
-                <option value="">Stufen werden geladen…</option>
+                <option value="">{levelsDict.stufenGeladen}</option>
             ) : state === 'error' ? (
                 <>
                     {value !== null ? (
-                        <option value={selectedValue}>Stufe {selectedValue}</option>
+                        <option value={selectedValue}>{selectedLevelLabel}</option>
                     ) : (
-                        <option value="">Stufen konnten nicht geladen werden.</option>
+                        <option value="">{levelsDict.stufenKonntenGeladen}</option>
                     )}
                 </>
             ) : (
                 <>
-                    <option value="">Öffentlich / Keine Mindeststufe</option>
+                    <option value="">{levelsDict.oeffentlichKeineMindeststufe}</option>
                     {hasMissingValue ? (
-                        <option value={selectedValue}>Stufe {selectedValue}</option>
+                        <option value={selectedValue}>{selectedLevelLabel}</option>
                     ) : null}
                     {resolvedLevels.map((level) => (
                         <option key={level.id} value={level.sortOrder}>
@@ -77,7 +83,7 @@ export default function LevelSelect({
         </select>
         {state === 'error' ? (
             <span className="text-xs text-destructive" role="alert">
-                Stufen konnten nicht geladen werden — die aktuelle Auswahl bleibt erhalten.
+                {levelsDict.keepSelection}
             </span>
         ) : null}
         </span>

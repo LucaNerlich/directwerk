@@ -1,7 +1,8 @@
-import {cleanup, fireEvent, render, screen, waitFor} from '@testing-library/react'
+import {cleanup, fireEvent, screen, waitFor} from '@testing-library/react'
 import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest'
 
 import LogoutButton from '@/components/studio/LogoutButton'
+import {renderWithLocale} from '@/lib/i18n/testUtils'
 
 const {push, clearSessionTokens, clearAllCachedTenantData} = vi.hoisted(() => ({
     push: vi.fn(),
@@ -28,10 +29,10 @@ describe('LogoutButton', () => {
     it('clears local auth state and redirects only after a successful logout', async () => {
         vi.mocked(fetch).mockResolvedValue(new Response(null, {status: 204}))
 
-        render(<LogoutButton />)
+        renderWithLocale(<LogoutButton />)
         fireEvent.click(screen.getByRole('button', {name: 'Abmelden'}))
 
-        await waitFor(() => expect(push).toHaveBeenCalledWith('/login'))
+        await waitFor(() => expect(push).toHaveBeenCalledWith('/de/login'))
         expect(clearSessionTokens).toHaveBeenCalledOnce()
         expect(clearAllCachedTenantData).toHaveBeenCalledOnce()
     })
@@ -42,7 +43,7 @@ describe('LogoutButton', () => {
     ])('preserves local auth state after %s', async (_label, response) => {
         vi.mocked(fetch).mockImplementation(response)
 
-        render(<LogoutButton />)
+        renderWithLocale(<LogoutButton />)
         fireEvent.click(screen.getByRole('button', {name: 'Abmelden'}))
 
         expect(await screen.findByRole('alert')).toHaveTextContent('Abmeldung fehlgeschlagen')

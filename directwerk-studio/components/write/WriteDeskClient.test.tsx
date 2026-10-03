@@ -1,7 +1,14 @@
-import {render, screen, waitFor} from '@testing-library/react'
+import {screen, waitFor} from '@testing-library/react'
+import {renderWithLocale} from '@/lib/i18n/testUtils'
 import {describe, expect, it, vi} from 'vitest'
 
 import WriteDeskClient from '@/components/write/WriteDeskClient'
+
+vi.mock('next/link', () => ({
+    default: ({children, href, ...props}: {children?: React.ReactNode; href: string; [key: string]: unknown}) => (
+        <a href={href} {...props}>{children}</a>
+    ),
+}))
 
 vi.mock('next/navigation', () => ({useRouter: () => ({replace: vi.fn()})}))
 vi.mock('@directwerk/api/tenant', () => ({getClientTenantHost: () => 'tenant.test'}))
@@ -12,14 +19,13 @@ vi.mock('@/lib/api/writeApi', () => ({
 
 describe('WriteDeskClient', () => {
     it('guides first-run setup toward creating an article', async () => {
-        render(<WriteDeskClient />)
+        renderWithLocale(<WriteDeskClient />)
         await waitFor(() =>
             expect(screen.getByRole('heading', {name: 'Inhalte erstellen'})).toBeInTheDocument(),
         )
         expect(screen.getByText('So entsteht ein Beitrag')).toBeInTheDocument()
         expect(screen.getAllByRole('button', {name: 'Neuer Beitrag'})[0]).toHaveAttribute(
-            'href',
-            '/write/articles/new',
+            'href', '/de/write/articles/new',
         )
     })
 })

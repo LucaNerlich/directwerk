@@ -1,7 +1,7 @@
 import {render, screen} from '@testing-library/react'
 import {describe, expect, it, vi} from 'vitest'
 
-import BonusPublicationPage from '@/app/(studio)/bonus/[publicationId]/page'
+import BonusPublicationPage from '@/app/[lang]/(studio)/bonus/[publicationId]/page'
 
 vi.mock('@/components/media/DigitalPublicationEditor', () => ({
     default: ({publicationId}: {publicationId: number}) => (

@@ -1,6 +1,6 @@
 'use client'
 
-import Link from 'next/link'
+import LocaleLink from '@/components/i18n/LocaleLink'
 import {useId, useMemo, useState} from 'react'
 
 import {Alert, AlertDescription} from '@directwerk/ui/components/alert'
@@ -53,7 +53,7 @@ export default function FormatListClient(): React.JSX.Element {
         <PageStack>
             <PageHeader
                 actions={
-                    <Button nativeButton={false} render={<Link href="/podcast/formats/new" />} size="lg">
+                    <Button nativeButton={false} render={<LocaleLink href="/podcast/formats/new" />} size="lg">
                         Neues Format
                     </Button>
                 }
@@ -73,7 +73,7 @@ export default function FormatListClient(): React.JSX.Element {
             {formats && formats.length === 0 ? (
                 <EmptyState
                     action={
-                        <Button nativeButton={false} render={<Link href="/podcast/formats/new" />}>
+                        <Button nativeButton={false} render={<LocaleLink href="/podcast/formats/new" />}>
                             Erstes Format anlegen
                         </Button>
                     }
@@ -113,7 +113,7 @@ export default function FormatListClient(): React.JSX.Element {
                         <EntityListSection
                             ariaLabel="Formate"
                             items={listItems}
-                            linkComponent={Link}
+                            linkComponent={LocaleLink}
                             onViewModeChange={setViewMode}
                             viewMode={viewMode}
                         />
@@ -123,9 +123,9 @@ export default function FormatListClient(): React.JSX.Element {
 
             <p className="text-sm text-muted-foreground">
                 Fertig mit der Einrichtung?{' '}
-                <Link href="/podcast/episodes/new">Neue Folge erstellen</Link>
+                <LocaleLink href="/podcast/episodes/new">Neue Folge erstellen</LocaleLink>
                 {' · '}
-                <Link href="/podcast">Zur Podcast-Übersicht</Link>
+                <LocaleLink href="/podcast">Zur Podcast-Übersicht</LocaleLink>
             </p>
         </PageStack>
     )

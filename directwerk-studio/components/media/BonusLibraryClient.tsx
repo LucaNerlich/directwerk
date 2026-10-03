@@ -1,6 +1,6 @@
 'use client'
 
-import Link from 'next/link'
+import LocaleLink from '@/components/i18n/LocaleLink'
 import {useEffect, useState} from 'react'
 
 import {Alert, AlertDescription} from '@directwerk/ui/components/alert'
@@ -107,7 +107,7 @@ export default function BonusLibraryClient(): React.JSX.Element {
         actions: (
             <Button
                 nativeButton={false}
-                render={<Link href={`/bonus/${publication.id}`} />}
+                render={<LocaleLink href={`/bonus/${publication.id}`} />}
                 variant="outline"
             >
                 Bearbeiten
@@ -122,7 +122,7 @@ export default function BonusLibraryClient(): React.JSX.Element {
                 title="Bonusdateien"
                 description="Lege Dokumente als Bonus-Inhalte an, setze frei oder bezahlt und veröffentliche sie für Abonnenten."
                 actions={
-                    <Button nativeButton={false} render={<Link href="/bonus/new" />} size="lg">
+                    <Button nativeButton={false} render={<LocaleLink href="/bonus/new" />} size="lg">
                         Neue Bonusdatei
                     </Button>
                 }
@@ -146,12 +146,12 @@ export default function BonusLibraryClient(): React.JSX.Element {
                     description="Lade zuerst ein PDF in der Mediathek hoch, dann erstellst du hier den Bonus-Inhalt mit Titel und Zugang."
                     action={
                         <div className="flex flex-wrap justify-center gap-2">
-                            <Button nativeButton={false} render={<Link href="/bonus/new" />}>
+                            <Button nativeButton={false} render={<LocaleLink href="/bonus/new" />}>
                                 Bonusdatei anlegen
                             </Button>
                             <Button
                                 nativeButton={false}
-                                render={<Link href="/media" />}
+                                render={<LocaleLink href="/media" />}
                                 variant="outline"
                             >
                                 Zur Mediathek
@@ -175,9 +175,9 @@ export default function BonusLibraryClient(): React.JSX.Element {
                     />
                     <p className="text-sm text-muted-foreground">
                         Bezahlt-Inhalte brauchen ein LEVEL oder eine{' '}
-                        <Link className="underline" href="/manage/products">
+                        <LocaleLink className="underline" href="/manage/products">
                             DIGITAL_ASSET-Regel
-                        </Link>{' '}
+                        </LocaleLink>{' '}
                         am Paket.
                     </p>
                     <Badge variant="outline" className="w-fit">

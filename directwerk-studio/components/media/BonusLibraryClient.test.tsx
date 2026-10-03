@@ -1,4 +1,5 @@
-import {fireEvent, render, screen, waitFor} from '@testing-library/react'
+import {fireEvent, screen, waitFor} from '@testing-library/react'
+import {renderWithLocale} from '@/lib/i18n/testUtils'
 import {describe, expect, it, vi} from 'vitest'
 
 import BonusLibraryClient from '@/components/media/BonusLibraryClient'
@@ -53,18 +54,18 @@ vi.mock('@/lib/api/digitalPublicationsApi', () => ({
 
 describe('BonusLibraryClient', () => {
     it('lists digital publications with status and edit links', async () => {
-        render(<BonusLibraryClient />)
+        renderWithLocale(<BonusLibraryClient />)
         await waitFor(() => expect(screen.getByText('Bonus-Guide')).toBeInTheDocument())
         expect(screen.getByText('Entwurf PDF')).toBeInTheDocument()
         expect(screen.getByText('Veröffentlicht')).toBeInTheDocument()
         expect(screen.getByText('Entwurf')).toBeInTheDocument()
         expect(screen.getAllByRole('link', {name: 'Bearbeiten'})[0]).toHaveAttribute(
             'href',
-            '/bonus/3',
+            '/de/bonus/3',
         )
         expect(screen.getByRole('link', {name: 'Neue Bonusdatei'})).toHaveAttribute(
             'href',
-            '/bonus/new',
+            '/de/bonus/new',
         )
     })
 
@@ -74,7 +75,7 @@ describe('BonusLibraryClient', () => {
             .mockRejectedValueOnce(new Error('Netzwerkfehler'))
             .mockResolvedValueOnce([])
 
-        render(<BonusLibraryClient />)
+        renderWithLocale(<BonusLibraryClient />)
 
         await waitFor(() =>
             expect(screen.getByRole('alert')).toHaveTextContent('Netzwerkfehler'),

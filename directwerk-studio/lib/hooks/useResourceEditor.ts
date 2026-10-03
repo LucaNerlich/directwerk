@@ -12,6 +12,8 @@ import {
 } from 'react'
 import {useRouter} from 'next/navigation'
 
+import {useLocalizedPath} from '@/components/i18n/useLocalizedPath'
+
 import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
 import {getClientTenantHost} from '@directwerk/api/tenant'
 
@@ -127,6 +129,7 @@ export function useResourceEditor<
     config: ResourceEditorConfig<Entity, Values, CreateInput, UpdateInput>,
 ): ResourceEditorState<Entity, Values> {
     const router = useRouter()
+    const localize = useLocalizedPath()
     const authRedirect = useAuthRequired()
 
     // Keep the latest config/callbacks in refs so the load effect only depends
@@ -331,7 +334,7 @@ export function useResourceEditor<
                         setStatusMessage(cfg.createSuccessMessage(created))
                     }
                     if (cfg.redirectPath !== undefined) {
-                        router.replace(cfg.redirectPath(created))
+                        router.replace(localize(cfg.redirectPath(created)))
                     }
                     return
                 }

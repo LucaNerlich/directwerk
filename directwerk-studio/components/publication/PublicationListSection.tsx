@@ -1,7 +1,7 @@
 'use client'
 
 import type {ReactNode} from 'react'
-import Link from 'next/link'
+import LocaleLink from '@/components/i18n/LocaleLink'
 import {useId, useMemo, useState} from 'react'
 
 import {Button} from '@directwerk/ui/components/button'
@@ -433,7 +433,7 @@ export default function PublicationListSection<T extends PublicationListItem>(
             }
             disabled={isBulkBusy}
             items={entityItems}
-            linkComponent={Link}
+            linkComponent={LocaleLink}
             onToggleSelectAll={onToggleSelectAll}
             onToggleSelection={onToggleSelection}
             onViewModeChange={onViewModeChange}

@@ -1,13 +1,20 @@
-import {render, screen, waitFor} from '@testing-library/react'
+import {screen, waitFor} from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import {afterEach, describe, expect, it, vi} from 'vitest'
 import {cleanup} from '@testing-library/react'
 
 import FeedManagementClient from '@/components/podcast/FeedManagementClient'
+import {renderWithLocale} from '@/lib/i18n/testUtils'
 import type {SiteConfig} from '@directwerk/api/types'
 import {SiteConfigProvider} from '@/lib/site/SiteConfigProvider'
 
 const mockRouter = {replace: vi.fn()}
+
+vi.mock('next/link', () => ({
+    default: ({children, href, ...props}: {children?: React.ReactNode; href: string; [key: string]: unknown}) => (
+        <a href={href} {...props}>{children}</a>
+    ),
+}))
 
 vi.mock('next/navigation', () => ({useRouter: () => mockRouter}))
 
@@ -92,7 +99,7 @@ describe('FeedManagementClient', () => {
             },
         ])
 
-        render(
+        renderWithLocale(
             <SiteConfigProvider config={config()}>
                 <FeedManagementClient />
             </SiteConfigProvider>,
@@ -105,7 +112,7 @@ describe('FeedManagementClient', () => {
         expect(screen.getByText('Noch nicht live')).toBeInTheDocument()
         expect(
             screen.getByRole('link', {name: 'Sendung veröffentlichen'}),
-        ).toHaveAttribute('href', '/podcast/series/2')
+        ).toHaveAttribute('href', '/de/podcast/series/2')
         expect(screen.getAllByText('sub@example.test')).toHaveLength(2)
         expect(screen.getByText(/Eigener Feed/)).toBeInTheDocument()
         expect(screen.getByText(/· Interview/)).toBeInTheDocument()
@@ -126,7 +133,7 @@ describe('FeedManagementClient', () => {
         listSeriesMock.mockResolvedValue([])
         listSubscriberFeedsMock.mockResolvedValue([])
 
-        render(
+        renderWithLocale(
             <SiteConfigProvider
                 config={config({enabledModules: ['PODCAST', 'PODCAST_RSS']})}
             >
@@ -160,7 +167,7 @@ describe('FeedManagementClient', () => {
         listSubscriberFeedsMock.mockResolvedValue([original])
         setSubscriberFeedEnabledMock.mockResolvedValue({...original, enabled: false})
 
-        render(
+        renderWithLocale(
             <SiteConfigProvider config={config()}>
                 <FeedManagementClient />
             </SiteConfigProvider>,

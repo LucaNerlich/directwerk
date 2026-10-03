@@ -1,4 +1,5 @@
-import {render, screen, waitFor} from '@testing-library/react'
+import {screen, waitFor} from '@testing-library/react'
+import {renderWithLocale} from '@/lib/i18n/testUtils'
 import userEvent from '@testing-library/user-event'
 import {beforeEach, describe, expect, it, vi} from 'vitest'
 
@@ -11,6 +12,12 @@ import {clearCachedTenantData} from '@directwerk/api/client/useCachedTenantQuery
 // return the same object reference on every call, or an unstable mock would
 // re-trigger that effect on every render.
 const mockRouter = {replace: vi.fn()}
+vi.mock('next/link', () => ({
+    default: ({children, href, ...props}: {children?: React.ReactNode; href: string; [key: string]: unknown}) => (
+        <a href={href} {...props}>{children}</a>
+    ),
+}))
+
 vi.mock('next/navigation', () => ({useRouter: () => mockRouter}))
 vi.mock('@directwerk/api/auth/useAuthRequired', () => ({
     useAuthRequired: () => () => false,
@@ -43,7 +50,7 @@ describe('SeriesEditor RSS URL', () => {
     })
 
     it('renders Mindest-Stufe label and hint', async () => {
-        render(<SeriesEditor seriesId={1} />)
+        renderWithLocale(<SeriesEditor seriesId={1} />)
 
         await waitFor(() =>
             expect(screen.getByLabelText(/Mindest-Stufe für Folgen \(Standard\)/)).toBeInTheDocument(),
@@ -57,7 +64,7 @@ describe('SeriesEditor RSS URL', () => {
     })
 
     it('offers the level catalog in the Mindest-Stufe dropdown', async () => {
-        render(<SeriesEditor seriesId={1} />)
+        renderWithLocale(<SeriesEditor seriesId={1} />)
 
         expect(
             await screen.findByRole('option', {name: 'Öffentlich / Keine Mindeststufe'}),
@@ -71,7 +78,7 @@ describe('SeriesEditor RSS URL', () => {
     })
 
     it('shows the series RSS feed URL when present', async () => {
-        render(<SeriesEditor seriesId={1} />)
+        renderWithLocale(<SeriesEditor seriesId={1} />)
         await waitFor(() =>
             expect(screen.getByRole('link', {name: 'Öffnen'})).toHaveAttribute(
                 'href',
@@ -96,7 +103,7 @@ describe('SeriesEditor RSS URL', () => {
             .mockResolvedValueOnce({...created, status: 'PUBLISHED' as const})
 
         const user = userEvent.setup()
-        render(<SeriesEditor />)
+        renderWithLocale(<SeriesEditor />)
 
         await user.type(screen.getByLabelText('Titel'), 'Neue Sendung')
         await user.click(screen.getByRole('checkbox', {name: 'Sendung sofort veröffentlichen'}))

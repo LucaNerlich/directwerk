@@ -1,4 +1,5 @@
-import {cleanup, render, screen, waitFor, within} from '@testing-library/react'
+import {cleanup, screen, waitFor, within} from '@testing-library/react'
+import {renderWithLocale} from '@/lib/i18n/testUtils'
 import userEvent from '@testing-library/user-event'
 import {afterEach, describe, expect, it, vi} from 'vitest'
 
@@ -13,6 +14,12 @@ import type {EffectiveRights} from '@directwerk/api/types'
 // return the same object reference on every call, or an unstable mock would
 // re-trigger that effect on every render and reset in-progress tag selections.
 const mockRouter = {replace: vi.fn()}
+vi.mock('next/link', () => ({
+    default: ({children, href, ...props}: {children?: React.ReactNode; href: string; [key: string]: unknown}) => (
+        <a href={href} {...props}>{children}</a>
+    ),
+}))
+
 vi.mock('next/navigation', () => ({useRouter: () => mockRouter}))
 vi.mock('@directwerk/api/tenant', () => ({getClientTenantHost: () => 'tenant.test'}))
 vi.mock('@/lib/auth/MeProvider', () => ({useOptionalMe: vi.fn().mockReturnValue(null)}))
@@ -115,7 +122,7 @@ describe('EpisodeEditor tagging', () => {
     it('finishes loading with an unavailable message for an unsafe audio preview URL', async () => {
         vi.mocked(getMediaPreviewUrl).mockResolvedValueOnce('javascript:alert(1)')
 
-        render(<EpisodeEditor episodeId={1} />)
+        renderWithLocale(<EpisodeEditor episodeId={1} />)
 
         expect(await screen.findByText('Audio-Vorschau ist nicht verfügbar.')).toBeInTheDocument()
         expect(screen.queryByText('Vorschau wird geladen…')).not.toBeInTheDocument()
@@ -125,7 +132,7 @@ describe('EpisodeEditor tagging', () => {
         const user = userEvent.setup()
         updateEpisode.mockClear()
         getEpisode.mockResolvedValueOnce({...draftEpisode, coverAssetId: 12})
-        render(<EpisodeEditor episodeId={1} />)
+        renderWithLocale(<EpisodeEditor episodeId={1} />)
 
         await user.click(await screen.findByRole('button', {name: 'Titelbild entfernen'}))
         await user.click(screen.getByRole('button', {name: 'Speichern'}))
@@ -140,7 +147,7 @@ describe('EpisodeEditor tagging', () => {
     })
 
     it('renders Mindest-Stufe as a dropdown with an explanatory hint', async () => {
-        render(<EpisodeEditor episodeId={1} />)
+        renderWithLocale(<EpisodeEditor episodeId={1} />)
 
         await waitFor(() =>
             expect(
@@ -154,7 +161,7 @@ describe('EpisodeEditor tagging', () => {
     })
 
     it('disables Mindest-Stufe for free episodes', async () => {
-        render(<EpisodeEditor episodeId={1} />)
+        renderWithLocale(<EpisodeEditor episodeId={1} />)
 
         await waitFor(() => expect(screen.getByRole('combobox')).toBeDisabled())
         expect(
@@ -164,7 +171,7 @@ describe('EpisodeEditor tagging', () => {
 
     it('offers the level catalog when the episode is paid', async () => {
         getEpisode.mockResolvedValueOnce({...draftEpisode, accessPolicy: 'PAID'})
-        render(<EpisodeEditor episodeId={1} />)
+        renderWithLocale(<EpisodeEditor episodeId={1} />)
 
         expect(
             await screen.findByRole('option', {name: 'Öffentlich / Keine Mindeststufe'}),
@@ -175,7 +182,7 @@ describe('EpisodeEditor tagging', () => {
 
     it('saves selected formats and categories', async () => {
         const user = userEvent.setup()
-        render(<EpisodeEditor episodeId={1} />)
+        renderWithLocale(<EpisodeEditor episodeId={1} />)
 
         await waitFor(() => expect(screen.getByLabelText('Interview')).toBeInTheDocument())
         await user.click(screen.getByLabelText('Interview'))
@@ -187,7 +194,7 @@ describe('EpisodeEditor tagging', () => {
 
     it('persists formats when publishing', async () => {
         const user = userEvent.setup()
-        render(<EpisodeEditor episodeId={1} />)
+        renderWithLocale(<EpisodeEditor episodeId={1} />)
 
         await waitFor(() => expect(screen.getByLabelText('Interview')).toBeInTheDocument())
         await user.click(screen.getByLabelText('Interview'))
@@ -226,7 +233,7 @@ describe('EpisodeEditor RBAC', () => {
         })
         getEpisode.mockResolvedValueOnce({...draftEpisode, createdBy: 99})
 
-        render(<EpisodeEditor episodeId={1} />)
+        renderWithLocale(<EpisodeEditor episodeId={1} />)
 
         await waitFor(() => expect(screen.getByPlaceholderText('Titel eingeben…')).toBeDisabled())
         expect(
@@ -258,7 +265,7 @@ describe('EpisodeEditor RBAC', () => {
         })
         getEpisode.mockResolvedValueOnce({...draftEpisode, createdBy: 5})
 
-        render(<EpisodeEditor episodeId={1} />)
+        renderWithLocale(<EpisodeEditor episodeId={1} />)
 
         await waitFor(() => expect(screen.getByPlaceholderText('Titel eingeben…')).toBeEnabled())
         await userEvent.setup().click(screen.getByLabelText('Interview'))

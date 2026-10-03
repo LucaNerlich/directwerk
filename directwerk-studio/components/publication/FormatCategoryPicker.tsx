@@ -1,6 +1,6 @@
 'use client'
 
-import Link from 'next/link'
+import LocaleLink from '@/components/i18n/LocaleLink'
 
 import {Input} from '@directwerk/ui/components/input'
 
@@ -50,7 +50,7 @@ export default function FormatCategoryPicker({
                     {formats.length === 0 ? (
                         <p className="text-xs text-muted-foreground">
                             Keine Formate angelegt.{' '}
-                            <Link href="/podcast/formats/new">Formate einrichten</Link>
+                            <LocaleLink href="/podcast/formats/new">Formate einrichten</LocaleLink>
                         </p>
                     ) : (
                         formats.map((format) => (
@@ -85,7 +85,7 @@ export default function FormatCategoryPicker({
                 {categories.length === 0 ? (
                     <p className="text-xs text-muted-foreground">
                         Keine Kategorien angelegt.{' '}
-                        <Link href="/manage/categories/new">Kategorie anlegen</Link>
+                        <LocaleLink href="/manage/categories/new">Kategorie anlegen</LocaleLink>
                     </p>
                 ) : (
                     categories.map((category) => (

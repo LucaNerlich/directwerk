@@ -7,17 +7,20 @@ import {Alert, AlertDescription} from '@directwerk/ui/components/alert'
 import {Button} from '@directwerk/ui/components/button'
 import {Skeleton} from '@directwerk/ui/components/skeleton'
 
+import {useDictionary} from '@/components/i18n/LocaleProvider'
+import {useLocalizedPath} from '@/components/i18n/useLocalizedPath'
 import {isEditorRole} from '@/lib/api/studioHelpers'
 import {fetchMe} from '@/lib/api/authApi'
 import {MeProvider} from '@/lib/auth/MeProvider'
 import {ensureAuthenticated, clearSessionTokens} from '@/lib/auth/session'
-import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
+import {AUTH_REQUIRED} from '@directwerk/api/constants'
 import {clearAllCachedTenantData} from '@directwerk/api/client/useCachedTenantQuery'
 import {getAccessToken} from '@/lib/auth/tokenStore'
 import {getClientTenantHost} from '@directwerk/api/tenant'
 import type {Me} from '@directwerk/api/types'
 
 function AuthLoading(): React.JSX.Element {
+    const dict = useDictionary()
     return (
         <div
             aria-busy="true"
@@ -25,7 +28,7 @@ function AuthLoading(): React.JSX.Element {
             className="mx-auto flex w-full max-w-3xl flex-col gap-4 p-6"
             role="status"
         >
-            <span className="sr-only">Studio wird geladen…</span>
+            <span className="sr-only">{dict.auth.studioLoading}</span>
             <Skeleton className="h-8 w-48" aria-hidden="true" />
             <Skeleton className="h-24 w-full" aria-hidden="true" />
             <Skeleton className="h-12 w-full" aria-hidden="true" />
@@ -35,7 +38,8 @@ function AuthLoading(): React.JSX.Element {
 
 export default function AuthGuard({children}: Readonly<{children: React.ReactNode}>) {
     const router = useRouter()
-    const authRedirect = useAuthRequired()
+    const localize = useLocalizedPath()
+    const dict = useDictionary()
     const [me, setMe] = useState<Me | null>(null)
     const [verifyError, setVerifyError] = useState<string | null>(null)
     const [attempt, setAttempt] = useState(0)
@@ -48,7 +52,7 @@ export default function AuthGuard({children}: Readonly<{children: React.ReactNod
 
             if (getAccessToken() === null) {
                 if (active) {
-                    router.replace('/login')
+                    router.replace(localize('/login'))
                 }
                 return
             }
@@ -63,7 +67,7 @@ export default function AuthGuard({children}: Readonly<{children: React.ReactNod
                 if (!isEditorRole(account.roles)) {
                     clearSessionTokens()
                     clearAllCachedTenantData()
-                    router.replace('/login?reason=role')
+                    router.replace(localize('/login?reason=role'))
                     return
                 }
 
@@ -76,15 +80,14 @@ export default function AuthGuard({children}: Readonly<{children: React.ReactNod
                 // Only definitive auth failures end the session. Network or
                 // upstream errors during a deploy must keep the valid refresh
                 // cookie intact and offer a retry instead.
-                if (authRedirect(error)) {
+                if (error instanceof Error && error.message === AUTH_REQUIRED) {
                     clearSessionTokens()
                     clearAllCachedTenantData()
+                    router.replace(localize('/login'))
                     return
                 }
 
-                setVerifyError(
-                    'Die Verbindung zum Server ist fehlgeschlagen. Bitte erneut versuchen.',
-                )
+                setVerifyError(dict.auth.connectionFailed)
             }
         }
 
@@ -93,7 +96,7 @@ export default function AuthGuard({children}: Readonly<{children: React.ReactNod
         return () => {
             active = false
         }
-    }, [authRedirect, router, attempt])
+    }, [dict.auth.connectionFailed, localize, router, attempt])
 
     if (me === null) {
         if (verifyError !== null) {
@@ -109,7 +112,7 @@ export default function AuthGuard({children}: Readonly<{children: React.ReactNod
                         type="button"
                         variant="outline"
                     >
-                        Erneut versuchen
+                        {dict.common.retry}
                     </Button>
                 </div>
             )

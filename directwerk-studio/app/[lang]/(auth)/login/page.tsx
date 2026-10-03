@@ -1,7 +1,9 @@
 'use client'
 
 import Form from 'next/form'
-import Link from 'next/link'
+import LocaleLink from '@/components/i18n/LocaleLink'
+import {useDictionary} from '@/components/i18n/LocaleProvider'
+import {useLocalizedPath} from '@/components/i18n/useLocalizedPath'
 import {useSearchParams} from 'next/navigation'
 import {Suspense, useActionState, useState} from 'react'
 
@@ -33,9 +35,10 @@ interface LoginState {
 const INITIAL_STATE: LoginState = {error: null}
 
 function AuthFormSkeleton(): React.JSX.Element {
+    const dict = useDictionary()
     return (
         <div aria-busy="true" aria-live="polite" className="grid gap-4" role="status">
-            <span className="sr-only">Anmeldeformular wird geladen…</span>
+            <span className="sr-only">{dict.auth.loginFormLoading}</span>
             <Skeleton className="h-10 w-full" aria-hidden="true" />
             <Skeleton className="h-10 w-full" aria-hidden="true" />
             <Skeleton className="h-10 w-full" aria-hidden="true" />
@@ -43,25 +46,22 @@ function AuthFormSkeleton(): React.JSX.Element {
     )
 }
 
-function mapAuthError(error: unknown): string {
+function mapAuthError(error: unknown, fallback: string): string {
     if (!(error instanceof Error)) {
-        return 'Anmeldung fehlgeschlagen. Bitte erneut versuchen.'
+        return fallback
     }
 
-    return error.message.length > 0
-        ? error.message
-        : 'Anmeldung fehlgeschlagen. Bitte erneut versuchen.'
+    return error.message.length > 0 ? error.message : fallback
 }
 
 async function completeLogin(
     workspace: StudioWorkspace,
     input: {email: string; password: string},
+    workspaceSaveFailedMessage: string,
 ): Promise<void> {
     await selectTenantHost(workspace.host)
     if (getClientTenantHost() !== workspace.host) {
-        throw new Error(
-            'Der Workspace konnte nicht gespeichert werden. Bitte Browser-Cookies prüfen.',
-        )
+        throw new Error(workspaceSaveFailedMessage)
     }
 
     const tokens = await login(workspace.host, input)
@@ -70,12 +70,10 @@ async function completeLogin(
     setTokens(tokens)
 }
 
-function enterStudio(): void {
-    window.location.assign('/')
-}
-
 function LoginForm() {
     const searchParams = useSearchParams()
+    const localize = useLocalizedPath()
+    const dict = useDictionary()
     const roleDenied = searchParams.get('reason') === 'role'
     const workspaceMissing = searchParams.get('reason') === 'workspace'
     const [workspaces, setWorkspaces] = useState<StudioWorkspace[] | null>(null)
@@ -94,20 +92,24 @@ function LoginForm() {
             })
             if (input === null) {
                 return {
-                    error: 'Bitte gültige E-Mail und Passwort (mind. 12 Zeichen) eingeben.',
+                    error: dict.auth.emailPasswordRequired,
                 }
             }
 
             try {
                 const discovered = await discoverStudioWorkspaces(input)
                 if (discovered.length === 1) {
-                    await completeLogin(discovered[0]!, input)
-                    enterStudio()
+                    await completeLogin(
+                        discovered[0]!,
+                        input,
+                        dict.auth.workspaceSaveFailedCookies,
+                    )
+                    window.location.assign(localize('/'))
                     return INITIAL_STATE
                 }
                 if (discovered.length === 0) {
                     return {
-                        error: 'Für diese Anmeldung wurde kein Workspace gefunden. Bitte Einladung prüfen.',
+                        error: dict.auth.noWorkspaceFound,
                     }
                 }
 
@@ -115,7 +117,7 @@ function LoginForm() {
                 setWorkspaces(discovered)
                 return INITIAL_STATE
             } catch (error) {
-                return {error: mapAuthError(error)}
+                return {error: mapAuthError(error, dict.auth.loginFailed)}
             }
         },
         INITIAL_STATE,
@@ -129,10 +131,10 @@ function LoginForm() {
         setWorkspaceError(null)
         setOpeningWorkspaceHost(workspace.host)
         try {
-            await completeLogin(workspace, pendingInput)
-            enterStudio()
+            await completeLogin(workspace, pendingInput, dict.auth.workspaceSaveFailedCookies)
+            window.location.assign(localize('/'))
         } catch (error) {
-            setWorkspaceError(mapAuthError(error))
+            setWorkspaceError(mapAuthError(error, dict.auth.loginFailed))
         } finally {
             setOpeningWorkspaceHost(null)
         }
@@ -141,8 +143,8 @@ function LoginForm() {
     if (workspaces !== null && pendingInput !== null) {
         return (
             <AuthCard
-                description="Schritt 2 von 2 — wähle den Workspace, den du verwalten möchtest."
-                title="Workspace auswählen"
+                description={dict.auth.step2ChooseWorkspace}
+                title={dict.auth.selectWorkspace}
             >
                 <div aria-busy={isOpeningWorkspace}>
                     <WorkspaceChooser
@@ -165,43 +167,38 @@ function LoginForm() {
 
     return (
         <AuthCard
-            description="Schritt 1 von 2 — melde dich an, um Inhalte für deinen Mandanten zu verwalten."
+            description={dict.auth.step1SignIn}
             footer={
                 <span>
-                    Einladung erhalten?{' '}
-                    <Link className="underline" href="/accept-invite">
-                        Einladung annehmen
-                    </Link>
+                    {dict.auth.inviteReceived}{' '}
+                    <LocaleLink className="underline" href="/accept-invite">
+                        {dict.auth.acceptInvite}
+                    </LocaleLink>
                     {' · '}
-                    <Link className="underline" href="/imprint">
-                        Impressum
-                    </Link>
+                    <LocaleLink className="underline" href="/imprint">
+                        {dict.auth.imprint}
+                    </LocaleLink>
                     {' · '}
-                    <Link className="underline" href="/privacy">
-                        Datenschutz
-                    </Link>
+                    <LocaleLink className="underline" href="/privacy">
+                        {dict.auth.privacy}
+                    </LocaleLink>
                 </span>
             }
-            title="Studio anmelden"
+            title={dict.auth.signInStudio}
         >
             {roleDenied ? (
                 <Alert variant="destructive">
-                    <AlertDescription>
-                        Studio ist nur für Editoren und Mandanten-Admins verfügbar.
-                    </AlertDescription>
+                    <AlertDescription>{dict.auth.studioEditorsOnly}</AlertDescription>
                 </Alert>
             ) : null}
             {workspaceMissing ? (
                 <Alert variant="destructive">
-                    <AlertDescription>
-                        Der gewählte Workspace ist nicht mehr verfügbar. Bitte erneut
-                        anmelden.
-                    </AlertDescription>
+                    <AlertDescription>{dict.auth.workspaceUnavailable}</AlertDescription>
                 </Alert>
             ) : null}
             <Form action={formAction} className="grid gap-4">
                 <div className="grid gap-2">
-                    <Label htmlFor="login-email">E-Mail</Label>
+                    <Label htmlFor="login-email">{dict.auth.email}</Label>
                     <Input
                         autoComplete="username"
                         id="login-email"
@@ -213,7 +210,7 @@ function LoginForm() {
                     />
                 </div>
                 <div className="grid gap-2">
-                    <Label htmlFor="login-password">Passwort</Label>
+                    <Label htmlFor="login-password">{dict.auth.password}</Label>
                     <Input
                         autoComplete="current-password"
                         id="login-password"
@@ -225,7 +222,7 @@ function LoginForm() {
                     />
                 </div>
                 <Button className="w-full" disabled={isPending} type="submit">
-                    {isPending ? 'Anmeldung…' : 'Weiter'}
+                    {isPending ? dict.auth.signingIn : dict.auth.continue}
                 </Button>
             </Form>
             {state.error !== null ? (
@@ -237,18 +234,21 @@ function LoginForm() {
     )
 }
 
+function LoginFallback(): React.JSX.Element {
+    const dict = useDictionary()
+    return (
+        <AuthCard
+            description={dict.auth.loginFormPreparing}
+            title={dict.auth.signInStudio}
+        >
+            <AuthFormSkeleton />
+        </AuthCard>
+    )
+}
+
 export default function LoginPage() {
     return (
-        <Suspense
-            fallback={
-                <AuthCard
-                    description="Das Anmeldeformular wird vorbereitet."
-                    title="Studio anmelden"
-                >
-                    <AuthFormSkeleton />
-                </AuthCard>
-            }
-        >
+        <Suspense fallback={<LoginFallback />}>
             <LoginForm />
         </Suspense>
     )

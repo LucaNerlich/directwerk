@@ -1,4 +1,5 @@
-import {cleanup, fireEvent, render, screen, waitFor} from '@testing-library/react'
+import {cleanup, fireEvent, screen, waitFor} from '@testing-library/react'
+import {renderWithLocale} from '@/lib/i18n/testUtils'
 import userEvent from '@testing-library/user-event'
 import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest'
 
@@ -7,6 +8,12 @@ import {uploadMediaFile} from '@/lib/media/upload'
 import {clearCachedTenantData} from '@directwerk/api/client/useCachedTenantQuery'
 
 const replace = vi.fn()
+vi.mock('next/link', () => ({
+    default: ({children, href, ...props}: {children?: React.ReactNode; href: string; [key: string]: unknown}) => (
+        <a href={href} {...props}>{children}</a>
+    ),
+}))
+
 vi.mock('next/navigation', () => ({useRouter: () => ({replace})}))
 vi.mock('@directwerk/api/auth/useAuthRequired', () => ({
     useAuthRequired: () => () => false,
@@ -52,7 +59,7 @@ describe('FormatEditor', () => {
     })
 
     it('renders Mindest-Stufe and Sortierung labels with helper texts', () => {
-        render(<FormatEditor />)
+        renderWithLocale(<FormatEditor />)
 
         expect(screen.getByLabelText('Mindest-Stufe')).toBeInTheDocument()
         expect(
@@ -67,7 +74,7 @@ describe('FormatEditor', () => {
     })
 
     it('offers the level catalog in the Mindest-Stufe dropdown', async () => {
-        render(<FormatEditor />)
+        renderWithLocale(<FormatEditor />)
 
         expect(
             await screen.findByRole('option', {name: 'Öffentlich / Keine Mindeststufe'}),
@@ -80,7 +87,7 @@ describe('FormatEditor', () => {
 
     it('creates a new format and redirects to its detail page', async () => {
         const user = userEvent.setup()
-        render(<FormatEditor />)
+        renderWithLocale(<FormatEditor />)
 
         await user.type(screen.getByLabelText('Name'), 'Interview')
         await user.type(screen.getByLabelText('Slug'), 'interview')
@@ -93,14 +100,14 @@ describe('FormatEditor', () => {
             requiredLevelSortOrder: undefined,
             sortOrder: undefined,
         }))
-        await waitFor(() => expect(replace).toHaveBeenCalledWith('/podcast/formats/1'))
+        await waitFor(() => expect(replace).toHaveBeenCalledWith('/de/podcast/formats/1'))
     })
 
     it('surfaces a cover upload failure instead of swallowing it', async () => {
         vi.mocked(uploadMediaFile).mockRejectedValueOnce(
             new Error('Cover-Upload fehlgeschlagen.'),
         )
-        render(<FormatEditor />)
+        renderWithLocale(<FormatEditor />)
 
         const fileInput = screen.getByLabelText('Titelbild hochladen')
         const file = new File(['cover'], 'cover.png', {type: 'image/png'})

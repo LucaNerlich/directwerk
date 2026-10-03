@@ -3,6 +3,8 @@
 import {Alert, AlertDescription} from '@directwerk/ui/components/alert'
 import {Button} from '@directwerk/ui/components/button'
 
+import {useDictionary} from '@/components/i18n/LocaleProvider'
+import {t} from '@/lib/i18n/dictionary'
 import type {StudioWorkspace} from '@directwerk/api/types'
 
 interface WorkspaceChooserProps {
@@ -32,17 +34,21 @@ export default function WorkspaceChooser({
     onSelect,
     onBack,
 }: WorkspaceChooserProps): React.JSX.Element {
+    const dict = useDictionary()
     const isOpening = openingHost !== null
 
     return (
         <div className="grid gap-4">
-            <ul aria-label="Verfügbare Workspaces" className="grid gap-2">
+            <ul aria-label={dict.auth.availableWorkspaces} className="grid gap-2">
                 {workspaces.map((workspace) => {
                     const isActive = openingHost === workspace.host
                     return (
                         <li key={workspace.tenantId}>
                             <Button
-                                aria-label={`${workspace.name} (${workspace.host}) öffnen`}
+                                aria-label={t(dict.auth.openWorkspace, {
+                                    'workspace.name': workspace.name,
+                                    'workspace.host': workspace.host,
+                                })}
                                 className="h-auto w-full justify-start gap-3 p-3 text-left"
                                 disabled={isOpening}
                                 onClick={() => {
@@ -74,7 +80,7 @@ export default function WorkspaceChooser({
                                         className="shrink-0 text-xs text-muted-foreground"
                                         role="status"
                                     >
-                                        Wird geöffnet…
+                                        {dict.auth.opening}
                                     </span>
                                 ) : null}
                             </Button>
@@ -93,7 +99,7 @@ export default function WorkspaceChooser({
                 type="button"
                 variant="ghost"
             >
-                Zurück
+                {dict.auth.back}
             </Button>
         </div>
     )

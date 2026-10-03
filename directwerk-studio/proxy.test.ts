@@ -5,8 +5,8 @@ import {directwerkProxyMatcher} from '@directwerk/api/proxy/directwerkProxy'
 
 import {config, proxy} from './proxy'
 
-function getRequest(): NextRequest {
-    return new NextRequest('http://studio.local/podcast/episodes')
+function getRequest(path = '/de/podcast/episodes', headers?: HeadersInit): NextRequest {
+    return new NextRequest(`http://studio.local${path}`, {headers})
 }
 
 describe('proxy', () => {
@@ -26,7 +26,30 @@ describe('proxy', () => {
         expect(responseCsp).toContain(`'nonce-${forwardedNonce}'`)
     })
 
-    it('keeps the shared page-only matcher', () => {
+    it('redirects unprefixed paths to the preferred locale', () => {
+        const response = proxy(
+            getRequest('/podcast/episodes', { 'accept-language': 'en-US,en;q=0.9' }),
+        )
+        expect(response.status).toBeGreaterThanOrEqual(300)
+        expect(response.status).toBeLessThan(400)
+        expect(response.headers.get('location')).toBe(
+            'http://studio.local/en/podcast/episodes',
+        )
+    })
+
+    it('defaults unprefixed redirects to de', () => {
+        const response = proxy(getRequest('/login'))
+        expect(response.headers.get('location')).toBe('http://studio.local/de/login')
+    })
+
+    it('honors NEXT_LOCALE cookie over Accept-Language', () => {
+        const request = getRequest('/media', { 'accept-language': 'en-US' })
+        request.cookies.set('NEXT_LOCALE', 'de')
+        const response = proxy(request)
+        expect(response.headers.get('location')).toBe('http://studio.local/de/media')
+    })
+
+    it('keeps the shared page-only matcher (api skipped)', () => {
         expect(config).toEqual(directwerkProxyMatcher)
         expect(config).toEqual({
             matcher: [

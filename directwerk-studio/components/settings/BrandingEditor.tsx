@@ -12,6 +12,8 @@ import {Skeleton} from '@directwerk/ui/components/skeleton'
 
 import Form from 'next/form'
 import {useRouter} from 'next/navigation'
+
+import {useLocalizedPath} from '@/components/i18n/useLocalizedPath'
 import {useActionState, useCallback, useEffect, useRef, useState} from 'react'
 
 import MediaLibraryPicker from '@/components/media/MediaLibraryPicker'
@@ -56,6 +58,7 @@ function colorPickerValue(draft: string): string {
 
 export default function BrandingEditor(): React.JSX.Element {
     const router = useRouter()
+    const localize = useLocalizedPath()
     const authRedirect = useAuthRequired()
     const siteConfig = useSiteConfig()
     let analyticsModuleActive: boolean | null = null
@@ -78,8 +81,8 @@ export default function BrandingEditor(): React.JSX.Element {
     const mountedRef = useRef(true)
 
     const handleAuthRequired = useCallback(() => {
-        router.replace('/login')
-    }, [router])
+        router.replace(localize('/login'))
+    }, [localize, router])
 
     useEffect(() => {
         mountedRef.current = true

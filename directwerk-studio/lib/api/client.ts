@@ -1,5 +1,7 @@
 import type {SiteConfig, StudioDesk} from '@directwerk/api/types'
 
+import {stripLangPrefix} from '@/lib/i18n/paths'
+
 export function hasModule(config: SiteConfig, moduleKey: string): boolean {
     return config.enabledModules.includes(moduleKey)
 }
@@ -12,10 +14,11 @@ export function resolveActiveDesk(
     pathname: string,
     config: SiteConfig,
 ): 'WRITE' | 'PODCAST' | null {
-    if (pathname === '/write' || pathname.startsWith('/write/')) {
+    const path = stripLangPrefix(pathname)
+    if (path === '/write' || path.startsWith('/write/')) {
         return hasDesk(config, 'WRITE') ? 'WRITE' : null
     }
-    if (pathname === '/podcast' || pathname.startsWith('/podcast/')) {
+    if (path === '/podcast' || path.startsWith('/podcast/')) {
         return hasDesk(config, 'PODCAST') ? 'PODCAST' : null
     }
     if (config.studioDesks.length === 1) {

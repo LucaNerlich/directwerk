@@ -10,7 +10,7 @@ import PageStack from '@directwerk/ui/components/page-stack'
 import SectionHeader from '@directwerk/ui/components/section-header'
 import {Textarea} from '@directwerk/ui/components/textarea'
 
-import Link from 'next/link'
+import LocaleLink from '@/components/i18n/LocaleLink'
 import type {KeyboardEvent, ReactNode} from 'react'
 import {useId, useState} from 'react'
 
@@ -193,7 +193,7 @@ export default function PublicationEditorLayout({
         <PageStack className="gap-0">
             <div className="sticky top-0 z-20 -mx-4 border-b bg-background/95 px-4 py-2.5 backdrop-blur supports-backdrop-filter:bg-background/80">
                 <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-2">
-                    <Button nativeButton={false} render={<Link href={resolvedBackHref} />} size="sm" variant="ghost">
+                    <Button nativeButton={false} render={<LocaleLink href={resolvedBackHref} />} size="sm" variant="ghost">
                         ← {resolvedBackLabel}
                     </Button>
                     <PublicationStatusBadge status={status} />
