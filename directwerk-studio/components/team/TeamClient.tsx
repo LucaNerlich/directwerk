@@ -3,7 +3,9 @@
 import Form from 'next/form'
 import {useRouter} from 'next/navigation'
 
+import {useDictionary} from '@/components/i18n/LocaleProvider'
 import {useLocalizedPath} from '@/components/i18n/useLocalizedPath'
+import {t} from '@/lib/i18n/dictionary'
 import {useActionState, useCallback, useEffect, useState} from 'react'
 
 import {Alert, AlertDescription} from '@directwerk/ui/components/alert'
@@ -91,6 +93,8 @@ function roleDescription(role: string): string {
 }
 
 export default function TeamClient(): React.JSX.Element {
+    const dict = useDictionary()
+    const team = dict.team
     const router = useRouter()
     const localize = useLocalizedPath()
     const authRedirect = useAuthRequired()
@@ -209,11 +213,11 @@ export default function TeamClient(): React.JSX.Element {
         return (
             <PageStack>
                 <PageHeader
-                    description="Lade Redakteure und weitere Mandanten-Admins ein. Abonnenten verwaltest du unter Zahlungen."
-                    eyebrow="Team"
-                    title="Mitglieder"
+                    description={team.ladeRedakteureWeitereMandantenAdminsAbonnen}
+                    eyebrow={dict.nav.verwaltung.team}
+                    title={team.membersTitle}
                 />
-                <p className="text-sm text-muted-foreground" role="status">Wird geladen…</p>
+                <p className="text-sm text-muted-foreground" role="status">{dict.common.loading}</p>
                 <Skeleton className="h-20 w-full" />
                 <Skeleton className="h-64 w-full max-w-xl" />
             </PageStack>
@@ -224,9 +228,9 @@ export default function TeamClient(): React.JSX.Element {
         return (
             <PageStack>
                 <PageHeader
-                    description="Lade Redakteure und weitere Mandanten-Admins ein. Abonnenten verwaltest du unter Zahlungen."
-                    eyebrow="Team"
-                    title="Mitglieder"
+                    description={team.ladeRedakteureWeitereMandantenAdminsAbonnen}
+                    eyebrow={dict.nav.verwaltung.team}
+                    title={team.membersTitle}
                 />
                 <Alert variant="destructive">
                     <AlertDescription>{loadError}</AlertDescription>
@@ -236,7 +240,7 @@ export default function TeamClient(): React.JSX.Element {
                         type="button"
                         variant="outline"
                     >
-                        Erneut versuchen
+                        {dict.common.retry}
                     </Button>
                 </Alert>
             </PageStack>
@@ -278,21 +282,21 @@ export default function TeamClient(): React.JSX.Element {
     return (
         <PageStack>
             <PageHeader
-                description="Lade Redakteure und weitere Mandanten-Admins ein. Abonnenten verwaltest du unter Zahlungen — hier geht es nur um dein Team."
-                eyebrow="Team"
-                title="Mitglieder"
+                description={team.ladeRedakteureWeitereMandantenAdminsAbonnenten}
+                eyebrow={dict.nav.verwaltung.team}
+                title={team.membersTitle}
             />
 
             <section aria-labelledby="team-list-heading" className="flex flex-col gap-4">
                 <SectionHeader
                     id="team-list-heading"
-                    title={`Mitglieder (${users.length})`}
-                    description="Deaktivierte Konten verlieren sofort den Zugriff; reaktivieren stellt ihn wieder her."
+                    title={t(team.mitglieder, {'users.length': users.length})}
+                    description={team.deaktivierteKontenVerlierenSofortZugriffRea}
                 />
             {users.length === 0 ? (
                 <EmptyState
-                    title="Noch keine Mitglieder"
-                    description="Lade unten die erste Person ein — z. B. als Redakteur."
+                    title={team.keineMitglieder}
+                    description={team.inviteFirst}
                 />
             ) : (
                 <EntityListSection
@@ -313,8 +317,8 @@ export default function TeamClient(): React.JSX.Element {
             <section aria-labelledby="team-rights-heading" className="flex flex-col gap-4">
                 <SectionHeader
                     id="team-rights-heading"
-                    title="Zugriffsrechte"
-                    description="Redakteure haben standardmäßig vollen Zugriff auf Inhalte. Nimm einzelnen Personen gezielt Rechte weg — oder beschränke sie auf eigene Inhalte. Tenant-Admins behalten immer Vollzugriff."
+                    title={team.accessRights}
+                    description={team.redakteureStandardmaessigVollenZugriffInhalt}
                 />
                 {(() => {
                     const editable = users.filter(

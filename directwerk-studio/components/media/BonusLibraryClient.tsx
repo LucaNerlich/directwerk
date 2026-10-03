@@ -1,6 +1,8 @@
 'use client'
 
 import LocaleLink from '@/components/i18n/LocaleLink'
+import {useDictionary} from '@/components/i18n/LocaleProvider'
+import {t} from '@/lib/i18n/dictionary'
 import {useEffect, useState} from 'react'
 
 import {Alert, AlertDescription} from '@directwerk/ui/components/alert'
@@ -21,20 +23,25 @@ import type {DigitalPublication} from '@directwerk/api/types'
 import {getClientTenantHost} from '@directwerk/api/tenant'
 import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
 
-function formatBytes(sizeBytes: number | null): string {
+function formatBytes(
+    sizeBytes: number | null,
+    labels: {unknown: string; b: string; kb: string; mb: string},
+): string {
     if (sizeBytes === null || sizeBytes <= 0) {
-        return 'Größe unbekannt'
+        return labels.unknown
     }
     if (sizeBytes < 1024) {
-        return `${sizeBytes} B`
+        return t(labels.b, {sizeBytes})
     }
     if (sizeBytes < 1024 * 1024) {
-        return `${(sizeBytes / 1024).toFixed(1)} KB`
+        return t(labels.kb, {value: (sizeBytes / 1024).toFixed(1)})
     }
-    return `${(sizeBytes / (1024 * 1024)).toFixed(1)} MB`
+    return t(labels.mb, {value: (sizeBytes / (1024 * 1024)).toFixed(1)})
 }
 
 export default function BonusLibraryClient(): React.JSX.Element {
+    const dict = useDictionary()
+    const b = dict.bonus
     const authRedirect = useAuthRequired()
     const [publications, setPublications] = useState<DigitalPublication[]>([])
     const [errorMessage, setErrorMessage] = useState<string | null>(null)
@@ -62,24 +69,24 @@ export default function BonusLibraryClient(): React.JSX.Element {
                 setErrorMessage(
                     error instanceof Error
                         ? error.message
-                        : 'Bonusdateien konnten nicht geladen werden.',
+                        : b.bonusdateienKonntenGeladen,
                 )
                 setIsLoading(false)
             })
         return () => {
             active = false
         }
-    }, [reloadToken, authRedirect])
+    }, [reloadToken, authRedirect, b.bonusdateienKonntenGeladen])
 
     if (isLoading) {
         return (
             <PageStack>
                 <PageHeader
-                    eyebrow="Medien"
-                    title="Bonusdateien"
-                    description="Veröffentlichbare Dokumente für Abonnenten — mit Titel, Zugang und Workflow."
+                    eyebrow={b.mediaEyebrow}
+                    title={b.title}
+                    description={b.veroeffentlichbareDokumenteAbonnentenTitel}
                 />
-                <p className="text-sm text-muted-foreground" role="status">Wird geladen…</p>
+                <p className="text-sm text-muted-foreground" role="status">{dict.common.loading}</p>
                 <div className="grid gap-4" aria-hidden="true">
                     <Skeleton className="h-20 w-full" />
                     <Skeleton className="h-20 w-full" />
@@ -88,11 +95,18 @@ export default function BonusLibraryClient(): React.JSX.Element {
         )
     }
 
+    const sizeLabels = {
+        unknown: b.groesseUnbekannt,
+        b: b.b,
+        kb: b.kb,
+        mb: b.mb,
+    }
+
     const items: EntityListViewItem[] = publications.map((publication) => ({
         id: publication.id,
         title: publication.title,
         href: `/bonus/${publication.id}`,
-        description: `${publication.accessPolicy === 'PAID' ? 'Bezahlt' : 'Frei'} · ${publication.originalFilename ?? `Asset #${publication.assetId}`} · ${formatBytes(publication.sizeBytes)}`,
+        description: `${publication.accessPolicy === 'PAID' ? dict.common.access.paid : dict.common.access.free} · ${publication.originalFilename ?? `Asset #${publication.assetId}`} · ${formatBytes(publication.sizeBytes, sizeLabels)}`,
         trailing: (
             <PublicationStatusBadge
                 status={
@@ -110,7 +124,7 @@ export default function BonusLibraryClient(): React.JSX.Element {
                 render={<LocaleLink href={`/bonus/${publication.id}`} />}
                 variant="outline"
             >
-                Bearbeiten
+                {dict.common.edit}
             </Button>
         ),
     }))
@@ -118,12 +132,12 @@ export default function BonusLibraryClient(): React.JSX.Element {
     return (
         <PageStack>
             <PageHeader
-                eyebrow="Medien"
-                title="Bonusdateien"
-                description="Lege Dokumente als Bonus-Inhalte an, setze frei oder bezahlt und veröffentliche sie für Abonnenten."
+                eyebrow={b.mediaEyebrow}
+                title={b.title}
+                description={b.legeDokumenteBonusInhalteSetzeFrei}
                 actions={
                     <Button nativeButton={false} render={<LocaleLink href="/bonus/new" />} size="lg">
-                        Neue Bonusdatei
+                        {b.neueBonusdatei}
                     </Button>
                 }
             />
@@ -136,25 +150,25 @@ export default function BonusLibraryClient(): React.JSX.Element {
                         type="button"
                         variant="outline"
                     >
-                        Erneut versuchen
+                        {dict.common.retry}
                     </Button>
                 </Alert>
             ) : null}
             {publications.length === 0 && errorMessage === null ? (
                 <EmptyState
-                    title="Noch keine Bonusdateien"
-                    description="Lade zuerst ein PDF in der Mediathek hoch, dann erstellst du hier den Bonus-Inhalt mit Titel und Zugang."
+                    title={b.keineBonusdateien}
+                    description={b.ladeZuerstPdfMediathekHochDann}
                     action={
                         <div className="flex flex-wrap justify-center gap-2">
                             <Button nativeButton={false} render={<LocaleLink href="/bonus/new" />}>
-                                Bonusdatei anlegen
+                                {b.createCta}
                             </Button>
                             <Button
                                 nativeButton={false}
                                 render={<LocaleLink href="/media" />}
                                 variant="outline"
                             >
-                                Zur Mediathek
+                                {b.toMediaLibrary}
                             </Button>
                         </div>
                     }
@@ -164,8 +178,8 @@ export default function BonusLibraryClient(): React.JSX.Element {
                 <section aria-labelledby="bonus-files-heading" className="flex flex-col gap-4">
                     <SectionHeader
                         id="bonus-files-heading"
-                        title={`Bonusdateien (${publications.length})`}
-                        description="Entwürfe, veröffentlichte und archivierte Bonus-Inhalte."
+                        title={t(b.bonusdateien, {'publications.length': publications.length})}
+                        description={b.listDescription}
                     />
                     <EntityListSection
                         items={items}
@@ -174,14 +188,14 @@ export default function BonusLibraryClient(): React.JSX.Element {
                         viewMode={viewMode}
                     />
                     <p className="text-sm text-muted-foreground">
-                        Bezahlt-Inhalte brauchen ein LEVEL oder eine{' '}
+                        {b.paidNeedRule}{' '}
                         <LocaleLink className="underline" href="/manage/products">
-                            DIGITAL_ASSET-Regel
+                            {b.digitalAssetRule}
                         </LocaleLink>{' '}
-                        am Paket.
+                        {b.onPackage}
                     </p>
                     <Badge variant="outline" className="w-fit">
-                        Modul BONUS_CONTENT
+                        {b.moduleBadge}
                     </Badge>
                 </section>
             ) : null}

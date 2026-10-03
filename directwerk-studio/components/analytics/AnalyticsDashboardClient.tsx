@@ -30,6 +30,7 @@ import {
     type UmamiStats,
 } from '@/lib/api/umamiApi'
 import {listArticles} from '@/lib/api/writeApi'
+import {useDictionary} from '@/components/i18n/LocaleProvider'
 
 interface AnalyticsDashboardProps {
     desks: StudioDesk[]
@@ -195,6 +196,8 @@ export default function AnalyticsDashboardClient({
     analyticsModuleEnabled,
     analytics,
 }: AnalyticsDashboardProps): React.JSX.Element {
+    const dict = useDictionary()
+    const a = dict.analytics
     const authRedirect = useAuthRequired()
     const showWrite = desks.includes('WRITE')
     const showPodcast = desks.includes('PODCAST')
@@ -258,7 +261,7 @@ export default function AnalyticsDashboardClient({
                 setErrorMessage(
                     error instanceof Error
                         ? error.message
-                        : 'Statistiken konnten nicht geladen werden.',
+                        : a.loadFailed,
                 )
             } finally {
                 if (active) {
@@ -272,7 +275,7 @@ export default function AnalyticsDashboardClient({
         return () => {
             active = false
         }
-    }, [authRedirect, attempt, showPodcast, showWrite, subscriptionEnabled])
+    }, [a.loadFailed, authRedirect, attempt, showPodcast, showWrite, subscriptionEnabled])
 
     useEffect(() => {
         if (!umamiActive) {
@@ -315,7 +318,7 @@ export default function AnalyticsDashboardClient({
     if (isLoading) {
         return (
             <div aria-busy="true" aria-live="polite" className="flex flex-col gap-4" role="status">
-                <span className="sr-only">Statistiken werden geladen…</span>
+                <span className="sr-only">{a.loadingStats}</span>
                 <div className="grid gap-4 sm:grid-cols-3" aria-hidden="true">
                     <Skeleton className="h-24" />
                     <Skeleton className="h-24" />
@@ -337,7 +340,7 @@ export default function AnalyticsDashboardClient({
                     type="button"
                     variant="outline"
                 >
-                    Erneut laden
+                    {a.reload}
                 </Button>
             </Alert>
         )
@@ -349,10 +352,10 @@ export default function AnalyticsDashboardClient({
     return (
         <div className="flex flex-col gap-8">
             {showWrite || showPodcast ? (
-                <section aria-label="Inhalte" className="flex flex-col gap-4">
+                <section aria-label={a.contentSection} className="flex flex-col gap-4">
                     <SectionHeader
-                        description="Veröffentlichte Inhalte, Entwürfe und geplante Beiträge im Überblick."
-                        title="Inhalte"
+                        description={a.veroeffentlichteInhalteEntwuerfeGeplanteBeit}
+                        title={a.contentSection}
                     />
                     <div className="grid gap-4 sm:grid-cols-3">
                         {showWrite ? (
@@ -459,8 +462,8 @@ export default function AnalyticsDashboardClient({
             {subscriptionEnabled ? (
                 <section aria-label="Publikum und Umsatz" className="flex flex-col gap-4">
                     <SectionHeader
-                        description="Mitgliedschaften und geschätzter Umsatz aus dem Abo-Modul."
-                        title="Publikum & Umsatz"
+                        description={a.audienceRevenueDescription}
+                        title={a.audienceRevenue}
                     />
                     {billing !== null ? (
                         <div className="grid gap-4 sm:grid-cols-3">
@@ -495,10 +498,10 @@ export default function AnalyticsDashboardClient({
                 </section>
             ) : null}
 
-            <section aria-label="Reichweite" className="flex flex-col gap-4">
+            <section aria-label={a.reachUmami} className="flex flex-col gap-4">
                 <SectionHeader
-                    description="Seitenaufrufe und Hörer-Kennzahlen aus der Reichweitenmessung."
-                    title="Reichweite (Umami)"
+                    description={a.reachDescription}
+                    title={a.reachUmami}
                     action={
                         umamiActive ? (
                             <span className="flex gap-1" role="group" aria-label="Zeitraum">

@@ -1,6 +1,7 @@
 'use client'
 
 import LocaleLink from '@/components/i18n/LocaleLink'
+import {useDictionary} from '@/components/i18n/LocaleProvider'
 import {useId, useMemo, useState} from 'react'
 
 import {Alert, AlertDescription} from '@directwerk/ui/components/alert'
@@ -19,10 +20,12 @@ import {getClientTenantHost} from '@directwerk/api/tenant'
 import {useAuthedQuery} from '@directwerk/api/client/useAuthedQuery'
 
 export default function FormatListClient(): React.JSX.Element {
+    const dict = useDictionary()
+    const p = dict.podcast
     const {viewMode, setViewMode} = useListViewMode()
     const {data: formats, error: errorMessage, isLoading} = useAuthedQuery<FormatSummary[]>(
         () => listFormats(getClientTenantHost()),
-        {fallbackError: 'Formate konnten nicht geladen werden.'},
+        {fallbackError: p.formatsLoadFailed},
     )
     const searchInputId = useId()
     const [query, setQuery] = useState('')
@@ -43,7 +46,7 @@ export default function FormatListClient(): React.JSX.Element {
         description: <code>{format.slug}</code>,
         trailing: (
             <Badge variant={format.active ? 'secondary' : 'outline'}>
-                {format.active ? 'Aktiv' : 'Inaktiv'}
+                {format.active ? dict.common.active : dict.common.inactive}
             </Badge>
         ),
         href: `/podcast/formats/${format.id}`,
@@ -54,12 +57,12 @@ export default function FormatListClient(): React.JSX.Element {
             <PageHeader
                 actions={
                     <Button nativeButton={false} render={<LocaleLink href="/podcast/formats/new" />} size="lg">
-                        Neues Format
+                        {p.neuesFormat}
                     </Button>
                 }
-                description="Formate sortieren deine Folgen — z. B. Hauptfolge, Bonus oder Interview. Du wählst sie beim Erstellen einer Folge."
-                eyebrow="Podcast · Einrichtung"
-                title="Formate"
+                description={p.formateSortierenFolgenHauptfolge}
+                eyebrow={p.setupTitle}
+                title={p.formatsTitle}
             />
 
             {errorMessage ? (
@@ -68,17 +71,17 @@ export default function FormatListClient(): React.JSX.Element {
                 </Alert>
             ) : null}
             {isLoading && !errorMessage ? (
-                <p className="text-sm text-muted-foreground" role="status">Formate werden geladen…</p>
+                <p className="text-sm text-muted-foreground" role="status">{p.formatsLoading}</p>
             ) : null}
             {formats && formats.length === 0 ? (
                 <EmptyState
                     action={
                         <Button nativeButton={false} render={<LocaleLink href="/podcast/formats/new" />}>
-                            Erstes Format anlegen
+                            {p.createFirstFormat}
                         </Button>
                     }
-                    description="Empfohlen, aber optional: Mit Formaten können Hörer später gezielt Folgen finden und eigene Feeds bauen."
-                    title="Noch keine Formate"
+                    description={p.empfohlenAberOptionalFormatenHoererSpaeter}
+                    title={p.emptyFormatsTitle}
                 />
             ) : null}
             {formats && formats.length > 0 ? (
@@ -86,14 +89,14 @@ export default function FormatListClient(): React.JSX.Element {
                     {formats.length > 1 ? (
                         <div className="grid gap-1.5">
                             <label className="text-sm font-medium" htmlFor={searchInputId}>
-                                Formate durchsuchen
+                                {p.formateDurchsuchen}
                             </label>
                             <Input
-                                aria-label="Formate durchsuchen"
+                                aria-label={p.formateDurchsuchen}
                                 className="sm:max-w-xs"
                                 id={searchInputId}
                                 onChange={(event) => setQuery(event.target.value)}
-                                placeholder="Name oder Slug suchen…"
+                                placeholder={p.nameSlugSuchen}
                                 type="search"
                                 value={query}
                             />
@@ -103,15 +106,15 @@ export default function FormatListClient(): React.JSX.Element {
                         <EmptyState
                             action={
                                 <Button onClick={() => setQuery('')} type="button" variant="outline">
-                                    Suche zurücksetzen
+                                    {p.resetSearch}
                                 </Button>
                             }
-                            description="Passe den Suchbegriff an oder setze die Suche zurück."
-                            title="Keine Treffer"
+                            description={p.searchNoResultsDescription}
+                            title={p.keineTreffer}
                         />
                     ) : (
                         <EntityListSection
-                            ariaLabel="Formate"
+                            ariaLabel={p.formatsTitle}
                             items={listItems}
                             linkComponent={LocaleLink}
                             onViewModeChange={setViewMode}
@@ -122,10 +125,10 @@ export default function FormatListClient(): React.JSX.Element {
             ) : null}
 
             <p className="text-sm text-muted-foreground">
-                Fertig mit der Einrichtung?{' '}
-                <LocaleLink href="/podcast/episodes/new">Neue Folge erstellen</LocaleLink>
+                {p.setupDonePrompt}{' '}
+                <LocaleLink href="/podcast/episodes/new">{p.createNewEpisode}</LocaleLink>
                 {' · '}
-                <LocaleLink href="/podcast">Zur Podcast-Übersicht</LocaleLink>
+                <LocaleLink href="/podcast">{p.podcastUebersicht}</LocaleLink>
             </p>
         </PageStack>
     )

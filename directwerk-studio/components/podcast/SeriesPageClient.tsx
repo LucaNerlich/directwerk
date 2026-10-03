@@ -1,6 +1,8 @@
 'use client'
 
 import LocaleLink from '@/components/i18n/LocaleLink'
+import {useDictionary} from '@/components/i18n/LocaleProvider'
+import {t} from '@/lib/i18n/dictionary'
 
 import {Button} from '@directwerk/ui/components/button'
 import {Alert, AlertDescription} from '@directwerk/ui/components/alert'
@@ -26,6 +28,8 @@ function toListItem(series: SeriesSummary): SeriesListItem {
  * Renders the podcast series management page with publication controls and creation links.
  */
 export default function SeriesPageClient(): React.JSX.Element {
+    const dict = useDictionary()
+    const p = dict.podcast
     const {
         items: series,
         isLoading,
@@ -51,10 +55,10 @@ export default function SeriesPageClient(): React.JSX.Element {
         publish: async (id) => toListItem(await publishSeries(getClientTenantHost(), id)),
         unpublish: async (id) => toListItem(await unpublishSeries(getClientTenantHost(), id)),
         cancelSchedule: async () => {
-            throw new Error('Sendungen unterstützen keine Planung.')
+            throw new Error(p.sendungenUnterstuetzenKeinePlanung)
         },
         unarchive: async () => {
-            throw new Error('Sendungen unterstützen kein Archiv.')
+            throw new Error(p.sendungenUnterstuetzenKeinArchiv)
         },
         // Series have no bulk endpoint: sequential per-item updates in one action.
         publishMany: async (ids) => {
@@ -70,24 +74,23 @@ export default function SeriesPageClient(): React.JSX.Element {
             )
         },
         labels: {
-            loadError: 'Sendungen konnten nicht geladen werden.',
-            publishSuccess: (title) => `Sendung „${title}“ wurde veröffentlicht.`,
-            unpublishSuccess: (title) =>
-                `Sendung „${title}“ wurde zurückgezogen (Entwurf).`,
+            loadError: p.showsLoadFailed,
+            publishSuccess: (title) => t(p.sendungVeroeffentlicht, {title}),
+            unpublishSuccess: (title) => t(p.sendungZurueckgezogenEntwurf, {title}),
             cancelScheduleSuccess: () => '',
             unarchiveSuccess: () => '',
-            publishError: 'Sendung konnte nicht veröffentlicht werden.',
-            unpublishError: 'Sendung konnte nicht zurückgezogen werden.',
+            publishError: p.sendungKonnteVeroeffentlicht,
+            unpublishError: p.sendungKonnteZurueckgezogen,
             cancelScheduleError: '',
             unarchiveError: '',
-            bulk: createPublicationBulkLabels('Sendung', 'Sendungen'),
+            bulk: createPublicationBulkLabels(p.showSingular, p.showPlural),
         },
     })
 
     if (isLoading) {
         return (
             <p className="text-sm text-muted-foreground" role="status">
-                Sendungen werden geladen…
+                {p.showsLoading}
             </p>
         )
     }
@@ -100,12 +103,12 @@ export default function SeriesPageClient(): React.JSX.Element {
     return (
         <PageStack className="gap-6">
             <PageHeader
-                eyebrow="Podcast · Einrichtung"
-                title="Sendungen"
-                description="Die Sendung ist dein Podcast-Kanal (Cover, Beschreibung, RSS). Einmal einrichten — der wöchentliche Flow läuft über Folgen."
+                eyebrow={p.setupTitle}
+                title={p.showsTitle}
+                description={p.sendungPodcastKanalCoverBeschreibungRss}
                 actions={
                     <Button nativeButton={false} render={<LocaleLink href="/podcast/series/new" />} size="lg">
-                        Neue Sendung
+                        {p.neueSendung}
                     </Button>
                 }
             />
@@ -119,7 +122,7 @@ export default function SeriesPageClient(): React.JSX.Element {
                         type="button"
                         variant="outline"
                     >
-                        Erneut versuchen
+                        {dict.common.retry}
                     </Button>
                 </Alert>
             )}
@@ -131,11 +134,11 @@ export default function SeriesPageClient(): React.JSX.Element {
 
             {series.length === 0 ? (
                 <EmptyState
-                    title="Noch keine Sendung"
-                    description="Lege deine erste Sendung an, danach Formate und die erste Folge."
+                    title={p.emptyShowsTitle}
+                    description={p.legeErsteSendungDanachFormateErste}
                     action={
                         <Button nativeButton={false} render={<LocaleLink href="/podcast/series/new" />}>
-                            Erste Sendung anlegen
+                            {p.createFirstShow}
                         </Button>
                     }
                 />
@@ -144,7 +147,7 @@ export default function SeriesPageClient(): React.JSX.Element {
                     <PublicationListSection
                         allSelected={allSelected}
                         busyItemId={busyItemId}
-                        contentLabelPlural="Sendungen"
+                        contentLabelPlural={p.showPlural}
                         editorBasePath="/podcast/series"
                         isBulkBusy={isBulkBusy}
                         items={listItems}
@@ -165,11 +168,11 @@ export default function SeriesPageClient(): React.JSX.Element {
 
             {series.length > 0 ? (
                 <p className="text-sm text-muted-foreground">
-                    Nächster Schritt:{' '}
-                    <LocaleLink href="/podcast/formats">Formate festlegen</LocaleLink>
+                    {dict.common.nextStep}{' '}
+                    <LocaleLink href="/podcast/formats">{p.formateFestlegen}</LocaleLink>
                     {' '}
-                    oder{' '}
-                    <LocaleLink href="/podcast/episodes/new">Folge erstellen</LocaleLink>.
+                    {dict.common.or}{' '}
+                    <LocaleLink href="/podcast/episodes/new">{p.folgeErstellen}</LocaleLink>.
                 </p>
             ) : null}
         </PageStack>

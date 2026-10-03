@@ -18,6 +18,8 @@ import {Skeleton} from '@directwerk/ui/components/skeleton'
 import {useListViewMode} from '@directwerk/ui/hooks/use-list-view-mode'
 
 import LocaleLink from '@/components/i18n/LocaleLink'
+import {useDictionary} from '@/components/i18n/LocaleProvider'
+import {t} from '@/lib/i18n/dictionary'
 import {useEffect, useId, useState, type FormEvent} from 'react'
 import {useRouter} from 'next/navigation'
 
@@ -61,6 +63,8 @@ function manualGrantsFromSubscribers(
 }
 
 export default function GrantsClient(): React.JSX.Element {
+    const dict = useDictionary()
+    const m = dict.manage
     const router = useRouter()
     const authRedirect = useAuthRequired()
     const [products, setProducts] = useState<SubscriptionProduct[]>([])
@@ -188,11 +192,11 @@ export default function GrantsClient(): React.JSX.Element {
         return (
             <PageStack>
                 <PageHeader
-                    eyebrow="Abos"
-                    title="Freischaltungen"
-                    description="Zugang manuell vergeben oder widerrufen. Aktive Freischaltungen werden aus der Abonnentenliste geladen."
+                    eyebrow={m.subscriptionsEyebrow}
+                    title={m.grantsTitle}
+                    description={m.zugangManuellVergebenWiderrufenAktiveFreisc}
                 />
-                <p className="text-sm text-muted-foreground" role="status">Laden…</p>
+                <p className="text-sm text-muted-foreground" role="status">{dict.common.loadingShort}</p>
                 <div className="grid gap-3" aria-hidden="true">
                     <Skeleton className="h-24 w-full max-w-xl" />
                     <Skeleton className="h-20 w-full" />
@@ -223,23 +227,23 @@ export default function GrantsClient(): React.JSX.Element {
     return (
         <PageStack>
             <PageHeader
-                eyebrow="Abos"
-                title="Freischaltungen"
-                description="Zugang manuell vergeben oder widerrufen — z. B. für Gäste, Team oder Gewinnspiele. Freischaltungen erscheinen auch unter Abonnenten."
+                eyebrow={m.subscriptionsEyebrow}
+                title={m.grantsTitle}
+                description={m.zugangManuellVergebenWiderrufen}
                 actions={
                     <Button nativeButton={false} render={<LocaleLink href="/manage" />} variant="outline">
-                        Zu Zahlungen
+                        {m.toPayments}
                     </Button>
                 }
             />
 
             {products.length === 0 && loadError === null ? (
                 <EmptyState
-                    title="Zuerst ein Produkt anlegen"
-                    description="Ohne aktives Abo-Produkt kannst du niemanden freischalten."
+                    title={m.zuerstProduktAnlegen}
+                    description={m.ohneAktivesAboProduktKannstNiemanden}
                     action={
                         <Button nativeButton={false} render={<LocaleLink href="/manage/products/new" />}>
-                            Produkt anlegen
+                            {m.createProduct}
                         </Button>
                     }
                 />
@@ -254,7 +258,7 @@ export default function GrantsClient(): React.JSX.Element {
                         type="button"
                         variant="outline"
                     >
-                        Erneut versuchen
+                        {dict.common.retry}
                     </Button>
                 </Alert>
             ) : null}
@@ -272,7 +276,7 @@ export default function GrantsClient(): React.JSX.Element {
             {products.length > 0 ? (
             <Card className="max-w-xl">
                 <CardHeader>
-                    <CardTitle>Neue Freischaltung</CardTitle>
+                    <CardTitle>{m.neueFreischaltung}</CardTitle>
                     <CardDescription>
                         Die Person erhält sofort Zugang — ohne Zahlung. Ideal für Gäste und manuelle Ausnahmen.
                     </CardDescription>
@@ -335,8 +339,8 @@ export default function GrantsClient(): React.JSX.Element {
             <section aria-labelledby="grants-list-heading" className="flex flex-col gap-4">
                 <SectionHeader
                     id="grants-list-heading"
-                    title={`Aktive Freischaltungen (${grants.length})`}
-                    description="Manuell vergebene Zugänge aus der Abonnentenliste."
+                    title={t(m.aktiveFreischaltungen, {'grants.length': grants.length})}
+                    description={m.manuellVergebeneZugaengeAbonnentenliste}
                 />
             {grants.length > 0 ? (
                 <EntityListSection
@@ -347,8 +351,8 @@ export default function GrantsClient(): React.JSX.Element {
                 />
             ) : (
                 <EmptyState
-                    title="Noch keine Freischaltungen"
-                    description="Vergib oben die erste Freischaltung — sie erscheint sofort in dieser Liste."
+                    title={m.keineFreischaltungen}
+                    description={m.grantFirstHint}
                 />
             )}
             </section>

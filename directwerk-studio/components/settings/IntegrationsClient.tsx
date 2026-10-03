@@ -1,6 +1,7 @@
 'use client'
 
 import LocaleLink from '@/components/i18n/LocaleLink'
+import {useDictionary} from '@/components/i18n/LocaleProvider'
 import {useEffect, useState} from 'react'
 
 import {Alert, AlertDescription} from '@directwerk/ui/components/alert'
@@ -24,6 +25,8 @@ import {getClientTenantHost} from '@directwerk/api/tenant'
 import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
 
 export default function IntegrationsClient(): React.JSX.Element {
+    const dict = useDictionary()
+    const s = dict.settings
     const authRedirect = useAuthRequired()
     const [status, setStatus] = useState<IntegrationsStatus | null>(null)
     const [errorMessage, setErrorMessage] = useState<string | null>(null)
@@ -116,9 +119,9 @@ export default function IntegrationsClient(): React.JSX.Element {
         return (
             <PageStack>
                 <PageHeader
-                    eyebrow="Einstellungen"
-                    title="Integrationen"
-                    description="E-Mail-Zustellung, Analytics und Zahlungen."
+                    eyebrow={s.eyebrow}
+                    title={s.integrationsTitle}
+                    description={s.eMailZustellungAnalyticsZahlungen}
                 />
                 <Skeleton className="h-32 w-full" />
             </PageStack>
@@ -131,9 +134,9 @@ export default function IntegrationsClient(): React.JSX.Element {
     return (
         <PageStack>
             <PageHeader
-                eyebrow="Einstellungen"
-                title="Integrationen"
-                description="Verbinde Mailgun für den Versand oder nutze die Plattform-Zustellung. Stripe und Analytics bleiben verlinkt."
+                eyebrow={s.eyebrow}
+                title={s.integrationsTitle}
+                description={s.verbindeMailgunVersandNutzePlattformZustell}
             />
             {errorMessage !== null ? (
                 <Alert variant="destructive">
@@ -212,8 +215,8 @@ export default function IntegrationsClient(): React.JSX.Element {
 
             <section className="flex flex-col gap-4">
                 <SectionHeader
-                    title="Mailgun verbinden"
-                    description="API-Schlüssel wird verschlüsselt gespeichert. Danach gehen Benachrichtigungen über deine Domain."
+                    title={s.mailgunVerbinden}
+                    description={s.apiSchluesselVerschluesseltGespeichertDanach}
                 />
                 <div className="grid gap-3 sm:grid-cols-2">
                     <div className="grid gap-2">

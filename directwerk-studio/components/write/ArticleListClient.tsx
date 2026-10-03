@@ -1,6 +1,8 @@
 'use client'
 
 import LocaleLink from '@/components/i18n/LocaleLink'
+import {useDictionary} from '@/components/i18n/LocaleProvider'
+import {t} from '@/lib/i18n/dictionary'
 import {useCallback, useEffect, useMemo, useState} from 'react'
 
 import {Button} from '@directwerk/ui/components/button'
@@ -34,6 +36,8 @@ import {getClientTenantHost} from '@directwerk/api/tenant'
 import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
 
 export default function ArticleListClient() {
+    const dict = useDictionary()
+    const w = dict.write
     const authRedirect = useAuthRequired()
     const {
         items: articles,
@@ -71,21 +75,18 @@ export default function ArticleListClient() {
         unpublishMany: (ids) => settledBulkResult(bulkUnpublishArticles(getClientTenantHost(), ids)),
         removeMany: (ids) => bulkDeleteArticles(getClientTenantHost(), ids),
         labels: {
-            loadError: 'Beiträge konnten nicht geladen werden.',
-            publishSuccess: (title) => `Beitrag „${title}“ wurde veröffentlicht.`,
-            unpublishSuccess: (title) =>
-                `Beitrag „${title}“ wurde zurückgezogen (Entwurf).`,
-            cancelScheduleSuccess: (title) =>
-                `Planung für „${title}“ wurde aufgehoben (Entwurf).`,
-            unarchiveSuccess: (title) =>
-                `Beitrag „${title}“ wurde wiederhergestellt (Entwurf).`,
-            publishError: 'Beitrag konnte nicht veröffentlicht werden.',
-            unpublishError: 'Beitrag konnte nicht zurückgezogen werden.',
-            cancelScheduleError: 'Planung konnte nicht aufgehoben werden.',
-            unarchiveError: 'Beitrag konnte nicht wiederhergestellt werden.',
-            deleteSuccess: (title) => `Beitrag „${title}“ wurde gelöscht.`,
-            deleteError: 'Beitrag konnte nicht gelöscht werden.',
-            bulk: createPublicationBulkLabels('Beitrag', 'Beiträge'),
+            loadError: w.articlesLoadFailed,
+            publishSuccess: (title) => t(w.articlePublishedToast, {title}),
+            unpublishSuccess: (title) => t(w.articleUnpublishedToast, {title}),
+            cancelScheduleSuccess: (title) => t(w.scheduleCancelledToast, {title}),
+            unarchiveSuccess: (title) => t(w.articleRestoredToast, {title}),
+            publishError: w.articlePublishFailed,
+            unpublishError: w.articleUnpublishFailed,
+            cancelScheduleError: w.scheduleCancelFailed,
+            unarchiveError: w.articleRestoreFailed,
+            deleteSuccess: (title) => t(w.articleDeletedToast, {title}),
+            deleteError: w.articleDeleteFailed,
+            bulk: createPublicationBulkLabels(w.articleSingular, w.articlePlural),
         },
     })
 
@@ -176,9 +177,7 @@ export default function ArticleListClient() {
                             accessPolicy: operation.accessPolicy,
                         })
                     case 'formats':
-                        return Promise.reject(
-                            new Error('Beiträgen können keine Formate zugewiesen werden.'),
-                        )
+                        return Promise.reject(new Error(w.formatsNotForArticles))
                 }
             }
             await runBulkEdit(
@@ -186,21 +185,24 @@ export default function ArticleListClient() {
                 apply,
                 (count) =>
                     count === 1
-                        ? '1 Beitrag aktualisiert.'
-                        : `${count} Beiträge aktualisiert.`,
+                        ? w.oneArticleUpdated
+                        : t(w.articlesUpdated, {count}),
                 (successCount, failureCount) =>
-                    `${successCount} von ${successCount + failureCount} Beiträgen aktualisiert.`,
-                'Beiträge konnten nicht aktualisiert werden.',
+                    t(w.articlesUpdatedPartial, {
+                        successCount,
+                        total: successCount + failureCount,
+                    }),
+                w.articlesUpdateFailed,
             )
             setIsBulkEditOpen(false)
         },
-        [articles, runBulkEdit, selectedIds],
+        [articles, runBulkEdit, selectedIds, w],
     )
 
     if (isLoading) {
         return (
             <p className="text-sm text-muted-foreground" role="status">
-                Beiträge werden geladen…
+                {w.articlesLoading}
             </p>
         )
     }
@@ -208,16 +210,16 @@ export default function ArticleListClient() {
     return (
         <PageStack className="gap-6">
             <PageHeader
-                eyebrow="Schreiben"
-                title="Beiträge"
-                description="Artikel und Newsletter-Texte — mit Freigabe, Planung und Kategorien."
+                eyebrow={dict.desks.write}
+                title={w.articlesTitle}
+                description={w.articlesListDescription}
                 actions={
                     <div className="flex flex-wrap gap-2">
                         <Button nativeButton={false} render={<LocaleLink href="/write/import" />} size="lg" variant="outline">
-                            RSS importieren
+                            {w.importRss}
                         </Button>
                         <Button nativeButton={false} render={<LocaleLink href="/write/articles/new" />} size="lg">
-                            Neuer Beitrag
+                            {dict.shell.home.newArticle}
                         </Button>
                     </div>
                 }
@@ -231,7 +233,7 @@ export default function ArticleListClient() {
                         type="button"
                         variant="outline"
                     >
-                        Erneut versuchen
+                        {dict.common.retry}
                     </Button>
                 </Alert>
             )}
@@ -242,11 +244,11 @@ export default function ArticleListClient() {
             )}
             {articles.length === 0 ? (
                 <EmptyState
-                    title="Noch keine Beiträge"
-                    description="Schreibe den ersten Entwurf. Veröffentlichen kannst du später."
+                    title={w.emptyArticlesTitle}
+                    description={w.writeFirstDraftLater}
                     action={
                         <Button nativeButton={false} render={<LocaleLink href="/write/articles/new" />}>
-                            Ersten Beitrag schreiben
+                            {w.writeFirstArticleCta}
                         </Button>
                     }
                 />
@@ -255,7 +257,7 @@ export default function ArticleListClient() {
                     <PublicationListSection
                         allSelected={allSelected}
                         busyItemId={busyArticleId}
-                        contentLabelPlural="Beiträge"
+                        contentLabelPlural={w.articlePlural}
                         editorBasePath="/write/articles"
                         isBulkBusy={isBulkBusy}
                         items={articles}
@@ -277,7 +279,7 @@ export default function ArticleListClient() {
                         viewMode={viewMode}
                     />
                     <DeletePublicationDialog
-                        contentLabel="Beitrag"
+                        contentLabel={w.articleSingular}
                         item={deleteTarget}
                         onConfirm={() => void handleDeleteConfirm()}
                         onOpenChange={(open) => {
@@ -289,8 +291,8 @@ export default function ArticleListClient() {
                         pending={deletePending}
                     />
                     <BulkDeletePublicationDialog
-                        contentLabel="Beitrag"
-                        contentLabelPlural="Beiträge"
+                        contentLabel={w.articleSingular}
+                        contentLabelPlural={w.articlePlural}
                         items={bulkDeleteItems}
                         onConfirm={() => void handleBulkDeleteConfirm()}
                         onOpenChange={(open) => {
@@ -304,7 +306,7 @@ export default function ArticleListClient() {
                     <BulkEditDialog
                         busy={isBulkBusy}
                         categories={categories}
-                        contentLabel="Beitrag"
+                        contentLabel={w.articleSingular}
                         draftCount={draftCount}
                         onApply={(operation) => void handleBulkEditApply(operation)}
                         onOpenChange={setIsBulkEditOpen}
