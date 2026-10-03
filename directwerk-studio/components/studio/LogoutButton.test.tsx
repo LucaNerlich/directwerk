@@ -14,6 +14,7 @@ vi.mock('next/navigation', () => ({useRouter: () => ({push})}))
 vi.mock('@/lib/auth/MeProvider', () => ({useOptionalMe: () => null}))
 vi.mock('@/lib/auth/session', () => ({clearSessionTokens}))
 vi.mock('@directwerk/api/client/useCachedTenantQuery', () => ({clearAllCachedTenantData}))
+vi.mock('@directwerk/api/tenant', () => ({getClientTenantHost: () => 'tenant.test'}))
 
 describe('LogoutButton', () => {
     beforeEach(() => {
@@ -35,6 +36,13 @@ describe('LogoutButton', () => {
         await waitFor(() => expect(push).toHaveBeenCalledWith('/de/login'))
         expect(clearSessionTokens).toHaveBeenCalledOnce()
         expect(clearAllCachedTenantData).toHaveBeenCalledOnce()
+        expect(fetch).toHaveBeenCalledWith(
+            '/api/auth/logout',
+            expect.objectContaining({
+                method: 'POST',
+                headers: expect.objectContaining({'X-Tenant-Host': 'tenant.test'}),
+            }),
+        )
     })
 
     it.each([

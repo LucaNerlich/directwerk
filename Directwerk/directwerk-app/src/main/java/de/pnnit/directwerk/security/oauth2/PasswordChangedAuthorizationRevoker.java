@@ -4,7 +4,6 @@ import de.pnnit.directwerk.modules.core.event.PasswordChangedEvent;
 import java.util.Objects;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.context.event.EventListener;
 import org.springframework.jdbc.core.JdbcOperations;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.event.TransactionPhase;
@@ -17,6 +16,11 @@ import org.springframework.transaction.event.TransactionalEventListener;
  * point of the reset. Access tokens are stateless JWTs and remain valid for at
  * most their short TTL; removing the authorization invalidates the refresh
  * path, which is the durable credential.
+ *
+ * <p>Only {@link TransactionalEventListener} (AFTER_COMMIT) is used — a plain
+ * {@code @EventListener} would delete rows before the password transaction
+ * commits and could leave sessions revoked while a rolled-back reset restored
+ * the old credential.
  */
 @Component
 public class PasswordChangedAuthorizationRevoker {
@@ -34,7 +38,6 @@ public class PasswordChangedAuthorizationRevoker {
      * Runs after the committing transaction so authorizations are only removed
      * once the new credential is actually persisted.
      */
-    @EventListener
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void onPasswordChanged(PasswordChangedEvent event) {
         Objects.requireNonNull(event.email());
