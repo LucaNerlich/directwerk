@@ -2,19 +2,19 @@ import SectionLabel from '@/components/marketing/SectionLabel'
 
 const PAIRS = [
     {
-        problem: 'Patreon, Steady oder ein geschlossenes CMS bestimmen Domain, Daten und Auslieferung.',
+        problem: 'Bei Patreon, Steady & Co. gehören Domain, Marke und Hörerdaten oft der Plattform — nicht dir.',
         solution:
-            'Directwerk läuft unter deiner Marke: Studio für Creators, Website für Hörer — und für Agenturen eine API zum Anbinden eigener Oberflächen.',
+            'Directwerk läuft unter deinem Namen: Studio zum Arbeiten, Website für Hörer, eigene Domain. Deine Show, deine Regeln.',
     },
     {
-        problem: 'Podcast, Newsletter und Mitgliedschaften leben in getrennten Tools.',
+        problem: 'Podcast, Newsletter und Mitgliedschaften stecken in getrennten Tools.',
         solution:
-            'Alles an einem Ort: Podcast, RSS, Abos, Artikel und Feed-Builder. Wer zahlt, sieht was — für alle Formate gleich.',
+            'Alles an einem Ort: Folgen veröffentlichen, Abos verkaufen, Artikel teilen. Wer zahlt, hört und liest das Passende — ohne Tool-Chaos.',
     },
     {
-        problem: 'Agenturen brauchen Whitelabel, nicht noch ein monolithisches CMS.',
+        problem: 'Mehrere Shows oder Kunden brauchen jeweils eigene Marke und getrennte Daten.',
         solution:
-            'Jeder Kunde bekommt eigene Domain, eigenes Branding und getrennte Daten — auf einer Plattform, die mehrere Shows sicher nebeneinander betreibt.',
+            'Jede Show bekommt eigene Domain, eigenes Branding und eigene Hörer — sauber getrennt, auf einer gemeinsamen Plattform.',
     },
 ] as const
 
@@ -24,7 +24,7 @@ export default function ProblemSolutionSection(): React.JSX.Element {
             <div className="marketing-container">
                 <SectionLabel>Warum Directwerk</SectionLabel>
                 <h2 className="mt-4 max-w-3xl text-balance text-3xl font-semibold tracking-tight sm:text-4xl">
-                    Eigene Plattform statt Miete bei anderen
+                    Für Creators, die unabhängig bleiben wollen
                 </h2>
                 <div className="mt-10 grid gap-6 lg:grid-cols-3">
                     {PAIRS.map((item, index) => (

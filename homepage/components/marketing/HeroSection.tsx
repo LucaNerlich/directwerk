@@ -54,7 +54,7 @@ export default function HeroSection(): React.JSX.Element {
             <div className="marketing-container grid items-center gap-12 lg:grid-cols-[1.1fr_0.9fr] lg:py-8">
                 <div>
                     <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                        Gehostet in Europa · DSGVO-konform
+                        Deine eigene Plattform · Hosting in Europa
                     </p>
                     <h1 className="mt-6 max-w-4xl text-balance text-5xl font-semibold leading-[0.96] tracking-[-0.055em] sm:text-6xl lg:text-7xl">
                         Deine Inhalte.
@@ -64,15 +64,16 @@ export default function HeroSection(): React.JSX.Element {
                         Deine Daten.
                     </h1>
                     <p className="mt-8 max-w-xl text-pretty text-lg leading-8 text-muted-foreground">
-                        Podcast, Artikel und Newsletter unter deiner Marke — mit Studio,
-                        Website für Abonnenten und privaten Feeds pro Hörer.
+                        Directwerk ist deine Podcast- und Content-Plattform: Studio zum
+                        Veröffentlichen, Website für Abonnenten, bezahlte Inhalte und
+                        Hosting in Europa — unter deiner Marke, nicht unter einer fremden.
                     </p>
                     <div className="mt-8 flex flex-wrap gap-3">
                         <a
                             className={buttonVariants({size: 'lg'})}
                             href="#features"
                         >
-                            Plattform entdecken
+                            Was du bekommst
                         </a>
                         <a
                             className={buttonVariants({variant: 'outline', size: 'lg'})}

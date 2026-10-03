@@ -9,8 +9,8 @@ export default function MarketingFooter(): React.JSX.Element {
                 <div>
                     <p className="text-lg font-semibold tracking-tight">Directwerk</p>
                     <p className="mt-2 max-w-sm text-sm leading-6 text-muted-foreground">
-                        Podcast- und Publishing-Plattform aus Europa — mit Studio,
-                        Website für Hörer und API für Agenturen.
+                        Deine Podcast- und Content-Plattform aus Europa — mit Studio,
+                        Website für Hörer und Abos unter deiner Marke.
                     </p>
                 </div>
                 <nav

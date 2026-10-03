@@ -3,19 +3,19 @@ import SectionLabel from '@/components/marketing/SectionLabel'
 const FAQS = [
     {
         question: 'Wo liegen meine Daten?',
-        answer: 'In Europa: API und Datenbanken bei Hetzner (Deutschland), Audio- und Mediendateien bei europäischen Object-Storage-Anbietern. Es gibt keinen US-Cloud-Zwang — und einen AV-Vertrag dazu.',
+        answer: 'In Europa: Server und Datenbanken bei Hetzner in Deutschland, Audio- und Mediendateien bei europäischen Anbietern. Kein Zwang zur US-Cloud — und ein Auftragsverarbeitungsvertrag dazu.',
     },
     {
         question: 'Kann ich von Patreon, Steady oder Spotify weg migrieren?',
-        answer: 'Ja. Abonnenten und Produkte lassen sich per API und Import übernehmen, öffentliche RSS-Feeds bleiben kompatibel — deine Hörer in Apple Podcasts & Co. merken vom Umzug nichts. Sprich uns für Early Access und Migrationshilfe an.',
+        answer: 'Ja. Abonnenten und Angebote lassen sich übernehmen, öffentliche Podcast-Feeds bleiben kompatibel — deine Hörer in Apple Podcasts & Co. merken vom Umzug oft nichts. Sprich uns für Early Access und Hilfe beim Umzug an.',
     },
     {
         question: 'Brauche ich eine eigene Domain?',
-        answer: 'Deine Marke steht vorne: eigene Domain, eigenes Branding, eigenes Logo. Directwerk läuft im Hintergrund — Studio, Website und Feeds tragen deinen Namen.',
+        answer: 'Empfohlen, aber nicht Pflicht zum Start. Deine Marke steht vorne: Domain, Logo, Farben. Directwerk läuft im Hintergrund — Studio, Website und Feeds tragen deinen Namen.',
     },
     {
         question: 'Was kostet das?',
-        answer: 'Wir sind im Early Access und sprechen mit Creators, Agenturen und Integratoren individuell über Modelle und Revenue-Share. Schreib uns einfach — du bekommst schnell eine ehrliche Antwort.',
+        answer: 'Wir sind im Early Access und sprechen mit Creators und Agenturen individuell über Modelle. Schreib uns einfach — du bekommst schnell eine ehrliche Antwort.',
     },
     {
         question: 'Ich bin Entwicklerin — kann ich ein eigenes Frontend bauen?',

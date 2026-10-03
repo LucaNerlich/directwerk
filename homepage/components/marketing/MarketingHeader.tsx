@@ -14,7 +14,7 @@ const PLATFORM_LINKS = [
     {href: '/privacy', label: 'Datenschutz', description: 'EU-Hosting & DSGVO'},
     {href: '/#beispiel', label: 'Beispiel', description: 'Liedermacherleben live'},
     {href: '/#feeds', label: 'Feeds', description: 'Privat & pro Hörer'},
-    {href: '/#products', label: 'Produkte', description: 'Studio, Web & API'},
+    {href: '/#products', label: 'Produkte', description: 'Was du bekommst'},
 ] as const
 
 function LogoMark(): React.JSX.Element {

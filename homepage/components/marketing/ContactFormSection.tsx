@@ -102,8 +102,9 @@ export default function ContactFormSection(): React.JSX.Element {
                         Deine eigene Plattform — nicht nur noch ein Tool
                     </h2>
                     <p className="mt-4 max-w-lg text-primary-foreground/80">
-                        Wir sprechen mit Creators, Agenturen und Entwicklern über Early
-                        Access, den Umzug von Patreon/Steady und eigene Oberflächen.
+                        Wir sprechen mit Podcastern und Creators über Early Access,
+                        den Umzug von Patreon oder Steady und den Start unter
+                        eigener Marke.
                     </p>
 
                     <form className="mt-8 grid max-w-xl gap-4" onSubmit={handleSubmit}>

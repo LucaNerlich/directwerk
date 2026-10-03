@@ -4,11 +4,11 @@ import FeedBuilderMock from '@/components/marketing/FeedBuilderMock'
 const FEED_TYPES = [
     {
         title: 'Öffentlich — für alle',
-        copy: 'Dein podcast.xml und Artikel-RSS für freie Inhalte. Einreichbar bei Apple Podcasts, Spotify, Fyyd — ohne an eine Plattform gebunden zu sein.',
+        copy: 'Dein öffentlicher Podcast-Feed für freie Folgen. Läuft bei Apple Podcasts, Spotify und Co. — ohne dich an eine einzige Plattform zu binden.',
     },
     {
         title: 'Privat — pro Abonnent',
-        copy: 'Eigene Feed-URL pro Hörer: Jeder sieht nur, was sein Abo abdeckt. Du kannst Zugänge jederzeit sperren oder den Link erneuern.',
+        copy: 'Jeder zahlende Hörer bekommt einen eigenen Link: Nur Inhalte, die zum Abo passen. Du kannst Zugänge jederzeit sperren oder den Link erneuern.',
     },
 ] as const
 
@@ -21,10 +21,10 @@ export default function FeedsSection(): React.JSX.Element {
                     Jeder Hörer bekommt seinen eigenen Feed
                 </h2>
                 <p className="mt-4 max-w-2xl text-muted-foreground">
-                    Öffentliche Feeds bringen neue Hörer, private Feeds halten
-                    Abonnenten — dieselbe Logik für Podcast und Artikel. Im
-                    Feed-Builder wählen Hörer ihre Lieblingsformate; bezahlte
-                    Inhalte erscheinen nur, wenn das Abo passt.
+                    Öffentliche Feeds bringen neue Hörer. Private Feeds halten
+                    Abonnenten — mit genau den Folgen und Artikeln, die zum Abo
+                    gehören. Hörer können Formate wählen; bezahlte Inhalte
+                    erscheinen nur mit gültigem Zugang.
                 </p>
                 <div className="mt-10 grid items-start gap-4 lg:grid-cols-2">
                     <div className="grid gap-4">
