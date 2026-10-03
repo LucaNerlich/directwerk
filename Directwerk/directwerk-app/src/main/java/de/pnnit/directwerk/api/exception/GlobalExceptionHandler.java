@@ -46,6 +46,7 @@ import de.pnnit.directwerk.modules.stripebilling.exception.StripeNotConfiguredEx
 import de.pnnit.directwerk.modules.stripebilling.exception.StripeSignatureException;
 import de.pnnit.directwerk.modules.subscription.exception.SubscriptionNotFoundException;
 import de.pnnit.directwerk.modules.subscription.exception.SubscriptionProductNotFoundException;
+import de.pnnit.directwerk.multitenancy.PlatformAdminAccessDeniedException;
 import de.pnnit.directwerk.multitenancy.PlatformTenantAccessDeniedException;
 import de.pnnit.directwerk.multitenancy.TenantContextMissingException;
 import de.pnnit.directwerk.multitenancy.TenantMismatchException;
@@ -189,6 +190,12 @@ public class GlobalExceptionHandler {
     ResponseEntity<Response<Void>> handlePlatformTenantAccess(PlatformTenantAccessDeniedException ex) {
         return ResponseEntity.status(HttpStatus.FORBIDDEN)
                 .body(Response.error(403, "PLATFORM_TENANT_ACCESS_DENIED", ex.getMessage()));
+    }
+
+    @ExceptionHandler(PlatformAdminAccessDeniedException.class)
+    ResponseEntity<Response<Void>> handlePlatformAdminAccess(PlatformAdminAccessDeniedException ex) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(Response.error(403, "PLATFORM_ADMIN_ACCESS_DENIED", ex.getMessage()));
     }
 
     @ExceptionHandler(ModuleNotEnabledException.class)

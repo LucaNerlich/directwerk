@@ -7,6 +7,8 @@ import {Alert, AlertDescription} from '@directwerk/ui/components/alert'
 import {Button} from '@directwerk/ui/components/button'
 import {clearAllCachedTenantData} from '@directwerk/api/client/useCachedTenantQuery'
 
+import {getClientTenantHost} from '@directwerk/api/tenant'
+
 import {useDictionary} from '@/components/i18n/LocaleProvider'
 import {useLocalizedPath} from '@/components/i18n/useLocalizedPath'
 import {t} from '@/lib/i18n/dictionary'
@@ -43,6 +45,11 @@ export default function LogoutButton() {
                             const response = await fetch('/api/auth/logout', {
                                 method: 'POST',
                                 cache: 'no-store',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'X-Tenant-Host': getClientTenantHost(),
+                                },
+                                body: '{}',
                             })
                             if (!response.ok) {
                                 setLogoutError(dict.shell.logoutFailed)
