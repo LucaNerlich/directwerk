@@ -1,8 +1,9 @@
-import {cleanup, fireEvent, render, screen} from '@testing-library/react'
+import {cleanup, fireEvent, screen} from '@testing-library/react'
 import {afterEach, describe, expect, it, vi} from 'vitest'
 
 import WorkspaceChooser from '@/components/studio/WorkspaceChooser'
 import type {StudioWorkspace} from '@directwerk/api/types'
+import {renderWithLocale} from '@/lib/i18n/testUtils'
 
 const workspaces: StudioWorkspace[] = [
     {tenantId: 1, slug: 'alpha-a', name: 'Alpha Podcast', host: 'alpha-a.localhost'},
@@ -17,7 +18,7 @@ function renderChooser(overrides?: {
 }) {
     const onSelect = overrides?.onSelect ?? vi.fn()
     const onBack = overrides?.onBack ?? vi.fn()
-    render(
+    renderWithLocale(
         <WorkspaceChooser
             error={overrides?.error ?? null}
             onBack={onBack}

@@ -5,6 +5,7 @@ import {useEffect, type ReactNode} from 'react'
 
 import EmptyState from '@directwerk/ui/components/empty-state'
 
+import {useDictionary} from '@/components/i18n/LocaleProvider'
 import {useLocalizedPath} from '@/components/i18n/useLocalizedPath'
 import {isTenantAdminRole} from '@/lib/api/studioHelpers'
 import {useMe} from '@/lib/auth/MeProvider'
@@ -17,6 +18,7 @@ export default function TenantAdminGuard({
     const me = useMe()
     const router = useRouter()
     const localize = useLocalizedPath()
+    const dict = useDictionary()
     const allowed = isTenantAdminRole(me.roles)
 
     useEffect(() => {
@@ -29,8 +31,8 @@ export default function TenantAdminGuard({
         return (
             <div role="status">
                 <EmptyState
-                    title="Keine Berechtigung."
-                    description="Dieser Bereich ist nur für Mandanten-Admins verfügbar."
+                    title={dict.gates.noPermission}
+                    description={dict.gates.tenantAdminOnly}
                 />
             </div>
         )

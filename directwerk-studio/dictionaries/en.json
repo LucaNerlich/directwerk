@@ -28,6 +28,7 @@
       "serverUngueltigesFormatGesendet": "The server sent an invalid format."
     },
     "levels": {
+      "keepSelection": "Levels could not be loaded — the current selection is kept.",
       "oeffentlichKeineMindeststufe": "Public / no minimum level",
       "stufeSelectedvalue": "Level {selectedValue}",
       "stufenGeladen": "Loading levels…",
@@ -65,7 +66,15 @@
     },
     "unpublish": "Unpublish",
     "upload": "Upload",
-    "yes": "Yes"
+    "yes": "Yes",
+    "done": "Done",
+    "openStep": "Open",
+    "active": "Active",
+    "inactive": "Inactive",
+    "retryShort": "Retry",
+    "loadingShort": "Loading…",
+    "or": "or",
+    "nextStep": "Next step:"
   },
   "shell": {
     "approxSubscribers": "approx. ${subscribers.length} subscribers",
@@ -196,12 +205,15 @@
     "inviteAcceptFailed": "The invitation could not be accepted.",
     "inviteAcceptedRedirect": "Invitation accepted. Redirecting…",
     "inviteFormLoading": "Loading invitation form…",
+    "inviteReceived": "Received an invitation?",
     "inviteToken": "Invite token",
+    "inviteTokenAdopted": "Invite token applied — set your password now.",
     "inviteTokenPasswordRequired": "Please enter the invite token and a password (at least 12 characters).",
     "loginFailed": "Sign-in failed. Please try again.",
     "loginFormLoading": "Loading sign-in form…",
     "loginFormPreparing": "Preparing the sign-in form.",
     "logoutFailed": "Sign-out failed. Please try again.",
+    "name": "Name",
     "noWorkspaceFound": "No workspace was found for this sign-in. Please check your invitation.",
     "openWorkspace": "Open ${workspace.name} (${workspace.host})",
     "opening": "Opening…",
@@ -215,17 +227,21 @@
     "signingIn": "Signing in…",
     "step1SignIn": "Step 1 of 2 — sign in to manage content for your tenant.",
     "step2ChooseWorkspace": "Step 2 of 2 — choose the workspace you want to manage.",
+    "studioEditorsOnly": "Studio is only available to editors and tenant admins.",
     "studioLoading": "Loading Studio…",
     "validEmailPasswordRequired": "A valid email and password are required.",
     "validTenantDomain": "Please enter a valid tenant domain.",
     "workspaceSaveFailedCookies": "The workspace could not be saved. Please check your browser cookies.",
     "workspaceSelectFailed": "The workspace could not be selected.",
-    "workspaceSelectRetry": "The workspace could not be selected right now. Please try again."
+    "workspaceSelectRetry": "The workspace could not be selected right now. Please try again.",
+    "workspaceUnavailable": "The selected workspace is no longer available. Please sign in again.",
+    "backToLogin": "Back to sign-in"
   },
   "desks": {
     "aria": "Desks",
     "podcast": "Podcast",
-    "write": "Write"
+    "write": "Write",
+    "createContent": "Create content"
   },
   "write": {
     "accessForAllArticles": "Access for all articles",
@@ -251,7 +267,7 @@
     "articlesLoadFailed": "Articles could not be loaded.",
     "articlesUpdateFailed": "Articles could not be updated.",
     "articlesUpdated": "${count} articles updated.",
-    "articlesUpdatedPartial": "${successCount} of ${successCount + failureCount} articles updated.",
+    "articlesUpdatedPartial": "${successCount} of ${total} articles updated.",
     "attachedListsNotifyOnPublish": "Attached lists receive the email when you publish.",
     "bulkImportBackground": "Bulk import in the background",
     "bulkImportQueuedSummary": "${bulkResult.totalArticles - bulkResult.alreadyImported} articles are queued (${bulkResult.alreadyImported} already present). You will get an email at ${bulkResult.notifyEmail} when the import finishes. You can then review drafts and publish.",
@@ -338,7 +354,17 @@
     "uploadImage": "Upload image",
     "viewArticles": "View articles",
     "viewCategories": "View categories",
-    "writeFirstDraftLater": "Write the first draft. You can publish later."
+    "writeFirstDraftLater": "Write the first draft. You can publish later.",
+    "howArticleWorks": "How an article takes shape",
+    "toArticleList": "To article list",
+    "overviewLoading": "Loading write overview…",
+    "articlesLoading": "Loading articles…",
+    "writeFirstArticleCta": "Write your first article",
+    "importRss": "Import RSS",
+    "articlesTitle": "Articles",
+    "createCategory": "Create category",
+    "articleSingular": "Article",
+    "articlePlural": "Articles"
   },
   "podcast": {
     "1FolgeAktualisiert": "1 episode updated.",
@@ -405,7 +431,7 @@
     "folgeWiederhergestelltEntwurf": "Episode “${title}” was restored (draft).",
     "folgeZurueckgezogenEntwurf": "Episode “${title}” was unpublished (draft).",
     "folgenAktualisiert": "${count} episodes updated.",
-    "folgenAktualisiert2": "${successCount} of ${successCount + failureCount} episodes updated.",
+    "folgenAktualisiert2": "${successCount} of ${total} episodes updated.",
     "folgenGefundenLegeNeueSendungHaenge": "${preview.episodes.length} episodes found${preview.truncated ? ' (list truncated)' : ''}. Create a new show or attach the import to an existing one.",
     "folgenHintergrundJobImportieren": "Import ${bulkPendingCount} episodes as a background job",
     "folgenImportiertBereitsVorhandenUebersprunge": "${importedCount} episodes imported, ${alreadyImportedCount} already present, ${skippedCount} skipped. You can now review drafts and publish.",
@@ -512,7 +538,29 @@
     "zugriffAlleFolgen": "Access for all episodes",
     "zugriffReihenfolge": "Access and order",
     "zurueckListe": "Back to list",
-    "zurueckUebersicht": "Back to overview"
+    "zurueckUebersicht": "Back to overview",
+    "overviewLoading": "Loading podcast overview…",
+    "episodesLoading": "Loading episodes…",
+    "showsLoading": "Loading shows…",
+    "createFirstShow": "Create first show",
+    "createFirstFormat": "Create first format",
+    "createFirstEpisode": "Create first episode",
+    "resetSearch": "Reset search",
+    "setupDonePrompt": "Finished with setup?",
+    "draftShowBeforeLink": "Your show is still a draft.",
+    "draftShowAfterLink": " so the public feed appears.",
+    "formatsRecommendedHint": "(recommended) so you can label episodes as main, bonus, and so on.",
+    "noFormatsYetInline": "No formats yet.",
+    "episodesTitle": "Episodes",
+    "showsTitle": "Shows",
+    "formatsTitle": "Formats",
+    "episodeSingular": "Episode",
+    "episodePlural": "Episodes",
+    "showSingular": "Show",
+    "showPlural": "Shows",
+    "searchNoResultsDescription": "Adjust the search term or reset the search.",
+    "seriesMustPublishFirst": "The show must be published first.",
+    "openDrafts": "Open drafts"
   },
   "manage": {
     "abUnbefristet": "from ${item.startedAt.slice(0, 10)} · unlimited",
@@ -656,7 +704,21 @@
     "zugangBezahltenInhaltenKaufFreischaltungGekaufte": "Who has access to your paid content — via purchase or grant. Purchased and manually granted access sit side by side.",
     "zugangManuellVergebenWiderrufen": "Grant or revoke access manually — e.g. for guests, team, or giveaways. Grants also appear under Subscribers.",
     "zugangManuellVergebenWiderrufenAktiveFreisc": "Grant or revoke access manually. Active grants are loaded from the subscriber list.",
-    "zugriffsregelnPackage": "Access rules (PACKAGE)"
+    "zugriffsregelnPackage": "Access rules (PACKAGE)",
+    "kennzahlen": "Key metrics",
+    "createFirstProduct": "Create first product",
+    "createFirstCategory": "Create first category",
+    "membershipLevelsAria": "Membership levels",
+    "packagesAria": "Packages",
+    "stripeSetup": "Set up Stripe",
+    "csvExport": "Export CSV",
+    "productsTitle": "Products",
+    "categoriesTitle": "Categories",
+    "subscribersTitle": "Subscribers",
+    "grantsTitle": "Grants",
+    "loadingPayments": "Loading payments overview…",
+    "subscriptionsEyebrow": "Subscriptions",
+    "grantFirstHint": "Grant the first access above — it appears in this list immediately."
   },
   "settings": {
     "abonnentenVersendetSobaldNeueFolgeErscheint": "Sent to subscribers when a new episode appears.",
@@ -761,7 +823,9 @@
     "vorlagenBenachrichtigungenNeuenFolgenBeitrae": "Templates for notifications on new episodes and articles (EMAIL_NOTIFY module). Placeholders like {{title}} are replaced when sending.",
     "websiteAndColors": "Website & colors",
     "wirstStripeWeitergeleitetKontoVerknuepfen": "You will be redirected to Stripe to link or set up your account.",
-    "zahlungenMoeglich": "Payments enabled"
+    "zahlungenMoeglich": "Payments enabled",
+    "eyebrow": "Settings",
+    "integrationsTitle": "Integrations"
   },
   "team": {
     "deaktivierteKontenVerlierenSofortZugriffRea": "Deactivated accounts lose access immediately; reactivating restores it.",
@@ -788,7 +852,10 @@
     "teamKonnteGeladen": "Team could not be loaded.",
     "tenantAdminsImmerVollzugriffEinschraenkungen": "Tenant admins always have full access — restrictions do not apply.",
     "vollerZugriffInklEinstellungenTeamZahlungen": "Full access — including settings, team, and payments.",
-    "zugriffsrechteGespeichert": "Access permissions saved."
+    "zugriffsrechteGespeichert": "Access permissions saved.",
+    "membersTitle": "Members",
+    "accessRights": "Access rights",
+    "inviteFirst": "Invite the first person below — for example as an editor."
   },
   "analytics": {
     "aboKennzahlenKonntenGeladen": "Subscription metrics could not be loaded.",
@@ -821,7 +888,14 @@
     "veroeffentlicht": "${countByStatus(series, 'PUBLISHED')} published",
     "veroeffentlichteInhalteEntwuerfeGeplanteBeit": "Published content, drafts, and scheduled articles at a glance.",
     "vsPreviousPeriod": "${delta >= 0 ? '+' : ''}${delta} % vs. previous period",
-    "zahlendeAbosGegenueberManuellenFreischaltung": "Paying subscriptions vs. manual grants"
+    "zahlendeAbosGegenueberManuellenFreischaltung": "Paying subscriptions vs. manual grants",
+    "contentSection": "Content",
+    "audienceRevenue": "Audience & revenue",
+    "reachUmami": "Reach (Umami)",
+    "audienceRevenueDescription": "Memberships and estimated revenue from the subscription module.",
+    "reachDescription": "Page views and listener metrics from reach tracking.",
+    "reload": "Reload",
+    "loadingStats": "Loading statistics…"
   },
   "media": {
     "abgeschlossen": "Finishing…",
@@ -946,7 +1020,11 @@
     "ungueltigeBonusdatei": "Invalid bonus file.",
     "veroeffentlichbareDokumenteAbonnentenTitel": "Publishable documents for subscribers — with title, access, and workflow.",
     "veroeffentlicht": "Published.",
-    "zurueckgezogen": "Unpublished."
+    "zurueckgezogen": "Unpublished.",
+    "mediaEyebrow": "Media",
+    "title": "Bonus files",
+    "listDescription": "Draft, published, and archived bonus content.",
+    "createCta": "Create bonus file"
   },
   "publication": {
     "abgebrochen": "Cancelling…",
@@ -1047,8 +1125,10 @@
   },
   "gates": {
     "deskNotEnabled": "This area is not enabled for this tenant.",
+    "deskNotEnabledTitle": "Area not enabled",
     "noPermission": "No permission.",
     "subscriptionDescription": "Products and access grants for this tenant.",
+    "subscriptionModuleInactive": "The SUBSCRIPTION module is not active for this tenant. Products and access grants are therefore unavailable.",
     "subscriptionUnavailable": "Subscriptions unavailable",
     "tenantAdminOnly": "This area is only available to tenant admins."
   }

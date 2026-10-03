@@ -1,9 +1,10 @@
-import {render, screen, waitFor} from '@testing-library/react'
+import {screen, waitFor} from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import {beforeEach, describe, expect, it, vi} from 'vitest'
 
 import LevelSelect from '@/components/studio/LevelSelect'
 import {clearCachedTenantData} from '@directwerk/api/client/useCachedTenantQuery'
+import {renderWithLocale} from '@/lib/i18n/testUtils'
 
 const {host, listPublicLevels} = vi.hoisted(() => ({
     host: {value: 'tenant-0.test'},
@@ -37,7 +38,7 @@ beforeEach(() => {
 describe('LevelSelect', () => {
     it('renders the public option and level options after loading', async () => {
         listPublicLevels.mockResolvedValue(LEVELS)
-        render(<LevelSelect value={null} onChange={vi.fn()} />)
+        renderWithLocale(<LevelSelect value={null} onChange={vi.fn()} />)
 
         expect(
             await screen.findByRole('option', {name: 'Öffentlich / Keine Mindeststufe'}),
@@ -50,7 +51,7 @@ describe('LevelSelect', () => {
         listPublicLevels.mockResolvedValue(LEVELS)
         const onChange = vi.fn()
         const user = userEvent.setup()
-        render(<LevelSelect value={10} onChange={onChange} />)
+        renderWithLocale(<LevelSelect value={10} onChange={onChange} />)
 
         const trigger = await screen.findByRole('combobox')
         await user.selectOptions(trigger, '')
@@ -62,7 +63,7 @@ describe('LevelSelect', () => {
         listPublicLevels.mockResolvedValue(LEVELS)
         const onChange = vi.fn()
         const user = userEvent.setup()
-        render(<LevelSelect value={null} onChange={onChange} />)
+        renderWithLocale(<LevelSelect value={null} onChange={onChange} />)
 
         const trigger = await screen.findByRole('combobox')
         await user.selectOptions(trigger, '10')
@@ -78,7 +79,7 @@ describe('LevelSelect', () => {
                     resolveLevels = resolve
                 }),
         )
-        render(<LevelSelect value={null} onChange={vi.fn()} />)
+        renderWithLocale(<LevelSelect value={null} onChange={vi.fn()} />)
 
         const trigger = screen.getByRole('combobox')
         expect(trigger).toBeDisabled()
@@ -89,7 +90,7 @@ describe('LevelSelect', () => {
 
     it('stays disabled when the disabled prop is set', async () => {
         listPublicLevels.mockResolvedValue(LEVELS)
-        render(<LevelSelect value={null} onChange={vi.fn()} disabled />)
+        renderWithLocale(<LevelSelect value={null} onChange={vi.fn()} disabled />)
 
         const trigger = await screen.findByRole('combobox')
         await waitFor(() => expect(trigger).toBeDisabled())
@@ -97,14 +98,14 @@ describe('LevelSelect', () => {
 
     it('surfaces a value that is missing from the level list', async () => {
         listPublicLevels.mockResolvedValue(LEVELS)
-        render(<LevelSelect value={99} onChange={vi.fn()} />)
+        renderWithLocale(<LevelSelect value={99} onChange={vi.fn()} />)
 
         expect(await screen.findByRole('option', {name: 'Stufe 99'})).toBeInTheDocument()
     })
 
     it('stays disabled when loading fails', async () => {
         listPublicLevels.mockRejectedValue(new Error('boom'))
-        render(<LevelSelect value={null} onChange={vi.fn()} />)
+        renderWithLocale(<LevelSelect value={null} onChange={vi.fn()} />)
 
         const trigger = screen.getByRole('combobox')
         await waitFor(() => expect(trigger).toBeDisabled())
@@ -112,7 +113,7 @@ describe('LevelSelect', () => {
 
     it('keeps a preset value visible and announces the failure', async () => {
         listPublicLevels.mockRejectedValue(new Error('boom'))
-        render(<LevelSelect value={20} onChange={vi.fn()} />)
+        renderWithLocale(<LevelSelect value={20} onChange={vi.fn()} />)
 
         expect(await screen.findByRole('option', {name: 'Stufe 20'})).toBeInTheDocument()
         expect(screen.getByRole('alert')).toHaveTextContent(

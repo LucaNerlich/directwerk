@@ -3,9 +3,19 @@ import type {Metadata} from 'next'
 import {PRIVACY} from '@directwerk/legal'
 import LegalArticle from '@directwerk/ui/components/legal-article'
 
-export const metadata: Metadata = {
-    title: 'Datenschutzerklärung · Directwerk Studio',
-    description: 'Wie wir deine Daten schützen und welche Rechte du hast.',
+import {getDictionary} from '@/lib/i18n'
+
+export async function generateMetadata({
+    params,
+}: {
+    params: Promise<{lang: string}>
+}): Promise<Metadata> {
+    const {lang} = await params
+    const dict = await getDictionary(lang)
+    return {
+        title: dict.auth.privacyTitle,
+        description: dict.auth.privacyDescription,
+    }
 }
 
 export default function StudioPrivacyPage(): React.JSX.Element {

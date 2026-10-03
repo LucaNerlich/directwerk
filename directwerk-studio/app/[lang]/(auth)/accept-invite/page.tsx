@@ -2,6 +2,7 @@
 
 import Form from 'next/form'
 import LocaleLink from '@/components/i18n/LocaleLink'
+import {useDictionary} from '@/components/i18n/LocaleProvider'
 import {useLocalizedPath} from '@/components/i18n/useLocalizedPath'
 import {useSearchParams} from 'next/navigation'
 import {Suspense, useActionState} from 'react'
@@ -26,6 +27,7 @@ const INITIAL_STATE: AcceptInviteState = {error: null, success: false}
 function AcceptInviteForm() {
     const searchParams = useSearchParams()
     const localize = useLocalizedPath()
+    const dict = useDictionary()
     const tokenFromQuery = searchParams.get('token') ?? ''
 
     const [state, formAction, isPending] = useActionState(
@@ -37,8 +39,7 @@ function AcceptInviteForm() {
             })
             if (input === null) {
                 return {
-                    error:
-                        'Bitte Einladungs-Token und Passwort (mind. 12 Zeichen) eingeben.',
+                    error: dict.auth.inviteTokenPasswordRequired,
                     success: false,
                 }
             }
@@ -52,7 +53,7 @@ function AcceptInviteForm() {
                     error:
                         error instanceof Error
                             ? error.message
-                            : 'Die Einladung konnte nicht angenommen werden.',
+                            : dict.auth.inviteAcceptFailed,
                     success: false,
                 }
             }
@@ -64,7 +65,7 @@ function AcceptInviteForm() {
         <div className="grid gap-4">
             {tokenFromQuery.length > 0 ? (
                 <p className="text-sm text-muted-foreground" role="status">
-                    Einladungs-Token übernommen — lege jetzt dein Passwort fest.
+                    {dict.auth.inviteTokenAdopted}
                 </p>
             ) : null}
             <Form action={formAction} className="grid gap-4">
@@ -72,7 +73,7 @@ function AcceptInviteForm() {
                     <input type="hidden" name="token" value={tokenFromQuery} />
                 ) : (
                     <div className="grid gap-2">
-                        <Label htmlFor="token">Einladungs-Token</Label>
+                        <Label htmlFor="token">{dict.auth.inviteToken}</Label>
                         <Input
                             autoComplete="off"
                             id="token"
@@ -85,7 +86,8 @@ function AcceptInviteForm() {
                 )}
                 <div className="grid gap-2">
                     <Label htmlFor="name">
-                        Name <span className="text-muted-foreground">(optional)</span>
+                        {dict.auth.name}{' '}
+                        <span className="text-muted-foreground">({dict.common.optional})</span>
                     </Label>
                     <Input
                         autoComplete="name"
@@ -96,7 +98,7 @@ function AcceptInviteForm() {
                     />
                 </div>
                 <div className="grid gap-2">
-                    <Label htmlFor="password">Passwort</Label>
+                    <Label htmlFor="password">{dict.auth.password}</Label>
                     <Input
                         autoComplete="new-password"
                         id="password"
@@ -108,7 +110,7 @@ function AcceptInviteForm() {
                     />
                 </div>
                 <Button className="w-full" disabled={isPending || state.success} type="submit">
-                    {isPending ? 'Wird angenommen…' : 'Einladung annehmen'}
+                    {isPending ? dict.auth.accepting : dict.auth.acceptInvite}
                 </Button>
             </Form>
             {state.error !== null ? (
@@ -118,39 +120,43 @@ function AcceptInviteForm() {
             ) : null}
             {state.success ? (
                 <Alert role="status">
-                    <AlertDescription>Einladung angenommen. Weiterleitung…</AlertDescription>
+                    <AlertDescription>{dict.auth.inviteAcceptedRedirect}</AlertDescription>
                 </Alert>
             ) : null}
         </div>
     )
 }
 
+function AcceptInviteFallback(): React.JSX.Element {
+    const dict = useDictionary()
+    return (
+        <div
+            aria-busy="true"
+            aria-live="polite"
+            className="grid gap-4"
+            role="status"
+        >
+            <span className="sr-only">{dict.auth.inviteFormLoading}</span>
+            <Skeleton className="h-10 w-full" aria-hidden="true" />
+            <Skeleton className="h-10 w-full" aria-hidden="true" />
+            <Skeleton className="h-10 w-full" aria-hidden="true" />
+        </div>
+    )
+}
+
 export default function AcceptInvitePage() {
+    const dict = useDictionary()
     return (
         <AuthCard
-            description="Lege dein Passwort fest, um dem Workspace beizutreten."
+            description={dict.auth.setPasswordToJoin}
             footer={
                 <LocaleLink className="underline" href="/login">
-                    Zur Anmeldung
+                    {dict.auth.backToLogin}
                 </LocaleLink>
             }
-            title="Einladung annehmen"
+            title={dict.auth.acceptInvite}
         >
-            <Suspense
-                fallback={
-                    <div
-                        aria-busy="true"
-                        aria-live="polite"
-                        className="grid gap-4"
-                        role="status"
-                    >
-                        <span className="sr-only">Einladungsformular wird geladen…</span>
-                        <Skeleton className="h-10 w-full" aria-hidden="true" />
-                        <Skeleton className="h-10 w-full" aria-hidden="true" />
-                        <Skeleton className="h-10 w-full" aria-hidden="true" />
-                    </div>
-                }
-            >
+            <Suspense fallback={<AcceptInviteFallback />}>
                 <AcceptInviteForm />
             </Suspense>
         </AuthCard>

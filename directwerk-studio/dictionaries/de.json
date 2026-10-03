@@ -28,6 +28,7 @@
       "serverUngueltigesFormatGesendet": "Der Server hat ein ungültiges Format gesendet."
     },
     "levels": {
+      "keepSelection": "Stufen konnten nicht geladen werden — die aktuelle Auswahl bleibt erhalten.",
       "oeffentlichKeineMindeststufe": "Öffentlich / Keine Mindeststufe",
       "stufeSelectedvalue": "Stufe {selectedValue}",
       "stufenGeladen": "Stufen werden geladen…",
@@ -65,7 +66,15 @@
     },
     "unpublish": "Zurückziehen",
     "upload": "Hochladen",
-    "yes": "Ja"
+    "yes": "Ja",
+    "done": "Erledigt",
+    "openStep": "Offen",
+    "active": "Aktiv",
+    "inactive": "Inaktiv",
+    "retryShort": "Wiederholen",
+    "loadingShort": "Laden…",
+    "or": "oder",
+    "nextStep": "Nächster Schritt:"
   },
   "shell": {
     "approxSubscribers": "ca. ${subscribers.length} Abonnenten",
@@ -196,12 +205,15 @@
     "inviteAcceptFailed": "Die Einladung konnte nicht angenommen werden.",
     "inviteAcceptedRedirect": "Einladung angenommen. Weiterleitung…",
     "inviteFormLoading": "Einladungsformular wird geladen…",
+    "inviteReceived": "Einladung erhalten?",
     "inviteToken": "Einladungs-Token",
+    "inviteTokenAdopted": "Einladungs-Token übernommen — lege jetzt dein Passwort fest.",
     "inviteTokenPasswordRequired": "Bitte Einladungs-Token und Passwort (mind. 12 Zeichen) eingeben.",
     "loginFailed": "Anmeldung fehlgeschlagen. Bitte erneut versuchen.",
     "loginFormLoading": "Anmeldeformular wird geladen…",
     "loginFormPreparing": "Das Anmeldeformular wird vorbereitet.",
     "logoutFailed": "Abmeldung fehlgeschlagen. Bitte versuche es erneut.",
+    "name": "Name",
     "noWorkspaceFound": "Für diese Anmeldung wurde kein Workspace gefunden. Bitte Einladung prüfen.",
     "openWorkspace": "${workspace.name} (${workspace.host}) öffnen",
     "opening": "Wird geöffnet…",
@@ -215,17 +227,21 @@
     "signingIn": "Anmeldung…",
     "step1SignIn": "Schritt 1 von 2 — melde dich an, um Inhalte für deinen Mandanten zu verwalten.",
     "step2ChooseWorkspace": "Schritt 2 von 2 — wähle den Workspace, den du verwalten möchtest.",
+    "studioEditorsOnly": "Studio ist nur für Editoren und Mandanten-Admins verfügbar.",
     "studioLoading": "Studio wird geladen…",
     "validEmailPasswordRequired": "A valid email and password are required.",
     "validTenantDomain": "Bitte eine gültige Mandanten-Domain eingeben.",
     "workspaceSaveFailedCookies": "Der Workspace konnte nicht gespeichert werden. Bitte Browser-Cookies prüfen.",
     "workspaceSelectFailed": "Der Workspace konnte nicht ausgewählt werden.",
-    "workspaceSelectRetry": "Der Workspace konnte gerade nicht ausgewählt werden. Bitte erneut versuchen."
+    "workspaceSelectRetry": "Der Workspace konnte gerade nicht ausgewählt werden. Bitte erneut versuchen.",
+    "workspaceUnavailable": "Der gewählte Workspace ist nicht mehr verfügbar. Bitte erneut anmelden.",
+    "backToLogin": "Zur Anmeldung"
   },
   "desks": {
     "aria": "Desks",
     "podcast": "Podcast",
-    "write": "Schreiben"
+    "write": "Schreiben",
+    "createContent": "Inhalte erstellen"
   },
   "write": {
     "accessForAllArticles": "Zugriff für alle Beiträge",
@@ -251,7 +267,7 @@
     "articlesLoadFailed": "Beiträge konnten nicht geladen werden.",
     "articlesUpdateFailed": "Beiträge konnten nicht aktualisiert werden.",
     "articlesUpdated": "${count} Beiträge aktualisiert.",
-    "articlesUpdatedPartial": "${successCount} von ${successCount + failureCount} Beiträgen aktualisiert.",
+    "articlesUpdatedPartial": "${successCount} von ${total} Beiträgen aktualisiert.",
     "attachedListsNotifyOnPublish": "Angehängte Listen erhalten die E-Mail beim Veröffentlichen.",
     "bulkImportBackground": "Stapelimport im Hintergrund",
     "bulkImportQueuedSummary": "${bulkResult.totalArticles - bulkResult.alreadyImported} Beiträge sind in der Warteschlange (${bulkResult.alreadyImported} bereits vorhanden). Du erhältst eine E-Mail an ${bulkResult.notifyEmail}, sobald der Import fertig ist. Entwürfe kannst du danach prüfen und veröffentlichen.",
@@ -338,7 +354,17 @@
     "uploadImage": "Bild hochladen",
     "viewArticles": "Beiträge ansehen",
     "viewCategories": "Kategorien ansehen",
-    "writeFirstDraftLater": "Schreibe den ersten Entwurf. Veröffentlichen kannst du später."
+    "writeFirstDraftLater": "Schreibe den ersten Entwurf. Veröffentlichen kannst du später.",
+    "howArticleWorks": "So entsteht ein Beitrag",
+    "toArticleList": "Zur Beitragsliste",
+    "overviewLoading": "Schreib-Übersicht wird geladen…",
+    "articlesLoading": "Beiträge werden geladen…",
+    "writeFirstArticleCta": "Ersten Beitrag schreiben",
+    "importRss": "RSS importieren",
+    "articlesTitle": "Beiträge",
+    "createCategory": "Kategorie anlegen",
+    "articleSingular": "Beitrag",
+    "articlePlural": "Beiträge"
   },
   "podcast": {
     "1FolgeAktualisiert": "1 Folge aktualisiert.",
@@ -405,7 +431,7 @@
     "folgeWiederhergestelltEntwurf": "Folge „${title}“ wurde wiederhergestellt (Entwurf).",
     "folgeZurueckgezogenEntwurf": "Folge „${title}“ wurde zurückgezogen (Entwurf).",
     "folgenAktualisiert": "${count} Folgen aktualisiert.",
-    "folgenAktualisiert2": "${successCount} von ${successCount + failureCount} Folgen aktualisiert.",
+    "folgenAktualisiert2": "${successCount} von ${total} Folgen aktualisiert.",
     "folgenGefundenLegeNeueSendungHaenge": "${preview.episodes.length} Folgen gefunden${preview.truncated ? ' (Liste gekürzt)' : ''}. Lege eine neue Sendung an oder hänge den Import an eine bestehende an.",
     "folgenHintergrundJobImportieren": "${bulkPendingCount} Folgen als Hintergrund-Job importieren",
     "folgenImportiertBereitsVorhandenUebersprunge": "${importedCount} Folgen importiert, ${alreadyImportedCount} bereits vorhanden, ${skippedCount} übersprungen. Entwürfe kannst du jetzt prüfen und veröffentlichen.",
@@ -512,7 +538,29 @@
     "zugriffAlleFolgen": "Zugriff für alle Folgen",
     "zugriffReihenfolge": "Zugriff und Reihenfolge",
     "zurueckListe": "Zurück zur Liste",
-    "zurueckUebersicht": "Zurück zur Übersicht"
+    "zurueckUebersicht": "Zurück zur Übersicht",
+    "overviewLoading": "Podcast-Übersicht wird geladen…",
+    "episodesLoading": "Folgen werden geladen…",
+    "showsLoading": "Sendungen werden geladen…",
+    "createFirstShow": "Erste Sendung anlegen",
+    "createFirstFormat": "Erstes Format anlegen",
+    "createFirstEpisode": "Erste Folge anlegen",
+    "resetSearch": "Suche zurücksetzen",
+    "setupDonePrompt": "Fertig mit der Einrichtung?",
+    "draftShowBeforeLink": "Deine Sendung ist noch ein Entwurf.",
+    "draftShowAfterLink": ", damit der öffentliche Feed erscheint.",
+    "formatsRecommendedHint": "(empfohlen), damit du Folgen als Hauptfolge, Bonus usw. kennzeichnen kannst.",
+    "noFormatsYetInline": "Noch keine Formate.",
+    "episodesTitle": "Folgen",
+    "showsTitle": "Sendungen",
+    "formatsTitle": "Formate",
+    "episodeSingular": "Folge",
+    "episodePlural": "Folgen",
+    "showSingular": "Sendung",
+    "showPlural": "Sendungen",
+    "searchNoResultsDescription": "Passe den Suchbegriff an oder setze die Suche zurück.",
+    "seriesMustPublishFirst": "Die Sendung muss zuerst veröffentlicht werden.",
+    "openDrafts": "Offene Entwürfe"
   },
   "manage": {
     "abUnbefristet": "ab ${item.startedAt.slice(0, 10)} · unbefristet",
@@ -656,7 +704,21 @@
     "zugangBezahltenInhaltenKaufFreischaltungGekaufte": "Wer Zugang zu deinen bezahlten Inhalten hat — über Kauf oder Freischaltung. Gekaufte und manuell vergebene Zugänge stehen nebeneinander.",
     "zugangManuellVergebenWiderrufen": "Zugang manuell vergeben oder widerrufen — z. B. für Gäste, Team oder Gewinnspiele. Freischaltungen erscheinen auch unter Abonnenten.",
     "zugangManuellVergebenWiderrufenAktiveFreisc": "Zugang manuell vergeben oder widerrufen. Aktive Freischaltungen werden aus der Abonnentenliste geladen.",
-    "zugriffsregelnPackage": "Zugriffsregeln (PACKAGE)"
+    "zugriffsregelnPackage": "Zugriffsregeln (PACKAGE)",
+    "kennzahlen": "Kennzahlen",
+    "createFirstProduct": "Erstes Produkt anlegen",
+    "createFirstCategory": "Erste Kategorie anlegen",
+    "membershipLevelsAria": "Mitgliedschaftsstufen",
+    "packagesAria": "Pakete",
+    "stripeSetup": "Stripe einrichten",
+    "csvExport": "CSV exportieren",
+    "productsTitle": "Produkte",
+    "categoriesTitle": "Kategorien",
+    "subscribersTitle": "Abonnenten",
+    "grantsTitle": "Freischaltungen",
+    "loadingPayments": "Zahlungsübersicht wird geladen…",
+    "subscriptionsEyebrow": "Abos",
+    "grantFirstHint": "Vergib oben die erste Freischaltung — sie erscheint sofort in dieser Liste."
   },
   "settings": {
     "abonnentenVersendetSobaldNeueFolgeErscheint": "Wird an Abonnenten versendet, sobald eine neue Folge erscheint.",
@@ -761,7 +823,9 @@
     "vorlagenBenachrichtigungenNeuenFolgenBeitrae": "Vorlagen für Benachrichtigungen bei neuen Folgen und Beiträgen (Modul EMAIL_NOTIFY). Platzhalter wie {{title}} werden beim Versand ersetzt.",
     "websiteAndColors": "Website & Farben",
     "wirstStripeWeitergeleitetKontoVerknuepfen": "Du wirst zu Stripe weitergeleitet, um dein Konto zu verknüpfen oder einzurichten.",
-    "zahlungenMoeglich": "Zahlungen möglich"
+    "zahlungenMoeglich": "Zahlungen möglich",
+    "eyebrow": "Einstellungen",
+    "integrationsTitle": "Integrationen"
   },
   "team": {
     "deaktivierteKontenVerlierenSofortZugriffRea": "Deaktivierte Konten verlieren sofort den Zugriff; reaktivieren stellt ihn wieder her.",
@@ -788,7 +852,10 @@
     "teamKonnteGeladen": "Team konnte nicht geladen werden.",
     "tenantAdminsImmerVollzugriffEinschraenkungen": "Tenant-Admins haben immer Vollzugriff — Einschränkungen greifen nicht.",
     "vollerZugriffInklEinstellungenTeamZahlungen": "Voller Zugriff — inkl. Einstellungen, Team und Zahlungen.",
-    "zugriffsrechteGespeichert": "Zugriffsrechte gespeichert."
+    "zugriffsrechteGespeichert": "Zugriffsrechte gespeichert.",
+    "membersTitle": "Mitglieder",
+    "accessRights": "Zugriffsrechte",
+    "inviteFirst": "Lade unten die erste Person ein — z. B. als Redakteur."
   },
   "analytics": {
     "aboKennzahlenKonntenGeladen": "Abo-Kennzahlen konnten nicht geladen werden.",
@@ -821,7 +888,14 @@
     "veroeffentlicht": "${countByStatus(series, 'PUBLISHED')} veröffentlicht",
     "veroeffentlichteInhalteEntwuerfeGeplanteBeit": "Veröffentlichte Inhalte, Entwürfe und geplante Beiträge im Überblick.",
     "vsPreviousPeriod": "${delta >= 0 ? '+' : ''}${delta} % ggü. Vorperiode",
-    "zahlendeAbosGegenueberManuellenFreischaltung": "Zahlende Abos gegenüber manuellen Freischaltungen"
+    "zahlendeAbosGegenueberManuellenFreischaltung": "Zahlende Abos gegenüber manuellen Freischaltungen",
+    "contentSection": "Inhalte",
+    "audienceRevenue": "Publikum & Umsatz",
+    "reachUmami": "Reichweite (Umami)",
+    "audienceRevenueDescription": "Mitgliedschaften und geschätzter Umsatz aus dem Abo-Modul.",
+    "reachDescription": "Seitenaufrufe und Hörer-Kennzahlen aus der Reichweitenmessung.",
+    "reload": "Erneut laden",
+    "loadingStats": "Statistiken werden geladen…"
   },
   "media": {
     "abgeschlossen": "Wird abgeschlossen…",
@@ -946,7 +1020,11 @@
     "ungueltigeBonusdatei": "Ungültige Bonusdatei.",
     "veroeffentlichbareDokumenteAbonnentenTitel": "Veröffentlichbare Dokumente für Abonnenten — mit Titel, Zugang und Workflow.",
     "veroeffentlicht": "Veröffentlicht.",
-    "zurueckgezogen": "Zurückgezogen."
+    "zurueckgezogen": "Zurückgezogen.",
+    "mediaEyebrow": "Medien",
+    "title": "Bonusdateien",
+    "listDescription": "Entwürfe, veröffentlichte und archivierte Bonus-Inhalte.",
+    "createCta": "Bonusdatei anlegen"
   },
   "publication": {
     "abgebrochen": "Wird abgebrochen…",
@@ -1047,8 +1125,10 @@
   },
   "gates": {
     "deskNotEnabled": "Dieser Bereich ist für diesen Mandanten nicht freigeschaltet.",
+    "deskNotEnabledTitle": "Bereich nicht freigeschaltet",
     "noPermission": "Keine Berechtigung.",
     "subscriptionDescription": "Produkte und Freischaltungen für diesen Mandanten.",
+    "subscriptionModuleInactive": "Das Modul SUBSCRIPTION ist für diesen Tenant nicht aktiv. Produkte und Freischaltungen sind daher nicht verfügbar.",
     "subscriptionUnavailable": "Abos nicht verfügbar",
     "tenantAdminOnly": "Dieser Bereich ist nur für Mandanten-Admins verfügbar."
   }
