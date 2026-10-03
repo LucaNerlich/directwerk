@@ -1,22 +1,23 @@
 import {buttonVariants} from '@directwerk/ui/components/button'
 
 import SectionLabel from '@/components/marketing/SectionLabel'
+import type {Dictionary} from '@/lib/i18n/get-dictionary'
 import {LIVE_EXAMPLE_URL} from '@/lib/marketing/constants'
 
 const WAVEFORM = [38, 62, 45, 78, 55, 90, 64, 42, 70, 52, 84, 60, 74, 48, 66, 80, 58, 72, 44, 68, 56, 76, 50, 62]
 
-function PlayerMock(): React.JSX.Element {
+function PlayerMock({copy}: {copy: Dictionary['hero']}): React.JSX.Element {
     return (
         <div className="glass-panel relative overflow-hidden rounded-3xl">
             <div className="border-b border-foreground/10 bg-primary p-7 text-primary-foreground">
                 <p className="text-xs font-semibold uppercase tracking-[0.2em] opacity-70">
-                    Deine Show · Morgenlicht FM
+                    {copy.playerShow}
                 </p>
                 <p className="mt-8 text-3xl font-semibold tracking-tight">
-                    #128 — Guten Morgen, Berlin
+                    {copy.playerEpisode}
                 </p>
                 <p className="mt-2 text-sm text-primary-foreground/75">
-                    6 Min · Frei für alle
+                    {copy.playerMeta}
                 </p>
             </div>
             <div className="space-y-5 p-6 sm:p-7">
@@ -48,32 +49,34 @@ function PlayerMock(): React.JSX.Element {
     )
 }
 
-export default function HeroSection(): React.JSX.Element {
+export default function HeroSection({
+    copy,
+}: {
+    copy: Dictionary['hero']
+}): React.JSX.Element {
     return (
         <section className="marketing-section relative overflow-hidden">
             <div className="marketing-container grid items-center gap-12 lg:grid-cols-[1.1fr_0.9fr] lg:py-8">
                 <div>
                     <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                        Studio, Website & Abos · Hosting in Europa
+                        {copy.eyebrow}
                     </p>
                     <h1 className="mt-6 max-w-4xl text-balance text-5xl font-semibold leading-[0.96] tracking-[-0.055em] sm:text-6xl lg:text-7xl">
-                        Deine Inhalte.
+                        {copy.titleLine1}
                         <br />
-                        Deine Hörer.
+                        {copy.titleLine2}
                         <br />
-                        Deine Daten.
+                        {copy.titleLine3}
                     </h1>
                     <p className="mt-8 max-w-xl text-pretty text-lg leading-8 text-muted-foreground">
-                        Directwerk ist deine Podcast- und Content-Plattform: Studio zum
-                        Veröffentlichen, Website für Abonnenten, bezahlte Inhalte und
-                        Hosting in Europa — klar aufgebaut, ohne Technikstress.
+                        {copy.body}
                     </p>
                     <div className="mt-8 flex flex-wrap gap-3">
                         <a
                             className={buttonVariants({size: 'lg'})}
                             href="#features"
                         >
-                            Was du bekommst
+                            {copy.ctaPrimary}
                         </a>
                         <a
                             className={buttonVariants({variant: 'outline', size: 'lg'})}
@@ -81,14 +84,14 @@ export default function HeroSection(): React.JSX.Element {
                             rel="noopener noreferrer"
                             target="_blank"
                         >
-                            Live-Beispiel
+                            {copy.ctaSecondary}
                         </a>
                     </div>
                 </div>
-                <PlayerMock />
+                <PlayerMock copy={copy} />
             </div>
             <div className="marketing-container mt-4">
-                <SectionLabel>Einfach starten</SectionLabel>
+                <SectionLabel>{copy.sectionLabel}</SectionLabel>
             </div>
         </section>
     )

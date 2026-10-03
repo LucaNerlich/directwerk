@@ -37,6 +37,8 @@ const nextConfig: NextConfig = {
     experimental: {
         optimizePackageImports: [...extraOptimizePackageImports],
     },
+    // Imprint is served in-app under /[lang]/imprint (DE/EN via @directwerk/legal).
+    // Unprefixed /imprint is redirected by proxy.ts to /de/imprint or /en/imprint.
     async headers() {
         // NOTE: script-src uses 'unsafe-inline' (no nonce middleware here).
         // This page is statically prerendered, so per-request nonces cannot

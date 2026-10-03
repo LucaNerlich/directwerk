@@ -16,10 +16,16 @@ Open [http://localhost:3005](http://localhost:3005) (port **3005** avoids confli
 
 ## Routes
 
+Locales are always path-prefixed (`de` default, `en`). Unprefixed URLs redirect via
+`proxy.ts` using `Accept-Language` (and optional `NEXT_LOCALE` cookie).
+
 | Path | Purpose |
 |------|---------|
-| `/` | Platform landing — why Directwerk, feeds, product stack, FAQ, contact |
-| `/developers` | API excerpt for integrators — links to full VitePress docs |
+| `/de`, `/en` | Platform landing — why Directwerk, feeds, product stack, FAQ, contact |
+| `/de/developers`, `/en/developers` | API excerpt for integrators — links to full VitePress docs |
+| `/de/privacy`, `/en/privacy` | Privacy policy (`@directwerk/legal`) |
+| `/de/imprint`, `/en/imprint` | Imprint (`@directwerk/legal`) |
+| `/api/health` | Health JSON (no locale prefix) |
 
 ## Optional env
 

@@ -7,15 +7,10 @@ import {useEffect, useState} from 'react'
 import {Button, buttonVariants} from '@directwerk/ui/components/button'
 import {cn} from '@directwerk/ui/lib/utils'
 
+import {useLocale} from '@/components/i18n/LocaleProvider'
+import {locales, type Locale} from '@/lib/i18n/config'
+import {hrefFor, stripLangPrefix, swapLangPath} from '@/lib/i18n/pathname'
 import {DOCS_URL} from '@/lib/marketing/constants'
-
-const PLATFORM_LINKS = [
-    {href: '/#features', label: 'Plattform', description: 'Studio, Website & Abos'},
-    {href: '/privacy', label: 'Datenschutz', description: 'EU-Hosting & DSGVO'},
-    {href: '/#beispiel', label: 'Beispiel', description: 'Liedermacherleben live'},
-    {href: '/#feeds', label: 'Feeds', description: 'Privat & pro Hörer'},
-    {href: '/#products', label: 'Produkte', description: 'Was du bekommst'},
-] as const
 
 function LogoMark(): React.JSX.Element {
     return (
@@ -55,12 +50,22 @@ function ExternalIcon({className}: {className?: string}): React.JSX.Element {
     )
 }
 
-function Brand(): React.JSX.Element {
+function Brand({
+    homeHref,
+    ariaLabel,
+    tagline,
+    alphaChip,
+}: {
+    homeHref: string
+    ariaLabel: string
+    tagline: string
+    alphaChip: string
+}): React.JSX.Element {
     return (
         <Link
-            aria-label="Directwerk – Startseite"
+            aria-label={ariaLabel}
             className="flex min-w-0 items-center gap-2.5 rounded-lg"
-            href="/"
+            href={homeHref}
         >
             <LogoMark />
             <span className="flex min-w-0 flex-col leading-none">
@@ -68,18 +73,67 @@ function Brand(): React.JSX.Element {
                     Directwerk
                 </span>
                 <span className="mt-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                    Podcast aus Europa
+                    {tagline}
                 </span>
             </span>
             <span className="glass-chip ml-1 hidden rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground sm:inline-block">
-                Alpha
+                {alphaChip}
             </span>
         </Link>
     )
 }
 
+function LanguageSwitcher({
+    lang,
+    label,
+    labels,
+    onSelect,
+}: {
+    lang: Locale
+    label: string
+    labels: Record<Locale, string>
+    onSelect: (next: Locale) => void
+}): React.JSX.Element {
+    const pathname = usePathname()
+
+    return (
+        <div
+            aria-label={label}
+            className="flex items-center gap-0.5 rounded-full border border-foreground/10 p-0.5 text-xs font-semibold uppercase tracking-wide"
+            role="group"
+        >
+            {locales.map((locale) => {
+                const active = locale === lang
+                const href = swapLangPath(pathname, locale)
+                return (
+                    <Link
+                        aria-current={active ? 'true' : undefined}
+                        className={cn(
+                            'rounded-full px-2.5 py-1 transition-colors',
+                            active
+                                ? 'bg-primary text-primary-foreground'
+                                : 'text-muted-foreground hover:text-foreground',
+                        )}
+                        href={href}
+                        key={locale}
+                        lang={locale}
+                        onClick={() => {
+                            onSelect(locale)
+                        }}
+                    >
+                        {locale.toUpperCase()}
+                        <span className="sr-only">{labels[locale]}</span>
+                    </Link>
+                )
+            })}
+        </div>
+    )
+}
+
 export default function MarketingHeader(): React.JSX.Element {
     const pathname = usePathname()
+    const {lang, dictionary, setLocalePreference} = useLocale()
+    const copy = dictionary.header
     const [scrolled, setScrolled] = useState(false)
     const [open, setOpen] = useState(false)
 
@@ -94,7 +148,6 @@ export default function MarketingHeader(): React.JSX.Element {
         }
     }, [])
 
-    // Close the mobile panel on route change and on Escape.
     useEffect(() => {
         setOpen(false)
     }, [pathname])
@@ -114,7 +167,11 @@ export default function MarketingHeader(): React.JSX.Element {
         }
     }, [open])
 
-    const isDevelopers = pathname.startsWith('/developers')
+    const pathWithoutLang = stripLangPrefix(pathname)
+    const isDevelopers = pathWithoutLang === '/developers' || pathWithoutLang.startsWith('/developers/')
+    const homeHref = hrefFor(lang, '/')
+    const developersHref = hrefFor(lang, '/developers')
+    const contactHref = hrefFor(lang, '/#contact')
 
     return (
         <>
@@ -124,14 +181,12 @@ export default function MarketingHeader(): React.JSX.Element {
                         aria-hidden="true"
                         className="hidden size-1.5 rounded-full bg-current opacity-70 sm:inline-block"
                     />
-                    <p className="truncate">
-                        Alpha-Onboarding für erste Creator — EU-Hosting · DSGVO-konform
-                    </p>
+                    <p className="truncate">{copy.announcement}</p>
                     <a
                         className="shrink-0 font-semibold underline underline-offset-4 hover:opacity-85"
-                        href="/#contact"
+                        href={contactHref}
                     >
-                        Platz anfragen
+                        {copy.announcementCta}
                     </a>
                 </div>
             </div>
@@ -144,15 +199,20 @@ export default function MarketingHeader(): React.JSX.Element {
                 )}
             >
                 <div className="marketing-container flex h-16 items-center gap-3">
-                    <Brand />
+                    <Brand
+                        alphaChip={copy.alphaChip}
+                        ariaLabel={copy.homeAriaLabel}
+                        homeHref={homeHref}
+                        tagline={copy.tagline}
+                    />
                     <nav
-                        aria-label="Hauptnavigation"
+                        aria-label={copy.mainNavAria}
                         className="mx-auto hidden items-center gap-0.5 rounded-full border border-foreground/10 bg-card/60 p-1 backdrop-blur lg:flex"
                     >
-                        {PLATFORM_LINKS.map((item) => (
+                        {copy.platformLinks.map((item) => (
                             <Link
                                 className="rounded-full px-3.5 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent/70 hover:text-foreground"
-                                href={item.href}
+                                href={hrefFor(lang, item.href)}
                                 key={item.href}
                             >
                                 {item.label}
@@ -166,9 +226,9 @@ export default function MarketingHeader(): React.JSX.Element {
                                     ? 'bg-primary text-primary-foreground shadow-sm'
                                     : 'text-muted-foreground hover:bg-accent/70 hover:text-foreground',
                             )}
-                            href="/developers"
+                            href={developersHref}
                         >
-                            Entwickler
+                            {copy.developers}
                         </Link>
                         <span
                             aria-hidden="true"
@@ -180,22 +240,25 @@ export default function MarketingHeader(): React.JSX.Element {
                             rel="noopener noreferrer"
                             target="_blank"
                         >
-                            Dokumentation
+                            {copy.docs}
                             <ExternalIcon className="size-3.5 opacity-70" />
                         </a>
                     </nav>
                     <div className="ml-auto hidden shrink-0 items-center gap-2 md:flex lg:ml-0">
-                        <a
-                            className={buttonVariants()}
-                            href="/#contact"
-                        >
-                            Gespräch vereinbaren
+                        <LanguageSwitcher
+                            label={dictionary.language.switchLabel}
+                            labels={{de: dictionary.language.de, en: dictionary.language.en}}
+                            lang={lang}
+                            onSelect={setLocalePreference}
+                        />
+                        <a className={buttonVariants()} href={contactHref}>
+                            {copy.cta}
                         </a>
                     </div>
                     <Button
                         aria-controls="marketing-mobile-nav"
                         aria-expanded={open}
-                        aria-label={open ? 'Menü schließen' : 'Menü öffnen'}
+                        aria-label={open ? copy.closeMenu : copy.openMenu}
                         className="ml-auto lg:hidden"
                         onClick={() => {
                             setOpen((value) => !value)
@@ -226,19 +289,30 @@ export default function MarketingHeader(): React.JSX.Element {
                         id="marketing-mobile-nav"
                     >
                         <nav
-                            aria-label="Mobile Navigation"
+                            aria-label={copy.mobileNavAria}
                             className="marketing-container marketing-mobile-panel grid gap-6 py-5"
                         >
+                            <div className="flex justify-end">
+                                <LanguageSwitcher
+                                    label={dictionary.language.switchLabel}
+                                    labels={{
+                                        de: dictionary.language.de,
+                                        en: dictionary.language.en,
+                                    }}
+                                    lang={lang}
+                                    onSelect={setLocalePreference}
+                                />
+                            </div>
                             <div>
                                 <p className="px-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-                                    Plattform
+                                    {copy.platformGroup}
                                 </p>
                                 <ul className="mt-2 grid gap-1">
-                                    {PLATFORM_LINKS.map((item) => (
+                                    {copy.platformLinks.map((item) => (
                                         <li key={item.href}>
                                             <a
                                                 className="flex min-h-[44px] items-center justify-between gap-3 rounded-xl px-3 py-2.5 transition-colors hover:bg-accent/70"
-                                                href={item.href}
+                                                href={hrefFor(lang, item.href)}
                                                 onClick={() => {
                                                     setOpen(false)
                                                 }}
@@ -256,7 +330,7 @@ export default function MarketingHeader(): React.JSX.Element {
                             </div>
                             <div>
                                 <p className="px-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-                                    Entwickler
+                                    {copy.developersGroup}
                                 </p>
                                 <ul className="mt-2 grid gap-1">
                                     <li>
@@ -268,13 +342,13 @@ export default function MarketingHeader(): React.JSX.Element {
                                                     ? 'bg-primary font-medium text-primary-foreground'
                                                     : 'hover:bg-accent/70',
                                             )}
-                                            href="/developers"
+                                            href={developersHref}
                                             onClick={() => {
                                                 setOpen(false)
                                             }}
                                         >
                                             <span className="text-[15px] font-medium">
-                                                Entwickler
+                                                {copy.developers}
                                             </span>
                                             <span
                                                 className={cn(
@@ -284,7 +358,7 @@ export default function MarketingHeader(): React.JSX.Element {
                                                         : 'text-muted-foreground',
                                                 )}
                                             >
-                                                REST-API & OpenAPI
+                                                {copy.developersDescription}
                                             </span>
                                         </Link>
                                     </li>
@@ -296,11 +370,11 @@ export default function MarketingHeader(): React.JSX.Element {
                                             target="_blank"
                                         >
                                             <span className="flex items-center gap-1.5 text-[15px] font-medium">
-                                                Dokumentation
+                                                {copy.docs}
                                                 <ExternalIcon className="size-3.5 opacity-70" />
                                             </span>
                                             <span className="text-xs text-muted-foreground">
-                                                Guides & Referenz
+                                                {copy.docsDescription}
                                             </span>
                                         </a>
                                     </li>
@@ -311,10 +385,10 @@ export default function MarketingHeader(): React.JSX.Element {
                                 onClick={() => {
                                     setOpen(false)
                                 }}
-                                render={<a href="/#contact" />}
+                                render={<a href={contactHref} />}
                                 size="lg"
                             >
-                                Gespräch vereinbaren
+                                {copy.cta}
                             </Button>
                         </nav>
                     </div>

@@ -1,0 +1,303 @@
+{
+  "meta": {
+    "siteTitle": "Directwerk",
+    "siteTitleTemplate": "%s · Directwerk",
+    "siteDescription": "European podcast and publishing platform — with Studio, a listener website, and an API for agencies.",
+    "homeTitle": "Directwerk — European podcast & publishing platform",
+    "homeDescription": "Podcasts, articles, and newsletters under your brand — with Studio, a subscriber website, private feeds per listener, and hosting in Europe.",
+    "developersTitle": "API excerpt for developers",
+    "developersDescription": "Excerpt of the Directwerk REST API: host-based tenants, public endpoints, OAuth2, and response format.",
+    "privacyTitle": "Privacy policy",
+    "privacyDescription": "How we protect your data and which rights you have.",
+    "imprintTitle": "Imprint",
+    "imprintDescription": "Provider identification pursuant to § 5 DDG."
+  },
+  "shell": {
+    "skipToContent": "Skip to content"
+  },
+  "language": {
+    "switchLabel": "Language",
+    "de": "Deutsch",
+    "en": "English"
+  },
+  "header": {
+    "homeAriaLabel": "Directwerk – Home",
+    "tagline": "Podcast from Europe",
+    "alphaChip": "Alpha",
+    "announcement": "Alpha onboarding for early creators — EU hosting · GDPR-ready",
+    "announcementCta": "Request a spot",
+    "mainNavAria": "Main navigation",
+    "mobileNavAria": "Mobile navigation",
+    "platformGroup": "Platform",
+    "developersGroup": "Developers",
+    "developers": "Developers",
+    "developersDescription": "REST API & OpenAPI",
+    "docs": "Documentation",
+    "docsDescription": "Guides & reference",
+    "cta": "Book a call",
+    "openMenu": "Open menu",
+    "closeMenu": "Close menu",
+    "platformLinks": [
+      {
+        "href": "/#features",
+        "label": "Platform",
+        "description": "Studio, website & subscriptions"
+      },
+      {
+        "href": "/privacy",
+        "label": "Privacy",
+        "description": "EU hosting & GDPR"
+      },
+      {
+        "href": "/#beispiel",
+        "label": "Example",
+        "description": "Liedermacherleben live"
+      },
+      {
+        "href": "/#feeds",
+        "label": "Feeds",
+        "description": "Private & per listener"
+      },
+      {
+        "href": "/#products",
+        "label": "Products",
+        "description": "Studio, web & API"
+      }
+    ]
+  },
+  "footer": {
+    "blurb": "European podcast and publishing platform — with Studio, a listener website, and an API for agencies.",
+    "navAria": "Footer",
+    "contact": "Contact",
+    "copyright": "© {year} Directwerk · Podcast platform from Europe",
+    "navItems": [
+      { "href": "/#features", "label": "Platform" },
+      { "href": "/privacy", "label": "Privacy" },
+      { "href": "/#beispiel", "label": "Example" },
+      { "href": "/#feeds", "label": "Feeds" },
+      { "href": "/#products", "label": "Products" },
+      { "href": "/developers", "label": "Developers" },
+      { "href": "/#contact", "label": "Contact" },
+      { "href": "/imprint", "label": "Imprint" },
+      { "href": "docs", "label": "Documentation", "external": true }
+    ]
+  },
+  "hero": {
+    "eyebrow": "Hosted in Europe · GDPR-ready",
+    "titleLine1": "Your content.",
+    "titleLine2": "Your listeners.",
+    "titleLine3": "Your data.",
+    "body": "Podcasts, articles, and newsletters under your brand — with Studio, a subscriber website, and private feeds per listener.",
+    "ctaPrimary": "Explore the platform",
+    "ctaSecondary": "Live example",
+    "sectionLabel": "Your channel, your rules",
+    "playerShow": "Your show · Morgenlicht FM",
+    "playerEpisode": "#128 — Good morning, Berlin",
+    "playerMeta": "6 min · Free for everyone"
+  },
+  "problemSolution": {
+    "sectionLabel": "Why Directwerk",
+    "title": "Your own platform — not renting someone else’s",
+    "challengeLabel": "Challenge {n}",
+    "pairs": [
+      {
+        "problem": "Patreon, Steady, or a closed CMS control your domain, data, and delivery.",
+        "solution": "Directwerk runs under your brand: Studio for creators, a website for listeners — and for agencies an API to plug in their own UIs."
+      },
+      {
+        "problem": "Podcast, newsletter, and memberships live in separate tools.",
+        "solution": "Everything in one place: podcast, RSS, subscriptions, articles, and feed builder. Who pays sees what — the same for every format."
+      },
+      {
+        "problem": "Agencies need whitelabel, not another monolithic CMS.",
+        "solution": "Every client gets their own domain, branding, and isolated data — on a platform that safely runs multiple shows side by side."
+      }
+    ]
+  },
+  "liveExample": {
+    "sectionLabel": "Live example",
+    "title": "{name} — a real show on Directwerk",
+    "body": "Simon’s podcast already runs on Directwerk — on its own subdomain, with episodes you can listen to. Open the site and see how the show feels for listeners.",
+    "cta": "Open {name}"
+  },
+  "feeds": {
+    "sectionLabel": "Feeds for everyone & for each listener",
+    "title": "Every listener gets their own feed",
+    "body": "Public feeds bring new listeners; private feeds keep subscribers — the same logic for podcasts and articles. In the feed builder, listeners pick their favorite formats; paid content only appears when the subscription covers it.",
+    "types": [
+      {
+        "title": "Public — for everyone",
+        "copy": "Your podcast.xml and article RSS for free content. Submittable to Apple Podcasts, Spotify, Fyyd — without being locked to one platform."
+      },
+      {
+        "title": "Private — per subscriber",
+        "copy": "A personal feed URL per listener: everyone only sees what their subscription covers. You can revoke access or rotate the link anytime."
+      }
+    ]
+  },
+  "feedBuilder": {
+    "eyebrow": "Feed builder · Demo",
+    "title": "Every listener builds their own feed",
+    "legend": "Pick formats — try it out:",
+    "formats": ["Main episode", "Interview", "Bonus"],
+    "urlLabel": "Personal feed URL",
+    "urlAllFormats": "(all formats)",
+    "urlSelectedFormats": "({selected} of {total} formats)",
+    "copyUrl": "Copy URL",
+    "copied": "Copied!",
+    "footnote": "Up to 5 feeds per subscriber · paid content only · link revocable anytime."
+  },
+  "products": {
+    "sectionLabel": "What you get",
+    "title": "Everything in one place — or only what you need",
+    "body": "Creators work in Studio. Listeners use your website — or a custom UI wired to the same API.",
+    "items": [
+      {
+        "name": "directwerk-studio",
+        "role": "Creator dashboard",
+        "copy": "Episodes, articles, media, subscriptions, and team — everything you need to publish."
+      },
+      {
+        "name": "directwerk-web",
+        "role": "Listener website",
+        "copy": "Your show on the web: info, pricing, account, and private feeds — on your domain."
+      },
+      {
+        "name": "directwerk-admin",
+        "role": "Platform ops",
+        "copy": "Manage shows, features, and storage — for Directwerk operators only."
+      },
+      {
+        "name": "REST API",
+        "role": "For custom surfaces",
+        "copy": "Agencies and developers build their own apps against the same endpoints — or use Studio and Web."
+      }
+    ]
+  },
+  "developerTeaser": {
+    "sectionLabel": "For developers",
+    "title": "For developers: a stable API",
+    "body": "Agencies build custom UIs against /api/v1/ — with clear error codes, per-show domain resolution, and the same endpoints as Studio and Web.",
+    "ctaPrimary": "View API excerpt",
+    "ctaSecondary": "Full docs"
+  },
+  "faq": {
+    "sectionLabel": "FAQ",
+    "title": "Short answers",
+    "items": [
+      {
+        "question": "Where is my data stored?",
+        "answer": "In Europe: API and databases at Hetzner (Germany), audio and media files with European object-storage providers. No US-cloud lock-in — and a DPA to match."
+      },
+      {
+        "question": "Can I migrate away from Patreon, Steady, or Spotify?",
+        "answer": "Yes. Subscribers and products can be imported via API; public RSS feeds stay compatible — your listeners on Apple Podcasts & co. won’t notice the move. Talk to us about early access and migration help."
+      },
+      {
+        "question": "Do I need my own domain?",
+        "answer": "Your brand comes first: own domain, own branding, own logo. Directwerk stays in the background — Studio, website, and feeds carry your name."
+      },
+      {
+        "question": "What does it cost?",
+        "answer": "We’re in early access and talk with creators, agencies, and integrators individually about models and revenue share. Just write us — you’ll get an honest answer quickly."
+      },
+      {
+        "question": "I’m a developer — can I build my own frontend?",
+        "answer": "Yes. The REST API under /api/v1/ is the official path — Studio and Web are reference UIs. As an agency you build your own apps against the same endpoints, documented in OpenAPI."
+      }
+    ]
+  },
+  "contact": {
+    "eyebrow": "Ready for the next step?",
+    "title": "Your own platform — not just another tool",
+    "body": "We talk with creators, agencies, and developers about early access, migrating from Patreon/Steady, and custom surfaces.",
+    "name": "Name",
+    "email": "Email",
+    "message": "Message",
+    "submit": "Send message",
+    "submitting": "Sending…",
+    "success": "Thanks — your message is on its way. We’ll reply by email.",
+    "apiExcerpt": "API excerpt",
+    "captchaRequired": "Please complete the security check.",
+    "errors": {
+      "CAPTCHA_INVALID": "The security check expired. Please try again.",
+      "CONTACT_FORM_DISABLED": "The contact form is currently unavailable.",
+      "RATE_LIMIT_EXCEEDED": "Too many requests. Please try again later.",
+      "default": "Could not send your message. Please try again later."
+    }
+  },
+  "developers": {
+    "sectionLabel": "Developers",
+    "title": "The API is the product",
+    "introBefore": "Directwerk is API-first: multi-tenant whitelabel, host-based tenant resolution, OAuth2, and modular feature gates with machine-readable error codes. This page is an",
+    "introStrong": "excerpt",
+    "introAfter": "— install guide, OpenAPI reference, and integration guides live in the public documentation.",
+    "integratorTitle": "How integrators connect",
+    "integratorBullets": [
+      "Tenant via verified Host header (no X-Tenant-Id).",
+      "Public content under GET /api/v1/public/* without authentication.",
+      "Protected flows with OAuth2 JWT via POST /oauth2/token."
+    ],
+    "endpointsTitle": "Key endpoints",
+    "endpointsBody": "A selection of the most relevant paths — not the full reference.",
+    "tableMethod": "Method",
+    "tablePath": "Path",
+    "tableDescription": "Description",
+    "highlights": [
+      {
+        "method": "GET",
+        "path": "/api/v1/public/site-config",
+        "description": "Branding and active modules — starting point for every frontend."
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/public/episodes",
+        "description": "Public catalog (FREE playable; PAID metadata only, audioCdnUrl = null)."
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/public/products",
+        "description": "Membership products and prices for the pricing page."
+      },
+      {
+        "method": "GET",
+        "path": "/feeds/{tenantSlug}/podcast.xml",
+        "description": "Public RSS feed for podcatchers (tenant-scoped like the API)."
+      },
+      {
+        "method": "GET",
+        "path": "/feeds/{tenantSlug}/u/{feedToken}.xml",
+        "description": "Private subscriber feed (tokenized URL)."
+      },
+      {
+        "method": "POST",
+        "path": "/oauth2/token",
+        "description": "OAuth2 token for publisher and subscriber JWTs."
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/me/episodes",
+        "description": "Entitled episodes for signed-in subscribers."
+      },
+      {
+        "method": "POST",
+        "path": "/api/v1/me/billing/checkout-sessions",
+        "description": "Stripe Checkout — billing entirely via the API."
+      }
+    ],
+    "siteConfigTitle": "Example: site-config",
+    "siteConfigBody": "Every public frontend integration starts with branding and active modules.",
+    "oauthShow": "Show OAuth token example",
+    "oauthHide": "Hide OAuth example",
+    "responseTitle": "Response format",
+    "responseBodyBefore": "Unified JSON envelope; errors include structured",
+    "responseBodyAfter": "fields for integrators.",
+    "successLabel": "Success",
+    "moduleDisabledLabel": "Module disabled",
+    "docsTitle": "Full documentation",
+    "docsBody": "Install guide, operations, architecture, and OpenAPI reference on the public VitePress site. This page stays a compact API excerpt for a quick start.",
+    "docsOpen": "Open documentation",
+    "docsSwagger": "Swagger (staging)",
+    "docsIntegrator": "Integrator access"
+  }
+}
