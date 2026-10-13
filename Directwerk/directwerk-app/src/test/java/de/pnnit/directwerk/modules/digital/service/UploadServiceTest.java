@@ -547,6 +547,31 @@ class UploadServiceTest {
         verify(mediaAssetRepository, never()).saveAndFlush(any(MediaAsset.class));
     }
 
+    @Test
+    void confirmUploadDeniedWithDenyUpdateOverride() {
+        when(directwerkConfig.isStorageEnabled()).thenReturn(true);
+        when(directwerkConfig.storage()).thenReturn(storageProps());
+        when(tenantRepository.requireById(10L)).thenReturn(tenant);
+
+        MediaAsset pending = new MediaAsset();
+        pending.setId(55L);
+        pending.setTenant(tenant);
+        pending.setS3Key("alpha-show-a/staging/sess/episode.mp3");
+        pending.setStatus(AssetStatus.PENDING);
+        pending.setCreatedBy(7L);
+        when(mediaAssetRepository.findById(55L)).thenReturn(Optional.of(pending));
+
+        when(overrideRepository.findByTenantIdAndUserId(10L, 5L)).thenReturn(List.of(
+                override(ContentEntityType.MEDIA_ASSET, ContentOperation.UPDATE, RestrictionScope.DENY)));
+        authenticate(10L, 5L, Role.EDITOR);
+
+        assertThatThrownBy(() -> uploadService.confirmUpload(new UploadApi.ConfirmUploadCommand(55L)))
+                .isInstanceOf(ContentAccessDeniedException.class);
+        // Denied before any S3 or state work.
+        verify(s3Client, never()).headObject(any(HeadObjectRequest.class));
+        verify(mediaAssetRepository, never()).saveAndFlush(any(MediaAsset.class));
+    }
+
     private static void authenticate(Long tenantId, Long userId, Role... roles) {
         java.util.List<org.springframework.security.core.authority.SimpleGrantedAuthority> authorities =
                 java.util.Arrays.stream(roles)
