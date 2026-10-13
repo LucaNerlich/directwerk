@@ -66,7 +66,8 @@ export function buildUpstreamTenantHeaders(
         throw new Error('A tenant host is required.')
     }
 
-    const effectiveTenantHost = requireTenantHost ? tenantHost : tenantHost
+    // #407: both branches were identical (and the requireTenantHost case already threw above).
+    const effectiveTenantHost = tenantHost
     if (effectiveTenantHost === undefined) {
         return {host: targetUrl.host}
     }
