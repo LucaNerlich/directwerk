@@ -28,17 +28,6 @@ export async function getIntegrationsStatus(
     )
 }
 
-export async function getEspConnection(
-    tenantHost: string,
-): Promise<EspConnection | null> {
-    return studioGet(
-        '/api/proxy/tenant/integrations/esp',
-        tenantHost,
-        parseEspConnectionEnvelope,
-        invalidEspMessage,
-    )
-}
-
 export async function connectMailgun(
     tenantHost: string,
     input: ConnectMailgunInput,

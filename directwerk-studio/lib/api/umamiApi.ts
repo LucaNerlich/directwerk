@@ -10,7 +10,7 @@ export const UMAMI_RANGES: {value: UmamiRange; label: string}[] = [
     {value: '12m', label: '12 Monate'},
 ]
 
-export interface UmamiStatsSummary {
+interface UmamiStatsSummary {
     pageviews: number
     visitors: number
     visits: number
@@ -25,7 +25,7 @@ export interface UmamiStatsSummary {
     } | null
 }
 
-export interface UmamiSeriesPoint {
+interface UmamiSeriesPoint {
     t: string
     y: number
 }

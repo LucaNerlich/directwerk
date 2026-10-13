@@ -1,4 +1,4 @@
-import {defaultLocale, isLocale, type Locale, locales} from './config'
+import {isLocale, type Locale} from './config'
 
 /**
  * Builds a locale-prefixed in-app path. `path` must be absolute (`/…`) or empty.
@@ -40,10 +40,6 @@ export function localeFromPathname(pathname: string): Locale | null {
     return null
 }
 
-export function hasLocalePrefix(pathname: string): boolean {
-    return localeFromPathname(pathname) !== null
-}
-
 /**
  * Swaps `/de/...` ↔ `/en/...` keeping the remainder of the path + query/hash.
  * Unprefixed paths are prefixed with the target locale.
@@ -54,12 +50,3 @@ export function swapLocalePath(pathnameWithSearch: string, nextLang: Locale): st
     const suffix = match?.[2] ?? ''
     return `${localizedPath(nextLang, stripLocalePrefix(pathname))}${suffix}`
 }
-
-export function resolveLocaleParam(lang: string | undefined): Locale {
-    if (lang !== undefined && isLocale(lang)) {
-        return lang
-    }
-    return defaultLocale
-}
-
-export {locales, defaultLocale}

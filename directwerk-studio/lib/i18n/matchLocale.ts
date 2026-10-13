@@ -1,4 +1,4 @@
-import {defaultLocale, isLocale, type Locale, locales} from './config'
+import {defaultLocale, isLocale, type Locale} from './config'
 
 /**
  * Hand-rolled Accept-Language matcher (no Negotiator / formatjs deps).
@@ -54,6 +54,3 @@ export function preferredLocale(
     }
     return matchLocale(acceptLanguage)
 }
-
-/** Exported for tests — supported locale list stays in sync with config. */
-export const supportedLocales: readonly Locale[] = locales

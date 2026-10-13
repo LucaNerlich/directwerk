@@ -10,4 +10,3 @@ export const tokenStore = createSessionTokenStore({
 
 export const getAccessToken = tokenStore.getAccessToken.bind(tokenStore)
 export const setTokens = tokenStore.setTokens.bind(tokenStore)
-export const clearTokens = tokenStore.clearTokens.bind(tokenStore)
