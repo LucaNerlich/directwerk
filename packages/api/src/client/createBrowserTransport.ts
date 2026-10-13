@@ -6,7 +6,7 @@ import {
     type AuthedRequestFn,
     type AuthedRequestSession,
 } from './authedRequest'
-import type {TransportPolicy} from './policies'
+import type {BrowserTransportPolicy} from './policies'
 
 export interface BrowserTransport {
     INVALID_RESPONSE: string
@@ -32,7 +32,12 @@ export interface BrowserTransport {
 }
 
 export interface CreateBrowserTransportConfig {
-    policy: TransportPolicy
+    /**
+     * #406: `invalidResponseMessage` and `catalog` are read unconditionally below, so the
+     * policy type requires them instead of asserting with `!` (which silently produced an
+     * undefined catalog — and a TypeError on the first error response).
+     */
+    policy: BrowserTransportPolicy
     session: AuthedRequestSession
     clearTokens: () => void
     resolveTenantHost: () => string
@@ -46,8 +51,8 @@ export function createBrowserTransport(
 ): BrowserTransport {
     let resolveTenantHost = config.resolveTenantHost
 
-    const INVALID_RESPONSE = config.policy.invalidResponseMessage!
-    const ERROR_CATALOG = config.policy.catalog!
+    const INVALID_RESPONSE = config.policy.invalidResponseMessage
+    const ERROR_CATALOG = config.policy.catalog
 
     function baseHeaders(): Record<string, string> {
         return {'X-Tenant-Host': resolveTenantHost()}
