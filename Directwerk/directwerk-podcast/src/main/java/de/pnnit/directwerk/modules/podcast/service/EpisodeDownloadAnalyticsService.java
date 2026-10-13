@@ -60,19 +60,7 @@ public class EpisodeDownloadAnalyticsService {
 
     @Transactional(readOnly = true)
     public void trackEpisodeDownload(Long tenantId, Episode episode, String source, String hostname) {
-        trackEpisodeDownload(tenantId, episode, source, hostname, null, false);
-    }
-
-    @Transactional(readOnly = true)
-    public void trackEpisodeDownload(
-            Long tenantId,
-            Episode episode,
-            String source,
-            String hostname,
-            String clientUserAgent,
-            boolean isRangeRequest
-    ) {
-        trackEpisodeDownload(tenantId, episode, source, hostname, clientUserAgent, isRangeRequest, null);
+        trackEpisodeDownload(tenantId, episode, source, hostname, null, false, null);
     }
 
     @Transactional(readOnly = true)

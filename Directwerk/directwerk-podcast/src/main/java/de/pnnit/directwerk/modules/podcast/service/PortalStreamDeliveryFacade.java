@@ -25,23 +25,6 @@ public class PortalStreamDeliveryFacade {
     public TrackedStreamRedirect streamEpisode(
             DirectwerkUserPrincipal user,
             String episodeSlug,
-            String requestHost
-    ) {
-        return streamEpisode(user, episodeSlug, requestHost, null);
-    }
-
-    public TrackedStreamRedirect streamEpisode(
-            DirectwerkUserPrincipal user,
-            String episodeSlug,
-            String requestHost,
-            String clientUserAgent
-    ) {
-        return streamEpisode(user, episodeSlug, requestHost, clientUserAgent, null);
-    }
-
-    public TrackedStreamRedirect streamEpisode(
-            DirectwerkUserPrincipal user,
-            String episodeSlug,
             String requestHost,
             String clientUserAgent,
             String clientIp

@@ -41,19 +41,7 @@ public class ArticleViewDeliveryFacade {
             String requestHost,
             String clientUserAgent
     ) {
-        return publicView(tenantId, articleSlug, "https", requestHost, 443, clientUserAgent);
-    }
-
-    @Transactional(readOnly = true)
-    public TrackedArticleRedirect publicView(
-            Long tenantId,
-            String articleSlug,
-            String scheme,
-            String requestHost,
-            int port,
-            String clientUserAgent
-    ) {
-        return publicView(tenantId, articleSlug, scheme, requestHost, port, clientUserAgent, null);
+        return publicView(tenantId, articleSlug, "https", requestHost, 443, clientUserAgent, null);
     }
 
     @Transactional(readOnly = true)
@@ -82,19 +70,7 @@ public class ArticleViewDeliveryFacade {
             String requestHost,
             String clientUserAgent
     ) {
-        return privateView(feed, articleSlug, "https", requestHost, 443, clientUserAgent);
-    }
-
-    @Transactional(readOnly = true)
-    public TrackedArticleRedirect privateView(
-            ArticleFeed feed,
-            String articleSlug,
-            String scheme,
-            String requestHost,
-            int port,
-            String clientUserAgent
-    ) {
-        return privateView(feed, articleSlug, scheme, requestHost, port, clientUserAgent, null);
+        return privateView(feed, articleSlug, "https", requestHost, 443, clientUserAgent, null);
     }
 
     @Transactional(readOnly = true)

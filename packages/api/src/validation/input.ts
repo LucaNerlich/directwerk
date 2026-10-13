@@ -69,18 +69,14 @@ export function parseLoginInput(
 }
 
 export interface RefreshTokenInputOptions {
-    /** Maximum refresh-token length. Studio allows 8192, web 512. */
+    /** Maximum refresh-token length. Defaults to 8192. */
     maxLength?: number
-    /**
-     * Trim surrounding whitespace instead of rejecting any whitespace.
-     * Web trims (migration fallback), studio rejects whitespace outright.
-     */
-    trim?: boolean
 }
 
 /**
- * Validates a legacy JSON-body refresh token for the BFF refresh route.
- * The httpOnly cookie is preferred; this is only the migration fallback.
+ * Validates the JSON-body refresh token accepted by the BFF refresh route as a
+ * migration fallback. The httpOnly cookie is preferred; this body parser only
+ * serves clients that still POST a token from before the cookie migration.
  */
 export function parseRefreshTokenInput(
     value: unknown,
@@ -91,20 +87,8 @@ export function parseRefreshTokenInput(
     }
 
     const maxLength = options.maxLength ?? 8192
-    if (options.trim === true) {
-        const refreshToken = value.refresh_token.trim()
-        if (refreshToken.length === 0 || refreshToken.length > maxLength) {
-            return null
-        }
-        return {refresh_token: refreshToken}
-    }
-
-    const refreshToken = value.refresh_token
-    if (
-        refreshToken.length === 0 ||
-        refreshToken.length > maxLength ||
-        /\s/.test(refreshToken)
-    ) {
+    const refreshToken = value.refresh_token.trim()
+    if (refreshToken.length === 0 || refreshToken.length > maxLength) {
         return null
     }
 
