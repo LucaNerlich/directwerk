@@ -1,5 +1,6 @@
 package de.pnnit.directwerk.modules.email;
 
+import de.pnnit.directwerk.config.DirectwerkConfig;
 import de.pnnit.directwerk.modules.email.repository.EmailDeliveryRepository;
 import java.time.Clock;
 import java.time.Duration;
@@ -14,13 +15,13 @@ import org.springframework.transaction.support.TransactionTemplate;
 public class EmailDeliveryGuard {
 
     /**
-     * How long a provisional claim is considered in-flight. A claim older than this (with no
-     * recorded send) belongs to a crashed attempt and may be taken over, so a JVM/pod death
-     * between claim and send cannot permanently lose the email. Must stay below the queue's
-     * lease (default 60s), otherwise the queue's own retry would arrive while the claim still
-     * looks fresh and be skipped.
+     * How long a provisional claim is considered in-flight, derived from the queue lease so the
+     * two can never drift (issue #326). A claim older than this (with no recorded send) belongs to
+     * a crashed attempt and may be taken over, so a JVM/pod death between claim and send cannot
+     * permanently lose the email. Kept strictly below the queue's lease: otherwise the queue's own
+     * retry would arrive while the claim still looks fresh and be skipped as a duplicate.
      */
-    private static final Duration CLAIM_LEASE = Duration.ofSeconds(30);
+    private final Duration claimLease;
 
     private final EmailDeliveryRepository emailDeliveryRepository;
     private final Clock clock;
@@ -29,11 +30,16 @@ public class EmailDeliveryGuard {
     public EmailDeliveryGuard(
             EmailDeliveryRepository emailDeliveryRepository,
             Clock clock,
-            PlatformTransactionManager transactionManager
+            PlatformTransactionManager transactionManager,
+            DirectwerkConfig directwerkConfig
     ) {
         this.emailDeliveryRepository = emailDeliveryRepository;
         this.clock = clock;
         this.transactionTemplate = new TransactionTemplate(transactionManager);
+        long queueLeaseSeconds = directwerkConfig.queue() == null
+                ? 60L
+                : directwerkConfig.queue().leaseSeconds();
+        this.claimLease = Duration.ofSeconds(Math.max(1L, queueLeaseSeconds / 2));
     }
 
     /**
@@ -49,7 +55,7 @@ public class EmailDeliveryGuard {
             return Optional.of(new DeliveryClaim(jobId, claimToken));
         }
         if (emailDeliveryRepository.takeOverStaleClaim(
-                jobId, now, now.minus(CLAIM_LEASE), claimToken) > 0) {
+                jobId, now, now.minus(claimLease), claimToken) > 0) {
             return Optional.of(new DeliveryClaim(jobId, claimToken));
         }
         return Optional.empty();

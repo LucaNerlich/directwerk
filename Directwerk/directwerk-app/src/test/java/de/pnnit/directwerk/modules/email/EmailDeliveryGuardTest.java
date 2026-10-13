@@ -34,6 +34,9 @@ class EmailDeliveryGuardTest {
     @Mock
     private PlatformTransactionManager transactionManager;
 
+    @Mock
+    private de.pnnit.directwerk.config.DirectwerkConfig directwerkConfig;
+
     private EmailDeliveryGuard guard;
 
     @BeforeEach
@@ -41,8 +44,26 @@ class EmailDeliveryGuardTest {
         org.mockito.Mockito.lenient()
                 .when(transactionManager.getTransaction(any()))
                 .thenReturn(new SimpleTransactionStatus());
+        org.mockito.Mockito.lenient()
+                .when(directwerkConfig.queue())
+                .thenReturn(new de.pnnit.directwerk.config.DirectwerkProperties.Queue(
+                        true, 1000L, 10, 50, 60L, 300L, 3, 60L, 600L, 65536, "worker", 7L, 60000L, 100));
         guard = new EmailDeliveryGuard(
-                emailDeliveryRepository, Clock.fixed(NOW, ZoneOffset.UTC), transactionManager);
+                emailDeliveryRepository,
+                Clock.fixed(NOW, ZoneOffset.UTC),
+                transactionManager,
+                directwerkConfig);
+    }
+
+    @Test
+    void claimLeaseIsDerivedFromTheQueueLease() {
+        // Issue #326: with a 60s queue lease the takeover threshold is 30s before "now",
+        // so a claim fenced 31s ago is stale but one fenced 5s ago is not.
+        when(emailDeliveryRepository.insertIfAbsent(eq(JOB_ID), eq(NOW), any())).thenReturn(0);
+        when(emailDeliveryRepository.takeOverStaleClaim(eq(JOB_ID), eq(NOW), eq(NOW.minusSeconds(30)), any()))
+                .thenReturn(1);
+
+        assertThat(guard.tryClaimDelivery(JOB_ID)).isPresent();
     }
 
     @Test
