@@ -1,6 +1,7 @@
 package de.pnnit.directwerk.modules.podcast.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
@@ -66,6 +67,30 @@ class SeriesServiceTest {
         ArgumentCaptor<PodcastSeries> captor = ArgumentCaptor.forClass(PodcastSeries.class);
         org.mockito.Mockito.verify(podcastSeriesRepository).save(captor.capture());
         assertThat(captor.getValue().getDescription()).doesNotContain("<script>");
+    }
+
+    @Test
+    void createSeriesRejectsSlugsReservedByLiteralFeedRoutes() {
+        SeriesService service = new SeriesService(
+                podcastSeriesRepository,
+                tenantRepository,
+                podcastCoverAssetResolver,
+                rssFeedRefreshScheduler,
+                new HtmlSanitizer(),
+                permissionService
+        );
+
+        // Issue #389: /feeds/{tenant}/articles.xml is a literal route, so a series slugged
+        // "articles" could never serve its own {seriesSlug}.xml feed.
+        assertThatThrownBy(() -> service.createSeries(
+                10L, "articles", "Articles", null, null, "de", null, false, 0))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("reserved");
+
+        assertThatThrownBy(() -> service.createSeries(
+                10L, "podcast", "Podcast", null, null, "de", null, false, 0))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("reserved");
     }
 
     @Test

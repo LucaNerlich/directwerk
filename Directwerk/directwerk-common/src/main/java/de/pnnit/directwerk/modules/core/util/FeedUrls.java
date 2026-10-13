@@ -7,7 +7,20 @@ package de.pnnit.directwerk.modules.core.util;
  */
 public final class FeedUrls {
 
+    /**
+     * Issue #389: series slugs whose {@code /feeds/{tenantSlug}/{seriesSlug}.xml} URL would be
+     * shadowed by a more specific literal route — {@code /feeds/{tenantSlug}/podcast.xml} and
+     * {@code /feeds/{tenantSlug}/articles.xml}. A series with one of these slugs would silently
+     * never serve its own feed, so they are reserved at slug-validation time.
+     */
+    private static final java.util.Set<String> RESERVED_SERIES_SLUGS = java.util.Set.of("podcast", "articles");
+
     private FeedUrls() {
+    }
+
+    /** True when {@code slug} cannot be used for a series because a literal feed route owns it. */
+    public static boolean isReservedSeriesSlug(String slug) {
+        return slug != null && RESERVED_SERIES_SLUGS.contains(slug);
     }
 
     /** Public tenant-level podcast feed: {@code /feeds/{tenantSlug}/podcast.xml}. */

@@ -7,6 +7,7 @@ import de.pnnit.directwerk.modules.core.authorization.ContentOperation;
 import de.pnnit.directwerk.modules.core.repository.TenantRepository;
 import de.pnnit.directwerk.modules.core.service.MembershipPermissionService;
 import de.pnnit.directwerk.modules.core.util.FieldConstraints;
+import de.pnnit.directwerk.modules.core.util.FeedUrls;
 import de.pnnit.directwerk.modules.core.util.SlugNormalizer;
 import de.pnnit.directwerk.modules.core.util.TitleNormalizer;
 import de.pnnit.directwerk.modules.digital.service.HtmlSanitizer;
@@ -68,6 +69,7 @@ public class SeriesService {
     ) {
         permissionService.requireSeriesAccess(ContentOperation.CREATE, null);
         String slug = SlugNormalizer.normalize(rawSlug);
+        requireNotReservedSlug(slug);
         if (podcastSeriesRepository.existsByTenantIdAndSlug(tenantId, slug)) {
             throw new ConflictException(ConflictCodes.SERIES_SLUG_EXISTS, "Series slug already exists: " + slug);
         }
@@ -111,6 +113,7 @@ public class SeriesService {
         permissionService.requireSeriesAccess(ContentOperation.UPDATE, series.getCreatedBy());
         if (rawSlug != null) {
             String slug = SlugNormalizer.normalize(rawSlug);
+            requireNotReservedSlug(slug);
             if (podcastSeriesRepository.existsByTenantIdAndSlugAndIdNot(tenantId, slug, seriesId)) {
                 throw new ConflictException(ConflictCodes.SERIES_SLUG_EXISTS, "Series slug already exists: " + slug);
             }
@@ -178,4 +181,14 @@ public class SeriesService {
         return sanitized.isEmpty() ? null : sanitized;
     }
 
+
+    /**
+     * Rejects series slugs reserved by literal public feed routes (issue #389): with such a slug
+     * the series' own {@code {slug}.xml} feed would never be matched.
+     */
+    private static void requireNotReservedSlug(String slug) {
+        if (FeedUrls.isReservedSeriesSlug(slug)) {
+            throw new IllegalArgumentException("Series slug is reserved: " + slug);
+        }
+    }
 }
