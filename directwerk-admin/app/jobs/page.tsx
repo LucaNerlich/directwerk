@@ -43,8 +43,8 @@ export default function JobsPage() {
     const [query, setQuery] = useState<JobListQuery>(DEFAULT_QUERY)
     const [filterError, setFilterError] = useState<string | null>(null)
     // Keep the last successful page visible while a filter/pagination change
-    // refetches, mirroring the pre-seam behaviour (no skeleton after the first
-    // load; stale rows stay until the new page resolves).
+    // refetches (no skeleton after the first load; stale rows stay until the
+    // new page resolves).
     const [page, setPage] = useState<JobListPage | null>(null)
 
     const {

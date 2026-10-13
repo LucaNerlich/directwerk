@@ -117,9 +117,8 @@ function isTimeoutError(error: unknown): boolean {
 /**
  * Runs upload-url → PUT-to-storage → confirm and reports a normalized outcome.
  *
- * Both server callers previously reimplemented this dance with divergent
- * upload-target trust checks and confirm-retry bodies; the upload-target check
- * now comes from `urlPolicy` and the retry contract from `uploadProtocol`.
+ * Upload-target trust checks come from `urlPolicy` and the confirm-retry
+ * contract from `uploadProtocol`, so every server caller shares one sequence.
  */
 export async function performMediaUpload(
     options: PerformMediaUploadOptions,

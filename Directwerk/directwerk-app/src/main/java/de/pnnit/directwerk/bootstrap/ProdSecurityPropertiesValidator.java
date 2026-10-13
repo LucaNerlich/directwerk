@@ -7,9 +7,8 @@ import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 
 @Component
-// Stage is internet-reachable (see application-stage.yaml) and must get the same
-// fail-fast guarantees as prod — a leaked or misconfigured DIRECTWERK_ACCOUNT_EXPOSE_DEV_TOKENS
-// on stage previously had no startup check at all.
+// Stage is internet-reachable (see application-stage.yaml) and gets the same
+// fail-fast guarantees as prod.
 @Profile({"prod", "stage"})
 public class ProdSecurityPropertiesValidator {
 
