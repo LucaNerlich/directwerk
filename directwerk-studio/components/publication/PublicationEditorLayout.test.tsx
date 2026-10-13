@@ -10,7 +10,7 @@ vi.mock('next/link', () => ({
         <a href={href}>{children}</a>
     ),
 }))
-vi.mock('@/lib/dynamic/studioHeavy', () => ({
+vi.mock('@/lib/dynamic/ShowNotesEditor', () => ({
     ShowNotesEditor: () => <div data-testid="show-notes-editor" />,
 }))
 vi.mock('@/components/studio/LevelSelect', () => ({

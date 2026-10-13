@@ -6,15 +6,7 @@ function DeferredLoading({label}: {label: string}): React.JSX.Element {
     return <p className="text-sm text-muted-foreground">{label} wird geladen…</p>
 }
 
-/** TipTap rich-text editor — client-only, ~100KB+ gzipped with extensions. */
-export const ShowNotesEditor = dynamic(
-    () => import('@/components/editors/ShowNotesEditor'),
-    {
-        ssr: false,
-        loading: () => <DeferredLoading label="Editor" />,
-    },
-)
-
+/** Page-level editors and media library — client-only, code-split to keep studio routes light. */
 export const EpisodeEditor = dynamic(
     () => import('@/components/podcast/EpisodeEditor'),
     {
