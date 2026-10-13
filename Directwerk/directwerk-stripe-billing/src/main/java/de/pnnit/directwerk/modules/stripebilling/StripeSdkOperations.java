@@ -264,7 +264,6 @@ public class StripeSdkOperations implements StripeOperations {
         }
         var deserializer = event.getDataObjectDeserializer();
         StripeObject stripeObject = deserializer.getObject().orElse(null);
-        boolean dataObjectDeserialized = stripeObject != null;
         if (stripeObject == null) {
             // getObject() is empty when the event's Stripe API version differs from the SDK's.
             // Fall back to a forced deserialization so the event is still applied instead of
@@ -283,6 +282,10 @@ public class StripeSdkOperations implements StripeOperations {
                         event.getId(), event.getType(), ex);
             }
         }
+        // Issue #299: computed AFTER the fallback, so an object recovered by deserializeUnsafe()
+        // counts as deserialized. Captured before the fallback it stayed false, and applyEvent
+        // then discarded the recovered account.updated — the exact case the fallback exists for.
+        boolean dataObjectDeserialized = stripeObject != null;
         return extractPayload(event, stripeObject, dataObjectDeserialized);
     }
 
