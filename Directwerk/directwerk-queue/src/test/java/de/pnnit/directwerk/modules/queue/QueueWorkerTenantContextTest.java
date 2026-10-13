@@ -14,6 +14,7 @@ import de.pnnit.directwerk.config.DirectwerkProperties;
 import de.pnnit.directwerk.multitenancy.TenantContext;
 import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -75,12 +76,12 @@ class QueueWorkerTenantContextTest {
                 Instant.now()
         );
         when(queueService.claim("email", "test-worker", 10, 60)).thenReturn(List.of(job));
+        when(queueService.renew(eq(jobId), anyString(), anyLong())).thenReturn(Optional.of(job));
 
         QueueWorker worker = new QueueWorker(queueService, config, registry);
         worker.poll("email");
 
-        assertThat(seenTenantId.get()).isEqualTo(42L);
-        assertThat(TenantContext.getTenantId()).isNull();
+        assertThat(seenTenantId.get()).isEqualTo(42L);        assertThat(TenantContext.getTenantId()).isNull();
         verify(queueService).complete(jobId, "test-worker");
     }
 
@@ -128,6 +129,7 @@ class QueueWorkerTenantContextTest {
                 Instant.now()
         );
         when(queueService.claim("content-notify", "test-worker", 10, 60)).thenReturn(List.of(job));
+        when(queueService.renew(eq(jobId), anyString(), anyLong())).thenReturn(Optional.of(job));
         when(queueService.fail(eq(job), eq("test-worker"), anyString(), eq(30L))).thenReturn(job);
 
         QueueWorker worker = new QueueWorker(queueService, config, registry);
@@ -187,6 +189,7 @@ class QueueWorkerTenantContextTest {
                 Instant.now()
         );
         when(queueService.claim("email", "test-worker", 10, 60)).thenReturn(List.of(job));
+        when(queueService.renew(eq(jobId), anyString(), anyLong())).thenReturn(Optional.of(job));
 
         QueueWorker worker = new QueueWorker(queueService, config, registry);
         worker.poll("email");
