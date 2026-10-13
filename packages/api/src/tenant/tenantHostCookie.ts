@@ -13,7 +13,14 @@ export function readTenantHostCookieFromDocument(): string | null {
     for (const part of document.cookie.split(';')) {
         const trimmed = part.trim()
         if (trimmed.startsWith(prefix)) {
-            const value = decodeURIComponent(trimmed.slice(prefix.length))
+            let value: string
+            try {
+                value = decodeURIComponent(trimmed.slice(prefix.length))
+            } catch {
+                // #333: a stray '%' (malformed write or manual edit) throws URIError here, and
+                // this runs on every browser API call via getClientTenantHost -> baseHeaders.
+                return null
+            }
             return parseTenantHost(value)
         }
     }
