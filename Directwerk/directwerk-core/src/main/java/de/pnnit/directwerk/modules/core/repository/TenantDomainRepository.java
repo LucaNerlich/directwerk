@@ -15,13 +15,6 @@ public interface TenantDomainRepository extends JpaRepository<TenantDomain, Long
             select domain from TenantDomain domain
             join fetch domain.tenant
             where lower(domain.host) = lower(:host)
-            """)
-    Optional<TenantDomain> findByHostIgnoreCaseWithTenant(@Param("host") String host);
-
-    @Query("""
-            select domain from TenantDomain domain
-            join fetch domain.tenant
-            where lower(domain.host) = lower(:host)
               and domain.verified = true
             """)
     Optional<TenantDomain> findVerifiedByHostIgnoreCaseWithTenant(@Param("host") String host);
