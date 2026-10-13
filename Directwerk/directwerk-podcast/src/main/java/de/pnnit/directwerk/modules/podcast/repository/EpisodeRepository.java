@@ -4,6 +4,7 @@ import de.pnnit.directwerk.modules.podcast.entity.Episode;
 import de.pnnit.directwerk.modules.podcast.entity.EpisodeStatus;
 import de.pnnit.directwerk.modules.podcast.entity.SeriesStatus;
 import java.time.Instant;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.EntityGraph;
@@ -89,6 +90,9 @@ public interface EpisodeRepository extends JpaRepository<Episode, Long> {
             "categories", "categories.parent"
     })
     Optional<Episode> findByTenantIdAndImportIdentity(Long tenantId, String importIdentity);
+
+    /** Bulk lookup used by the import preview so it does not issue one query per feed item (#321). */
+    List<Episode> findByTenantIdAndImportIdentityIn(Long tenantId, Collection<String> importIdentities);
 
     long countByTenantId(Long tenantId);
 
