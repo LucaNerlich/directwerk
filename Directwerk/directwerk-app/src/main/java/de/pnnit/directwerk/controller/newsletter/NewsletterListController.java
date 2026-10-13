@@ -51,10 +51,17 @@ public class NewsletterListController {
             @RequestParam(defaultValue = "false") boolean activeOnly
     ) {
         Long tenantId = TenantContext.requireTenantId();
-        List<NewsletterListView> lists = newsletterListService.listLists(tenantId, activeOnly).stream()
-                .map(this::toListView)
+        var lists = newsletterListService.listLists(tenantId, activeOnly);
+        // Issue #376: one grouped aggregate for the page instead of two count queries per list.
+        var counts = newsletterListService.subscriptionCountsByListIds(
+                lists.stream().map(NewsletterList::getId).toList());
+        List<NewsletterListView> views = lists.stream()
+                .map(list -> {
+                    long[] pair = counts.getOrDefault(list.getId(), new long[2]);
+                    return toListView(list, pair[0], pair[1]);
+                })
                 .toList();
-        return ResponseEntity.ok(Response.ok(lists));
+        return ResponseEntity.ok(Response.ok(views));
     }
 
     @PostMapping
@@ -118,14 +125,21 @@ public class NewsletterListController {
     }
 
     private NewsletterListView toListView(NewsletterList list) {
+        return toListView(
+                list,
+                newsletterListService.countActiveSubscriptions(list.getId()),
+                newsletterListService.countPendingSubscriptions(list.getId()));
+    }
+
+    private static NewsletterListView toListView(NewsletterList list, long activeCount, long pendingCount) {
         return new NewsletterListView(
                 list.getId(),
                 list.getSlug(),
                 list.getName(),
                 list.getDescription(),
                 list.getStatus().name(),
-                newsletterListService.countActiveSubscriptions(list.getId()),
-                newsletterListService.countPendingSubscriptions(list.getId()),
+                activeCount,
+                pendingCount,
                 list.getCreatedAt(),
                 list.getUpdatedAt()
         );

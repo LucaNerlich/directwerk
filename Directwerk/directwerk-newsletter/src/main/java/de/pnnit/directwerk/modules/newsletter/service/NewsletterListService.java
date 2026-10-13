@@ -62,6 +62,30 @@ public class NewsletterListService {
         return list;
     }
 
+    /**
+     * Issue #376: subscription counts for a page of lists in one query, keyed by list id.
+     * {@code long[]{active, pending}}.
+     */
+    @Transactional(readOnly = true)
+    public java.util.Map<Long, long[]> subscriptionCountsByListIds(java.util.Collection<Long> listIds) {
+        java.util.Map<Long, long[]> counts = new java.util.HashMap<>();
+        if (listIds == null || listIds.isEmpty()) {
+            return counts;
+        }
+        for (Object[] row : newsletterSubscriptionRepository.countByListIdInGroupedByStatus(listIds)) {
+            Long listId = (Long) row[0];
+            NewsletterSubscriptionStatus status = (NewsletterSubscriptionStatus) row[1];
+            long count = ((Number) row[2]).longValue();
+            long[] pair = counts.computeIfAbsent(listId, id -> new long[2]);
+            if (status == NewsletterSubscriptionStatus.ACTIVE) {
+                pair[0] = count;
+            } else if (status == NewsletterSubscriptionStatus.PENDING) {
+                pair[1] = count;
+            }
+        }
+        return counts;
+    }
+
     @Transactional(readOnly = true)
     public long countActiveSubscriptions(Long listId) {
         return newsletterSubscriptionRepository.countByListIdAndStatus(listId, NewsletterSubscriptionStatus.ACTIVE);
