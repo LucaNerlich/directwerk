@@ -349,13 +349,56 @@ public class AnalyticsQueryService {
         HttpResult send(URI uri, String body, String token) throws IOException;
     }
 
-    /** Resolves once, rejects private destinations, and pins that result for the TLS connection. */
+    /**
+     * Resolves once, rejects private destinations, and pins that result for the TLS connection.
+     * <p>
+     * Issue #372: the client (and its connection pool) is cached per pinned host instead of being
+     * built and closed per request — the dashboard path calls this 2-4 times per query, so it paid
+     * a full connect/TLS handshake every time. Keyed by host + resolved address set, so a DNS
+     * change rebuilds rather than pinning a stale address. `ponytail:` the map is bounded by the
+     * handful of distinct analytics hosts.
+     */
     private static final class PinnedRequestSender implements RequestSender {
+
+        private final java.util.concurrent.ConcurrentMap<String, PinnedClient> clients =
+                new java.util.concurrent.ConcurrentHashMap<>();
+
+        private record PinnedClient(InetAddress[] addresses, CloseableHttpClient client) {
+        }
 
         @Override
         public HttpResult send(URI uri, String body, String token) throws IOException {
             String expectedDnsHost = stripIpv6Brackets(uri.getHost());
+            CloseableHttpClient client = clientFor(expectedDnsHost);
+
+            HttpUriRequestBase request;
+            if (body == null) {
+                request = new HttpGet(uri);
+            } else {
+                HttpPost post = new HttpPost(uri);
+                post.setEntity(new StringEntity(body, ContentType.APPLICATION_JSON));
+                request = post;
+            }
+            request.setHeader("Accept", "application/json");
+            if (token != null) {
+                request.setHeader("Authorization", "Bearer " + token);
+            }
+            request.setConfig(RequestConfig.custom()
+                    .setResponseTimeout(Timeout.ofMilliseconds(UPSTREAM_TIMEOUT.toMillis()))
+                    .build());
+            return client.execute(request, response -> new HttpResult(
+                    response.getCode(),
+                    response.getEntity() == null ? "" : EntityUtils.toString(response.getEntity())
+            ));
+        }
+
+        private CloseableHttpClient clientFor(String expectedDnsHost) throws IOException {
             InetAddress[] pinnedAddresses = UmamiHostUrlValidator.resolvePublicAddresses(expectedDnsHost);
+            PinnedClient cached = clients.get(expectedDnsHost);
+            if (cached != null && java.util.Arrays.equals(cached.addresses(), pinnedAddresses)) {
+                return cached.client();
+            }
+
             DnsResolver pinnedResolver = new DnsResolver() {
                 @Override
                 public InetAddress[] resolve(String host) throws UnknownHostException {
@@ -381,31 +424,22 @@ public class AnalyticsQueryService {
                             .setConnectTimeout(Timeout.ofMilliseconds(UPSTREAM_TIMEOUT.toMillis()))
                             .build())
                     .build();
-            try (CloseableHttpClient client = HttpClients.custom()
+            CloseableHttpClient client = HttpClients.custom()
                     .setConnectionManager(connectionManager)
                     .disableAutomaticRetries()
                     .disableRedirectHandling()
-                    .build()) {
-                HttpUriRequestBase request;
-                if (body == null) {
-                    request = new HttpGet(uri);
-                } else {
-                    HttpPost post = new HttpPost(uri);
-                    post.setEntity(new StringEntity(body, ContentType.APPLICATION_JSON));
-                    request = post;
+                    .build();
+
+            PinnedClient previous = clients.put(
+                    expectedDnsHost, new PinnedClient(pinnedAddresses, client));
+            if (previous != null) {
+                try {
+                    previous.client().close();
+                } catch (IOException ignored) {
+                    // Superseded client; nothing to signal to the caller.
                 }
-                request.setHeader("Accept", "application/json");
-                if (token != null) {
-                    request.setHeader("Authorization", "Bearer " + token);
-                }
-                request.setConfig(RequestConfig.custom()
-                        .setResponseTimeout(Timeout.ofMilliseconds(UPSTREAM_TIMEOUT.toMillis()))
-                        .build());
-                return client.execute(request, response -> new HttpResult(
-                        response.getCode(),
-                        response.getEntity() == null ? "" : EntityUtils.toString(response.getEntity())
-                ));
             }
+            return client;
         }
     }
 }
