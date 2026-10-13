@@ -1,0 +1,26 @@
+info:
+  name: 7 - Public Unsubscribe
+  type: http
+  seq: 7
+
+http:
+  method: POST
+  url: "{{baseUrl}}/api/v1/public/newsletter/unsubscribe"
+  headers:
+    - name: Host
+      value: "{{tenantAHost}}"
+    - name: Content-Type
+      value: application/json
+  body:
+    type: json
+    content: |-
+      {
+        "token": "{{newsletterUnsubscribeToken}}"
+      }
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true

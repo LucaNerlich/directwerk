@@ -1,0 +1,26 @@
+info:
+  name: 6 - Public Confirm Subscription
+  type: http
+  seq: 6
+
+http:
+  method: POST
+  url: "{{baseUrl}}/api/v1/public/newsletter/confirm"
+  headers:
+    - name: Host
+      value: "{{tenantAHost}}"
+    - name: Content-Type
+      value: application/json
+  body:
+    type: json
+    content: |-
+      {
+        "token": "{{newsletterConfirmToken}}"
+      }
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true
