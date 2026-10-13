@@ -296,7 +296,7 @@ class RemoteAssetIngestServiceTest {
                 eq(10L),
                 eq("https://1.1.1.1/cover.jpg"),
                 eq(AssetType.IMAGE),
-                eq(List.of(AssetStatus.READY, AssetStatus.PENDING))
+                eq(List.of(AssetStatus.READY))
         )).thenReturn(Optional.of(existing));
 
         MediaAsset reused = service.ingestFromUrl(new RemoteAssetIngestApi.IngestCommand(
