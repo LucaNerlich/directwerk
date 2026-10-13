@@ -207,8 +207,16 @@ public class RssXmlBuilder {
         return series != null && series.isItunesExplicit() ? "true" : "false";
     }
 
+    /**
+     * Issue #320: characters outside the XML 1.0 {@code Char} production (U+0000-U+0008, U+000B,
+     * U+000C, U+000E-U+001F) are not legal in XML text; a single one makes the whole document
+     * non-well-formed, so every subscriber's podcatcher fails on the feed.
+     */
+    private static final java.util.regex.Pattern INVALID_XML_CHARS =
+            java.util.regex.Pattern.compile("[\\x00-\\x08\\x0B\\x0C\\x0E-\\x1F]");
+
     static String escapeText(String value) {
-        return value
+        return INVALID_XML_CHARS.matcher(value).replaceAll("")
                 .replace("&", "&amp;")
                 .replace("<", "&lt;")
                 .replace(">", "&gt;")
