@@ -15,6 +15,7 @@ import java.util.List;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
@@ -29,9 +30,11 @@ public class NewsletterSubscriptionService {
     private final TransactionalEmailNotifier emailNotifier;
 
     @Transactional(readOnly = true)
-    public List<NewsletterSubscription> listSubscriptions(Long tenantId, Long listId) {
+    public List<NewsletterSubscription> listSubscriptions(Long tenantId, Long listId, int limit) {
         newsletterListService.requireList(tenantId, listId);
-        return subscriptionRepository.findByListIdAndTenantIdOrderByCreatedAtDescIdDesc(listId, tenantId);
+        // Issue #324: bounded, newest-first page instead of the whole directory (PII) per request.
+        return subscriptionRepository.findByListIdAndTenantIdOrderByCreatedAtDescIdDesc(
+                listId, tenantId, PageRequest.of(0, limit));
     }
 
     /**
