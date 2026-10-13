@@ -68,6 +68,8 @@ import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
+import org.springframework.web.HttpMediaTypeNotAcceptableException;
+import org.springframework.web.HttpMediaTypeNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -112,6 +114,16 @@ public class GlobalExceptionHandler {
     private static ResponseEntity<Response<Void>> badRequest(String code, Exception ex) {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                 .body(Response.error(400, code, ex.getMessage()));
+    }
+
+    /**
+     * Creates a bad-request response with a static message. Preferred over the
+     * {@link Exception} overload for validation failures: the raw text embeds internal type and
+     * method names that must not reach clients (issue #380).
+     */
+    private static ResponseEntity<Response<Void>> badRequest(String code, String message) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(Response.error(400, code, message));
     }
 
     @ExceptionHandler(AnalyticsQueryException.class)
@@ -263,6 +275,9 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(StripeApiException.class)
     ResponseEntity<Response<Void>> handleStripeApi(StripeApiException ex) {
+        // Issue #317: the upstream Stripe detail and cause were discarded entirely, making
+        // payment/connectivity incidents undiagnosable from server logs.
+        log.error("Stripe request failed", ex);
         return ResponseEntity.status(HttpStatus.BAD_GATEWAY)
                 .body(Response.error(502, "STRIPE_REQUEST_FAILED", "Stripe request failed"));
     }
@@ -462,8 +477,14 @@ public class GlobalExceptionHandler {
                 .map(Throwable::getMessage)
                 .orElse("")
                 .toLowerCase(Locale.ROOT);
-        if (details.contains("slug")) {
+        // Issue #316: integrations key on the error `code`, so a non-tenant slug clash (e.g. an
+        // episode slug) must not be reported as a *tenant* slug clash. Match the specific
+        // constraint first, then fall back to a neutral code.
+        if (details.contains("uq_tenants_slug")) {
             return conflict("TENANT_SLUG_EXISTS", "A resource with this slug already exists");
+        }
+        if (details.contains("slug")) {
+            return conflict("SLUG_EXISTS", "A resource with this slug already exists");
         }
         if (details.contains("host") || details.contains("domain")) {
             return conflict("DOMAIN_ALREADY_EXISTS", "This domain is already in use");
@@ -496,7 +517,9 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(ConstraintViolationException.class)
     ResponseEntity<Response<Void>> handleConstraintViolation(ConstraintViolationException ex) {
-        return badRequest("VALIDATION_ERROR", ex);
+        // Issue #380: the raw message embeds the bean/method path; keep the detail in the log.
+        log.warn("Constraint violation", ex);
+        return badRequest("VALIDATION_ERROR", "Request validation failed");
     }
 
     /**
@@ -518,7 +541,9 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)
     ResponseEntity<Response<Void>> handleTypeMismatch(MethodArgumentTypeMismatchException ex) {
-        return badRequest("VALIDATION_ERROR", ex);
+        // Issue #380: Spring's message embeds the target Java type and conversion text.
+        log.warn("Request parameter type mismatch", ex);
+        return badRequest("VALIDATION_ERROR", "Request validation failed");
     }
 
     /**
@@ -529,7 +554,9 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(MissingServletRequestParameterException.class)
     ResponseEntity<Response<Void>> handleMissingParameter(MissingServletRequestParameterException ex) {
-        return badRequest("VALIDATION_ERROR", ex);
+        // Issue #380: the message embeds the method parameter type.
+        log.warn("Missing request parameter", ex);
+        return badRequest("VALIDATION_ERROR", "Request validation failed");
     }
 
     /**
@@ -589,6 +616,22 @@ public class GlobalExceptionHandler {
      * @param ex the unmapped exception
      * @return a generic 500 response using the standard error envelope
      */
+    /**
+     * Issue #315: without these, a plain content-negotiation mistake was reported as a 500 by the
+     * catch-all, breaking the "every failure uses the envelope with a correct status" contract.
+     */
+    @ExceptionHandler(HttpMediaTypeNotSupportedException.class)
+    ResponseEntity<Response<Void>> handleMediaTypeNotSupported(HttpMediaTypeNotSupportedException ex) {
+        return ResponseEntity.status(HttpStatus.UNSUPPORTED_MEDIA_TYPE)
+                .body(Response.error(415, "UNSUPPORTED_MEDIA_TYPE", "Request content type is not supported"));
+    }
+
+    @ExceptionHandler(HttpMediaTypeNotAcceptableException.class)
+    ResponseEntity<Response<Void>> handleMediaTypeNotAcceptable(HttpMediaTypeNotAcceptableException ex) {
+        return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE)
+                .body(Response.error(406, "NOT_ACCEPTABLE", "No acceptable response media type is available"));
+    }
+
     @ExceptionHandler(Exception.class)
     ResponseEntity<Response<Void>> handleUnexpected(Exception ex) {
         log.error("Unhandled exception reached GlobalExceptionHandler catch-all", ex);

@@ -157,8 +157,21 @@ class GlobalExceptionHandlerTest {
         var response = handler.handleDataIntegrity(ex);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
-        assertThat(response.getBody().errors().getFirst().code()).isEqualTo("TENANT_SLUG_EXISTS");
+        // Issue #316: an episode slug clash must not be reported as a *tenant* slug clash.
+        assertThat(response.getBody().errors().getFirst().code()).isEqualTo("SLUG_EXISTS");
         assertThat(response.getBody().errors().getFirst().message()).doesNotContain("insert into");
+    }
+
+    @Test
+    void tenantSlugConstraintKeepsTheTenantSpecificCode() {
+        var cause = new RuntimeException(
+                "ERROR: duplicate key value violates unique constraint \"uq_tenants_slug\"");
+        var ex = new org.springframework.dao.DataIntegrityViolationException(
+                "could not execute statement; constraint [uq_tenants_slug]", cause);
+
+        var response = handler.handleDataIntegrity(ex);
+
+        assertThat(response.getBody().errors().getFirst().code()).isEqualTo("TENANT_SLUG_EXISTS");
     }
 
     @Test
