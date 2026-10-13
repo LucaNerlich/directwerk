@@ -77,7 +77,7 @@ export function useCachedTenantQuery<T>(
     fetcher: (host: string) => Promise<T>,
     options: UseCachedTenantQueryOptions,
 ): UseAuthedQueryResult<T> {
-    const {namespace, tenantHost, fallbackError} = options
+    const {namespace, tenantHost, ...rest} = options
 
     const fetcherRef = useRef(fetcher)
     fetcherRef.current = fetcher
@@ -88,7 +88,9 @@ export function useCachedTenantQuery<T>(
     )
 
     const query = useAuthedQuery(cachedFetcher, {
-        fallbackError,
+        // #335: forward the caller's options (enabled, mapError, fallbackError, …) instead of
+        // silently dropping declared fields; the cache key stays authoritative for identity.
+        ...rest,
         queryKey: cacheKey(namespace, tenantHost),
     })
 
