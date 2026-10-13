@@ -126,12 +126,10 @@ export function userFacingAccountError(
 
 /**
  * Generic mapping with a caller-provided fallback.
- * Backend messages never reach the UI.
+ * Backend/transport messages never reach the UI, so the error is deliberately
+ * ignored and the caller's fallback is always returned.
  */
-export function userFacingGeneralError(error: unknown, fallback: string): string {
-    if (!(error instanceof Error)) {
-        return fallback
-    }
+export function userFacingGeneralError(_error: unknown, fallback: string): string {
     return fallback
 }
 
