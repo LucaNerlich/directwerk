@@ -59,6 +59,14 @@ class EmailTemplateRendererTest {
     }
 
     @Test
+    void htmlToPlainTextDecodesAllHtmlEntities() {
+        // Issue #392: htmlEscape emits &quot; and &#39; too, which the old four-replace version left raw.
+        String plainText = EmailTemplateRenderer.htmlToPlainText("<p>O&#39;Brien&nbsp;&amp; &quot;quoted&quot;</p>");
+
+        assertThat(plainText).isEqualTo("O'Brien & \"quoted\"");
+    }
+
+    @Test
     void renderSubjectCollapsesLineBreaksFromVariables() {
         String rendered = renderer.renderSubject(
                 EmailTemplate.TENANT_INVITATION,

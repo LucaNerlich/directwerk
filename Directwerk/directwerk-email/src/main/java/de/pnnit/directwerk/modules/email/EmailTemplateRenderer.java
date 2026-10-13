@@ -61,11 +61,12 @@ public class EmailTemplateRenderer {
     static String htmlToPlainText(String html) {
         // Tags become a space (not "") so adjacent words don't merge.
         String withoutTags = HTML_TAG_PATTERN.matcher(html).replaceAll(" ");
-        String decoded = withoutTags
-                .replace("&nbsp;", " ")
-                .replace("&amp;", "&")
-                .replace("&lt;", "<")
-                .replace("&gt;", ">");
-        return decoded.replaceAll("\\s+", " ").trim();
+        // Issue #392: the renderer escapes with HtmlUtils.htmlEscape, which also emits &quot;
+        // and &#39; — decode the full entity set rather than the four manual replaces, or
+        // plain-text alternatives show "O&#39;Brien".
+        String decoded = org.springframework.web.util.HtmlUtils.htmlUnescape(withoutTags);
+        // &nbsp; decodes to U+00A0, which Java's \s does not consider whitespace — normalise it
+        // so the collapse below still works (the previous four-replace version mapped it to " ").
+        return decoded.replace('\u00A0', ' ').replaceAll("\\s+", " ").trim();
     }
 }
