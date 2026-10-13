@@ -1,9 +1,8 @@
 package de.pnnit.directwerk.modules.queue;
 
 import de.pnnit.directwerk.config.DirectwerkConfig;
+import de.pnnit.directwerk.modules.core.transaction.TransactionAfterCommit;
 import org.springframework.beans.factory.ObjectProvider;
-import org.springframework.transaction.support.TransactionSynchronization;
-import org.springframework.transaction.support.TransactionSynchronizationManager;
 import tools.jackson.databind.ObjectMapper;
 
 import java.util.function.Function;
@@ -48,16 +47,9 @@ public class TenantRefreshJobProducer {
         if (tenantId == null || tenantId < 1) {
             throw new IllegalArgumentException("tenantId must be a positive id");
         }
-        if (TransactionSynchronizationManager.isSynchronizationActive()) {
-            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
-                @Override
-                public void afterCommit() {
-                    requestRefresh(tenantId);
-                }
-            });
-            return;
-        }
-        requestRefresh(tenantId);
+        // Reuse the shared helper (issue #393) instead of a hand-rolled copy of the same
+        // register-afterCommit-or-run-now logic.
+        TransactionAfterCommit.run(() -> requestRefresh(tenantId));
     }
 
     private void requestRefresh(Long tenantId) {
