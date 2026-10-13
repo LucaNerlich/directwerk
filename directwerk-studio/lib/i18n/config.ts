@@ -1,11 +1,7 @@
-export const locales = ['de', 'en'] as const
-
-export type Locale = (typeof locales)[number]
-
-export const defaultLocale: Locale = 'de'
-
-export const LOCALE_COOKIE = 'NEXT_LOCALE'
-
-export function isLocale(value: string): value is Locale {
-    return (locales as readonly string[]).includes(value)
-}
+export {
+    defaultLocale,
+    isLocale,
+    LOCALE_COOKIE,
+    locales,
+    type Locale,
+} from '@directwerk/ui/lib/locale'
