@@ -86,7 +86,6 @@ public class ArticlePublicationWorkflowService {
         permissionService.requireArticleAccess(ContentOperation.SCHEDULE, article.getCreatedBy());
         PublicationLifecycleSupport.schedule(
                 scheduledAt,
-                notifySubscribers,
                 () -> article.getStatus() == ArticleStatus.DRAFT,
                 "articles",
                 () -> {

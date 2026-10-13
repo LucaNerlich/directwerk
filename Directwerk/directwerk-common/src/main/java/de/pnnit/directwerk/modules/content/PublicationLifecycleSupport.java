@@ -14,7 +14,6 @@ public final class PublicationLifecycleSupport {
 
     public static void schedule(
             Instant scheduledAt,
-            boolean notifySubscribers,
             BooleanSupplier isDraft,
             String contentLabel,
             Runnable applyScheduled

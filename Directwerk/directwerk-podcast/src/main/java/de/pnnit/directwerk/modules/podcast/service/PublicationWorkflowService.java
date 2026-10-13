@@ -92,7 +92,6 @@ public class PublicationWorkflowService {
         requirePublishedSeries(episode);
         PublicationLifecycleSupport.schedule(
                 scheduledAt,
-                notifySubscribers,
                 () -> episode.getStatus() == EpisodeStatus.DRAFT,
                 "episodes",
                 () -> {
