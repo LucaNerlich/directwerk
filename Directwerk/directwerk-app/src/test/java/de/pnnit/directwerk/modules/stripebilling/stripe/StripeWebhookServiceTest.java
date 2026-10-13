@@ -508,8 +508,8 @@ class StripeWebhookServiceTest {
         SubscriptionProduct cheap = new SubscriptionProduct();
         cheap.setId(22L);
         cheap.setStripePriceId("price_cheap");
-        when(subscriptionProductRepository.findByTenantIdOrderBySortOrderAscIdAsc(7L))
-                .thenReturn(List.of(cheap));
+        when(subscriptionProductRepository.findFirstByTenantIdAndStripePriceIdOrderByIdAsc(7L, "price_cheap"))
+                .thenReturn(Optional.of(cheap));
         when(subscriptionRepository.findByTenantIdAndExternalSubscriptionIdForUpdate(7L, "sub_2"))
                 .thenReturn(Optional.empty());
 

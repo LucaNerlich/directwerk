@@ -15,6 +15,9 @@ public interface SubscriptionProductRepository extends JpaRepository<Subscriptio
 
     Optional<SubscriptionProduct> findByIdAndTenantId(Long id, Long tenantId);
 
+    /** Indexed lookup for webhook price→product resolution (issue #366). */
+    Optional<SubscriptionProduct> findFirstByTenantIdAndStripePriceIdOrderByIdAsc(Long tenantId, String stripePriceId);
+
     Optional<SubscriptionProduct> findByTenantIdAndSlug(Long tenantId, String slug);
 
     boolean existsByTenantIdAndSlug(Long tenantId, String slug);
