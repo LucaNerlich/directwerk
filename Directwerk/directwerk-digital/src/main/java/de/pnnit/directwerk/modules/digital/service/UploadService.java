@@ -194,6 +194,15 @@ public class UploadService implements UploadApi {
         if (!tenantId.equals(asset.getTenant().getId())) {
             throw new MediaAssetNotFoundException(command.mediaAssetId());
         }
+        // RBAC gate (issue #298): confirming finalizes an existing asset, so the caller
+        // needs UPDATE rights on that asset — not just the tenant-wide CREATE that
+        // createUploadUrl checks. Without this, any same-tenant editor can finalize
+        // (and on a size/type mismatch, destroy) another editor's in-flight upload.
+        permissionService.requireContentAccess(
+                SecurityUtils.currentPrincipal(),
+                ContentEntityType.MEDIA_ASSET,
+                ContentOperation.UPDATE,
+                asset.getCreatedBy());
         if (asset.getStatus() != AssetStatus.PENDING) {
             throw new UploadValidationException(
                     "UPLOAD_VALIDATION_FAILED",
