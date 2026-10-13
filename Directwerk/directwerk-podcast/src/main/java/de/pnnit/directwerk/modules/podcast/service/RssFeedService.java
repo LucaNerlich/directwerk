@@ -92,11 +92,14 @@ public class RssFeedService {
         String originBaseUrl = PublicUrlBuilder.baseUrl(scheme, host, port);
         List<Episode> entitled = subscriberFeedAccess
                 .listEntitledEpisodes(tenant.getId(), feed.getUser().getId(), feed);
+        // Issue #386: the feed has exactly one token — reveal it once instead of running an
+        // AES-GCM decrypt per entitled episode.
+        String feedToken = feedTokenProtector.reveal(feed.getFeedToken());
         List<RssXmlBuilder.RssEpisode> episodes = entitled
                 .stream()
                 .filter(Episode::isEnclosureEnabled)
                 .limit(MAX_FEED_ITEMS)
-                .map(episode -> toPrivateRssEpisode(episode, tenant, feedTokenProtector.reveal(feed.getFeedToken()), scheme, host, port))
+                .map(episode -> toPrivateRssEpisode(episode, tenant, feedToken, scheme, host, port))
                 .flatMap(Optional::stream)
                 .toList();
         String channelCoverUrl = resolvePublicCoverUrl(channelCoverFromSeries(entitled));
