@@ -3,6 +3,7 @@ import 'server-only'
 import {ASSET_STATUSES, ASSET_TYPES, JOB_STATUSES} from '../constants'
 import type {JobListQuery, QueueJob} from '../types'
 import {isTrustedOrigin} from '../urls/urlPolicy'
+import {jsonError, NO_STORE_HEADERS} from '../proxy/upstreamResponse'
 
 export interface DirectwerkEnvironment {
     apiUrl: string
@@ -386,14 +387,10 @@ export function createPlatformApiRequest(
     }
 }
 
-export const NO_STORE_HEADERS: Record<string, string> = {
-    'Cache-Control': 'no-store',
-    Pragma: 'no-cache',
-}
-
-export function jsonError(message: string, status: number): Response {
-    return Response.json({error: message}, {status, headers: NO_STORE_HEADERS})
-}
+// #408: one source of truth for the no-store cache policy and the error envelope; these
+// were byte-identical copies of the proxy versions, where a drift would be a silent
+// cache/credential-leak regression. Re-exported to keep platform.ts's public surface.
+export {jsonError, NO_STORE_HEADERS}
 
 export async function safeUpstreamResponse(
     upstream: Response,
