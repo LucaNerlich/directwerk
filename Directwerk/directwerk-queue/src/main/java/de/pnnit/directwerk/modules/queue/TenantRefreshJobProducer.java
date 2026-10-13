@@ -64,7 +64,7 @@ public class TenantRefreshJobProducer {
         if (!directwerkConfig.isQueueEnabled()) {
             return;
         }
-        queueService.getObject().enqueue(
+        queueService.getObject().enqueueInNewTransaction(
                 queueName,
                 objectMapper.valueToTree(payloadFactory.apply(tenantId)),
                 0,
