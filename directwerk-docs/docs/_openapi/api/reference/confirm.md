@@ -1,6 +1,6 @@
 ---
-title: "POST /api/v1/media/{id}/confirm"
-description: "POST /api/v1/media/{id}/confirm"
+title: "POST /api/v1/public/newsletter/confirm"
+description: "POST /api/v1/public/newsletter/confirm"
 layout: doc
 aside: false
 editLink: false
