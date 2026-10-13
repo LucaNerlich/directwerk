@@ -110,7 +110,7 @@ export function useAuthedQuery<T>(
                 if (!active) {
                     return
                 }
-                setState({identity: queryKey, data: result, error: null, isLoading: true})
+                setState({identity: queryKey, data: result, error: null, isLoading: false})
             })
             .catch((caught: unknown) => {
                 if (!active) {

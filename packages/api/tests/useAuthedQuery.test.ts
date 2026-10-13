@@ -37,6 +37,23 @@ describe('useAuthedQuery', () => {
         expect(result.current.error).toBe('Visible error')
     })
 
+    it('never reports isLoading alongside resolved data on success', async () => {
+        // #334: the .then branch used to publish `{data, isLoading: true}` before .finally
+        // flipped it, so consumers rendering `isLoading ? spinner : data` flashed a spinner
+        // over loaded content.
+        const observed: Array<{data: string | null; isLoading: boolean}> = []
+        const {result} = renderHook(() => {
+            const state = useAuthedQuery(() => Promise.resolve('loaded'), {})
+            observed.push({data: state.data, isLoading: state.isLoading})
+            return state
+        })
+
+        await waitFor(() => expect(result.current.data).toBe('loaded'))
+
+        expect(observed.some(({data, isLoading}) => data !== null && isLoading)).toBe(false)
+        expect(result.current.isLoading).toBe(false)
+    })
+
     it('refetches for a new query identity without retaining the previous result', async () => {
         const fetcher = vi.fn((id: number) => Promise.resolve(`item-${id}`))
         const {result, rerender} = renderHook(
