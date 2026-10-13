@@ -84,7 +84,10 @@ public class StripeConnectService {
         return stripeOperations.createAccountLink(account.getStripeAccountId(), safeRefresh, safeReturn);
     }
 
-    @Transactional
+    // Deliberately not @Transactional (issue #307): refreshFromStripe below makes a remote Stripe
+    // HTTP call. Holding a pooled DB connection (and, in webhook paths, a row lock) across it
+    // exhausts Hikari under concurrent load — the same rationale as createCheckoutSession.
+    // The repository read and the follow-up save each open their own short transaction.
     public TenantStripeAccount requireChargeableAccount(Long tenantId) {
         TenantStripeAccount account = tenantStripeAccountRepository.findByTenantId(tenantId)
                 .orElseThrow(() -> new StripeConnectNotReadyException("Stripe Connect is not connected"));
@@ -95,7 +98,8 @@ public class StripeConnectService {
         return account;
     }
 
-    @Transactional
+    // Not @Transactional (issue #307): the Stripe retrieve happens outside any transaction;
+    // only the resulting save is transactional (via the repository).
     public void refreshFromStripe(TenantStripeAccount account) {
         if (!stripeOperations.isConfigured()) {
             return;

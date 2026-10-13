@@ -5,7 +5,6 @@ import de.pnnit.directwerk.modules.subscription.entity.SubscriptionProduct;
 import de.pnnit.directwerk.modules.stripebilling.entity.TenantStripeAccount;
 import de.pnnit.directwerk.modules.subscription.service.SubscriptionProductService;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class StripeCatalogSyncService {
@@ -24,7 +23,8 @@ public class StripeCatalogSyncService {
         this.subscriptionProductService = subscriptionProductService;
     }
 
-    @Transactional
+    // Not @Transactional (issue #307): upsertProductAndPrice is a remote Stripe HTTP call.
+    // requireProduct and assignStripeIds each open their own short transaction instead.
     @RequiresModule(StripeBillingModule.KEY)
     public SubscriptionProduct syncProduct(Long tenantId, Long productId) {
         SubscriptionProduct product = subscriptionProductService.requireProduct(tenantId, productId);
