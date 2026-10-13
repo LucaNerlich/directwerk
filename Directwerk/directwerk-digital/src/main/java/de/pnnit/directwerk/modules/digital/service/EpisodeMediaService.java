@@ -81,6 +81,7 @@ public class EpisodeMediaService implements EpisodeMediaApi {
         }
 
         String publicKey = publicKeyFor(asset);
+        String previousPrivateKey = asset.getS3Key();
         if (directwerkConfig.isStorageEnabled()) {
             S3Client s3Client = s3ClientProvider.getIfAvailable();
             if (s3Client == null) {
@@ -120,6 +121,29 @@ public class EpisodeMediaService implements EpisodeMediaApi {
                 }
             }
             throw promoteFailure;
+        }
+
+        // Issue #305: the asset no longer references the private object — without this the
+        // whole audio payload is duplicated under {tenant}/private/ with no reader, doubling
+        // storage per published free episode. Deleted only AFTER the metadata transition
+        // committed (a pre-commit delete would break the rollback path above), matching the
+        // post-commit ordering demoteToPrivate uses. Best-effort, like the sibling cleanup.
+        if (directwerkConfig.isStorageEnabled()) {
+            S3Client postCommitS3 = s3ClientProvider.getIfAvailable();
+            if (postCommitS3 != null) {
+                DirectwerkProperties.Storage storage = StorageConfigs.requireEnabled(directwerkConfig);
+                try {
+                    postCommitS3.deleteObject(DeleteObjectRequest.builder()
+                            .bucket(storage.bucket())
+                            .key(previousPrivateKey)
+                            .build());
+                } catch (RuntimeException ex) {
+                    log.warn(
+                            "Failed to delete stale private S3 object for asset {} after promoting to public",
+                            assetId,
+                            ex);
+                }
+            }
         }
 
         return updated;
