@@ -30,11 +30,3 @@ export function renderWithLocale(
 
     return render(ui, {...renderOptions, wrapper: Wrapper})
 }
-
-export function withLocale(ui: ReactElement, lang: Locale = 'de'): ReactElement {
-    return (
-        <LocaleProvider dictionary={dictionaries[lang]} lang={lang}>
-            {ui}
-        </LocaleProvider>
-    )
-}

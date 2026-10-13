@@ -1,4 +1,4 @@
-import {defaultLocale, isLocale, type Locale, locales} from './config'
+import {defaultLocale, isLocale, type Locale} from './config'
 
 interface LanguageRange {
     tag: string
@@ -63,8 +63,4 @@ function parseRange(part: string): LanguageRange | null {
         return null
     }
     return {tag, quality}
-}
-
-export function supportedLocales(): readonly Locale[] {
-    return locales
 }

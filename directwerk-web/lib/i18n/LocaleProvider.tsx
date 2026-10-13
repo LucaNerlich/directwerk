@@ -4,7 +4,6 @@ import {createContext, useContext, type ReactNode} from 'react'
 
 import type {Dictionary} from './dictionary'
 import type {Locale} from './config'
-import {interpolate} from './interpolate'
 
 interface LocaleContextValue {
     lang: Locale
@@ -35,13 +34,6 @@ export function useLocale(): Locale {
 
 export function useDictionary(): Dictionary {
     return useLocaleContext().dictionary
-}
-
-export function useT(): (
-    template: string,
-    vars?: Record<string, string | number>,
-) => string {
-    return interpolate
 }
 
 function useLocaleContext(): LocaleContextValue {

@@ -4,7 +4,7 @@ import {useEffect, useRef, useState} from 'react'
 
 import {AUTH_REQUIRED} from '@directwerk/api/constants'
 
-export type EntitledDetailStatus = 'loading' | 'ready' | 'not-found' | 'error'
+type EntitledDetailStatus = 'loading' | 'ready' | 'not-found' | 'error'
 
 export interface EntitledDetailMessages {
     emptySlug: string

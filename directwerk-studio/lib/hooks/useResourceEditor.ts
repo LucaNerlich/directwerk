@@ -21,7 +21,7 @@ import {getClientTenantHost} from '@directwerk/api/tenant'
  * Fallback messages for the four failure paths a resource editor can hit.
  * Concrete errors thrown by the API always win over these defaults.
  */
-export interface ResourceEditorMessages {
+interface ResourceEditorMessages {
     /** Shown when a collection lookup finds no entity with the requested id. */
     notFound: string
     /** Fallback when loading throws without a usable message. */
@@ -76,7 +76,7 @@ export interface ResourceEditorConfig<
     }) => Promise<ResourceEditorAfterCreate<Entity>>
 }
 
-export interface ResourceEditorAfterCreate<Entity> {
+interface ResourceEditorAfterCreate<Entity> {
     ok: boolean
     entity?: Entity
     message?: string
