@@ -29,7 +29,6 @@ public class SubscriberPlaybackService {
         }
         return assetAccessApi.resolveEpisodePortalUrl(
                 audioAsset,
-                episode.getId(),
                 episode.getAccessPolicy(),
                 user
         );
