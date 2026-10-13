@@ -179,7 +179,7 @@ public record DirectwerkProperties(
         }
     }
 
-    public record Marketing(Contact contact) {
+    public record Marketing(@Valid Contact contact) {
         public Marketing {
             contact = contact == null ? new Contact(false, null, 5, List.of(), null) : contact;
         }
@@ -190,7 +190,7 @@ public record DirectwerkProperties(
             String inboxEmail,
             @Positive Integer rateLimitPerMinute,
             List<String> allowedOrigins,
-            Altcha altcha
+            @Valid Altcha altcha
     ) {
         public Contact {
             rateLimitPerMinute = rateLimitPerMinute == null ? 5 : rateLimitPerMinute;
