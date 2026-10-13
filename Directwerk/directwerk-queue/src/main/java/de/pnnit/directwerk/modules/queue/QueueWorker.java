@@ -94,6 +94,15 @@ public class QueueWorker {
     }
 
     private void process(JobHandler handler, QueueJob job) {
+        // Issue #327: the batch is claimed up front but processed serially, so the leases of the
+        // later jobs keep ticking from claim time. Renew this job's lease before running it; an
+        // empty result means it was already re-claimed by another worker, so skip rather than
+        // execute it concurrently.
+        long leaseSeconds = queueService.resolveLeaseSeconds(job.queue(), directwerkConfig.queue().leaseSeconds());
+        if (queueService.renew(job.id(), workerId, leaseSeconds).isEmpty()) {
+            log.warn("Skipping job id={} queue={} — lease was lost before execution", job.id(), job.queue());
+            return;
+        }
         ScheduledFuture<?> leaseHeartbeatTask = startLeaseHeartbeat(job);
         try {
             if (handler.requiresTenant() && job.tenantId() == null) {
