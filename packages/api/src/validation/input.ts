@@ -42,6 +42,23 @@ function parsePassword(value: unknown): string | null {
     return value
 }
 
+/**
+ * Login accepts any non-empty password the backend will accept (its own policy is 8
+ * characters): the 12-character rule is a *registration* policy. Applying it here locked
+ * out accounts with valid 8-11 character passwords (#301).
+ */
+function parseLoginPassword(value: unknown): string | null {
+    if (
+        typeof value !== 'string' ||
+        value.length === 0 ||
+        value.length > MAX_PASSWORD_LENGTH
+    ) {
+        return null
+    }
+
+    return value
+}
+
 export interface LoginInputOptions {
     /**
      * Trim + lowercase the email before validation
@@ -60,7 +77,7 @@ export function parseLoginInput(
     }
 
     const email = parseEmail(value.email, options.normalizeEmail === true)
-    const password = parsePassword(value.password)
+    const password = parseLoginPassword(value.password)
     if (email === null || password === null) {
         return null
     }

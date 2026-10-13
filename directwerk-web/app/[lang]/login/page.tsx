@@ -48,7 +48,7 @@ function LoginForm() {
             const password = String(formData.get('password') ?? '')
             const fieldErrors: AuthFieldErrors = {
                 email: emailFieldError(email, auth),
-                password: passwordFieldError(password, auth),
+                password: passwordFieldError(password, auth, {enforcePolicy: false}),
             }
             if (hasFieldErrors(fieldErrors)) {
                 return {formError: null, fieldErrors}
