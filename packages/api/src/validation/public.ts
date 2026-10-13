@@ -209,17 +209,12 @@ export function parseAccessEnvelope(value: unknown): ApiEnvelope<Access> | null 
 // ---------------------------------------------------------------------------
 
 export interface PublicContentPolicy {
-    /** Sanitizes API-supplied HTML before it reaches the app. */
-    sanitizeHtml?: (html: string) => string
-}
-
-function sanitize(policy: PublicContentPolicy, html: string): string {
-    if (policy.sanitizeHtml === undefined) {
-        throw new Error(
-            'createPublicContentParsers requires a sanitizeHtml policy',
-        )
-    }
-    return policy.sanitizeHtml(html)
+    /**
+     * Sanitizes API-supplied HTML before it reaches the app. Required (not optional): the
+     * parser set cannot sanitize without it, so the type now rules out the unsanitizing
+     * configuration instead of failing at the first HTML body (#409).
+     */
+    sanitizeHtml: (html: string) => string
 }
 
 function parsePublicCategoryInternal(value: unknown): PublicCategory | null {
@@ -308,7 +303,7 @@ export function createPublicContentParsers(policy: PublicContentPolicy) {
             id: value.id,
             slug: value.slug,
             title: value.title,
-            body: value.body === null ? null : sanitize(policy, value.body),
+            body: value.body === null ? null : policy.sanitizeHtml(value.body),
             excerpt: value.excerpt,
             seoDescription: value.seoDescription,
             heroAssetId:
@@ -443,7 +438,7 @@ export function createPublicContentParsers(policy: PublicContentPolicy) {
             description:
                 value.description === null
                     ? null
-                    : sanitize(policy, value.description),
+                    : policy.sanitizeHtml(value.description),
             durationSeconds:
                 value.durationSeconds === undefined || value.durationSeconds === null
                     ? null
