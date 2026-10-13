@@ -453,6 +453,40 @@ class UploadServiceTest {
         verify(s3Client).deleteObject(any(DeleteObjectRequest.class));
     }
 
+    @Test
+    void confirmUploadStoresChecksumFromHeadNotEtag() {
+        when(directwerkConfig.isStorageEnabled()).thenReturn(true);
+        when(directwerkConfig.storage()).thenReturn(storageProps());
+        when(tenantRepository.requireById(10L)).thenReturn(tenant);
+
+        MediaAsset pending = new MediaAsset();
+        pending.setId(55L);
+        pending.setTenant(tenant);
+        pending.setS3Key("alpha-show-a/staging/sess/episode.mp3");
+        pending.setVisibility(AssetVisibility.PRIVATE);
+        pending.setScope(AssetScope.CONTENT);
+        pending.setAssetType(AssetType.AUDIO);
+        pending.setStatus(AssetStatus.PENDING);
+        pending.setMimeType("audio/mpeg");
+        pending.setSizeBytes(2048L);
+        pending.setOriginalFilename("episode.mp3");
+        when(mediaAssetRepository.findById(55L)).thenReturn(Optional.of(pending));
+        when(mediaAssetRepository.findByIdForUpdate(55L)).thenReturn(Optional.of(pending));
+        when(mediaAssetRepository.saveAndFlush(any(MediaAsset.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(s3Client.headObject(any(HeadObjectRequest.class))).thenReturn(
+                HeadObjectResponse.builder()
+                        .contentLength(2048L)
+                        .contentType("audio/mpeg")
+                        .eTag("\"not-a-sha256\"")
+                        .checksumSHA256("Zm9vYmFy")
+                        .build());
+
+        uploadService.confirmUpload(new UploadApi.ConfirmUploadCommand(55L));
+
+        // Issue #364: the column holds the real SHA-256 the SDK exposes, never the ETag.
+        assertThat(pending.getChecksumSha256()).isEqualTo("Zm9vYmFy");
+    }
+
     private static DirectwerkProperties.Storage storageProps() {
         return new DirectwerkProperties.Storage(
                 true,
