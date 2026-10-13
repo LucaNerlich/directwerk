@@ -2,11 +2,15 @@ package de.pnnit.directwerk.modules.podcast.access;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import de.pnnit.directwerk.modules.core.entity.MembershipStatus;
+import de.pnnit.directwerk.modules.core.entity.Role;
 import de.pnnit.directwerk.modules.core.entity.Tenant;
+import de.pnnit.directwerk.modules.core.entity.TenantMembership;
 import de.pnnit.directwerk.modules.core.entity.TenantModuleActivation;
 import de.pnnit.directwerk.modules.core.entity.TenantStatus;
 import de.pnnit.directwerk.modules.core.entity.User;
 import de.pnnit.directwerk.modules.core.entity.UserStatus;
+import de.pnnit.directwerk.modules.core.repository.TenantMembershipRepository;
 import de.pnnit.directwerk.modules.core.repository.TenantModuleActivationRepository;
 import de.pnnit.directwerk.modules.core.repository.TenantRepository;
 import de.pnnit.directwerk.modules.core.repository.UserRepository;
@@ -34,6 +38,7 @@ import de.pnnit.directwerk.multitenancy.TenantContext;
 import de.pnnit.directwerk.security.DirectwerkUserPrincipal;
 import de.pnnit.directwerk.security.RoleConstants;
 import java.time.Instant;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.AfterEach;
@@ -66,6 +71,9 @@ class SubscriberPortalDownloadsIT {
 
     @Autowired
     private TenantRepository tenantRepository;
+
+    @Autowired
+    private TenantMembershipRepository tenantMembershipRepository;
 
     @Autowired
     private TenantModuleActivationRepository tenantModuleActivationRepository;
@@ -119,6 +127,9 @@ class SubscriberPortalDownloadsIT {
 
         User entitled = saveUser("entitled-" + suffix);
         User plain = saveUser("plain-" + suffix);
+        // Subscriptions are tenant-scoped to a membership (fk_subscriptions_tenant_membership),
+        // so the entitled subscriber is a member before they subscribe.
+        saveMembership(tenant, entitled);
         saveLevelSubscription(tenant, entitled, 1);
 
         try {
@@ -228,6 +239,18 @@ class SubscriberPortalDownloadsIT {
             user.setEmail(localPart + "-" + suffix() + "@example.test");
             user.setStatus(UserStatus.ACTIVE);
             return userRepository.saveAndFlush(user);
+        });
+    }
+
+    private void saveMembership(Tenant tenant, User user) {
+        transactionTemplate.executeWithoutResult(status -> {
+            TenantContext.setTenantId(tenant.getId());
+            TenantMembership membership = new TenantMembership();
+            membership.setTenant(tenant);
+            membership.setUser(user);
+            membership.setRoles(EnumSet.of(Role.SUBSCRIBER));
+            membership.setStatus(MembershipStatus.ACTIVE);
+            tenantMembershipRepository.saveAndFlush(membership);
         });
     }
 
