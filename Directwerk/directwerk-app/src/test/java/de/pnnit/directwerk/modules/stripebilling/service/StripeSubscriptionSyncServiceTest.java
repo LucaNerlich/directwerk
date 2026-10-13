@@ -115,6 +115,49 @@ class StripeSubscriptionSyncServiceTest {
     }
 
     @Test
+    void externalIdSyncIgnoresPastDueForCanceledRow() {
+        Subscription canceled = subscription(SubscriptionSource.STRIPE, SubscriptionStatus.CANCELED);
+        when(subscriptionRepository.findByTenantIdAndExternalSubscriptionIdForUpdate(TENANT_ID, "sub_c"))
+                .thenReturn(Optional.of(canceled));
+
+        service.syncStripeSubscriptionByExternalId(
+                TENANT_ID,
+                "sub_c",
+                SubscriptionStatus.PAST_DUE,
+                null
+        );
+
+        // Issue #306: a stale invoice.payment_failed after `deleted` must not rewrite CANCELED.
+        assertThat(canceled.getStatus()).isEqualTo(SubscriptionStatus.CANCELED);
+        verify(subscriptionRepository, never()).save(canceled);
+    }
+
+    @Test
+    void stripeUpsertIgnoresIncompleteForCanceledRow() {
+        User user = user();
+        when(userRepository.findById(USER_ID)).thenReturn(Optional.of(user));
+        SubscriptionProduct product = product();
+        when(subscriptionProductService.requireProduct(TENANT_ID, PRODUCT_ID)).thenReturn(product);
+        Subscription canceled = subscription(SubscriptionSource.STRIPE, SubscriptionStatus.CANCELED);
+        when(subscriptionRepository.findByTenantIdAndExternalSubscriptionIdForUpdate(TENANT_ID, "sub_x"))
+                .thenReturn(Optional.of(canceled));
+
+        Subscription result = service.upsertStripeSubscription(
+                TENANT_ID,
+                USER_ID,
+                PRODUCT_ID,
+                "sub_x",
+                "cus_1",
+                SubscriptionStatus.INCOMPLETE,
+                null,
+                null
+        );
+
+        assertThat(result.getStatus()).isEqualTo(SubscriptionStatus.CANCELED);
+        verify(subscriptionRepository, never()).save(canceled);
+    }
+
+    @Test
     void markInvoicePaidReactivatesAndRefreshesPeriodEnd() {
         Subscription overdue = subscription(SubscriptionSource.STRIPE, SubscriptionStatus.PAST_DUE);
         when(subscriptionRepository.findByTenantIdAndExternalSubscriptionIdForUpdate(TENANT_ID, "sub_9"))
