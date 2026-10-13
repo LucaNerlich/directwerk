@@ -25,7 +25,7 @@ public class PlatformOverviewService {
         List<ModuleAdoptionView> moduleAdoption = tenantModuleActivationRepository
                 .countActiveTenantsGroupedByModule()
                 .stream()
-                .map(row -> new ModuleAdoptionView((String) row[0], ((Number) row[1]).longValue()))
+                .map(row -> new ModuleAdoptionView(row.getModuleKey(), row.getTenantCount()))
                 .toList();
 
         List<PlatformAuditView> recentAudit = platformAuditQueryService.listRecent(recentAuditLimit);

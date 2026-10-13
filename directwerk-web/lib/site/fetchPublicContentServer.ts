@@ -1,6 +1,7 @@
 import 'server-only'
 
 import {directwerkFetch} from '@/lib/server/api'
+import {extractApiErrorCode} from '@directwerk/api/envelope'
 import {createWebPublicParsers} from '@/lib/publicContent/parsers'
 import {
     parsePublicNewsletterListEnvelope,
@@ -224,13 +225,7 @@ export async function fetchPublicNewsletterListServer(
 
     if (response.status === 404) {
         const body: unknown = await response.json().catch(() => null)
-        const code =
-            typeof body === 'object' &&
-            body !== null &&
-            'errors' in body &&
-            Array.isArray((body as {errors: unknown}).errors) &&
-            (body as {errors: Array<{code?: string}>}).errors[0]?.code
-        if (code === 'NEWSLETTER_LIST_NOT_FOUND') {
+        if (extractApiErrorCode(body) === 'NEWSLETTER_LIST_NOT_FOUND') {
             return null
         }
         throw new Error(

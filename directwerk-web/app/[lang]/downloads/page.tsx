@@ -24,21 +24,6 @@ import {interpolate} from '@/lib/i18n/interpolate'
 import {localizedPath} from '@/lib/i18n/paths'
 import {AUTH_REQUIRED} from '@directwerk/api/constants'
 
-function packageHint(item: SubscriberDownload): string | null {
-    const record = item as unknown as Record<string, unknown>
-    const candidates = [
-        record.packageTitle,
-        record.packageName,
-        record.productTitle,
-    ]
-    for (const candidate of candidates) {
-        if (typeof candidate === 'string' && candidate.trim().length > 0) {
-            return candidate.trim()
-        }
-    }
-    return null
-}
-
 /**
  * Displays subscriber downloads and their associated package information.
  */
@@ -114,7 +99,6 @@ export default function DownloadsPage(): React.JSX.Element {
                     <ul className="grid gap-4 sm:grid-cols-2">
                         {downloads.map((item) => {
                             const sizeLabel = formatBytes(item.sizeBytes)
-                            const unlockedBy = packageHint(item)
                             // Signed download URLs are validated before render
                             // so a compromised record cannot turn the button
                             // into a javascript:/data: link.
@@ -134,14 +118,7 @@ export default function DownloadsPage(): React.JSX.Element {
                                         title={item.title}
                                     >
                                         <p className="text-sm text-muted-foreground">
-                                            {unlockedBy !== null ? (
-                                                <>
-                                                    {copy.unlockedViaPackage}{' '}
-                                                    <strong>{unlockedBy}</strong>
-                                                </>
-                                            ) : (
-                                                copy.unlockedGeneric
-                                            )}
+                                            {copy.unlockedGeneric}
                                         </p>
                                         {safeDownloadUrl !== null ? (
                                         <Button
