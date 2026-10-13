@@ -120,10 +120,21 @@ public class RssXmlBuilder {
                 .append("\"/>\n");
     }
 
+    /**
+     * Issue #319: bound the per-item description so a single imported episode (up to 512 000
+     * chars) cannot dominate the document. Truncation happens on the sanitized HTML inside a
+     * CDATA section, so the XML stays well-formed.
+     */
+    private static final int MAX_DESCRIPTION_CHARS = 4_000;
+
     private void appendDescriptionElement(StringBuilder xml, String value, int spaces) {
+        String description = htmlSanitizer.sanitize(value);
+        if (description.length() > MAX_DESCRIPTION_CHARS) {
+            description = description.substring(0, MAX_DESCRIPTION_CHARS);
+        }
         xml.append(" ".repeat(spaces))
                 .append("<description>")
-                .append(cdata(htmlSanitizer.sanitize(value)))
+                .append(cdata(description))
                 .append("</description>\n");
     }
 
