@@ -1,48 +1,13 @@
-import {defaultLocale, isLocale, type Locale} from './config'
+import {matchLocale as matchSharedLocale} from '@directwerk/ui/lib/i18n'
+
+import {isLocale, type Locale} from './config'
 
 /**
- * Hand-rolled Accept-Language matcher (no Negotiator / formatjs deps).
- * Picks the first supported tag by q-order; falls back to {@link defaultLocale}.
+ * Accept-Language matcher — delegates to the shared implementation in
+ * `@directwerk/ui/lib/i18n` so studio, web and homepage cannot drift.
  */
 export function matchLocale(acceptLanguage: string | null | undefined): Locale {
-    if (acceptLanguage === null || acceptLanguage === undefined || acceptLanguage.trim() === '') {
-        return defaultLocale
-    }
-
-    const tags = acceptLanguage
-        .split(',')
-        .map((part) => {
-            const [tagRaw, ...params] = part.trim().split(';')
-            const tag = tagRaw.trim().toLowerCase()
-            let q = 1
-            for (const param of params) {
-                const [key, value] = param.trim().split('=')
-                if (key === 'q' && value !== undefined) {
-                    const parsed = Number.parseFloat(value)
-                    if (!Number.isNaN(parsed)) {
-                        q = parsed
-                    }
-                }
-            }
-            return {tag, q}
-        })
-        .filter((entry) => entry.tag.length > 0)
-        .sort((a, b) => b.q - a.q)
-
-    for (const {tag} of tags) {
-        if (tag === '*') {
-            return defaultLocale
-        }
-        if (isLocale(tag)) {
-            return tag
-        }
-        const base = tag.split('-')[0]
-        if (isLocale(base)) {
-            return base
-        }
-    }
-
-    return defaultLocale
+    return matchSharedLocale(acceptLanguage)
 }
 
 export function preferredLocale(
