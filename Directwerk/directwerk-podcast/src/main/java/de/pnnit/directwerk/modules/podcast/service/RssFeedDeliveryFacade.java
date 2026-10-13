@@ -1,7 +1,6 @@
 package de.pnnit.directwerk.modules.podcast.service;
 
 import de.pnnit.directwerk.modules.core.entity.Tenant;
-import de.pnnit.directwerk.modules.podcast.entity.Episode;
 import de.pnnit.directwerk.modules.podcast.feed.SubscriberFeed;
 import de.pnnit.directwerk.modules.podcast.service.EpisodeEnclosureService.EnclosureRedirect;
 import de.pnnit.directwerk.modules.podcast.service.EpisodePlaybackDeliveryFacade.TrackedRedirect;
@@ -21,27 +20,6 @@ public class RssFeedDeliveryFacade {
     private final EpisodePlaybackDeliveryFacade episodePlaybackDeliveryFacade;
 
     public record TrackedEnclosureRedirect(EnclosureRedirect redirect, ResponseEntity<Void> response) {
-    }
-
-    public TrackedEnclosureRedirect publicEnclosure(
-            Long tenantId,
-            String episodeSlug,
-            String analyticsSource,
-            String requestHost
-    ) {
-        return publicEnclosure(tenantId, episodeSlug, analyticsSource, requestHost, null, false);
-    }
-
-    public TrackedEnclosureRedirect publicEnclosure(
-            Long tenantId,
-            String episodeSlug,
-            String analyticsSource,
-            String requestHost,
-            String clientUserAgent,
-            boolean isRangeRequest
-    ) {
-        return publicEnclosure(
-                tenantId, episodeSlug, analyticsSource, requestHost, clientUserAgent, isRangeRequest, null);
     }
 
     public TrackedEnclosureRedirect publicEnclosure(
@@ -71,27 +49,6 @@ public class RssFeedDeliveryFacade {
             Tenant tenant,
             String episodeSlug,
             String analyticsSource,
-            String requestHost
-    ) {
-        return publicEnclosure(tenant.getId(), episodeSlug, analyticsSource, requestHost);
-    }
-
-    public TrackedEnclosureRedirect publicEnclosure(
-            Tenant tenant,
-            String episodeSlug,
-            String analyticsSource,
-            String requestHost,
-            String clientUserAgent,
-            boolean isRangeRequest
-    ) {
-        return publicEnclosure(
-                tenant.getId(), episodeSlug, analyticsSource, requestHost, clientUserAgent, isRangeRequest);
-    }
-
-    public TrackedEnclosureRedirect publicEnclosure(
-            Tenant tenant,
-            String episodeSlug,
-            String analyticsSource,
             String requestHost,
             String clientUserAgent,
             boolean isRangeRequest,
@@ -100,30 +57,6 @@ public class RssFeedDeliveryFacade {
         return publicEnclosure(
                 tenant.getId(), episodeSlug, analyticsSource, requestHost,
                 clientUserAgent, isRangeRequest, clientIp);
-    }
-
-    public TrackedEnclosureRedirect privateEnclosure(
-            Tenant tenant,
-            String feedToken,
-            String episodeSlug,
-            String analyticsSource,
-            String requestHost
-    ) {
-        return privateEnclosure(tenant, feedToken, episodeSlug, analyticsSource, requestHost, null, false);
-    }
-
-    public TrackedEnclosureRedirect privateEnclosure(
-            Tenant tenant,
-            String feedToken,
-            String episodeSlug,
-            String analyticsSource,
-            String requestHost,
-            String clientUserAgent,
-            boolean isRangeRequest
-    ) {
-        return privateEnclosure(
-                tenant, feedToken, episodeSlug, analyticsSource, requestHost,
-                clientUserAgent, isRangeRequest, null);
     }
 
     public TrackedEnclosureRedirect privateEnclosure(

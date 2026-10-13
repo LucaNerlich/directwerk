@@ -5,5 +5,5 @@ export const POST = createTenantRefreshRoute({
     directwerkFetch,
     getOAuthClientId,
     refreshCookie: REFRESH_COOKIE,
-    parseRefreshOptions: {maxLength: 512, trim: true},
+    parseRefreshOptions: {maxLength: 512},
 })

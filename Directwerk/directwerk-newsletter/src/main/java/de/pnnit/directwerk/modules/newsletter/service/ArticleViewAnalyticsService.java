@@ -56,18 +56,7 @@ public class ArticleViewAnalyticsService {
 
     @Transactional(readOnly = true)
     public void trackArticleView(Long tenantId, Article article, String source, String hostname) {
-        trackArticleView(tenantId, article, source, hostname, null);
-    }
-
-    @Transactional(readOnly = true)
-    public void trackArticleView(
-            Long tenantId,
-            Article article,
-            String source,
-            String hostname,
-            String clientUserAgent
-    ) {
-        trackArticleView(tenantId, article, source, hostname, clientUserAgent, null);
+        trackArticleView(tenantId, article, source, hostname, null, null);
     }
 
     @Transactional(readOnly = true)

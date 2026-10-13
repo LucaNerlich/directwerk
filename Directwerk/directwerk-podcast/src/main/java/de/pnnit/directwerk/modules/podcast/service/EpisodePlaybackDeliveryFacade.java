@@ -28,30 +28,6 @@ public class EpisodePlaybackDeliveryFacade {
             EnclosureRedirect redirect,
             String analyticsSource,
             String requestHost,
-            boolean privateFeed
-    ) {
-        return deliverEnclosure(tenantId, redirect, analyticsSource, requestHost, privateFeed, null, false);
-    }
-
-    public TrackedRedirect deliverEnclosure(
-            Long tenantId,
-            EnclosureRedirect redirect,
-            String analyticsSource,
-            String requestHost,
-            boolean privateFeed,
-            String clientUserAgent,
-            boolean isRangeRequest
-    ) {
-        return deliverEnclosure(
-                tenantId, redirect, analyticsSource, requestHost, privateFeed,
-                clientUserAgent, isRangeRequest, null);
-    }
-
-    public TrackedRedirect deliverEnclosure(
-            Long tenantId,
-            EnclosureRedirect redirect,
-            String analyticsSource,
-            String requestHost,
             boolean privateFeed,
             String clientUserAgent,
             boolean isRangeRequest,
@@ -71,23 +47,6 @@ public class EpisodePlaybackDeliveryFacade {
                 .location(URI.create(redirect.targetUrl().toString()))
                 .cacheControl(CacheControl.noStore());
         return new TrackedRedirect(redirect.episode(), redirect.targetUrl(), builder.build());
-    }
-
-    public TrackedRedirect deliverStream(
-            Long tenantId,
-            EpisodeStream stream,
-            String requestHost
-    ) {
-        return deliverStream(tenantId, stream, requestHost, null);
-    }
-
-    public TrackedRedirect deliverStream(
-            Long tenantId,
-            EpisodeStream stream,
-            String requestHost,
-            String clientUserAgent
-    ) {
-        return deliverStream(tenantId, stream, requestHost, clientUserAgent, null);
     }
 
     public TrackedRedirect deliverStream(
