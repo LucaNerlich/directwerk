@@ -12,12 +12,14 @@ import de.pnnit.directwerk.modules.subscription.event.SubscriptionMembershipActi
 import de.pnnit.directwerk.modules.subscription.repository.SubscriptionRepository;
 import de.pnnit.directwerk.modules.subscription.service.SubscriptionProductService;
 import java.time.Instant;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /** Applies Stripe webhook and checkout outcomes to {@link Subscription} rows. */
 @Service
+@Slf4j
 public class StripeSubscriptionSyncService {
 
     private final SubscriptionRepository subscriptionRepository;
@@ -81,6 +83,10 @@ public class StripeSubscriptionSyncService {
                     : newSubscription(tenantId, user, product);
         }
         SubscriptionStatus previousStatus = subscription.getStatus();
+        SubscriptionStatus incoming = status != null ? status : SubscriptionStatus.ACTIVE;
+        if (isCanceledTerminalRewrite(previousStatus, incoming)) {
+            return subscription;
+        }
         subscription.setUser(user);
         subscription.setProduct(product);
         subscription.setSource(SubscriptionSource.STRIPE);
@@ -139,6 +145,9 @@ public class StripeSubscriptionSyncService {
                     if (subscription.getSource() == SubscriptionSource.MANUAL) {
                         return;
                     }
+                    if (isCanceledTerminalRewrite(subscription.getStatus(), status)) {
+                        return;
+                    }
                     subscription.setStatus(status);
                     if (endsAt != null) {
                         subscription.setEndsAt(endsAt);
@@ -169,6 +178,27 @@ public class StripeSubscriptionSyncService {
                     subscriptionRepository.save(subscription);
                     eventPublisher.publishEvent(new TenantEntitlementsChangedEvent(tenantId));
                 });
+    }
+
+    /**
+     * CANCELED is terminal against non-terminal rewrites (issue #306). A delayed or retried
+     * non-terminal event — {@code customer.subscription.updated} or
+     * {@code invoice.payment_failed} carrying past_due/incomplete — arriving after
+     * {@code customer.subscription.deleted} must not rewrite a CANCELED row: a subsequently
+     * delivered stale {@code invoice.paid} would then pass {@link #markInvoicePaid}'s
+     * PAST_DUE/INCOMPLETE gate and resurrect the subscription.
+     * <p>
+     * ACTIVE is deliberately not blocked here: a fresh checkout may legitimately re-subscribe a
+     * user whose previous row was canceled (the webhook layer separately gates a stale ACTIVE
+     * behind its live-Stripe check).
+     */
+    private boolean isCanceledTerminalRewrite(SubscriptionStatus existing, SubscriptionStatus incoming) {
+        if (existing != SubscriptionStatus.CANCELED
+                || (incoming != SubscriptionStatus.PAST_DUE && incoming != SubscriptionStatus.INCOMPLETE)) {
+            return false;
+        }
+        log.warn("Ignoring non-terminal status {} for canceled subscription", incoming);
+        return true;
     }
 
     private Subscription recordExternalBillingOnManualGrant(
