@@ -47,7 +47,6 @@ class SubscriberPlaybackServiceTest {
 
     @Test
     void resolvePortalPlaybackUsesEpisodePortalUrlForSubscribers() throws Exception {
-        when(episode.getId()).thenReturn(42L);
         DirectwerkUserPrincipal subscriber = new DirectwerkUserPrincipal(
                 2L,
                 "user@example.test",
@@ -57,13 +56,13 @@ class SubscriberPlaybackServiceTest {
         );
         when(episode.getAccessPolicy()).thenReturn(AccessPolicy.PAID);
         URL expected = URI.create("https://cdn.example.test/audio.mp3").toURL();
-        when(assetAccessApi.resolveEpisodePortalUrl(audioAsset, 42L, AccessPolicy.PAID, subscriber))
+        when(assetAccessApi.resolveEpisodePortalUrl(audioAsset, AccessPolicy.PAID, subscriber))
                 .thenReturn(expected);
 
         URL resolved = subscriberPlaybackService.resolvePortalPlayback(audioAsset, episode, subscriber);
 
         assertThat(resolved).isEqualTo(expected);
-        verify(assetAccessApi).resolveEpisodePortalUrl(audioAsset, 42L, AccessPolicy.PAID, subscriber);
+        verify(assetAccessApi).resolveEpisodePortalUrl(audioAsset, AccessPolicy.PAID, subscriber);
     }
 
     @Test

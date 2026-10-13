@@ -90,7 +90,6 @@ public class AssetAccessService implements AssetAccessApi {
     @Transactional(readOnly = true)
     public URL resolveEpisodePortalUrl(
             MediaAsset asset,
-            Long episodeId,
             AccessPolicy accessPolicy,
             DirectwerkUserPrincipal principal
     ) {
