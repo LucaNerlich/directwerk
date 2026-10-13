@@ -140,7 +140,11 @@ public class SeriesService {
                     "defaultRequiredLevelSortOrder"
             ));
         }
-        if (status != null) {
+        if (status != null && status != series.getStatus()) {
+            // Issue #322: an unguarded write allowed DRAFT -> PUBLISHED on a series with no cover
+            // (publishing a feed the module itself documents as directory-invalid) and
+            // PUBLISHED -> DRAFT, silently dropping the whole series from every feed.
+            requireValidStatusTransition(series, status);
             series.setStatus(status);
         }
         PodcastSeries saved = podcastSeriesRepository.save(series);
@@ -178,4 +182,23 @@ public class SeriesService {
         return sanitized.isEmpty() ? null : sanitized;
     }
 
+
+    /**
+     * Guards a series status change (issue #322). Allowed transitions are DRAFT -> PUBLISHED and
+     * PUBLISHED -> DRAFT; publishing additionally requires channel artwork, which the RSS builder
+     * documents as required by podcast directories.
+     */
+    private static void requireValidStatusTransition(PodcastSeries series, SeriesStatus target) {
+        SeriesStatus current = series.getStatus();
+        boolean allowed = (current == SeriesStatus.DRAFT && target == SeriesStatus.PUBLISHED)
+                || (current == SeriesStatus.PUBLISHED && target == SeriesStatus.DRAFT);
+        if (!allowed) {
+            throw new IllegalArgumentException(
+                    "Invalid series status transition: " + current + " -> " + target);
+        }
+        if (target == SeriesStatus.PUBLISHED && series.getCoverAsset() == null) {
+            throw new IllegalArgumentException(
+                    "A cover image is required before publishing a series");
+        }
+    }
 }
