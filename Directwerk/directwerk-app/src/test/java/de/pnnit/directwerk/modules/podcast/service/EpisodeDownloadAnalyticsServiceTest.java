@@ -9,6 +9,7 @@ import static org.mockito.Mockito.when;
 import de.pnnit.directwerk.config.DirectwerkConfig;
 import de.pnnit.directwerk.config.DirectwerkProperties;
 import de.pnnit.directwerk.modules.core.AnalyticsModule;
+import de.pnnit.directwerk.modules.core.analytics.TenantEventTracker;
 import de.pnnit.directwerk.modules.core.analytics.UmamiEventClient;
 import de.pnnit.directwerk.modules.core.entity.Tenant;
 import de.pnnit.directwerk.modules.core.entity.TenantBranding;
@@ -204,8 +205,10 @@ class EpisodeDownloadAnalyticsServiceTest {
     }
 
     private EpisodeDownloadAnalyticsService service(boolean analyticsEnabled) {
+        // #385: the tracker is wired here (as production does) instead of via a test-only
+        // constructor on the service.
         return new EpisodeDownloadAnalyticsService(
-                new DirectwerkConfig(new DirectwerkProperties(
+                new TenantEventTracker(new DirectwerkConfig(new DirectwerkProperties(
                         null,
                         null,
                         null,
@@ -222,7 +225,7 @@ class EpisodeDownloadAnalyticsServiceTest {
                 )),
                 moduleGateService,
                 tenantBrandingService,
-                umamiEventClient,
+                umamiEventClient),
                 episodeEnclosureService
         );
     }

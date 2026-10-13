@@ -42,22 +42,6 @@ public class EpisodeDownloadAnalyticsService {
         this.episodeEnclosureService = episodeEnclosureService;
     }
 
-    /**
-     * Retained for direct instantiation by same-package unit tests; production wiring injects the
-     * shared {@link TenantEventTracker} bean instead.
-     */
-    EpisodeDownloadAnalyticsService(
-            DirectwerkConfig directwerkConfig,
-            ModuleGateService moduleGateService,
-            TenantBrandingService tenantBrandingService,
-            UmamiEventClient umamiEventClient,
-            EpisodeEnclosureService episodeEnclosureService
-    ) {
-        this.tenantEventTracker = new TenantEventTracker(
-                directwerkConfig, moduleGateService, tenantBrandingService, umamiEventClient);
-        this.episodeEnclosureService = episodeEnclosureService;
-    }
-
     @Transactional(readOnly = true)
     public void trackEpisodeDownload(Long tenantId, Episode episode, String source, String hostname) {
         trackEpisodeDownload(tenantId, episode, source, hostname, null, false, null);
