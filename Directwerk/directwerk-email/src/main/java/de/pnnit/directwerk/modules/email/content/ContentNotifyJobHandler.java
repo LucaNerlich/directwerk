@@ -7,6 +7,7 @@ import de.pnnit.directwerk.modules.content.NewsletterNotificationApi;
 import de.pnnit.directwerk.modules.core.entity.MembershipStatus;
 import de.pnnit.directwerk.modules.core.entity.TenantMembership;
 import de.pnnit.directwerk.modules.core.repository.TenantMembershipRepository;
+import de.pnnit.directwerk.modules.core.util.PublicContentUrlResolver;
 import de.pnnit.directwerk.modules.email.EmailJobProducer;
 import de.pnnit.directwerk.modules.email.EmailTemplate;
 import de.pnnit.directwerk.modules.email.repository.ContentNotificationMarkerRepository;
@@ -28,7 +29,7 @@ public class ContentNotifyJobHandler implements JobHandler {
 
     private final ObjectMapper objectMapper;
     private final TenantMembershipRepository tenantMembershipRepository;
-    private final ContentPublicUrlBuilder contentPublicUrlBuilder;
+    private final PublicContentUrlResolver publicContentUrlResolver;
     private final TenantContentBrandingResolver tenantContentBrandingResolver;
     private final EmailJobProducer emailJobProducer;
     private final ObjectProvider<NewsletterNotificationApi> newsletterNotificationApi;
@@ -38,7 +39,7 @@ public class ContentNotifyJobHandler implements JobHandler {
     public ContentNotifyJobHandler(
             ObjectMapper objectMapper,
             TenantMembershipRepository tenantMembershipRepository,
-            ContentPublicUrlBuilder contentPublicUrlBuilder,
+            PublicContentUrlResolver publicContentUrlResolver,
             TenantContentBrandingResolver tenantContentBrandingResolver,
             @Lazy EmailJobProducer emailJobProducer,
             ObjectProvider<NewsletterNotificationApi> newsletterNotificationApi,
@@ -47,7 +48,7 @@ public class ContentNotifyJobHandler implements JobHandler {
     ) {
         this.objectMapper = objectMapper;
         this.tenantMembershipRepository = tenantMembershipRepository;
-        this.contentPublicUrlBuilder = contentPublicUrlBuilder;
+        this.publicContentUrlResolver = publicContentUrlResolver;
         this.tenantContentBrandingResolver = tenantContentBrandingResolver;
         this.emailJobProducer = emailJobProducer;
         this.newsletterNotificationApi = newsletterNotificationApi;
@@ -98,8 +99,8 @@ public class ContentNotifyJobHandler implements JobHandler {
             return;
         }
         TenantContentBrandingResolver.BrandingContext branding = tenantContentBrandingResolver.resolve(tenantId);
-        String contentUrl = contentPublicUrlBuilder.buildPublicContentUrl(tenantId, ContentType.EPISODE, payload.slug());
-        String preferencesUrl = contentPublicUrlBuilder.buildNotificationPreferencesUrl(tenantId);
+        String contentUrl = publicContentUrlResolver.contentPageUrl(tenantId, ContentType.EPISODE, payload.slug());
+        String preferencesUrl = publicContentUrlResolver.notificationPreferencesUrl(tenantId);
         List<TenantMembership> recipients = tenantMembershipRepository.findNotificationOptedInMembers(
                 tenantId,
                 MembershipStatus.ACTIVE

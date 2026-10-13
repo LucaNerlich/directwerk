@@ -16,6 +16,7 @@ import de.pnnit.directwerk.modules.core.entity.MembershipStatus;
 import de.pnnit.directwerk.modules.core.entity.TenantMembership;
 import de.pnnit.directwerk.modules.core.entity.User;
 import de.pnnit.directwerk.modules.core.repository.TenantMembershipRepository;
+import de.pnnit.directwerk.modules.core.util.PublicContentUrlResolver;
 import de.pnnit.directwerk.modules.email.EmailJobProducer;
 import de.pnnit.directwerk.modules.email.EmailTemplate;
 import de.pnnit.directwerk.modules.email.repository.ContentNotificationMarkerRepository;
@@ -44,7 +45,7 @@ class ContentNotifyJobHandlerTest {
     private TenantMembershipRepository tenantMembershipRepository;
 
     @Mock
-    private ContentPublicUrlBuilder contentPublicUrlBuilder;
+    private PublicContentUrlResolver publicContentUrlResolver;
 
     @Mock
     private TenantContentBrandingResolver tenantContentBrandingResolver;
@@ -72,7 +73,7 @@ class ContentNotifyJobHandlerTest {
         handler = new ContentNotifyJobHandler(
                 objectMapper,
                 tenantMembershipRepository,
-                contentPublicUrlBuilder,
+                publicContentUrlResolver,
                 tenantContentBrandingResolver,
                 emailJobProducer,
                 newsletterNotificationApi,
@@ -114,8 +115,8 @@ class ContentNotifyJobHandlerTest {
     @Test
     void notifiesEpisodeMembersWithPreferencesUrl() {
         when(directwerkConfig.isEmailEnabled()).thenReturn(true);
-        when(contentPublicUrlBuilder.buildPublicContentUrl(any(), any(), any())).thenReturn("https://tenant.example/x");
-        when(contentPublicUrlBuilder.buildNotificationPreferencesUrl(any())).thenReturn("https://tenant.example/prefs");
+        when(publicContentUrlResolver.contentPageUrl(any(), any(), any())).thenReturn("https://tenant.example/x");
+        when(publicContentUrlResolver.notificationPreferencesUrl(any())).thenReturn("https://tenant.example/prefs");
         when(tenantContentBrandingResolver.resolve(TENANT_ID))
                 .thenReturn(new TenantContentBrandingResolver.BrandingContext("Acme", "Acme", "#000000"));
         when(tenantMembershipRepository.findNotificationOptedInMembers(TENANT_ID, MembershipStatus.ACTIVE))
@@ -138,8 +139,8 @@ class ContentNotifyJobHandlerTest {
     @Test
     void skipsRecipientsAlreadyNotifiedOnRetry() {
         when(directwerkConfig.isEmailEnabled()).thenReturn(true);
-        when(contentPublicUrlBuilder.buildPublicContentUrl(any(), any(), any())).thenReturn("https://tenant.example/x");
-        when(contentPublicUrlBuilder.buildNotificationPreferencesUrl(any())).thenReturn("https://tenant.example/prefs");
+        when(publicContentUrlResolver.contentPageUrl(any(), any(), any())).thenReturn("https://tenant.example/x");
+        when(publicContentUrlResolver.notificationPreferencesUrl(any())).thenReturn("https://tenant.example/prefs");
         when(tenantContentBrandingResolver.resolve(TENANT_ID))
                 .thenReturn(new TenantContentBrandingResolver.BrandingContext("Acme", "Acme", "#000000"));
         when(tenantMembershipRepository.findNotificationOptedInMembers(TENANT_ID, MembershipStatus.ACTIVE))
