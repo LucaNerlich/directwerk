@@ -69,6 +69,12 @@ public class RemoteAssetIngestService implements RemoteAssetIngestApi {
     private static final long PROGRESS_REPORT_INTERVAL_BYTES = 256 * 1024;
     private static final Duration INGEST_TIMEOUT = Duration.ofMinutes(15);
     private static final List<AssetStatus> REUSABLE_IMPORT_STATUSES = List.of(AssetStatus.READY, AssetStatus.PENDING);
+    /**
+     * Issue #365: the synchronous {@code ingestFromUrl} only ever returns a finished asset, so a
+     * PENDING row left by an earlier {@code startIngestFromUrl} for the same URL must not be
+     * reported as a completed import (no bytes were fetched and no job is enqueued).
+     */
+    private static final List<AssetStatus> REUSABLE_READY_ONLY = List.of(AssetStatus.READY);
 
     private final S3Client s3Client;
     private final RemoteContentClient remoteContentClient;
@@ -87,7 +93,7 @@ public class RemoteAssetIngestService implements RemoteAssetIngestApi {
      */
     @Override
     public IngestResult ingestFromUrl(IngestCommand command) {
-        Optional<MediaAsset> reusable = findReusableImport(command);
+        Optional<MediaAsset> reusable = findReusableImport(command, REUSABLE_READY_ONLY);
         if (reusable.isPresent()) {
             return new IngestResult(reusable.get(), true, null);
         }
@@ -110,7 +116,7 @@ public class RemoteAssetIngestService implements RemoteAssetIngestApi {
      */
     @Override
     public IngestResult startIngestFromUrl(IngestCommand command) {
-        Optional<MediaAsset> reusable = findReusableImport(command);
+        Optional<MediaAsset> reusable = findReusableImport(command, REUSABLE_IMPORT_STATUSES);
         if (reusable.isPresent()) {
             return new IngestResult(reusable.get(), true, null);
         }
@@ -264,7 +270,7 @@ public class RemoteAssetIngestService implements RemoteAssetIngestApi {
         );
     }
 
-    private Optional<MediaAsset> findReusableImport(IngestCommand command) {
+    private Optional<MediaAsset> findReusableImport(IngestCommand command, List<AssetStatus> statuses) {
         StorageConfigs.requireEnabled(directwerkConfig);
         Long tenantId = TenantContext.requireTenantId();
         AssetType assetType = command.assetType();
@@ -276,7 +282,7 @@ public class RemoteAssetIngestService implements RemoteAssetIngestApi {
                 tenantId,
                 canonicalSource,
                 assetType,
-                REUSABLE_IMPORT_STATUSES
+                statuses
         );
     }
 
