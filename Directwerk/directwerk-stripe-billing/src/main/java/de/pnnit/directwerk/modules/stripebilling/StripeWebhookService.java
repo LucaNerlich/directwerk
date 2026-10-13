@@ -286,10 +286,9 @@ public class StripeWebhookService {
     }
 
     private Long findProductIdByStripePrice(Long tenantId, String stripePriceId) {
-        return subscriptionProductRepository.findByTenantIdOrderBySortOrderAscIdAsc(tenantId).stream()
-                .filter(product -> stripePriceId.equals(product.getStripePriceId()))
+        return subscriptionProductRepository
+                .findFirstByTenantIdAndStripePriceIdOrderByIdAsc(tenantId, stripePriceId)
                 .map(SubscriptionProduct::getId)
-                .findFirst()
                 .orElse(null);
     }
 
