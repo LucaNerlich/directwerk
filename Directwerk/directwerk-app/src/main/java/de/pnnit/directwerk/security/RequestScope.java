@@ -6,11 +6,10 @@ import java.util.List;
 /**
  * The one taxonomy for "what kind of API route is this?".
  *
- * <p>Previously restated as divergent prefix lists in {@code TenantContextFilter} and
- * {@code TenantMembershipGuardFilter}; both now consume this classification so adding a
- * route means updating one place. Method-level {@code @PreAuthorize} and the SecurityConfig
- * matcher table remain separate, deliberate enforcement layers — but SecurityConfig builds
- * its content matchers from {@link #editorContentBases()} and
+ * <p>Consumed by {@code TenantContextFilter} and {@code TenantMembershipGuardFilter} so
+ * adding a route means updating one place. Method-level {@code @PreAuthorize} and the
+ * SecurityConfig matcher table remain separate, deliberate enforcement layers — but
+ * SecurityConfig builds its content matchers from {@link #editorContentBases()} and
  * {@link #tenantAdminContentBases()}, and {@code RequestScopeSecurityConsistencyTest} pins
  * the two taxonomies together, so a new content route cannot silently drift.</p>
  */

@@ -181,7 +181,7 @@ export async function performTenantMediaUpload(
         }
         case 'body-too-large':
             // The File size cap above makes this unreachable; keep the shared
-            // classifier's fallback shape identical to the old catch-all.
+            // classifier's fallback shape.
             return {
                 ok: false,
                 status: 502,
