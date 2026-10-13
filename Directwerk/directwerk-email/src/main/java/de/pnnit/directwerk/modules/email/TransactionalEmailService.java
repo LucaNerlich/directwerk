@@ -79,6 +79,15 @@ public class TransactionalEmailService {
                 headers.put("Reply-To", replyTo.trim());
             }
         }
+        // Issue #396: bulk content/newsletter notifications carry an opt-out link in the body;
+        // surface it to mailbox providers via List-Unsubscribe so their native unsubscribe UI
+        // works and bulk-sender reputation is preserved. One-click (List-Unsubscribe-Post) is
+        // deliberately NOT advertised: the links are GET pages, not POST endpoints.
+        String unsubscribeTarget = firstText(
+                renderVariables.get("unsubscribeUrl"), renderVariables.get("preferencesUrl"));
+        if (unsubscribeTarget != null) {
+            headers.put("List-Unsubscribe", "<" + unsubscribeTarget + ">");
+        }
         try {
             OutboundEmail outbound = new OutboundEmail(
                     to,
@@ -113,5 +122,16 @@ public class TransactionalEmailService {
             emailDeliveryGuard.releaseClaim(claimed.get());
             throw ex;
         }
+    }
+
+    /** First non-blank value, trimmed; {@code null} when neither has text. */
+    private static String firstText(String first, String second) {
+        if (org.springframework.util.StringUtils.hasText(first)) {
+            return first.trim();
+        }
+        if (org.springframework.util.StringUtils.hasText(second)) {
+            return second.trim();
+        }
+        return null;
     }
 }
