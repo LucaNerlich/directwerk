@@ -43,10 +43,10 @@ export interface ProxyRouteContext {
     params: Promise<{path: string[]}>
 }
 
-type ProxyMethod = 'GET' | 'HEAD' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'
+export type ProxyMethod = 'GET' | 'HEAD' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'
 
 export type TenantProxyRouteHandlers = Record<
-    'GET' | 'HEAD' | 'POST' | 'PUT' | 'PATCH' | 'DELETE',
+    ProxyMethod,
     (request: Request, context: ProxyRouteContext) => Promise<Response>
 >
 

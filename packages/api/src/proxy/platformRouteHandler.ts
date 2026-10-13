@@ -4,14 +4,12 @@ import {parseBearerAuthorization, safeUpstreamResponse} from '../server/platform
 import {readJsonBody} from './boundedBody'
 import {parseTenantHost} from './tenantHost'
 import {jsonError} from './upstreamResponse'
-import type {ProxyRouteContext} from './routeHandler'
+import type {ProxyMethod, ProxyRouteContext} from './routeHandler'
 
 export {type ProxyRouteContext}
 
-type ProxyMethod = 'GET' | 'HEAD' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'
-
 export type PlatformProxyRouteHandlers = Record<
-    'GET' | 'HEAD' | 'POST' | 'PUT' | 'PATCH' | 'DELETE',
+    ProxyMethod,
     (request: Request, context: ProxyRouteContext) => Promise<Response>
 >
 
