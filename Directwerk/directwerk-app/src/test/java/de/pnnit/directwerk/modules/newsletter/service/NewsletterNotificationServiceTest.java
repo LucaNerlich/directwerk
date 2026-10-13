@@ -100,27 +100,28 @@ class NewsletterNotificationServiceTest {
                 .thenReturn(new TenantContentBrandingResolver.BrandingContext("Acme", "Acme Magazine", "#123456"));
         when(publicContentUrlResolver.contentPageUrl(TENANT_ID, ContentType.ARTICLE, "hello-world"))
                 .thenReturn("https://tenant.example/articles/hello-world");
-        when(publicContentUrlResolver.newsletterUnsubscribeUrl(eq(TENANT_ID), anyString()))
-                .thenAnswer(invocation -> "https://tenant.example/newsletter/unsubscribe?token=" + invocation.getArgument(1));
-
         service.notifyArticlePublished(event());
 
         ArgumentCaptor<Map<String, String>> variablesCaptor = ArgumentCaptor.forClass(Map.class);
+        ArgumentCaptor<String> tokenCaptor = ArgumentCaptor.forClass(String.class);
         ArgumentCaptor<String> correlationCaptor = ArgumentCaptor.forClass(String.class);
-        verify(emailJobProducer).enqueueContentNotification(
-                eq(TENANT_ID), eq("ada@example.com"), eq(EmailTemplate.CONTENT_ARTICLE_PUBLISHED),
-                variablesCaptor.capture(), correlationCaptor.capture()
+        // Issue #323: the raw unsubscribe token travels as a protected queue token, not embedded
+        // in the variables, so the payload never carries the capability in cleartext.
+        verify(emailJobProducer).enqueueTokenizedContentNotification(
+                eq(TENANT_ID), eq("ada@example.com"), eq(EmailTemplate.NEWSLETTER_ARTICLE_PUBLISHED),
+                variablesCaptor.capture(), tokenCaptor.capture(), correlationCaptor.capture()
         );
-        verify(emailJobProducer).enqueueContentNotification(
-                eq(TENANT_ID), eq("grace@example.com"), eq(EmailTemplate.CONTENT_ARTICLE_PUBLISHED), any(), any()
+        verify(emailJobProducer).enqueueTokenizedContentNotification(
+                eq(TENANT_ID), eq("grace@example.com"), eq(EmailTemplate.NEWSLETTER_ARTICLE_PUBLISHED),
+                any(), any(), any()
         );
         Map<String, String> variables = variablesCaptor.getValue();
         assertThat(variables.get("title")).isEqualTo("Hello world");
         assertThat(variables.get("tenantName")).isEqualTo("Acme");
         assertThat(variables.get("siteTitle")).isEqualTo("Acme Magazine");
         assertThat(variables.get("contentUrl")).isEqualTo("https://tenant.example/articles/hello-world");
-        assertThat(variables.get("unsubscribeUrl"))
-                .isEqualTo("https://tenant.example/newsletter/unsubscribe?token=raw-enc-ada");
+        assertThat(variables).doesNotContainKey("unsubscribeUrl");
+        assertThat(tokenCaptor.getValue()).isEqualTo("raw-enc-ada");
         assertThat(correlationCaptor.getValue()).isEqualTo(
                 "content-notify-article-7-email-" + TokenHashUtil.sha256Hex("ada@example.com"));
     }

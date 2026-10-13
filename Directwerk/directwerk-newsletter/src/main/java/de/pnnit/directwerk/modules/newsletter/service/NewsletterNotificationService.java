@@ -61,15 +61,16 @@ public class NewsletterNotificationService implements NewsletterNotificationApi 
         TenantContentBrandingResolver.BrandingContext branding = tenantContentBrandingResolver.resolve(tenantId);
         String contentUrl = publicContentUrlResolver.contentPageUrl(tenantId, ContentType.ARTICLE, event.slug());
         for (Recipient recipient : recipients) {
-            String unsubscribeUrl = publicContentUrlResolver.newsletterUnsubscribeUrl(
-                    tenantId,
-                    recipient.rawUnsubscribeToken()
-            );
-            emailJobProducer.enqueueContentNotification(
+            // Issue #323: the raw unsubscribe token is a capability. Pass it through the queue's
+            // protected-token channel (protectForQueue) and let the handler build the URL, instead
+            // of persisting the full unsubscribe URL — and with it the raw token — in cleartext in
+            // the job payload.
+            emailJobProducer.enqueueTokenizedContentNotification(
                     tenantId,
                     recipient.email(),
-                    EmailTemplate.CONTENT_ARTICLE_PUBLISHED,
-                    variables(event, branding, contentUrl, unsubscribeUrl),
+                    EmailTemplate.NEWSLETTER_ARTICLE_PUBLISHED,
+                    variables(event, branding, contentUrl),
+                    recipient.rawUnsubscribeToken(),
                     correlationId(event.contentId(), recipient.email())
             );
         }
@@ -107,8 +108,7 @@ public class NewsletterNotificationService implements NewsletterNotificationApi 
     private static Map<String, String> variables(
             ContentPublishedEvent event,
             TenantContentBrandingResolver.BrandingContext branding,
-            String contentUrl,
-            String unsubscribeUrl
+            String contentUrl
     ) {
         Map<String, String> variables = new LinkedHashMap<>();
         variables.put("recipientName", "there");
@@ -117,7 +117,7 @@ public class NewsletterNotificationService implements NewsletterNotificationApi 
         variables.put("title", event.title());
         variables.put("excerpt", event.excerpt() == null ? "" : event.excerpt());
         variables.put("contentUrl", contentUrl);
-        variables.put("unsubscribeUrl", unsubscribeUrl);
+        // unsubscribeUrl is injected at delivery from the protected token (issue #323).
         variables.put("primaryColor", branding.primaryColor());
         return variables;
     }
