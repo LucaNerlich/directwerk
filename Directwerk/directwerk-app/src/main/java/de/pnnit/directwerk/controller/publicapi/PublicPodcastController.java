@@ -46,7 +46,8 @@ public class PublicPodcastController {
 
     @GetMapping("/series")
     ResponseEntity<Response<List<PublicSeriesView>>> listSeries(HttpServletRequest request) {
-        Long tenantId = TenantContext.getTenantId();
+        // Issue #379: fail closed on an unmatched Host instead of running tenant-less queries.
+        Long tenantId = TenantContext.requireTenantId();
         String tenantSlug = rssFeedSnapshotService.publicRssTenantSlug(tenantId).orElse(null);
         List<PublicSeriesView> series = publicPodcastQueryService.listPublishedSeries(tenantId).stream()
                 .map(item -> toSeriesView(item, request, tenantSlug))
@@ -58,7 +59,8 @@ public class PublicPodcastController {
     ResponseEntity<Response<List<PublicEpisodeView>>> listEpisodes(
             @RequestParam(required = false) Long seriesId
     ) {
-        Long tenantId = TenantContext.getTenantId();
+        // Issue #379: fail closed on an unmatched Host instead of running tenant-less queries.
+        Long tenantId = TenantContext.requireTenantId();
         List<PublicEpisodeView> episodes = publicPodcastQueryService
                 .listPublishedEpisodes(tenantId, seriesId)
                 .stream()
@@ -69,7 +71,8 @@ public class PublicPodcastController {
 
     @GetMapping("/formats")
     ResponseEntity<Response<List<PublicFormatView>>> listFormats() {
-        Long tenantId = TenantContext.getTenantId();
+        // Issue #379: fail closed on an unmatched Host instead of running tenant-less queries.
+        Long tenantId = TenantContext.requireTenantId();
         List<PublicFormatView> formats = publicPodcastQueryService.listActiveFormats(tenantId).stream()
                 .map(PublicPodcastController::toFormatView)
                 .toList();
@@ -78,7 +81,8 @@ public class PublicPodcastController {
 
     @GetMapping("/categories")
     ResponseEntity<Response<List<PublicCategoryView>>> listCategories() {
-        Long tenantId = TenantContext.getTenantId();
+        // Issue #379: fail closed on an unmatched Host instead of running tenant-less queries.
+        Long tenantId = TenantContext.requireTenantId();
         List<PublicCategoryView> categories = publicPodcastQueryService.listActiveCategories(tenantId).stream()
                 .map(PublicCategoryView::of)
                 .toList();

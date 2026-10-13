@@ -27,7 +27,8 @@ public class PublicSubscriptionProductController {
 
     @GetMapping
     ResponseEntity<Response<List<ProductView>>> listActiveProducts() {
-        Long tenantId = TenantContext.getTenantId();
+        // Issue #379: fail closed on an unmatched Host instead of running tenant-less queries.
+        Long tenantId = TenantContext.requireTenantId();
 
         List<ProductView> products = subscriptionProductService.listProducts(tenantId, true).stream()
                 .map(PublicSubscriptionProductController::toView)
