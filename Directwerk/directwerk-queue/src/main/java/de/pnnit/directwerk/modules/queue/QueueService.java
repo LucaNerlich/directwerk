@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import tools.jackson.databind.JsonNode;
 
@@ -37,6 +38,27 @@ public class QueueService {
             Integer maxAttempts
     ) {
         return enqueue(queue, payload, priority, availableAt, maxAttempts, JobEnqueueMetadata.empty());
+    }
+
+    /**
+     * Enqueues in a fresh, independent transaction (issue #300).
+     * <p>
+     * Must be used from a transaction {@code afterCommit} callback: Spring's {@code afterCommit}
+     * still runs inside the original, already-committed transaction, so a plain {@code enqueue}
+     * there joins it and no COMMIT is ever issued for the new row — the job is silently lost.
+     * Business code that wants the job to disappear when its transaction rolls back must keep
+     * calling {@link #enqueue}.
+     */
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public QueueJob enqueueInNewTransaction(
+            String queue,
+            JsonNode payload,
+            int priority,
+            Instant availableAt,
+            Integer maxAttempts,
+            JobEnqueueMetadata metadata
+    ) {
+        return enqueue(queue, payload, priority, availableAt, maxAttempts, metadata);
     }
 
     @Transactional
