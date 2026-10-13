@@ -2,6 +2,7 @@ import {describe, expect, it} from 'vitest'
 
 import {formatMoney} from '../src/format/money'
 import {formatPublishedAt} from '../src/format/datetime'
+import {formatDuration} from '../src/format/duration'
 
 describe('formatMoney', () => {
     it('formats EUR amounts with German locale', () => {
@@ -39,5 +40,17 @@ describe('formatPublishedAt', () => {
         const formatted = formatPublishedAt('2024-06-01T12:00:00.000Z')
         expect(formatted).not.toBe('Unbekanntes Datum')
         expect(formatted).not.toBe('2024-06-01T12:00:00.000Z')
+    })
+})
+
+describe('formatDuration', () => {
+    it('returns null for null or non-positive durations', () => {
+        expect(formatDuration(null)).toBeNull()
+        expect(formatDuration(0)).toBeNull()
+    })
+
+    it('formats minutes and hours as a clock string', () => {
+        expect(formatDuration(95)).toBe('1:35')
+        expect(formatDuration(3661)).toBe('1:01:01')
     })
 })

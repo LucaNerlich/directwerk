@@ -25,6 +25,7 @@ import {isTenantAdminRole, suggestSlug} from '@/lib/api/studioHelpers'
 import {parseOptionalInt} from '@/lib/publication/parsePositiveInt'
 import {useOptionalMe} from '@/lib/auth/MeProvider'
 import {HTML_SLUG_PATTERN} from '@directwerk/api/constants'
+import {formatDuration} from '@directwerk/api/format/duration'
 import type {
     AccessPolicy,
     BulkImportQueuedResult,
@@ -37,20 +38,6 @@ import {getClientTenantHost} from '@directwerk/api/tenant'
 import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
 
 type WizardStep = 'url' | 'series' | 'formats' | 'episode' | 'done'
-
-/** Formats a positive duration; returns `"unbekannt"` for null or non-positive values. */
-function formatDuration(seconds: number | null): string {
-    if (seconds === null || seconds <= 0) {
-        return 'unbekannt'
-    }
-    const hours = Math.floor(seconds / 3600)
-    const minutes = Math.floor((seconds % 3600) / 60)
-    const rest = seconds % 60
-    if (hours > 0) {
-        return `${hours}:${String(minutes).padStart(2, '0')}:${String(rest).padStart(2, '0')}`
-    }
-    return `${minutes}:${String(rest).padStart(2, '0')}`
-}
 
 /**
  * Provides a multi-step wizard for importing podcast episodes from an RSS feed.
@@ -913,7 +900,7 @@ export default function RssImportWizard(): React.JSX.Element {
                     ) : null}
                     <p className="text-sm text-muted-foreground">
                         Audio: {currentEpisode.audioMimeType ?? 'unbekannt'}, {formatBytes(currentEpisode.audioSizeBytes)},{' '}
-                        {formatDuration(currentEpisode.durationSeconds)}
+                        {formatDuration(currentEpisode.durationSeconds) ?? 'unbekannt'}
                     </p>
                     <label className="flex items-center gap-2 text-sm">
                         <input

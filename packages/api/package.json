@@ -44,7 +44,8 @@
         "./client/platformApiCore": "./src/client/platformApiCore.ts",
         "./generated/openapi": "./src/generated/openapi.ts",
         "./format/datetime": "./src/format/datetime.ts",
-        "./format/bytes": "./src/format/bytes.ts"
+        "./format/bytes": "./src/format/bytes.ts",
+        "./format/duration": "./src/format/duration.ts"
     },
     "scripts": {
         "test": "vitest run",

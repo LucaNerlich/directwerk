@@ -38,19 +38,8 @@ export function entitlementLabel(
     }
 }
 
-/** Formats a duration in seconds as a clock-style time string; `null` for null or non-positive values. */
-export function formatDuration(seconds: number | null): string | null {
-    if (seconds === null || seconds <= 0) {
-        return null
-    }
-    const hours = Math.floor(seconds / 3600)
-    const minutes = Math.floor((seconds % 3600) / 60)
-    const remainingSeconds = seconds % 60
-    if (hours > 0) {
-        return `${hours}:${String(minutes).padStart(2, '0')}:${String(remainingSeconds).padStart(2, '0')}`
-    }
-    return `${minutes}:${String(remainingSeconds).padStart(2, '0')}`
-}
+/** Clock-style duration, shared with the studio import wizard. */
+export {formatDuration} from '@directwerk/api/format/duration'
 
 /** Converts an asset type to its localized display label; returns `assetType` when unrecognized. */
 export function assetTypeLabel(
