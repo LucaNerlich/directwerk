@@ -42,7 +42,7 @@ class RssFeedRefreshJobProducerTest {
 
         ArgumentCaptor<JsonNode> payload = ArgumentCaptor.forClass(JsonNode.class);
         ArgumentCaptor<JobEnqueueMetadata> metadata = ArgumentCaptor.forClass(JobEnqueueMetadata.class);
-        verify(queueService).enqueue(
+        verify(queueService).enqueueInNewTransaction(
                 eq(QueueNames.PODCAST_RSS_FEED_REFRESH),
                 payload.capture(),
                 eq(0),
@@ -72,7 +72,7 @@ class RssFeedRefreshJobProducerTest {
 
         producer.onSnapshotStale(new TenantRssSnapshotStaleEvent(10L));
 
-        verify(queueService).enqueue(
+        verify(queueService).enqueueInNewTransaction(
                 eq(QueueNames.PODCAST_RSS_FEED_REFRESH),
                 any(JsonNode.class),
                 eq(0),
@@ -100,7 +100,7 @@ class RssFeedRefreshJobProducerTest {
         producer.onEntitlementsChanged(new TenantEntitlementsChangedEvent(10L));
 
         verify(stateStore).clearWritten(10L);
-        verify(queueService).enqueue(
+        verify(queueService).enqueueInNewTransaction(
                 eq(QueueNames.PODCAST_RSS_FEED_REFRESH),
                 any(JsonNode.class),
                 eq(0),
@@ -128,7 +128,7 @@ class RssFeedRefreshJobProducerTest {
 
         verify(stateStore).recordStalePrefix(10L, "old-alpha");
         verify(stateStore).clearWritten(10L);
-        verify(queueService).enqueue(
+        verify(queueService).enqueueInNewTransaction(
                 eq(QueueNames.PODCAST_RSS_FEED_REFRESH),
                 any(JsonNode.class),
                 eq(0),
