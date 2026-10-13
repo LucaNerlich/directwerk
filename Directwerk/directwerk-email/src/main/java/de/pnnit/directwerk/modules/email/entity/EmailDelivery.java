@@ -34,8 +34,4 @@ public class EmailDelivery {
 
     @Column(name = "claim_token", nullable = false)
     private UUID claimToken;
-
-    public EmailDelivery(UUID jobId) {
-        this.jobId = jobId;
-    }
 }
