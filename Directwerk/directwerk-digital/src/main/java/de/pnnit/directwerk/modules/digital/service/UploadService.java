@@ -279,8 +279,11 @@ public class UploadService implements UploadApi {
                 if (head.contentLength() != null) {
                     locked.setSizeBytes(head.contentLength());
                 }
-                if (head.eTag() != null) {
-                    locked.setChecksumSha256(head.eTag().replace("\"", ""));
+                if (head.checksumSHA256() != null) {
+                    // Issue #364: an S3 ETag is not a SHA-256 (and for multipart uploads not even
+                    // an MD5), so store the value the SDK actually exposes — null unless the object
+                    // was uploaded with a checksum, which is the honest signal for this column.
+                    locked.setChecksumSha256(head.checksumSHA256());
                 }
                 locked.setS3Key(finalKey);
                 locked.setStatus(AssetStatus.READY);
