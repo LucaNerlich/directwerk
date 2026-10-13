@@ -1,6 +1,7 @@
 package de.pnnit.directwerk.modules.newsletter.access;
 
 import de.pnnit.directwerk.modules.digital.DigitalContentModule;
+import de.pnnit.directwerk.modules.newsletter.api.ArticleAccessApi;
 import de.pnnit.directwerk.modules.newsletter.entity.Article;
 import de.pnnit.directwerk.modules.newsletter.service.PublicArticleQueryService;
 import de.pnnit.directwerk.modules.newsletter.service.SubscriberArticleService;
@@ -23,6 +24,7 @@ public class SubscriberPortalArticleAccessService {
     private final SubscriberArticleService subscriberArticleService;
     private final PublicArticleQueryService publicArticleQueryService;
     private final ModuleGateService moduleGateService;
+    private final ArticleAccessApi articleAccessApi;
 
     @Transactional(readOnly = true)
     public List<Article> listMyArticles(DirectwerkUserPrincipal user) {
@@ -42,8 +44,9 @@ public class SubscriberPortalArticleAccessService {
         if (RoleConstants.isEditorOrTenantAdmin(user)) {
             return article;
         }
-        boolean allowed = subscriberArticleService.listEntitledArticles(tenantId, user.userId()).stream()
-                .anyMatch(candidate -> candidate.getId().equals(article.getId()));
+        // Issue #387: point check instead of loading every published article (with its category,
+        // list and hero-asset graph) and running a batch entitlement over all of them.
+        boolean allowed = articleAccessApi.hasAccess(tenantId, user.userId(), article.getId());
         if (!allowed) {
             throw new de.pnnit.directwerk.modules.newsletter.exception.ArticleNotFoundException(slug);
         }
