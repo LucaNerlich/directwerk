@@ -61,12 +61,7 @@ export default function BrandingEditor(): React.JSX.Element {
     const localize = useLocalizedPath()
     const authRedirect = useAuthRequired()
     const siteConfig = useSiteConfig()
-    let analyticsModuleActive: boolean | null = null
-    try {
-        analyticsModuleActive = hasModule(siteConfig, 'ANALYTICS')
-    } catch {
-        analyticsModuleActive = null
-    }
+    const analyticsModuleActive = hasModule(siteConfig, 'ANALYTICS')
     const [branding, setBranding] = useState<TenantBranding | null>(null)
     const [primaryColorDraft, setPrimaryColorDraft] = useState('')
     const [secondaryColorDraft, setSecondaryColorDraft] = useState('')
