@@ -201,6 +201,38 @@ class TransactionalEmailServiceTest {
     }
 
     @Test
+    void sendAddsListUnsubscribeForNotificationTemplates() {
+        when(directwerkConfig.isEmailEnabled()).thenReturn(true);
+        when(emailSender.isReady()).thenReturn(true);
+        when(emailDeliveryGuard.tryClaimDelivery(JOB_ID)).thenReturn(Optional.of(CLAIM));
+        when(emailDeliveryGuard.finalizeClaim(eq(CLAIM), any(Runnable.class))).thenAnswer(inv -> {
+            inv.getArgument(1, Runnable.class).run();
+            return true;
+        });
+        when(directwerkConfig.email()).thenReturn(sampleEmailConfig());
+
+        transactionalEmailService.sendFromPayload(
+                JOB_ID,
+                10L,
+                "subscriber@example.com",
+                EmailTemplate.CONTENT_EPISODE_PUBLISHED,
+                Map.of(
+                        "contentUrl", "https://tenant.example/episodes/ep-1",
+                        "preferencesUrl", "https://tenant.example/account/notifications"
+                )
+        );
+
+        ArgumentCaptor<OutboundEmail> messageCaptor = ArgumentCaptor.forClass(OutboundEmail.class);
+        verify(emailSender).send(messageCaptor.capture());
+
+        // Issue #396: mailbox providers get the opt-out target for bulk notifications.
+        assertThat(messageCaptor.getValue().headers()).containsEntry(
+                "List-Unsubscribe",
+                "<https://tenant.example/account/notifications>"
+        );
+    }
+
+    @Test
     void sendFromPayloadUsesTenantMailgunCredentialsAndProvider() {
         when(directwerkConfig.isEmailEnabled()).thenReturn(true);
         when(emailDeliveryGuard.tryClaimDelivery(JOB_ID)).thenReturn(Optional.of(CLAIM));
