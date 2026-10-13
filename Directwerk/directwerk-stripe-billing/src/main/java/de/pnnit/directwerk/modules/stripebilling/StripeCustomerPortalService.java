@@ -7,7 +7,6 @@ import de.pnnit.directwerk.modules.stripebilling.exception.StripeConnectNotReady
 import de.pnnit.directwerk.modules.stripebilling.exception.StripeNotConfiguredException;
 import de.pnnit.directwerk.modules.stripebilling.repository.StripeCustomerRepository;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class StripeCustomerPortalService {
@@ -29,7 +28,8 @@ public class StripeCustomerPortalService {
         this.redirectUrlValidator = redirectUrlValidator;
     }
 
-    @Transactional
+    // Not @Transactional (issue #307): requireChargeableAccount and the portal-session HTTP call
+    // must not run inside one transaction — the DB reads each open their own short transaction.
     @RequiresModule(StripeBillingModule.KEY)
     public String createPortalSession(Long tenantId, Long userId, String returnUrl) {
         if (!stripeOperations.isConfigured()) {
