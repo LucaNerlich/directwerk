@@ -127,6 +127,11 @@ export function createTenantProxyRouteHandler(
         context: ProxyRouteContext,
         method: ProxyMethod,
     ): Promise<Response> {
+        // The client chooses this host and it is forwarded verbatim, so this BFF does NOT
+        // enforce tenant scope itself (#410). The binding is the API's documented JWT
+        // tenant_id <-> Host cross-check (Directwerk/docs/multi-tenancy.md). Keep that check
+        // load-bearing: relaxing it for any endpoint would let a token for tenant A be pointed
+        // at tenant B by this header alone.
         const tenantHost = parseTenantHost(request.headers.get('x-tenant-host'))
         if (tenantHost === null) {
             return jsonError('A valid tenant is required.', 400)
