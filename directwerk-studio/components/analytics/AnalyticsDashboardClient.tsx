@@ -3,6 +3,7 @@
 import {useEffect, useState} from 'react'
 
 import {formatMoney} from '@directwerk/api/format'
+import {apiErrorStatus} from '@directwerk/api/envelope'
 import {getClientTenantHost} from '@directwerk/api/tenant'
 import type {
     ArticleSummary,
@@ -296,12 +297,7 @@ export default function AnalyticsDashboardClient({
                     return
                 }
                 if (authRedirect(error)) return
-                if (
-                    typeof error === 'object' &&
-                    error !== null &&
-                    'status' in error &&
-                    (error as {status: unknown}).status === 503
-                ) {
+                if (apiErrorStatus(error) === 503) {
                     setUmamiKeyMissing(true)
                 }
                 setUmami(null)

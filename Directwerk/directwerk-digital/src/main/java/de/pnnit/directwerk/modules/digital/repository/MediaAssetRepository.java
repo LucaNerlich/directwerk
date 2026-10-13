@@ -177,11 +177,25 @@ public interface MediaAssetRepository extends JpaRepository<MediaAsset, Long> {
     );
 
     @Query("""
-            select m.assetType, m.status, count(m), coalesce(sum(m.sizeBytes), 0)
+            select m.assetType as assetType,
+                   m.status as status,
+                   count(m) as assetCount,
+                   coalesce(sum(m.sizeBytes), 0) as totalBytes
             from MediaAsset m
             where m.tenant.id = :tenantId
               and m.status <> de.pnnit.directwerk.modules.digital.entity.AssetStatus.PENDING_DELETE
             group by m.assetType, m.status
             """)
-    List<Object[]> summarizeStorage(@Param("tenantId") Long tenantId);
+    List<StorageSummary> summarizeStorage(@Param("tenantId") Long tenantId);
+
+    /** Projection row for {@link #summarizeStorage(Long)}. */
+    interface StorageSummary {
+        AssetType getAssetType();
+
+        AssetStatus getStatus();
+
+        Long getAssetCount();
+
+        Long getTotalBytes();
+    }
 }

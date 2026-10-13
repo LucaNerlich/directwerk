@@ -136,12 +136,10 @@ public class MediaAssetQueryService implements MediaAssetQueryApi {
         List<MediaStorageBucket> buckets = new ArrayList<>();
         long totalAssets = 0L;
         long totalBytes = 0L;
-        for (Object[] row : mediaAssetRepository.summarizeStorage(tenantId)) {
-            AssetType assetType = (AssetType) row[0];
-            AssetStatus status = (AssetStatus) row[1];
-            long count = ((Number) row[2]).longValue();
-            long bytes = ((Number) row[3]).longValue();
-            buckets.add(new MediaStorageBucket(assetType, status, count, bytes));
+        for (MediaAssetRepository.StorageSummary row : mediaAssetRepository.summarizeStorage(tenantId)) {
+            long count = row.getAssetCount();
+            long bytes = row.getTotalBytes();
+            buckets.add(new MediaStorageBucket(row.getAssetType(), row.getStatus(), count, bytes));
             totalAssets += count;
             totalBytes += bytes;
         }
