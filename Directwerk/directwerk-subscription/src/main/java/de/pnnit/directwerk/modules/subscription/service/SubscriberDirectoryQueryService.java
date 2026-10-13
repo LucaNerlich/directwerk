@@ -28,6 +28,30 @@ public class SubscriberDirectoryQueryService {
     private final SubscriptionRepository subscriptionRepository;
     private final ModuleGateService moduleGateService;
 
+    /**
+     * Issue #311: the subscriber population size, without building a directory entry per user
+     * (listSubscribers loads every tenant user plus every detailed subscription only to be counted).
+     * Mirrors listSubscribers' inclusion rules.
+     */
+    @Transactional(readOnly = true)
+    public long countSubscribers(Long tenantId) {
+        java.util.Set<Long> subscriberUserIds = new java.util.HashSet<>();
+
+        for (TenantUserView user : tenantUserQueryService.listTenantUsers(tenantId)) {
+            if (user.roles().contains(Role.SUBSCRIBER.name())) {
+                subscriberUserIds.add(user.userId());
+            }
+        }
+
+        if (moduleGateService.isModuleActive(tenantId, SubscriptionModule.MODULE_KEY)) {
+            for (Subscription subscription : subscriptionRepository.findDetailedByTenantId(tenantId)) {
+                subscriberUserIds.add(subscription.getUser().getId());
+            }
+        }
+
+        return subscriberUserIds.size();
+    }
+
     @Transactional(readOnly = true)
     public List<SubscriberDirectoryEntry> listSubscribers(Long tenantId) {
         Map<Long, Builder> byUserId = new LinkedHashMap<>();
