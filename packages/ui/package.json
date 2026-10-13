@@ -6,7 +6,6 @@
     "exports": {
         "./theme.css": "./src/styles/theme.css",
         "./components/*": "./src/components/*.tsx",
-        "./components/ui/*": "./src/components/ui/*.tsx",
         "./components/layout/*": "./src/components/layout/*.tsx",
         "./hooks/*": "./src/hooks/*.ts",
         "./lib/*": "./src/lib/*.ts"
