@@ -1,4 +1,10 @@
-import {isLocale, type Locale, locales} from './config'
+import {
+    localeFromPathname as sharedLocaleFromPathname,
+    splitPathSuffix,
+    stripLocalePrefix as sharedStripLocalePrefix,
+} from '@directwerk/ui/lib/i18n'
+
+import type {Locale} from './config'
 
 /**
  * Logical (unprefixed) path → `/{lang}{path}`.
@@ -9,27 +15,9 @@ export function localizedPath(lang: Locale, path: string): string {
         return path
     }
 
-    const hashIndex = path.indexOf('#')
-    const queryIndex = path.indexOf('?')
-    let pathname = path
-    let suffix = ''
-
-    if (hashIndex >= 0 && (queryIndex < 0 || hashIndex < queryIndex)) {
-        pathname = path.slice(0, hashIndex)
-        suffix = path.slice(hashIndex)
-    } else if (queryIndex >= 0) {
-        pathname = path.slice(0, queryIndex)
-        suffix = path.slice(queryIndex)
-    }
-
-    if (pathname === '') {
-        pathname = '/'
-    }
-    if (!pathname.startsWith('/')) {
-        pathname = `/${pathname}`
-    }
-
-    const stripped = stripLangPrefix(pathname)
+    const {pathname: rawPathname, suffix} = splitPathSuffix(path)
+    const pathname = rawPathname === '' ? '/' : rawPathname
+    const stripped = sharedStripLocalePrefix(pathname)
     if (stripped === '/') {
         return `/${lang}${suffix}`
     }
@@ -37,47 +25,18 @@ export function localizedPath(lang: Locale, path: string): string {
 }
 
 /** Removes a leading `/de` or `/en` segment when present. */
-export function stripLangPrefix(pathname: string): string {
-    for (const locale of locales) {
-        if (pathname === `/${locale}`) {
-            return '/'
-        }
-        const prefix = `/${locale}/`
-        if (pathname.startsWith(prefix)) {
-            return pathname.slice(prefix.length - 1)
-        }
-    }
-    return pathname
-}
+export const stripLangPrefix = sharedStripLocalePrefix
 
 /** Reads the locale segment from a pathname, if any. */
-export function localeFromPathname(pathname: string): Locale | null {
-    const segment = pathname.split('/').filter(Boolean)[0]
-    if (segment !== undefined && isLocale(segment)) {
-        return segment
-    }
-    return null
-}
+export const localeFromPathname = sharedLocaleFromPathname
 
 /** Swaps `/de/...` ↔ `/en/...` keeping the rest of the path (and query/hash). */
 export function swapLangInPath(path: string, nextLang: Locale): string {
-    const hashIndex = path.indexOf('#')
-    const queryIndex = path.indexOf('?')
-    let pathname = path
-    let suffix = ''
-
-    if (hashIndex >= 0 && (queryIndex < 0 || hashIndex < queryIndex)) {
-        pathname = path.slice(0, hashIndex)
-        suffix = path.slice(hashIndex)
-    } else if (queryIndex >= 0) {
-        pathname = path.slice(0, queryIndex)
-        suffix = path.slice(queryIndex)
-    }
-
-    const logical = stripLangPrefix(pathname === '' ? '/' : pathname)
+    const {pathname, suffix} = splitPathSuffix(path)
+    const logical = sharedStripLocalePrefix(pathname === '' ? '/' : pathname)
     return `${localizedPath(nextLang, logical)}${suffix}`
 }
 
 export function pathHasLocalePrefix(pathname: string): boolean {
-    return localeFromPathname(pathname) !== null
+    return sharedLocaleFromPathname(pathname) !== null
 }

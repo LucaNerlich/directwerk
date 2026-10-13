@@ -1,4 +1,9 @@
-import {defaultLocale, isLocale, type Locale} from './config'
+import {
+    localeFromPathname as sharedLocaleFromPathname,
+    stripLocalePrefix as sharedStripLocalePrefix,
+} from '@directwerk/ui/lib/i18n'
+
+import {defaultLocale, type Locale} from './config'
 
 /** Prefix a site-relative path with the active locale (`/developers` → `/de/developers`). */
 export function hrefFor(lang: Locale, path: string = '/'): string {
@@ -20,22 +25,14 @@ export function hrefFor(lang: Locale, path: string = '/'): string {
 }
 
 /** Strip a leading `/de` or `/en` segment from a pathname. */
-export function stripLangPrefix(pathname: string): string {
-    const segments = pathname.split('/')
-    if (segments.length >= 2 && isLocale(segments[1]!)) {
-        const rest = `/${segments.slice(2).join('/')}`.replace(/\/$/, '') || '/'
-        return rest === '/' ? '/' : rest.replace(/\/+/g, '/')
-    }
-    return pathname || '/'
-}
+export const stripLangPrefix = sharedStripLocalePrefix
 
 /** Swap `/de/...` ↔ `/en/...` while keeping the remainder of the path. */
 export function swapLangPath(pathname: string, nextLang: Locale): string {
-    const rest = stripLangPrefix(pathname)
+    const rest = sharedStripLocalePrefix(pathname)
     return hrefFor(nextLang, rest === '/' ? '/' : rest)
 }
 
 export function langFromPathname(pathname: string): Locale {
-    const segment = pathname.split('/')[1]
-    return segment && isLocale(segment) ? segment : defaultLocale
+    return sharedLocaleFromPathname(pathname) ?? defaultLocale
 }
