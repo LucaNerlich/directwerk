@@ -52,6 +52,7 @@ import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.SimpleTransactionStatus;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.CopyObjectRequest;
+import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
 import software.amazon.awssdk.services.s3.model.HeadObjectRequest;
 import software.amazon.awssdk.services.s3.model.HeadObjectResponse;
 import software.amazon.awssdk.services.s3.model.S3Exception;
@@ -418,6 +419,38 @@ class UploadServiceTest {
 
         assertThat(result.status()).isEqualTo("READY");
         verify(mediaDeleteJobProducer).enqueueStagingCleanup("alpha-show-a/staging/sess/episode.mp3");
+    }
+
+    @Test
+    void confirmUploadSizeMismatchArchivesPendingAsset() {
+        when(directwerkConfig.isStorageEnabled()).thenReturn(true);
+        when(directwerkConfig.storage()).thenReturn(storageProps());
+        when(tenantRepository.requireById(10L)).thenReturn(tenant);
+
+        MediaAsset pending = new MediaAsset();
+        pending.setId(55L);
+        pending.setTenant(tenant);
+        pending.setS3Key("alpha-show-a/staging/sess/episode.mp3");
+        pending.setVisibility(AssetVisibility.PRIVATE);
+        pending.setScope(AssetScope.CONTENT);
+        pending.setAssetType(AssetType.AUDIO);
+        pending.setStatus(AssetStatus.PENDING);
+        pending.setMimeType("audio/mpeg");
+        pending.setSizeBytes(2048L);
+        pending.setOriginalFilename("episode.mp3");
+        when(mediaAssetRepository.findById(55L)).thenReturn(Optional.of(pending));
+        when(mediaAssetRepository.findByIdForUpdate(55L)).thenReturn(Optional.of(pending));
+        when(mediaAssetRepository.saveAndFlush(any(MediaAsset.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(s3Client.headObject(any(HeadObjectRequest.class))).thenReturn(
+                HeadObjectResponse.builder().contentLength(4096L).contentType("audio/mpeg").build());
+
+        assertThatThrownBy(() -> uploadService.confirmUpload(new UploadApi.ConfirmUploadCommand(55L)))
+                .isInstanceOf(UploadValidationException.class);
+
+        // Issue #304: the rejected staging object is deleted AND its PENDING row archived,
+        // so no unreachable "pending upload" survives the staging sweep.
+        assertThat(pending.getStatus()).isEqualTo(AssetStatus.ARCHIVED);
+        verify(s3Client).deleteObject(any(DeleteObjectRequest.class));
     }
 
     private static DirectwerkProperties.Storage storageProps() {

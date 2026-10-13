@@ -237,7 +237,7 @@ public class UploadService implements UploadApi {
             // only caught here. Delete it immediately rather than leaving it for the
             // 24h staging sweep, which would otherwise let this be repeated to sustain a
             // rolling oversized-storage footprint.
-            deleteObjectQuietly(storage.bucket(), asset.getS3Key());
+            rejectPendingAsset(asset.getId(), storage.bucket(), asset.getS3Key());
             throw new UploadValidationException(
                     "UPLOAD_VALIDATION_FAILED",
                     "Uploaded size does not match declared sizeBytes"
@@ -245,7 +245,7 @@ public class UploadService implements UploadApi {
         }
         if (asset.getMimeType() != null && head.contentType() != null
                 && !asset.getMimeType().equalsIgnoreCase(head.contentType().split(";")[0].trim())) {
-            deleteObjectQuietly(storage.bucket(), asset.getS3Key());
+            rejectPendingAsset(asset.getId(), storage.bucket(), asset.getS3Key());
             throw new UploadValidationException(
                     "UPLOAD_VALIDATION_FAILED",
                     "Uploaded Content-Type does not match declared mimeType"
@@ -334,6 +334,29 @@ public class UploadService implements UploadApi {
                     .build());
         } catch (Exception cleanupEx) {
             log.warn("Failed to clean up unreferenced object after failed confirm: {}", key, cleanupEx);
+        }
+    }
+
+    /**
+     * Rejects a staging object that failed post-upload validation: deletes it from S3 and
+     * moves the PENDING row to ARCHIVED in one short transaction (issue #304).
+     * <p>
+     * The 24h staging sweep only archives rows whose keys it just deleted from the bucket
+     * listing, so a row whose object is already gone can never be healed by it — without
+     * this flip the row stays PENDING forever, still counting against storage.
+     */
+    private void rejectPendingAsset(Long assetId, String bucket, String s3Key) {
+        deleteObjectQuietly(bucket, s3Key);
+        try {
+            new TransactionTemplate(transactionManager).executeWithoutResult(status ->
+                    mediaAssetRepository.findByIdForUpdate(assetId).ifPresent(locked -> {
+                        if (locked.getStatus() == AssetStatus.PENDING) {
+                            locked.setStatus(AssetStatus.ARCHIVED);
+                            mediaAssetRepository.saveAndFlush(locked);
+                        }
+                    }));
+        } catch (RuntimeException archiveEx) {
+            log.warn("Failed to archive rejected pending asset {}", assetId, archiveEx);
         }
     }
 
