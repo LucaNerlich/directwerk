@@ -1,5 +1,6 @@
 package de.pnnit.directwerk.modules.core.notification;
 
+import de.pnnit.directwerk.modules.core.FeatureModuleKeys;
 import de.pnnit.directwerk.config.DirectwerkConfig;
 import de.pnnit.directwerk.modules.content.ContentType;
 import de.pnnit.directwerk.modules.core.service.ModuleGateService;
@@ -17,8 +18,6 @@ import org.springframework.stereotype.Component;
 @Slf4j
 public class SubscriberNotificationGate {
 
-    private static final String EMAIL_NOTIFY_MODULE_KEY = "EMAIL_NOTIFY";
-
     private final DirectwerkConfig directwerkConfig;
     private final ModuleGateService moduleGateService;
 
@@ -29,7 +28,7 @@ public class SubscriberNotificationGate {
         if (!directwerkConfig.isEmailEnabled()) {
             return false;
         }
-        return moduleGateService.enabledModuleKeys(tenantId).contains(EMAIL_NOTIFY_MODULE_KEY);
+        return moduleGateService.enabledModuleKeys(tenantId).contains(FeatureModuleKeys.EMAIL_NOTIFY);
     }
 
     /**
