@@ -65,23 +65,28 @@ public class QueueRepository {
         if (inserted.isPresent()) {
             return inserted.get();
         }
-        return findQueued(queue, tenantId, correlationId)
+        // The QUEUED row that caused the conflict can be claimed by a poller in the window between
+        // this statement and the lookup below (issue #328); the lookup must therefore not require
+        // status QUEUED, or the unchecked exception would escape and mark the caller's business
+        // transaction rollback-only — a 500 caused by a cosmetic dedup race.
+        return findCoalescedJob(queue, tenantId, correlationId)
                 .orElseThrow(() -> new IllegalStateException(
-                        "Enqueue coalesced by correlation id but no QUEUED job found: queue=" + queue
+                        "Enqueue coalesced by correlation id but no job row found: queue=" + queue
                                 + " correlation=" + correlationId));
     }
 
-    public Optional<QueueJob> findQueued(String queue, Long tenantId, String correlationId) {
+    public Optional<QueueJob> findCoalescedJob(String queue, Long tenantId, String correlationId) {
         if (correlationId == null) {
             return Optional.empty();
         }
+        // Newest row wins, so a job re-queued after its predecessor was claimed is the one returned.
         return jdbcTemplate.query("""
                 SELECT %s
                 FROM jobs
                 WHERE queue_name = ?
                   AND correlation_id = ?
                   AND tenant_id = ?
-                  AND status = 'QUEUED'
+                ORDER BY id DESC
                 LIMIT 1
                 """.formatted(COLUMNS), this::mapJob, queue, correlationId, tenantId).stream().findFirst();
     }
