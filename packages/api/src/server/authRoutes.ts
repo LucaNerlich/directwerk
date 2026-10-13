@@ -1,5 +1,5 @@
 import {readRequestCookie, sealRefreshToken} from '../auth/cookies'
-import {readBoundedBody} from '../proxy/boundedBody'
+import {readBoundedRequestBody} from '../proxy/boundedBody'
 import {parseTenantHost} from '../proxy/tenantHost'
 import {jsonError, toClientResponse} from '../proxy/upstreamResponse'
 import {parseJsonText} from '../validation/json'
@@ -61,6 +61,17 @@ export interface TenantPassthroughAuthRouteConfig<TParsed> {
     toUpstreamBody?: (input: TParsed) => unknown
 }
 
+const AUTH_BODY_LIMIT_BYTES = 16_384
+
+/**
+ * Reads the bounded JSON body for an auth route; `null` when it is unusable, which callers
+ * map to a 400. Shares the one streaming reader (#332) instead of a near-identical copy.
+ */
+async function readAuthBody(request: Request): Promise<string | null> {
+    const result = await readBoundedRequestBody(request, AUTH_BODY_LIMIT_BYTES)
+    return result.ok ? result.text : null
+}
+
 function applyNoStoreHeaders(response: Response): Response {
     response.headers.set('Cache-Control', 'no-store')
     response.headers.set('Pragma', 'no-cache')
@@ -76,7 +87,7 @@ export function createTenantLoginRoute(
             return jsonError('A valid tenant is required.', 400)
         }
 
-        const bodyText = await readBoundedBody(request.body)
+        const bodyText = await readAuthBody(request)
         if (bodyText === null) {
             return jsonError('The request body is invalid.', 400)
         }
@@ -125,7 +136,7 @@ export function createTenantRefreshRoute(
         let refreshToken = readRequestCookie(request, config.refreshCookie)
 
         if (refreshToken === null && config.parseRefreshOptions !== undefined) {
-            const bodyText = await readBoundedBody(request.body)
+            const bodyText = await readAuthBody(request)
             if (bodyText === null) {
                 return jsonError('The request body is invalid.', 400)
             }
@@ -193,7 +204,7 @@ export function createTenantPassthroughAuthRoute<TParsed>(
             tenantHost = parsed
         }
 
-        const bodyText = await readBoundedBody(request.body)
+        const bodyText = await readAuthBody(request)
         if (bodyText === null) {
             return jsonError(
                 'The request body is invalid.',

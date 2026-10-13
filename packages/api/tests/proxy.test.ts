@@ -80,6 +80,27 @@ describe('readBoundedRequestBody', () => {
         const result = await readBoundedRequestBody(request, 1024)
         expect(result).toEqual({ok: true, text: ''})
     })
+
+    it('returns a structured 400 when the body stream errors mid-read', async () => {
+        // #332: an aborted/reset connection makes reader.read() reject; the caller must get a
+        // result, not an escaping rejection.
+        const failingBody = new ReadableStream<Uint8Array>({
+            pull() {
+                throw new Error('connection reset')
+            },
+        })
+        // Only `body` is read, so a minimal Request stand-in avoids the Node streaming
+        // `duplex` requirement.
+        const request = {body: failingBody} as unknown as Request
+
+        const result = await readBoundedRequestBody(request, 1024)
+
+        expect(result.ok).toBe(false)
+        if (!result.ok) {
+            expect(result.status).toBe(400)
+            expect(result.error).toBe('The request body is invalid.')
+        }
+    })
 })
 
 describe('buildSafePreviewQueryString', () => {

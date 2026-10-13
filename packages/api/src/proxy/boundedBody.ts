@@ -1,47 +1,3 @@
-/**
- * Reads `request.body` incrementally up to a hard byte cap.
- *
- * Returns null when the stream fails or exceeds the cap. A null body stream
- * (bodyless requests) yields an empty string.
- */
-export async function readBoundedBody(
-    body: ReadableStream<Uint8Array> | null,
-    maxBytes = 16_384,
-): Promise<string | null> {
-    if (!body) {
-        return null
-    }
-
-    const reader = body.getReader()
-    const chunks: Uint8Array[] = []
-    let totalBytes = 0
-
-    try {
-        while (true) {
-            const {done, value} = await reader.read()
-            if (done) break
-
-            totalBytes += value.byteLength
-            if (totalBytes > maxBytes) {
-                reader.cancel()
-                return null
-            }
-            chunks.push(value)
-        }
-
-        const bodyBytes = new Uint8Array(totalBytes)
-        let offset = 0
-        for (const chunk of chunks) {
-            bodyBytes.set(chunk, offset)
-            offset += chunk.byteLength
-        }
-
-        return new TextDecoder().decode(bodyBytes)
-    } catch {
-        return null
-    }
-}
-
 export type BoundedBodyResult =
     | {ok: true; text: string}
     | {ok: false; status: 400 | 413; error: string}
@@ -125,21 +81,32 @@ export async function readBoundedRequestBody(
     const chunks: Uint8Array[] = []
     let totalBytes = 0
 
-    while (true) {
-        const {done, value} = await reader.read()
-        if (done) break
+    try {
+        while (true) {
+            const {done, value} = await reader.read()
+            if (done) break
 
-        totalBytes += value.byteLength
-        if (totalBytes > maxBytes) {
-            await reader.cancel()
-            return {
-                ok: false,
-                status: 413,
-                error: 'Request body is too large.',
+            totalBytes += value.byteLength
+            if (totalBytes > maxBytes) {
+                await reader.cancel()
+                return {
+                    ok: false,
+                    status: 413,
+                    error: 'Request body is too large.',
+                }
             }
-        }
 
-        chunks.push(value)
+            chunks.push(value)
+        }
+    } catch {
+        // #332: a client that aborts or resets the connection mid-body makes reader.read()
+        // reject. Catch here so the caller returns its structured 400 instead of the rejection
+        // escaping the route handler and surfacing as a 500.
+        return {
+            ok: false,
+            status: 400,
+            error: 'The request body is invalid.',
+        }
     }
 
     const bodyBytes = new Uint8Array(totalBytes)
