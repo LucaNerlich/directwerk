@@ -48,6 +48,12 @@ public class ArticleImportService {
                     : new ArticleRssImportException(status, code, message, cause);
     // ponytail: hard cap; raise if real feeds need more
     private static final int MAX_INLINE_IMAGES = 25;
+
+    /**
+     * Issue #388: cap the preview payload so a large feed does not build an unbounded response.
+     * The flag this sets is exactly what the bulk-import guards check.
+     */
+    private static final int MAX_PREVIEW_ARTICLES = 200;
     private static final Pattern IMG_SRC = Pattern.compile(
             "<img\\b[^>]*\\bsrc\\s*=\\s*[\"']([^\"']+)[\"']",
             Pattern.CASE_INSENSITIVE
@@ -77,8 +83,12 @@ public class ArticleImportService {
                 existingByIdentity.put(row.getImportIdentity(), row.getId());
             }
         }
+        boolean truncated = parsed.items().size() > MAX_PREVIEW_ARTICLES;
+        List<ParsedArticleRssFeed.Item> previewItems = truncated
+                ? parsed.items().subList(0, MAX_PREVIEW_ARTICLES)
+                : parsed.items();
         List<PreviewArticle> articles = new ArrayList<>();
-        for (ParsedArticleRssFeed.Item item : parsed.items()) {
+        for (ParsedArticleRssFeed.Item item : previewItems) {
             String identity = importIdentity(parsed.feedUrl(), item.guid());
             articles.add(new PreviewArticle(
                     item.guid(),
@@ -103,7 +113,7 @@ public class ArticleImportService {
                         ImportSlugSuggester.suggest(channel.title())
                 ),
                 articles,
-                false
+                truncated
         );
     }
 
