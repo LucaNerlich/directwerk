@@ -1,6 +1,7 @@
 package de.pnnit.directwerk.modules.subscription.service;
 
 import de.pnnit.directwerk.modules.subscription.entity.OfferingType;
+import de.pnnit.directwerk.modules.subscription.entity.ProductAccessEffect;
 import de.pnnit.directwerk.modules.subscription.entity.ProductAccessRule;
 import de.pnnit.directwerk.modules.subscription.entity.ProductAccessScopeType;
 import de.pnnit.directwerk.modules.subscription.entity.Subscription;
@@ -194,6 +195,11 @@ public class EntitlementService {
     }
 
     private boolean grantedBy(ProductAccessRule rule, ContentSubject subject) {
+        // Issue #368: the persisted `effect` column was never consulted, so a future DENY rule
+        // would have been silently treated as a grant. Honour it now; only GRANT may grant.
+        if (rule.getEffect() != ProductAccessEffect.GRANT) {
+            return false;
+        }
         return switch (subject) {
             case EpisodeAccessSubject episode -> grantsEpisode(rule, episode);
             case ArticleAccessSubject article -> grantsArticle(rule, article);
