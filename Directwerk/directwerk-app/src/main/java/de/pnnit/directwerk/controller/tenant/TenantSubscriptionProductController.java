@@ -205,7 +205,12 @@ public class TenantSubscriptionProductController {
     ) {
     }
 
-    public record ReplaceRulesRequest(List<@Valid ProductAccessRuleRequest> rules) {
+    /** Issue #313: bounded so one request cannot push unbounded rows through one transaction. */
+    public record ReplaceRulesRequest(
+            @jakarta.validation.constraints.NotNull
+            @jakarta.validation.constraints.Size(max = de.pnnit.directwerk.api.dto.BulkIdsRequest.MAX_IDS)
+            List<@Valid ProductAccessRuleRequest> rules
+    ) {
     }
 
     public record ProductAccessRuleRequest(
