@@ -16,7 +16,12 @@ public class AltchaService {
 
     public AltchaService(DirectwerkConfig directwerkConfig) {
         this.directwerkConfig = directwerkConfig;
-        int expiresSeconds = directwerkConfig.marketing().contact().altcha().expiresSeconds();
+        // Issue #373: this is the only place altcha is dereferenced without the fail-closed
+        // requireConfigured() check and it runs at context startup, so a config that merely
+        // disables the contact form (altcha defaults to null) turned "form disabled" into an NPE
+        // that failed the whole application context.
+        var altchaConfig = directwerkConfig.marketing().contact().altcha();
+        int expiresSeconds = altchaConfig == null ? 300 : altchaConfig.expiresSeconds();
         this.consumedChallenges = Caffeine.newBuilder()
                 .expireAfterWrite(Duration.ofSeconds(expiresSeconds))
                 .maximumSize(100_000)
