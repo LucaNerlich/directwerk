@@ -14,9 +14,12 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.util.Arrays;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.Executor;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import lombok.extern.slf4j.Slf4j;
@@ -305,14 +308,52 @@ public class UmamiEventClient {
         }
     }
 
-    /** Resolves and pins the destination inside the analytics executor before connecting. */
+    /**
+     * Resolves and pins the destination inside the analytics executor before connecting.
+     * <p>
+     * Issue #362: one {@link CloseableHttpClient} (and its connection pool) is cached per pinned
+     * host instead of being built and torn down per event, so feed-fetch/view tracking reuses
+     * connections and TLS sessions. The pinning only needs a per-target resolver, not a
+     * per-event pool. Keyed by host + the resolved address set, so a DNS change rebuilds the
+     * client rather than pinning a stale address.
+     */
     static final class PinnedEventSender implements EventSender {
+
+        private final ConcurrentMap<String, PinnedClient> clients = new ConcurrentHashMap<>();
+
+        private record PinnedClient(InetAddress[] addresses, CloseableHttpClient client) {
+        }
 
         @Override
         public UmamiDelivery send(URI uri, String body, String userAgent, String clientIp) throws IOException {
             String expectedHost = uri.getHost();
             String expectedDnsHost = stripIpv6Brackets(expectedHost);
+            CloseableHttpClient client = clientFor(expectedDnsHost);
+
+            HttpPost request = new HttpPost(uri);
+            request.setHeader("Accept", "application/json");
+            request.setHeader("User-Agent", userAgent);
+            if (!isBlank(clientIp)) {
+                request.setHeader("X-Forwarded-For", clientIp.trim());
+            }
+            request.setEntity(new StringEntity(body, ContentType.APPLICATION_JSON));
+            request.setConfig(RequestConfig.custom()
+                    .setResponseTimeout(Timeout.ofMilliseconds(REQUEST_TIMEOUT.toMillis()))
+                    .build());
+            // The URI keeps the original hostname, so the default TLS verifier checks it
+            // while the custom resolver connects only to the already validated addresses.
+            return client.execute(request, response -> toDelivery(
+                    response.getCode(),
+                    response.getEntity() == null ? null : response.getEntity().getContent()));
+        }
+
+        private CloseableHttpClient clientFor(String expectedDnsHost) throws IOException {
             InetAddress[] pinnedAddresses = UmamiHostUrlValidator.resolvePublicAddresses(expectedDnsHost);
+            PinnedClient cached = clients.get(expectedDnsHost);
+            if (cached != null && Arrays.equals(cached.addresses(), pinnedAddresses)) {
+                return cached.client();
+            }
+
             DnsResolver pinnedResolver = new DnsResolver() {
                 @Override
                 public InetAddress[] resolve(String host) throws UnknownHostException {
@@ -338,27 +379,22 @@ public class UmamiEventClient {
                             .setConnectTimeout(Timeout.ofMilliseconds(REQUEST_TIMEOUT.toMillis()))
                             .build())
                     .build();
-            try (CloseableHttpClient client = HttpClients.custom()
+            CloseableHttpClient client = HttpClients.custom()
                     .setConnectionManager(connectionManager)
                     .disableAutomaticRetries()
                     .disableRedirectHandling()
-                    .build()) {
-                HttpPost request = new HttpPost(uri);
-                request.setHeader("Accept", "application/json");
-                request.setHeader("User-Agent", userAgent);
-                if (!isBlank(clientIp)) {
-                    request.setHeader("X-Forwarded-For", clientIp.trim());
+                    .build();
+
+            PinnedClient previous = clients.put(
+                    expectedDnsHost, new PinnedClient(pinnedAddresses, client));
+            if (previous != null) {
+                try {
+                    previous.client().close();
+                } catch (IOException ignored) {
+                    // Replacing a superseded pinned client; nothing to signal to the caller.
                 }
-                request.setEntity(new StringEntity(body, ContentType.APPLICATION_JSON));
-                request.setConfig(RequestConfig.custom()
-                        .setResponseTimeout(Timeout.ofMilliseconds(REQUEST_TIMEOUT.toMillis()))
-                        .build());
-                // The URI keeps the original hostname, so the default TLS verifier checks it
-                // while the custom resolver connects only to the already validated addresses.
-                return client.execute(request, response -> toDelivery(
-                        response.getCode(),
-                        response.getEntity() == null ? null : response.getEntity().getContent()));
             }
+            return client;
         }
 
         static UmamiDelivery toDelivery(int statusCode, InputStream responseBody) throws IOException {
