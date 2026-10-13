@@ -25,7 +25,6 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class PublicSiteConfigService {
 
-    private static final String EMAIL_NOTIFY_MODULE_KEY = "EMAIL_NOTIFY";
     private static final String WHITELABEL_MODULE_KEY = "WHITELABEL";
 
     private final DirectwerkConfig directwerkConfig;
@@ -157,7 +156,7 @@ public class PublicSiteConfigService {
      * @return {@code true} when the notify checkbox should be offered in studio
      */
     private boolean emailNotifyAvailable(List<String> enabledModules) {
-        return enabledModules.contains(EMAIL_NOTIFY_MODULE_KEY) && directwerkConfig.isEmailEnabled();
+        return enabledModules.contains(FeatureModuleKeys.EMAIL_NOTIFY) && directwerkConfig.isEmailEnabled();
     }
 
     public record SiteConfigView(
