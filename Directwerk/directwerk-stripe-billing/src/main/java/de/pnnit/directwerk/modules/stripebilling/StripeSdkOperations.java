@@ -256,6 +256,11 @@ public class StripeSdkOperations implements StripeOperations {
         if (!isWebhookConfigured()) {
             throw new StripeNotConfiguredException("Stripe webhook secret is not configured");
         }
+        if (signature == null || signature.isBlank()) {
+            // Issue #308: a missing Stripe-Signature header made Webhook.constructEvent throw a
+            // bare NullPointerException, surfacing as a 500 instead of a rejected signature.
+            throw new StripeSignatureException("Stripe webhook signature header is missing");
+        }
         Event event;
         try {
             event = Webhook.constructEvent(payload, signature, properties.webhookSecret());
