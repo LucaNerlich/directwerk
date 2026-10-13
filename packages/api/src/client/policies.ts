@@ -5,13 +5,20 @@ import type {ErrorMessageCatalog} from '../envelope'
 /** Partial config shared by all apps — session wiring stays app-local. */
 export type TransportPolicy = Omit<AuthedRequestConfig, 'session' | 'clearTokens'>
 
+/**
+ * A policy that pins the two fields {@link createBrowserTransport} reads unconditionally, so a
+ * policy missing them fails at compile time instead of asserting with `!` (#406).
+ */
+export type BrowserTransportPolicy = TransportPolicy &
+    Required<Pick<TransportPolicy, 'invalidResponseMessage' | 'catalog'>>
+
 export const STUDIO_CREATOR_CATALOG: ErrorMessageCatalog = {
     invalidGrant: 'E-Mail oder Passwort falsch.',
     unauthorized: 'E-Mail oder Passwort falsch.',
     fallback: (status) => `Anfrage fehlgeschlagen (${status}).`,
 }
 
-export const studioCreatorPolicy: TransportPolicy = {
+export const studioCreatorPolicy: BrowserTransportPolicy = {
     authFailureMode: 'preserve-transient',
     transientMessage: 'Der Server ist derzeit nicht erreichbar.',
     finalUnauthorized: 'localized-error',
@@ -23,7 +30,7 @@ export const SUBSCRIBER_PORTAL_CATALOG: ErrorMessageCatalog = {
     fallback: (status) => `Request failed with status ${status}.`,
 }
 
-export const subscriberPortalPolicy: TransportPolicy = {
+export const subscriberPortalPolicy: BrowserTransportPolicy = {
     authFailureMode: 'preserve-transient',
     transientMessage: 'The server is temporarily unreachable.',
     finalUnauthorized: 'clear-and-auth-required',
