@@ -33,25 +33,6 @@ public class RssXmlBuilder {
             Tenant tenant,
             PodcastSeries seriesOrNull,
             List<RssEpisode> episodes,
-            String originBaseUrl
-    ) {
-        return buildPublicFeed(tenant, seriesOrNull, episodes, originBaseUrl, null, null);
-    }
-
-    public String buildPublicFeed(
-            Tenant tenant,
-            PodcastSeries seriesOrNull,
-            List<RssEpisode> episodes,
-            String originBaseUrl,
-            String channelTitleOverride
-    ) {
-        return buildPublicFeed(tenant, seriesOrNull, episodes, originBaseUrl, channelTitleOverride, null);
-    }
-
-    public String buildPublicFeed(
-            Tenant tenant,
-            PodcastSeries seriesOrNull,
-            List<RssEpisode> episodes,
             String originBaseUrl,
             String channelTitleOverride,
             String channelCoverImageUrl
