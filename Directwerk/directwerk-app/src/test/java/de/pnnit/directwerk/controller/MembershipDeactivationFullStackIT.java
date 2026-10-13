@@ -6,12 +6,15 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import de.pnnit.directwerk.modules.core.entity.MembershipStatus;
+import de.pnnit.directwerk.modules.core.entity.PlatformAdmin;
 import de.pnnit.directwerk.modules.core.entity.Role;
 import de.pnnit.directwerk.modules.core.entity.Tenant;
 import de.pnnit.directwerk.modules.core.entity.TenantDomain;
 import de.pnnit.directwerk.modules.core.entity.TenantMembership;
 import de.pnnit.directwerk.modules.core.entity.TenantStatus;
 import de.pnnit.directwerk.modules.core.entity.User;
+import de.pnnit.directwerk.modules.core.entity.UserStatus;
+import de.pnnit.directwerk.modules.core.repository.PlatformAdminRepository;
 import de.pnnit.directwerk.modules.core.repository.TenantDomainRepository;
 import de.pnnit.directwerk.modules.core.repository.TenantMembershipRepository;
 import de.pnnit.directwerk.modules.core.repository.TenantRepository;
@@ -85,6 +88,9 @@ class MembershipDeactivationFullStackIT {
     private UserRepository userRepository;
 
     @Autowired
+    private PlatformAdminRepository platformAdminRepository;
+
+    @Autowired
     private TransactionTemplate transactionTemplate;
 
     @DynamicPropertySource
@@ -102,7 +108,7 @@ class MembershipDeactivationFullStackIT {
     void platformAdminDeactivatesAndReactivatesTenantUser() throws Exception {
         TenantFixture tenant = seedTenant("plat-deact");
         MemberFixture editor = seedMember(tenant.tenantId(), Role.EDITOR, MembershipStatus.ACTIVE);
-        String platformToken = mintPlatformAdminToken(seedPlainUser("platform-admin"));
+        String platformToken = mintPlatformAdminToken(seedPlatformAdmin("platform-admin"));
 
         mockMvc.perform(post(
                         "/api/v1/platform/tenants/{tenantId}/users/{userId}/deactivate",
@@ -122,7 +128,7 @@ class MembershipDeactivationFullStackIT {
     @Test
     void platformAdminDeactivationOfMissingMembershipReturnsNotFound() throws Exception {
         TenantFixture tenant = seedTenant("plat-404");
-        String platformToken = mintPlatformAdminToken(seedPlainUser("platform-admin-404"));
+        String platformToken = mintPlatformAdminToken(seedPlatformAdmin("platform-admin-404"));
 
         mockMvc.perform(post(
                         "/api/v1/platform/tenants/{tenantId}/users/{userId}/deactivate",
@@ -172,7 +178,7 @@ class MembershipDeactivationFullStackIT {
     void deactivatingLastActiveAdminIsRejected() throws Exception {
         TenantFixture tenant = seedTenant("tenant-last-admin");
         MemberFixture onlyAdmin = seedMember(tenant.tenantId(), Role.TENANT_ADMIN, MembershipStatus.ACTIVE);
-        String platformToken = mintPlatformAdminToken(seedPlainUser("platform-admin-last"));
+        String platformToken = mintPlatformAdminToken(seedPlatformAdmin("platform-admin-last"));
 
         mockMvc.perform(post(
                         "/api/v1/platform/tenants/{tenantId}/users/{userId}/deactivate",
@@ -187,7 +193,7 @@ class MembershipDeactivationFullStackIT {
         TenantFixture tenant = seedTenant("tenant-non-last-admin");
         MemberFixture adminA = seedMember(tenant.tenantId(), Role.TENANT_ADMIN, MembershipStatus.ACTIVE);
         seedMember(tenant.tenantId(), Role.TENANT_ADMIN, MembershipStatus.ACTIVE);
-        String platformToken = mintPlatformAdminToken(seedPlainUser("platform-admin-non-last"));
+        String platformToken = mintPlatformAdminToken(seedPlatformAdmin("platform-admin-non-last"));
 
         mockMvc.perform(post(
                         "/api/v1/platform/tenants/{tenantId}/users/{userId}/deactivate",
@@ -201,7 +207,7 @@ class MembershipDeactivationFullStackIT {
     void deactivatingNonAdminMemberSucceedsWithNoGuard() throws Exception {
         TenantFixture tenant = seedTenant("tenant-non-admin");
         MemberFixture subscriber = seedMember(tenant.tenantId(), Role.SUBSCRIBER, MembershipStatus.ACTIVE);
-        String platformToken = mintPlatformAdminToken(seedPlainUser("platform-admin-non-admin"));
+        String platformToken = mintPlatformAdminToken(seedPlatformAdmin("platform-admin-non-admin"));
 
         mockMvc.perform(post(
                         "/api/v1/platform/tenants/{tenantId}/users/{userId}/deactivate",
@@ -217,7 +223,7 @@ class MembershipDeactivationFullStackIT {
         MemberFixture adminA = seedMember(tenant.tenantId(), Role.TENANT_ADMIN, MembershipStatus.ACTIVE);
         seedMember(tenant.tenantId(), Role.TENANT_ADMIN, MembershipStatus.ACTIVE);
         String adminAToken = mintTenantToken(tenant.tenantId(), adminA.userId(), "TENANT_ADMIN");
-        String platformToken = mintPlatformAdminToken(seedPlainUser("platform-admin-mid-session"));
+        String platformToken = mintPlatformAdminToken(seedPlatformAdmin("platform-admin-mid-session"));
 
         // adminA's still-unexpired token works before deactivation.
         mockMvc.perform(get("/api/v1/me")
@@ -292,13 +298,20 @@ class MembershipDeactivationFullStackIT {
         return new MemberFixture(userIdHolder[0]);
     }
 
-    private Long seedPlainUser(String label) {
+    private Long seedPlatformAdmin(String label) {
         long[] userIdHolder = new long[1];
         transactionTemplate.executeWithoutResult(status -> {
             User user = new User();
             user.setEmail(label + "-" + suffix() + "@example.test");
+            user.setStatus(UserStatus.ACTIVE);
             user = userRepository.saveAndFlush(user);
             userIdHolder[0] = user.getId();
+
+            // PlatformAdminGuardFilter re-checks the platform-admin grant against the DB, so the
+            // minted platform-admin token needs a matching platform_admins row.
+            PlatformAdmin admin = new PlatformAdmin();
+            admin.setUser(user);
+            platformAdminRepository.saveAndFlush(admin);
         });
         return userIdHolder[0];
     }

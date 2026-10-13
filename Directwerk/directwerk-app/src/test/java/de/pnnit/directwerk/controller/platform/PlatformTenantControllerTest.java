@@ -17,25 +17,21 @@ import de.pnnit.directwerk.modules.core.repository.FeatureModuleRepository;
 import de.pnnit.directwerk.modules.core.repository.PlatformAuditEventRepository;
 import de.pnnit.directwerk.modules.core.repository.TenantModuleActivationRepository;
 import de.pnnit.directwerk.modules.core.repository.TenantRepository;
+import de.pnnit.directwerk.testsupport.PlatformAdminApiTestSupport;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
 import org.springframework.security.test.context.support.WithMockUser;
-import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.web.servlet.MockMvc;
 
-@SpringBootTest
-@AutoConfigureMockMvc
-@ActiveProfiles("test")
-class PlatformTenantControllerTest {
-
-    @Autowired
-    private MockMvc mockMvc;
+/**
+ * Platform admin CRUD/branding/limits coverage. Authenticates as a real platform admin through
+ * {@link PlatformAdminApiTestSupport} because {@code PlatformAdminGuardFilter} re-checks the grant
+ * against the DB on every {@code /api/v1/platform/**} request.
+ */
+class PlatformTenantControllerTest extends PlatformAdminApiTestSupport {
 
     @Autowired
     private TenantRepository tenantRepository;
@@ -67,11 +63,10 @@ class PlatformTenantControllerTest {
         otherTenant = tenantRepository.save(otherTenant);
     }
 
-
     @Test
-    @WithMockUser(roles = "PLATFORM_ADMIN")
     void getTenantReturnsDetailsWithoutModulePreset() throws Exception {
-        mockMvc.perform(get("/api/v1/platform/tenants/{id}", tenant.getId()))
+        mockMvc.perform(get("/api/v1/platform/tenants/{id}", tenant.getId())
+                        .with(asPlatformAdmin()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.tenant.slug").value(tenant.getSlug()))
                 .andExpect(jsonPath("$.data.episodeCount").value(0))
@@ -79,15 +74,14 @@ class PlatformTenantControllerTest {
     }
 
     @Test
-    @WithMockUser(roles = "PLATFORM_ADMIN")
     void getBrandingReturnsUmamiConfig() throws Exception {
-        mockMvc.perform(get("/api/v1/platform/tenants/{id}/branding", tenant.getId()))
+        mockMvc.perform(get("/api/v1/platform/tenants/{id}/branding", tenant.getId())
+                        .with(asPlatformAdmin()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data").exists());
     }
 
     @Test
-    @WithMockUser(roles = "PLATFORM_ADMIN")
     void createTenantWithFullModulePresetPrimaryDomainAndAdminEmail() throws Exception {
         // This profile disables Flyway (H2 create-drop from JPA entities only), so the
         // feature_modules catalog rows Flyway normally seeds in production don't exist here —
@@ -110,6 +104,7 @@ class PlatformTenantControllerTest {
                 """.formatted(slug, primaryDomain, adminEmail);
 
         mockMvc.perform(post("/api/v1/platform/tenants")
+                        .with(asPlatformAdmin())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(body))
                 .andExpect(status().isCreated())
@@ -131,7 +126,6 @@ class PlatformTenantControllerTest {
     }
 
     @Test
-    @WithMockUser(roles = "PLATFORM_ADMIN")
     void createTenantReturnsConflictOnDuplicateSlug() throws Exception {
         String body = """
                 {
@@ -144,6 +138,7 @@ class PlatformTenantControllerTest {
                 """.formatted(tenant.getSlug());
 
         mockMvc.perform(post("/api/v1/platform/tenants")
+                        .with(asPlatformAdmin())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(body))
                 .andExpect(status().isConflict())
@@ -151,9 +146,9 @@ class PlatformTenantControllerTest {
     }
 
     @Test
-    @WithMockUser(roles = "PLATFORM_ADMIN")
     void updateTenantReturnsUpdatedDetails() throws Exception {
         mockMvc.perform(patch("/api/v1/platform/tenants/{id}", tenant.getId())
+                        .with(asPlatformAdmin())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"name\":\"Renamed Tenant\"}"))
                 .andExpect(status().isOk())
@@ -161,9 +156,9 @@ class PlatformTenantControllerTest {
     }
 
     @Test
-    @WithMockUser(roles = "PLATFORM_ADMIN")
     void updateUploadLimitsPersistsOverridesAndResetsOthersToDefault() throws Exception {
         mockMvc.perform(put("/api/v1/platform/tenants/{id}/upload-limits", tenant.getId())
+                        .with(asPlatformAdmin())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"maxAudioBytes\":104857600,\"maxDocumentBytes\":52428800}"))
                 .andExpect(status().isOk())
@@ -178,29 +173,29 @@ class PlatformTenantControllerTest {
     }
 
     @Test
-    @WithMockUser(roles = "PLATFORM_ADMIN")
     void updateUploadLimitsRejectsOutOfRangeOverride() throws Exception {
         mockMvc.perform(put("/api/v1/platform/tenants/{id}/upload-limits", tenant.getId())
+                        .with(asPlatformAdmin())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"maxAudioBytes\":0}"))
                 .andExpect(status().isBadRequest());
     }
 
     @Test
-    @WithMockUser(roles = "PLATFORM_ADMIN")
     void getTenantExposesUploadLimits() throws Exception {
         tenant.setMaxAudioBytes(104857600L);
         tenantRepository.save(tenant);
 
-        mockMvc.perform(get("/api/v1/platform/tenants/{id}", tenant.getId()))
+        mockMvc.perform(get("/api/v1/platform/tenants/{id}", tenant.getId())
+                        .with(asPlatformAdmin()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.tenant.uploadLimits.maxAudioBytes").value(104857600));
     }
 
     @Test
-    @WithMockUser(roles = "PLATFORM_ADMIN")
     void updateTenantReturnsConflictOnDuplicateSlug() throws Exception {
         mockMvc.perform(patch("/api/v1/platform/tenants/{id}", otherTenant.getId())
+                        .with(asPlatformAdmin())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"slug\":\"" + tenant.getSlug() + "\"}"))
                 .andExpect(status().isConflict())
@@ -208,9 +203,9 @@ class PlatformTenantControllerTest {
     }
 
     @Test
-    @WithMockUser(roles = "PLATFORM_ADMIN")
     void updateTenantAllowsOwnCurrentSlug() throws Exception {
         mockMvc.perform(patch("/api/v1/platform/tenants/{id}", tenant.getId())
+                        .with(asPlatformAdmin())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"name\":\"Renamed Tenant\",\"slug\":\"" + tenant.getSlug() + "\"}"))
                 .andExpect(status().isOk())
@@ -218,9 +213,9 @@ class PlatformTenantControllerTest {
     }
 
     @Test
-    @WithMockUser(roles = "PLATFORM_ADMIN")
     void updateTenantWithBlankSlugLeavesSlugUnchanged() throws Exception {
         mockMvc.perform(patch("/api/v1/platform/tenants/{id}", tenant.getId())
+                        .with(asPlatformAdmin())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"slug\":\"\"}"))
                 .andExpect(status().isOk())
@@ -228,9 +223,9 @@ class PlatformTenantControllerTest {
     }
 
     @Test
-    @WithMockUser(roles = "PLATFORM_ADMIN")
     void updateTenantRejectsInvalidSlugPattern() throws Exception {
         mockMvc.perform(patch("/api/v1/platform/tenants/{id}", tenant.getId())
+                        .with(asPlatformAdmin())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"slug\":\"Invalid Slug!\"}"))
                 .andExpect(status().isBadRequest())
@@ -238,10 +233,10 @@ class PlatformTenantControllerTest {
     }
 
     @Test
-    @WithMockUser(roles = "PLATFORM_ADMIN")
     void updateTenantRejectsNameExceedingMaxLength() throws Exception {
         String tooLongName = "a".repeat(256);
         mockMvc.perform(patch("/api/v1/platform/tenants/{id}", tenant.getId())
+                        .with(asPlatformAdmin())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"name\":\"" + tooLongName + "\"}"))
                 .andExpect(status().isBadRequest())
@@ -249,10 +244,10 @@ class PlatformTenantControllerTest {
     }
 
     @Test
-    @WithMockUser(roles = "PLATFORM_ADMIN")
     void createTenantRejectsNameExceedingMaxLength() throws Exception {
         String tooLongName = "a".repeat(256);
         mockMvc.perform(post("/api/v1/platform/tenants")
+                        .with(asPlatformAdmin())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"name\":\"" + tooLongName + "\",\"slug\":\"toolong-" + UUID.randomUUID().toString().substring(0, 8) + "\"}"))
                 .andExpect(status().isBadRequest())

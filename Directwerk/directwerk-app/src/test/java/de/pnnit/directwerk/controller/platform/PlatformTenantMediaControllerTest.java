@@ -20,6 +20,7 @@ import de.pnnit.directwerk.modules.digital.entity.AssetType;
 import de.pnnit.directwerk.modules.digital.entity.AssetVisibility;
 import de.pnnit.directwerk.modules.digital.entity.MediaAsset;
 import de.pnnit.directwerk.modules.digital.repository.MediaAssetRepository;
+import de.pnnit.directwerk.testsupport.PlatformAdminApiTestSupport;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
@@ -27,21 +28,16 @@ import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
 import org.springframework.security.test.context.support.WithMockUser;
-import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.springframework.test.web.servlet.MockMvc;
 
-@SpringBootTest
-@AutoConfigureMockMvc
-@ActiveProfiles("test")
-class PlatformTenantMediaControllerTest {
-
-    @Autowired
-    private MockMvc mockMvc;
+/**
+ * Platform ops media endpoints. Authenticates as a real platform admin through
+ * {@link PlatformAdminApiTestSupport} because {@code PlatformAdminGuardFilter} re-checks the grant
+ * against the DB on every {@code /api/v1/platform/**} request.
+ */
+class PlatformTenantMediaControllerTest extends PlatformAdminApiTestSupport {
 
     @MockitoBean
     private MediaAssetQueryApi mediaAssetQueryApi;
@@ -56,7 +52,6 @@ class PlatformTenantMediaControllerTest {
     private MediaAssetRepository mediaAssetRepository;
 
     @Test
-    @WithMockUser(roles = "PLATFORM_ADMIN")
     void listMediaReturnsTenantAssetsForPlatformAdmin() throws Exception {
         MediaAsset asset = readyPublicImage(7L, "alpha");
 
@@ -65,6 +60,7 @@ class PlatformTenantMediaControllerTest {
         when(mediaAssetRepository.findById(7L)).thenReturn(Optional.of(asset));
 
         mockMvc.perform(get("/api/v1/platform/tenants/42/media")
+                        .with(asPlatformAdmin())
                         .param("assetType", "IMAGE")
                         .param("status", "READY")
                         .param("limit", "20"))
@@ -83,7 +79,6 @@ class PlatformTenantMediaControllerTest {
     }
 
     @Test
-    @WithMockUser(roles = "PLATFORM_ADMIN")
     void listMediaOmitsCdnUrlForPrivateAssets() throws Exception {
         MediaAsset privateAsset = readyPublicImage(8L, "alpha");
         privateAsset.setVisibility(AssetVisibility.PRIVATE);
@@ -93,7 +88,8 @@ class PlatformTenantMediaControllerTest {
         when(mediaAssetQueryApi.listForTenant(42L, null, null, 50))
                 .thenReturn(List.of(privateAsset));
 
-        mockMvc.perform(get("/api/v1/platform/tenants/42/media"))
+        mockMvc.perform(get("/api/v1/platform/tenants/42/media")
+                        .with(asPlatformAdmin()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.content[0].id").value(8))
                 .andExpect(jsonPath("$.data.content[0].visibility").value("PRIVATE"))
@@ -103,7 +99,6 @@ class PlatformTenantMediaControllerTest {
     }
 
     @Test
-    @WithMockUser(roles = "PLATFORM_ADMIN")
     void createUploadUrlReturnsPresignForPlatformAdmin() throws Exception {
         when(uploadApi.createUploadUrl(any())).thenReturn(new UploadApi.UploadUrlResult(
                 55L,
@@ -114,6 +109,7 @@ class PlatformTenantMediaControllerTest {
         ));
 
         mockMvc.perform(post("/api/v1/platform/tenants/42/media/upload-url")
+                        .with(asPlatformAdmin())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
@@ -134,7 +130,6 @@ class PlatformTenantMediaControllerTest {
     }
 
     @Test
-    @WithMockUser(roles = "PLATFORM_ADMIN")
     void confirmUploadReturnsReadyAsset() throws Exception {
         MediaAsset asset = readyPublicImage(55L, "alpha");
         when(uploadApi.confirmUpload(any())).thenReturn(new UploadApi.ConfirmUploadResult(
@@ -148,7 +143,8 @@ class PlatformTenantMediaControllerTest {
         when(mediaAssetQueryApi.findById(55L)).thenReturn(Optional.of(asset));
         when(mediaAssetRepository.findById(55L)).thenReturn(Optional.of(asset));
 
-        mockMvc.perform(post("/api/v1/platform/tenants/42/media/55/confirm"))
+        mockMvc.perform(post("/api/v1/platform/tenants/42/media/55/confirm")
+                        .with(asPlatformAdmin()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.id").value(55))
                 .andExpect(jsonPath("$.data.status").value("READY"))
@@ -160,13 +156,13 @@ class PlatformTenantMediaControllerTest {
     }
 
     @Test
-    @WithMockUser(roles = "PLATFORM_ADMIN")
     void deleteMediaReturnsQueuedAsset() throws Exception {
         MediaAsset deleted = readyPublicImage(55L, "alpha");
         deleted.setStatus(AssetStatus.PENDING_DELETE);
         when(mediaAssetLifecycleApi.delete(any())).thenReturn(deleted);
 
-        mockMvc.perform(delete("/api/v1/platform/tenants/42/media/55"))
+        mockMvc.perform(delete("/api/v1/platform/tenants/42/media/55")
+                        .with(asPlatformAdmin()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.id").value(55))
                 .andExpect(jsonPath("$.data.status").value("PENDING_DELETE"))
@@ -218,9 +214,9 @@ class PlatformTenantMediaControllerTest {
     }
 
     @Test
-    @WithMockUser(roles = "PLATFORM_ADMIN")
     void listMediaRejectsLimitBelowMinimum() throws Exception {
         mockMvc.perform(get("/api/v1/platform/tenants/42/media")
+                        .with(asPlatformAdmin())
                         .param("limit", "0"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.statusCode").value(400))
@@ -228,9 +224,9 @@ class PlatformTenantMediaControllerTest {
     }
 
     @Test
-    @WithMockUser(roles = "PLATFORM_ADMIN")
     void listMediaRejectsLimitAboveMaximum() throws Exception {
         mockMvc.perform(get("/api/v1/platform/tenants/42/media")
+                        .with(asPlatformAdmin())
                         .param("limit", "1000"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.statusCode").value(400))

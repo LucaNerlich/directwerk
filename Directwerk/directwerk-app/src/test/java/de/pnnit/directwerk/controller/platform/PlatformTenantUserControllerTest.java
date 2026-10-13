@@ -14,34 +14,23 @@ import de.pnnit.directwerk.modules.core.entity.User;
 import de.pnnit.directwerk.modules.core.repository.TenantMembershipRepository;
 import de.pnnit.directwerk.modules.core.repository.TenantRepository;
 import de.pnnit.directwerk.modules.core.repository.UserRepository;
+import de.pnnit.directwerk.testsupport.PlatformAdminApiTestSupport;
 import java.util.EnumSet;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
 import org.springframework.security.test.context.support.WithMockUser;
-import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.web.servlet.MockMvc;
 
 /**
- * The deactivate/reactivate endpoints are additionally covered end-to-end (real
- * Postgres/Testcontainers and signed JWTs) by {@code MembershipDeactivationFullStackIT}. This class
- * follows the lighter {@link PlatformTenantControllerTest} shape ({@code @SpringBootTest}
- * + {@code @AutoConfigureMockMvc} + H2 {@code test} profile + {@code @WithMockUser}) because
- * role-change coverage doesn't need real JWTs or the servlet-layer tenant filter: this controller
- * lives entirely under the platform-scoped {@code /api/v1/platform/**} path, where
- * {@code TenantContextFilter} clears tenant context regardless.
+ * Platform-admin role-change and effective-rights coverage. Authenticates as a real platform admin
+ * (signed JWT + {@code platform_admins} row) through {@link PlatformAdminApiTestSupport}, because
+ * {@code PlatformAdminGuardFilter} re-checks the grant against the DB on every request. The
+ * deactivate/reactivate endpoints are additionally covered end-to-end (real Postgres/Testcontainers
+ * and signed JWTs) by {@code MembershipDeactivationFullStackIT}.
  */
-@SpringBootTest
-@AutoConfigureMockMvc
-@ActiveProfiles("test")
-class PlatformTenantUserControllerTest {
-
-    @Autowired
-    private MockMvc mockMvc;
+class PlatformTenantUserControllerTest extends PlatformAdminApiTestSupport {
 
     @Autowired
     private TenantRepository tenantRepository;
@@ -79,9 +68,9 @@ class PlatformTenantUserControllerTest {
     }
 
     @Test
-    @WithMockUser(roles = "PLATFORM_ADMIN")
     void updateUserRoleReturnsUpdatedMembership() throws Exception {
         mockMvc.perform(patch("/api/v1/platform/tenants/{tenantId}/users/{userId}", tenantId, editorUserId)
+                        .with(asPlatformAdmin())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"role\":\"TENANT_ADMIN\"}"))
                 .andExpect(status().isOk())
@@ -89,9 +78,9 @@ class PlatformTenantUserControllerTest {
     }
 
     @Test
-    @WithMockUser(roles = "PLATFORM_ADMIN")
     void updateUserRoleRejectsInvalidRole() throws Exception {
         mockMvc.perform(patch("/api/v1/platform/tenants/{tenantId}/users/{userId}", tenantId, editorUserId)
+                        .with(asPlatformAdmin())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"role\":\"NOT_A_ROLE\"}"))
                 .andExpect(status().isBadRequest())
@@ -99,9 +88,9 @@ class PlatformTenantUserControllerTest {
     }
 
     @Test
-    @WithMockUser(roles = "PLATFORM_ADMIN")
     void updateUserRoleRejectsBlankRole() throws Exception {
         mockMvc.perform(patch("/api/v1/platform/tenants/{tenantId}/users/{userId}", tenantId, editorUserId)
+                        .with(asPlatformAdmin())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"role\":\"\"}"))
                 .andExpect(status().isBadRequest())
@@ -126,9 +115,9 @@ class PlatformTenantUserControllerTest {
     }
 
     @Test
-    @WithMockUser(roles = "PLATFORM_ADMIN")
     void effectiveRightsResolveUnrestrictedEditorMatrix() throws Exception {
-        mockMvc.perform(get("/api/v1/platform/tenants/{tenantId}/users/{userId}/effective-rights", tenantId, editorUserId))
+        mockMvc.perform(get("/api/v1/platform/tenants/{tenantId}/users/{userId}/effective-rights", tenantId, editorUserId)
+                        .with(asPlatformAdmin()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.userId").value(editorUserId))
                 .andExpect(jsonPath("$.data.roles[0]").value("EDITOR"))

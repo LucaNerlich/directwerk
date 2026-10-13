@@ -27,6 +27,13 @@ import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
+/**
+ * Platform-admin grant management. Because {@code PlatformAdminGuardFilter} re-checks the grant
+ * against the DB, the platform-admin cases here authenticate with a real signed JWT for a seeded
+ * admin (not {@code @WithMockUser}) — the same pattern as {@code MembershipDeactivationFullStackIT}.
+ * This class keeps its own seeding (rather than extending the shared support) so its admin-set
+ * assertions stay deterministic.
+ */
 @SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
@@ -72,28 +79,36 @@ class PlatformAdminControllerTest {
     }
 
     @Test
-    @WithMockUser(roles = "PLATFORM_ADMIN")
     void revokeAdminReturnsRevokedAdmin() throws Exception {
-        mockMvc.perform(delete("/api/v1/platform/admins/{userId}", secondAdminUserId))
+        mockMvc.perform(delete("/api/v1/platform/admins/{userId}", secondAdminUserId)
+                        .header("Authorization", "Bearer " + mintPlatformAdminToken(firstAdminUserId)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.userId").value(secondAdminUserId));
     }
 
     @Test
-    @WithMockUser(roles = "PLATFORM_ADMIN")
-    void revokeAdminReturnsConflictWhenOnlyOneAdminRemains() throws Exception {
-        mockMvc.perform(delete("/api/v1/platform/admins/{userId}", secondAdminUserId))
+    void revokeAdminProtectsSoleRemainingAdmin() throws Exception {
+        String callerToken = mintPlatformAdminToken(firstAdminUserId);
+
+        // Revoking the only other admin leaves the caller as the sole platform admin.
+        mockMvc.perform(delete("/api/v1/platform/admins/{userId}", secondAdminUserId)
+                        .header("Authorization", "Bearer " + callerToken))
                 .andExpect(status().isOk());
 
-        mockMvc.perform(delete("/api/v1/platform/admins/{userId}", firstAdminUserId))
+        // The caller is now the sole admin. Over HTTP the last-admin invariant is enforced by the
+        // self-guard (checked before the last-admin guard), so a zero-admin state is impossible:
+        // the caller cannot remove themselves. Direct CANNOT_REVOKE_LAST_ADMIN coverage lives in
+        // PlatformAdminManagementServiceTest; its 409 mapping in GlobalExceptionHandlerTest.
+        mockMvc.perform(delete("/api/v1/platform/admins/{userId}", firstAdminUserId)
+                        .header("Authorization", "Bearer " + callerToken))
                 .andExpect(status().isConflict())
-                .andExpect(jsonPath("$.errors[0].code").value("CANNOT_REVOKE_LAST_ADMIN"));
+                .andExpect(jsonPath("$.errors[0].code").value("CANNOT_REVOKE_SELF"));
     }
 
     @Test
-    @WithMockUser(roles = "PLATFORM_ADMIN")
     void revokeAdminReturnsNotFoundForUnknownUser() throws Exception {
-        mockMvc.perform(delete("/api/v1/platform/admins/{userId}", 999_999L))
+        mockMvc.perform(delete("/api/v1/platform/admins/{userId}", 999_999L)
+                        .header("Authorization", "Bearer " + mintPlatformAdminToken(firstAdminUserId)))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.errors[0].code").value("PLATFORM_ADMIN_NOT_FOUND"));
     }
@@ -111,17 +126,10 @@ class PlatformAdminControllerTest {
                 .andExpect(status().isUnauthorized());
     }
 
-    // Unlike the tests above, this one mints a real signed JWT (through the real Spring Security
-    // filter chain) rather than using @WithMockUser, so SecurityUtils.currentUserId() resolves to
-    // an actual, controllable value - required to exercise the self-revoke branch in
-    // PlatformAdminManagementService#revokeAdmin, which reads the caller's id from the security
-    // context rather than from the request body/path.
     @Test
     void revokeAdminRejectsSelfRevocation() throws Exception {
-        String selfToken = mintPlatformAdminToken(firstAdminUserId);
-
         mockMvc.perform(delete("/api/v1/platform/admins/{userId}", firstAdminUserId)
-                        .header("Authorization", "Bearer " + selfToken))
+                        .header("Authorization", "Bearer " + mintPlatformAdminToken(firstAdminUserId)))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.errors[0].code").value("CANNOT_REVOKE_SELF"));
     }
