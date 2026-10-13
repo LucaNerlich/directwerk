@@ -6,6 +6,7 @@ import de.pnnit.directwerk.api.dto.InvitationResponseMapper;
 import de.pnnit.directwerk.api.dto.PermissionRestrictionView;
 import de.pnnit.directwerk.api.dto.ReplaceRestrictionsRequest;
 import de.pnnit.directwerk.api.response.Response;
+import de.pnnit.directwerk.modules.core.FeatureModuleKeys;
 import de.pnnit.directwerk.modules.core.RequiresModule;
 import de.pnnit.directwerk.modules.core.entity.TenantBranding;
 import de.pnnit.directwerk.modules.core.entity.TenantDomain;
@@ -77,7 +78,7 @@ public class TenantAdminController {
     }
 
     @PutMapping("/branding")
-    @RequiresModule("WHITELABEL")
+    @RequiresModule(FeatureModuleKeys.WHITELABEL)
     ResponseEntity<Response<BrandingView>> updateBranding(@Valid @RequestBody BrandingUpdateRequest request) {
         TenantBranding branding = tenantBrandingService.updateBranding(
                 TenantContext.requireTenantId(),

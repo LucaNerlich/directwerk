@@ -1,7 +1,9 @@
 package de.pnnit.directwerk.controller.newsletter;
 
 import de.pnnit.directwerk.api.response.Response;
+import de.pnnit.directwerk.modules.core.FeatureModuleKeys;
 import de.pnnit.directwerk.modules.core.RequiresModule;
+import de.pnnit.directwerk.modules.email.EmailNotifyModule;
 import de.pnnit.directwerk.modules.newsletter.entity.NewsletterList;
 import de.pnnit.directwerk.modules.newsletter.entity.NewsletterListStatus;
 import de.pnnit.directwerk.modules.newsletter.entity.NewsletterSubscription;
@@ -28,7 +30,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequiresModule("EMAIL_NOTIFY")
+@RequiresModule(EmailNotifyModule.KEY)
 @PreAuthorize("hasAnyRole('EDITOR', 'TENANT_ADMIN')")
 @RequestMapping("/api/v1/newsletter-lists")
 public class NewsletterListController {
