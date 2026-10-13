@@ -1,17 +1,11 @@
 package de.pnnit.directwerk.modules.podcast.importrss;
 
+import static de.pnnit.directwerk.modules.digital.importing.RssFeedSupport.*;
+
 import de.pnnit.directwerk.modules.podcast.exception.RssImportException;
 import java.io.InputStream;
-import java.net.URI;
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.time.Instant;
-import java.time.ZonedDateTime;
-import java.time.format.DateTimeFormatter;
-import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
-import java.util.HexFormat;
 import java.util.List;
 import java.util.Locale;
 import javax.xml.XMLConstants;
@@ -26,9 +20,6 @@ import org.springframework.stereotype.Component;
  */
 @Component
 public class RssFeedParser {
-
-    static final String ITUNES_NS = "http://www.itunes.com/dtds/podcast-1.0.dtd";
-    static final String CONTENT_NS = "http://purl.org/rss/1.0/modules/content/";
 
     /**
      * Parses an RSS feed and converts it into a structured feed representation.
@@ -56,15 +47,6 @@ public class RssFeedParser {
             }
         } catch (XMLStreamException ex) {
             throw new RssImportException(400, "RSS_FEED_INVALID", "RSS feed could not be parsed", ex);
-        }
-    }
-
-    private static void setExternalAccessProperty(XMLInputFactory factory, String name) {
-        try {
-            factory.setProperty(name, "");
-        } catch (IllegalArgumentException unsupported) {
-            // Implementation does not recognize the JAXP property — the DTD/external-entity
-            // flags above already provide the XXE protection on such runtimes.
         }
     }
 
@@ -227,55 +209,6 @@ public class RssFeedParser {
     }
 
     /**
-     * Skips the current XML element and all nested content.
-     *
-     * @param reader the XML stream reader positioned at the element to skip
-     * @throws XMLStreamException if the XML stream cannot be advanced
-     */
-    private static void skipElement(XMLStreamReader reader) throws XMLStreamException {
-        int depth = 1;
-        while (depth > 0 && reader.hasNext()) {
-            int event = reader.next();
-            if (event == XMLStreamConstants.START_ELEMENT) {
-                depth++;
-            } else if (event == XMLStreamConstants.END_ELEMENT) {
-                depth--;
-            }
-        }
-    }
-
-    private static String readElementText(XMLStreamReader reader) throws XMLStreamException {
-        return reader.getElementText();
-    }
-
-    /**
-     * Determines whether the current XML element belongs to the iTunes namespace.
-     *
-     * @param reader the XML stream reader positioned at the current element
-     * @return {@code true} if the element uses the iTunes prefix or namespace, {@code false} otherwise
-     */
-    private static boolean isItunes(XMLStreamReader reader) {
-        String ns = reader.getNamespaceURI();
-        return "itunes".equalsIgnoreCase(reader.getPrefix())
-                || (ns != null && (
-                        ITUNES_NS.equalsIgnoreCase(ns)
-                                || ns.toLowerCase(Locale.ROOT).contains("itunes.com/dtds/podcast-1.0.dtd")
-                ));
-    }
-
-    /**
-     * Determines whether the current XML element represents content-encoded content.
-     *
-     * @param reader the XML stream reader positioned at the element
-     * @return {@code true} if the element uses the content prefix or namespace, {@code false} otherwise
-     */
-    private static boolean isContentEncoded(XMLStreamReader reader) {
-        String ns = reader.getNamespaceURI();
-        return "content".equalsIgnoreCase(reader.getPrefix())
-                || (ns != null && CONTENT_NS.equalsIgnoreCase(ns));
-    }
-
-    /**
      * Determines whether an enclosure has a usable URL and an audio-compatible MIME type.
      *
      * @param url      the enclosure URL
@@ -293,78 +226,6 @@ public class RssFeedParser {
         String normalized = mimeType.trim().toLowerCase(Locale.ROOT);
         return normalized.startsWith("audio/")
                 || "application/octet-stream".equals(normalized);
-    }
-
-    /**
-     * Resolves a URL against the feed URL and accepts only valid HTTP or HTTPS URLs within the length limit.
-     *
-     * @param feedUrl the base URL used to resolve relative values
-     * @param value   the URL value to resolve
-     * @return the resolved URL, or {@code null} if the value is blank, invalid, unsupported, hostless, or too long
-     */
-    private static String resolveHttpUrl(String feedUrl, String value) {
-        if (value == null || value.isBlank()) {
-            return null;
-        }
-        try {
-            URI resolved = URI.create(feedUrl).resolve(value.trim());
-            String scheme = resolved.getScheme();
-            if (resolved.getHost() == null
-                    || scheme == null
-                    || (!"http".equalsIgnoreCase(scheme) && !"https".equalsIgnoreCase(scheme))) {
-                return null;
-            }
-            String result = resolved.toString();
-            return result.length() <= 2048 ? result : null;
-        } catch (IllegalArgumentException ex) {
-            return null;
-        }
-    }
-
-    private static String hrefAttr(XMLStreamReader reader) {
-        return firstNonBlank(attr(reader, "href"), attr(reader, "url"));
-    }
-
-    /**
-     * Retrieves an attribute value by name, ignoring case when necessary.
-     *
-     * @param reader the XML stream reader containing the attribute
-     * @param name the attribute name to find
-     * @return the matching attribute value, or {@code null} if no matching attribute exists
-     */
-    private static String attr(XMLStreamReader reader, String name) {
-        String value = reader.getAttributeValue(null, name);
-        if (value != null) {
-            return value;
-        }
-        for (int i = 0; i < reader.getAttributeCount(); i++) {
-            if (name.equalsIgnoreCase(reader.getAttributeLocalName(i))) {
-                return reader.getAttributeValue(i);
-            }
-        }
-        return null;
-    }
-
-    /**
-     * Parses an RFC 1123 date-time string into an instant.
-     *
-     * @param raw the date-time string to parse
-     * @return the parsed instant, or {@code null} if the value is blank or invalid
-     */
-    static Instant parseRfc822(String raw) {
-        if (raw == null || raw.isBlank()) {
-            return null;
-        }
-        try {
-            return ZonedDateTime.parse(raw.trim(), DateTimeFormatter.RFC_1123_DATE_TIME).toInstant();
-        } catch (DateTimeParseException ignored) {
-            try {
-                return ZonedDateTime.parse(raw.trim(), DateTimeFormatter.RFC_1123_DATE_TIME.withLocale(Locale.US))
-                        .toInstant();
-            } catch (DateTimeParseException ex) {
-                return null;
-            }
-        }
     }
 
     /**
@@ -431,63 +292,6 @@ public class RssFeedParser {
             return value > 0 ? value : null;
         } catch (NumberFormatException ex) {
             return null;
-        }
-    }
-
-    /**
-     * Normalizes a language value by defaulting blank input to {@code "de"} and limiting nonblank values to eight characters.
-     *
-     * @param language the language value to normalize
-     * @return the normalized language value
-     */
-    private static String normalizeLanguage(String language) {
-        if (language == null || language.isBlank()) {
-            return "de";
-        }
-        String trimmed = language.trim();
-        return trimmed.length() > 8 ? trimmed.substring(0, 8) : trimmed;
-    }
-
-    /**
-     * Selects the current value when it is nonblank; otherwise, selects the candidate value.
-     *
-     * @param current   the preferred value
-     * @param candidate the fallback value
-     * @return the first nonblank value, or the candidate when the current value is blank or null
-     */
-    private static String firstNonBlank(String current, String candidate) {
-        if (current != null && !current.isBlank()) {
-            return current;
-        }
-        return candidate;
-    }
-
-    private static String blankToNull(String value) {
-        return value == null || value.isBlank() ? null : value.trim();
-    }
-
-    private static String truncate(String value, int maxLength) {
-        if (value == null || value.length() <= maxLength) {
-            return value;
-        }
-        return value.substring(0, maxLength).trim();
-    }
-
-    /**
-     * @throws IllegalStateException if SHA-256 is unavailable
-     */
-    private static String boundedGuid(String value) {
-        String guid = value.trim();
-        if (guid.length() <= 512) {
-            return guid;
-        }
-        try {
-            MessageDigest digest = MessageDigest.getInstance("SHA-256");
-            return "sha256:" + HexFormat.of().formatHex(
-                    digest.digest(guid.getBytes(StandardCharsets.UTF_8))
-            );
-        } catch (NoSuchAlgorithmException ex) {
-            throw new IllegalStateException("SHA-256 is not available", ex);
         }
     }
 

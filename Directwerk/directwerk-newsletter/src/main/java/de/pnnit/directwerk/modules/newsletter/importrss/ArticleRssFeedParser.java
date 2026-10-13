@@ -1,17 +1,11 @@
 package de.pnnit.directwerk.modules.newsletter.importrss;
 
+import static de.pnnit.directwerk.modules.digital.importing.RssFeedSupport.*;
+
 import de.pnnit.directwerk.modules.newsletter.exception.ArticleRssImportException;
 import java.io.InputStream;
-import java.net.URI;
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.time.Instant;
-import java.time.ZonedDateTime;
-import java.time.format.DateTimeFormatter;
-import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
-import java.util.HexFormat;
 import java.util.List;
 import java.util.Locale;
 import javax.xml.XMLConstants;
@@ -26,9 +20,6 @@ import org.springframework.stereotype.Component;
  */
 @Component
 public class ArticleRssFeedParser {
-
-    static final String ITUNES_NS = "http://www.itunes.com/dtds/podcast-1.0.dtd";
-    static final String CONTENT_NS = "http://purl.org/rss/1.0/modules/content/";
 
     public ParsedArticleRssFeed parse(String feedUrl, InputStream xml) {
         XMLInputFactory factory = XMLInputFactory.newFactory();
@@ -46,14 +37,6 @@ public class ArticleRssFeedParser {
             }
         } catch (XMLStreamException ex) {
             throw new ArticleRssImportException(400, "RSS_FEED_INVALID", "RSS feed could not be parsed", ex);
-        }
-    }
-
-    private static void setExternalAccessProperty(XMLInputFactory factory, String name) {
-        try {
-            factory.setProperty(name, "");
-        } catch (IllegalArgumentException unsupported) {
-            // Implementation does not recognize the JAXP property.
         }
     }
 
@@ -173,37 +156,6 @@ public class ArticleRssFeedParser {
         }
     }
 
-    private static void skipElement(XMLStreamReader reader) throws XMLStreamException {
-        int depth = 1;
-        while (depth > 0 && reader.hasNext()) {
-            int event = reader.next();
-            if (event == XMLStreamConstants.START_ELEMENT) {
-                depth++;
-            } else if (event == XMLStreamConstants.END_ELEMENT) {
-                depth--;
-            }
-        }
-    }
-
-    private static String readElementText(XMLStreamReader reader) throws XMLStreamException {
-        return reader.getElementText();
-    }
-
-    private static boolean isItunes(XMLStreamReader reader) {
-        String ns = reader.getNamespaceURI();
-        return "itunes".equalsIgnoreCase(reader.getPrefix())
-                || (ns != null && (
-                        ITUNES_NS.equalsIgnoreCase(ns)
-                                || ns.toLowerCase(Locale.ROOT).contains("itunes.com/dtds/podcast-1.0.dtd")
-                ));
-    }
-
-    private static boolean isContentEncoded(XMLStreamReader reader) {
-        String ns = reader.getNamespaceURI();
-        return "content".equalsIgnoreCase(reader.getPrefix())
-                || (ns != null && CONTENT_NS.equalsIgnoreCase(ns));
-    }
-
     private static boolean isImageEnclosure(String url, String mimeType) {
         if (url == null || url.isBlank()) {
             return false;
@@ -227,99 +179,6 @@ public class ArticleRssFeedParser {
                 || lower.contains(".jpeg?")
                 || lower.contains(".png?")
                 || lower.contains(".webp?");
-    }
-
-    private static String resolveHttpUrl(String feedUrl, String value) {
-        if (value == null || value.isBlank()) {
-            return null;
-        }
-        try {
-            URI resolved = URI.create(feedUrl).resolve(value.trim());
-            String scheme = resolved.getScheme();
-            if (resolved.getHost() == null
-                    || scheme == null
-                    || (!"http".equalsIgnoreCase(scheme) && !"https".equalsIgnoreCase(scheme))) {
-                return null;
-            }
-            String result = resolved.toString();
-            return result.length() <= 2048 ? result : null;
-        } catch (IllegalArgumentException ex) {
-            return null;
-        }
-    }
-
-    private static String hrefAttr(XMLStreamReader reader) {
-        return firstNonBlank(attr(reader, "href"), attr(reader, "url"));
-    }
-
-    private static String attr(XMLStreamReader reader, String name) {
-        String value = reader.getAttributeValue(null, name);
-        if (value != null) {
-            return value;
-        }
-        for (int i = 0; i < reader.getAttributeCount(); i++) {
-            if (name.equalsIgnoreCase(reader.getAttributeLocalName(i))) {
-                return reader.getAttributeValue(i);
-            }
-        }
-        return null;
-    }
-
-    static Instant parseRfc822(String raw) {
-        if (raw == null || raw.isBlank()) {
-            return null;
-        }
-        try {
-            return ZonedDateTime.parse(raw.trim(), DateTimeFormatter.RFC_1123_DATE_TIME).toInstant();
-        } catch (DateTimeParseException ignored) {
-            try {
-                return ZonedDateTime.parse(raw.trim(), DateTimeFormatter.RFC_1123_DATE_TIME.withLocale(Locale.US))
-                        .toInstant();
-            } catch (DateTimeParseException ex) {
-                return null;
-            }
-        }
-    }
-
-    private static String normalizeLanguage(String language) {
-        if (language == null || language.isBlank()) {
-            return "de";
-        }
-        String trimmed = language.trim();
-        return trimmed.length() > 8 ? trimmed.substring(0, 8) : trimmed;
-    }
-
-    private static String firstNonBlank(String current, String candidate) {
-        if (current != null && !current.isBlank()) {
-            return current;
-        }
-        return candidate;
-    }
-
-    private static String blankToNull(String value) {
-        return value == null || value.isBlank() ? null : value.trim();
-    }
-
-    private static String truncate(String value, int maxLength) {
-        if (value == null || value.length() <= maxLength) {
-            return value;
-        }
-        return value.substring(0, maxLength).trim();
-    }
-
-    private static String boundedGuid(String value) {
-        String guid = value.trim();
-        if (guid.length() <= 512) {
-            return guid;
-        }
-        try {
-            MessageDigest digest = MessageDigest.getInstance("SHA-256");
-            return "sha256:" + HexFormat.of().formatHex(
-                    digest.digest(guid.getBytes(StandardCharsets.UTF_8))
-            );
-        } catch (NoSuchAlgorithmException ex) {
-            throw new IllegalStateException("SHA-256 is not available", ex);
-        }
     }
 
     private static final class ItemBuilder {
@@ -405,14 +264,7 @@ public class ArticleRssFeedParser {
                 body == null ? "" : body.trim(),
                 imageUrl == null ? "" : imageUrl.trim()
         );
-        try {
-            MessageDigest digest = MessageDigest.getInstance("SHA-256");
-            return "sha256:" + HexFormat.of().formatHex(
-                    digest.digest(material.getBytes(StandardCharsets.UTF_8))
-            );
-        } catch (NoSuchAlgorithmException ex) {
-            throw new IllegalStateException("SHA-256 is not available", ex);
-        }
+        return "sha256:" + sha256Hex(material);
     }
 
     static String firstImgSrc(String html) {

@@ -14,6 +14,7 @@ import {AdminLoadingText, FormSkeleton} from '@/components/AdminLoading'
 import {getPlatformData, postPlatformData} from '@/lib/api/client'
 import {usePlatformQuery} from '@/lib/api/usePlatformQuery'
 import type {QueueJob} from '@directwerk/api/types'
+import {formatTimestamp} from '@directwerk/api/format/datetime'
 
 interface JobPageProps {
     params: Promise<{id: string}>
@@ -21,20 +22,6 @@ interface JobPageProps {
 
 const UUID_PATTERN =
     /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
-
-function formatTimestamp(value: string | null): string {
-    if (value === null) {
-        return '—'
-    }
-
-    const parsed = Date.parse(value)
-
-    if (Number.isNaN(parsed)) {
-        return value
-    }
-
-    return new Date(parsed).toLocaleString()
-}
 
 function formatPayload(payload: unknown): string {
     return JSON.stringify(payload, null, 2)

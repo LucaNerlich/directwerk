@@ -33,6 +33,7 @@ import type {
 } from '@directwerk/api/types'
 import {getClientTenantHost} from '@directwerk/api/tenant'
 import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
+import {isValidEmail} from '@directwerk/api/validation/input'
 
 const REVOCABLE_GRANT_STATUSES = new Set(['ACTIVE', 'PAST_DUE', 'INCOMPLETE'])
 
@@ -82,8 +83,6 @@ export default function GrantsClient(): React.JSX.Element {
     const emailHelpId = useId()
     const productHelpId = useId()
 
-    const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-
     useEffect(() => {
         let active = true
 
@@ -131,7 +130,7 @@ export default function GrantsClient(): React.JSX.Element {
         setEmailError(null)
 
         const trimmedEmail = email.trim()
-        if (!EMAIL_PATTERN.test(trimmedEmail) || trimmedEmail.length > 254) {
+        if (!isValidEmail(trimmedEmail)) {
             setEmailError('Bitte eine gültige E-Mail-Adresse eingeben.')
             setIsBusy(false)
             return

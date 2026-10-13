@@ -1,6 +1,5 @@
-import {isRecord} from './primitives'
+import {isRecord, isValidEmail as matchesEmailPattern} from './primitives'
 
-const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const MIN_PASSWORD_LENGTH = 12
 const MAX_PASSWORD_LENGTH = 128
 const MAX_EMAIL_LENGTH = 254
@@ -23,7 +22,7 @@ function parseEmail(value: unknown, normalize: boolean): string | null {
     if (
         email.length === 0 ||
         email.length > MAX_EMAIL_LENGTH ||
-        !EMAIL_PATTERN.test(email)
+        !matchesEmailPattern(email)
     ) {
         return null
     }
@@ -232,7 +231,7 @@ export function parseForgotPasswordInput(value: unknown): ForgotPasswordInput | 
     }
 
     const email = value.email.trim().toLowerCase()
-    if (email.length === 0 || email.length > MAX_EMAIL_LENGTH || !EMAIL_PATTERN.test(email)) {
+    if (email.length === 0 || email.length > MAX_EMAIL_LENGTH || !matchesEmailPattern(email)) {
         return null
     }
 

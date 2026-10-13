@@ -34,6 +34,7 @@ import {
 import {useMe} from '@/lib/auth/MeProvider'
 import {getClientTenantHost} from '@directwerk/api/tenant'
 import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
+import {isValidEmail} from '@directwerk/api/validation/input'
 
 interface InviteState {
     error: string | null
@@ -46,8 +47,6 @@ const INITIAL_INVITE_STATE: InviteState = {
     success: null,
     inviteToken: null,
 }
-
-const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 function roleLabel(role: string): string {
     switch (role) {
@@ -151,7 +150,7 @@ export default function TeamClient(): React.JSX.Element {
         const name = String(formData.get('name') ?? '').trim()
         const role = String(formData.get('role') ?? '').trim() as TenantInvitableRole
 
-        if (!EMAIL_PATTERN.test(email) || email.length > 254) {
+        if (!isValidEmail(email)) {
             return {...INITIAL_INVITE_STATE, error: 'Bitte eine gültige E-Mail eingeben.'}
         }
         if (!(TENANT_INVITABLE_ROLES as readonly string[]).includes(role)) {

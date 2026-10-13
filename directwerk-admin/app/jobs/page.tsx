@@ -31,21 +31,12 @@ import {
     type JobListPage,
     type JobListQuery,
 } from '@directwerk/api/types'
+import {formatTimestamp} from '@directwerk/api/format/datetime'
 import {validateJobListQuery} from '@/lib/validation'
 
 const DEFAULT_QUERY: JobListQuery = {
     offset: 0,
     limit: 20,
-}
-
-function formatTimestamp(value: string): string {
-    const parsed = Date.parse(value)
-
-    if (Number.isNaN(parsed)) {
-        return value
-    }
-
-    return new Date(parsed).toLocaleString()
 }
 
 export default function JobsPage() {
