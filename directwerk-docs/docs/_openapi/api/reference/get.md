@@ -1,6 +1,6 @@
 ---
-title: "GET /api/v1/platform/queue/jobs/{id}"
-description: "GET /api/v1/platform/queue/jobs/{id}"
+title: "GET /api/v1/media/{id}"
+description: "GET /api/v1/media/{id}"
 layout: doc
 aside: false
 editLink: false
