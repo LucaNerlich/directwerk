@@ -65,6 +65,21 @@ class DirectwerkJwtAuthenticationConverterTest {
     }
 
     @Test
+    void rejectsNonNumericTenantClaimInsteadOfDowngradingToNoTenant() {
+        // A malformed tenant_id string must fail closed (401) rather than silently
+        // becoming a tenant-less principal.
+        Jwt jwt = jwt(Map.of(
+                "sub", "42",
+                "email", "editor@example.com",
+                "roles", List.of("EDITOR"),
+                "tenant_id", "not-a-number"
+        ));
+
+        assertThatThrownBy(() -> converter.convert(jwt))
+                .isInstanceOf(BadJwtException.class);
+    }
+
+    @Test
     void preservesMissingSubjectAsNullUserId() {
         Jwt jwt = jwt(Map.of(
                 "email", "service@example.com",

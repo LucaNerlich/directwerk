@@ -164,13 +164,11 @@ public class ArticleViewDeliveryFacade {
 
     private TrackedArticleRedirect redirect(
             Article article, Long tenantId, String scheme, String requestHost, int port) {
-        String host;
-        try {
-            host = tenantPublicHostResolver.resolve(
-                    tenantId, requestHost, TenantPublicHostResolver.HostPolicy.TRUST_REQUEST);
-        } catch (RuntimeException ex) {
-            host = requestHost;
-        }
+        // The resolver falls back to the tenant's primary verified domain and throws when
+        // none exists. Never fall back to the raw request host: that would bypass the
+        // verified-host policy this resolver exists to enforce.
+        String host = tenantPublicHostResolver.resolve(
+                tenantId, requestHost, TenantPublicHostResolver.HostPolicy.TRUST_REQUEST);
         String target = PublicUrlBuilder.baseUrl(scheme, host, port) + "/articles/" + article.getSlug();
         ResponseEntity<Void> response = ResponseEntity.status(HttpStatus.FOUND)
                 .location(URI.create(target))

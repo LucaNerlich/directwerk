@@ -64,11 +64,16 @@ public class DirectwerkJwtAuthenticationConverter implements Converter<Jwt, Abst
         if (claim instanceof Number number) {
             return number.longValue();
         }
-        if (claim instanceof String text && !text.isBlank()) {
+        if (claim instanceof String text) {
+            if (text.isBlank()) {
+                return null;
+            }
             try {
                 return Long.parseLong(text.trim());
             } catch (NumberFormatException ex) {
-                return null;
+                // Fail closed as 401 (never a silent "no tenant" downgrade), matching
+                // the subject claim. Only our own RS256-signed tokens reach here.
+                throw new BadJwtException("Invalid tenant_id claim");
             }
         }
         return null;
