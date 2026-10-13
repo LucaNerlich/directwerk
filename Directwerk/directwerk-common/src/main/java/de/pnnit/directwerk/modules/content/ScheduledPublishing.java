@@ -24,25 +24,30 @@ public final class ScheduledPublishing {
     /**
      * Publishes every due item in its own tenant context; failures are logged and skipped
      * so one broken item cannot block the rest.
+     * <p>
+     * Issue #353: the returned count is the number of items <em>processed without error</em>,
+     * not the number actually published — a handler that returns early on a skip (status
+     * changed, permission denied) still counts. The doc said "successfully published", which
+     * disagreed with the behaviour; both Quartz jobs discard the value.
      *
-     * @return the number of successfully published items
+     * @return the number of items processed without error
      */
     public static int publishDue(
             List<DueItem> dueItems,
             BiConsumer<Long, Long> publishOne,
             String contentTypeLabel
     ) {
-        int published = 0;
+        int processed = 0;
         for (DueItem item : dueItems) {
             try {
                 TenantContext.runWithTenant(item.tenantId(), () ->
                         publishOne.accept(item.tenantId(), item.contentId()));
-                published++;
+                processed++;
             } catch (Exception ex) {
                 log.error("Failed to publish scheduled {} tenant={} id={}",
                         contentTypeLabel, item.tenantId(), item.contentId(), ex);
             }
         }
-        return published;
+        return processed;
     }
 }
