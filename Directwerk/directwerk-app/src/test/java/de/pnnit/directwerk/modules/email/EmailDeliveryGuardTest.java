@@ -16,8 +16,11 @@ import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.SimpleTransactionStatus;
 
 @ExtendWith(MockitoExtension.class)
 class EmailDeliveryGuardTest {
@@ -28,11 +31,18 @@ class EmailDeliveryGuardTest {
     @Mock
     private EmailDeliveryRepository emailDeliveryRepository;
 
+    @Mock
+    private PlatformTransactionManager transactionManager;
+
     private EmailDeliveryGuard guard;
 
     @BeforeEach
     void setUp() {
-        guard = new EmailDeliveryGuard(emailDeliveryRepository, Clock.fixed(NOW, ZoneOffset.UTC));
+        org.mockito.Mockito.lenient()
+                .when(transactionManager.getTransaction(any()))
+                .thenReturn(new SimpleTransactionStatus());
+        guard = new EmailDeliveryGuard(
+                emailDeliveryRepository, Clock.fixed(NOW, ZoneOffset.UTC), transactionManager);
     }
 
     @Test
@@ -82,6 +92,25 @@ class EmailDeliveryGuardTest {
                 new EmailDeliveryGuard.DeliveryClaim(JOB_ID, token), submission)).isFalse();
 
         verify(submission, org.mockito.Mockito.never()).run();
+    }
+
+    @Test
+    void finalizeClaimSubmitsOutsideTheFencingTransactions() {
+        UUID token = UUID.randomUUID();
+        Runnable submission = org.mockito.Mockito.mock(Runnable.class);
+        when(emailDeliveryRepository.findOwnedClaimForUpdate(JOB_ID, token))
+                .thenReturn(Optional.of(new EmailDelivery()));
+        when(emailDeliveryRepository.finalizeClaim(JOB_ID, token, NOW)).thenReturn(1);
+
+        assertThat(guard.finalizeClaim(
+                new EmailDeliveryGuard.DeliveryClaim(JOB_ID, token), submission)).isTrue();
+
+        // Issue #325: fence -> submit -> finalize, so the outbound send is never inside the
+        // transaction that held the row lock.
+        InOrder order = org.mockito.Mockito.inOrder(emailDeliveryRepository, submission);
+        order.verify(emailDeliveryRepository).findOwnedClaimForUpdate(JOB_ID, token);
+        order.verify(submission).run();
+        order.verify(emailDeliveryRepository).finalizeClaim(JOB_ID, token, NOW);
     }
 
     @Test

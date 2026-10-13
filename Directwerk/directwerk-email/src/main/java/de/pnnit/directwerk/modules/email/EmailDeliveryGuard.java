@@ -6,7 +6,9 @@ import java.time.Duration;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 
 @Service
 public class EmailDeliveryGuard {
@@ -22,10 +24,16 @@ public class EmailDeliveryGuard {
 
     private final EmailDeliveryRepository emailDeliveryRepository;
     private final Clock clock;
+    private final TransactionTemplate transactionTemplate;
 
-    public EmailDeliveryGuard(EmailDeliveryRepository emailDeliveryRepository, Clock clock) {
+    public EmailDeliveryGuard(
+            EmailDeliveryRepository emailDeliveryRepository,
+            Clock clock,
+            PlatformTransactionManager transactionManager
+    ) {
         this.emailDeliveryRepository = emailDeliveryRepository;
         this.clock = clock;
+        this.transactionTemplate = new TransactionTemplate(transactionManager);
     }
 
     /**
@@ -48,18 +56,25 @@ public class EmailDeliveryGuard {
     }
 
     /**
-     * Holds the owned claim row lock across outbound submission and finalization. A takeover
-     * therefore cannot start a replacement sender while the stale owner is still submitting.
+     * Fences the owned claim in one short transaction, runs the outbound submission OUTSIDE any
+     * transaction, then finalizes in a second short transaction (issue #325).
+     * <p>
+     * Deliberately not {@code @Transactional}: holding a pooled DB connection and the claim row
+     * lock across a slow SMTP/Mailgun round trip exhausts Hikari and serializes every delivery on
+     * that row lock. The claim token still fences the owner — if a takeover replaced it, the
+     * finalize step is a no-op.
      */
-    @Transactional
     public boolean finalizeClaim(DeliveryClaim claim, Runnable outboundSubmission) {
-        if (emailDeliveryRepository.findOwnedClaimForUpdate(
-                claim.jobId(), claim.claimToken()).isEmpty()) {
+        boolean owned = Boolean.TRUE.equals(transactionTemplate.execute(status ->
+                emailDeliveryRepository.findOwnedClaimForUpdate(claim.jobId(), claim.claimToken())
+                        .isPresent()));
+        if (!owned) {
             return false;
         }
         outboundSubmission.run();
-        return emailDeliveryRepository.finalizeClaim(
-                claim.jobId(), claim.claimToken(), clock.instant()) > 0;
+        Integer updated = transactionTemplate.execute(status -> emailDeliveryRepository.finalizeClaim(
+                claim.jobId(), claim.claimToken(), clock.instant()));
+        return updated != null && updated > 0;
     }
 
     @Transactional
