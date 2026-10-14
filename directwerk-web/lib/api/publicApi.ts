@@ -32,7 +32,6 @@ const parsePublicSeriesListEnvelope = publicParsers.parsePublicSeriesListEnvelop
 const parsePublicEpisodeListEnvelope = publicParsers.parsePublicEpisodeListEnvelope
 
 export async function getSiteConfig(
-    tenantHost: string,
 ): Promise<ApiEnvelope<PublicSiteConfig>> {
     return envelopeResult(
         parsePublicSiteConfigEnvelope,
@@ -42,7 +41,6 @@ export async function getSiteConfig(
 }
 
 export async function listPublicArticles(
-    tenantHost: string,
 ): Promise<PublicArticle[]> {
     return envelopeResult(
         parsePublicArticleListEnvelope,
@@ -52,7 +50,6 @@ export async function listPublicArticles(
 }
 
 export async function listPublicSeries(
-    tenantHost: string,
 ): Promise<PublicSeries[]> {
     return envelopeResult(
         parsePublicSeriesListEnvelope,
@@ -62,7 +59,6 @@ export async function listPublicSeries(
 }
 
 export async function listPublicEpisodes(
-    tenantHost: string,
 ): Promise<PublicEpisode[]> {
     return envelopeResult(
         parsePublicEpisodeListEnvelope,
@@ -72,7 +68,6 @@ export async function listPublicEpisodes(
 }
 
 export async function listPublicLevels(
-    tenantHost: string,
 ): Promise<LevelSummary[]> {
     return envelopeResult(
         parseLevelListEnvelope,
@@ -82,7 +77,6 @@ export async function listPublicLevels(
 }
 
 export async function listPublicFormats(
-    tenantHost: string,
 ): Promise<PublicFormat[]> {
     return envelopeResult(
         parsePublicFormatListEnvelope,
@@ -92,7 +86,6 @@ export async function listPublicFormats(
 }
 
 export async function listPublicArticleCategories(
-    tenantHost: string,
 ): Promise<PublicCategory[]> {
     return envelopeResult(
         parsePublicCategoryListEnvelope,
@@ -102,7 +95,6 @@ export async function listPublicArticleCategories(
 }
 
 export async function listPublicProducts(
-    tenantHost: string,
 ): Promise<PublicProduct[]> {
     return envelopeResult(
         parsePublicProductListEnvelope,

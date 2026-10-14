@@ -18,7 +18,7 @@ export interface ArticleFeedsState {
 
 export function useArticleFeeds(isAuthenticated: boolean): ArticleFeedsState {
     const {errors} = useDictionary()
-    const query = useAuthedQuery(() => listMyArticleFeeds(getWebClientTenantHost()), {
+    const query = useAuthedQuery(() => listMyArticleFeeds(), {
         enabled: isAuthenticated,
         fallbackError: errors.billingFeeds,
         mapError: (error) => userFacingFeedsError(error, errors),

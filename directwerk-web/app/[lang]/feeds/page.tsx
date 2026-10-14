@@ -192,7 +192,7 @@ export default function FeedsPage() {
         isLoading: isSeriesLoading,
     } = useSWR<PublicSeries[]>(
         showPodcastFeeds ? (['public-series', tenantHost] as const) : null,
-        ([, host]: readonly [string, string]) => listPublicSeries(host),
+        ([, host]: readonly [string, string]) => listPublicSeries(),
     )
 
     const series = seriesData ?? []
@@ -250,7 +250,7 @@ export default function FeedsPage() {
         setPodcastRotatePending(true)
         setPodcastRotateError(null)
         try {
-            const updated = await rotateDefaultFeedToken(tenantHost)
+            const updated = await rotateDefaultFeedToken()
             setPodcastPrivateFeeds((current) =>
                 current.map((feed) => (feed.isDefault ? updated : feed)),
             )
@@ -265,7 +265,7 @@ export default function FeedsPage() {
         setPodcastTogglePending(true)
         setPodcastToggleError(null)
         try {
-            const updated = await setDefaultFeedEnabled(tenantHost, enabled)
+            const updated = await setDefaultFeedEnabled( enabled)
             setPodcastPrivateFeeds((current) =>
                 current.map((feed) => (feed.isDefault ? updated : feed)),
             )
@@ -280,7 +280,7 @@ export default function FeedsPage() {
         setArticleRotatePending(true)
         setArticleRotateError(null)
         try {
-            const updated = await rotateDefaultArticleFeedToken(tenantHost)
+            const updated = await rotateDefaultArticleFeedToken()
             setArticlePrivateFeeds((current) =>
                 current.map((feed) => (feed.isDefault ? updated : feed)),
             )
@@ -295,7 +295,7 @@ export default function FeedsPage() {
         setArticleTogglePending(true)
         setArticleToggleError(null)
         try {
-            const updated = await setDefaultArticleFeedEnabled(tenantHost, enabled)
+            const updated = await setDefaultArticleFeedEnabled( enabled)
             setArticlePrivateFeeds((current) =>
                 current.map((feed) => (feed.isDefault ? updated : feed)),
             )
@@ -449,7 +449,6 @@ export default function FeedsPage() {
                     }
                     onError={setPodcastCustomError}
                     onFeedsChange={setPodcastPrivateFeeds}
-                    tenantHost={tenantHost}
                 />
             </>
         )
@@ -630,7 +629,6 @@ export default function FeedsPage() {
                     }
                     onError={setArticleCustomError}
                     onFeedsChange={setArticlePrivateFeeds}
-                    tenantHost={tenantHost}
                 />
             </>
         )

@@ -48,10 +48,10 @@ export function usePublicCatalog({
         setErrorMessage(null)
 
         const episodesPromise = isAuthenticated
-            ? listMyEpisodes(tenantHost)
-            : listPublicEpisodes(tenantHost)
+            ? listMyEpisodes()
+            : listPublicEpisodes()
 
-        Promise.all([listPublicSeries(tenantHost), episodesPromise])
+        Promise.all([listPublicSeries(), episodesPromise])
             .then(([seriesList, episodeList]) => {
                 if (!active) {
                     return

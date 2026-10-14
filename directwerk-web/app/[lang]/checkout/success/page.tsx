@@ -56,7 +56,7 @@ function CheckoutSuccessContent(): React.JSX.Element {
             try {
                 const tenantHost = getWebClientTenantHost()
                 const [accessResponse, subscriptionList] = await Promise.all([
-                    getAccess(tenantHost),
+                    getAccess(),
                     listMySubscriptions(tenantHost),
                 ])
                 if (cancelled) {

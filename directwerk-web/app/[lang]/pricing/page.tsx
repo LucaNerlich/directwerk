@@ -52,8 +52,8 @@ function PricingContent(): React.JSX.Element {
     useEffect(() => {
         let active = true
         Promise.all([
-            listPublicProducts(tenantHost),
-            listPublicLevels(tenantHost),
+            listPublicProducts(),
+            listPublicLevels(),
         ])
             .then(([productList, levelList]) => {
                 if (!active) {

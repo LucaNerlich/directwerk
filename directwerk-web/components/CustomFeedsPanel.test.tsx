@@ -70,7 +70,6 @@ describe('CustomFeedsPanel', () => {
                 onAuthRequired={() => undefined}
                 onError={() => undefined}
                 onFeedsChange={() => undefined}
-                tenantHost="alpha-a.localhost"
             />,</TestLocale>
         )
 
@@ -122,7 +121,6 @@ describe('CustomFeedsPanel', () => {
                 onAuthRequired={() => undefined}
                 onError={() => undefined}
                 onFeedsChange={() => undefined}
-                tenantHost="alpha-a.localhost"
             />,</TestLocale>
         )
 
@@ -161,7 +159,6 @@ describe('CustomFeedsPanel', () => {
                 onAuthRequired={() => undefined}
                 onError={() => undefined}
                 onFeedsChange={() => undefined}
-                tenantHost="alpha-a.localhost"
             />,</TestLocale>
         )
 
@@ -212,7 +209,6 @@ describe('CustomFeedsPanel', () => {
                 onAuthRequired={() => undefined}
                 onError={() => undefined}
                 onFeedsChange={() => undefined}
-                tenantHost="alpha-a.localhost"
             />,</TestLocale>
         )
 
@@ -269,7 +265,6 @@ describe('CustomFeedsPanel', () => {
                 onAuthRequired={() => undefined}
                 onError={() => undefined}
                 onFeedsChange={() => undefined}
-                tenantHost="alpha-a.localhost"
             />,</TestLocale>
         )
 
@@ -307,7 +302,6 @@ describe('CustomFeedsPanel', () => {
                 onAuthRequired={() => undefined}
                 onError={() => undefined}
                 onFeedsChange={() => undefined}
-                tenantHost="alpha-a.localhost"
             />,</TestLocale>
         )
 
@@ -335,7 +329,6 @@ describe('CustomFeedsPanel', () => {
                 onAuthRequired={() => undefined}
                 onError={() => undefined}
                 onFeedsChange={onFeedsChange}
-                tenantHost="alpha-a.localhost"
             />,</TestLocale>
         )
 
@@ -352,7 +345,7 @@ describe('CustomFeedsPanel', () => {
         fireEvent.click(screen.getByRole('button', {name: 'Feed löschen'}))
 
         await waitFor(() =>
-            expect(deleteCustomFeedMock).toHaveBeenCalledWith('alpha-a.localhost', 9),
+            expect(deleteCustomFeedMock).toHaveBeenCalledWith(9),
         )
     })
 })

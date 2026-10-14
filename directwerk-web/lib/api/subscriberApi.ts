@@ -21,7 +21,7 @@ import {authedFetch, envelopeResult, jsonInit} from './transport'
 const publicParsers = createWebPublicParsers()
 const parsePublicEpisodeListEnvelope = publicParsers.parsePublicEpisodeListEnvelope
 
-export async function getMe(tenantHost: string): Promise<ApiEnvelope<Me>> {
+export async function getMe(): Promise<ApiEnvelope<Me>> {
     return envelopeResult(
         parseMeEnvelope,
         await authedFetch('/api/proxy/me'),
@@ -30,7 +30,6 @@ export async function getMe(tenantHost: string): Promise<ApiEnvelope<Me>> {
 }
 
 export async function getAccess(
-    tenantHost: string,
 ): Promise<ApiEnvelope<Access>> {
     return envelopeResult(
         parseAccessEnvelope,
@@ -40,7 +39,6 @@ export async function getAccess(
 }
 
 export async function listMyEpisodes(
-    tenantHost: string,
 ): Promise<PublicEpisode[]> {
     return envelopeResult(
         parsePublicEpisodeListEnvelope,
@@ -50,7 +48,6 @@ export async function listMyEpisodes(
 }
 
 export async function listMyArticles(
-    tenantHost: string,
 ): Promise<PublicArticle[]> {
     return envelopeResult(
         publicParsers.parsePublicArticleListEnvelope,
@@ -61,7 +58,6 @@ export async function listMyArticles(
 
 /** Private subscriber RSS feeds the signed-in user can use in a podcast app. */
 export async function listMyFeeds(
-    tenantHost: string,
 ): Promise<SubscriberFeedView[]> {
     return envelopeResult(
         parseSubscriberFeedListEnvelope,
@@ -71,7 +67,6 @@ export async function listMyFeeds(
 }
 
 export async function rotateDefaultFeedToken(
-    tenantHost: string,
 ): Promise<SubscriberFeedView> {
     return envelopeResult(
         parseSubscriberFeedEnvelope,
@@ -81,7 +76,6 @@ export async function rotateDefaultFeedToken(
 }
 
 export async function setDefaultFeedEnabled(
-    tenantHost: string,
     enabled: boolean,
 ): Promise<SubscriberFeedView> {
     return envelopeResult(
@@ -95,7 +89,6 @@ export async function setDefaultFeedEnabled(
 }
 
 export async function createCustomFeed(
-    tenantHost: string,
     title: string,
     formatIds: number[],
 ): Promise<SubscriberFeedView> {
@@ -107,7 +100,6 @@ export async function createCustomFeed(
 }
 
 export async function updateCustomFeed(
-    tenantHost: string,
     feedId: number,
     title: string,
     formatIds: number[],
@@ -123,7 +115,6 @@ export async function updateCustomFeed(
 }
 
 export async function previewCustomFeed(
-    tenantHost: string,
     formatIds: number[],
 ): Promise<FeedPreview> {
     const params = new URLSearchParams()
@@ -138,7 +129,6 @@ export async function previewCustomFeed(
 }
 
 export async function setFeedEnabled(
-    tenantHost: string,
     feedId: number,
     enabled: boolean,
 ): Promise<SubscriberFeedView> {
@@ -153,7 +143,6 @@ export async function setFeedEnabled(
 }
 
 export async function rotateFeedToken(
-    tenantHost: string,
     feedId: number,
 ): Promise<SubscriberFeedView> {
     return envelopeResult(
@@ -167,7 +156,6 @@ export async function rotateFeedToken(
 }
 
 export async function deleteCustomFeed(
-    tenantHost: string,
     feedId: number,
 ): Promise<void> {
     await authedFetch(`/api/proxy/me/feeds/${feedId}`, {method: 'DELETE'})
@@ -175,7 +163,6 @@ export async function deleteCustomFeed(
 
 /** Private subscriber article RSS feeds the signed-in user can use in a feed reader. */
 export async function listMyArticleFeeds(
-    tenantHost: string,
 ): Promise<ArticleFeedView[]> {
     return envelopeResult(
         parseArticleFeedListEnvelope,
@@ -185,7 +172,6 @@ export async function listMyArticleFeeds(
 }
 
 export async function rotateDefaultArticleFeedToken(
-    tenantHost: string,
 ): Promise<ArticleFeedView> {
     return envelopeResult(
         parseArticleFeedEnvelope,
@@ -195,7 +181,6 @@ export async function rotateDefaultArticleFeedToken(
 }
 
 export async function setDefaultArticleFeedEnabled(
-    tenantHost: string,
     enabled: boolean,
 ): Promise<ArticleFeedView> {
     return envelopeResult(
@@ -209,7 +194,6 @@ export async function setDefaultArticleFeedEnabled(
 }
 
 export async function createCustomArticleFeed(
-    tenantHost: string,
     title: string,
     categoryIds: number[],
 ): Promise<ArticleFeedView> {
@@ -221,7 +205,6 @@ export async function createCustomArticleFeed(
 }
 
 export async function updateCustomArticleFeed(
-    tenantHost: string,
     feedId: number,
     title: string,
     categoryIds: number[],
@@ -237,7 +220,6 @@ export async function updateCustomArticleFeed(
 }
 
 export async function previewCustomArticleFeed(
-    tenantHost: string,
     categoryIds: number[],
 ): Promise<ArticleFeedPreview> {
     const params = new URLSearchParams()
@@ -252,7 +234,6 @@ export async function previewCustomArticleFeed(
 }
 
 export async function setArticleFeedEnabledForUser(
-    tenantHost: string,
     feedId: number,
     enabled: boolean,
 ): Promise<ArticleFeedView> {
@@ -267,7 +248,6 @@ export async function setArticleFeedEnabledForUser(
 }
 
 export async function rotateArticleFeedToken(
-    tenantHost: string,
     feedId: number,
 ): Promise<ArticleFeedView> {
     return envelopeResult(
@@ -281,14 +261,12 @@ export async function rotateArticleFeedToken(
 }
 
 export async function deleteCustomArticleFeed(
-    tenantHost: string,
     feedId: number,
 ): Promise<void> {
     await authedFetch(`/api/proxy/me/article-feeds/${feedId}`, {method: 'DELETE'})
 }
 
 export async function getNotificationPreferences(
-    tenantHost: string,
 ): Promise<{emailNotificationsEnabled: boolean; emailNotifyAvailable: boolean}> {
     const prefs = parseNotificationPreferencesEnvelope(
         await authedFetch('/api/proxy/me/notification-preferences'),
@@ -301,7 +279,6 @@ export async function getNotificationPreferences(
 }
 
 export async function updateNotificationPreferences(
-    tenantHost: string,
     emailNotificationsEnabled: boolean,
 ): Promise<{emailNotificationsEnabled: boolean; emailNotifyAvailable: boolean}> {
     const prefs = parseNotificationPreferencesEnvelope(
@@ -318,7 +295,6 @@ export async function updateNotificationPreferences(
 }
 
 export async function listMyDownloads(
-    tenantHost: string,
 ): Promise<SubscriberDownload[]> {
     return envelopeResult(
         parseSubscriberDownloadListEnvelope,

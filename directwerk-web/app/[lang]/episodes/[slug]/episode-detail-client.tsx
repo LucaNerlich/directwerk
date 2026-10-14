@@ -67,10 +67,10 @@ export default function EpisodeDetailClient({
         // No single-episode metadata endpoint exists (only list + stream /
         // download), so episodes keep the catalog scan.
         loadPublic: async () =>
-            (await listPublicEpisodes(tenantHost)).find((item) => item.slug === slug) ??
+            (await listPublicEpisodes()).find((item) => item.slug === slug) ??
             null,
         loadEntitled: async () =>
-            (await listMyEpisodes(tenantHost)).find((item) => item.slug === slug) ?? null,
+            (await listMyEpisodes()).find((item) => item.slug === slug) ?? null,
         messages,
     })
 

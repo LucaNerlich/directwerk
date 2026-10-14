@@ -38,7 +38,7 @@ export default function DownloadsPage(): React.JSX.Element {
 
     useEffect(() => {
         let active = true
-        listMyDownloads(tenantHost)
+        listMyDownloads()
             .then((items) => {
                 if (active) {
                     setDownloads(items)
