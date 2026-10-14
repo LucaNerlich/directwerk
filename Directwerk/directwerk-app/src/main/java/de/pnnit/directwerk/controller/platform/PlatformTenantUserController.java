@@ -11,6 +11,7 @@ import de.pnnit.directwerk.modules.core.service.TenantUserQueryService;
 import de.pnnit.directwerk.modules.core.service.TenantUserQueryService.TenantUserView;
 import de.pnnit.directwerk.multitenancy.TenantContext;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Size;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import java.util.List;
@@ -19,6 +20,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -141,12 +143,37 @@ public class PlatformTenantUserController {
         MembershipPermissionService.MemberRights rights = TenantContext.callWithTenant(
                 tenantId,
                 () -> membershipPermissionService.effectiveRightsForMember(tenantId, userId));
+        return ResponseEntity.ok(Response.ok(toView(rights)));
+    }
+
+    /**
+     * Batch variant of {@link #effectiveRights} (#345). The platform tenant page shows one rights
+     * row per editor, so calling the single-member route per editor cost one HTTP round trip (and
+     * three queries) each; this resolves the whole page in one request and three queries.
+     *
+     * <p>Ids without a membership are omitted rather than failing the batch.
+     */
+    @GetMapping("/effective-rights")
+    ResponseEntity<Response<List<EffectiveRightsView>>> effectiveRightsBatch(
+            @PathVariable Long tenantId,
+            @RequestParam @Size(max = 200) List<Long> userIds
+    ) {
+        List<EffectiveRightsView> views = TenantContext.callWithTenant(
+                        tenantId,
+                        () -> membershipPermissionService.effectiveRightsForMembers(tenantId, userIds))
+                .stream()
+                .map(PlatformTenantUserController::toView)
+                .toList();
+        return ResponseEntity.ok(Response.ok(views));
+    }
+
+    private static EffectiveRightsView toView(MembershipPermissionService.MemberRights rights) {
         List<PermissionRestrictionView> restrictions = rights.restrictions().stream()
                 .map(override -> new PermissionRestrictionView(
                         override.getEntityType(), override.getOperation(), override.getScope()))
                 .toList();
-        return ResponseEntity.ok(Response.ok(new EffectiveRightsView(
-                rights.userId(), rights.roles(), restrictions, rights.effective())));
+        return new EffectiveRightsView(
+                rights.userId(), rights.roles(), restrictions, rights.effective());
     }
 
     public record TenantUserListResponse(List<TenantUserView> content) {

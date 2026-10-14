@@ -16,6 +16,7 @@ import de.pnnit.directwerk.modules.core.authorization.RestrictionScope;
 import de.pnnit.directwerk.modules.core.entity.MembershipPermissionOverride;
 import de.pnnit.directwerk.modules.core.entity.Role;
 import de.pnnit.directwerk.modules.core.entity.Tenant;
+import de.pnnit.directwerk.modules.core.entity.User;
 import de.pnnit.directwerk.modules.core.entity.TenantMembership;
 import de.pnnit.directwerk.modules.core.repository.MembershipPermissionOverrideRepository;
 import de.pnnit.directwerk.modules.core.repository.TenantMembershipRepository;
@@ -166,6 +167,34 @@ class MembershipPermissionServiceTest {
                                 ContentEntityType.EPISODE, ContentOperation.CREATE, RestrictionScope.OTHERS_ONLY))))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("CREATE");
+    }
+
+    @Test
+    void effectiveRightsForMembersResolvesTheBatchAndOmitsNonMembers() {
+        Tenant tenant = new Tenant();
+        tenant.setId(10L);
+        when(tenantRepository.requireById(10L)).thenReturn(tenant);
+
+        User editor = new User();
+        editor.setId(5L);
+        editor.setEmail("editor@example.com");
+        TenantMembership member = membership(7L, tenant, EnumSet.of(Role.EDITOR));
+        member.setUser(editor);
+
+        when(tenantMembershipRepository.findByTenantIdAndUserIdIn(eq(10L), any()))
+                .thenReturn(List.of(member));
+        when(overrideRepository.findByTenantIdAndUserIdIn(eq(10L), any()))
+                .thenReturn(List.of());
+
+        // #345: one batched lookup for the whole page; a userId with no membership is omitted
+        // rather than failing the batch.
+        List<MembershipPermissionService.MemberRights> rights =
+                service.effectiveRightsForMembers(10L, List.of(5L, 99L));
+
+        assertThat(rights).hasSize(1);
+        assertThat(rights.getFirst().userId()).isEqualTo(5L);
+        assertThat(rights.getFirst().roles()).containsExactly("EDITOR");
+        verify(tenantMembershipRepository).findByTenantIdAndUserIdIn(eq(10L), any());
     }
 
     private static TenantMembership membership(Long id, Tenant tenant, EnumSet<Role> roles) {

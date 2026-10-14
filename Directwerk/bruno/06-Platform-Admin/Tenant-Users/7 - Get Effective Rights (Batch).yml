@@ -1,0 +1,34 @@
+info:
+  name: 7 - Get Effective Rights (Batch)
+  type: http
+  seq: 7
+
+http:
+  method: GET
+  url: "{{baseUrl}}/api/v1/platform/tenants/{{tenantAId}}/users/effective-rights?userIds={{editorUserId}}"
+  params:
+    - name: userIds
+      value: "{{editorUserId}}"
+      type: query
+      description: Comma-separated member ids (max 200). Ids without a membership are omitted.
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("returns expected status", function() {
+          expect(res.getStatus() === 200).to.equal(true);
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true
+
+docs: |-
+  Batch variant of the per-member rights route (#345). The platform tenant page shows one rights row
+  per editor, so calling the single-member route per editor cost one HTTP round trip and three
+  queries each; this resolves the whole page in one request.

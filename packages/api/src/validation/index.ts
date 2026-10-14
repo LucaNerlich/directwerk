@@ -43,6 +43,7 @@ export {
     parsePermissionRestriction,
     parsePermissionRestrictionListEnvelope,
     parseEffectiveRightsEnvelope,
+    parseEffectiveRightsListEnvelope,
     parsePreviewUrlEnvelope,
     parseProductEnvelope,
     parseProductListEnvelope,
