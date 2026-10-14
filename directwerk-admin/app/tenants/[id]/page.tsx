@@ -171,7 +171,12 @@ export default function TenantPage({params}: TenantPageProps) {
         if (rights === undefined) {
             return 'Rights: loading…'
         }
-        if (rights === null || rights.restrictions.length === 0) {
+        if (rights === null) {
+            // Issue #344: a failed fetch was rendered as "full access", understating an editor's
+            // restrictions in exactly the surface meant to audit them.
+            return 'Rights: unavailable'
+        }
+        if (rights.restrictions.length === 0) {
             return 'Rights: full access'
         }
         const details = rights.restrictions

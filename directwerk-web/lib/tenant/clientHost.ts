@@ -5,20 +5,23 @@ import {readTenantHostCookieFromDocument} from '@directwerk/api/tenant'
 
 /**
  * Tenant host for browser API calls on tenant-bound `directwerk-web` domains.
- * Falls back to the page hostname when no studio workspace cookie is present.
+ *
+ * Issue #342: the `dw-tenant-host` cookie is client-writable studio workspace state. Trusting it
+ * here let a cookie value point the tenant-bound public site (including subscriber credentials and
+ * every /api/proxy call) at a different tenant than the page host. The page host is authoritative;
+ * the cookie is only accepted when it matches it, which preserves deployments that set it for the
+ * same host.
  */
 export function getWebClientTenantHost(): string {
+    if (typeof window === 'undefined') {
+        return ''
+    }
+
+    const fromLocation = parseTenantHost(window.location.hostname)
+    if (fromLocation === null) {
+        return ''
+    }
+
     const fromCookie = readTenantHostCookieFromDocument()
-    if (fromCookie !== null) {
-        return fromCookie
-    }
-
-    if (typeof window !== 'undefined') {
-        const fromLocation = parseTenantHost(window.location.hostname)
-        if (fromLocation !== null) {
-            return fromLocation
-        }
-    }
-
-    return ''
+    return fromCookie !== null && fromCookie === fromLocation ? fromCookie : fromLocation
 }

@@ -81,9 +81,12 @@ function platformMediaTransport(
  */
 export async function performTenantMediaUpload(
     tenantId: string,
-    formData: FormData
+    formData: FormData,
+    resolvedAuthorization?: string
 ): Promise<MediaUploadOutcome> {
-    const auth = await resolvePlatformAuthorization()
+    const auth = resolvedAuthorization === undefined
+        ? await resolvePlatformAuthorization()
+        : {ok: true as const, authorization: resolvedAuthorization}
     if (!auth.ok) {
         return {ok: false, status: auth.status, body: null}
     }

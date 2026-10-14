@@ -6,16 +6,8 @@ import {
     TENANT_REFRESH_COOKIE,
 } from '@/lib/server/api'
 import {resolvePlatformAuthorization} from '@/lib/server/platform'
+import {requireTenantHost} from '@/lib/server/tenantHost'
 import {validateLoginInput} from '@/lib/validation'
-
-/** Reads the validated `X-Tenant-Host`; `preflight` has already rejected null. */
-function requireTenantHost(request: Request): string {
-    const tenantHost = parseTenantHost(request.headers.get('x-tenant-host'))
-    if (tenantHost === null) {
-        throw new Error('A valid tenant host is required.')
-    }
-    return tenantHost
-}
 
 export const POST = createPlatformTokenRoute({
     refreshCookie: TENANT_REFRESH_COOKIE,

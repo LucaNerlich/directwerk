@@ -1,12 +1,13 @@
 'use client'
 
+import {useSiteConfig} from '@/lib/site/SiteConfigProvider'
+
 import {useEffect, useState} from 'react'
 
 import {AUTH_REQUIRED} from '@directwerk/api/constants'
 import type {PublicArticle, PublicSiteConfig} from '@directwerk/api/types'
 
 import {
-    getSiteConfig,
     listMyArticles,
     listPublicArticles,
 } from '@/lib/api/client'
@@ -35,7 +36,9 @@ export function usePublicArticles({
     authRequiredMessage,
     loadErrorMessage,
 }: PublicArticlesOptions): PublicArticlesState {
-    const [siteConfig, setSiteConfig] = useState<PublicSiteConfig | null>(null)
+    // Issue #434: the [lang] layout already provides the site config; re-fetching it here cost a
+    // public GET per page view and created a second source of truth for enabledModules.
+    const siteConfig = useSiteConfig()
     const [articles, setArticles] = useState<PublicArticle[]>([])
     const [errorMessage, setErrorMessage] = useState<string | null>(null)
     const [isLoading, setIsLoading] = useState(true)
@@ -49,12 +52,11 @@ export function usePublicArticles({
             ? listMyArticles(tenantHost)
             : listPublicArticles(tenantHost)
 
-        Promise.all([getSiteConfig(tenantHost), articlesPromise])
-            .then(([configEnvelope, articleList]) => {
+        articlesPromise
+            .then((articleList) => {
                 if (!active) {
                     return
                 }
-                setSiteConfig(configEnvelope.data)
                 setArticles(articleList)
             })
             .catch((error: unknown) => {

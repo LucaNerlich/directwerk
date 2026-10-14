@@ -29,6 +29,7 @@ import {
     ASSET_TYPES,
     type MediaAsset,
     type Tenant,
+    type TenantDetailResponse,
     type TenantMediaList,
     type TenantMediaQuery,
 } from '@directwerk/api/types'
@@ -132,11 +133,13 @@ export default function TenantStoragePage({params}: TenantStoragePageProps) {
         id,
         async () => {
             const [nextTenant, media] = await Promise.all([
-                getPlatformData<Tenant>(`tenants/${id}`),
+                getPlatformData<TenantDetailResponse>(`tenants/${id}`),
                 getPlatformData<TenantMediaList>(buildMediaPath(id, query)),
             ])
             return {
-                tenant: nextTenant,
+                // Issue #343: the endpoint returns a detail envelope, not a bare Tenant — the
+                // page rendered 'Media for undefined' because it read tenant.name off the wrapper.
+                tenant: nextTenant.tenant,
                 assets: media.content,
                 publicCdnBaseUrl:
                     typeof media.publicCdnBaseUrl === 'string' &&

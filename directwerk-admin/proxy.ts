@@ -7,8 +7,8 @@ const PUBLIC_PATH_PREFIXES = [
     '/login',
     '/imprint',
     '/privacy',
-    '/api/auth/login',
-    '/api/auth/refresh',
+    // Issue #436: '/api/auth/login' and '/api/auth/refresh' were unreachable here — the proxy
+    // matcher excludes /api entirely, so isPublicPath is never consulted for them.
 ]
 
 function isPublicPath(pathname: string): boolean {

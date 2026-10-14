@@ -1,12 +1,13 @@
 'use client'
 
+import {useSiteConfig} from '@/lib/site/SiteConfigProvider'
+
 import {useEffect, useState} from 'react'
 
 import {AUTH_REQUIRED} from '@directwerk/api/constants'
 import type {PublicEpisode, PublicSeries, PublicSiteConfig} from '@directwerk/api/types'
 
 import {
-    getSiteConfig,
     listMyEpisodes,
     listPublicEpisodes,
     listPublicSeries,
@@ -33,7 +34,9 @@ export function usePublicCatalog({
     authRequiredMessage,
     loadErrorMessage,
 }: PublicCatalogOptions): PublicCatalogState {
-    const [siteConfig, setSiteConfig] = useState<PublicSiteConfig | null>(null)
+    // Issue #434: the [lang] layout already provides the site config; re-fetching it here cost a
+    // public GET per page view and created a second source of truth for enabledModules.
+    const siteConfig = useSiteConfig()
     const [series, setSeries] = useState<PublicSeries[]>([])
     const [episodes, setEpisodes] = useState<PublicEpisode[]>([])
     const [errorMessage, setErrorMessage] = useState<string | null>(null)
@@ -48,16 +51,11 @@ export function usePublicCatalog({
             ? listMyEpisodes(tenantHost)
             : listPublicEpisodes(tenantHost)
 
-        Promise.all([
-            getSiteConfig(tenantHost),
-            listPublicSeries(tenantHost),
-            episodesPromise,
-        ])
-            .then(([configEnvelope, seriesList, episodeList]) => {
+        Promise.all([listPublicSeries(tenantHost), episodesPromise])
+            .then(([seriesList, episodeList]) => {
                 if (!active) {
                     return
                 }
-                setSiteConfig(configEnvelope.data)
                 setSeries(seriesList)
                 setEpisodes(episodeList)
             })

@@ -43,6 +43,10 @@ export function safeReturnTo(
     }
 
     const path = trimmed.split(/[?#]/)[0] ?? trimmed
+    // Browsers normalize literal and percent-encoded dot-segments before navigation.
+    if (path.split('/').some(segment => /^(?:\.|%2e){1,2}$/i.test(segment))) {
+        return fallbackLocalized
+    }
     const barePath = stripLocalePrefix(path)
     const allowed = ALLOWED_PREFIXES.some(
         (prefix) => barePath === prefix || barePath.startsWith(`${prefix}/`),
