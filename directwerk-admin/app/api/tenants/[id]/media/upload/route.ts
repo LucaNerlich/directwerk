@@ -1,4 +1,4 @@
-import {jsonError, parseBearerAuthorization} from '@directwerk/api/server'
+import {jsonError} from '@directwerk/api/server'
 import {resolvePlatformAuthorization} from '@/lib/server/platform'
 
 import {performTenantMediaUpload} from '@/lib/server/mediaUpload'
@@ -81,9 +81,7 @@ export async function POST(
     request: Request,
     context: RouteContext
 ): Promise<Response> {
-    // Issue #346: the syntactic bearer check below passes for any 'Bearer ...' string, so an
-    // unauthenticated caller could make the server buffer a 10 MB multipart body before
-    // performTenantMediaUpload resolved the real platform session. Resolve that first.
+    // Authenticate before buffering the multipart body and reuse this session for the upload.
     const platformAuth = await resolvePlatformAuthorization()
     if (!platformAuth.ok) {
         return jsonError('Authentication required.', platformAuth.status)
@@ -102,7 +100,11 @@ export async function POST(
         return formDataOrError
     }
 
-    const result = await performTenantMediaUpload(tenantId, formDataOrError)
+    const result = await performTenantMediaUpload(
+        tenantId,
+        formDataOrError,
+        platformAuth.authorization
+    )
 
     if (result.ok) {
         // Keep the upstream `{data}` envelope contract for BFF consumers.

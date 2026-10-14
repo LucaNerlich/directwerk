@@ -100,7 +100,7 @@ export async function getPlatformAuditPage(
         return {content: [], totalElements: 0, page: 0, size: query.size ?? 50}
     }
 
-    if (!isRecord(raw) || !Array.isArray(raw.data)) {
+    if (!isRecord(raw) || !Array.isArray(raw.data) || !raw.data.every(isPlatformAuditEvent)) {
         // Issue #439: silently returning an empty page made a broken API contract look like
         // "No audit events match the current filters" on a compliance surface. Throw so the
         // existing error alert and Retry path handle it.
@@ -109,7 +109,7 @@ export async function getPlatformAuditPage(
 
     const metadata = isRecord(raw.metadata) ? raw.metadata : {}
 
-    const content = raw.data.filter(isPlatformAuditEvent)
+    const content = raw.data
 
     return {
         content,

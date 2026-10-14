@@ -37,4 +37,13 @@ describe('safeReturnTo', () => {
         expect(safeReturnTo('/pricing\\evil.test', '/account', 'de')).toBe('/de/account')
         expect(safeReturnTo('javascript:alert(1)', '/account', 'de')).toBe('/de/account')
     })
+
+    it.each(['.', '..', '%2e', '%2e%2e', '.%2E', '%2E.', '%2E%2e'])(
+        'rejects the dot-segment %s before checking allowed prefixes',
+        segment => {
+            expect(safeReturnTo(`/de/pricing/${segment}/evil`, '/account', 'de')).toBe('/de/account')
+            expect(safeReturnTo(`/en/pricing/${segment}/evil`, '/account', 'de')).toBe('/de/account')
+            expect(safeReturnTo(`/pricing/${segment}/evil`, '/account', 'en')).toBe('/en/account')
+        },
+    )
 })
