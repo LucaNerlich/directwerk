@@ -7,6 +7,8 @@ import de.pnnit.directwerk.modules.core.entity.Tenant;
 import de.pnnit.directwerk.modules.digital.api.MediaFolderApi;
 import de.pnnit.directwerk.modules.digital.entity.MediaAsset;
 import de.pnnit.directwerk.multitenancy.TenantContext;
+import de.pnnit.directwerk.security.DirectwerkUserPrincipal;
+import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CountDownLatch;
@@ -21,6 +23,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
@@ -109,10 +114,14 @@ class MediaFolderServiceConcurrencyIT {
                         tenantId.intValue());
                 Future<T> future = executor.submit(() -> {
                     TenantContext.setTenantId(tenantId);
+                    // The folders API is RBAC-gated and the gate fails closed (#303), so this
+                    // worker thread needs the editor identity a controller would have supplied.
+                    authenticate(tenantId);
                     started.countDown();
                     try {
                         return operation.call();
                     } finally {
+                        SecurityContextHolder.clearContext();
                         TenantContext.clear();
                     }
                 });
@@ -130,6 +139,14 @@ class MediaFolderServiceConcurrencyIT {
         } finally {
             executor.shutdownNow();
         }
+    }
+
+    private static void authenticate(Long tenantId) {
+        List<SimpleGrantedAuthority> authorities = List.of(new SimpleGrantedAuthority("ROLE_EDITOR"));
+        DirectwerkUserPrincipal principal = new DirectwerkUserPrincipal(
+                1L, "editor@example.com", "hash", tenantId, authorities);
+        SecurityContextHolder.getContext().setAuthentication(
+                new UsernamePasswordAuthenticationToken(principal, null, authorities));
     }
 
     private TenantFixture insertTenant(String prefix) {

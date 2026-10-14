@@ -18,6 +18,7 @@ import de.pnnit.directwerk.modules.core.entity.Role;
 import de.pnnit.directwerk.modules.core.entity.Tenant;
 import de.pnnit.directwerk.modules.core.entity.User;
 import de.pnnit.directwerk.modules.core.entity.TenantMembership;
+import de.pnnit.directwerk.modules.core.exception.ContentAccessDeniedException;
 import de.pnnit.directwerk.modules.core.repository.MembershipPermissionOverrideRepository;
 import de.pnnit.directwerk.modules.core.repository.TenantMembershipRepository;
 import de.pnnit.directwerk.modules.core.repository.TenantRepository;
@@ -30,6 +31,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 @ExtendWith(MockitoExtension.class)
 class MembershipPermissionServiceTest {
@@ -167,6 +169,19 @@ class MembershipPermissionServiceTest {
                                 ContentEntityType.EPISODE, ContentOperation.CREATE, RestrictionScope.OTHERS_ONLY))))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("CREATE");
+    }
+
+    @Test
+    void gateFailsClosedWhenNoPrincipalIsPresent() {
+        // #303: an empty security context used to read as 'trusted system path' and let the
+        // operation through, so any servlet-layer regression became an authorization bypass.
+        SecurityContextHolder.clearContext();
+
+        assertThatThrownBy(() -> service.requireEpisodeAccess(ContentOperation.CREATE, null))
+                .isInstanceOf(ContentAccessDeniedException.class)
+                .hasMessageContaining("Authentication is required")
+                .extracting(ex -> ((ContentAccessDeniedException) ex).getCode())
+                .isEqualTo(ContentAccessDeniedException.OPERATION_DENIED_BY_POLICY);
     }
 
     @Test

@@ -3,6 +3,8 @@ package de.pnnit.directwerk.job;
 import de.pnnit.directwerk.modules.email.TransactionalEmailService;
 import de.pnnit.directwerk.modules.podcast.exception.RssImportException;
 import de.pnnit.directwerk.modules.podcast.service.PodcastImportService;
+import de.pnnit.directwerk.security.DirectwerkUserPrincipal;
+import de.pnnit.directwerk.security.SecurityUtils;
 import de.pnnit.directwerk.modules.queue.JobHandler;
 import de.pnnit.directwerk.modules.queue.QueueJob;
 import de.pnnit.directwerk.modules.queue.QueueNames;
@@ -33,15 +35,18 @@ public class RssBulkImportJobHandler implements JobHandler {
     private final ObjectMapper objectMapper;
     private final PodcastImportService podcastImportService;
     private final TransactionalEmailService transactionalEmailService;
+    private final ImportRequesterResolver importRequesterResolver;
 
     public RssBulkImportJobHandler(
             ObjectMapper objectMapper,
             PodcastImportService podcastImportService,
-            TransactionalEmailService transactionalEmailService
+            TransactionalEmailService transactionalEmailService,
+            ImportRequesterResolver importRequesterResolver
     ) {
         this.objectMapper = objectMapper;
         this.podcastImportService = podcastImportService;
         this.transactionalEmailService = transactionalEmailService;
+        this.importRequesterResolver = importRequesterResolver;
     }
 
     @Override
@@ -58,6 +63,15 @@ public class RssBulkImportJobHandler implements JobHandler {
             throw new IllegalArgumentException("Invalid podcast-rss-bulk-import job payload");
         }
 
+        // #303: the import writes through RBAC-gated services, so it runs as the editor who
+        // requested it — which also stamps the imported drafts with a real creator. Resolving the
+        // requester first keeps an unresolvable job from fetching the feed at all.
+        DirectwerkUserPrincipal requester = importRequesterResolver.requireRequester(
+                job.tenantId(), payload.requestedByUserId(), payload.notifyEmail());
+        SecurityUtils.runAs(requester, () -> importAll(job, payload));
+    }
+
+    private void importAll(QueueJob job, RssBulkImportPayload payload) {
         PodcastImportService.Preview preview = podcastImportService.preview(payload.feedUrl());
         if (preview.truncated()) {
             throw new RssImportException(

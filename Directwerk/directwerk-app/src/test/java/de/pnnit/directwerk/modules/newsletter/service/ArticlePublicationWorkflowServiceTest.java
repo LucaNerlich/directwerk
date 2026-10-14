@@ -121,6 +121,7 @@ class ArticlePublicationWorkflowServiceTest {
         lenient().when(selfProvider.getObject()).thenReturn(articlePublicationWorkflowService);
         lenient().when(articleRepository.save(any(Article.class))).thenAnswer(invocation -> invocation.getArgument(0));
         SecurityContextHolder.clearContext();
+        authenticate(5L, Role.EDITOR);
     }
 
     @AfterEach
