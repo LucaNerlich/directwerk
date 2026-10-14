@@ -36,7 +36,7 @@ public class AuthRateLimitFilter extends OncePerRequestFilter {
         this.forgotPasswordLimitPerMinute = forgotPasswordLimitPerMinute;
         this.authLimitPerMinute = authLimitPerMinute;
         this.contactLimitPerMinute = contactLimitPerMinute;
-        this.trustedProxies = ClientIpExtractor.trustedProxySet(trustedProxies);
+        this.trustedProxies = RateLimitClientIpResolver.trustedProxySet(trustedProxies);
     }
 
     @Override
@@ -123,7 +123,7 @@ public class AuthRateLimitFilter extends OncePerRequestFilter {
     }
 
     private String extractClientIp(HttpServletRequest request) {
-        return ClientIpExtractor.extractClientIp(request, trustedProxies);
+        return RateLimitClientIpResolver.extractClientIp(request, trustedProxies);
     }
 
     private record RateLimitRule(String group, int limit) {

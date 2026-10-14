@@ -10,6 +10,10 @@ import java.util.Set;
  * <p>Forwarding headers are honored only across configured trusted proxies. The forwarded chain is
  * traversed from the immediate peer outward, stopping at the first untrusted address so a
  * client-supplied leftmost value cannot spoof analytics attribution.
+ *
+ * <p>Contract: {@code null} is meaningful here — it means "unattributed". That, and honoring
+ * {@code X-Real-IP}, is what distinguishes this from the rate-limiter variant; the
+ * spoof-resistance rule itself is shared via {@link ClientIpExtractor}.
  */
 public final class RequestClientIpExtractor {
 
@@ -21,25 +25,20 @@ public final class RequestClientIpExtractor {
      *
      * @param request the HTTP request
      * @param trustedProxies proxy addresses trusted to append or overwrite forwarding headers
-     * @return the extracted client IP address
+     * @return the extracted client IP address, or {@code null} when it cannot be attributed
      */
     public static String extract(HttpServletRequest request, Set<String> trustedProxies) {
-        String remoteAddr = ClientIpExtractor.extract(null, null, request.getRemoteAddr());
+        String remoteAddr = ClientIpExtractor.normalize(request.getRemoteAddr());
         if (remoteAddr == null || trustedProxies == null || !trustedProxies.contains(remoteAddr)) {
             return remoteAddr;
         }
 
-        String forwardedFor = request.getHeader("X-Forwarded-For");
-        if (forwardedFor != null) {
-            String[] hops = forwardedFor.split(",");
-            for (int index = hops.length - 1; index >= 0; index--) {
-                String hop = ClientIpExtractor.extract(null, null, hops[index]);
-                if (hop != null && !trustedProxies.contains(hop)) {
-                    return hop;
-                }
-            }
+        String hop = ClientIpExtractor.firstUntrustedHop(
+                request.getHeader("X-Forwarded-For"), trustedProxies, ClientIpExtractor::isUsable);
+        if (hop != null) {
+            return hop;
         }
 
-        return ClientIpExtractor.extract(null, request.getHeader("X-Real-IP"), remoteAddr);
+        return ClientIpExtractor.normalize(request.getHeader("X-Real-IP"));
     }
 }

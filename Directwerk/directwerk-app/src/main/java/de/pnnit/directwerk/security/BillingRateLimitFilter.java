@@ -27,7 +27,7 @@ public class BillingRateLimitFilter extends OncePerRequestFilter {
             throw new IllegalArgumentException("Billing rate limit must be positive");
         }
         this.limitPerMinute = limitPerMinute;
-        this.trustedProxies = ClientIpExtractor.trustedProxySet(trustedProxies);
+        this.trustedProxies = RateLimitClientIpResolver.trustedProxySet(trustedProxies);
     }
 
     @Override
@@ -52,7 +52,7 @@ public class BillingRateLimitFilter extends OncePerRequestFilter {
     }
 
     private List<String> clientKeys(HttpServletRequest request) {
-        String clientIp = ClientIpExtractor.extractClientIp(request, trustedProxies);
+        String clientIp = RateLimitClientIpResolver.extractClientIp(request, trustedProxies);
         String ipKey = "billing:ip:" + clientIp;
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication != null && authentication.getPrincipal() instanceof DirectwerkUserPrincipal principal) {

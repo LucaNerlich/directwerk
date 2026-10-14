@@ -38,6 +38,6 @@ public class ProdSecurityPropertiesValidator {
         ProdPropertyValidation.requireConfigured(security.jwtPrivateKey(), "DIRECTWERK_JWT_PRIVATE_KEY");
         ProdPropertyValidation.requireConfigured(security.jwtPublicKey(), "DIRECTWERK_JWT_PUBLIC_KEY");
         // trusted-proxies stay optional: Coolify/Traefik IPs are unstable across redeploys.
-        // Rate limiting falls back to RemoteAddr when the list is empty (see ClientIpExtractor).
+        // Rate limiting falls back to RemoteAddr when the list is empty (see RateLimitClientIpResolver).
     }
 }
