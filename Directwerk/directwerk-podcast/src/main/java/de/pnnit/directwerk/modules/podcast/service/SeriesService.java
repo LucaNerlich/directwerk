@@ -21,6 +21,7 @@ import de.pnnit.directwerk.security.SecurityUtils;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
@@ -46,6 +47,17 @@ public class SeriesService {
             );
         }
         return podcastSeriesRepository.findByTenantIdOrderByTitleAscIdAsc(tenantId);
+    }
+
+        /** Paged variant (#310) — see EpisodeService.listEpisodes(Long, int). */
+    @Transactional(readOnly = true)
+    public List<PodcastSeries> listSeries(Long tenantId, boolean publishedOnly, int limit) {
+        PageRequest page = PageRequest.of(0, limit);
+        if (publishedOnly) {
+            return podcastSeriesRepository.findByTenantIdAndStatusOrderByTitleAscIdAsc(
+                    tenantId, SeriesStatus.PUBLISHED, page);
+        }
+        return podcastSeriesRepository.findByTenantIdOrderByTitleAscIdAsc(tenantId, page);
     }
 
     @Transactional(readOnly = true)

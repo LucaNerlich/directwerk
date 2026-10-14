@@ -13,6 +13,7 @@ import de.pnnit.directwerk.modules.podcast.service.SeriesService;
 import de.pnnit.directwerk.multitenancy.TenantContext;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
@@ -24,6 +25,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -54,11 +56,14 @@ public class SeriesController {
      * @return the tenant's series, including RSS URLs when the RSS module is enabled
      */
     @GetMapping
-    ResponseEntity<Response<List<SeriesView>>> listSeries(HttpServletRequest request) {
+    ResponseEntity<Response<List<SeriesView>>> listSeries(
+            @RequestParam(defaultValue = "100") @Min(1) @Max(500) int limit,
+            HttpServletRequest request
+    ) {
         Long tenantId = TenantContext.requireTenantId();
         final String tenantSlug = rssTenantSlug(tenantId);
         final String rssOrigin = tenantSlug == null ? null : rssOrigin(request);
-        List<SeriesView> series = seriesService.listSeries(tenantId, false).stream()
+        List<SeriesView> series = seriesService.listSeries(tenantId, false, limit).stream()
                 .map(item -> toView(item, rssOrigin, tenantSlug))
                 .toList();
         return ResponseEntity.ok(Response.ok(series));

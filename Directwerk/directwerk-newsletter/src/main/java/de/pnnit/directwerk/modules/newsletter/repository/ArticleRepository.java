@@ -7,6 +7,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.EntityGraph;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -19,6 +20,9 @@ public interface ArticleRepository extends JpaRepository<Article, Long> {
             "tenant", "heroAsset", "heroAsset.tenant", "categories", "categories.parent", "newsletterLists"
     })
     List<Article> findByTenantIdOrderByCreatedAtDescIdDesc(Long tenantId);
+
+    /** Paged variant (#310) — bounds the response instead of materialising every row. */
+        List<Article> findByTenantIdOrderByCreatedAtDescIdDesc(Long tenantId, Pageable pageable);
 
     @EntityGraph(attributePaths = {
             "tenant", "heroAsset", "heroAsset.tenant", "categories", "categories.parent", "newsletterLists"
