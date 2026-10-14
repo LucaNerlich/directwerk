@@ -14,7 +14,7 @@ import {useListViewMode} from '@directwerk/ui/hooks/use-list-view-mode'
 
 import {listCategories} from '@/lib/api/catalogApi'
 import type {CategorySummary} from '@directwerk/api/types'
-import {getClientTenantHost} from '@directwerk/api/tenant'
+
 import {useAuthedQuery} from '@directwerk/api/client/useAuthedQuery'
 
 export default function CategoryListClient(): React.JSX.Element {
@@ -23,7 +23,7 @@ export default function CategoryListClient(): React.JSX.Element {
     const {viewMode, setViewMode} = useListViewMode()
     const {data: categories, error: errorMessage, isLoading, reload} = useAuthedQuery<
         CategorySummary[]
-    >(() => listCategories(getClientTenantHost()), {
+    >(() => listCategories(), {
         fallbackError: m.kategorienKonntenGeladen,
     })
 

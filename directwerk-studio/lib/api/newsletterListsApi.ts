@@ -42,10 +42,10 @@ function parseSubscription(value: unknown): NewsletterSubscriptionSummary | null
     }
 }
 
-export async function listNewsletterLists(tenantHost: string): Promise<NewsletterListSummary[]> {
+export async function listNewsletterLists(): Promise<NewsletterListSummary[]> {
     return studioGet(
         '/api/proxy/newsletter-lists',
-        tenantHost,
+        
         (value) => {
             const envelope = parseEnvelope(value, (data) => {
                 if (!Array.isArray(data)) return null
@@ -64,12 +64,11 @@ export async function listNewsletterLists(tenantHost: string): Promise<Newslette
 }
 
 export async function createNewsletterList(
-    tenantHost: string,
-    input: {slug: string; name: string; description?: string},
+        input: {slug: string; name: string; description?: string},
 ): Promise<NewsletterListSummary> {
     return studioMutate(
         '/api/proxy/newsletter-lists',
-        tenantHost,
+        
         jsonInit('POST', input),
         (value) => parseEnvelope(value, parseList),
         'Liste konnte nicht angelegt werden.',
@@ -77,13 +76,12 @@ export async function createNewsletterList(
 }
 
 export async function updateNewsletterList(
-    tenantHost: string,
-    listId: number,
+        listId: number,
     input: {slug?: string; name?: string; description?: string; status?: 'ACTIVE' | 'ARCHIVED'},
 ): Promise<NewsletterListSummary> {
     return studioMutate(
         `/api/proxy/newsletter-lists/${listId}`,
-        tenantHost,
+        
         jsonInit('PUT', input),
         (value) => parseEnvelope(value, parseList),
         'Liste konnte nicht gespeichert werden.',
@@ -91,12 +89,11 @@ export async function updateNewsletterList(
 }
 
 export async function archiveNewsletterList(
-    tenantHost: string,
-    listId: number,
+        listId: number,
 ): Promise<NewsletterListSummary> {
     return studioMutate(
         `/api/proxy/newsletter-lists/${listId}`,
-        tenantHost,
+        
         {method: 'DELETE'},
         (value) => parseEnvelope(value, parseList),
         'Liste konnte nicht archiviert werden.',
@@ -104,12 +101,11 @@ export async function archiveNewsletterList(
 }
 
 export async function listNewsletterSubscriptions(
-    tenantHost: string,
-    listId: number,
+        listId: number,
 ): Promise<NewsletterSubscriptionSummary[]> {
     return studioGet(
         `/api/proxy/newsletter-lists/${listId}/subscriptions`,
-        tenantHost,
+        
         (value) => {
             const envelope = parseEnvelope(value, (data) => {
                 if (!Array.isArray(data)) return null
@@ -128,12 +124,11 @@ export async function listNewsletterSubscriptions(
 }
 
 export async function removeNewsletterSubscription(
-    tenantHost: string,
-    listId: number,
+        listId: number,
     subscriptionId: number,
 ): Promise<void> {
     return studioDelete(
         `/api/proxy/newsletter-lists/${listId}/subscriptions/${subscriptionId}`,
-        tenantHost,
+        
     )
 }

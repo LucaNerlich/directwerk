@@ -3,7 +3,7 @@
 import {listSubscribers} from '@/lib/api/tenantSettingsApi'
 import {isTenantAdminRole} from '@/lib/api/studioHelpers'
 import {useOptionalMe} from '@/lib/auth/MeProvider'
-import {getClientTenantHost} from '@directwerk/api/tenant'
+
 import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
 import {useEffect, useState} from 'react'
 
@@ -20,7 +20,7 @@ export function useNotifyAudienceHint(enabled: boolean): string | null {
         }
 
         let active = true
-        listSubscribers(getClientTenantHost())
+        listSubscribers()
             .then((subscribers) => {
                 if (!active) {
                     return

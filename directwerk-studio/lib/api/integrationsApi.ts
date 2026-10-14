@@ -18,23 +18,21 @@ const invalidEspMessage =
     'Der Server hat ungültige Mailgun-Verbindungsdaten gesendet.'
 
 export async function getIntegrationsStatus(
-    tenantHost: string,
-): Promise<IntegrationsStatus> {
+    ): Promise<IntegrationsStatus> {
     return studioGet(
         '/api/proxy/tenant/integrations/status',
-        tenantHost,
+        
         parseIntegrationsStatusEnvelope,
         invalidStatusMessage,
     )
 }
 
 export async function connectMailgun(
-    tenantHost: string,
-    input: ConnectMailgunInput,
+        input: ConnectMailgunInput,
 ): Promise<EspConnection> {
     return studioMutate(
         '/api/proxy/tenant/integrations/esp/mailgun',
-        tenantHost,
+        
         jsonInit('PUT', input),
         (value) => {
             const envelope = parseEspConnectionEnvelope(value)
@@ -47,6 +45,6 @@ export async function connectMailgun(
     )
 }
 
-export async function disconnectEsp(tenantHost: string): Promise<void> {
-    return studioDelete('/api/proxy/tenant/integrations/esp', tenantHost)
+export async function disconnectEsp(): Promise<void> {
+    return studioDelete('/api/proxy/tenant/integrations/esp', )
 }

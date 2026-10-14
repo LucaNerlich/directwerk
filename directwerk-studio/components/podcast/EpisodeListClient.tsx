@@ -62,9 +62,9 @@ export default function EpisodeListClient() {
         try {
             const host = getClientTenantHost()
             const [loadedSeries, loadedFormats, loadedCategories] = await Promise.all([
-                listSeries(host),
-                listFormats(host),
-                listCategories(host).catch((error: unknown) => {
+                listSeries(),
+                listFormats(),
+                listCategories().catch((error: unknown) => {
                     if (authRedirect(error)) {
                         throw error
                     }
@@ -137,15 +137,15 @@ export default function EpisodeListClient() {
         handleBulkDelete,
         runBulkEdit,
     } = usePublicationListPage<EpisodeDetail>({
-        load: () => listEpisodes(getClientTenantHost()),
-        publish: (id) => publishEpisode(getClientTenantHost(), id),
-        unpublish: (id) => unpublishEpisode(getClientTenantHost(), id),
-        cancelSchedule: (id) => cancelScheduleEpisode(getClientTenantHost(), id),
-        unarchive: (id) => unarchiveEpisode(getClientTenantHost(), id),
-        remove: (id) => deleteEpisode(getClientTenantHost(), id),
-        publishMany: (ids) => settledBulkResult(bulkPublishEpisodes(getClientTenantHost(), {ids})),
-        unpublishMany: (ids) => settledBulkResult(bulkUnpublishEpisodes(getClientTenantHost(), ids)),
-        removeMany: (ids) => bulkDeleteEpisodes(getClientTenantHost(), ids),
+        load: () => listEpisodes(),
+        publish: (id) => publishEpisode( id),
+        unpublish: (id) => unpublishEpisode( id),
+        cancelSchedule: (id) => cancelScheduleEpisode( id),
+        unarchive: (id) => unarchiveEpisode( id),
+        remove: (id) => deleteEpisode( id),
+        publishMany: (ids) => settledBulkResult(bulkPublishEpisodes( {ids})),
+        unpublishMany: (ids) => settledBulkResult(bulkUnpublishEpisodes( ids)),
+        removeMany: (ids) => bulkDeleteEpisodes( ids),
         isBulkPublishEligible,
         isBulkUnpublishEligible,
         labels: {
@@ -235,12 +235,12 @@ export default function EpisodeListClient() {
             const host = getClientTenantHost()
             const apply = (id: number): Promise<EpisodeDetail> => {
                 if (operation.kind === 'formats') {
-                    return replaceEpisodeFormats(host, id, operation.formatIds)
+                    return replaceEpisodeFormats( id, operation.formatIds)
                 }
                 if (operation.kind === 'categories') {
-                    return replaceEpisodeCategories(host, id, operation.categoryIds)
+                    return replaceEpisodeCategories( id, operation.categoryIds)
                 }
-                return updateEpisode(host, id, {accessPolicy: operation.accessPolicy})
+                return updateEpisode( id, {accessPolicy: operation.accessPolicy})
             }
             await runBulkEdit(
                 eligible,

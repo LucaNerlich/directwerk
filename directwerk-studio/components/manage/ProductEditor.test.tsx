@@ -64,7 +64,6 @@ describe('ProductEditor price validation', () => {
 
         await waitFor(() =>
             expect(createProduct).toHaveBeenCalledWith(
-                'tenant.test',
                 expect.objectContaining({priceCents: 1490, title: 'Supporter'}),
             ),
         )

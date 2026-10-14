@@ -180,7 +180,6 @@ describe('FeedManagementClient', () => {
 
         await waitFor(() =>
             expect(setSubscriberFeedEnabledMock).toHaveBeenCalledWith(
-                'tenant.test',
                 42,
                 false,
             ),

@@ -139,7 +139,6 @@ describe('EpisodeEditor tagging', () => {
 
         await waitFor(() =>
             expect(updateEpisode).toHaveBeenCalledWith(
-                'tenant.test',
                 1,
                 expect.objectContaining({clearCoverAsset: true}),
             ),
@@ -188,8 +187,8 @@ describe('EpisodeEditor tagging', () => {
         await user.click(screen.getByLabelText('Interview'))
         await user.click(screen.getByRole('button', {name: 'Speichern'}))
 
-        await waitFor(() => expect(replaceEpisodeFormats).toHaveBeenCalledWith('tenant.test', 1, [1]))
-        expect(replaceEpisodeCategories).toHaveBeenCalledWith('tenant.test', 1, [])
+        await waitFor(() => expect(replaceEpisodeFormats).toHaveBeenCalledWith(1, [1]))
+        expect(replaceEpisodeCategories).toHaveBeenCalledWith(1, [])
     })
 
     it('persists formats when publishing', async () => {
@@ -205,8 +204,8 @@ describe('EpisodeEditor tagging', () => {
         const dialog = await screen.findByRole('dialog')
         await user.click(within(dialog).getByRole('button', {name: 'Veröffentlichen'}))
 
-        await waitFor(() => expect(replaceEpisodeFormats).toHaveBeenCalledWith('tenant.test', 1, [1]))
-        expect(publishEpisode).toHaveBeenCalledWith('tenant.test', 1, {notifySubscribers: false})
+        await waitFor(() => expect(replaceEpisodeFormats).toHaveBeenCalledWith(1, [1]))
+        expect(publishEpisode).toHaveBeenCalledWith(1, {notifySubscribers: false})
     })
 })
 

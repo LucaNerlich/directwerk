@@ -28,7 +28,7 @@ import {
 } from '@/lib/subscription/displayLabels'
 import type {BillingDashboard, BillingMembership} from '@directwerk/api/types'
 import {formatMoney} from '@directwerk/api/format'
-import {getClientTenantHost} from '@directwerk/api/tenant'
+
 import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
 
 const REVOCABLE_STATUSES = new Set(['ACTIVE', 'PAST_DUE', 'INCOMPLETE'])
@@ -103,7 +103,7 @@ export default function PaymentsDashboardClient(): React.JSX.Element {
 
     useEffect(() => {
         let active = true
-        getBillingDashboard(getClientTenantHost())
+        getBillingDashboard()
             .then((result) => {
                 if (active) {
                     setDashboard(result)
@@ -148,7 +148,7 @@ export default function PaymentsDashboardClient(): React.JSX.Element {
     }, [dashboard, query, sourceFilter, statusFilter])
 
     async function reloadDashboard(): Promise<BillingDashboard> {
-        const result = await getBillingDashboard(getClientTenantHost())
+        const result = await getBillingDashboard()
         setDashboard(result)
         return result
     }
@@ -190,7 +190,7 @@ export default function PaymentsDashboardClient(): React.JSX.Element {
         setErrorMessage(null)
         setStatusMessage(null)
         try {
-            const revoked = await revokeSubscription(getClientTenantHost(), row.id)
+            const revoked = await revokeSubscription( row.id)
             setPendingRevokeId(null)
             await reloadDashboard()
             setStatusMessage(`Zugang beendet: ${revoked.email}`)

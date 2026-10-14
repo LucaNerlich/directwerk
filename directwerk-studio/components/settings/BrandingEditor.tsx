@@ -89,7 +89,7 @@ export default function BrandingEditor(): React.JSX.Element {
     useEffect(() => {
         let active = true
 
-        getBranding(getClientTenantHost())
+        getBranding()
             .then((result) => {
                 if (!active) {
                     return
@@ -217,7 +217,7 @@ export default function BrandingEditor(): React.JSX.Element {
         }
 
         try {
-            const updated = await updateBranding(getClientTenantHost(), {
+            const updated = await updateBranding( {
                 siteTitle: siteTitle.length > 0 ? siteTitle : '',
                 primaryColor: primaryColor ?? null,
                 secondaryColor: secondaryColor ?? null,

@@ -99,7 +99,7 @@ export default function RssImportWizard(): React.JSX.Element {
         let active = true
         setPrerequisitesStatus('loading')
         setPrerequisitesError(null)
-        Promise.all([listSeries(getClientTenantHost()), listFormats(getClientTenantHost())])
+        Promise.all([listSeries(), listFormats()])
             .then(([loadedSeries, loadedFormats]) => {
                 if (!active) {
                     return
@@ -145,7 +145,7 @@ export default function RssImportWizard(): React.JSX.Element {
         setErrorMessage(null)
         setBusy(true)
         try {
-            const loaded = await previewRssFeed(getClientTenantHost(), feedUrl.trim())
+            const loaded = await previewRssFeed( feedUrl.trim())
             setPreview(loaded)
             setSeriesTitle(loaded.channel.title)
             setSeriesSlug(loaded.channel.suggestedSlug)
@@ -187,7 +187,6 @@ export default function RssImportWizard(): React.JSX.Element {
             let coverAssetId: number | undefined
             if (importSeriesCover && preview?.channel.imageUrl) {
                 const cover = await ingestRemoteAssetWithProgress(
-                    host,
                     {
                         sourceUrl: preview.channel.imageUrl,
                         assetType: 'IMAGE',
@@ -205,7 +204,7 @@ export default function RssImportWizard(): React.JSX.Element {
                 coverAssetId = cover.id
                 unreferencedCoverAssetId = cover.id
             }
-            const created = await createSeries(host, {
+            const created = await createSeries( {
                 slug: seriesSlug.trim() || suggestSlug(seriesTitle) || 'sendung',
                 title: seriesTitle.trim() || 'Neue Sendung',
                 description: seriesDescription,
@@ -222,7 +221,7 @@ export default function RssImportWizard(): React.JSX.Element {
         } catch (error) {
             if (unreferencedCoverAssetId !== null && host !== null) {
                 try {
-                    await deleteMedia(host, unreferencedCoverAssetId)
+                    await deleteMedia( unreferencedCoverAssetId)
                 } catch {
                     // Keep the original series error. The asset remains visible
                     // in the media library so it can be reused or removed.
@@ -242,7 +241,7 @@ export default function RssImportWizard(): React.JSX.Element {
         const nextDefaultFormatIds = new Set(defaultFormatIds)
         const name = canCreateFormats ? newFormatName.trim() : ''
         if (name.length > 0) {
-            const created = await createFormat(getClientTenantHost(), {
+            const created = await createFormat( {
                 slug: suggestSlug(name) || 'format',
                 name,
             })
@@ -284,7 +283,7 @@ export default function RssImportWizard(): React.JSX.Element {
         setBusy(true)
         try {
             const nextDefaultFormatIds = await ensureDefaultFormatIds()
-            const queued = await bulkImportRss(getClientTenantHost(), {
+            const queued = await bulkImportRss( {
                 feedUrl: preview.feedUrl,
                 seriesId: resolvedSeriesId,
                 formatIds: Array.from(nextDefaultFormatIds),
@@ -331,7 +330,6 @@ export default function RssImportWizard(): React.JSX.Element {
         try {
             if (importAudio && item.audioUrl != null) {
                 const audio = await ingestRemoteAssetWithProgress(
-                    host,
                     {
                         sourceUrl: item.audioUrl,
                         assetType: 'AUDIO',
@@ -360,7 +358,6 @@ export default function RssImportWizard(): React.JSX.Element {
             }
             if (importImage && item.imageUrl != null) {
                 const cover = await ingestRemoteAssetWithProgress(
-                    host,
                     {
                         sourceUrl: item.imageUrl,
                         assetType: 'IMAGE',
@@ -380,7 +377,7 @@ export default function RssImportWizard(): React.JSX.Element {
 
             setStreamProgress({label: 'Folge wird angelegt…', progress: 100})
             const parsedNumber = parseOptionalInt(episodeNumber, 1)
-            const result = await importRssEpisode(host, {
+            const result = await importRssEpisode( {
                 seriesId: resolvedSeriesId,
                 feedUrl: preview.feedUrl,
                 guid: item.guid,
@@ -412,7 +409,7 @@ export default function RssImportWizard(): React.JSX.Element {
             ].filter((id): id is number => id !== undefined)
             if (orphaned.length > 0) {
                 await Promise.allSettled(
-                    orphaned.map((id) => deleteMedia(host, id)),
+                    orphaned.map((id) => deleteMedia( id)),
                 )
             }
             if (authRedirect(error)) {

@@ -20,7 +20,7 @@ import {
     removeNewsletterSubscription,
     updateNewsletterList,
 } from '@/lib/api/newsletterListsApi'
-import {getClientTenantHost} from '@directwerk/api/tenant'
+
 import {useAuthedQuery} from '@directwerk/api/client/useAuthedQuery'
 import {useSiteConfig} from '@/lib/site/SiteConfigProvider'
 
@@ -32,11 +32,11 @@ export default function NewsletterListDetailClient(): React.JSX.Element {
     const listId = Number.isSafeInteger(parsedListId) ? parsedListId : null
     const config = useSiteConfig()
     const listsQuery = useAuthedQuery(
-        () => listNewsletterLists(getClientTenantHost()),
+        () => listNewsletterLists(),
         {fallbackError: 'Liste konnte nicht geladen werden.'},
     )
     const subsQuery = useAuthedQuery(
-        () => listNewsletterSubscriptions(getClientTenantHost(), listId ?? 0),
+        () => listNewsletterSubscriptions( listId ?? 0),
         {
             fallbackError: 'Abonnenten konnten nicht geladen werden.',
             queryKey: `newsletter-subscriptions:${listId}`,
@@ -61,7 +61,7 @@ export default function NewsletterListDetailClient(): React.JSX.Element {
         setBusy(true)
         setError(null)
         try {
-            await updateNewsletterList(getClientTenantHost(), list.id, {name: displayName.trim()})
+            await updateNewsletterList( list.id, {name: displayName.trim()})
             listsQuery.reload()
         } catch (err: unknown) {
             setError(err instanceof Error ? err.message : 'Speichern fehlgeschlagen.')
@@ -114,7 +114,7 @@ export default function NewsletterListDetailClient(): React.JSX.Element {
                                     void (async () => {
                                         setBusy(true)
                                         try {
-                                            await archiveNewsletterList(getClientTenantHost(), list.id)
+                                            await archiveNewsletterList( list.id)
                                             listsQuery.reload()
                                         } catch (err: unknown) {
                                             setError(err instanceof Error ? err.message : 'Archivieren fehlgeschlagen.')
@@ -175,7 +175,6 @@ export default function NewsletterListDetailClient(): React.JSX.Element {
                                             setBusy(true)
                                             try {
                                                 await removeNewsletterSubscription(
-                                                    getClientTenantHost(),
                                                     listId,
                                                     row.id,
                                                 )

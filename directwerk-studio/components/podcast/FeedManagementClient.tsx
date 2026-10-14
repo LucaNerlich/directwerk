@@ -63,8 +63,8 @@ export default function FeedManagementClient(): React.JSX.Element {
             try {
                 const host = getClientTenantHost()
                 const [loadedSeries, loadedFeeds] = await Promise.all([
-                    listSeries(host),
-                    showSubscriberFeeds ? listSubscriberFeeds(host) : Promise.resolve([]),
+                    listSeries(),
+                    showSubscriberFeeds ? listSubscriberFeeds() : Promise.resolve([]),
                 ])
                 if (!active) {
                     return
@@ -110,7 +110,6 @@ export default function FeedManagementClient(): React.JSX.Element {
         setErrorMessage(null)
         try {
             const updated = await setSubscriberFeedEnabled(
-                getClientTenantHost(),
                 feed.id,
                 !feed.enabled,
             )

@@ -33,7 +33,7 @@ describe('publication delete requests', () => {
         const fetchMock = vi.fn().mockResolvedValue(emptyResponse(204))
         vi.stubGlobal('fetch', fetchMock)
 
-        await expect(deleteEpisode('tenant.test', 7)).resolves.toBeUndefined()
+        await expect(deleteEpisode(7)).resolves.toBeUndefined()
         expect(fetchMock).toHaveBeenCalledWith(
             '/api/proxy/episodes/7',
             expect.objectContaining({method: 'DELETE'}),
@@ -44,7 +44,7 @@ describe('publication delete requests', () => {
         const fetchMock = vi.fn().mockResolvedValue(emptyResponse(204))
         vi.stubGlobal('fetch', fetchMock)
 
-        await expect(deleteArticle('tenant.test', 9)).resolves.toBeUndefined()
+        await expect(deleteArticle(9)).resolves.toBeUndefined()
         expect(fetchMock).toHaveBeenCalledWith(
             '/api/proxy/articles/9',
             expect.objectContaining({method: 'DELETE'}),
@@ -54,13 +54,13 @@ describe('publication delete requests', () => {
     it('resolves deleteEpisode on 205 Reset Content', async () => {
         vi.stubGlobal('fetch', vi.fn().mockResolvedValue(emptyResponse(205)))
 
-        await expect(deleteEpisode('tenant.test', 7)).resolves.toBeUndefined()
+        await expect(deleteEpisode(7)).resolves.toBeUndefined()
     })
 
     it('does not accept an empty error response as a successful deletion', async () => {
         vi.stubGlobal('fetch', vi.fn().mockResolvedValue(emptyResponse(500)))
 
-        await expect(deleteEpisode('tenant.test', 7)).rejects.toThrow(
+        await expect(deleteEpisode(7)).rejects.toThrow(
             'Der Server hat eine ungültige Antwort gesendet.',
         )
     })
@@ -75,7 +75,7 @@ describe('publication delete requests', () => {
             ),
         )
 
-        await expect(deleteEpisode('tenant.test', 7)).rejects.toThrow(
+        await expect(deleteEpisode(7)).rejects.toThrow(
             'Episode not found: 7',
         )
     })
@@ -90,7 +90,7 @@ describe('publication delete requests', () => {
             ),
         )
 
-        await expect(deleteArticle('tenant.test', 9)).rejects.toThrow(
+        await expect(deleteArticle(9)).rejects.toThrow(
             'Article not found: 9',
         )
     })

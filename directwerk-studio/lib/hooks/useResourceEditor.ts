@@ -15,7 +15,6 @@ import {useRouter} from 'next/navigation'
 import {useLocalizedPath} from '@/components/i18n/useLocalizedPath'
 
 import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
-import {getClientTenantHost} from '@directwerk/api/tenant'
 
 /**
  * Fallback messages for the four failure paths a resource editor can hit.
@@ -41,14 +40,14 @@ export interface ResourceEditorConfig<
     /** Entity to edit; omit (or leave `undefined`) to create a new one. */
     id?: number
     /** Loads the collection an entity is found in (used with `id`). */
-    load?: (host: string) => Promise<Entity[]>
+    load?: () => Promise<Entity[]>
     /** Loads a single entity directly (preferred over `load` when available). */
-    loadOne?: (host: string, id: number) => Promise<Entity>
+    loadOne?: (id: number) => Promise<Entity>
     /** When true (and no `id` is given), still run `load` — e.g. for parent options. */
     alwaysLoad?: boolean
-    create?: (host: string, input: CreateInput) => Promise<Entity>
-    update: (host: string, id: number, input: UpdateInput) => Promise<Entity>
-    deactivate?: (host: string, id: number) => Promise<Entity>
+    create?: (input: CreateInput) => Promise<Entity>
+    update: (id: number, input: UpdateInput) => Promise<Entity>
+    deactivate?: (id: number) => Promise<Entity>
     initialValues: Values
     /** Maps a loaded/updated entity onto the form values. */
     toValues: (entity: Entity) => Values
@@ -70,7 +69,6 @@ export interface ResourceEditorConfig<
      * the form (e.g. a follow-up publish failed); the given entity is applied.
      */
     afterCreate?: (context: {
-        host: string
         created: Entity
         values: Values
     }) => Promise<ResourceEditorAfterCreate<Entity>>
@@ -206,13 +204,12 @@ export function useResourceEditor<
         setErrorMessage(null)
 
         const run = async (): Promise<void> => {
-            const host = getClientTenantHost()
             try {
                 let found: Entity | null = null
                 if (cfg.loadOne !== undefined && requestedId !== undefined) {
-                    found = await cfg.loadOne(host, requestedId)
+                    found = await cfg.loadOne(requestedId)
                 } else if (cfg.load !== undefined) {
-                    const list = await cfg.load(host)
+                    const list = await cfg.load()
                     if (!active) {
                         return
                     }
@@ -304,21 +301,18 @@ export function useResourceEditor<
                 setIsSaving(false)
                 return
             }
-
-            const host = getClientTenantHost()
             try {
                 const targetId = effectiveIdRef.current
                 if (targetId === undefined) {
                     if (cfg.create === undefined) {
                         return
                     }
-                    const created = await cfg.create(host, cfg.buildCreate(currentValues))
+                    const created = await cfg.create(cfg.buildCreate(currentValues))
                     setCreatedId(created.id)
                     setEntity(created)
 
                     if (cfg.afterCreate !== undefined) {
                         const outcome = await cfg.afterCreate({
-                            host,
                             created,
                             values: currentValues,
                         })
@@ -343,7 +337,6 @@ export function useResourceEditor<
                 }
 
                 const updated = await cfg.update(
-                    host,
                     targetId,
                     cfg.buildUpdate(currentValues, entityRef.current),
                 )
@@ -378,7 +371,7 @@ export function useResourceEditor<
         setErrorMessage(null)
         setStatusMessage(null)
         try {
-            const updated = await cfg.deactivate(getClientTenantHost(), targetId)
+            const updated = await cfg.deactivate(targetId)
             setEntity(updated)
             setValues(cfg.toValues(updated))
             if (cfg.deactivateSuccessMessage !== undefined) {

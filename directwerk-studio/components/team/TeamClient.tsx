@@ -32,7 +32,7 @@ import {
     type TenantUser,
 } from '@directwerk/api/types'
 import {useMe} from '@/lib/auth/MeProvider'
-import {getClientTenantHost} from '@directwerk/api/tenant'
+
 import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
 import {isValidEmail} from '@directwerk/api/validation/input'
 
@@ -108,7 +108,7 @@ export default function TeamClient(): React.JSX.Element {
     const {viewMode, setViewMode} = useListViewMode()
 
     const reload = useCallback(async (): Promise<void> => {
-        const result = await listTenantUsers(getClientTenantHost())
+        const result = await listTenantUsers()
         setUsers(result)
     }, [])
 
@@ -158,7 +158,7 @@ export default function TeamClient(): React.JSX.Element {
         }
 
         try {
-            const response = await inviteTenantUser(getClientTenantHost(), {
+            const response = await inviteTenantUser( {
                 email,
                 ...(name.length > 0 ? {name} : {}),
                 role,
@@ -191,9 +191,9 @@ export default function TeamClient(): React.JSX.Element {
         setActionError(null)
         try {
             if (user.status === 'DISABLED') {
-                await reactivateTenantUser(getClientTenantHost(), user.userId)
+                await reactivateTenantUser( user.userId)
             } else {
-                await deactivateTenantUser(getClientTenantHost(), user.userId)
+                await deactivateTenantUser( user.userId)
             }
             await reload()
         } catch (error: unknown) {

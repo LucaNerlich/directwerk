@@ -45,10 +45,10 @@ export async function login(
     return tokens
 }
 
-export async function fetchMe(tenantHost: string): Promise<Me> {
+export async function fetchMe(): Promise<Me> {
     return studioGet(
         '/api/proxy/me',
-        tenantHost,
+        
         parseMeEnvelope,
         'Der Server hat eine ungültige Kontodaten-Antwort gesendet.',
     )

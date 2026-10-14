@@ -99,7 +99,6 @@ describe('ArticleEditor tagging', () => {
 
         await waitFor(() =>
             expect(updateArticle).toHaveBeenCalledWith(
-                'tenant.test',
                 1,
                 expect.objectContaining({clearHeroAsset: true}),
             ),
@@ -115,7 +114,7 @@ describe('ArticleEditor tagging', () => {
         await user.click(screen.getByRole('button', {name: 'Speichern'}))
 
         await waitFor(() =>
-            expect(replaceArticleCategories).toHaveBeenCalledWith('tenant.test', 1, [1]),
+            expect(replaceArticleCategories).toHaveBeenCalledWith(1, [1]),
         )
     })
 

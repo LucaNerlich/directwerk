@@ -62,8 +62,8 @@ export default function OverviewOpsWidgets(): React.JSX.Element {
         const host = getClientTenantHost()
 
         void Promise.allSettled([
-            getStorageSummary(host),
-            getIntegrationsStatus(host),
+            getStorageSummary(),
+            getIntegrationsStatus(),
         ]).then(([storageResult, integrationsResult]) => {
             if (!active) {
                 return

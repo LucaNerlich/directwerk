@@ -124,7 +124,6 @@ describe('ArticleRssImportWizard', () => {
 
         await waitFor(() => {
             expect(importRssArticle).toHaveBeenCalledWith(
-                'tenant.test',
                 expect.objectContaining({
                     guid: 'guid-1',
                     imageUrl: 'https://cdn.example.com/a1.jpg',
@@ -149,7 +148,7 @@ describe('ArticleRssImportWizard', () => {
         )
 
         await waitFor(() => {
-            expect(bulkImportArticleRss).toHaveBeenCalledWith('tenant.test', {
+            expect(bulkImportArticleRss).toHaveBeenCalledWith({
                 feedUrl: preview.feedUrl,
                 categoryIds: [],
                 accessPolicy: 'FREE',

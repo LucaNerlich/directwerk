@@ -20,7 +20,7 @@ import {useListViewMode} from '@directwerk/ui/hooks/use-list-view-mode'
 import PublicationStatusBadge from '@/components/publication/PublicationStatusBadge'
 import {listDigitalPublications} from '@/lib/api/digitalPublicationsApi'
 import type {DigitalPublication} from '@directwerk/api/types'
-import {getClientTenantHost} from '@directwerk/api/tenant'
+
 import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
 
 function formatBytes(
@@ -53,7 +53,7 @@ export default function BonusLibraryClient(): React.JSX.Element {
         let active = true
         setIsLoading(true)
         setErrorMessage(null)
-        listDigitalPublications(getClientTenantHost())
+        listDigitalPublications()
             .then((result) => {
                 if (!active) {
                     return

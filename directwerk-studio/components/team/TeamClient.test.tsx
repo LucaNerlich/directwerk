@@ -85,7 +85,7 @@ describe('TeamClient RBAC', () => {
         fireEvent.click(screen.getByRole('button', {name: 'Rechte speichern'}))
 
         await waitFor(() =>
-            expect(replaceUserRestrictions).toHaveBeenCalledWith('tenant.test', 5, [
+            expect(replaceUserRestrictions).toHaveBeenCalledWith(5, [
                 {entityType: 'EPISODE', operation: 'DELETE', scope: 'DENY'},
             ]),
         )

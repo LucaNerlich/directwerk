@@ -13,22 +13,20 @@ import {
 
 export async function studioGet<T>(
     path: string,
-    tenantHost: string,
     parser: (value: unknown) => {data: T} | null,
     errorMessage: string,
 ): Promise<T> {
-    return proxyRequest(path, tenantHost, undefined, parser, errorMessage)
+    return proxyRequest(path, '', undefined, parser, errorMessage)
 }
 
 
 export async function studioMutate<T>(
     path: string,
-    tenantHost: string,
     init: RequestInit,
     parser: (value: unknown) => {data: T} | null,
     errorMessage: string,
 ): Promise<T> {
-    return proxyRequest(path, tenantHost, init, parser, errorMessage)
+    return proxyRequest(path, '', init, parser, errorMessage)
 }
 
 /**
@@ -39,12 +37,9 @@ export async function studioMutate<T>(
  * delete as {@link INVALID_RESPONSE}. Only that exact failure is swallowed;
  * every other error (including the German catalog message for 4xx) propagates.
  */
-export async function studioDelete(
-    path: string,
-    tenantHost: string,
-): Promise<void> {
+export async function studioDelete(path: string): Promise<void> {
     try {
-        await authenticatedRequest(path, tenantHost, {method: 'DELETE'})
+        await authenticatedRequest(path, '', {method: 'DELETE'})
     } catch (error) {
         if (
             error instanceof Error &&
@@ -59,16 +54,16 @@ export async function studioDelete(
 }
 
 export interface PublicationWorkflowApi<T, TCreate, TUpdate> {
-    list(tenantHost: string): Promise<T[]>
-    get(tenantHost: string, id: number): Promise<T>
-    create(tenantHost: string, input: TCreate): Promise<T>
-    update(tenantHost: string, id: number, input: TUpdate): Promise<T>
-    publish(tenantHost: string, id: number, options?: PublishOptions): Promise<T>
-    schedule(tenantHost: string, id: number, options: ScheduleOptions): Promise<T>
-    cancelSchedule(tenantHost: string, id: number): Promise<T>
-    unpublish(tenantHost: string, id: number): Promise<T>
-    archive(tenantHost: string, id: number): Promise<T>
-    unarchive(tenantHost: string, id: number): Promise<T>
+    list(): Promise<T[]>
+    get(id: number): Promise<T>
+    create(input: TCreate): Promise<T>
+    update(id: number, input: TUpdate): Promise<T>
+    publish(id: number, options?: PublishOptions): Promise<T>
+    schedule(id: number, options?: ScheduleOptions): Promise<T>
+    cancelSchedule(id: number): Promise<T>
+    unpublish(id: number): Promise<T>
+    archive(id: number): Promise<T>
+    unarchive(id: number): Promise<T>
 }
 
 export function createPublicationWorkflowApi<T, TCreate extends object, TUpdate extends object>(config: {
@@ -83,75 +78,71 @@ export function createPublicationWorkflowApi<T, TCreate extends object, TUpdate 
     const {basePath, parseEnvelope, parseListEnvelope, messages} = config
 
     return {
-        list: (tenantHost) =>
-            studioGet(basePath, tenantHost, parseListEnvelope, messages.list),
-        get: (tenantHost, id) =>
-            studioGet(`${basePath}/${id}`, tenantHost, parseEnvelope, messages.detail),
-        create: (tenantHost, input) =>
+        list: (): Promise<T[]> =>
+            studioGet(basePath,  parseListEnvelope, messages.list),
+        get: (id: number): Promise<T> =>
+            studioGet(`${basePath}/${id}`,  parseEnvelope, messages.detail),
+        create: (input: TCreate): Promise<T> =>
             studioMutate(
                 basePath,
-                tenantHost,
                 jsonInit('POST', input),
                 parseEnvelope,
                 messages.detail,
             ),
-        update: (tenantHost, id, input) =>
+        update: (id: number, input: TUpdate): Promise<T> =>
             studioMutate(
                 `${basePath}/${id}`,
-                tenantHost,
                 jsonInit('PUT', input),
                 parseEnvelope,
                 messages.detail,
             ),
-        publish: (tenantHost, id, options) =>
+        publish: (id: number, options?: PublishOptions): Promise<T> =>
             studioMutate(
                 `${basePath}/${id}/publish`,
-                tenantHost,
                 jsonInit('POST', {
                     notifySubscribers: options?.notifySubscribers === true,
                 }),
                 parseEnvelope,
                 messages.detail,
             ),
-        schedule: (tenantHost, id, options) =>
+        schedule: (id: number, options?: ScheduleOptions): Promise<T> =>
             studioMutate(
                 `${basePath}/${id}/schedule`,
-                tenantHost,
                 jsonInit('POST', {
-                    scheduledAt: options.scheduledAt,
-                    notifySubscribers: options.notifySubscribers === true,
+                    scheduledAt: options?.scheduledAt,
+                    notifySubscribers: options?.notifySubscribers === true,
                 }),
                 parseEnvelope,
                 messages.detail,
             ),
-        cancelSchedule: (tenantHost, id) =>
+        cancelSchedule: (id: number): Promise<T> =>
             studioMutate(
                 `${basePath}/${id}/cancel-schedule`,
-                tenantHost,
+                
                 {method: 'POST'},
                 parseEnvelope,
                 messages.detail,
             ),
-        unpublish: (tenantHost, id) =>
+        unpublish: (id: number): Promise<T> =>
             studioMutate(
                 `${basePath}/${id}/unpublish`,
-                tenantHost,
+                
                 {method: 'POST'},
                 parseEnvelope,
                 messages.detail,
             ),
-        archive: (tenantHost, id) =>
+        archive: (id: number): Promise<T> =>
             studioMutate(
                 `${basePath}/${id}/archive`,
-                tenantHost,
+                
                 {method: 'POST'},
                 parseEnvelope,
                 messages.detail,
             ),
-        unarchive: (tenantHost, id) =>
+        unarchive: (id: number): Promise<T> =>
             studioMutate(
                 `${basePath}/${id}/unarchive`,
-                tenantHost,
+                
                 {method: 'POST'},
                 parseEnvelope,
                 messages.detail,

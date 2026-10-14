@@ -92,9 +92,9 @@ export default function OverviewQueue({desks}: OverviewQueueProps): React.JSX.El
             try {
                 const host = getClientTenantHost()
                 const [loadedArticles, loadedEpisodes, loadedSeries] = await Promise.all([
-                    showWrite ? listArticles(host) : Promise.resolve([]),
-                    showPodcast ? listEpisodes(host) : Promise.resolve([]),
-                    showPodcast ? listSeries(host) : Promise.resolve([]),
+                    showWrite ? listArticles() : Promise.resolve([]),
+                    showPodcast ? listEpisodes() : Promise.resolve([]),
+                    showPodcast ? listSeries() : Promise.resolve([]),
                 ])
                 if (!active) {
                     return

@@ -169,7 +169,7 @@ describe('BrandingEditor color picker', () => {
         )
 
         await waitFor(() =>
-            expect(updateBranding).toHaveBeenCalledWith('tenant.test', {
+            expect(updateBranding).toHaveBeenCalledWith({
                 siteTitle: 'Meine Sendung',
                 primaryColor: '#445566',
                 secondaryColor: null,
@@ -244,7 +244,7 @@ describe('BrandingEditor color picker', () => {
         fireEvent.submit(logoField.closest('form') as HTMLFormElement)
 
         await waitFor(() =>
-            expect(updateBranding).toHaveBeenCalledWith('tenant.test', {
+            expect(updateBranding).toHaveBeenCalledWith({
                 siteTitle: 'Meine Sendung',
                 primaryColor: '#112233',
                 secondaryColor: null,
@@ -266,7 +266,7 @@ describe('BrandingEditor color picker', () => {
         fireEvent.submit(logoField.closest('form') as HTMLFormElement)
 
         await waitFor(() =>
-            expect(updateBranding).toHaveBeenCalledWith('tenant.test', {
+            expect(updateBranding).toHaveBeenCalledWith({
                 siteTitle: 'Meine Sendung',
                 primaryColor: '#112233',
                 secondaryColor: null,
@@ -296,7 +296,7 @@ describe('BrandingEditor color picker', () => {
         fireEvent.submit(faviconField.closest('form') as HTMLFormElement)
 
         await waitFor(() =>
-            expect(updateBranding).toHaveBeenCalledWith('tenant.test', {
+            expect(updateBranding).toHaveBeenCalledWith({
                 siteTitle: 'Meine Sendung',
                 primaryColor: '#112233',
                 secondaryColor: null,

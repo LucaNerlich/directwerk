@@ -76,4 +76,52 @@ describe('createBrowserTransport tenant headers', () => {
 
         vi.unstubAllGlobals()
     })
+
+    /**
+     * #428 removed the (always-redundant) tenantHost argument from ~100 studio API wrappers and
+     * their call sites, so every one of those requests now relies on this fallback for tenant
+     * scoping. Pin it: an omitted/empty host must still send X-Tenant-Host, taken from
+     * resolveTenantHost (which reads the workspace cookie). Without this, a regression in the
+     * fallback would silently send a tenant-scoped request with no tenant binding at all.
+     */
+    it('falls back to resolveTenantHost when no explicit tenantHost is passed', async () => {
+        let seen: Record<string, string> = {}
+        const fetchMock = vi.fn(async (_path: string, init?: RequestInit) => {
+            seen = init?.headers as Record<string, string>
+            return new Response(JSON.stringify({data: {id: 1}}), {
+                status: 200,
+                headers: {'Content-Type': 'application/json'},
+            })
+        })
+
+        vi.stubGlobal('fetch', fetchMock)
+
+        const transport = createBrowserTransport({
+            policy: {
+                authFailureMode: 'preserve-transient',
+                finalUnauthorized: 'localized-error',
+                invalidResponseMessage: 'invalid',
+                catalog: {fallback: () => 'failed'},
+            },
+            session: {
+                getValidAccessToken: async () => 'token',
+                refreshAccessToken: async () => 'token',
+            },
+            clearTokens: () => {},
+            resolveTenantHost: () => 'studio.example.com',
+            includeProxyRequest: true,
+        })
+
+        await transport.proxyRequest!(
+            '/api/proxy/me',
+            '',
+            {method: 'GET'},
+            (value) => value as {data: {id: number}},
+            'invalid me',
+        )
+
+        expect(seen['X-Tenant-Host']).toBe('studio.example.com')
+
+        vi.unstubAllGlobals()
+    })
 })

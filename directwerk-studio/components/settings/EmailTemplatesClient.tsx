@@ -19,7 +19,7 @@ import {useActionState, useEffect, useState} from 'react'
 import {AUTH_REQUIRED} from '@directwerk/api/constants'
 import {getContentEmailTemplate, upsertContentEmailTemplate} from '@/lib/api/tenantSettingsApi'
 import type {ContentEmailTemplate, ContentEmailTemplateType} from '@directwerk/api/types'
-import {getClientTenantHost} from '@directwerk/api/tenant'
+
 import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
 
 interface TemplateFormState {
@@ -44,7 +44,7 @@ export default function EmailTemplatesClient(): React.JSX.Element {
         setIsLoading(true)
         setLoadError(null)
 
-        getContentEmailTemplate(getClientTenantHost(), contentType)
+        getContentEmailTemplate( contentType)
             .then((result) => {
                 if (!active) {
                     return
@@ -85,7 +85,6 @@ export default function EmailTemplatesClient(): React.JSX.Element {
 
         try {
             const updated = await upsertContentEmailTemplate(
-                getClientTenantHost(),
                 contentType,
                 {subjectTemplate, bodyHtml},
             )

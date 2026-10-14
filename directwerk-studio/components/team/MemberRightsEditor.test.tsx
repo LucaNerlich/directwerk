@@ -61,7 +61,7 @@ describe('MemberRightsEditor', () => {
         fireEvent.click(screen.getByRole('button', {name: 'Rechte speichern'}))
 
         await waitFor(() =>
-            expect(replaceUserRestrictions).toHaveBeenCalledWith('tenant.test', 5, [
+            expect(replaceUserRestrictions).toHaveBeenCalledWith(5, [
                 {entityType: 'EPISODE', operation: 'DELETE', scope: 'DENY'},
                 {entityType: 'ARTICLE', operation: 'PUBLISH', scope: 'OTHERS_ONLY'},
             ]),

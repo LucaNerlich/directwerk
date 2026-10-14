@@ -8,7 +8,7 @@ import {AUTH_REQUIRED} from '@directwerk/api/constants'
 import {isReadyAsset} from '@directwerk/api/media/readiness'
 import {listMedia} from '@/lib/api/mediaApi'
 import type {AssetType, MediaAsset} from '@directwerk/api/types'
-import {getClientTenantHost} from '@directwerk/api/tenant'
+
 import {assetTypeLabel} from '@/lib/subscription/displayLabels'
 
 interface MediaLibraryPickerProps {
@@ -41,7 +41,7 @@ export default function MediaLibraryPicker({
 
         async function load(): Promise<void> {
             try {
-                const loaded = await listMedia(getClientTenantHost())
+                const loaded = await listMedia()
                 if (active) {
                     setAssets(
                         loaded.filter(

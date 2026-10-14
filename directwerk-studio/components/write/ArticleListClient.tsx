@@ -65,15 +65,15 @@ export default function ArticleListClient() {
         handleBulkDelete,
         runBulkEdit,
     } = usePublicationListPage<ArticleDetail>({
-        load: () => listArticles(getClientTenantHost()),
-        publish: (id) => publishArticle(getClientTenantHost(), id),
-        unpublish: (id) => unpublishArticle(getClientTenantHost(), id),
-        cancelSchedule: (id) => cancelScheduleArticle(getClientTenantHost(), id),
-        unarchive: (id) => unarchiveArticle(getClientTenantHost(), id),
-        remove: (id) => deleteArticle(getClientTenantHost(), id),
-        publishMany: (ids) => settledBulkResult(bulkPublishArticles(getClientTenantHost(), {ids})),
-        unpublishMany: (ids) => settledBulkResult(bulkUnpublishArticles(getClientTenantHost(), ids)),
-        removeMany: (ids) => bulkDeleteArticles(getClientTenantHost(), ids),
+        load: () => listArticles(),
+        publish: (id) => publishArticle( id),
+        unpublish: (id) => unpublishArticle( id),
+        cancelSchedule: (id) => cancelScheduleArticle( id),
+        unarchive: (id) => unarchiveArticle( id),
+        remove: (id) => deleteArticle( id),
+        publishMany: (ids) => settledBulkResult(bulkPublishArticles( {ids})),
+        unpublishMany: (ids) => settledBulkResult(bulkUnpublishArticles( ids)),
+        removeMany: (ids) => bulkDeleteArticles( ids),
         labels: {
             loadError: w.articlesLoadFailed,
             publishSuccess: (title) => t(w.articlePublishedToast, {title}),
@@ -135,7 +135,7 @@ export default function ArticleListClient() {
 
     const loadCategories = useCallback(async (): Promise<void> => {
         try {
-            setCategories(await listCategories(getClientTenantHost()))
+            setCategories(await listCategories())
         } catch (error: unknown) {
             if (authRedirect(error)) {
                 return
@@ -171,9 +171,9 @@ export default function ArticleListClient() {
             const apply = (id: number): Promise<ArticleDetail> => {
                 switch (operation.kind) {
                     case 'categories':
-                        return replaceArticleCategories(host, id, operation.categoryIds)
+                        return replaceArticleCategories( id, operation.categoryIds)
                     case 'accessPolicy':
-                        return updateArticle(host, id, {
+                        return updateArticle( id, {
                             accessPolicy: operation.accessPolicy,
                         })
                     case 'formats':

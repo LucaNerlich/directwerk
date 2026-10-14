@@ -16,7 +16,7 @@ import {
     type TenantUser,
 } from '@directwerk/api/types'
 import {listUserRestrictions, replaceUserRestrictions} from '@/lib/api/tenantSettingsApi'
-import {getClientTenantHost} from '@directwerk/api/tenant'
+
 import {AUTH_REQUIRED} from '@directwerk/api/constants'
 import {
     rbacAccessLabel,
@@ -71,7 +71,7 @@ export default function MemberRightsEditor({
         let active = true
         setIsLoading(true)
         setErrorMessage(null)
-        listUserRestrictions(getClientTenantHost(), user.userId)
+        listUserRestrictions( user.userId)
             .then((restrictions) => {
                 if (active) {
                     setMatrix(matrixFromRestrictions(restrictions))
@@ -125,7 +125,6 @@ export default function MemberRightsEditor({
         setStatusMessage(null)
         try {
             const saved = await replaceUserRestrictions(
-                getClientTenantHost(),
                 user.userId,
                 restrictionsFromAccess(matrix),
             )

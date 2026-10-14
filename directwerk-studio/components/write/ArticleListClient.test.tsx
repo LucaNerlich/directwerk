@@ -151,7 +151,7 @@ describe('ArticleListClient', () => {
             expect(screen.getByText('Archived Post')).toBeInTheDocument()
         })
 
-        expect(listArticles).toHaveBeenCalledWith('tenant.test')
+        expect(listArticles).toHaveBeenCalledWith()
         expect(screen.getByText('Interview')).toBeInTheDocument()
         expect(screen.getByText('News')).toBeInTheDocument()
         expect(screen.getByRole('button', {name: 'Zurückziehen'})).toBeInTheDocument()
@@ -185,7 +185,7 @@ describe('ArticleListClient', () => {
         await user.click(unpublishButton)
 
         await waitFor(() => {
-            expect(unpublishArticle).toHaveBeenCalledWith('tenant.test', 2)
+            expect(unpublishArticle).toHaveBeenCalledWith(2)
         })
 
         await waitFor(() => {
@@ -213,7 +213,7 @@ describe('ArticleListClient', () => {
         await user.click(screen.getByRole('button', {name: 'Veröffentlichen'}))
 
         await waitFor(() => {
-            expect(publishArticle).toHaveBeenCalledWith('tenant.test', 1)
+            expect(publishArticle).toHaveBeenCalledWith(1)
         })
 
         await waitFor(() => {
@@ -242,7 +242,7 @@ describe('ArticleListClient', () => {
         await user.click(cancelScheduleButton)
 
         await waitFor(() => {
-            expect(cancelScheduleArticle).toHaveBeenCalledWith('tenant.test', 3)
+            expect(cancelScheduleArticle).toHaveBeenCalledWith(3)
         })
 
         await waitFor(() => {
@@ -270,7 +270,7 @@ describe('ArticleListClient', () => {
         await user.click(unarchiveButton)
 
         await waitFor(() => {
-            expect(unarchiveArticle).toHaveBeenCalledWith('tenant.test', 4)
+            expect(unarchiveArticle).toHaveBeenCalledWith(4)
         })
 
         await waitFor(() => {
@@ -306,7 +306,7 @@ describe('ArticleListClient', () => {
         await user.click(screen.getByRole('button', {name: '1 veröffentlichen'}))
 
         await waitFor(() => {
-            expect(bulkPublishArticles).toHaveBeenCalledWith('tenant.test', {ids: [1]})
+            expect(bulkPublishArticles).toHaveBeenCalledWith({ids: [1]})
         })
         expect(publishArticle).not.toHaveBeenCalled()
 
@@ -341,7 +341,7 @@ describe('ArticleListClient', () => {
         await user.click(screen.getByRole('button', {name: '1 zurückziehen'}))
 
         await waitFor(() => {
-            expect(bulkUnpublishArticles).toHaveBeenCalledWith('tenant.test', [2])
+            expect(bulkUnpublishArticles).toHaveBeenCalledWith([2])
         })
         expect(unpublishArticle).not.toHaveBeenCalled()
 
@@ -378,7 +378,7 @@ describe('ArticleListClient', () => {
         await user.click(screen.getByRole('button', {name: 'Löschen'}))
 
         await waitFor(() => {
-            expect(bulkDeleteArticles).toHaveBeenCalledWith('tenant.test', [1])
+            expect(bulkDeleteArticles).toHaveBeenCalledWith([1])
         })
         expect(deleteArticle).not.toHaveBeenCalled()
 
@@ -442,7 +442,7 @@ describe('ArticleListClient', () => {
             {id: 22, slug: 'stories', name: 'Stories', parentId: null, active: true},
         ])
         vi.mocked(replaceArticleCategories).mockImplementation(
-            async (_tenantHost, articleId) => {
+            async (articleId) => {
                 const article = mockArticles.find((entry) => entry.id === articleId)
                 if (article === undefined) {
                     throw new Error('unknown article')
@@ -480,7 +480,7 @@ describe('ArticleListClient', () => {
         await waitFor(() => {
             expect(replaceArticleCategories).toHaveBeenCalledTimes(1)
         })
-        expect(replaceArticleCategories).toHaveBeenCalledWith('tenant.test', 1, [21])
+        expect(replaceArticleCategories).toHaveBeenCalledWith(1, [21])
         expect(updateArticle).not.toHaveBeenCalled()
 
         await waitFor(() => {
@@ -539,7 +539,7 @@ describe('ArticleListClient', () => {
         await user.click(screen.getByRole('button', {name: 'Löschen' }))
 
         await waitFor(() => {
-            expect(deleteArticle).toHaveBeenCalledWith('tenant.test', 1)
+            expect(deleteArticle).toHaveBeenCalledWith(1)
         })
 
         await waitFor(() => {
@@ -577,7 +577,7 @@ describe('ArticleListClient', () => {
         await user.click(confirmButton)
 
         await waitFor(() => {
-            expect(deleteArticle).toHaveBeenCalledWith('tenant.test', 2)
+            expect(deleteArticle).toHaveBeenCalledWith(2)
         })
     })
 

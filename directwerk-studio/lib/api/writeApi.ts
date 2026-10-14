@@ -37,22 +37,20 @@ export const archiveArticle = articleApi.archive
 export const unarchiveArticle = articleApi.unarchive
 
 export async function deleteArticle(
-    tenantHost: string,
-    articleId: number,
+        articleId: number,
 ): Promise<void> {
-    return studioDelete(`/api/proxy/articles/${articleId}`, tenantHost)
+    return studioDelete(`/api/proxy/articles/${articleId}`, )
 }
 
 const invalidArticleMessage = 'Der Server hat einen ungültigen Beitrag gesendet.'
 const invalidBulkDeleteMessage = 'Der Server hat eine ungültige Löschantwort gesendet.'
 
 export async function bulkPublishArticles(
-    tenantHost: string,
-    input: BulkPublishInput,
+        input: BulkPublishInput,
 ): Promise<ArticleDetail[]> {
     return studioMutate(
         '/api/proxy/articles/bulk/publish',
-        tenantHost,
+        
         jsonInit('POST', input),
         parseArticleListEnvelope,
         invalidArticleMessage,
@@ -60,12 +58,11 @@ export async function bulkPublishArticles(
 }
 
 export async function bulkUnpublishArticles(
-    tenantHost: string,
-    ids: number[],
+        ids: number[],
 ): Promise<ArticleDetail[]> {
     return studioMutate(
         '/api/proxy/articles/bulk/unpublish',
-        tenantHost,
+        
         jsonInit('POST', {ids}),
         parseArticleListEnvelope,
         invalidArticleMessage,
@@ -73,12 +70,11 @@ export async function bulkUnpublishArticles(
 }
 
 export async function bulkDeleteArticles(
-    tenantHost: string,
-    ids: number[],
+        ids: number[],
 ): Promise<number[]> {
     const result = await studioMutate(
         '/api/proxy/articles/bulk/delete',
-        tenantHost,
+        
         jsonInit('POST', {ids}),
         parseBulkDeleteEnvelope,
         invalidBulkDeleteMessage,
