@@ -1,13 +1,12 @@
 package de.pnnit.directwerk.controller;
 
 import de.pnnit.directwerk.config.DirectwerkConfig;
+import de.pnnit.directwerk.modules.core.util.ClientIpExtractor;
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.List;
 import java.util.Set;
-import java.util.stream.Collectors;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
-import org.springframework.util.StringUtils;
 
 /**
  * Resolves the client IP used for server-side analytics attribution (feed fetches, views,
@@ -29,12 +28,7 @@ public class AnalyticsClientIpResolver {
     }
 
     public AnalyticsClientIpResolver(List<String> trustedProxies) {
-        this.trustedProxies = trustedProxies == null
-                ? Set.of()
-                : trustedProxies.stream()
-                        .filter(StringUtils::hasText)
-                        .map(String::trim)
-                        .collect(Collectors.toUnmodifiableSet());
+        this.trustedProxies = ClientIpExtractor.trustedProxySet(trustedProxies);
     }
 
     /**
