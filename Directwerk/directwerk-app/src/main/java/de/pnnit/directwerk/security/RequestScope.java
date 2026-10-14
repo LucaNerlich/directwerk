@@ -62,7 +62,13 @@ public enum RequestScope {
     private static final String[] PLATFORM_PREFIXES = {"/api/v1/platform/", "/api/v1/webhooks/"};
     private static final String[] EDITOR_CONTENT_BASES = {
             "/api/v1/media", "/api/v1/series", "/api/v1/episodes",
-            "/api/v1/articles", "/api/v1/podcast/import"
+            "/api/v1/articles", "/api/v1/podcast/import",
+            // Issue #309: these two route families carry a class-level
+            // hasAnyRole('EDITOR','TENANT_ADMIN') @PreAuthorize but were absent here, so they
+            // fell through to the fail-closed MEMBER scope and got only authenticated() in the
+            // JWT matcher table — a deactivated/demoted editor's still-valid token was stopped
+            // only by @PreAuthorize, unlike every other editor content route.
+            "/api/v1/digital-publications", "/api/v1/newsletter-lists"
     };
     /**
      * Content routes reserved to tenant admins. Classified as {@link #TENANT_ADMIN_AREA}

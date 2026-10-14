@@ -15,6 +15,7 @@ public final class FeatureModuleKeys {
     public static final String ARTICLE_FEED_BUILDER = "ARTICLE_FEED_BUILDER";
     public static final String SUBSCRIPTION = "SUBSCRIPTION";
     public static final String EMAIL_NOTIFY = "EMAIL_NOTIFY";
+    public static final String WHITELABEL = "WHITELABEL";
 
     private FeatureModuleKeys() {
     }

@@ -33,7 +33,8 @@ public class PublicEpisodeDownloadController {
     @GetMapping("/{slug}/download")
     @RequiresModule(PodcastModule.KEY)
     ResponseEntity<Void> downloadEpisode(@PathVariable String slug, HttpServletRequest request) {
-        Long tenantId = TenantContext.getTenantId();
+        // Issue #379: fail closed on an unmatched Host instead of running tenant-less queries.
+        Long tenantId = TenantContext.requireTenantId();
         return rssFeedDeliveryFacade.publicEnclosure(
                 tenantId,
                 slug,

@@ -16,7 +16,8 @@ public class PlatformTenantStatsService {
 
     public TenantStatsView statsFor(Long tenantId) {
         long episodeCount = episodeStatsQueryService.countEpisodes(tenantId);
-        long subscriberCount = subscriberDirectoryQueryService.listSubscribers(tenantId).size();
+        // Issue #311: count the population instead of materializing the whole directory.
+        long subscriberCount = subscriberDirectoryQueryService.countSubscribers(tenantId);
         return new TenantStatsView(episodeCount, subscriberCount);
     }
 

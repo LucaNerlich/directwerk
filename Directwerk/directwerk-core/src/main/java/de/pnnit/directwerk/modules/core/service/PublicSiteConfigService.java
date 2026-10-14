@@ -25,7 +25,6 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class PublicSiteConfigService {
 
-    private static final String WHITELABEL_MODULE_KEY = "WHITELABEL";
 
     private final DirectwerkConfig directwerkConfig;
     private final TenantResolver tenantResolver;
@@ -81,7 +80,7 @@ public class PublicSiteConfigService {
      * @return a branding view containing the branding values, or an empty view when branding is unavailable
      */
     private static BrandingView brandingView(TenantBranding branding, List<String> enabledModules) {
-        if (branding == null || !enabledModules.contains(WHITELABEL_MODULE_KEY)) {
+        if (branding == null || !enabledModules.contains(FeatureModuleKeys.WHITELABEL)) {
             return new BrandingView(null, null, null, null, null);
         }
         return new BrandingView(

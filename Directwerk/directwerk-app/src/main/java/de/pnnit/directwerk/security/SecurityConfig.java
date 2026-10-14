@@ -97,11 +97,10 @@ public class SecurityConfig {
                         .tokenRevocationEndpoint(Customizer.withDefaults())
                 )
                 .authorizeHttpRequests(authorize -> authorize.anyRequest().authenticated())
-                .csrf(csrf -> csrf.ignoringRequestMatchers(authorizationServerConfigurer.getEndpointsMatcher()))
-                .exceptionHandling(exceptions -> exceptions.defaultAuthenticationEntryPointFor(
-                        new LoginUrlAuthenticationEntryPoint("/login"),
-                        new MediaTypeRequestMatcher(MediaType.TEXT_HTML)
-                ));
+                .csrf(csrf -> csrf.ignoringRequestMatchers(authorizationServerConfigurer.getEndpointsMatcher()));
+        // Issue #374: the HTML LoginUrlAuthenticationEntryPoint("/login") was removed — no /login
+        // mapping or permitAll exists, so it only redirected HTML clients to a JSON 401. The JSON
+        // entry points on the API chain remain.
 
         return http.build();
     }
@@ -287,15 +286,10 @@ public class SecurityConfig {
                 .build();
     }
 
-    @Bean
-    DaoAuthenticationProvider daoAuthenticationProvider(
-            UserDetailsService userDetailsService,
-            PasswordEncoder passwordEncoder
-    ) {
-        DaoAuthenticationProvider provider = new DaoAuthenticationProvider(userDetailsService);
-        provider.setPasswordEncoder(passwordEncoder);
-        return provider;
-    }
+    // Issue #375: the DaoAuthenticationProvider bean was removed — no chain calls formLogin()
+    // or httpBasic(), and PasswordGrantAuthenticationProvider takes UserDetailsService +
+    // PasswordEncoder directly. Spring Boot derives an equivalent provider if the global
+    // AuthenticationManager is ever needed.
 
     @Bean
     BffTenantRoutingHostFilter bffTenantRoutingHostFilter(
@@ -416,8 +410,5 @@ public class SecurityConfig {
      * @return the configured authentication manager
      * @throws Exception if the authentication manager cannot be obtained
      */
-    @Bean
-    AuthenticationManager authenticationManager(AuthenticationConfiguration configuration) throws Exception {
-        return configuration.getAuthenticationManager();
-    }
+    // Issue #375: the AuthenticationManager bean was removed — nothing injected it.
 }

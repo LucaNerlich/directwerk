@@ -51,7 +51,8 @@ public class PublicEpisodeViewMapper {
                 audioCdnUrl,
                 resolvePublicCoverImageUrl(episode),
                 episode.getFormats().stream()
-                        .sorted(Comparator.comparingInt(Format::getSortOrder).thenComparing(Format::getId))
+                        // Issue #381: single definition of "canonical format order".
+                        .sorted(FormatView.DISPLAY_ORDER)
                         .map(PublicEpisodeViewMapper::toPublicFormatView)
                         .toList(),
                 episode.getCategories().stream()
