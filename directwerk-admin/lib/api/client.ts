@@ -7,10 +7,14 @@ import type {
     EffectiveRights,
     JobListPage,
     JobListQuery,
+    PlatformAdmin,
+    PlatformAdminPage,
     PlatformAuditEvent,
     PlatformAuditPage,
     PlatformAuditQuery,
     PlatformOverview,
+    Tenant,
+    TenantListPage,
 } from '@directwerk/api/types'
 import {
     parseEffectiveRightsEnvelope,
@@ -70,6 +74,78 @@ export async function getMembersEffectiveRights(
         `tenants/${tenantId}/users/effective-rights?userIds=${userIds.join(',')}`,
         parseEffectiveRightsListEnvelope,
         'Invalid rights response.',
+    )
+}
+
+/**
+ * One page of platform admins (#438). The list was previously fetched whole, so the response grew
+ * without bound with the number of administrators.
+ */
+export async function getPlatformAdminsPage(
+    page: number,
+    size: number,
+): Promise<PlatformAdminPage> {
+    const raw = await authedFetch(`/api/proxy/admins?page=${page}&size=${size}`, {
+        cache: 'no-store',
+    })
+
+    if (raw === null) {
+        return {content: [], totalElements: 0, page, size}
+    }
+
+    if (!isRecord(raw) || !Array.isArray(raw.data) || !raw.data.every(isPlatformAdmin)) {
+        throw new Error('Invalid platform admin response from the server.')
+    }
+
+    const metadata = isRecord(raw.metadata) ? raw.metadata : {}
+    const content = raw.data
+
+    return {
+        content,
+        totalElements:
+            typeof metadata.totalElements === 'number' ? metadata.totalElements : content.length,
+        page: typeof metadata.page === 'number' ? metadata.page : page,
+        size: typeof metadata.size === 'number' ? metadata.size : size,
+    }
+}
+
+/**
+ * One page of tenants (#438). The endpoint returned the first 1000 tenants with no way to reach the
+ * rest, so a larger estate was silently truncated.
+ */
+export async function getPlatformTenantsPage(
+    page: number,
+    size: number,
+): Promise<TenantListPage> {
+    const raw = await authedFetch(`/api/proxy/tenants?page=${page}&size=${size}`, {
+        cache: 'no-store',
+    })
+
+    if (raw === null) {
+        return {content: [], totalElements: 0, page, size}
+    }
+
+    if (!isRecord(raw) || !isRecord(raw.data) || !Array.isArray(raw.data.content)) {
+        throw new Error('Invalid tenant list response from the server.')
+    }
+
+    const metadata = isRecord(raw.metadata) ? raw.metadata : {}
+    const content = raw.data.content
+
+    return {
+        content: content as Tenant[],
+        totalElements:
+            typeof metadata.totalElements === 'number' ? metadata.totalElements : content.length,
+        page: typeof metadata.page === 'number' ? metadata.page : page,
+        size: typeof metadata.size === 'number' ? metadata.size : size,
+    }
+}
+
+function isPlatformAdmin(value: unknown): value is PlatformAdmin {
+    return (
+        isRecord(value) &&
+        typeof value.userId === 'number' &&
+        typeof value.email === 'string'
     )
 }
 

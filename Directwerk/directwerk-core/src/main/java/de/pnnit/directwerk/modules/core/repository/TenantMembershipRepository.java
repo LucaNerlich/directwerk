@@ -3,6 +3,7 @@ package de.pnnit.directwerk.modules.core.repository;
 import de.pnnit.directwerk.modules.core.entity.MembershipStatus;
 import de.pnnit.directwerk.modules.core.entity.TenantMembership;
 import java.time.Instant;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -71,4 +72,24 @@ public interface TenantMembershipRepository extends JpaRepository<TenantMembersh
             where membership.user.id = :userId
             """)
     Optional<Instant> findMaxLastLoginAtByUserId(@Param("userId") Long userId);
+
+    /**
+     * Batched variant of {@link #findMaxLastLoginAtByUserId} (#438). The platform admin list needs
+     * the last login of a whole page of admins; a lookup per admin made that N+1.
+     */
+    @Query("""
+            select membership.user.id as userId, max(membership.lastLoginAt) as lastLoginAt
+            from TenantMembership membership
+            where membership.user.id in :userIds
+            group by membership.user.id
+            """)
+    List<LastLogin> findMaxLastLoginAtByUserIds(@Param("userIds") Collection<Long> userIds);
+
+    /** Projection for {@link #findMaxLastLoginAtByUserIds}. */
+    interface LastLogin {
+
+        Long getUserId();
+
+        Instant getLastLoginAt();
+    }
 }

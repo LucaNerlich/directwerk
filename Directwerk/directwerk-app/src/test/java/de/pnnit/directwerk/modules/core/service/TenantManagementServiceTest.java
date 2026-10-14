@@ -21,10 +21,16 @@ import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 
 @ExtendWith(MockitoExtension.class)
 class TenantManagementServiceTest {
@@ -280,6 +286,52 @@ class TenantManagementServiceTest {
                 7L, new TenantUploadLimits(null, 6L * 1024 * 1024 * 1024, null, null)))
                 .isInstanceOf(IllegalArgumentException.class);
         verify(tenantRepository, never()).save(any(Tenant.class));
+    }
+
+    @Test
+    void listTenantsPagesAndReportsTheTotal() {
+        // #438: the list used to return the first 1000 tenants with no way to reach the rest, so
+        // the platform UI silently truncated a larger estate.
+        when(tenantRepository.findAll(any(Pageable.class))).thenReturn(new PageImpl<>(
+                List.of(tenant(1L, "alpha"), tenant(2L, "beta")), PageRequest.of(2, 2), 11));
+        when(tenantDomainRepository.findByTenantId(1L)).thenReturn(List.of());
+        when(tenantDomainRepository.findByTenantId(2L)).thenReturn(List.of());
+
+        TenantManagementService.TenantPage result = service.listTenants(2, 2);
+
+        assertThat(result.totalElements()).isEqualTo(11);
+        assertThat(result.page()).isEqualTo(2);
+        assertThat(result.size()).isEqualTo(2);
+        assertThat(result.content()).extracting(TenantManagementService.TenantListItemView::slug)
+                .containsExactly("alpha", "beta");
+
+        // A stable sort by id keeps pages from shuffling between requests.
+        ArgumentCaptor<Pageable> pageable = ArgumentCaptor.forClass(Pageable.class);
+        verify(tenantRepository).findAll(pageable.capture());
+        assertThat(pageable.getValue().getPageNumber()).isEqualTo(2);
+        assertThat(pageable.getValue().getPageSize()).isEqualTo(2);
+        assertThat(pageable.getValue().getSort()).isEqualTo(Sort.by("id").ascending());
+    }
+
+    @Test
+    void listTenantsClampsThePageSizeToTheControllerMaximum() {
+        when(tenantRepository.findAll(any(Pageable.class))).thenReturn(Page.empty());
+
+        service.listTenants(-1, 5_000);
+
+        ArgumentCaptor<Pageable> pageable = ArgumentCaptor.forClass(Pageable.class);
+        verify(tenantRepository).findAll(pageable.capture());
+        assertThat(pageable.getValue().getPageNumber()).isZero();
+        assertThat(pageable.getValue().getPageSize()).isEqualTo(100);
+    }
+
+    private static Tenant tenant(Long id, String slug) {
+        Tenant tenant = new Tenant();
+        tenant.setId(id);
+        tenant.setSlug(slug);
+        tenant.setName(slug);
+        tenant.setStatus(TenantStatus.ACTIVE);
+        return tenant;
     }
 
     @Test

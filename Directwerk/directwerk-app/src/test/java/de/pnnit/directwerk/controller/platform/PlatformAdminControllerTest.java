@@ -1,6 +1,8 @@
 package de.pnnit.directwerk.controller.platform;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -132,6 +134,51 @@ class PlatformAdminControllerTest {
                         .header("Authorization", "Bearer " + mintPlatformAdminToken(firstAdminUserId)))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.errors[0].code").value("CANNOT_REVOKE_SELF"));
+    }
+
+    @Test
+    void listAdminsReturnsOnePageWithMetadata() throws Exception {
+        // #438: the list was unbounded — every admin in a single response.
+        mockMvc.perform(get("/api/v1/platform/admins")
+                        .param("page", "0")
+                        .param("size", "1")
+                        .header("Authorization", "Bearer " + mintPlatformAdminToken(firstAdminUserId)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.length()").value(1))
+                .andExpect(jsonPath("$.metadata.page").value(0))
+                .andExpect(jsonPath("$.metadata.size").value(1))
+                .andExpect(jsonPath("$.metadata.totalElements").value(2));
+    }
+
+    @Test
+    void listAdminsWalksToTheSecondPage() throws Exception {
+        String firstPage = mockMvc.perform(get("/api/v1/platform/admins")
+                        .param("page", "0")
+                        .param("size", "1")
+                        .header("Authorization", "Bearer " + mintPlatformAdminToken(firstAdminUserId)))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+        String secondPage = mockMvc.perform(get("/api/v1/platform/admins")
+                        .param("page", "1")
+                        .param("size", "1")
+                        .header("Authorization", "Bearer " + mintPlatformAdminToken(firstAdminUserId)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.metadata.page").value(1))
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        assertThat(secondPage).isNotEqualTo(firstPage);
+    }
+
+    @Test
+    void listAdminsRejectsAPageSizeAboveTheMaximum() throws Exception {
+        mockMvc.perform(get("/api/v1/platform/admins")
+                        .param("size", "101")
+                        .header("Authorization", "Bearer " + mintPlatformAdminToken(firstAdminUserId)))
+                .andExpect(status().isBadRequest());
     }
 
     private String mintPlatformAdminToken(long userId) {

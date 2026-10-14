@@ -1,6 +1,7 @@
 package de.pnnit.directwerk.controller.platform;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -61,6 +62,43 @@ class PlatformTenantControllerTest extends PlatformAdminApiTestSupport {
         otherTenant.setName("Globex");
         otherTenant.setStatus(TenantStatus.ACTIVE);
         otherTenant = tenantRepository.save(otherTenant);
+    }
+
+    @Test
+    void listTenantsReturnsOnePageWithMetadata() throws Exception {
+        // #438: the endpoint returned the first 1000 tenants with no way to reach the rest.
+        mockMvc.perform(get("/api/v1/platform/tenants")
+                        .param("page", "0")
+                        .param("size", "1")
+                        .header("Authorization", "Bearer " + platformAdminToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.content.length()").value(1))
+                .andExpect(jsonPath("$.metadata.page").value(0))
+                .andExpect(jsonPath("$.metadata.size").value(1))
+                .andExpect(jsonPath("$.metadata.totalElements").value(greaterThanOrEqualTo(2)));
+    }
+
+    @Test
+    void listTenantsPageTwoReturnsDifferentTenantsThanPageOne() throws Exception {
+        String pageOne = mockMvc.perform(get("/api/v1/platform/tenants")
+                        .param("page", "0")
+                        .param("size", "1")
+                        .header("Authorization", "Bearer " + platformAdminToken))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+        String pageTwo = mockMvc.perform(get("/api/v1/platform/tenants")
+                        .param("page", "1")
+                        .param("size", "1")
+                        .header("Authorization", "Bearer " + platformAdminToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.metadata.page").value(1))
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        assertThat(pageTwo).isNotEqualTo(pageOne);
     }
 
     @Test

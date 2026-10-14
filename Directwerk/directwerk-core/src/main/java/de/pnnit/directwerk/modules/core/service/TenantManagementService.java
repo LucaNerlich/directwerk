@@ -19,6 +19,7 @@ import de.pnnit.directwerk.modules.core.util.TenantHostname;
 import java.time.Instant;
 import java.util.Map;
 import java.util.Objects;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import lombok.RequiredArgsConstructor;
@@ -32,7 +33,8 @@ import org.springframework.util.StringUtils;
 @RequiredArgsConstructor
 public class TenantManagementService {
 
-    private static final int MAX_TENANT_LIST_SIZE = 1000;
+    /** Upper bound on the tenant list page size, mirroring the controller's {@code @Max}. */
+    private static final int MAX_TENANT_PAGE_SIZE = 100;
 
     private final TenantRepository tenantRepository;
     private final TenantDomainRepository tenantDomainRepository;
@@ -44,16 +46,26 @@ public class TenantManagementService {
     private final ApplicationEventPublisher eventPublisher;
 
     /**
-     * Lists tenants for the platform admin surface, bounded so an unbounded table can never
-     * produce an unbounded response.
+     * Lists one page of tenants for the platform admin surface.
+     *
+     * <p>Previously this returned the first {@code 1000} tenants with no way to reach the rest, so
+     * past that size the platform UI silently truncated the estate (#438).
+     *
+     * @param page zero-based page index
+     * @param size requested page size, clamped to {@link #MAX_TENANT_PAGE_SIZE}
+     * @return the page of tenants together with its paging metadata
      */
     @Transactional(readOnly = true)
-    public List<TenantListItemView> listTenants() {
-        return tenantRepository.findAll(PageRequest.of(0, MAX_TENANT_LIST_SIZE, Sort.by("id").ascending()))
-                .getContent()
-                .stream()
-                .map(this::toListItemView)
-                .toList();
+    public TenantPage listTenants(int page, int size) {
+        int safePage = Math.max(page, 0);
+        int safeSize = Math.min(Math.max(size, 1), MAX_TENANT_PAGE_SIZE);
+        Page<Tenant> result = tenantRepository.findAll(
+                PageRequest.of(safePage, safeSize, Sort.by("id").ascending()));
+        return new TenantPage(
+                result.getContent().stream().map(this::toListItemView).toList(),
+                result.getTotalElements(),
+                safePage,
+                safeSize);
     }
 
     /**
@@ -335,6 +347,15 @@ public class TenantManagementService {
                 tenant.getCreatedAt(),
                 primaryDomain
         );
+    }
+
+    /** One page of tenants plus the metadata the client pages with. */
+    public record TenantPage(
+            List<TenantListItemView> content,
+            long totalElements,
+            int page,
+            int size
+    ) {
     }
 
     public record TenantDetailView(

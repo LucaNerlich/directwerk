@@ -6,6 +6,15 @@ info:
 http:
   method: GET
   url: "{{baseUrl}}/api/v1/platform/tenants"
+  params:
+    - name: page
+      value: "0"
+      type: query
+      description: Zero-based page index.
+    - name: size
+      value: "100"
+      type: query
+      description: Page size, 1-100. Tenants were previously truncated at 1000 with no paging.
   auth: inherit
 
 runtime:
@@ -14,6 +23,13 @@ runtime:
       code: |-
         test("returns expected status", function() {
           expect(res.getStatus() === 200).to.equal(true);
+        });
+
+        test("returns paging metadata", function() {
+          expect(res.body.metadata).to.be.an("object");
+          expect(res.body.metadata.page).to.equal(0);
+          expect(res.body.metadata.size).to.equal(100);
+          expect(res.body.metadata.totalElements).to.be.a("number");
         });
 
         test("includes list metadata fields", function() {

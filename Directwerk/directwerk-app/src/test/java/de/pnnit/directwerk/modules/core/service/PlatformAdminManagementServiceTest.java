@@ -3,7 +3,9 @@ package de.pnnit.directwerk.modules.core.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -14,19 +16,28 @@ import de.pnnit.directwerk.modules.core.entity.PlatformAdmin;
 import de.pnnit.directwerk.modules.core.entity.User;
 import de.pnnit.directwerk.modules.core.entity.UserStatus;
 import de.pnnit.directwerk.modules.core.repository.PlatformAdminRepository;
+import de.pnnit.directwerk.modules.core.service.PlatformAdminManagementService.AdminPage;
+import de.pnnit.directwerk.modules.core.service.PlatformAdminManagementService.PlatformAdminView;
 import de.pnnit.directwerk.modules.core.repository.TenantMembershipRepository;
 import de.pnnit.directwerk.modules.core.repository.UserRepository;
 import de.pnnit.directwerk.modules.email.TransactionalEmailNotifier;
 import de.pnnit.directwerk.security.DirectwerkUserPrincipal;
 import de.pnnit.directwerk.security.RoleConstants;
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -223,6 +234,53 @@ class PlatformAdminManagementServiceTest {
         SecurityContextHolder.getContext().setAuthentication(
                 UsernamePasswordAuthenticationToken.authenticated(principal, null, principal.getAuthorities())
         );
+    }
+
+    @Test
+    void listAdminsPagesWithOneBatchedLastLoginLookup() {
+        Instant lastLogin = Instant.parse("2026-01-02T03:04:05Z");
+        when(platformAdminRepository.findAll(any(Pageable.class))).thenReturn(new PageImpl<>(
+                List.of(platformAdmin(10L, "first@example.com"), platformAdmin(20L, "second@example.com")),
+                PageRequest.of(1, 2),
+                7));
+        TenantMembershipRepository.LastLogin lookup = mock(TenantMembershipRepository.LastLogin.class);
+        when(lookup.getUserId()).thenReturn(10L);
+        when(lookup.getLastLoginAt()).thenReturn(lastLogin);
+        when(tenantMembershipRepository.findMaxLastLoginAtByUserIds(anyList()))
+                .thenReturn(List.of(lookup));
+
+        AdminPage result = service.listAdmins(1, 2);
+
+        assertThat(result.totalElements()).isEqualTo(7);
+        assertThat(result.page()).isEqualTo(1);
+        assertThat(result.size()).isEqualTo(2);
+        assertThat(result.content()).extracting(PlatformAdminView::email)
+                .containsExactly("first@example.com", "second@example.com");
+        assertThat(result.content().getFirst().lastLoginAt()).isEqualTo(lastLogin);
+        assertThat(result.content().get(1).lastLoginAt()).isNull();
+
+        // #438: one batched lookup for the page, not one per admin.
+        verify(tenantMembershipRepository, never()).findMaxLastLoginAtByUserId(anyLong());
+        verify(tenantMembershipRepository).findMaxLastLoginAtByUserIds(anyList());
+
+        // A stable sort by id keeps pages from shuffling between requests.
+        ArgumentCaptor<Pageable> pageable = ArgumentCaptor.forClass(Pageable.class);
+        verify(platformAdminRepository).findAll(pageable.capture());
+        assertThat(pageable.getValue().getPageNumber()).isEqualTo(1);
+        assertThat(pageable.getValue().getPageSize()).isEqualTo(2);
+        assertThat(pageable.getValue().getSort()).isEqualTo(Sort.by("id").ascending());
+    }
+
+    @Test
+    void listAdminsClampsThePageSizeToTheControllerMaximum() {
+        when(platformAdminRepository.findAll(any(Pageable.class))).thenReturn(Page.empty());
+
+        service.listAdmins(-3, 10_000);
+
+        ArgumentCaptor<Pageable> pageable = ArgumentCaptor.forClass(Pageable.class);
+        verify(platformAdminRepository).findAll(pageable.capture());
+        assertThat(pageable.getValue().getPageNumber()).isZero();
+        assertThat(pageable.getValue().getPageSize()).isEqualTo(100);
     }
 
     private static PlatformAdmin platformAdmin(Long userId, String email) {

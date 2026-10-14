@@ -12,9 +12,14 @@ import de.pnnit.directwerk.modules.core.repository.UserRepository;
 import de.pnnit.directwerk.modules.core.util.EmailNormalizer;
 import de.pnnit.directwerk.modules.email.TransactionalEmailNotifier;
 import de.pnnit.directwerk.security.SecurityUtils;
+import java.time.Instant;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -22,6 +27,9 @@ import org.springframework.util.StringUtils;
 @Service
 @RequiredArgsConstructor
 public class PlatformAdminManagementService {
+
+    /** Upper bound on the admin list page size, mirroring the controller's {@code @Max}. */
+    private static final int MAX_ADMIN_PAGE_SIZE = 100;
 
     private final PlatformAdminRepository platformAdminRepository;
     private final UserRepository userRepository;
@@ -32,20 +40,41 @@ public class PlatformAdminManagementService {
     private final PlatformAuditService platformAuditService;
 
     /**
-     * Lists the platform administrators and their user details.
+     * Lists one page of platform administrators and their user details.
      *
-     * @return the platform administrator views
+     * <p>Ordered by row id so that pages stay stable between requests, and the last-login lookup is
+     * batched across the page instead of issued once per admin (#438).
+     *
+     * @param page zero-based page index
+     * @param size requested page size, clamped to {@link #MAX_ADMIN_PAGE_SIZE}
+     * @return the page of administrators together with its paging metadata
      */
     @Transactional(readOnly = true)
-    public List<PlatformAdminView> listAdmins() {
-        return platformAdminRepository.findAll().stream()
-                .map(admin -> new PlatformAdminView(
-                        admin.getUser().getId(),
-                        admin.getUser().getEmail(),
-                        admin.getUser().getName(),
-                        tenantMembershipRepository.findMaxLastLoginAtByUserId(admin.getUser().getId()).orElse(null)
-                ))
+    public AdminPage listAdmins(int page, int size) {
+        int safePage = Math.max(page, 0);
+        int safeSize = Math.min(Math.max(size, 1), MAX_ADMIN_PAGE_SIZE);
+        Page<PlatformAdmin> result = platformAdminRepository.findAll(
+                PageRequest.of(safePage, safeSize, Sort.by("id").ascending()));
+        Map<Long, Instant> lastLogins = lastLoginsByUserId(result.getContent());
+        List<PlatformAdminView> content = result.getContent().stream()
+                .map(admin -> view(admin.getUser(), lastLogins.get(admin.getUser().getId())))
                 .toList();
+        return new AdminPage(content, result.getTotalElements(), safePage, safeSize);
+    }
+
+    private Map<Long, Instant> lastLoginsByUserId(List<PlatformAdmin> admins) {
+        List<Long> userIds = admins.stream().map(admin -> admin.getUser().getId()).toList();
+        if (userIds.isEmpty()) {
+            return Map.of();
+        }
+        Map<Long, Instant> lastLogins = new HashMap<>();
+        for (TenantMembershipRepository.LastLogin lastLogin
+                : tenantMembershipRepository.findMaxLastLoginAtByUserIds(userIds)) {
+            if (lastLogin.getLastLoginAt() != null) {
+                lastLogins.put(lastLogin.getUserId(), lastLogin.getLastLoginAt());
+            }
+        }
+        return lastLogins;
     }
 
     /**
@@ -89,7 +118,16 @@ public class PlatformAdminManagementService {
         return new PlatformAdminInvitation(viewWithLastLogin(user), user.getStatus().name(), inviteToken);
     }
 
-    private static PlatformAdminView view(User user, java.time.Instant lastLoginAt) {
+    /** One page of platform administrators plus the metadata the client pages with. */
+    public record AdminPage(
+            List<PlatformAdminView> content,
+            long totalElements,
+            int page,
+            int size
+    ) {
+    }
+
+    private static PlatformAdminView view(User user, Instant lastLoginAt) {
         return new PlatformAdminView(user.getId(), user.getEmail(), user.getName(), lastLoginAt);
     }
 
