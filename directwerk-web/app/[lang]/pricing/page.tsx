@@ -67,11 +67,10 @@ function PricingContent(): React.JSX.Element {
                 if (!active) {
                     return
                 }
-                setError(
-                    requestError instanceof Error
-                        ? requestError.message
-                        : errors.pricingLoadFailed,
-                )
+                // Issue #339: raw upstream/transport text (invalid-envelope messages, HTTP
+                // status + host) must not reach visitors — map to the localised fallback.
+                void requestError
+                setError(errors.pricingLoadFailed)
                 setIsLoading(false)
             })
 

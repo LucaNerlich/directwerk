@@ -9,8 +9,9 @@ import {getDictionary} from '@/lib/i18n/getDictionary'
 import {localizedPath} from '@/lib/i18n/paths'
 
 /**
- * Tenant-branded 404. Renders inside the root layout, so visitors keep the
- * tenant header, navigation, and footer instead of Next's default English page.
+ * Fallback 404 for paths outside the `[lang]` segment. The tenant-branded 404 lives at
+ * `app/[lang]/not-found.tsx` (issue #432) — this one renders inside the bare root layout, so it
+ * has no tenant header/footer.
  */
 export default async function NotFound(): Promise<React.JSX.Element> {
     const {nav, notFound} = await getDictionary(defaultLocale)
