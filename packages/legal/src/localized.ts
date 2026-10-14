@@ -5,9 +5,13 @@ import {PRIVACY} from './privacy'
 
 export type LegalLocale = 'de' | 'en'
 
-/** German privacy is canonical until a dedicated EN privacy pass lands. */
-export function getPrivacy(locale: LegalLocale = 'de'): LegalPage {
-    void locale
+/**
+ * Issue #401: the previous `locale` parameter was accepted and silently ignored (`void locale`),
+ * advertising a capability that does not exist — an EN visitor got the German
+ * Datenschutzerklärung with no signal. German is canonical until a dedicated EN privacy pass
+ * lands; there is deliberately no parameter until then.
+ */
+export function getPrivacy(): LegalPage {
     return PRIVACY
 }
 
