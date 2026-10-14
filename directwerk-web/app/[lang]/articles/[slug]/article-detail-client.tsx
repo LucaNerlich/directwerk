@@ -57,7 +57,7 @@ export default function ArticleDetailClient({
         readTokenServer,
     )
     const isAuthenticated = accessToken !== null
-    const products = usePublicProducts(tenantHost)
+    const products = usePublicProducts()
     const unlockTarget = unlockHref(findUnlockProduct(products), lang)
     const {item: article, status, errorMessage, retry} = useEntitledDetail<PublicArticle>({
         slug,
