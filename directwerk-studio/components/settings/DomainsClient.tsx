@@ -25,6 +25,7 @@ import {addDomain, getDomainVerification, listDomains, verifyDomain} from '@/lib
 import type {DomainVerificationChallenge, TenantDomain} from '@directwerk/api/types'
 
 import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
+import {useDictionary} from '@/components/i18n/LocaleProvider'
 
 interface AddDomainState {
     error: string | null
@@ -48,6 +49,7 @@ function isValidHostname(value: string): boolean {
 }
 
 export default function DomainsClient(): React.JSX.Element {
+    const dict = useDictionary()
     const router = useRouter()
     const authRedirect = useAuthRequired()
     const [domains, setDomains] = useState<TenantDomain[]>([])
@@ -172,9 +174,9 @@ export default function DomainsClient(): React.JSX.Element {
         return (
             <PageStack>
                 <PageHeader
-                    eyebrow="Einstellungen"
-                    title="Domains"
-                    description="Eigene Domains für deine öffentliche Website — erst prüfen, dann verifizieren."
+                    eyebrow={dict.nav.verwaltung.settings}
+                    title={dict.nav.verwaltung.domains}
+                    description={dict.settings.eigeneDomainsOeffentlicheWebsiteErstPruefen}
                 />
                 <p className="text-sm text-muted-foreground" role="status">Wird geladen…</p>
                 <Skeleton className="h-20 w-full" />
@@ -186,9 +188,9 @@ export default function DomainsClient(): React.JSX.Element {
         return (
             <PageStack>
                 <PageHeader
-                    eyebrow="Einstellungen"
-                    title="Domains"
-                    description="Eigene Domains für deine öffentliche Website — erst prüfen, dann verifizieren."
+                    eyebrow={dict.nav.verwaltung.settings}
+                    title={dict.nav.verwaltung.domains}
+                    description={dict.settings.eigeneDomainsOeffentlicheWebsiteErstPruefen}
                 />
                 <Alert variant="destructive">
                     <AlertDescription>{loadError}</AlertDescription>
@@ -236,22 +238,22 @@ export default function DomainsClient(): React.JSX.Element {
     return (
         <PageStack>
             <PageHeader
-                eyebrow="Einstellungen"
-                title="Domains"
-                description="Eigene Domains für deine öffentliche Website. Lege zuerst den TXT-Eintrag beim Domain-Anbieter an, dann prüfe die Verifizierung."
+                eyebrow={dict.nav.verwaltung.settings}
+                title={dict.nav.verwaltung.domains}
+                description={dict.settings.eigeneDomainsOeffentlicheWebsiteLegeZuerst}
             />
 
             {domains.length === 0 ? (
                 <EmptyState
-                    title="Noch keine Domains"
-                    description="Füge unten deine erste Domain hinzu — z. B. podcast.beispiel.de. Danach legst du den angezeigten TXT-Eintrag an."
+                    title={dict.settings.keineDomains}
+                    description={dict.settings.fuegeUntenErsteDomainHinzu}
                 />
             ) : (
                 <section aria-labelledby="domains-list-heading" className="flex flex-col gap-4">
                     <SectionHeader
                         id="domains-list-heading"
                         title={`Domains (${domains.length})`}
-                        description="Verifizierte Domains sind live; offene brauchen noch den DNS-Eintrag."
+                        description={dict.settings.verifizierteDomainsLiveOffeneBrauchenDns}
                     />
                 <EntityListSection
                     items={domainItems}

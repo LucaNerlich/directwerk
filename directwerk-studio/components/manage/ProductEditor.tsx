@@ -30,6 +30,7 @@ import type {
 import {formatMoney} from '@directwerk/api/format'
 
 import {useResourceEditor} from '@/lib/hooks/useResourceEditor'
+import {useDictionary} from '@/components/i18n/LocaleProvider'
 
 interface ProductEditorProps {
     productId?: number
@@ -95,6 +96,7 @@ function validatePrice(values: ProductFormValues): string | null {
 export default function ProductEditor({
     productId,
 }: ProductEditorProps): React.JSX.Element {
+    const dict = useDictionary()
     const {
         entity: product,
         values,
@@ -172,9 +174,9 @@ export default function ProductEditor({
         return (
             <PageStack>
                 <PageHeader
-                    eyebrow="Abos"
+                    eyebrow={dict.nav.verwaltung.subscriptions}
                     title={isNew ? 'Neues Produkt' : 'Produkt bearbeiten'}
-                    description="Titel, Typ, Preis und Abrechnungsintervall bestimmen, was Hörerinnen und Hörer kaufen."
+                    description={dict.manage.titelTypPreisAbrechnungsintervallBestimmen}
                 />
                 <p className="text-sm text-muted-foreground" role="status">Laden…</p>
                 <Skeleton className="h-64 w-full max-w-2xl" />
@@ -185,7 +187,7 @@ export default function ProductEditor({
     return (
         <PageStack>
             <PageHeader
-                eyebrow="Abos"
+                eyebrow={dict.nav.verwaltung.subscriptions}
                 title={isNew ? 'Neues Produkt' : 'Produkt bearbeiten'}
                 description="Typ bestimmt, was das Produkt freischaltet. Abrechnungsintervall bestimmt, wie bezahlt wird."
                 actions={

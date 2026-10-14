@@ -43,6 +43,7 @@ import {useSiteConfig} from '@/lib/site/SiteConfigProvider'
 import {getClientTenantHost} from '@directwerk/api/tenant'
 import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
 import {safeImageSrc} from '@/lib/url/safeUrl'
+import {useDictionary} from '@/components/i18n/LocaleProvider'
 
 /**
  * Creates or edits a podcast episode, including its metadata, publication status, audio, cover image, and classifications.
@@ -50,6 +51,7 @@ import {safeImageSrc} from '@/lib/url/safeUrl'
  * @param episodeId - The identifier of the episode to edit; omitted when creating a new episode.
  */
 export default function EpisodeEditor({episodeId}: {episodeId?: number}): React.JSX.Element {
+    const dict = useDictionary()
     const router = useRouter()
     const localize = useLocalizedPath()
     const authRedirect = useAuthRequired()
@@ -487,7 +489,7 @@ export default function EpisodeEditor({episodeId}: {episodeId?: number}): React.
     if (series.length === 0) {
         return (
             <EmptyState
-                description="Bevor du eine Folge erstellst, brauchst du eine Sendung (dein Podcast-Kanal)."
+                description={dict.podcast.bevorFolgeErstellstBrauchstSendungPodcast}
                 title="Zuerst eine Sendung anlegen"
                 action={
                     <div className="flex flex-wrap justify-center gap-2">
@@ -695,7 +697,7 @@ export default function EpisodeEditor({episodeId}: {episodeId?: number}): React.
                             <CardContent className="flex flex-col gap-3 pt-(--card-spacing)">
                                 <SectionHeader
                                     as="h3"
-                                    description="Pflicht für den Feed — hochladen oder aus der Mediathek wählen."
+                                    description={dict.podcast.pflichtFeedHochladenMediathekWaehlen}
                                     title="Audio"
                                 />
                             {hasAudio ? (
@@ -770,7 +772,7 @@ export default function EpisodeEditor({episodeId}: {episodeId?: number}): React.
                             <CardContent className="flex flex-col gap-3 pt-(--card-spacing)">
                                 <SectionHeader
                                     as="h3"
-                                    description="Wird im Feed als Folgen-Cover genutzt. Ohne eigenes Bild gilt das Format- oder Sendungs-Titelbild."
+                                    description={dict.podcast.feedFolgenCoverGenutztOhneEigenes}
                                     title="Titelbild (RSS)"
                                 />
                             {coverPreviewUrl !== null ? (
@@ -800,7 +802,7 @@ export default function EpisodeEditor({episodeId}: {episodeId?: number}): React.
                                 <MediaLibraryPicker
                                     assetType="IMAGE"
                                     disabled={controlsDisabled}
-                                    label="Titelbild aus Mediathek"
+                                    label={dict.podcast.titelbildMediathek}
                                     onAuthRequired={handleAuthRequired}
                                     onSelect={(asset) => {
                                         setCoverAssetId(asset.id)
@@ -835,7 +837,7 @@ export default function EpisodeEditor({episodeId}: {episodeId?: number}): React.
                             <CardContent className="flex flex-col gap-4 pt-(--card-spacing)">
                                 <SectionHeader
                                     as="h3"
-                                    description="Nummer, Feed-Aufnahme und Kategorien."
+                                    description={dict.podcast.nummerFeedAufnahmeKategorien}
                                     title="Einordnung"
                                 />
                         <label className="grid gap-2 text-sm font-medium">

@@ -1,4 +1,5 @@
-import {cleanup, fireEvent, render, screen, waitFor, within} from '@testing-library/react'
+import {cleanup, fireEvent, screen, waitFor, within} from '@testing-library/react'
+import {renderWithLocale} from '@/lib/i18n/testUtils'
 import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest'
 
 import MediaLibraryClient from '@/components/media/MediaLibraryClient'
@@ -108,7 +109,7 @@ describe('MediaLibraryClient', () => {
     })
 
     it('shows an empty state with upload action', async () => {
-        render(<MediaLibraryClient />)
+        renderWithLocale(<MediaLibraryClient />)
 
         await waitFor(() =>
             expect(screen.getByText('Noch keine Medien')).toBeInTheDocument(),
@@ -124,7 +125,7 @@ describe('MediaLibraryClient', () => {
             maxDocumentBytes: 50 * 1024 * 1024,
         })
 
-        render(<MediaLibraryClient />)
+        renderWithLocale(<MediaLibraryClient />)
 
         await waitFor(() =>
             expect(screen.getByText(/Audio bis 100 MB/)).toBeInTheDocument(),
@@ -135,7 +136,7 @@ describe('MediaLibraryClient', () => {
     it('renders a media grid and uploads a dropped file', async () => {
         vi.mocked(listMedia).mockResolvedValue([coverAsset])
 
-        render(<MediaLibraryClient />)
+        renderWithLocale(<MediaLibraryClient />)
 
         await waitFor(() =>
             expect(screen.getByRole('img', {name: 'cover.png'})).toHaveAttribute(
@@ -179,7 +180,7 @@ describe('MediaLibraryClient', () => {
             },
         )
 
-        render(<MediaLibraryClient />)
+        renderWithLocale(<MediaLibraryClient />)
 
         await waitFor(() =>
             expect(screen.getByText('Noch keine Medien')).toBeInTheDocument(),
@@ -239,7 +240,7 @@ describe('MediaLibraryClient', () => {
             .mockRejectedValueOnce(new Error('delete failed'))
         vi.spyOn(window, 'confirm').mockReturnValue(true)
 
-        render(<MediaLibraryClient />)
+        renderWithLocale(<MediaLibraryClient />)
 
         fireEvent.click(
             await screen.findByRole('button', {name: 'Alle ausstehenden entfernen'}),
@@ -272,7 +273,7 @@ describe('MediaLibraryClient', () => {
             .mockRejectedValueOnce(new Error('delete failed'))
         vi.spyOn(window, 'confirm').mockReturnValue(true)
 
-        render(<MediaLibraryClient />)
+        renderWithLocale(<MediaLibraryClient />)
 
         fireEvent.click(await screen.findByRole('checkbox', {name: '„cover.png“ auswählen'}))
         fireEvent.click(screen.getByRole('checkbox', {name: '„other.png“ auswählen'}))
@@ -305,7 +306,7 @@ describe('MediaLibraryClient', () => {
                 cdnUrl: null,
             })
 
-        render(<MediaLibraryClient />)
+        renderWithLocale(<MediaLibraryClient />)
 
         await waitFor(() =>
             expect(screen.getByText('Noch keine Medien')).toBeInTheDocument(),
@@ -336,7 +337,7 @@ describe('MediaLibraryClient', () => {
             .mockRejectedValueOnce(new Error('Netzwerkfehler'))
             .mockResolvedValueOnce([])
 
-        render(<MediaLibraryClient />)
+        renderWithLocale(<MediaLibraryClient />)
 
         await waitFor(() =>
             expect(screen.getByRole('alert')).toHaveTextContent('Netzwerkfehler'),
@@ -359,7 +360,7 @@ describe('MediaLibraryClient', () => {
             {...coverAsset, id: 9, originalFilename: 'filed.png', folderId: 1},
         ])
 
-        render(<MediaLibraryClient />)
+        renderWithLocale(<MediaLibraryClient />)
 
         expect(await screen.findByText('Interviews')).toBeInTheDocument()
         expect(screen.getByText('cover.png')).toBeInTheDocument()
@@ -380,7 +381,7 @@ describe('MediaLibraryClient', () => {
             testFolder(2, 'Cuts', 1),
         ])
 
-        render(<MediaLibraryClient />)
+        renderWithLocale(<MediaLibraryClient />)
 
         await waitFor(() =>
             expect(vi.mocked(listMedia)).toHaveBeenLastCalledWith({
@@ -415,7 +416,7 @@ describe('MediaLibraryClient', () => {
     it('creates a folder in the current location', async () => {
         vi.mocked(createMediaFolder).mockResolvedValue(testFolder(5, 'Neu', null))
 
-        render(<MediaLibraryClient />)
+        renderWithLocale(<MediaLibraryClient />)
 
         await waitFor(() =>
             expect(screen.getByRole('button', {name: 'Neuer Ordner'})).toBeInTheDocument(),
@@ -436,7 +437,7 @@ describe('MediaLibraryClient', () => {
         vi.mocked(listMediaFolders).mockResolvedValue([testFolder(1, 'Interviews', null)])
         vi.mocked(listMedia).mockResolvedValue([coverAsset])
 
-        render(<MediaLibraryClient />)
+        renderWithLocale(<MediaLibraryClient />)
 
         expect(await screen.findByText('cover.png')).toBeInTheDocument()
         fireEvent.click(screen.getByRole('button', {name: 'Verschieben'}))
@@ -458,7 +459,7 @@ describe('MediaLibraryClient', () => {
         vi.mocked(listMediaFolders).mockResolvedValue([testFolder(1, 'Interviews', null)])
         vi.mocked(listMedia).mockResolvedValue([filed])
 
-        render(<MediaLibraryClient />)
+        renderWithLocale(<MediaLibraryClient />)
 
         fireEvent.click(
             await screen.findByRole('button', {name: /Interviews/}),
@@ -486,7 +487,7 @@ describe('MediaLibraryClient', () => {
         vi.mocked(listMediaFolders).mockResolvedValue([testFolder(1, 'Interviews', null)])
         vi.mocked(listMedia).mockResolvedValue([])
 
-        render(<MediaLibraryClient />)
+        renderWithLocale(<MediaLibraryClient />)
 
         fireEvent.click(await screen.findByRole('button', {name: /Interviews/}))
         await waitFor(() =>
@@ -514,7 +515,7 @@ describe('MediaLibraryClient', () => {
         vi.mocked(listMedia).mockResolvedValue([])
         vi.mocked(deleteMediaFolder).mockResolvedValue(folder)
 
-        render(<MediaLibraryClient />)
+        renderWithLocale(<MediaLibraryClient />)
 
         fireEvent.click(await screen.findByRole('button', {name: /Interviews/}))
         fireEvent.click(await screen.findByRole('button', {name: 'Löschen'}))
@@ -533,7 +534,7 @@ describe('MediaLibraryClient', () => {
         vi.mocked(listMediaFolders).mockResolvedValue([folder])
         vi.mocked(listMedia).mockResolvedValue([])
 
-        render(<MediaLibraryClient />)
+        renderWithLocale(<MediaLibraryClient />)
 
         fireEvent.click(await screen.findByRole('button', {name: /Interviews/}))
         fireEvent.click(await screen.findByRole('button', {name: 'Löschen'}))
@@ -554,7 +555,7 @@ describe('MediaLibraryClient', () => {
         vi.mocked(listMedia).mockResolvedValue([])
         vi.mocked(renameMediaFolder).mockResolvedValue({...folder, name: 'Neu'})
 
-        render(<MediaLibraryClient />)
+        renderWithLocale(<MediaLibraryClient />)
 
         fireEvent.click(await screen.findByRole('button', {name: /Interviews/}))
         fireEvent.click(await screen.findByRole('button', {name: 'Umbenennen'}))

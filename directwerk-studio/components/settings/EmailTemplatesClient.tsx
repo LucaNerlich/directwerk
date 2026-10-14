@@ -21,6 +21,7 @@ import {getContentEmailTemplate, upsertContentEmailTemplate} from '@/lib/api/ten
 import type {ContentEmailTemplate, ContentEmailTemplateType} from '@directwerk/api/types'
 
 import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
+import {useDictionary} from '@/components/i18n/LocaleProvider'
 
 interface TemplateFormState {
     error: string | null
@@ -32,6 +33,7 @@ const INITIAL_STATE: TemplateFormState = {error: null, success: null}
 const CONTENT_TYPES: ContentEmailTemplateType[] = ['EPISODE', 'ARTICLE']
 
 export default function EmailTemplatesClient(): React.JSX.Element {
+    const dict = useDictionary()
     const router = useRouter()
     const authRedirect = useAuthRequired()
     const [contentType, setContentType] = useState<ContentEmailTemplateType>('EPISODE')
@@ -107,9 +109,9 @@ export default function EmailTemplatesClient(): React.JSX.Element {
     return (
         <PageStack>
             <PageHeader
-                eyebrow="Einstellungen"
+                eyebrow={dict.nav.verwaltung.settings}
                 title="E-Mail-Vorlagen"
-                description="Vorlagen für Benachrichtigungen bei neuen Folgen und Beiträgen (Modul EMAIL_NOTIFY). Platzhalter wie {{title}} werden beim Versand ersetzt."
+                description={dict.settings.vorlagenBenachrichtigungenNeuenFolgenBeitrae}
             />
 
             <div className="grid w-full max-w-xl gap-2">

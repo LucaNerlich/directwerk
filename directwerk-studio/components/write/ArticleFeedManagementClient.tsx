@@ -20,11 +20,13 @@ import type {ArticleFeedAdminView} from '@directwerk/api/types'
 import {useSiteConfig} from '@/lib/site/SiteConfigProvider'
 import {getClientTenantHost} from '@directwerk/api/tenant'
 import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
+import {useDictionary} from '@/components/i18n/LocaleProvider'
 
 /**
  * Renders the article feed management page, including public and subscriber feeds.
  */
 export default function ArticleFeedManagementClient(): React.JSX.Element {
+    const dict = useDictionary()
     const authRedirect = useAuthRequired()
     const config = useSiteConfig()
     const [articleFeeds, setArticleFeeds] = useState<ArticleFeedAdminView[]>([])
@@ -166,8 +168,8 @@ export default function ArticleFeedManagementClient(): React.JSX.Element {
         <PageStack>
             <PageHeader
                 eyebrow="Write · Einrichtung"
-                title="Feeds"
-                description="Teile diese URLs mit Feed-Readern. Der Abonnenten-Feed ist privat und wird über den Feed-Token der Abonnentin bzw. des Abonnenten geschützt."
+                title={dict.nav.podcast.feeds}
+                description={dict.write.feedsShareDescription}
             />
 
             {errorMessage !== null ? (
@@ -189,11 +191,11 @@ export default function ArticleFeedManagementClient(): React.JSX.Element {
 
             {showArticleFeeds ? (
                 <section className="flex flex-col gap-4">
-                    <SectionHeader title="Abonnenten-Feeds" />
+                    <SectionHeader title={dict.common.subscriberFeeds} />
                     {articleFeedItems.length === 0 ? (
                         <EmptyState
-                            description="Ein Feed wird bei der ersten Freischaltung einer Abonnentin bzw. eines Abonnenten automatisch angelegt."
-                            title="Noch keine Abonnenten-Feeds"
+                            description={dict.write.subscriberFeedAutoCreated}
+                            title={dict.write.noSubscriberFeeds}
                         />
                     ) : (
                         <EntityListView

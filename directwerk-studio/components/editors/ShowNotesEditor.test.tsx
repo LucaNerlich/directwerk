@@ -1,4 +1,5 @@
-import {render, screen, waitFor} from '@testing-library/react'
+import {screen, waitFor} from '@testing-library/react'
+import {renderWithLocale} from '@/lib/i18n/testUtils'
 import userEvent from '@testing-library/user-event'
 import {describe, expect, it, vi} from 'vitest'
 
@@ -64,7 +65,7 @@ describe('ShowNotesEditor', () => {
 
     it('does not report a content change when mounted or disabled', async () => {
         const onChange = vi.fn()
-        const {container, rerender} = render(
+        const {container, rerender} = renderWithLocale(
             <ShowNotesEditor onChange={onChange} value="<p>Draft</p>" />,
         )
 
@@ -92,7 +93,7 @@ describe('ShowNotesEditor', () => {
     it('embeds a library image at the cursor', async () => {
         const user = userEvent.setup()
         const onChange = vi.fn()
-        const {container} = render(
+        const {container} = renderWithLocale(
             <ShowNotesEditor onChange={onChange} value="<p>Draft</p>" />,
         )
 
@@ -117,7 +118,7 @@ describe('ShowNotesEditor', () => {
     it('inserts a library audio file as a link', async () => {
         const user = userEvent.setup()
         const onChange = vi.fn()
-        const {container} = render(
+        const {container} = renderWithLocale(
             <ShowNotesEditor onChange={onChange} value="<p>Draft</p>" />,
         )
 
@@ -139,7 +140,7 @@ describe('ShowNotesEditor', () => {
     })
 
     it('hides the media button when insertion is disabled', async () => {
-        const {container} = render(
+        const {container} = renderWithLocale(
             <ShowNotesEditor allowMediaInsert={false} onChange={vi.fn()} value="<p>Draft</p>" />,
         )
 
@@ -152,7 +153,7 @@ describe('ShowNotesEditor', () => {
     })
 
     it('exposes list and quote controls with sensible labels', async () => {
-        const {container} = render(
+        const {container} = renderWithLocale(
             <ShowNotesEditor onChange={vi.fn()} value="<p>Draft</p>" />,
         )
 

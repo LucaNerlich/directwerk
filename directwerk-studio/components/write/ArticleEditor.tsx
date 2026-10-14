@@ -47,11 +47,13 @@ import {getClientTenantHost} from '@directwerk/api/tenant'
 import {articlePublishBlockReason} from '@/lib/write/articlePreflight'
 import {publicArticlePageUrl} from '@directwerk/api/urls/publicContentUrls'
 import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
+import {useDictionary} from '@/components/i18n/LocaleProvider'
 
 /**
  * @param articleId - The identifier of the article to edit; omit to create a new article
  */
 export default function ArticleEditor({articleId}: {articleId?: number}) {
+    const dict = useDictionary()
     const router = useRouter()
     const localize = useLocalizedPath()
     const authRedirect = useAuthRequired()
@@ -535,7 +537,7 @@ export default function ArticleEditor({articleId}: {articleId?: number}) {
                         <CardContent className="flex flex-col gap-3 pt-(--card-spacing)">
                             <SectionHeader
                                 as="h3"
-                                description="Aufmacher für Karten und Beitragsseite."
+                                description={dict.write.coverImageHint}
                                 title="Titelbild"
                             />
                         {heroPreviewUrl !== null ? (
@@ -570,7 +572,7 @@ export default function ArticleEditor({articleId}: {articleId?: number}) {
                         <MediaLibraryPicker
                             assetType="IMAGE"
                             disabled={isSaving || heroUpload.isUploading || readOnly}
-                            label="Titelbild aus Mediathek"
+                            label={dict.podcast.titelbildMediathek}
                             onAuthRequired={handleAuthRequired}
                             onSelect={(asset) => {
                                 setHeroAssetId(asset.id)
@@ -599,7 +601,7 @@ export default function ArticleEditor({articleId}: {articleId?: number}) {
                             <CardContent className="flex flex-col gap-4 pt-(--card-spacing)">
                                 <SectionHeader
                                     as="h3"
-                                    description="Kategorien strukturieren Website und Feeds."
+                                    description={dict.write.categoriesStructureSiteFeeds}
                                     title="Einordnung"
                                 />
                         <FormatCategoryPicker
@@ -620,7 +622,7 @@ export default function ArticleEditor({articleId}: {articleId?: number}) {
                             <CardContent className="flex flex-col gap-3 pt-(--card-spacing)">
                                 <SectionHeader
                                     as="h3"
-                                    description="Angehängte Listen erhalten die E-Mail beim Veröffentlichen."
+                                    description={dict.write.attachedListsNotifyOnPublish}
                                     title="Newsletter"
                                 />
                                 <NewsletterListPicker

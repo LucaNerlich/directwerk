@@ -36,6 +36,7 @@ import type {
 } from '@directwerk/api/types'
 import {getClientTenantHost} from '@directwerk/api/tenant'
 import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
+import {useDictionary} from '@/components/i18n/LocaleProvider'
 
 type WizardStep = 'url' | 'series' | 'formats' | 'episode' | 'done'
 
@@ -43,6 +44,7 @@ type WizardStep = 'url' | 'series' | 'formats' | 'episode' | 'done'
  * Provides a multi-step wizard for importing podcast episodes from an RSS feed.
  */
 export default function RssImportWizard(): React.JSX.Element {
+    const dict = useDictionary()
     const authRedirect = useAuthRequired()
     const authRedirectRef = useRef(authRedirect)
     // Issue #417: writing a ref during render violates the Rules of React and makes the React
@@ -476,9 +478,9 @@ export default function RssImportWizard(): React.JSX.Element {
     return (
         <PageStack>
             <PageHeader
-                eyebrow="Podcast"
-                title="RSS-Import"
-                description="Bestehenden Feed Schritt für Schritt übernehmen: zuerst Sendung und Formate, dann jede Folge einzeln. Audio und Cover werden direkt nach S3 gestreamt."
+                eyebrow={dict.nav.podcast.label}
+                title={dict.common.rssImport}
+                description={dict.podcast.bestehendenFeedSchrittSchrittUebernehmenZue}
             />
 
             <ol className="flex flex-wrap gap-2 text-xs font-medium text-muted-foreground">
@@ -694,7 +696,7 @@ export default function RssImportWizard(): React.JSX.Element {
                 <section className="flex max-w-2xl flex-col gap-4">
                     <SectionHeader
                         title="Formate zuordnen"
-                        description="Diese Formate werden jeder importierten Folge angehängt. Du kannst sie pro Folge noch ändern."
+                        description={dict.podcast.formateJederImportiertenFolgeAngehaengtKann}
                     />
                     {formats.length === 0 ? (
                         <p className="text-sm text-muted-foreground">Noch keine Formate vorhanden.</p>
@@ -761,7 +763,7 @@ export default function RssImportWizard(): React.JSX.Element {
                                 </p>
                             </div>
                             <SelectControl
-                                aria-label="Zugriff für alle Folgen"
+                                aria-label={dict.podcast.zugriffAlleFolgen}
                                 disabled={busy}
                                 onChange={(event) =>
                                     setAccessPolicy(event.target.value === 'PAID' ? 'PAID' : 'FREE')
@@ -979,7 +981,7 @@ export default function RssImportWizard(): React.JSX.Element {
                         />
                     ) : (
                         <SectionHeader
-                            title="Import abgeschlossen"
+                            title={dict.write.importFinished}
                             description={`${importedCount} Folgen importiert, ${alreadyImportedCount} bereits vorhanden, ${skippedCount} übersprungen. Entwürfe kannst du jetzt prüfen und veröffentlichen.`}
                         />
                     )}

@@ -20,8 +20,10 @@ import {
 import {suggestSlug} from '@/lib/api/studioHelpers'
 
 import {useAuthedQuery} from '@directwerk/api/client/useAuthedQuery'
+import {useDictionary} from '@/components/i18n/LocaleProvider'
 
 export default function NewsletterListClient(): React.JSX.Element {
+    const dict = useDictionary()
     const {viewMode, setViewMode} = useListViewMode()
     const {data: lists, error: errorMessage, isLoading, reload} = useAuthedQuery(
         () => listNewsletterLists(),
@@ -70,7 +72,7 @@ export default function NewsletterListClient(): React.JSX.Element {
             <PageHeader
                 eyebrow="Write Desk"
                 title="Newsletter-Listen"
-                description="Empfängerlisten für Beiträge. Beim Veröffentlichen werden aktive Abonnenten der angehängten Listen per E-Mail benachrichtigt."
+                description={dict.write.newsletterListsDescription}
             />
 
             <form
@@ -132,7 +134,7 @@ export default function NewsletterListClient(): React.JSX.Element {
             {lists && lists.length === 0 ? (
                 <EmptyState
                     title="Noch keine Listen"
-                    description="Lege eine Liste an und hänge sie an Beiträge an."
+                    description={dict.write.emptyListsDescription}
                 />
             ) : null}
             {lists && lists.length > 0 ? (

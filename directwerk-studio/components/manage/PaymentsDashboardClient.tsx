@@ -308,7 +308,7 @@ export default function PaymentsDashboardClient(): React.JSX.Element {
                         <li>
                             <StatCard
                                 hint="Summe aller aktiven Preise, auf den Monat gerechnet"
-                                label="Geschätzter Monatswert"
+                                label={dict.manage.geschaetzterMonatswert}
                                 value={formatMoney(
                                     dashboard.stats.estimatedMonthlyCents,
                                     dashboard.stats.currency,
@@ -318,7 +318,7 @@ export default function PaymentsDashboardClient(): React.JSX.Element {
                         <li>
                             <StatCard
                                 hint="Benötigen deine Aufmerksamkeit — Zahlung fehlgeschlagen"
-                                label="Zahlungsrückstand"
+                                label={dict.manage.zahlungsrueckstand}
                                 value={dashboard.stats.pastDueSubscriptions}
                             />
                         </li>

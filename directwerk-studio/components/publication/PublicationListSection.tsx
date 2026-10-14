@@ -15,6 +15,7 @@ import PublicationStatusBadge from '@/components/publication/PublicationStatusBa
 import TagPill from '@/components/publication/TagPill'
 import {isBulkPublicationStatus} from '@/lib/publication/publicationBulkEligibility'
 import type {PublicationStatus} from '@directwerk/api/types'
+import {useDictionary} from '@/components/i18n/LocaleProvider'
 
 export interface PublicationListItem {
     id: number
@@ -268,6 +269,7 @@ function toEntityItems<T extends PublicationListItem>({
 export default function PublicationListSection<T extends PublicationListItem>(
     props: PublicationListSectionProps<T>,
 ): React.JSX.Element {
+    const dict = useDictionary()
     const {
         allSelected,
         contentLabelPlural,
@@ -339,7 +341,7 @@ export default function PublicationListSection<T extends PublicationListItem>(
                             className="sm:max-w-xs"
                             id={searchInputId}
                             onChange={(event) => setQuery(event.target.value)}
-                            placeholder="Titel, Slug oder Kategorie suchen…"
+                            placeholder={dict.publication.titelSlugKategorieSuchen}
                             type="search"
                             value={query}
                         />
@@ -363,7 +365,7 @@ export default function PublicationListSection<T extends PublicationListItem>(
             ) : null}
             {visibleItems.length === 0 && normalizedQuery.length > 0 ? (
                 <EmptyState
-                    description="Passe den Suchbegriff an oder setze die Suche zurück, um alle Einträge zu sehen."
+                    description={dict.publication.passeSuchbegriffSetzeSucheZurueckAlle}
                     title="Keine Treffer"
                     action={
                         <Button

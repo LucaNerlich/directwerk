@@ -10,6 +10,7 @@ import SectionHeader from '@directwerk/ui/components/section-header'
 import DeletePublicationDialog, {
     type DeletePublicationItem,
 } from '@/components/publication/DeletePublicationDialog'
+import {useDictionary} from '@/components/i18n/LocaleProvider'
 
 /**
  * Danger zone for the episode/article editors: delete with the shared
@@ -30,6 +31,7 @@ export default function PublicationDangerZone({
     onDelete: (id: number) => Promise<void>
     onDeleted: () => void
 }): React.JSX.Element | null {
+    const dict = useDictionary()
     const [dialogOpen, setDialogOpen] = useState(false)
     const [pending, setPending] = useState(false)
     const [errorMessage, setErrorMessage] = useState<string | null>(null)
@@ -65,7 +67,7 @@ export default function PublicationDangerZone({
             <Card className="border-destructive/40">
                 <CardContent className="flex flex-col gap-3 pt-(--card-spacing)">
                     <SectionHeader
-                        description="Endgültig und unwiderruflich — incl. aller Veröffentlichungen im Feed."
+                        description={dict.publication.endgueltigUnwiderruflichInclAllerVeroeffentl}
                         id="publication-danger-zone-heading"
                         title="Gefahrenzone"
                     />

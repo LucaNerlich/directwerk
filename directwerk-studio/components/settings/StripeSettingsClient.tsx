@@ -20,6 +20,7 @@ import type {StripeStatus} from '@directwerk/api/types'
 
 import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
 import {safeLinkHref} from '@/lib/url/safeUrl'
+import {useDictionary} from '@/components/i18n/LocaleProvider'
 
 function stripeStatusLabel(status: string): string {
     switch (status) {
@@ -41,6 +42,7 @@ function booleanLabel(value: boolean, positive = 'Ja', negative = 'Nein'): strin
 }
 
 export default function StripeSettingsClient(): React.JSX.Element {
+    const dict = useDictionary()
     const router = useRouter()
     const localize = useLocalizedPath()
     const authRedirect = useAuthRequired()
@@ -101,9 +103,9 @@ export default function StripeSettingsClient(): React.JSX.Element {
         return (
             <PageStack>
                 <PageHeader
-                    eyebrow="Einstellungen"
+                    eyebrow={dict.nav.verwaltung.settings}
                     title="Stripe"
-                    description="Verbinde dein Stripe-Konto, damit Hörerinnen und Hörer Mitgliedschaften und Einmalkäufe bezahlen können."
+                    description={dict.settings.verbindeStripeKontoDamitHoererinnenHoerer}
                 />
                 <p className="text-sm text-muted-foreground" role="status">Wird geladen…</p>
                 <Skeleton className="h-40 w-full max-w-2xl" />
@@ -155,9 +157,9 @@ export default function StripeSettingsClient(): React.JSX.Element {
     return (
         <PageStack>
             <PageHeader
-                eyebrow="Einstellungen"
+                eyebrow={dict.nav.verwaltung.settings}
                 title="Stripe"
-                description="Verbinde dein Stripe-Konto, damit Hörerinnen und Hörer Mitgliedschaften und Einmalkäufe bezahlen können."
+                description={dict.settings.verbindeStripeKontoDamitHoererinnenHoerer}
             />
 
             {errorMessage !== null ? (
@@ -176,7 +178,7 @@ export default function StripeSettingsClient(): React.JSX.Element {
                     <SectionHeader
                         id="stripe-status-heading"
                         title="Verbindungsstatus"
-                        description="Erst wenn Zahlungen möglich sind, können Käufe über den Checkout laufen."
+                        description={dict.settings.erstWennZahlungenMoeglichKaeufeCheckout}
                     />
                 <EntityListView items={statusItems} viewMode="list" />
                 </section>

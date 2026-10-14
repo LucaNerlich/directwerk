@@ -27,6 +27,7 @@ import type {
     UpdateCategoryInput,
 } from '@directwerk/api/types'
 import {useResourceEditor} from '@/lib/hooks/useResourceEditor'
+import {useDictionary} from '@/components/i18n/LocaleProvider'
 
 interface CategoryEditorProps {
     categoryId?: number
@@ -58,6 +59,7 @@ function parseOptionalId(value: string): number | undefined {
 }
 
 export default function CategoryEditor({categoryId}: CategoryEditorProps): React.JSX.Element {
+    const dict = useDictionary()
     const {
         entity: category,
         entities: categories,
@@ -114,7 +116,7 @@ export default function CategoryEditor({categoryId}: CategoryEditorProps): React
                 <PageHeader
                     eyebrow="Organisation"
                     title={isNew ? 'Neue Kategorie' : 'Kategorie bearbeiten'}
-                    description="Themen-Tags für Folgen und Beiträge — getrennt von Podcast-Formaten."
+                    description={dict.manage.themenTagsFolgenBeitraegeGetrenntPodcast}
                 />
                 <p className="text-sm text-muted-foreground" role="status">Laden…</p>
                 <Skeleton className="h-64 w-full max-w-xl" />
@@ -146,7 +148,7 @@ export default function CategoryEditor({categoryId}: CategoryEditorProps): React
             <PageHeader
                 eyebrow="Organisation"
                 title={isNew ? 'Neue Kategorie' : 'Kategorie bearbeiten'}
-                description="Themen-Tags für Folgen und Beiträge — getrennt von Podcast-Formaten."
+                description={dict.manage.themenTagsFolgenBeitraegeGetrenntPodcast}
                 actions={
                     <Button nativeButton={false} render={<LocaleLink href="/manage/categories" />} variant="outline">
                         Zurück zur Liste
