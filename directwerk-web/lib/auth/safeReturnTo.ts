@@ -43,6 +43,12 @@ export function safeReturnTo(
     }
 
     const path = trimmed.split(/[?#]/)[0] ?? trimmed
+    // Issue #431: the allowlist ran on the raw path, so '/de/account/../../evil' passed the
+    // '/de/account' prefix check and the browser then resolved it to '/de/evil'. Reject any path
+    // containing a dot-segment before consulting the allowlist.
+    if (path.split('/').some(segment => segment === '..' || segment === '.')) {
+        return fallbackLocalized
+    }
     const barePath = stripLocalePrefix(path)
     const allowed = ALLOWED_PREFIXES.some(
         (prefix) => barePath === prefix || barePath.startsWith(`${prefix}/`),

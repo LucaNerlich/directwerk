@@ -1,4 +1,5 @@
 import {jsonError, parseBearerAuthorization} from '@directwerk/api/server'
+import {resolvePlatformAuthorization} from '@/lib/server/platform'
 
 import {performTenantMediaUpload} from '@/lib/server/mediaUpload'
 
@@ -80,12 +81,12 @@ export async function POST(
     request: Request,
     context: RouteContext
 ): Promise<Response> {
-    const authorization = parseBearerAuthorization(
-        request.headers.get('authorization')
-    )
-
-    if (!authorization) {
-        return jsonError('Authentication required.', 401)
+    // Issue #346: the syntactic bearer check below passes for any 'Bearer ...' string, so an
+    // unauthenticated caller could make the server buffer a 10 MB multipart body before
+    // performTenantMediaUpload resolved the real platform session. Resolve that first.
+    const platformAuth = await resolvePlatformAuthorization()
+    if (!platformAuth.ok) {
+        return jsonError('Authentication required.', platformAuth.status)
     }
 
     const {id: tenantId} = await context.params
