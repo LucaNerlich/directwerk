@@ -7494,7 +7494,10 @@ export interface operations {
     };
     listTenants: {
         parameters: {
-            query?: never;
+            query?: {
+                page?: number;
+                size?: number;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -10741,7 +10744,10 @@ export interface operations {
     };
     listAdmins: {
         parameters: {
-            query?: never;
+            query?: {
+                page?: number;
+                size?: number;
+            };
             header?: never;
             path?: never;
             cookie?: never;

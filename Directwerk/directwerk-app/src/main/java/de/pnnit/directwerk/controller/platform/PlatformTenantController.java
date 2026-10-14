@@ -9,17 +9,12 @@ import de.pnnit.directwerk.modules.core.service.TenantBrandingService;
 import de.pnnit.directwerk.modules.core.service.TenantDomainService;
 import de.pnnit.directwerk.modules.core.service.TenantInvitationService;
 import de.pnnit.directwerk.modules.core.service.TenantManagementService;
+import de.pnnit.directwerk.modules.core.service.TenantManagementService.TenantPage;
 import de.pnnit.directwerk.modules.core.service.TenantManagementService.TenantCreationResult;
 import de.pnnit.directwerk.modules.core.service.TenantManagementService.TenantDetailView;
 import de.pnnit.directwerk.modules.core.service.TenantManagementService.TenantListItemView;
 import de.pnnit.directwerk.modules.core.service.TenantUploadLimits;
-import jakarta.validation.Valid;
-import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.Max;
-import jakarta.validation.constraints.Min;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Pattern;
-import jakarta.validation.constraints.Size;
+import java.util.Map;
 import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -30,10 +25,20 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.RestController;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Size;
 
 @RestController
+@Validated
 @PreAuthorize("hasRole('PLATFORM_ADMIN')")
 @RequestMapping("/api/v1/platform/tenants")
 public class PlatformTenantController {
@@ -58,10 +63,29 @@ public class PlatformTenantController {
         this.platformTenantStatsService = platformTenantStatsService;
     }
 
+    /**
+     * Lists one page of tenants.
+     *
+     * <p>Previously the first 1000 tenants with no way to page further (#438).
+     *
+     * @param page zero-based page index
+     * @param size page size, 1-100
+     * @return the page of tenants, with paging metadata in the envelope
+     */
     @GetMapping
-    ResponseEntity<Response<TenantListResponse>> listTenants() {
-        List<TenantListItemView> tenants = tenantManagementService.listTenants();
-        return ResponseEntity.ok(Response.ok(new TenantListResponse(tenants)));
+    ResponseEntity<Response<TenantListResponse>> listTenants(
+            @RequestParam(defaultValue = "0") @Min(0) int page,
+            @RequestParam(defaultValue = "50") @Min(1) @Max(100) int size
+    ) {
+        TenantPage tenantPage = tenantManagementService.listTenants(page, size);
+        return ResponseEntity.ok(Response.ok(
+                new TenantListResponse(tenantPage.content()),
+                Map.of(
+                        "page", tenantPage.page(),
+                        "size", tenantPage.size(),
+                        "totalElements", tenantPage.totalElements()
+                )
+        ));
     }
 
     @PostMapping

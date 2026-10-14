@@ -1,5 +1,7 @@
 'use client'
 
+import {useState} from 'react'
+
 import {Alert, AlertDescription} from '@directwerk/ui/components/alert'
 import EmptyState from '@directwerk/ui/components/empty-state'
 import {EntityListSection} from '@directwerk/ui/components/entity-list-section'
@@ -11,22 +13,35 @@ import {useListViewMode} from '@directwerk/ui/hooks/use-list-view-mode'
 import InvitePlatformAdminForm from '@/components/InvitePlatformAdminForm'
 import {AdminLoadingText, TableSkeleton} from '@/components/AdminLoading'
 import RevokeAdminButton from '@/components/RevokeAdminButton'
-import {getPlatformData} from '@/lib/api/client'
+import {getPlatformAdminsPage} from '@/lib/api/client'
 import {usePlatformQuery} from '@/lib/api/usePlatformQuery'
-import type {PlatformAdmin} from '@directwerk/api/types'
 import {Button} from '@directwerk/ui/components/button'
 
+const PAGE_SIZE = 25
+
 export default function PlatformAdminsPage() {
-    const {data: admins, error, reload: loadAdmins} = usePlatformQuery(
-        () => getPlatformData<PlatformAdmin[]>('admins'),
-        {fallbackError: 'Could not load platform admins.'},
-    )
+    const [page, setPage] = useState(0)
+    const {
+        data: adminsPage,
+        error,
+        isLoading,
+        reload: loadAdmins,
+    } = usePlatformQuery(() => getPlatformAdminsPage(page, PAGE_SIZE), {
+        fallbackError: 'Could not load platform admins.',
+        queryKey: String(page),
+    })
     const {viewMode, setViewMode} = useListViewMode()
 
+    const admins = adminsPage?.content ?? null
+    // Judged against the whole estate, not the current page — with paging, a page holding one
+    // admin is not the same as the platform having only one admin (#438).
+    const isLastAdmin = adminsPage !== null && adminsPage.totalElements <= 1
+    const hasPreviousPage = adminsPage !== null && adminsPage.page > 0
+    const hasNextPage =
+        adminsPage !== null && (adminsPage.page + 1) * adminsPage.size < adminsPage.totalElements
+
     const adminItems: EntityListViewItem[] =
-        admins?.map((admin) => {
-            const isLastAdmin = admins.length <= 1
-            return {
+        admins?.map((admin) => ({
             id: admin.userId,
             title: admin.name ?? admin.email,
             description: admin.name !== null ? admin.email : undefined,
@@ -39,16 +54,13 @@ export default function PlatformAdminsPage() {
                 <RevokeAdminButton
                     disabled={isLastAdmin}
                     disabledReason={
-                        isLastAdmin
-                            ? 'Cannot revoke the last platform admin.'
-                            : null
+                        isLastAdmin ? 'Cannot revoke the last platform admin.' : null
                     }
                     onRevoked={loadAdmins}
                     userId={admin.userId}
                 />
             ),
-            }
-        }) ?? []
+        })) ?? []
 
     return (
         <PageStack>
@@ -94,6 +106,34 @@ export default function PlatformAdminsPage() {
                             title="No platform admins"
                         />
                     )}
+                    {!error && !isLoading && adminsPage ? (
+                        <>
+                            <p aria-live="polite" className="text-sm text-muted-foreground">
+                                Showing {adminsPage.content.length} of {adminsPage.totalElements}{' '}
+                                admins (page {adminsPage.page + 1}, size {adminsPage.size}).
+                            </p>
+                            <div className="flex flex-wrap items-center gap-2">
+                                <Button
+                                    aria-label="Previous platform admin page"
+                                    disabled={!hasPreviousPage}
+                                    onClick={() => setPage((current) => Math.max(0, current - 1))}
+                                    type="button"
+                                    variant="outline"
+                                >
+                                    Previous page
+                                </Button>
+                                <Button
+                                    aria-label="Next platform admin page"
+                                    disabled={!hasNextPage}
+                                    onClick={() => setPage((current) => current + 1)}
+                                    type="button"
+                                    variant="outline"
+                                >
+                                    Next page
+                                </Button>
+                            </div>
+                        </>
+                    ) : null}
                     <InvitePlatformAdminForm onInvited={loadAdmins} />
                 </>
             ) : null}

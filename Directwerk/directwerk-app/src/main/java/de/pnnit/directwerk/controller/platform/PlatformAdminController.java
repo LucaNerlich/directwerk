@@ -4,10 +4,9 @@ import de.pnnit.directwerk.api.response.Response;
 import de.pnnit.directwerk.config.DirectwerkConfig;
 import de.pnnit.directwerk.modules.core.service.PlatformAdminManagementService;
 import de.pnnit.directwerk.modules.core.service.PlatformAdminManagementService.PlatformAdminInvitation;
+import de.pnnit.directwerk.modules.core.service.PlatformAdminManagementService.AdminPage;
 import de.pnnit.directwerk.modules.core.service.PlatformAdminManagementService.PlatformAdminView;
-import jakarta.validation.Valid;
-import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.NotBlank;
+import java.util.Map;
 import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -17,10 +16,18 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.RestController;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotBlank;
 
 @RestController
+@Validated
 @PreAuthorize("hasRole('PLATFORM_ADMIN')")
 @RequestMapping("/api/v1/platform/admins")
 public class PlatformAdminController {
@@ -43,13 +50,28 @@ public class PlatformAdminController {
     }
 
     /**
-     * Lists all platform administrators.
+     * Lists one page of platform administrators.
      *
-     * @return the platform administrators
+     * <p>Was unbounded — every admin in a single response (#438).
+     *
+     * @param page zero-based page index
+     * @param size page size, 1-100
+     * @return the page of administrators, with paging metadata in the envelope
      */
     @GetMapping
-    ResponseEntity<Response<List<PlatformAdminView>>> listAdmins() {
-        return ResponseEntity.ok(Response.ok(platformAdminManagementService.listAdmins()));
+    ResponseEntity<Response<List<PlatformAdminView>>> listAdmins(
+            @RequestParam(defaultValue = "0") @Min(0) int page,
+            @RequestParam(defaultValue = "50") @Min(1) @Max(100) int size
+    ) {
+        AdminPage admins = platformAdminManagementService.listAdmins(page, size);
+        return ResponseEntity.ok(Response.ok(
+                admins.content(),
+                Map.of(
+                        "page", admins.page(),
+                        "size", admins.size(),
+                        "totalElements", admins.totalElements()
+                )
+        ));
     }
 
     /**

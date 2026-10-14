@@ -3,7 +3,7 @@
 ### Accept invite via 03-auth.http using inviteToken
 
 ### @name listPlatformAdmins
-GET {{baseUrl}}/api/v1/platform/admins
+GET {{baseUrl}}/api/v1/platform/admins?page=0&size=100
 Authorization: Bearer {{platformAccessToken}}
 Accept: application/json
 
@@ -11,6 +11,11 @@ Accept: application/json
     client.test("List platform admins", function() {
         client.assert(response.status === 200, "Expected 200");
         client.assert(Array.isArray(response.body.data), "Expected admin array");
+        // #438: paged, and no longer unbounded.
+        client.assert(response.body.metadata.page === 0, "Expected page metadata");
+        client.assert(response.body.metadata.size === 100, "Expected size metadata");
+        client.assert(typeof response.body.metadata.totalElements === "number",
+            "Expected totalElements metadata");
         client.assert(response.body.data.some(a => a.email === client.global.get("platformAdminEmail")),
             "Expected seeded platform admin");
     });

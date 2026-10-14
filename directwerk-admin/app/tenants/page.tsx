@@ -1,5 +1,7 @@
 'use client'
 
+import {useState} from 'react'
+
 import {Alert, AlertDescription} from '@directwerk/ui/components/alert'
 import {Button} from '@directwerk/ui/components/button'
 import EmptyState from '@directwerk/ui/components/empty-state'
@@ -10,15 +12,27 @@ import SectionHeader from '@directwerk/ui/components/section-header'
 import {AdminLoadingText, TableSkeleton} from '@/components/AdminLoading'
 import CreateTenantForm from '@/components/CreateTenantForm'
 import TenantListTable from '@/components/TenantListTable'
-import {getPlatformData} from '@/lib/api/client'
+import {getPlatformTenantsPage} from '@/lib/api/client'
 import {usePlatformQuery} from '@/lib/api/usePlatformQuery'
-import type {TenantList} from '@directwerk/api/types'
+
+const PAGE_SIZE = 25
 
 export default function TenantsPage(): React.JSX.Element {
-    const {data: tenants, error, reload: reloadTenants} = usePlatformQuery(
-        () => getPlatformData<TenantList>('tenants').then((result) => result.content ?? []),
-        {fallbackError: 'Could not load tenants.'},
-    )
+    const [page, setPage] = useState(0)
+    const {
+        data: tenantsPage,
+        error,
+        isLoading,
+        reload: reloadTenants,
+    } = usePlatformQuery(() => getPlatformTenantsPage(page, PAGE_SIZE), {
+        fallbackError: 'Could not load tenants.',
+        queryKey: String(page),
+    })
+
+    const tenants = tenantsPage?.content ?? null
+    const hasPreviousPage = tenantsPage !== null && tenantsPage.page > 0
+    const hasNextPage =
+        tenantsPage !== null && (tenantsPage.page + 1) * tenantsPage.size < tenantsPage.totalElements
 
     return (
         <PageStack>
@@ -50,14 +64,44 @@ export default function TenantsPage(): React.JSX.Element {
             ) : null}
 
             {tenants ? (
-                tenants.length > 0 ? (
-                    <TenantListTable tenants={tenants} />
-                ) : (
-                    <EmptyState
-                        description="Create the first tenant to begin."
-                        title="No tenants yet"
-                    />
-                )
+                <>
+                    {tenants.length > 0 ? (
+                        <TenantListTable tenants={tenants} />
+                    ) : (
+                        <EmptyState
+                            description="Create the first tenant to begin."
+                            title="No tenants yet"
+                        />
+                    )}
+                    {!error && !isLoading && tenantsPage ? (
+                        <>
+                            <p aria-live="polite" className="text-sm text-muted-foreground">
+                                Showing {tenantsPage.content.length} of {tenantsPage.totalElements}{' '}
+                                tenants (page {tenantsPage.page + 1}, size {tenantsPage.size}).
+                            </p>
+                            <div className="flex flex-wrap items-center gap-2">
+                                <Button
+                                    aria-label="Previous tenant page"
+                                    disabled={!hasPreviousPage}
+                                    onClick={() => setPage((current) => Math.max(0, current - 1))}
+                                    type="button"
+                                    variant="outline"
+                                >
+                                    Previous page
+                                </Button>
+                                <Button
+                                    aria-label="Next tenant page"
+                                    disabled={!hasNextPage}
+                                    onClick={() => setPage((current) => current + 1)}
+                                    type="button"
+                                    variant="outline"
+                                >
+                                    Next page
+                                </Button>
+                            </div>
+                        </>
+                    ) : null}
+                </>
             ) : null}
 
             <SectionHeader

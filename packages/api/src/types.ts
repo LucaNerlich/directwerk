@@ -1283,6 +1283,14 @@ export interface TenantList {
     content: Tenant[]
 }
 
+/** Paginated tenant list for the platform admin surface (#438). */
+export interface TenantListPage {
+    content: Tenant[]
+    totalElements: number
+    page: number
+    size: number
+}
+
 export interface TenantModuleActivation {
     moduleKey: string
     active: boolean
@@ -1333,6 +1341,14 @@ export interface PlatformAdmin {
     email: string
     name: string | null
     lastLoginAt: string | null
+}
+
+/** Paginated platform admin list (#438). */
+export interface PlatformAdminPage {
+    content: PlatformAdmin[]
+    totalElements: number
+    page: number
+    size: number
 }
 
 export interface InvitePlatformAdminResponse {

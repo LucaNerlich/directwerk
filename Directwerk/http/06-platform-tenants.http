@@ -2,7 +2,7 @@
 ### Prerequisites: 02-oauth2.http (platformAccessToken)
 
 ### @name listTenants
-GET {{baseUrl}}/api/v1/platform/tenants
+GET {{baseUrl}}/api/v1/platform/tenants?page=0&size=100
 Authorization: Bearer {{platformAccessToken}}
 Accept: application/json
 
@@ -10,6 +10,11 @@ Accept: application/json
     client.test("List tenants", function() {
         client.assert(response.status === 200, "Expected 200");
         client.assert(Array.isArray(response.body.data.content), "Expected data.content");
+        // #438: paged instead of a silent 1000-row truncation.
+        client.assert(response.body.metadata.page === 0, "Expected page metadata");
+        client.assert(response.body.metadata.size === 100, "Expected size metadata");
+        client.assert(typeof response.body.metadata.totalElements === "number",
+            "Expected totalElements metadata");
         const tenants = response.body.data.content;
         const tenantA = tenants.find(t => t.slug === "alpha-show-a");
         const tenantB = tenants.find(t => t.slug === "alpha-show-b");
