@@ -9,6 +9,7 @@ import de.pnnit.directwerk.modules.core.authorization.ContentOperation;
 import de.pnnit.directwerk.modules.core.authorization.EffectiveAccess;
 import de.pnnit.directwerk.modules.core.authorization.RestrictionScope;
 import de.pnnit.directwerk.modules.core.entity.MembershipPermissionOverride;
+import de.pnnit.directwerk.modules.core.exception.ContentAccessDeniedException;
 import de.pnnit.directwerk.modules.core.entity.TenantMembership;
 import de.pnnit.directwerk.modules.core.repository.MembershipPermissionOverrideRepository;
 import de.pnnit.directwerk.modules.core.repository.TenantMembershipRepository;
@@ -16,11 +17,14 @@ import de.pnnit.directwerk.modules.core.repository.TenantRepository;
 import de.pnnit.directwerk.security.DirectwerkUserPrincipal;
 import de.pnnit.directwerk.security.SecurityUtils;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.stereotype.Service;
@@ -98,10 +102,30 @@ public class MembershipPermissionService {
     /**
      * Returns a checker bound to one entity type. Services store it once
      * instead of repeating the ambient-principal plumbing per operation.
+     *
+     * <p><b>Fails closed (issue #303).</b> The gate requires an authenticated principal. It
+     * previously resolved {@link SecurityUtils#currentPrincipal()}, which is {@code null} outside a
+     * security context — and {@link #requireContentAccess} treats a null principal as a trusted
+     * system path — so the gate silently allowed whenever the servlet layer had not populated the
+     * context, turning any regression there into an authorization bypass.
+     *
+     * <p>Trusted background paths do not go through the gates: the Quartz scheduled-publish
+     * executors use {@link #isDeniedForOwner}, and deliberate system writes use the explicit
+     * {@link #requireContentAccess(DirectwerkUserPrincipal, ContentEntityType, ContentOperation,
+     * Long)} overload.
      */
     public ContentAccessGate gateFor(ContentEntityType entity) {
-        return (operation, ownerUserId) -> requireContentAccess(
-                SecurityUtils.currentPrincipal(), entity, operation, ownerUserId);
+        return (operation, ownerUserId) -> {
+            DirectwerkUserPrincipal principal = SecurityUtils.currentPrincipal();
+            if (principal == null) {
+                throw new ContentAccessDeniedException(
+                        ContentAccessDeniedException.OPERATION_DENIED_BY_POLICY,
+                        entity.name(),
+                        operation.name(),
+                        "Authentication is required for " + entity + " / " + operation);
+            }
+            requireContentAccess(principal, entity, operation, ownerUserId);
+        };
     }
 
     /** Convenience gates per content entity; all delegate to {@link #gateFor}. */
@@ -141,19 +165,42 @@ public class MembershipPermissionService {
                 .orElseThrow(() -> new TenantMembershipNotFoundException(tenantId, targetUserId));
         List<MembershipPermissionOverride> overrides =
                 overrideRepository.findByTenantIdAndUserId(tenantId, targetUserId);
-        DirectwerkUserPrincipal principal = new DirectwerkUserPrincipal(
+        DirectwerkUserPrincipal principal = principalFor(membership, tenantId);
+        return new MemberRights(
                 targetUserId,
+                membership.getRoles().stream().map(Enum::name).sorted().toList(),
+                overrides,
+                AuthorizationService.effectiveRights(principal, new HashSet<>(overrides)));
+    }
+
+    /**
+     * Reconstructs the security principal of a tenant member from their membership roles (issue
+     * #303). Non-HTTP callers that run user-attributed work — the bulk RSS import jobs, which
+     * execute in a queue worker thread on behalf of the editor who requested the import — bind this
+     * identity so the fail-closed RBAC gate evaluates the requester's rights instead of denying an
+     * unauthenticated run.
+     *
+     * @return the member's principal, or empty when the user is not a member of the tenant
+     */
+    @Transactional(readOnly = true)
+    public Optional<DirectwerkUserPrincipal> principalForMember(Long tenantId, Long userId) {
+        if (tenantId == null || userId == null) {
+            return Optional.empty();
+        }
+        return tenantMembershipRepository
+                .findByTenantIdAndUserId(tenantId, userId)
+                .map(membership -> principalFor(membership, tenantId));
+    }
+
+    private static DirectwerkUserPrincipal principalFor(TenantMembership membership, Long tenantId) {
+        return new DirectwerkUserPrincipal(
+                membership.getUser().getId(),
                 membership.getUser().getEmail(),
                 "",
                 tenantId,
                 membership.getRoles().stream()
                         .map(role -> new SimpleGrantedAuthority("ROLE_" + role.name()))
                         .toList());
-        return new MemberRights(
-                targetUserId,
-                membership.getRoles().stream().map(Enum::name).sorted().toList(),
-                overrides,
-                AuthorizationService.effectiveRights(principal, new HashSet<>(overrides)));
     }
 
     /**
@@ -167,7 +214,7 @@ public class MembershipPermissionService {
      *         membership are omitted (the single-member variant throws instead)
      */
     @Transactional(readOnly = true)
-    public List<MemberRights> effectiveRightsForMembers(Long tenantId, java.util.Collection<Long> userIds) {
+    public List<MemberRights> effectiveRightsForMembers(Long tenantId, Collection<Long> userIds) {
         if (userIds == null || userIds.isEmpty()) {
             return List.of();
         }
@@ -177,17 +224,17 @@ public class MembershipPermissionService {
         Map<Long, TenantMembership> memberships = tenantMembershipRepository
                 .findByTenantIdAndUserIdIn(tenantId, ids)
                 .stream()
-                .collect(java.util.stream.Collectors.toMap(
+                .collect(Collectors.toMap(
                         membership -> membership.getUser().getId(),
                         membership -> membership,
                         (first, second) -> first));
         Map<Long, List<MembershipPermissionOverride>> overridesByUser = overrideRepository
                 .findByTenantIdAndUserIdIn(tenantId, ids)
                 .stream()
-                .collect(java.util.stream.Collectors.groupingBy(
+                .collect(Collectors.groupingBy(
                         override -> override.getMembership().getUser().getId()));
 
-        List<MemberRights> rights = new java.util.ArrayList<>();
+        List<MemberRights> rights = new ArrayList<>();
         for (Long userId : ids) {
             TenantMembership membership = memberships.get(userId);
             if (membership == null) {
@@ -195,14 +242,7 @@ public class MembershipPermissionService {
             }
             List<MembershipPermissionOverride> overrides =
                     overridesByUser.getOrDefault(userId, List.of());
-            DirectwerkUserPrincipal principal = new DirectwerkUserPrincipal(
-                    userId,
-                    membership.getUser().getEmail(),
-                    "",
-                    tenantId,
-                    membership.getRoles().stream()
-                            .map(role -> new SimpleGrantedAuthority("ROLE_" + role.name()))
-                            .toList());
+            DirectwerkUserPrincipal principal = principalFor(membership, tenantId);
             rights.add(new MemberRights(
                     userId,
                     membership.getRoles().stream().map(Enum::name).sorted().toList(),

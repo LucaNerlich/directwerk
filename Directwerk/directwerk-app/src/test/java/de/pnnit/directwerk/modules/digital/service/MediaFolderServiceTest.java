@@ -94,6 +94,7 @@ class MediaFolderServiceTest {
                 .thenAnswer(invocation -> invocation.getArgument(0));
         stubAdvisoryLock();
         SecurityContextHolder.clearContext();
+        authenticate(10L, 5L, Role.EDITOR);
     }
 
     @AfterEach

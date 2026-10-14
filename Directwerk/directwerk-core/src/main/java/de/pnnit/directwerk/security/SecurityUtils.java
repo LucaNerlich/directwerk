@@ -2,8 +2,11 @@ package de.pnnit.directwerk.security;
 
 import de.pnnit.directwerk.multitenancy.PlatformTenantAccessDeniedException;
 import de.pnnit.directwerk.multitenancy.TenantMismatchException;
+import java.util.function.Supplier;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 
 /**
@@ -78,5 +81,50 @@ public final class SecurityUtils {
     public static Long currentUserId() {
         DirectwerkUserPrincipal principal = currentPrincipal();
         return principal != null ? principal.userId() : null;
+    }
+
+    /**
+     * Runs {@code action} with {@code principal} bound as the authenticated user (issue #303).
+     *
+     * <p>For trusted non-HTTP callers that execute work on a user's behalf and therefore must be
+     * authorized as that user rather than as nobody: the bulk RSS import jobs, which run in a queue
+     * worker thread and import on behalf of the editor who requested the import. Because the RBAC
+     * gate fails closed, such a caller has to bind an identity explicitly instead of relying on an
+     * unauthenticated context being treated as a trusted system path.
+     *
+     * <p>The ambient context is restored afterwards, so an identity bound here never leaks into the
+     * next job a pooled worker thread picks up.
+     *
+     * @param principal the identity to bind; must not be {@code null}
+     * @param action the work to run as that identity
+     * @return whatever {@code action} returns
+     */
+    public static <T> T callAs(DirectwerkUserPrincipal principal, Supplier<T> action) {
+        if (principal == null) {
+            throw new IllegalArgumentException("callAs requires a principal");
+        }
+        SecurityContext previous = SecurityContextHolder.getContext();
+        try {
+            SecurityContext context = SecurityContextHolder.createEmptyContext();
+            context.setAuthentication(new UsernamePasswordAuthenticationToken(
+                    principal, null, principal.getAuthorities()));
+            SecurityContextHolder.setContext(context);
+            return action.get();
+        } finally {
+            SecurityContextHolder.setContext(previous);
+        }
+    }
+
+    /**
+     * {@link #callAs(DirectwerkUserPrincipal, Supplier)} for a void action.
+     *
+     * @param principal the identity to bind; must not be {@code null}
+     * @param action the work to run as that identity
+     */
+    public static void runAs(DirectwerkUserPrincipal principal, Runnable action) {
+        callAs(principal, () -> {
+            action.run();
+            return null;
+        });
     }
 }

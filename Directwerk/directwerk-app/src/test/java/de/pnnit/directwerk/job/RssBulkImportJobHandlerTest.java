@@ -20,13 +20,18 @@ import de.pnnit.directwerk.modules.podcast.service.PodcastImportService;
 import de.pnnit.directwerk.modules.queue.JobStatus;
 import de.pnnit.directwerk.modules.queue.QueueJob;
 import de.pnnit.directwerk.modules.queue.QueueNames;
+import de.pnnit.directwerk.security.DirectwerkUserPrincipal;
+import de.pnnit.directwerk.security.SecurityUtils;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import tools.jackson.databind.ObjectMapper;
 
 class RssBulkImportJobHandlerTest {
@@ -34,8 +39,14 @@ class RssBulkImportJobHandlerTest {
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final PodcastImportService podcastImportService = mock(PodcastImportService.class);
     private final TransactionalEmailService emailService = mock(TransactionalEmailService.class);
-    private final RssBulkImportJobHandler handler =
-            new RssBulkImportJobHandler(objectMapper, podcastImportService, emailService);
+    private final ImportRequesterResolver requesterResolver = mock(ImportRequesterResolver.class);
+    private final RssBulkImportJobHandler handler = new RssBulkImportJobHandler(
+            objectMapper, podcastImportService, emailService, requesterResolver);
+
+    @BeforeEach
+    void stubRequester() {
+        when(requesterResolver.requireRequester(any(), any(), any())).thenReturn(requester());
+    }
 
     @Test
     void importsNewEpisodesSkipsImportedAndEmailsSummary() {
@@ -54,7 +65,8 @@ class RssBulkImportJobHandlerTest {
                 true,
                 true,
                 "editor@example.com",
-                "Eddie"
+                "Eddie",
+                7L
         )));
 
         var commands = ArgumentCaptor.forClass(PodcastImportService.ImportEpisodeCommand.class);
@@ -96,7 +108,8 @@ class RssBulkImportJobHandlerTest {
                 false,
                 false,
                 "editor@example.com",
-                null
+                null,
+                7L
         )));
 
         var commands = ArgumentCaptor.forClass(PodcastImportService.ImportEpisodeCommand.class);
@@ -114,7 +127,7 @@ class RssBulkImportJobHandlerTest {
     @Test
     void rejectsInvalidPayload() {
         assertThatThrownBy(() -> handler.handle(job(new RssBulkImportPayload(
-                null, "", null, null, null, true, true, "", null))))
+                null, "", null, null, null, true, true, "", null, null))))
                 .isInstanceOf(IllegalArgumentException.class);
     }
 
@@ -137,13 +150,49 @@ class RssBulkImportJobHandlerTest {
                 true,
                 true,
                 "editor@example.com",
-                "Eddie"
+                "Eddie",
+                7L
         ))))
                 .isInstanceOf(RssImportException.class)
                 .hasMessageContaining("truncated");
 
         verify(podcastImportService, never()).importEpisode(any());
         verify(emailService, never()).sendFromPayload(any(), any(), any(), any(), any());
+    }
+
+    @Test
+    void runsTheImportAsTheRequestingEditorAndRestoresTheContext() {
+        when(podcastImportService.preview("https://example.com/feed.xml")).thenReturn(preview());
+        List<Long> creatorsSeenDuringImport = new ArrayList<>();
+        when(podcastImportService.importEpisode(any())).thenAnswer(invocation -> {
+            creatorsSeenDuringImport.add(SecurityUtils.currentUserId());
+            return new PodcastImportService.ImportedEpisode(mock(Episode.class), false);
+        });
+
+        handler.handle(job(new RssBulkImportPayload(
+                3L,
+                "https://example.com/feed.xml",
+                Set.of(),
+                AccessPolicy.FREE,
+                null,
+                true,
+                true,
+                "editor@example.com",
+                "Eddie",
+                7L
+        )));
+
+        // #303: the gate fails closed, so the import has to run as the requesting editor — which
+        // is also what stamps the imported drafts with a real creator.
+        assertThat(creatorsSeenDuringImport).isNotEmpty().allMatch(id -> id.equals(7L));
+        // ...and the identity must not leak into the next job a pooled worker thread picks up.
+        assertThat(SecurityUtils.currentPrincipal()).isNull();
+    }
+
+    private static DirectwerkUserPrincipal requester() {
+        return new DirectwerkUserPrincipal(
+                7L, "editor@example.com", "hash", 10L,
+                List.of(new SimpleGrantedAuthority("ROLE_EDITOR")));
     }
 
     private PodcastImportService.Preview preview() {

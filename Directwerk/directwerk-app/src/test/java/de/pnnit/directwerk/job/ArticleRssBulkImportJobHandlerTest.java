@@ -18,13 +18,18 @@ import de.pnnit.directwerk.modules.newsletter.service.ArticleImportService;
 import de.pnnit.directwerk.modules.queue.JobStatus;
 import de.pnnit.directwerk.modules.queue.QueueJob;
 import de.pnnit.directwerk.modules.queue.QueueNames;
+import de.pnnit.directwerk.security.DirectwerkUserPrincipal;
+import de.pnnit.directwerk.security.SecurityUtils;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import tools.jackson.databind.ObjectMapper;
 
 class ArticleRssBulkImportJobHandlerTest {
@@ -32,8 +37,14 @@ class ArticleRssBulkImportJobHandlerTest {
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final ArticleImportService articleImportService = mock(ArticleImportService.class);
     private final TransactionalEmailService emailService = mock(TransactionalEmailService.class);
-    private final ArticleRssBulkImportJobHandler handler =
-            new ArticleRssBulkImportJobHandler(objectMapper, articleImportService, emailService);
+    private final ImportRequesterResolver requesterResolver = mock(ImportRequesterResolver.class);
+    private final ArticleRssBulkImportJobHandler handler = new ArticleRssBulkImportJobHandler(
+            objectMapper, articleImportService, emailService, requesterResolver);
+
+    @BeforeEach
+    void stubRequester() {
+        when(requesterResolver.requireRequester(any(), any(), any())).thenReturn(requester());
+    }
 
     @Test
     void importsNewArticlesSkipsImportedAndEmailsSummary() {
@@ -57,7 +68,8 @@ class ArticleRssBulkImportJobHandlerTest {
                 true,
                 true,
                 "editor@example.com",
-                "Eddie"
+                "Eddie",
+                7L
         )));
 
         var commands = ArgumentCaptor.forClass(ArticleImportService.ImportArticleCommand.class);
@@ -98,7 +110,8 @@ class ArticleRssBulkImportJobHandlerTest {
                 true,
                 true,
                 "editor@example.com",
-                "Eddie"
+                "Eddie",
+                7L
         )))).isInstanceOf(IllegalStateException.class)
                 .hasMessage("storage down");
     }
@@ -106,6 +119,40 @@ class ArticleRssBulkImportJobHandlerTest {
     @Test
     void queueNameIsArticleRssBulkImport() {
         assertThat(handler.queueName()).isEqualTo(QueueNames.ARTICLE_RSS_BULK_IMPORT);
+    }
+
+    @Test
+    void runsTheImportAsTheRequestingEditorAndRestoresTheContext() {
+        when(articleImportService.preview("https://example.com/articles.xml")).thenReturn(preview());
+        List<Long> creatorsSeenDuringImport = new ArrayList<>();
+        when(articleImportService.importArticle(any())).thenAnswer(invocation -> {
+            creatorsSeenDuringImport.add(SecurityUtils.currentUserId());
+            return new ArticleImportService.ImportedArticle(mock(Article.class), false);
+        });
+
+        handler.handle(job(new ArticleRssBulkImportPayload(
+                "https://example.com/articles.xml",
+                Set.of(),
+                AccessPolicy.FREE,
+                null,
+                true,
+                true,
+                "editor@example.com",
+                "Eddie",
+                7L
+        )));
+
+        // #303: the gate fails closed, so the import has to run as the requesting editor — which
+        // is also what stamps the imported drafts with a real creator.
+        assertThat(creatorsSeenDuringImport).isNotEmpty().allMatch(id -> id.equals(7L));
+        // ...and the identity must not leak into the next job a pooled worker thread picks up.
+        assertThat(SecurityUtils.currentPrincipal()).isNull();
+    }
+
+    private static DirectwerkUserPrincipal requester() {
+        return new DirectwerkUserPrincipal(
+                7L, "editor@example.com", "hash", 10L,
+                List.of(new SimpleGrantedAuthority("ROLE_EDITOR")));
     }
 
     private ArticleImportService.Preview preview() {

@@ -106,6 +106,7 @@ class EpisodeServiceTest {
                         overrideRepository, tenantMembershipRepository, tenantRepository,
                         platformAuditService)
         );
+        authenticate(5L, Role.EDITOR);
     }
 
     @AfterEach

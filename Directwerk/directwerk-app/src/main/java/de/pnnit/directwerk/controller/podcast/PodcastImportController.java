@@ -212,7 +212,8 @@ public class PodcastImportController {
                 request.importAudio() == null || request.importAudio(),
                 request.importImage() == null || request.importImage(),
                 account.email(),
-                account.name()
+                account.name(),
+                user.userId()
         );
         var job = queueService.enqueue(
                 QueueNames.PODCAST_RSS_BULK_IMPORT,

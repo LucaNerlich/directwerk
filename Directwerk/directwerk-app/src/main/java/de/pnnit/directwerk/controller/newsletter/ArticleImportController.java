@@ -175,7 +175,8 @@ public class ArticleImportController {
                 request.importHero() == null || request.importHero(),
                 request.importInlineImages() == null || request.importInlineImages(),
                 account.email(),
-                account.name()
+                account.name(),
+                user.userId()
         );
         var job = queueService.enqueue(
                 QueueNames.ARTICLE_RSS_BULK_IMPORT,
