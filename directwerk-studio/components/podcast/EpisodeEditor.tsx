@@ -112,10 +112,6 @@ export default function EpisodeEditor({episodeId}: {episodeId?: number}): React.
     const audioAssetId = episode?.audioAssetId ?? null
     const hasDigitalContent = hasModule(config, 'DIGITAL_CONTENT')
 
-    const redirectToLogin = useEffectEvent(() => {
-        router.replace(localize('/login'))
-    })
-
     const episodeFields = useCallback(() => {
         const resolvedSlug = slug.trim() || suggestSlug(title) || 'folge'
         return {

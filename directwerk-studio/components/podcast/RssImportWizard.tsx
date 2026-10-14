@@ -1,7 +1,7 @@
 'use client'
 
 import LocaleLink from '@/components/i18n/LocaleLink'
-import {useEffect, useRef, useState} from 'react'
+import {useEffect, useLayoutEffect, useRef, useState} from 'react'
 
 import {Button} from '@directwerk/ui/components/button'
 import {Alert, AlertDescription} from '@directwerk/ui/components/alert'
@@ -45,7 +45,11 @@ type WizardStep = 'url' | 'series' | 'formats' | 'episode' | 'done'
 export default function RssImportWizard(): React.JSX.Element {
     const authRedirect = useAuthRequired()
     const authRedirectRef = useRef(authRedirect)
-    authRedirectRef.current = authRedirect
+    // Issue #417: writing a ref during render violates the Rules of React and makes the React
+    // Compiler bail out of optimising this component.
+    useLayoutEffect(() => {
+        authRedirectRef.current = authRedirect
+    }, [authRedirect])
     const me = useOptionalMe()
     const canCreateFormats = me !== null && isTenantAdminRole(me.roles)
     const [step, setStep] = useState<WizardStep>('url')
