@@ -5,7 +5,6 @@ import {notFound} from 'next/navigation'
 import BrandTheme from '@directwerk/ui/components/brand-theme'
 
 import AuthBootstrap from '@/components/AuthBootstrap'
-import HtmlLang from '@/components/HtmlLang'
 import SiteHeader from '@/components/SiteHeader'
 import UmamiAnalytics from '@/components/UmamiAnalytics'
 import {LocaleProvider} from '@/lib/i18n/LocaleProvider'
@@ -200,7 +199,6 @@ export default async function LangLayout({
 
     return (
         <LocaleProvider lang={lang} dictionary={dictionary}>
-            <HtmlLang lang={lang} />
             <script
                 type="application/ld+json"
                 dangerouslySetInnerHTML={{__html: serializeJsonLd(websiteJsonLd)}}

@@ -1,5 +1,9 @@
 import type {ReactNode} from 'react'
 
+import {headers} from 'next/headers'
+
+import {defaultLocale, isLocale} from '@/lib/i18n/config'
+
 import './globals.css'
 
 /**
@@ -7,13 +11,19 @@ import './globals.css'
  * `app/[lang]/layout.tsx`. Route handlers (`/api/**`, `/feeds/**`) share this
  * minimal document wrapper without locale UI.
  */
-export default function RootLayout({
+export default async function RootLayout({
     children,
 }: Readonly<{
     children: ReactNode
-}>): React.JSX.Element {
+}>): Promise<React.JSX.Element> {
+    // #341: proxy.ts stamps the locale for locale-prefixed paths, so server-rendered /en documents
+    // declare lang="en" (previously every document said "de" and a client effect corrected it,
+    // which left no-JS and crawler-rendered pages with the wrong language).
+    const fromProxy = (await headers()).get('x-locale')
+    const locale = fromProxy !== null && isLocale(fromProxy) ? fromProxy : defaultLocale
+
     return (
-        <html lang="de" suppressHydrationWarning>
+        <html lang={locale}>
             <body>{children}</body>
         </html>
     )

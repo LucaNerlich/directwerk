@@ -20,6 +20,16 @@ describe('proxy', () => {
         expect(responseCsp).toContain(`'nonce-${forwardedNonce}'`)
     })
 
+    it('stamps the path locale for the root layout (#341)', () => {
+        // The root layout reads x-locale to render <html lang> server-side, so this is what makes
+        // server-rendered /en documents declare lang="en".
+        const en = proxy(new NextRequest('http://tenant.local/en/pricing'))
+        expect(en.headers.get('x-middleware-request-x-locale')).toBe('en')
+
+        const de = proxy(new NextRequest('http://tenant.local/de/episodes'))
+        expect(de.headers.get('x-middleware-request-x-locale')).toBe('de')
+    })
+
     it('redirects unprefixed UI paths to the default locale', () => {
         const response = proxy(new NextRequest('http://tenant.local/account'))
         expect(response.status).toBeGreaterThanOrEqual(300)
