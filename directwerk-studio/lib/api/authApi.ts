@@ -25,27 +25,11 @@ export async function discoverStudioWorkspaces(
 }
 
 export async function selectTenantHost(host: string): Promise<void> {
-    const response = await fetch('/api/tenant/select', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({host}),
-    })
-
-    let payload: {error?: string} = {}
-    const text = await response.text()
-    if (text.length > 0) {
-        try {
-            payload = JSON.parse(text) as {error?: string}
-        } catch {
-            payload = {}
-        }
-    }
-
-    if (!response.ok) {
-        throw new Error(
-            payload.error ?? 'Der Workspace konnte nicht ausgewählt werden.',
-        )
-    }
+    // Issue #338: the only lib fetch that bypassed the shared transport. On a network failure
+    // fetch rejects with a raw TypeError, which the login page rendered verbatim as
+    // "Failed to fetch"/"Load failed" instead of the policy's localised transient message; it
+    // also duplicated the envelope/error handling the transport already owns.
+    await postJson('/api/tenant/select', null, {host})
 }
 
 export async function login(

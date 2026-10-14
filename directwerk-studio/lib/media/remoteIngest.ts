@@ -12,6 +12,12 @@ import {jsonInit, studioMutate} from '@/lib/api/studioApiCore'
 
 const POLL_INTERVAL_MS = 500
 const MAX_POLL_ATTEMPTS = 360 // ~3 minutes at 500ms intervals
+/**
+ * Issue #337: how many consecutive poll failures to tolerate before treating the ingest as
+ * failed. A single transient blip (deploy 502, dropped connection) must not abort a loop that is
+ * still making progress, and the deadline is covered by INGEST_TIMEOUT_MESSAGE.
+ */
+const MAX_CONSECUTIVE_POLL_FAILURES = 5
 const INGEST_FAILED_MESSAGE = 'Die Datei konnte nicht nach S3 gestreamt werden.'
 const INGEST_TIMEOUT_MESSAGE = 'Der Import dauert zu lange — bitte versuche es erneut.'
 
@@ -38,6 +44,8 @@ async function waitForRemoteIngest(
     signal: AbortSignal | undefined,
     pollAsset: (tenantHost: string, assetId: number) => Promise<MediaAsset>,
 ): Promise<MediaAsset> {
+    let consecutiveFailures = 0
+
     for (let attempt = 0; attempt < MAX_POLL_ATTEMPTS; attempt += 1) {
         if (signal?.aborted === true) {
             throw new DOMException('Aborted', 'AbortError')
@@ -52,8 +60,15 @@ async function waitForRemoteIngest(
             ) {
                 throw error
             }
-            throw new Error(INGEST_FAILED_MESSAGE)
+            consecutiveFailures += 1
+            if (consecutiveFailures >= MAX_CONSECUTIVE_POLL_FAILURES) {
+                throw new Error(INGEST_FAILED_MESSAGE)
+            }
+            await sleep(POLL_INTERVAL_MS)
+            continue
         }
+
+        consecutiveFailures = 0
 
         if (asset.status === 'READY') {
             onProgress(100, asset)
