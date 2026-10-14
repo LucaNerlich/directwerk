@@ -6,13 +6,19 @@ import type {ReactNode} from 'react'
 import {useAccountDashboard} from '@/lib/account/useAccountDashboard'
 import {LocaleProvider} from '@/lib/i18n/LocaleProvider'
 import {testDictionary} from '@/lib/i18n/testDictionary'
+import {SiteConfigProvider} from '@/lib/site/SiteConfigProvider'
+
+import type {PublicSiteConfig} from '@directwerk/api/types'
 
 const router = {replace: vi.fn()}
+
+/** #434: the hook now reads the site config from context instead of re-fetching it. */
+let siteConfig: PublicSiteConfig
 
 function wrapper({children}: {children: ReactNode}): React.JSX.Element {
     return (
         <LocaleProvider lang="de" dictionary={testDictionary}>
-            {children}
+            <SiteConfigProvider config={siteConfig}>{children}</SiteConfigProvider>
         </LocaleProvider>
     )
 }
@@ -69,6 +75,9 @@ afterEach(() => {
 
 describe('useAccountDashboard', () => {
     it('loads account data when subscription module is enabled', async () => {
+        siteConfig = {
+            enabledModules: ['PODCAST_RSS', 'ARTICLE_RSS', 'SUBSCRIPTION'],
+        } as PublicSiteConfig
         getSiteConfig.mockResolvedValue({
             data: {
                 enabledModules: ['PODCAST_RSS', 'ARTICLE_RSS', 'SUBSCRIPTION'],
@@ -86,11 +95,7 @@ describe('useAccountDashboard', () => {
     })
 
     it('skips subscriptions without failing when the module is disabled', async () => {
-        getSiteConfig.mockResolvedValue({
-            data: {
-                enabledModules: ['PODCAST_RSS', 'ARTICLE_RSS'],
-            },
-        })
+        siteConfig = {enabledModules: ['PODCAST_RSS', 'ARTICLE_RSS']} as PublicSiteConfig
 
         const {result} = renderHook(() => useAccountDashboard(), {wrapper})
 

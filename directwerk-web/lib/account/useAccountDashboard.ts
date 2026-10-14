@@ -1,5 +1,7 @@
 'use client'
 
+import {useSiteConfig} from '@/lib/site/SiteConfigProvider'
+
 import {useRouter} from 'next/navigation'
 import {useCallback, useEffect, useState} from 'react'
 
@@ -63,21 +65,23 @@ export function useAccountDashboard(): AccountDashboardState {
     const [portalMessage, setPortalMessage] = useState<string | null>(null)
     const [portalBusy, setPortalBusy] = useState(false)
 
+    const siteConfig = useSiteConfig()
+
     useEffect(() => {
         let isCurrent = true
         const tenantHost = getWebClientTenantHost()
+        // Issue #434: the site config comes from SiteConfigProvider instead of a fourth request.
         Promise.all([
             getMe(tenantHost),
             getAccess(tenantHost),
             getNotificationPreferences(tenantHost),
-            getSiteConfig(tenantHost),
         ])
-            .then(async ([meResponse, accessResponse, prefs, siteConfig]) => {
+            .then(async ([meResponse, accessResponse, prefs]) => {
                 // Subscriptions live behind the SUBSCRIPTION module: only call
                 // the endpoint when it is active so a disabled module cannot
                 // fail the whole account page with FEATURE_NOT_ENABLED.
                 const subscriptionList: SubscriptionSummary[] =
-                    siteConfig.data.enabledModules.includes('SUBSCRIPTION')
+                    siteConfig.enabledModules.includes('SUBSCRIPTION')
                         ? await listMySubscriptions(tenantHost)
                         : []
 
