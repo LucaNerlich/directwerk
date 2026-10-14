@@ -136,7 +136,10 @@ export function useResourceEditor<
     // on the id, and so mocked router/auth objects can't retrigger it.
     const configRef = useRef(config)
     const authRedirectRef = useRef(authRedirect)
-    useLayoutEffect(() => {
+    // Issue #425: this runs on the server too (App Router renders client components), where
+    // useLayoutEffect does nothing and React logs a warning. It only syncs refs, so useEffect is
+    // equivalent here.
+    useEffect(() => {
         configRef.current = config
         authRedirectRef.current = authRedirect
     }, [authRedirect, config])

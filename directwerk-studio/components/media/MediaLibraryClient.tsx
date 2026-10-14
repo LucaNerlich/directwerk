@@ -51,7 +51,7 @@ import MediaAssetRenameDialog from '@/components/media/MediaAssetRenameDialog'
 import MediaFolderDialog from '@/components/media/MediaFolderDialog'
 import MediaMoveDialog from '@/components/media/MediaMoveDialog'
 import {uploadMediaFile} from '@/lib/media/upload'
-import {formatBytes} from '@/lib/media/format'
+import {formatBytes} from '@directwerk/api/format/bytes'
 import {assetTypeLabel, mediaStatusLabel, visibilityLabel} from '@/lib/subscription/displayLabels'
 import {getClientTenantHost} from '@directwerk/api/tenant'
 import {safeImageSrc} from '@/lib/url/safeUrl'
@@ -653,7 +653,7 @@ export default function MediaLibraryClient(): React.JSX.Element {
                 {assetTypeLabel(asset.assetType)} · {mediaStatusLabel(asset.status)}
                 {asset.visibility ? ` · ${visibilityLabel(asset.visibility)}` : ''}
                 {' · '}
-                {formatBytes(asset.sizeBytes)}
+                {formatBytes(asset.sizeBytes) ?? '—'}
             </p>
         )
     }

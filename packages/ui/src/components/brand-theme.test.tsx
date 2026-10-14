@@ -14,7 +14,8 @@ describe('BrandTheme', () => {
         const container = screen.getByText('Brand content').parentElement
         expect(container).toHaveStyle({
             '--primary': '#f0d34f',
-            '--primary-foreground': '#171717',
+            // #329: pure black now clears AA for mid-tone brand colours.
+            '--primary-foreground': '#000000',
         })
     })
 
@@ -39,7 +40,7 @@ describe('BrandTheme', () => {
 
         expect(screen.getByText('Secondary content').parentElement).toHaveStyle({
             '--secondary': '#e94560',
-            '--secondary-foreground': '#171717',
+            '--secondary-foreground': '#000000',
         })
     })
 

@@ -19,7 +19,7 @@ import {createSeries, listSeries} from '@/lib/api/podcastApi'
 import {bulkImportRss, importRssEpisode, previewRssFeed} from '@/lib/api/podcastImportApi'
 import {ingestRemoteAssetWithProgress} from '@/lib/media/remoteIngest'
 import {filenameFromImportUrl} from '@/lib/media/importFilename'
-import {formatBytes} from '@/lib/media/format'
+import {formatBytes} from '@directwerk/api/format/bytes'
 import {deleteMedia} from '@/lib/api/mediaApi'
 import {isTenantAdminRole, suggestSlug} from '@/lib/api/studioHelpers'
 import {parseOptionalInt} from '@/lib/publication/parsePositiveInt'
@@ -899,7 +899,7 @@ export default function RssImportWizard(): React.JSX.Element {
                         </label>
                     ) : null}
                     <p className="text-sm text-muted-foreground">
-                        Audio: {currentEpisode.audioMimeType ?? 'unbekannt'}, {formatBytes(currentEpisode.audioSizeBytes)},{' '}
+                        Audio: {currentEpisode.audioMimeType ?? 'unbekannt'}, {formatBytes(currentEpisode.audioSizeBytes) ?? '—'},{' '}
                         {formatDuration(currentEpisode.durationSeconds) ?? 'unbekannt'}
                     </p>
                     <label className="flex items-center gap-2 text-sm">

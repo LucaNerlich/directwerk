@@ -1,76 +1,36 @@
-import {formatOperatorProviderLine, OPERATOR} from './operator'
-import type {LegalPage, LegalSection} from './legal'
+import {buildImprintSections, type ImprintStrings} from './imprint-strings'
+import type {LegalPage} from './legal'
 
-const ODR_URL = 'http://ec.europa.eu/consumers/odr/'
-
-function buildImprintSectionsEn(): LegalSection[] {
-    const sections: LegalSection[] = [
-        {
-            heading: 'Service provider',
-            paragraphs: [
-                `This platform (Directwerk) is represented by ${formatOperatorProviderLine()}.`,
-            ],
-        },
-        {
-            heading: 'Contact',
-            paragraphs: [
-                OPERATOR.phone
-                    ? `Email: ${OPERATOR.email}, phone: ${OPERATOR.phone}.`
-                    : `Email: ${OPERATOR.email}.`,
-            ],
-        },
-    ]
-
-    if (OPERATOR.registerCourt && OPERATOR.registerNumber) {
-        sections.push({
-            heading: 'Register entry',
-            paragraphs: [
-                `Register court: ${OPERATOR.registerCourt}, register number: ${OPERATOR.registerNumber}.`,
-            ],
-        })
-    }
-
-    if (OPERATOR.vatId) {
-        sections.push({
-            heading: 'VAT ID',
-            paragraphs: [
-                `VAT identification number pursuant to § 27a UStG: ${OPERATOR.vatId}.`,
-            ],
-        })
-    }
-
-    if (OPERATOR.responsiblePerson) {
-        sections.push({
-            heading: 'Responsible pursuant to § 18(2) MStV',
-            paragraphs: [OPERATOR.responsiblePerson],
-        })
-    }
-
-    sections.push(
-        {
-            heading: 'EU dispute resolution',
-            paragraphs: [
-                `The European Commission offers an Online Dispute Resolution (ODR) platform at ${ODR_URL}. We are neither obliged nor willing to participate in a dispute resolution procedure before a consumer mediation entity.`,
-            ],
-        },
-        {
-            heading: 'Liability for content and links',
-            paragraphs: [
-                'The content of these pages was created with care; we assume no liability for accuracy, completeness, or timeliness. External links lead to content of third-party providers for which we bear no responsibility.',
-            ],
-        },
-    )
-
-    return sections
+const STRINGS: ImprintStrings = {
+    serviceProviderHeading: 'Service provider',
+    serviceProvider: operator => `This platform (Directwerk) is represented by ${operator}.`,
+    contactHeading: 'Contact',
+    contactWithPhone: (email, phone) => `Email: ${email}, phone: ${phone}.`,
+    contactEmailOnly: email => `Email: ${email}.`,
+    registerHeading: 'Register entry',
+    register: (court, number) => `Register court: ${court}, register number: ${number}.`,
+    vatHeading: 'VAT ID',
+    vat: vatId => `VAT identification number pursuant to § 27a UStG: ${vatId}.`,
+    responsibleHeading: 'Responsible pursuant to § 18(2) MStV',
+    odrHeading: 'EU dispute resolution',
+    odr:
+        'The European Commission has not provided an Online Dispute Resolution platform since ' +
+        '20 July 2025. We are neither obliged nor willing to participate in a dispute resolution ' +
+        'procedure before a consumer mediation entity.',
+    liabilityHeading: 'Liability for content and links',
+    liability:
+        'The content of these pages was created with care; we assume no liability for accuracy, ' +
+        'completeness, or timeliness. External links lead to content of third-party providers for ' +
+        'which we bear no responsibility.',
 }
 
 /**
- * English imprint (§ 5 DDG). Faithful EN rendering of the German imprint;
- * ODR paragraph follows the bilingual wording on lucanerlich.com/imprint.
+ * English imprint (§ 5 DDG). Faithful EN rendering of the German imprint, sharing the section
+ * builder with it (issue #399).
  */
 export const IMPRINT_EN: LegalPage = {
     title: 'Imprint',
     intro: 'Information pursuant to § 5 of the German Digital Services Act (DDG).',
     updated: '2026-10-03',
-    sections: buildImprintSectionsEn(),
+    sections: buildImprintSections(STRINGS),
 }

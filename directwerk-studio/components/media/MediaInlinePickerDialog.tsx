@@ -24,7 +24,7 @@ import {listMedia, listMediaFolders} from '@/lib/api/mediaApi'
 import type {MediaAsset, MediaFolder} from '@directwerk/api/types'
 import {getClientTenantHost} from '@directwerk/api/tenant'
 import {buildFolderTree, flattenFolderTree} from '@/lib/media/folders'
-import {formatBytes} from '@/lib/media/format'
+import {formatBytes} from '@directwerk/api/format/bytes'
 import {assetTypeLabel} from '@/lib/subscription/displayLabels'
 import {safeImageSrc, safeLinkHref} from '@/lib/url/safeUrl'
 
@@ -309,7 +309,7 @@ export default function MediaInlinePickerDialog({
                                                 folderNameById.get(asset.folderId) !== undefined ? (
                                                     <span>{folderNameById.get(asset.folderId)}</span>
                                                 ) : null}
-                                                <span>{formatBytes(asset.sizeBytes)}</span>
+                                                <span>{formatBytes(asset.sizeBytes) ?? '—'}</span>
                                                 <span>
                                                     {kind === 'image'
                                                         ? 'wird eingebettet'

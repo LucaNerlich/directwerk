@@ -43,7 +43,10 @@ export default async function PrivacyPage({
         <div className="pb-16">
             <section className="marketing-section">
                 <div className="marketing-container max-w-4xl">
-                    <LegalArticle page={getPrivacy(rawLang)} />
+                    <LegalArticle
+                        page={getPrivacy()}
+                        updatedLabel={rawLang === 'en' ? 'Last updated:' : 'Stand:'}
+                    />
                 </div>
             </section>
         </div>
