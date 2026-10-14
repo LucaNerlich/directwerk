@@ -91,7 +91,7 @@ export default function HomeClient({
         const loads: Array<Promise<void>> = []
         if (showPodcast) {
             loads.push(
-                listPublicEpisodes(tenantHost).then((episodes) => {
+                listPublicEpisodes().then((episodes) => {
                     if (active) {
                         setLatestEpisode(episodes[0] ?? null)
                     }
@@ -100,7 +100,7 @@ export default function HomeClient({
         }
         if (showArticles) {
             loads.push(
-                listPublicArticles(tenantHost).then((articles) => {
+                listPublicArticles().then((articles) => {
                     if (active) {
                         setLatestArticle(articles[0] ?? null)
                     }
@@ -109,7 +109,7 @@ export default function HomeClient({
         }
         if (showPricing) {
             loads.push(
-                listPublicProducts(tenantHost).then((productList) => {
+                listPublicProducts().then((productList) => {
                     if (active) {
                         setProducts(productList.slice(0, 3))
                     }

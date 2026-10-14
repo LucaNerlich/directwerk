@@ -49,8 +49,8 @@ export function usePublicArticles({
         setErrorMessage(null)
 
         const articlesPromise = isAuthenticated
-            ? listMyArticles(tenantHost)
-            : listPublicArticles(tenantHost)
+            ? listMyArticles()
+            : listPublicArticles()
 
         articlesPromise
             .then((articleList) => {

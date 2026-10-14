@@ -74,18 +74,17 @@ export interface CustomFeedsPanelConfig<
     renderPreview: (preview: TPreview, dictionary: Dictionary) => React.ReactNode
     getFeedOptionIds: (feed: TFeed) => number[]
     getFeedOptionSummaries: (feed: TFeed) => CustomFeedOption[]
-    fetchOptions: (tenantHost: string) => Promise<TOption[]>
-    fetchPreview: (tenantHost: string, ids: number[]) => Promise<TPreview>
-    createFeed: (tenantHost: string, title: string, ids: number[]) => Promise<TFeed>
+    fetchOptions: () => Promise<TOption[]>
+    fetchPreview: (ids: number[]) => Promise<TPreview>
+    createFeed: (title: string, ids: number[]) => Promise<TFeed>
     updateFeed: (
-        tenantHost: string,
         feedId: number,
         title: string,
         ids: number[],
     ) => Promise<TFeed>
-    setEnabled: (tenantHost: string, feedId: number, enabled: boolean) => Promise<TFeed>
-    rotateToken: (tenantHost: string, feedId: number) => Promise<TFeed>
-    deleteFeed: (tenantHost: string, feedId: number) => Promise<void>
+    setEnabled: (feedId: number, enabled: boolean) => Promise<TFeed>
+    rotateToken: (feedId: number) => Promise<TFeed>
+    deleteFeed: (feedId: number) => Promise<void>
 }
 
 interface CustomFeedsPanelProps<
@@ -94,7 +93,6 @@ interface CustomFeedsPanelProps<
     TPreview,
 > {
     config: CustomFeedsPanelConfig<TFeed, TOption, TPreview>
-    tenantHost: string
     feeds: TFeed[]
     canBuild: boolean
     onFeedsChange: (feeds: TFeed[]) => void
@@ -113,7 +111,6 @@ type RowAction = 'toggle' | 'rotate' | 'delete'
  * Displays and manages custom feeds, including creation, editing, previewing, activation, token rotation, and deletion.
  *
  * @param config - Feed-specific labels, renderers, preview handling, and API operations.
- * @param tenantHost - Host identifying the tenant whose feeds are managed.
  * @param feeds - All feeds available to the tenant.
  * @param canBuild - Whether the tenant can create or edit feeds.
  * @param onFeedsChange - Called with the updated feed list after a successful mutation.
@@ -126,7 +123,6 @@ export default function CustomFeedsPanel<
     TPreview,
 >({
     config,
-    tenantHost,
     feeds,
     canBuild,
     onFeedsChange,
@@ -155,7 +151,7 @@ export default function CustomFeedsPanel<
     useEffect(() => {
         let active = true
         config
-            .fetchOptions(tenantHost)
+            .fetchOptions()
             .then((loaded) => {
                 if (active) {
                     setOptions(loaded)
@@ -173,7 +169,7 @@ export default function CustomFeedsPanel<
             active = false
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [tenantHost, config])
+    }, [config])
 
     useEffect(() => {
         if (!canBuild || selectedIds.length === 0) {
@@ -184,7 +180,7 @@ export default function CustomFeedsPanel<
         let active = true
         const handle = window.setTimeout(() => {
             config
-                .fetchPreview(tenantHost, selectedIds)
+                .fetchPreview(selectedIds)
                 .then((result) => {
                     if (active) {
                         setPreview(result)
@@ -207,7 +203,7 @@ export default function CustomFeedsPanel<
             window.clearTimeout(handle)
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [tenantHost, selectedIds, canBuild, config])
+    }, [selectedIds, canBuild, config])
 
     function handleAuth(error: unknown): boolean {
         if (error instanceof Error && error.message === AUTH_REQUIRED) {
@@ -260,11 +256,10 @@ export default function CustomFeedsPanel<
         setIsSaving(true)
         try {
             if (editingId === null) {
-                const created = await config.createFeed(tenantHost, title.trim(), selectedIds)
+                const created = await config.createFeed(title.trim(), selectedIds)
                 onFeedsChange([...feeds, created])
             } else {
                 const updated = await config.updateFeed(
-                    tenantHost,
                     editingId,
                     title.trim(),
                     selectedIds,
@@ -286,7 +281,7 @@ export default function CustomFeedsPanel<
         setPendingFeedId(feed.id)
         setPendingAction('toggle')
         try {
-            const updated = await config.setEnabled(tenantHost, feed.id, !feed.enabled)
+            const updated = await config.setEnabled(feed.id, !feed.enabled)
             onFeedsChange(feeds.map((item) => (item.id === updated.id ? updated : item)))
         } catch (error: unknown) {
             if (handleAuth(error)) {
@@ -303,7 +298,7 @@ export default function CustomFeedsPanel<
         setPendingFeedId(feed.id)
         setPendingAction('rotate')
         try {
-            const updated = await config.rotateToken(tenantHost, feed.id)
+            const updated = await config.rotateToken(feed.id)
             onFeedsChange(feeds.map((item) => (item.id === updated.id ? updated : item)))
         } catch (error: unknown) {
             if (handleAuth(error)) {
@@ -320,7 +315,7 @@ export default function CustomFeedsPanel<
         setPendingFeedId(feed.id)
         setPendingAction('delete')
         try {
-            await config.deleteFeed(tenantHost, feed.id)
+            await config.deleteFeed(feed.id)
             onFeedsChange(feeds.filter((item) => item.id !== feed.id))
             if (editingId === feed.id) {
                 resetForm()

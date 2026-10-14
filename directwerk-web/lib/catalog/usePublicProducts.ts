@@ -15,7 +15,7 @@ export function usePublicProducts(tenantHost: string): PublicProduct[] {
 
     useEffect(() => {
         let active = true
-        listPublicProducts(tenantHost)
+        listPublicProducts()
             .then((loaded) => {
                 if (active) {
                     setProducts(loaded)

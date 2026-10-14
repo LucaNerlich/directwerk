@@ -73,8 +73,8 @@ export function useAccountDashboard(): AccountDashboardState {
         // Issue #434: the site config comes from SiteConfigProvider instead of a fourth request.
         Promise.all([
             getMe(tenantHost),
-            getAccess(tenantHost),
-            getNotificationPreferences(tenantHost),
+            getAccess(),
+            getNotificationPreferences(),
         ])
             .then(async ([meResponse, accessResponse, prefs]) => {
                 // Subscriptions live behind the SUBSCRIPTION module: only call
@@ -137,7 +137,6 @@ export function useAccountDashboard(): AccountDashboardState {
         setPrefsMessageKind(null)
         try {
             const result = await updateNotificationPreferences(
-                getWebClientTenantHost(),
                 nextValue,
             )
             setEmailNotificationsEnabled(result.emailNotificationsEnabled)
