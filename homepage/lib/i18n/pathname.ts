@@ -1,9 +1,6 @@
-import {
-    localeFromPathname as sharedLocaleFromPathname,
-    stripLocalePrefix as sharedStripLocalePrefix,
-} from '@directwerk/ui/lib/i18n'
+import {stripLocalePrefix as sharedStripLocalePrefix} from '@directwerk/ui/lib/i18n'
 
-import {defaultLocale, type Locale} from './config'
+import {type Locale} from './config'
 
 /** Prefix a site-relative path with the active locale (`/developers` → `/de/developers`). */
 export function hrefFor(lang: Locale, path: string = '/'): string {
@@ -33,6 +30,14 @@ export function swapLangPath(pathname: string, nextLang: Locale): string {
     return hrefFor(nextLang, rest === '/' ? '/' : rest)
 }
 
-export function langFromPathname(pathname: string): Locale {
-    return sharedLocaleFromPathname(pathname) ?? defaultLocale
+/**
+ * Issue #445: the hreflang map was hand-written in five generateMetadata functions. One helper
+ * keeps a new locale (or an x-default change) to a single edit.
+ */
+export function localeAlternates(path: string = '/'): Record<string, string> {
+    return {
+        de: hrefFor('de', path),
+        en: hrefFor('en', path),
+        'x-default': hrefFor('de', path),
+    }
 }

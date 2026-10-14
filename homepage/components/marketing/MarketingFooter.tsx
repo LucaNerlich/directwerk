@@ -1,11 +1,15 @@
 'use client'
 
+import Link from 'next/link'
+
 import {useLocale} from '@/components/i18n/LocaleProvider'
 import {CONTACT_EMAIL, DOCS_URL} from '@/lib/marketing/constants'
 import {hrefFor} from '@/lib/i18n/pathname'
 
 export default function MarketingFooter(): React.JSX.Element {
-    const year = new Date().getFullYear()
+    // Issue #447: the year was computed at build time in a statically prerendered client
+    // component, so '© {year}' went stale until the next rebuild. The dictionary copy now omits
+    // the year entirely rather than shipping a frozen one.
     const {lang, dictionary} = useLocale()
     const copy = dictionary.footer
 
@@ -30,17 +34,28 @@ export default function MarketingFooter(): React.JSX.Element {
                                 : external
                                   ? item.href
                                   : hrefFor(lang, item.href)
+                        const className =
+                            'text-muted-foreground transition-colors hover:text-foreground'
+                        const key = `${item.href}-${item.label}`
+                        // Issue #444: internal footer links used <a>, forcing a full reload and
+                        // re-downloading the RSC payload; the header already uses next/link.
+                        if (external || item.href === 'docs') {
+                            return (
+                                <a
+                                    className={className}
+                                    href={href}
+                                    key={key}
+                                    rel="noopener noreferrer"
+                                    target="_blank"
+                                >
+                                    {item.label}
+                                </a>
+                            )
+                        }
                         return (
-                            <a
-                                className="text-muted-foreground transition-colors hover:text-foreground"
-                                href={href}
-                                key={`${item.href}-${item.label}`}
-                                {...(external
-                                    ? {rel: 'noopener noreferrer', target: '_blank'}
-                                    : {})}
-                            >
+                            <Link className={className} href={href} key={key}>
                                 {item.label}
-                            </a>
+                            </Link>
                         )
                     })}
                     <a
@@ -52,7 +67,7 @@ export default function MarketingFooter(): React.JSX.Element {
                 </nav>
             </div>
             <div className="marketing-container border-t py-6 text-xs text-muted-foreground">
-                {copy.copyright.replace('{year}', String(year))}
+                {copy.copyright}
             </div>
         </footer>
     )

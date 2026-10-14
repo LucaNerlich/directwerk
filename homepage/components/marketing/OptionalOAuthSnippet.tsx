@@ -10,9 +10,13 @@ import {OAUTH_TOKEN_CURL} from '@/lib/api-docs/snippets'
 export default function OptionalOAuthSnippet({
     showLabel,
     hideLabel,
+    copyLabel,
+    copiedLabel,
 }: {
     showLabel: string
     hideLabel: string
+    copyLabel: string
+    copiedLabel: string
 }): React.JSX.Element {
     const [open, setOpen] = useState(false)
 
@@ -26,7 +30,12 @@ export default function OptionalOAuthSnippet({
                 {open ? hideLabel : showLabel}
             </Button>
             {open ? (
-                <CodeBlock code={OAUTH_TOKEN_CURL} label="POST /oauth2/token" />
+                <CodeBlock
+                    code={OAUTH_TOKEN_CURL}
+                    copyLabel={copyLabel}
+                    copiedLabel={copiedLabel}
+                    label="POST /oauth2/token"
+                />
             ) : null}
         </div>
     )
