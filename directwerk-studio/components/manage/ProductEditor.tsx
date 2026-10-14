@@ -28,7 +28,7 @@ import type {
     UpdateProductInput,
 } from '@directwerk/api/types'
 import {formatMoney} from '@directwerk/api/format'
-import {getClientTenantHost} from '@directwerk/api/tenant'
+
 import {useResourceEditor} from '@/lib/hooks/useResourceEditor'
 
 interface ProductEditorProps {
@@ -160,7 +160,7 @@ export default function ProductEditor({
         }
         await runAction(
             async () => {
-                const updated = await syncProductStripe(getClientTenantHost(), productId)
+                const updated = await syncProductStripe( productId)
                 applyEntity(updated)
                 setStatusMessage('Produkt mit Stripe synchronisiert.')
             },

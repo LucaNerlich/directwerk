@@ -73,11 +73,11 @@ export default function ProductRulesEditor({
         const host = getClientTenantHost()
 
         Promise.all([
-            listProductRules(host, productId),
-            listSeries(host),
-            listFormats(host),
-            listCategories(host),
-            listMedia(host),
+            listProductRules( productId),
+            listSeries(),
+            listFormats(),
+            listCategories(),
+            listMedia(),
         ])
             .then(([rules, seriesList, formatList, categoryList, mediaList]) => {
                 if (!active) {
@@ -146,7 +146,6 @@ export default function ProductRulesEditor({
 
         try {
             const saved = await replaceProductRules(
-                getClientTenantHost(),
                 productId,
                 rules,
             )

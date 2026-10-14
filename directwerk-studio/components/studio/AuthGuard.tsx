@@ -16,7 +16,7 @@ import {ensureAuthenticated, clearSessionTokens} from '@/lib/auth/session'
 import {AUTH_REQUIRED} from '@directwerk/api/constants'
 import {clearAllCachedTenantData} from '@directwerk/api/client/useCachedTenantQuery'
 import {getAccessToken} from '@/lib/auth/tokenStore'
-import {getClientTenantHost} from '@directwerk/api/tenant'
+
 import type {Me} from '@directwerk/api/types'
 
 function AuthLoading(): React.JSX.Element {
@@ -59,7 +59,7 @@ export default function AuthGuard({children}: Readonly<{children: React.ReactNod
 
             try {
                 await ensureAuthenticated()
-                const account = await fetchMe(getClientTenantHost())
+                const account = await fetchMe()
                 if (!active) {
                     return
                 }

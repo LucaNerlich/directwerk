@@ -18,12 +18,11 @@ import type {
 import {jsonInit, studioGet, studioMutate} from './studioApiCore'
 
 export async function previewArticleRssFeed(
-    tenantHost: string,
-    feedUrl: string,
+        feedUrl: string,
 ): Promise<ArticleRssImportPreview> {
     return studioMutate(
         '/api/proxy/articles/import/preview',
-        tenantHost,
+        
         jsonInit('POST', {feedUrl}),
         parseArticleRssImportPreviewEnvelope,
         'Der Feed konnte nicht gelesen werden.',
@@ -31,24 +30,22 @@ export async function previewArticleRssFeed(
 }
 
 export async function getArticleIngestAsset(
-    tenantHost: string,
-    assetId: number,
+        assetId: number,
 ): Promise<MediaAsset> {
     return studioGet(
         `/api/proxy/articles/import/assets/${assetId}`,
-        tenantHost,
+        
         parseMediaAssetEnvelope,
         'Der Server hat ein ungültiges Medium gesendet.',
     )
 }
 
 export async function importRssArticle(
-    tenantHost: string,
-    input: ImportArticleInput,
+        input: ImportArticleInput,
 ): Promise<ImportedArticleResult> {
     return studioMutate(
         '/api/proxy/articles/import/articles',
-        tenantHost,
+        
         jsonInit('POST', input),
         parseImportedArticleEnvelope,
         'Der Beitrag konnte nicht importiert werden.',
@@ -56,12 +53,11 @@ export async function importRssArticle(
 }
 
 export async function bulkImportArticleRss(
-    tenantHost: string,
-    input: ArticleBulkImportInput,
+        input: ArticleBulkImportInput,
 ): Promise<ArticleBulkImportQueuedResult> {
     return studioMutate(
         '/api/proxy/articles/import/bulk',
-        tenantHost,
+        
         jsonInit('POST', input),
         parseArticleBulkImportQueuedEnvelope,
         'Der Stapelimport konnte nicht gestartet werden.',

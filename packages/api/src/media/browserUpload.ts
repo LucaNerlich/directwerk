@@ -46,7 +46,7 @@ export interface BrowserMediaUploadConfig {
     onProgress?: (percent: number) => void
     getAccessToken: () => Promise<string>
     onAuthRequired: () => void
-    confirmUpload: (tenantHost: string, assetId: number) => Promise<MediaAsset>
+    confirmUpload: (assetId: number) => Promise<MediaAsset>
     uploadPath?: string
     exceedsLimit?: (assetType: AssetType, size: number) => boolean
     limitLabel?: (assetType: AssetType) => string
@@ -144,7 +144,7 @@ export async function uploadMediaFileBrowser(
             if (status === 401) {
                 if (isMediaUploadRetryResponse(value)) {
                     config
-                        .confirmUpload(config.tenantHost, value.assetId)
+                        .confirmUpload(value.assetId)
                         .then(resolve)
                         .catch(reject)
                     return

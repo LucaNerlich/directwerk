@@ -43,9 +43,9 @@ export default function PodcastDeskClient(): React.JSX.Element {
             try {
                 const host = getClientTenantHost()
                 const [loadedSeries, loadedFormats, loadedEpisodes] = await Promise.all([
-                    listSeries(host),
-                    listFormats(host),
-                    listEpisodes(host),
+                    listSeries(),
+                    listFormats(),
+                    listEpisodes(),
                 ])
                 if (!active) {
                     return

@@ -228,9 +228,9 @@ export default function AnalyticsDashboardClient({
             try {
                 const host = getClientTenantHost()
                 const [loadedArticles, loadedEpisodes, loadedSeries] = await Promise.all([
-                    showWrite ? listArticles(host) : Promise.resolve([]),
-                    showPodcast ? listEpisodes(host) : Promise.resolve([]),
-                    showPodcast ? listSeries(host) : Promise.resolve([]),
+                    showWrite ? listArticles() : Promise.resolve([]),
+                    showPodcast ? listEpisodes() : Promise.resolve([]),
+                    showPodcast ? listSeries() : Promise.resolve([]),
                 ])
                 if (!active) {
                     return
@@ -240,7 +240,7 @@ export default function AnalyticsDashboardClient({
                 setSeries(loadedSeries)
                 if (subscriptionEnabled) {
                     try {
-                        setBilling(await getBillingDashboard(host))
+                        setBilling(await getBillingDashboard())
                     } catch (billingError: unknown) {
                         if (
                             billingError instanceof Error &&
@@ -288,7 +288,7 @@ export default function AnalyticsDashboardClient({
 
         async function loadUmami(): Promise<void> {
             try {
-                const stats = await getUmamiStats(getClientTenantHost(), umamiRange)
+                const stats = await getUmamiStats( umamiRange)
                 if (active) {
                     setUmami(stats)
                 }

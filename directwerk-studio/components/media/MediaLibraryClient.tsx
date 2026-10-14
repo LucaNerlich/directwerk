@@ -102,7 +102,7 @@ async function fetchPreviewUrls(
             const assetId = assetIds[cursor]
             cursor += 1
             try {
-                urls[assetId] = await getMediaPreviewUrl(tenantHost, assetId)
+                urls[assetId] = await getMediaPreviewUrl( assetId)
             } catch {
                 // Keep the placeholder for this asset.
             }
@@ -155,19 +155,19 @@ export default function MediaLibraryClient(): React.JSX.Element {
     async function reload(): Promise<void> {
         const host = getClientTenantHost()
         const [assetResult, folderResult] = await Promise.all([
-            listMedia(host, {
+            listMedia( {
                 limit: 100,
                 folderId: folderView ?? undefined,
                 recursive: includeSubfolders,
                 unassignedOnly: folderView === null && !includeSubfolders,
             }),
-            listMediaFolders(host),
+            listMediaFolders(),
         ])
         // Limits are display hints only — the backend enforces the truth, so a
         // failed fetch keeps the platform defaults instead of failing the page.
         let effective: MediaUploadLimits | null = null
         try {
-            effective = await getMediaUploadLimits(host)
+            effective = await getMediaUploadLimits()
         } catch {
             effective = null
         }
@@ -333,7 +333,7 @@ export default function MediaLibraryClient(): React.JSX.Element {
         setErrorMessage(null)
         setStatusMessage(null)
         try {
-            await deleteMedia(getClientTenantHost(), assetId)
+            await deleteMedia( assetId)
             setAssets((current) => current.filter((item) => item.id !== assetId))
             setStatusMessage('Medium gelöscht.')
         } catch (error: unknown) {
@@ -356,7 +356,7 @@ export default function MediaLibraryClient(): React.JSX.Element {
         setErrorMessage(null)
         setStatusMessage(null)
         try {
-            const renamed = await renameMediaAsset(getClientTenantHost(), target.id, filename)
+            const renamed = await renameMediaAsset( target.id, filename)
             setAssets((current) =>
                 current.map((item) => (item.id === renamed.id ? renamed : item)),
             )
@@ -431,7 +431,7 @@ export default function MediaLibraryClient(): React.JSX.Element {
         try {
             const host = getClientTenantHost()
             const results = await Promise.allSettled(
-                targets.map((asset) => deleteMedia(host, asset.id)),
+                targets.map((asset) => deleteMedia( asset.id)),
             )
             const deletedIds = new Set(
                 targets
@@ -507,8 +507,8 @@ export default function MediaLibraryClient(): React.JSX.Element {
             const host = getClientTenantHost()
             const folder =
                 folderDialog.mode === 'create'
-                    ? await createMediaFolder(host, name, parentId)
-                    : await renameMediaFolder(host, folderDialog.folder.id, name)
+                    ? await createMediaFolder( name, parentId)
+                    : await renameMediaFolder( folderDialog.folder.id, name)
             setFolders((current) => {
                 const next = current.filter((entry) => entry.id !== folder.id)
                 return [...next, folder]
@@ -536,7 +536,7 @@ export default function MediaLibraryClient(): React.JSX.Element {
             setIsBusy(true)
             setFolderDialogError(null)
             try {
-                const moved = await moveMediaFolder(getClientTenantHost(), movedId, targetId)
+                const moved = await moveMediaFolder( movedId, targetId)
                 setFolders((current) =>
                     current.map((entry) => (entry.id === moved.id ? moved : entry)),
                 )
@@ -559,7 +559,7 @@ export default function MediaLibraryClient(): React.JSX.Element {
         try {
             const host = getClientTenantHost()
             const results = await Promise.allSettled(
-                targets.map((asset) => moveMediaAsset(host, asset.id, targetId)),
+                targets.map((asset) => moveMediaAsset( asset.id, targetId)),
             )
             const movedById = new Map<number, MediaAsset>()
             const failures: number[] = []
@@ -605,7 +605,7 @@ export default function MediaLibraryClient(): React.JSX.Element {
         setIsBusy(true)
         setFolderDialogError(null)
         try {
-            await deleteMediaFolder(getClientTenantHost(), target.id, mode)
+            await deleteMediaFolder( target.id, mode)
             setDeleteFolderTarget(null)
             // Issue #412: setFolderView triggers the [folderView] load effect. Calling reload()
             // here would close over the *previous* render's folderView — i.e. the folder just

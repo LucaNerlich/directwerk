@@ -18,13 +18,13 @@ import {
     listNewsletterLists,
 } from '@/lib/api/newsletterListsApi'
 import {suggestSlug} from '@/lib/api/studioHelpers'
-import {getClientTenantHost} from '@directwerk/api/tenant'
+
 import {useAuthedQuery} from '@directwerk/api/client/useAuthedQuery'
 
 export default function NewsletterListClient(): React.JSX.Element {
     const {viewMode, setViewMode} = useListViewMode()
     const {data: lists, error: errorMessage, isLoading, reload} = useAuthedQuery(
-        () => listNewsletterLists(getClientTenantHost()),
+        () => listNewsletterLists(),
         {fallbackError: 'Listen konnten nicht geladen werden.'},
     )
     const [name, setName] = useState('')
@@ -51,7 +51,7 @@ export default function NewsletterListClient(): React.JSX.Element {
         setBusy(true)
         setCreateError(null)
         try {
-            await createNewsletterList(getClientTenantHost(), {
+            await createNewsletterList( {
                 name: name.trim(),
                 slug: slug.trim() || suggestSlug(name),
             })

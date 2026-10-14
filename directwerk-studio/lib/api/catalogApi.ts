@@ -19,33 +19,31 @@ const invalidCategoryMessage = 'Der Server hat eine ungültige Kategorie gesende
 const invalidEpisodeMessage = 'Der Server hat eine ungültige Folge gesendet.'
 const invalidArticleMessage = 'Der Server hat einen ungültigen Beitrag gesendet.'
 
-export async function listFormats(tenantHost: string): Promise<FormatSummary[]> {
+export async function listFormats(): Promise<FormatSummary[]> {
     return studioGet(
         '/api/proxy/formats',
-        tenantHost,
+        
         parseFormatListEnvelope,
         'Der Server hat eine ungültige Formatliste gesendet.',
     )
 }
 
 export async function listCategories(
-    tenantHost: string,
-): Promise<CategorySummary[]> {
+    ): Promise<CategorySummary[]> {
     return studioGet(
         '/api/proxy/categories',
-        tenantHost,
+        
         parseCategoryListEnvelope,
         'Der Server hat eine ungültige Kategorieliste gesendet.',
     )
 }
 
 export async function createFormat(
-    tenantHost: string,
-    input: CreateFormatInput,
+        input: CreateFormatInput,
 ): Promise<FormatSummary> {
     return studioMutate(
         '/api/proxy/formats',
-        tenantHost,
+        
         jsonInit('POST', input),
         parseFormatEnvelope,
         invalidFormatMessage,
@@ -53,13 +51,12 @@ export async function createFormat(
 }
 
 export async function updateFormat(
-    tenantHost: string,
-    formatId: number,
+        formatId: number,
     input: UpdateFormatInput,
 ): Promise<FormatSummary> {
     return studioMutate(
         `/api/proxy/formats/${formatId}`,
-        tenantHost,
+        
         jsonInit('PUT', input),
         parseFormatEnvelope,
         invalidFormatMessage,
@@ -67,12 +64,11 @@ export async function updateFormat(
 }
 
 export async function deactivateFormat(
-    tenantHost: string,
-    formatId: number,
+        formatId: number,
 ): Promise<FormatSummary> {
     return studioMutate(
         `/api/proxy/formats/${formatId}`,
-        tenantHost,
+        
         {method: 'DELETE'},
         parseFormatEnvelope,
         invalidFormatMessage,
@@ -80,12 +76,11 @@ export async function deactivateFormat(
 }
 
 export async function createCategory(
-    tenantHost: string,
-    input: CreateCategoryInput,
+        input: CreateCategoryInput,
 ): Promise<CategorySummary> {
     return studioMutate(
         '/api/proxy/categories',
-        tenantHost,
+        
         jsonInit('POST', input),
         parseCategoryEnvelope,
         invalidCategoryMessage,
@@ -93,13 +88,12 @@ export async function createCategory(
 }
 
 export async function updateCategory(
-    tenantHost: string,
-    categoryId: number,
+        categoryId: number,
     input: UpdateCategoryInput,
 ): Promise<CategorySummary> {
     return studioMutate(
         `/api/proxy/categories/${categoryId}`,
-        tenantHost,
+        
         jsonInit('PUT', input),
         parseCategoryEnvelope,
         invalidCategoryMessage,
@@ -107,12 +101,11 @@ export async function updateCategory(
 }
 
 export async function deactivateCategory(
-    tenantHost: string,
-    categoryId: number,
+        categoryId: number,
 ): Promise<CategorySummary> {
     return studioMutate(
         `/api/proxy/categories/${categoryId}`,
-        tenantHost,
+        
         {method: 'DELETE'},
         parseCategoryEnvelope,
         invalidCategoryMessage,
@@ -120,13 +113,12 @@ export async function deactivateCategory(
 }
 
 export async function replaceEpisodeFormats(
-    tenantHost: string,
-    episodeId: number,
+        episodeId: number,
     formatIds: number[],
 ): Promise<EpisodeDetail> {
     return studioMutate(
         `/api/proxy/episodes/${episodeId}/formats`,
-        tenantHost,
+        
         jsonInit('PUT', {formatIds}),
         parseEpisodeEnvelope,
         invalidEpisodeMessage,
@@ -134,13 +126,12 @@ export async function replaceEpisodeFormats(
 }
 
 export async function replaceEpisodeCategories(
-    tenantHost: string,
-    episodeId: number,
+        episodeId: number,
     categoryIds: number[],
 ): Promise<EpisodeDetail> {
     return studioMutate(
         `/api/proxy/episodes/${episodeId}/categories`,
-        tenantHost,
+        
         jsonInit('PUT', {categoryIds}),
         parseEpisodeEnvelope,
         invalidEpisodeMessage,
@@ -148,13 +139,12 @@ export async function replaceEpisodeCategories(
 }
 
 export async function replaceArticleCategories(
-    tenantHost: string,
-    articleId: number,
+        articleId: number,
     categoryIds: number[],
 ): Promise<ArticleDetail> {
     return studioMutate(
         `/api/proxy/articles/${articleId}/categories`,
-        tenantHost,
+        
         jsonInit('PUT', {categoryIds}),
         parseArticleEnvelope,
         invalidArticleMessage,
@@ -162,13 +152,12 @@ export async function replaceArticleCategories(
 }
 
 export async function replaceArticleNewsletterLists(
-    tenantHost: string,
-    articleId: number,
+        articleId: number,
     newsletterListIds: number[],
 ): Promise<ArticleDetail> {
     return studioMutate(
         `/api/proxy/articles/${articleId}/newsletter-lists`,
-        tenantHost,
+        
         jsonInit('PUT', {newsletterListIds}),
         parseArticleEnvelope,
         invalidArticleMessage,

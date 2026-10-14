@@ -81,7 +81,7 @@ export default function ArticleRssImportWizard(): React.JSX.Element {
         let active = true
         setPrerequisitesStatus('loading')
         setPrerequisitesError(null)
-        listCategories(getClientTenantHost())
+        listCategories()
             .then((loaded) => {
                 if (!active) {
                     return
@@ -119,7 +119,7 @@ export default function ArticleRssImportWizard(): React.JSX.Element {
         setErrorMessage(null)
         setBusy(true)
         try {
-            const next = await previewArticleRssFeed(getClientTenantHost(), feedUrl.trim())
+            const next = await previewArticleRssFeed( feedUrl.trim())
             setPreview(next)
             setStep('categories')
         } catch (error) {
@@ -136,7 +136,7 @@ export default function ArticleRssImportWizard(): React.JSX.Element {
         const next = new Set(defaultCategoryIds)
         const name = canCreateCategories ? newCategoryName.trim() : ''
         if (name.length > 0) {
-            const created = await createCategory(getClientTenantHost(), {
+            const created = await createCategory( {
                 slug: suggestSlug(name) || 'kategorie',
                 name,
             })
@@ -180,7 +180,7 @@ export default function ArticleRssImportWizard(): React.JSX.Element {
         setBusy(true)
         try {
             const nextDefaults = await ensureDefaultCategoryIds()
-            const queued = await bulkImportArticleRss(getClientTenantHost(), {
+            const queued = await bulkImportArticleRss( {
                 feedUrl: preview.feedUrl,
                 categoryIds: Array.from(nextDefaults),
                 accessPolicy,
@@ -231,7 +231,7 @@ export default function ArticleRssImportWizard(): React.JSX.Element {
                     ? {label: 'Titelbild + Beitrag…', progress: null}
                     : {label: 'Beitrag wird angelegt…', progress: 100},
             )
-            const result = await importRssArticle(host, {
+            const result = await importRssArticle( {
                 feedUrl: preview.feedUrl,
                 guid: item.guid,
                 slug: articleSlug.trim() || item.suggestedSlug,

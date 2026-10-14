@@ -31,7 +31,7 @@ import type {
     SubscriptionProduct,
     TenantSubscriber,
 } from '@directwerk/api/types'
-import {getClientTenantHost} from '@directwerk/api/tenant'
+
 import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
 import {isValidEmail} from '@directwerk/api/validation/input'
 
@@ -89,8 +89,8 @@ export default function GrantsClient(): React.JSX.Element {
         setIsLoading(true)
         setLoadError(null)
         Promise.all([
-            listProducts(getClientTenantHost()),
-            listSubscribers(getClientTenantHost()),
+            listProducts(),
+            listSubscribers(),
         ])
             .then(([productResult, subscriberResult]) => {
                 if (!active) {
@@ -144,7 +144,7 @@ export default function GrantsClient(): React.JSX.Element {
         }
 
         try {
-            const grant = await grantSubscription(getClientTenantHost(), {
+            const grant = await grantSubscription( {
                 email: trimmedEmail,
                 productId: parsedProductId,
             })
@@ -168,7 +168,6 @@ export default function GrantsClient(): React.JSX.Element {
 
         try {
             const revoked = await revokeSubscription(
-                getClientTenantHost(),
                 subscriptionId,
             )
             setGrants((current) =>

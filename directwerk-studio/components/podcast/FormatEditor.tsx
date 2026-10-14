@@ -30,7 +30,7 @@ import type {
     FormatSummary,
     UpdateFormatInput,
 } from '@directwerk/api/types'
-import {getClientTenantHost} from '@directwerk/api/tenant'
+
 import {useResourceEditor} from '@/lib/hooks/useResourceEditor'
 
 interface FormatEditorProps {
@@ -159,7 +159,7 @@ export default function FormatEditor({formatId}: FormatEditorProps): React.JSX.E
             return
         }
 
-        getMediaPreviewUrl(getClientTenantHost(), values.coverAssetId)
+        getMediaPreviewUrl( values.coverAssetId)
             .then((url) => {
                 if (active) {
                     setCoverPreviewUrl(url)

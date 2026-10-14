@@ -17,35 +17,32 @@ const invalidListMessage = 'Der Server hat eine ungültige Bonusdatei-Liste gese
 const invalidDetailMessage = 'Der Server hat eine ungültige Bonusdatei gesendet.'
 
 export async function listDigitalPublications(
-    tenantHost: string,
-): Promise<DigitalPublication[]> {
+    ): Promise<DigitalPublication[]> {
     return studioGet(
         basePath,
-        tenantHost,
+        
         parseDigitalPublicationListEnvelope,
         invalidListMessage,
     )
 }
 
 export async function getDigitalPublication(
-    tenantHost: string,
-    publicationId: number,
+        publicationId: number,
 ): Promise<DigitalPublication> {
     return studioGet(
         `${basePath}/${publicationId}`,
-        tenantHost,
+        
         parseDigitalPublicationEnvelope,
         invalidDetailMessage,
     )
 }
 
 export async function createDigitalPublication(
-    tenantHost: string,
-    input: CreateDigitalPublicationInput,
+        input: CreateDigitalPublicationInput,
 ): Promise<DigitalPublication> {
     return studioMutate(
         basePath,
-        tenantHost,
+        
         jsonInit('POST', input),
         parseDigitalPublicationEnvelope,
         invalidDetailMessage,
@@ -53,13 +50,12 @@ export async function createDigitalPublication(
 }
 
 export async function updateDigitalPublication(
-    tenantHost: string,
-    publicationId: number,
+        publicationId: number,
     input: UpdateDigitalPublicationInput,
 ): Promise<DigitalPublication> {
     return studioMutate(
         `${basePath}/${publicationId}`,
-        tenantHost,
+        
         jsonInit('PUT', input),
         parseDigitalPublicationEnvelope,
         invalidDetailMessage,
@@ -67,12 +63,11 @@ export async function updateDigitalPublication(
 }
 
 export async function publishDigitalPublication(
-    tenantHost: string,
-    publicationId: number,
+        publicationId: number,
 ): Promise<DigitalPublication> {
     return studioMutate(
         `${basePath}/${publicationId}/publish`,
-        tenantHost,
+        
         {method: 'POST'},
         parseDigitalPublicationEnvelope,
         invalidDetailMessage,
@@ -80,12 +75,11 @@ export async function publishDigitalPublication(
 }
 
 export async function unpublishDigitalPublication(
-    tenantHost: string,
-    publicationId: number,
+        publicationId: number,
 ): Promise<DigitalPublication> {
     return studioMutate(
         `${basePath}/${publicationId}/unpublish`,
-        tenantHost,
+        
         {method: 'POST'},
         parseDigitalPublicationEnvelope,
         invalidDetailMessage,
@@ -93,12 +87,11 @@ export async function unpublishDigitalPublication(
 }
 
 export async function archiveDigitalPublication(
-    tenantHost: string,
-    publicationId: number,
+        publicationId: number,
 ): Promise<DigitalPublication> {
     return studioMutate(
         `${basePath}/${publicationId}/archive`,
-        tenantHost,
+        
         {method: 'POST'},
         parseDigitalPublicationEnvelope,
         invalidDetailMessage,
@@ -106,12 +99,11 @@ export async function archiveDigitalPublication(
 }
 
 export async function unarchiveDigitalPublication(
-    tenantHost: string,
-    publicationId: number,
+        publicationId: number,
 ): Promise<DigitalPublication> {
     return studioMutate(
         `${basePath}/${publicationId}/unarchive`,
-        tenantHost,
+        
         {method: 'POST'},
         parseDigitalPublicationEnvelope,
         invalidDetailMessage,
@@ -119,8 +111,7 @@ export async function unarchiveDigitalPublication(
 }
 
 export async function deleteDigitalPublication(
-    tenantHost: string,
-    publicationId: number,
+        publicationId: number,
 ): Promise<void> {
-    return studioDelete(`${basePath}/${publicationId}`, tenantHost)
+    return studioDelete(`${basePath}/${publicationId}`, )
 }

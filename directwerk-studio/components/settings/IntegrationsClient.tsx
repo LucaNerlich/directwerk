@@ -21,7 +21,7 @@ import {
     getIntegrationsStatus,
 } from '@/lib/api/integrationsApi'
 import type {IntegrationsStatus} from '@directwerk/api/types'
-import {getClientTenantHost} from '@directwerk/api/tenant'
+
 import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
 
 export default function IntegrationsClient(): React.JSX.Element {
@@ -44,7 +44,7 @@ export default function IntegrationsClient(): React.JSX.Element {
         let active = true
         setIsLoading(true)
         setErrorMessage(null)
-        getIntegrationsStatus(getClientTenantHost())
+        getIntegrationsStatus()
             .then((loaded) => {
                 if (!active) {
                     return
@@ -81,7 +81,7 @@ export default function IntegrationsClient(): React.JSX.Element {
         setErrorMessage(null)
         setStatusMessage(null)
         try {
-            await connectMailgun(getClientTenantHost(), {
+            await connectMailgun( {
                 domain: domain.trim(),
                 fromEmail: fromEmail.trim(),
                 fromName: fromName.trim() || undefined,
@@ -104,7 +104,7 @@ export default function IntegrationsClient(): React.JSX.Element {
         setErrorMessage(null)
         setStatusMessage(null)
         try {
-            await disconnectEsp(getClientTenantHost())
+            await disconnectEsp()
             setStatusMessage('Mailgun-Verbindung entfernt. Es gilt wieder die Plattform-Zustellung.')
             setReloadToken((value) => value + 1)
         } catch (error: unknown) {

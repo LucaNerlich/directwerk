@@ -128,7 +128,7 @@ export default function ProductListClient(): React.JSX.Element {
     const tenantHost = getClientTenantHost()
     const {viewMode, setViewMode} = useListViewMode()
     const {data: products, error: errorMessage, isLoading, reload} = useCachedTenantQuery(
-        (host) => listProducts(host),
+        (host) => listProducts(),
         {
             namespace: 'tenant-products',
             tenantHost,

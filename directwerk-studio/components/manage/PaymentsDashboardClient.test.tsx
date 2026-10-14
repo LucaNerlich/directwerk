@@ -117,7 +117,7 @@ describe('PaymentsDashboardClient', () => {
         fireEvent.click(screen.getByRole('button', {name: 'Wirklich beenden'}))
 
         await waitFor(() =>
-            expect(revokeSubscription).toHaveBeenCalledWith('tenant.test', 9),
+            expect(revokeSubscription).toHaveBeenCalledWith(9),
         )
         expect(await screen.findByText('Zugang beendet: member@example.com')).toBeInTheDocument()
         expect(screen.getByText(/Supporter · Gekündigt · Stripe/)).toBeInTheDocument()

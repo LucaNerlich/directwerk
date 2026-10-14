@@ -37,46 +37,43 @@ function mediaQueryString(query?: TenantMediaQuery): string {
 }
 
 export async function confirmUpload(
-    tenantHost: string,
-    assetId: number,
+        assetId: number,
 ): Promise<MediaAsset> {
     return studioMutate(
         `/api/proxy/media/${assetId}/confirm`,
-        tenantHost,
+        
         {method: 'POST'},
         parseMediaAssetEnvelope,
         invalidMediaMessage,
     )
 }
 
-export async function listMedia(tenantHost: string, query?: TenantMediaQuery): Promise<MediaAsset[]> {
+export async function listMedia( query?: TenantMediaQuery): Promise<MediaAsset[]> {
     return studioGet(
         `/api/proxy/media${mediaQueryString(query)}`,
-        tenantHost,
+        
         parseMediaListEnvelope,
         'Der Server hat eine ungültige Medienliste gesendet.',
     )
 }
 
 export async function getMedia(
-    tenantHost: string,
-    assetId: number,
+        assetId: number,
 ): Promise<MediaAsset> {
     return studioGet(
         `/api/proxy/media/${assetId}`,
-        tenantHost,
+        
         parseMediaAssetEnvelope,
         invalidMediaMessage,
     )
 }
 
 export async function deleteMedia(
-    tenantHost: string,
-    assetId: number,
+        assetId: number,
 ): Promise<MediaAsset> {
     return studioMutate(
         `/api/proxy/media/${assetId}`,
-        tenantHost,
+        
         {method: 'DELETE'},
         parseMediaAssetEnvelope,
         invalidMediaMessage,
@@ -84,13 +81,12 @@ export async function deleteMedia(
 }
 
 export async function moveMediaAsset(
-    tenantHost: string,
-    assetId: number,
+        assetId: number,
     folderId: number | null,
 ): Promise<MediaAsset> {
     return studioMutate(
         `/api/proxy/media/${assetId}/move`,
-        tenantHost,
+        
         jsonInit('POST', {folderId}),
         parseMediaAssetEnvelope,
         invalidMediaMessage,
@@ -98,56 +94,53 @@ export async function moveMediaAsset(
 }
 
 export async function renameMediaAsset(
-    tenantHost: string,
-    assetId: number,
+        assetId: number,
     filename: string,
 ): Promise<MediaAsset> {
     return studioMutate(
         `/api/proxy/media/${assetId}`,
-        tenantHost,
+        
         jsonInit('PUT', {filename}),
         parseMediaAssetEnvelope,
         invalidMediaMessage,
     )
 }
 
-export async function listMediaFolders(tenantHost: string): Promise<MediaFolder[]> {
+export async function listMediaFolders(): Promise<MediaFolder[]> {
     return studioGet(
         '/api/proxy/media/folders',
-        tenantHost,
+        
         parseMediaFolderListEnvelope,
         'Der Server hat eine ungültige Ordnerliste gesendet.',
     )
 }
 
-export async function getMediaUploadLimits(tenantHost: string): Promise<MediaUploadLimits> {
+export async function getMediaUploadLimits(): Promise<MediaUploadLimits> {
     return studioGet(
         '/api/proxy/media/limits',
-        tenantHost,
+        
         parseMediaUploadLimitsEnvelope,
         'Der Server hat ungültige Upload-Limits gesendet.',
     )
 }
 
 export async function getStorageSummary(
-    tenantHost: string,
-): Promise<MediaStorageSummary> {
+    ): Promise<MediaStorageSummary> {
     return studioGet(
         '/api/proxy/media/storage-summary',
-        tenantHost,
+        
         parseMediaStorageSummaryEnvelope,
         'Der Server hat eine ungültige Speicher-Zusammenfassung gesendet.',
     )
 }
 
 export async function createMediaFolder(
-    tenantHost: string,
-    name: string,
+        name: string,
     parentId: number | null,
 ): Promise<MediaFolder> {
     return studioMutate(
         '/api/proxy/media/folders',
-        tenantHost,
+        
         jsonInit('POST', {name, parentId}),
         parseMediaFolderEnvelope,
         invalidFolderMessage,
@@ -155,13 +148,12 @@ export async function createMediaFolder(
 }
 
 export async function renameMediaFolder(
-    tenantHost: string,
-    folderId: number,
+        folderId: number,
     name: string,
 ): Promise<MediaFolder> {
     return studioMutate(
         `/api/proxy/media/folders/${folderId}`,
-        tenantHost,
+        
         jsonInit('PUT', {name}),
         parseMediaFolderEnvelope,
         invalidFolderMessage,
@@ -169,13 +161,12 @@ export async function renameMediaFolder(
 }
 
 export async function moveMediaFolder(
-    tenantHost: string,
-    folderId: number,
+        folderId: number,
     parentId: number | null,
 ): Promise<MediaFolder> {
     return studioMutate(
         `/api/proxy/media/folders/${folderId}/move`,
-        tenantHost,
+        
         jsonInit('POST', {parentId}),
         parseMediaFolderEnvelope,
         invalidFolderMessage,
@@ -185,13 +176,12 @@ export async function moveMediaFolder(
 export type MediaFolderDeleteMode = 'move_to_parent' | 'delete_contents'
 
 export async function deleteMediaFolder(
-    tenantHost: string,
-    folderId: number,
+        folderId: number,
     mode: MediaFolderDeleteMode,
 ): Promise<MediaFolder> {
     return studioMutate(
         `/api/proxy/media/folders/${folderId}?mode=${mode}`,
-        tenantHost,
+        
         {method: 'DELETE'},
         parseMediaFolderEnvelope,
         invalidFolderMessage,
@@ -199,13 +189,12 @@ export async function deleteMediaFolder(
 }
 
 export async function getMediaPreviewUrl(
-    tenantHost: string,
-    assetId: number,
+        assetId: number,
 ): Promise<string> {
     const url = parsePreviewUrlEnvelope(
         await authenticatedRequest(
             `/api/proxy/media/${assetId}/preview-url`,
-            tenantHost,
+            '',
         ),
     )
     if (url === null) {

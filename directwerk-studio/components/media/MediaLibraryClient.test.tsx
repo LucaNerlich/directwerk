@@ -90,7 +90,7 @@ describe('MediaLibraryClient', () => {
         vi.mocked(moveMediaFolder).mockReset()
         vi.mocked(deleteMediaFolder).mockReset()
         vi.mocked(moveMediaAsset).mockReset()
-        vi.mocked(moveMediaAsset).mockImplementation(async (_host, assetId, folderId) => ({
+        vi.mocked(moveMediaAsset).mockImplementation(async (assetId, folderId) => ({
             ...coverAsset,
             id: assetId,
             folderId,
@@ -383,7 +383,7 @@ describe('MediaLibraryClient', () => {
         render(<MediaLibraryClient />)
 
         await waitFor(() =>
-            expect(vi.mocked(listMedia)).toHaveBeenLastCalledWith('tenant.test', {
+            expect(vi.mocked(listMedia)).toHaveBeenLastCalledWith({
                 limit: 100,
                 folderId: undefined,
                 recursive: false,
@@ -393,7 +393,7 @@ describe('MediaLibraryClient', () => {
 
         fireEvent.click(await screen.findByRole('button', {name: /Interviews/}))
         await waitFor(() =>
-            expect(vi.mocked(listMedia)).toHaveBeenLastCalledWith('tenant.test', {
+            expect(vi.mocked(listMedia)).toHaveBeenLastCalledWith({
                 limit: 100,
                 folderId: 1,
                 recursive: false,
@@ -403,7 +403,7 @@ describe('MediaLibraryClient', () => {
 
         fireEvent.click(screen.getByRole('checkbox', {name: 'Unterordner einbeziehen'}))
         await waitFor(() =>
-            expect(vi.mocked(listMedia)).toHaveBeenLastCalledWith('tenant.test', {
+            expect(vi.mocked(listMedia)).toHaveBeenLastCalledWith({
                 limit: 100,
                 folderId: 1,
                 recursive: true,
@@ -427,7 +427,7 @@ describe('MediaLibraryClient', () => {
         fireEvent.click(screen.getByRole('button', {name: 'Ordner anlegen'}))
 
         await waitFor(() =>
-            expect(createMediaFolder).toHaveBeenCalledWith('tenant.test', 'Neu', null),
+            expect(createMediaFolder).toHaveBeenCalledWith('Neu', null),
         )
         expect(await screen.findByText('Ordner „Neu“ angelegt.')).toBeInTheDocument()
     })
@@ -448,7 +448,7 @@ describe('MediaLibraryClient', () => {
         fireEvent.click(within(dialog).getByRole('button', {name: 'Verschieben'}))
 
         await waitFor(() =>
-            expect(moveMediaAsset).toHaveBeenCalledWith('tenant.test', 7, 1),
+            expect(moveMediaAsset).toHaveBeenCalledWith(7, 1),
         )
         expect(await screen.findByText('1 Datei(en) verschoben.')).toBeInTheDocument()
     })
@@ -475,7 +475,7 @@ describe('MediaLibraryClient', () => {
         fireEvent.click(within(dialog).getByRole('button', {name: 'Verschieben'}))
 
         await waitFor(() =>
-            expect(moveMediaAsset).toHaveBeenCalledWith('tenant.test', 9, null),
+            expect(moveMediaAsset).toHaveBeenCalledWith(9, null),
         )
         expect(
             await screen.findByText('1 Datei(en) in die Bibliothek verschoben.'),
@@ -523,7 +523,7 @@ describe('MediaLibraryClient', () => {
         fireEvent.click(within(dialog).getByRole('button', {name: 'Ordner löschen'}))
 
         await waitFor(() =>
-            expect(deleteMediaFolder).toHaveBeenCalledWith('tenant.test', 1, 'move_to_parent'),
+            expect(deleteMediaFolder).toHaveBeenCalledWith(1, 'move_to_parent'),
         )
         expect(await screen.findByText('Ordner „Interviews“ gelöscht.')).toBeInTheDocument()
     })
@@ -566,7 +566,7 @@ describe('MediaLibraryClient', () => {
         fireEvent.click(within(dialog).getByRole('button', {name: 'Umbenennen'}))
 
         await waitFor(() =>
-            expect(renameMediaFolder).toHaveBeenCalledWith('tenant.test', 1, 'Neu'),
+            expect(renameMediaFolder).toHaveBeenCalledWith(1, 'Neu'),
         )
         expect(await screen.findByText('Ordner in „Neu“ umbenannt.')).toBeInTheDocument()
     })

@@ -16,7 +16,7 @@ import {useListViewMode} from '@directwerk/ui/hooks/use-list-view-mode'
 
 import {listFormats} from '@/lib/api/catalogApi'
 import type {FormatSummary} from '@directwerk/api/types'
-import {getClientTenantHost} from '@directwerk/api/tenant'
+
 import {useAuthedQuery} from '@directwerk/api/client/useAuthedQuery'
 
 export default function FormatListClient(): React.JSX.Element {
@@ -24,7 +24,7 @@ export default function FormatListClient(): React.JSX.Element {
     const p = dict.podcast
     const {viewMode, setViewMode} = useListViewMode()
     const {data: formats, error: errorMessage, isLoading} = useAuthedQuery<FormatSummary[]>(
-        () => listFormats(getClientTenantHost()),
+        () => listFormats(),
         {fallbackError: p.formatsLoadFailed},
     )
     const searchInputId = useId()

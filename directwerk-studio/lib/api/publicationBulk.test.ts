@@ -33,7 +33,7 @@ describe('bulk publication requests', () => {
         const fetchMock = vi.fn().mockResolvedValue(jsonResponse(200, bulkPublishEnvelope([])))
         vi.stubGlobal('fetch', fetchMock)
 
-        await bulkPublishEpisodes('tenant.test', {ids: [7, 8]})
+        await bulkPublishEpisodes({ids: [7, 8]})
 
         expect(fetchMock).toHaveBeenCalledWith(
             '/api/proxy/episodes/bulk/publish',
@@ -47,7 +47,7 @@ describe('bulk publication requests', () => {
         const fetchMock = vi.fn().mockResolvedValue(jsonResponse(200, bulkPublishEnvelope([])))
         vi.stubGlobal('fetch', fetchMock)
 
-        await bulkUnpublishEpisodes('tenant.test', [7])
+        await bulkUnpublishEpisodes([7])
 
         expect(fetchMock).toHaveBeenCalledWith(
             '/api/proxy/episodes/bulk/unpublish',
@@ -67,7 +67,7 @@ describe('bulk publication requests', () => {
         )
         vi.stubGlobal('fetch', fetchMock)
 
-        await expect(bulkDeleteEpisodes('tenant.test', [7, 8])).resolves.toEqual([7, 8])
+        await expect(bulkDeleteEpisodes([7, 8])).resolves.toEqual([7, 8])
         expect(fetchMock).toHaveBeenCalledWith(
             '/api/proxy/episodes/bulk/delete',
             expect.objectContaining({method: 'POST'}),
@@ -78,8 +78,8 @@ describe('bulk publication requests', () => {
         const fetchMock = vi.fn(async () => jsonResponse(200, bulkPublishEnvelope([])))
         vi.stubGlobal('fetch', fetchMock)
 
-        await bulkPublishArticles('tenant.test', {ids: [9]})
-        await bulkUnpublishArticles('tenant.test', [9])
+        await bulkPublishArticles({ids: [9]})
+        await bulkUnpublishArticles([9])
 
         expect(fetchMock).toHaveBeenCalledWith(
             '/api/proxy/articles/bulk/publish',
@@ -103,6 +103,6 @@ describe('bulk publication requests', () => {
         )
         vi.stubGlobal('fetch', fetchMock)
 
-        await expect(bulkDeleteArticles('tenant.test', [9])).resolves.toEqual([9])
+        await expect(bulkDeleteArticles([9])).resolves.toEqual([9])
     })
 })

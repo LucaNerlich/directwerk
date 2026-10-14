@@ -4,7 +4,7 @@ import {useEffect, useState} from 'react'
 
 import {getMyEffectiveRights} from '@/lib/api/tenantSettingsApi'
 import {useOptionalMe} from '@/lib/auth/MeProvider'
-import {getClientTenantHost} from '@directwerk/api/tenant'
+
 import {deskAccess, type DeskAccess} from '@/lib/rbac/access'
 import type {EffectiveRights, RbacEntityType} from '@directwerk/api/types'
 
@@ -34,7 +34,7 @@ export function useDeskAccess({
 
     useEffect(() => {
         let active = true
-        getMyEffectiveRights(getClientTenantHost())
+        getMyEffectiveRights()
             .then((loaded) => {
                 if (active) {
                     setRights(loaded)

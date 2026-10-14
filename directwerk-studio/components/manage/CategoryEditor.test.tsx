@@ -39,7 +39,7 @@ describe('CategoryEditor', () => {
         await user.click(screen.getByRole('button', {name: /Speichern/}))
 
         await waitFor(() =>
-            expect(createCategory).toHaveBeenCalledWith('tenant.test', {
+            expect(createCategory).toHaveBeenCalledWith({
                 slug: 'news',
                 name: 'News',
                 parentId: undefined,

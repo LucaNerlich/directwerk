@@ -28,7 +28,7 @@ export default function LevelSelect({
     const levelsDict = dict.common.levels
     const tenantHost = getClientTenantHost()
     const {data: levels, error, isLoading} = useCachedTenantQuery<LevelSummary[]>(
-        (host) => listPublicLevels(host),
+        (host) => listPublicLevels(),
         {
             namespace: 'public-levels',
             tenantHost,

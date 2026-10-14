@@ -142,14 +142,13 @@ export function deltaPercent(current: number, previous: number): number | null {
 const invalidStatsMessage = 'Der Server hat ungültige Umami-Kennzahlen gesendet.'
 
 export async function getUmamiStats(
-    tenantHost: string,
-    range: UmamiRange,
+        range: UmamiRange,
 ): Promise<UmamiStats> {
     // Analytics reads go through the tenant proxy to the API, like every other
     // domain call — the API owns the Umami login, host/website validation and range table.
     return studioGet(
         `/api/proxy/tenant/analytics/stats/${range}`,
-        tenantHost,
+        
         (value) => {
             const parsed = parseUmamiStats(value)
             return parsed === null ? null : {data: parsed}

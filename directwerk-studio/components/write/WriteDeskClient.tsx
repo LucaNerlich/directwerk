@@ -42,8 +42,8 @@ export default function WriteDeskClient(): React.JSX.Element {
             try {
                 const host = getClientTenantHost()
                 const [loadedArticles, loadedCategories] = await Promise.all([
-                    listArticles(host),
-                    listCategories(host),
+                    listArticles(),
+                    listCategories(),
                 ])
                 if (!active) {
                     return

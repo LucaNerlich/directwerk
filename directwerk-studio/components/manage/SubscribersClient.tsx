@@ -57,7 +57,7 @@ export default function SubscribersClient(): React.JSX.Element {
         isLoading,
         reload,
     } = useCachedTenantQuery(
-        (host) => listSubscribers(host),
+        (host) => listSubscribers(),
         {
             namespace: 'tenant-subscribers',
             tenantHost,
@@ -106,7 +106,7 @@ export default function SubscribersClient(): React.JSX.Element {
         setActionError(null)
         setStatusMessage(null)
         try {
-            await revokeSubscription(getClientTenantHost(), item.id)
+            await revokeSubscription( item.id)
             setPendingRevokeId(null)
             setStatusMessage(`Zugang beendet: ${email}`)
             reload()

@@ -33,7 +33,7 @@ import type {
 } from '@directwerk/api/types'
 import {mediaLimitLabel} from '@/lib/media/limits'
 import {useCoverImageUpload} from '@/lib/media/useCoverImageUpload'
-import {getClientTenantHost} from '@directwerk/api/tenant'
+
 import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
 import {useResourceEditor} from '@/lib/hooks/useResourceEditor'
 
@@ -162,12 +162,12 @@ export default function SeriesEditor({seriesId}: SeriesEditorProps): React.JSX.E
             saveFailed: 'Aktion fehlgeschlagen.',
             deactivateFailed: 'Deaktivierung fehlgeschlagen.',
         },
-        afterCreate: async ({host, created, values: createdValues}) => {
+        afterCreate: async ({created, values: createdValues}) => {
             if (!createdValues.publishOnCreate) {
                 return {ok: true}
             }
             try {
-                await updateSeries(host, created.id, {
+                await updateSeries(created.id, {
                     ...seriesUpdatePayload(createdValues, 'PUBLISHED'),
                     slug: created.slug,
                 })
@@ -195,7 +195,7 @@ export default function SeriesEditor({seriesId}: SeriesEditorProps): React.JSX.E
             return
         }
 
-        getMediaPreviewUrl(getClientTenantHost(), values.coverAssetId)
+        getMediaPreviewUrl( values.coverAssetId)
             .then((url) => {
                 if (active) {
                     setCoverPreviewUrl(url)
@@ -249,7 +249,6 @@ export default function SeriesEditor({seriesId}: SeriesEditorProps): React.JSX.E
         await runAction(
             async () => {
                 const updated = await updateSeries(
-                    getClientTenantHost(),
                     effectiveId,
                     seriesUpdatePayload(values, 'PUBLISHED'),
                 )

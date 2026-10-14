@@ -36,11 +36,10 @@ function computeRemoteIngestPercent(asset: MediaAsset): number | null {
 }
 
 async function waitForRemoteIngest(
-    tenantHost: string,
     assetId: number,
     onProgress: (progress: number | null, asset: MediaAsset) => void,
     signal: AbortSignal | undefined,
-    pollAsset: (tenantHost: string, assetId: number) => Promise<MediaAsset>,
+    pollAsset: (assetId: number) => Promise<MediaAsset>,
 ): Promise<MediaAsset> {
     let consecutiveFailures = 0
 
@@ -50,7 +49,7 @@ async function waitForRemoteIngest(
         }
         let asset: MediaAsset
         try {
-            asset = await pollAsset(tenantHost, assetId)
+            asset = await pollAsset(assetId)
         } catch (error: unknown) {
             if (
                 error instanceof Error &&
@@ -88,7 +87,6 @@ async function waitForRemoteIngest(
 }
 
 export async function ingestRemoteAssetWithProgress(
-    tenantHost: string,
     input: IngestRemoteAssetInput,
     onProgress: (progress: number | null, asset: MediaAsset) => void,
     options: {signal?: AbortSignal; desk?: RemoteIngestDesk} = {},
@@ -101,10 +99,9 @@ export async function ingestRemoteAssetWithProgress(
     const pollAsset = desk === 'articles' ? getArticleIngestAsset : getIngestAsset
     const started = await studioMutate(
         startPath,
-        tenantHost,
         jsonInit('POST', {...input, waitForCompletion: false}),
         parseMediaAssetEnvelope,
         INGEST_FAILED_MESSAGE,
     )
-    return waitForRemoteIngest(tenantHost, started.id, onProgress, options.signal, pollAsset)
+    return waitForRemoteIngest(started.id, onProgress, options.signal, pollAsset)
 }

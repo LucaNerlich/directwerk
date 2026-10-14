@@ -221,7 +221,7 @@ describe('RssImportWizard', () => {
         expect(screen.getByText('Feed-Adresse')).toBeInTheDocument()
 
         await loadFeed()
-        expect(previewRssFeed).toHaveBeenCalledWith('tenant.test', preview.feedUrl)
+        expect(previewRssFeed).toHaveBeenCalledWith(preview.feedUrl)
         expect(screen.getByText(/2 Folgen gefunden/)).toBeInTheDocument()
 
         await user.click(screen.getByRole('button', {name: 'Weiter zu Formaten'}))
@@ -234,7 +234,7 @@ describe('RssImportWizard', () => {
         await user.click(screen.getByRole('button', {name: 'Weiter zu den Folgen'}))
 
         await waitFor(() => expect(screen.getByText('Folge 1 von 2')).toBeInTheDocument())
-        expect(createFormat).toHaveBeenCalledWith('tenant.test', {slug: 'bonus', name: 'Bonus'})
+        expect(createFormat).toHaveBeenCalledWith({slug: 'bonus', name: 'Bonus'})
         expect(screen.getByDisplayValue('Folge 1')).toBeInTheDocument()
         expect(screen.getByRole('checkbox', {name: 'MP3 nach S3 streamen'})).toBeChecked()
 
@@ -246,7 +246,6 @@ describe('RssImportWizard', () => {
         await waitFor(() => expect(screen.getByText('Folge 2 von 2')).toBeInTheDocument())
         expect(ingestRemoteAssetWithProgress).toHaveBeenCalledTimes(2)
         expect(importRssEpisode).toHaveBeenCalledWith(
-            'tenant.test',
             expect.objectContaining({
                 seriesId: 7,
                 feedUrl: preview.feedUrl,
@@ -282,7 +281,6 @@ describe('RssImportWizard', () => {
         await user.click(screen.getByRole('button', {name: 'Weiter zu Formaten'}))
         await waitFor(() => expect(screen.getByText('Formate zuordnen')).toBeInTheDocument())
         expect(ingestRemoteAssetWithProgress).toHaveBeenCalledWith(
-            'tenant.test',
             {
                 sourceUrl: 'https://cdn.example.com/show.jpg',
                 assetType: 'IMAGE',
@@ -292,7 +290,6 @@ describe('RssImportWizard', () => {
             expect.any(Function),
         )
         expect(createSeries).toHaveBeenCalledWith(
-            'tenant.test',
             expect.objectContaining({
                 slug: 'alpha-show',
                 title: 'Alpha Show',
@@ -311,7 +308,7 @@ describe('RssImportWizard', () => {
         await user.click(screen.getByRole('button', {name: 'Weiter zu Formaten'}))
 
         await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent('Slug ist bereits vergeben.'))
-        expect(deleteMedia).toHaveBeenCalledWith('tenant.test', 99)
+        expect(deleteMedia).toHaveBeenCalledWith(99)
         expect(screen.getByText('Sendung festlegen')).toBeInTheDocument()
     })
 
@@ -340,7 +337,6 @@ describe('RssImportWizard', () => {
 
         await waitFor(() => expect(screen.getByText('Folge 2 von 2')).toBeInTheDocument())
         expect(importRssEpisode).toHaveBeenLastCalledWith(
-            'tenant.test',
             expect.objectContaining({formatIds: []}),
         )
         expect(screen.getByRole('checkbox', {name: 'Hauptfolge'})).toBeChecked()
@@ -382,8 +378,8 @@ describe('RssImportWizard', () => {
         await waitFor(() =>
             expect(screen.getByRole('alert')).toHaveTextContent('Import fehlgeschlagen.'),
         )
-        expect(deleteMedia).toHaveBeenCalledWith('tenant.test', 21)
-        expect(deleteMedia).toHaveBeenCalledWith('tenant.test', 22)
+        expect(deleteMedia).toHaveBeenCalledWith(21)
+        expect(deleteMedia).toHaveBeenCalledWith(22)
         // The failed episode stays open for a retry instead of advancing.
         expect(screen.getByText('Folge 1 von 2')).toBeInTheDocument()
     })
@@ -437,7 +433,7 @@ describe('RssImportWizard', () => {
         await waitFor(() =>
             expect(screen.getByText('Stapelimport gestartet')).toBeInTheDocument(),
         )
-        expect(bulkImportRss).toHaveBeenCalledWith('tenant.test', {
+        expect(bulkImportRss).toHaveBeenCalledWith({
             feedUrl: preview.feedUrl,
             seriesId: 7,
             formatIds: [],

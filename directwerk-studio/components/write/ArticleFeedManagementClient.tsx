@@ -51,7 +51,7 @@ export default function ArticleFeedManagementClient(): React.JSX.Element {
             try {
                 const host = getClientTenantHost()
                 const loadedFeeds = showArticleFeeds
-                    ? await listArticleFeeds(host)
+                    ? await listArticleFeeds()
                     : []
                 if (!active) {
                     return
@@ -93,7 +93,6 @@ export default function ArticleFeedManagementClient(): React.JSX.Element {
         setErrorMessage(null)
         try {
             const updated = await setArticleFeedEnabled(
-                getClientTenantHost(),
                 feed.id,
                 !feed.enabled,
             )

@@ -23,7 +23,7 @@ import {useActionState, useCallback, useEffect, useState} from 'react'
 import {AUTH_REQUIRED} from '@directwerk/api/constants'
 import {addDomain, getDomainVerification, listDomains, verifyDomain} from '@/lib/api/tenantSettingsApi'
 import type {DomainVerificationChallenge, TenantDomain} from '@directwerk/api/types'
-import {getClientTenantHost} from '@directwerk/api/tenant'
+
 import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
 
 interface AddDomainState {
@@ -62,7 +62,7 @@ export default function DomainsClient(): React.JSX.Element {
     const {viewMode, setViewMode} = useListViewMode()
 
     const reload = useCallback(async (): Promise<void> => {
-        const result = await listDomains(getClientTenantHost())
+        const result = await listDomains()
         setDomains(result)
     }, [])
 
@@ -108,7 +108,7 @@ export default function DomainsClient(): React.JSX.Element {
         }
 
         try {
-            await addDomain(getClientTenantHost(), {host, isPrimary})
+            await addDomain( {host, isPrimary})
             await reload()
             return {error: null, success: `Domain ${host} hinzugefügt.`}
         } catch (error: unknown) {
@@ -133,7 +133,7 @@ export default function DomainsClient(): React.JSX.Element {
         setActionError(null)
         setActionStatus(null)
         try {
-            const result = await getDomainVerification(getClientTenantHost(), host)
+            const result = await getDomainVerification(host)
             setChallenge(result)
         } catch (error: unknown) {
             if (authRedirect(error)) return
@@ -152,7 +152,7 @@ export default function DomainsClient(): React.JSX.Element {
         setActionError(null)
         setActionStatus(null)
         try {
-            await verifyDomain(getClientTenantHost(), host)
+            await verifyDomain(host)
             await reload()
             setChallenge(null)
             setActionStatus(`${host} ist verifiziert.`)

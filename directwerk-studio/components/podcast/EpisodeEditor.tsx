@@ -130,8 +130,8 @@ export default function EpisodeEditor({episodeId}: {episodeId?: number}): React.
         async (current: EpisodeDetail): Promise<EpisodeDetail> => {
             const host = getClientTenantHost()
             const [afterFormats, afterCategories] = await Promise.all([
-                replaceEpisodeFormats(host, current.id, Array.from(selectedFormatIds)),
-                replaceEpisodeCategories(host, current.id, Array.from(selectedCategoryIds)),
+                replaceEpisodeFormats( current.id, Array.from(selectedFormatIds)),
+                replaceEpisodeCategories( current.id, Array.from(selectedCategoryIds)),
             ])
             const merged = {
                 ...afterCategories,
@@ -154,7 +154,7 @@ export default function EpisodeEditor({episodeId}: {episodeId?: number}): React.
         const payload = episodeFields()
 
         if (episodeId === undefined) {
-            const created = await createEpisode(host, {
+            const created = await createEpisode( {
                 ...payload,
                 seriesId,
             })
@@ -163,7 +163,7 @@ export default function EpisodeEditor({episodeId}: {episodeId?: number}): React.
             return created
         }
 
-        const updated = await updateEpisode(host, episodeId, {
+        const updated = await updateEpisode( episodeId, {
             ...payload,
             clearCoverAsset: coverAssetId === null,
         })
@@ -240,8 +240,8 @@ export default function EpisodeEditor({episodeId}: {episodeId?: number}): React.
             try {
                 const host = getClientTenantHost()
                 const [url, asset] = await Promise.all([
-                    getMediaPreviewUrl(host, assetId),
-                    getMedia(host, assetId),
+                    getMediaPreviewUrl( assetId),
+                    getMedia( assetId),
                 ])
                 if (!active) {
                     return
@@ -285,7 +285,7 @@ export default function EpisodeEditor({episodeId}: {episodeId?: number}): React.
             return
         }
 
-        getMediaPreviewUrl(getClientTenantHost(), coverAssetId)
+        getMediaPreviewUrl( coverAssetId)
             .then((url) => {
                 if (active) {
                     setCoverPreviewUrl(safeImageSrc(url))
@@ -313,11 +313,11 @@ export default function EpisodeEditor({episodeId}: {episodeId?: number}): React.
                 const host = getClientTenantHost()
                 const [seriesList, formatList, categoryList, episodeList, loadedEpisode] =
                     await Promise.all([
-                    listSeries(host),
-                    listFormats(host),
-                    listCategories(host),
-                    listEpisodes(host),
-                    episodeId === undefined ? null : getEpisode(host, episodeId),
+                    listSeries(),
+                    listFormats(),
+                    listCategories(),
+                    listEpisodes(),
+                    episodeId === undefined ? null : getEpisode( episodeId),
                 ])
 
                 if (!active) {
@@ -405,7 +405,7 @@ export default function EpisodeEditor({episodeId}: {episodeId?: number}): React.
                         }
                     },
                 })
-                const updated = await attachEpisodeAudio(host, saved.id, asset.id)
+                const updated = await attachEpisodeAudio( saved.id, asset.id)
                 setEpisode(updated)
             } catch (error) {
                 handleAuthError(error)
@@ -430,7 +430,6 @@ export default function EpisodeEditor({episodeId}: {episodeId?: number}): React.
             setErrorMessage(null)
             try {
                 const updated = await attachEpisodeAudio(
-                    getClientTenantHost(),
                     saved.id,
                     assetId,
                 )
@@ -459,7 +458,6 @@ export default function EpisodeEditor({episodeId}: {episodeId?: number}): React.
             setErrorMessage(null)
             try {
                 const updated = await setEpisodeEnclosureEnabled(
-                    getClientTenantHost(),
                     episode.id,
                     enabled,
                 )
@@ -640,7 +638,7 @@ export default function EpisodeEditor({episodeId}: {episodeId?: number}): React.
                     setPublishValidationError(null)
                     void runWorkflow(
                         (saved) =>
-                            publishEpisode(getClientTenantHost(), saved.id, {
+                            publishEpisode( saved.id, {
                                 notifySubscribers,
                                 ...(validation.iso !== null ? {publishedAt: validation.iso} : {}),
                             }),
@@ -657,7 +655,7 @@ export default function EpisodeEditor({episodeId}: {episodeId?: number}): React.
                     setScheduleValidationError(null)
                     void runWorkflow(
                         (saved) =>
-                            scheduleEpisode(getClientTenantHost(), saved.id, {
+                            scheduleEpisode( saved.id, {
                                 scheduledAt: iso,
                                 notifySubscribers,
                             }),
@@ -666,22 +664,22 @@ export default function EpisodeEditor({episodeId}: {episodeId?: number}): React.
                 }}
                 onCancelSchedule={() => {
                     void runWorkflow((saved) =>
-                        cancelScheduleEpisode(getClientTenantHost(), saved.id),
+                        cancelScheduleEpisode( saved.id),
                     )
                 }}
                 onUnpublish={() => {
                     void runWorkflow((saved) =>
-                        unpublishEpisode(getClientTenantHost(), saved.id),
+                        unpublishEpisode( saved.id),
                     )
                 }}
                 onArchive={() => {
                     void runWorkflow((saved) =>
-                        archiveEpisode(getClientTenantHost(), saved.id),
+                        archiveEpisode( saved.id),
                     )
                 }}
                 onUnarchive={() => {
                     void runWorkflow((saved) =>
-                        unarchiveEpisode(getClientTenantHost(), saved.id),
+                        unarchiveEpisode( saved.id),
                     )
                 }}
                 sidebarExtra={
@@ -901,7 +899,7 @@ export default function EpisodeEditor({episodeId}: {episodeId?: number}): React.
                     contentLabel="Folge"
                     deleteErrorMessage="Folge konnte nicht gelöscht werden."
                     item={episode}
-                    onDelete={(id) => deleteEpisode(getClientTenantHost(), id)}
+                    onDelete={(id) => deleteEpisode( id)}
                     onDeleted={() => router.replace(localize('/podcast/episodes'))}
                 />
             ) : null}

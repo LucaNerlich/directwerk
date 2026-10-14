@@ -51,9 +51,9 @@ export default function SeriesPageClient(): React.JSX.Element {
         handleBulkPublish,
         handleBulkUnpublish,
     } = usePublicationListPage<SeriesListItem>({
-        load: async () => (await listSeries(getClientTenantHost())).map(toListItem),
-        publish: async (id) => toListItem(await publishSeries(getClientTenantHost(), id)),
-        unpublish: async (id) => toListItem(await unpublishSeries(getClientTenantHost(), id)),
+        load: async () => (await listSeries()).map(toListItem),
+        publish: async (id) => toListItem(await publishSeries( id)),
+        unpublish: async (id) => toListItem(await unpublishSeries( id)),
         cancelSchedule: async () => {
             throw new Error(p.sendungenUnterstuetzenKeinePlanung)
         },
@@ -64,13 +64,13 @@ export default function SeriesPageClient(): React.JSX.Element {
         publishMany: async (ids) => {
             const host = getClientTenantHost()
             return runSequentialPublicationBulkAction(ids, async (id) =>
-                toListItem(await publishSeries(host, id)),
+                toListItem(await publishSeries( id)),
             )
         },
         unpublishMany: async (ids) => {
             const host = getClientTenantHost()
             return runSequentialPublicationBulkAction(ids, async (id) =>
-                toListItem(await unpublishSeries(host, id)),
+                toListItem(await unpublishSeries( id)),
             )
         },
         labels: {

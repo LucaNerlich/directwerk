@@ -41,7 +41,7 @@ import type {
     DigitalPublication,
     UpdateDigitalPublicationInput,
 } from '@directwerk/api/types'
-import {getClientTenantHost} from '@directwerk/api/tenant'
+
 import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
 
 interface DigitalPublicationEditorProps {
@@ -83,7 +83,7 @@ export default function DigitalPublicationEditor({
         }
         let active = true
         setIsLoading(true)
-        getDigitalPublication(getClientTenantHost(), publicationId)
+        getDigitalPublication( publicationId)
             .then((loaded) => {
                 if (!active) {
                     return
@@ -158,7 +158,7 @@ export default function DigitalPublicationEditor({
             setIsSaving(true)
             setErrorMessage(null)
             try {
-                const created = await createDigitalPublication(getClientTenantHost(), createInput)
+                const created = await createDigitalPublication( createInput)
                 router.replace(localize(`/bonus/${created.id}`))
             } catch (error: unknown) {
                 if (authRedirect(error)) return
@@ -182,7 +182,7 @@ export default function DigitalPublicationEditor({
                 accessPolicy === 'PAID' ? (requiredLevelSortOrder ?? 0) : undefined,
         }
         await runAction(
-            () => updateDigitalPublication(getClientTenantHost(), publicationId, updateInput),
+            () => updateDigitalPublication( publicationId, updateInput),
             'Gespeichert.',
         )
     }
@@ -334,7 +334,7 @@ export default function DigitalPublicationEditor({
                         disabled={isSaving || readOnly || !desk.canPublish}
                         onClick={() =>
                             void runAction(
-                                () => publishDigitalPublication(getClientTenantHost(), publication.id),
+                                () => publishDigitalPublication( publication.id),
                                 'Veröffentlicht.',
                             )
                         }
@@ -350,7 +350,7 @@ export default function DigitalPublicationEditor({
                             disabled={isSaving || !desk.canEdit}
                             onClick={() =>
                                 void runAction(
-                                    () => unpublishDigitalPublication(getClientTenantHost(), publication.id),
+                                    () => unpublishDigitalPublication( publication.id),
                                     'Zurückgezogen.',
                                 )
                             }
@@ -363,7 +363,7 @@ export default function DigitalPublicationEditor({
                             disabled={isSaving || !desk.canEdit}
                             onClick={() =>
                                 void runAction(
-                                    () => archiveDigitalPublication(getClientTenantHost(), publication.id),
+                                    () => archiveDigitalPublication( publication.id),
                                     'Archiviert.',
                                 )
                             }
@@ -379,7 +379,7 @@ export default function DigitalPublicationEditor({
                         disabled={isSaving || !desk.canEdit}
                         onClick={() =>
                             void runAction(
-                                () => unarchiveDigitalPublication(getClientTenantHost(), publication.id),
+                                () => unarchiveDigitalPublication( publication.id),
                                 'Wiederhergestellt.',
                             )
                         }
@@ -399,7 +399,7 @@ export default function DigitalPublicationEditor({
                             void (async () => {
                                 setIsSaving(true)
                                 try {
-                                    await deleteDigitalPublication(getClientTenantHost(), publication.id)
+                                    await deleteDigitalPublication( publication.id)
                                     router.replace(localize('/bonus'))
                                 } catch (error: unknown) {
                                     if (authRedirect(error)) return

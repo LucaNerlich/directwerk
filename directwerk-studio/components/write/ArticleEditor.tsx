@@ -126,13 +126,11 @@ export default function ArticleEditor({articleId}: {articleId?: number}) {
         async (current: ArticleDetail): Promise<ArticleDetail> => {
             const host = getClientTenantHost()
             let updated = await replaceArticleCategories(
-                host,
                 current.id,
                 Array.from(selectedCategoryIds),
             )
             if (showNotify) {
                 updated = await replaceArticleNewsletterLists(
-                    host,
                     current.id,
                     Array.from(selectedNewsletterListIds),
                 )
@@ -162,14 +160,14 @@ export default function ArticleEditor({articleId}: {articleId?: number}) {
             }
 
             if (articleId === undefined) {
-                const created = await createArticle(host, payload)
+                const created = await createArticle( payload)
                 setArticle(created)
                 setAllArticles((current) => [...current, created])
                 routerRef.current.replace(localize(`/write/articles/${created.id}`))
                 return created
             }
 
-            const updated = await updateArticle(host, articleId, {
+            const updated = await updateArticle( articleId, {
                 ...payload,
                 clearHeroAsset: heroAssetId === null,
             })
@@ -236,7 +234,7 @@ export default function ArticleEditor({articleId}: {articleId?: number}) {
         let active = true
 
         async function loadSlugIndex(): Promise<void> {
-            const loaded = await listArticles(getClientTenantHost())
+            const loaded = await listArticles()
             if (active) {
                 setAllArticles(loaded)
             }
@@ -252,8 +250,8 @@ export default function ArticleEditor({articleId}: {articleId?: number}) {
         if (articleId === undefined) {
             const host = getClientTenantHost()
             Promise.all([
-                listCategories(host),
-                showNotify ? listNewsletterLists(host) : Promise.resolve([] as NewsletterListSummary[]),
+                listCategories(),
+                showNotify ? listNewsletterLists() : Promise.resolve([] as NewsletterListSummary[]),
             ])
                 .then(([categoryList, newsletterLists]) => {
                     if (active) {
@@ -287,9 +285,9 @@ export default function ArticleEditor({articleId}: {articleId?: number}) {
             try {
                 const host = getClientTenantHost()
                 const [categoryList, newsletterLists, loaded] = await Promise.all([
-                    listCategories(host),
-                    showNotify ? listNewsletterLists(host) : Promise.resolve([] as NewsletterListSummary[]),
-                    getArticle(host, resolvedArticleId),
+                    listCategories(),
+                    showNotify ? listNewsletterLists() : Promise.resolve([] as NewsletterListSummary[]),
+                    getArticle( resolvedArticleId),
                 ])
                 if (!active) {
                     return
@@ -341,7 +339,7 @@ export default function ArticleEditor({articleId}: {articleId?: number}) {
             return
         }
 
-        getMediaPreviewUrl(getClientTenantHost(), heroAssetId)
+        getMediaPreviewUrl( heroAssetId)
             .then((url) => {
                 if (active) {
                     setHeroPreviewUrl(url)
@@ -481,7 +479,7 @@ export default function ArticleEditor({articleId}: {articleId?: number}) {
                 setPublishValidationError(null)
                 void runWorkflow(
                     (saved) =>
-                        publishArticle(getClientTenantHost(), saved.id, {
+                        publishArticle( saved.id, {
                             notifySubscribers,
                             ...(validation.iso !== null ? {publishedAt: validation.iso} : {}),
                         }),
@@ -498,7 +496,7 @@ export default function ArticleEditor({articleId}: {articleId?: number}) {
                 setScheduleValidationError(null)
                 void runWorkflow(
                     (saved) =>
-                        scheduleArticle(getClientTenantHost(), saved.id, {
+                        scheduleArticle( saved.id, {
                             scheduledAt: iso,
                             notifySubscribers,
                         }),
@@ -507,22 +505,22 @@ export default function ArticleEditor({articleId}: {articleId?: number}) {
             }}
             onCancelSchedule={() => {
                 void runWorkflow((saved) =>
-                    cancelScheduleArticle(getClientTenantHost(), saved.id),
+                    cancelScheduleArticle( saved.id),
                 )
             }}
             onUnpublish={() => {
                 void runWorkflow((saved) =>
-                    unpublishArticle(getClientTenantHost(), saved.id),
+                    unpublishArticle( saved.id),
                 )
             }}
             onArchive={() => {
                 void runWorkflow((saved) =>
-                    archiveArticle(getClientTenantHost(), saved.id),
+                    archiveArticle( saved.id),
                 )
             }}
             onUnarchive={() => {
                 void runWorkflow((saved) =>
-                    unarchiveArticle(getClientTenantHost(), saved.id),
+                    unarchiveArticle( saved.id),
                 )
             }}
             sidebarExtra={
@@ -649,7 +647,7 @@ export default function ArticleEditor({articleId}: {articleId?: number}) {
                         contentLabel="Beitrag"
                         deleteErrorMessage="Beitrag konnte nicht gelöscht werden."
                         item={article}
-                        onDelete={(id) => deleteArticle(getClientTenantHost(), id)}
+                        onDelete={(id) => deleteArticle( id)}
                         onDeleted={() => router.replace(localize('/write/articles'))}
                     />
                 </div>

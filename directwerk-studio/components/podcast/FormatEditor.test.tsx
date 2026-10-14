@@ -93,7 +93,7 @@ describe('FormatEditor', () => {
         await user.type(screen.getByLabelText('Slug'), 'interview')
         await user.click(screen.getByRole('button', {name: /Speichern/}))
 
-        await waitFor(() => expect(createFormat).toHaveBeenCalledWith('tenant.test', {
+        await waitFor(() => expect(createFormat).toHaveBeenCalledWith({
             slug: 'interview',
             name: 'Interview',
             description: undefined,

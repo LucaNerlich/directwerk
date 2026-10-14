@@ -17,7 +17,7 @@ import {useLocalizedPath} from '@/components/i18n/useLocalizedPath'
 
 import {getStripeStatus, startStripeOnboard} from '@/lib/api/subscriptionApi'
 import type {StripeStatus} from '@directwerk/api/types'
-import {getClientTenantHost} from '@directwerk/api/tenant'
+
 import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
 import {safeLinkHref} from '@/lib/url/safeUrl'
 
@@ -54,7 +54,7 @@ export default function StripeSettingsClient(): React.JSX.Element {
         setIsLoading(true)
         setErrorMessage(null)
         try {
-            const result = await getStripeStatus(getClientTenantHost())
+            const result = await getStripeStatus()
             setStatus(result)
         } catch (error: unknown) {
             if (authRedirect(error)) return
@@ -79,7 +79,6 @@ export default function StripeSettingsClient(): React.JSX.Element {
         try {
             const origin = window.location.origin
             const url = await startStripeOnboard(
-                getClientTenantHost(),
                 `${origin}${localize('/settings/stripe?onboard=return')}`,
                 `${origin}${localize('/settings/stripe?onboard=refresh')}`,
             )
