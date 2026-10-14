@@ -45,7 +45,7 @@ export default function EpisodesPage() {
         authRequiredMessage: catalog.episodeAuthRequired,
         loadErrorMessage: catalog.episodeLoadFailed,
     })
-    const products = usePublicProducts(tenantHost)
+    const products = usePublicProducts()
     const unlockTarget = unlockHref(findUnlockProduct(products), lang)
     const publicPodcastFeedUrl =
         siteConfig === null ? null : webPublicPodcastFeedUrl(siteConfig, tenantHost)

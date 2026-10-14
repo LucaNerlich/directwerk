@@ -43,7 +43,7 @@ export default function ArticlesPage() {
         authRequiredMessage: catalog.articleAuthRequired,
         loadErrorMessage: catalog.articleLoadFailed,
     })
-    const products = usePublicProducts(tenantHost)
+    const products = usePublicProducts()
     const unlockTarget = unlockHref(findUnlockProduct(products), lang)
     const publicArticleFeedUrl =
         siteConfig === null ? null : webPublicArticleFeedUrl(siteConfig, tenantHost)

@@ -57,7 +57,7 @@ export default function EpisodeDetailClient({
         readTokenServer,
     )
     const isAuthenticated = accessToken !== null
-    const products = usePublicProducts(tenantHost)
+    const products = usePublicProducts()
     const unlockTarget = unlockHref(findUnlockProduct(products), lang)
     const {item: episode, status, errorMessage, retry} = useEntitledDetail<PublicEpisode>({
         slug,

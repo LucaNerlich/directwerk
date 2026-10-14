@@ -10,7 +10,7 @@ import {listPublicProducts} from '@/lib/api/client'
  * Public products for unlock links (`findUnlockProduct`). Fails silently to
  * `[]` — callers fall back to plain `/pricing`.
  */
-export function usePublicProducts(tenantHost: string): PublicProduct[] {
+export function usePublicProducts(): PublicProduct[] {
     const [products, setProducts] = useState<PublicProduct[]>([])
 
     useEffect(() => {
@@ -29,7 +29,7 @@ export function usePublicProducts(tenantHost: string): PublicProduct[] {
         return () => {
             active = false
         }
-    }, [tenantHost])
+    }, [])
 
     return products
 }
