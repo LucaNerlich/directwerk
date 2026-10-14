@@ -76,7 +76,7 @@ class SeriesControllerTest {
     @WithMockUser(roles = "EDITOR")
     void listSeriesReturnsTenantSeriesForEditor() throws Exception {
         PodcastSeries series = series(7L);
-        when(seriesService.listSeries(10L, false)).thenReturn(List.of(series));
+        when(seriesService.listSeries(10L, false, 100)).thenReturn(List.of(series));
 
         mockMvc.perform(get("/api/v1/series"))
                 .andExpect(status().isOk())
@@ -84,14 +84,14 @@ class SeriesControllerTest {
                 .andExpect(jsonPath("$.data[0].slug").value("main-show"))
                 .andExpect(jsonPath("$.data[0].title").value("Main Show"));
 
-        verify(seriesService).listSeries(10L, false);
+        verify(seriesService).listSeries(10L, false, 100);
     }
 
     @Test
     @WithMockUser(roles = "EDITOR")
     void listSeriesIncludesRssUrlWhenPodcastRssModuleEnabled() throws Exception {
         PodcastSeries series = series(7L);
-        when(seriesService.listSeries(10L, false)).thenReturn(List.of(series));
+        when(seriesService.listSeries(10L, false, 100)).thenReturn(List.of(series));
         rssEnabled();
 
         mockMvc.perform(get("/api/v1/series"))
@@ -103,7 +103,7 @@ class SeriesControllerTest {
     @WithMockUser(roles = "EDITOR")
     void listSeriesRssUrlIsNullWhenPodcastRssModuleDisabled() throws Exception {
         PodcastSeries series = series(7L);
-        when(seriesService.listSeries(10L, false)).thenReturn(List.of(series));
+        when(seriesService.listSeries(10L, false, 100)).thenReturn(List.of(series));
         rssDisabled();
 
         mockMvc.perform(get("/api/v1/series"))

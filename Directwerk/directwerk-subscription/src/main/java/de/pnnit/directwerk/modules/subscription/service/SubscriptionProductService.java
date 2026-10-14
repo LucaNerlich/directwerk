@@ -19,6 +19,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
@@ -43,6 +44,16 @@ public class SubscriptionProductService {
             return subscriptionProductRepository.findByTenantIdAndActiveTrueOrderBySortOrderAscIdAsc(tenantId);
         }
         return subscriptionProductRepository.findByTenantIdOrderBySortOrderAscIdAsc(tenantId);
+    }
+
+    /** Paged variant (#310) — see EpisodeService.listEpisodes(Long, int). */
+    @Transactional(readOnly = true)
+    public List<SubscriptionProduct> listProducts(Long tenantId, boolean activeOnly, int limit) {
+        PageRequest page = PageRequest.of(0, limit);
+        if (activeOnly) {
+            return subscriptionProductRepository.findByTenantIdAndActiveTrueOrderBySortOrderAscIdAsc(tenantId, page);
+        }
+        return subscriptionProductRepository.findByTenantIdOrderBySortOrderAscIdAsc(tenantId, page);
     }
 
     @Transactional(readOnly = true)

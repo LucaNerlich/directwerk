@@ -34,6 +34,7 @@ import java.util.List;
 import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
@@ -60,6 +61,16 @@ public class EpisodeService {
     @Transactional(readOnly = true)
     public List<Episode> listEpisodes(Long tenantId) {
         return episodeRepository.findByTenantIdOrderByCreatedAtDescIdDesc(tenantId);
+    }
+
+    /**
+     * Paged variant (#310): bounds the response for tenants with large episode counts, where the
+     * unbounded listing serialised every row in one response.
+     */
+    @Transactional(readOnly = true)
+    public List<Episode> listEpisodes(Long tenantId, int limit) {
+        return episodeRepository.findByTenantIdOrderByCreatedAtDescIdDesc(
+                tenantId, PageRequest.of(0, limit));
     }
 
     @Transactional(readOnly = true)

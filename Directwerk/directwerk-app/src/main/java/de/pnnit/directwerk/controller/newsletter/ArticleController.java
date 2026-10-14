@@ -21,6 +21,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -36,6 +37,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -70,9 +72,11 @@ public class ArticleController {
     }
 
     @GetMapping
-    ResponseEntity<Response<List<ArticleView>>> listArticles() {
+    ResponseEntity<Response<List<ArticleView>>> listArticles(
+            @RequestParam(defaultValue = "100") @Min(1) @Max(500) int limit
+    ) {
         Long tenantId = TenantContext.requireTenantId();
-        List<ArticleView> articles = articleService.listArticles(tenantId).stream()
+        List<ArticleView> articles = articleService.listArticles(tenantId, limit).stream()
                 .map(ArticleController::toView)
                 .toList();
         return ResponseEntity.ok(Response.ok(articles));

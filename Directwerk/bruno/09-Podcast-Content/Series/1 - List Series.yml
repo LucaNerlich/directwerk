@@ -5,7 +5,12 @@ info:
 
 http:
   method: GET
-  url: "{{baseUrl}}/api/v1/series"
+  url: "{{baseUrl}}/api/v1/series?limit=100"
+  params:
+    - name: limit
+      value: "100"
+      type: query
+      description: 1-500, default 100. Bounds the collection so a large tenant does not serialise every row (#310).
   auth: inherit
 
 runtime:

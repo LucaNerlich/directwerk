@@ -35,6 +35,7 @@ import java.util.List;
 import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
@@ -61,6 +62,13 @@ public class ArticleService {
     @Transactional(readOnly = true)
     public List<Article> listArticles(Long tenantId) {
         return articleRepository.findByTenantIdOrderByCreatedAtDescIdDesc(tenantId);
+    }
+
+    /** Paged variant (#310) — see EpisodeService.listEpisodes(Long, int). */
+    @Transactional(readOnly = true)
+    public List<Article> listArticles(Long tenantId, int limit) {
+        return articleRepository.findByTenantIdOrderByCreatedAtDescIdDesc(
+                tenantId, PageRequest.of(0, limit));
     }
 
     @Transactional(readOnly = true)

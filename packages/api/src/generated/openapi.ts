@@ -68,6 +68,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/tenant/integrations/esp/mailgun": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["connectMailgun"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/tenant/content-email-templates/{contentType}": {
         parameters: {
             query?: never;
@@ -371,6 +387,22 @@ export interface paths {
         put: operations["replaceCategories"];
         post?: never;
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/digital-publications/{publicationId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["get_1"];
+        put: operations["update"];
+        post?: never;
+        delete: operations["delete_1"];
         options?: never;
         head?: never;
         patch?: never;
@@ -1448,6 +1480,86 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/digital-publications": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["list_1"];
+        put?: never;
+        post: operations["create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/digital-publications/{publicationId}/unpublish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["unpublish_1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/digital-publications/{publicationId}/unarchive": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["unarchive_1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/digital-publications/{publicationId}/publish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["publish_1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/digital-publications/{publicationId}/archive": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["archive_1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/categories": {
         parameters: {
             query?: never;
@@ -1585,7 +1697,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["unpublish_1"];
+        post: operations["unpublish_2"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1601,7 +1713,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["unarchive_1"];
+        post: operations["unarchive_2"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1633,7 +1745,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["publish_1"];
+        post: operations["publish_2"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1665,7 +1777,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["archive_1"];
+        post: operations["archive_2"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2063,6 +2175,38 @@ export interface paths {
         put?: never;
         post?: never;
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tenant/integrations/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["status_1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tenant/integrations/esp": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getEsp"];
+        put?: never;
+        post?: never;
+        delete: operations["disconnectEsp"];
         options?: never;
         head?: never;
         patch?: never;
@@ -2571,7 +2715,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["get_1"];
+        get: operations["get_2"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2667,7 +2811,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_1"];
+        get: operations["list_2"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2684,6 +2828,22 @@ export interface paths {
             cookie?: never;
         };
         get: operations["previewUrl"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/media/storage-summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["storageSummary"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3135,7 +3295,7 @@ export interface components {
             scopeId?: number;
         };
         ReplaceRulesRequest: {
-            rules?: components["schemas"]["ProductAccessRuleRequest"][];
+            rules: components["schemas"]["ProductAccessRuleRequest"][];
         };
         ProductAccessRuleView: {
             /** Format: int64 */
@@ -3154,6 +3314,34 @@ export interface components {
             statusCode?: number;
             statusMessage?: string;
             data?: components["schemas"]["ProductAccessRuleView"][];
+            errors?: components["schemas"]["ErrorDetail"][];
+            metadata?: {
+                [key: string]: unknown;
+            };
+        };
+        ConnectMailgunRequest: {
+            domain: string;
+            fromEmail: string;
+            fromName?: string;
+            region?: string;
+            apiKey: string;
+        };
+        EspConnectionView: {
+            provider?: string;
+            domain?: string;
+            fromEmail?: string;
+            fromName?: string;
+            region?: string;
+            status?: string;
+            /** Format: date-time */
+            connectedAt?: string;
+            apiKeyConfigured?: boolean;
+        };
+        ResponseEspConnectionView: {
+            /** Format: int32 */
+            statusCode?: number;
+            statusMessage?: string;
+            data?: components["schemas"]["EspConnectionView"];
             errors?: components["schemas"]["ErrorDetail"][];
             metadata?: {
                 [key: string]: unknown;
@@ -3569,7 +3757,53 @@ export interface components {
             enabled: boolean;
         };
         ReplaceCategoriesRequest: {
-            categoryIds?: number[];
+            categoryIds: number[];
+        };
+        UpdateDigitalPublicationRequest: {
+            slug?: string;
+            title?: string;
+            description?: string;
+            /** Format: int64 */
+            assetId?: number;
+            /** @enum {string} */
+            accessPolicy?: "FREE" | "PAID";
+            /** Format: int32 */
+            requiredLevelSortOrder?: number;
+        };
+        DigitalPublicationView: {
+            /** Format: int64 */
+            id?: number;
+            slug?: string;
+            title?: string;
+            description?: string;
+            /** Format: int64 */
+            assetId?: number;
+            originalFilename?: string;
+            mimeType?: string;
+            /** Format: int64 */
+            sizeBytes?: number;
+            accessPolicy?: string;
+            /** Format: int32 */
+            requiredLevelSortOrder?: number;
+            status?: string;
+            /** Format: date-time */
+            publishedAt?: string;
+            /** Format: int64 */
+            createdBy?: number;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string;
+        };
+        ResponseDigitalPublicationView: {
+            /** Format: int32 */
+            statusCode?: number;
+            statusMessage?: string;
+            data?: components["schemas"]["DigitalPublicationView"];
+            errors?: components["schemas"]["ErrorDetail"][];
+            metadata?: {
+                [key: string]: unknown;
+            };
         };
         UpdateCategoryRequest: {
             slug?: string;
@@ -3646,7 +3880,7 @@ export interface components {
             };
         };
         ReplaceNewsletterListsRequest: {
-            newsletterListIds?: number[];
+            newsletterListIds: number[];
         };
         ResponseVoid: {
             /** Format: int32 */
@@ -4083,14 +4317,10 @@ export interface components {
             empty?: boolean;
             null?: boolean;
             float?: boolean;
-            integralNumber?: boolean;
-            floatingPointNumber?: boolean;
             pojo?: boolean;
             int?: boolean;
             long?: boolean;
-            object?: boolean;
-            string?: boolean;
-            number?: boolean;
+            container?: boolean;
             /** @enum {string} */
             nodeType?: "ARRAY" | "BINARY" | "BOOLEAN" | "MISSING" | "NULL" | "NUMBER" | "OBJECT" | "POJO" | "STRING";
             missingNode?: boolean;
@@ -4103,7 +4333,11 @@ export interface components {
             textual?: boolean;
             boolean?: boolean;
             binary?: boolean;
-            container?: boolean;
+            number?: boolean;
+            object?: boolean;
+            string?: boolean;
+            integralNumber?: boolean;
+            floatingPointNumber?: boolean;
             embeddedValue?: boolean;
         };
         QueueJob: {
@@ -4313,6 +4547,17 @@ export interface components {
             metadata?: {
                 [key: string]: unknown;
             };
+        };
+        CreateDigitalPublicationRequest: {
+            slug: string;
+            title: string;
+            description?: string;
+            /** Format: int64 */
+            assetId: number;
+            /** @enum {string} */
+            accessPolicy?: "FREE" | "PAID";
+            /** Format: int32 */
+            requiredLevelSortOrder?: number;
         };
         CreateCategoryRequest: {
             slug: string;
@@ -4610,6 +4855,40 @@ export interface components {
             metadata?: {
                 [key: string]: unknown;
             };
+        };
+        AnalyticsStatusView: {
+            moduleEnabled?: boolean;
+        };
+        EmailNotifyStatusView: {
+            moduleEnabled?: boolean;
+            platformSenderReady?: boolean;
+            platformProvider?: string;
+            /** Format: int64 */
+            customTemplateCount?: number;
+            mailgun?: components["schemas"]["EspConnectionView"];
+        };
+        IntegrationsStatusView: {
+            emailNotify?: components["schemas"]["EmailNotifyStatusView"];
+            analytics?: components["schemas"]["AnalyticsStatusView"];
+            stripe?: components["schemas"]["StripeStatusSnapshotView"];
+        };
+        ResponseIntegrationsStatusView: {
+            /** Format: int32 */
+            statusCode?: number;
+            statusMessage?: string;
+            data?: components["schemas"]["IntegrationsStatusView"];
+            errors?: components["schemas"]["ErrorDetail"][];
+            metadata?: {
+                [key: string]: unknown;
+            };
+        };
+        StripeStatusSnapshotView: {
+            status?: string;
+            moduleEnabled?: boolean;
+            message?: string;
+            chargesEnabled?: boolean;
+            payoutsEnabled?: boolean;
+            detailsSubmitted?: boolean;
         };
         ResponseListDomainView: {
             /** Format: int32 */
@@ -4916,9 +5195,9 @@ export interface components {
             /** Format: date-time */
             publishedAt?: string;
             audioCdnUrl?: string;
+            coverImageUrl?: string;
             formats?: components["schemas"]["PublicFormatView"][];
             categories?: components["schemas"]["PublicCategoryView"][];
-            coverImageUrl?: string;
         };
         ResponseListPublicEpisodeView: {
             /** Format: int32 */
@@ -4950,13 +5229,13 @@ export interface components {
             seoDescription?: string;
             /** Format: int64 */
             heroAssetId?: number;
+            heroImageUrl?: string;
             accessPolicy?: string;
             /** Format: int32 */
             requiredLevelSortOrder?: number;
             /** Format: date-time */
             publishedAt?: string;
             categories?: components["schemas"]["PublicCategoryView"][];
-            heroImageUrl?: string;
         };
         ResponseListPublicArticleView: {
             /** Format: int32 */
@@ -5215,6 +5494,33 @@ export interface components {
                 [key: string]: unknown;
             };
         };
+        MediaStorageBucket: {
+            /** @enum {string} */
+            assetType?: "AUDIO" | "IMAGE" | "VIDEO" | "DOCUMENT";
+            /** @enum {string} */
+            status?: "PENDING" | "READY" | "PENDING_DELETE" | "ARCHIVED";
+            /** Format: int64 */
+            assetCount?: number;
+            /** Format: int64 */
+            totalBytes?: number;
+        };
+        MediaStorageSummary: {
+            /** Format: int64 */
+            totalAssets?: number;
+            /** Format: int64 */
+            totalBytes?: number;
+            buckets?: components["schemas"]["MediaStorageBucket"][];
+        };
+        ResponseMediaStorageSummary: {
+            /** Format: int32 */
+            statusCode?: number;
+            statusMessage?: string;
+            data?: components["schemas"]["MediaStorageSummary"];
+            errors?: components["schemas"]["ErrorDetail"][];
+            metadata?: {
+                [key: string]: unknown;
+            };
+        };
         EffectiveUploadLimits: {
             /** Format: int64 */
             maxAudioBytes?: number;
@@ -5318,9 +5624,9 @@ export interface components {
             /** Format: date-time */
             publishedAt?: string;
             audioCdnUrl?: string;
+            coverImageUrl?: string;
             formats?: components["schemas"]["FormatView"][];
             categories?: components["schemas"]["CategoryView"][];
-            coverImageUrl?: string;
         };
         ResponseListMeEpisodeView: {
             /** Format: int32 */
@@ -5362,13 +5668,13 @@ export interface components {
             seoDescription?: string;
             /** Format: int64 */
             heroAssetId?: number;
+            heroImageUrl?: string;
             accessPolicy?: string;
             /** Format: int32 */
             requiredLevelSortOrder?: number;
             /** Format: date-time */
             publishedAt?: string;
             categories?: components["schemas"]["PublicCategoryView"][];
-            heroImageUrl?: string;
         };
         ResponseListMeArticleView: {
             /** Format: int32 */
@@ -5430,6 +5736,16 @@ export interface components {
             statusCode?: number;
             statusMessage?: string;
             data?: components["schemas"]["FormatView"][];
+            errors?: components["schemas"]["ErrorDetail"][];
+            metadata?: {
+                [key: string]: unknown;
+            };
+        };
+        ResponseListDigitalPublicationView: {
+            /** Format: int32 */
+            statusCode?: number;
+            statusMessage?: string;
+            data?: components["schemas"]["DigitalPublicationView"][];
             errors?: components["schemas"]["ErrorDetail"][];
             metadata?: {
                 [key: string]: unknown;
@@ -5630,6 +5946,30 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["ResponseListProductAccessRuleView"];
+                };
+            };
+        };
+    };
+    connectMailgun: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConnectMailgunRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ResponseEspConnectionView"];
                 };
             };
         };
@@ -6391,6 +6731,74 @@ export interface operations {
             };
         };
     };
+    get_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                publicationId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ResponseDigitalPublicationView"];
+                };
+            };
+        };
+    };
+    update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                publicationId: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateDigitalPublicationRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ResponseDigitalPublicationView"];
+                };
+            };
+        };
+    };
+    delete_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                publicationId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     updateCategory: {
         parameters: {
             query?: never;
@@ -6710,7 +7118,9 @@ export interface operations {
     };
     listProducts: {
         parameters: {
-            query?: never;
+            query?: {
+                limit?: number;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -6842,7 +7252,9 @@ export interface operations {
     };
     listSeries: {
         parameters: {
-            query?: never;
+            query?: {
+                limit?: number;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -7985,7 +8397,9 @@ export interface operations {
     };
     listEpisodes: {
         parameters: {
-            query?: never;
+            query?: {
+                limit?: number;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -8337,6 +8751,138 @@ export interface operations {
             };
         };
     };
+    list_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ResponseListDigitalPublicationView"];
+                };
+            };
+        };
+    };
+    create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateDigitalPublicationRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ResponseDigitalPublicationView"];
+                };
+            };
+        };
+    };
+    unpublish_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                publicationId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ResponseDigitalPublicationView"];
+                };
+            };
+        };
+    };
+    unarchive_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                publicationId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ResponseDigitalPublicationView"];
+                };
+            };
+        };
+    };
+    publish_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                publicationId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ResponseDigitalPublicationView"];
+                };
+            };
+        };
+    };
+    archive_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                publicationId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ResponseDigitalPublicationView"];
+                };
+            };
+        };
+    };
     listCategories: {
         parameters: {
             query?: never;
@@ -8527,7 +9073,9 @@ export interface operations {
     };
     listArticles: {
         parameters: {
-            query?: never;
+            query?: {
+                limit?: number;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -8569,7 +9117,7 @@ export interface operations {
             };
         };
     };
-    unpublish_1: {
+    unpublish_2: {
         parameters: {
             query?: never;
             header?: never;
@@ -8591,7 +9139,7 @@ export interface operations {
             };
         };
     };
-    unarchive_1: {
+    unarchive_2: {
         parameters: {
             query?: never;
             header?: never;
@@ -8639,7 +9187,7 @@ export interface operations {
             };
         };
     };
-    publish_1: {
+    publish_2: {
         parameters: {
             query?: never;
             header?: never;
@@ -8687,7 +9235,7 @@ export interface operations {
             };
         };
     };
-    archive_1: {
+    archive_2: {
         parameters: {
             query?: never;
             header?: never;
@@ -9369,6 +9917,64 @@ export interface operations {
             };
         };
     };
+    status_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ResponseIntegrationsStatusView"];
+                };
+            };
+        };
+    };
+    getEsp: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ResponseEspConnectionView"];
+                };
+            };
+        };
+    };
+    disconnectEsp: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     getDomainVerification: {
         parameters: {
             query?: never;
@@ -10016,7 +10622,7 @@ export interface operations {
             };
         };
     };
-    get_1: {
+    get_2: {
         parameters: {
             query?: never;
             header?: never;
@@ -10129,7 +10735,9 @@ export interface operations {
     };
     listSubscriptions: {
         parameters: {
-            query?: never;
+            query?: {
+                limit?: number;
+            };
             header?: never;
             path: {
                 listId: number;
@@ -10149,7 +10757,7 @@ export interface operations {
             };
         };
     };
-    list_1: {
+    list_2: {
         parameters: {
             query?: {
                 assetType?: "AUDIO" | "IMAGE" | "VIDEO" | "DOCUMENT";
@@ -10196,6 +10804,26 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["ResponsePreviewUrlResponse"];
+                };
+            };
+        };
+    };
+    storageSummary: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ResponseMediaStorageSummary"];
                 };
             };
         };
