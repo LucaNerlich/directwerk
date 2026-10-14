@@ -2660,6 +2660,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/platform/tenants/{tenantId}/users/effective-rights": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["effectiveRightsBatch"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/platform/tenants/{tenantId}/modules": {
         parameters: {
             query?: never;
@@ -4312,33 +4328,9 @@ export interface components {
             correlationId?: string;
             metadata?: components["schemas"]["JsonNode"];
         };
+        /** @description Arbitrary JSON value. Opaque by design: its shape is defined by the producer of the payload, not by this contract. */
         JsonNode: {
-            array?: boolean;
-            empty?: boolean;
-            null?: boolean;
-            float?: boolean;
-            pojo?: boolean;
-            int?: boolean;
-            long?: boolean;
-            container?: boolean;
-            /** @enum {string} */
-            nodeType?: "ARRAY" | "BINARY" | "BOOLEAN" | "MISSING" | "NULL" | "NUMBER" | "OBJECT" | "POJO" | "STRING";
-            missingNode?: boolean;
-            valueNode?: boolean;
-            short?: boolean;
-            double?: boolean;
-            bigDecimal?: boolean;
-            bigInteger?: boolean;
-            /** @deprecated */
-            textual?: boolean;
-            boolean?: boolean;
-            binary?: boolean;
-            number?: boolean;
-            object?: boolean;
-            string?: boolean;
-            integralNumber?: boolean;
-            floatingPointNumber?: boolean;
-            embeddedValue?: boolean;
+            [key: string]: unknown;
         };
         QueueJob: {
             /** Format: uuid */
@@ -5323,6 +5315,16 @@ export interface components {
         };
         TenantUserListResponse: {
             content?: components["schemas"]["TenantUserView"][];
+        };
+        ResponseListEffectiveRightsView: {
+            /** Format: int32 */
+            statusCode?: number;
+            statusMessage?: string;
+            data?: components["schemas"]["EffectiveRightsView"][];
+            errors?: components["schemas"]["ErrorDetail"][];
+            metadata?: {
+                [key: string]: unknown;
+            };
         };
         ResponseTenantMediaListResponse: {
             /** Format: int32 */
@@ -10548,6 +10550,30 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["ResponseEffectiveRightsView"];
+                };
+            };
+        };
+    };
+    effectiveRightsBatch: {
+        parameters: {
+            query: {
+                userIds: number[];
+            };
+            header?: never;
+            path: {
+                tenantId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ResponseListEffectiveRightsView"];
                 };
             };
         };
