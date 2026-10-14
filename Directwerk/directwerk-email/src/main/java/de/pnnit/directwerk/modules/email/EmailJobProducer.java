@@ -151,6 +151,24 @@ public class EmailJobProducer implements TransactionalEmailNotifier {
         enqueue(tenantId, null, correlationId, () -> payload(template, to, variables, null));
     }
 
+    /**
+     * Issue #323: enqueues a content notification whose unsubscribe link is derived at delivery
+     * from {@code rawToken}, so the capability token is only ever stored protected in the queue.
+     */
+    public void enqueueTokenizedContentNotification(
+            Long tenantId,
+            String to,
+            EmailTemplate template,
+            Map<String, String> variables,
+            String rawToken,
+            String correlationId
+    ) {
+        if (!template.requiresToken()) {
+            throw new IllegalArgumentException("Tokenized content notification template must require a token");
+        }
+        enqueue(tenantId, null, correlationId, () -> payload(template, to, variables, rawToken));
+    }
+
     public void enqueueContactForm(String inbox, Map<String, String> variables) {
         enqueue(null, null, null, () -> payload(EmailTemplate.CONTACT_FORM, inbox, variables, null));
     }

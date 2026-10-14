@@ -21,6 +21,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -103,10 +105,13 @@ public class NewsletterListController {
     }
 
     @GetMapping("/{listId}/subscriptions")
-    ResponseEntity<Response<List<NewsletterSubscriptionView>>> listSubscriptions(@PathVariable Long listId) {
+    ResponseEntity<Response<List<NewsletterSubscriptionView>>> listSubscriptions(
+            @PathVariable Long listId,
+            @RequestParam(defaultValue = "50") @Min(1) @Max(200) int limit
+    ) {
         Long tenantId = TenantContext.requireTenantId();
         List<NewsletterSubscriptionView> rows = newsletterSubscriptionService
-                .listSubscriptions(tenantId, listId)
+                .listSubscriptions(tenantId, listId, limit)
                 .stream()
                 .map(NewsletterListController::toSubscriptionView)
                 .toList();

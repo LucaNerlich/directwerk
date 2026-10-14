@@ -28,6 +28,9 @@ class EmailLinkBuilderTest {
     @Mock
     private TenantRepository tenantRepository;
 
+    @Mock
+    private de.pnnit.directwerk.modules.core.util.PublicContentUrlResolver publicContentUrlResolver;
+
     private EmailLinkBuilder linkBuilder;
 
     @BeforeEach
@@ -43,7 +46,8 @@ class EmailLinkBuilderTest {
                 "/verify-email",
                 7L
         ));
-        linkBuilder = new EmailLinkBuilder(directwerkConfig, tenantPublicHostResolver, tenantRepository);
+        linkBuilder = new EmailLinkBuilder(
+                directwerkConfig, tenantPublicHostResolver, tenantRepository, publicContentUrlResolver);
     }
 
     @Test

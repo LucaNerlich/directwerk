@@ -5,6 +5,7 @@ import de.pnnit.directwerk.modules.newsletter.entity.NewsletterSubscriptionStatu
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -23,7 +24,9 @@ public interface NewsletterSubscriptionRepository extends JpaRepository<Newslett
 
     boolean existsByUnsubscribeTokenHash(String unsubscribeTokenHash);
 
-    List<NewsletterSubscription> findByListIdAndTenantIdOrderByCreatedAtDescIdDesc(Long listId, Long tenantId);
+    /** Paged listing so a large list does not materialize every subscriber email at once (#324). */
+    List<NewsletterSubscription> findByListIdAndTenantIdOrderByCreatedAtDescIdDesc(
+            Long listId, Long tenantId, Pageable pageable);
 
     List<NewsletterSubscription> findByTenantIdAndEmail(Long tenantId, String email);
 
