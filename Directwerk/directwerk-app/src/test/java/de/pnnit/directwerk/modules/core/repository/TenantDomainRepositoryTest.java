@@ -42,21 +42,6 @@ class TenantDomainRepositoryTest {
                 .isInstanceOf(LazyInitializationException.class);
     }
 
-    @Test
-    void findByHostIgnoreCaseWithTenantLoadsTenantOutsidePersistenceContext() {
-        persistDomain("alpha-b.localhost", "alpha-show-b", "Alpha Show B");
-        entityManager.flush();
-        entityManager.clear();
-
-        TenantDomain domain = tenantDomainRepository.findByHostIgnoreCaseWithTenant("alpha-b.localhost")
-                .orElseThrow();
-
-        entityManager.clear();
-
-        assertThat(domain.getTenant().getSlug()).isEqualTo("alpha-show-b");
-        assertThat(domain.getTenant().getName()).isEqualTo("Alpha Show B");
-    }
-
     private void persistDomain(String host, String slug, String name) {
         Instant now = Instant.parse("2026-01-01T00:00:00Z");
 

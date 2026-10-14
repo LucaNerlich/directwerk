@@ -1,7 +1,7 @@
 'use client'
 
 import LocaleLink from '@/components/i18n/LocaleLink'
-import {useEffect, useRef, useState} from 'react'
+import {useEffect, useLayoutEffect, useRef, useState} from 'react'
 
 import {Button} from '@directwerk/ui/components/button'
 import {Alert, AlertDescription} from '@directwerk/ui/components/alert'
@@ -19,7 +19,7 @@ import {createSeries, listSeries} from '@/lib/api/podcastApi'
 import {bulkImportRss, importRssEpisode, previewRssFeed} from '@/lib/api/podcastImportApi'
 import {ingestRemoteAssetWithProgress} from '@/lib/media/remoteIngest'
 import {filenameFromImportUrl} from '@/lib/media/importFilename'
-import {formatBytes} from '@/lib/media/format'
+import {formatBytes} from '@directwerk/api/format/bytes'
 import {deleteMedia} from '@/lib/api/mediaApi'
 import {isTenantAdminRole, suggestSlug} from '@/lib/api/studioHelpers'
 import {parseOptionalInt} from '@/lib/publication/parsePositiveInt'
@@ -45,7 +45,11 @@ type WizardStep = 'url' | 'series' | 'formats' | 'episode' | 'done'
 export default function RssImportWizard(): React.JSX.Element {
     const authRedirect = useAuthRequired()
     const authRedirectRef = useRef(authRedirect)
-    authRedirectRef.current = authRedirect
+    // Issue #417: writing a ref during render violates the Rules of React and makes the React
+    // Compiler bail out of optimising this component.
+    useLayoutEffect(() => {
+        authRedirectRef.current = authRedirect
+    }, [authRedirect])
     const me = useOptionalMe()
     const canCreateFormats = me !== null && isTenantAdminRole(me.roles)
     const [step, setStep] = useState<WizardStep>('url')
@@ -899,7 +903,7 @@ export default function RssImportWizard(): React.JSX.Element {
                         </label>
                     ) : null}
                     <p className="text-sm text-muted-foreground">
-                        Audio: {currentEpisode.audioMimeType ?? 'unbekannt'}, {formatBytes(currentEpisode.audioSizeBytes)},{' '}
+                        Audio: {currentEpisode.audioMimeType ?? 'unbekannt'}, {formatBytes(currentEpisode.audioSizeBytes) ?? '—'},{' '}
                         {formatDuration(currentEpisode.durationSeconds) ?? 'unbekannt'}
                     </p>
                     <label className="flex items-center gap-2 text-sm">

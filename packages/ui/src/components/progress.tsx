@@ -7,7 +7,9 @@ function Progress({
   "aria-labelledby": ariaLabelledBy,
   ...props
 }: React.ComponentProps<"div"> & { value: number }) {
-  const clamped = Math.min(100, Math.max(0, value))
+  // #403: Math.max(0, NaN) is NaN, so a caller computing a percentage with a zero total
+  // produced aria-valuenow="NaN" and a NaN% width. Guard non-finite values.
+  const clamped = Number.isFinite(value) ? Math.min(100, Math.max(0, value)) : 0
   return (
     <div
       data-slot="progress"

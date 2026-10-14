@@ -6,11 +6,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
-import java.util.List;
 
 public interface PlatformAuditEventRepository extends JpaRepository<PlatformAuditEvent, Long> {
-
-    List<PlatformAuditEvent> findAllByOrderByCreatedAtDesc(Pageable pageable);
 
     @Query("""
             select event from PlatformAuditEvent event

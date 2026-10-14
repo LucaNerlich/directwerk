@@ -21,8 +21,9 @@ function relativeLuminance(hex: string): number {
 }
 
 function foregroundFor(hex: string): string {
-    // WCAG relative luminance; #171717 needs L >= ~0.214 for AA contrast.
-    return relativeLuminance(hex) > 0.214 ? '#171717' : '#ffffff'
+    // #329: #171717 only reaches 4.5:1 from L >= ~0.214, leaving mid-tone primaries (e.g.
+    // #777777) below AA. Pure black clears AA at every luminance the light branch is chosen for.
+    return relativeLuminance(hex) > 0.179 ? '#000000' : '#ffffff'
 }
 
 export default function BrandTheme({

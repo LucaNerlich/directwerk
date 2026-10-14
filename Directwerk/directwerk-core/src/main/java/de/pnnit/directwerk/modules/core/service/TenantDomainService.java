@@ -139,19 +139,22 @@ public class TenantDomainService {
                 "Domain verification failed for " + domain.getHost()
                         + ". Publish a TXT record with value "
                         + DNS_TXT_PREFIX + domain.getVerificationToken());
-        return persistVerification(tenantId, host, true);
+        return persistVerification(tenantId, host);
     }
 
     /**
      * Persists the verification state in a short transactional phase.
+     * <p>
+     * Issue #361: the previous {@code dnsMatched} parameter was always {@code true} — the only
+     * caller verifies via DNS — so the {@code "TOKEN"} audit branch was unreachable. Recorded as
+     * DNS_TXT unconditionally; reintroduce a method parameter when a non-DNS path exists.
      *
-     * @param tenantId   the tenant identifier
-     * @param host       the domain host to verify
-     * @param dnsMatched whether DNS verification succeeded
+     * @param tenantId the tenant identifier
+     * @param host     the domain host to verify
      * @return the verified domain
      */
     @Transactional
-    protected TenantDomain persistVerification(Long tenantId, String host, boolean dnsMatched) {
+    protected TenantDomain persistVerification(Long tenantId, String host) {
         TenantDomain domain = requireDomain(tenantId, host);
         if (domain.isVerified()) {
             return domain;
@@ -167,7 +170,7 @@ public class TenantDomainService {
                 tenantId,
                 Map.of(
                         "host", saved.getHost(),
-                        "method", dnsMatched ? "DNS_TXT" : "TOKEN"
+                        "method", "DNS_TXT"
                 )
         );
         return saved;

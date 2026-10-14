@@ -33,25 +33,6 @@ public class RssXmlBuilder {
             Tenant tenant,
             PodcastSeries seriesOrNull,
             List<RssEpisode> episodes,
-            String originBaseUrl
-    ) {
-        return buildPublicFeed(tenant, seriesOrNull, episodes, originBaseUrl, null, null);
-    }
-
-    public String buildPublicFeed(
-            Tenant tenant,
-            PodcastSeries seriesOrNull,
-            List<RssEpisode> episodes,
-            String originBaseUrl,
-            String channelTitleOverride
-    ) {
-        return buildPublicFeed(tenant, seriesOrNull, episodes, originBaseUrl, channelTitleOverride, null);
-    }
-
-    public String buildPublicFeed(
-            Tenant tenant,
-            PodcastSeries seriesOrNull,
-            List<RssEpisode> episodes,
             String originBaseUrl,
             String channelTitleOverride,
             String channelCoverImageUrl
@@ -120,10 +101,21 @@ public class RssXmlBuilder {
                 .append("\"/>\n");
     }
 
+    /**
+     * Issue #319: bound the per-item description so a single imported episode (up to 512 000
+     * chars) cannot dominate the document. Truncation happens on the sanitized HTML inside a
+     * CDATA section, so the XML stays well-formed.
+     */
+    private static final int MAX_DESCRIPTION_CHARS = 4_000;
+
     private void appendDescriptionElement(StringBuilder xml, String value, int spaces) {
+        String description = htmlSanitizer.sanitize(value);
+        if (description.length() > MAX_DESCRIPTION_CHARS) {
+            description = description.substring(0, MAX_DESCRIPTION_CHARS);
+        }
         xml.append(" ".repeat(spaces))
                 .append("<description>")
-                .append(cdata(htmlSanitizer.sanitize(value)))
+                .append(cdata(description))
                 .append("</description>\n");
     }
 
@@ -196,8 +188,16 @@ public class RssXmlBuilder {
         return series != null && series.isItunesExplicit() ? "true" : "false";
     }
 
+    /**
+     * Issue #320: characters outside the XML 1.0 {@code Char} production (U+0000-U+0008, U+000B,
+     * U+000C, U+000E-U+001F) are not legal in XML text; a single one makes the whole document
+     * non-well-formed, so every subscriber's podcatcher fails on the feed.
+     */
+    private static final java.util.regex.Pattern INVALID_XML_CHARS =
+            java.util.regex.Pattern.compile("[\\x00-\\x08\\x0B\\x0C\\x0E-\\x1F]");
+
     static String escapeText(String value) {
-        return value
+        return INVALID_XML_CHARS.matcher(value).replaceAll("")
                 .replace("&", "&amp;")
                 .replace("<", "&lt;")
                 .replace(">", "&gt;")

@@ -29,7 +29,8 @@ public class PublicLevelController {
 
     @GetMapping
     ResponseEntity<Response<List<LevelView>>> listLevels() {
-        Long tenantId = TenantContext.getTenantId();
+        // Issue #379: fail closed on an unmatched Host instead of running tenant-less queries.
+        Long tenantId = TenantContext.requireTenantId();
 
         List<LevelView> levels = subscriptionProductService.listProducts(tenantId, true).stream()
                 .filter(product -> product.getOfferingType() == OfferingType.LEVEL)

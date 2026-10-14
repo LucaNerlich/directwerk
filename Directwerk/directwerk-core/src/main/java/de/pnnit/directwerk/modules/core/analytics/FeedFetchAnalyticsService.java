@@ -31,20 +31,6 @@ public class FeedFetchAnalyticsService {
         this.tenantEventTracker = tenantEventTracker;
     }
 
-    /**
-     * Retained for direct instantiation by same-package unit tests; production wiring injects the
-     * shared {@link TenantEventTracker} bean instead.
-     */
-    FeedFetchAnalyticsService(
-            DirectwerkConfig directwerkConfig,
-            ModuleGateService moduleGateService,
-            TenantBrandingService tenantBrandingService,
-            UmamiEventClient umamiEventClient
-    ) {
-        this.tenantEventTracker = new TenantEventTracker(
-                directwerkConfig, moduleGateService, tenantBrandingService, umamiEventClient);
-    }
-
     @Transactional(readOnly = true)
     public void trackFeedFetch(
             Long tenantId,

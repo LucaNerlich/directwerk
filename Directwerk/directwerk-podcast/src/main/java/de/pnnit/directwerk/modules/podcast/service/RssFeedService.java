@@ -22,6 +22,15 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class RssFeedService {
 
+    /**
+     * Issue #319: bound the emitted item count. The tenant-level feed aggregates every series, so
+     * without a cap a few hundred imported episodes produce a multi-megabyte document that
+     * podcatchers treat as oversized. `ponytail:` a fixed cap is enough while no tenant needs a
+     * deeper archive — raise it when a real feed needs more.
+     */
+    private static final int MAX_FEED_ITEMS = 300;
+
+
     private final PublicPodcastQueryService publicPodcastQueryService;
     private final SubscriberEpisodeService subscriberEpisodeService;
     private final SubscriberFeedAccess subscriberFeedAccess;
@@ -50,6 +59,7 @@ public class RssFeedService {
                 .stream()
                 .filter(episode -> PublicSurfacePolicy.isFreeAccess(episode.getAccessPolicy().name()))
                 .filter(Episode::isEnclosureEnabled)
+                .limit(MAX_FEED_ITEMS)
                 .toList();
         List<RssXmlBuilder.RssEpisode> episodes = eligible
                 .stream()
@@ -82,10 +92,14 @@ public class RssFeedService {
         String originBaseUrl = PublicUrlBuilder.baseUrl(scheme, host, port);
         List<Episode> entitled = subscriberFeedAccess
                 .listEntitledEpisodes(tenant.getId(), feed.getUser().getId(), feed);
+        // Issue #386: the feed has exactly one token — reveal it once instead of running an
+        // AES-GCM decrypt per entitled episode.
+        String feedToken = feedTokenProtector.reveal(feed.getFeedToken());
         List<RssXmlBuilder.RssEpisode> episodes = entitled
                 .stream()
                 .filter(Episode::isEnclosureEnabled)
-                .map(episode -> toPrivateRssEpisode(episode, tenant, feedTokenProtector.reveal(feed.getFeedToken()), scheme, host, port))
+                .limit(MAX_FEED_ITEMS)
+                .map(episode -> toPrivateRssEpisode(episode, tenant, feedToken, scheme, host, port))
                 .flatMap(Optional::stream)
                 .toList();
         String channelCoverUrl = resolvePublicCoverUrl(channelCoverFromSeries(entitled));

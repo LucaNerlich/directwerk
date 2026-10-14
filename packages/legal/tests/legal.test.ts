@@ -46,7 +46,7 @@ describe('legal content', () => {
     it('exposes English imprint via getImprint', () => {
         expect(getImprint('en').title).toBe('Imprint')
         expect(getImprint('de')).toBe(IMPRINT)
-        expect(getPrivacy('de')).toBe(PRIVACY)
+        expect(getPrivacy()).toBe(PRIVACY)
         expect(IMPRINT_EN.sections.some((section) => section.heading === 'Service provider')).toBe(
             true,
         )
@@ -65,7 +65,9 @@ describe('legal content', () => {
         expect(imprintText).toContain(OPERATOR.name)
         expect(imprintText).toContain(OPERATOR.email)
         expect(imprintText).not.toContain('MUSTER')
-        expect(imprintText).toContain('ec.europa.eu/consumers/odr')
+        // #404: the EU ODR platform shut down on 20 July 2025, so the imprint no longer links it.
+        expect(imprintText).not.toContain('ec.europa.eu/consumers/odr')
+        expect(imprintText).toContain('20. Juli 2025')
         const privacyText = PRIVACY.sections.map((section) => section.paragraphs.join(' ')).join('\n')
         expect(privacyText).toContain(OPERATOR.name)
         expect(privacyText).toContain(OPERATOR.email)

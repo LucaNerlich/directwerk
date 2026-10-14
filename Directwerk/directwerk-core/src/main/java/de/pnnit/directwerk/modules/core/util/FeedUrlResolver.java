@@ -14,7 +14,8 @@ public class FeedUrlResolver {
 
     private final TenantPublicHostResolver tenantPublicHostResolver;
 
-    public String origin(String scheme, String serverName, int serverPort) {
+    /** Internal helper only — no caller outside this class (issue #358). */
+    private String origin(String scheme, String serverName, int serverPort) {
         return PublicUrlBuilder.baseUrl(scheme, serverName, serverPort);
     }
 
@@ -30,24 +31,8 @@ public class FeedUrlResolver {
         return FeedUrls.subscriberFeed(origin(scheme, host, serverPort), tenantSlug, feedToken);
     }
 
-    public String subscriberFeedUrl(String scheme, String serverName, int serverPort, String tenantSlug, String feedToken) {
-        return FeedUrls.subscriberFeed(origin(scheme, serverName, serverPort), tenantSlug, feedToken);
-    }
-
-    public String tenantPodcastFeedUrl(String scheme, String serverName, int serverPort, String tenantSlug) {
-        return FeedUrls.tenantPodcastFeed(origin(scheme, serverName, serverPort), tenantSlug);
-    }
-
     public String seriesFeedUrl(String scheme, String serverName, int serverPort, String tenantSlug, String seriesSlug) {
         return FeedUrls.seriesFeed(origin(scheme, serverName, serverPort), tenantSlug, seriesSlug);
-    }
-
-    public String publicEnclosureUrl(String origin, String tenantSlug, String episodeSlug) {
-        return FeedUrls.publicEnclosure(origin, tenantSlug, episodeSlug);
-    }
-
-    public String privateEnclosureUrl(String origin, String tenantSlug, String feedToken, String episodeSlug) {
-        return FeedUrls.privateEnclosure(origin, tenantSlug, feedToken, episodeSlug);
     }
 
     public String articleSubscriberFeedUrl(
@@ -60,9 +45,5 @@ public class FeedUrlResolver {
     ) {
         String host = tenantPublicHostResolver.resolve(tenantId, requestedHostname, HostPolicy.TRUST_REQUEST);
         return FeedUrls.articleSubscriberFeed(origin(scheme, host, serverPort), tenantSlug, feedToken);
-    }
-
-    public String tenantArticleFeedUrl(String scheme, String serverName, int serverPort, String tenantSlug) {
-        return FeedUrls.tenantArticleFeed(origin(scheme, serverName, serverPort), tenantSlug);
     }
 }

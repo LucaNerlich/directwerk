@@ -53,7 +53,8 @@ public class PublicArticleController {
      */
     @GetMapping("/article-categories")
     ResponseEntity<Response<List<PublicCategoryView>>> listCategories() {
-        Long tenantId = TenantContext.getTenantId();
+        // Issue #379: fail closed on an unmatched Host instead of running tenant-less queries.
+        Long tenantId = TenantContext.requireTenantId();
         List<PublicCategoryView> categories = categoryService.listCategories(tenantId, true).stream()
                 .map(PublicCategoryView::of)
                 .toList();
@@ -62,7 +63,8 @@ public class PublicArticleController {
 
     @GetMapping("/articles")
     ResponseEntity<Response<List<PublicArticleView>>> listArticles() {
-        Long tenantId = TenantContext.getTenantId();
+        // Issue #379: fail closed on an unmatched Host instead of running tenant-less queries.
+        Long tenantId = TenantContext.requireTenantId();
         List<PublicArticleView> articles = publicArticleQueryService.listPublishedArticles(tenantId).stream()
                 .map(publicArticleViewMapper::toPublicView)
                 .toList();
@@ -80,7 +82,8 @@ public class PublicArticleController {
             @PathVariable String slug,
             HttpServletRequest request
     ) {
-        Long tenantId = TenantContext.getTenantId();
+        // Issue #379: fail closed on an unmatched Host instead of running tenant-less queries.
+        Long tenantId = TenantContext.requireTenantId();
         Article article = publicArticleQueryService.requirePublishedArticle(tenantId, slug);
         articleViewAnalyticsService.trackArticleView(
                 tenantId,

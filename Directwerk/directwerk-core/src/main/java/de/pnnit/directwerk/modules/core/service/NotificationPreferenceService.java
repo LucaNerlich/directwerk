@@ -1,5 +1,6 @@
 package de.pnnit.directwerk.modules.core.service;
 
+import de.pnnit.directwerk.modules.core.FeatureModuleKeys;
 import de.pnnit.directwerk.modules.core.entity.TenantMembership;
 import de.pnnit.directwerk.modules.core.notification.SubscriberNotificationGate;
 import de.pnnit.directwerk.modules.core.repository.TenantMembershipRepository;
@@ -11,7 +12,6 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class NotificationPreferenceService {
 
-    private static final String EMAIL_NOTIFY_MODULE_KEY = "EMAIL_NOTIFY";
 
     private final TenantMembershipRepository tenantMembershipRepository;
     private final SubscriberNotificationGate subscriberNotificationGate;
@@ -33,7 +33,7 @@ public class NotificationPreferenceService {
             boolean emailNotificationsEnabled
     ) {
         if (emailNotificationsEnabled && !subscriberNotificationGate.availableForTenant(tenantId)) {
-            throw new ModuleNotEnabledException(EMAIL_NOTIFY_MODULE_KEY);
+            throw new ModuleNotEnabledException(FeatureModuleKeys.EMAIL_NOTIFY);
         }
         TenantMembership membership = requireMembership(tenantId, userId);
         membership.setEmailNotificationsEnabled(emailNotificationsEnabled);

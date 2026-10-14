@@ -7,6 +7,7 @@ import de.pnnit.directwerk.modules.content.PublicSurfacePolicy;
 import de.pnnit.directwerk.api.dto.CategoryView;
 import de.pnnit.directwerk.modules.digital.service.PublicCdnUrlResolver;
 import de.pnnit.directwerk.modules.newsletter.entity.Article;
+import java.util.List;
 import java.net.URL;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -20,6 +21,8 @@ public class PublicArticleViewMapper {
 
     private final PublicCdnUrlResolver publicCdnUrlResolver;
 
+    // Issue #382: the two views differed only in the body source, so both delegate to one
+    // builder — a new field can no longer be added to one and missed in the other.
     public PublicArticleView toPublicView(Article article) {
         return new PublicArticleView(
                 article.getId(),
@@ -28,15 +31,12 @@ public class PublicArticleViewMapper {
                 PublicSurfacePolicy.articleBody(article.getBody(), article.getAccessPolicy().name()),
                 article.getExcerpt(),
                 article.getSeoDescription(),
-                article.getHeroAsset() != null ? article.getHeroAsset().getId() : null,
+                heroAssetId(article),
                 resolvePublicHeroImageUrl(article),
                 article.getAccessPolicy().name(),
                 article.getRequiredLevelSortOrder(),
                 article.getPublishedAt(),
-                article.getCategories().stream()
-                        .sorted(CategoryView.DISPLAY_ORDER)
-                        .map(PublicCategoryView::of)
-                        .toList()
+                categoryViews(article)
         );
     }
 
@@ -48,16 +48,24 @@ public class PublicArticleViewMapper {
                 article.getBody(),
                 article.getExcerpt(),
                 article.getSeoDescription(),
-                article.getHeroAsset() != null ? article.getHeroAsset().getId() : null,
+                heroAssetId(article),
                 resolvePublicHeroImageUrl(article),
                 article.getAccessPolicy().name(),
                 article.getRequiredLevelSortOrder(),
                 article.getPublishedAt(),
-                article.getCategories().stream()
-                        .sorted(CategoryView.DISPLAY_ORDER)
-                        .map(PublicCategoryView::of)
-                        .toList()
+                categoryViews(article)
         );
+    }
+
+    private static Long heroAssetId(Article article) {
+        return article.getHeroAsset() != null ? article.getHeroAsset().getId() : null;
+    }
+
+    private static List<PublicCategoryView> categoryViews(Article article) {
+        return article.getCategories().stream()
+                .sorted(CategoryView.DISPLAY_ORDER)
+                .map(PublicCategoryView::of)
+                .toList();
     }
 
     private String resolvePublicHeroImageUrl(Article article) {

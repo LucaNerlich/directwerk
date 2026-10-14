@@ -1,5 +1,6 @@
 package de.pnnit.directwerk.modules.core.service;
 
+import de.pnnit.directwerk.modules.core.FeatureModuleKeys;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -11,7 +12,6 @@ public class StudioNavigationService {
 
     private static final String ARTICLES_MODULE_KEY = "ARTICLES";
     private static final String PODCAST_MODULE_KEY = "PODCAST";
-    private static final String WHITELABEL_MODULE_KEY = "WHITELABEL";
 
     public StudioNavigationView resolve(Collection<String> enabledModules) {
         Set<String> modules = Set.copyOf(enabledModules);
@@ -26,7 +26,7 @@ public class StudioNavigationService {
     }
 
     private static StudioHome resolveHome(Set<String> modules, List<StudioDesk> desks) {
-        if (desks.size() > 1 && modules.contains(WHITELABEL_MODULE_KEY)) {
+        if (desks.size() > 1 && modules.contains(FeatureModuleKeys.WHITELABEL)) {
             return StudioHome.OVERVIEW;
         }
         if (desks.contains(StudioDesk.PODCAST)) {

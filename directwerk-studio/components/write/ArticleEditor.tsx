@@ -9,7 +9,7 @@ import {suggestSlug} from '@/lib/api/studioHelpers'
 import {useRouter} from 'next/navigation'
 
 import {useLocalizedPath} from '@/components/i18n/useLocalizedPath'
-import {useCallback, useEffect, useMemo, useRef, useState} from 'react'
+import {useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState} from 'react'
 
 import MediaLibraryPicker from '@/components/media/MediaLibraryPicker'
 import UploadProgress from '@/components/media/UploadProgress'
@@ -56,7 +56,11 @@ export default function ArticleEditor({articleId}: {articleId?: number}) {
     const localize = useLocalizedPath()
     const authRedirect = useAuthRequired()
     const routerRef = useRef(router)
-    routerRef.current = router
+    // Issue #417: writing a ref during render violates the Rules of React and makes the React
+    // Compiler bail out of optimising this component.
+    useLayoutEffect(() => {
+        routerRef.current = router
+    }, [router])
     const config = useSiteConfig()
     const showNotify = config.emailNotifyAvailable === true
     const [article, setArticle] = useState<ArticleDetail | null>(null)
@@ -161,7 +165,7 @@ export default function ArticleEditor({articleId}: {articleId?: number}) {
                 const created = await createArticle(host, payload)
                 setArticle(created)
                 setAllArticles((current) => [...current, created])
-                routerRef.current.replace(`/write/articles/${created.id}`)
+                routerRef.current.replace(localize(`/write/articles/${created.id}`))
                 return created
             }
 
@@ -357,7 +361,7 @@ export default function ArticleEditor({articleId}: {articleId?: number}) {
     }, [authRedirect, heroAssetId, setWorkflowError])
 
     const handleAuthRequired = useCallback(() => {
-        routerRef.current.replace('/login')
+        routerRef.current.replace(localize('/login'))
     }, [])
 
     const handleHeroUpload = useCallback(

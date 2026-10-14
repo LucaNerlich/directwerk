@@ -14,7 +14,6 @@ import java.util.regex.Pattern;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -102,13 +101,11 @@ public class PlatformAdminBootstrap implements ApplicationRunner {
 
         PlatformAdmin admin = new PlatformAdmin();
         admin.setUser(user);
-        try {
-            platformAdminRepository.save(admin);
-        } catch (DataIntegrityViolationException ex) {
-            if (platformAdminRepository.count() == 0) {
-                throw ex;
-            }
-        }
+        // Issue #370: the try/catch guarded a concurrent-insert race that the session-level
+        // advisory lock acquired above already serializes. Even if reached, the violated insert
+        // leaves the enclosing @Transactional rollback-only, so the follow-up count()/commit could
+        // not succeed — the catch was dead weight.
+        platformAdminRepository.save(admin);
     }
 
     private void acquireBootstrapLock() {

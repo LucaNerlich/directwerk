@@ -1,5 +1,24 @@
 import Script from 'next/script'
 
+/**
+ * Issue #405: accepts https, or http on loopback for local development. Kept local so
+ * `packages/ui` stays presentation-only (no dependency on the API package).
+ */
+function isTrustedScriptOrigin(url: string): boolean {
+    try {
+        const parsed = new URL(url)
+        if (parsed.protocol === 'https:') {
+            return true
+        }
+        return (
+            parsed.protocol === 'http:' &&
+            (parsed.hostname === 'localhost' || parsed.hostname === '127.0.0.1')
+        )
+    } catch {
+        return false
+    }
+}
+
 interface UmamiAnalyticsProps {
     /**
      * Session-replay masking strictness forwarded as `data-mask-level`.
@@ -24,9 +43,14 @@ export default function UmamiAnalytics({
     const sampleRate = process.env.NEXT_PUBLIC_UMAMI_SAMPLE_RATE ?? '0.25'
     const maxDuration = process.env.NEXT_PUBLIC_UMAMI_MAX_DURATION ?? '300000'
 
-    if (!websiteId || !umamiUrl) {
+    if (!websiteId || !umamiUrl || !isTrustedScriptOrigin(umamiUrl)) {
+        // Issue #405: the shared component interpolated NEXT_PUBLIC_UMAMI_URL with no scheme/host
+        // check (the tenant-config variant validates first), so an unvalidated value became a
+        // stored-script sink. Render nothing rather than emit an untrusted script src.
         return <></>
     }
+
+    const scriptBase = umamiUrl.replace(/\/+$/, '')
 
     return (
         <>
@@ -34,7 +58,7 @@ export default function UmamiAnalytics({
                 async
                 data-do-not-track="true"
                 data-website-id={websiteId}
-                src={`${umamiUrl}/script.js`}
+                src={`${scriptBase}/script.js`}
                 strategy="afterInteractive"
             />
             <Script
@@ -44,7 +68,7 @@ export default function UmamiAnalytics({
                 data-max-duration={maxDuration}
                 data-sample-rate={sampleRate}
                 data-website-id={websiteId}
-                src={`${umamiUrl}/recorder.js`}
+                src={`${scriptBase}/recorder.js`}
                 strategy="afterInteractive"
             />
         </>

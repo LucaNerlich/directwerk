@@ -48,6 +48,16 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/v1/articles")
 public class ArticleController {
 
+    /**
+     * Issue #314: sibling fields were capped (@Size on title/seoDescription) but the rich-text
+     * body and excerpt were not, and there is no global request-size limit for JSON bodies, so an
+     * authenticated editor could submit an arbitrarily large body that Jackson buffers and the
+     * repository persists.
+     */
+    private static final int MAX_ARTICLE_BODY_CHARS = 100_000;
+    private static final int MAX_ARTICLE_EXCERPT_CHARS = 2_000;
+
+
     private final ArticleService articleService;
     private final ArticlePublicationWorkflowService articlePublicationWorkflowService;
 
@@ -316,8 +326,8 @@ public class ArticleController {
             @Pattern(regexp = "^[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,62}[a-zA-Z0-9])?$")
             String slug,
             @NotBlank @Size(max = 255) String title,
-            String body,
-            String excerpt,
+            @Size(max = MAX_ARTICLE_BODY_CHARS) String body,
+            @Size(max = MAX_ARTICLE_EXCERPT_CHARS) String excerpt,
             @Size(max = 512) String seoDescription,
             @Min(1) Long heroAssetId,
             AccessPolicy accessPolicy,
@@ -330,8 +340,8 @@ public class ArticleController {
             @Pattern(regexp = "^[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,62}[a-zA-Z0-9])?$")
             String slug,
             @Size(max = 255) String title,
-            String body,
-            String excerpt,
+            @Size(max = MAX_ARTICLE_BODY_CHARS) String body,
+            @Size(max = MAX_ARTICLE_EXCERPT_CHARS) String excerpt,
             @Size(max = 512) String seoDescription,
             @Min(1) Long heroAssetId,
             AccessPolicy accessPolicy,

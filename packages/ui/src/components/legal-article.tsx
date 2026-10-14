@@ -10,9 +10,12 @@ import {cn} from '#lib/utils'
 export default function LegalArticle({
     page,
     className,
+    updatedLabel = 'Stand:',
 }: {
     page: LegalPage
     className?: string
+    /** Label before the last-updated date; pass a localised value for non-German pages. */
+    updatedLabel?: string
 }): React.JSX.Element {
     return (
         <article className={cn('max-w-3xl space-y-8', className)}>
@@ -38,7 +41,7 @@ export default function LegalArticle({
                 </section>
             ))}
             <footer className="border-t pt-4 text-xs text-muted-foreground">
-                Stand: {page.updated}
+                {updatedLabel} {page.updated}
             </footer>
         </article>
     )

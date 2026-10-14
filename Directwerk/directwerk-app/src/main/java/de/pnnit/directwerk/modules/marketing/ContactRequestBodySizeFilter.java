@@ -69,8 +69,17 @@ public class ContactRequestBodySizeFilter extends OncePerRequestFilter {
     private static void writePayloadTooLarge(HttpServletResponse response) throws IOException {
         response.setStatus(HttpStatus.PAYLOAD_TOO_LARGE.value());
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+        // Issue #371: a public, unauthenticated endpoint returned a third error shape, so
+        // integrators parsing the documented Response<T> envelope got a mismatch on 413. Reuse
+        // the same envelope as every other API failure.
         response.getWriter().write(
-                "{\"status\":413,\"code\":\"PAYLOAD_TOO_LARGE\",\"message\":\"Request body too large\"}"
+                "{\"statusCode\":413,"
+                        + "\"statusMessage\":\"PAYLOAD_TOO_LARGE\","
+                        + "\"data\":null,"
+                        + "\"errors\":[{\"code\":\"PAYLOAD_TOO_LARGE\","
+                        + "\"message\":\"Request body too large\","
+                        + "\"field\":null}],"
+                        + "\"metadata\":{}}"
         );
     }
 

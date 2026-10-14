@@ -32,26 +32,27 @@ export function createDirectwerkContentSecurityPolicy(
     ].join('; ')
 }
 
-export interface DirectwerkNextConfigOptions {
-    /**
-     * `X-Frame-Options` value. Defaults to `SAMEORIGIN`; apps that must never
-     * be framed (the admin console) pass `DENY`. This is the single source of
-     * the app's frame policy — do not also set X-Frame-Options in the app's
-     * own proxy, or responses can carry conflicting values.
-     */
-    frameOptions?: string
-}
+/**
+ * Issue #397: the `frameOptions` option was removed. It could not change the real policy for
+ * any app that uses {@link createDirectwerkContentSecurityPolicy}, which hardcodes
+ * `frame-ancestors 'none'` — so responses carried `X-Frame-Options: SAMEORIGIN` *and*
+ * `frame-ancestors 'none'`. The frame policy now has one value, matching the CSP.
+ */
+export interface DirectwerkNextConfigOptions {}
 
 /**
  * Baseline response headers applied to every page/API route. These are
  * deliberately CSP-free: apps that need CSP add it at their own response
  * boundary, using a per-request proxy nonce or app-specific headers.
  */
-function directwerkSecurityHeaders(frameOptions: string): {key: string; value: string}[] {
+function directwerkSecurityHeaders(): {key: string; value: string}[] {
     return [
         {key: 'X-Content-Type-Options', value: 'nosniff'},
         {key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin'},
-        {key: 'X-Frame-Options', value: frameOptions},
+        {key: 'X-Frame-Options', value: 'DENY'},
+        // Issue #331: the baseline claimed to be the shared security-header set but omitted
+        // HSTS, so the two token-holding tenant apps shipped none. No-op over plain-HTTP dev.
+        {key: 'Strict-Transport-Security', value: 'max-age=31536000; includeSubDomains'},
         {
             key: 'Permissions-Policy',
             value: 'camera=(), microphone=(), geolocation=(), payment=()',
@@ -65,7 +66,7 @@ function directwerkSecurityHeaders(frameOptions: string): {key: string; value: s
 export function createDirectwerkNextConfig(
     options: DirectwerkNextConfigOptions = {},
 ) {
-    const frameOptions = options.frameOptions ?? 'SAMEORIGIN'
+    void options
     return {
         reactCompiler: true,
         transpilePackages: [...directwerkTranspilePackages],
@@ -77,7 +78,7 @@ export function createDirectwerkNextConfig(
             return [
                 {
                     source: '/:path*',
-                    headers: directwerkSecurityHeaders(frameOptions),
+                    headers: directwerkSecurityHeaders(),
                 },
             ]
         },

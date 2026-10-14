@@ -23,6 +23,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -114,7 +115,13 @@ public class TenantManagementService {
         tenant.setName(name.trim());
         tenant.setSlug(normalizedSlug);
         tenant.setStatus(TenantStatus.ACTIVE);
-        tenant = tenantRepository.save(tenant);
+        try {
+            tenant = tenantRepository.save(tenant);
+            // Explicit flush so the unique constraint is evaluated inside this method (#356).
+            tenantRepository.flush();
+        } catch (DataIntegrityViolationException ex) {
+            throw asSlugConflict(ex, normalizedSlug);
+        }
 
         String normalizedHost = null;
         if (StringUtils.hasText(primaryDomain)) {
@@ -225,7 +232,14 @@ public class TenantManagementService {
             tenant.setSlug(normalizedSlug);
         }
 
-        Tenant saved = tenantRepository.save(tenant);
+        Tenant saved;
+        try {
+            saved = tenantRepository.save(tenant);
+            // Explicit flush so a concurrent slug race is caught here, not at commit (#356).
+            tenantRepository.flush();
+        } catch (DataIntegrityViolationException ex) {
+            throw asSlugConflict(ex, tenant.getSlug());
+        }
         boolean slugChanged = !Objects.equals(previousSlug, saved.getSlug());
         if (!Objects.equals(previousName, saved.getName()) || slugChanged) {
             eventPublisher.publishEvent(new TenantRssSnapshotStaleEvent(
@@ -352,5 +366,18 @@ public class TenantManagementService {
             TenantDetailView tenant,
             TenantInvitationService.InvitationResult adminInvitation
     ) {
+    }
+
+    /**
+     * Translates a {@code tenants.slug} unique-constraint violation into the intended 409.
+     * The pre-checks in {@link #createTenant}/{@link #updateTenant} cannot close the race
+     * between two concurrent writers; the loser used to surface as a 500 (issue #356).
+     */
+    private static ConflictException asSlugConflict(DataIntegrityViolationException ex, String slug) {
+        String causeMessage = ex.getMostSpecificCause().getMessage();
+        if (causeMessage != null && causeMessage.contains("uq_tenants_slug")) {
+            return new ConflictException(ConflictCodes.TENANT_SLUG_EXISTS, "Tenant slug already exists: " + slug);
+        }
+        throw ex;
     }
 }

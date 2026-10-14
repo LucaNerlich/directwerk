@@ -19,7 +19,12 @@ export default function ResponsiveTable({
                 className,
             )}
             role={label === undefined ? undefined : 'region'}
-            tabIndex={0}
+            // Issue #402 (a11y half): tabIndex was applied unconditionally, so a caller that
+            // passed no label got a focusable scroll region with no accessible name. Only make it
+            // focusable when it is an announced region. The remaining redundancy — Table already
+            // renders its own overflow-x-auto container — needs all call sites updated together
+            // and is tracked separately.
+            tabIndex={label === undefined ? undefined : 0}
         >
             {children}
         </div>

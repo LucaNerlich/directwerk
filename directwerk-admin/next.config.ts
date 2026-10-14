@@ -7,7 +7,7 @@ import {createDirectwerkNextConfig} from '../packages/next-config/createDirectwe
 // the shared config is the single source of the frame policy, so proxy.ts must
 // not set X-Frame-Options as well.
 const nextConfig: NextConfig = {
-    ...createDirectwerkNextConfig({frameOptions: 'DENY'}),
+    ...createDirectwerkNextConfig(),
 }
 
 export default nextConfig

@@ -20,6 +20,8 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
+import java.util.Map;
+import java.util.stream.Collectors;
 import java.util.List;
 import java.util.Set;
 import lombok.RequiredArgsConstructor;
@@ -56,12 +58,24 @@ public class PodcastImportService {
     public Preview preview(String feedUrl) {
         Long tenantId = TenantContext.requireTenantId();
         ParsedRssFeed parsed = fetchAndParse(feedUrl);
+        // Issue #321: resolve every item's existing episode in one query instead of one lookup
+        // per parsed item — an import preview for a large feed drove tens of thousands of
+        // sequential queries from a single authenticated request.
+        List<String> importIdentities = parsed.items().stream()
+                .map(item -> importIdentity(parsed.feedUrl(), item.guid()))
+                .toList();
+        Map<String, Long> existingIdByImportIdentity = importIdentities.isEmpty()
+                ? Map.of()
+                : episodeRepository.findByTenantIdAndImportIdentityIn(tenantId, importIdentities).stream()
+                        .collect(Collectors.toMap(
+                                Episode::getImportIdentity,
+                                Episode::getId,
+                                (first, second) -> first));
+
         List<PreviewEpisode> episodes = new ArrayList<>();
         for (ParsedRssFeed.Item item : parsed.items()) {
             String importIdentity = importIdentity(parsed.feedUrl(), item.guid());
-            Long existingId = episodeRepository.findByTenantIdAndImportIdentity(tenantId, importIdentity)
-                    .map(Episode::getId)
-                    .orElse(null);
+            Long existingId = existingIdByImportIdentity.get(importIdentity);
             episodes.add(new PreviewEpisode(
                     item.guid(),
                     item.title(),

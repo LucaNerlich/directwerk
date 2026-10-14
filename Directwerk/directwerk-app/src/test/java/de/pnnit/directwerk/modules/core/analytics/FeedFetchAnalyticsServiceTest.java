@@ -9,6 +9,7 @@ import de.pnnit.directwerk.config.DirectwerkConfig;
 import de.pnnit.directwerk.config.DirectwerkProperties;
 import de.pnnit.directwerk.modules.core.AnalyticsModule;
 import de.pnnit.directwerk.modules.core.entity.TenantBranding;
+import de.pnnit.directwerk.modules.core.analytics.TenantEventTracker;
 import de.pnnit.directwerk.modules.core.service.ModuleGateService;
 import de.pnnit.directwerk.modules.core.service.TenantBrandingService;
 import java.util.Set;
@@ -91,7 +92,9 @@ class FeedFetchAnalyticsServiceTest {
     }
 
     private FeedFetchAnalyticsService service(boolean enabled) {
-        return new FeedFetchAnalyticsService(
+        // #359: the tracker is wired here (as production does) instead of via a test-only
+        // constructor on the service.
+        return new FeedFetchAnalyticsService(new TenantEventTracker(
                 new DirectwerkConfig(new DirectwerkProperties(
                         null, null, null, null, null, null, null,
                         new DirectwerkProperties.Analytics(enabled, "https://umami.example.test", "Directwerk-Test/1.0"),
@@ -99,6 +102,6 @@ class FeedFetchAnalyticsServiceTest {
                 moduleGateService,
                 tenantBrandingService,
                 umamiEventClient
-        );
+        ));
     }
 }

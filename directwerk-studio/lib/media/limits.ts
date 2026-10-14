@@ -1,6 +1,6 @@
 import type {AssetType, MediaUploadLimits} from '@directwerk/api/types'
 
-import {formatBytes} from '@/lib/media/format'
+import {formatBytes} from '@directwerk/api/format/bytes'
 
 interface MediaTypeLimit {
     maxBytes: number
@@ -30,7 +30,7 @@ export function formatLimitLabel(bytes: number): string {
     if (bytes >= 1024 ** 2 && bytes % 1024 ** 2 === 0) {
         return `${bytes / 1024 ** 2} MB`
     }
-    return formatBytes(bytes)
+    return formatBytes(bytes) ?? '—'
 }
 
 /**

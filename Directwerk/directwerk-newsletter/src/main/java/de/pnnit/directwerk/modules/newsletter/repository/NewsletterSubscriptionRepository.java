@@ -32,6 +32,18 @@ public interface NewsletterSubscriptionRepository extends JpaRepository<Newslett
 
     long countByListIdAndStatus(Long listId, NewsletterSubscriptionStatus status);
 
+    /**
+     * Issue #376: one grouped aggregate for a whole page of lists, instead of two count queries
+     * per list. Rows are {@code [listId, status, count]}.
+     */
+    @Query("""
+            select s.list.id, s.status, count(s)
+            from NewsletterSubscription s
+            where s.list.id in :listIds
+            group by s.list.id, s.status
+            """)
+    List<Object[]> countByListIdInGroupedByStatus(@Param("listIds") Collection<Long> listIds);
+
     @Query("""
             select s from NewsletterSubscription s
             join fetch s.list

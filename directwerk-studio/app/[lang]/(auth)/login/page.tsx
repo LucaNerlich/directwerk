@@ -75,7 +75,6 @@ function LoginForm() {
     const localize = useLocalizedPath()
     const dict = useDictionary()
     const roleDenied = searchParams.get('reason') === 'role'
-    const workspaceMissing = searchParams.get('reason') === 'workspace'
     const [workspaces, setWorkspaces] = useState<StudioWorkspace[] | null>(null)
     const [pendingInput, setPendingInput] = useState<{
         email: string
@@ -189,11 +188,6 @@ function LoginForm() {
             {roleDenied ? (
                 <Alert variant="destructive">
                     <AlertDescription>{dict.auth.studioEditorsOnly}</AlertDescription>
-                </Alert>
-            ) : null}
-            {workspaceMissing ? (
-                <Alert variant="destructive">
-                    <AlertDescription>{dict.auth.workspaceUnavailable}</AlertDescription>
                 </Alert>
             ) : null}
             <Form action={formAction} className="grid gap-4">

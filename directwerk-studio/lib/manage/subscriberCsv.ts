@@ -76,5 +76,7 @@ export function downloadSubscriberCsv(csv: string, filename: string): void {
     anchor.href = url
     anchor.download = filename
     anchor.click()
-    URL.revokeObjectURL(url)
+    // Issue #424: revoking in the same tick can cancel the download in browsers that start the
+    // fetch asynchronously (historically Safari/Firefox), yielding a 0-byte export.
+    setTimeout(() => URL.revokeObjectURL(url), 0)
 }

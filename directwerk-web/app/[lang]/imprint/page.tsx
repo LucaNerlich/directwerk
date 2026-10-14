@@ -1,6 +1,6 @@
 import type {Metadata} from 'next'
 
-import {IMPRINT} from '@directwerk/legal'
+import {getImprint} from '@directwerk/legal'
 import LegalArticle from '@directwerk/ui/components/legal-article'
 import PageStack from '@directwerk/ui/components/page-stack'
 
@@ -25,10 +25,18 @@ export async function generateMetadata({
     }
 }
 
-export default function ImprintPage(): React.JSX.Element {
+export default async function ImprintPage({
+    params,
+}: LegalPageProps): Promise<React.JSX.Element> {
+    // #330: this page always rendered the German Impressum, even under /en.
+    const {lang} = await params
+    const locale = isLocale(lang) ? lang : 'de'
     return (
         <PageStack className="page-container">
-            <LegalArticle page={IMPRINT} />
+            <LegalArticle
+                page={getImprint(locale)}
+                updatedLabel={locale === 'en' ? 'Last updated:' : 'Stand:'}
+            />
         </PageStack>
     )
 }
