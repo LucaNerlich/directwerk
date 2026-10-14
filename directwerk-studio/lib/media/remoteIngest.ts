@@ -1,7 +1,5 @@
 'use client'
 
-'use client'
-
 import {parseMediaAssetEnvelope} from '@directwerk/api/validation/catalog'
 
 import {AUTH_REQUIRED} from '@directwerk/api/constants'

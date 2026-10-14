@@ -108,6 +108,7 @@ export function usePublicationBulkActions<T extends {
                 let successCount = 0
                 let failureCount = 0
                 let lastError: string | null = null
+                const failedIds: number[] = []
 
                 for (const item of eligible) {
                     try {
@@ -119,6 +120,7 @@ export function usePublicationBulkActions<T extends {
                             return
                         }
                         failureCount += 1
+                        failedIds.push(item.id)
                         lastError =
                             error instanceof Error ? error.message : errorMessageText
                     }
@@ -134,6 +136,9 @@ export function usePublicationBulkActions<T extends {
                     setStatusMessage(successMessage(successCount))
                     clearSelection()
                 } else if (successCount > 0 && failureCount > 0) {
+                    // Issue #429: mirror the parallel path, which narrows the selection to the
+                    // failures so the user does not have to re-find which rows failed.
+                    retainSelection?.(failedIds)
                     setStatusMessage(partialMessage(successCount, failureCount))
                 } else if (lastError !== null) {
                     setErrorMessage(lastError)
@@ -142,7 +147,7 @@ export function usePublicationBulkActions<T extends {
                 setIsBulkBusy(false)
             }
         },
-        [authRedirect, clearSelection, setItems],
+        [authRedirect, clearSelection, retainSelection, setItems],
     )
 
     const runBulkRequest = useCallback(

@@ -8,7 +8,6 @@ const transport = createBrowserTransport({
     session: {getValidAccessToken, refreshAccessToken},
     clearTokens: clearSessionTokens,
     resolveTenantHost: getClientTenantHost,
-    bindableTenantHost: true,
     includeProxyRequest: true,
     jsonInitMethods: ['POST', 'PUT'],
 })
