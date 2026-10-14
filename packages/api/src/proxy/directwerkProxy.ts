@@ -13,6 +13,12 @@ export interface DirectwerkProxyOptions {
         nonce: string,
         isDevelopment: boolean,
     ) => string
+    /**
+     * Extra request headers to expose to the app's own server components, e.g.
+     * `directwerk-web` stamps the resolved locale as `x-locale` so the root layout can render
+     * `<html lang>` server-side instead of patching it in a client effect (#341).
+     */
+    extraRequestHeaders?: (request: NextRequest) => Record<string, string>
 }
 
 /**
@@ -38,6 +44,12 @@ export function createDirectwerkProxyHandler(
         const requestHeaders = new Headers(request.headers)
         requestHeaders.set('x-nonce', nonce)
         requestHeaders.set('Content-Security-Policy', csp)
+        const extra = options.extraRequestHeaders?.(request)
+        if (extra !== undefined) {
+            for (const [name, value] of Object.entries(extra)) {
+                requestHeaders.set(name, value)
+            }
+        }
 
         const response = NextResponse.next({request: {headers: requestHeaders}})
         response.headers.set('Content-Security-Policy', csp)

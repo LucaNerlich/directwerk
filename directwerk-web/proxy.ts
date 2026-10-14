@@ -4,11 +4,21 @@ import {NextResponse} from 'next/server'
 import {createDirectwerkProxyHandler} from '@directwerk/api/proxy/directwerkProxy'
 
 import {createDirectwerkContentSecurityPolicy} from '../packages/next-config/createDirectwerkNextConfig'
-import {locales} from './lib/i18n/config'
+import {isLocale, locales} from './lib/i18n/config'
 import {resolveRequestLocale} from './lib/i18n/resolveRequestLocale'
 
 const handleDirectwerkProxy = createDirectwerkProxyHandler({
     buildContentSecurityPolicy: createDirectwerkContentSecurityPolicy,
+    // #341: the locale is already in the path here; pass it to the root layout so <html lang> is
+    // correct in the server-rendered document instead of being patched client-side.
+    extraRequestHeaders: (request) => {
+        const headers: Record<string, string> = {}
+        const segment = request.nextUrl.pathname.split('/')[1] ?? ''
+        if (isLocale(segment)) {
+            headers['x-locale'] = segment
+        }
+        return headers
+    },
 })
 
 function pathnameHasLocale(pathname: string): boolean {
