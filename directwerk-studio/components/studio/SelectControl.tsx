@@ -5,6 +5,7 @@ import {
     isValidElement,
     type ChangeEvent,
     type ReactElement,
+    type ReactNode,
     type SelectHTMLAttributes,
 } from 'react'
 
@@ -20,11 +21,23 @@ type OptionElement = ReactElement<
     SelectHTMLAttributes<HTMLOptionElement> & {value?: string | number}
 >
 
-interface SelectControlProps
-    extends Omit<SelectHTMLAttributes<HTMLSelectElement>, 'onChange' | 'value' | 'defaultValue'> {
+/**
+ * Issue #418: previously extended SelectHTMLAttributes while honouring only a handful of them,
+ * so a caller passing e.g. aria-invalid or onBlur had it silently dropped. The type now lists
+ * exactly what the component supports; anything else is a compile error rather than a no-op.
+ */
+interface SelectControlProps {
+    children: ReactNode
+    className?: string
     value?: string | number
     defaultValue?: string | number
+    disabled?: boolean
+    id?: string
+    name?: string
+    required?: boolean
     onChange?: (event: ChangeEvent<HTMLSelectElement>) => void
+    'aria-describedby'?: string
+    'aria-label'?: string
 }
 
 
@@ -38,7 +51,8 @@ export default function SelectControl({
     onChange,
     required,
     value,
-    ...props
+    'aria-describedby': ariaDescribedBy,
+    'aria-label': ariaLabel,
 }: SelectControlProps): React.JSX.Element {
     const options = Children.toArray(children).filter(
         (child): child is OptionElement => isValidElement(child) && child.type === 'option',
@@ -62,8 +76,8 @@ export default function SelectControl({
             value={rootValue}
         >
             <SelectTrigger
-                aria-describedby={props['aria-describedby']}
-                aria-label={props['aria-label']}
+                aria-describedby={ariaDescribedBy}
+                aria-label={ariaLabel}
                 className={className ?? 'w-full'}
                 id={id}
             >

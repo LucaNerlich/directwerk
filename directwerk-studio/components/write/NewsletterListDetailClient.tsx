@@ -26,17 +26,21 @@ import {useSiteConfig} from '@/lib/site/SiteConfigProvider'
 
 export default function NewsletterListDetailClient(): React.JSX.Element {
     const params = useParams<{listId: string}>()
-    const listId = Number(params.listId)
+    // Issue #420: a non-numeric segment yielded NaN, which was passed straight into the API call
+    // instead of short-circuiting. Guard it and render a not-found state.
+    const parsedListId = Number(params.listId)
+    const listId = Number.isSafeInteger(parsedListId) ? parsedListId : null
     const config = useSiteConfig()
     const listsQuery = useAuthedQuery(
         () => listNewsletterLists(getClientTenantHost()),
         {fallbackError: 'Liste konnte nicht geladen werden.'},
     )
     const subsQuery = useAuthedQuery(
-        () => listNewsletterSubscriptions(getClientTenantHost(), listId),
+        () => listNewsletterSubscriptions(getClientTenantHost(), listId ?? 0),
         {
             fallbackError: 'Abonnenten konnten nicht geladen werden.',
             queryKey: `newsletter-subscriptions:${listId}`,
+            enabled: listId !== null,
         },
     )
     const list = listsQuery.data?.find((item) => item.id === listId) ?? null
@@ -64,6 +68,16 @@ export default function NewsletterListDetailClient(): React.JSX.Element {
         } finally {
             setBusy(false)
         }
+    }
+
+    if (listId === null) {
+        return (
+            <PageStack className="page-container">
+                <Alert variant="destructive">
+                    <AlertDescription>Liste nicht gefunden.</AlertDescription>
+                </Alert>
+            </PageStack>
+        )
     }
 
     return (

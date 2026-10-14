@@ -150,7 +150,6 @@ export default function FormatEditor({formatId}: FormatEditorProps): React.JSX.E
     })
 
     const [coverPreviewUrl, setCoverPreviewUrl] = useState<string | null>(null)
-    const [coverUploadError, setCoverUploadError] = useState<string | null>(null)
 
     useEffect(() => {
         let active = true
@@ -198,7 +197,6 @@ export default function FormatEditor({formatId}: FormatEditorProps): React.JSX.E
 
     const handleCoverUpload = useCallback(
         (file: File | null): Promise<void> => {
-            setCoverUploadError(null)
             return coverUpload.upload(file)
         },
         [coverUpload],
@@ -335,11 +333,6 @@ export default function FormatEditor({formatId}: FormatEditorProps): React.JSX.E
                     />
                     {coverUpload.uploadProgress !== null ? (
                         <UploadProgress file={coverUpload.uploadProgress.file} progress={coverUpload.uploadProgress.progress} />
-                    ) : null}
-                    {coverUploadError !== null ? (
-                        <p className="text-sm text-destructive" role="alert">
-                            {coverUploadError}
-                        </p>
                     ) : null}
                 </section>
                 <section aria-labelledby="format-access-heading" className="grid gap-4">
