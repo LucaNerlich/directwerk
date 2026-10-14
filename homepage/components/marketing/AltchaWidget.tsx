@@ -22,26 +22,43 @@ export default function AltchaWidget({
 }): React.JSX.Element | null {
     const internalRef = useRef<AltchaElement>(null)
     const [altchaLoaded, setAltchaLoaded] = useState(false)
-    const [isClient, setIsClient] = useState(false)
+    const [loadFailed, setLoadFailed] = useState(false)
 
+    // Issues #351/#443: effects only run on the client, so the separate `isClient` state (and its
+    // second effect) were redundant. The dynamic import had no .catch, so a chunk/network/CSP
+    // failure left the submit button permanently disabled with no message and an unhandled
+    // rejection.
     useEffect(() => {
-        setIsClient(true)
-    }, [])
-
-    useEffect(() => {
-        if (!isClient) {
-            return
+        let active = true
+        import('altcha')
+            .then(() => {
+                if (active) {
+                    setAltchaLoaded(true)
+                }
+            })
+            .catch(() => {
+                if (active) {
+                    setLoadFailed(true)
+                }
+            })
+        return () => {
+            active = false
         }
-        void import('altcha').then(() => {
-            setAltchaLoaded(true)
-        })
-    }, [isClient])
+    }, [])
 
     useEffect(() => {
         widgetRef?.(altchaLoaded ? internalRef.current : null)
     }, [altchaLoaded, widgetRef])
 
-    if (!isClient || !altchaLoaded) {
+    if (loadFailed) {
+        return (
+            <p className="text-sm text-destructive" role="alert">
+                Das Sicherheits-Widget konnte nicht geladen werden. Bitte lade die Seite neu.
+            </p>
+        )
+    }
+
+    if (!altchaLoaded) {
         return null
     }
 

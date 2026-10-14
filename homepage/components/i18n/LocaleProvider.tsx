@@ -42,6 +42,3 @@ export function useLocale(): LocaleContextValue {
     return value
 }
 
-export function useDictionary(): Dictionary {
-    return useLocale().dictionary
-}

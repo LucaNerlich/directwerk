@@ -5,6 +5,7 @@ import {getPrivacy} from '@directwerk/legal'
 import LegalArticle from '@directwerk/ui/components/legal-article'
 
 import {isLocale} from '@/lib/i18n/config'
+import {hrefFor, localeAlternates} from '@/lib/i18n/pathname'
 import {getDictionary} from '@/lib/i18n/get-dictionary'
 
 export async function generateMetadata({
@@ -21,10 +22,8 @@ export async function generateMetadata({
         title: dict.meta.privacyTitle,
         description: dict.meta.privacyDescription,
         alternates: {
-            languages: {
-                de: '/de/privacy',
-                en: '/en/privacy',
-            },
+            canonical: hrefFor(rawLang, '/privacy'),
+            languages: localeAlternates('/privacy'),
         },
     }
 }

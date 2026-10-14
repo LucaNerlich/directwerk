@@ -13,6 +13,7 @@ import {
 } from '@/lib/api-docs/highlights'
 import {SITE_CONFIG_CURL} from '@/lib/api-docs/snippets'
 import {isLocale} from '@/lib/i18n/config'
+import {hrefFor, localeAlternates} from '@/lib/i18n/pathname'
 import {getDictionary} from '@/lib/i18n/get-dictionary'
 
 export async function generateMetadata({
@@ -29,10 +30,8 @@ export async function generateMetadata({
         title: dict.meta.developersTitle,
         description: dict.meta.developersDescription,
         alternates: {
-            languages: {
-                de: '/de/developers',
-                en: '/en/developers',
-            },
+            canonical: hrefFor(rawLang, '/developers'),
+            languages: localeAlternates('/developers'),
         },
     }
 }
@@ -48,6 +47,7 @@ export default async function DevelopersPage({
     }
     const dict = await getDictionary(rawLang)
     const copy = dict.developers
+    const common = dict.common
     const highlights = copy.highlights as ApiHighlight[]
 
     return (
@@ -111,8 +111,18 @@ export default async function DevelopersPage({
                         </h2>
                         <p className="mt-2 text-sm text-muted-foreground">{copy.siteConfigBody}</p>
                     </div>
-                    <CodeBlock code={SITE_CONFIG_CURL} label="GET /api/v1/public/site-config" />
-                    <OptionalOAuthSnippet hideLabel={copy.oauthHide} showLabel={copy.oauthShow} />
+                    <CodeBlock
+                        code={SITE_CONFIG_CURL}
+                        copiedLabel={common.copied}
+                        copyLabel={common.copy}
+                        label="GET /api/v1/public/site-config"
+                    />
+                    <OptionalOAuthSnippet
+                        copiedLabel={common.copied}
+                        copyLabel={common.copy}
+                        hideLabel={copy.oauthHide}
+                        showLabel={copy.oauthShow}
+                    />
                 </div>
             </section>
 

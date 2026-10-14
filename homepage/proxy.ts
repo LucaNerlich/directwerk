@@ -29,7 +29,11 @@ export function proxy(request: NextRequest) {
     const locale = resolveLocale(request)
     const url = request.nextUrl.clone()
     url.pathname = pathname === '/' ? `/${locale}` : `/${locale}${pathname}`
-    return NextResponse.redirect(url)
+    const response = NextResponse.redirect(url)
+    // Issue #441: the target depends on Accept-Language and the NEXT_LOCALE cookie; without Vary a
+    // shared/CDN cache can pin one locale's redirect for every visitor.
+    response.headers.set('Vary', 'Accept-Language, Cookie')
+    return response
 }
 
 export const config = {
