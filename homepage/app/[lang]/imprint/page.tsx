@@ -43,7 +43,10 @@ export default async function ImprintPage({
         <div className="pb-16">
             <section className="marketing-section">
                 <div className="marketing-container max-w-4xl">
-                    <LegalArticle page={getImprint(rawLang)} />
+                    <LegalArticle
+                        page={getImprint(rawLang)}
+                        updatedLabel={rawLang === 'en' ? 'Last updated:' : 'Stand:'}
+                    />
                 </div>
             </section>
         </div>
