@@ -357,12 +357,12 @@ export default function AnalyticsDashboardClient({
                         {showWrite ? (
                             <>
                                 <StatCard
-                                    label="Beiträge veröffentlicht"
+                                    label={dict.analytics.beitraegeVeroeffentlicht}
                                     value={countByStatus(articles, 'PUBLISHED')}
                                     hint={`${articles.length} Beiträge insgesamt`}
                                 />
                                 <StatCard
-                                    label="Beiträge in Arbeit"
+                                    label={dict.analytics.beitraegeArbeit}
                                     value={
                                         countByStatus(articles, 'DRAFT') +
                                         countByStatus(articles, 'SCHEDULED')
@@ -374,7 +374,7 @@ export default function AnalyticsDashboardClient({
                         {showPodcast ? (
                             <>
                                 <StatCard
-                                    label="Folgen veröffentlicht"
+                                    label={dict.analytics.folgenVeroeffentlicht}
                                     value={countByStatus(episodes, 'PUBLISHED')}
                                     hint={`${episodes.length} Folgen insgesamt`}
                                 />
@@ -387,7 +387,7 @@ export default function AnalyticsDashboardClient({
                                     hint="Entwürfe und geplante Folgen"
                                 />
                                 <StatCard
-                                    label="Sendungen"
+                                    label={dict.nav.podcast.series}
                                     value={series.length}
                                     hint={`${countByStatus(series, 'PUBLISHED')} veröffentlicht`}
                                 />
@@ -474,7 +474,7 @@ export default function AnalyticsDashboardClient({
                                 hint="Zahlende Abos gegenüber manuellen Freischaltungen"
                             />
                             <StatCard
-                                label="Geschätzter Monatsumsatz"
+                                label={dict.analytics.geschaetzterMonatsumsatz}
                                 value={formatMoney(
                                     billing.stats.estimatedMonthlyCents,
                                     billing.stats.currency,

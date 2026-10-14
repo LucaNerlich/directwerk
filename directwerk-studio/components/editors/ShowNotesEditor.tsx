@@ -30,6 +30,7 @@ import MediaInlinePickerDialog, {
 import type {MediaAsset} from '@directwerk/api/types'
 import {sanitizeContentHtml} from '@directwerk/api/content/sanitizeContentHtml'
 import {safeImageSrc, safeLinkHref} from '@/lib/url/safeUrl'
+import {useDictionary} from '@/components/i18n/LocaleProvider'
 
 
 function escapeHtml(value: string): string {
@@ -116,6 +117,7 @@ function EditorToolbar({
     allowMediaInsert: boolean
     onOpenMedia: () => void
 }) {
+    const dict = useDictionary()
     const toolbarLabelId = useId()
     const mediaDisabled = disabled || !allowMediaInsert
     const toolbarState = useEditorState({
@@ -146,8 +148,8 @@ function EditorToolbar({
             </span>
             <ToolbarButton
                 disabled={disabled || !toolbarState.canUndo}
-                label="Rückgängig"
-                title="Rückgängig (Strg+Z)"
+                label={dict.publication.rueckgaengig}
+                title={dict.publication.rueckgaengigStrgZ}
                 onClick={() => editor.chain().focus().undo().run()}
             >
                 <Undo2 aria-hidden="true" className="size-4" />
@@ -222,8 +224,8 @@ function EditorToolbar({
             <ToolbarButton
                 active={toolbarState.bulletList}
                 disabled={disabled}
-                label="Aufzählungsliste"
-                title="Aufzählungsliste"
+                label={dict.publication.aufzaehlungsliste}
+                title={dict.publication.aufzaehlungsliste}
                 onClick={() => editor.chain().focus().toggleBulletList().run()}
             >
                 <List aria-hidden="true" className="size-4" />
@@ -231,8 +233,8 @@ function EditorToolbar({
             <ToolbarButton
                 active={toolbarState.orderedList}
                 disabled={disabled}
-                label="Nummerierte Liste"
-                title="Nummerierte Liste"
+                label={dict.common.numberedList}
+                title={dict.common.numberedList}
                 onClick={() => editor.chain().focus().toggleOrderedList().run()}
             >
                 <ListOrdered aria-hidden="true" className="size-4" />
@@ -248,8 +250,8 @@ function EditorToolbar({
             </ToolbarButton>
             <ToolbarButton
                 disabled={disabled}
-                label="Trennlinie einfügen"
-                title="Trennlinie einfügen"
+                label={dict.publication.trennlinieEinfuegen}
+                title={dict.publication.trennlinieEinfuegen}
                 onClick={() => editor.chain().focus().setHorizontalRule().run()}
             >
                 <Minus aria-hidden="true" className="size-4" />
@@ -260,8 +262,8 @@ function EditorToolbar({
             <ToolbarButton
                 active={toolbarState.link}
                 disabled={disabled}
-                label="Link einfügen oder entfernen"
-                title="Link einfügen oder entfernen"
+                label={dict.publication.linkEinfuegenEntfernen}
+                title={dict.publication.linkEinfuegenEntfernen}
                 onClick={() => {
                     const previous = editor.getAttributes('link').href
                     const href = window.prompt('Link-URL', previous ?? 'https://')
@@ -287,8 +289,8 @@ function EditorToolbar({
             {allowMediaInsert ? (
                 <ToolbarButton
                     disabled={mediaDisabled}
-                    label="Medium aus Mediathek einfügen"
-                    title="Bild einbetten oder Audio/Video/Dokument verlinken (nur öffentliche Dateien)"
+                    label={dict.media.mediumMediathekEinfuegen}
+                    title={dict.publication.bildEinbettenAudioVideoDokumentVerlinken}
                     onClick={onOpenMedia}
                 >
                     <ImageIcon aria-hidden="true" className="size-4" />

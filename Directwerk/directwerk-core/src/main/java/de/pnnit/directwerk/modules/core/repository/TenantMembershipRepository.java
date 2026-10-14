@@ -19,6 +19,18 @@ public interface TenantMembershipRepository extends JpaRepository<TenantMembersh
 
     Optional<TenantMembership> findByTenantIdAndUserId(Long tenantId, Long userId);
 
+    /** Batch variant (#345) — see MembershipPermissionOverrideRepository.findByTenantIdAndUserIdIn. */
+    @Query("""
+            select membership from TenantMembership membership
+            join fetch membership.user
+            where membership.tenantId = :tenantId
+              and membership.user.id in :userIds
+            """)
+    List<TenantMembership> findByTenantIdAndUserIdIn(
+            @Param("tenantId") Long tenantId,
+            @Param("userIds") java.util.Collection<Long> userIds
+    );
+
     @Query("""
             select membership from TenantMembership membership
             join fetch membership.tenant tenant

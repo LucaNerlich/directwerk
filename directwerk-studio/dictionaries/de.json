@@ -74,7 +74,12 @@
     "retryShort": "Wiederholen",
     "loadingShort": "Laden…",
     "or": "oder",
-    "nextStep": "Nächster Schritt:"
+    "nextStep": "Nächster Schritt:",
+    "rssImport": "RSS-Import",
+    "subscriberFeeds": "Abonnenten-Feeds",
+    "seriesFeeds": "Sendungs-Feeds",
+    "documentFromLibrary": "Dokument aus Mediathek",
+    "numberedList": "Nummerierte Liste"
   },
   "shell": {
     "approxSubscribers": "ca. ${subscribers.length} Abonnenten",

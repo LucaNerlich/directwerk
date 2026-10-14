@@ -32,10 +32,12 @@ import type {
 } from '@directwerk/api/types'
 import {getClientTenantHost} from '@directwerk/api/tenant'
 import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
+import {useDictionary} from '@/components/i18n/LocaleProvider'
 
 type WizardStep = 'url' | 'categories' | 'article' | 'done'
 
 export default function ArticleRssImportWizard(): React.JSX.Element {
+    const dict = useDictionary()
     const authRedirect = useAuthRequired()
     const authRedirectRef = useRef(authRedirect)
     // Issue #417: writing a ref during render violates the Rules of React and makes the React
@@ -331,9 +333,9 @@ export default function ArticleRssImportWizard(): React.JSX.Element {
     return (
         <PageStack>
             <PageHeader
-                eyebrow="Schreiben"
-                title="RSS-Import"
-                description="Bestehenden Artikel-Feed übernehmen: optional Kategorien, dann Beiträge einzeln oder als Hintergrund-Job. Bilder werden nach S3 gestreamt."
+                eyebrow={dict.shell.home.writeDesk}
+                title={dict.common.rssImport}
+                description={dict.write.importFeedIntro}
             />
 
             <ol className="flex flex-wrap gap-2 text-xs font-medium text-muted-foreground">
@@ -467,7 +469,7 @@ export default function ArticleRssImportWizard(): React.JSX.Element {
                                 </p>
                             </div>
                             <SelectControl
-                                aria-label="Zugriff für alle Beiträge"
+                                aria-label={dict.write.accessForAllArticles}
                                 disabled={busy}
                                 onChange={(event) =>
                                     setAccessPolicy(event.target.value === 'PAID' ? 'PAID' : 'FREE')
@@ -673,7 +675,7 @@ export default function ArticleRssImportWizard(): React.JSX.Element {
                         />
                     ) : (
                         <SectionHeader
-                            title="Import abgeschlossen"
+                            title={dict.write.importFinished}
                             description={`${importedCount} Beiträge importiert, ${alreadyImportedCount} bereits vorhanden, ${skippedCount} übersprungen. Entwürfe kannst du jetzt prüfen und veröffentlichen.`}
                         />
                     )}

@@ -26,6 +26,7 @@ import type {TenantBranding} from '@directwerk/api/types'
 import {getClientTenantHost} from '@directwerk/api/tenant'
 import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
 import {safeImageSrc} from '@/lib/url/safeUrl'
+import {useDictionary} from '@/components/i18n/LocaleProvider'
 
 interface BrandingFormState {
     error: string | null
@@ -57,6 +58,7 @@ function colorPickerValue(draft: string): string {
 }
 
 export default function BrandingEditor(): React.JSX.Element {
+    const dict = useDictionary()
     const router = useRouter()
     const localize = useLocalizedPath()
     const authRedirect = useAuthRequired()
@@ -267,9 +269,9 @@ export default function BrandingEditor(): React.JSX.Element {
         return (
             <PageStack>
                 <PageHeader
-                    eyebrow="Einstellungen"
+                    eyebrow={dict.nav.verwaltung.settings}
                     title="Branding"
-                    description="Titel, Farben, Logo, Favicon und Analytics für deine öffentliche Website."
+                    description={dict.settings.titelFarbenLogoFaviconAnalyticsOeffentliche}
                 />
                 <p className="text-sm text-muted-foreground" role="status">Wird geladen…</p>
                 <Skeleton className="h-96 w-full max-w-xl" />
@@ -281,9 +283,9 @@ export default function BrandingEditor(): React.JSX.Element {
         return (
             <PageStack>
                 <PageHeader
-                    eyebrow="Einstellungen"
+                    eyebrow={dict.nav.verwaltung.settings}
                     title="Branding"
-                    description="Titel, Farben, Logo, Favicon und Analytics für deine öffentliche Website."
+                    description={dict.settings.titelFarbenLogoFaviconAnalyticsOeffentliche}
                 />
                 <Alert variant="destructive">
                     <AlertDescription>{loadError}</AlertDescription>
@@ -295,9 +297,9 @@ export default function BrandingEditor(): React.JSX.Element {
     return (
         <PageStack>
             <PageHeader
-                eyebrow="Einstellungen"
+                eyebrow={dict.nav.verwaltung.settings}
                 title="Branding"
-                description="Titel, Farben, Logo, Favicon und Analytics für deine öffentliche Website. Farben im Format #RRGGBB."
+                description={dict.settings.titelFarbenLogoFaviconAnalyticsFuer}
             />
 
             <Form action={formAction} className="grid w-full max-w-xl gap-6">
@@ -315,7 +317,7 @@ export default function BrandingEditor(): React.JSX.Element {
                         id="siteTitle"
                         maxLength={255}
                         name="siteTitle"
-                        placeholder="Öffentlicher Titel auf der Website"
+                        placeholder={dict.settings.oeffentlicherTitelWebsite}
                         type="text"
                     />
                     <p className="text-xs text-muted-foreground" id="siteTitle-help">
@@ -326,7 +328,7 @@ export default function BrandingEditor(): React.JSX.Element {
                     <Label htmlFor="primaryColor">Primärfarbe</Label>
                     <div className="flex items-center gap-3">
                         <Input
-                            aria-label="Primärfarbe Farbwähler"
+                            aria-label={dict.settings.primaerfarbeFarbwaehler}
                             className="size-9 shrink-0 cursor-pointer p-1"
                             onChange={(event) => setPrimaryColorDraft(event.target.value)}
                             type="color"
@@ -351,7 +353,7 @@ export default function BrandingEditor(): React.JSX.Element {
                     <Label htmlFor="secondaryColor">Sekundärfarbe</Label>
                     <div className="flex items-center gap-3">
                         <Input
-                            aria-label="Sekundärfarbe Farbwähler"
+                            aria-label={dict.settings.sekundaerfarbeFarbwaehler}
                             className="size-9 shrink-0 cursor-pointer p-1"
                             onChange={(event) => setSecondaryColorDraft(event.target.value)}
                             type="color"
@@ -385,7 +387,7 @@ export default function BrandingEditor(): React.JSX.Element {
                         <MediaLibraryPicker
                             assetType="IMAGE"
                             disabled={pending}
-                            label="Logo aus Mediathek"
+                            label={dict.settings.logoMediathek}
                             onAuthRequired={handleAuthRequired}
                             onSelect={(asset) => {
                                 const src = safeImageSrc(asset.cdnUrl)
@@ -467,7 +469,7 @@ export default function BrandingEditor(): React.JSX.Element {
                         <MediaLibraryPicker
                             assetType="IMAGE"
                             disabled={pending || isFaviconUploading}
-                            label="Favicon aus Mediathek"
+                            label={dict.settings.faviconMediathek}
                             onAuthRequired={handleAuthRequired}
                             onSelect={(asset) => {
                                 const src = safeImageSrc(asset.cdnUrl)

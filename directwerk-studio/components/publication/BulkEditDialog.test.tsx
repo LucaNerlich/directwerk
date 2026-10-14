@@ -1,4 +1,5 @@
-import {cleanup, render, screen} from '@testing-library/react'
+import {cleanup, screen} from '@testing-library/react'
+import {renderWithLocale} from '@/lib/i18n/testUtils'
 import userEvent from '@testing-library/user-event'
 import {afterEach, describe, expect, it, vi} from 'vitest'
 
@@ -33,7 +34,7 @@ describe('BulkEditDialog', () => {
         const user = userEvent.setup()
         const onApply = vi.fn()
 
-        render(
+        renderWithLocale(
             <BulkEditDialog
                 busy={false}
                 categories={mockCategories}
@@ -60,7 +61,7 @@ describe('BulkEditDialog', () => {
     })
 
     it('shows a hint when published items are skipped', async () => {
-        render(
+        renderWithLocale(
             <BulkEditDialog
                 busy={false}
                 categories={mockCategories}
@@ -83,7 +84,7 @@ describe('BulkEditDialog', () => {
     it('disables apply when no drafts are selected', () => {
         const onApply = vi.fn()
 
-        render(
+        renderWithLocale(
             <BulkEditDialog
                 busy={false}
                 categories={mockCategories}
@@ -109,7 +110,7 @@ describe('BulkEditDialog', () => {
         const user = userEvent.setup()
         const onApply = vi.fn()
 
-        render(
+        renderWithLocale(
             <BulkEditDialog
                 busy={false}
                 categories={mockCategories}
@@ -132,7 +133,7 @@ describe('BulkEditDialog', () => {
         const user = userEvent.setup()
         const onApply = vi.fn()
 
-        render(
+        renderWithLocale(
             <BulkEditDialog
                 busy={false}
                 categories={[]}
@@ -154,7 +155,7 @@ describe('BulkEditDialog', () => {
     it('offers categories that arrive after the dialog opened', async () => {
         const user = userEvent.setup()
 
-        const {rerender} = render(
+        const {rerender} = renderWithLocale(
             <BulkEditDialog
                 busy={false}
                 categories={[]}
@@ -190,7 +191,7 @@ describe('BulkEditDialog', () => {
     it('keeps an explicitly chosen kind when options arrive late', async () => {
         const user = userEvent.setup()
 
-        const {rerender} = render(
+        const {rerender} = renderWithLocale(
             <BulkEditDialog
                 busy={false}
                 categories={[]}

@@ -25,6 +25,7 @@ import type {SeriesSummary, SubscriberFeedAdminView} from '@directwerk/api/types
 import {useSiteConfig} from '@/lib/site/SiteConfigProvider'
 import {getClientTenantHost} from '@directwerk/api/tenant'
 import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
+import {useDictionary} from '@/components/i18n/LocaleProvider'
 
 /**
  * Renders the podcast feed management interface.
@@ -32,6 +33,7 @@ import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
  * @returns The feed management page.
  */
 export default function FeedManagementClient(): React.JSX.Element {
+    const dict = useDictionary()
     const authRedirect = useAuthRequired()
     const config = useSiteConfig()
     const [series, setSeries] = useState<SeriesSummary[]>([])
@@ -225,9 +227,9 @@ export default function FeedManagementClient(): React.JSX.Element {
     return (
         <PageStack>
             <PageHeader
-                eyebrow="Podcast · Einrichtung"
-                title="Feeds"
-                description="Teile diese URLs mit Podcast-Apps und Verzeichnissen. Sendungs-Feeds sind öffentlich und enthalten nur freie Folgen — Bezahlte Folgen werden ausschließlich über die privaten Abonnenten-Feeds ausgeliefert, die mit dem Feed-Token der Abonnentin bzw. des Abonnenten geschützt sind."
+                eyebrow={dict.podcast.setupTitle}
+                title={dict.nav.podcast.feeds}
+                description={dict.podcast.teileUrlsPodcastAppsVerzeichnissenSendungs}
             />
 
             {errorMessage !== null ? (
@@ -251,8 +253,8 @@ export default function FeedManagementClient(): React.JSX.Element {
                             Sendung anlegen
                         </Button>
                     }
-                    description="Lege zuerst eine Sendung an und veröffentliche sie — danach erscheint hier der RSS-Feed."
-                    title="Noch keine Feeds"
+                    description={dict.podcast.legeZuerstSendungVeroeffentlicheDanachErsch}
+                    title={dict.podcast.emptyFeedsTitle}
                 />
             ) : null}
 
@@ -278,8 +280,8 @@ export default function FeedManagementClient(): React.JSX.Element {
             {seriesFeedItems.length > 0 ? (
                 <section className="flex flex-col gap-4">
                     <SectionHeader
-                        description="Öffentlicher Feed je Sendung — enthält nur freie Folgen. Enthält eine Sendung nur Bezahlte Folgen, bleibt dieser Feed leer; Abonnentinnen und Abonnenten nutzen ihren privaten Feed unten."
-                        title="Sendungs-Feeds"
+                        description={dict.podcast.oeffentlicherFeedJeSendungEnthaeltFreie}
+                        title={dict.common.seriesFeeds}
                     />
                     <EntityListView
                         ariaLabel="Sendungs-Feeds"
@@ -292,8 +294,8 @@ export default function FeedManagementClient(): React.JSX.Element {
             {draftSeriesItems.length > 0 ? (
                 <section className="flex flex-col gap-4">
                     <SectionHeader
-                        description="Entwürfe erscheinen nicht im öffentlichen Feed. Veröffentliche die Sendung, damit die RSS-URL sichtbar wird."
-                        title="Noch nicht veröffentlichte Sendungen"
+                        description={dict.podcast.entwuerfeErscheinenOeffentlichenFeedVeroeffe}
+                        title={dict.podcast.veroeffentlichteSendungen}
                     />
                     <EntityListView
                         ariaLabel="Noch nicht veröffentlichte Sendungen"
@@ -306,13 +308,13 @@ export default function FeedManagementClient(): React.JSX.Element {
             {showSubscriberFeeds ? (
                 <section className="flex flex-col gap-4">
                     <SectionHeader
-                        description="Jeder private Feed zeigt genau die Folgen, auf die die jeweilige Person Anspruch hat. Zum Testen der eigenen Bezahlfolgen zuerst eine manuelle Berechtigung (Stufe) für das eigene Konto vergeben."
-                        title="Abonnenten-Feeds"
+                        description={dict.podcast.jederPrivateFeedZeigtGenauFolgen}
+                        title={dict.common.subscriberFeeds}
                     />
                     {subscriberFeedItems.length === 0 ? (
                         <EmptyState
-                            description="Ein Feed wird bei der ersten Freischaltung einer Abonnentin bzw. eines Abonnenten automatisch angelegt."
-                            title="Noch keine Abonnenten-Feeds"
+                            description={dict.write.subscriberFeedAutoCreated}
+                            title={dict.write.noSubscriberFeeds}
                         />
                     ) : (
                         <EntityListView

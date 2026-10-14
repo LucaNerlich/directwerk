@@ -1,6 +1,7 @@
 'use client'
 
-import {render, screen, waitFor} from '@testing-library/react'
+import {screen, waitFor} from '@testing-library/react'
+import {renderWithLocale} from '@/lib/i18n/testUtils'
 import userEvent from '@testing-library/user-event'
 import {describe, expect, it, vi} from 'vitest'
 
@@ -9,8 +10,29 @@ import PublicationDangerZone from '@/components/publication/PublicationDangerZon
 const draftItem = {id: 1, slug: 'draft-slug', title: 'Draft', status: 'DRAFT' as const}
 
 describe('PublicationDangerZone', () => {
+    it('renders the English warning copy under the EN locale (#336)', () => {
+        // The reported symptom was English users seeing hardcoded German. Assert the copy comes
+        // from the dictionary for the active locale, not from a literal in the component.
+        renderWithLocale(
+            <PublicationDangerZone
+                contentLabel="Episode"
+                deleteErrorMessage="Could not delete the episode."
+                item={draftItem}
+                onDelete={vi.fn()}
+                onDeleted={vi.fn()}
+            />,
+            {lang: 'en'},
+        )
+
+        expect(
+            screen.getByText(
+                'Permanent and irreversible — including all publications in the feed.',
+            ),
+        ).toBeInTheDocument()
+    })
+
     it('renders nothing without an item', () => {
-        const {container} = render(
+        const {container} = renderWithLocale(
             <PublicationDangerZone
                 contentLabel="Folge"
                 deleteErrorMessage="Folge konnte nicht gelöscht werden."
@@ -27,7 +49,7 @@ describe('PublicationDangerZone', () => {
         const onDelete = vi.fn().mockResolvedValue(undefined)
         const onDeleted = vi.fn()
 
-        render(
+        renderWithLocale(
             <PublicationDangerZone
                 contentLabel="Folge"
                 deleteErrorMessage="Folge konnte nicht gelöscht werden."
@@ -54,7 +76,7 @@ describe('PublicationDangerZone', () => {
             .mockResolvedValueOnce(undefined)
         const onDeleted = vi.fn()
 
-        render(
+        renderWithLocale(
             <PublicationDangerZone
                 contentLabel="Folge"
                 deleteErrorMessage="Folge konnte nicht gelöscht werden."
@@ -97,7 +119,7 @@ describe('PublicationDangerZone', () => {
             .mockResolvedValueOnce(undefined)
         const onDeleted = vi.fn()
 
-        render(
+        renderWithLocale(
             <PublicationDangerZone
                 contentLabel="Folge"
                 deleteErrorMessage="Folge konnte nicht gelöscht werden."

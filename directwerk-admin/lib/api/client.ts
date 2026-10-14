@@ -12,7 +12,10 @@ import type {
     PlatformAuditQuery,
     PlatformOverview,
 } from '@directwerk/api/types'
-import {parseEffectiveRightsEnvelope} from '@directwerk/api/validation'
+import {
+    parseEffectiveRightsEnvelope,
+    parseEffectiveRightsListEnvelope,
+} from '@directwerk/api/validation'
 import {isQueueJob} from '@directwerk/api/validation/admin'
 import {isRecord} from '@directwerk/api/validation/primitives'
 
@@ -48,6 +51,24 @@ export async function getMemberEffectiveRights(
     return platformApi.getEnvelope(
         `tenants/${tenantId}/users/${userId}/effective-rights`,
         parseEffectiveRightsEnvelope,
+        'Invalid rights response.',
+    )
+}
+
+/**
+ * Effective rights for several members in one request (#345). The tenant page needs a row per
+ * editor; calling the single-member helper per editor cost one HTTP round trip each.
+ */
+export async function getMembersEffectiveRights(
+    tenantId: string,
+    userIds: number[],
+): Promise<EffectiveRights[]> {
+    if (userIds.length === 0) {
+        return []
+    }
+    return platformApi.getEnvelope(
+        `tenants/${tenantId}/users/effective-rights?userIds=${userIds.join(',')}`,
+        parseEffectiveRightsListEnvelope,
         'Invalid rights response.',
     )
 }

@@ -36,6 +36,7 @@ import {useCoverImageUpload} from '@/lib/media/useCoverImageUpload'
 
 import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
 import {useResourceEditor} from '@/lib/hooks/useResourceEditor'
+import {useDictionary} from '@/components/i18n/LocaleProvider'
 
 interface SeriesEditorProps {
     seriesId?: number
@@ -123,6 +124,7 @@ function seriesCreatePayload(values: SeriesFormValues): CreateSeriesInput {
  * @param seriesId - The identifier of the series to edit; omit to create a new series.
  */
 export default function SeriesEditor({seriesId}: SeriesEditorProps): React.JSX.Element {
+    const dict = useDictionary()
     const router = useRouter()
     const localize = useLocalizedPath()
     const authRedirect = useAuthRequired()
@@ -291,8 +293,8 @@ export default function SeriesEditor({seriesId}: SeriesEditorProps): React.JSX.E
                         Zur Übersicht
                     </Button>
                 }
-                description="Titel, Cover und Feed-Metadaten. Einmal einrichten — der laufende Flow nutzt Folgen."
-                eyebrow="Podcast · Einrichtung"
+                description={dict.podcast.titelCoverFeedMetadatenEinmalEinrichten}
+                eyebrow={dict.podcast.setupTitle}
                 title={isNew ? 'Neue Sendung' : 'Sendung bearbeiten'}
             />
             {!isNew ? (
@@ -310,7 +312,7 @@ export default function SeriesEditor({seriesId}: SeriesEditorProps): React.JSX.E
             <form className="grid w-full max-w-2xl gap-6" onSubmit={(event) => void handleSubmit(event)}>
                 <section aria-labelledby="series-basics-heading" className="grid gap-4">
                     <SectionHeader
-                        description="So sehen Hörer deine Sendung in Apps und Verzeichnissen."
+                        description={dict.podcast.soSehenHoererSendungAppsVerzeichnissen}
                         id="series-basics-heading"
                         title="Grundlagen"
                     />
@@ -436,7 +438,7 @@ export default function SeriesEditor({seriesId}: SeriesEditorProps): React.JSX.E
                     <MediaLibraryPicker
                         assetType="IMAGE"
                         disabled={coverUpload.isUploading || isSaving}
-                        label="Titelbild aus Mediathek"
+                        label={dict.podcast.titelbildMediathek}
                         onAuthRequired={handleAuthRequired}
                         onSelect={(asset) => {
                             setField('coverAssetId', asset.id)
@@ -452,7 +454,7 @@ export default function SeriesEditor({seriesId}: SeriesEditorProps): React.JSX.E
                 </section>
                 <section aria-labelledby="series-access-heading" className="grid gap-2">
                     <SectionHeader
-                        description="Standard für neue Folgen dieser Sendung. Kann pro Folge überschrieben werden."
+                        description={dict.podcast.standardNeueFolgenSendungProFolge}
                         id="series-access-heading"
                         title="Zugriff"
                     />
@@ -473,7 +475,7 @@ export default function SeriesEditor({seriesId}: SeriesEditorProps): React.JSX.E
                     <SectionHeader
                         description={isNew ? 'Anlegen und optional sofort veröffentlichen.' : 'Speichern, Status wechseln und Feed prüfen.'}
                         id="series-publish-heading"
-                        title="Veröffentlichung"
+                        title={dict.podcast.veroeffentlichung}
                     />
                     {values.rssUrl !== null ? (
                         <PublishedLinksPanel

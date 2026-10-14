@@ -156,6 +156,62 @@ public class MembershipPermissionService {
                 AuthorizationService.effectiveRights(principal, new HashSet<>(overrides)));
     }
 
+    /**
+     * Effective rights for several members in a fixed number of queries (#345).
+     *
+     * <p>{@link #effectiveRightsForMember} costs three queries per member, so the platform tenant
+     * page — which needs one row per editor — issued 3N of them. This batches the tenant existence
+     * check, the memberships and the overrides, then reuses the same computation per member.
+     *
+     * @return rights for the requested users that are actually members of the tenant; ids without a
+     *         membership are omitted (the single-member variant throws instead)
+     */
+    @Transactional(readOnly = true)
+    public List<MemberRights> effectiveRightsForMembers(Long tenantId, java.util.Collection<Long> userIds) {
+        if (userIds == null || userIds.isEmpty()) {
+            return List.of();
+        }
+        tenantRepository.requireById(tenantId);
+        List<Long> ids = userIds.stream().distinct().toList();
+
+        Map<Long, TenantMembership> memberships = tenantMembershipRepository
+                .findByTenantIdAndUserIdIn(tenantId, ids)
+                .stream()
+                .collect(java.util.stream.Collectors.toMap(
+                        membership -> membership.getUser().getId(),
+                        membership -> membership,
+                        (first, second) -> first));
+        Map<Long, List<MembershipPermissionOverride>> overridesByUser = overrideRepository
+                .findByTenantIdAndUserIdIn(tenantId, ids)
+                .stream()
+                .collect(java.util.stream.Collectors.groupingBy(
+                        override -> override.getMembership().getUser().getId()));
+
+        List<MemberRights> rights = new java.util.ArrayList<>();
+        for (Long userId : ids) {
+            TenantMembership membership = memberships.get(userId);
+            if (membership == null) {
+                continue;
+            }
+            List<MembershipPermissionOverride> overrides =
+                    overridesByUser.getOrDefault(userId, List.of());
+            DirectwerkUserPrincipal principal = new DirectwerkUserPrincipal(
+                    userId,
+                    membership.getUser().getEmail(),
+                    "",
+                    tenantId,
+                    membership.getRoles().stream()
+                            .map(role -> new SimpleGrantedAuthority("ROLE_" + role.name()))
+                            .toList());
+            rights.add(new MemberRights(
+                    userId,
+                    membership.getRoles().stream().map(Enum::name).sorted().toList(),
+                    overrides,
+                    AuthorizationService.effectiveRights(principal, new HashSet<>(overrides))));
+        }
+        return rights;
+    }
+
     public record MemberRights(
             Long userId,
             List<String> roles,

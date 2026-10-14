@@ -29,7 +29,7 @@ import TenantModulesPanel from '@/components/TenantModulesPanel'
 import TenantProductsPanel from '@/components/TenantProductsPanel'
 import TenantSessionPanel from '@/components/TenantSessionPanel'
 import TenantUserActions from '@/components/TenantUserActions'
-import {getMemberEffectiveRights, getPlatformData, postPlatformData} from '@/lib/api/client'
+import {getMembersEffectiveRights, getPlatformData, postPlatformData} from '@/lib/api/client'
 import {useTenantPlatformQuery, usePlatformQuery} from '@/lib/api/usePlatformQuery'
 import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
 import {REQUEST_FAILED} from '@directwerk/api/constants'
@@ -92,29 +92,22 @@ export default function TenantPage({params}: TenantPageProps) {
 
     const {data: rightsByUser} = usePlatformQuery(
         async () => {
-            const entries = await Promise.all(
-                editors.map(
-                    async (
-                        user,
-                    ): Promise<[number, EffectiveRights | null]> => {
-                        try {
-                            return [
-                                user.userId,
-                                await getMemberEffectiveRights(
-                                    id,
-                                    user.userId,
-                                ),
-                            ]
-                        } catch {
-                            return [user.userId, null]
-                        }
-                    },
-                ),
-            )
-            return Object.fromEntries(entries) as Record<
-                number,
-                EffectiveRights | null
-            >
+            // #345: one batched request for every editor instead of one round trip each. A failure
+            // now marks the whole panel unavailable rather than a subset of rows, which is what the
+            // 'Rights: unavailable' state is for.
+            try {
+                const rights = await getMembersEffectiveRights(
+                    id,
+                    editors.map((user) => user.userId),
+                )
+                return Object.fromEntries(
+                    rights.map((entry) => [entry.userId, entry]),
+                ) as Record<number, EffectiveRights | null>
+            } catch {
+                return Object.fromEntries(
+                    editors.map((user) => [user.userId, null]),
+                ) as Record<number, EffectiveRights | null>
+            }
         },
         {
             fallbackError: 'Rights unavailable.',

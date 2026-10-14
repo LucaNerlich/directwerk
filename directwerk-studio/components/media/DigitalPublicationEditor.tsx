@@ -43,6 +43,7 @@ import type {
 } from '@directwerk/api/types'
 
 import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
+import {useDictionary} from '@/components/i18n/LocaleProvider'
 
 interface DigitalPublicationEditorProps {
     publicationId?: number
@@ -51,6 +52,7 @@ interface DigitalPublicationEditorProps {
 export default function DigitalPublicationEditor({
     publicationId,
 }: DigitalPublicationEditorProps): React.JSX.Element {
+    const dict = useDictionary()
     const router = useRouter()
     const localize = useLocalizedPath()
     const authRedirect = useAuthRequired()
@@ -193,11 +195,11 @@ export default function DigitalPublicationEditor({
                 <PageHeader
                     eyebrow="Medien"
                     title="Bonusdatei"
-                    description="Dokument aus der Mediathek mit Titel, Zugang und Veröffentlichung."
+                    description={dict.bonus.dokumentMediathekTitelZugangVeroeffentlichun}
                 />
                 <div role="status">
                     <EmptyState
-                        title="Bonusdateien nicht verfügbar"
+                        title={dict.bonus.bonusdateienVerfuegbar}
                         description={
                             <>
                                 Das Modul <code>BONUS_CONTENT</code> ist für diesen Tenant
@@ -224,7 +226,7 @@ export default function DigitalPublicationEditor({
             <PageHeader
                 eyebrow="Medien"
                 title={isNew ? 'Neue Bonusdatei' : title || 'Bonusdatei'}
-                description="Dokument aus der Mediathek mit Titel, Zugang und Veröffentlichung."
+                description={dict.bonus.dokumentMediathekTitelZugangVeroeffentlichun}
                 actions={
                     publication !== null ? (
                         <PublicationStatusBadge
@@ -256,7 +258,7 @@ export default function DigitalPublicationEditor({
             ) : null}
 
             <section className="flex flex-col gap-4">
-                <SectionHeader title="Inhalt" description="Titel und Dokument." />
+                <SectionHeader title="Inhalt" description={dict.bonus.titelDokument} />
                 <div className="grid gap-2">
                     <Label htmlFor="bonus-title">Titel</Label>
                     <Input
@@ -295,7 +297,7 @@ export default function DigitalPublicationEditor({
                 <MediaLibraryPicker
                     assetType="DOCUMENT"
                     disabled={isSaving || readOnly}
-                    label="Dokument aus Mediathek"
+                    label={dict.common.documentFromLibrary}
                     onAuthRequired={() => router.replace(localize('/login'))}
                     onSelect={(asset) => setAssetId(asset.id)}
                     selectedId={assetId}
@@ -303,7 +305,7 @@ export default function DigitalPublicationEditor({
             </section>
 
             <section className="flex flex-col gap-4">
-                <SectionHeader title="Zugang" description="Frei für alle Mitglieder oder bezahlt." />
+                <SectionHeader title="Zugang" description={dict.bonus.freiAlleMitgliederBezahlt} />
                 <label className="grid gap-1.5 text-sm">
                     <span>Zugangsrichtlinie</span>
                     <SelectControl

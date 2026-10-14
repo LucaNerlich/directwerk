@@ -24,6 +24,7 @@ import {rbacErrorMessage} from '@/lib/rbac/access'
 import {safeLinkHref} from '@/lib/url/safeUrl'
 import type {AccessPolicy, PublicationStatus} from '@directwerk/api/types'
 import {sanitizeContentHtml} from '@directwerk/api/content/sanitizeContentHtml'
+import {useDictionary} from '@/components/i18n/LocaleProvider'
 
 interface PublicationEditorLayoutProps {
     kind: 'article' | 'episode'
@@ -147,6 +148,7 @@ export default function PublicationEditorLayout({
     onUnarchive,
     sidebarExtra,
 }: PublicationEditorLayoutProps): React.JSX.Element {
+    const dict = useDictionary()
     const bodyLabel = kind === 'episode' ? 'Shownotes' : 'Text'
     const readOnly = readOnlyReason !== null
     const fieldsDisabled = isSaving || status !== 'DRAFT' || readOnly
@@ -301,7 +303,7 @@ export default function PublicationEditorLayout({
                                 value={title}
                                 disabled={fieldsDisabled}
                                 maxLength={255}
-                                placeholder="Titel eingeben…"
+                                placeholder={dict.publication.titelEingeben}
                                 onChange={(event) => onTitleChange(event.target.value)}
                             />
                             <span className="text-xs font-normal text-muted-foreground" id="publication-title-hint">
@@ -334,7 +336,7 @@ export default function PublicationEditorLayout({
                                     rows={3}
                                     value={excerpt ?? ''}
                                     disabled={fieldsDisabled}
-                                    placeholder="Teaser für Karten und E-Mail-Benachrichtigungen…"
+                                    placeholder={dict.publication.teaserKartenEMailBenachrichtigungen}
                                     onChange={(event) => onExcerptChange?.(event.target.value)}
                                 />
                                 <span className="text-xs font-normal text-muted-foreground">
@@ -473,7 +475,7 @@ export default function PublicationEditorLayout({
                         <CardContent className="flex flex-col gap-4 pt-(--card-spacing)">
                             <SectionHeader
                                 as="h3"
-                                description="Wer darf lesen? Gilt für Seite und Feed."
+                                description={dict.publication.werDarfLesenGiltSeiteFeed}
                                 title="Zugriff"
                             />
                             <AccessPolicySelect
@@ -505,8 +507,8 @@ export default function PublicationEditorLayout({
                         <CardContent className="flex flex-col gap-4 pt-(--card-spacing)">
                             <SectionHeader
                                 as="h3"
-                                description="Planen, zurückdatieren und benachrichtigen."
-                                title="Veröffentlichung"
+                                description={dict.publication.planenZurueckdatierenBenachrichtigen}
+                                title={dict.podcast.veroeffentlichung}
                             />
                             <fieldset className="m-0 flex min-w-0 flex-col gap-3 border-0 p-0" disabled={isSaving || readOnly}>
                                 <legend className="sr-only">Veröffentlichung</legend>

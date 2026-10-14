@@ -74,7 +74,12 @@
     "retryShort": "Retry",
     "loadingShort": "Loading…",
     "or": "or",
-    "nextStep": "Next step:"
+    "nextStep": "Next step:",
+    "rssImport": "RSS import",
+    "subscriberFeeds": "Subscriber feeds",
+    "seriesFeeds": "Series feeds",
+    "documentFromLibrary": "Document from library",
+    "numberedList": "Numbered list"
   },
   "shell": {
     "approxSubscribers": "approx. ${subscribers.length} subscribers",

@@ -22,5 +22,21 @@ public interface MembershipPermissionOverrideRepository
             @Param("userId") Long userId
     );
 
+    /**
+     * Batch variant of {@link #findByTenantIdAndUserId} (#345): the platform tenant page needs every
+     * editor's rights in one request, and per-user lookups made it N round trips to the database.
+     */
+    @Query("""
+            select override from MembershipPermissionOverride override
+            join fetch override.membership membership
+            join fetch membership.user
+            where membership.tenantId = :tenantId
+              and membership.user.id in :userIds
+            """)
+    List<MembershipPermissionOverride> findByTenantIdAndUserIdIn(
+            @Param("tenantId") Long tenantId,
+            @Param("userIds") java.util.Collection<Long> userIds
+    );
+
     void deleteByTenantIdAndMembershipId(Long tenantId, Long membershipId);
 }

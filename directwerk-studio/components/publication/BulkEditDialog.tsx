@@ -15,6 +15,7 @@ import {Input} from '@directwerk/ui/components/input'
 
 import AccessPolicySelect from '@/components/publication/AccessPolicySelect'
 import type {AccessPolicy, CategorySummary, FormatSummary} from '@directwerk/api/types'
+import {useDictionary} from '@/components/i18n/LocaleProvider'
 
 export type BulkEditOperation =
     | {kind: 'formats', formatIds: number[]}
@@ -55,6 +56,7 @@ export default function BulkEditDialog({
     busy,
     onApply,
 }: BulkEditDialogProps): React.JSX.Element {
+    const dict = useDictionary()
     const contentLabelPlural = contentLabelPluralForms(contentLabel)
     const [kind, setKind] = useState<BulkEditKind>('accessPolicy')
     const [kindChosen, setKindChosen] = useState(false)
@@ -188,7 +190,7 @@ export default function BulkEditDialog({
                         <p className="text-xs text-muted-foreground" id="bulk-edit-formats-hint">
                             Ersetzt die Formate aller ausgewählten Entwürfe durch diese Auswahl.
                         </p>
-                        <div aria-describedby="bulk-edit-formats-hint" className="flex max-h-48 flex-col gap-2 overflow-y-auto rounded-lg border p-3" role="group" aria-label="Formate wählen">
+                        <div aria-describedby="bulk-edit-formats-hint" className="flex max-h-48 flex-col gap-2 overflow-y-auto rounded-lg border p-3" role="group" aria-label={dict.publication.formateWaehlen}>
                         {formatOptions.map((format) => (
                             <label className="flex items-center gap-2 text-sm" key={format.id}>
                                 <Input
@@ -210,7 +212,7 @@ export default function BulkEditDialog({
                         <p className="text-xs text-muted-foreground" id="bulk-edit-categories-hint">
                             Ersetzt die Kategorien aller ausgewählten Entwürfe durch diese Auswahl.
                         </p>
-                        <div aria-describedby="bulk-edit-categories-hint" aria-label="Kategorien wählen" className="flex max-h-48 flex-col gap-2 overflow-y-auto rounded-lg border p-3" role="group">
+                        <div aria-describedby="bulk-edit-categories-hint" aria-label={dict.publication.kategorienWaehlen} className="flex max-h-48 flex-col gap-2 overflow-y-auto rounded-lg border p-3" role="group">
                         {categories.map((category) => (
                             <label className="flex items-center gap-2 text-sm" key={category.id}>
                                 <Input

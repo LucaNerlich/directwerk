@@ -32,6 +32,7 @@ import type {
 } from '@directwerk/api/types'
 
 import {useResourceEditor} from '@/lib/hooks/useResourceEditor'
+import {useDictionary} from '@/components/i18n/LocaleProvider'
 
 interface FormatEditorProps {
     formatId?: number
@@ -100,6 +101,7 @@ function formatFields(values: FormatFormValues): FormatFields {
  * @param formatId - The identifier of the format to edit, or `undefined` to create a new format
  */
 export default function FormatEditor({formatId}: FormatEditorProps): React.JSX.Element {
+    const dict = useDictionary()
     const router = useRouter()
     const localize = useLocalizedPath()
 
@@ -235,8 +237,8 @@ export default function FormatEditor({formatId}: FormatEditorProps): React.JSX.E
                         Zurück zur Liste
                     </Button>
                 }
-                description="Formate erscheinen beim Erstellen einer Folge als Auswahl. Das Titelbild wird als RSS-Fallback für Folgen dieses Formats genutzt."
-                eyebrow="Podcast · Einrichtung"
+                description={dict.podcast.formateErscheinenBeimErstellenFolgeAuswahl}
+                eyebrow={dict.podcast.setupTitle}
                 title={isNew ? 'Neues Format' : 'Format bearbeiten'}
             />
 
@@ -255,7 +257,7 @@ export default function FormatEditor({formatId}: FormatEditorProps): React.JSX.E
             >
                 <section aria-labelledby="format-basics-heading" className="grid gap-4">
                     <SectionHeader
-                        description="Name und URL-Kennung. Der Slug kann nach dem Anlegen nicht mehr geändert werden."
+                        description={dict.podcast.nameUrlKennungSlugAnlegenMehr}
                         id="format-basics-heading"
                         title="Grundlagen"
                     />
@@ -326,7 +328,7 @@ export default function FormatEditor({formatId}: FormatEditorProps): React.JSX.E
                     <MediaLibraryPicker
                         assetType="IMAGE"
                         disabled={isSaving || coverUpload.isUploading}
-                        label="Titelbild aus Mediathek"
+                        label={dict.podcast.titelbildMediathek}
                         onAuthRequired={() => router.replace(localize('/login'))}
                         onSelect={(asset) => setField('coverAssetId', asset.id)}
                         selectedId={values.coverAssetId}
@@ -337,7 +339,7 @@ export default function FormatEditor({formatId}: FormatEditorProps): React.JSX.E
                 </section>
                 <section aria-labelledby="format-access-heading" className="grid gap-4">
                     <SectionHeader
-                        description="Wer darf Folgen dieses Formats hören? Kann pro Folge überschrieben werden."
+                        description={dict.podcast.werDarfFolgenFormatsHoerenPro}
                         id="format-access-heading"
                         title="Zugriff und Reihenfolge"
                     />

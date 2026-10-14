@@ -944,10 +944,9 @@ export function parsePermissionRestrictionListEnvelope(
     return parseEnvelope(value, (data) => parseBoundedArray(data, 200, parsePermissionRestriction))
 }
 
-export function parseEffectiveRightsEnvelope(
-    value: unknown,
-): ApiEnvelope<EffectiveRights> | null {
-    return parseEnvelope(value, (data) => {
+function parseEffectiveRights(value: unknown): EffectiveRights | null {
+    const data = value
+    {
         if (
             !isRecord(data) ||
             !isPositiveSafeInteger(data.userId) ||
@@ -980,7 +979,22 @@ export function parseEffectiveRightsEnvelope(
             restrictions,
             effective,
         }
-    })
+    }
+}
+
+export function parseEffectiveRightsEnvelope(
+    value: unknown,
+): ApiEnvelope<EffectiveRights> | null {
+    return parseEnvelope(value, parseEffectiveRights)
+}
+
+/**
+ * Batch variant (#345): the platform tenant page fetches every editor's rights in one request.
+ */
+export function parseEffectiveRightsListEnvelope(
+    value: unknown,
+): ApiEnvelope<EffectiveRights[]> | null {
+    return parseEnvelope(value, (data) => parseBoundedArray(data, 200, parseEffectiveRights))
 }
 
 /**

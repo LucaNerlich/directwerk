@@ -56,6 +56,7 @@ import {assetTypeLabel, mediaStatusLabel, visibilityLabel} from '@/lib/subscript
 import {getClientTenantHost} from '@directwerk/api/tenant'
 import {safeImageSrc} from '@/lib/url/safeUrl'
 import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
+import {useDictionary} from '@/components/i18n/LocaleProvider'
 
 function resolveAssetType(
     file: File,
@@ -116,6 +117,7 @@ async function fetchPreviewUrls(
 }
 
 export default function MediaLibraryClient(): React.JSX.Element {
+    const dict = useDictionary()
     const router = useRouter()
     const authRedirect = useAuthRequired()
     const fileInputRef = useRef<HTMLInputElement>(null)
@@ -1043,7 +1045,7 @@ export default function MediaLibraryClient(): React.JSX.Element {
             {assets.length === 0 && folders.length === 0 ? (
                 <EmptyState
                     title="Noch keine Medien"
-                    description="Lade die erste Datei hoch, um sie später in Folgen und Beiträgen zu verwenden."
+                    description={dict.media.ladeErsteDateiHochSpaeterFolgen}
                     action={uploadButton}
                 />
             ) : visibleChildFolders.length === 0 &&
@@ -1060,8 +1062,8 @@ export default function MediaLibraryClient(): React.JSX.Element {
                 />
             ) : visibleAssets.length === 0 ? (
                 <EmptyState
-                    title="Keine Medien für diesen Filter"
-                    description="Passe Typ, Status oder die Auswahl „Nur unverknüpfte Dateien“ an."
+                    title={dict.media.keineMedienDiesenFilter}
+                    description={dict.media.passeTypStatusAuswahlUnverknuepfteDateien}
                     action={
                         <Button onClick={resetFilters} type="button" variant="outline">
                             Filter zurücksetzen
