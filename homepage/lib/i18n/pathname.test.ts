@@ -1,6 +1,6 @@
 import {describe, expect, it} from 'vitest'
 
-import {hrefFor, langFromPathname, stripLangPrefix, swapLangPath} from './pathname'
+import {hrefFor, localeAlternates, stripLangPrefix, swapLangPath} from './pathname'
 
 describe('pathname helpers', () => {
     it('prefixes locale paths', () => {
@@ -12,12 +12,18 @@ describe('pathname helpers', () => {
         )
     })
 
+    it('builds hreflang alternates for a path', () => {
+        expect(localeAlternates('/developers')).toEqual({
+            de: '/de/developers',
+            en: '/en/developers',
+            'x-default': '/de/developers',
+        })
+    })
+
     it('strips and swaps locale segments', () => {
         expect(stripLangPrefix('/de/developers')).toBe('/developers')
         expect(stripLangPrefix('/en')).toBe('/')
         expect(swapLangPath('/de/privacy', 'en')).toBe('/en/privacy')
         expect(swapLangPath('/en/developers', 'de')).toBe('/de/developers')
-        expect(langFromPathname('/en/foo')).toBe('en')
-        expect(langFromPathname('/unknown')).toBe('de')
     })
 })

@@ -607,18 +607,10 @@ export default function MediaLibraryClient(): React.JSX.Element {
         try {
             await deleteMediaFolder(getClientTenantHost(), target.id, mode)
             setDeleteFolderTarget(null)
+            // Issue #412: setFolderView triggers the [folderView] load effect. Calling reload()
+            // here would close over the *previous* render's folderView — i.e. the folder just
+            // deleted — so it queried the deleted folder and flashed stale content.
             setFolderView(folderParentId(target))
-            try {
-                // Contents moved up or were deleted — reload both lists for truth.
-                await reload()
-            } catch (reloadError) {
-                if (authRedirect(reloadError)) return
-                setErrorMessage(
-                    reloadError instanceof Error
-                        ? reloadError.message
-                        : 'Medien konnten nicht geladen werden.',
-                )
-            }
             setStatusMessage(`Ordner „${target.name}“ gelöscht.`)
         } catch (error) {
             if (authRedirect(error)) return
@@ -990,7 +982,7 @@ export default function MediaLibraryClient(): React.JSX.Element {
                                         <span className="text-xs text-muted-foreground">
                                             {fileCount} {fileCount === 1 ? 'Datei' : 'Dateien'}
                                             {subCount > 0
-                                                ? ` · ${subCount} ${subCount === 1 ? 'Ordner' : 'Ordner'}`
+                                                ? ` · ${subCount} ${'Ordner'}`
                                                 : ''}
                                         </span>
                                     </button>

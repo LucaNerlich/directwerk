@@ -5,6 +5,7 @@ import {Geist, Geist_Mono} from 'next/font/google'
 import {LocaleProvider} from '@/components/i18n/LocaleProvider'
 import MarketingShell from '@/components/marketing/MarketingShell'
 import {isLocale, locales, type Locale} from '@/lib/i18n/config'
+import {hrefFor, localeAlternates} from '@/lib/i18n/pathname'
 import {getDictionary} from '@/lib/i18n/get-dictionary'
 import UmamiAnalytics from '@directwerk/ui/components/umami-analytics'
 
@@ -35,16 +36,17 @@ export async function generateMetadata({
     }
     const dict = await getDictionary(rawLang)
     return {
+        // Issue #348: without metadataBase Next emits the hreflang links as relative
+        // ('/de', '/en') so crawlers discard them, and pages carried no canonical at all.
+        metadataBase: new URL('https://directwerk.org'),
         title: {
             default: dict.meta.siteTitle,
             template: dict.meta.siteTitleTemplate,
         },
         description: dict.meta.siteDescription,
         alternates: {
-            languages: {
-                de: '/de',
-                en: '/en',
-            },
+            canonical: hrefFor(rawLang, '/'),
+            languages: localeAlternates('/'),
         },
     }
 }

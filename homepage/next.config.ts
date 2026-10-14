@@ -57,9 +57,11 @@ const nextConfig: NextConfig = {
                             "default-src 'self'",
                             "script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval'" + umamiOrigin,
                             "style-src 'self' 'unsafe-inline'",
-                            "img-src 'self' data: https:",
+                            // Issue #440: a bare https: permitted exfiltration to any host and negated the
+                            // explicit apiOrigin/umamiOrigin allow-list below.
+                            "img-src 'self' data:",
                             "font-src 'self'",
-                            "connect-src 'self' https: " + apiOrigin + ' ' + apiWsOrigin + umamiOrigin,
+                            "connect-src 'self' " + apiOrigin + ' ' + apiWsOrigin + umamiOrigin,
                             "worker-src 'self' blob:",
                             "frame-ancestors 'none'",
                             "base-uri 'self'",

@@ -296,7 +296,7 @@ export default function DigitalPublicationEditor({
                     assetType="DOCUMENT"
                     disabled={isSaving || readOnly}
                     label="Dokument aus Mediathek"
-                    onAuthRequired={() => {}}
+                    onAuthRequired={() => router.replace(localize('/login'))}
                     onSelect={(asset) => setAssetId(asset.id)}
                     selectedId={assetId}
                 />

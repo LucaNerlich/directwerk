@@ -5,6 +5,7 @@ import de.pnnit.directwerk.modules.content.PublicContentPaths;
 import de.pnnit.directwerk.modules.core.entity.Tenant;
 import de.pnnit.directwerk.modules.core.repository.TenantRepository;
 import de.pnnit.directwerk.modules.core.service.TenantPublicHostResolver;
+import de.pnnit.directwerk.modules.core.util.PublicContentUrlResolver;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.Locale;
@@ -17,15 +18,18 @@ public class EmailLinkBuilder {
     private final DirectwerkConfig directwerkConfig;
     private final TenantPublicHostResolver tenantPublicHostResolver;
     private final TenantRepository tenantRepository;
+    private final PublicContentUrlResolver publicContentUrlResolver;
 
     public EmailLinkBuilder(
             DirectwerkConfig directwerkConfig,
             TenantPublicHostResolver tenantPublicHostResolver,
-            TenantRepository tenantRepository
+            TenantRepository tenantRepository,
+            PublicContentUrlResolver publicContentUrlResolver
     ) {
         this.directwerkConfig = directwerkConfig;
         this.tenantPublicHostResolver = tenantPublicHostResolver;
         this.tenantRepository = tenantRepository;
+        this.publicContentUrlResolver = publicContentUrlResolver;
     }
 
     public String buildTokenUrl(EmailTemplate template, String rawToken, Long tenantId) {
@@ -35,6 +39,7 @@ public class EmailLinkBuilder {
             case RESET_PASSWORD -> buildResetPasswordUrl(rawToken, tenantId);
             case EMAIL_VERIFICATION -> buildVerifyEmailUrl(rawToken, tenantId);
             case NEWSLETTER_CONFIRM -> buildNewsletterConfirmUrl(rawToken, tenantId);
+            case NEWSLETTER_UNSUBSCRIBE -> publicContentUrlResolver.newsletterUnsubscribeUrl(tenantId, rawToken);
         };
     }
 

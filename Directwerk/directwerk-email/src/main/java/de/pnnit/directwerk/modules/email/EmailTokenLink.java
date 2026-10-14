@@ -5,7 +5,8 @@ public enum EmailTokenLink {
     ADMIN_ACCEPT_INVITE("acceptInviteUrl"),
     RESET_PASSWORD("resetUrl"),
     EMAIL_VERIFICATION("verifyUrl"),
-    NEWSLETTER_CONFIRM("confirmUrl");
+    NEWSLETTER_CONFIRM("confirmUrl"),
+    NEWSLETTER_UNSUBSCRIBE("unsubscribeUrl");
 
     private final String variableName;
 

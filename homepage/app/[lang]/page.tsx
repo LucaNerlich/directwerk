@@ -10,6 +10,7 @@ import LiveExampleSection from '@/components/marketing/LiveExampleSection'
 import ProblemSolutionSection from '@/components/marketing/ProblemSolutionSection'
 import ProductStackSection from '@/components/marketing/ProductStackSection'
 import {isLocale} from '@/lib/i18n/config'
+import {hrefFor, localeAlternates} from '@/lib/i18n/pathname'
 import {getDictionary} from '@/lib/i18n/get-dictionary'
 
 export async function generateMetadata({
@@ -23,13 +24,13 @@ export async function generateMetadata({
     }
     const dict = await getDictionary(rawLang)
     return {
-        title: dict.meta.homeTitle,
+        // Issue #347: the layout sets a '%s · Directwerk' template and homeTitle already
+        // carries the brand, so a plain string title rendered 'Directwerk — … · Directwerk'.
+        title: {absolute: dict.meta.homeTitle},
         description: dict.meta.homeDescription,
         alternates: {
-            languages: {
-                de: '/de',
-                en: '/en',
-            },
+            canonical: hrefFor(rawLang, '/'),
+            languages: localeAlternates('/'),
         },
     }
 }

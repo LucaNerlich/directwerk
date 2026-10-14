@@ -33,7 +33,19 @@ interface AddDomainState {
 
 const INITIAL_ADD_STATE: AddDomainState = {error: null, success: null}
 
-const HOST_PATTERN = /^[a-z0-9]([a-z0-9.-]*[a-z0-9])?$/i
+/**
+ * Issue #419: the previous `[a-z0-9.-]*` allowed malformed hosts such as `a..b` or `a.-b` that the
+ * API rejects, so the user only learned after submitting. Validate each DNS label.
+ */
+const HOST_LABEL_PATTERN = /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/i
+
+function isValidHostname(value: string): boolean {
+    if (value.length === 0 || value.length > 253) {
+        return false
+    }
+    const labels = value.split('.')
+    return labels.length >= 2 && labels.every(label => HOST_LABEL_PATTERN.test(label))
+}
 
 export default function DomainsClient(): React.JSX.Element {
     const router = useRouter()
@@ -91,7 +103,7 @@ export default function DomainsClient(): React.JSX.Element {
             .toLowerCase()
         const isPrimary = formData.get('isPrimary') === 'on'
 
-        if (host.length === 0 || host.length > 253 || !HOST_PATTERN.test(host)) {
+        if (!isValidHostname(host)) {
             return {error: 'Bitte eine gültige Domain eingeben.', success: null}
         }
 

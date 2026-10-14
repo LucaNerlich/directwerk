@@ -5,6 +5,7 @@ import {getImprint} from '@directwerk/legal'
 import LegalArticle from '@directwerk/ui/components/legal-article'
 
 import {isLocale} from '@/lib/i18n/config'
+import {hrefFor, localeAlternates} from '@/lib/i18n/pathname'
 import {getDictionary} from '@/lib/i18n/get-dictionary'
 
 export async function generateMetadata({
@@ -21,10 +22,8 @@ export async function generateMetadata({
         title: dict.meta.imprintTitle,
         description: dict.meta.imprintDescription,
         alternates: {
-            languages: {
-                de: '/de/imprint',
-                en: '/en/imprint',
-            },
+            canonical: hrefFor(rawLang, '/imprint'),
+            languages: localeAlternates('/imprint'),
         },
     }
 }

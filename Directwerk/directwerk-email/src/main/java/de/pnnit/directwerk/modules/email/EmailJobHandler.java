@@ -101,13 +101,14 @@ public class EmailJobHandler implements JobHandler {
                 requireVariable(variables, "preferencesUrl", 2048);
                 requireVariable(variables, "primaryColor", 32);
             }
-            case CONTENT_ARTICLE_PUBLISHED -> {
+            case CONTENT_ARTICLE_PUBLISHED, NEWSLETTER_ARTICLE_PUBLISHED -> {
                 requireVariable(variables, "recipientName", 200);
                 requireVariable(variables, "tenantName", 200);
                 requireVariable(variables, "siteTitle", 200);
                 requireVariable(variables, "title", 255);
                 requireVariable(variables, "excerpt", 2000, true);
                 requireVariable(variables, "contentUrl", 2048);
+                // For NEWSLETTER_ARTICLE_PUBLISHED this is injected from the protected token above.
                 requireVariable(variables, "unsubscribeUrl", 2048);
                 requireVariable(variables, "primaryColor", 32);
             }
