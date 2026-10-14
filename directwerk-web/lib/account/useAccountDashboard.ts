@@ -72,7 +72,7 @@ export function useAccountDashboard(): AccountDashboardState {
         const tenantHost = getWebClientTenantHost()
         // Issue #434: the site config comes from SiteConfigProvider instead of a fourth request.
         Promise.all([
-            getMe(tenantHost),
+            getMe(),
             getAccess(),
             getNotificationPreferences(),
         ])

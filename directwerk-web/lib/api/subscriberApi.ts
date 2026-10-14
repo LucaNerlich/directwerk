@@ -21,7 +21,7 @@ import {authedFetch, envelopeResult, jsonInit} from './transport'
 const publicParsers = createWebPublicParsers()
 const parsePublicEpisodeListEnvelope = publicParsers.parsePublicEpisodeListEnvelope
 
-export async function getMe(tenantHost: string): Promise<ApiEnvelope<Me>> {
+export async function getMe(): Promise<ApiEnvelope<Me>> {
     return envelopeResult(
         parseMeEnvelope,
         await authedFetch('/api/proxy/me'),
