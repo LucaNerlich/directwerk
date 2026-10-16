@@ -1,5 +1,7 @@
 package de.pnnit.directwerk.modules.email;
 
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -63,6 +65,57 @@ class EmailJobHandlerTest {
                                 && variables.get("acceptInviteUrl").contains("raw-invite")
                 )
         );
+    }
+
+    @Test
+    void clampsAnOversizedDisplayVariableInsteadOfFailingTheSend() {
+        // #540: the write side accepts names up to 255 chars while the email module capped them at
+        // 200, so a legitimately stored value turned every send into a permanently failing job.
+        String longName = "A".repeat(201);
+        when(emailTokenProtector.revealFromQueue("encrypted-invite")).thenReturn("raw-invite");
+        when(linkBuilder.buildTokenUrl(EmailTemplate.TENANT_INVITATION, "raw-invite", null))
+                .thenReturn("http://localhost:3004/accept-invite?token=raw-invite");
+
+        handler.handle(job("TENANT_INVITATION", node -> {
+            node.put("to", "a@example.com");
+            node.putObject("variables")
+                    .put("recipientName", longName)
+                    .put("tenantName", "Acme")
+                    .put("role", "EDITOR")
+                    .put("expiresIn", "24 hours");
+            node.put("token", "encrypted-invite");
+        }));
+
+        verify(transactionalEmailService).sendFromPayload(
+                org.mockito.ArgumentMatchers.any(UUID.class),
+                org.mockito.ArgumentMatchers.isNull(),
+                org.mockito.ArgumentMatchers.eq("a@example.com"),
+                org.mockito.ArgumentMatchers.eq(EmailTemplate.TENANT_INVITATION),
+                org.mockito.ArgumentMatchers.argThat(variables ->
+                        variables.get("recipientName").length() == 200
+                )
+        );
+    }
+
+    @Test
+    void stillFailsClosedForAnOversizedMachineGeneratedVariable() {
+        // A truncated signed URL would send a broken link, so machine-generated values keep failing.
+        assertThatThrownBy(() -> handler.handle(job("CONTENT_EPISODE_PUBLISHED", node -> {
+            node.put("to", "a@example.com");
+            node.putObject("variables")
+                    .put("recipientName", "Ada")
+                    .put("tenantName", "Acme")
+                    .put("siteTitle", "Acme Podcast")
+                    .put("title", "Episode 1")
+                    .put("excerpt", "Kurz")
+                    .put("contentUrl", "https://example.test/episodes/1?token=" + "x".repeat(3000))
+                    .put("preferencesUrl", "https://example.test/preferences")
+                    .put("primaryColor", "#123456");
+        })))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("contentUrl");
+
+        verifyNoInteractions(transactionalEmailService);
     }
 
     @Test
