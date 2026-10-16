@@ -90,16 +90,9 @@ export function proxy(request: NextRequest) {
         },
     })
     response.headers.set('Content-Security-Policy', cspHeader)
-    // Baseline hardening alongside the nonce CSP. `frame-ancestors 'none'`
-    // is the frame policy for modern user agents; X-Frame-Options and HSTS are
-    // emitted once by the shared next.config headers (issue #331), not here, so
-    // responses never carry conflicting or duplicated values.
-    response.headers.set('X-Content-Type-Options', 'nosniff')
-    response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin')
-    response.headers.set(
-        'Permissions-Policy',
-        'camera=(), microphone=(), geolocation=()',
-    )
+    // #533: X-Frame-Options, HSTS, X-Content-Type-Options, Referrer-Policy and
+    // Permissions-Policy come from the shared next.config headers (issue #331) —
+    // re-setting them here only risked conflicting values.
     // Avoid cached HTML referencing server-action IDs from a previous deploy.
     response.headers.set('Cache-Control', 'no-store, must-revalidate')
 
