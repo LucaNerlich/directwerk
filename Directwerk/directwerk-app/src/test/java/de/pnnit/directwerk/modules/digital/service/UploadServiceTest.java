@@ -473,7 +473,9 @@ class UploadServiceTest {
                 .isInstanceOf(UploadValidationException.class);
 
         assertThat(pending.getStatus()).isEqualTo(AssetStatus.ARCHIVED);
-        verify(s3Client).deleteObject(any(DeleteObjectRequest.class));
+        // Review fix: the absence is only asserted by a HEAD 404, so storage must be left alone —
+        // deleting here would destroy the bytes and close the confirm retry the client keeps.
+        verify(s3Client, never()).deleteObject(any(DeleteObjectRequest.class));
     }
 
     @Test
