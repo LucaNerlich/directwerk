@@ -50,11 +50,6 @@ public class StripeWebhookService {
         return stripeOperations.parseWebhook(payload, signature);
     }
 
-    @Transactional
-    public void handle(String payload, String signature) {
-        applyParsedEvent(parseAndValidate(payload, signature));
-    }
-
     /**
      * Applies a signature-verified webhook event. Idempotent via {@code processed_webhook_events}.
      * Used by the HTTP controller (inline when the queue is off) and {@code StripeWebhookJobHandler}.
