@@ -6,6 +6,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -64,6 +65,18 @@ class EpisodeControllerTest {
     @AfterEach
     void clearTenantContext() {
         TenantContext.clear();
+    }
+
+    @Test
+    @WithMockUser(roles = "EDITOR")
+    void listRejectsAnOutOfRangeLimitAs400() throws Exception {
+        // #566: Spring MVC's own parameter validation threw HandlerMethodValidationException,
+        // which no advice mapped — a client mistake answered 500 INTERNAL_ERROR.
+        mockMvc.perform(get("/api/v1/episodes").param("limit", "0"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors[0].code").value("VALIDATION_ERROR"));
+
+        verifyNoInteractions(episodeService);
     }
 
     @Test
