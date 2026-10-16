@@ -8,7 +8,6 @@ import de.pnnit.directwerk.modules.core.exception.ContentAccessDeniedException;
 import de.pnnit.directwerk.modules.core.service.CannotDeactivateCoreModuleException;
 import de.pnnit.directwerk.modules.core.service.CannotDeactivateLastAdminException;
 import de.pnnit.directwerk.modules.core.service.CannotDeactivateSelfException;
-import de.pnnit.directwerk.modules.core.service.StudioAccessDeniedException;
 import de.pnnit.directwerk.modules.core.service.CannotRevokeLastPlatformAdminException;
 import de.pnnit.directwerk.modules.core.service.CannotRevokeSelfException;
 import de.pnnit.directwerk.modules.core.service.ModuleDependencyMissingException;
@@ -595,12 +594,6 @@ public class GlobalExceptionHandler {
     ResponseEntity<Response<Void>> handleBadCredentials(BadCredentialsException ex) {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                 .body(Response.error(401, "INVALID_CREDENTIALS", "Invalid credentials"));
-    }
-
-    @ExceptionHandler(StudioAccessDeniedException.class)
-    ResponseEntity<Response<Void>> handleStudioAccessDenied(StudioAccessDeniedException ex) {
-        return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                .body(Response.error(403, "STUDIO_ACCESS_DENIED", ex.getMessage()));
     }
 
     @ExceptionHandler(CaptchaVerificationException.class)

@@ -53,17 +53,6 @@ public class EpisodeService {
     private final MembershipPermissionService permissionService;
 
     /**
-     * Lists all episodes belonging to a tenant, ordered by creation time and ID in descending order.
-     *
-     * @param tenantId the tenant whose episodes are listed
-     * @return the tenant's episodes
-     */
-    @Transactional(readOnly = true)
-    public List<Episode> listEpisodes(Long tenantId) {
-        return episodeRepository.findByTenantIdOrderByCreatedAtDescIdDesc(tenantId);
-    }
-
-    /**
      * Paged variant (#310): bounds the response for tenants with large episode counts, where the
      * unbounded listing serialised every row in one response.
      */

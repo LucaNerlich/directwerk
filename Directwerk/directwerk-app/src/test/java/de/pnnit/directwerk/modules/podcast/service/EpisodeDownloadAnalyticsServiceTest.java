@@ -46,7 +46,7 @@ class EpisodeDownloadAnalyticsServiceTest {
         EpisodeDownloadAnalyticsService service = service(true);
         when(moduleGateService.enabledModuleKeys(10L)).thenReturn(Set.of());
 
-        service.trackEpisodeDownload(10L, episode(), "stream", "alpha.example.test");
+        service.trackEpisodeDownload(10L, episode(), "stream", "alpha.example.test", null, false, null);
 
         verify(umamiEventClient, never()).trackEvent(
                 org.mockito.ArgumentMatchers.any(),
@@ -66,7 +66,7 @@ class EpisodeDownloadAnalyticsServiceTest {
         when(moduleGateService.enabledModuleKeys(10L)).thenReturn(Set.of(AnalyticsModule.KEY));
         when(tenantBrandingService.getBranding(10L)).thenReturn(branding);
 
-        service.trackEpisodeDownload(10L, episode(), "stream", "alpha.example.test");
+        service.trackEpisodeDownload(10L, episode(), "stream", "alpha.example.test", null, false, null);
 
         verify(umamiEventClient, never()).trackEvent(
                 org.mockito.ArgumentMatchers.any(),
@@ -87,7 +87,7 @@ class EpisodeDownloadAnalyticsServiceTest {
         when(moduleGateService.enabledModuleKeys(10L)).thenReturn(Set.of(AnalyticsModule.KEY));
         when(tenantBrandingService.getBranding(10L)).thenReturn(branding);
 
-        service.trackEpisodeDownload(10L, episode(), "stream", "Alpha.Example.Test");
+        service.trackEpisodeDownload(10L, episode(), "stream", "Alpha.Example.Test", null, false, null);
 
         ArgumentCaptor<Map<String, Object>> dataCaptor = ArgumentCaptor.forClass(Map.class);
         verify(umamiEventClient).trackEvent(
@@ -110,7 +110,7 @@ class EpisodeDownloadAnalyticsServiceTest {
     void skipsWhenSourceIsNotAllowed() {
         EpisodeDownloadAnalyticsService service = service(true);
 
-        service.trackEpisodeDownload(10L, episode(), "invalid-source", "alpha.example.test");
+        service.trackEpisodeDownload(10L, episode(), "invalid-source", "alpha.example.test", null, false, null);
 
         verify(umamiEventClient, never()).trackEvent(
                 org.mockito.ArgumentMatchers.any(),
@@ -129,7 +129,7 @@ class EpisodeDownloadAnalyticsServiceTest {
         Episode episode = episode();
         episode.setAccessPolicy(null);
 
-        service.trackEpisodeDownload(10L, episode, "stream", "alpha.example.test");
+        service.trackEpisodeDownload(10L, episode, "stream", "alpha.example.test", null, false, null);
 
         verify(umamiEventClient, never()).trackEvent(
                 org.mockito.ArgumentMatchers.any(),
@@ -151,7 +151,7 @@ class EpisodeDownloadAnalyticsServiceTest {
         when(moduleGateService.enabledModuleKeys(10L)).thenReturn(Set.of(AnalyticsModule.KEY));
         when(tenantBrandingService.getBranding(10L)).thenReturn(branding);
 
-        service.trackEpisodeDownload(10L, episode(), "stream", "alpha.example.test");
+        service.trackEpisodeDownload(10L, episode(), "stream", "alpha.example.test", null, false, null);
 
         verify(umamiEventClient).trackEvent(
                 eq("https://tenant.invalid"),
@@ -168,7 +168,7 @@ class EpisodeDownloadAnalyticsServiceTest {
     void skipsWhenNoUmamiHostIsConfigured() {
         EpisodeDownloadAnalyticsService service = service(false);
 
-        service.trackEpisodeDownload(10L, episode(), "stream", "alpha.example.test");
+        service.trackEpisodeDownload(10L, episode(), "stream", "alpha.example.test", null, false, null);
 
         verify(umamiEventClient, never()).trackEvent(
                 org.mockito.ArgumentMatchers.any(),

@@ -1,6 +1,5 @@
 package de.pnnit.directwerk.modules.podcast.access;
 
-import de.pnnit.directwerk.modules.digital.entity.MediaAsset;
 import de.pnnit.directwerk.modules.podcast.entity.Episode;
 import de.pnnit.directwerk.modules.podcast.feed.SubscriberFeed;
 import java.util.List;
@@ -27,11 +26,4 @@ public interface SubscriberFeedAccess {
             Long userId,
             SubscriberFeed feed,
             Episode episode);
-
-    boolean hasAudioAccess(
-            Long tenantId,
-            Long userId,
-            SubscriberFeed feed,
-            Episode episode,
-            MediaAsset audioAsset);
 }
