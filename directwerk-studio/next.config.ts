@@ -47,12 +47,6 @@ const nextConfig: NextConfig = {
                 destination: '/:lang/podcast/formats/:formatId',
                 permanent: true,
             },
-            {source: '/imprint', destination: 'https://lucanerlich.com/imprint', permanent: false},
-            {
-                source: '/:lang(de|en)/imprint',
-                destination: 'https://lucanerlich.com/imprint',
-                permanent: false,
-            },
         ]
     },
 }
