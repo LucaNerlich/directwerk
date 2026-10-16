@@ -35,6 +35,44 @@ class DomainDnsLookupTest {
     }
 
     @Test
+    void aStalledLookupDoesNotBlockAnotherHostsLookup() throws Exception {
+        // #558: one shared single-thread executor serialized every tenant's verification behind
+        // whichever lookup was stalled — cancel(true) cannot free a JNDI socket read.
+        BasicAttribute txt = new BasicAttribute("TXT");
+        txt.add("\"directwerk-verify=fast\"");
+        BasicAttributes attributes = new BasicAttributes();
+        attributes.put(txt);
+        DirContext context = mock(DirContext.class);
+        when(context.getAttributes(eq("slow.example.com"), any(String[].class)))
+                .thenAnswer(invocation -> {
+                    Thread.sleep(60_000);
+                    throw new IllegalStateException("unreachable");
+                });
+        when(context.getAttributes(eq("fast.example.com"), any(String[].class)))
+                .thenReturn(attributes);
+
+        DomainDnsLookup lookup = new DomainDnsLookup(5_000) {
+            @Override
+            protected DirContext createContext() {
+                return context;
+            }
+        };
+
+        Thread slowCaller = new Thread(() -> lookup.lookupTxt("slow.example.com"), "stalled-lookup");
+        slowCaller.setDaemon(true);
+        slowCaller.start();
+        Thread.sleep(100);
+
+        long startNanos = System.nanoTime();
+        List<String> result = lookup.lookupTxt("fast.example.com");
+        long elapsedMillis = (System.nanoTime() - startNanos) / 1_000_000;
+
+        assertThat(result).containsExactly("directwerk-verify=fast");
+        assertThat(elapsedMillis).isLessThan(5_000);
+        slowCaller.interrupt();
+    }
+
+    @Test
     void returnsEmptyListWhenLookupExceedsOverallDeadline() throws Exception {
         DirContext context = mock(DirContext.class);
         when(context.getAttributes(eq("slow.example.com"), any(String[].class)))
