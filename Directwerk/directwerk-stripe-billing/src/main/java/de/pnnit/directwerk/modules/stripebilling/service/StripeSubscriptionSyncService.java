@@ -96,6 +96,17 @@ public class StripeSubscriptionSyncService {
         }
         subscription.setEndsAt(endsAt);
         if (externalSubscriptionId != null && !externalSubscriptionId.isBlank()) {
+            // #534: row identity is (tenant, user, product) while Stripe's is the subscription id,
+            // so a second checkout used to rebind this row to the new subscription and orphan the
+            // old one (still billed, no local row left to cancel it). Refuse instead of rebinding.
+            String currentExternalId = subscription.getExternalSubscriptionId();
+            if (currentExternalId != null
+                    && !currentExternalId.isBlank()
+                    && !currentExternalId.equals(externalSubscriptionId)) {
+                throw new IllegalStateException(
+                        "Refusing to rebind subscription " + subscription.getId()
+                                + " from " + currentExternalId + " to " + externalSubscriptionId);
+            }
             subscription.setExternalSubscriptionId(externalSubscriptionId);
         }
         if (stripeCustomerId != null && !stripeCustomerId.isBlank()) {

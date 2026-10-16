@@ -6,6 +6,8 @@ import de.pnnit.directwerk.modules.core.repository.TenantRepository;
 import de.pnnit.directwerk.modules.core.repository.UserRepository;
 import de.pnnit.directwerk.modules.stripebilling.entity.StripeCustomer;
 import de.pnnit.directwerk.modules.subscription.entity.SubscriptionProduct;
+import de.pnnit.directwerk.modules.subscription.entity.SubscriptionStatus;
+import de.pnnit.directwerk.modules.subscription.repository.SubscriptionRepository;
 import de.pnnit.directwerk.modules.stripebilling.entity.TenantStripeAccount;
 import de.pnnit.directwerk.modules.stripebilling.exception.StripeNotConfiguredException;
 import de.pnnit.directwerk.modules.stripebilling.repository.StripeCustomerRepository;
@@ -21,6 +23,7 @@ public class StripeCheckoutService {
     private final StripeConnectService stripeConnectService;
     private final StripeCatalogSyncService stripeCatalogSyncService;
     private final SubscriptionProductService subscriptionProductService;
+    private final SubscriptionRepository subscriptionRepository;
     private final StripeCustomerRepository stripeCustomerRepository;
     private final TenantRepository tenantRepository;
     private final UserRepository userRepository;
@@ -31,6 +34,7 @@ public class StripeCheckoutService {
             StripeConnectService stripeConnectService,
             StripeCatalogSyncService stripeCatalogSyncService,
             SubscriptionProductService subscriptionProductService,
+            SubscriptionRepository subscriptionRepository,
             StripeCustomerRepository stripeCustomerRepository,
             TenantRepository tenantRepository,
             UserRepository userRepository,
@@ -40,6 +44,7 @@ public class StripeCheckoutService {
         this.stripeConnectService = stripeConnectService;
         this.stripeCatalogSyncService = stripeCatalogSyncService;
         this.subscriptionProductService = subscriptionProductService;
+        this.subscriptionRepository = subscriptionRepository;
         this.stripeCustomerRepository = stripeCustomerRepository;
         this.tenantRepository = tenantRepository;
         this.userRepository = userRepository;
@@ -71,6 +76,15 @@ public class StripeCheckoutService {
         if (product.getPriceCents() == null || product.getPriceCents() <= 0) {
             throw new IllegalArgumentException("Product is not priced for checkout");
         }
+        // #534: a second checkout for a product the buyer already holds rebinds the single
+        // (tenant, user, product) row to the new Stripe subscription, orphaning the first one —
+        // which keeps billing with no local row left to cancel it. Refuse before Stripe is called.
+        subscriptionRepository.findByTenantIdAndUserIdAndProductId(tenantId, userId, product.getId())
+                .filter(existing -> existing.getStatus() == SubscriptionStatus.ACTIVE)
+                .ifPresent(existing -> {
+                    throw new IllegalArgumentException(
+                            "An active subscription already exists for this product");
+                });
         TenantStripeAccount account = stripeConnectService.requireChargeableAccount(tenantId);
         if (product.getStripePriceId() == null || product.getStripePriceId().isBlank()) {
             product = stripeCatalogSyncService.syncProduct(tenantId, product.getId());

@@ -1,6 +1,7 @@
 package de.pnnit.directwerk.modules.stripebilling.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -83,6 +84,38 @@ class StripeSubscriptionSyncServiceTest {
         assertThat(result.getStripeCustomerId()).isEqualTo("cus_1");
         verify(subscriptionRepository).save(manual);
         verify(eventPublisher, never()).publishEvent(any(TenantEntitlementsChangedEvent.class));
+    }
+
+    @Test
+    void stripeUpsertRefusesToRebindAnExistingStripeSubscription() {
+        // #534: the row is keyed by (tenant, user, product), so binding a second Stripe
+        // subscription to it would orphan the first — still billed, nothing left to cancel.
+        User user = user();
+        when(userRepository.findById(USER_ID)).thenReturn(Optional.of(user));
+        SubscriptionProduct product = product();
+        when(subscriptionProductService.requireProduct(TENANT_ID, PRODUCT_ID)).thenReturn(product);
+
+        Subscription existing = subscription(SubscriptionSource.STRIPE, SubscriptionStatus.ACTIVE);
+        existing.setExternalSubscriptionId("sub_old");
+        when(subscriptionRepository.findByTenantIdAndExternalSubscriptionIdForUpdate(TENANT_ID, "sub_new"))
+                .thenReturn(Optional.empty());
+        when(subscriptionRepository.findByTenantIdAndUserIdAndProductIdForUpdate(TENANT_ID, USER_ID, PRODUCT_ID))
+                .thenReturn(Optional.of(existing));
+
+        assertThatThrownBy(() -> service.upsertStripeSubscription(
+                TENANT_ID,
+                USER_ID,
+                PRODUCT_ID,
+                "sub_new",
+                "cus_1",
+                SubscriptionStatus.ACTIVE,
+                null,
+                null
+        ))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("Refusing to rebind");
+
+        assertThat(existing.getExternalSubscriptionId()).isEqualTo("sub_old");
     }
 
     @Test
