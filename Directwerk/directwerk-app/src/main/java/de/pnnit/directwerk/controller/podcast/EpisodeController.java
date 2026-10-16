@@ -1,5 +1,6 @@
 package de.pnnit.directwerk.controller.podcast;
 
+import de.pnnit.directwerk.api.dto.ContentTextLimits;
 import de.pnnit.directwerk.api.dto.EpisodeView;
 import de.pnnit.directwerk.api.PublicEpisodeViewMapper;
 import de.pnnit.directwerk.api.dto.BulkDeleteView;
@@ -312,7 +313,7 @@ public class EpisodeController {
             @Pattern(regexp = "^[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,62}[a-zA-Z0-9])?$")
             String slug,
             @NotBlank @Size(max = 255) String title,
-            String description,
+            @Size(max = ContentTextLimits.DESCRIPTION_MAX) String description,
             @Min(1) Long audioAssetId,
             @Min(1) Long coverAssetId,
             @Min(1) Integer durationSeconds,
@@ -328,7 +329,7 @@ public class EpisodeController {
             @Pattern(regexp = "^[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,62}[a-zA-Z0-9])?$")
             String slug,
             @Size(max = 255) String title,
-            String description,
+            @Size(max = ContentTextLimits.DESCRIPTION_MAX) String description,
             @Min(1) Long coverAssetId,
             @Min(1) Integer durationSeconds,
             AccessPolicy accessPolicy,
