@@ -15,7 +15,8 @@ http:
       {
         "slug": "{{podcastCategorySlug}}",
         "name": "Harness Category Updated",
-        "active": true
+        "active": true,
+        "clearParentId": false
       }
   auth: inherit
 

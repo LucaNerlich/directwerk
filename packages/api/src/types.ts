@@ -820,6 +820,8 @@ export interface CreateCategoryInput {
 export interface UpdateCategoryInput {
     name?: string
     parentId?: number
+    /** #530: true lifts the parent; an omitted `parentId` alone means "leave unchanged". */
+    clearParentId?: boolean
     active?: boolean
 }
 

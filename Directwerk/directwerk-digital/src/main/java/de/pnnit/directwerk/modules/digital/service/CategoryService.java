@@ -73,6 +73,7 @@ public class CategoryService {
             String rawSlug,
             String name,
             Long parentId,
+            Boolean clearParentId,
             Boolean active
     ) {
         Category category = requireCategory(tenantId, categoryId);
@@ -86,7 +87,11 @@ public class CategoryService {
         if (name != null) {
             category.setName(normalizeName(name));
         }
-        if (parentId != null) {
+        if (Boolean.TRUE.equals(clearParentId)) {
+            // #530: an omitted parentId means "leave unchanged", so lifting the parent needs an
+            // explicit flag — the update path cannot tell "no parent" from "do not touch".
+            category.setParent(null);
+        } else if (parentId != null) {
             if (parentId.equals(categoryId)) {
                 throw new IllegalArgumentException("Category cannot be its own parent");
             }
@@ -104,7 +109,7 @@ public class CategoryService {
     @Transactional
     @RequiresModule(DigitalContentModule.KEY)
     public Category deactivateCategory(Long tenantId, Long categoryId) {
-        return updateCategory(tenantId, categoryId, null, null, null, false);
+        return updateCategory(tenantId, categoryId, null, null, null, null, false);
     }
 
 

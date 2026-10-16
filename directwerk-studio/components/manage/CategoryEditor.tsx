@@ -98,6 +98,9 @@ export default function CategoryEditor({categoryId}: CategoryEditorProps): React
         buildUpdate: (current) => ({
             name: current.name.trim(),
             parentId: parseOptionalId(current.parentId),
+            // #530: an omitted parentId means "leave unchanged", so picking "Keine" must
+            // ask the API to lift the parent explicitly.
+            clearParentId: current.parentId === '',
         }),
         redirectPath: (created) => `/manage/categories/${created.id}`,
         createSuccessMessage: (created) => `Kategorie "${created.name}" angelegt.`,
