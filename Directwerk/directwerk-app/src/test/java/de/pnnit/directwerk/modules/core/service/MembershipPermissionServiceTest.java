@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -30,6 +31,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
+import org.mockito.InOrder;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.core.context.SecurityContextHolder;
 
@@ -123,6 +125,27 @@ class MembershipPermissionServiceTest {
 
         assertThat(service.replaceForUser(10L, 5L, List.of())).isEmpty();
         verify(overrideRepository).deleteByTenantIdAndMembershipId(10L, 7L);
+    }
+
+    @Test
+    void replaceForUserFlushesTheDeleteBeforeReinsertingRows() {
+        // #528: re-saving a restriction pair that already exists raised a unique-constraint
+        // violation, because the derived delete stays queued while the IDENTITY-id insert runs
+        // immediately (and InsertAction sorts before DeleteAction at flush time).
+        Tenant tenant = new Tenant();
+        tenant.setId(10L);
+        when(tenantRepository.requireById(10L)).thenReturn(tenant);
+        when(tenantMembershipRepository.findByTenantIdAndUserId(10L, 5L))
+                .thenReturn(Optional.of(membership(7L, tenant, EnumSet.of(Role.EDITOR))));
+
+        service.replaceForUser(10L, 5L, List.of(
+                new MembershipPermissionService.OverrideInput(
+                        ContentEntityType.EPISODE, ContentOperation.UPDATE, RestrictionScope.DENY)));
+
+        InOrder order = inOrder(overrideRepository);
+        order.verify(overrideRepository).deleteByTenantIdAndMembershipId(10L, 7L);
+        order.verify(overrideRepository).flush();
+        order.verify(overrideRepository).save(any(MembershipPermissionOverride.class));
     }
 
     @Test
