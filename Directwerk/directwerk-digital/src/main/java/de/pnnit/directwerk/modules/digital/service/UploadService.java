@@ -225,7 +225,7 @@ public class UploadService implements UploadApi {
                     .key(asset.getS3Key())
                     .build());
         } catch (NoSuchKeyException ex) {
-            throw missingStagingObject(ex);
+            throw rejectMissingStagingObject(asset, storage.bucket(), ex);
         } catch (S3Exception ex) {
             // #563: a HEAD 404 carries no error body for the SDK to model, so on the
             // S3-compatible endpoints this deployment uses (Hetzner/Bunny, not AWS) the SDK
@@ -234,7 +234,7 @@ public class UploadService implements UploadApi {
             if (ex.statusCode() != 404) {
                 throw ex;
             }
-            throw missingStagingObject(ex);
+            throw rejectMissingStagingObject(asset, storage.bucket(), ex);
         }
 
         if (asset.getSizeBytes() != null && head.contentLength() != null
@@ -369,7 +369,16 @@ public class UploadService implements UploadApi {
         }
     }
 
-    private static UploadValidationException missingStagingObject(RuntimeException cause) {
+    /**
+     * #564: an aborted upload leaves a PENDING row whose key is never in the bucket listing, so
+     * the 24h staging sweep cannot heal it — the library keeps showing the ghost asset and
+     * {@code summarizeStorage} keeps counting its declared size. Its siblings (size/MIME
+     * mismatch) archive the row before throwing; do the same here. The S3 delete is a harmless
+     * no-op on a missing key.
+     */
+    private UploadValidationException rejectMissingStagingObject(
+            MediaAsset asset, String bucket, RuntimeException cause) {
+        rejectPendingAsset(asset.getId(), bucket, asset.getS3Key());
         return new UploadValidationException(
                 "UPLOAD_VALIDATION_FAILED",
                 "Staging object not found — upload may not have completed",
