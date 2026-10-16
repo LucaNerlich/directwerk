@@ -28,8 +28,17 @@ public interface EpisodeRepository extends JpaRepository<Episode, Long> {
     })
     List<Episode> findByTenantIdOrderByCreatedAtDescIdDesc(Long tenantId);
 
-    /** Paged variant (#310) — bounds the response instead of materialising every row. */
-        List<Episode> findByTenantIdOrderByCreatedAtDescIdDesc(Long tenantId, Pageable pageable);
+    /**
+     * Paged variant (#310) — bounds the response instead of materialising every row.
+     * The graph must match the unpaged sibling: the controller maps series.slug, formats and
+     * categories outside the transaction (open-in-view=false) and throws without it (#531).
+     */
+    @EntityGraph(attributePaths = {
+            "tenant", "series", "series.coverAsset", "coverAsset", "coverAsset.tenant",
+            "audioAsset", "audioAsset.tenant", "formats", "formats.coverAsset",
+            "categories", "categories.parent"
+    })
+    List<Episode> findByTenantIdOrderByCreatedAtDescIdDesc(Long tenantId, Pageable pageable);
 
     @EntityGraph(attributePaths = {
             "tenant", "series", "series.coverAsset", "coverAsset", "coverAsset.tenant",
