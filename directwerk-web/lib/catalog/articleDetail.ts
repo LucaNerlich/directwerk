@@ -1,3 +1,4 @@
+import {apiErrorStatus} from '@directwerk/api/envelope'
 import type {PublicArticle} from '@directwerk/api/types'
 
 import {authedFetch, envelopeResult, jsonRequest} from '@/lib/api/transport'
@@ -5,11 +6,9 @@ import {createWebPublicParsers} from '@/lib/publicContent/parsers'
 
 const {parsePublicArticleEnvelope} = createWebPublicParsers()
 
-const NOT_FOUND_PATTERN = /(status 404|\(404\))/
-
-/** True when a transport error message carries an HTTP 404 status. */
+/** True when a transport error carries an HTTP 404 status. */
 function isNotFoundError(error: unknown): boolean {
-    return error instanceof Error && NOT_FOUND_PATTERN.test(error.message)
+    return apiErrorStatus(error) === 404
 }
 
 /**
@@ -36,8 +35,8 @@ export async function fetchPublicArticleBySlug(
 
 /**
  * Single entitled article by slug (`GET /api/v1/me/articles/{slug}`).
- * Returns `null` when the subscriber is not entitled (HTTP 404/403 surface as
- * errors here — only 404 maps to `null`); throws otherwise, including
+ * Returns `null` for an unknown slug or a subscriber who is not entitled — any
+ * HTTP 404, whatever the error body says — and throws otherwise, including
  * `AUTH_REQUIRED` on an expired session.
  */
 export async function fetchEntitledArticleBySlug(
