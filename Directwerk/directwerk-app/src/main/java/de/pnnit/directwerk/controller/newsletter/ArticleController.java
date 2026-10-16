@@ -51,12 +51,6 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/v1/articles")
 public class ArticleController {
 
-    /**
-     * Issue #314: sibling fields were capped (@Size on title/seoDescription) but the rich-text
-     * body and excerpt were not, and there is no global request-size limit for JSON bodies, so an
-     * authenticated editor could submit an arbitrarily large body that Jackson buffers and the
-     * repository persists.
-     */
 
 
     private final ArticleService articleService;
