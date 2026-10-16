@@ -567,6 +567,49 @@ class StripeWebhookServiceTest {
     }
 
     @Test
+    void checkoutCompletedDoesNotResurrectCanceledSubscription() {
+        // #536: a paid checkout-completed (or its delayed async_payment_succeeded) used to skip
+        // the canceled-row guard entirely and re-grant paid access.
+        StripeOperations.StripeWebhookPayload payload = new StripeOperations.StripeWebhookPayload(
+                "evt_checkout_stale",
+                "checkout.session.completed",
+                "acct_1",
+                "cus_1",
+                "sub_1",
+                "price_1",
+                Instant.parse("2026-09-01T00:00:00Z"),
+                "active",
+                true,
+                true,
+                true,
+                Map.of("tenant_id", "7", "user_id", "3", "product_id", "11"),
+                "pi_1",
+                false,
+                "paid",
+                true
+        );
+        when(stripeOperations.parseWebhook("{}", "sig")).thenReturn(payload);
+        when(processedWebhookEventRepository.insertIfAbsent("evt_checkout_stale", "checkout.session.completed", "acct_1"))
+                .thenReturn(1);
+        when(stripeConnectService.findByStripeAccountId("acct_1")).thenReturn(account(7L, "acct_1"));
+        SubscriptionProduct product = new SubscriptionProduct();
+        product.setId(11L);
+        when(subscriptionProductRepository.findByIdAndTenantId(11L, 7L)).thenReturn(Optional.of(product));
+
+        Subscription canceled = new Subscription();
+        canceled.setStatus(SubscriptionStatus.CANCELED);
+        when(subscriptionRepository.findByTenantIdAndExternalSubscriptionIdForUpdate(7L, "sub_1"))
+                .thenReturn(Optional.of(canceled));
+        when(stripeOperations.retrieveSubscriptionStatus("acct_1", "sub_1")).thenReturn("canceled");
+
+        service.handle("{}", "sig");
+
+        verify(stripeSubscriptionSyncService, never()).upsertStripeSubscription(
+                any(), any(), any(), any(), any(), any(), any(), any()
+        );
+    }
+
+    @Test
     void staleUpdatedDoesNotReactivateWhenLiveStatusIsPastDue() {
         StripeOperations.StripeWebhookPayload payload = new StripeOperations.StripeWebhookPayload(
                 "evt_pastdue",

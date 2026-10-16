@@ -165,6 +165,22 @@ public class StripeWebhookService {
                 status = SubscriptionStatus.ACTIVE;
             }
         }
+        // #536: the same out-of-order guard as `customer.subscription.updated`. A delayed
+        // `checkout.session.async_payment_succeeded` (SEPA settles days after checkout) or a
+        // redelivery whose first attempt failed must not re-grant a locally CANCELED subscriber —
+        // `customer.subscription.deleted` was already consumed and is idempotency-suppressed, so
+        // nothing later would take the access away again.
+        if (status == SubscriptionStatus.ACTIVE
+                && event.subscriptionId() != null
+                && !event.subscriptionId().isBlank()
+                && hasLocalCanceledRow(tenantId, event.subscriptionId())) {
+            if (!isLiveActive(tenantId, event)) {
+                log.warn(
+                        "Skipping checkout-completed for canceled local row (subscription={})",
+                        event.subscriptionId());
+                return;
+            }
+        }
         stripeSubscriptionSyncService.upsertStripeSubscription(
                 tenantId,
                 userId,
