@@ -5,7 +5,7 @@ import SelectControl from '@/components/studio/SelectControl'
 import {useEffect, useId, useState} from 'react'
 
 import {AUTH_REQUIRED} from '@directwerk/api/constants'
-import {isReadyAsset} from '@directwerk/api/media/readiness'
+import {isPubliclySelectable, isReadyAsset} from '@directwerk/api/media/readiness'
 import {listMedia} from '@/lib/api/mediaApi'
 import type {AssetType, MediaAsset} from '@directwerk/api/types'
 
@@ -15,6 +15,12 @@ interface MediaLibraryPickerProps {
     assetType: AssetType
     label: string
     selectedId: number | null
+    /**
+     * #553: covers and heroes are public-facing, so a PRIVATE asset can never render there —
+     * the server only builds a public CDN URL for PUBLIC assets. Pickers that embed the asset
+     * in a public page must set this; AUDIO/DOCUMENT pickers stay as they are.
+     */
+    requirePublic?: boolean
     disabled?: boolean
     onSelect: (asset: MediaAsset) => void
     onAuthRequired: () => void
@@ -24,6 +30,7 @@ export default function MediaLibraryPicker({
     assetType,
     label,
     selectedId,
+    requirePublic = false,
     disabled = false,
     onSelect,
     onAuthRequired,
@@ -46,7 +53,9 @@ export default function MediaLibraryPicker({
                     setAssets(
                         loaded.filter(
                             (item) =>
-                                item.assetType === assetType && isReadyAsset(item),
+                                item.assetType === assetType
+                                && isReadyAsset(item)
+                                && (!requirePublic || isPubliclySelectable(item)),
                         ),
                     )
                 }
@@ -75,7 +84,7 @@ export default function MediaLibraryPicker({
         return () => {
             active = false
         }
-    }, [assetType, onAuthRequired, reloadToken])
+    }, [assetType, onAuthRequired, requirePublic, reloadToken])
 
     return (
         <div className="grid gap-2">

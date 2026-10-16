@@ -438,6 +438,7 @@ export default function SeriesEditor({seriesId}: SeriesEditorProps): React.JSX.E
                     </span>
                     <MediaLibraryPicker
                         assetType="IMAGE"
+                        requirePublic
                         disabled={coverUpload.isUploading || isSaving}
                         label={dict.podcast.titelbildMediathek}
                         onAuthRequired={handleAuthRequired}

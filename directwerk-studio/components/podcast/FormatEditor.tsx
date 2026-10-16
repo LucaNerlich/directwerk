@@ -328,6 +328,7 @@ export default function FormatEditor({formatId}: FormatEditorProps): React.JSX.E
                     </span>
                     <MediaLibraryPicker
                         assetType="IMAGE"
+                        requirePublic
                         disabled={isSaving || coverUpload.isUploading}
                         label={dict.podcast.titelbildMediathek}
                         onAuthRequired={() => router.replace(localize('/login'))}
