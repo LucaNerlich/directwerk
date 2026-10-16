@@ -288,6 +288,11 @@ public class MembershipPermissionService {
             }
         }
         overrideRepository.deleteByTenantIdAndMembershipId(tenantId, membership.getId());
+        // #528: the derived delete only queues the removals, while each save below inserts
+        // immediately (IDENTITY id) — and Hibernate runs queued inserts before queued deletes at
+        // flush time. Flushing here issues the DELETE first, so re-saving a restriction pair that
+        // already exists no longer violates uq_membership_permission_override.
+        overrideRepository.flush();
         List<MembershipPermissionOverride> saved = new ArrayList<>();
         for (OverrideInput input : collapsed.values()) {
             MembershipPermissionOverride override = new MembershipPermissionOverride();
