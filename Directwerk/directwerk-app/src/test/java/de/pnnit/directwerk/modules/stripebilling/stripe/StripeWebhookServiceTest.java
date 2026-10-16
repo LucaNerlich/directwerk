@@ -94,7 +94,7 @@ class StripeWebhookServiceTest {
         product.setId(11L);
         when(subscriptionProductRepository.findByIdAndTenantId(11L, 7L)).thenReturn(Optional.of(product));
 
-        service.handle("{}", "t=1,v1=sig");
+        service.applyParsedEvent(service.parseAndValidate("{}", "t=1,v1=sig"));
 
         verify(stripeSubscriptionSyncService).upsertStripeSubscription(
                 7L,
@@ -141,7 +141,7 @@ class StripeWebhookServiceTest {
         // Live Stripe says canceled too — a stale event must not reactivate.
         when(stripeOperations.retrieveSubscriptionStatus("acct_1", "sub_1")).thenReturn("canceled");
 
-        service.handle("{}", "t=1,v1=sig");
+        service.applyParsedEvent(service.parseAndValidate("{}", "t=1,v1=sig"));
 
         verify(stripeSubscriptionSyncService, never()).upsertStripeSubscription(
                 any(), any(), any(), any(), any(), any(), any(), any()
@@ -177,7 +177,7 @@ class StripeWebhookServiceTest {
         when(subscriptionRepository.findByTenantIdAndExternalSubscriptionIdForUpdate(7L, "sub_2"))
                 .thenReturn(Optional.empty());
 
-        service.handle("{}", "t=1,v1=sig");
+        service.applyParsedEvent(service.parseAndValidate("{}", "t=1,v1=sig"));
 
         verify(stripeOperations, never()).retrieveSubscriptionStatus(any(), any());
         verify(stripeSubscriptionSyncService).upsertStripeSubscription(
@@ -212,7 +212,7 @@ class StripeWebhookServiceTest {
         when(processedWebhookEventRepository.insertIfAbsent("evt_dup", "checkout.session.completed", "acct_1"))
                 .thenReturn(0);
 
-        service.handle("{}", "sig");
+        service.applyParsedEvent(service.parseAndValidate("{}", "sig"));
 
         verify(stripeSubscriptionSyncService, never()).upsertStripeSubscription(
                 any(), any(), any(), any(), any(), any(), any(), any()
@@ -245,7 +245,7 @@ class StripeWebhookServiceTest {
                 .thenReturn(1);
         when(stripeConnectService.findByStripeAccountId("acct_1")).thenReturn(account(7L, "acct_1"));
 
-        service.handle("{}", "sig");
+        service.applyParsedEvent(service.parseAndValidate("{}", "sig"));
 
         verify(stripeSubscriptionSyncService).syncStripeSubscriptionByExternalId(
                 eq(7L),
@@ -280,7 +280,7 @@ class StripeWebhookServiceTest {
                 .thenReturn(1);
         when(stripeConnectService.findByStripeAccountId("acct_1")).thenReturn(account(7L, "acct_1"));
 
-        service.handle("{}", "sig");
+        service.applyParsedEvent(service.parseAndValidate("{}", "sig"));
 
         verify(stripeSubscriptionSyncService).syncStripeSubscriptionByExternalId(
                 eq(7L),
@@ -315,7 +315,7 @@ class StripeWebhookServiceTest {
                 .thenReturn(1);
         when(stripeConnectService.findByStripeAccountId("acct_1")).thenReturn(account(7L, "acct_1"));
 
-        service.handle("{}", "sig");
+        service.applyParsedEvent(service.parseAndValidate("{}", "sig"));
 
         verify(stripeSubscriptionSyncService).syncStripeSubscriptionByExternalId(
                 eq(7L),
@@ -349,7 +349,7 @@ class StripeWebhookServiceTest {
                 .thenReturn(1);
         when(stripeConnectService.findByStripeAccountId("acct_1")).thenReturn(account(7L, "acct_1"));
 
-        service.handle("{}", "sig");
+        service.applyParsedEvent(service.parseAndValidate("{}", "sig"));
 
         verify(stripeSubscriptionSyncService).markInvoicePaid(
                 7L, "sub_9", Instant.parse("2026-10-01T00:00:00Z"));
@@ -380,7 +380,7 @@ class StripeWebhookServiceTest {
                 .thenReturn(1);
         when(stripeConnectService.findByStripeAccountId("acct_1")).thenReturn(account(7L, "acct_1"));
 
-        service.handle("{}", "sig");
+        service.applyParsedEvent(service.parseAndValidate("{}", "sig"));
 
         verify(stripeSubscriptionSyncService).cancelStripeOneTimeByPaymentId(7L, "pi_refund");
     }
@@ -410,7 +410,7 @@ class StripeWebhookServiceTest {
                 .thenReturn(1);
         when(stripeConnectService.findByStripeAccountId("acct_1")).thenReturn(account(7L, "acct_1"));
 
-        service.handle("{}", "sig");
+        service.applyParsedEvent(service.parseAndValidate("{}", "sig"));
 
         verify(stripeSubscriptionSyncService, never()).cancelStripeOneTimeByPaymentId(any(), any());
     }
@@ -440,7 +440,7 @@ class StripeWebhookServiceTest {
                 .thenReturn(1);
         when(stripeConnectService.findByStripeAccountId("acct_1")).thenReturn(account(7L, "acct_1"));
 
-        service.handle("{}", "sig");
+        service.applyParsedEvent(service.parseAndValidate("{}", "sig"));
 
         verify(stripeSubscriptionSyncService, never()).upsertStripeSubscription(
                 any(), any(), any(), any(), any(), any(), any(), any()
@@ -473,7 +473,7 @@ class StripeWebhookServiceTest {
                 .thenReturn(1);
         when(stripeConnectService.findByStripeAccountId("acct_1")).thenReturn(account(7L, "acct_1"));
 
-        service.handle("{}", "sig");
+        service.applyParsedEvent(service.parseAndValidate("{}", "sig"));
 
         verify(stripeSubscriptionSyncService, never()).upsertStripeSubscription(
                 any(), any(), any(), any(), any(), any(), any(), any()
@@ -513,7 +513,7 @@ class StripeWebhookServiceTest {
         when(subscriptionRepository.findByTenantIdAndExternalSubscriptionIdForUpdate(7L, "sub_2"))
                 .thenReturn(Optional.empty());
 
-        service.handle("{}", "sig");
+        service.applyParsedEvent(service.parseAndValidate("{}", "sig"));
 
         // Stale metadata says product 11 (expensive); the live price resolves to 22 (cheap).
         verify(stripeSubscriptionSyncService).upsertStripeSubscription(
@@ -552,7 +552,7 @@ class StripeWebhookServiceTest {
         product.setId(11L);
         when(subscriptionProductRepository.findByIdAndTenantId(11L, 7L)).thenReturn(Optional.of(product));
 
-        service.handle("{}", "sig");
+        service.applyParsedEvent(service.parseAndValidate("{}", "sig"));
 
         verify(stripeSubscriptionSyncService).upsertStripeSubscription(
                 eq(7L),
@@ -602,7 +602,7 @@ class StripeWebhookServiceTest {
                 .thenReturn(Optional.of(canceled));
         when(stripeOperations.retrieveSubscriptionStatus("acct_1", "sub_1")).thenReturn("canceled");
 
-        service.handle("{}", "sig");
+        service.applyParsedEvent(service.parseAndValidate("{}", "sig"));
 
         verify(stripeSubscriptionSyncService, never()).upsertStripeSubscription(
                 any(), any(), any(), any(), any(), any(), any(), any()
@@ -641,7 +641,7 @@ class StripeWebhookServiceTest {
         // Live Stripe is past_due: not in good standing, so it must not re-grant entitlements.
         when(stripeOperations.retrieveSubscriptionStatus("acct_1", "sub_1")).thenReturn("past_due");
 
-        service.handle("{}", "sig");
+        service.applyParsedEvent(service.parseAndValidate("{}", "sig"));
 
         verify(stripeSubscriptionSyncService, never()).upsertStripeSubscription(
                 any(), any(), any(), any(), any(), any(), any(), any()
@@ -672,7 +672,7 @@ class StripeWebhookServiceTest {
         when(processedWebhookEventRepository.insertIfAbsent("evt_acct_bad", "account.updated", "acct_1"))
                 .thenReturn(1);
 
-        service.handle("{}", "sig");
+        service.applyParsedEvent(service.parseAndValidate("{}", "sig"));
 
         verify(stripeConnectService, never())
                 .applyAccountUpdate(any(), anyBoolean(), anyBoolean(), anyBoolean());
@@ -702,7 +702,7 @@ class StripeWebhookServiceTest {
         when(processedWebhookEventRepository.insertIfAbsent("evt_acct_ok", "account.updated", "acct_1"))
                 .thenReturn(1);
 
-        service.handle("{}", "sig");
+        service.applyParsedEvent(service.parseAndValidate("{}", "sig"));
 
         verify(stripeConnectService).applyAccountUpdate("acct_1", true, true, true);
     }
