@@ -73,6 +73,7 @@ public class TenantCategoryController {
                 request.slug(),
                 request.name(),
                 request.parentId(),
+                request.clearParentId(),
                 request.active()
         );
         return ResponseEntity.ok(Response.ok(toView(category)));
@@ -111,6 +112,8 @@ public class TenantCategoryController {
             String slug,
             @Size(max = 255) String name,
             @Min(1) Long parentId,
+            /** #530: true lifts the parent; an omitted {@code parentId} alone means "unchanged". */
+            Boolean clearParentId,
             Boolean active
     ) {
     }

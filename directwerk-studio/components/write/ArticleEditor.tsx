@@ -157,8 +157,8 @@ export default function ArticleEditor({articleId}: {articleId?: number}) {
                 seoDescription: seoDescription.trim() || undefined,
                 accessPolicy,
                 heroAssetId: heroAssetId ?? undefined,
-                requiredLevelSortOrder:
-                    accessPolicy === 'PAID' ? (requiredLevelSortOrder ?? undefined) : undefined,
+                // #530: 0 clears the stored floor; omitting the field would keep it.
+                requiredLevelSortOrder: accessPolicy === 'PAID' ? (requiredLevelSortOrder ?? 0) : 0,
             }
 
             if (articleId === undefined) {

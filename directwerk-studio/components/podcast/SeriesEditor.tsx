@@ -99,7 +99,8 @@ function seriesUpdatePayload(
         itunesCategory: values.itunesCategory.trim() || undefined,
         itunesExplicit: values.itunesExplicit,
         coverAssetId: values.coverAssetId ?? undefined,
-        defaultRequiredLevelSortOrder: values.defaultRequiredLevelSortOrder ?? undefined,
+        // #530: 0 clears the stored default floor; omitting the field would keep it.
+        defaultRequiredLevelSortOrder: values.defaultRequiredLevelSortOrder ?? 0,
         status,
     }
 }
