@@ -16,13 +16,15 @@ public interface PodcastSeriesRepository extends JpaRepository<PodcastSeries, Lo
     List<PodcastSeries> findByTenantIdOrderByTitleAscIdAsc(Long tenantId);
 
     /** Paged variant (#310) — bounds the response instead of materialising every row. */
-        List<PodcastSeries> findByTenantIdOrderByTitleAscIdAsc(Long tenantId, Pageable pageable);
+    @EntityGraph(attributePaths = {"coverAsset", "coverAsset.tenant"})
+    List<PodcastSeries> findByTenantIdOrderByTitleAscIdAsc(Long tenantId, Pageable pageable);
 
     @EntityGraph(attributePaths = {"coverAsset", "coverAsset.tenant"})
     List<PodcastSeries> findByTenantIdAndStatusOrderByTitleAscIdAsc(Long tenantId, SeriesStatus status);
 
     /** Paged variant (#310) — bounds the response instead of materialising every row. */
-        List<PodcastSeries> findByTenantIdAndStatusOrderByTitleAscIdAsc(Long tenantId, SeriesStatus status, Pageable pageable);
+    @EntityGraph(attributePaths = {"coverAsset", "coverAsset.tenant"})
+    List<PodcastSeries> findByTenantIdAndStatusOrderByTitleAscIdAsc(Long tenantId, SeriesStatus status, Pageable pageable);
 
     @EntityGraph(attributePaths = {"coverAsset", "coverAsset.tenant"})
     Optional<PodcastSeries> findByIdAndTenantId(Long id, Long tenantId);

@@ -21,8 +21,14 @@ public interface ArticleRepository extends JpaRepository<Article, Long> {
     })
     List<Article> findByTenantIdOrderByCreatedAtDescIdDesc(Long tenantId);
 
-    /** Paged variant (#310) — bounds the response instead of materialising every row. */
-        List<Article> findByTenantIdOrderByCreatedAtDescIdDesc(Long tenantId, Pageable pageable);
+    /**
+     * Paged variant (#310) — bounds the response instead of materialising every row.
+     * Same graph contract as the unpaged sibling (#531).
+     */
+    @EntityGraph(attributePaths = {
+            "tenant", "heroAsset", "heroAsset.tenant", "categories", "categories.parent", "newsletterLists"
+    })
+    List<Article> findByTenantIdOrderByCreatedAtDescIdDesc(Long tenantId, Pageable pageable);
 
     @EntityGraph(attributePaths = {
             "tenant", "heroAsset", "heroAsset.tenant", "categories", "categories.parent", "newsletterLists"
