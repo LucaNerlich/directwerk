@@ -422,6 +422,31 @@ class UploadServiceTest {
     }
 
     @Test
+    void confirmUploadMapsAnS3CompatibleHead404ToValidationFailure() {
+        // #563: on the S3-compatible endpoints this deployment uses, HEAD 404 raises a plain
+        // S3Exception (no error body to model as NoSuchKeyException) — the documented answer is
+        // 400 UPLOAD_VALIDATION_FAILED, not the 500 the catch-all produced.
+        when(directwerkConfig.isStorageEnabled()).thenReturn(true);
+        when(directwerkConfig.storage()).thenReturn(storageProps());
+        when(tenantRepository.requireById(10L)).thenReturn(tenant);
+
+        MediaAsset pending = new MediaAsset();
+        pending.setId(55L);
+        pending.setTenant(tenant);
+        pending.setS3Key("alpha-show-a/staging/sess/episode.mp3");
+        pending.setAssetType(AssetType.AUDIO);
+        pending.setStatus(AssetStatus.PENDING);
+        when(mediaAssetRepository.findById(55L)).thenReturn(Optional.of(pending));
+
+        when(s3Client.headObject(any(HeadObjectRequest.class))).thenThrow(
+                S3Exception.builder().statusCode(404).message("Not Found").build());
+
+        assertThatThrownBy(() -> uploadService.confirmUpload(new UploadApi.ConfirmUploadCommand(55L)))
+                .isInstanceOf(UploadValidationException.class)
+                .hasMessageContaining("Staging object not found");
+    }
+
+    @Test
     void confirmUploadSizeMismatchArchivesPendingAsset() {
         when(directwerkConfig.isStorageEnabled()).thenReturn(true);
         when(directwerkConfig.storage()).thenReturn(storageProps());

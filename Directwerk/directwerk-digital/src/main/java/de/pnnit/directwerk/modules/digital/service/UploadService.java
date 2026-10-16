@@ -47,6 +47,7 @@ import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
 import software.amazon.awssdk.services.s3.model.HeadObjectRequest;
 import software.amazon.awssdk.services.s3.model.HeadObjectResponse;
 import software.amazon.awssdk.services.s3.model.NoSuchKeyException;
+import software.amazon.awssdk.services.s3.model.S3Exception;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 import software.amazon.awssdk.services.s3.presigner.S3Presigner;
 import software.amazon.awssdk.services.s3.presigner.model.PresignedPutObjectRequest;
@@ -224,11 +225,16 @@ public class UploadService implements UploadApi {
                     .key(asset.getS3Key())
                     .build());
         } catch (NoSuchKeyException ex) {
-            throw new UploadValidationException(
-                    "UPLOAD_VALIDATION_FAILED",
-                    "Staging object not found — upload may not have completed",
-                    ex
-            );
+            throw missingStagingObject(ex);
+        } catch (S3Exception ex) {
+            // #563: a HEAD 404 carries no error body for the SDK to model, so on the
+            // S3-compatible endpoints this deployment uses (Hetzner/Bunny, not AWS) the SDK
+            // raises a plain S3Exception with statusCode 404 instead of NoSuchKeyException.
+            // The three other 404 handlers in this module already hedge for exactly that.
+            if (ex.statusCode() != 404) {
+                throw ex;
+            }
+            throw missingStagingObject(ex);
         }
 
         if (asset.getSizeBytes() != null && head.contentLength() != null
@@ -361,6 +367,14 @@ public class UploadService implements UploadApi {
         } catch (RuntimeException archiveEx) {
             log.warn("Failed to archive rejected pending asset {}", assetId, archiveEx);
         }
+    }
+
+    private static UploadValidationException missingStagingObject(RuntimeException cause) {
+        return new UploadValidationException(
+                "UPLOAD_VALIDATION_FAILED",
+                "Staging object not found — upload may not have completed",
+                cause
+        );
     }
 
     private static String buildFinalKey(String tenantSlug, MediaAsset asset) {
