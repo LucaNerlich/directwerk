@@ -1,6 +1,7 @@
 'use client'
 
 import {useSiteConfig} from '@/lib/site/SiteConfigProvider'
+import {userFacingGeneralError} from '@/lib/billing/userFacingBillingError'
 
 import {useEffect, useState} from 'react'
 
@@ -69,9 +70,9 @@ export function usePublicCatalog({
                     setErrorMessage(authRequiredMessage)
                     return
                 }
-                setErrorMessage(
-                    error instanceof Error ? error.message : loadErrorMessage,
-                )
+                // #555: never surface raw backend/transport text to visitors — the same rule
+                // the pricing page follows via userFacingBillingError.
+                setErrorMessage(userFacingGeneralError(error, loadErrorMessage))
             })
             .finally(() => {
                 if (active) {
