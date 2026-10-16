@@ -10,6 +10,12 @@ function getRequest(path = '/de/podcast/episodes', headers?: HeadersInit): NextR
 }
 
 describe('proxy', () => {
+    it('sends the unprefixed imprint path to its localized route (#559)', () => {
+        const response = proxy(getRequest('/imprint'))
+
+        expect(response.headers.get('location')).toMatch(/\/(de|en)\/imprint$/)
+    })
+
     it('sets matching nonce CSP headers on the request and response', () => {
         const response = proxy(getRequest())
 
