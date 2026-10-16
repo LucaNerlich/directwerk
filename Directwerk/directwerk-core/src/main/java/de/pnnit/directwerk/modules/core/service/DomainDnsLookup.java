@@ -37,7 +37,6 @@ public class DomainDnsLookup {
     static final long DEFAULT_DEADLINE_MILLIS = 10_000;
 
     private final long deadlineMillis;
-    private final ExecutorService lookupExecutor;
 
     public DomainDnsLookup() {
         this(DEFAULT_DEADLINE_MILLIS);
@@ -45,7 +44,16 @@ public class DomainDnsLookup {
 
     DomainDnsLookup(long deadlineMillis) {
         this.deadlineMillis = deadlineMillis;
-        this.lookupExecutor = Executors.newSingleThreadExecutor(runnable -> {
+    }
+
+    /**
+     * #558: a lookup runs on its own daemon worker. One shared single-thread executor serialized
+     * every tenant's verification behind whichever lookup was stalled — {@code cancel(true)} cannot
+     * free it, because the JNDI socket read does not react to interruption, and the JNDI timeouts
+     * bound each nameserver attempt rather than the call.
+     */
+    private static ExecutorService newLookupExecutor() {
+        return Executors.newSingleThreadExecutor(runnable -> {
             Thread thread = new Thread(runnable, "dns-txt-lookup");
             thread.setDaemon(true);
             return thread;
@@ -60,7 +68,8 @@ public class DomainDnsLookup {
      *         the lookup fails, or it exceeds the overall deadline
      */
     public List<String> lookupTxt(String host) {
-        Future<List<String>> pending = lookupExecutor.submit(() -> queryTxt(host));
+        ExecutorService executor = newLookupExecutor();
+        Future<List<String>> pending = executor.submit(() -> queryTxt(host));
         try {
             return pending.get(deadlineMillis, TimeUnit.MILLISECONDS);
         } catch (TimeoutException ex) {
@@ -82,6 +91,8 @@ public class DomainDnsLookup {
             log.warn("DNS TXT lookup failed for host {}: {}",
                     host, cause == null ? ex.getMessage() : cause.getMessage());
             return List.of();
+        } finally {
+            executor.shutdownNow();
         }
     }
 
@@ -118,8 +129,4 @@ public class DomainDnsLookup {
         return new InitialDirContext(env);
     }
 
-    @jakarta.annotation.PreDestroy
-    void shutdown() {
-        lookupExecutor.shutdownNow();
-    }
 }
