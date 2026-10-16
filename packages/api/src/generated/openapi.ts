@@ -3826,6 +3826,7 @@ export interface components {
             name?: string;
             /** Format: int64 */
             parentId?: number;
+            clearParentId?: boolean;
             active?: boolean;
         };
         ResponseCategoryView: {

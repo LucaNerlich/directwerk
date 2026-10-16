@@ -122,8 +122,10 @@ export default function EpisodeEditor({episodeId}: {episodeId?: number}): React.
             description: body,
             accessPolicy,
             episodeNumber: optionalMinInt(episodeNumber, 1),
-            requiredLevelSortOrder:
-                accessPolicy === 'PAID' ? (requiredLevelSortOrder ?? undefined) : undefined,
+            // #530: an omitted field means "leave unchanged", so a cleared floor must be
+            // sent as 0 — the access path already reads a null floor as 0 ("jede aktive
+            // Stufe reicht").
+            requiredLevelSortOrder: accessPolicy === 'PAID' ? (requiredLevelSortOrder ?? 0) : 0,
             coverAssetId: coverAssetId ?? undefined,
         }
     }, [accessPolicy, body, coverAssetId, episodeNumber, requiredLevelSortOrder, slug, title])
