@@ -37,15 +37,15 @@ export function createDirectwerkContentSecurityPolicy(
  * any app that uses {@link createDirectwerkContentSecurityPolicy}, which hardcodes
  * `frame-ancestors 'none'` — so responses carried `X-Frame-Options: SAMEORIGIN` *and*
  * `frame-ancestors 'none'`. The frame policy now has one value, matching the CSP.
- */
-export interface DirectwerkNextConfigOptions {}
-
-/**
+ *
  * Baseline response headers applied to every page/API route. These are
  * deliberately CSP-free: apps that need CSP add it at their own response
  * boundary, using a per-request proxy nonce or app-specific headers.
+ *
+ * Exported so every app — including `homepage`, which keeps its own static
+ * CSP — can spread the same set instead of re-declaring it (#533).
  */
-function directwerkSecurityHeaders(): {key: string; value: string}[] {
+export function directwerkSecurityHeaders(): {key: string; value: string}[] {
     return [
         {key: 'X-Content-Type-Options', value: 'nosniff'},
         {key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin'},
@@ -63,10 +63,7 @@ function directwerkSecurityHeaders(): {key: string; value: string}[] {
 /**
  * Shared Next.js defaults for Directwerk apps (no `next` import — apps spread into NextConfig).
  */
-export function createDirectwerkNextConfig(
-    options: DirectwerkNextConfigOptions = {},
-) {
-    void options
+export function createDirectwerkNextConfig() {
     return {
         reactCompiler: true,
         transpilePackages: [...directwerkTranspilePackages],
