@@ -61,16 +61,6 @@ public class RssFeedSnapshotService {
         return coordinator.deliverTenant(tenant);
     }
 
-    public FeedDelivery publicSeriesFeed(
-            Tenant tenant,
-            PodcastSeries series
-    ) {
-        if (series.getStatus() != SeriesStatus.PUBLISHED) {
-            throw new SeriesNotFoundException(series.getId());
-        }
-        return coordinator.deliverCollection(tenant, series.getId());
-    }
-
     /**
      * Presentation lookup for API views: the Host tenant's slug when the public RSS module is
      * active, else empty. Lets controllers build feed URLs without touching repositories or

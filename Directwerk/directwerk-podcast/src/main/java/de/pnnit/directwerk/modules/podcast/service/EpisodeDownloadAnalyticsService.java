@@ -43,11 +43,6 @@ public class EpisodeDownloadAnalyticsService {
     }
 
     @Transactional(readOnly = true)
-    public void trackEpisodeDownload(Long tenantId, Episode episode, String source, String hostname) {
-        trackEpisodeDownload(tenantId, episode, source, hostname, null, false, null);
-    }
-
-    @Transactional(readOnly = true)
     public void trackEpisodeDownload(
             Long tenantId,
             Episode episode,

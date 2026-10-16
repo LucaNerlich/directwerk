@@ -359,19 +359,6 @@ class RssFeedSnapshotServiceTest {
         ).isInstanceOf(de.pnnit.directwerk.modules.podcast.exception.SeriesNotFoundException.class);
     }
 
-    @Test
-    void publicSeriesFeedByEntityRejectsNonPublishedSeries() {
-        Fixture fixture = fixture();
-        PodcastSeries draft = new PodcastSeries();
-        draft.setId(20L);
-        draft.setTenant(fixture.tenant);
-        draft.setStatus(de.pnnit.directwerk.modules.podcast.entity.SeriesStatus.DRAFT);
-
-        org.assertj.core.api.Assertions.assertThatThrownBy(
-                () -> fixture.service.publicSeriesFeed(fixture.tenant, draft)
-        ).isInstanceOf(de.pnnit.directwerk.modules.podcast.exception.SeriesNotFoundException.class)
-                .hasMessageContaining("20");
-    }
 
     private Fixture fixture() {
         RssFeedService rssFeedService = mock(RssFeedService.class);
