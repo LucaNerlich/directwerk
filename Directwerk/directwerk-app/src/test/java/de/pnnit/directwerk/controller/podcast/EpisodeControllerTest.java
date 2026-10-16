@@ -11,6 +11,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import de.pnnit.directwerk.api.PublicEpisodeViewMapper;
+import de.pnnit.directwerk.api.dto.ContentTextLimits;
 import de.pnnit.directwerk.api.dto.EpisodeView;
 import de.pnnit.directwerk.modules.core.service.ModuleGateService;
 import de.pnnit.directwerk.modules.podcast.entity.Episode;
@@ -118,6 +119,23 @@ class EpisodeControllerTest {
                 .andExpect(jsonPath("$.data[1].id").value(8));
 
         verify(publicationWorkflowService).bulkPublish(10L, List.of(7L, 8L), false, null);
+    }
+
+    @Test
+    @WithMockUser(roles = "EDITOR")
+    void createEpisodeRejectsAnOversizedDescription() throws Exception {
+        // #562: the description column is `text` and Jackson's default string ceiling is 100 MB,
+        // so this DTO bound is the only thing keeping one request from filling the row.
+        String oversized = "x".repeat(ContentTextLimits.DESCRIPTION_MAX + 1);
+
+        mockMvc.perform(post("/api/v1/episodes")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"seriesId\":1,\"title\":\"Too long\",\"slug\":\"too-long\","
+                                + "\"description\":\"" + oversized + "\"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors[0].code").value("VALIDATION_ERROR"));
+
+        verifyNoInteractions(episodeService);
     }
 
     @Test

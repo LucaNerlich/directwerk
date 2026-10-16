@@ -1,5 +1,6 @@
 package de.pnnit.directwerk.controller.newsletter;
 
+import de.pnnit.directwerk.api.dto.ContentTextLimits;
 import de.pnnit.directwerk.api.dto.CategoryView;
 import de.pnnit.directwerk.api.dto.BulkDeleteView;
 import de.pnnit.directwerk.api.dto.BulkIdsRequest;
@@ -56,8 +57,6 @@ public class ArticleController {
      * authenticated editor could submit an arbitrarily large body that Jackson buffers and the
      * repository persists.
      */
-    private static final int MAX_ARTICLE_BODY_CHARS = 100_000;
-    private static final int MAX_ARTICLE_EXCERPT_CHARS = 2_000;
 
 
     private final ArticleService articleService;
@@ -330,8 +329,8 @@ public class ArticleController {
             @Pattern(regexp = "^[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,62}[a-zA-Z0-9])?$")
             String slug,
             @NotBlank @Size(max = 255) String title,
-            @Size(max = MAX_ARTICLE_BODY_CHARS) String body,
-            @Size(max = MAX_ARTICLE_EXCERPT_CHARS) String excerpt,
+            @Size(max = ContentTextLimits.BODY_MAX) String body,
+            @Size(max = ContentTextLimits.EXCERPT_MAX) String excerpt,
             @Size(max = 512) String seoDescription,
             @Min(1) Long heroAssetId,
             AccessPolicy accessPolicy,
@@ -344,8 +343,8 @@ public class ArticleController {
             @Pattern(regexp = "^[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,62}[a-zA-Z0-9])?$")
             String slug,
             @Size(max = 255) String title,
-            @Size(max = MAX_ARTICLE_BODY_CHARS) String body,
-            @Size(max = MAX_ARTICLE_EXCERPT_CHARS) String excerpt,
+            @Size(max = ContentTextLimits.BODY_MAX) String body,
+            @Size(max = ContentTextLimits.EXCERPT_MAX) String excerpt,
             @Size(max = 512) String seoDescription,
             @Min(1) Long heroAssetId,
             AccessPolicy accessPolicy,
