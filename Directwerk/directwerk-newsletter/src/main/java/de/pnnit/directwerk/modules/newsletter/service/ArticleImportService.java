@@ -13,7 +13,6 @@ import de.pnnit.directwerk.modules.newsletter.ArticlesModule;
 import de.pnnit.directwerk.modules.newsletter.entity.Article;
 import de.pnnit.directwerk.modules.newsletter.exception.ArticleRssImportException;
 import de.pnnit.directwerk.modules.newsletter.importrss.ArticleRssFeedParser;
-import de.pnnit.directwerk.modules.newsletter.importrss.ImportSlugSuggester;
 import de.pnnit.directwerk.modules.newsletter.importrss.ParsedArticleRssFeed;
 import de.pnnit.directwerk.modules.newsletter.repository.ArticleRepository;
 import de.pnnit.directwerk.multitenancy.TenantContext;
@@ -97,7 +96,7 @@ public class ArticleImportService {
                     item.excerpt(),
                     item.publishedAt(),
                     item.imageUrl(),
-                    ImportSlugSuggester.suggest(item.title()),
+                    FeedImportSupport.suggestSlug(item.title(), "artikel"),
                     existingByIdentity.get(identity)
             ));
         }
@@ -110,7 +109,7 @@ public class ArticleImportService {
                         channel.language(),
                         channel.imageUrl(),
                         channel.link(),
-                        ImportSlugSuggester.suggest(channel.title())
+                        FeedImportSupport.suggestSlug(channel.title(), "artikel")
                 ),
                 articles,
                 truncated
