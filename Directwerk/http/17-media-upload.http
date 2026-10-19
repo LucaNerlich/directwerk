@@ -96,7 +96,7 @@ Accept: application/json
 ###
 
 ### @name previewUrl
-GET {{baseUrl}}/api/v1/media/{{mediaAssetId}}/preview-url?previewDraft=true
+GET {{baseUrl}}/api/v1/media/{{mediaAssetId}}/preview-url
 Authorization: Bearer {{tenantAAccessToken}}
 Host: {{tenantAHost}}
 Accept: application/json

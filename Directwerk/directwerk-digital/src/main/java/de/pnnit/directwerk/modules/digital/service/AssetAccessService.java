@@ -101,7 +101,7 @@ public class AssetAccessService implements AssetAccessApi {
 
     @Override
     @Transactional(readOnly = true)
-    public URL resolvePreviewUrl(MediaAsset asset, DirectwerkUserPrincipal principal, boolean previewDraft) {
+    public URL resolvePreviewUrl(MediaAsset asset, DirectwerkUserPrincipal principal) {
         MediaAsset managed = requireLoadedAsset(asset);
         MediaAssetTenantCheck.assertTenantMatch(managed);
         TenantAssetKeys.requireTenantPrefix(managed.getTenant().getSlug(), managed.getS3Key());
@@ -114,13 +114,12 @@ public class AssetAccessService implements AssetAccessApi {
             return resolvePublicCdnUrl(managed);
         }
 
-        // Publisher in-tenant preview: editors bypass CONTENT entitlements (including drafts)
-        if (previewDraft || managed.getStatus() == AssetStatus.PENDING || managed.getStatus() == AssetStatus.READY) {
-            authorizePrivateAsset(managed, principal, true);
-            return resolvePrivateDownloadUrl(managed, apiDownloadTtl());
-        }
-
-        throw new EntitlementDeniedException(managed.getId());
+        // Publisher in-tenant preview: editors bypass CONTENT entitlements (including drafts).
+        // Issue #581: the old `previewDraft || PENDING || READY` branch always matched, because
+        // requireLoadedAsset already rejects the only other statuses; the flag and its throw were
+        // dead API surface.
+        authorizePrivateAsset(managed, principal, true);
+        return resolvePrivateDownloadUrl(managed, apiDownloadTtl());
     }
 
     /**

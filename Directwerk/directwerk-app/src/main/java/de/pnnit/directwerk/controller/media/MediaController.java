@@ -137,15 +137,12 @@ public class MediaController {
     }
 
     @GetMapping("/{id}/preview-url")
-    ResponseEntity<Response<PreviewUrlResponse>> previewUrl(
-            @PathVariable("id") Long id,
-            @RequestParam(defaultValue = "true") boolean previewDraft
-    ) {
+    ResponseEntity<Response<PreviewUrlResponse>> previewUrl(@PathVariable("id") Long id) {
         MediaAsset asset = mediaAssetQueryApi.findById(id)
                 .orElseThrow(() -> new MediaAssetNotFoundException(id));
         requireTenantAsset(asset, id);
         DirectwerkUserPrincipal principal = SecurityUtils.requirePrincipal();
-        URL url = assetAccessApi.resolvePreviewUrl(asset, principal, previewDraft);
+        URL url = assetAccessApi.resolvePreviewUrl(asset, principal);
         return ResponseEntity.ok(Response.ok(new PreviewUrlResponse(url.toString())));
     }
 

@@ -44,7 +44,7 @@ public interface AssetAccessApi {
      * Publisher preview path: EDITOR / TENANT_ADMIN may bypass CONTENT entitlements
      * for in-tenant preview (including drafts).
      */
-    URL resolvePreviewUrl(MediaAsset asset, DirectwerkUserPrincipal principal, boolean previewDraft);
+    URL resolvePreviewUrl(MediaAsset asset, DirectwerkUserPrincipal principal);
 
     /**
      * Batch form of {@link #resolveDownloadUrl}: one entitlement evaluation covers all
