@@ -1,4 +1,7 @@
-package de.pnnit.directwerk.modules.marketing;
+package de.pnnit.directwerk.security;
+
+import de.pnnit.directwerk.modules.marketing.ContactFormLimits;
+import de.pnnit.directwerk.modules.stripebilling.StripeWebhookLimits;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -17,12 +20,12 @@ import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
 import org.springframework.mock.web.MockHttpServletResponse;
 
-class ContactRequestBodySizeFilterTest {
+class JsonRequestBodySizeFilterTest {
 
     @Test
     void rejectsChunkedBodyLargerThanLimitBeforeController() throws Exception {
-        ContactRequestBodySizeFilter filter =
-                new ContactRequestBodySizeFilter(ContactFormLimits.MAX_REQUEST_BODY_BYTES);
+        JsonRequestBodySizeFilter filter =
+                new JsonRequestBodySizeFilter(ContactFormLimits.MAX_REQUEST_BODY_BYTES, "/api/v1/public/contact");
         HttpServletRequest request = mock(HttpServletRequest.class);
         whenContactPost(request);
         when(request.getContentLengthLong()).thenReturn(-1L);
@@ -40,8 +43,8 @@ class ContactRequestBodySizeFilterTest {
 
     @Test
     void rejectsDeclaredContentLengthAboveLimit() throws Exception {
-        ContactRequestBodySizeFilter filter =
-                new ContactRequestBodySizeFilter(ContactFormLimits.MAX_REQUEST_BODY_BYTES);
+        JsonRequestBodySizeFilter filter =
+                new JsonRequestBodySizeFilter(ContactFormLimits.MAX_REQUEST_BODY_BYTES, "/api/v1/public/contact");
         HttpServletRequest request = mock(HttpServletRequest.class);
         whenContactPost(request);
         when(request.getContentLengthLong()).thenReturn((long) ContactFormLimits.MAX_REQUEST_BODY_BYTES + 1);
@@ -56,8 +59,8 @@ class ContactRequestBodySizeFilterTest {
 
     @Test
     void allowsBodyWithinLimit() throws Exception {
-        ContactRequestBodySizeFilter filter =
-                new ContactRequestBodySizeFilter(ContactFormLimits.MAX_REQUEST_BODY_BYTES);
+        JsonRequestBodySizeFilter filter =
+                new JsonRequestBodySizeFilter(ContactFormLimits.MAX_REQUEST_BODY_BYTES, "/api/v1/public/contact");
         HttpServletRequest request = mock(HttpServletRequest.class);
         whenContactPost(request);
         byte[] body = "{\"name\":\"Jane\"}".getBytes(StandardCharsets.UTF_8);
@@ -69,6 +72,42 @@ class ContactRequestBodySizeFilterTest {
         filter.doFilter(request, response, chain);
 
         assertThat(response.getStatus()).isEqualTo(200);
+        verify(chain).doFilter(any(), same(response));
+    }
+
+    @Test
+    void rejectsOversizedStripeWebhookBodyAtItsOwnLimit() throws Exception {
+        JsonRequestBodySizeFilter filter = new JsonRequestBodySizeFilter(
+                StripeWebhookLimits.MAX_REQUEST_BODY_BYTES,
+                "/api/v1/webhooks/stripe"
+        );
+        HttpServletRequest request = mock(HttpServletRequest.class);
+        when(request.getMethod()).thenReturn("POST");
+        when(request.getRequestURI()).thenReturn("/api/v1/webhooks/stripe");
+        when(request.getContentLengthLong()).thenReturn((long) StripeWebhookLimits.MAX_REQUEST_BODY_BYTES + 1);
+
+        MockHttpServletResponse response = new MockHttpServletResponse();
+        FilterChain chain = mock(FilterChain.class);
+        filter.doFilter(request, response, chain);
+
+        assertThat(response.getStatus()).isEqualTo(HttpStatus.PAYLOAD_TOO_LARGE.value());
+        verifyNoMoreInteractions(chain);
+    }
+
+    @Test
+    void ignoresPathsItWasNotRegisteredFor() throws Exception {
+        JsonRequestBodySizeFilter filter = new JsonRequestBodySizeFilter(
+                ContactFormLimits.MAX_REQUEST_BODY_BYTES,
+                "/api/v1/public/contact"
+        );
+        HttpServletRequest request = mock(HttpServletRequest.class);
+        when(request.getMethod()).thenReturn("POST");
+        when(request.getRequestURI()).thenReturn("/api/v1/webhooks/stripe");
+
+        MockHttpServletResponse response = new MockHttpServletResponse();
+        FilterChain chain = mock(FilterChain.class);
+        filter.doFilter(request, response, chain);
+
         verify(chain).doFilter(any(), same(response));
     }
 

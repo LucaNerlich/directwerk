@@ -1,4 +1,4 @@
-package de.pnnit.directwerk.modules.marketing;
+package de.pnnit.directwerk.security;
 
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ReadListener;
@@ -15,20 +15,26 @@ import org.springframework.http.MediaType;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 /**
- * Rejects oversized contact-form bodies before Spring deserializes JSON, including chunked requests.
+ * Rejects oversized JSON bodies before Spring deserializes them, including chunked requests.
+ *
+ * <p>Registered once per path that binds a body before authentication can reject it: the
+ * public contact form and the signature-verified Stripe webhook. The body is cached, so the
+ * controller still reads the same bytes.</p>
  */
-public class ContactRequestBodySizeFilter extends OncePerRequestFilter {
+public class JsonRequestBodySizeFilter extends OncePerRequestFilter {
 
     private final int maxBodyBytes;
+    private final String path;
 
-    public ContactRequestBodySizeFilter(int maxBodyBytes) {
+    public JsonRequestBodySizeFilter(int maxBodyBytes, String path) {
         this.maxBodyBytes = maxBodyBytes;
+        this.path = path;
     }
 
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
         return !"POST".equalsIgnoreCase(request.getMethod())
-                || !"/api/v1/public/contact".equals(request.getRequestURI());
+                || !path.equals(request.getRequestURI());
     }
 
     @Override
