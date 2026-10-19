@@ -590,30 +590,25 @@ describe('createTenantProxyRouteHandler HEAD support', () => {
 })
 
 describe('PROXY_POLICIES', () => {
-    it('pins the agreed per-app body limits and flags', () => {
+    it('pins the agreed per-app body limits and the flags that are read', () => {
         expect(PROXY_POLICIES.studioTenant).toEqual({
             name: 'studioTenant',
             jsonBodyLimit: 1_048_576,
             allowMissingBody: true,
-            allowHead: true,
         })
         expect(PROXY_POLICIES.webTenant).toEqual({
             name: 'webTenant',
             jsonBodyLimit: 16_384,
             allowMissingBody: false,
-            allowHead: true,
         })
+        // Platform rows carry the limit only: bodyless-DELETE tolerance comes from the method.
         expect(PROXY_POLICIES.platform).toEqual({
             name: 'platform',
             jsonBodyLimit: 65_536,
-            allowMissingBody: false,
-            allowHead: true,
         })
         expect(PROXY_POLICIES.adminTenant).toEqual({
             name: 'adminTenant',
             jsonBodyLimit: 65_536,
-            allowMissingBody: false,
-            allowHead: true,
         })
     })
 })
