@@ -266,7 +266,7 @@ function EditorToolbar({
                 title={dict.publication.linkEinfuegenEntfernen}
                 onClick={() => {
                     const previous = editor.getAttributes('link').href
-                    const href = window.prompt('Link-URL', previous ?? 'https://')
+                    const href = window.prompt(dict.common.linkUrl, previous ?? 'https://')
                     if (href === null) {
                         return
                     }

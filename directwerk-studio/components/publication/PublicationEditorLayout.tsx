@@ -203,12 +203,12 @@ export default function PublicationEditorLayout({
                         <Badge variant="outline">Ungespeichert</Badge>
                     ) : null}
                     <p aria-live="polite" className="min-w-16 text-xs text-muted-foreground" role="status">
-                        {isSaving ? 'Speichert…' : (saveHint ?? '')}
+                        {isSaving ? dict.common.saving : (saveHint ?? '')}
                     </p>
                     <div className="ml-auto flex flex-wrap items-center gap-2">
                         {isDraft ? (
                             <Button disabled={isSaving || readOnly} onClick={onSave} size="sm" type="button" variant="outline">
-                                {isSaving ? 'Speichert…' : 'Speichern'}
+                                {isSaving ? dict.common.saving : dict.common.save}
                             </Button>
                         ) : null}
                         {(isDraft || isScheduled) ? (

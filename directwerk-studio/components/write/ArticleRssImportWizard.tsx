@@ -367,7 +367,7 @@ export default function ArticleRssImportWizard(): React.JSX.Element {
             {streamProgress !== null ? (
                 <StreamProgress
                     className="max-w-2xl rounded-xl border bg-muted/40 p-4"
-                    detail="Serverseitiger Transfer — nicht über den Browser."
+                    detail={dict.write.serverSideTransfer}
                     label={streamProgress.label}
                     progress={streamProgress.progress}
                 />
@@ -376,7 +376,7 @@ export default function ArticleRssImportWizard(): React.JSX.Element {
             {step === 'url' ? (
                 <section className="flex max-w-2xl flex-col gap-4">
                     <SectionHeader
-                        title="Feed-Adresse"
+                        title={dict.write.feedAdresse}
                         description="Öffentliche RSS-URL deines bisherigen Blogs oder CMS. Wir lesen nur die Metadaten — noch keine Bilder."
                     />
                     <label className="grid gap-1.5">
@@ -435,7 +435,7 @@ export default function ArticleRssImportWizard(): React.JSX.Element {
                                 disabled={busy}
                                 maxLength={255}
                                 onChange={(event) => setNewCategoryName(event.target.value)}
-                                placeholder="z. B. Kolumne"
+                                placeholder={dict.write.zBKolumne}
                                 value={newCategoryName}
                             />
                         </label>
@@ -476,8 +476,8 @@ export default function ArticleRssImportWizard(): React.JSX.Element {
                                 }
                                 value={accessPolicy}
                             >
-                                <option value="FREE">Alle frei</option>
-                                <option value="PAID">Alle bezahlt</option>
+                                <option value="FREE">{dict.write.allFree}</option>
+                                <option value="PAID">{dict.write.allPaid}</option>
                             </SelectControl>
                             {accessPolicy === 'PAID' ? (
                                 <label className="grid gap-1.5">
@@ -583,8 +583,8 @@ export default function ArticleRssImportWizard(): React.JSX.Element {
                         }
                         value={accessPolicy}
                     >
-                        <option value="FREE">Frei</option>
-                        <option value="PAID">Bezahlt</option>
+                        <option value="FREE">{dict.common.access.free}</option>
+                        <option value="PAID">{dict.common.access.paid}</option>
                     </SelectControl>
                     {accessPolicy === 'PAID' ? (
                         <label className="grid gap-1.5">
@@ -670,7 +670,7 @@ export default function ArticleRssImportWizard(): React.JSX.Element {
                 <section className="flex max-w-2xl flex-col gap-4">
                     {bulkResult !== null ? (
                         <SectionHeader
-                            title="Stapelimport gestartet"
+                            title={dict.write.bulkImportStarted}
                             description={`${bulkResult.totalArticles - bulkResult.alreadyImported} Beiträge sind in der Warteschlange (${bulkResult.alreadyImported} bereits vorhanden). Du erhältst eine E-Mail an ${bulkResult.notifyEmail}, sobald der Import fertig ist. Entwürfe kannst du danach prüfen und veröffentlichen.`}
                         />
                     ) : (

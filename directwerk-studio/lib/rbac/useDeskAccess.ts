@@ -4,6 +4,7 @@ import {useEffect, useState} from 'react'
 
 import {getMyEffectiveRights} from '@/lib/api/tenantSettingsApi'
 import {useOptionalMe} from '@/lib/auth/MeProvider'
+import {useOptionalDictionary} from '@/components/i18n/LocaleProvider'
 
 import {deskAccess, type DeskAccess} from '@/lib/rbac/access'
 import type {EffectiveRights, RbacEntityType} from '@directwerk/api/types'
@@ -50,6 +51,7 @@ export function useDeskAccess({
         }
     }, [])
 
+    const dict = useOptionalDictionary()
     const myUserId = me?.userId ?? null
     return deskAccess({
         effective: rights?.effective ?? null,
@@ -57,5 +59,25 @@ export function useDeskAccess({
         ownerUserId: ownerUserId === undefined ? myUserId : ownerUserId,
         myUserId,
         kind,
+        messages: dict === null ? undefined : {
+            verbs: {
+                create: dict.common.rbac.verbs.create,
+                edit: dict.common.rbac.verbs.edit,
+                publish: dict.common.rbac.verbs.publish,
+                delete: dict.common.rbac.verbs.delete,
+            },
+            verbsInfinitive: {
+                create: dict.common.rbac.verbsInfinitive.create,
+                edit: dict.common.rbac.verbsInfinitive.edit,
+                publish: dict.common.rbac.verbsInfinitive.publish,
+                delete: dict.common.rbac.verbsInfinitive.delete,
+            },
+            denied: dict.common.rbac.messages.kontoEingeschraenktWendeDichTenantAdmin,
+            ownOnly: dict.common.rbac.messages.eigeneBeschraenkt,
+            foreignOnly: dict.common.rbac.messages.duKannstNurEigene,
+            plural: entity === 'EPISODE'
+                ? dict.common.rbac.plurals.episode
+                : dict.common.rbac.plurals.article,
+        },
     })
 }

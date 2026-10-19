@@ -41,10 +41,27 @@
     "optional": "optional",
     "publish": "Veröffentlichen",
     "rbac": {
+      "verbs": {
+        "create": "Anlegen",
+        "edit": "Bearbeiten",
+        "publish": "Veröffentlichen",
+        "delete": "Löschen"
+      },
+      "verbsInfinitive": {
+        "create": "anlegen",
+        "edit": "bearbeiten",
+        "publish": "veröffentlichen",
+        "delete": "löschen"
+      },
+      "plurals": {
+        "episode": "Folgen",
+        "article": "Beiträge"
+      },
       "messages": {
         "aktionEigeneInhalteBeschraenkt": "Diese Aktion ist auf eigene Inhalte beschränkt.",
         "aktionKontoEingeschraenktWendeDichTenant": "Diese Aktion wurde für dein Konto eingeschränkt. Wende dich an einen Tenant-Admin.",
-        "eigeneBeschraenkt": "${verb} ist auf eigene ${plural} beschränkt.",
+        "duKannstNurEigene": "Du kannst nur eigene ${plural} ${verbInfinitive}.",
+      "eigeneBeschraenkt": "${verb} ist auf eigene ${plural} beschränkt.",
         "keinZugriff": "Kein Zugriff",
         "kontoEingeschraenktWendeDichTenantAdmin": "${verb} wurde für dein Konto eingeschränkt. Wende dich an einen Tenant-Admin.",
         "loeschen": "löschen",
@@ -54,6 +71,12 @@
     "required": "erforderlich",
     "restore": "Wiederherstellen",
     "retry": "Erneut versuchen",
+    "publishing": "Wird veröffentlicht…",
+    "deleting": "Wird gelöscht…",
+    "saving": "Speichert…",
+    "withdraw": "Zurückziehen",
+    "withdrawing": "Wird zurückgezogen…",
+    "linkUrl": "Link-URL",
     "save": "Speichern",
     "saved": "Gespeichert.",
     "search": "Suchen",
@@ -249,6 +272,8 @@
     "createContent": "Inhalte erstellen"
   },
   "write": {
+    "feedAdresse": "Feed-Adresse",
+    "zBKolumne": "z. B. Kolumne",
     "accessForAllArticles": "Zugriff für alle Beiträge",
     "actionFailed": "Aktion fehlgeschlagen.",
     "allFree": "Alle frei",
@@ -372,6 +397,8 @@
     "articlePlural": "Beiträge"
   },
   "podcast": {
+    "feedAdresse": "Feed-Adresse",
+    "sendungFestlegen": "Sendung festlegen",
     "1FolgeAktualisiert": "1 Folge aktualisiert.",
     "anlegenGesperrt": "Nach dem Anlegen gesperrt.",
     "anlegenOptionalSofortVeroeffentlichen": "Anlegen und optional sofort veröffentlichen.",

@@ -72,6 +72,34 @@ describe('rbac access helpers', () => {
         expect(access.canDelete).toBe(true)
     })
 
+    it('uses the supplied localized messages for blocked reasons', () => {
+        const access = deskAccess({
+            effective: {EPISODE: {CREATE: 'DENIED', UPDATE: 'OWN_ONLY'}},
+            entity: 'EPISODE',
+            ownerUserId: 99,
+            myUserId: 5,
+            kind: 'Folge',
+            messages: {
+                verbs: {create: 'Create', edit: 'Edit', publish: 'Publish', delete: 'Delete'},
+                verbsInfinitive: {
+                    create: 'create',
+                    edit: 'edit',
+                    publish: 'publish',
+                    delete: 'delete',
+                },
+                denied: '${verb} was restricted for your account. Contact a tenant admin.',
+                ownOnly: '${verb} is limited to your own ${plural}.',
+                foreignOnly: 'You can only ${verbInfinitive} your own ${plural}.',
+                plural: 'episodes',
+            },
+        })
+
+        expect(access.createBlockedReason).toBe(
+            'Create was restricted for your account. Contact a tenant admin.',
+        )
+        expect(access.editBlockedReason).toBe('You can only edit your own episodes.')
+    })
+
     it('blocks denied and foreign own-only operations with reasons', () => {
         const access = deskAccess({
             effective: {
