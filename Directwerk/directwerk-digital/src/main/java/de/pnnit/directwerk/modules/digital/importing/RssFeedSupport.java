@@ -180,6 +180,73 @@ public final class RssFeedSupport {
     }
 
     /**
+     * Parses a duration expressed as seconds or colon-separated time units.
+     *
+     * @param raw the duration text to parse
+     * @return the positive duration in seconds, or {@code null} for invalid, non-positive, or overflowing values
+     */
+    public static Integer parseDuration(String raw) {
+        if (raw == null || raw.isBlank()) {
+            return null;
+        }
+        String value = raw.trim();
+        if (value.chars().allMatch(Character::isDigit)) {
+            try {
+                int seconds = Integer.parseInt(value);
+                return seconds > 0 ? seconds : null;
+            } catch (NumberFormatException ex) {
+                return null;
+            }
+        }
+        String[] parts = value.split(":");
+        try {
+            int seconds = 0;
+            for (String part : parts) {
+                seconds = Math.addExact(Math.multiplyExact(seconds, 60), Integer.parseInt(part.trim()));
+            }
+            return seconds > 0 ? seconds : null;
+        } catch (NumberFormatException | ArithmeticException ex) {
+            return null;
+        }
+    }
+
+    /**
+     * Parses a string as a positive integer.
+     *
+     * @param raw the string to parse
+     * @return the parsed integer when it is greater than zero; {@code null} otherwise
+     */
+    public static Integer parsePositiveInt(String raw) {
+        if (raw == null || raw.isBlank()) {
+            return null;
+        }
+        try {
+            int value = Integer.parseInt(raw.trim());
+            return value > 0 ? value : null;
+        } catch (NumberFormatException ex) {
+            return null;
+        }
+    }
+
+    /**
+     * Parses a positive long value from text.
+     *
+     * @param raw the text to parse
+     * @return the parsed value if it is positive and valid, or {@code null} otherwise
+     */
+    public static Long parsePositiveLong(String raw) {
+        if (raw == null || raw.isBlank()) {
+            return null;
+        }
+        try {
+            long value = Long.parseLong(raw.trim());
+            return value > 0 ? value : null;
+        } catch (NumberFormatException ex) {
+            return null;
+        }
+    }
+
+    /**
      * Defaults blank input to {@code "de"} and bounds nonblank values to eight characters.
      *
      * @param language the language value to normalize
