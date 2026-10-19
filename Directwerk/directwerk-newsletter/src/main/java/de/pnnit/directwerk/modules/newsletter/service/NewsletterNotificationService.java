@@ -6,6 +6,7 @@ import de.pnnit.directwerk.modules.content.NewsletterNotificationApi;
 import de.pnnit.directwerk.modules.core.service.FeedTokenProtector;
 import de.pnnit.directwerk.modules.core.util.PublicContentUrlResolver;
 import de.pnnit.directwerk.modules.email.EmailJobProducer;
+import de.pnnit.directwerk.modules.email.repository.ContentNotificationMarkerRepository;
 import de.pnnit.directwerk.modules.email.EmailTemplate;
 import de.pnnit.directwerk.modules.email.content.TenantContentBrandingResolver;
 import de.pnnit.directwerk.modules.newsletter.entity.NewsletterList;
@@ -48,6 +49,7 @@ public class NewsletterNotificationService implements NewsletterNotificationApi 
     private final PublicContentUrlResolver publicContentUrlResolver;
     private final TenantContentBrandingResolver tenantContentBrandingResolver;
     private final EmailJobProducer emailJobProducer;
+    private final ContentNotificationMarkerRepository contentNotificationMarkerRepository;
 
     @Override
     @Transactional
@@ -61,6 +63,12 @@ public class NewsletterNotificationService implements NewsletterNotificationApi 
         TenantContentBrandingResolver.BrandingContext branding = tenantContentBrandingResolver.resolve(tenantId);
         String contentUrl = publicContentUrlResolver.contentPageUrl(tenantId, ContentType.ARTICLE, event.slug());
         for (Recipient recipient : recipients) {
+            // Issue #539: a retried CONTENT_NOTIFY job re-runs this fan-out. Claim each address
+            // once so a lease takeover cannot enqueue a second campaign to the same recipient.
+            if (!contentNotificationMarkerRepository.claimNewsletterRecipient(
+                    tenantId, event.contentId(), recipient.email())) {
+                continue;
+            }
             // Issue #323: the raw unsubscribe token is a capability. Pass it through the queue's
             // protected-token channel (protectForQueue) and let the handler build the URL, instead
             // of persisting the full unsubscribe URL — and with it the raw token — in cleartext in

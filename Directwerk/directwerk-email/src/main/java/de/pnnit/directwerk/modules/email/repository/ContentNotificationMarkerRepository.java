@@ -28,4 +28,20 @@ public class ContentNotificationMarkerRepository {
                 ON CONFLICT (tenant_id, content_type, content_id, user_id) DO NOTHING
                 """, tenantId, contentType, contentId, userId) > 0;
     }
+
+    /**
+     * Claims one article-newsletter recipient address (issue #539).
+     *
+     * <p>Newsletter recipients are identified by email, not by user id, so they use their own
+     * marker table; a retried CONTENT_NOTIFY job skips addresses that were already enqueued.</p>
+     *
+     * @return {@code true} when this address had not been claimed yet
+     */
+    public boolean claimNewsletterRecipient(Long tenantId, Long contentId, String recipientEmail) {
+        return jdbcTemplate.update("""
+                INSERT INTO newsletter_notification_markers (tenant_id, content_id, recipient_email)
+                VALUES (?, ?, ?)
+                ON CONFLICT (tenant_id, content_id, recipient_email) DO NOTHING
+                """, tenantId, contentId, recipientEmail) > 0;
+    }
 }
