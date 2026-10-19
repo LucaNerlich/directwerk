@@ -3,6 +3,7 @@
 import {useEffect, useRef, useState} from 'react'
 
 import {AUTH_REQUIRED} from '@directwerk/api/constants'
+import {userFacingGeneralError} from '@/lib/billing/userFacingBillingError'
 
 type EntitledDetailStatus = 'loading' | 'ready' | 'not-found' | 'error'
 
@@ -94,10 +95,9 @@ export function useEntitledDetail<T>({
                 if (error instanceof Error && error.message === AUTH_REQUIRED) {
                     setErrorMessage(loadersRef.current.messages.authRequired)
                 } else {
+                    // #555: localized copy only; the thrown error is transport/backend text.
                     setErrorMessage(
-                        error instanceof Error
-                            ? error.message
-                            : loadersRef.current.messages.loadFailed,
+                        userFacingGeneralError(error, loadersRef.current.messages.loadFailed),
                     )
                 }
                 setStatus('error')

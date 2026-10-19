@@ -1,6 +1,7 @@
 'use client'
 
 import {useSiteConfig} from '@/lib/site/SiteConfigProvider'
+import {userFacingGeneralError} from '@/lib/billing/userFacingBillingError'
 
 import {useEffect, useState} from 'react'
 
@@ -68,9 +69,8 @@ export function usePublicArticles({
                     setErrorMessage(authRequiredMessage)
                     return
                 }
-                setErrorMessage(
-                    error instanceof Error ? error.message : loadErrorMessage,
-                )
+                // #555: localized copy only; the thrown error is transport/backend text.
+                setErrorMessage(userFacingGeneralError(error, loadErrorMessage))
             })
             .finally(() => {
                 if (active) {

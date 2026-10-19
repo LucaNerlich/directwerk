@@ -11,6 +11,7 @@ import type {PublicNewsletterList} from '@directwerk/api/types'
 
 import NewsletterSubscribeForm from '@/components/newsletter/NewsletterSubscribeForm'
 import {listPublicNewsletterLists} from '@/lib/api/publicApi'
+import {userFacingGeneralError} from '@/lib/billing/userFacingBillingError'
 import {useDictionary, useLocale} from '@/lib/i18n/LocaleProvider'
 import {localizedPath} from '@/lib/i18n/paths'
 import {useSiteConfig} from '@/lib/site/SiteConfigProvider'
@@ -42,7 +43,8 @@ export default function NewsletterIndexClient({
             })
             .catch((err: unknown) => {
                 if (!cancelled) {
-                    setError(err instanceof Error ? err.message : newsletter.listsLoadFailed)
+                    // #555: localized copy only; the thrown error is transport/backend text.
+                    setError(userFacingGeneralError(err, newsletter.listsLoadFailed))
                 }
             })
         return () => {
