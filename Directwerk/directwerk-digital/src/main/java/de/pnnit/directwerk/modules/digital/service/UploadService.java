@@ -277,6 +277,11 @@ public class UploadService implements UploadApi {
                     throw new MediaAssetNotFoundException(command.mediaAssetId());
                 }
                 if (locked.getStatus() != AssetStatus.PENDING) {
+                    if (locked.getStatus() == AssetStatus.READY && finalKey.equals(locked.getS3Key())) {
+                        // Issue #582: only the identical deterministic final key means a
+                        // concurrent confirm won — the object is referenced, keep it.
+                        throw new ConcurrentConfirmWonException(locked.getStatus());
+                    }
                     throw new UploadValidationException(
                             "UPLOAD_VALIDATION_FAILED",
                             "Asset is not PENDING (status=" + locked.getStatus() + ")"
@@ -295,9 +300,9 @@ public class UploadService implements UploadApi {
                 locked.setStatus(AssetStatus.READY);
                 return mediaAssetRepository.saveAndFlush(locked);
             });
-        } catch (UploadValidationException conflictEx) {
-            // A concurrent confirm won the claim. The deterministic final key
-            // means the object it references is identical — do NOT delete it.
+        } catch (ConcurrentConfirmWonException conflictEx) {
+            // A concurrent confirm won the claim with the identical deterministic final key,
+            // so the object it references is this copy — do NOT delete it.
             throw conflictEx;
         } catch (RuntimeException copyFollowupFailure) {
             // The DB transition failed after our copy succeeded: the object is
@@ -466,6 +471,17 @@ public class UploadService implements UploadApi {
                         "Unknown episode"
                 );
             }
+        }
+    }
+
+
+    /**
+     * Signals that a concurrent confirm already promoted this exact deterministically-keyed
+     * object to READY (issue #582); the copy must not be removed.
+     */
+    private static final class ConcurrentConfirmWonException extends UploadValidationException {
+        private ConcurrentConfirmWonException(AssetStatus status) {
+            super("UPLOAD_VALIDATION_FAILED", "Asset is not PENDING (status=" + status + ")");
         }
     }
 

@@ -345,6 +345,49 @@ class UploadServiceTest {
     }
 
     @Test
+    void confirmUploadDeletesTheCopyWhenTheRowLeftPendingMidConfirm() {
+        // Issue #582: an ARCHIVED/PENDING_DELETE transition is not "a concurrent confirm won",
+        // so the copy at the deterministic final key must be removed instead of leaking forever.
+        when(directwerkConfig.isStorageEnabled()).thenReturn(true);
+        when(directwerkConfig.storage()).thenReturn(storageProps());
+        when(tenantRepository.requireById(10L)).thenReturn(tenant);
+
+        MediaAsset archived = new MediaAsset();
+        archived.setId(55L);
+        archived.setTenant(tenant);
+        archived.setS3Key("alpha-show-a/staging/sess/episode.mp3");
+        archived.setVisibility(AssetVisibility.PRIVATE);
+        archived.setScope(AssetScope.CONTENT);
+        archived.setAssetType(AssetType.AUDIO);
+        archived.setStatus(AssetStatus.ARCHIVED);
+        archived.setMimeType("audio/mpeg");
+        archived.setSizeBytes(2048L);
+        archived.setOriginalFilename("episode.mp3");
+        // The first read still sees PENDING (the copy happens), the locked transition sees
+        // ARCHIVED — the interleaving the issue describes.
+        MediaAsset pending = new MediaAsset();
+        pending.setId(55L);
+        pending.setTenant(tenant);
+        pending.setS3Key("alpha-show-a/staging/sess/episode.mp3");
+        pending.setVisibility(AssetVisibility.PRIVATE);
+        pending.setScope(AssetScope.CONTENT);
+        pending.setAssetType(AssetType.AUDIO);
+        pending.setStatus(AssetStatus.PENDING);
+        pending.setMimeType("audio/mpeg");
+        pending.setSizeBytes(2048L);
+        pending.setOriginalFilename("episode.mp3");
+        when(mediaAssetRepository.findById(55L)).thenReturn(Optional.of(pending));
+        when(mediaAssetRepository.findByIdForUpdate(55L)).thenReturn(Optional.of(archived));
+        when(s3Client.headObject(any(HeadObjectRequest.class))).thenReturn(
+                HeadObjectResponse.builder().contentLength(2048L).contentType("audio/mpeg").build()
+        );
+
+        assertThatThrownBy(() -> uploadService.confirmUpload(new UploadApi.ConfirmUploadCommand(55L)))
+                .isInstanceOf(UploadValidationException.class);
+        verify(s3Client).deleteObject(any(DeleteObjectRequest.class));
+    }
+
+    @Test
     void confirmUploadAppendsSanitizedFilenameStem() {
         when(directwerkConfig.isStorageEnabled()).thenReturn(true);
         when(directwerkConfig.storage()).thenReturn(storageProps());
