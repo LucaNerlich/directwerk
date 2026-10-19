@@ -80,13 +80,15 @@ public class QueueRepository {
             return Optional.empty();
         }
         // Newest row wins, so a job re-queued after its predecessor was claimed is the one returned.
+        // ids are random UUIDs (gen_random_uuid), so recency must come from created_at; ordering by
+        // id alone returned an arbitrary row — often an older COMPLETED/FAILED one (issue #567).
         return jdbcTemplate.query("""
                 SELECT %s
                 FROM jobs
                 WHERE queue_name = ?
                   AND correlation_id = ?
                   AND tenant_id = ?
-                ORDER BY id DESC
+                ORDER BY created_at DESC, id DESC
                 LIMIT 1
                 """.formatted(COLUMNS), this::mapJob, queue, correlationId, tenantId).stream().findFirst();
     }
