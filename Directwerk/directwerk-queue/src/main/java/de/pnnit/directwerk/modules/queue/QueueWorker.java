@@ -140,6 +140,23 @@ public class QueueWorker {
     }
 
     /**
+     * Runs one heartbeat renewal and reports whether this worker still owns the lease.
+     *
+     * <p>Issue #583: {@code renew} signals a lost lease with an empty Optional (it never throws
+     * {@code JobConflictException}), so the old throwing catch was unreachable and mid-execution
+     * lease loss went unlogged. Transient DB failures count as "still alive" so the heartbeat is
+     * not killed by a blip.</p>
+     */
+    boolean renewLeaseOnce(QueueJob job, long leaseSeconds) {
+        try {
+            return queueService.renew(job.id(), workerId, leaseSeconds).isPresent();
+        } catch (RuntimeException ex) {
+            log.warn("Could not renew lease for job id={} queue={}", job.id(), job.queue(), ex);
+            return true;
+        }
+    }
+
+    /**
      * Periodically extends this worker's lease while the handler runs so a slow
      * SMTP relay or RSS refresh is not re-claimed and re-executed by another
      * node mid-flight. The renewal period is a third of the effective lease.
@@ -152,17 +169,11 @@ public class QueueWorker {
             );
             long periodSeconds = Math.max(1, leaseSeconds / 3);
             return leaseHeartbeat.scheduleAtFixedRate(() -> {
-                try {
-                    queueService.renew(job.id(), workerId, leaseSeconds);
-                } catch (JobConflictException conflict) {
-                    // Lease was lost — another node owns the job now. Throwing
-                    // suppresses further heartbeats; completion/failure of our
-                    // run will be rejected as stale by the repository guards.
+                if (!renewLeaseOnce(job, leaseSeconds)) {
+                    // Another node owns the job now. Throwing suppresses further firings;
+                    // completion/failure of our run is rejected as stale by the repository guards.
                     log.warn("Lease lost during execution: job id={} queue={}", job.id(), job.queue());
-                    throw conflict;
-                } catch (RuntimeException ex) {
-                    // Transient DB problems must not kill the heartbeat.
-                    log.warn("Could not renew lease for job id={} queue={}", job.id(), job.queue(), ex);
+                    throw new IllegalStateException("lease lost");
                 }
             }, periodSeconds, periodSeconds, TimeUnit.SECONDS);
         } catch (RuntimeException schedulingFailure) {

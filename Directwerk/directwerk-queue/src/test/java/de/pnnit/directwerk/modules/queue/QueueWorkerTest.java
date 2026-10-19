@@ -1,5 +1,6 @@
 package de.pnnit.directwerk.modules.queue;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -93,6 +94,38 @@ class QueueWorkerTest {
 
         // Issue #327: a job whose lease was already re-claimed must not run concurrently.
         verify(handler, never()).handle(any());
+    }
+
+    @Test
+    void heartbeatReportsLeaseLossWhenRenewReturnsEmpty() {
+        // Issue #583: renew signals a lost lease with Optional.empty() (never an exception), so
+        // the heartbeat must check the result instead of relying on an unreachable catch.
+        QueueService queueService = mock(QueueService.class);
+        DirectwerkConfig config = configWithQueueEnabled(true);
+        QueueJob job = new QueueJob(
+                UUID.randomUUID(), "email", null, 0, JobStatus.PROCESSING, Instant.now(), 1, 5,
+                "worker-1", Instant.now().plusSeconds(60), null, 1L, null, null,
+                Instant.now(), Instant.now());
+        when(queueService.renew(eq(job.id()), anyString(), eq(60L))).thenReturn(Optional.empty());
+        QueueWorker worker = new QueueWorker(queueService, config, mock(JobHandlerRegistry.class));
+
+        assertThat(worker.renewLeaseOnce(job, 60L)).isFalse();
+    }
+
+    @Test
+    void heartbeatKeepsGoingWhenRenewSucceedsOrTheDatabaseBlips() {
+        QueueService queueService = mock(QueueService.class);
+        DirectwerkConfig config = configWithQueueEnabled(true);
+        QueueJob job = new QueueJob(
+                UUID.randomUUID(), "email", null, 0, JobStatus.PROCESSING, Instant.now(), 1, 5,
+                "worker-1", Instant.now().plusSeconds(60), null, 1L, null, null,
+                Instant.now(), Instant.now());
+        when(queueService.renew(eq(job.id()), anyString(), eq(60L))).thenReturn(Optional.of(job));
+        QueueWorker worker = new QueueWorker(queueService, config, mock(JobHandlerRegistry.class));
+        assertThat(worker.renewLeaseOnce(job, 60L)).isTrue();
+
+        when(queueService.renew(eq(job.id()), anyString(), eq(60L))).thenThrow(new IllegalStateException("db down"));
+        assertThat(worker.renewLeaseOnce(job, 60L)).isTrue();
     }
 
     private static DirectwerkConfig configWithQueueEnabled(boolean enabled) {
