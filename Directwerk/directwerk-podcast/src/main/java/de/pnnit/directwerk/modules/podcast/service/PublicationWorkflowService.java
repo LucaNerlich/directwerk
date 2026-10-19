@@ -1,57 +1,72 @@
 package de.pnnit.directwerk.modules.podcast.service;
 
-import de.pnnit.directwerk.modules.content.PublicationLifecycleSupport;
-import de.pnnit.directwerk.modules.core.content.BulkPublication;
-import de.pnnit.directwerk.modules.core.notification.PublicationNotificationSupport;
-import de.pnnit.directwerk.modules.content.PublicationTexts;
-import de.pnnit.directwerk.modules.content.ScheduledPublishing.DueItem;
 import de.pnnit.directwerk.modules.content.ContentPublishedNotifier;
 import de.pnnit.directwerk.modules.content.ContentType;
+import de.pnnit.directwerk.modules.content.PublicationTexts;
 import de.pnnit.directwerk.modules.core.RequiresModule;
 import de.pnnit.directwerk.modules.core.authorization.ContentEntityType;
 import de.pnnit.directwerk.modules.core.authorization.ContentOperation;
+import de.pnnit.directwerk.modules.core.content.PublicationWorkflow;
 import de.pnnit.directwerk.modules.core.notification.SubscriberNotificationGate;
 import de.pnnit.directwerk.modules.core.service.MembershipPermissionService;
 import de.pnnit.directwerk.modules.core.service.ScheduledPublicationExecutor;
 import de.pnnit.directwerk.modules.digital.api.EpisodeMediaApi;
+import de.pnnit.directwerk.modules.digital.entity.AccessPolicy;
 import de.pnnit.directwerk.modules.digital.entity.AssetVisibility;
 import de.pnnit.directwerk.modules.digital.entity.MediaAsset;
+import de.pnnit.directwerk.modules.digital.service.HtmlSanitizer;
 import de.pnnit.directwerk.modules.podcast.PodcastModule;
-import de.pnnit.directwerk.modules.digital.entity.AccessPolicy;
-import de.pnnit.directwerk.modules.podcast.job.RssFeedRefreshJobProducer;
 import de.pnnit.directwerk.modules.podcast.entity.Episode;
 import de.pnnit.directwerk.modules.podcast.entity.EpisodeStatus;
 import de.pnnit.directwerk.modules.podcast.entity.SeriesStatus;
 import de.pnnit.directwerk.modules.podcast.exception.EpisodeValidationException;
-import de.pnnit.directwerk.modules.content.PublicationTransitions;
-import de.pnnit.directwerk.modules.digital.service.HtmlSanitizer;
+import de.pnnit.directwerk.modules.podcast.job.RssFeedRefreshJobProducer;
 import de.pnnit.directwerk.modules.podcast.repository.EpisodeRepository;
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.LinkedHashSet;
 import java.util.List;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import java.util.function.BiConsumer;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+/**
+ * Podcast binding of {@link PublicationWorkflow}: episode loading, publish
+ * validation (series, title, audio, formats), public-audio promotion/demotion
+ * and the podcast feed refresh.
+ */
 @Service
-@RequiredArgsConstructor
-@Slf4j
-public class PublicationWorkflowService {
+public class PublicationWorkflowService extends PublicationWorkflow<Episode, EpisodeStatus> {
 
     private final EpisodeRepository episodeRepository;
     private final EpisodeService episodeService;
     private final FormatService formatService;
     private final EpisodeMediaApi episodeMediaApi;
     private final HtmlSanitizer htmlSanitizer;
-    private final ScheduledPublicationExecutor scheduledPublicationExecutor;
-    private final ContentPublishedNotifier contentPublishedNotifier;
-    private final SubscriberNotificationGate notificationGate;
     private final RssFeedRefreshJobProducer rssFeedRefreshScheduler;
     private final ObjectProvider<PublicationWorkflowService> self;
-    private final MembershipPermissionService permissionService;
+
+    public PublicationWorkflowService(
+            EpisodeRepository episodeRepository,
+            EpisodeService episodeService,
+            FormatService formatService,
+            EpisodeMediaApi episodeMediaApi,
+            HtmlSanitizer htmlSanitizer,
+            ScheduledPublicationExecutor scheduledPublicationExecutor,
+            ContentPublishedNotifier contentPublishedNotifier,
+            SubscriberNotificationGate notificationGate,
+            RssFeedRefreshJobProducer rssFeedRefreshScheduler,
+            ObjectProvider<PublicationWorkflowService> self,
+            MembershipPermissionService permissionService
+    ) {
+        super(scheduledPublicationExecutor, contentPublishedNotifier, notificationGate, permissionService);
+        this.episodeRepository = episodeRepository;
+        this.episodeService = episodeService;
+        this.formatService = formatService;
+        this.episodeMediaApi = episodeMediaApi;
+        this.htmlSanitizer = htmlSanitizer;
+        this.rssFeedRefreshScheduler = rssFeedRefreshScheduler;
+        this.self = self;
+    }
 
     @Transactional
     @RequiresModule(PodcastModule.KEY)
@@ -73,9 +88,7 @@ public class PublicationWorkflowService {
             boolean notifySubscribers,
             Instant publishedAt
     ) {
-        Episode episode = episodeService.requireEpisode(tenantId, episodeId);
-        permissionService.requireEpisodeAccess(ContentOperation.PUBLISH, episode.getCreatedBy());
-        return publishInternal(tenantId, episode, notifySubscribers, publishedAt, true);
+        return publishContent(tenantId, episodeId, notifySubscribers, publishedAt);
     }
 
     @Transactional
@@ -87,124 +100,41 @@ public class PublicationWorkflowService {
     @Transactional
     @RequiresModule(PodcastModule.KEY)
     public Episode schedule(Long tenantId, Long episodeId, Instant scheduledAt, boolean notifySubscribers) {
-        Episode episode = episodeService.requireEpisode(tenantId, episodeId);
-        permissionService.requireEpisodeAccess(ContentOperation.SCHEDULE, episode.getCreatedBy());
-        requirePublishedSeries(episode);
-        PublicationLifecycleSupport.schedule(
-                scheduledAt,
-                () -> episode.getStatus() == EpisodeStatus.DRAFT,
-                "episodes",
-                () -> {
-                    episode.setStatus(EpisodeStatus.SCHEDULED);
-                    episode.setScheduledAt(scheduledAt);
-                    episode.setNotifySubscribersOnPublish(notifySubscribers);
-                }
-        );
-        return episodeRepository.save(episode);
+        return scheduleContent(tenantId, episodeId, scheduledAt, notifySubscribers);
     }
 
     @Transactional
     @RequiresModule(PodcastModule.KEY)
     public Episode cancelSchedule(Long tenantId, Long episodeId) {
-        Episode episode = episodeService.requireEpisode(tenantId, episodeId);
-        permissionService.requireEpisodeAccess(ContentOperation.SCHEDULE, episode.getCreatedBy());
-        PublicationTransitions.requireScheduledStatus(episode.getStatus() == EpisodeStatus.SCHEDULED, "episodes");
-        episode.setStatus(EpisodeStatus.DRAFT);
-        episode.setScheduledAt(null);
-        return episodeRepository.save(episode);
+        return cancelScheduleContent(tenantId, episodeId);
     }
 
     @Transactional
     @RequiresModule(PodcastModule.KEY)
     public Episode unpublish(Long tenantId, Long episodeId) {
-        Episode episode = episodeService.requireEpisode(tenantId, episodeId);
-        permissionService.requireEpisodeAccess(ContentOperation.UNPUBLISH, episode.getCreatedBy());
-        PublicationLifecycleSupport.unpublish(
-                () -> episode.getStatus() == EpisodeStatus.PUBLISHED,
-                "episodes",
-                () -> {
-                    demotePublicAudioIfNeeded(episode);
-                    episode.setStatus(EpisodeStatus.DRAFT);
-                    episode.setPublishedAt(null);
-                    episode.setScheduledAt(null);
-                },
-                () -> rssFeedRefreshScheduler.requestRefreshAfterCommit(tenantId)
-        );
-        return episodeRepository.save(episode);
+        return unpublishContent(tenantId, episodeId, true);
     }
 
     @Transactional
     @RequiresModule(PodcastModule.KEY)
     public Episode archive(Long tenantId, Long episodeId) {
-        Episode episode = episodeService.requireEpisode(tenantId, episodeId);
-        permissionService.requireEpisodeAccess(ContentOperation.ARCHIVE, episode.getCreatedBy());
-        PublicationTransitions.requirePublishedStatus(episode.getStatus() == EpisodeStatus.PUBLISHED, "episodes");
-        demotePublicAudioIfNeeded(episode);
-        episode.setStatus(EpisodeStatus.ARCHIVED);
-        episode.setScheduledAt(null);
-        Episode archived = episodeRepository.save(episode);
-        rssFeedRefreshScheduler.requestRefreshAfterCommit(tenantId);
-        return archived;
+        return archiveContent(tenantId, episodeId);
     }
 
     @Transactional
     @RequiresModule(PodcastModule.KEY)
     public Episode unarchive(Long tenantId, Long episodeId) {
-        Episode episode = episodeService.requireEpisode(tenantId, episodeId);
-        permissionService.requireEpisodeAccess(ContentOperation.UNARCHIVE, episode.getCreatedBy());
-        PublicationTransitions.requireArchivedStatus(episode.getStatus() == EpisodeStatus.ARCHIVED, "episodes");
-        episode.setStatus(EpisodeStatus.DRAFT);
-        episode.setPublishedAt(null);
-        episode.setScheduledAt(null);
-        return episodeRepository.save(episode);
-    }
-
-    private void demotePublicAudioIfNeeded(Episode episode) {
-        MediaAsset audioAsset = episode.getAudioAsset();
-        if (audioAsset != null && audioAsset.getId() != null && audioAsset.getVisibility() == AssetVisibility.PUBLIC) {
-            episode.setAudioAsset(episodeMediaApi.demoteToPrivate(audioAsset.getId()));
-        }
+        return unarchiveContent(tenantId, episodeId);
     }
 
     public int publishDueScheduled() {
-        List<DueItem> dueItems = episodeRepository
-                .findByStatusAndScheduledAtLessThanEqualOrderByScheduledAtAscIdAsc(
-                        EpisodeStatus.SCHEDULED,
-                        Instant.now()
-                ).stream()
-                .map(episode -> new DueItem(episode.getTenant().getId(), episode.getId()))
-                .toList();
-        PublicationWorkflowService proxy = self.getObject();
-        return scheduledPublicationExecutor.publishDue(
-                PodcastModule.KEY,
-                dueItems,
-                proxy::publishScheduledEpisode,
-                "episodes"
-        );
+        return publishDueScheduledContent();
     }
 
     @Transactional
     @RequiresModule(PodcastModule.KEY)
     public void publishScheduledEpisode(Long tenantId, Long episodeId) {
-        Episode episode = episodeService.requireEpisode(tenantId, episodeId);
-        if (PublicationLifecycleSupport.skipScheduledPublishIfStatusChanged(
-                episode.getStatus() == EpisodeStatus.SCHEDULED,
-                log,
-                "episode",
-                episodeId,
-                tenantId,
-                episode.getStatus()
-        )) {
-            return;
-        }
-        if (permissionService.isDeniedForOwner(
-                tenantId, episode.getCreatedBy(), ContentEntityType.EPISODE, ContentOperation.PUBLISH)) {
-            log.warn(
-                    "Skipping scheduled publish for episode {} (tenant {}): PUBLISH is restricted for creator {}",
-                    episodeId, tenantId, episode.getCreatedBy());
-            return;
-        }
-        publishInternal(tenantId, episode, episode.isNotifySubscribersOnPublish(), null, true);
+        publishScheduledContent(tenantId, episodeId);
     }
 
     /**
@@ -220,13 +150,7 @@ public class PublicationWorkflowService {
             boolean notifySubscribers,
             Instant publishedAt
     ) {
-        List<Episode> published = BulkPublication.apply(episodeIds, episodeId -> {
-            Episode episode = episodeService.requireEpisode(tenantId, episodeId);
-            permissionService.requireEpisodeAccess(ContentOperation.PUBLISH, episode.getCreatedBy());
-            return publishInternal(tenantId, episode, notifySubscribers, publishedAt, false);
-        });
-        rssFeedRefreshScheduler.requestRefreshAfterCommit(tenantId);
-        return published;
+        return bulkPublishContent(tenantId, episodeIds, notifySubscribers, publishedAt);
     }
 
     /**
@@ -236,36 +160,54 @@ public class PublicationWorkflowService {
     @Transactional
     @RequiresModule(PodcastModule.KEY)
     public List<Episode> bulkUnpublish(Long tenantId, List<Long> episodeIds) {
-        List<Episode> unpublished = BulkPublication.apply(episodeIds, episodeId -> {
-            Episode episode = episodeService.requireEpisode(tenantId, episodeId);
-            permissionService.requireEpisodeAccess(ContentOperation.UNPUBLISH, episode.getCreatedBy());
-            PublicationLifecycleSupport.unpublish(
-                    () -> episode.getStatus() == EpisodeStatus.PUBLISHED,
-                    "episodes",
-                    () -> {
-                        demotePublicAudioIfNeeded(episode);
-                        episode.setStatus(EpisodeStatus.DRAFT);
-                        episode.setPublishedAt(null);
-                        episode.setScheduledAt(null);
-                    },
-                    null
-            );
-            return episodeRepository.save(episode);
-        });
-        rssFeedRefreshScheduler.requestRefreshAfterCommit(tenantId);
-        return unpublished;
+        return bulkUnpublishContent(tenantId, episodeIds);
     }
 
-    private Episode publishInternal(
-            Long tenantId,
-            Episode episode,
-            boolean notifySubscribers,
-            Instant requestedPublishedAt,
-            boolean refresh
-    ) {
-        PublicationTransitions.requireDraftOrScheduled(
-                episode.getStatus() == EpisodeStatus.DRAFT || episode.getStatus() == EpisodeStatus.SCHEDULED,
-                "episodes");
+    @Override
+    protected Episode requireEntity(Long tenantId, Long contentId) {
+        return episodeService.requireEpisode(tenantId, contentId);
+    }
+
+    @Override
+    protected Episode save(Episode entity) {
+        return episodeRepository.save(entity);
+    }
+
+    @Override
+    protected List<Episode> findDueScheduled(Instant now) {
+        return episodeRepository.findByStatusAndScheduledAtLessThanEqualOrderByScheduledAtAscIdAsc(
+                EpisodeStatus.SCHEDULED,
+                now
+        );
+    }
+
+    @Override
+    protected Phase phaseOf(EpisodeStatus status) {
+        return switch (status) {
+            case DRAFT -> Phase.DRAFT;
+            case SCHEDULED -> Phase.SCHEDULED;
+            case PUBLISHED -> Phase.PUBLISHED;
+            case ARCHIVED -> Phase.ARCHIVED;
+        };
+    }
+
+    @Override
+    protected EpisodeStatus statusFor(Phase phase) {
+        return switch (phase) {
+            case DRAFT -> EpisodeStatus.DRAFT;
+            case SCHEDULED -> EpisodeStatus.SCHEDULED;
+            case PUBLISHED -> EpisodeStatus.PUBLISHED;
+            case ARCHIVED -> EpisodeStatus.ARCHIVED;
+        };
+    }
+
+    @Override
+    protected void requirePermission(ContentOperation operation, Episode episode) {
+        permissionService.requireEpisodeAccess(operation, episode.getCreatedBy());
+    }
+
+    @Override
+    protected void validateAndPrepareForPublish(Long tenantId, Episode episode) {
         requirePublishedSeries(episode);
         if (episode.getTitle() == null || episode.getTitle().isBlank()) {
             throw new EpisodeValidationException("Episode title is required");
@@ -284,7 +226,8 @@ public class PublicationWorkflowService {
             throw new EpisodeValidationException("At least one format is required before publishing");
         }
         if (episode.getFormats().stream().anyMatch(format -> !format.isActive())) {
-            throw new EpisodeValidationException("Episode has a deactivated format assigned; update formats before publishing");
+            throw new EpisodeValidationException(
+                    "Episode has a deactivated format assigned; update formats before publishing");
         }
 
         episodeMediaApi.attachEpisode(readyAudio.getId(), episode.getId());
@@ -294,21 +237,11 @@ public class PublicationWorkflowService {
         } else {
             episode.setAudioAsset(readyAudio);
         }
+    }
 
-        Instant publishedAt = PublicationTransitions.resolvePublishedAt(
-                requestedPublishedAt,
-                episode.getPublishedAt()
-        );
-        episode.setStatus(EpisodeStatus.PUBLISHED);
-        episode.setPublishedAt(publishedAt);
-        episode.setScheduledAt(null);
-        Episode published = episodeRepository.save(episode);
-
-        if (refresh) {
-            rssFeedRefreshScheduler.requestRefreshAfterCommit(tenantId);
-        }
-        maybeNotifySubscribers(tenantId, published, notifySubscribers);
-        return published;
+    @Override
+    protected void beforeSchedule(Episode episode) {
+        requirePublishedSeries(episode);
     }
 
     /**
@@ -324,21 +257,75 @@ public class PublicationWorkflowService {
         }
     }
 
-    private void maybeNotifySubscribers(Long tenantId, Episode published, boolean notifySubscribers) {
-        Instant notifiedAt = Instant.now();
-        PublicationNotificationSupport.maybeNotify(
-                tenantId,
-                ContentType.EPISODE,
-                published.getId(),
-                published.getTitle(),
-                PublicationTexts.htmlExcerpt(published.getDescription()),
-                published.getSlug(),
-                published.getAccessPolicy().name(),
-                notifySubscribers,
-                notificationGate,
-                contentPublishedNotifier,
-                () -> episodeRepository.claimEmailNotification(tenantId, published.getId(), notifiedAt),
-                () -> published.setEmailNotifiedAt(notifiedAt)
-        );
+    @Override
+    protected void beforeUnpublish(Episode episode) {
+        demotePublicAudioIfNeeded(episode);
+    }
+
+    @Override
+    protected void beforeArchive(Episode episode) {
+        demotePublicAudioIfNeeded(episode);
+    }
+
+    private void demotePublicAudioIfNeeded(Episode episode) {
+        MediaAsset audioAsset = episode.getAudioAsset();
+        if (audioAsset != null && audioAsset.getId() != null && audioAsset.getVisibility() == AssetVisibility.PUBLIC) {
+            episode.setAudioAsset(episodeMediaApi.demoteToPrivate(audioAsset.getId()));
+        }
+    }
+
+    @Override
+    protected String notificationExcerpt(Episode episode) {
+        return PublicationTexts.htmlExcerpt(episode.getDescription());
+    }
+
+    @Override
+    protected boolean shouldNotify(Episode episode, boolean notifySubscribers) {
+        return notifySubscribers;
+    }
+
+    @Override
+    protected String accessPolicyName(Episode episode) {
+        return episode.getAccessPolicy().name();
+    }
+
+    @Override
+    protected int claimEmailNotification(Long tenantId, Long contentId, Instant notifiedAt) {
+        return episodeRepository.claimEmailNotification(tenantId, contentId, notifiedAt);
+    }
+
+    @Override
+    protected void requestFeedRefresh(Long tenantId) {
+        rssFeedRefreshScheduler.requestRefreshAfterCommit(tenantId);
+    }
+
+    @Override
+    protected String moduleKey() {
+        return PodcastModule.KEY;
+    }
+
+    @Override
+    protected String pluralLabel() {
+        return "episodes";
+    }
+
+    @Override
+    protected String singularLabel() {
+        return "episode";
+    }
+
+    @Override
+    protected ContentType contentType() {
+        return ContentType.EPISODE;
+    }
+
+    @Override
+    protected ContentEntityType entityType() {
+        return ContentEntityType.EPISODE;
+    }
+
+    @Override
+    protected BiConsumer<Long, Long> scheduledPublisher() {
+        return self.getObject()::publishScheduledEpisode;
     }
 }

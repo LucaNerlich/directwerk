@@ -23,6 +23,7 @@ import jakarta.persistence.UniqueConstraint;
 import java.time.Instant;
 import java.util.LinkedHashSet;
 import java.util.Set;
+import de.pnnit.directwerk.modules.core.content.PublicationEntity;
 import lombok.Getter;
 import lombok.Setter;
 import org.hibernate.annotations.Filter;
@@ -36,7 +37,7 @@ import org.hibernate.annotations.Filter;
 @Filter(name = TenantFilters.FILTER_NAME, condition = TenantFilters.CONDITION)
 @Getter
 @Setter
-public class Article extends BaseEntity implements TenantOwned {
+public class Article extends BaseEntity implements TenantOwned, PublicationEntity<ArticleStatus> {
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "tenant_id", nullable = false)
