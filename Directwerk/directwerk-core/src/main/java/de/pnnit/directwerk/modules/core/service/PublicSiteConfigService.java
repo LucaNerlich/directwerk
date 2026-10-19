@@ -1,5 +1,6 @@
 package de.pnnit.directwerk.modules.core.service;
 
+import de.pnnit.directwerk.config.CacheKeys;
 import de.pnnit.directwerk.config.DirectwerkCacheNames;
 import de.pnnit.directwerk.config.DirectwerkConfig;
 import de.pnnit.directwerk.modules.core.FeatureModuleKeys;
@@ -44,7 +45,7 @@ public class PublicSiteConfigService {
     @Transactional(readOnly = true)
     @Cacheable(
             cacheNames = DirectwerkCacheNames.PUBLIC_SITE_CONFIG,
-            key = "#host.trim().toLowerCase(T(java.util.Locale).ROOT) + ':' + #scheme + ':' + #port",
+            key = "T(de.pnnit.directwerk.config.CacheKeys).siteConfig(#scheme, #host, #port)",
             condition = "#host != null && !#host.isBlank()"
     )
     public SiteConfigView loadSiteConfig(String scheme, String host, int port) {
