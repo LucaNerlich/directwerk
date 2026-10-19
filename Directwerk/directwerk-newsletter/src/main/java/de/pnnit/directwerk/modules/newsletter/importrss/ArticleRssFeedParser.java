@@ -1,159 +1,106 @@
 package de.pnnit.directwerk.modules.newsletter.importrss;
 
-import static de.pnnit.directwerk.modules.digital.importing.RssFeedSupport.*;
+import static de.pnnit.directwerk.modules.digital.importing.RssFeedSupport.blankToNull;
+import static de.pnnit.directwerk.modules.digital.importing.RssFeedSupport.boundedGuid;
+import static de.pnnit.directwerk.modules.digital.importing.RssFeedSupport.firstNonBlank;
+import static de.pnnit.directwerk.modules.digital.importing.RssFeedSupport.normalizeLanguage;
+import static de.pnnit.directwerk.modules.digital.importing.RssFeedSupport.resolveHttpUrl;
+import static de.pnnit.directwerk.modules.digital.importing.RssFeedSupport.sha256Hex;
+import static de.pnnit.directwerk.modules.digital.importing.RssFeedSupport.truncate;
 
+import de.pnnit.directwerk.modules.digital.exception.RssFeedImportException;
+import de.pnnit.directwerk.modules.digital.importing.ParsedRssDocument;
+import de.pnnit.directwerk.modules.digital.importing.RssFeedReader;
 import de.pnnit.directwerk.modules.newsletter.exception.ArticleRssImportException;
 import java.io.InputStream;
 import java.time.Instant;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
-import javax.xml.XMLConstants;
-import javax.xml.stream.XMLInputFactory;
-import javax.xml.stream.XMLStreamConstants;
-import javax.xml.stream.XMLStreamException;
-import javax.xml.stream.XMLStreamReader;
+import java.util.Objects;
 import org.springframework.stereotype.Component;
 
 /**
- * Parses RSS 2.0 article feeds (content:encoded bodies, image enclosures).
+ * Maps a generic {@link ParsedRssDocument} onto article fields: content:encoded body,
+ * teaser excerpt, image enclosure (with inline-image fallback) and a stable import GUID.
  */
 @Component
 public class ArticleRssFeedParser {
 
+    /**
+     * Parses an RSS feed and converts it into a structured article feed representation.
+     *
+     * @param feedUrl the feed URL used to resolve relative links
+     * @param xml     the RSS XML input
+     * @return        the parsed article feed
+     * @throws ArticleRssImportException if the XML is malformed or the feed is invalid
+     */
     public ParsedArticleRssFeed parse(String feedUrl, InputStream xml) {
-        XMLInputFactory factory = XMLInputFactory.newFactory();
-        factory.setProperty(XMLInputFactory.SUPPORT_DTD, false);
-        factory.setProperty(XMLInputFactory.IS_SUPPORTING_EXTERNAL_ENTITIES, false);
-        factory.setProperty(XMLInputFactory.IS_REPLACING_ENTITY_REFERENCES, false);
-        setExternalAccessProperty(factory, XMLConstants.ACCESS_EXTERNAL_DTD);
-        setExternalAccessProperty(factory, XMLConstants.ACCESS_EXTERNAL_SCHEMA);
+        ParsedRssDocument document;
         try {
-            XMLStreamReader reader = factory.createXMLStreamReader(xml);
-            try {
-                return readDocument(feedUrl, reader);
-            } finally {
-                reader.close();
-            }
-        } catch (XMLStreamException ex) {
-            throw new ArticleRssImportException(400, "RSS_FEED_INVALID", "RSS feed could not be parsed", ex);
+            document = RssFeedReader.parse(feedUrl, xml);
+        } catch (RssFeedImportException ex) {
+            throw new ArticleRssImportException(ex.getStatus(), ex.getCode(), ex.getMessage(), ex);
         }
-    }
-
-    private static ParsedArticleRssFeed readDocument(String feedUrl, XMLStreamReader reader)
-            throws XMLStreamException {
-        String channelTitle = null;
-        String channelDescription = null;
-        String language = null;
-        String channelImage = null;
-        String link = null;
-        List<ParsedArticleRssFeed.Item> items = new ArrayList<>();
-        boolean inChannel = false;
-        boolean inItem = false;
-        boolean inImage = false;
-        ItemBuilder item = null;
-
-        while (reader.hasNext()) {
-            int event = reader.next();
-            if (event == XMLStreamConstants.START_ELEMENT) {
-                String local = reader.getLocalName();
-                if (!inChannel && "channel".equalsIgnoreCase(local)) {
-                    inChannel = true;
-                } else if (inChannel && !inItem && "item".equalsIgnoreCase(local)) {
-                    inItem = true;
-                    item = new ItemBuilder(feedUrl);
-                } else if (inChannel && !inItem && "image".equalsIgnoreCase(local) && !isItunes(reader)) {
-                    inImage = true;
-                } else if (inItem && item != null) {
-                    readItemElement(reader, item, local);
-                } else if (inChannel && !inItem) {
-                    if (inImage) {
-                        if ("url".equalsIgnoreCase(local)) {
-                            channelImage = firstNonBlank(channelImage, readElementText(reader));
-                        } else {
-                            skipElement(reader);
-                        }
-                    } else if ("title".equalsIgnoreCase(local) && !isItunes(reader)) {
-                        channelTitle = firstNonBlank(channelTitle, readElementText(reader));
-                    } else if ("description".equalsIgnoreCase(local) && !isItunes(reader)) {
-                        channelDescription = firstNonBlank(channelDescription, readElementText(reader));
-                    } else if ("language".equalsIgnoreCase(local)) {
-                        language = firstNonBlank(language, readElementText(reader));
-                    } else if ("link".equalsIgnoreCase(local) && !isItunes(reader)) {
-                        link = firstNonBlank(link, readElementText(reader));
-                    } else if ("image".equalsIgnoreCase(local) && isItunes(reader)) {
-                        channelImage = firstNonBlank(channelImage, hrefAttr(reader));
-                    } else {
-                        skipElement(reader);
-                    }
-                }
-            } else if (event == XMLStreamConstants.END_ELEMENT) {
-                String local = reader.getLocalName();
-                if (inItem && "item".equalsIgnoreCase(local)) {
-                    ParsedArticleRssFeed.Item built = item == null ? null : item.build();
-                    if (built != null) {
-                        items.add(built);
-                    }
-                    item = null;
-                    inItem = false;
-                } else if (inImage && "image".equalsIgnoreCase(local)) {
-                    inImage = false;
-                } else if (inChannel && "channel".equalsIgnoreCase(local)) {
-                    inChannel = false;
-                }
-            }
-        }
-        if (channelTitle == null || channelTitle.isBlank()) {
-            throw new ArticleRssImportException(400, "RSS_FEED_INVALID", "RSS channel title is required");
-        }
-        List<ParsedArticleRssFeed.Item> resolvedItems = items.stream()
-                .map(parsedItem -> new ParsedArticleRssFeed.Item(
-                        parsedItem.guid(),
-                        parsedItem.title(),
-                        parsedItem.bodyHtml(),
-                        parsedItem.excerpt(),
-                        parsedItem.publishedAt(),
-                        resolveHttpUrl(feedUrl, parsedItem.imageUrl())
-                ))
+        List<ParsedArticleRssFeed.Item> items = document.items().stream()
+                .map(item -> toItem(feedUrl, item))
+                .filter(Objects::nonNull)
                 .toList();
+        ParsedRssDocument.Channel channel = document.channel();
         return new ParsedArticleRssFeed(
                 feedUrl,
                 new ParsedArticleRssFeed.Channel(
-                        truncate(channelTitle.trim(), 255),
-                        truncate(blankToNull(channelDescription), 20_000),
-                        normalizeLanguage(language),
-                        resolveHttpUrl(feedUrl, channelImage),
-                        resolveHttpUrl(feedUrl, link)
+                        truncate(channel.title().trim(), 255),
+                        truncate(blankToNull(channel.description()), 20_000),
+                        normalizeLanguage(channel.language()),
+                        resolveHttpUrl(feedUrl, channel.imageUrl()),
+                        resolveHttpUrl(feedUrl, channel.link())
                 ),
-                resolvedItems
+                items
         );
     }
 
-    private static void readItemElement(XMLStreamReader reader, ItemBuilder item, String local)
-            throws XMLStreamException {
-        if ("title".equalsIgnoreCase(local) && !isItunes(reader)) {
-            item.title = firstNonBlank(item.title, readElementText(reader));
-        } else if ("description".equalsIgnoreCase(local) && !isItunes(reader)) {
-            item.description = firstNonBlank(item.description, readElementText(reader));
-        } else if ("encoded".equalsIgnoreCase(local) && isContentEncoded(reader)) {
-            item.contentEncoded = firstNonBlank(item.contentEncoded, readElementText(reader));
-        } else if ("guid".equalsIgnoreCase(local)) {
-            item.guid = firstNonBlank(item.guid, readElementText(reader));
-        } else if ("link".equalsIgnoreCase(local) && !isItunes(reader)) {
-            item.link = firstNonBlank(item.link, readElementText(reader));
-        } else if ("pubDate".equalsIgnoreCase(local)) {
-            item.publishedAt = parseRfc822(readElementText(reader));
-        } else if ("enclosure".equalsIgnoreCase(local)) {
-            String url = attr(reader, "url");
-            String mimeType = attr(reader, "type");
-            if (item.imageUrl == null && isImageEnclosure(url, mimeType)) {
-                item.imageUrl = blankToNull(url);
-            }
-        } else if ("image".equalsIgnoreCase(local) && isItunes(reader)) {
-            item.imageUrl = firstNonBlank(item.imageUrl, hrefAttr(reader));
-        } else {
-            skipElement(reader);
+    private static ParsedArticleRssFeed.Item toItem(String feedUrl, ParsedRssDocument.Item parsed) {
+        if (parsed.title() == null || parsed.title().isBlank()) {
+            return null;
         }
+        String resolvedTitle = truncate(parsed.title().trim(), 255);
+        String body = firstNonBlank(parsed.contentEncoded(), parsed.description());
+        String excerpt = parsed.contentEncoded() != null && !parsed.contentEncoded().isBlank()
+                ? blankToNull(parsed.description())
+                : null;
+        if (excerpt != null && excerpt.length() > 2_000) {
+            excerpt = excerpt.substring(0, 2_000).trim();
+        }
+        // Prefer an image enclosure or itunes image; fall back to first <img src> in body.
+        String resolvedImage = firstImageUrl(parsed);
+        if (resolvedImage == null && body != null) {
+            resolvedImage = firstImgSrc(body);
+        }
+        String resolvedGuid = resolveImportGuid(
+                parsed.guid(),
+                resolveHttpUrl(feedUrl, parsed.link()),
+                resolvedTitle,
+                body,
+                parsed.publishedAt(),
+                resolvedImage
+        );
+        return new ParsedArticleRssFeed.Item(
+                boundedGuid(resolvedGuid),
+                resolvedTitle,
+                truncate(blankToNull(body), 512_000),
+                excerpt,
+                parsed.publishedAt(),
+                resolveHttpUrl(feedUrl, resolvedImage)
+        );
+    }
+
+    private static String firstImageUrl(ParsedRssDocument.Item parsed) {
+        for (ParsedRssDocument.Enclosure enclosure : parsed.enclosures()) {
+            if (isImageEnclosure(enclosure.url(), enclosure.mimeType())) {
+                return blankToNull(enclosure.url());
+            }
+        }
+        return blankToNull(parsed.imageUrl());
     }
 
     private static boolean isImageEnclosure(String url, String mimeType) {
@@ -179,56 +126,6 @@ public class ArticleRssFeedParser {
                 || lower.contains(".jpeg?")
                 || lower.contains(".png?")
                 || lower.contains(".webp?");
-    }
-
-    private static final class ItemBuilder {
-        private final String feedUrl;
-        private String guid;
-        private String title;
-        private String link;
-        private String description;
-        private String contentEncoded;
-        private Instant publishedAt;
-        private String imageUrl;
-
-        private ItemBuilder(String feedUrl) {
-            this.feedUrl = feedUrl;
-        }
-
-        private ParsedArticleRssFeed.Item build() {
-            if (title == null || title.isBlank()) {
-                return null;
-            }
-            String resolvedTitle = truncate(title.trim(), 255);
-            String body = firstNonBlank(contentEncoded, description);
-            String excerpt = contentEncoded != null && !contentEncoded.isBlank()
-                    ? blankToNull(description)
-                    : null;
-            if (excerpt != null && excerpt.length() > 2_000) {
-                excerpt = excerpt.substring(0, 2_000).trim();
-            }
-            // Prefer enclosure/itunes image; fall back to first <img src> in body.
-            String resolvedImage = blankToNull(imageUrl);
-            if (resolvedImage == null && body != null) {
-                resolvedImage = firstImgSrc(body);
-            }
-            String resolvedGuid = resolveImportGuid(
-                    guid,
-                    resolveHttpUrl(feedUrl, link),
-                    resolvedTitle,
-                    body,
-                    publishedAt,
-                    resolvedImage
-            );
-            return new ParsedArticleRssFeed.Item(
-                    boundedGuid(resolvedGuid),
-                    resolvedTitle,
-                    truncate(blankToNull(body), 512_000),
-                    excerpt,
-                    publishedAt,
-                    resolvedImage
-            );
-        }
     }
 
     /**
