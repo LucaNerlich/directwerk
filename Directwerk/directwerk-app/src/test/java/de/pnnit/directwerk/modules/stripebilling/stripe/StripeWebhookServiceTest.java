@@ -4,6 +4,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -27,6 +28,7 @@ import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -136,7 +138,7 @@ class StripeWebhookServiceTest {
 
         Subscription canceled = new Subscription();
         canceled.setStatus(SubscriptionStatus.CANCELED);
-        when(subscriptionRepository.findByTenantIdAndExternalSubscriptionIdForUpdate(7L, "sub_1"))
+        when(subscriptionRepository.findByTenantIdAndExternalSubscriptionId(7L, "sub_1"))
                 .thenReturn(Optional.of(canceled));
         // Live Stripe says canceled too — a stale event must not reactivate.
         when(stripeOperations.retrieveSubscriptionStatus("acct_1", "sub_1")).thenReturn("canceled");
@@ -173,13 +175,26 @@ class StripeWebhookServiceTest {
                 .thenReturn(1);
         TenantStripeAccount account = account(7L, "acct_1");
         when(stripeConnectService.findByStripeAccountId("acct_1")).thenReturn(account);
-        // No local CANCELED row → no live lookup needed, straight upsert.
+        // The local row is CANCELED; live Stripe confirms active, so the guard must lock the
+        // row (after the HTTP call) and let the upsert through.
+        Subscription canceled = new Subscription();
+        canceled.setStatus(SubscriptionStatus.CANCELED);
+        when(subscriptionRepository.findByTenantIdAndExternalSubscriptionId(7L, "sub_2"))
+                .thenReturn(Optional.of(canceled));
+        when(stripeOperations.retrieveSubscriptionStatus("acct_1", "sub_2")).thenReturn("active");
         when(subscriptionRepository.findByTenantIdAndExternalSubscriptionIdForUpdate(7L, "sub_2"))
-                .thenReturn(Optional.empty());
+                .thenReturn(Optional.of(canceled));
 
         service.applyParsedEvent(service.parseAndValidate("{}", "t=1,v1=sig"));
 
-        verify(stripeOperations, never()).retrieveSubscriptionStatus(any(), any());
+        verify(stripeOperations).retrieveSubscriptionStatus("acct_1", "sub_2");
+        // Issue #547: the provider HTTP call must happen before the row lock is taken.
+        InOrder inOrder = inOrder(subscriptionRepository, stripeOperations);
+        inOrder.verify(subscriptionRepository)
+                .findByTenantIdAndExternalSubscriptionId(7L, "sub_2");
+        inOrder.verify(stripeOperations).retrieveSubscriptionStatus("acct_1", "sub_2");
+        inOrder.verify(subscriptionRepository)
+                .findByTenantIdAndExternalSubscriptionIdForUpdate(7L, "sub_2");
         verify(stripeSubscriptionSyncService).upsertStripeSubscription(
                 eq(7L), eq(3L), eq(11L), eq("sub_2"), eq("cus_1"),
                 eq(SubscriptionStatus.ACTIVE),
@@ -510,9 +525,6 @@ class StripeWebhookServiceTest {
         cheap.setStripePriceId("price_cheap");
         when(subscriptionProductRepository.findFirstByTenantIdAndStripePriceIdOrderByIdAsc(7L, "price_cheap"))
                 .thenReturn(Optional.of(cheap));
-        when(subscriptionRepository.findByTenantIdAndExternalSubscriptionIdForUpdate(7L, "sub_2"))
-                .thenReturn(Optional.empty());
-
         service.applyParsedEvent(service.parseAndValidate("{}", "sig"));
 
         // Stale metadata says product 11 (expensive); the live price resolves to 22 (cheap).
@@ -598,7 +610,7 @@ class StripeWebhookServiceTest {
 
         Subscription canceled = new Subscription();
         canceled.setStatus(SubscriptionStatus.CANCELED);
-        when(subscriptionRepository.findByTenantIdAndExternalSubscriptionIdForUpdate(7L, "sub_1"))
+        when(subscriptionRepository.findByTenantIdAndExternalSubscriptionId(7L, "sub_1"))
                 .thenReturn(Optional.of(canceled));
         when(stripeOperations.retrieveSubscriptionStatus("acct_1", "sub_1")).thenReturn("canceled");
 
@@ -636,7 +648,7 @@ class StripeWebhookServiceTest {
 
         Subscription canceled = new Subscription();
         canceled.setStatus(SubscriptionStatus.CANCELED);
-        when(subscriptionRepository.findByTenantIdAndExternalSubscriptionIdForUpdate(7L, "sub_1"))
+        when(subscriptionRepository.findByTenantIdAndExternalSubscriptionId(7L, "sub_1"))
                 .thenReturn(Optional.of(canceled));
         // Live Stripe is past_due: not in good standing, so it must not re-grant entitlements.
         when(stripeOperations.retrieveSubscriptionStatus("acct_1", "sub_1")).thenReturn("past_due");

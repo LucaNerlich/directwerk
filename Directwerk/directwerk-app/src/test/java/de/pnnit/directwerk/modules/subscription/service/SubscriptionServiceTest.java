@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -25,6 +26,7 @@ import de.pnnit.directwerk.modules.subscription.repository.SubscriptionRepositor
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InOrder;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -58,6 +60,9 @@ class SubscriptionServiceTest {
 
     @Mock
     private ObjectProvider<ExternalSubscriptionBillingGateway> externalBillingGateway;
+
+    @Mock
+    private SubscriptionRevocationWriter subscriptionRevocationWriter;
 
     @Mock
     private ExternalSubscriptionBillingGateway billingGateway;
@@ -118,6 +123,28 @@ class SubscriptionServiceTest {
 
         verify(subscriptionRepository, never()).save(any());
         verify(eventPublisher, never()).publishEvent(any());
+    }
+
+    @Test
+    void revokeSubscriptionCallsTheProviderBeforeTheLocalWrite() {
+        Subscription stripe = subscription(SubscriptionSource.STRIPE, SubscriptionStatus.ACTIVE);
+        stripe.setId(99L);
+        stripe.setExternalSubscriptionId("sub_123");
+        when(subscriptionRepository.findByIdAndTenantId(99L, TENANT_ID)).thenReturn(Optional.of(stripe));
+        doAnswer(invocation -> {
+            invocation.<java.util.function.Consumer<ExternalSubscriptionBillingGateway>>getArgument(0)
+                    .accept(billingGateway);
+            return null;
+        }).when(externalBillingGateway).ifAvailable(any());
+        when(subscriptionRevocationWriter.markRevoked(TENANT_ID, 99L)).thenReturn(stripe);
+
+        service.revokeSubscription(TENANT_ID, 99L);
+
+        // Issue #547: the Stripe HTTP call happens before the short write transaction.
+        InOrder inOrder = inOrder(billingGateway, subscriptionRevocationWriter);
+        inOrder.verify(billingGateway).cancelExternalSubscriptionIfNeeded(TENANT_ID, stripe);
+        inOrder.verify(subscriptionRevocationWriter).markRevoked(TENANT_ID, 99L);
+        verify(subscriptionRepository, never()).save(any());
     }
 
     @Test

@@ -38,6 +38,7 @@ public class SubscriptionService {
     private final TenantRepository tenantRepository;
     private final ApplicationEventPublisher eventPublisher;
     private final ObjectProvider<ExternalSubscriptionBillingGateway> externalBillingGateway;
+    private final SubscriptionRevocationWriter subscriptionRevocationWriter;
 
     @Transactional(readOnly = true)
     public List<Subscription> listSubscriptionsForUser(Long tenantId, Long userId) {
@@ -112,18 +113,17 @@ public class SubscriptionService {
         return created;
     }
 
-    @Transactional
+    // Deliberately not @Transactional (issue #547): the provider cancellation is an HTTP call
+    // (SDK retries and timeouts included) and must not hold a pooled connection. The local status
+    // write, the entitlement event and the re-read live in SubscriptionRevocationWriter's short
+    // transaction, so DB and provider work never overlap.
     public Subscription revokeSubscription(Long tenantId, Long subscriptionId) {
         Subscription subscription = subscriptionRepository.findByIdAndTenantId(subscriptionId, tenantId)
                 .orElseThrow(() -> new SubscriptionNotFoundException(subscriptionId));
         externalBillingGateway.ifAvailable(
                 gateway -> gateway.cancelExternalSubscriptionIfNeeded(tenantId, subscription)
         );
-        subscription.setStatus(SubscriptionStatus.CANCELED);
-        subscriptionRepository.save(subscription);
-        eventPublisher.publishEvent(new TenantEntitlementsChangedEvent(tenantId));
-        return subscriptionRepository.findDetailedByIdAndTenantId(subscriptionId, tenantId)
-                .orElse(subscription);
+        return subscriptionRevocationWriter.markRevoked(tenantId, subscriptionId);
     }
 
     private static boolean hasStripeIdentifiers(Subscription subscription) {
