@@ -5,12 +5,17 @@ import de.pnnit.directwerk.modules.queue.QueueJob;
 import de.pnnit.directwerk.modules.queue.QueueNames;
 import java.util.HashMap;
 import java.util.Map;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 import tools.jackson.databind.ObjectMapper;
 
 @Component
 public class EmailJobHandler implements JobHandler {
+
+    private static final Logger log = LoggerFactory.getLogger(EmailJobHandler.class);
+
 
     private final TransactionalEmailService transactionalEmailService;
     private final ObjectMapper objectMapper;
@@ -127,10 +132,6 @@ public class EmailJobHandler implements JobHandler {
         requireVariable(variables, key, maxLength, false, false);
     }
 
-    private void requireVariable(Map<String, String> variables, String key, int maxLength, boolean allowBlank) {
-        requireVariable(variables, key, maxLength, allowBlank, false);
-    }
-
     /**
      * #540: a display-only value is clamped, not rejected. These carry user- or tenant-authored
      * text (a 201-char name, an imported excerpt) that the write side accepts up to 255 chars —
@@ -155,6 +156,11 @@ public class EmailJobHandler implements JobHandler {
             // Machine-generated values (token URLs, contentUrl, primaryColor) still fail closed:
             // truncating a signed URL would send a broken link.
             if (clamp) {
+                // Review finding: clamping is silent otherwise — the operator loses the only trace
+                // that a stored value exceeded the email cap (it used to surface as a FAILED job).
+                log.warn(
+                        "Clamping email variable {} from {} to {} characters",
+                        key, value.length(), maxLength);
                 variables.put(key, value.substring(0, maxLength));
                 return;
             }
