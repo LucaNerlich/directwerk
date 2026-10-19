@@ -21,7 +21,7 @@ Tenant-scoped mailing lists (many per tenant), managed in studio Write desk → 
 - Confirm / unsubscribe: token endpoints under `/api/v1/public/newsletter/*` (no account)
 - Public web pages: `/newsletter` (catalog), `/newsletter/{slug}` (subscribe), `/newsletter/confirm`, `/newsletter/unsubscribe`
 - Article attachment: `PUT /api/v1/articles/{id}/newsletter-lists`
-- On publish with notify + attached lists: ACTIVE subscriptions receive `CONTENT_ARTICLE_PUBLISHED`
+- On publish with notify + attached lists: ACTIVE subscriptions receive `NEWSLETTER_ARTICLE_PUBLISHED` (tenant-overridable via the ARTICLE content template)
 
 | Concern | Module / gate |
 |---------|----------------|

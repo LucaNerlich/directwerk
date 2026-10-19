@@ -44,7 +44,10 @@ public class DelegatingEmailTemplateSource implements EmailTemplateSource {
 
     private static boolean isTenantContentTemplate(EmailTemplate template) {
         return template == EmailTemplate.CONTENT_EPISODE_PUBLISHED
-                || template == EmailTemplate.CONTENT_ARTICLE_PUBLISHED;
+                || template == EmailTemplate.CONTENT_ARTICLE_PUBLISHED
+                // #560: the article newsletter is sent with the tokenized template, so the
+                // tenant override must be consulted for it too (it maps to ContentType.ARTICLE).
+                || template == EmailTemplate.NEWSLETTER_ARTICLE_PUBLISHED;
     }
 
     private static ContentType toContentType(EmailTemplate template) {

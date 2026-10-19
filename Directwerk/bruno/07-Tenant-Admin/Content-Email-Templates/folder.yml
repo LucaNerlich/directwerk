@@ -7,6 +7,6 @@ request: {}
 
 docs:
   content: |-
-    Per-tenant HTML overrides for CONTENT_EPISODE_PUBLISHED and CONTENT_ARTICLE_PUBLISHED emails.
+    Per-tenant HTML overrides for CONTENT_EPISODE_PUBLISHED and NEWSLETTER_ARTICLE_PUBLISHED emails (the article newsletter send; the legacy CONTENT_ARTICLE_PUBLISHED template is no longer produced).
     Requires EMAIL_NOTIFY module active for the tenant.
   type: text/markdown
