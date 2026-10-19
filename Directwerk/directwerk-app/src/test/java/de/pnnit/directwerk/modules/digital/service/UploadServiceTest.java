@@ -447,6 +447,38 @@ class UploadServiceTest {
     }
 
     @Test
+    void confirmUploadWithoutStagingObjectArchivesThePendingRow() {
+        // #564: the missing-object branch only threw, so the row stayed PENDING forever — the
+        // staging sweep cannot heal it (its key is never in the bucket listing), and the asset
+        // kept showing in the library with its declared size counted.
+        when(directwerkConfig.isStorageEnabled()).thenReturn(true);
+        when(directwerkConfig.storage()).thenReturn(storageProps());
+        when(tenantRepository.requireById(10L)).thenReturn(tenant);
+
+        MediaAsset pending = new MediaAsset();
+        pending.setId(55L);
+        pending.setTenant(tenant);
+        pending.setS3Key("alpha-show-a/staging/sess/episode.mp3");
+        pending.setAssetType(AssetType.AUDIO);
+        pending.setStatus(AssetStatus.PENDING);
+        when(mediaAssetRepository.findById(55L)).thenReturn(Optional.of(pending));
+        // rejectPendingAsset re-reads the row for update inside its own transaction.
+        when(mediaAssetRepository.findByIdForUpdate(55L)).thenReturn(Optional.of(pending));
+        when(mediaAssetRepository.saveAndFlush(any(MediaAsset.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        when(s3Client.headObject(any(HeadObjectRequest.class))).thenThrow(
+                S3Exception.builder().statusCode(404).message("Not Found").build());
+
+        assertThatThrownBy(() -> uploadService.confirmUpload(new UploadApi.ConfirmUploadCommand(55L)))
+                .isInstanceOf(UploadValidationException.class);
+
+        assertThat(pending.getStatus()).isEqualTo(AssetStatus.ARCHIVED);
+        // Review fix: the absence is only asserted by a HEAD 404, so storage must be left alone —
+        // deleting here would destroy the bytes and close the confirm retry the client keeps.
+        verify(s3Client, never()).deleteObject(any(DeleteObjectRequest.class));
+    }
+
+    @Test
     void confirmUploadSizeMismatchArchivesPendingAsset() {
         when(directwerkConfig.isStorageEnabled()).thenReturn(true);
         when(directwerkConfig.storage()).thenReturn(storageProps());

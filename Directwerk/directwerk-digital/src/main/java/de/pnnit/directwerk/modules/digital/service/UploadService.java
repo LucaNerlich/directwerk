@@ -225,7 +225,7 @@ public class UploadService implements UploadApi {
                     .key(asset.getS3Key())
                     .build());
         } catch (NoSuchKeyException ex) {
-            throw missingStagingObject(ex);
+            throw rejectMissingStagingObject(asset, storage.bucket(), ex);
         } catch (S3Exception ex) {
             // #563: a HEAD 404 carries no error body for the SDK to model, so on the
             // S3-compatible endpoints this deployment uses (Hetzner/Bunny, not AWS) the SDK
@@ -234,7 +234,7 @@ public class UploadService implements UploadApi {
             if (ex.statusCode() != 404) {
                 throw ex;
             }
-            throw missingStagingObject(ex);
+            throw rejectMissingStagingObject(asset, storage.bucket(), ex);
         }
 
         if (asset.getSizeBytes() != null && head.contentLength() != null
@@ -356,6 +356,15 @@ public class UploadService implements UploadApi {
      */
     private void rejectPendingAsset(Long assetId, String bucket, String s3Key) {
         deleteObjectQuietly(bucket, s3Key);
+        archivePendingAsset(assetId);
+    }
+
+    /**
+     * Tombstones a PENDING row without touching storage. Used when the object's absence is only
+     * asserted (a HEAD 404) rather than proven: deleting on a spurious read would destroy the
+     * uploaded bytes and close the confirm retry the client contract advertises.
+     */
+    private void archivePendingAsset(Long assetId) {
         try {
             new TransactionTemplate(transactionManager).executeWithoutResult(status ->
                     mediaAssetRepository.findByIdForUpdate(assetId).ifPresent(locked -> {
@@ -369,7 +378,16 @@ public class UploadService implements UploadApi {
         }
     }
 
-    private static UploadValidationException missingStagingObject(RuntimeException cause) {
+    /**
+     * #564: an aborted upload leaves a PENDING row whose key is never in the bucket listing, so
+     * the 24h staging sweep cannot heal it — the library keeps listing the ghost asset. Its
+     * siblings (size/MIME mismatch) archive the row before throwing; do the same here, but
+     * without deleting storage: the absence is only asserted, and a spurious HEAD 404 must not
+     * destroy the uploaded object.
+     */
+    private UploadValidationException rejectMissingStagingObject(
+            MediaAsset asset, String bucket, RuntimeException cause) {
+        archivePendingAsset(asset.getId());
         return new UploadValidationException(
                 "UPLOAD_VALIDATION_FAILED",
                 "Staging object not found — upload may not have completed",
