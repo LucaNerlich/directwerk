@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -20,6 +21,9 @@ import de.pnnit.directwerk.modules.stripebilling.entity.StripeCustomer;
 import de.pnnit.directwerk.modules.stripebilling.entity.TenantStripeAccount;
 import de.pnnit.directwerk.modules.stripebilling.exception.StripeNotConfiguredException;
 import de.pnnit.directwerk.modules.stripebilling.repository.StripeCustomerRepository;
+import de.pnnit.directwerk.modules.subscription.entity.Subscription;
+import de.pnnit.directwerk.modules.subscription.entity.SubscriptionStatus;
+import de.pnnit.directwerk.modules.subscription.repository.SubscriptionRepository;
 import de.pnnit.directwerk.modules.subscription.entity.BillingInterval;
 import de.pnnit.directwerk.modules.subscription.entity.SubscriptionProduct;
 import de.pnnit.directwerk.modules.subscription.service.SubscriptionProductService;
@@ -53,6 +57,9 @@ class StripeCheckoutServiceTest {
     private StripeCustomerRepository stripeCustomerRepository;
 
     @Mock
+    private SubscriptionRepository subscriptionRepository;
+
+    @Mock
     private TenantRepository tenantRepository;
 
     @Mock
@@ -70,6 +77,7 @@ class StripeCheckoutServiceTest {
                 stripeConnectService,
                 stripeCatalogSyncService,
                 subscriptionProductService,
+                subscriptionRepository,
                 stripeCustomerRepository,
                 tenantRepository,
                 userRepository,
@@ -106,6 +114,26 @@ class StripeCheckoutServiceTest {
         assertThatThrownBy(() -> service.createCheckoutSession(TENANT_ID, USER_ID, "free", null, null))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("not priced");
+    }
+
+    @Test
+    void createCheckoutSessionRejectsASecondSubscriptionForTheSameProduct() {
+        // #534: the single (tenant, user, product) row cannot represent two Stripe
+        // subscriptions, so a second checkout must not start.
+        when(stripeOperations.isConfigured()).thenReturn(true);
+        SubscriptionProduct product = pricedProduct(true, 500, "price_123");
+        when(subscriptionProductService.requireProductBySlug(TENANT_ID, "premium")).thenReturn(product);
+
+        Subscription active = new Subscription();
+        active.setStatus(SubscriptionStatus.ACTIVE);
+        when(subscriptionRepository.findByTenantIdAndUserIdAndProductId(
+                TENANT_ID, USER_ID, product.getId())).thenReturn(java.util.Optional.of(active));
+
+        assertThatThrownBy(() -> service.createCheckoutSession(TENANT_ID, USER_ID, "premium", null, null))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("already exists");
+
+        verify(stripeOperations, never()).createCheckoutSession(any());
     }
 
     @Test
