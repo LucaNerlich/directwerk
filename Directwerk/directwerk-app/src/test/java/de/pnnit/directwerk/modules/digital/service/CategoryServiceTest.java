@@ -84,7 +84,7 @@ class CategoryServiceTest {
         Category category = categoryWithId(5L);
         when(categoryRepository.findByIdAndTenantId(5L, 10L)).thenReturn(java.util.Optional.of(category));
 
-        assertThatThrownBy(() -> service.updateCategory(10L, 5L, null, null, 5L, null))
+        assertThatThrownBy(() -> service.updateCategory(10L, 5L, null, null, 5L, null, null))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("own parent");
     }
@@ -103,7 +103,7 @@ class CategoryServiceTest {
         when(categoryRepository.findByIdAndTenantId(3L, 10L)).thenReturn(java.util.Optional.of(grandchild));
         stubAdvisoryLock();
 
-        assertThatThrownBy(() -> service.updateCategory(10L, 1L, null, null, 3L, null))
+        assertThatThrownBy(() -> service.updateCategory(10L, 1L, null, null, 3L, null, null))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("cycle");
     }
@@ -117,9 +117,24 @@ class CategoryServiceTest {
         when(categoryRepository.findByIdAndTenantId(2L, 10L)).thenReturn(java.util.Optional.of(parent));
         stubAdvisoryLock();
 
-        Category updated = service.updateCategory(10L, 1L, null, null, 2L, null);
+        Category updated = service.updateCategory(10L, 1L, null, null, 2L, null, null);
 
         assertThat(updated.getParent()).isSameAs(parent);
+    }
+
+    @Test
+    void updateCategoryLiftsTheParentWhenClearingIsRequested() {
+        // #530: `parentId: null` means "leave unchanged", so the studio's "Keine" choice needs
+        // an explicit clear flag — otherwise the category keeps its old parent forever.
+        Category parent = categoryWithId(2L);
+        Category category = categoryWithId(1L);
+        category.setParent(parent);
+
+        when(categoryRepository.findByIdAndTenantId(1L, 10L)).thenReturn(java.util.Optional.of(category));
+
+        Category updated = service.updateCategory(10L, 1L, null, null, null, true, null);
+
+        assertThat(updated.getParent()).isNull();
     }
 
     @Test
@@ -128,7 +143,7 @@ class CategoryServiceTest {
         when(categoryRepository.findByIdAndTenantId(1L, 10L)).thenReturn(java.util.Optional.of(category));
         when(categoryRepository.existsByTenantIdAndSlugAndIdNot(10L, "updates", 1L)).thenReturn(true);
 
-        assertThatThrownBy(() -> service.updateCategory(10L, 1L, "updates", null, null, null))
+        assertThatThrownBy(() -> service.updateCategory(10L, 1L, "updates", null, null, null, null))
                 .isInstanceOf(ConflictException.class);
     }
 

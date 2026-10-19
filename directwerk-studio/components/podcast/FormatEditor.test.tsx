@@ -97,7 +97,9 @@ describe('FormatEditor', () => {
             slug: 'interview',
             name: 'Interview',
             description: undefined,
-            requiredLevelSortOrder: undefined,
+            // #530: 0 clears/creates a floor of "every active level"; omitting the field
+            // left a stale floor in place on update.
+            requiredLevelSortOrder: 0,
             sortOrder: undefined,
         }))
         await waitFor(() => expect(replace).toHaveBeenCalledWith('/de/podcast/formats/1'))

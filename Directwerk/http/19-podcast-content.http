@@ -125,12 +125,35 @@ Accept: application/json
 {
   "slug": "{{podcastCategorySlug}}",
   "name": "Harness Category Updated",
-  "active": true
+  "active": true,
+  "clearParentId": false
 }
 
 > {%
     client.test("Update podcast category", function() {
         client.assert(response.status === 200 || response.status === 404, "Expected 200 or 404");
+    });
+%}
+
+###
+
+### @name clearPodcastCategoryParent
+PUT {{baseUrl}}/api/v1/categories/{{podcastCategoryId}}
+Host: {{tenantAHost}}
+Authorization: Bearer {{tenantAAccessToken}}
+Content-Type: application/json
+Accept: application/json
+
+{
+  "clearParentId": true
+}
+
+> {%
+    client.test("Clearing the parent lifts it (#530)", function() {
+        client.assert(response.status === 200 || response.status === 404, "Expected 200 or 404");
+        if (response.status === 200) {
+            client.assert(response.body.data.parentId === null, "Expected parentId to be null");
+        }
     });
 %}
 

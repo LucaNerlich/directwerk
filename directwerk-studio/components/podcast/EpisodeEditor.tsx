@@ -116,17 +116,25 @@ export default function EpisodeEditor({episodeId}: {episodeId?: number}): React.
 
     const episodeFields = useCallback(() => {
         const resolvedSlug = slug.trim() || suggestSlug(title) || 'folge'
+        const clearedFloor = episodeId === undefined ? undefined : 0
         return {
             title: title.trim() || 'Ohne Titel',
             slug: resolvedSlug,
             description: body,
             accessPolicy,
             episodeNumber: optionalMinInt(episodeNumber, 1),
+            // #530: on update an omitted field means "leave unchanged", so a cleared floor
+            // must be sent as 0 (the access path already reads a null floor as 0).
+            // Review fix: on CREATE, omission means "inherit the series default"
+            // (EpisodeService.createEpisode), so the clear value must not be sent there —
+            // otherwise a new PAID episode silently loosens to level 0.
             requiredLevelSortOrder:
-                accessPolicy === 'PAID' ? (requiredLevelSortOrder ?? undefined) : undefined,
+                accessPolicy === 'PAID'
+                    ? (requiredLevelSortOrder ?? clearedFloor)
+                    : clearedFloor,
             coverAssetId: coverAssetId ?? undefined,
         }
-    }, [accessPolicy, body, coverAssetId, episodeNumber, requiredLevelSortOrder, slug, title])
+    }, [accessPolicy, body, coverAssetId, episodeId, episodeNumber, requiredLevelSortOrder, slug, title])
 
     const persistTags = useCallback(
         async (current: EpisodeDetail): Promise<EpisodeDetail> => {
