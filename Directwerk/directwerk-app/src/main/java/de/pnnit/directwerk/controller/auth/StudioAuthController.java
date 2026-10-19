@@ -2,6 +2,7 @@ package de.pnnit.directwerk.controller.auth;
 
 import de.pnnit.directwerk.api.response.Response;
 import de.pnnit.directwerk.modules.core.service.StudioWorkspaceDiscoveryService;
+import de.pnnit.directwerk.security.StudioLoginRateLimiter;
 import de.pnnit.directwerk.modules.core.service.StudioWorkspaceDiscoveryService.StudioWorkspaceView;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Email;
@@ -22,9 +23,14 @@ import org.springframework.web.bind.annotation.RestController;
 public class StudioAuthController {
 
     private final StudioWorkspaceDiscoveryService studioWorkspaceDiscoveryService;
+    private final StudioLoginRateLimiter studioLoginRateLimiter;
 
-    public StudioAuthController(StudioWorkspaceDiscoveryService studioWorkspaceDiscoveryService) {
+    public StudioAuthController(
+            StudioWorkspaceDiscoveryService studioWorkspaceDiscoveryService,
+            StudioLoginRateLimiter studioLoginRateLimiter
+    ) {
         this.studioWorkspaceDiscoveryService = studioWorkspaceDiscoveryService;
+        this.studioLoginRateLimiter = studioLoginRateLimiter;
     }
 
     /**
@@ -34,6 +40,8 @@ public class StudioAuthController {
     ResponseEntity<Response<StudioWorkspacesResponse>> workspaces(
             @Valid @RequestBody StudioWorkspacesRequest body
     ) {
+        // Issue #552: per-account throttle before the password is verified.
+        studioLoginRateLimiter.requireWithinLimit(body.email());
         List<StudioWorkspaceView> workspaces = studioWorkspaceDiscoveryService.discoverWorkspaces(
                 body.email(),
                 body.password()
