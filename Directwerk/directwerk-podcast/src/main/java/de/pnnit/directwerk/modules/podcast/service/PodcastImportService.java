@@ -11,7 +11,6 @@ import de.pnnit.directwerk.modules.digital.net.RemoteContentClient;
 import de.pnnit.directwerk.modules.podcast.PodcastModule;
 import de.pnnit.directwerk.modules.podcast.entity.Episode;
 import de.pnnit.directwerk.modules.podcast.exception.RssImportException;
-import de.pnnit.directwerk.modules.podcast.importrss.ImportSlugSuggester;
 import de.pnnit.directwerk.modules.podcast.importrss.ParsedRssFeed;
 import de.pnnit.directwerk.modules.podcast.importrss.RssFeedParser;
 import de.pnnit.directwerk.modules.podcast.repository.EpisodeRepository;
@@ -87,7 +86,7 @@ public class PodcastImportService {
                     item.audioMimeType(),
                     item.audioSizeBytes(),
                     item.imageUrl(),
-                    ImportSlugSuggester.suggest(item.title()),
+                    FeedImportSupport.suggestSlug(item.title(), "folge"),
                     existingId
             ));
         }
@@ -101,7 +100,7 @@ public class PodcastImportService {
                         channel.itunesCategory(),
                         channel.imageUrl(),
                         channel.link(),
-                        ImportSlugSuggester.suggest(channel.title())
+                        FeedImportSupport.suggestSlug(channel.title(), "folge")
                 ),
                 episodes,
                 false
