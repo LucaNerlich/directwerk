@@ -135,13 +135,40 @@ public final class RssXmlWriter {
             Integer maxDescriptionChars
     ) {
         String description = sanitizer.apply(value);
-        if (maxDescriptionChars != null && description.length() > maxDescriptionChars) {
-            description = description.substring(0, maxDescriptionChars);
+        if (maxDescriptionChars != null) {
+            description = truncateHtml(description, maxDescriptionChars);
         }
         xml.append(" ".repeat(spaces))
                 .append("<description>")
                 .append(cdata(description))
                 .append("</description>\n");
+    }
+
+    /**
+     * Bounds sanitized description HTML without splitting a tag, an entity or a surrogate pair
+     * (issue #589): a blind substring can end mid-tag, and parsers then discard the tail of the
+     * show notes as attribute gibberish.
+     */
+    static String truncateHtml(String html, int maxChars) {
+        if (html == null || html.length() <= maxChars) {
+            return html;
+        }
+        int cut = maxChars;
+        if (cut > 0 && Character.isHighSurrogate(html.charAt(cut - 1))) {
+            cut--;
+        }
+        int lastTagClose = html.lastIndexOf('>', cut - 1);
+        if (lastTagClose >= 0) {
+            cut = lastTagClose + 1;
+        } else {
+            // No tag boundary: do not leave an unterminated entity (&amp / &#1234).
+            int lastSemicolon = html.lastIndexOf(';', cut - 1);
+            int lastAmpersand = html.lastIndexOf('&', cut - 1);
+            if (lastAmpersand > lastSemicolon) {
+                cut = lastAmpersand;
+            }
+        }
+        return html.substring(0, cut).trim();
     }
 
     private static void appendElement(StringBuilder xml, String name, String value, int spaces) {

@@ -54,6 +54,27 @@ class RssXmlWriterTest {
     }
 
     @Test
+    void truncatesDescriptionsAtATagBoundaryInsteadOfMidTag() {
+        // Issue #589: 40 chars lands inside `<a href=...`; the cut must stay outside the tag.
+        String html = "<p>" + "x".repeat(30) + "</p><a href=\"/very-long-link\">link</a>";
+        RssXmlWriter.Channel channel = new RssXmlWriter.Channel(
+                "Podcast", "https://example.com", "Tenant", "de", true, null, false, null, 40);
+        RssXmlWriter.Item item = new RssXmlWriter.Item(
+                "Entry", "https://example.com/e", html, "guid", null, null, null, null, null);
+
+        String xml = RssXmlWriter.build(channel, List.of(item), entry -> item, value -> value);
+
+        assertThat(xml).contains("<description><![CDATA[<p>" + "x".repeat(30) + "</p>]]></description>");
+        assertThat(xml).doesNotContain("<a href=");
+    }
+
+    @Test
+    void truncationNeverSplitsAnEntityOrSurrogatePair() {
+        assertThat(RssXmlWriter.truncateHtml("a&amp;b", 5)).isEqualTo("a");
+        assertThat(RssXmlWriter.truncateHtml("ab\uD83D\uDE00cd", 3)).isEqualTo("ab");
+    }
+
+    @Test
     void escapeTextStripsXmlInvalidControlCharacters() {
         assertThat(RssXmlWriter.escapeText("AB\u0001C\u000BD\u000CE\u001FF")).isEqualTo("ABCDEF");
     }
