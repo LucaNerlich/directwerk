@@ -1,8 +1,8 @@
 package de.pnnit.directwerk.modules.core.service;
 
+import de.pnnit.directwerk.config.CacheKeys;
 import de.pnnit.directwerk.config.DirectwerkCacheNames;
 import de.pnnit.directwerk.modules.core.repository.TenantDomainRepository;
-import java.util.Locale;
 import lombok.RequiredArgsConstructor;
 import org.springframework.cache.Cache;
 import org.springframework.cache.CacheManager;
@@ -21,7 +21,7 @@ public class DirectwerkCacheEviction {
         if (!StringUtils.hasText(host)) {
             return;
         }
-        evict(DirectwerkCacheNames.TENANT_BY_HOST, host.trim().toLowerCase(Locale.ROOT));
+        evict(DirectwerkCacheNames.TENANT_BY_HOST, CacheKeys.host(host));
         // PUBLIC_SITE_CONFIG keys are host:scheme:port — a single-key evict would miss.
         // Branding/domain changes are rare, so clear the whole cache instead of missing.
         clear(DirectwerkCacheNames.PUBLIC_SITE_CONFIG);
