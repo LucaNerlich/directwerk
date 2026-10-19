@@ -75,13 +75,19 @@ public interface SubscriptionRepository extends JpaRepository<Subscription, Long
             @Param("tenantId") Long tenantId
     );
 
+    /**
+     * Active subscriptions of one user, with their products, for entitlement resolution.
+     *
+     * <p>The product's {@code active} flag is catalog visibility — it gates the public product
+     * list, granting and checkout — not the grant itself (issue #537). A deactivated product must
+     * keep granting to subscribers whose paid subscription is still ACTIVE.</p>
+     */
     @Query("""
             SELECT s FROM Subscription s
             JOIN FETCH s.product p
             WHERE s.tenant.id = :tenantId
               AND s.user.id = :userId
               AND s.status = :status
-              AND p.active = TRUE
             ORDER BY p.sortOrder ASC, p.id ASC
             """)
     List<Subscription> findActiveWithProducts(
