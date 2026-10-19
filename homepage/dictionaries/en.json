@@ -250,6 +250,7 @@
         "submitting": "Sending…",
         "success": "Thanks — your message is on its way. We’ll reply by email.",
         "apiExcerpt": "API excerpt",
+        "altchaFailed": "The security widget could not be loaded. Please reload the page.",
         "captchaRequired": "Please complete the security check.",
         "errors": {
             "CAPTCHA_INVALID": "The security check expired. Please try again.",

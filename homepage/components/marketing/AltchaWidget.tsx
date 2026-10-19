@@ -16,9 +16,11 @@ type AltchaElement = HTMLElement & AltchaWidgetMethods
 export default function AltchaWidget({
     onVerifiedChange,
     widgetRef,
+    failureLabel = 'Das Sicherheits-Widget konnte nicht geladen werden. Bitte lade die Seite neu.',
 }: {
     onVerifiedChange?: (verified: boolean) => void
     widgetRef?: (element: AltchaElement | null) => void
+    failureLabel?: string
 }): React.JSX.Element | null {
     const internalRef = useRef<AltchaElement>(null)
     const [altchaLoaded, setAltchaLoaded] = useState(false)
@@ -53,7 +55,7 @@ export default function AltchaWidget({
     if (loadFailed) {
         return (
             <p className="text-sm text-destructive" role="alert">
-                Das Sicherheits-Widget konnte nicht geladen werden. Bitte lade die Seite neu.
+                {failureLabel}
             </p>
         )
     }
