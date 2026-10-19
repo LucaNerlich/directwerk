@@ -23,7 +23,7 @@ import CreateTenantForm from '@/components/CreateTenantForm'
 import {AdminLoadingText, StatCardsSkeleton, TableSkeleton} from '@/components/AdminLoading'
 import RecentAuditTable from '@/components/RecentAuditTable'
 import TenantListTable from '@/components/TenantListTable'
-import {getPlatformData, getPlatformJobList, getPlatformOverview} from '@/lib/api/client'
+import {getPlatformAdminsPage, getPlatformData, getPlatformJobList, getPlatformOverview} from '@/lib/api/client'
 import {usePlatformQuery} from '@/lib/api/usePlatformQuery'
 import type {PlatformOverview, TenantList} from '@directwerk/api/types'
 
@@ -40,13 +40,15 @@ export default function HomePage(): React.JSX.Element {
             const [overviewResult, tenantResult, admins, jobs] = await Promise.all([
                 getPlatformOverview(8),
                 getPlatformData<TenantList>('tenants'),
-                getPlatformData<Array<{userId: number}>>('admins'),
+                // #550: /admins became a paged endpoint in #438, so the array length was the
+                // page size (50), not the estate-wide count. Ask for one row and read the total.
+                getPlatformAdminsPage(0, 1),
                 getPlatformJobList({limit: 1, offset: 0}),
             ])
             return {
                 overview: overviewResult,
                 tenants: tenantResult.content ?? [],
-                adminCount: admins.length,
+                adminCount: admins.totalElements,
                 jobCount: jobs.total,
             }
         },
