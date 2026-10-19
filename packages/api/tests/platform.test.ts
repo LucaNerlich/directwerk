@@ -7,6 +7,11 @@ import {
 } from '../src/proxy/platformRouteHandler'
 
 describe('buildSafePlatformQueryString', () => {
+    it('allows the tenant search term (issue #551)', () => {
+        expect(buildSafePlatformQueryString(new URLSearchParams({q: 'alpha show'})))
+            .toBe('?q=alpha+show')
+    })
+
     it('allows overview query params including recentAuditLimit', () => {
         const params = new URLSearchParams({recentAuditLimit: '8'})
         expect(buildSafePlatformQueryString(params)).toBe('?recentAuditLimit=8')

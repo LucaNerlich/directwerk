@@ -15,6 +15,11 @@ http:
       value: "100"
       type: query
       description: Page size, 1-100. Tenants were previously truncated at 1000 with no paging.
+    - name: q
+      value: ""
+      type: query
+      description: Optional estate-wide search over name, slug and custom domains (issue #551). Blank returns the unfiltered page.
+      disabled: true
   auth: inherit
 
 runtime:

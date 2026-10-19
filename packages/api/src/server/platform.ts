@@ -43,6 +43,7 @@ const ALLOWED_QUERY_PARAMS = new Set([
     'recentAuditLimit',
     'page',
     'size',
+    'q',
     'tenantId',
     'action',
     'actorEmail',
@@ -245,6 +246,12 @@ export function buildSafePlatformQueryString(
                 break
             case 'actorEmail':
                 if (!isSafeActorEmail(value)) {
+                    throw new Error('Invalid platform API query.')
+                }
+                break
+            case 'q':
+                // Tenant search term (issue #551): bounded free text, no markup or quotes.
+                if (value.length > 100 || /[<>"']/.test(value)) {
                     throw new Error('Invalid platform API query.')
                 }
                 break

@@ -21,6 +21,7 @@ import java.util.Map;
 import java.util.Objects;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
@@ -57,10 +58,26 @@ public class TenantManagementService {
      */
     @Transactional(readOnly = true)
     public TenantPage listTenants(int page, int size) {
+        return listTenants(page, size, null);
+    }
+
+    /**
+     * Lists one page of tenants, optionally filtered by an estate-wide search term.
+     *
+     * @param page zero-based page index
+     * @param size page size, clamped to the maximum
+     * @param query optional case-insensitive name/slug/domain search; blank means no filter
+     * @return the page of tenants
+     */
+    @Transactional(readOnly = true)
+    public TenantPage listTenants(int page, int size, String query) {
         int safePage = Math.max(page, 0);
         int safeSize = Math.min(Math.max(size, 1), MAX_TENANT_PAGE_SIZE);
-        Page<Tenant> result = tenantRepository.findAll(
-                PageRequest.of(safePage, safeSize, Sort.by("id").ascending()));
+        Pageable pageable = PageRequest.of(safePage, safeSize, Sort.by("id").ascending());
+        String trimmed = query == null ? "" : query.trim();
+        Page<Tenant> result = trimmed.isEmpty()
+                ? tenantRepository.findAll(pageable)
+                : tenantRepository.search(trimmed, pageable);
         return new TenantPage(
                 result.getContent().stream().map(this::toListItemView).toList(),
                 result.getTotalElements(),

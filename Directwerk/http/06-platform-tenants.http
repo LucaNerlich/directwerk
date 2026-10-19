@@ -29,6 +29,29 @@ Accept: application/json
 
 ###
 
+### @name searchTenants
+### Issue #551: estate-wide search, not just the loaded page.
+GET {{baseUrl}}/api/v1/platform/tenants?page=0&size=25&q=alpha
+Authorization: Bearer {{platformAccessToken}}
+Accept: application/json
+
+> {%
+    client.test("Search tenants", function() {
+        client.assert(response.status === 200, "Expected 200");
+        const tenants = response.body.data.content;
+        client.assert(Array.isArray(tenants), "Expected data.content");
+        client.assert(
+            tenants.every(t =>
+                t.name.toLowerCase().includes("alpha") ||
+                t.slug.toLowerCase().includes("alpha") ||
+                (t.primaryDomain || "").toLowerCase().includes("alpha")),
+            "Every row must match the search term"
+        );
+    });
+%}
+
+###
+
 ### @name createTenantWithAdmin
 POST {{baseUrl}}/api/v1/platform/tenants
 Authorization: Bearer {{platformAccessToken}}
