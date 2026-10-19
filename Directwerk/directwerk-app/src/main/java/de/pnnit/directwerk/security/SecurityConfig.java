@@ -25,18 +25,13 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
-import org.springframework.http.MediaType;
-import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.Customizer;
-import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import de.pnnit.directwerk.security.grants.PasswordGrantAuthenticationToken;
 import org.springframework.security.oauth2.core.DelegatingOAuth2TokenValidator;
 import org.springframework.security.oauth2.core.OAuth2Token;
 import org.springframework.security.oauth2.core.OAuth2TokenValidator;
@@ -46,7 +41,6 @@ import org.springframework.security.oauth2.jwt.JwtValidators;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.oauth2.jwt.NimbusJwtEncoder;
 import org.springframework.security.oauth2.server.authorization.OAuth2AuthorizationService;
-import org.springframework.security.oauth2.server.authorization.client.RegisteredClientRepository;
 import org.springframework.security.config.annotation.web.configurers.oauth2.server.authorization.OAuth2AuthorizationServerConfigurer;
 import org.springframework.security.oauth2.server.authorization.settings.AuthorizationServerSettings;
 import org.springframework.security.oauth2.server.authorization.token.DelegatingOAuth2TokenGenerator;
@@ -56,7 +50,6 @@ import org.springframework.security.oauth2.server.authorization.token.OAuth2Refr
 import org.springframework.security.oauth2.server.authorization.token.OAuth2TokenGenerator;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.LoginUrlAuthenticationEntryPoint;
-import org.springframework.security.web.util.matcher.MediaTypeRequestMatcher;
 
 @Configuration
 @EnableWebSecurity
@@ -286,11 +279,6 @@ public class SecurityConfig {
                 .build();
     }
 
-    // Issue #375: the DaoAuthenticationProvider bean was removed — no chain calls formLogin()
-    // or httpBasic(), and PasswordGrantAuthenticationProvider takes UserDetailsService +
-    // PasswordEncoder directly. Spring Boot derives an equivalent provider if the global
-    // AuthenticationManager is ever needed.
-
     @Bean
     BffTenantRoutingHostFilter bffTenantRoutingHostFilter(
             TenantRoutingHostResolver tenantRoutingHostResolver
@@ -422,13 +410,4 @@ public class SecurityConfig {
     ) {
         return new PlatformAdminGuardFilter(currentPlatformAdminService, filterExceptionResolver);
     }
-
-    /**
-     * Exposes the configured authentication manager as a Spring bean.
-     *
-     * @param configuration the authentication configuration
-     * @return the configured authentication manager
-     * @throws Exception if the authentication manager cannot be obtained
-     */
-    // Issue #375: the AuthenticationManager bean was removed — nothing injected it.
 }
