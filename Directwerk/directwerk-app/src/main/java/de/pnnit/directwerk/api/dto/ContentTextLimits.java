@@ -1,5 +1,7 @@
 package de.pnnit.directwerk.api.dto;
 
+import de.pnnit.directwerk.modules.digital.importing.ImportedTextLimits;
+
 /**
  * Shared ceilings for free-text content fields (#562).
  *
@@ -10,11 +12,11 @@ package de.pnnit.directwerk.api.dto;
  */
 public final class ContentTextLimits {
 
-    /** Rich-text body of an article (editor- or import-supplied). */
-    public static final int BODY_MAX = 100_000;
+    /** Rich-text body of an article (editor- or import-supplied). Shared with the import path. */
+    public static final int BODY_MAX = ImportedTextLimits.BODY_MAX;
 
-    /** Short summary shown in lists and feeds. */
-    public static final int EXCERPT_MAX = 2_000;
+    /** Short summary shown in lists and feeds. Shared with the import path. */
+    public static final int EXCERPT_MAX = ImportedTextLimits.EXCERPT_MAX;
 
     /** Episode / series / format description (rich text, stored as {@code text}). */
     public static final int DESCRIPTION_MAX = 100_000;
