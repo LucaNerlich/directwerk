@@ -1,6 +1,5 @@
 package de.pnnit.directwerk.modules.podcast.access;
 
-import de.pnnit.directwerk.modules.digital.entity.MediaAsset;
 import de.pnnit.directwerk.modules.podcast.entity.Episode;
 import de.pnnit.directwerk.modules.podcast.feed.SubscriberFeed;
 import de.pnnit.directwerk.modules.podcast.feed.SubscriberFeedFormatMatcher;
@@ -18,7 +17,6 @@ public class SubscriberFeedAccessService implements SubscriberFeedAccess {
 
     private final SubscriberEpisodeService subscriberEpisodeService;
     private final EpisodeAccessApi episodeAccessApi;
-    private final PublishedPlayableEpisodeGuard publishedPlayableEpisodeGuard;
 
     @Override
     @Transactional(readOnly = true)
@@ -51,19 +49,5 @@ public class SubscriberFeedAccessService implements SubscriberFeedAccess {
             Episode episode) {
         return SubscriberFeedFormatMatcher.includes(feed, episode)
                 && episodeAccessApi.hasAccess(tenantId, userId, episode.getId());
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public boolean hasAudioAccess(
-            Long tenantId,
-            Long userId,
-            SubscriberFeed feed,
-            Episode episode,
-            MediaAsset audioAsset) {
-        if (!hasEpisodeAccess(tenantId, userId, feed, episode)) {
-            return false;
-        }
-        return publishedPlayableEpisodeGuard.hasReadyAudio(audioAsset);
     }
 }
