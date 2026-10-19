@@ -73,6 +73,7 @@ import org.springframework.web.HttpMediaTypeNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.method.annotation.HandlerMethodValidationException;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
@@ -519,6 +520,19 @@ public class GlobalExceptionHandler {
     ResponseEntity<Response<Void>> handleConstraintViolation(ConstraintViolationException ex) {
         // Issue #380: the raw message embeds the bean/method path; keep the detail in the log.
         log.warn("Constraint violation", ex);
+        return badRequest("VALIDATION_ERROR", "Request validation failed");
+    }
+
+    /**
+     * Spring MVC's own method validation (#566). A controller without class-level
+     * {@code @Validated} has its constrained parameters validated by the framework, which throws
+     * {@link HandlerMethodValidationException} instead of the AOP flavour above — it used to fall
+     * through to the catch-all and answer {@code 500 INTERNAL_ERROR} for a plain client mistake
+     * such as {@code ?limit=0}.
+     */
+    @ExceptionHandler(HandlerMethodValidationException.class)
+    ResponseEntity<Response<Void>> handleHandlerMethodValidation(HandlerMethodValidationException ex) {
+        log.warn("Method argument validation failed", ex);
         return badRequest("VALIDATION_ERROR", "Request validation failed");
     }
 
