@@ -116,8 +116,11 @@ export async function getPlatformAdminsPage(
 export async function getPlatformTenantsPage(
     page: number,
     size: number,
+    query?: string,
 ): Promise<TenantListPage> {
-    const raw = await authedFetch(`/api/proxy/tenants?page=${page}&size=${size}`, {
+    const trimmed = query?.trim() ?? ''
+    const search = trimmed.length > 0 ? `&q=${encodeURIComponent(trimmed)}` : ''
+    const raw = await authedFetch(`/api/proxy/tenants?page=${page}&size=${size}${search}`, {
         cache: 'no-store',
     })
 

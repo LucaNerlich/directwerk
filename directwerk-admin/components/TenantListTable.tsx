@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import {useMemo, useState} from 'react'
+import {useEffect, useMemo, useState} from 'react'
 
 import {Badge} from '@directwerk/ui/components/badge'
 import {Button} from '@directwerk/ui/components/button'
@@ -18,22 +18,46 @@ import type {Tenant} from '@directwerk/api/types'
 interface TenantListTableProps {
     tenants: Tenant[]
     showFilters?: boolean
+    /**
+     * Controlled search term. When `onQueryChange` is supplied the search runs server-side over
+     * the whole estate (issue #551) and the table no longer filters the loaded page by text.
+     */
+    query?: string
+    onQueryChange?: (query: string) => void
 }
 
 export default function TenantListTable({
     tenants,
     showFilters = true,
+    query: controlledQuery,
+    onQueryChange,
 }: TenantListTableProps): React.JSX.Element {
-    const [query, setQuery] = useState('')
+    const serverSearch = onQueryChange !== undefined
+    const [query, setQuery] = useState(controlledQuery ?? '')
     const [statusFilter, setStatusFilter] = useState<'ALL' | 'ACTIVE' | 'SUSPENDED'>(
         'ALL',
     )
     const {viewMode, setViewMode} = useListViewMode()
     const hasActiveFilters = query.trim().length > 0 || statusFilter !== 'ALL'
 
+    useEffect(() => {
+        setQuery(controlledQuery ?? '')
+    }, [controlledQuery])
+
+    useEffect(() => {
+        if (!serverSearch || query === (controlledQuery ?? '')) {
+            return
+        }
+        const handle = setTimeout(() => onQueryChange?.(query), 300)
+        return () => clearTimeout(handle)
+    }, [controlledQuery, onQueryChange, query, serverSearch])
+
     function clearFilters(): void {
         setQuery('')
         setStatusFilter('ALL')
+        if (serverSearch) {
+            onQueryChange?.('')
+        }
     }
 
     const filteredTenants = useMemo(() => {
@@ -44,7 +68,7 @@ export default function TenantListTable({
                 return false
             }
 
-            if (normalizedQuery.length === 0) {
+            if (serverSearch || normalizedQuery.length === 0) {
                 return true
             }
 
@@ -54,7 +78,7 @@ export default function TenantListTable({
                 (tenant.primaryDomain ?? '').toLowerCase().includes(normalizedQuery)
             )
         })
-    }, [query, statusFilter, tenants])
+    }, [query, serverSearch, statusFilter, tenants])
 
     const tenantItems: EntityListViewItem[] = filteredTenants.map((tenant) => ({
         id: tenant.id,
@@ -73,7 +97,9 @@ export default function TenantListTable({
             {showFilters ? (
                 <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                     <div className="space-y-2">
-                        <Label htmlFor="tenant-search">Search</Label>
+                        <Label htmlFor="tenant-search">
+                            {serverSearch ? 'Search all tenants' : 'Search'}
+                        </Label>
                         <Input
                             id="tenant-search"
                             onChange={(event) => setQuery(event.target.value)}
@@ -83,7 +109,9 @@ export default function TenantListTable({
                         />
                     </div>
                     <div className="space-y-2">
-                        <Label htmlFor="tenant-status-filter">Status</Label>
+                        <Label htmlFor="tenant-status-filter">
+                            {serverSearch ? 'Status (this page)' : 'Status'}
+                        </Label>
                         <select
                             className="native-select"
                             id="tenant-status-filter"

@@ -68,16 +68,18 @@ public class PlatformTenantController {
      *
      * <p>Previously the first 1000 tenants with no way to page further (#438).
      *
-     * @param page zero-based page index
-     * @param size page size, 1-100
+     * @param page  zero-based page index
+     * @param size  page size, 1-100
+     * @param q     optional estate-wide search over name, slug and custom domains
      * @return the page of tenants, with paging metadata in the envelope
      */
     @GetMapping
     ResponseEntity<Response<TenantListResponse>> listTenants(
             @RequestParam(defaultValue = "0") @Min(0) int page,
-            @RequestParam(defaultValue = "50") @Min(1) @Max(100) int size
+            @RequestParam(defaultValue = "50") @Min(1) @Max(100) int size,
+            @RequestParam(required = false) @Size(max = 100) String q
     ) {
-        TenantPage tenantPage = tenantManagementService.listTenants(page, size);
+        TenantPage tenantPage = tenantManagementService.listTenants(page, size, q);
         return ResponseEntity.ok(Response.ok(
                 new TenantListResponse(tenantPage.content()),
                 Map.of(

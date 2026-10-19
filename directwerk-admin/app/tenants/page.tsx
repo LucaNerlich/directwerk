@@ -19,15 +19,21 @@ const PAGE_SIZE = 25
 
 export default function TenantsPage(): React.JSX.Element {
     const [page, setPage] = useState(0)
+    const [searchQuery, setSearchQuery] = useState('')
     const {
         data: tenantsPage,
         error,
         isLoading,
         reload: reloadTenants,
-    } = usePlatformQuery(() => getPlatformTenantsPage(page, PAGE_SIZE), {
+    } = usePlatformQuery(() => getPlatformTenantsPage(page, PAGE_SIZE, searchQuery), {
         fallbackError: 'Could not load tenants.',
-        queryKey: String(page),
+        queryKey: `${page}:${searchQuery}`,
     })
+
+    function applySearch(nextQuery: string): void {
+        setSearchQuery(nextQuery.trim())
+        setPage(0)
+    }
 
     const tenants = tenantsPage?.content ?? null
     const hasPreviousPage = tenantsPage !== null && tenantsPage.page > 0
@@ -66,7 +72,11 @@ export default function TenantsPage(): React.JSX.Element {
             {tenants ? (
                 <>
                     {tenants.length > 0 ? (
-                        <TenantListTable tenants={tenants} />
+                        <TenantListTable
+                            onQueryChange={applySearch}
+                            query={searchQuery}
+                            tenants={tenants}
+                        />
                     ) : (
                         <EmptyState
                             description="Create the first tenant to begin."
