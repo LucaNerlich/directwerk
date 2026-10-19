@@ -50,6 +50,22 @@ class DelegatingEmailTemplateSourceTest {
     }
 
     @Test
+    void appliesTheTenantOverrideToTheTokenizedArticleNewsletter() {
+        TenantContentEmailTemplate override = new TenantContentEmailTemplate();
+        override.setSubjectTemplate("Custom newsletter subject");
+        override.setBodyHtml("<p>Custom newsletter body</p>");
+        when(tenantContentEmailTemplateService.findTemplate(TENANT_ID, ContentType.ARTICLE))
+                .thenReturn(Optional.of(override));
+
+        assertThat(source.resolveSubject(EmailTemplate.NEWSLETTER_ARTICLE_PUBLISHED, TENANT_ID))
+                .isEqualTo("Custom newsletter subject");
+        assertThat(source.resolveBody(EmailTemplate.NEWSLETTER_ARTICLE_PUBLISHED, TENANT_ID))
+                .isEqualTo("<p>Custom newsletter body</p>");
+        verify(classpathEmailTemplateSource, never()).resolveSubject(any(), any());
+        verify(classpathEmailTemplateSource, never()).resolveBody(any(), any());
+    }
+
+    @Test
     void fallsBackToClasspathWhenNoTenantOverrideExists() {
         when(tenantContentEmailTemplateService.findTemplate(TENANT_ID, ContentType.EPISODE))
                 .thenReturn(Optional.empty());
