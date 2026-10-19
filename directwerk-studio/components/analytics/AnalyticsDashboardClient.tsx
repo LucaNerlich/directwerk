@@ -4,7 +4,6 @@ import {useEffect, useState} from 'react'
 
 import {formatMoney} from '@directwerk/api/format'
 import {apiErrorStatus} from '@directwerk/api/envelope'
-import {getClientTenantHost} from '@directwerk/api/tenant'
 import type {
     ArticleSummary,
     EpisodeSummary,
@@ -226,7 +225,6 @@ export default function AnalyticsDashboardClient({
             setBillingUnavailable(false)
             setIsLoading(true)
             try {
-                const host = getClientTenantHost()
                 const [loadedArticles, loadedEpisodes, loadedSeries] = await Promise.all([
                     showWrite ? listArticles() : Promise.resolve([]),
                     showPodcast ? listEpisodes() : Promise.resolve([]),

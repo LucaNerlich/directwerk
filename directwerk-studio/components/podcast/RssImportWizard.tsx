@@ -326,7 +326,6 @@ export default function RssImportWizard(): React.JSX.Element {
         setErrorMessage(null)
         setStreamProgress(null)
         setBusy(true)
-        const host = getClientTenantHost()
         let audioAssetId: number | undefined
         let coverAssetId: number | undefined
         try {

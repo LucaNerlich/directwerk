@@ -21,7 +21,6 @@ import {listFormats} from '@/lib/api/catalogApi'
 import {listEpisodes, listSeries} from '@/lib/api/podcastApi'
 import type {SetupStep} from '@/lib/studio/setupStep'
 import type {EpisodeSummary, FormatSummary, SeriesSummary} from '@directwerk/api/types'
-import {getClientTenantHost} from '@directwerk/api/tenant'
 import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
 
 export default function PodcastDeskClient(): React.JSX.Element {
@@ -41,7 +40,6 @@ export default function PodcastDeskClient(): React.JSX.Element {
 
         async function load(): Promise<void> {
             try {
-                const host = getClientTenantHost()
                 const [loadedSeries, loadedFormats, loadedEpisodes] = await Promise.all([
                     listSeries(),
                     listFormats(),

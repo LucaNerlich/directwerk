@@ -17,7 +17,6 @@ import {t} from '@/lib/i18n/dictionary'
 import {apiErrorStatus} from '@directwerk/api/envelope'
 import {formatBytes} from '@directwerk/api/format/bytes'
 import type {IntegrationsStatus, MediaStorageSummary} from '@directwerk/api/types'
-import {getClientTenantHost} from '@directwerk/api/tenant'
 import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
 
 function stripeLabel(
@@ -59,7 +58,6 @@ export default function OverviewOpsWidgets(): React.JSX.Element {
         setErrorMessage(null)
         setIntegrationsForbidden(false)
 
-        const host = getClientTenantHost()
 
         void Promise.allSettled([
             getStorageSummary(),

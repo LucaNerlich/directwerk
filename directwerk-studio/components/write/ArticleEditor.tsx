@@ -43,7 +43,6 @@ import {usePublicationEditorWorkflow} from '@/lib/publication/usePublicationEdit
 import {isSlugTaken} from '@/lib/publication/slugAvailability'
 import {useDefaultNotifySubscribers} from '@/lib/publication/useDefaultNotifySubscribers'
 import {useSiteConfig} from '@/lib/site/SiteConfigProvider'
-import {getClientTenantHost} from '@directwerk/api/tenant'
 import {articlePublishBlockReason} from '@/lib/write/articlePreflight'
 import {publicArticlePageUrl} from '@directwerk/api/urls/publicContentUrls'
 import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
@@ -126,7 +125,6 @@ export default function ArticleEditor({articleId}: {articleId?: number}) {
 
     const persistTags = useCallback(
         async (current: ArticleDetail): Promise<ArticleDetail> => {
-            const host = getClientTenantHost()
             let updated = await replaceArticleCategories(
                 current.id,
                 Array.from(selectedCategoryIds),
@@ -147,7 +145,6 @@ export default function ArticleEditor({articleId}: {articleId?: number}) {
 
     const saveImpl = useCallback(
         async (): Promise<ArticleDetail | null> => {
-            const host = getClientTenantHost()
             const resolvedSlug = slug.trim() || suggestSlug(title) || 'beitrag'
             const payload = {
                 title: title.trim() || 'Ohne Titel',
@@ -250,7 +247,6 @@ export default function ArticleEditor({articleId}: {articleId?: number}) {
         })
 
         if (articleId === undefined) {
-            const host = getClientTenantHost()
             Promise.all([
                 listCategories(),
                 showNotify ? listNewsletterLists() : Promise.resolve([] as NewsletterListSummary[]),
@@ -285,7 +281,6 @@ export default function ArticleEditor({articleId}: {articleId?: number}) {
 
         async function load(): Promise<void> {
             try {
-                const host = getClientTenantHost()
                 const [categoryList, newsletterLists, loaded] = await Promise.all([
                     listCategories(),
                     showNotify ? listNewsletterLists() : Promise.resolve([] as NewsletterListSummary[]),
