@@ -58,11 +58,16 @@ export function usePublicationEditorWorkflow<T extends {
         return publicationId !== undefined && isDraftPublication()
     }, [publicationId, isDraftPublication])
 
+    const dirtyRevisionRef = useRef(0)
+
     const markDirty = useCallback(() => {
         if (!isDraftPublication()) {
             return
         }
         setIsDirty(true)
+        // #557: mirror the counter so a save can compare it after the round trip — React state
+        // read inside the callback would be the value captured when the request started.
+        dirtyRevisionRef.current += 1
         setDirtyRevision((current) => current + 1)
         setSaveHint('Ungespeicherte Änderungen')
     }, [isDraftPublication])
@@ -87,16 +92,23 @@ export function usePublicationEditorWorkflow<T extends {
                 setIsSaving(true)
             }
             setErrorMessage(null)
+            const revisionAtStart = dirtyRevisionRef.current
 
             try {
                 const result = await saveImpl(options)
                 if (result !== null) {
-                    setIsDirty(false)
-                    setSaveHint(
-                        options?.autosave === true
-                            ? 'Automatisch gespeichert'
-                            : 'Gespeichert',
-                    )
+                    // #557: only clear the dirty flag when nothing was typed while the request was
+                    // in flight — otherwise the editor reported "Automatisch gespeichert" while the
+                    // last edit was never sent, and the autosave effect could not re-arm because
+                    // isDirty had been reset.
+                    if (dirtyRevisionRef.current === revisionAtStart) {
+                        setIsDirty(false)
+                        setSaveHint(
+                            options?.autosave === true
+                                ? 'Automatisch gespeichert'
+                                : 'Gespeichert',
+                        )
+                    }
                 }
                 return result
             } catch (error) {
