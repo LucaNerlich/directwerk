@@ -7,43 +7,13 @@ import {Alert, AlertDescription} from '@directwerk/ui/components/alert'
 import {Button} from '@directwerk/ui/components/button'
 import {AUTH_REQUIRED} from '@directwerk/api/constants'
 import {ensureAuthenticated} from '@/lib/auth/session'
-import {getAccessToken} from '@/lib/auth/tokenStore'
 import {defaultLocale} from '@/lib/i18n/config'
 import {useDictionary, useLocale} from '@/lib/i18n/LocaleProvider'
 import {localeFromPathname, localizedPath, stripLocalePrefix} from '@/lib/i18n/paths'
 
-const PUBLIC_PATHS = new Set([
-    '/',
-    '/login',
-    '/register',
-    '/forgot-password',
-    '/reset-password',
-    '/accept-invite',
-    '/episodes',
-    '/articles',
-    '/pricing',
-    '/feeds',
-    '/article-feeds',
-    '/newsletter',
-    '/imprint',
-    '/privacy',
-    '/checkout/cancel',
-])
-
+// Issue #554: only these paths require a session. Everything else — including unknown URLs
+// (the branded 404) and routes added later — renders without a login redirect.
 const PROTECTED_PATHS = new Set(['/account', '/downloads'])
-
-function isPublicPath(pathname: string): boolean {
-    const bare = stripLocalePrefix(pathname)
-    if (PUBLIC_PATHS.has(bare)) {
-        return true
-    }
-    return (
-        bare.startsWith('/articles/') ||
-        bare.startsWith('/episodes/') ||
-        bare.startsWith('/feeds/') ||
-        bare.startsWith('/newsletter/')
-    )
-}
 
 function isProtectedPath(pathname: string): boolean {
     return PROTECTED_PATHS.has(stripLocalePrefix(pathname))
@@ -60,7 +30,7 @@ export default function AuthBootstrap({
     const dictionary = useDictionary()
     const pathLang = localeFromPathname(pathname) ?? lang ?? defaultLocale
     const [readyPathname, setReadyPathname] = useState<string | null>(() =>
-        isPublicPath(pathname) ? pathname : null,
+        isProtectedPath(pathname) ? null : pathname,
     )
     const [transientError, setTransientError] = useState(false)
     const [attempt, setAttempt] = useState(0)
@@ -69,21 +39,15 @@ export default function AuthBootstrap({
         let active = true
 
         async function bootstrap(): Promise<void> {
-            if (isPublicPath(pathname) && !isProtectedPath(pathname)) {
+            if (!isProtectedPath(pathname)) {
                 if (active) {
                     setReadyPathname(pathname)
                 }
                 return
             }
 
-            if (getAccessToken() === null) {
-                if (active) {
-                    setReadyPathname(null)
-                    router.replace(localizedPath(pathLang, '/login'))
-                }
-                return
-            }
-
+            // No early "no access token" redirect: on a protected path a fresh tab may hold
+            // only the refresh cookie, and ensureAuthenticated() signs it in (issue #554).
             try {
                 await ensureAuthenticated()
                 if (active) {
