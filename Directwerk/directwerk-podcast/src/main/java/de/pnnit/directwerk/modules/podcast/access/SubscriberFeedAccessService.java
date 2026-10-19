@@ -1,10 +1,11 @@
 package de.pnnit.directwerk.modules.podcast.access;
 
+import de.pnnit.directwerk.modules.digital.access.AbstractFeedAccessService;
+import de.pnnit.directwerk.modules.podcast.api.EpisodeAccessApi;
 import de.pnnit.directwerk.modules.podcast.entity.Episode;
 import de.pnnit.directwerk.modules.podcast.feed.SubscriberFeed;
 import de.pnnit.directwerk.modules.podcast.feed.SubscriberFeedFormatMatcher;
 import de.pnnit.directwerk.modules.podcast.service.SubscriberEpisodeService;
-import de.pnnit.directwerk.modules.podcast.api.EpisodeAccessApi;
 import java.util.List;
 import java.util.Set;
 import lombok.RequiredArgsConstructor;
@@ -13,7 +14,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
-public class SubscriberFeedAccessService implements SubscriberFeedAccess {
+public class SubscriberFeedAccessService
+        extends AbstractFeedAccessService<Episode, SubscriberFeed>
+        implements SubscriberFeedAccess {
 
     private final SubscriberEpisodeService subscriberEpisodeService;
     private final EpisodeAccessApi episodeAccessApi;
@@ -24,9 +27,7 @@ public class SubscriberFeedAccessService implements SubscriberFeedAccess {
             Long tenantId,
             Long userId,
             SubscriberFeed feed) {
-        return subscriberEpisodeService.listEntitledEpisodes(tenantId, userId).stream()
-                .filter(episode -> SubscriberFeedFormatMatcher.includes(feed, episode))
-                .toList();
+        return listEntitled(tenantId, userId, feed);
     }
 
     @Override
@@ -35,9 +36,7 @@ public class SubscriberFeedAccessService implements SubscriberFeedAccess {
             Long tenantId,
             Long userId,
             Set<Long> activeFormatIds) {
-        return subscriberEpisodeService.listEntitledEpisodes(tenantId, userId).stream()
-                .filter(episode -> SubscriberFeedFormatMatcher.episodeMatchesSelectedFormats(episode, activeFormatIds))
-                .toList();
+        return listEntitledForSelection(tenantId, userId, activeFormatIds);
     }
 
     @Override
@@ -47,7 +46,26 @@ public class SubscriberFeedAccessService implements SubscriberFeedAccess {
             Long userId,
             SubscriberFeed feed,
             Episode episode) {
-        return SubscriberFeedFormatMatcher.includes(feed, episode)
-                && episodeAccessApi.hasAccess(tenantId, userId, episode.getId());
+        return hasAccess(tenantId, userId, feed, episode);
+    }
+
+    @Override
+    protected List<Episode> entitledContent(Long tenantId, Long userId) {
+        return subscriberEpisodeService.listEntitledEpisodes(tenantId, userId);
+    }
+
+    @Override
+    protected boolean matchesFeed(SubscriberFeed feed, Episode episode) {
+        return SubscriberFeedFormatMatcher.includes(feed, episode);
+    }
+
+    @Override
+    protected boolean matchesSelection(Episode episode, Set<Long> selectionIds) {
+        return SubscriberFeedFormatMatcher.episodeMatchesSelectedFormats(episode, selectionIds);
+    }
+
+    @Override
+    protected boolean hasContentAccess(Long tenantId, Long userId, Episode episode) {
+        return episodeAccessApi.hasAccess(tenantId, userId, episode.getId());
     }
 }

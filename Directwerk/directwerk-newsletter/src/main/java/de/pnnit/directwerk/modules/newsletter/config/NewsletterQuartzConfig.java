@@ -2,11 +2,9 @@ package de.pnnit.directwerk.modules.newsletter.config;
 
 import de.pnnit.directwerk.modules.newsletter.quartz.DefaultArticleFeedProvisioningJob;
 import de.pnnit.directwerk.modules.newsletter.quartz.ScheduledArticlePublishJob;
-import org.quartz.JobBuilder;
+import de.pnnit.directwerk.modules.queue.quartz.QuartzJobDefinitions;
 import org.quartz.JobDetail;
-import org.quartz.SimpleScheduleBuilder;
 import org.quartz.Trigger;
-import org.quartz.TriggerBuilder;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -24,10 +22,7 @@ public class NewsletterQuartzConfig {
 
     @Bean
     JobDetail scheduledArticlePublishJobDetail() {
-        return JobBuilder.newJob(ScheduledArticlePublishJob.class)
-                .withIdentity(JOB_IDENTITY)
-                .storeDurably()
-                .build();
+        return QuartzJobDefinitions.durableJob(ScheduledArticlePublishJob.class, JOB_IDENTITY);
     }
 
     @Bean
@@ -35,22 +30,16 @@ public class NewsletterQuartzConfig {
             @Qualifier("scheduledArticlePublishJobDetail") JobDetail scheduledArticlePublishJobDetail,
             @Value("${directwerk.newsletter.scheduled-publish-interval-seconds:60}") int intervalSeconds
     ) {
-        return TriggerBuilder.newTrigger()
-                .forJob(scheduledArticlePublishJobDetail)
-                .withIdentity(TRIGGER_IDENTITY)
-                .withSchedule(SimpleScheduleBuilder.simpleSchedule()
-                        .withIntervalInSeconds(intervalSeconds)
-                        .repeatForever())
-                .startNow()
-                .build();
+        return QuartzJobDefinitions.repeatingTrigger(
+                scheduledArticlePublishJobDetail,
+                TRIGGER_IDENTITY,
+                intervalSeconds
+        );
     }
 
     @Bean
     JobDetail defaultArticleFeedProvisioningJobDetail() {
-        return JobBuilder.newJob(DefaultArticleFeedProvisioningJob.class)
-                .withIdentity(DEFAULT_FEED_JOB_IDENTITY)
-                .storeDurably()
-                .build();
+        return QuartzJobDefinitions.durableJob(DefaultArticleFeedProvisioningJob.class, DEFAULT_FEED_JOB_IDENTITY);
     }
 
     @Bean
@@ -58,13 +47,10 @@ public class NewsletterQuartzConfig {
             @Qualifier("defaultArticleFeedProvisioningJobDetail") JobDetail defaultArticleFeedProvisioningJobDetail,
             @Value("${directwerk.newsletter.default-feed-provisioning-interval-seconds:300}") int intervalSeconds
     ) {
-        return TriggerBuilder.newTrigger()
-                .forJob(defaultArticleFeedProvisioningJobDetail)
-                .withIdentity(DEFAULT_FEED_TRIGGER_IDENTITY)
-                .withSchedule(SimpleScheduleBuilder.simpleSchedule()
-                        .withIntervalInSeconds(intervalSeconds)
-                        .repeatForever())
-                .startNow()
-                .build();
+        return QuartzJobDefinitions.repeatingTrigger(
+                defaultArticleFeedProvisioningJobDetail,
+                DEFAULT_FEED_TRIGGER_IDENTITY,
+                intervalSeconds
+        );
     }
 }
