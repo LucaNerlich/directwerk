@@ -3,7 +3,6 @@ import {describe, expect, it} from 'vitest'
 import {testDictionary} from '@/lib/i18n/testDictionary'
 
 import {
-    userFacingAccountError,
     userFacingBillingError,
     userFacingDownloadsError,
     userFacingFeedsError,
@@ -46,9 +45,6 @@ describe('userFacingBillingError', () => {
         expect(userFacingDownloadsError(new Error('Failed to fetch'), testDictionary.errors)).toBe(
             'Bonusdateien konnten nicht geladen werden. Bitte versuche es später erneut.',
         )
-        expect(userFacingAccountError(new Error('HTTP 500'), testDictionary.errors)).toBe(
-            'Konto konnte nicht geladen werden. Bitte versuche es später erneut.',
-        )
     })
 
     it('does not expose arbitrary localized backend messages', () => {
@@ -81,9 +77,6 @@ describe('userFacingBillingError', () => {
             })
         const backendMessage = 'Module SUBSCRIPTION is not active for this tenant'
 
-        expect(userFacingAccountError(coded(backendMessage), testDictionary.errors)).toBe(
-            'Mitgliedschaften sind bei diesem Anbieter deaktiviert. Profil, Zugang und Feeds bleiben verfügbar.',
-        )
         expect(userFacingFeedsError(coded(backendMessage), testDictionary.errors)).toBe(
             'Private Feeds sind bei diesem Anbieter deaktiviert.',
         )
@@ -100,8 +93,6 @@ describe('userFacingBillingError', () => {
             new Error('Module SUBSCRIPTION is not active for this tenant'),
             {code: 'FEATURE_NOT_ENABLED', status: 403},
         )
-
-        expect(userFacingAccountError(error, testDictionary.errors)).not.toContain('Module SUBSCRIPTION')
     })
 })
 

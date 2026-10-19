@@ -116,14 +116,6 @@ export function userFacingDownloadsError(
     return userFacingBillingError(error, 'downloads', errors)
 }
 
-/** Account/profile/access errors. */
-export function userFacingAccountError(
-    error: unknown,
-    errors: ErrorCopy,
-): string {
-    return userFacingBillingError(error, 'account', errors)
-}
-
 /**
  * Generic mapping with a caller-provided fallback.
  * Backend/transport messages never reach the UI, so the error is deliberately

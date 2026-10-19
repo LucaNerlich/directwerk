@@ -4,12 +4,9 @@ import {
     publicArticleFeedUrl,
     publicEnclosure,
     publicPodcastFeedUrl,
-    publicSeriesFeedUrl,
     privateEnclosure,
     resolvePublicArticleFeedUrl,
     resolvePublicPodcastFeedUrl,
-    seriesFeed,
-    subscriberFeed,
     tenantArticleFeed,
     tenantPodcastFeed,
 } from '../src/urls/feedUrls'
@@ -39,18 +36,6 @@ describe('feedUrls', () => {
         )
     })
 
-    it('matches Java seriesFeed', () => {
-        expect(seriesFeed('http://localhost:8080', 'alpha', 'main-show')).toBe(
-            'http://localhost:8080/feeds/alpha/main-show.xml',
-        )
-    })
-
-    it('matches Java subscriberFeed', () => {
-        expect(subscriberFeed('https://alpha.example.test', 'alpha', 'tok_123')).toBe(
-            'https://alpha.example.test/feeds/alpha/u/tok_123.xml',
-        )
-    })
-
     it('builds enclosure URLs', () => {
         expect(publicEnclosure('https://demo.test', 'tenant', 'episode-1')).toBe(
             'https://demo.test/feeds/tenant/e/episode-1.mp3',
@@ -58,12 +43,6 @@ describe('feedUrls', () => {
         expect(
             privateEnclosure('https://demo.test', 'tenant', 'tok', 'episode-1'),
         ).toBe('https://demo.test/feeds/tenant/u/tok/e/episode-1.mp3')
-    })
-
-    it('uses http with API port for .localhost hosts in browser helpers', () => {
-        expect(publicSeriesFeedUrl('alpha-a.localhost', 'alpha-show-a', 'main-show')).toBe(
-            'http://alpha-a.localhost:8080/feeds/alpha-show-a/main-show.xml',
-        )
     })
 
     it('builds the tenant-wide public podcast feed URL on loopback', () => {
@@ -78,12 +57,6 @@ describe('feedUrls', () => {
         )
     })
 
-    it('encodes series slug path segments', () => {
-        expect(publicSeriesFeedUrl('alpha-a.localhost', 'alpha-show-a', 'a b')).toBe(
-            'http://alpha-a.localhost:8080/feeds/alpha-show-a/a%20b.xml',
-        )
-    })
-
     it('encodes tenant slug path segments', () => {
         expect(tenantPodcastFeed('https://alpha.example.test', 'alpha show')).toBe(
             'https://alpha.example.test/feeds/alpha%20show/podcast.xml',
@@ -93,13 +66,7 @@ describe('feedUrls', () => {
         )
     })
 
-    it('encodes every path segment of series, subscriber, and enclosure URLs', () => {
-        expect(seriesFeed('https://alpha.example.test', 'alpha show', 'my show')).toBe(
-            'https://alpha.example.test/feeds/alpha%20show/my%20show.xml',
-        )
-        expect(
-            subscriberFeed('https://alpha.example.test', 'alpha show', 'tok 123'),
-        ).toBe('https://alpha.example.test/feeds/alpha%20show/u/tok%20123.xml')
+    it('encodes every path segment of enclosure URLs', () => {
         expect(
             publicEnclosure('https://demo.test', 'my tenant', 'episode 1'),
         ).toBe('https://demo.test/feeds/my%20tenant/e/episode%201.mp3')

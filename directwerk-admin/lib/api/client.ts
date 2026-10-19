@@ -48,17 +48,6 @@ export async function deletePlatformData<T>(path: string): Promise<T> {
     return platformApi.delete<T>(path)
 }
 
-export async function getMemberEffectiveRights(
-    tenantId: string,
-    userId: number,
-): Promise<EffectiveRights> {
-    return platformApi.getEnvelope(
-        `tenants/${tenantId}/users/${userId}/effective-rights`,
-        parseEffectiveRightsEnvelope,
-        'Invalid rights response.',
-    )
-}
-
 /**
  * Effective rights for several members in one request (#345). The tenant page needs a row per
  * editor; calling the single-member helper per editor cost one HTTP round trip each.
