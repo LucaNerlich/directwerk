@@ -138,6 +138,7 @@ export default function ContactFormSection(): React.JSX.Element {
 
                         <div className="rounded-lg border border-primary-foreground/20 bg-primary-foreground/95 p-3 text-primary">
                             <AltchaWidget
+                                failureLabel={copy.altchaFailed}
                                 onVerifiedChange={setCaptchaVerified}
                                 widgetRef={setAltchaWidget}
                             />

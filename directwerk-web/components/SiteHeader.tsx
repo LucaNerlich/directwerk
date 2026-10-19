@@ -175,6 +175,9 @@ export default function SiteHeader({
             navigation={navigation}
             mobileNavigation={navigation}
             actions={actions}
+            skipLinkLabel={dictionary.nav.skipToContent}
+            navigationTriggerLabel={dictionary.nav.menuOpen}
+            navigationLabel={dictionary.nav.navigation}
         >
             {children}
             <SiteFooter />

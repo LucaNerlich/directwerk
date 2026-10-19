@@ -21,6 +21,9 @@ export default function SiteShell({
     actions,
     children,
     className,
+    skipLinkLabel = 'Zum Inhalt springen',
+    navigationTriggerLabel = 'Menü öffnen',
+    navigationLabel = 'Navigation',
 }: {
     brand: ReactNode
     navigation: ReactNode
@@ -28,6 +31,12 @@ export default function SiteShell({
     actions?: ReactNode
     children: ReactNode
     className?: string
+    /** Visible-on-focus skip link text. */
+    skipLinkLabel?: string
+    /** Accessible name of the mobile menu trigger. */
+    navigationTriggerLabel?: string
+    /** Title of the mobile navigation sheet. */
+    navigationLabel?: string
 }): React.JSX.Element {
     return (
         <div className={cn('min-h-screen bg-background', className)}>
@@ -35,7 +44,7 @@ export default function SiteShell({
                 className="sr-only z-50 rounded-md bg-primary px-4 py-2 text-primary-foreground focus:not-sr-only focus:fixed focus:left-4 focus:top-4"
                 href="#main-content"
             >
-                Zum Inhalt springen
+                {skipLinkLabel}
             </a>
             <header className="sticky top-0 z-40 border-b bg-background/92 backdrop-blur-xl">
                 <div className="mx-auto flex h-16 max-w-6xl items-center gap-4 px-4 sm:px-6">
@@ -50,7 +59,7 @@ export default function SiteShell({
                         <SheetTrigger
                             render={
                                 <Button
-                                    aria-label="Menü öffnen"
+                                    aria-label={navigationTriggerLabel}
                                     className="ml-auto md:hidden"
                                     size="icon"
                                     variant="outline"
@@ -62,7 +71,7 @@ export default function SiteShell({
                         <SheetContent className="w-[min(22rem,88vw)]" side="right">
                             <SheetHeader>
                                 <SheetTitle>{brand}</SheetTitle>
-                                <SheetDescription>Navigation</SheetDescription>
+                                <SheetDescription>{navigationLabel}</SheetDescription>
                             </SheetHeader>
                             <nav className="flex flex-col gap-1 px-4">
                                 {mobileNavigation ?? navigation}

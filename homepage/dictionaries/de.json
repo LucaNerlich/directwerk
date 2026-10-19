@@ -250,6 +250,7 @@
         "submitting": "Wird gesendet…",
         "success": "Danke — deine Nachricht ist unterwegs. Wir melden uns per E-Mail.",
         "apiExcerpt": "API-Auszug",
+        "altchaFailed": "Das Sicherheits-Widget konnte nicht geladen werden. Bitte lade die Seite neu.",
         "captchaRequired": "Bitte bestätige die Sicherheitsprüfung.",
         "errors": {
             "CAPTCHA_INVALID": "Die Sicherheitsprüfung ist abgelaufen. Bitte erneut versuchen.",
