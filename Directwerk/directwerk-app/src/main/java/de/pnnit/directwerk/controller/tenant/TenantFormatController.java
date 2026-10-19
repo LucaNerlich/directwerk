@@ -1,5 +1,6 @@
 package de.pnnit.directwerk.controller.tenant;
 
+import de.pnnit.directwerk.api.dto.ContentTextLimits;
 import de.pnnit.directwerk.api.response.Response;
 import de.pnnit.directwerk.modules.core.RequiresModule;
 import de.pnnit.directwerk.modules.podcast.PodcastModule;
@@ -111,7 +112,7 @@ public class TenantFormatController {
             @Pattern(regexp = "^[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,62}[a-zA-Z0-9])?$")
             String slug,
             @NotBlank @Size(max = 255) String name,
-            String description,
+            @Size(max = ContentTextLimits.DESCRIPTION_MAX) String description,
             @Min(0) Integer requiredLevelSortOrder,
             @Min(0) Integer sortOrder,
             @Min(1) Long coverAssetId
@@ -122,7 +123,7 @@ public class TenantFormatController {
             @Pattern(regexp = "^[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,62}[a-zA-Z0-9])?$")
             String slug,
             @Size(max = 255) String name,
-            String description,
+            @Size(max = ContentTextLimits.DESCRIPTION_MAX) String description,
             @Min(0) Integer requiredLevelSortOrder,
             @Min(0) Integer sortOrder,
             Boolean active,

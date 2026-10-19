@@ -1,6 +1,7 @@
 package de.pnnit.directwerk.controller.newsletter;
 
 import de.pnnit.directwerk.api.MediaAssetViewMapper;
+import de.pnnit.directwerk.api.dto.ContentTextLimits;
 import de.pnnit.directwerk.api.dto.MediaAssetView;
 import de.pnnit.directwerk.api.response.Response;
 import de.pnnit.directwerk.controller.newsletter.ArticleController.ArticleView;
@@ -262,8 +263,8 @@ public class ArticleImportController {
             @Pattern(regexp = "^[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,62}[a-zA-Z0-9])?$")
             String slug,
             @NotBlank @Size(max = 255) String title,
-            String body,
-            String excerpt,
+            @Size(max = ContentTextLimits.BODY_MAX) String body,
+            @Size(max = ContentTextLimits.EXCERPT_MAX) String excerpt,
             AccessPolicy accessPolicy,
             @Min(0) Integer requiredLevelSortOrder,
             Set<@Min(1) Long> categoryIds,
