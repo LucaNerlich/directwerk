@@ -15,14 +15,26 @@ public interface PodcastSeriesRepository extends JpaRepository<PodcastSeries, Lo
     @EntityGraph(attributePaths = {"coverAsset", "coverAsset.tenant"})
     List<PodcastSeries> findByTenantIdOrderByTitleAscIdAsc(Long tenantId);
 
-    /** Paged variant (#310) — bounds the response instead of materialising every row. */
-        List<PodcastSeries> findByTenantIdOrderByTitleAscIdAsc(Long tenantId, Pageable pageable);
+    /**
+     * Paged variant (#310) — bounds the response instead of materialising every row.
+     * Review finding on #531: no graph here. The studio series view reads only
+     * {@code coverAsset.getId()} ({@code SeriesController.toView}), so fetching the asset and its
+     * tenant eagerly was dead weight — and the test that was supposed to pin it passed with the
+     * annotations removed.
+     */
+    List<PodcastSeries> findByTenantIdOrderByTitleAscIdAsc(Long tenantId, Pageable pageable);
 
     @EntityGraph(attributePaths = {"coverAsset", "coverAsset.tenant"})
     List<PodcastSeries> findByTenantIdAndStatusOrderByTitleAscIdAsc(Long tenantId, SeriesStatus status);
 
-    /** Paged variant (#310) — bounds the response instead of materialising every row. */
-        List<PodcastSeries> findByTenantIdAndStatusOrderByTitleAscIdAsc(Long tenantId, SeriesStatus status, Pageable pageable);
+    /**
+     * Paged variant (#310) — bounds the response instead of materialising every row.
+     * Review finding on #531: no graph here. The studio series view reads only
+     * {@code coverAsset.getId()} ({@code SeriesController.toView}), so fetching the asset and its
+     * tenant eagerly was dead weight — and the test that was supposed to pin it passed with the
+     * annotations removed.
+     */
+    List<PodcastSeries> findByTenantIdAndStatusOrderByTitleAscIdAsc(Long tenantId, SeriesStatus status, Pageable pageable);
 
     @EntityGraph(attributePaths = {"coverAsset", "coverAsset.tenant"})
     Optional<PodcastSeries> findByIdAndTenantId(Long id, Long tenantId);
