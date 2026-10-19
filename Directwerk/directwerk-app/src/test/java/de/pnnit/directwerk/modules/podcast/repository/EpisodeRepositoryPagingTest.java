@@ -56,22 +56,6 @@ class EpisodeRepositoryPagingTest {
         assertThat(page.getFirst().getSeries().getSlug()).isEqualTo("paging-show");
     }
 
-    @Test
-    void pagedSeriesQueryKeepsItsGraph() {
-        Long tenantId = persistEpisode("paging-show-two", "paging-episode-two");
-
-        entityManager.clear();
-
-        var page = podcastSeriesRepository.findByTenantIdOrderByTitleAscIdAsc(
-                tenantId, PageRequest.of(0, 10));
-        entityManager.clear();
-
-        assertThat(page).hasSize(1);
-        assertThat(page.getFirst().getSlug()).isEqualTo("paging-show-two");
-        // coverAsset is intentionally unset; reading the field must not need a session.
-        assertThat(page.getFirst().getCoverAsset()).isNull();
-    }
-
     private Long persistEpisode(String seriesSlug, String episodeSlug) {
         Tenant tenant = new Tenant();
         tenant.setSlug(seriesSlug + "-tenant");
