@@ -1,11 +1,11 @@
 package de.pnnit.directwerk.modules.core.util;
 
 /**
- * Extracts the originating client IP for server-side analytics attribution.
+ * Shared helpers for the originating client IP (issue #312): the trusted-proxy walk lives in
+ * {@link #firstUntrustedHop}, so callers never trust the left-most forwarded value.
  *
- * <p>The first entry of {@code X-Forwarded-For} wins (proxy chain order), then
- * {@code X-Real-IP}, then the connection's remote address. Blank, {@code unknown},
- * and spoof-prone values never propagate — callers treat {@code null} as unattributed.
+ * <p>Blank and {@code unknown} values never propagate — callers treat {@code null} as
+ * unattributed.</p>
  */
 public final class ClientIpExtractor {
 
@@ -59,33 +59,6 @@ public final class ClientIpExtractor {
     /** Trims a usable value, or returns {@code null} for blank/{@code unknown} input. */
     public static String normalize(String value) {
         return isUsable(value) ? value.trim() : null;
-    }
-
-    public static String extract(String forwardedFor, String realIp, String remoteAddr) {
-        String fromForwardedFor = firstForwardedFor(forwardedFor);
-        if (fromForwardedFor != null) {
-            return fromForwardedFor;
-        }
-        if (isUsable(realIp)) {
-            return realIp.trim();
-        }
-        if (isUsable(remoteAddr)) {
-            return remoteAddr.trim();
-        }
-        return null;
-    }
-
-    private static String firstForwardedFor(String forwardedFor) {
-        if (forwardedFor == null || forwardedFor.isBlank()) {
-            return null;
-        }
-        for (String candidate : forwardedFor.split(",")) {
-            String trimmed = candidate.trim();
-            if (isUsable(trimmed)) {
-                return trimmed;
-            }
-        }
-        return null;
     }
 
     /** Whether a candidate address may be used (non-blank, not the literal "unknown"). */
