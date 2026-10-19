@@ -583,7 +583,7 @@ export const podcastCustomFeedsConfig: CustomFeedsPanelConfig<
     renderOptionLabel: (format, {format: copy}) => (
         <>
             {format.name}
-            {format.requiredLevelSortOrder !== null
+            {format.requiredLevelSortOrder !== null && format.requiredLevelSortOrder > 0
                 ? interpolate(copy.fromLevel, {order: format.requiredLevelSortOrder})
                 : null}
         </>

@@ -38,10 +38,13 @@ export default function LevelSelect({
 
     const resolvedLevels = levels ?? []
     const state = isLoading ? 'loading' : error !== null ? 'error' : 'ready'
-    const selectedValue = value === null ? PUBLIC_VALUE : String(value)
+    // Review finding on #530: the write path stores 0 for "no floor", so both spellings read
+    // as public — otherwise a cleared floor rendered as the nonexistent "Stufe 0".
+    const isPublic = value === null || value === 0
+    const selectedValue = isPublic ? PUBLIC_VALUE : String(value)
     const hasMissingValue =
         state === 'ready' &&
-        value !== null &&
+        !isPublic &&
         !resolvedLevels.some((level) => level.sortOrder === value)
     const selectedLevelLabel = t(levelsDict.stufeSelectedvalue, {selectedValue})
 
