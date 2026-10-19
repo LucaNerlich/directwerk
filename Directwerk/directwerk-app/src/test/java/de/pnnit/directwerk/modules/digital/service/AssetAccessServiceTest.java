@@ -336,7 +336,6 @@ class AssetAccessServiceTest {
                 "hetzner",
                 "eu-central-1",
                 "directwerk-dev",
-                null,
                 "https://nbg1.your-objectstorage.com",
                 false,
                 "key",

@@ -648,7 +648,7 @@ directwerk:
     provider: hetzner          # hetzner | bunny
     region: eu-central
     bucket: directwerk-prod
-    public-bucket:             # optional dual-bucket mode
+    # Single bucket: public vs private is enforced by the key prefix, not a second bucket.
     endpoint: https://nbg1.your-objectstorage.com
     force-path-style: false    # true for Bunny
     access-key: ${DIRECTWERK_STORAGE_ACCESS_KEY}

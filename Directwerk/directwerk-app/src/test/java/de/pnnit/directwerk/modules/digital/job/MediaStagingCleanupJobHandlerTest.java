@@ -88,7 +88,6 @@ class MediaStagingCleanupJobHandlerTest {
                 "bunny",
                 "de",
                 "directwerk-dev",
-                null,
                 "https://de-s3.storage.bunnycdn.com",
                 true,
                 "zone",
