@@ -7,6 +7,8 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import javax.naming.directory.BasicAttribute;
 import javax.naming.directory.BasicAttributes;
 import javax.naming.directory.DirContext;
@@ -32,6 +34,49 @@ class DomainDnsLookupTest {
         };
 
         assertThat(lookup.lookupTxt("example.com")).containsExactly("directwerk-verify=abc123");
+    }
+
+    @Test
+    void aStalledLookupDoesNotBlockAnotherHostsLookup() throws Exception {
+        // #558: one shared single-thread executor serialized every tenant's verification behind
+        // whichever lookup was stalled — cancel(true) cannot free a JNDI socket read.
+        BasicAttribute txt = new BasicAttribute("TXT");
+        txt.add("\"directwerk-verify=fast\"");
+        BasicAttributes attributes = new BasicAttributes();
+        attributes.put(txt);
+        // Review finding: the ordering this test depends on used to rest on a 100 ms sleep, so a
+        // slow start could let the fast lookup run first — and then pass on the regressed
+        // (shared-executor) implementation. The slow answer now signals that it is in flight.
+        CountDownLatch slowLookupStarted = new CountDownLatch(1);
+        DirContext context = mock(DirContext.class);
+        when(context.getAttributes(eq("slow.example.com"), any(String[].class)))
+                .thenAnswer(invocation -> {
+                    slowLookupStarted.countDown();
+                    Thread.sleep(60_000);
+                    throw new IllegalStateException("unreachable");
+                });
+        when(context.getAttributes(eq("fast.example.com"), any(String[].class)))
+                .thenReturn(attributes);
+
+        DomainDnsLookup lookup = new DomainDnsLookup(5_000) {
+            @Override
+            protected DirContext createContext() {
+                return context;
+            }
+        };
+
+        Thread slowCaller = new Thread(() -> lookup.lookupTxt("slow.example.com"), "stalled-lookup");
+        slowCaller.setDaemon(true);
+        slowCaller.start();
+        assertThat(slowLookupStarted.await(5, TimeUnit.SECONDS)).isTrue();
+
+        long startNanos = System.nanoTime();
+        List<String> result = lookup.lookupTxt("fast.example.com");
+        long elapsedMillis = (System.nanoTime() - startNanos) / 1_000_000;
+
+        assertThat(result).containsExactly("directwerk-verify=fast");
+        assertThat(elapsedMillis).isLessThan(5_000);
+        slowCaller.interrupt();
     }
 
     @Test
