@@ -1,4 +1,4 @@
-import {readRequestCookie, sealRefreshToken} from '../auth/cookies'
+import {readRequestCookie, sealRefreshToken, serializeClearCookie} from '../auth/cookies'
 import {readBoundedRequestBody} from '../proxy/boundedBody'
 import {parseTenantHost} from '../proxy/tenantHost'
 import {jsonError, toClientResponse} from '../proxy/upstreamResponse'
@@ -501,5 +501,109 @@ export function createPlatformRefreshRoute(
         } catch {
             return jsonError(messages.upstream, 502)
         }
+    }
+}
+
+/** One best-effort revocation step run before the logout response is built. */
+export type LogoutRevokeStep = (request: Request) => Promise<void>
+
+export interface LogoutRouteConfig {
+    /** Cookies cleared by the 204 response. */
+    clearCookies: readonly string[]
+    /**
+     * Best-effort upstream revocations. Each step is isolated: one failing step never blocks the
+     * others or the local logout (issue #535).
+     */
+    revoke?: readonly LogoutRevokeStep[]
+    /** Reject a present-but-foreign `Origin` (admin panel, issue #435). Missing Origin is allowed. */
+    guardSameOrigin?: boolean
+    /** Return 400 when `X-Tenant-Host` is missing or invalid. */
+    requireTenantHost?: boolean
+}
+
+export interface TenantRefreshTokenRevokerConfig {
+    /** The app's configured SSRF-guarded upstream client. */
+    directwerkFetch: (request: TenantOAuthFetchRequest) => Promise<Response>
+    /** Name of the refresh cookie holding the token to revoke. */
+    refreshCookie: string
+}
+
+/**
+ * Same-origin guard for cookie-clearing endpoints (issue #435): a third-party page must not be
+ * able to log an operator out mid-task. Requests without an Origin (same-origin form posts,
+ * server-to-server) are unaffected.
+ */
+function isSameOriginRequest(request: Request): boolean {
+    const origin = request.headers.get('origin')
+    if (origin === null) {
+        return true
+    }
+    const requestHost = request.headers.get('x-forwarded-host') ?? request.headers.get('host')
+    try {
+        return new URL(origin).host === requestHost
+    } catch {
+        return false
+    }
+}
+
+/**
+ * Builds the standard tenant refresh-token revocation step: read the refresh cookie, resolve the
+ * tenant host from the header, and POST `/oauth2/revoke`. A missing cookie or host is a no-op.
+ */
+export function createTenantRefreshTokenRevoker(
+    config: TenantRefreshTokenRevokerConfig,
+): LogoutRevokeStep {
+    return async function revoke(request: Request): Promise<void> {
+        const refreshToken = readRequestCookie(request, config.refreshCookie)
+        if (refreshToken === null) {
+            return
+        }
+        const tenantHost = parseTenantHost(request.headers.get('x-tenant-host'))
+        if (tenantHost === null) {
+            return
+        }
+        const body = new URLSearchParams({
+            token: refreshToken,
+            token_type_hint: 'refresh_token',
+        })
+        await config.directwerkFetch({
+            path: '/oauth2/revoke',
+            tenantHost,
+            method: 'POST',
+            body: body.toString(),
+            contentType: 'application/x-www-form-urlencoded',
+            useOAuthClient: true,
+        })
+    }
+}
+
+/**
+ * Builds a logout route handler: optional same-origin guard, optional tenant-host requirement,
+ * best-effort revocations, then a 204 that clears the configured cookies with `no-store`.
+ */
+export function createLogoutRoute(
+    config: LogoutRouteConfig,
+): (request: Request) => Promise<Response> {
+    return async function POST(request: Request): Promise<Response> {
+        if (config.guardSameOrigin === true && !isSameOriginRequest(request)) {
+            return new Response(null, {status: 403})
+        }
+        if (config.requireTenantHost === true && parseTenantHost(request.headers.get('x-tenant-host')) === null) {
+            return jsonError('A valid tenant is required.', 400)
+        }
+
+        for (const step of config.revoke ?? []) {
+            try {
+                await step(request)
+            } catch {
+                // Ignore upstream failures; clear the local session regardless.
+            }
+        }
+
+        const headers = new Headers({'Cache-Control': 'no-store', Pragma: 'no-cache'})
+        for (const cookie of config.clearCookies) {
+            headers.append('Set-Cookie', serializeClearCookie(cookie))
+        }
+        return new Response(null, {status: 204, headers})
     }
 }
