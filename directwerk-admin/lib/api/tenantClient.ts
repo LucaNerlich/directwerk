@@ -41,8 +41,11 @@ async function tenantFetchRaw(path: string, init: RequestInit): Promise<unknown>
 }
 
 async function tenantRequest<T>(path: string, init: RequestInit): Promise<T> {
+    // Keep the transport outside the contract guard: createAuthedRequest signals
+    // CONFLICT/REQUEST_FAILED/FORBIDDEN, and callers branch on those codes (#541).
+    const raw = await tenantFetchRaw(path, init)
     try {
-        return parseApiEnvelope<T>(await tenantFetchRaw(path, init))
+        return parseApiEnvelope<T>(raw)
     } catch {
         throw new Error(API_CONTRACT_ERROR)
     }
