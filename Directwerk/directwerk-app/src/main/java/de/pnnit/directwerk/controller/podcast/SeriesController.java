@@ -32,6 +32,7 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 
 @RestController
 @RequiresModule(PodcastModule.KEY)
@@ -93,6 +94,7 @@ public class SeriesController {
      * @param httpRequest the request used to build the RSS feed URL
      * @return the created series, or a conflict response when its slug already exists
      */
+    @ApiResponse(responseCode = "201", description = "Created")
     @PostMapping
     ResponseEntity<Response<SeriesView>> createSeries(
             @Valid @RequestBody CreateSeriesRequest request,

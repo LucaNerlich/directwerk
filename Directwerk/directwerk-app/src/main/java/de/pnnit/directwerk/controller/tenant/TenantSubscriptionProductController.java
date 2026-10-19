@@ -32,6 +32,7 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 
 @RestController
 @RequiresModule(SubscriptionModule.MODULE_KEY)
@@ -64,6 +65,7 @@ public class TenantSubscriptionProductController {
         return ResponseEntity.ok(Response.ok(products));
     }
 
+    @ApiResponse(responseCode = "201", description = "Created")
     @PostMapping
     ResponseEntity<Response<ProductView>> createProduct(@Valid @RequestBody CreateProductRequest request) {
         Long tenantId = TenantContext.requireTenantId();

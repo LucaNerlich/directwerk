@@ -44,6 +44,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import tools.jackson.databind.ObjectMapper;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 
 @RestController
 @RequiresModule(PodcastModule.KEY)
@@ -97,6 +98,7 @@ public class PodcastImportController {
      *
      * @return the created media asset view
      */
+    @ApiResponse(responseCode = "201", description = "Created")
     @PostMapping("/assets")
     ResponseEntity<Response<MediaAssetView>> ingestAsset(@Valid @RequestBody IngestAssetRequest request) {
         boolean waitForCompletion = request.waitForCompletion() == null || request.waitForCompletion();
@@ -136,6 +138,7 @@ public class PodcastImportController {
      * @param request the episode import details
      * @return the imported episode view with HTTP 201 when newly imported, or HTTP 200 when already imported
      */
+    @ApiResponse(responseCode = "201", description = "Created")
     @PostMapping("/episodes")
     ResponseEntity<Response<ImportedEpisodeView>> importEpisode(@Valid @RequestBody ImportEpisodeRequest request) {
         PodcastImportService.ImportedEpisode imported = podcastImportService.importEpisode(
@@ -179,6 +182,7 @@ public class PodcastImportController {
      * @param principal the requesting editor (email recipient)
      * @return the queued job id plus preview counts
      */
+    @ApiResponse(responseCode = "202", description = "Accepted")
     @PostMapping("/bulk")
     ResponseEntity<Response<BulkImportQueuedView>> importBulk(
             @Valid @RequestBody BulkImportRequest request,

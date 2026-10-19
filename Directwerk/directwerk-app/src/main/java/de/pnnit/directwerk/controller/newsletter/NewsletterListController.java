@@ -30,6 +30,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 
 @RestController
 @RequiresModule(EmailNotifyModule.KEY)
@@ -66,6 +67,7 @@ public class NewsletterListController {
         return ResponseEntity.ok(Response.ok(views));
     }
 
+    @ApiResponse(responseCode = "201", description = "Created")
     @PostMapping
     @PreAuthorize("hasRole('TENANT_ADMIN')")
     ResponseEntity<Response<NewsletterListView>> createList(@Valid @RequestBody CreateNewsletterListRequest request) {
@@ -118,6 +120,7 @@ public class NewsletterListController {
         return ResponseEntity.ok(Response.ok(rows));
     }
 
+    @ApiResponse(responseCode = "204", description = "No content")
     @DeleteMapping("/{listId}/subscriptions/{subscriptionId}")
     @PreAuthorize("hasRole('TENANT_ADMIN')")
     ResponseEntity<Void> removeSubscription(

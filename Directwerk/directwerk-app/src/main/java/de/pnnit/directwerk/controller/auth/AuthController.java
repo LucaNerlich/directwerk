@@ -19,6 +19,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 
 @RestController
 @RequestMapping("/api/v1/auth")
@@ -50,6 +51,7 @@ public class AuthController {
     /**
      * @throws de.pnnit.directwerk.multitenancy.TenantNotFoundException if no tenant matches the request host
      */
+    @ApiResponse(responseCode = "201", description = "Created")
     @PostMapping("/register")
     ResponseEntity<Response<RegisterResponse>> register(
             @Valid @RequestBody RegisterRequest body,

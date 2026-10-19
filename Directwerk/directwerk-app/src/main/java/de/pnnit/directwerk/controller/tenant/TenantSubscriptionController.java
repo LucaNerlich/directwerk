@@ -20,6 +20,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 
 @RestController
 @Validated
@@ -33,6 +34,7 @@ public class TenantSubscriptionController {
         this.subscriptionService = subscriptionService;
     }
 
+    @ApiResponse(responseCode = "201", description = "Created")
     @PostMapping
     ResponseEntity<Response<SubscriptionView>> grantSubscription(@Valid @RequestBody GrantSubscriptionRequest request) {
         Long tenantId = TenantContext.requireTenantId();

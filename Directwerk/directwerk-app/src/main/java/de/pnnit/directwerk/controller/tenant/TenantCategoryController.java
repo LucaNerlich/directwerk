@@ -24,6 +24,7 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 
 @RestController
 @RequiresModule(DigitalContentModule.KEY)
@@ -47,6 +48,7 @@ public class TenantCategoryController {
         return ResponseEntity.ok(Response.ok(categories));
     }
 
+    @ApiResponse(responseCode = "201", description = "Created")
     @PostMapping
     @PreAuthorize("hasRole('TENANT_ADMIN')")
     ResponseEntity<Response<CategoryView>> createCategory(@Valid @RequestBody CreateCategoryRequest request) {
